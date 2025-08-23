@@ -1,0 +1,18 @@
+{
+  "name": "metro2-crm",
+  "version": "1.0.0",
+  "description": "Minimal CRM to select Metro 2 violations and generate dispute letters",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "express": "^4.21.2",
+    "multer": "^2.0.2",
+    "nanoid": "^5.1.5",
+    "puppeteer": "^24.17.0"
+  }
+}

@@ -1,0 +1,431 @@
+// public/index.js
+/* Minimal, reliable client for Metro 2 CRM:
+   - Loads consumers & reports
+   - Renders tradelines
+   - Handles Generate → redirects to /letters?job=...
+*/
+
+const $ = (s) => document.querySelector(s);
+const api = (u, o = {}) => fetch(u, o).then(r => r.json()).catch(e => ({ ok:false, error:String(e) }));
+
+let DB = { consumers: [] };
+let currentConsumerId = null;
+let currentReportId = null;
+let CURRENT_REPORT = null;
+
+// ---------------- Utilities ----------------
+function showErr(msg){
+  const e = $("#err");
+  if (!e) { alert(msg); return; }
+  e.textContent = msg || "Something went wrong.";
+  e.classList.remove("hidden");
+  console.error("[UI][ERR]", msg);
+}
+function clearErr(){
+  const e = $("#err");
+  if (e) { e.textContent = ""; e.classList.add("hidden"); }
+}
+function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+// ---------------- Consumers ----------------
+async function loadConsumers(){
+  clearErr();
+  const data = await api("/api/consumers");
+  if (!data || !data.consumers) { showErr("Could not load consumers."); return; }
+  DB = data;
+  renderConsumers();
+}
+
+function renderConsumers(){
+  const wrap = $("#consumerList");
+  wrap.innerHTML = "";
+  const tpl = $("#consumerItem").content;
+
+  DB.consumers.forEach(c=>{
+    const n = tpl.cloneNode(true);
+    n.querySelector(".name").textContent = c.name || "(no name)";
+    n.querySelector(".email").textContent = c.email || "";
+    n.querySelector(".select").addEventListener("click", ()=> selectConsumer(c.id));
+    n.querySelector(".delete").addEventListener("click", async ()=>{
+      if(!confirm(`Delete ${c.name}?`)) return;
+      const res = await api(`/api/consumers/${c.id}`, { method:"DELETE" });
+      if(!res?.ok) return showErr(res?.error || "Failed to delete consumer.");
+      if(currentConsumerId === c.id){
+        currentConsumerId = null;
+        currentReportId = null;
+        CURRENT_REPORT = null;
+        $("#reportPicker").innerHTML = "";
+        $("#tlList").innerHTML = "";
+        $("#selConsumer").textContent = "—";
+      }
+      loadConsumers();
+    });
+    wrap.appendChild(n);
+  });
+}
+
+async function selectConsumer(id){
+  currentConsumerId = id;
+  const c = DB.consumers.find(x=>x.id===id);
+  $("#selConsumer").textContent = c ? c.name : "—";
+  await refreshReports();
+}
+
+// ---------------- Reports ----------------
+async function refreshReports(){
+  clearErr();
+  if(!currentConsumerId){ $("#reportPicker").innerHTML = ""; return; }
+  const data = await api(`/api/consumers/${currentConsumerId}/reports`);
+  if(!data?.ok) return showErr(data?.error || "Could not load reports.");
+
+  const sel = $("#reportPicker");
+  sel.innerHTML = "";
+  (data.reports || []).forEach(r=>{
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = `${r.filename} (${r.summary.tradelines} TL) • ${new Date(r.uploadedAt).toLocaleString()}`;
+    sel.appendChild(opt);
+  });
+
+  if (data.reports?.length) {
+    currentReportId = data.reports[0].id;
+    sel.value = currentReportId;
+    await loadReportJSON();
+  } else {
+    currentReportId = null;
+    CURRENT_REPORT = null;
+    $("#tlList").innerHTML = `<div class="muted">No reports uploaded yet.</div>`;
+  }
+}
+$("#reportPicker").addEventListener("change", async (e)=>{
+  currentReportId = e.target.value || null;
+  await loadReportJSON();
+});
+
+async function loadReportJSON(){
+  clearErr();
+  if(!currentConsumerId || !currentReportId) return;
+  const data = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`);
+  if(!data?.ok) return showErr(data?.error || "Failed to load report JSON.");
+  CURRENT_REPORT = data.report;
+  renderFilterBar();
+  renderTradelines(CURRENT_REPORT.tradelines || []);
+}
+
+// ---------------- Heuristics / Filters ----------------
+const ALL_TAGS = ["Collections","Inquiries","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
+const activeFilters = new Set();
+const hiddenTradelines = new Set();
+
+function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); }
+function maybeNum(x){ return typeof x === "number" ? x : null; }
+function deriveTags(tl){
+  const tags = new Set();
+  const name = (tl.meta?.creditor || "");
+  const per = tl.per_bureau || {};
+  const bureaus = ["TransUnion","Experian","Equifax"];
+
+  if (bureaus.some(b => hasWord(per[b]?.payment_status, "collection") || hasWord(per[b]?.account_status, "collection"))
+      || hasWord(name, "collection")) tags.add("Collections");
+
+  if ((tl.violations||[]).some(v => hasWord(v.title, "inquiry"))) tags.add("Inquiries");
+
+  if (bureaus.some(b => hasWord(per[b]?.payment_status, "late") || hasWord(per[b]?.payment_status, "delinquent"))
+      || bureaus.some(b => (maybeNum(per[b]?.past_due) || 0) > 0)) tags.add("Late Payments");
+
+  if (bureaus.some(b => hasWord(per[b]?.payment_status, "charge") && hasWord(per[b]?.payment_status, "off"))) tags.add("Charge-Off");
+
+  const student = ["navient","nelnet","mohela","sallie","aidvantage","department of education","dept of education","edfinancial","fedloan","great lakes","student"];
+  if (student.some(k => hasWord(name, k))
+      || bureaus.some(b => hasWord(per[b]?.account_type_detail, "student"))) tags.add("Student Loans");
+
+  const medical = ["medical","hospital","clinic","physician","health","radiology","anesthesia","ambulance"];
+  if (medical.some(k => hasWord(name, k))) tags.add("Medical Bills");
+
+  if (tags.size === 0) tags.add("Other");
+  return Array.from(tags);
+}
+
+function renderFilterBar(){
+  const bar = $("#filterBar");
+  bar.innerHTML = "";
+  ALL_TAGS.forEach(tag=>{
+    const btn = document.createElement("button");
+    btn.className = "chip" + (activeFilters.has(tag) ? " active":"");
+    btn.textContent = tag;
+    btn.addEventListener("click", ()=>{
+      if (activeFilters.has(tag)) activeFilters.delete(tag); else activeFilters.add(tag);
+      renderFilterBar();
+      renderTradelines(CURRENT_REPORT?.tradelines || []);
+    });
+    bar.appendChild(btn);
+  });
+  $("#btnClearFilters").onclick = () => {
+    activeFilters.clear();
+    renderFilterBar();
+    renderTradelines(CURRENT_REPORT?.tradelines || []);
+  };
+}
+function passesFilter(tags){ if (activeFilters.size === 0) return true; return tags.some(t => activeFilters.has(t)); }
+
+// ---------------- Tradelines ----------------
+function setCardSelected(card, on){
+  card.classList.toggle("selected", !!on);
+  card.querySelectorAll('input.bureau').forEach(cb => { cb.checked = !!on; });
+}
+function toggleCardSelection(card){
+  const anyChecked = Array.from(card.querySelectorAll('input.bureau')).some(cb => cb.checked);
+  setCardSelected(card, !anyChecked);
+}
+
+function renderTradelines(tradelines){
+  const container = $("#tlList");
+  container.innerHTML = "";
+  const tpl = $("#tlTemplate").content;
+
+  tradelines.forEach((tl, idx)=>{
+    if (hiddenTradelines.has(idx)) return;
+    const tags = deriveTags(tl);
+    if (!passesFilter(tags)) return;
+
+    const node = tpl.cloneNode(true);
+    const card = node.querySelector(".tl-card");
+    card.dataset.index = idx;
+
+    node.querySelector(".tl-creditor").textContent = tl.meta?.creditor || "Unknown Creditor";
+    node.querySelector(".tl-idx").textContent = idx;
+
+    node.querySelector(".tl-tu-acct").textContent  = tl.per_bureau?.TransUnion?.account_number || "";
+    node.querySelector(".tl-exp-acct").textContent = tl.per_bureau?.Experian?.account_number || "";
+    node.querySelector(".tl-eqf-acct").textContent = tl.per_bureau?.Equifax?.account_number || "";
+
+    const tagWrap = node.querySelector(".tl-tags");
+    tagWrap.innerHTML = "";
+    deriveTags(tl).forEach(t=>{
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = t;
+      tagWrap.appendChild(chip);
+    });
+
+    // violations
+    const vWrap = node.querySelector(".tl-violations");
+    const vs = tl.violations || [];
+    vWrap.innerHTML = vs.length
+      ? vs.map((v, vidx) => `
+        <label class="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">
+          <input type="checkbox" class="violation" value="${vidx}"/>
+          <div>
+            <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}</div>
+            ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
+          </div>
+        </label>`).join("")
+      : `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
+
+    // remove
+    node.querySelector(".tl-remove").addEventListener("click",(e)=>{
+      e.stopPropagation();
+      hiddenTradelines.add(idx);
+      renderTradelines(tradelines);
+    });
+
+    // click anywhere on card toggles selection (unless clicking controls)
+    card.addEventListener("click",(e)=>{
+      if (e.target.closest("input,label,button,a")) return;
+      toggleCardSelection(card);
+    });
+
+    // keep selected class synced when user flips any checkbox
+    card.querySelectorAll('input.bureau').forEach(cb=>{
+      cb.addEventListener("change", ()=>{
+        const any = Array.from(card.querySelectorAll('input.bureau')).some(x=>x.checked);
+        card.classList.toggle("selected", any);
+      });
+    });
+
+    container.appendChild(node);
+  });
+
+  if (!container.children.length){
+    container.innerHTML = `<div class="muted">No tradelines match the current filters.</div>`;
+  }
+
+  // Let the special-modes script (inline in index.html) hook into the new cards
+  window.__crm_helpers?.attachCardHandlers?.(container);
+}
+
+// ---------------- Selection → Generate ----------------
+function getRequestType(){
+  const r = document.querySelector('input[name="rtype"]:checked');
+  return r ? r.value : "correct";
+}
+// --- helper to read which special mode a card has ---
+function getSpecialModeForCard(card){
+  if (card.classList.contains("mode-identity")) return "identity";
+  if (card.classList.contains("mode-breach"))   return "breach";
+  if (card.classList.contains("mode-assault"))  return "assault";
+  return null;
+}
+
+// selections → /api/generate
+function getRequestType(){
+  const r = document.querySelector('input[name="rtype"]:checked');
+  return r ? r.value : "correct";
+}
+
+function collectSelections(){
+  const selections = [];
+  document.querySelectorAll("#tlList > .tl-card").forEach(card=>{
+    const tradelineIndex = Number(card.dataset.index);
+    // your app tracks hiddenTradelines; ignore hidden if you use that
+    // if (hiddenTradelines?.has?.(tradelineIndex)) return;
+
+    const bureaus = Array.from(card.querySelectorAll(".bureau:checked")).map(i=>i.value);
+    if(!bureaus.length) return;
+
+    const violationIdxs = Array.from(card.querySelectorAll(".violation:checked")).map(i=>Number(i.value));
+    const specialMode = getSpecialModeForCard(card);  // ⬅️ NEW
+
+    selections.push({ tradelineIndex, bureaus, violationIdxs, specialMode }); // ⬅️ include mode
+  });
+  return selections;
+}
+
+
+$("#btnGenerate").addEventListener("click", async ()=>{
+  clearErr();
+  try{
+    if(!currentConsumerId || !currentReportId) throw new Error("Select a consumer and a report first.");
+    const selections = collectSelections();
+    if(!selections.length) throw new Error("Pick at least one tradeline, at least one bureau, and any violations you want.");
+    const requestType = getRequestType();
+
+    console.log("[GENERATE] consumerId:", currentConsumerId, "reportId:", currentReportId, "selections:", selections.length, "requestType:", requestType);
+
+    const resp = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType })
+    });
+
+    if(!resp.ok){
+      const txt = await resp.text().catch(()=> "");
+      throw new Error(`HTTP ${resp.status} ${txt || ""}`.trim());
+    }
+
+    const data = await resp.json().catch(()=> ({}));
+    if(!data?.ok || !data?.redirect) throw new Error(data?.error || "Server did not return a redirect.");
+
+    console.log("[GENERATE] redirect →", data.redirect);
+
+    // Hard redirect (most reliable)
+    window.location.assign(data.redirect);
+
+    // Safety fallback if a CSP/extension blocked assign()
+    setTimeout(()=>{
+      if (!/\/letters(\?|$)/.test(location.href)) {
+        window.location.href = data.redirect;
+      }
+    }, 100);
+  }catch(e){
+    showErr(e.message || String(e));
+  }
+});
+
+// ---------------- Toolbar buttons ----------------
+$("#btnNewConsumer").addEventListener("click", async ()=>{
+  const name = prompt("Consumer name?");
+  if(!name) return;
+  const res = await api("/api/consumers", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ name })
+  });
+  if(!res?.ok) return showErr(res?.error || "Failed to create consumer.");
+  await loadConsumers();
+  await selectConsumer(res.consumer.id);
+});
+
+$("#btnEditConsumer").addEventListener("click", ()=>{
+  const m = $("#editModal");
+  if(!currentConsumerId){ showErr("Select a consumer first."); return; }
+  const c = DB.consumers.find(x=>x.id===currentConsumerId);
+  if(!c){ showErr("Consumer not found."); return; }
+  const f = $("#editForm");
+  f.name.value = c.name || "";
+  f.email.value = c.email || "";
+  f.phone.value = c.phone || "";
+  f.addr1.value = c.addr1 || "";
+  f.addr2.value = c.addr2 || "";
+  f.city.value = c.city || "";
+  f.state.value = c.state || "";
+  f.zip.value = c.zip || "";
+  f.ssn_last4.value = c.ssn_last4 || "";
+  f.dob.value = c.dob || "";
+  m.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+});
+
+$("#editClose").addEventListener("click", ()=> closeEdit());
+$("#editCancel").addEventListener("click", ()=> closeEdit());
+function closeEdit(){
+  $("#editModal").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+$("#editForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const f = e.currentTarget;
+  const payload = Object.fromEntries(new FormData(f).entries());
+  const res = await api(`/api/consumers/${currentConsumerId}`, {
+    method:"PUT",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
+  });
+  if(!res?.ok) return showErr(res?.error || "Failed to save.");
+  closeEdit();
+  await loadConsumers();
+  const c = DB.consumers.find(x=>x.id===currentConsumerId);
+  $("#selConsumer").textContent = c ? c.name : "—";
+});
+
+// Upload
+$("#btnUpload").addEventListener("click", ()=>{
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  $("#fileInput").value = "";
+  $("#fileInput").click();
+});
+$("#fileInput").addEventListener("change", async (e)=>{
+  clearErr();
+  const file = e.target.files?.[0];
+  if(!file) return;
+  const btn = $("#btnUpload");
+  const old = btn.textContent;
+  btn.textContent = "Uploading…";
+  btn.disabled = true;
+
+  try{
+    const fd = new FormData();
+    fd.append("file", file, file.name);
+    const res = await fetch(`/api/consumers/${currentConsumerId}/upload`, { method:"POST", body: fd });
+    const data = await res.json().catch(()=> ({}));
+    if(!data?.ok) throw new Error(data?.error || `Upload failed (HTTP ${res.status})`);
+    await refreshReports();
+  }catch(err){
+    showErr(String(err));
+  }finally{
+    btn.textContent = old;
+    btn.disabled = false;
+  }
+});
+
+// Delete report
+$("#btnDeleteReport").addEventListener("click", async ()=>{
+  if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
+  if(!confirm("Delete this report?")) return;
+  const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`, { method:"DELETE" });
+  if(!res?.ok) return showErr(res?.error || "Failed to delete report.");
+  await refreshReports();
+});
+
+// ---------------- Init ----------------
+loadConsumers();

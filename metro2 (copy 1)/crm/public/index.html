@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Metro 2 CRM</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root{
+      --glass-bg: rgba(255,255,255,0.65);
+      --glass-brd: rgba(255,255,255,0.35);
+      --muted:#6b7280;
+      --green:#22c55e;
+      --green-bg:rgba(34,197,94,.12);
+    }
+    body{
+      background:
+        radial-gradient(1200px 800px at -10% -10%, #e0f2fe 0%, transparent 50%),
+        radial-gradient(900px 700px at 110% 0%, #fef3c7 0%, transparent 55%),
+        radial-gradient(1000px 900px at 50% 120%, #fce7f3 0%, transparent 55%),
+        #f7fafc;
+      color:#0f172a;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
+    }
+    .glass{ background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:18px; backdrop-filter:blur(12px); box-shadow:0 8px 24px rgba(0,0,0,.1) }
+    .card{ border-radius:18px; padding:16px }
+    .chip{ border:1px solid var(--glass-brd); padding:4px 10px; border-radius:999px; font-size:12px; background:rgba(255,255,255,.7); cursor:pointer; user-select:none }
+    .chip.active{ background:#ecfeff; border-color:#67e8f9 }
+    .muted{ color:var(--muted) }
+    .btn{ border:1px solid var(--glass-brd); border-radius:10px; padding:6px 12px; background:white/80; position:relative; }
+    .btn:hover{ background:#f9fafb }
+    .tl-card{ transition:transform .15s ease, box-shadow .15s ease, background .15s ease; cursor:pointer }
+    .tl-card:hover{ transform: translateY(-1px) }
+    .tl-card.selected{ box-shadow:0 0 0 2px var(--green) inset; background:var(--green-bg) }
+    .wrap-anywhere{ overflow-wrap:anywhere; word-break:break-word }
+    .hidden{ display:none }
+    .focus-ring{ outline: 2px dashed #6366f1; outline-offset: 4px; }
+
+    /* === Special Quick-Action modes === */
+    .tl-card.mode-identity{ box-shadow:0 0 0 2px #d4af37 inset, 0 8px 24px rgba(0,0,0,.1); background: rgba(212,175,55,.12); }
+    .tl-card.mode-breach{   box-shadow:0 0 0 2px #ef4444 inset, 0 8px 24px rgba(0,0,0,.1); background: rgba(239,68,68,.12); }
+    .tl-card.mode-assault{  box-shadow:0 0 0 2px #ec4899 inset, 0 8px 24px rgba(0,0,0,.1); background: rgba(236,72,153,.12); }
+
+    .chip-mini{ font-size:11px; padding:2px 8px; }
+    .chip-identity{ border-color:#d4af37; color:#8b6f00; background:rgba(212,175,55,.15); }
+    .chip-breach{   border-color:#ef4444; color:#991b1b; background:rgba(239,68,68,.15); }
+    .chip-assault{  border-color:#ec4899; color:#9d174d; background:rgba(236,72,153,.15); }
+
+    .mode-btn.active{ box-shadow:0 0 0 2px #1f2937 inset; background:#eef2ff; }
+
+    /* simple tooltip bubble using title-like UI */
+    .btn[data-tip]:hover::after{
+      content: attr(data-tip);
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      bottom: calc(100% + 8px);
+      background: rgba(17,24,39,.95);
+      color:white;
+      font-size:12px;
+      padding:6px 8px;
+      border-radius:8px;
+      white-space:nowrap;
+      box-shadow:0 6px 18px rgba(0,0,0,.2);
+      z-index:40;
+    }
+    .btn[data-tip]:hover::before{
+      content:"";
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      bottom: 100%;
+      border:6px solid transparent;
+      border-top-color: rgba(17,24,39,.95);
+      z-index:39;
+    }
+  </style>
+</head>
+<body>
+<header class="p-4">
+  <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
+    <div class="text-xl font-semibold">Metro 2 CRM</div>
+    <div class="flex items-center gap-2">
+      <button id="btnNewConsumer" class="btn" data-tip="New Consumer (N)">+ New Consumer</button>
+      <button id="btnEditConsumer" class="btn" data-tip="Edit Consumer (E)">Edit Consumer</button>
+      <button id="btnUpload" class="btn" data-tip="Upload HTML (U)">Upload HTML</button>
+      <input id="fileInput" type="file" accept=".html,.htm,text/html" class="hidden" />
+    </div>
+  </div>
+</header>
+
+<!-- Quick Actions -->
+<div class="max-w-7xl mx-auto">
+  <div class="glass card">
+    <div class="font-medium mb-2">Quick Actions</div>
+    <div id="modeBar" class="flex gap-2 flex-wrap"></div>
+    <div class="text-sm muted mt-1">
+      Click a mode, then click tradeline cards to tag them. Click the mode again to exit.
+    </div>
+  </div>
+</div>
+
+<main class="max-w-7xl mx-auto p-4 space-y-4">
+  <div id="err" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg"></div>
+
+  <section class="grid md:grid-cols-[320px,1fr] gap-4">
+    <aside class="glass card">
+      <div class="font-semibold mb-2">Consumers</div>
+      <div id="consumerList" class="space-y-2"></div>
+    </aside>
+
+    <section class="space-y-4">
+      <div class="glass card">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-semibold">Selected Consumer: <span id="selConsumer">—</span></div>
+            <div class="text-sm muted">Report: <select id="reportPicker" class="border rounded px-2 py-1 text-sm"></select></div>
+          </div>
+          <div class="flex gap-2">
+            <button id="btnDeleteReport" class="btn" data-tip="Delete Current Report (R)">Delete Report</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass card">
+        <div class="font-semibold mb-2">Filters</div>
+        <div id="filterBar" class="flex flex-wrap gap-2"></div>
+        <button id="btnClearFilters" class="btn" data-tip="Clear Filters (C)">Clear Filters</button>
+      </div>
+
+      <div class="glass card">
+        <div class="flex items-center justify-between">
+          <div class="font-semibold">Tradelines</div>
+          <div class="flex items-center gap-3">
+            <label class="text-sm flex items-center gap-2" title="Generate correction letters">
+              <input type="radio" name="rtype" value="correct" checked /> Correct
+            </label>
+            <label class="text-sm flex items-center gap-2" title="Generate deletion letters">
+              <input type="radio" name="rtype" value="delete" /> Delete
+            </label>
+            <button id="btnGenerate" class="btn" data-tip="Generate Letters (G)">Generate Letters</button>
+          </div>
+        </div>
+        <div id="tlList" class="grid gap-3 mt-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3"></div>
+      </div>
+    </section>
+  </section>
+</main>
+
+<!-- Consumer list item template -->
+<template id="consumerItem">
+  <div class="glass card">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="name font-medium"></div>
+        <div class="email text-sm muted"></div>
+      </div>
+      <div class="flex gap-2">
+        <button class="select btn" data-tip="Open Consumer (click)">Open</button>
+        <button class="delete btn" data-tip="Delete Consumer">×</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Tradeline card template -->
+<template id="tlTemplate">
+  <div class="glass card tl-card" data-index="">
+    <div class="tl-head flex items-start justify-between gap-2">
+      <div class="wrap-anywhere">
+        <div class="font-semibold tl-creditor"></div>
+        <div class="text-xs muted">Index <span class="tl-idx"></span></div>
+        <div class="text-xs muted mt-1">
+          TU: <span class="tl-tu-acct"></span> •
+          EXP: <span class="tl-exp-acct"></span> •
+          EQF: <span class="tl-eqf-acct"></span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="special-badges flex gap-1"></div>
+        <button class="tl-remove btn" title="Hide this card" data-tip="Remove Card (R when focused)">×</button>
+      </div>
+    </div>
+
+    <div class="mt-3 grid grid-cols-3 gap-2 text-sm">
+      <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="TransUnion" /> TransUnion</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Experian" /> Experian</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Equifax" /> Equifax</label>
+    </div>
+
+    <div class="tl-tags flex gap-2 mt-2 flex-wrap"></div>
+    <div class="mt-3 space-y-1 tl-violations text-sm"></div>
+  </div>
+</template>
+
+<!-- Edit Consumer Modal -->
+<div id="editModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)]">
+  <form id="editForm" class="glass card w-[min(560px,92vw)] space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="font-semibold">Edit Consumer</div>
+      <div class="flex gap-2">
+        <button type="button" id="editCancel" class="btn" data-tip="Close (Esc)">Cancel</button>
+        <button type="button" id="editClose" class="btn" data-tip="Close (Esc)">×</button>
+        <button class="btn" type="submit" data-tip="Save (Enter)">Save</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      <label class="flex flex-col">Name<input name="name" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col">Email<input name="email" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col">Phone<input name="phone" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col">SSN last 4<input name="ssn_last4" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col">DOB<input name="dob" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col col-span-2">Address 1<input name="addr1" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col col-span-2">Address 2<input name="addr2" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col">City<input name="city" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col">State<input name="state" class="border rounded px-2 py-1"></label>
+      <label class="flex flex-col">Zip<input name="zip" class="border rounded px-2 py-1"></label>
+    </div>
+    <div class="text-xs muted">Tip: Press <b>C</b> to clear all fields.</div>
+  </form>
+</div>
+
+<!-- Special modes (inline) -->
+<script type="module">
+  // === Special Tagging Modes (toggle + hotkeys: i, d, s; Esc to clear) ===
+  const MODES = [
+    { key: "identity", label: "Identity Theft", chipClass: "chip-identity", cardClass: "mode-identity", hotkey: "i" },
+    { key: "breach",   label: "Data Breach",    chipClass: "chip-breach",   cardClass: "mode-breach",   hotkey: "d" },
+    { key: "assault",  label: "Sexual Assault", chipClass: "chip-assault",  cardClass: "mode-assault",  hotkey: "s" },
+  ];
+
+  const modeBar = document.querySelector("#modeBar");
+  let activeMode = null;
+
+  function renderModeBar(){
+    modeBar.innerHTML = "";
+    MODES.forEach(m=>{
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "chip mode-btn";
+      btn.textContent = `${m.label} (${m.hotkey.toUpperCase()})`;
+      btn.dataset.mode = m.key;
+      btn.addEventListener("click", ()=> toggleMode(m.key));
+      btn.title = `${m.label} – click to toggle. Then click cards to tag. (Hotkey: ${m.hotkey.toUpperCase()})`;
+      modeBar.appendChild(btn);
+    });
+    updateModeButtons();
+  }
+
+  function toggleMode(key){
+    activeMode = (activeMode === key) ? null : key;
+    updateModeButtons();
+  }
+  function clearMode(){
+    activeMode = null;
+    updateModeButtons();
+  }
+  function updateModeButtons(){
+    document.querySelectorAll(".mode-btn").forEach(b=>{
+      b.classList.toggle("active", b.dataset.mode === activeMode);
+    });
+  }
+
+  // Keyboard shortcuts for modes: i/d/s toggle; Esc clears
+  function isTypingTarget(el){
+    return el && (
+      el.tagName === "INPUT" ||
+      el.tagName === "TEXTAREA" ||
+      el.isContentEditable
+    );
+  }
+  document.addEventListener("keydown", (e)=>{
+    if (isTypingTarget(document.activeElement)) return;
+    const k = e.key.toLowerCase();
+    if (k === "escape"){ clearMode(); return; }
+    const match = MODES.find(m => m.hotkey === k);
+    if (match){
+      e.preventDefault();
+      toggleMode(match.key);
+    }
+  });
+
+  // Track last focused card (clicked)
+  let lastFocusedCard = null;
+  function focusCard(card){
+    if (lastFocusedCard) lastFocusedCard.classList.remove("focus-ring");
+    lastFocusedCard = card;
+    if (card) card.classList.add("focus-ring");
+  }
+
+  // Attach handlers to cards (dynamic-safe)
+  function attachCardHandlers(root=document){
+    root.querySelectorAll(".tl-card").forEach(card=>{
+      if (card.__modesHooked) return;
+      card.__modesHooked = true;
+
+      card.addEventListener("click", (e)=>{
+        // Focus the card (for A/D shortcuts)
+        focusCard(card);
+
+        // Apply special mode if active (toggle), ignore when clicking controls
+        if (e.target.closest("input,button,label,a")) return;
+        if (!activeMode) return;
+        applyModeToCard(card, activeMode);
+      });
+
+      // ensure badge container exists
+      if (!card.querySelector(".special-badges")) {
+        const head = card.querySelector(".tl-head") || card.firstElementChild;
+        if (head) {
+          const holder = document.createElement("div");
+          holder.className = "special-badges flex gap-1";
+          head.appendChild(holder);
+        }
+      }
+    });
+  }
+
+  function setCardSelected(card, on){
+    card.classList.toggle("selected", !!on);
+    card.querySelectorAll('input.bureau').forEach(cb => { cb.checked = !!on; });
+  }
+  function toggleWholeCardSelection(card){
+    const any = Array.from(card.querySelectorAll('input.bureau')).some(cb=>cb.checked);
+    setCardSelected(card, !any);
+  }
+
+  // Apply/remove a single special mode per card
+  function applyModeToCard(card, modeKey){
+    const MODES_MAP = Object.fromEntries(MODES.map(m=>[m.key,m]));
+    const m = MODES_MAP[modeKey];
+    if (!m) return;
+
+    const has = card.classList.contains(m.cardClass);
+    if (has){
+      // remove this mode
+      card.classList.remove(m.cardClass);
+      card.removeAttribute("data-special-mode");
+      removeBadge(card, modeKey);
+    } else {
+      // only one special mode at a time
+      MODES.forEach(x=>{
+        card.classList.remove(x.cardClass);
+        removeBadge(card, x.key);
+      });
+      card.classList.add(m.cardClass);
+      card.setAttribute("data-special-mode", modeKey);   // <-- important
+      addBadge(card, modeKey, m.label, m.chipClass);
+    }
+  }
+  function addBadge(card, modeKey, label, chipClass){
+    const box = card.querySelector(".special-badges");
+    if (!box) return;
+    const tag = document.createElement("span");
+    tag.className = `chip chip-mini ${chipClass}`;
+    tag.dataset.mode = modeKey;
+    tag.textContent = `${label} ✕`;
+    tag.title = "Click to remove";
+    tag.style.cursor = "pointer";
+    tag.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const m = MODES.find(x=>x.key===modeKey);
+      if (m) card.classList.remove(m.cardClass);
+      tag.remove();
+    });
+    box.appendChild(tag);
+  }
+  function removeBadge(card, modeKey){
+    card.querySelectorAll(`.special-badges [data-mode="${modeKey}"]`).forEach(el=>el.remove());
+  }
+
+  // Expose helpers for global hotkeys section below
+  window.__crm_helpers = {
+    attachCardHandlers,
+    toggleWholeCardSelection,
+    focusCardRef: () => lastFocusedCard,
+    clearMode,
+    setCardSelectedAll: (on) => {
+      document.querySelectorAll(".tl-card").forEach(c => setCardSelected(c, on));
+    }
+  };
+
+  // Observe dynamic renders
+  const tlList = document.querySelector("#tlList");
+  const obs = new MutationObserver(()=> window.__crm_helpers.attachCardHandlers(tlList));
+  obs.observe(tlList, { childList:true, subtree:true });
+
+  // Init
+  renderModeBar();
+  attachCardHandlers(document);
+</script>
+
+<!-- Main CRM logic (loads consumers, reports, etc.) -->
+<script type="module" src="index.js"></script>
+
+<!-- Global hotkeys for CRM actions -->
+<script type="module">
+  const Q = s => document.querySelector(s);
+  const isTypingTarget = (el) =>
+    el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+
+  function editModalOpen(){
+    const m = Q("#editModal");
+    return m && !m.classList.contains("hidden");
+  }
+  function clearEditForm(){
+    const f = Q("#editForm");
+    if (!f) return;
+    f.querySelectorAll("input").forEach(i=> i.value = "");
+  }
+  function anyFiltersActive(){
+    // crude test: compare active chips vs none; rely on your render logic if needed
+    // here we just always allow clearing
+    return true;
+  }
+  function clearFilters(){
+    const btn = Q("#btnClearFilters");
+    if (btn) btn.click();
+  }
+
+  document.addEventListener("keydown", (e)=>{
+    if (isTypingTarget(document.activeElement)) return;
+
+    const k = e.key;
+    const lower = k.toLowerCase();
+
+    // N = New consumer
+    if (lower === "n"){ e.preventDefault(); Q("#btnNewConsumer")?.click(); return; }
+
+    // E = Edit consumer
+    if (lower === "e"){ e.preventDefault(); Q("#btnEditConsumer")?.click(); return; }
+
+    // U = Upload
+    if (lower === "u"){ e.preventDefault(); Q("#btnUpload")?.click(); return; }
+
+    // G = Generate letters
+    if (lower === "g"){ e.preventDefault(); Q("#btnGenerate")?.click(); return; }
+
+    // D = Delete (focused card if any; else delete report)
+    if (lower === "r"){
+      e.preventDefault();
+      const card = window.__crm_helpers?.focusCardRef?.();
+      if (card){
+        // simulate clicking the X on the card
+        card.querySelector(".tl-remove")?.click();
+      } else {
+        Q("#btnDeleteReport")?.click();
+      }
+      return;
+    }
+
+    // A = Add (toggle select all 3 bureaus) on focused card
+    if (lower === "a"){
+      e.preventDefault();
+      const card = window.__crm_helpers?.focusCardRef?.();
+      if (card){
+        window.__crm_helpers.toggleWholeCardSelection(card);
+      }
+      return;
+    }
+
+    // C = Clear (context-aware)
+    if (lower === "c"){
+      e.preventDefault();
+      if (editModalOpen()){
+        clearEditForm();               // Clear fields inside Edit
+        return;
+      }
+      if (anyFiltersActive()){
+        clearFilters();                 // Clear Filters
+        return;
+      }
+      // Otherwise: clear special mode and deselect all cards
+      window.__crm_helpers?.clearMode?.();
+      window.__crm_helpers?.setCardSelectedAll?.(false);
+      return;
+    }
+  });
+</script>
+</body>
+</html>

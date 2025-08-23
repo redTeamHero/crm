@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Generated Letters</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --glass-bg: rgba(255,255,255,0.65);
+      --glass-brd: rgba(255,255,255,0.35);
+      --muted:#6b7280;
+      --green:#22c55e;
+      --green-bg: rgba(34,197,94,.12);
+    }
+    body{
+      background:#f7fafc;
+      color:#0f172a;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
+    }
+    .glass{ background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:18px; backdrop-filter:blur(12px); box-shadow:0 8px 24px rgba(0,0,0,.1); }
+    .card{ border-radius:18px; padding:16px }
+    .btn{ border:1px solid var(--glass-brd); border-radius:10px; padding:6px 12px; background:white/80; }
+    .btn:hover{ background:#f9fafb }
+    .muted{ color:var(--muted) }
+    .tl-card{ transition:transform .15s ease, box-shadow .15s ease, background .15s ease; cursor:pointer; }
+    .tl-card:hover{ transform:translateY(-1px); }
+    .hidden{ display:none }
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
+    .modal{width:min(1100px,96vw);height:min(90vh,900px);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.25);background:white;display:flex;flex-direction:column;overflow:hidden}
+    .modal header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(0,0,0,.08);background:var(--glass-bg);backdrop-filter: blur(10px)}
+    .modal iframe{flex:1;width:100%;border:0}
+  </style>
+</head>
+<body>
+<header class="p-4">
+  <div class="max-w-7xl mx-auto flex items-center justify-between glass card">
+    <h1 class="text-xl font-semibold">Generated Letters</h1>
+    <div class="text-sm muted">Job: <span id="jobId">—</span></div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto p-4 space-y-4">
+  <div id="err" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg"></div>
+
+  <div class="glass card">
+    <div class="flex items-center justify-between">
+      <div class="font-medium">Letters</div>
+      <div class="flex items-center gap-2">
+        <button id="btnBack" class="btn">← Back to CRM</button>
+      </div>
+    </div>
+
+    <div id="count" class="text-sm muted mt-1"></div>
+    <div id="cards" class="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 mt-3"></div>
+
+    <div class="flex items-center justify-between mt-4">
+      <button id="prev" class="btn">‹ Prev</button>
+      <div class="text-sm muted">Page <span id="pnum">1</span> / <span id="ptotal">1</span></div>
+      <button id="next" class="btn">Next ›</button>
+    </div>
+  </div>
+</main>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal-backdrop">
+  <div class="modal">
+    <header>
+      <div>
+        <div class="font-medium" id="pvTitle">Preview</div>
+        <div class="text-xs muted" id="pvMeta"></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a id="pvOpen" target="_blank" class="btn">Open HTML</a>
+        <button id="pvPrint" class="btn">Print</button>
+        <button id="pvClose" class="btn">Close</button>
+      </div>
+    </header>
+    <iframe id="pvFrame" src="about:blank"></iframe>
+  </div>
+</div>
+
+<script src="letters.js" type="module"></script>
+</body>
+</html>
