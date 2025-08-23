@@ -82,6 +82,7 @@
   <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
     <div class="text-xl font-semibold">Metro 2 CRM</div>
     <div class="flex items-center gap-2">
+      <button id="btnHelp" class="btn" data-tip="Help & Shortcuts (H)">Help</button>
       <button id="btnNewConsumer" class="btn" data-tip="New Consumer (N)">+ New Consumer</button>
       <button id="btnEditConsumer" class="btn" data-tip="Edit Consumer (E)">Edit Consumer</button>
       <button id="btnUpload" class="btn" data-tip="Upload HTML (U)">Upload HTML</button>
@@ -89,7 +90,73 @@
     </div>
   </div>
 </header>
+<!-- Help / Shortcuts Modal -->
+<div id="helpModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)]">
+  <div class="glass card w-[min(720px,94vw)] space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="font-semibold">Shortcuts & Tips</div>
+      <div class="flex gap-2">
+        <button type="button" id="helpClose" class="btn">×</button>
+      </div>
+    </div>
 
+    <div class="text-sm">
+      <div class="grid md:grid-cols-2 gap-3">
+        <div class="glass card">
+          <div class="font-medium mb-1">Global</div>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><b>N</b> — New consumer</li>
+            <li><b>E</b> — Edit consumer</li>
+            <li><b>U</b> — Upload HTML report</li>
+            <li><b>G</b> — Generate letters</li>
+            <li><b>C</b> — Clear (context-aware: edit fields / filters / selections)</li>
+            <li><b>H</b> — Help (this)</li>
+          </ul>
+        </div>
+
+        <div class="glass card">
+          <div class="font-medium mb-1">Tradelines</div>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><b>A</b> — Toggle all bureaus on focused card</li>
+            <li><b>D</b> — Remove/hide focused card (same as “×”)</li>
+            <li><b>I</b> — Toggle Identity Theft mode</li>
+            <li><b>D</b> (mode) — Toggle Data Breach mode</li>
+            <li><b>S</b> — Toggle Sexual Assault mode</li>
+            <li><b>Esc</b> — Exit special mode</li>
+          </ul>
+        </div>
+
+        <div class="glass card md:col-span-2">
+          <div class="font-medium mb-1">Letters page</div>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><b>P</b> — Print last previewed (or first on page)</li>
+            <li><b>H</b> — Open HTML of last previewed (or first on page)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-2 text-xs muted">Tip: click a tradeline to “focus” it for A/D actions. Use special modes (Identity/Breach/Assault) then click cards to tag them.</div>
+    </div>
+
+    <div class="flex items-center justify-end gap-2">
+      <button id="btnStartQuiz" class="btn">Take Hotkey Quiz</button>
+      <button id="helpOk" class="btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hotkey Quiz Modal -->
+<div id="quizModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)]">
+  <div class="glass card w-[min(720px,94vw)] space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="font-semibold">Hotkey Quiz</div>
+      <button id="quizClose" class="btn">×</button>
+    </div>
+    <div id="quizRoot" class="space-y-3"></div>
+    <div class="flex items-center justify-end gap-2">
+      <button id="quizSubmit" class="btn">Submit</button>
+    </div>
+  </div>
+</div>
 <!-- Quick Actions -->
 <div class="max-w-7xl mx-auto">
   <div class="glass card">
