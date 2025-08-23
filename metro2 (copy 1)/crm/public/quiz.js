@@ -1,7 +1,3 @@
-// public/quiz.js
-const Q = (s) => document.querySelector(s);
-const quizEl = Q("#quiz");
-const resultEl = Q("#result");
 
 const QUESTIONS = [
   {
@@ -34,37 +30,92 @@ const QUESTIONS = [
     a: ["C", "R", "H", "U"],
     correct: 0,
   },
+    {
+    q: "What does G do on the CRM screen?",
+    a: ["Generate letters", "Open Help", "Remove card", "Upload report"],
+    correct: 0
+  },
+  {
+    q: "Which key removes/hides the focused tradeline card?",
+    a: ["R", "D", "A", "Esc"],
+    correct: 1
+  },
+  {
+    q: "Which keys toggle special tagging modes?",
+    a: ["I / D / S", "N / E / U", "G / P / H", "C / A / R"],
+    correct: 0
+  },
+  {
+    q: "What does C do?",
+    a: ["Create consumer", "Clear (context-aware)", "Copy tradeline", "Cancel printing"],
+    correct: 1
+  },
+  {
+    q: "On the letters page, what does P do?",
+    a: ["Preview first letter", "Print last previewed/first", "Open HTML", "Go to previous page"],
+    correct: 1
+  },
+  {
+    q: "On the letters page, what does H do?",
+    a: ["Open HTML of last previewed/first", "Open Help", "Hide card", "Highlight conflicts"],
+    correct: 0
+  }
 ];
 
-function render(){
-  quizEl.innerHTML = "";
-  QUESTIONS.forEach((item, idx)=>{
-    const block = document.createElement("div");
-    block.className = "border rounded-xl p-4 bg-slate-50";
-    block.innerHTML = `
-      <div class="font-medium mb-2">${idx+1}. ${item.q}</div>
-      <div class="grid md:grid-cols-2 gap-2">
-        ${item.a.map((opt,i)=>`
-          <label class="flex items-center gap-2 border rounded p-2 bg-white">
-            <input type="radio" name="q${idx}" value="${i}" />
-            <span>${opt}</span>
-          </label>
-        `).join("")}
-      </div>
-    `;
-    quizEl.appendChild(block);
+const LS_KEY = "crm_hotkey_quiz_best";
+
+function el(tag, attrs={}, ...children){
+  const n = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v])=>{
+    if (k === "class") n.className = v;
+    else if (k === "for") n.htmlFor = v;
+    else n.setAttribute(k, v);
   });
-  resultEl.textContent = "";
+  children.forEach(c => n.appendChild(typeof c === "string" ? document.createTextNode(c) : c));
+  return n;
 }
-render();
 
-Q("#btnRetry").addEventListener("click", render);
+function renderQuiz(){
+  const form = el("form", { id:"quizForm", class:"space-y-3" });
 
-Q("#btnSubmit").addEventListener("click", ()=>{
-  let score = 0;
-  QUESTIONS.forEach((item, idx)=>{
-    const v = Number((document.querySelector(`input[name="q${idx}"]:checked`)||{}).value);
-    if (v === item.correct) score++;
+  const best = Number(localStorage.getItem(LS_KEY) || "0");
+  form.appendChild(el("div", { class:"text-sm muted" }, `Best score: ${best}/${QUESTIONS.length}`));
+
+  QUESTIONS.forEach((item, i)=>{
+    const block = el("div", { class:"glass card" });
+    block.appendChild(el("div", { class:"font-medium mb-2" }, `${i+1}. ${item.q}`));
+    const opts = el("div", { class:"space-y-1" });
+    item.a.forEach((opt, j)=>{
+      const id = `q${i}_${j}`;
+      const row = el("label", { class:"flex items-center gap-2 cursor-pointer" });
+      row.appendChild(el("input", { type:"radio", name:`q${i}`, value:String(j), id }));
+      row.appendChild(el("span", { }, opt));
+      opts.appendChild(row);
+    });
+    block.appendChild(opts);
+    form.appendChild(block);
   });
-  resultEl.textContent = `Score: ${score} / ${QUESTIONS.length} ${score===QUESTIONS.length ? "🎉" : ""}`;
-});
+
+  const result = el("div", { id:"quizResult", class:"text-sm" });
+  form.appendChild(result);
+
+  // mount into #quizRoot via bridge the main page provided
+  window.__quiz_mount?.(form);
+
+  // expose submit
+  window.__quiz_submit = () => {
+    const data = new FormData(form);
+    let score = 0;
+    QUESTIONS.forEach((q, i)=>{
+      const v = Number(data.get(`q${i}`));
+      if (v === q.correct) score++;
+    });
+    const bestNow = Math.max(score, Number(localStorage.getItem(LS_KEY) || "0"));
+    localStorage.setItem(LS_KEY, String(bestNow));
+
+    result.textContent = `Score: ${score}/${QUESTIONS.length}  •  Best: ${bestNow}/${QUESTIONS.length}`;
+  };
+}
+
+// public hook to re-render when the modal opens
+window.__quiz_render = renderQuiz;
