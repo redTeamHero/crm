@@ -1,9 +1,5 @@
 // public/index.js
-/* Minimal, reliable client for Metro 2 CRM:
-   - Loads consumers & reports
-   - Renders tradelines
-   - Handles Generate → redirects to /letters?job=...
-*/
+// Minimal client: load consumers/reports, render TLs, collect selections, POST /api/generate
 
 const $ = (s) => document.querySelector(s);
 const api = (u, o = {}) => fetch(u, o).then(r => r.json()).catch(e => ({ ok:false, error:String(e) }));
@@ -35,7 +31,6 @@ async function loadConsumers(){
   DB = data;
   renderConsumers();
 }
-
 function renderConsumers(){
   const wrap = $("#consumerList");
   wrap.innerHTML = "";
@@ -63,7 +58,6 @@ function renderConsumers(){
     wrap.appendChild(n);
   });
 }
-
 async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.consumers.find(x=>x.id===id);
@@ -101,7 +95,6 @@ $("#reportPicker").addEventListener("change", async (e)=>{
   currentReportId = e.target.value || null;
   await loadReportJSON();
 });
-
 async function loadReportJSON(){
   clearErr();
   if(!currentConsumerId || !currentReportId) return;
@@ -222,7 +215,7 @@ function renderTradelines(tradelines){
         </label>`).join("")
       : `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
 
-    // remove
+    // remove/hide
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
       hiddenTradelines.add(idx);
@@ -250,7 +243,7 @@ function renderTradelines(tradelines){
     container.innerHTML = `<div class="muted">No tradelines match the current filters.</div>`;
   }
 
-  // Let the special-modes script (inline in index.html) hook into the new cards
+  // Let special-modes (inline in index.html) hook into the new cards
   window.__crm_helpers?.attachCardHandlers?.(container);
 }
 
@@ -259,38 +252,24 @@ function getRequestType(){
   const r = document.querySelector('input[name="rtype"]:checked');
   return r ? r.value : "correct";
 }
-// --- helper to read which special mode a card has ---
 function getSpecialModeForCard(card){
   if (card.classList.contains("mode-identity")) return "identity";
   if (card.classList.contains("mode-breach"))   return "breach";
   if (card.classList.contains("mode-assault"))  return "assault";
   return null;
 }
-
-// selections → /api/generate
-function getRequestType(){
-  const r = document.querySelector('input[name="rtype"]:checked');
-  return r ? r.value : "correct";
-}
-
 function collectSelections(){
   const selections = [];
   document.querySelectorAll("#tlList > .tl-card").forEach(card=>{
     const tradelineIndex = Number(card.dataset.index);
-    // your app tracks hiddenTradelines; ignore hidden if you use that
-    // if (hiddenTradelines?.has?.(tradelineIndex)) return;
-
     const bureaus = Array.from(card.querySelectorAll(".bureau:checked")).map(i=>i.value);
     if(!bureaus.length) return;
-
     const violationIdxs = Array.from(card.querySelectorAll(".violation:checked")).map(i=>Number(i.value));
-    const specialMode = getSpecialModeForCard(card);  // ⬅️ NEW
-
-    selections.push({ tradelineIndex, bureaus, violationIdxs, specialMode }); // ⬅️ include mode
+    const specialMode = getSpecialModeForCard(card);
+    selections.push({ tradelineIndex, bureaus, violationIdxs, specialMode });
   });
   return selections;
 }
-
 
 $("#btnGenerate").addEventListener("click", async ()=>{
   clearErr();
@@ -299,8 +278,6 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     const selections = collectSelections();
     if(!selections.length) throw new Error("Pick at least one tradeline, at least one bureau, and any violations you want.");
     const requestType = getRequestType();
-
-    console.log("[GENERATE] consumerId:", currentConsumerId, "reportId:", currentReportId, "selections:", selections.length, "requestType:", requestType);
 
     const resp = await fetch("/api/generate", {
       method: "POST",
@@ -316,12 +293,8 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     const data = await resp.json().catch(()=> ({}));
     if(!data?.ok || !data?.redirect) throw new Error(data?.error || "Server did not return a redirect.");
 
-    console.log("[GENERATE] redirect →", data.redirect);
-
-    // Hard redirect (most reliable)
+    // Hard redirect
     window.location.assign(data.redirect);
-
-    // Safety fallback if a CSP/extension blocked assign()
     setTimeout(()=>{
       if (!/\/letters(\?|$)/.test(location.href)) {
         window.location.href = data.redirect;
@@ -365,13 +338,12 @@ $("#btnEditConsumer").addEventListener("click", ()=>{
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
 });
-
-$("#editClose").addEventListener("click", ()=> closeEdit());
-$("#editCancel").addEventListener("click", ()=> closeEdit());
 function closeEdit(){
   $("#editModal").classList.add("hidden");
   document.body.style.overflow = "";
 }
+$("#editClose").addEventListener("click", closeEdit);
+$("#editCancel").addEventListener("click", closeEdit);
 $("#editForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
   const f = e.currentTarget;
