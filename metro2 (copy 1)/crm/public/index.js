@@ -426,6 +426,67 @@ $("#btnDeleteReport").addEventListener("click", async ()=>{
   if(!res?.ok) return showErr(res?.error || "Failed to delete report.");
   await refreshReports();
 });
+// ---------- Help modal wiring ----------
+const helpModal = document.getElementById("helpModal");
+const quizModal = document.getElementById("quizModal");
 
+function openHelp() {
+  helpModal.classList.remove("hidden");
+  helpModal.classList.add("flex");
+  document.body.style.overflow = "hidden";
+}
+function closeHelp() {
+  helpModal.classList.add("hidden");
+  helpModal.classList.remove("flex");
+  document.body.style.overflow = "";
+}
+document.getElementById("btnHelp")?.addEventListener("click", openHelp);
+document.getElementById("helpClose")?.addEventListener("click", closeHelp);
+document.getElementById("helpOk")?.addEventListener("click", closeHelp);
+helpModal?.addEventListener("click", (e)=>{ if(e.target === helpModal) closeHelp(); });
+
+// H = Help
+document.addEventListener("keydown", (e)=>{
+  const tgt = document.activeElement;
+  const isTyping = tgt && (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA" || tgt.isContentEditable);
+  if (isTyping) return;
+  if (e.key.toLowerCase() === "h") {
+    e.preventDefault();
+    openHelp();
+  }
+});
+
+// ---------- Quiz modal bridge ----------
+function openQuiz() {
+  quizModal.classList.remove("hidden");
+  quizModal.classList.add("flex");
+  document.body.style.overflow = "hidden";
+  // tell quiz module to (re)render
+  window.__quiz_render?.();
+}
+function closeQuiz() {
+  quizModal.classList.add("hidden");
+  quizModal.classList.remove("flex");
+  document.body.style.overflow = "";
+}
+document.getElementById("btnStartQuiz")?.addEventListener("click", ()=>{
+  closeHelp();
+  openQuiz();
+});
+document.getElementById("quizClose")?.addEventListener("click", closeQuiz);
+quizModal?.addEventListener("click", (e)=>{ if(e.target === quizModal) closeQuiz(); });
+
+// Provide anchors for the quiz module
+window.__quiz_mount = (el) => {
+  const root = document.getElementById("quizRoot");
+  root.innerHTML = "";
+  root.appendChild(el);
+};
+window.__quiz_submit = () => {
+  // quiz module will read its own form
+};
+document.getElementById("quizSubmit")?.addEventListener("click", ()=>{
+  window.__quiz_submit?.();
+});
 // ---------------- Init ----------------
 loadConsumers();
