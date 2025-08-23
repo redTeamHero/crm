@@ -1,9 +1,4 @@
-// public/index.js
-/* Minimal, reliable client for Metro 2 CRM:
-   - Loads consumers & reports
-   - Renders tradelines
-   - Handles Generate → redirects to /letters?job=...
-*/
+/* public/index.js */
 
 const $ = (s) => document.querySelector(s);
 const api = (u, o = {}) => fetch(u, o).then(r => r.json()).catch(e => ({ ok:false, error:String(e) }));
@@ -13,7 +8,7 @@ let currentConsumerId = null;
 let currentReportId = null;
 let CURRENT_REPORT = null;
 
-// ---------------- Utilities ----------------
+// ----- UI helpers -----
 function showErr(msg){
   const e = $("#err");
   if (!e) { alert(msg); return; }
@@ -27,7 +22,27 @@ function clearErr(){
 }
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
-// ---------------- Consumers ----------------
+// ===================== Consumers (search + pagination) =====================
+const PAGE_SIZE = 10;
+let consQuery = "";
+let consPage = 1;
+
+function filteredConsumers(){
+  const q = consQuery.trim().toLowerCase();
+  if (!q) return DB.consumers.slice();
+  return DB.consumers.filter(c=>{
+    return [c.name,c.email,c.phone,c.addr1,c.city,c.state,c.zip].some(v=> (v||"").toLowerCase().includes(q));
+  });
+}
+function totalPages(){ return Math.max(1, Math.ceil(filteredConsumers().length / PAGE_SIZE)); }
+function currentPageItems(){
+  const items = filteredConsumers();
+  const tp = totalPages();
+  if (consPage > tp) consPage = tp;
+  const start = (consPage-1)*PAGE_SIZE;
+  return items.slice(start, start+PAGE_SIZE);
+}
+
 async function loadConsumers(){
   clearErr();
   const data = await api("/api/consumers");
@@ -35,13 +50,12 @@ async function loadConsumers(){
   DB = data;
   renderConsumers();
 }
-
 function renderConsumers(){
   const wrap = $("#consumerList");
   wrap.innerHTML = "";
   const tpl = $("#consumerItem").content;
 
-  DB.consumers.forEach(c=>{
+  currentPageItems().forEach(c=>{
     const n = tpl.cloneNode(true);
     n.querySelector(".name").textContent = c.name || "(no name)";
     n.querySelector(".email").textContent = c.email || "";
@@ -57,21 +71,36 @@ function renderConsumers(){
         $("#reportPicker").innerHTML = "";
         $("#tlList").innerHTML = "";
         $("#selConsumer").textContent = "—";
+        $("#activityList").innerHTML = "";
       }
       loadConsumers();
     });
     wrap.appendChild(n);
   });
+  $("#consPage").textContent = String(consPage);
+  $("#consPages").textContent = String(totalPages());
 }
+$("#consumerSearch").addEventListener("input", (e)=>{
+  consQuery = e.target.value || "";
+  consPage = 1;
+  renderConsumers();
+});
+$("#consPrev").addEventListener("click", ()=>{
+  if (consPage>1){ consPage--; renderConsumers(); }
+});
+$("#consNext").addEventListener("click", ()=>{
+  if (consPage<totalPages()){ consPage++; renderConsumers(); }
+});
 
 async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.consumers.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
   await refreshReports();
+  await loadConsumerState();
 }
 
-// ---------------- Reports ----------------
+// ===================== Reports =====================
 async function refreshReports(){
   clearErr();
   if(!currentConsumerId){ $("#reportPicker").innerHTML = ""; return; }
@@ -112,7 +141,7 @@ async function loadReportJSON(){
   renderTradelines(CURRENT_REPORT.tradelines || []);
 }
 
-// ---------------- Heuristics / Filters ----------------
+// ===================== Filters (unchanged) =====================
 const ALL_TAGS = ["Collections","Inquiries","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
 const activeFilters = new Set();
 const hiddenTradelines = new Set();
@@ -168,14 +197,10 @@ function renderFilterBar(){
 }
 function passesFilter(tags){ if (activeFilters.size === 0) return true; return tags.some(t => activeFilters.has(t)); }
 
-// ---------------- Tradelines ----------------
+// ===================== Tradelines + Zoom =====================
 function setCardSelected(card, on){
   card.classList.toggle("selected", !!on);
   card.querySelectorAll('input.bureau').forEach(cb => { cb.checked = !!on; });
-}
-function toggleCardSelection(card){
-  const anyChecked = Array.from(card.querySelectorAll('input.bureau')).some(cb => cb.checked);
-  setCardSelected(card, !anyChecked);
 }
 
 function renderTradelines(tradelines){
@@ -208,7 +233,7 @@ function renderTradelines(tradelines){
       tagWrap.appendChild(chip);
     });
 
-    // violations
+    // violations list (checkboxes for selection)
     const vWrap = node.querySelector(".tl-violations");
     const vs = tl.violations || [];
     vWrap.innerHTML = vs.length
@@ -222,17 +247,17 @@ function renderTradelines(tradelines){
         </label>`).join("")
       : `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
 
-    // remove
+    // Remove card
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
       hiddenTradelines.add(idx);
       renderTradelines(tradelines);
     });
 
-    // click anywhere on card toggles selection (unless clicking controls)
+    // OPEN ZOOM on click (outside controls)
     card.addEventListener("click",(e)=>{
-      if (e.target.closest("input,label,button,a")) return;
-      toggleCardSelection(card);
+      if (e.target.closest("input,label,button,a")) return; // ignore controls
+      openZoomModal(tl, idx);
     });
 
     // keep selected class synced when user flips any checkbox
@@ -250,47 +275,91 @@ function renderTradelines(tradelines){
     container.innerHTML = `<div class="muted">No tradelines match the current filters.</div>`;
   }
 
-  // Let the special-modes script (inline in index.html) hook into the new cards
+  // Let special-modes hook new cards
   window.__crm_helpers?.attachCardHandlers?.(container);
 }
 
-// ---------------- Selection → Generate ----------------
+// Zoom modal builders
+function renderPB(pb){
+  if (!pb) return "<div class='text-sm muted'>No data.</div>";
+  const get = (k) => escapeHtml(pb?.[k] ?? pb?.[`${k}_raw`] ?? "—");
+  const row = (k,l) => `<tr><td class="bg-gray-50 border px-2 py-1">${l}</td><td class="border px-2 py-1">${get(k)}</td></tr>`;
+  return `
+    <table class="w-full text-sm border-collapse">
+      <tbody class="[&_td]:border [&_th]:border">
+        ${row("account_number","Account #")}
+        ${row("account_status","Account Status")}
+        ${row("payment_status","Payment Status")}
+        ${row("balance","Balance")}
+        ${row("past_due","Past Due")}
+        ${row("credit_limit","Credit Limit")}
+        ${row("high_credit","High Credit")}
+        ${row("date_opened","Date Opened")}
+        ${row("last_reported","Last Reported")}
+        ${row("date_last_payment","Date Last Payment")}
+        ${row("comments","Comments")}
+      </tbody>
+    </table>`;
+}
+function buildZoomHTML(tl){
+  const per = tl.per_bureau || {};
+  const vlist = (tl.violations||[]).map(v=>`
+    <li class="mb-2">
+      <div class="font-medium">${escapeHtml(v.category||"")} – ${escapeHtml(v.title||"")}</div>
+      ${v.detail? `<div class="text-gray-600">${escapeHtml(v.detail)}</div>` : ""}
+    </li>`).join("") || "<div class='text-sm muted'>No violations detected.</div>";
+
+  return `
+    <div class="space-y-3">
+      <div class="text-lg font-semibold">${escapeHtml(tl.meta?.creditor || "Unknown Creditor")}</div>
+      <div class="grid md:grid-cols-3 gap-3">
+        <div class="glass card"><div class="font-medium mb-1">TransUnion</div>${renderPB(per.TransUnion)}</div>
+        <div class="glass card"><div class="font-medium mb-1">Experian</div>${renderPB(per.Experian)}</div>
+        <div class="glass card"><div class="font-medium mb-1">Equifax</div>${renderPB(per.Equifax)}</div>
+      </div>
+      <div class="glass card">
+        <div class="font-medium mb-1">Violations</div>
+        <ol class="list-decimal list-inside">${vlist}</ol>
+      </div>
+    </div>`;
+}
+function openZoomModal(tl, idx){
+  const m = $("#zoomModal");
+  $("#zoomBody").innerHTML = buildZoomHTML(tl);
+  m.classList.remove("hidden"); m.classList.add("flex");
+  document.body.style.overflow = "hidden";
+}
+function closeZoomModal(){
+  const m = $("#zoomModal");
+  m.classList.add("hidden"); m.classList.remove("flex");
+  document.body.style.overflow = "";
+}
+$("#zoomClose").addEventListener("click", closeZoomModal);
+$("#zoomModal").addEventListener("click", (e)=>{ if(e.target.id==="zoomModal") closeZoomModal(); });
+
+// ===================== Selection → Generate =====================
 function getRequestType(){
   const r = document.querySelector('input[name="rtype"]:checked');
   return r ? r.value : "correct";
 }
-// --- helper to read which special mode a card has ---
 function getSpecialModeForCard(card){
   if (card.classList.contains("mode-identity")) return "identity";
   if (card.classList.contains("mode-breach"))   return "breach";
   if (card.classList.contains("mode-assault"))  return "assault";
   return null;
 }
-
-// selections → /api/generate
-function getRequestType(){
-  const r = document.querySelector('input[name="rtype"]:checked');
-  return r ? r.value : "correct";
-}
-
 function collectSelections(){
   const selections = [];
   document.querySelectorAll("#tlList > .tl-card").forEach(card=>{
     const tradelineIndex = Number(card.dataset.index);
-    // your app tracks hiddenTradelines; ignore hidden if you use that
-    // if (hiddenTradelines?.has?.(tradelineIndex)) return;
-
     const bureaus = Array.from(card.querySelectorAll(".bureau:checked")).map(i=>i.value);
     if(!bureaus.length) return;
-
     const violationIdxs = Array.from(card.querySelectorAll(".violation:checked")).map(i=>Number(i.value));
-    const specialMode = getSpecialModeForCard(card);  // ⬅️ NEW
-
-    selections.push({ tradelineIndex, bureaus, violationIdxs, specialMode }); // ⬅️ include mode
+    const specialMode = getSpecialModeForCard(card);
+    selections.push({ tradelineIndex, bureaus, violationIdxs, specialMode });
   });
   return selections;
 }
-
 
 $("#btnGenerate").addEventListener("click", async ()=>{
   clearErr();
@@ -300,39 +369,27 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     if(!selections.length) throw new Error("Pick at least one tradeline, at least one bureau, and any violations you want.");
     const requestType = getRequestType();
 
-    console.log("[GENERATE] consumerId:", currentConsumerId, "reportId:", currentReportId, "selections:", selections.length, "requestType:", requestType);
-
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
       body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType })
     });
-
     if(!resp.ok){
       const txt = await resp.text().catch(()=> "");
       throw new Error(`HTTP ${resp.status} ${txt || ""}`.trim());
     }
-
     const data = await resp.json().catch(()=> ({}));
     if(!data?.ok || !data?.redirect) throw new Error(data?.error || "Server did not return a redirect.");
-
-    console.log("[GENERATE] redirect →", data.redirect);
-
-    // Hard redirect (most reliable)
     window.location.assign(data.redirect);
-
-    // Safety fallback if a CSP/extension blocked assign()
     setTimeout(()=>{
-      if (!/\/letters(\?|$)/.test(location.href)) {
-        window.location.href = data.redirect;
-      }
-    }, 100);
+      if (!/\/letters(\?|$)/.test(location.href)) window.location.href = data.redirect;
+    }, 120);
   }catch(e){
     showErr(e.message || String(e));
   }
 });
 
-// ---------------- Toolbar buttons ----------------
+// ===================== Toolbar =====================
 $("#btnNewConsumer").addEventListener("click", async ()=>{
   const name = prompt("Consumer name?");
   if(!name) return;
@@ -365,7 +422,6 @@ $("#btnEditConsumer").addEventListener("click", ()=>{
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
 });
-
 $("#editClose").addEventListener("click", ()=> closeEdit());
 $("#editCancel").addEventListener("click", ()=> closeEdit());
 function closeEdit(){
@@ -388,7 +444,7 @@ $("#editForm").addEventListener("submit", async (e)=>{
   $("#selConsumer").textContent = c ? c.name : "—";
 });
 
-// Upload
+// Upload report
 $("#btnUpload").addEventListener("click", ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
   $("#fileInput").value = "";
@@ -410,6 +466,7 @@ $("#fileInput").addEventListener("change", async (e)=>{
     const data = await res.json().catch(()=> ({}));
     if(!data?.ok) throw new Error(data?.error || `Upload failed (HTTP ${res.status})`);
     await refreshReports();
+    await loadConsumerState();
   }catch(err){
     showErr(String(err));
   }finally{
@@ -425,7 +482,191 @@ $("#btnDeleteReport").addEventListener("click", async ()=>{
   const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`, { method:"DELETE" });
   if(!res?.ok) return showErr(res?.error || "Failed to delete report.");
   await refreshReports();
+  await loadConsumerState();
 });
 
-// ---------------- Init ----------------
+// ===================== Files & Activity =====================
+async function loadConsumerState(){
+  if (!currentConsumerId){ $("#activityList").innerHTML = ""; return; }
+  const resp = await api(`/api/consumers/${currentConsumerId}/state`);
+  if (!resp?.ok){ $("#activityList").innerHTML = `<div class="muted">No activity.</div>`; return; }
+  const { events=[], files=[] } = resp.state || {};
+  const list = [];
+
+  if (files.length){
+    list.push(`<div class="font-medium mb-1">Files</div>`);
+    files.forEach(f=>{
+      list.push(`
+        <div class="glass card flex items-center justify-between p-2">
+          <div class="wrap-anywhere">
+            <div>${escapeHtml(f.originalName)}</div>
+            <div class="text-xs muted">${(f.mimetype||"").split("/").pop() || ""} • ${(f.size/1024).toFixed(1)} KB • ${new Date(f.uploadedAt).toLocaleString()}</div>
+          </div>
+          <a class="btn text-sm" href="/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(f.storedName)}" target="_blank">Open</a>
+        </div>
+      `);
+    });
+  }
+
+  list.push(`<div class="font-medium mt-2 mb-1">Activity</div>`);
+  if (!events.length){
+    list.push(`<div class="muted">No recent events.</div>`);
+  } else {
+    events.forEach(ev=>{
+      const when = new Date(ev.at).toLocaleString();
+      list.push(`
+        <div class="glass card p-2">
+          <div class="flex items-center justify-between">
+            <div class="font-medium">${escapeHtml(ev.type)}</div>
+            <div class="text-xs muted">${when}</div>
+          </div>
+          ${ev.payload ? `<pre class="text-xs mt-1 overflow-auto">${escapeHtml(JSON.stringify(ev.payload, null, 2))}</pre>` : ""}
+        </div>
+      `);
+    });
+  }
+  $("#activityList").innerHTML = list.join("");
+}
+
+$("#btnAddFile").addEventListener("click", ()=>{
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  $("#activityFile").value = "";
+  $("#activityFile").click();
+});
+$("#activityFile").addEventListener("change", async (e)=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  try{
+    const fd = new FormData();
+    fd.append("file", file, file.name);
+    const res = await fetch(`/api/consumers/${currentConsumerId}/state/upload`, { method:"POST", body: fd });
+    const data = await res.json().catch(()=> ({}));
+    if(!data?.ok) throw new Error(data?.error || `Upload failed`);
+    await loadConsumerState();
+  }catch(err){
+    showErr(String(err));
+  }
+});
+
+// ===================== Modes + Global Hotkeys =====================
+// Minimal re-implementation here so we don't rely on inline scripts
+const MODES = [
+  { key: "identity", hotkey: "i", cardClass: "mode-identity" },
+  { key: "breach",   hotkey: "d", cardClass: "mode-breach"   },
+  { key: "assault",  hotkey: "s", cardClass: "mode-assault"  },
+];
+let activeMode = null;
+function setMode(key){ activeMode = (activeMode===key)? null : key; updateModeButtons(); }
+function updateModeButtons(){ document.querySelectorAll(".mode-btn").forEach(b=> b.classList.toggle("active", b.dataset.mode===activeMode)); }
+
+(function initModesBar(){
+  const bar = $("#modeBar"); if(!bar) return;
+  bar.innerHTML = "";
+  MODES.forEach(m=>{
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip mode-btn";
+    btn.textContent = `${m.key[0].toUpperCase()+m.key.slice(1)}`;
+    btn.dataset.mode = m.key;
+    btn.addEventListener("click", ()=> setMode(m.key));
+    bar.appendChild(btn);
+  });
+  updateModeButtons();
+})();
+
+function attachCardHandlers(root=document){
+  root.querySelectorAll(".tl-card").forEach(card=>{
+    if (card.__modesHooked) return;
+    card.__modesHooked = true;
+
+    // focus ring for hotkeys R/A
+    card.addEventListener("pointerdown", ()=> focusCard(card));
+
+    // badge container safety
+    if (!card.querySelector(".special-badges")) {
+      const head = card.querySelector(".tl-head") || card.firstElementChild;
+      const holder = document.createElement("div");
+      holder.className = "special-badges flex gap-1";
+      head.appendChild(holder);
+    }
+  });
+}
+let lastFocusedCard = null;
+function focusCard(card){
+  if (lastFocusedCard) lastFocusedCard.classList.remove("focus-ring");
+  lastFocusedCard = card;
+  card.classList.add("focus-ring");
+}
+function toggleWholeCardSelection(card){
+  const any = Array.from(card.querySelectorAll('input.bureau')).some(cb=>cb.checked);
+  setCardSelected(card, !any);
+}
+window.__crm_helpers = {
+  attachCardHandlers,
+  focusCardRef: ()=> lastFocusedCard,
+  toggleWholeCardSelection,
+  clearMode: ()=>{ activeMode=null; updateModeButtons(); }
+};
+
+const tlList = $("#tlList");
+const obs = new MutationObserver(()=> attachCardHandlers(tlList));
+obs.observe(tlList, { childList:true, subtree:true });
+
+// Global hotkeys
+function isTypingTarget(el){ return el && (el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.isContentEditable); }
+document.addEventListener("keydown",(e)=>{
+  if (isTypingTarget(document.activeElement)) return;
+  const k = e.key.toLowerCase();
+
+  if (k==="h"){ e.preventDefault(); openHelp(); return; }
+  if (k==="n"){ e.preventDefault(); $("#btnNewConsumer")?.click(); return; }
+  if (k==="u"){ e.preventDefault(); $("#btnUpload")?.click(); return; }
+  if (k==="e"){ e.preventDefault(); $("#btnEditConsumer")?.click(); return; }
+  if (k==="g"){ e.preventDefault(); $("#btnGenerate")?.click(); return; }
+
+  if (k==="r"){ // remove focused card
+    e.preventDefault();
+    const card = window.__crm_helpers?.focusCardRef?.();
+    if (card) card.querySelector(".tl-remove")?.click();
+    return;
+  }
+  if (k==="a"){ // toggle all bureaus
+    e.preventDefault();
+    const card = window.__crm_helpers?.focusCardRef?.();
+    if (card) window.__crm_helpers.toggleWholeCardSelection(card);
+    return;
+  }
+
+  if (k==="c"){ // context clear
+    e.preventDefault();
+    if (!$("#editModal").classList.contains("hidden")){
+      // clear edit form
+      $("#editForm").querySelectorAll("input").forEach(i=> i.value="");
+      return;
+    }
+    // clear filters + mode
+    activeFilters.clear(); renderFilterBar(); renderTradelines(CURRENT_REPORT?.tradelines||[]);
+    window.__crm_helpers?.clearMode?.();
+    return;
+  }
+
+  // Modes (i/d/s)
+  const m = MODES.find(x=>x.hotkey===k);
+  if (m){ e.preventDefault(); setMode(m.key); return; }
+});
+
+// Help modal simple control
+function openHelp(){
+  const modal = $("#helpModal");
+  modal.classList.remove("hidden"); modal.classList.add("flex");
+  document.body.style.overflow = "hidden";
+}
+$("#helpClose").addEventListener("click", ()=>{
+  const modal = $("#helpModal");
+  modal.classList.add("hidden"); modal.classList.remove("flex");
+  document.body.style.overflow = "";
+});
+$("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ $("#helpClose").click(); } });
+
+// ===================== Init =====================
 loadConsumers();

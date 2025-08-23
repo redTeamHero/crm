@@ -1104,6 +1104,231 @@
           "creditor": "EDFINANCIAL"
         }
       ]
+    },
+    "924a087ae6c23acd": {
+      "createdAt": 1755970838386,
+      "letters": [
+        {
+          "filename": "TransUnion_CAPITAL_ONE_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "CAPITAL ONE"
+        },
+        {
+          "filename": "Experian_CAPITAL_ONE_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "CAPITAL ONE"
+        },
+        {
+          "filename": "Equifax_CAPITAL_ONE_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "CAPITAL ONE"
+        }
+      ]
+    },
+    "cf79a013d49c65f6": {
+      "createdAt": 1755971694060,
+      "letters": [
+        {
+          "filename": "TransUnion_Unknown_Creditor_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Experian_Unknown_Creditor_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Equifax_Unknown_Creditor_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "TransUnion_Unknown_Creditor_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Experian_Unknown_Creditor_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Equifax_Unknown_Creditor_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Unknown Creditor"
+        }
+      ]
+    },
+    "b84699150fd58412": {
+      "createdAt": 1755971927003,
+      "letters": [
+        {
+          "filename": "TransUnion_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Experian_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Equifax_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "TransUnion_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Experian_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Equifax_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Experian_Risk_Factors_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Risk Factors"
+        }
+      ]
+    },
+    "26693ade24fb860d": {
+      "createdAt": 1755973155901,
+      "letters": [
+        {
+          "filename": "TransUnion_Risk_Factors_breach_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "Experian_Risk_Factors_breach_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "Equifax_Risk_Factors_breach_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "TransUnion_CAPITAL_ONE_assault_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "CAPITAL ONE"
+        },
+        {
+          "filename": "Experian_CAPITAL_ONE_assault_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "CAPITAL ONE"
+        },
+        {
+          "filename": "Equifax_CAPITAL_ONE_assault_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "CAPITAL ONE"
+        }
+      ]
+    },
+    "4f114c9b5868b668": {
+      "createdAt": 1755973323169,
+      "letters": [
+        {
+          "filename": "TransUnion_Risk_Factors_assault_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "Experian_Risk_Factors_assault_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "Equifax_Risk_Factors_assault_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Risk Factors"
+        }
+      ]
+    },
+    "9a7fe597fc6410c8": {
+      "createdAt": 1755973445957,
+      "letters": [
+        {
+          "filename": "TransUnion_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Experian_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Unknown Creditor"
+        },
+        {
+          "filename": "Equifax_Unknown_Creditor_breach_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Unknown Creditor"
+        }
+      ]
+    },
+    "a324b12de401120c": {
+      "createdAt": 1755978978766,
+      "letters": [
+        {
+          "filename": "TransUnion_Risk_Factors_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "Experian_Risk_Factors_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "Equifax_Risk_Factors_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "TransUnion_Risk_Factors_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "Experian_Risk_Factors_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "Equifax_Risk_Factors_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "Risk Factors"
+        },
+        {
+          "filename": "TransUnion_CAPITAL_ONE_dispute_2025-08-23.html",
+          "bureau": "TransUnion",
+          "creditor": "CAPITAL ONE"
+        },
+        {
+          "filename": "Experian_CAPITAL_ONE_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "CAPITAL ONE"
+        },
+        {
+          "filename": "Equifax_CAPITAL_ONE_dispute_2025-08-23.html",
+          "bureau": "Equifax",
+          "creditor": "CAPITAL ONE"
+        },
+        {
+          "filename": "Experian_CAPITAL_ONE_dispute_2025-08-23.html",
+          "bureau": "Experian",
+          "creditor": "CAPITAL ONE"
+        }
+      ]
     }
   }
 }

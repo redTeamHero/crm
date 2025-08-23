@@ -1,0 +1,20 @@
+{
+  "consumers": {
+    "RoVO6y0EKM": {
+      "events": [
+        {
+          "id": "1755978978767_1912dfd55d3d5",
+          "type": "letters_generated",
+          "payload": {
+            "jobId": "a324b12de401120c",
+            "requestType": "correct",
+            "count": 10,
+            "tradelines": 4
+          },
+          "at": "2025-08-23T19:56:18.767Z"
+        }
+      ],
+      "files": []
+    }
+  }
+}
