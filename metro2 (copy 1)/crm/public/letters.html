@@ -7,8 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
-      --glass-bg: rgba(255,255,255,0.65);
-      --glass-brd: rgba(255,255,255,0.35);
+      --glass-bg: rgba(255,255,255,0.4);
+      --glass-brd: rgba(255,255,255,0.25);
       --muted:#6b7280;
       --green:#22c55e;
       --green-bg: rgba(34,197,94,.12);
@@ -18,13 +18,14 @@
       color:#0f172a;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
     }
-    .glass{ background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:18px; backdrop-filter:blur(12px); box-shadow:0 8px 24px rgba(0,0,0,.1); }
+    .glass{ background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:18px; backdrop-filter:blur(12px) saturate(180%); box-shadow:0 8px 24px rgba(0,0,0,.1); }
     .card{ border-radius:18px; padding:16px }
     .btn{ border:1px solid var(--glass-brd); border-radius:10px; padding:6px 12px; background:white/80; }
     .btn:hover{ background:#f9fafb }
     .muted{ color:var(--muted) }
     .tl-card{ transition:transform .15s ease, box-shadow .15s ease, background .15s ease; cursor:pointer; }
     .tl-card:hover{ transform:translateY(-1px); }
+    .tl-card.negative{ box-shadow:0 0 0 2px #ef4444 inset, 0 8px 24px rgba(0,0,0,.1); background:rgba(239,68,68,.12); }
     .hidden{ display:none }
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
     .modal{width:min(1100px,96vw);height:min(90vh,900px);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.25);background:white;display:flex;flex-direction:column;overflow:hidden}

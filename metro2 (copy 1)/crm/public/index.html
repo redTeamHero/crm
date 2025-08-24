@@ -8,8 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root{
-      --glass-bg: rgba(255,255,255,0.65);
-      --glass-brd: rgba(255,255,255,0.35);
+      --glass-bg: rgba(255,255,255,0.4);
+      --glass-brd: rgba(255,255,255,0.25);
       --muted:#6b7280;
       --green:#22c55e;
       --green-bg:rgba(34,197,94,.12);
@@ -25,7 +25,7 @@
       color:#0f172a;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
     }
-    .glass{ background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:18px; backdrop-filter:blur(12px); box-shadow:0 8px 24px rgba(0,0,0,.1) }
+    .glass{ background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:18px; backdrop-filter:blur(12px) saturate(180%); box-shadow:0 8px 24px rgba(0,0,0,.1) }
     .card{ border-radius:18px; padding:16px }
     .chip{ border:1px solid var(--glass-brd); padding:4px 10px; border-radius:999px; font-size:12px; background:rgba(255,255,255,.7); cursor:pointer; user-select:none }
     .chip.active{ background:var(--accent-bg); border-color:var(--accent) }
@@ -35,11 +35,10 @@
     .tl-card{ transition:transform .2s ease, box-shadow .15s ease, background .15s ease; }
     .tl-card:hover{ transform: translateY(-1px) scale(1.01) }
     .tl-card.selected{ box-shadow:0 0 0 2px var(--green) inset; background:var(--green-bg) }
+    .tl-card.negative{ box-shadow:0 0 0 2px #ef4444 inset, 0 8px 24px rgba(0,0,0,.1); background:rgba(239,68,68,.12); }
     .wrap-anywhere{ overflow-wrap:anywhere; word-break:break-word }
     .hidden{ display:none }
     .focus-ring{ outline: 2px dashed #6366f1; outline-offset: 4px; }
-
-    .color-bubble{ width:32px; height:32px; border-radius:9999px; cursor:pointer; border:2px solid white; box-shadow:0 0 0 2px rgba(0,0,0,.1); }
 
     /* Modes */
     .tl-card.mode-identity{ box-shadow:0 0 0 2px #d4af37 inset, 0 8px 24px rgba(0,0,0,.1); background: rgba(212,175,55,.12); }
@@ -70,16 +69,6 @@
   </style>
 </head>
 <body>
-<div id="colorPanel" class="fixed right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
-  <button id="colorToggle" class="color-bubble flex items-center justify-center text-white text-sm" style="background:var(--accent)">×</button>
-  <div id="colorBubbles" class="flex flex-col gap-2">
-    <button class="color-bubble" data-color="#007AFF" style="background:#007AFF"></button>
-    <button class="color-bubble" data-color="#34C759" style="background:#34C759"></button>
-    <button class="color-bubble" data-color="#FF9500" style="background:#FF9500"></button>
-    <button class="color-bubble" data-color="#FF3B30" style="background:#FF3B30"></button>
-    <button class="color-bubble" data-color="#AF52DE" style="background:#AF52DE"></button>
-  </div>
-</div>
 <header class="p-4">
   <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
     <div class="text-xl font-semibold">Metro 2 CRM</div>
