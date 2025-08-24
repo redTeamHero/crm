@@ -88,8 +88,11 @@ export function renderHtml(report, consumerName = "Consumer"){
       return `<tr class="row${diff}"><th>${escapeHtml(label)}</th>${cells}</tr>`;
     }).join('');
 
-    const issues = (acc.issues || []).map(i => `<li>${escapeHtml(i.title)} - ${escapeHtml(i.detail)}</li>`).join('');
-    const issueBlock = issues ? `<p><strong>Issues:</strong></p><ul>${issues}</ul>` : "";
+    const issues = (acc.issues || []).map(i => {
+      const action = recommendAction(i.title);
+      return `<li>${escapeHtml(i.title)} - ${escapeHtml(i.detail)} ${escapeHtml(action)}</li>`;
+    }).join('');
+    const issueBlock = issues ? `<p><strong>Audit Reasons:</strong></p><ul>${issues}</ul>` : "";
 
     return `
       <h2>${escapeHtml(acc.creditor)}</h2>
@@ -115,7 +118,7 @@ export function renderHtml(report, consumerName = "Consumer"){
   footer{margin-top:40px;font-size:0.8em;color:#555;}
   </style></head>
   <body>
-  <h1>Request for Correction of Inaccurate/Incomplete Information</h1>
+  <h1>Credit Repair Audit</h1>
   <p>Generated for ${escapeHtml(consumerName)} on ${escapeHtml(dateStr)}</p>
   ${accountSections}
   <footer>
@@ -138,7 +141,7 @@ export async function savePdf(html){
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const outDir = path.join(__dirname, 'public', 'reports');
   await fs.mkdir(outDir, { recursive: true });
-  const filename = `audit-${Date.now()}.pdf`;
+  const filename = `credit-repair-audit-${Date.now()}.pdf`;
   const outPath = path.join(outDir, filename);
 
   try{
