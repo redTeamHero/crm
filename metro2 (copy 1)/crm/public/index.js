@@ -217,6 +217,9 @@ function renderTradelines(tradelines){
     const card = node.querySelector(".tl-card");
     card.dataset.index = idx;
 
+    const negativeTags = ["Collections","Late Payments","Charge-Off"];
+    if (tags.some(t=>negativeTags.includes(t))) card.classList.add("negative");
+
     node.querySelector(".tl-creditor").textContent = tl.meta?.creditor || "Unknown Creditor";
     node.querySelector(".tl-idx").textContent = idx;
 
@@ -226,7 +229,7 @@ function renderTradelines(tradelines){
 
     const tagWrap = node.querySelector(".tl-tags");
     tagWrap.innerHTML = "";
-    deriveTags(tl).forEach(t=>{
+    tags.forEach(t=>{
       const chip = document.createElement("span");
       chip.className = "chip";
       chip.textContent = t;
