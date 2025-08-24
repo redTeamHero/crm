@@ -43,10 +43,7 @@ function futureISO(offsetDays) {
 function safe(val, fallback = "") {
   return val == null ? fallback : String(val);
 }
-function showMoney(pb, key) {
-  return safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
-}
-function showDate(pb, key) {
+function fieldVal(pb, key) {
   return safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
 }
 function hasAnyData(pb) {
@@ -55,10 +52,7 @@ function hasAnyData(pb) {
     "account_number","account_status","payment_status","balance","credit_limit",
     "high_credit","past_due","date_opened","last_reported","date_last_payment","comments",
   ];
-  return keys.some((k) => {
-    const v = pb[k] ?? pb[`${k}_raw`];
-    return v !== undefined && String(v).trim() !== "";
-  });
+  return keys.some((k) => fieldVal(pb, k).trim() !== "");
 }
 
 function isNegative(pb) {
@@ -73,6 +67,9 @@ function isNegative(pb) {
   ];
   const fields = ["payment_status", "account_status", "comments"];
   return fields.some((k) => {
+    const v = fieldVal(pb, k).toLowerCase();
+    return NEG_WORDS.some((w) => v.includes(w));
+
     const v = pb[k] ?? pb[`${k}_raw`];
     return (
       typeof v === "string" &&
@@ -217,16 +214,16 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
     }),
     renderRow("Balance / Past Due", available, tl, conflictMap, errorMap, {
       fields: ["balance", "past_due"],
-      renderCell: (pb) => `${showMoney(pb, "balance") || "—"} / ${showMoney(pb, "past_due") || "—"}`,
+      renderCell: (pb) => `${fieldVal(pb, "balance") || "—"} / ${fieldVal(pb, "past_due") || "—"}`,
     }),
     renderRow("Credit Limit / High Credit", available, tl, conflictMap, errorMap, {
       fields: ["credit_limit", "high_credit"],
-      renderCell: (pb) => `${showMoney(pb, "credit_limit") || "—"} / ${showMoney(pb, "high_credit") || "—"}`,
+      renderCell: (pb) => `${fieldVal(pb, "credit_limit") || "—"} / ${fieldVal(pb, "high_credit") || "—"}`,
     }),
     renderRow("Dates", available, tl, conflictMap, errorMap, {
       fields: ["date_opened", "last_reported", "date_last_payment"],
       renderCell: (pb) =>
-        `Opened: ${showDate(pb, "date_opened") || "—"} | Last Reported: ${showDate(pb, "last_reported") || "—"} | Last Payment: ${showDate(pb, "date_last_payment") || "—"}`,
+        `Opened: ${fieldVal(pb, "date_opened") || "—"} | Last Reported: ${fieldVal(pb, "last_reported") || "—"} | Last Payment: ${fieldVal(pb, "date_last_payment") || "—"}`,
     }),
     renderRow("Comments", available, tl, conflictMap, errorMap, {
       fields: ["comments"],
@@ -259,13 +256,13 @@ function buildTradelineBlockHTML(tl, bureau) {
     acct: safe(pb.account_number, "N/A"),
     status: safe(pb.account_status, "N/A"),
     payStatus: safe(pb.payment_status, "N/A"),
-    bal: showMoney(pb, "balance") || "N/A",
-    cl: showMoney(pb, "credit_limit") || "N/A",
-    hc: showMoney(pb, "high_credit") || "N/A",
-    pd: showMoney(pb, "past_due") || "N/A",
-    opened: showDate(pb, "date_opened") || "N/A",
-    lastRpt: showDate(pb, "last_reported") || "N/A",
-    lastPay: showDate(pb, "date_last_payment") || "N/A",
+    bal: fieldVal(pb, "balance") || "N/A",
+    cl: fieldVal(pb, "credit_limit") || "N/A",
+    hc: fieldVal(pb, "high_credit") || "N/A",
+    pd: fieldVal(pb, "past_due") || "N/A",
+    opened: fieldVal(pb, "date_opened") || "N/A",
+    lastRpt: fieldVal(pb, "last_reported") || "N/A",
+    lastPay: fieldVal(pb, "date_last_payment") || "N/A",
     comments: safe(pb.comments, ""),
   };
 
