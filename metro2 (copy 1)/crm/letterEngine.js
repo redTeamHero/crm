@@ -98,16 +98,6 @@ function colorize(text) {
     .join("");
 }
 
-const fieldVal = (pb, key) => safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
-function hasAnyData(pb) {
-  if (!pb) return false;
-  const keys = [
-    "account_number","account_status","payment_status","balance","credit_limit",
-    "high_credit","past_due","date_opened","last_reported","date_last_payment","comments",
-  ];
-  return keys.some((k) => fieldVal(pb, k).trim() !== "");
-}
-
 // Conflict detection (trimmed)
 const EVIDENCE_KEY_TO_FIELD = {
   balance_by_bureau: "balance",
@@ -977,5 +967,6 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 }
 
 export { generateLetters };
+
 
 
