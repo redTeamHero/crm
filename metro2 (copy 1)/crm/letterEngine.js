@@ -98,9 +98,7 @@ function colorize(text) {
     })
     .join("");
 }
-function fieldVal(pb, key) {
-  return safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
-}
+
 function hasAnyData(pb) {
   if (!pb) return false;
   const keys = [
@@ -661,3 +659,4 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 }
 
 export { generateLetters };
+
