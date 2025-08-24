@@ -510,4 +510,29 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
   return letters;
 }
 
+
+    for (const bureau of sel.bureaus || []) {
+      if (!ALL_BUREAUS.includes(bureau)) continue;
+
+      const letter = buildLetterHTML({
+        consumer,
+        bureau,
+        tl,
+        selectedViolationIdxs: sel.violationIdxs || [],
+        requestType,
+        comparisonBureaus,
+        modeKey: sel.specialMode || null,
+      });
+      letters.push({
+        bureau,
+        tradelineIndex: sel.tradelineIndex,
+        creditor: tl.meta.creditor,
+        ...letter,
+      });
+    }
+  }
+
+  return letters;
+}
+
 export { generateLetters };
