@@ -424,7 +424,7 @@ function buildLetterHTML({
   <title>${bureau} – ${mc.heading}</title>
     <style>
       @media print { @page { margin: 1in; } }
-      body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#0000ff; }
+      body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
       * { word-break:break-word; }
       .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
       .muted{ color:#6b7280; }
@@ -550,5 +550,6 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 }
 
 export { generateLetters };
+
 
 
