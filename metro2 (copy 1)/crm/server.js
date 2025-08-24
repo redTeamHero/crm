@@ -264,24 +264,7 @@ async function detectChromium(){
   }
   return null;
 }
-async function detectChromium(){
-  if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  const candidates = [
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-    "/snap/bin/chromium",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable"
-  ];
-  for (const p of candidates) {
-    try {
-      await fs.promises.access(p, fs.constants.X_OK);
-      const check = spawnSync(p, ["--version"], { stdio: "ignore" });
-      if (check.status === 0) return p;
-    } catch {}
-  }
-  return null;
-}
+
 async function launchBrowser(){
   const execPath = await detectChromium();
   const opts = { headless:true, args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-zygote","--single-process"] };
@@ -615,6 +598,7 @@ app.listen(PORT, ()=> {
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
 });
+
 
 
 
