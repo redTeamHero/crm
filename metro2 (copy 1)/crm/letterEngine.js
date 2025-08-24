@@ -69,6 +69,12 @@ function isNegative(pb) {
   return fields.some((k) => {
     const v = fieldVal(pb, k).toLowerCase();
     return NEG_WORDS.some((w) => v.includes(w));
+
+    const v = pb[k] ?? pb[`${k}_raw`];
+    return (
+      typeof v === "string" &&
+      NEG_WORDS.some((w) => v.toLowerCase().includes(w))
+    );
   });
 }
 
