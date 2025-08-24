@@ -7,6 +7,9 @@ let DB = { consumers: [] };
 let currentConsumerId = null;
 let currentReportId = null;
 let CURRENT_REPORT = null;
+const TL_PAGE_SIZE = 12;
+let tlPage = 1;
+let tlTotalPages = 1;
 
 // ----- UI helpers -----
 function showErr(msg){
@@ -21,6 +24,33 @@ function clearErr(){
   if (e) { e.textContent = ""; e.classList.add("hidden"); }
 }
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+function formatEvent(ev){
+  const when = new Date(ev.at).toLocaleString();
+  let title = escapeHtml(ev.type);
+  let body = "";
+  if(ev.type === "letters_generated"){
+    const { count, requestType, tradelines } = ev.payload || {};
+    title = "Letters generated";
+    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}.</div>`;
+  } else if(ev.type === "audit_generated"){
+    const { reportId, file } = ev.payload || {};
+    title = "Audit generated";
+    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
+    body = `<div class="text-xs mt-1">Report ${escapeHtml(reportId||"")} ${link}</div>`;
+  } else if(ev.payload){
+    body = `<pre class="text-xs mt-1 overflow-auto">${escapeHtml(JSON.stringify(ev.payload, null, 2))}</pre>`;
+  }
+  return `
+    <div class="glass card p-2">
+      <div class="flex items-center justify-between">
+        <div class="font-medium">${title}</div>
+        <div class="text-xs muted">${when}</div>
+      </div>
+      ${body}
+    </div>
+  `;
+}
 
 // ===================== Consumers (search + pagination) =====================
 const PAGE_SIZE = 10;
@@ -92,6 +122,13 @@ $("#consNext").addEventListener("click", ()=>{
   if (consPage<totalPages()){ consPage++; renderConsumers(); }
 });
 
+$("#tlPrev").addEventListener("click", ()=>{
+  if (tlPage>1){ tlPage--; renderTradelines(CURRENT_REPORT?.tradelines || []); }
+});
+$("#tlNext").addEventListener("click", ()=>{
+  if (tlPage<tlTotalPages){ tlPage++; renderTradelines(CURRENT_REPORT?.tradelines || []); }
+});
+
 async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.consumers.find(x=>x.id===id);
@@ -137,6 +174,7 @@ async function loadReportJSON(){
   const data = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`);
   if(!data?.ok) return showErr(data?.error || "Failed to load report JSON.");
   CURRENT_REPORT = data.report;
+  tlPage = 1;
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines || []);
 }
@@ -184,6 +222,7 @@ function renderFilterBar(){
     btn.textContent = tag;
     btn.addEventListener("click", ()=>{
       if (activeFilters.has(tag)) activeFilters.delete(tag); else activeFilters.add(tag);
+      tlPage = 1;
       renderFilterBar();
       renderTradelines(CURRENT_REPORT?.tradelines || []);
     });
@@ -191,6 +230,7 @@ function renderFilterBar(){
   });
   $("#btnClearFilters").onclick = () => {
     activeFilters.clear();
+    tlPage = 1;
     renderFilterBar();
     renderTradelines(CURRENT_REPORT?.tradelines || []);
   };
@@ -208,11 +248,20 @@ function renderTradelines(tradelines){
   container.innerHTML = "";
   const tpl = $("#tlTemplate").content;
 
+  const visible = [];
   tradelines.forEach((tl, idx)=>{
     if (hiddenTradelines.has(idx)) return;
     const tags = deriveTags(tl);
     if (!passesFilter(tags)) return;
+    visible.push({ tl, idx, tags });
+  });
 
+  tlTotalPages = Math.max(1, Math.ceil(visible.length / TL_PAGE_SIZE));
+  if (tlPage > tlTotalPages) tlPage = tlTotalPages;
+  const start = (tlPage - 1) * TL_PAGE_SIZE;
+  const pageItems = visible.slice(start, start + TL_PAGE_SIZE);
+
+  pageItems.forEach(({ tl, idx, tags }) => {
     const node = tpl.cloneNode(true);
     const card = node.querySelector(".tl-card");
     card.dataset.index = idx;
@@ -236,7 +285,6 @@ function renderTradelines(tradelines){
       tagWrap.appendChild(chip);
     });
 
-    // violations list (checkboxes for selection)
     const vWrap = node.querySelector(".tl-violations");
     const vs = tl.violations || [];
     vWrap.innerHTML = vs.length
@@ -250,14 +298,12 @@ function renderTradelines(tradelines){
         </label>`).join("")
       : `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
 
-    // Remove card
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
       hiddenTradelines.add(idx);
       renderTradelines(tradelines);
     });
 
-    // Open zoom only when clicking creditor name
     const nameEl = node.querySelector(".tl-creditor");
     if (nameEl) {
       nameEl.classList.add("cursor-pointer");
@@ -267,7 +313,6 @@ function renderTradelines(tradelines){
       });
     }
 
-    // keep selected class synced when user flips any checkbox
     card.querySelectorAll('input.bureau').forEach(cb=>{
       cb.addEventListener("change", ()=>{
         const any = Array.from(card.querySelectorAll('input.bureau')).some(x=>x.checked);
@@ -281,6 +326,9 @@ function renderTradelines(tradelines){
   if (!container.children.length){
     container.innerHTML = `<div class="muted">No tradelines match the current filters.</div>`;
   }
+
+  $("#tlPage").textContent = String(tlPage);
+  $("#tlPages").textContent = String(tlTotalPages);
 
   // Let special-modes hook new cards
   window.__crm_helpers?.attachCardHandlers?.(container);
@@ -545,18 +593,7 @@ async function loadConsumerState(){
   if (!events.length){
     list.push(`<div class="muted">No recent events.</div>`);
   } else {
-    events.forEach(ev=>{
-      const when = new Date(ev.at).toLocaleString();
-      list.push(`
-        <div class="glass card p-2">
-          <div class="flex items-center justify-between">
-            <div class="font-medium">${escapeHtml(ev.type)}</div>
-            <div class="text-xs muted">${when}</div>
-          </div>
-          ${ev.payload ? `<pre class="text-xs mt-1 overflow-auto">${escapeHtml(JSON.stringify(ev.payload, null, 2))}</pre>` : ""}
-        </div>
-      `);
-    });
+    events.forEach(ev=>{ list.push(formatEvent(ev)); });
   }
   $("#activityList").innerHTML = list.join("");
 }
@@ -605,10 +642,6 @@ const MODES = [
     chip: "Assault",
     label: "Sexual Assault",
   },
-
-  { key: "identity", hotkey: "i", cardClass: "mode-identity", chip: "ID Theft" },
-  { key: "breach",   hotkey: "d", cardClass: "mode-breach",   chip: "Breach"   },
-  { key: "assault",  hotkey: "s", cardClass: "mode-assault",  chip: "Assault"  },
 ];
 let activeMode = null;
 function setMode(key){ activeMode = (activeMode===key)? null : key; updateModeButtons(); }
@@ -746,7 +779,7 @@ document.addEventListener("keydown",(e)=>{
       return;
     }
     // clear filters + mode
-    activeFilters.clear(); renderFilterBar(); renderTradelines(CURRENT_REPORT?.tradelines||[]);
+    activeFilters.clear(); tlPage = 1; renderFilterBar(); renderTradelines(CURRENT_REPORT?.tradelines||[]);
     window.__crm_helpers?.clearMode?.();
     return;
   }
