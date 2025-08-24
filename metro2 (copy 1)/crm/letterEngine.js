@@ -43,22 +43,14 @@ function futureISO(offsetDays) {
 function safe(val, fallback = "") {
   return val == null ? fallback : String(val);
 }
-function showMoney(pb, key) {
-  return safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
-}
-function showDate(pb, key) {
-  return safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
-}
+const getField = (pb, key) => safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
 function hasAnyData(pb) {
   if (!pb) return false;
   const keys = [
     "account_number","account_status","payment_status","balance","credit_limit",
     "high_credit","past_due","date_opened","last_reported","date_last_payment","comments",
   ];
-  return keys.some((k) => {
-    const v = pb[k] ?? pb[`${k}_raw`];
-    return v !== undefined && String(v).trim() !== "";
-  });
+  return keys.some((k) => getField(pb, k).trim() !== "");
 }
 
 function isNegative(pb) {
@@ -73,12 +65,37 @@ function isNegative(pb) {
   ];
   const fields = ["payment_status", "account_status", "comments"];
   return fields.some((k) => {
-    const v = pb[k] ?? pb[`${k}_raw`];
-    return (
-      typeof v === "string" &&
-      NEG_WORDS.some((w) => v.toLowerCase().includes(w))
-    );
+    const v = getField(pb, k).toLowerCase();
+    return NEG_WORDS.some((w) => v.includes(w));
   });
+}
+
+// Restricted pastel palette for OCR disruption
+const OCR_COLORS = [
+  "#ffb347", // pastel orange
+  "#ffa500", // fluorescent orange
+  "#ffff99", // light yellow
+  "#add8e6", // light blue
+  "#90ee90", // light green
+  "#ffd1dc", // pale pink
+];
+
+function colorize(text) {
+  if (!text) return "";
+  const letters = Array.from(text);
+  return letters
+    .map((ch, idx) => {
+      if (/\s/.test(ch)) return ch;
+      if (idx === 0) {
+        return `<span style="color:#0000ff">${ch}</span>`;
+      }
+      if (Math.random() < 0.5) {
+        const color = OCR_COLORS[Math.floor(Math.random() * OCR_COLORS.length)];
+        return `<span style="color:${color}">${ch}</span>`;
+      }
+      return ch; // default body color (blue)
+    })
+    .join("");
 }
 
 // Conflict detection (trimmed)
@@ -196,16 +213,16 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
     }),
     renderRow("Balance / Past Due", available, tl, conflictMap, errorMap, {
       fields: ["balance", "past_due"],
-      renderCell: (pb) => `${showMoney(pb, "balance") || "—"} / ${showMoney(pb, "past_due") || "—"}`,
+      renderCell: (pb) => `${getField(pb, "balance") || "—"} / ${getField(pb, "past_due") || "—"}`,
     }),
     renderRow("Credit Limit / High Credit", available, tl, conflictMap, errorMap, {
       fields: ["credit_limit", "high_credit"],
-      renderCell: (pb) => `${showMoney(pb, "credit_limit") || "—"} / ${showMoney(pb, "high_credit") || "—"}`,
+      renderCell: (pb) => `${getField(pb, "credit_limit") || "—"} / ${getField(pb, "high_credit") || "—"}`,
     }),
     renderRow("Dates", available, tl, conflictMap, errorMap, {
       fields: ["date_opened", "last_reported", "date_last_payment"],
       renderCell: (pb) =>
-        `Opened: ${showDate(pb, "date_opened") || "—"} | Last Reported: ${showDate(pb, "last_reported") || "—"} | Last Payment: ${showDate(pb, "date_last_payment") || "—"}`,
+        `Opened: ${getField(pb, "date_opened") || "—"} | Last Reported: ${getField(pb, "last_reported") || "—"} | Last Payment: ${getField(pb, "date_last_payment") || "—"}`,
     }),
     renderRow("Comments", available, tl, conflictMap, errorMap, {
       fields: ["comments"],
@@ -238,40 +255,54 @@ function buildTradelineBlockHTML(tl, bureau) {
     acct: safe(pb.account_number, "N/A"),
     status: safe(pb.account_status, "N/A"),
     payStatus: safe(pb.payment_status, "N/A"),
-    bal: showMoney(pb, "balance") || "N/A",
-    cl: showMoney(pb, "credit_limit") || "N/A",
-    hc: showMoney(pb, "high_credit") || "N/A",
-    pd: showMoney(pb, "past_due") || "N/A",
-    opened: showDate(pb, "date_opened") || "N/A",
-    lastRpt: showDate(pb, "last_reported") || "N/A",
-    lastPay: showDate(pb, "date_last_payment") || "N/A",
+    bal: getField(pb, "balance") || "N/A",
+    cl: getField(pb, "credit_limit") || "N/A",
+    hc: getField(pb, "high_credit") || "N/A",
+    pd: getField(pb, "past_due") || "N/A",
+    opened: getField(pb, "date_opened") || "N/A",
+    lastRpt: getField(pb, "last_reported") || "N/A",
+    lastPay: getField(pb, "date_last_payment") || "N/A",
     comments: safe(pb.comments, ""),
   };
+  const rows = [
+    ["Creditor", safe(tl.meta.creditor, "Unknown")],
+    [`Acct # (${bureau})`, creds.acct],
+    ["Status/Payment", `${creds.status} / ${creds.payStatus}`],
+    ["Balance / Past Due", `${creds.bal} / ${creds.pd}`],
+    ["Credit Limit / High Credit", `${creds.cl} / ${creds.hc}`],
+    [
+      "Dates",
+      `Opened: ${creds.opened} | Last Reported: ${creds.lastRpt} | Last Payment: ${creds.lastPay}`,
+    ],
+  ];
+  if (creds.comments) rows.push(["Comments", creds.comments]);
+
+  const rowHTML = rows
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">${label}</td><td style="padding:6px;border:1px solid #e5e7eb;">${value}</td></tr>`
+    )
+    .join("");
 
   return `
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;">
-      <tbody>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Creditor</td><td style="padding:6px;border:1px solid #e5e7eb;">${safe(tl.meta.creditor, "Unknown")}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Acct # (${bureau})</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.acct}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Status/Payment</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.status} / ${creds.payStatus}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Balance / Past Due</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.bal} / ${creds.pd}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Credit Limit / High Credit</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.cl} / ${creds.hc}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Dates</td><td style="padding:6px;border:1px solid #e5e7eb;">Opened: ${creds.opened} | Last Reported: ${creds.lastRpt} | Last Payment: ${creds.lastPay}</td></tr>
-        ${creds.comments ? `<tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Comments</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.comments}</td></tr>` : ""}
-      </tbody>
+      <tbody>${rowHTML}</tbody>
     </table>`;
 }
 
 // Evidence / violations
 function isByBureauMap(obj) {
   if (!obj || typeof obj !== "object") return false;
-  return Object.keys(obj).some(k => ["TransUnion","Experian","Equifax"].includes(k));
+  return Object.keys(obj).some((k) => ALL_BUREAUS.includes(k));
 }
 
 function renderByBureauTable(title, map) {
   const rows = Object.entries(map)
-    .filter(([k]) => ["TransUnion","Experian","Equifax"].includes(k))
-    .map(([k, v]) => `<tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;width:160px;">${k}</td><td style="padding:6px;border:1px solid #e5e7eb;word-break:break-word;">${safe(v, "—")}</td></tr>`)
+    .filter(([k]) => ALL_BUREAUS.includes(k))
+    .map(
+      ([k, v]) =>
+        `<tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;width:160px;">${k}</td><td style="padding:6px;border:1px solid #e5e7eb;word-break:break-word;">${safe(v, "—")}</td></tr>`
+    )
     .join("");
   return `
     <div style="margin:8px 0;">
@@ -304,7 +335,7 @@ function buildViolationListHTML(violations, selectedIds) {
       return `
         <li style="margin-bottom:12px;">
           <strong>${safe(v.category)} – ${safe(v.title)}</strong>
-          ${v.detail ? `<div style="margin-top:4px;">${safe(v.detail)}</div>` : ""}
+          ${v.detail ? `<div style="margin-top:4px;">${colorize(safe(v.detail))}</div>` : ""}
           ${evHTML ? `<div style="margin-top:6px;">${evHTML}</div>` : ""}
         </li>`;
     }).join("");
@@ -377,6 +408,14 @@ function buildLetterHTML({
   const chosenList = buildViolationListHTML(tl.violations, selectedViolationIdxs);
   const mc = modeCopy(modeKey, requestType);
 
+  const intro = colorize(mc.intro);
+  const ask = colorize(mc.ask);
+  const afterIssuesPara = mc.afterIssues ? `<p>${colorize(mc.afterIssues)}</p>` : "";
+  const verifyLine = colorize(
+    "Please provide the method of verification... if you cannot verify... delete the item and send me an updated report."
+  );
+  const signOff = `Sincerely,<br>${colorize(safe(consumer.name))}`;
+
   const letterBody = `
 <!DOCTYPE html>
 <html>
@@ -385,7 +424,8 @@ function buildLetterHTML({
   <title>${bureau} – ${mc.heading}</title>
   <style>
     @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#0b1226; }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#0000ff; }
+    h1, h2, strong { color:#000; }
     * { word-break:break-word; }
     .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
     .muted{ color:#6b7280; }
@@ -413,17 +453,17 @@ function buildLetterHTML({
   </div>
   <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
   <h1>${mc.heading}</h1>
-  <p>${mc.intro}</p>
-  <p>${mc.ask}</p>
+  <p>${intro}</p>
+  <p>${ask}</p>
   <h2>Comparison (All Available Bureaus)</h2>
   ${compTable}
   <h2>Bureau‑Specific Details (${bureau})</h2>
   ${tlBlock}
   <h2>Specific Issues (Selected)</h2>
   ${chosenList}
-  ${mc.afterIssues ? `<p>${mc.afterIssues}</p>` : ""}
-  <p>Please provide the method of verification... if you cannot verify... delete the item and send me an updated report.</p>
-  <p>Sincerely,<br>${safe(consumer.name)}</p>
+  ${afterIssuesPara}
+  <p>${verifyLine}</p>
+  <p>${signOff}</p>
 </body>
 </html>`.trim();
 
