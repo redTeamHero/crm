@@ -479,6 +479,26 @@ $("#fileInput").addEventListener("change", async (e)=>{
   }
 });
 
+// Audit report
+$("#btnAuditReport").addEventListener("click", async ()=>{
+  if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
+  const btn = $("#btnAuditReport");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Auditing...";
+  try{
+    const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, { method:"POST" });
+    if(!res?.ok) return showErr(res?.error || "Failed to run audit.");
+    if(res.url) window.open(res.url, "_blank");
+    if(res.warning) showErr(res.warning);
+  }catch(err){
+    showErr(String(err));
+  }finally{
+    btn.textContent = old;
+    btn.disabled = false;
+  }
+});
+
 // Delete report
 $("#btnDeleteReport").addEventListener("click", async ()=>{
   if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
@@ -685,7 +705,7 @@ function hexToRgba(hex, alpha){
 }
 const colorToggle = $("#colorToggle");
 const colorBubbles = $("#colorBubbles");
-const metaTheme = document.querySelector('meta[name="theme-color"]');
+
 colorToggle?.addEventListener("click", ()=>{
   colorBubbles.classList.toggle("hidden");
   colorToggle.textContent = colorBubbles.classList.contains("hidden") ? "🎨" : "×";
@@ -696,6 +716,6 @@ document.querySelectorAll(".color-bubble[data-color]").forEach(b=>{
     document.documentElement.style.setProperty("--accent", color);
     document.documentElement.style.setProperty("--accent-bg", hexToRgba(color,0.12));
     if(colorToggle) colorToggle.style.background = color;
-    metaTheme?.setAttribute('content', color);
+
   });
 });

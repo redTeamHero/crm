@@ -84,7 +84,8 @@
   <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
     <div class="text-xl font-semibold">Metro 2 CRM</div>
     <div class="flex items-center gap-2">
-      <button id="btnNewConsumer" class="btn" data-tip="New Consumer (N)">+ New Consumer</button>
+      <button id="btnNewConsumer" class="btn"">+ Marketing</button>
+      <button id="btnNewConsumer" class="btn" data-tip="New Consumer (N)"> New Consumer</button>
       <button id="btnEditConsumer" class="btn" data-tip="Edit Consumer (E)">Edit Consumer</button>
       <button id="btnUpload" class="btn" data-tip="Upload HTML (U)">Upload HTML</button>
       <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
@@ -129,11 +130,21 @@
             <div class="text-sm muted">Report: <select id="reportPicker" class="border rounded px-2 py-1 text-sm"></select></div>
           </div>
           <div class="flex gap-2">
+            <button id="btnAuditReport" class="btn" data-tip="Run audit on current report">Audit</button>
             <button id="btnDeleteReport" class="btn" data-tip="Delete current report (click)">Delete Report</button>
           </div>
         </div>
       </div>
-
+        <div class="glass card">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">Files & Activity</div>
+          <div class="flex items-center gap-2">
+            <input id="activityFile" type="file" class="hidden" />
+            <button id="btnAddFile" class="btn" data-tip="Upload file to this consumer">+ Add File</button>
+          </div>
+        </div>
+        <div id="activityList" class="space-y-2 text-sm"></div>
+      </div>
       <div class="glass card">
         <div class="font-semibold mb-2">Filters</div>
         <div id="filterBar" class="flex flex-wrap gap-2"></div>
@@ -158,16 +169,7 @@
       </div>
 
       <!-- Files & Activity -->
-      <div class="glass card">
-        <div class="flex items-center justify-between mb-2">
-          <div class="font-semibold">Files & Activity</div>
-          <div class="flex items-center gap-2">
-            <input id="activityFile" type="file" class="hidden" />
-            <button id="btnAddFile" class="btn" data-tip="Upload file to this consumer">+ Add File</button>
-          </div>
-        </div>
-        <div id="activityList" class="space-y-2 text-sm"></div>
-      </div>
+    
     </section>
   </section>
 </main>
