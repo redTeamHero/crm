@@ -1,5 +1,7 @@
 /* public/index.js */
 
+import { PLAYBOOKS } from './playbooks.js';
+
 const $ = (s) => document.querySelector(s);
 const api = (u, o = {}) => fetch(u, o).then(r => r.json()).catch(e => ({ ok:false, error:String(e) }));
 
@@ -734,6 +736,31 @@ function attachCardHandlers(root=document){
         toggleWholeCardSelection(card);
       }
     });
+
+    const playBtn = card.querySelector('.tl-playbook');
+    if (playBtn) {
+      playBtn.addEventListener('click', async (e)=>{
+        e.stopPropagation();
+        const bureaus = Array.from(card.querySelectorAll('.bureau:checked')).map(cb=>cb.value);
+        if(!bureaus.length){ alert('Select at least one bureau first.'); return; }
+        const violationIdxs = Array.from(card.querySelectorAll('.violation:checked')).map(cb=>Number(cb.value));
+        const specialMode = getSpecialModeForCard(card);
+        const keys = Object.keys(PLAYBOOKS);
+        const choice = prompt('Select playbook:\n'+keys.map((k,i)=>`${i+1}. ${PLAYBOOKS[k].name}`).join('\n'));
+        const selIdx = Number(choice) - 1;
+        if (isNaN(selIdx) || !keys[selIdx]) return;
+        const playKey = keys[selIdx];
+        try{
+          const requestType = getRequestType();
+          const payload = { consumerId: currentConsumerId, reportId: currentReportId, requestType, selections:[{ tradelineIndex: Number(card.dataset.index), bureaus, violationIdxs, specialMode, playbook: playKey }] };
+          const resp = await fetch('/api/generate',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          if(!resp.ok){ const txt = await resp.text(); throw new Error(`HTTP ${resp.status} ${txt}`.trim()); }
+          const data = await resp.json();
+          if(!data?.ok || !data.redirect) throw new Error(data?.error || 'Failed to generate letters.');
+          window.open(data.redirect, '_blank');
+        }catch(err){ alert(err.message || String(err)); }
+      });
+    }
 
     // badge container safety
     if (!card.querySelector(".special-badges")) {

@@ -1,5 +1,7 @@
 // letterEngine.js
 
+import { PLAYBOOKS } from './playbook.js';
+
 const BUREAU_ADDR = {
   TransUnion: {
     name: "TransUnion Consumer Solutions",
@@ -28,6 +30,16 @@ function todayISO() {
     day: "numeric",
   });
 }
+
+function futureISO(offsetDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 function safe(val, fallback = "") {
   return val == null ? fallback : String(val);
 }
@@ -46,6 +58,26 @@ function hasAnyData(pb) {
   return keys.some((k) => {
     const v = pb[k] ?? pb[`${k}_raw`];
     return v !== undefined && String(v).trim() !== "";
+  });
+}
+
+function isNegative(pb) {
+  if (!pb) return false;
+  const NEG_WORDS = [
+    "collection",
+    "charge-off",
+    "charge off",
+    "late",
+    "delinquent",
+    "derog",
+  ];
+  const fields = ["payment_status", "account_status", "comments"];
+  return fields.some((k) => {
+    const v = pb[k] ?? pb[`${k}_raw`];
+    return (
+      typeof v === "string" &&
+      NEG_WORDS.some((w) => v.toLowerCase().includes(w))
+    );
   });
 }
 
@@ -330,8 +362,9 @@ function buildLetterHTML({
   requestType,
   comparisonBureaus,
   modeKey,
+  dateOverride,
 }) {
-  const dateStr = todayISO();
+  const dateStr = dateOverride || todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
   const { conflictMap, errorMap } = buildConflictMap(tl.violations || []);
   const compTable = buildComparisonTableHTML(
@@ -412,28 +445,66 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
     const tl = report.tradelines?.[sel.tradelineIndex];
     if (!tl) continue;
 
+    const bureausPresent = Object.entries(tl.per_bureau || {})
+      .filter(([_, pb]) => hasAnyData(pb))
+      .map(([b]) => b);
+    if (
+      bureausPresent.length === 1 &&
+      isNegative(tl.per_bureau[bureausPresent[0]])
+    ) {
+      tl.violations = tl.violations || [];
+      const exists = tl.violations.some(
+        (v) => (v.title || "").toLowerCase() === "incomplete file and misleading"
+      );
+      if (!exists) {
+        tl.violations.push({
+          title: "Incomplete file and misleading",
+          detail: "Negative item reported by only one bureau",
+        });
+        sel.violationIdxs = [
+          ...(sel.violationIdxs || []),
+          tl.violations.length - 1,
+        ];
+      }
+    }
+
     const isSpecial = SPECIAL_ONE_BUREAU.has(sel.specialMode);
     const comparisonBureaus = isSpecial ? [sel.bureaus[0]] : ALL_BUREAUS;
+    const play = sel.playbook && PLAYBOOKS[sel.playbook];
+    const steps = play ? play.letters : [null];
 
-    for (const bureau of sel.bureaus || []) {
-      if (!ALL_BUREAUS.includes(bureau)) continue;
+    steps.forEach((stepTitle, stepIdx) => {
+      const dateOverride = play ? futureISO(stepIdx * 30) : undefined;
+      for (const bureau of sel.bureaus || []) {
+        if (!ALL_BUREAUS.includes(bureau)) continue;
 
-      const letter = buildLetterHTML({
-        consumer,
-        bureau,
-        tl,
-        selectedViolationIdxs: sel.violationIdxs || [],
-        requestType,
-        comparisonBureaus,
-        modeKey: sel.specialMode || null,
-      });
-      letters.push({
-        bureau,
-        tradelineIndex: sel.tradelineIndex,
-        creditor: tl.meta.creditor,
-        ...letter,
-      });
-    }
+        let letter = buildLetterHTML({
+          consumer,
+          bureau,
+          tl,
+          selectedViolationIdxs: sel.violationIdxs || [],
+          requestType,
+          comparisonBureaus,
+          modeKey: sel.specialMode || null,
+          dateOverride,
+        });
+        let filename = letter.filename;
+        if (play) {
+          const safeStep = (stepTitle || `step${stepIdx + 1}`)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+          filename = filename.replace("_dispute_", `_${safeStep}_`);
+        }
+        letters.push({
+          bureau,
+          tradelineIndex: sel.tradelineIndex,
+          creditor: tl.meta.creditor,
+          ...letter,
+          filename,
+        });
+      }
+    });
   }
 
   return letters;
