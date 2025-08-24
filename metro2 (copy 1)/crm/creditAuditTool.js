@@ -52,15 +52,18 @@ function recommendAction(issueTitle){
 }
 
 // Build HTML report with plain language and recommendations
-export function renderHtml(report){
+export function renderHtml(report, consumerName = "Consumer"){
   const rows = report.accounts.map(acc => {
-    const bureauRows = Object.entries(acc.bureaus).map(([b, info]) => `
-      <tr>
+    const bureauRows = Object.entries(acc.bureaus).map(([b, info]) => {
+      const statusText = friendlyStatus(info.status || '');
+      const neg = statusText !== 'Open and active' && statusText !== 'Pays as agreed';
+      return `
+      <tr${neg ? ' class="neg"' : ''}>
         <td>${b}</td>
         <td>${info.balance ?? ''}</td>
-        <td>${friendlyStatus(info.status || '')}</td>
-      </tr>`).join('\n');
-    const issues = acc.issues.map(i => `<li><strong>${i.title}:</strong> ${i.detail}<br/>Action: ${recommendAction(i.title)}</li>`).join('');
+        <td>${statusText}</td>
+      </tr>`;}).join('\n');
+    const issues = acc.issues.map(i => `<li class="neg"><strong>${i.title}:</strong> ${i.detail}<br/>Action: ${recommendAction(i.title)}</li>`).join('');
     return `
       <h2>${acc.creditor}</h2>
       <table border="1" cellspacing="0" cellpadding="4">
@@ -77,10 +80,11 @@ export function renderHtml(report){
   h1{text-align:center;}
   table{width:100%;margin-top:10px;border-collapse:collapse;}
   th,td{border:1px solid #ccc;}
+  .neg{color:#b91c1c;}
   footer{margin-top:40px;font-size:0.8em;color:#555;}
   </style></head>
   <body>
-  <h1>Credit Audit Report</h1>
+  <h1>Credit Audit Report for ${consumerName}</h1>
   <p>Generated: ${dateStr}</p>
   ${rows}
   <footer>
