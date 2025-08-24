@@ -251,6 +251,9 @@ function renderTradelines(tradelines){
     const card = node.querySelector(".tl-card");
     card.dataset.index = idx;
 
+    const negativeTags = ["Collections","Late Payments","Charge-Off"];
+    if (tags.some(t=>negativeTags.includes(t))) card.classList.add("negative");
+
     node.querySelector(".tl-creditor").textContent = tl.meta?.creditor || "Unknown Creditor";
     node.querySelector(".tl-idx").textContent = idx;
 
