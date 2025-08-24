@@ -605,6 +605,10 @@ const MODES = [
     chip: "Assault",
     label: "Sexual Assault",
   },
+
+  { key: "identity", hotkey: "i", cardClass: "mode-identity", chip: "ID Theft" },
+  { key: "breach",   hotkey: "d", cardClass: "mode-breach",   chip: "Breach"   },
+  { key: "assault",  hotkey: "s", cardClass: "mode-assault",  chip: "Assault"  },
 ];
 let activeMode = null;
 function setMode(key){ activeMode = (activeMode===key)? null : key; updateModeButtons(); }
@@ -670,6 +674,9 @@ function toggleWholeCardSelection(card){
 function toggleCardMode(card, modeKey){
   const info = MODES.find(m => m.key === modeKey);
   if (!info) return;
+
+  // remove other mode classes before toggling desired one
+  MODES.forEach(m => { if (m.cardClass !== info.cardClass) card.classList.remove(m.cardClass); });
   card.classList.toggle(info.cardClass);
   updateCardBadges(card);
 }
@@ -686,6 +693,14 @@ function updateCardBadges(card){
       wrap.appendChild(s);
     }
   });
+
+  const mode = MODES.find(m => card.classList.contains(m.cardClass));
+  if (mode){
+    const s = document.createElement("span");
+    s.className = `chip chip-mini chip-${mode.key}`;
+    s.textContent = mode.chip;
+    wrap.appendChild(s);
+  }
 }
 window.__crm_helpers = {
   attachCardHandlers,

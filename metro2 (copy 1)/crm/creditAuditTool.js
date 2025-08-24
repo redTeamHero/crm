@@ -71,6 +71,24 @@ export function renderHtml(report, consumerName = "Consumer"){
     }).join('');
     const issues = acc.issues.map(i => `<li class="neg"><strong>${escapeHtml(i.title)}:</strong> ${escapeHtml(i.detail)}<br/>Action: ${escapeHtml(recommendAction(i.title))}</li>`).join('');
     return `<h2>${escapeHtml(acc.creditor)}</h2>${bureauSections}${issues ? `<p>Issues:</p><ul>${issues}</ul>` : '<p>No issues found.</p>'}`;
+    const bureauRows = Object.entries(acc.bureaus).map(([b, info]) => {
+      const statusText = friendlyStatus(info.status || '');
+      const neg = statusText !== 'Open and active' && statusText !== 'Pays as agreed';
+      return `
+      <tr${neg ? ' class="neg"' : ''}>
+        <td>${b}</td>
+        <td>${info.balance ?? ''}</td>
+        <td>${statusText}</td>
+      </tr>`;}).join('\n');
+    const issues = acc.issues.map(i => `<li class="neg"><strong>${i.title}:</strong> ${i.detail}<br/>Action: ${recommendAction(i.title)}</li>`).join('');
+    return `
+      <h2>${acc.creditor}</h2>
+      <table border="1" cellspacing="0" cellpadding="4">
+        <thead><tr><th>Bureau</th><th>Balance</th><th>Status</th></tr></thead>
+        <tbody>${bureauRows}</tbody>
+      </table>
+      ${issues ? `<p>Issues:</p><ul>${issues}</ul>` : '<p>No issues found.</p>'}
+    `;
   }).join('\n');
   const dateStr = new Date(report.generatedAt).toLocaleString();
   return `<!DOCTYPE html>
@@ -84,6 +102,11 @@ export function renderHtml(report, consumerName = "Consumer"){
   </style></head>
   <body>
   <h1>Credit Audit Report for ${escapeHtml(consumerName)}</h1>
+  .neg{color:#b91c1c;}
+  footer{margin-top:40px;font-size:0.8em;color:#555;}
+  </style></head>
+  <body>
+  <h1>Credit Audit Report for ${consumerName}</h1>
   <p>Generated: ${dateStr}</p>
   ${rows}
   <footer>
