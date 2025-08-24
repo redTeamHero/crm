@@ -22,18 +22,6 @@ import {
   processAllReminders,
 } from "./state.js";
 
-import puppeteer from "puppeteer";
-import crypto from "crypto";
-import os from "os";
-import archiver from "archiver";
-import { generateLetters } from "./letterEngine.js";
-import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
-import {
-  listConsumerState,
-  addEvent,
-  addFileMeta,
-  consumerUploadsDir,
-} from "./state.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -627,6 +615,7 @@ app.listen(PORT, ()=> {
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
 });
+
 
 
 
