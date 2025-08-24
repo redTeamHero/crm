@@ -23,22 +23,44 @@ function saveState(st) {
   fs.writeFileSync(STATE_PATH, JSON.stringify(st, null, 2));
 }
 function ensureConsumer(st, consumerId) {
-  st.consumers[consumerId] ??= { events: [], files: [] };
-  return st.consumers[consumerId];
+  st.consumers[consumerId] ??= { events: [], files: [], reminders: [] };
+  // normalize older records missing reminders
+  const c = st.consumers[consumerId];
+  c.events ??= [];
+  c.files ??= [];
+  c.reminders ??= [];
+  return c;
+}
+
+function processReminders(st) {
+  const now = Date.now();
+  for (const c of Object.values(st.consumers)) {
+    if (!c.reminders?.length) continue;
+    const remaining = [];
+    for (const r of c.reminders) {
+      const due = Date.parse(r.due);
+      if (!isNaN(due) && due <= now) {
+        c.events.unshift({
+          id: r.id || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+          type: "letter_reminder",
+          payload: { ...r.payload, due: r.due },
+          at: new Date().toISOString(),
+        });
+      } else {
+        remaining.push(r);
+      }
+    }
+    c.reminders = remaining;
+  }
 }
 
 // ---- Public API ----
 export function listConsumerState(consumerId) {
   const st = loadState();
-  if (!Object.prototype.hasOwnProperty.call(st.consumers, consumerId)) {
-    // Persist the newly created consumer so other processes can observe it
-    // immediately. Without this, a restart after the first read would lose the
-    // empty structure until an event or file was added.
-    const c = ensureConsumer(st, consumerId);
-    saveState(st);
-    return c;
-  }
-  return st.consumers[consumerId];
+  const c = ensureConsumer(st, consumerId);
+  processReminders(st);
+  saveState(st);
+  return c;
 }
 
 export function addEvent(consumerId, type, payload = {}) {
@@ -57,6 +79,19 @@ export function addFileMeta(consumerId, fileRec) {
   const st = loadState();
   const c = ensureConsumer(st, consumerId);
   c.files.unshift(fileRec); // newest first
+  saveState(st);
+}
+
+export function addReminder(consumerId, reminder) {
+  const st = loadState();
+  const c = ensureConsumer(st, consumerId);
+  c.reminders.push(reminder);
+  saveState(st);
+}
+
+export function processAllReminders() {
+  const st = loadState();
+  processReminders(st);
   saveState(st);
 }
 
