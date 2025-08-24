@@ -132,7 +132,7 @@
             <button id="btnAddFile" class="btn" data-tip="Upload file to this consumer">+ Add File</button>
           </div>
         </div>
-        <div id="activityList" class="space-y-2 text-sm"></div>
+        <div id="activityList" class="space-y-2 text-sm max-h-96 overflow-y-auto"></div>
       </div>
       <div class="glass card">
         <div class="font-semibold mb-2">Filters</div>
@@ -155,6 +155,11 @@
         </div>
         <div class="text-xs muted mt-1">Tip: Click any card to zoom for full detail.</div>
         <div id="tlList" class="grid gap-3 mt-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3"></div>
+        <div id="tlPager" class="flex items-center justify-between mt-3">
+          <button id="tlPrev" class="btn text-sm">Prev</button>
+          <div class="text-sm muted">Page <span id="tlPage">1</span> / <span id="tlPages">1</span></div>
+          <button id="tlNext" class="btn text-sm">Next</button>
+        </div>
       </div>
 
       <!-- Files & Activity -->
