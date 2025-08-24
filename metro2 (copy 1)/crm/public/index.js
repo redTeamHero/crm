@@ -254,11 +254,15 @@ function renderTradelines(tradelines){
       renderTradelines(tradelines);
     });
 
-    // OPEN ZOOM on click (outside controls)
-    card.addEventListener("click",(e)=>{
-      if (e.target.closest("input,label,button,a")) return; // ignore controls
-      openZoomModal(tl, idx);
-    });
+    // Open zoom only when clicking creditor name
+    const nameEl = node.querySelector(".tl-creditor");
+    if (nameEl) {
+      nameEl.classList.add("cursor-pointer");
+      nameEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openZoomModal(tl, idx);
+      });
+    }
 
     // keep selected class synced when user flips any checkbox
     card.querySelectorAll('input.bureau').forEach(cb=>{
@@ -670,3 +674,28 @@ $("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ 
 
 // ===================== Init =====================
 loadConsumers();
+
+// ----- Color theme selector -----
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16);
+  const g = parseInt(h.substring(2,4),16);
+  const b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+const colorToggle = $("#colorToggle");
+const colorBubbles = $("#colorBubbles");
+const metaTheme = document.querySelector('meta[name="theme-color"]');
+colorToggle?.addEventListener("click", ()=>{
+  colorBubbles.classList.toggle("hidden");
+  colorToggle.textContent = colorBubbles.classList.contains("hidden") ? "🎨" : "×";
+});
+document.querySelectorAll(".color-bubble[data-color]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    const color = b.dataset.color;
+    document.documentElement.style.setProperty("--accent", color);
+    document.documentElement.style.setProperty("--accent-bg", hexToRgba(color,0.12));
+    if(colorToggle) colorToggle.style.background = color;
+    metaTheme?.setAttribute('content', color);
+  });
+});
