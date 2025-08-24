@@ -6,8 +6,6 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import { nanoid } from "nanoid";
 import { spawn, spawnSync } from "child_process";
-
-import { spawn } from "child_process";
 import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
@@ -518,5 +516,6 @@ app.listen(PORT, ()=> {
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
 });
+
 
 
