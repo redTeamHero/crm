@@ -58,20 +58,49 @@ function recommendAction(issueTitle){
   return `Consider disputing "${issueTitle}" with the credit bureau or contacting the creditor for correction.`;
 }
 
-// Build HTML report with plain language and recommendations
+// Build HTML report mimicking uploaded audit structure with bureau comparison
 export function renderHtml(report, consumerName = "Consumer"){
-  const rows = report.accounts.map(acc => {
-    const bureauSections = Object.entries(acc.bureaus).map(([b, info]) => {
-      const detailRows = Object.entries(info || {}).map(([k, v]) => {
-        const val = typeof v === 'object' ? JSON.stringify(v) : v;
-        const neg = isNegative(k, val);
-        return `<tr${neg ? ' class="neg"' : ''}><th>${escapeHtml(k)}</th><td>${escapeHtml(val)}</td></tr>`;
+  const accountSections = report.accounts.map(acc => {
+    const bureaus = Object.keys(acc.bureaus || {});
+    const fields = [
+      ["account_number", "Account #"],
+      ["account_type", "Account Type"],
+      ["payment_status", "Account Payment Status"],
+      ["balance_raw", "Balance"],
+      ["past_due_raw", "Past Due"],
+      ["high_credit_raw", "High Credit"],
+      ["date_opened_raw", "Date Opened"],
+      ["last_reported_raw", "Last Reported"],
+      ["date_last_payment_raw", "Date of Last Payment"],
+      ["comments", "Comments"],
+    ];
+
+    const rows = fields.map(([field, label]) => {
+      const values = bureaus.map(b => {
+        const info = acc.bureaus[b] || {};
+        return info[field] ?? "";
+      });
+      const diff = new Set(values.filter(v => v !== "")).size > 1 ? " diff" : "";
+      const cells = values.map(v => {
+        const neg = isNegative(field, v) ? ' class="neg"' : '';
+        return `<td${neg}>${escapeHtml(v)}</td>`;
       }).join('');
-      return `<h3>${escapeHtml(b)}</h3><table border="1" cellspacing="0" cellpadding="4"><tbody>${detailRows}</tbody></table>`;
+      return `<tr class="row${diff}"><th>${escapeHtml(label)}</th>${cells}</tr>`;
     }).join('');
-    const issues = acc.issues.map(i => `<li class="neg"><strong>${escapeHtml(i.title)}:</strong> ${escapeHtml(i.detail)}<br/>Action: ${escapeHtml(recommendAction(i.title))}</li>`).join('');
-    return `<h2>${escapeHtml(acc.creditor)}</h2>${bureauSections}${issues ? `<p>Issues:</p><ul>${issues}</ul>` : '<p>No issues found.</p>'}`;
-  }).join('\n');
+
+    const issues = (acc.issues || []).map(i => `<li>${escapeHtml(i.title)} - ${escapeHtml(i.detail)}</li>`).join('');
+    const issueBlock = issues ? `<p><strong>Issues:</strong></p><ul>${issues}</ul>` : "";
+
+    return `
+      <h2>${escapeHtml(acc.creditor)}</h2>
+      <h3>Comparison (All Available Bureaus)</h3>
+      <table>
+        <thead><tr><th>Field</th>${bureaus.map(b=>`<th class="bureau">${escapeHtml(b)}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      ${issueBlock}
+    `;
+  }).join("\n");
 
   const dateStr = new Date(report.generatedAt).toLocaleString();
   return `<!DOCTYPE html>
@@ -79,14 +108,16 @@ export function renderHtml(report, consumerName = "Consumer"){
   body{font-family:Arial, sans-serif;margin:20px;}
   h1{text-align:center;}
   table{width:100%;margin-top:10px;border-collapse:collapse;}
-  th,td{border:1px solid #ccc;}
+  th,td{border:1px solid #ccc;padding:4px;}
+  th.bureau{text-align:center;background:#f5f5f5;}
+  tr.diff td{background:#fff3cd;}
   .neg{background:#fee2e2;color:#b91c1c;}
   footer{margin-top:40px;font-size:0.8em;color:#555;}
   </style></head>
   <body>
-  <h1>Credit Audit Report for ${escapeHtml(consumerName)}</h1>
-  <p>Generated: ${escapeHtml(dateStr)}</p>
-  ${rows}
+  <h1>Request for Correction of Inaccurate/Incomplete Information</h1>
+  <p>Generated for ${escapeHtml(consumerName)} on ${escapeHtml(dateStr)}</p>
+  ${accountSections}
   <footer>
     <hr/>
     <p>This report is for informational purposes only and is not legal advice.</p>
