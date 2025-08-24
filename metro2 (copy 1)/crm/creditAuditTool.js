@@ -93,8 +93,6 @@ export function renderHtml(report, consumerName = "Consumer"){
       return `<li>${escapeHtml(i.title)} - ${escapeHtml(i.detail)} ${escapeHtml(action)}</li>`;
     }).join('');
     const issueBlock = issues ? `<p><strong>Audit Reasons:</strong></p><ul>${issues}</ul>` : "";
-    const issues = (acc.issues || []).map(i => `<li>${escapeHtml(i.title)} - ${escapeHtml(i.detail)}</li>`).join('');
-    const issueBlock = issues ? `<p><strong>Issues:</strong></p><ul>${issues}</ul>` : "";
     return `
       <h2>${escapeHtml(acc.creditor)}</h2>
       <h3>Comparison (All Available Bureaus)</h3>
