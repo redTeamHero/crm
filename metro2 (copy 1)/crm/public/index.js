@@ -485,12 +485,18 @@ $("#fileInput").addEventListener("change", async (e)=>{
 // Audit report
 $("#btnAuditReport").addEventListener("click", async ()=>{
   if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
+  const selections = collectSelections();
+  if(!selections.length) return showErr("Pick at least one tradeline and bureau to audit.");
   const btn = $("#btnAuditReport");
   const old = btn.textContent;
   btn.disabled = true;
   btn.textContent = "Auditing...";
   try{
-    const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, { method:"POST" });
+    const res = await fetch(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ selections })
+    }).then(r=>r.json());
     if(!res?.ok) return showErr(res?.error || "Failed to run audit.");
     if(res.url) window.open(res.url, "_blank");
     if(res.warning) showErr(res.warning);
@@ -578,6 +584,28 @@ $("#activityFile").addEventListener("change", async (e)=>{
 // ===================== Modes + Global Hotkeys =====================
 // Minimal re-implementation here so we don't rely on inline scripts
 const MODES = [
+  {
+    key: "identity",
+    hotkey: "i",
+    cardClass: "mode-identity",
+    chip: "ID Theft",
+    label: "Identity Theft",
+  },
+  {
+    key: "breach",
+    hotkey: "d",
+    cardClass: "mode-breach",
+    chip: "Breach",
+    label: "Data Breach",
+  },
+  {
+    key: "assault",
+    hotkey: "s",
+    cardClass: "mode-assault",
+    chip: "Assault",
+    label: "Sexual Assault",
+  },
+
   { key: "identity", hotkey: "i", cardClass: "mode-identity", chip: "ID Theft" },
   { key: "breach",   hotkey: "d", cardClass: "mode-breach",   chip: "Breach"   },
   { key: "assault",  hotkey: "s", cardClass: "mode-assault",  chip: "Assault"  },
@@ -587,15 +615,16 @@ function setMode(key){ activeMode = (activeMode===key)? null : key; updateModeBu
 function updateModeButtons(){ document.querySelectorAll(".mode-btn").forEach(b=> b.classList.toggle("active", b.dataset.mode===activeMode)); }
 
 (function initModesBar(){
-  const bar = $("#modeBar"); if(!bar) return;
+  const bar = $("#modeBar");
+  if (!bar) return;
   bar.innerHTML = "";
-  MODES.forEach(m=>{
+  MODES.forEach(m => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "chip mode-btn";
-    btn.textContent = `${m.key[0].toUpperCase()+m.key.slice(1)}`;
+    btn.className = `chip mode-btn chip-${m.key}`;
+    btn.textContent = m.label;
     btn.dataset.mode = m.key;
-    btn.addEventListener("click", ()=> setMode(m.key));
+    btn.addEventListener("click", () => setMode(m.key));
     bar.appendChild(btn);
   });
   updateModeButtons();
@@ -645,6 +674,7 @@ function toggleWholeCardSelection(card){
 function toggleCardMode(card, modeKey){
   const info = MODES.find(m => m.key === modeKey);
   if (!info) return;
+
   // remove other mode classes before toggling desired one
   MODES.forEach(m => { if (m.cardClass !== info.cardClass) card.classList.remove(m.cardClass); });
   card.classList.toggle(info.cardClass);
@@ -655,6 +685,15 @@ function updateCardBadges(card){
   const wrap = card.querySelector(".special-badges");
   if (!wrap) return;
   wrap.innerHTML = "";
+  MODES.forEach(m => {
+    if (card.classList.contains(m.cardClass)) {
+      const s = document.createElement("span");
+      s.className = `chip chip-mini chip-${m.key}`;
+      s.textContent = m.chip;
+      wrap.appendChild(s);
+    }
+  });
+
   const mode = MODES.find(m => card.classList.contains(m.cardClass));
   if (mode){
     const s = document.createElement("span");
@@ -712,6 +751,12 @@ document.addEventListener("keydown",(e)=>{
     return;
   }
 
+  if (k === "escape"){
+    e.preventDefault();
+    setMode(null);
+    return;
+  }
+
   // Modes (i/d/s)
   const m = MODES.find(x=>x.hotkey===k);
   if (m){ e.preventDefault(); setMode(m.key); return; }
@@ -733,27 +778,3 @@ $("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ 
 // ===================== Init =====================
 loadConsumers();
 
-// ----- Color theme selector -----
-function hexToRgba(hex, alpha){
-  const h = hex.replace('#','');
-  const r = parseInt(h.substring(0,2),16);
-  const g = parseInt(h.substring(2,4),16);
-  const b = parseInt(h.substring(4,6),16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-const colorToggle = $("#colorToggle");
-const colorBubbles = $("#colorBubbles");
-
-colorToggle?.addEventListener("click", ()=>{
-  colorBubbles.classList.toggle("hidden");
-  colorToggle.textContent = colorBubbles.classList.contains("hidden") ? "🎨" : "×";
-});
-document.querySelectorAll(".color-bubble[data-color]").forEach(b=>{
-  b.addEventListener("click", ()=>{
-    const color = b.dataset.color;
-    document.documentElement.style.setProperty("--accent", color);
-    document.documentElement.style.setProperty("--accent-bg", hexToRgba(color,0.12));
-    if(colorToggle) colorToggle.style.background = color;
-
-  });
-});
