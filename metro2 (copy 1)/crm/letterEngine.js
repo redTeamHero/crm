@@ -1,4 +1,4 @@
-// public/letterEngine.js
+// letterEngine.js
 
 const BUREAU_ADDR = {
   TransUnion: {
