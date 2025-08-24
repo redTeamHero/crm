@@ -475,6 +475,26 @@ $("#fileInput").addEventListener("change", async (e)=>{
   }
 });
 
+// Audit report
+$("#btnAuditReport").addEventListener("click", async ()=>{
+  if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
+  const btn = $("#btnAuditReport");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Auditing...";
+  try{
+    const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, { method:"POST" });
+    if(!res?.ok) return showErr(res?.error || "Failed to run audit.");
+    if(res.url) window.open(res.url, "_blank");
+    if(res.warning) showErr(res.warning);
+  }catch(err){
+    showErr(String(err));
+  }finally{
+    btn.textContent = old;
+    btn.disabled = false;
+  }
+});
+
 // Delete report
 $("#btnDeleteReport").addEventListener("click", async ()=>{
   if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");

@@ -10,6 +10,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import { generateLetters } from "./letterEngine.js";
+import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
   listConsumerState,
   addEvent,
@@ -180,6 +181,24 @@ app.delete("/api/consumers/:id/report/:rid", (req,res)=>{
   saveDB(db);
   addEvent(c.id, "report_deleted", { reportId: removed?.id, filename: removed?.filename });
   res.json({ ok:true });
+});
+
+app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
+  const db=loadDB();
+  const c=db.consumers.find(x=>x.id===req.params.id);
+  if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const r=c.reports.find(x=>x.id===req.params.rid);
+  if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+  try{
+    // include consumer name so it appears in the audit report
+    const normalized = normalizeReport(r.data, c.name);
+    const html = renderHtml(normalized);
+    const result = await savePdf(html);
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+    res.json({ ok:true, url: result.url, warning: result.warning });
+  }catch(e){
+    res.status(500).json({ ok:false, error: String(e) });
+  }
 });
 
 // =================== Letters & PDFs ===================
