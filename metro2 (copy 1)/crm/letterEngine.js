@@ -81,6 +81,27 @@ function isNegative(pb) {
   });
 }
 
+// Light pastel palette to hinder basic OCR while remaining human-readable
+const OCR_COLORS = [
+  "#ffffe0", // light yellow
+  "#add8e6", // light blue
+  "#90ee90", // light green
+  "#ffd1dc", // pale pink
+  "#ffb347", // pastel orange
+];
+
+function colorize(text) {
+  if (!text) return "";
+  const letters = Array.from(text);
+  return letters
+    .map((ch, idx) => {
+      if (/\s/.test(ch)) return ch;
+      const color = idx === 0 ? "#0000ff" : OCR_COLORS[Math.floor(Math.random() * OCR_COLORS.length)];
+      return `<span style="color:${color}">${ch}</span>`;
+    })
+    .join("");
+}
+
 // Conflict detection (trimmed)
 const EVIDENCE_KEY_TO_FIELD = {
   balance_by_bureau: "balance",
@@ -377,6 +398,14 @@ function buildLetterHTML({
   const chosenList = buildViolationListHTML(tl.violations, selectedViolationIdxs);
   const mc = modeCopy(modeKey, requestType);
 
+  const intro = colorize(mc.intro);
+  const ask = colorize(mc.ask);
+  const afterIssuesPara = mc.afterIssues ? `<p>${colorize(mc.afterIssues)}</p>` : "";
+  const verifyLine = colorize(
+    "Please provide the method of verification... if you cannot verify... delete the item and send me an updated report."
+  );
+  const signOff = `${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}`;
+
   const letterBody = `
 <!DOCTYPE html>
 <html>
@@ -385,7 +414,7 @@ function buildLetterHTML({
   <title>${bureau} – ${mc.heading}</title>
   <style>
     @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#0b1226; }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#0000ff; }
     * { word-break:break-word; }
     .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
     .muted{ color:#6b7280; }
@@ -412,18 +441,18 @@ function buildLetterHTML({
     </div>
   </div>
   <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
-  <h1>${mc.heading}</h1>
-  <p>${mc.intro}</p>
-  <p>${mc.ask}</p>
+  <h1>${colorize(mc.heading)}</h1>
+  <p>${intro}</p>
+  <p>${ask}</p>
   <h2>Comparison (All Available Bureaus)</h2>
   ${compTable}
   <h2>Bureau‑Specific Details (${bureau})</h2>
   ${tlBlock}
   <h2>Specific Issues (Selected)</h2>
   ${chosenList}
-  ${mc.afterIssues ? `<p>${mc.afterIssues}</p>` : ""}
-  <p>Please provide the method of verification... if you cannot verify... delete the item and send me an updated report.</p>
-  <p>Sincerely,<br>${safe(consumer.name)}</p>
+  ${afterIssuesPara}
+  <p>${verifyLine}</p>
+  <p>${signOff}</p>
 </body>
 </html>`.trim();
 
