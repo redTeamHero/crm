@@ -117,9 +117,10 @@ export function renderHtml(report, consumerName = "Consumer"){
   footer{margin-top:40px;font-size:0.8em;color:#555;}
   </style></head>
   <body>
+  <h3>${escapeHtml(dateStr)}</h3>
+  <h1>${escapeHtml(consumerName)}</h1>
   <h1>Credit Repair Audit</h1>
-  <h1>Request for Correction of Inaccurate/Incomplete Information</h1>
-  <p>Generated for ${escapeHtml(consumerName)} on ${escapeHtml(dateStr)}</p>
+  <p>Your First Steps To Financial Freedom!</p>
   ${accountSections}
   <footer>
     <hr/>
