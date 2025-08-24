@@ -575,9 +575,9 @@ $("#activityFile").addEventListener("change", async (e)=>{
 // ===================== Modes + Global Hotkeys =====================
 // Minimal re-implementation here so we don't rely on inline scripts
 const MODES = [
-  { key: "identity", hotkey: "i", cardClass: "mode-identity" },
-  { key: "breach",   hotkey: "d", cardClass: "mode-breach"   },
-  { key: "assault",  hotkey: "s", cardClass: "mode-assault"  },
+  { key: "identity", hotkey: "i", cardClass: "mode-identity", chip: "ID Theft" },
+  { key: "breach",   hotkey: "d", cardClass: "mode-breach",   chip: "Breach"   },
+  { key: "assault",  hotkey: "s", cardClass: "mode-assault",  chip: "Assault"  },
 ];
 let activeMode = null;
 function setMode(key){ activeMode = (activeMode===key)? null : key; updateModeButtons(); }
@@ -606,6 +606,16 @@ function attachCardHandlers(root=document){
     // focus ring for hotkeys R/A
     card.addEventListener("pointerdown", ()=> focusCard(card));
 
+    // main click behavior: toggle selection or special mode
+    card.addEventListener("click", (e)=>{
+      if (e.target.closest("input, label, button")) return;
+      if (activeMode){
+        toggleCardMode(card, activeMode);
+      } else {
+        toggleWholeCardSelection(card);
+      }
+    });
+
     // badge container safety
     if (!card.querySelector(".special-badges")) {
       const head = card.querySelector(".tl-head") || card.firstElementChild;
@@ -613,6 +623,9 @@ function attachCardHandlers(root=document){
       holder.className = "special-badges flex gap-1";
       head.appendChild(holder);
     }
+
+    // ensure badges match current classes
+    updateCardBadges(card);
   });
 }
 let lastFocusedCard = null;
@@ -624,6 +637,28 @@ function focusCard(card){
 function toggleWholeCardSelection(card){
   const any = Array.from(card.querySelectorAll('input.bureau')).some(cb=>cb.checked);
   setCardSelected(card, !any);
+}
+
+function toggleCardMode(card, modeKey){
+  const info = MODES.find(m => m.key === modeKey);
+  if (!info) return;
+  // remove other mode classes before toggling desired one
+  MODES.forEach(m => { if (m.cardClass !== info.cardClass) card.classList.remove(m.cardClass); });
+  card.classList.toggle(info.cardClass);
+  updateCardBadges(card);
+}
+
+function updateCardBadges(card){
+  const wrap = card.querySelector(".special-badges");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  const mode = MODES.find(m => card.classList.contains(m.cardClass));
+  if (mode){
+    const s = document.createElement("span");
+    s.className = `chip chip-mini chip-${mode.key}`;
+    s.textContent = mode.chip;
+    wrap.appendChild(s);
+  }
 }
 window.__crm_helpers = {
   attachCardHandlers,
