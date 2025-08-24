@@ -196,6 +196,8 @@ async function loadReportJSON(){
   if(!data?.ok) return showErr(data?.error || "Failed to load report JSON.");
   CURRENT_REPORT = data.report;
   tlPage = 1;
+  hiddenTradelines.clear();
+  Object.keys(selectionState).forEach(k=> delete selectionState[k]);
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines || []);
 }
@@ -204,6 +206,7 @@ async function loadReportJSON(){
 const ALL_TAGS = ["Collections","Inquiries","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
 const activeFilters = new Set();
 const hiddenTradelines = new Set();
+const selectionState = {};
 
 function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); }
 function maybeNum(x){ return typeof x === "number" ? x : null; }
@@ -262,6 +265,16 @@ function passesFilter(tags){ if (activeFilters.size === 0) return true; return t
 function setCardSelected(card, on){
   card.classList.toggle("selected", !!on);
   card.querySelectorAll('input.bureau').forEach(cb => { cb.checked = !!on; });
+  updateSelectionStateFromCard(card);
+}
+
+function updateSelectionStateFromCard(card){
+  const idx = Number(card.dataset.index);
+  const bureaus = Array.from(card.querySelectorAll('.bureau:checked')).map(cb=>cb.value);
+  if (!bureaus.length) { delete selectionState[idx]; return; }
+  const violationIdxs = Array.from(card.querySelectorAll('.violation:checked')).map(cb=>Number(cb.value));
+  const specialMode = getSpecialModeForCard(card);
+  selectionState[idx] = { bureaus, violationIdxs, specialMode };
 }
 
 function renderTradelines(tradelines){
@@ -322,6 +335,7 @@ function renderTradelines(tradelines){
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
       hiddenTradelines.add(idx);
+      delete selectionState[idx];
       renderTradelines(tradelines);
     });
 
@@ -334,11 +348,34 @@ function renderTradelines(tradelines){
       });
     }
 
+    // restore saved selections
+    const saved = selectionState[idx];
+    if (saved) {
+      saved.bureaus?.forEach(b => {
+        const cb = node.querySelector(`.bureau[value="${b}"]`);
+        if (cb) cb.checked = true;
+      });
+      saved.violationIdxs?.forEach(v => {
+        const vb = node.querySelector(`.violation[value="${v}"]`);
+        if (vb) vb.checked = true;
+      });
+      if (saved.bureaus?.length) card.classList.add("selected");
+      if (saved.specialMode){
+        const info = MODES.find(m => m.key === saved.specialMode);
+        if (info) card.classList.add(info.cardClass);
+      }
+      updateCardBadges(card);
+    }
+
     card.querySelectorAll('input.bureau').forEach(cb=>{
       cb.addEventListener("change", ()=>{
         const any = Array.from(card.querySelectorAll('input.bureau')).some(x=>x.checked);
         card.classList.toggle("selected", any);
+        updateSelectionStateFromCard(card);
       });
+    });
+    card.querySelectorAll('input.violation').forEach(cb=>{
+      cb.addEventListener("change", ()=> updateSelectionStateFromCard(card));
     });
 
     container.appendChild(node);
@@ -425,16 +462,12 @@ function getSpecialModeForCard(card){
   return null;
 }
 function collectSelections(){
-  const selections = [];
-  document.querySelectorAll("#tlList > .tl-card").forEach(card=>{
-    const tradelineIndex = Number(card.dataset.index);
-    const bureaus = Array.from(card.querySelectorAll(".bureau:checked")).map(i=>i.value);
-    if(!bureaus.length) return;
-    const violationIdxs = Array.from(card.querySelectorAll(".violation:checked")).map(i=>Number(i.value));
-    const specialMode = getSpecialModeForCard(card);
-    selections.push({ tradelineIndex, bureaus, violationIdxs, specialMode });
-  });
-  return selections;
+  return Object.entries(selectionState).map(([tradelineIndex, data]) => ({
+    tradelineIndex: Number(tradelineIndex),
+    bureaus: data.bureaus,
+    violationIdxs: data.violationIdxs,
+    specialMode: data.specialMode
+  }));
 }
 
 $("#btnGenerate").addEventListener("click", async ()=>{
@@ -733,6 +766,7 @@ function toggleCardMode(card, modeKey){
   MODES.forEach(m => { if (m.cardClass !== info.cardClass) card.classList.remove(m.cardClass); });
   card.classList.toggle(info.cardClass);
   updateCardBadges(card);
+  updateSelectionStateFromCard(card);
 }
 
 function updateCardBadges(card){
