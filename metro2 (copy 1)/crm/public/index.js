@@ -38,6 +38,27 @@ function formatEvent(ev){
     title = "Audit generated";
     const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
     body = `<div class="text-xs mt-1">Report ${escapeHtml(reportId||"")} ${link}</div>`;
+  } else if(ev.type === "consumer_created"){
+    const { name } = ev.payload || {};
+    title = "Consumer created";
+    if(name){
+      body = `<div class="text-xs mt-1">${escapeHtml(name)}</div>`;
+    }
+  } else if(ev.type === "consumer_updated"){
+    const { fields = [] } = ev.payload || {};
+    title = "Consumer updated";
+    if(fields.length){
+      body = `<div class="text-xs mt-1">Updated ${escapeHtml(fields.join(", "))}</div>`;
+    }
+  } else if(ev.type === "consumer_deleted"){
+    title = "Consumer deleted";
+  } else if(ev.type === "report_uploaded"){
+    const { filename, size } = ev.payload || {};
+    title = "Report uploaded";
+    const sizeKb = typeof size === "number" ? ` ${(size/1024).toFixed(1)} KB` : "";
+    if(filename){
+      body = `<div class="text-xs mt-1">${escapeHtml(filename)}${sizeKb}</div>`;
+    }
   } else if(ev.payload){
     body = `<pre class="text-xs mt-1 overflow-auto">${escapeHtml(JSON.stringify(ev.payload, null, 2))}</pre>`;
   }
