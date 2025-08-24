@@ -217,6 +217,9 @@ function renderTradelines(tradelines){
     const card = node.querySelector(".tl-card");
     card.dataset.index = idx;
 
+    const negativeTags = ["Collections","Late Payments","Charge-Off"];
+    if (tags.some(t=>negativeTags.includes(t))) card.classList.add("negative");
+
     node.querySelector(".tl-creditor").textContent = tl.meta?.creditor || "Unknown Creditor";
     node.querySelector(".tl-idx").textContent = idx;
 
@@ -226,7 +229,7 @@ function renderTradelines(tradelines){
 
     const tagWrap = node.querySelector(".tl-tags");
     tagWrap.innerHTML = "";
-    deriveTags(tl).forEach(t=>{
+    tags.forEach(t=>{
       const chip = document.createElement("span");
       chip.className = "chip";
       chip.textContent = t;
@@ -482,12 +485,18 @@ $("#fileInput").addEventListener("change", async (e)=>{
 // Audit report
 $("#btnAuditReport").addEventListener("click", async ()=>{
   if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
+  const selections = collectSelections();
+  if(!selections.length) return showErr("Pick at least one tradeline and bureau to audit.");
   const btn = $("#btnAuditReport");
   const old = btn.textContent;
   btn.disabled = true;
   btn.textContent = "Auditing...";
   try{
-    const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, { method:"POST" });
+    const res = await fetch(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ selections })
+    }).then(r=>r.json());
     if(!res?.ok) return showErr(res?.error || "Failed to run audit.");
     if(res.url) window.open(res.url, "_blank");
     if(res.warning) showErr(res.warning);
@@ -575,24 +584,43 @@ $("#activityFile").addEventListener("change", async (e)=>{
 // ===================== Modes + Global Hotkeys =====================
 // Minimal re-implementation here so we don't rely on inline scripts
 const MODES = [
-  { key: "identity", hotkey: "i", cardClass: "mode-identity" },
-  { key: "breach",   hotkey: "d", cardClass: "mode-breach"   },
-  { key: "assault",  hotkey: "s", cardClass: "mode-assault"  },
+  {
+    key: "identity",
+    hotkey: "i",
+    cardClass: "mode-identity",
+    chip: "ID Theft",
+    label: "Identity Theft",
+  },
+  {
+    key: "breach",
+    hotkey: "d",
+    cardClass: "mode-breach",
+    chip: "Breach",
+    label: "Data Breach",
+  },
+  {
+    key: "assault",
+    hotkey: "s",
+    cardClass: "mode-assault",
+    chip: "Assault",
+    label: "Sexual Assault",
+  },
 ];
 let activeMode = null;
 function setMode(key){ activeMode = (activeMode===key)? null : key; updateModeButtons(); }
 function updateModeButtons(){ document.querySelectorAll(".mode-btn").forEach(b=> b.classList.toggle("active", b.dataset.mode===activeMode)); }
 
 (function initModesBar(){
-  const bar = $("#modeBar"); if(!bar) return;
+  const bar = $("#modeBar");
+  if (!bar) return;
   bar.innerHTML = "";
-  MODES.forEach(m=>{
+  MODES.forEach(m => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "chip mode-btn";
-    btn.textContent = `${m.key[0].toUpperCase()+m.key.slice(1)}`;
+    btn.className = `chip mode-btn chip-${m.key}`;
+    btn.textContent = m.label;
     btn.dataset.mode = m.key;
-    btn.addEventListener("click", ()=> setMode(m.key));
+    btn.addEventListener("click", () => setMode(m.key));
     bar.appendChild(btn);
   });
   updateModeButtons();
@@ -606,6 +634,16 @@ function attachCardHandlers(root=document){
     // focus ring for hotkeys R/A
     card.addEventListener("pointerdown", ()=> focusCard(card));
 
+    // main click behavior: toggle selection or special mode
+    card.addEventListener("click", (e)=>{
+      if (e.target.closest("input, label, button")) return;
+      if (activeMode){
+        toggleCardMode(card, activeMode);
+      } else {
+        toggleWholeCardSelection(card);
+      }
+    });
+
     // badge container safety
     if (!card.querySelector(".special-badges")) {
       const head = card.querySelector(".tl-head") || card.firstElementChild;
@@ -613,6 +651,9 @@ function attachCardHandlers(root=document){
       holder.className = "special-badges flex gap-1";
       head.appendChild(holder);
     }
+
+    // ensure badges match current classes
+    updateCardBadges(card);
   });
 }
 let lastFocusedCard = null;
@@ -624,6 +665,27 @@ function focusCard(card){
 function toggleWholeCardSelection(card){
   const any = Array.from(card.querySelectorAll('input.bureau')).some(cb=>cb.checked);
   setCardSelected(card, !any);
+}
+
+function toggleCardMode(card, modeKey){
+  const info = MODES.find(m => m.key === modeKey);
+  if (!info) return;
+  card.classList.toggle(info.cardClass);
+  updateCardBadges(card);
+}
+
+function updateCardBadges(card){
+  const wrap = card.querySelector(".special-badges");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  MODES.forEach(m => {
+    if (card.classList.contains(m.cardClass)) {
+      const s = document.createElement("span");
+      s.className = `chip chip-mini chip-${m.key}`;
+      s.textContent = m.chip;
+      wrap.appendChild(s);
+    }
+  });
 }
 window.__crm_helpers = {
   attachCardHandlers,
@@ -674,6 +736,12 @@ document.addEventListener("keydown",(e)=>{
     return;
   }
 
+  if (k === "escape"){
+    e.preventDefault();
+    setMode(null);
+    return;
+  }
+
   // Modes (i/d/s)
   const m = MODES.find(x=>x.hotkey===k);
   if (m){ e.preventDefault(); setMode(m.key); return; }
@@ -695,27 +763,3 @@ $("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ 
 // ===================== Init =====================
 loadConsumers();
 
-// ----- Color theme selector -----
-function hexToRgba(hex, alpha){
-  const h = hex.replace('#','');
-  const r = parseInt(h.substring(0,2),16);
-  const g = parseInt(h.substring(2,4),16);
-  const b = parseInt(h.substring(4,6),16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-const colorToggle = $("#colorToggle");
-const colorBubbles = $("#colorBubbles");
-
-colorToggle?.addEventListener("click", ()=>{
-  colorBubbles.classList.toggle("hidden");
-  colorToggle.textContent = colorBubbles.classList.contains("hidden") ? "🎨" : "×";
-});
-document.querySelectorAll(".color-bubble[data-color]").forEach(b=>{
-  b.addEventListener("click", ()=>{
-    const color = b.dataset.color;
-    document.documentElement.style.setProperty("--accent", color);
-    document.documentElement.style.setProperty("--accent-bg", hexToRgba(color,0.12));
-    if(colorToggle) colorToggle.style.background = color;
-
-  });
-});

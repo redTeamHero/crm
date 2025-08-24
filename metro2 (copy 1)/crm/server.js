@@ -189,9 +189,13 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   const r=c.reports.find(x=>x.id===req.params.rid);
   if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+
+  const selections = Array.isArray(req.body?.selections) ? req.body.selections : [];
+  if(!selections.length) return res.status(400).json({ ok:false, error:"No selections provided" });
+
   try{
-    const normalized = normalizeReport(r.data);
-    const html = renderHtml(normalized);
+    const normalized = normalizeReport(r.data, selections);
+    const html = renderHtml(normalized, c.name);
     const result = await savePdf(html);
     addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
     res.json({ ok:true, url: result.url, warning: result.warning });

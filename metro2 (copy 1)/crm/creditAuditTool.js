@@ -13,23 +13,30 @@ export async function fetchCreditReport(){
 }
 
 // Normalize report into array of accounts with balances/statuses/issues
-export function normalizeReport(raw){
-  const accounts = raw.tradelines.map(tl => {
-    const bureauData = {};
-    for(const [bureau, data] of Object.entries(tl.per_bureau)){
-      bureauData[bureau] = {
-        balance: data.balance,
-        status: data.account_status || data.payment_status,
-        past_due: data.past_due,
-        dispute_reason: data.comments || ''
-      };
-    }
-    return {
-      creditor: tl.meta.creditor,
-      bureaus: bureauData,
-      issues: tl.violations.map(v => ({ title: v.title, detail: v.detail }))
-    };
-  });
+export function normalizeReport(raw, selections = null){
+  const accounts = [];
+  if(Array.isArray(selections) && selections.length){
+    selections.forEach(sel=>{
+      const tl = raw.tradelines?.[sel.tradelineIndex];
+      if(!tl) return;
+      const bureaus = {};
+      (sel.bureaus||[]).forEach(b=>{
+        if(tl.per_bureau?.[b]) bureaus[b] = tl.per_bureau[b];
+      });
+      const issues = (tl.violations||[]).filter((_,i)=> sel.violationIdxs?.includes(i))
+        .map(v=>({ title:v.title, detail:v.detail }));
+      accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
+    });
+  } else {
+    raw.tradelines.forEach(tl=>{
+      const bureaus = {};
+      for(const [bureau, data] of Object.entries(tl.per_bureau||{})){
+        bureaus[bureau] = data;
+      }
+      const issues = (tl.violations||[]).map(v=>({ title:v.title, detail:v.detail }));
+      accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
+    });
+  }
   return { generatedAt: new Date().toISOString(), accounts };
 }
 
@@ -52,23 +59,18 @@ function recommendAction(issueTitle){
 }
 
 // Build HTML report with plain language and recommendations
-export function renderHtml(report){
+export function renderHtml(report, consumerName = "Consumer"){
   const rows = report.accounts.map(acc => {
-    const bureauRows = Object.entries(acc.bureaus).map(([b, info]) => `
-      <tr>
-        <td>${b}</td>
-        <td>${info.balance ?? ''}</td>
-        <td>${friendlyStatus(info.status || '')}</td>
-      </tr>`).join('\n');
-    const issues = acc.issues.map(i => `<li><strong>${i.title}:</strong> ${i.detail}<br/>Action: ${recommendAction(i.title)}</li>`).join('');
-    return `
-      <h2>${acc.creditor}</h2>
-      <table border="1" cellspacing="0" cellpadding="4">
-        <thead><tr><th>Bureau</th><th>Balance</th><th>Status</th></tr></thead>
-        <tbody>${bureauRows}</tbody>
-      </table>
-      ${issues ? `<p>Issues:</p><ul>${issues}</ul>` : '<p>No issues found.</p>'}
-    `;
+    const bureauSections = Object.entries(acc.bureaus).map(([b, info]) => {
+      const detailRows = Object.entries(info || {}).map(([k,v]) => {
+        const val = typeof v === 'object' ? JSON.stringify(v) : v;
+        const neg = isNegative(k,val);
+        return `<tr${neg ? ' class="neg"' : ''}><th>${escapeHtml(k)}</th><td>${escapeHtml(val)}</td></tr>`;
+      }).join('');
+      return `<h3>${escapeHtml(b)}</h3><table border="1" cellspacing="0" cellpadding="4"><tbody>${detailRows}</tbody></table>`;
+    }).join('');
+    const issues = acc.issues.map(i => `<li class="neg"><strong>${escapeHtml(i.title)}:</strong> ${escapeHtml(i.detail)}<br/>Action: ${escapeHtml(recommendAction(i.title))}</li>`).join('');
+    return `<h2>${escapeHtml(acc.creditor)}</h2>${bureauSections}${issues ? `<p>Issues:</p><ul>${issues}</ul>` : '<p>No issues found.</p>'}`;
   }).join('\n');
   const dateStr = new Date(report.generatedAt).toLocaleString();
   return `<!DOCTYPE html>
@@ -77,10 +79,11 @@ export function renderHtml(report){
   h1{text-align:center;}
   table{width:100%;margin-top:10px;border-collapse:collapse;}
   th,td{border:1px solid #ccc;}
+  .neg{background:#fee2e2;color:#b91c1c;}
   footer{margin-top:40px;font-size:0.8em;color:#555;}
   </style></head>
   <body>
-  <h1>Credit Audit Report</h1>
+  <h1>Credit Audit Report for ${escapeHtml(consumerName)}</h1>
   <p>Generated: ${dateStr}</p>
   ${rows}
   <footer>
@@ -88,6 +91,14 @@ export function renderHtml(report){
     <p>This report is for informational purposes only and is not legal advice.</p>
   </footer>
   </body></html>`;
+}
+
+function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function isNegative(k,v){
+  const val = String(v||'').toLowerCase();
+  if(k.toLowerCase().includes('past') && parseFloat(val.replace(/[^0-9.-]/g,''))>0) return true;
+  return ['collection','late','charge','delinquent','derog'].some(w=> val.includes(w));
 }
 
 // Save HTML as PDF under public/reports and return shareable link
