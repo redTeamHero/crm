@@ -5,6 +5,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import { nanoid } from "nanoid";
+import { spawn, spawnSync } from "child_process";
+
 import { spawn } from "child_process";
 import puppeteer from "puppeteer";
 import crypto from "crypto";
@@ -237,8 +239,19 @@ function saveJobsIndex(idx){
 // chromium detection for puppeteer
 async function detectChromium(){
   if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  for(const p of ["/usr/bin/chromium","/usr/bin/chromium-browser","/snap/bin/chromium","/usr/bin/google-chrome","/usr/bin/google-chrome-stable"]){
-    try{ await fs.promises.access(p, fs.constants.X_OK); return p; }catch{}
+  const candidates = [
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/snap/bin/chromium",
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable"
+  ];
+  for (const p of candidates) {
+    try {
+      await fs.promises.access(p, fs.constants.X_OK);
+      const check = spawnSync(p, ["--version"], { stdio: "ignore" });
+      if (check.status === 0) return p;
+    } catch {}
   }
   return null;
 }
