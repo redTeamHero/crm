@@ -93,7 +93,8 @@ export function renderHtml(report, consumerName = "Consumer"){
       return `<li>${escapeHtml(i.title)} - ${escapeHtml(i.detail)} ${escapeHtml(action)}</li>`;
     }).join('');
     const issueBlock = issues ? `<p><strong>Audit Reasons:</strong></p><ul>${issues}</ul>` : "";
-
+    const issues = (acc.issues || []).map(i => `<li>${escapeHtml(i.title)} - ${escapeHtml(i.detail)}</li>`).join('');
+    const issueBlock = issues ? `<p><strong>Issues:</strong></p><ul>${issues}</ul>` : "";
     return `
       <h2>${escapeHtml(acc.creditor)}</h2>
       <h3>Comparison (All Available Bureaus)</h3>
@@ -119,6 +120,7 @@ export function renderHtml(report, consumerName = "Consumer"){
   </style></head>
   <body>
   <h1>Credit Repair Audit</h1>
+  <h1>Request for Correction of Inaccurate/Incomplete Information</h1>
   <p>Generated for ${escapeHtml(consumerName)} on ${escapeHtml(dateStr)}</p>
   ${accountSections}
   <footer>
