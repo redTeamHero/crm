@@ -134,6 +134,11 @@ $("#next").addEventListener("click", ()=>{
 // back
 $("#btnBack").addEventListener("click", ()=>{ location.href = "/"; });
 
+$("#btnDownloadAll").addEventListener("click", ()=>{
+  if (!JOB_ID) return;
+  window.location.href = `/api/letters/${encodeURIComponent(JOB_ID)}/all.zip`;
+});
+
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
 
 async function loadLetters(jobId){
