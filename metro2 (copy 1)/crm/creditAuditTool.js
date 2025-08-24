@@ -54,14 +54,18 @@ function recommendAction(issueTitle){
 }
 
 function renderEvidence(evidence){
-  if(!evidence) return "";
-  return Object.entries(evidence).map(([label, val])=>{
-    if(val && typeof val === "object"){
-      const rows = Object.entries(val).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join("");
-      return `<div class="issue-evidence"><strong>${label.replace(/_/g," ")}</strong><table><tbody>${rows}</tbody></table></div>`;
-    }
-    return `<div class="issue-evidence"><strong>${label.replace(/_/g," ")}:</strong> ${val}</div>`;
-  }).join("");
+  if (!evidence) return "";
+  return Object.entries(evidence)
+    .map(([label, val]) => {
+      if (val && typeof val === "object") {
+        const rows = Object.entries(val)
+          .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`)
+          .join("");
+        return `<div class="issue-evidence"><strong>${label.replace(/_/g, " ")}</strong><table><tbody>${rows}</tbody></table></div>`;
+      }
+      return `<div class="issue-evidence"><strong>${label.replace(/_/g, " ")}:</strong> ${val}</div>`;
+    })
+    .join("");
 }
 
 // Build HTML report with plain language and recommendations
