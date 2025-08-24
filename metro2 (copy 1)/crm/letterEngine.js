@@ -1,5 +1,7 @@
 // letterEngine.js
 
+import { PLAYBOOKS } from './playbook.js';
+
 const BUREAU_ADDR = {
   TransUnion: {
     name: "TransUnion Consumer Solutions",
@@ -23,6 +25,16 @@ const ALL_BUREAUS = ["TransUnion", "Experian", "Equifax"];
 // Helpers
 function todayISO() {
   return new Date().toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function futureISO(offsetDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toLocaleDateString(undefined, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -350,8 +362,9 @@ function buildLetterHTML({
   requestType,
   comparisonBureaus,
   modeKey,
+  dateOverride,
 }) {
-  const dateStr = todayISO();
+  const dateStr = dateOverride || todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
   const { conflictMap, errorMap } = buildConflictMap(tl.violations || []);
   const compTable = buildComparisonTableHTML(
@@ -457,6 +470,46 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 
     const isSpecial = SPECIAL_ONE_BUREAU.has(sel.specialMode);
     const comparisonBureaus = isSpecial ? [sel.bureaus[0]] : ALL_BUREAUS;
+    const play = sel.playbook && PLAYBOOKS[sel.playbook];
+    const steps = play ? play.letters : [null];
+
+    steps.forEach((stepTitle, stepIdx) => {
+      const dateOverride = play ? futureISO(stepIdx * 30) : undefined;
+      for (const bureau of sel.bureaus || []) {
+        if (!ALL_BUREAUS.includes(bureau)) continue;
+
+        let letter = buildLetterHTML({
+          consumer,
+          bureau,
+          tl,
+          selectedViolationIdxs: sel.violationIdxs || [],
+          requestType,
+          comparisonBureaus,
+          modeKey: sel.specialMode || null,
+          dateOverride,
+        });
+        let filename = letter.filename;
+        if (play) {
+          const safeStep = (stepTitle || `step${stepIdx + 1}`)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "");
+          filename = filename.replace("_dispute_", `_${safeStep}_`);
+        }
+        letters.push({
+          bureau,
+          tradelineIndex: sel.tradelineIndex,
+          creditor: tl.meta.creditor,
+          ...letter,
+          filename,
+        });
+      }
+    });
+  }
+
+  return letters;
+}
+
 
     for (const bureau of sel.bureaus || []) {
       if (!ALL_BUREAUS.includes(bureau)) continue;
