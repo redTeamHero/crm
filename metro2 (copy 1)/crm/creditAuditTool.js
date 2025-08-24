@@ -154,7 +154,8 @@ async function detectChromium(){
 // CLI usage
 if(process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])){
   const raw = await fetchCreditReport();
-  const normalized = normalizeReport(raw);
+  // pass along any embedded consumer name when running from CLI
+  const normalized = normalizeReport(raw, raw.consumer?.name || "");
   const html = renderHtml(normalized);
   const result = await savePdf(html);
   console.log('PDF saved to', result.path);
