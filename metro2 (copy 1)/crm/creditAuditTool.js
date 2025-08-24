@@ -12,9 +12,7 @@ export async function fetchCreditReport(){
   return JSON.parse(raw);
 }
 
-// Normalize report into array of accounts with balances/statuses/issues
-// Optionally include the consumer's name for later display
-export function normalizeReport(raw, consumerName = ""){
+
   const accounts = raw.tradelines.map(tl => {
     const bureauData = {};
     for(const [bureau, data] of Object.entries(tl.per_bureau)){
@@ -28,11 +26,7 @@ export function normalizeReport(raw, consumerName = ""){
     return {
       creditor: tl.meta.creditor,
       bureaus: bureauData,
-      // capture evidence so the report can surface specific dispute info
-      issues: tl.violations.map(v => ({ title: v.title, detail: v.detail, evidence: v.evidence }))
-    };
-  });
-  return { generatedAt: new Date().toISOString(), consumerName, accounts };
+
 }
 
 // ----- Consumer friendly translations -----
@@ -53,20 +47,6 @@ function recommendAction(issueTitle){
   return `Consider disputing "${issueTitle}" with the credit bureau or contacting the creditor for correction.`;
 }
 
-function renderEvidence(evidence){
-  if (!evidence) return "";
-  return Object.entries(evidence)
-    .map(([label, val]) => {
-      if (val && typeof val === "object") {
-        const rows = Object.entries(val)
-          .map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`)
-          .join("");
-        return `<div class="issue-evidence"><strong>${label.replace(/_/g, " ")}</strong><table><tbody>${rows}</tbody></table></div>`;
-      }
-      return `<div class="issue-evidence"><strong>${label.replace(/_/g, " ")}:</strong> ${val}</div>`;
-    })
-    .join("");
-}
 
 // Build HTML report with plain language and recommendations
 export function renderHtml(report){
@@ -77,7 +57,7 @@ export function renderHtml(report){
         <td>${info.balance ?? ''}</td>
         <td>${friendlyStatus(info.status || '')}</td>
       </tr>`).join('\n');
-    const issues = acc.issues.map(i => `<li><strong>${i.title}:</strong> ${i.detail}${renderEvidence(i.evidence)}<br/>Action: ${recommendAction(i.title)}</li>`).join('');
+
     return `
       <h2>${acc.creditor}</h2>
       <table border="1" cellspacing="0" cellpadding="4">
@@ -90,29 +70,7 @@ export function renderHtml(report){
   const dateStr = new Date(report.generatedAt).toLocaleString();
   return `<!DOCTYPE html>
   <html><head><meta charset="utf-8"/><style>
-  body{font-family:Arial, sans-serif;margin:20px;background:#f4f4f4;color:#333;}
-  .container{max-width:800px;margin:0 auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);}
-  h1{text-align:center;margin-bottom:0;}
-  h2{text-align:center;color:#555;margin-top:5px;}
-  table{width:100%;margin-top:10px;border-collapse:collapse;}
-  th{background:#e9ecef;}
-  th,td{border:1px solid #ccc;padding:4px;text-align:left;}
-  ul{margin-left:20px;}
-  .issue-evidence{margin-top:5px;}
-  .issue-evidence table{margin-top:4px;}
-  footer{margin-top:40px;font-size:0.8em;color:#555;}
-  </style></head>
-  <body>
-  <div class="container">
-    <h1>Credit Audit Report</h1>
-    ${report.consumerName ? `<h2>${report.consumerName}</h2>` : ''}
-    <p>Generated: ${dateStr}</p>
-    ${rows}
-    <footer>
-      <hr/>
-      <p>This report is for informational purposes only and is not legal advice.</p>
-    </footer>
-  </div>
+
   </body></html>`;
 }
 
@@ -152,10 +110,7 @@ async function detectChromium(){
 }
 
 // CLI usage
-if(process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])){
-  const raw = await fetchCreditReport();
-  // pass along any embedded consumer name when running from CLI
-  const normalized = normalizeReport(raw, raw.consumer?.name || "");
+
   const html = renderHtml(normalized);
   const result = await savePdf(html);
   console.log('PDF saved to', result.path);

@@ -190,8 +190,7 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
   const r=c.reports.find(x=>x.id===req.params.rid);
   if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
   try{
-    // include consumer name so it appears in the audit report
-    const normalized = normalizeReport(r.data, c.name);
+
     const html = renderHtml(normalized);
     const result = await savePdf(html);
     addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
