@@ -670,3 +670,26 @@ $("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ 
 
 // ===================== Init =====================
 loadConsumers();
+
+// ----- Color theme selector -----
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16);
+  const g = parseInt(h.substring(2,4),16);
+  const b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+const colorToggle = $("#colorToggle");
+const colorBubbles = $("#colorBubbles");
+colorToggle?.addEventListener("click", ()=>{
+  colorBubbles.classList.toggle("hidden");
+  colorToggle.textContent = colorBubbles.classList.contains("hidden") ? "🎨" : "×";
+});
+document.querySelectorAll(".color-bubble[data-color]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    const color = b.dataset.color;
+    document.documentElement.style.setProperty("--accent", color);
+    document.documentElement.style.setProperty("--accent-bg", hexToRgba(color,0.12));
+    if(colorToggle) colorToggle.style.background = color;
+  });
+});
