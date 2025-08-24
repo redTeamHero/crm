@@ -276,7 +276,8 @@ function updateSelectionStateFromCard(card){
   if (!bureaus.length) { delete selectionState[idx]; return; }
   const violationIdxs = Array.from(card.querySelectorAll('.violation:checked')).map(cb=>Number(cb.value));
   const specialMode = getSpecialModeForCard(card);
-  selectionState[idx] = { bureaus, violationIdxs, specialMode };
+  const playbook = card.querySelector('.tl-playbook-select')?.value || null;
+  selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook };
 }
 
 function renderTradelines(tradelines){
@@ -361,6 +362,10 @@ function renderTradelines(tradelines){
         const vb = node.querySelector(`.violation[value="${v}"]`);
         if (vb) vb.checked = true;
       });
+      if (saved.playbook){
+        const sel = node.querySelector('.tl-playbook-select');
+        if (sel) sel.value = saved.playbook;
+      }
       if (saved.bureaus?.length) card.classList.add("selected");
       if (saved.specialMode){
         const info = MODES.find(m => m.key === saved.specialMode);
@@ -468,7 +473,8 @@ function collectSelections(){
     tradelineIndex: Number(tradelineIndex),
     bureaus: data.bureaus,
     violationIdxs: data.violationIdxs,
-    specialMode: data.specialMode
+    specialMode: data.specialMode,
+    playbook: data.playbook || undefined
   }));
 }
 
@@ -738,27 +744,18 @@ function attachCardHandlers(root=document){
     });
 
     const playBtn = card.querySelector('.tl-playbook');
-    if (playBtn) {
-      playBtn.addEventListener('click', async (e)=>{
+    const playSel = card.querySelector('.tl-playbook-select');
+    if (playBtn && playSel) {
+      playSel.innerHTML = '<option value="">No playbook</option>' +
+        Object.entries(PLAYBOOKS).map(([k,v])=>`<option value="${k}">${escapeHtml(v.name)}</option>`).join('');
+      playBtn.addEventListener('click', (e)=>{
         e.stopPropagation();
-        const bureaus = Array.from(card.querySelectorAll('.bureau:checked')).map(cb=>cb.value);
-        if(!bureaus.length){ alert('Select at least one bureau first.'); return; }
-        const violationIdxs = Array.from(card.querySelectorAll('.violation:checked')).map(cb=>Number(cb.value));
-        const specialMode = getSpecialModeForCard(card);
-        const keys = Object.keys(PLAYBOOKS);
-        const choice = prompt('Select playbook:\n'+keys.map((k,i)=>`${i+1}. ${PLAYBOOKS[k].name}`).join('\n'));
-        const selIdx = Number(choice) - 1;
-        if (isNaN(selIdx) || !keys[selIdx]) return;
-        const playKey = keys[selIdx];
-        try{
-          const requestType = getRequestType();
-          const payload = { consumerId: currentConsumerId, reportId: currentReportId, requestType, selections:[{ tradelineIndex: Number(card.dataset.index), bureaus, violationIdxs, specialMode, playbook: playKey }] };
-          const resp = await fetch('/api/generate',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-          if(!resp.ok){ const txt = await resp.text(); throw new Error(`HTTP ${resp.status} ${txt}`.trim()); }
-          const data = await resp.json();
-          if(!data?.ok || !data.redirect) throw new Error(data?.error || 'Failed to generate letters.');
-          window.open(data.redirect, '_blank');
-        }catch(err){ alert(err.message || String(err)); }
+        playSel.classList.toggle('hidden');
+      });
+      playSel.addEventListener('change', (e)=>{
+        e.stopPropagation();
+        playSel.classList.add('hidden');
+        updateSelectionStateFromCard(card);
       });
     }
 

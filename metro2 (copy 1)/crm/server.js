@@ -9,6 +9,7 @@ import { spawn } from "child_process";
 import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
+import archiver from "archiver";
 import { generateLetters } from "./letterEngine.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
@@ -393,6 +394,56 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     console.error("PDF error:", e);
     res.status(500).send("Failed to render PDF.");
   }finally{ try{ await browser?.close(); }catch{} }
+});
+
+app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
+  const { jobId } = req.params;
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){
+      putJobMem(jobId, disk.letters.map(d => ({
+        filename: path.basename(d.htmlPath),
+        bureau: d.bureau,
+        creditor: d.creditor,
+        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>"
+      })));
+      job = getJobMem(jobId);
+    }
+  }
+  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+
+  res.setHeader("Content-Type","application/zip");
+  res.setHeader("Content-Disposition",`attachment; filename="letters_${jobId}.zip"`);
+
+  const archive = archiver('zip',{ zlib:{ level:9 } });
+  archive.on('error', err => { console.error(err); try{ res.status(500).end("Zip error"); }catch{} });
+  archive.pipe(res);
+
+  let browser;
+  try{
+    browser = await launchBrowser();
+    for(let i=0;i<job.letters.length;i++){
+      const L = job.letters[i];
+      const page = await browser.newPage();
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
+      await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
+      await page.emulateMediaType("screen");
+      try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
+      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
+      const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
+      await page.close();
+      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
+      archive.append(pdf,{ name });
+    }
+    await archive.finalize();
+  }catch(e){
+    console.error("Zip generation failed:", e);
+    try{ res.status(500).end("Failed to create zip."); }catch{}
+  }finally{
+    try{ await browser?.close(); }catch{}
+  }
 });
 
 app.get("/api/jobs/:jobId/letters", (req, res) => {
