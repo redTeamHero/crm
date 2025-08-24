@@ -49,6 +49,26 @@ function hasAnyData(pb) {
   });
 }
 
+function isNegative(pb) {
+  if (!pb) return false;
+  const NEG_WORDS = [
+    "collection",
+    "charge-off",
+    "charge off",
+    "late",
+    "delinquent",
+    "derog",
+  ];
+  const fields = ["payment_status", "account_status", "comments"];
+  return fields.some((k) => {
+    const v = pb[k] ?? pb[`${k}_raw`];
+    return (
+      typeof v === "string" &&
+      NEG_WORDS.some((w) => v.toLowerCase().includes(w))
+    );
+  });
+}
+
 // Conflict detection (trimmed)
 const EVIDENCE_KEY_TO_FIELD = {
   balance_by_bureau: "balance",
@@ -411,6 +431,29 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
   for (const sel of selections || []) {
     const tl = report.tradelines?.[sel.tradelineIndex];
     if (!tl) continue;
+
+    const bureausPresent = Object.entries(tl.per_bureau || {})
+      .filter(([_, pb]) => hasAnyData(pb))
+      .map(([b]) => b);
+    if (
+      bureausPresent.length === 1 &&
+      isNegative(tl.per_bureau[bureausPresent[0]])
+    ) {
+      tl.violations = tl.violations || [];
+      const exists = tl.violations.some(
+        (v) => (v.title || "").toLowerCase() === "incomplete file and misleading"
+      );
+      if (!exists) {
+        tl.violations.push({
+          title: "Incomplete file and misleading",
+          detail: "Negative item reported by only one bureau",
+        });
+        sel.violationIdxs = [
+          ...(sel.violationIdxs || []),
+          tl.violations.length - 1,
+        ];
+      }
+    }
 
     const isSpecial = SPECIAL_ONE_BUREAU.has(sel.specialMode);
     const comparisonBureaus = isSpecial ? [sel.bureaus[0]] : ALL_BUREAUS;
