@@ -30,7 +30,15 @@ function ensureConsumer(st, consumerId) {
 // ---- Public API ----
 export function listConsumerState(consumerId) {
   const st = loadState();
-  return ensureConsumer(st, consumerId);
+  if (!Object.prototype.hasOwnProperty.call(st.consumers, consumerId)) {
+    // Persist the newly created consumer so other processes can observe it
+    // immediately. Without this, a restart after the first read would lose the
+    // empty structure until an event or file was added.
+    const c = ensureConsumer(st, consumerId);
+    saveState(st);
+    return c;
+  }
+  return st.consumers[consumerId];
 }
 
 export function addEvent(consumerId, type, payload = {}) {
