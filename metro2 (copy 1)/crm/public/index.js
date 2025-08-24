@@ -22,6 +22,33 @@ function clearErr(){
 }
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
+function formatEvent(ev){
+  const when = new Date(ev.at).toLocaleString();
+  let title = escapeHtml(ev.type);
+  let body = "";
+  if(ev.type === "letters_generated"){
+    const { count, requestType, tradelines } = ev.payload || {};
+    title = "Letters generated";
+    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}.</div>`;
+  } else if(ev.type === "audit_generated"){
+    const { reportId, file } = ev.payload || {};
+    title = "Audit generated";
+    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
+    body = `<div class="text-xs mt-1">Report ${escapeHtml(reportId||"")} ${link}</div>`;
+  } else if(ev.payload){
+    body = `<pre class="text-xs mt-1 overflow-auto">${escapeHtml(JSON.stringify(ev.payload, null, 2))}</pre>`;
+  }
+  return `
+    <div class="glass card p-2">
+      <div class="flex items-center justify-between">
+        <div class="font-medium">${title}</div>
+        <div class="text-xs muted">${when}</div>
+      </div>
+      ${body}
+    </div>
+  `;
+}
+
 // ===================== Consumers (search + pagination) =====================
 const PAGE_SIZE = 10;
 let consQuery = "";
@@ -545,18 +572,7 @@ async function loadConsumerState(){
   if (!events.length){
     list.push(`<div class="muted">No recent events.</div>`);
   } else {
-    events.forEach(ev=>{
-      const when = new Date(ev.at).toLocaleString();
-      list.push(`
-        <div class="glass card p-2">
-          <div class="flex items-center justify-between">
-            <div class="font-medium">${escapeHtml(ev.type)}</div>
-            <div class="text-xs muted">${when}</div>
-          </div>
-          ${ev.payload ? `<pre class="text-xs mt-1 overflow-auto">${escapeHtml(JSON.stringify(ev.payload, null, 2))}</pre>` : ""}
-        </div>
-      `);
-    });
+    events.forEach(ev=>{ list.push(formatEvent(ev)); });
   }
   $("#activityList").innerHTML = list.join("");
 }
