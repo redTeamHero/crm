@@ -11,6 +11,23 @@ import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
 import { generateLetters } from "./letterEngine.js";
+import { PLAYBOOKS } from "./playbook.js";
+import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
+import {
+  listConsumerState,
+  addEvent,
+  addFileMeta,
+  consumerUploadsDir,
+  addReminder,
+  processAllReminders,
+} from "./state.js";
+
+import { spawn, spawnSync } from "child_process";
+import puppeteer from "puppeteer";
+import crypto from "crypto";
+import os from "os";
+import archiver from "archiver";
+import { generateLetters } from "./letterEngine.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
   listConsumerState,
@@ -24,6 +41,13 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
+
+// periodically surface due letter reminders
+processAllReminders();
+setInterval(() => {
+  try { processAllReminders(); }
+  catch (e) { console.error("Reminder check failed", e); }
+}, 60 * 60 * 1000);
 
 // ---------- Static UI ----------
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -253,6 +277,24 @@ async function detectChromium(){
   }
   return null;
 }
+async function detectChromium(){
+  if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
+  const candidates = [
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/snap/bin/chromium",
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable"
+  ];
+  for (const p of candidates) {
+    try {
+      await fs.promises.access(p, fs.constants.X_OK);
+      const check = spawnSync(p, ["--version"], { stdio: "ignore" });
+      if (check.status === 0) return p;
+    } catch {}
+  }
+  return null;
+}
 async function launchBrowser(){
   const execPath = await detectChromium();
   const opts = { headless:true, args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-zygote","--single-process"] };
@@ -316,6 +358,26 @@ app.post("/api/generate", async (req,res)=>{
       jobId, requestType, count: letters.length,
       tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length
     });
+
+    // schedule reminders for subsequent playbook steps
+    for (const sel of selections || []) {
+      const play = sel.playbook && PLAYBOOKS[sel.playbook];
+      if (!play) continue;
+      play.letters.slice(1).forEach((title, idx) => {
+        const due = new Date();
+        due.setDate(due.getDate() + (idx + 1) * 30);
+        addReminder(consumer.id, {
+          id: `rem_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+          due: due.toISOString(),
+          payload: {
+            tradelineIndex: sel.tradelineIndex,
+            playbook: sel.playbook,
+            step: title,
+            stepNumber: idx + 2,
+          },
+        });
+      });
+    }
 
     res.json({ ok:true, redirect: `/letters?job=${jobId}` });
   }catch(e){
@@ -405,6 +467,56 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     console.error("PDF error:", e);
     res.status(500).send("Failed to render PDF.");
   }finally{ try{ await browser?.close(); }catch{} }
+});
+
+app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
+  const { jobId } = req.params;
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){
+      putJobMem(jobId, disk.letters.map(d => ({
+        filename: path.basename(d.htmlPath),
+        bureau: d.bureau,
+        creditor: d.creditor,
+        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>"
+      })));
+      job = getJobMem(jobId);
+    }
+  }
+  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+
+  res.setHeader("Content-Type","application/zip");
+  res.setHeader("Content-Disposition",`attachment; filename="letters_${jobId}.zip"`);
+
+  const archive = archiver('zip',{ zlib:{ level:9 } });
+  archive.on('error', err => { console.error(err); try{ res.status(500).end("Zip error"); }catch{} });
+  archive.pipe(res);
+
+  let browser;
+  try{
+    browser = await launchBrowser();
+    for(let i=0;i<job.letters.length;i++){
+      const L = job.letters[i];
+      const page = await browser.newPage();
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
+      await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
+      await page.emulateMediaType("screen");
+      try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
+      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
+      const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
+      await page.close();
+      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
+      archive.append(pdf,{ name });
+    }
+    await archive.finalize();
+  }catch(e){
+    console.error("Zip generation failed:", e);
+    try{ res.status(500).end("Failed to create zip."); }catch{}
+  }finally{
+    try{ await browser?.close(); }catch{}
+  }
 });
 
 app.get("/api/letters/:jobId/all.zip", async (req,res)=>{

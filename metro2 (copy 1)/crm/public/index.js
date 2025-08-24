@@ -61,6 +61,14 @@ function formatEvent(ev){
     if(filename){
       body = `<div class="text-xs mt-1">${escapeHtml(filename)}${sizeKb}</div>`;
     }
+  } else if(ev.type === "letter_reminder"){
+    const { step, playbook, tradelineIndex, due } = ev.payload || {};
+    title = "Letter reminder";
+    let desc = step ? `Send "${escapeHtml(step)}"` : "Send next letter";
+    if (playbook) desc += ` from ${escapeHtml(playbook)}`;
+    if (tradelineIndex !== undefined) desc += ` for TL #${escapeHtml(tradelineIndex)}`;
+    if (due) desc += ` (due ${new Date(due).toLocaleDateString()})`;
+    body = `<div class="text-xs mt-1">${desc}</div>`;
   } else if(ev.payload){
     body = `<pre class="text-xs mt-1 overflow-auto">${escapeHtml(JSON.stringify(ev.payload, null, 2))}</pre>`;
   }
