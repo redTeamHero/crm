@@ -195,8 +195,6 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 
   try{
     const normalized = normalizeReport(r.data, selections);
-
-    const normalized = normalizeReport(r.data);
     const html = renderHtml(normalized, c.name);
     const result = await savePdf(html);
     addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
@@ -456,4 +454,5 @@ app.listen(PORT, ()=> {
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
 });
+
 
