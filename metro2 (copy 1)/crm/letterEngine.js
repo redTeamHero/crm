@@ -82,12 +82,15 @@ function isNegative(pb) {
 }
 
 // Light pastel palette to hinder basic OCR while remaining human-readable
+
+// Restricted pastel palette for OCR disruption
 const OCR_COLORS = [
-  "#ffffe0", // light yellow
+  "#ffb347", // pastel orange
+ // "#ffa500", // fluorescent orange
+//  "#ffff99", // light yellow
   "#add8e6", // light blue
   "#90ee90", // light green
   "#ffd1dc", // pale pink
-  "#ffb347", // pastel orange
 ];
 
 function colorize(text) {
@@ -97,9 +100,9 @@ function colorize(text) {
     .map((ch, idx) => {
       if (/\s/.test(ch)) return ch;
       if (idx === 0) {
-        return `<span style="color:#0000ff">${ch}</span>`;
+        return `<span style="color:#000000">${ch}</span>`;
       }
-      if (Math.random() < 0.5) {
+      if (Math.random() < 0.2) {
         const color = OCR_COLORS[Math.floor(Math.random() * OCR_COLORS.length)];
         return `<span style="color:${color}">${ch}</span>`;
       }
@@ -107,6 +110,7 @@ function colorize(text) {
     })
     .join("");
 }
+
 
 // Conflict detection (trimmed)
 const EVIDENCE_KEY_TO_FIELD = {
@@ -546,4 +550,5 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 }
 
 export { generateLetters };
+
 
