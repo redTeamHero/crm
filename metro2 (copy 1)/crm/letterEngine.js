@@ -49,6 +49,34 @@ function fieldVal(pb, key) {
 function hasAnyData(pb) {
   if (!pb) return false;
   const keys = [
+    "account_number","account_status","payment_status","balance","credit_limit",
+    "high_credit","past_due","date_opened","last_reported","date_last_payment","comments",
+  ];
+  return keys.some((k) => fieldVal(pb, k).trim() !== "");
+}
+
+function isNegative(pb) {
+  if (!pb) return false;
+  const NEG_WORDS = [
+    "collection",
+    "charge-off",
+    "charge off",
+    "late",
+    "delinquent",
+    "derog",
+  ];
+  const fields = ["payment_status", "account_status", "comments"];
+  return fields.some((k) => {
+    const v = fieldVal(pb, k).toLowerCase();
+    return NEG_WORDS.some((w) => v.includes(w));
+  });
+}
+
+// Restricted pastel palette for OCR disruption
+const OCR_COLORS = [
+  "#ffb347", // pastel orange
+  "#ffd1dc", // pale pink
+  "#90ee90", // light green
     "account_number",
     "account_status",
     "payment_status",
@@ -221,6 +249,11 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
       fields: ["account_status", "payment_status"],
       renderCell: (pb) => `${safe(pb.account_status, "—")} / ${safe(pb.payment_status, "—")}`,
     }),
+
+    renderRow("Account Status / Payment Status", available, tl, conflictMap, errorMap, {
+      fields: ["account_status", "payment_status"],
+      renderCell: (pb) => `${safe(pb.account_status, "—")} / ${safe(pb.payment_status, "—")}`,
+    }),
     renderRow("Balance / Past Due", available, tl, conflictMap, errorMap, {
       fields: ["balance", "past_due"],
       renderCell: (pb) => `${fieldVal(pb, "balance") || "—"} / ${fieldVal(pb, "past_due") || "—"}`,
@@ -234,6 +267,12 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
       renderCell: (pb) =>
         `Opened: ${fieldVal(pb, "date_opened") || "—"} | Last Reported: ${fieldVal(pb, "last_reported") || "—"} | Last Payment: ${fieldVal(pb, "date_last_payment") || "—"}`,
     }),
+    renderRow("Comments", available, tl, conflictMap, errorMap, {
+      fields: ["comments"],
+      renderCell: (pb) => safe(pb.comments, "—"),
+    }),
+  ];
+
     renderRow("Comments", available, tl, conflictMap, errorMap, {
       fields: ["comments"],
       renderCell: (pb) => safe(pb.comments, "—"),
@@ -265,6 +304,12 @@ function buildTradelineBlockHTML(tl, bureau) {
     acct: safe(pb.account_number, "N/A"),
     status: safe(pb.account_status, "N/A"),
     payStatus: safe(pb.payment_status, "N/A"),
+
+  const pb = tl.per_bureau[bureau] ||= {};
+  const creds = {
+    acct: safe(pb.account_number, "N/A"),
+    status: safe(pb.account_status, "N/A"),
+    payStatus: safe(pb.payment_status, "N/A"),
     bal: fieldVal(pb, "balance") || "N/A",
     cl: fieldVal(pb, "credit_limit") || "N/A",
     hc: fieldVal(pb, "high_credit") || "N/A",
@@ -272,6 +317,8 @@ function buildTradelineBlockHTML(tl, bureau) {
     opened: fieldVal(pb, "date_opened") || "N/A",
     lastRpt: fieldVal(pb, "last_reported") || "N/A",
     lastPay: fieldVal(pb, "date_last_payment") || "N/A",
+    comments: safe(pb.comments, ""),
+  };
     comments: safe(pb.comments, ""),
   };
 
@@ -331,7 +378,7 @@ function buildViolationListHTML(violations, selectedIds) {
       return `
         <li style="margin-bottom:12px;">
           <strong>${safe(v.category)} – ${safe(v.title)}</strong>
-          ${v.detail ? `<div style="margin-top:4px;">${safe(v.detail)}</div>` : ""}
+          ${v.detail ? `<div style="margin-top:4px;">${colorize(safe(v.detail))}</div>` : ""}
           ${evHTML ? `<div style="margin-top:6px;">${evHTML}</div>` : ""}
         </li>`;
     }).join("");
@@ -393,6 +440,79 @@ function buildLetterHTML({
 }) {
   const dateStr = dateOverride || todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
+  const { conflictMap, errorMap } = buildConflictMap(tl.violations || []);
+  const compTable = buildComparisonTableHTML(
+    tl,
+    comparisonBureaus,
+    conflictMap,
+    errorMap
+  );
+  const tlBlock = buildTradelineBlockHTML(tl, bureau);
+  const chosenList = buildViolationListHTML(tl.violations, selectedViolationIdxs);
+  const mc = modeCopy(modeKey, requestType);
+
+  const intro = mc.intro;
+  const ask = mc.ask;
+  const afterIssuesPara = mc.afterIssues ? `<p>${mc.afterIssues}</p>` : "";
+  const verifyLine =
+    "Please provide the method of verification... if you cannot verify... delete the item and send me an updated report.";
+  const signOff = `Sincerely,<br>${safe(consumer.name)}`;
+
+  const letterBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${bureau} – ${mc.heading}</title>
+  <style>
+    @media print { @page { margin: 1in; } }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#0000ff; }
+    h1, h2, strong { color:#000; }
+    * { word-break:break-word; }
+    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
+    .muted{ color:#6b7280; }
+    h1{ font-size:20px; margin-bottom:8px; }
+    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
+    table { table-layout: fixed; width:100%; border-collapse:collapse; }
+    td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div style="display:flex; gap:24px; margin-bottom:16px;">
+    <div class="card" style="flex:1;">
+      <strong>${safe(consumer.name)}</strong><br>
+      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
+      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
+      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
+      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
+      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
+      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
+    </div>
+    <div class="card" style="flex:1;">
+      <strong>${bureauMeta.name}</strong><br>
+      ${bureauMeta.addr1}<br>${bureauMeta.addr2}
+    </div>
+  </div>
+  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  <h1>${mc.heading}</h1>
+  <p>${intro}</p>
+  <p>${ask}</p>
+  <h2>Comparison (All Available Bureaus)</h2>
+  ${compTable}
+  <h2>Bureau‑Specific Details (${bureau})</h2>
+  ${tlBlock}
+  <h2>Specific Issues (Selected)</h2>
+  ${chosenList}
+  ${afterIssuesPara}
+  <p>${verifyLine}</p>
+  <p>${signOff}</p>
+</body>
+</html>`.trim();
+
+  const fnSafeCred = safe(tl.meta.creditor, "Unknown")
+    .replace(/[^a-z0-9]+/gi, "_")
+    .replace(/^_+|_+$/g, "");
+
   const { conflictMap, errorMap } = buildConflictMap(tl.violations || []);
   const compTable = buildComparisonTableHTML(
     tl,
