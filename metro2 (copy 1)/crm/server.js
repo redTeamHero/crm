@@ -22,7 +22,6 @@ import {
   processAllReminders,
 } from "./state.js";
 
-import { spawn, spawnSync } from "child_process";
 import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
@@ -628,6 +627,7 @@ app.listen(PORT, ()=> {
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
 });
+
 
 
 
