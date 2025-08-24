@@ -40,8 +40,6 @@
     .hidden{ display:none }
     .focus-ring{ outline: 2px dashed #6366f1; outline-offset: 4px; }
 
-    .color-bubble{ width:32px; height:32px; border-radius:9999px; cursor:pointer; border:2px solid white; box-shadow:0 0 0 2px rgba(0,0,0,.1); }
-
     /* Modes */
     .tl-card.mode-identity{ box-shadow:0 0 0 2px #d4af37 inset, 0 8px 24px rgba(0,0,0,.1); background: rgba(212,175,55,.12); }
     .tl-card.mode-breach{   box-shadow:0 0 0 2px #ef4444 inset, 0 8px 24px rgba(0,0,0,.1); background: rgba(239,68,68,.12); }
@@ -71,16 +69,6 @@
   </style>
 </head>
 <body>
-<div id="colorPanel" class="fixed right-4 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2">
-  <button id="colorToggle" class="color-bubble flex items-center justify-center text-white text-sm" style="background:var(--accent)">×</button>
-  <div id="colorBubbles" class="flex flex-col gap-2">
-    <button class="color-bubble" data-color="#007AFF" style="background:#007AFF"></button>
-    <button class="color-bubble" data-color="#34C759" style="background:#34C759"></button>
-    <button class="color-bubble" data-color="#FF9500" style="background:#FF9500"></button>
-    <button class="color-bubble" data-color="#FF3B30" style="background:#FF3B30"></button>
-    <button class="color-bubble" data-color="#AF52DE" style="background:#AF52DE"></button>
-  </div>
-</div>
 <header class="p-4">
   <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
     <div class="text-xl font-semibold">Metro 2 CRM</div>

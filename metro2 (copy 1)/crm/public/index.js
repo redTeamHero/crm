@@ -485,12 +485,18 @@ $("#fileInput").addEventListener("change", async (e)=>{
 // Audit report
 $("#btnAuditReport").addEventListener("click", async ()=>{
   if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
+  const selections = collectSelections();
+  if(!selections.length) return showErr("Pick at least one tradeline and bureau to audit.");
   const btn = $("#btnAuditReport");
   const old = btn.textContent;
   btn.disabled = true;
   btn.textContent = "Auditing...";
   try{
-    const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, { method:"POST" });
+    const res = await fetch(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ selections })
+    }).then(r=>r.json());
     if(!res?.ok) return showErr(res?.error || "Failed to run audit.");
     if(res.url) window.open(res.url, "_blank");
     if(res.warning) showErr(res.warning);
@@ -733,27 +739,3 @@ $("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ 
 // ===================== Init =====================
 loadConsumers();
 
-// ----- Color theme selector -----
-function hexToRgba(hex, alpha){
-  const h = hex.replace('#','');
-  const r = parseInt(h.substring(0,2),16);
-  const g = parseInt(h.substring(2,4),16);
-  const b = parseInt(h.substring(4,6),16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-const colorToggle = $("#colorToggle");
-const colorBubbles = $("#colorBubbles");
-
-colorToggle?.addEventListener("click", ()=>{
-  colorBubbles.classList.toggle("hidden");
-  colorToggle.textContent = colorBubbles.classList.contains("hidden") ? "🎨" : "×";
-});
-document.querySelectorAll(".color-bubble[data-color]").forEach(b=>{
-  b.addEventListener("click", ()=>{
-    const color = b.dataset.color;
-    document.documentElement.style.setProperty("--accent", color);
-    document.documentElement.style.setProperty("--accent-bg", hexToRgba(color,0.12));
-    if(colorToggle) colorToggle.style.background = color;
-
-  });
-});
