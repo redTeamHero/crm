@@ -43,10 +43,7 @@ function futureISO(offsetDays) {
 function safe(val, fallback = "") {
   return val == null ? fallback : String(val);
 }
-function showMoney(pb, key) {
-  return safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
-}
-function showDate(pb, key) {
+function fieldVal(pb, key) {
   return safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
 }
 function hasAnyData(pb) {
@@ -55,10 +52,7 @@ function hasAnyData(pb) {
     "account_number","account_status","payment_status","balance","credit_limit",
     "high_credit","past_due","date_opened","last_reported","date_last_payment","comments",
   ];
-  return keys.some((k) => {
-    const v = pb[k] ?? pb[`${k}_raw`];
-    return v !== undefined && String(v).trim() !== "";
-  });
+  return keys.some((k) => fieldVal(pb, k).trim() !== "");
 }
 
 function isNegative(pb) {
@@ -73,12 +67,36 @@ function isNegative(pb) {
   ];
   const fields = ["payment_status", "account_status", "comments"];
   return fields.some((k) => {
-    const v = pb[k] ?? pb[`${k}_raw`];
-    return (
-      typeof v === "string" &&
-      NEG_WORDS.some((w) => v.toLowerCase().includes(w))
-    );
+    const v = fieldVal(pb, k).toLowerCase();
+    return NEG_WORDS.some((w) => v.includes(w));
   });
+}
+
+// Light pastel palette to hinder basic OCR while remaining human-readable
+const OCR_COLORS = [
+  "#ffffe0", // light yellow
+  "#add8e6", // light blue
+  "#90ee90", // light green
+  "#ffd1dc", // pale pink
+  "#ffb347", // pastel orange
+];
+
+function colorize(text) {
+  if (!text) return "";
+  const letters = Array.from(text);
+  return letters
+    .map((ch, idx) => {
+      if (/\s/.test(ch)) return ch;
+      if (idx === 0) {
+        return `<span style="color:#0000ff">${ch}</span>`;
+      }
+      if (Math.random() < 0.5) {
+        const color = OCR_COLORS[Math.floor(Math.random() * OCR_COLORS.length)];
+        return `<span style="color:${color}">${ch}</span>`;
+      }
+      return ch; // default body color (blue)
+    })
+    .join("");
 }
 
 // Conflict detection (trimmed)
@@ -196,16 +214,16 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
     }),
     renderRow("Balance / Past Due", available, tl, conflictMap, errorMap, {
       fields: ["balance", "past_due"],
-      renderCell: (pb) => `${showMoney(pb, "balance") || "—"} / ${showMoney(pb, "past_due") || "—"}`,
+      renderCell: (pb) => `${fieldVal(pb, "balance") || "—"} / ${fieldVal(pb, "past_due") || "—"}`,
     }),
     renderRow("Credit Limit / High Credit", available, tl, conflictMap, errorMap, {
       fields: ["credit_limit", "high_credit"],
-      renderCell: (pb) => `${showMoney(pb, "credit_limit") || "—"} / ${showMoney(pb, "high_credit") || "—"}`,
+      renderCell: (pb) => `${fieldVal(pb, "credit_limit") || "—"} / ${fieldVal(pb, "high_credit") || "—"}`,
     }),
     renderRow("Dates", available, tl, conflictMap, errorMap, {
       fields: ["date_opened", "last_reported", "date_last_payment"],
       renderCell: (pb) =>
-        `Opened: ${showDate(pb, "date_opened") || "—"} | Last Reported: ${showDate(pb, "last_reported") || "—"} | Last Payment: ${showDate(pb, "date_last_payment") || "—"}`,
+        `Opened: ${fieldVal(pb, "date_opened") || "—"} | Last Reported: ${fieldVal(pb, "last_reported") || "—"} | Last Payment: ${fieldVal(pb, "date_last_payment") || "—"}`,
     }),
     renderRow("Comments", available, tl, conflictMap, errorMap, {
       fields: ["comments"],
@@ -238,13 +256,13 @@ function buildTradelineBlockHTML(tl, bureau) {
     acct: safe(pb.account_number, "N/A"),
     status: safe(pb.account_status, "N/A"),
     payStatus: safe(pb.payment_status, "N/A"),
-    bal: showMoney(pb, "balance") || "N/A",
-    cl: showMoney(pb, "credit_limit") || "N/A",
-    hc: showMoney(pb, "high_credit") || "N/A",
-    pd: showMoney(pb, "past_due") || "N/A",
-    opened: showDate(pb, "date_opened") || "N/A",
-    lastRpt: showDate(pb, "last_reported") || "N/A",
-    lastPay: showDate(pb, "date_last_payment") || "N/A",
+    bal: fieldVal(pb, "balance") || "N/A",
+    cl: fieldVal(pb, "credit_limit") || "N/A",
+    hc: fieldVal(pb, "high_credit") || "N/A",
+    pd: fieldVal(pb, "past_due") || "N/A",
+    opened: fieldVal(pb, "date_opened") || "N/A",
+    lastRpt: fieldVal(pb, "last_reported") || "N/A",
+    lastPay: fieldVal(pb, "date_last_payment") || "N/A",
     comments: safe(pb.comments, ""),
   };
 
@@ -377,6 +395,14 @@ function buildLetterHTML({
   const chosenList = buildViolationListHTML(tl.violations, selectedViolationIdxs);
   const mc = modeCopy(modeKey, requestType);
 
+  const intro = colorize(mc.intro);
+  const ask = colorize(mc.ask);
+  const afterIssuesPara = mc.afterIssues ? `<p>${colorize(mc.afterIssues)}</p>` : "";
+  const verifyLine = colorize(
+    "Please provide the method of verification... if you cannot verify... delete the item and send me an updated report."
+  );
+  const signOff = `${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}`;
+
   const letterBody = `
 <!DOCTYPE html>
 <html>
@@ -385,7 +411,7 @@ function buildLetterHTML({
   <title>${bureau} – ${mc.heading}</title>
   <style>
     @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#0b1226; }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#0000ff; }
     * { word-break:break-word; }
     .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
     .muted{ color:#6b7280; }
@@ -412,18 +438,18 @@ function buildLetterHTML({
     </div>
   </div>
   <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
-  <h1>${mc.heading}</h1>
-  <p>${mc.intro}</p>
-  <p>${mc.ask}</p>
+  <h1>${colorize(mc.heading)}</h1>
+  <p>${intro}</p>
+  <p>${ask}</p>
   <h2>Comparison (All Available Bureaus)</h2>
   ${compTable}
   <h2>Bureau‑Specific Details (${bureau})</h2>
   ${tlBlock}
   <h2>Specific Issues (Selected)</h2>
   ${chosenList}
-  ${mc.afterIssues ? `<p>${mc.afterIssues}</p>` : ""}
-  <p>Please provide the method of verification... if you cannot verify... delete the item and send me an updated report.</p>
-  <p>Sincerely,<br>${safe(consumer.name)}</p>
+  ${afterIssuesPara}
+  <p>${verifyLine}</p>
+  <p>${signOff}</p>
 </body>
 </html>`.trim();
 
