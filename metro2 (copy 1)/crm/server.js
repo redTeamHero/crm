@@ -29,6 +29,16 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
+// Basic request logging for debugging
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const ms = Date.now() - start;
+    console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl} -> ${res.statusCode} ${ms}ms`);
+  });
+  next();
+});
+
 // periodically surface due letter reminders
 processAllReminders();
 setInterval(() => {
