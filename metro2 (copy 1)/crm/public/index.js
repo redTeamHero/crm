@@ -623,13 +623,18 @@ function getSpecialModeForCard(card){
   return null;
 }
 function collectSelections(){
-  return Object.entries(selectionState).map(([tradelineIndex, data]) => ({
-    tradelineIndex: Number(tradelineIndex),
-    bureaus: data.bureaus,
-    violationIdxs: data.violationIdxs,
-    specialMode: data.specialMode,
-    playbook: data.playbook || undefined
-  }));
+  return Object.entries(selectionState).map(([tradelineIndex, data]) => {
+    const sel = {
+      tradelineIndex: Number(tradelineIndex),
+      bureaus: data.bureaus,
+      specialMode: data.specialMode,
+      playbook: data.playbook || undefined
+    };
+    if (data.violationIdxs && data.violationIdxs.length){
+      sel.violationIdxs = data.violationIdxs;
+    }
+    return sel;
+  });
 }
 
 $("#btnGenerate").addEventListener("click", async ()=>{
@@ -765,6 +770,7 @@ $("#btnDataBreach").addEventListener("click", async ()=>{
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: c.email })
     });
+
     const res = await api(`/api/databreach?email=${encodeURIComponent(c.email)}`);
     if(!res?.ok) return showErr(res?.error || "Breach check failed.");
     const list = res.breaches || [];
