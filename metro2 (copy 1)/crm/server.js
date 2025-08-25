@@ -257,6 +257,9 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 
 // Check consumer email against Have I Been Pwned
 // Use POST so email isn't logged in query string
+async function hibpLookup(email) {
+  const apiKey = process.env.HIBP_API_KEY;
+  if (!apiKey) return { ok: false, status: 500, error: "HIBP API key not configured" };
 app.post("/api/databreach", async (req, res) => {
   const email = String(req.body.email || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
@@ -305,6 +308,41 @@ app.get("/api/databreach", async (req, res) => {
       }
     );
     if (hibpRes.status === 404) {
+      return { ok: true, breaches: [] };
+    }
+    if (!hibpRes.ok) {
+      const text = await hibpRes.text().catch(() => "");
+      return {
+        ok: false,
+        status: hibpRes.status,
+        error: text || `HIBP request failed (status ${hibpRes.status})`,
+      };
+    }
+    const data = await hibpRes.json();
+    return { ok: true, breaches: data };
+  } catch (e) {
+    console.error("HIBP check failed", e);
+    return { ok: false, status: 500, error: "HIBP request failed" };
+  }
+}
+
+async function handleDataBreach(email, res) {
+  const result = await hibpLookup(email);
+  if (result.ok) return res.json(result);
+  res.status(result.status || 500).json({ ok: false, error: result.error });
+}
+
+app.post("/api/databreach", async (req, res) => {
+  const email = String(req.body.email || "").trim();
+  if (!email) return res.status(400).json({ ok: false, error: "Email required" });
+  await handleDataBreach(email, res);
+});
+
+app.get("/api/databreach", async (req, res) => {
+  const email = String(req.query.email || "").trim();
+  if (!email) return res.status(400).json({ ok: false, error: "Email required" });
+  await handleDataBreach(email, res);
+
       return res.json({ ok: true, breaches: [] });
     }
     if (!hibpRes.ok) {
