@@ -251,6 +251,17 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
     addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
     res.json({ ok:true, url: result.url, warning: result.warning });
   }catch(e){
+
+  const selections = Array.isArray(req.body?.selections) ? req.body.selections : [];
+  if(!selections.length) return res.status(400).json({ ok:false, error:"No selections provided" });
+
+  try{
+    const normalized = normalizeReport(r.data, selections);
+    const html = renderHtml(normalized, c.name);
+    const result = await savePdf(html);
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+    res.json({ ok:true, url: result.url, warning: result.warning });
+  }catch(e){
     res.status(500).json({ ok:false, error: String(e) });
   }
 });
@@ -259,6 +270,8 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 // Use POST so email isn't logged in query string
 app.post("/api/databreach", async (req, res) => {
   const email = String(req.body.email || "").trim();
+app.get("/api/databreach", async (req, res) => {
+  const email = String(req.query.email || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
   const apiKey = process.env.HIBP_API_KEY;
   if (!apiKey) return res.status(500).json({ ok: false, error: "HIBP API key not configured" });
