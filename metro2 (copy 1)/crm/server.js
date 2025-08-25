@@ -258,6 +258,9 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 // Use POST so email isn't logged in query string
 app.post("/api/databreach", async (req, res) => {
   const email = String(req.body.email || "").trim();
+
+app.get("/api/databreach", async (req, res) => {
+  const email = String(req.query.email || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
   const apiKey = process.env.HIBP_API_KEY;
   if (!apiKey) return res.status(500).json({ ok: false, error: "HIBP API key not configured" });
