@@ -6,11 +6,8 @@
   --accent-hover: #005bb5;
 }
 body {
-  background:
-    radial-gradient(1200px 800px at -10% -10%, #e0f2fe 0%, transparent 50%),
-    radial-gradient(900px 700px at 110% 0%, #fef3c7 0%, transparent 55%),
-    radial-gradient(1000px 900px at 50% 120%, #fce7f3 0%, transparent 55%),
-    #f7fafc;
+  background: url('revolv-bg.png') no-repeat center center fixed;
+  background-size: cover;
   color:#0f172a;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
 }
