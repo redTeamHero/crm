@@ -15,8 +15,6 @@ let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
-const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || "[]");
-
 const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
 
 // ----- UI helpers -----
@@ -383,7 +381,14 @@ function updateSelectionStateFromCard(card){
   const idx = Number(card.dataset.index);
   const bureaus = Array.from(card.querySelectorAll('.bureau:checked')).map(cb=>cb.value);
   if (!bureaus.length) { delete selectionState[idx]; return; }
-  const violationIdxs = Array.from(card.querySelectorAll('.violation:checked')).map(cb=>Number(cb.value));
+
+  // Preserve previously selected violations that may not be rendered
+  const existing = selectionState[idx]?.violationIdxs || [];
+  const visible = Array.from(card.querySelectorAll('.violation'));
+  const visibleVals = visible.map(cb => Number(cb.value));
+  const visibleChecked = visible.filter(cb => cb.checked).map(cb => Number(cb.value));
+  const preserved = existing.filter(v => !visibleVals.includes(v));
+  const violationIdxs = preserved.concat(visibleChecked);
   const specialMode = getSpecialModeForCard(card);
   const playbook = card.querySelector('.tl-playbook-select')?.value || null;
   selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook };
@@ -452,6 +457,14 @@ function renderTradelines(tradelines){
             ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
           </div>
         </label>`).join("");
+
+      // Restore previously checked violations and hook change events
+      const saved = selectionState[idx]?.violationIdxs || [];
+      vWrap.querySelectorAll('.violation').forEach(cb => {
+        const val = Number(cb.value);
+        if (saved.includes(val)) cb.checked = true;
+        cb.addEventListener('change', () => updateSelectionStateFromCard(card));
+      });
       prevBtn.classList.toggle("hidden", vStart <= 0);
       nextBtn.classList.toggle("hidden", vStart + 3 >= vs.length);
     }
@@ -482,10 +495,6 @@ function renderTradelines(tradelines){
         const cb = node.querySelector(`.bureau[value="${b}"]`);
         if (cb) cb.checked = true;
       });
-      saved.violationIdxs?.forEach(v => {
-        const vb = node.querySelector(`.violation[value="${v}"]`);
-        if (vb) vb.checked = true;
-      });
       if (saved.playbook){
         const sel = node.querySelector('.tl-playbook-select');
         if (sel) sel.value = saved.playbook;
@@ -505,10 +514,6 @@ function renderTradelines(tradelines){
         updateSelectionStateFromCard(card);
       });
     });
-    card.querySelectorAll('input.violation').forEach(cb=>{
-      cb.addEventListener("change", ()=> updateSelectionStateFromCard(card));
-    });
-
     container.appendChild(node);
   });
 
@@ -618,13 +623,18 @@ function getSpecialModeForCard(card){
   return null;
 }
 function collectSelections(){
-  return Object.entries(selectionState).map(([tradelineIndex, data]) => ({
-    tradelineIndex: Number(tradelineIndex),
-    bureaus: data.bureaus,
-    violationIdxs: data.violationIdxs,
-    specialMode: data.specialMode,
-    playbook: data.playbook || undefined
-  }));
+  return Object.entries(selectionState).map(([tradelineIndex, data]) => {
+    const sel = {
+      tradelineIndex: Number(tradelineIndex),
+      bureaus: data.bureaus,
+      specialMode: data.specialMode,
+      playbook: data.playbook || undefined
+    };
+    if (data.violationIdxs && data.violationIdxs.length){
+      sel.violationIdxs = data.violationIdxs;
+    }
+    return sel;
+  });
 }
 
 $("#btnGenerate").addEventListener("click", async ()=>{
@@ -745,20 +755,49 @@ $("#fileInput").addEventListener("change", async (e)=>{
   }
 });
 
+// Data breach lookup
+$("#btnDataBreach").addEventListener("click", async ()=>{
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  const c = DB.consumers.find(x=>x.id===currentConsumerId);
+  if(!c?.email) return showErr("Selected consumer has no email.");
+  const btn = $("#btnDataBreach");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Checking...";
+  try{
+    const res = await api(`/api/databreach`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: c.email })
+    });
+    if(!res?.ok) return showErr(res?.error || "Breach check failed.");
+    const list = res.breaches || [];
+    const msg = list.length
+      ? `${c.email} found in:\n\n${list.map(b=>b.Name || b.name || "unknown").join("\n")}`
+      : `${c.email} not found in known breaches.`;
+    alert(msg);
+  }catch(err){
+    showErr(String(err));
+  }finally{
+    btn.textContent = old;
+    btn.disabled = false;
+  }
+});
+
 // Audit report
 $("#btnAuditReport").addEventListener("click", async ()=>{
   if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
   const selections = collectSelections();
-  if(!selections.length) return showErr("Pick at least one tradeline and bureau to audit.");
   const btn = $("#btnAuditReport");
   const old = btn.textContent;
   btn.disabled = true;
   btn.textContent = "Auditing...";
   try{
+    const payload = selections.length ? { selections } : {};
     const res = await fetch(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ selections })
+      body: JSON.stringify(payload)
     }).then(r=>r.json());
     if(!res?.ok) return showErr(res?.error || "Failed to run audit.");
     if(res.url) window.open(res.url, "_blank");
