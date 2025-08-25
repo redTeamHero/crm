@@ -917,56 +917,6 @@ const tlList = $("#tlList");
 const obs = new MutationObserver(()=> attachCardHandlers(tlList));
 obs.observe(tlList, { childList:true, subtree:true });
 
-// Global hotkeys
-function isTypingTarget(el){ return el && (el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.isContentEditable); }
-document.addEventListener("keydown",(e)=>{
-  if (isTypingTarget(document.activeElement)) return;
-  const k = e.key.toLowerCase();
-
-  if (k==="h"){ e.preventDefault(); openHelp(); return; }
-  if (k==="n"){ e.preventDefault(); $("#btnNewConsumer")?.click(); return; }
-  if (k==="u"){ e.preventDefault(); $("#btnUpload")?.click(); return; }
-  if (k==="e"){ e.preventDefault(); $("#btnEditConsumer")?.click(); return; }
-  if (k==="g"){ e.preventDefault(); $("#btnGenerate")?.click(); return; }
-
-  if (k==="r"){ // remove focused card
-    e.preventDefault();
-    const card = window.__crm_helpers?.focusCardRef?.();
-    if (card) card.querySelector(".tl-remove")?.click();
-    return;
-  }
-  if (k==="a"){ // toggle all bureaus
-    e.preventDefault();
-    const card = window.__crm_helpers?.focusCardRef?.();
-    if (card) window.__crm_helpers.toggleWholeCardSelection(card);
-    return;
-  }
-
-  if (k==="c"){ // context clear
-    e.preventDefault();
-    if (!$("#editModal").classList.contains("hidden")){
-      // clear edit form
-      $("#editForm").querySelectorAll("input").forEach(i=> i.value="");
-      return;
-    }
-    // clear filters + mode
-    activeFilters.clear(); tlPage = 1; renderFilterBar(); renderTradelines(CURRENT_REPORT?.tradelines||[]);
-    window.__crm_helpers?.clearMode?.();
-    return;
-  }
-
-  if (k === "escape"){
-    e.preventDefault();
-    setMode(null);
-    return;
-  }
-
-  // Modes (i/d/s)
-  const m = MODES.find(x=>x.hotkey===k);
-  if (m){ e.preventDefault(); setMode(m.key); return; }
-});
-
-
 // Library modal
 async function openLibrary(){
   const modal = $("#libraryModal");
