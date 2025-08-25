@@ -240,6 +240,18 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
   const r=c.reports.find(x=>x.id===req.params.rid);
   if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
 
+  const selections = Array.isArray(req.body?.selections) && req.body.selections.length
+    ? req.body.selections
+    : null;
+
+  try{
+    const normalized = normalizeReport(r.data, selections);
+    const html = renderHtml(normalized, c.name);
+    const result = await savePdf(html);
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+    res.json({ ok:true, url: result.url, warning: result.warning });
+  }catch(e){
+
   const selections = Array.isArray(req.body?.selections) ? req.body.selections : [];
   if(!selections.length) return res.status(400).json({ ok:false, error:"No selections provided" });
 
@@ -255,6 +267,9 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 });
 
 // Check consumer email against Have I Been Pwned
+// Use POST so email isn't logged in query string
+app.post("/api/databreach", async (req, res) => {
+  const email = String(req.body.email || "").trim();
 app.get("/api/databreach", async (req, res) => {
   const email = String(req.query.email || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
