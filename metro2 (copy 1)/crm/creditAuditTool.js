@@ -132,7 +132,16 @@ export function renderHtml(report, consumerName = "Consumer"){
   </body></html>`;
 }
 
-function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// Escape special characters for safe HTML output
+function escapeHtml(s){
+  return String(s || "").replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[c]));
+}
 
 function isNegative(k,v){
   const val = String(v||'').toLowerCase();
