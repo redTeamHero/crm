@@ -9,14 +9,13 @@ let DB = { consumers: [] };
 let currentConsumerId = null;
 let currentReportId = null;
 let CURRENT_REPORT = null;
-const TL_PAGE_SIZE = 12;
+let tlPageSize = 6;
 let tlPage = 1;
 let tlTotalPages = 1;
-let CURRENT_INQUIRIES = [];
-const inquirySelection = {};
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
+const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || "[]");
 
 // ----- UI helpers -----
 function showErr(msg){
@@ -169,6 +168,12 @@ $("#tlPrev").addEventListener("click", ()=>{
 $("#tlNext").addEventListener("click", ()=>{
   if (tlPage<tlTotalPages){ tlPage++; renderTradelines(CURRENT_REPORT?.tradelines || []); }
 });
+$("#tlPageSize").addEventListener("change", (e)=>{
+  const val = e.target.value;
+  tlPageSize = val === "all" ? Infinity : parseInt(val, 10) || 6;
+  tlPage = 1;
+  renderTradelines(CURRENT_REPORT?.tradelines || []);
+});
 
 async function selectConsumer(id){
   currentConsumerId = id;
@@ -211,18 +216,71 @@ $("#reportPicker").addEventListener("change", async (e)=>{
 });
 
 function loadTracker(){
-  if(!currentConsumerId){ $("#step1").checked = false; $("#step2").checked = false; return; }
-  const data = trackerData[currentConsumerId] || { step1:false, step2:false };
-  $("#step1").checked = !!data.step1;
-  $("#step2").checked = !!data.step2;
+  renderTrackerSteps();
+  if(!currentConsumerId) return;
+  const data = trackerData[currentConsumerId] || {};
+  trackerSteps.forEach(step=>{
+    const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
+    if(cb) cb.checked = !!data[step];
+  });
 }
 function saveTracker(){
   if(!currentConsumerId) return;
-  trackerData[currentConsumerId] = { step1:$("#step1").checked, step2:$("#step2").checked };
+  const data = trackerData[currentConsumerId] || {};
+  trackerSteps.forEach(step=>{
+    const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
+    if(cb) data[step] = cb.checked;
+  });
+  trackerData[currentConsumerId] = data;
   localStorage.setItem("trackerData", JSON.stringify(trackerData));
 }
-$("#step1").addEventListener("change", saveTracker);
-$("#step2").addEventListener("change", saveTracker);
+function renderTrackerSteps(){
+  const wrap = document.querySelector("#trackerSteps");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  if(trackerSteps.length === 0){
+    wrap.innerHTML = '<div class="muted">No steps yet. Add one below.</div>';
+    return;
+  }
+  trackerSteps.forEach((step,i)=>{
+    const div = document.createElement("div");
+    div.className = "flex items-center gap-1 step-item";
+    div.innerHTML = `<label class="flex items-center gap-2"><input type="checkbox" data-step="${step}" /> <span>${step}</span></label><button class="remove-step" data-index="${i}" aria-label="Remove step">&times;</button>`;
+    wrap.appendChild(div);
+  });
+  wrap.querySelectorAll("input[type=checkbox]").forEach(cb=>{
+    cb.addEventListener("change", saveTracker);
+  });
+  wrap.querySelectorAll(".remove-step").forEach(btn=>{
+    btn.addEventListener("click", e=>{
+      const idx = parseInt(e.target.dataset.index);
+      const removed = trackerSteps.splice(idx,1)[0];
+      Object.values(trackerData).forEach(obj=>{ delete obj[removed]; });
+      localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
+      localStorage.setItem("trackerData", JSON.stringify(trackerData));
+      renderTrackerSteps();
+      loadTracker();
+    });
+  });
+}
+const addStepBtn = document.querySelector("#addStep");
+const newStepInput = document.querySelector("#newStepName");
+if(addStepBtn){
+  addStepBtn.addEventListener("click", ()=>{
+    let name = (newStepInput?.value || "").trim();
+    if(!name) name = `Step ${trackerSteps.length + 1}`;
+    trackerSteps.push(name);
+    localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
+    if(newStepInput) newStepInput.value = "";
+    renderTrackerSteps();
+    loadTracker();
+  });
+}
+if(newStepInput){
+  newStepInput.addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); addStepBtn?.click(); }
+  });
+}
 
 async function loadReportJSON(){
   clearErr();
@@ -235,13 +293,12 @@ async function loadReportJSON(){
   Object.keys(selectionState).forEach(k=> delete selectionState[k]);
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines || []);
-  renderInquiries(CURRENT_REPORT.inquiries || []);
   renderCollectors(CURRENT_REPORT.creditor_contacts || []);
 
 }
 
 // ===================== Filters (unchanged) =====================
-const ALL_TAGS = ["Collections","Inquiries","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
+const ALL_TAGS = ["Collections","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
 const activeFilters = new Set();
 const hiddenTradelines = new Set();
 const selectionState = {};
@@ -257,7 +314,6 @@ function deriveTags(tl){
   if (bureaus.some(b => hasWord(per[b]?.payment_status, "collection") || hasWord(per[b]?.account_status, "collection"))
       || hasWord(name, "collection")) tags.add("Collections");
 
-  if ((tl.violations||[]).some(v => hasWord(v.title, "inquiry"))) tags.add("Inquiries");
 
   if (bureaus.some(b => hasWord(per[b]?.payment_status, "late") || hasWord(per[b]?.payment_status, "delinquent"))
       || bureaus.some(b => (maybeNum(per[b]?.past_due) || 0) > 0)) tags.add("Late Payments");
@@ -329,10 +385,11 @@ function renderTradelines(tradelines){
     visible.push({ tl, idx, tags });
   });
 
-  tlTotalPages = Math.max(1, Math.ceil(visible.length / TL_PAGE_SIZE));
+  const pageSize = tlPageSize === Infinity ? (visible.length || 1) : tlPageSize;
+  tlTotalPages = Math.max(1, Math.ceil(visible.length / pageSize));
   if (tlPage > tlTotalPages) tlPage = tlTotalPages;
-  const start = (tlPage - 1) * TL_PAGE_SIZE;
-  const pageItems = visible.slice(start, start + TL_PAGE_SIZE);
+  const start = (tlPage - 1) * pageSize;
+  const pageItems = visible.slice(start, start + pageSize);
 
   pageItems.forEach(({ tl, idx, tags }) => {
     const node = tpl.cloneNode(true);
@@ -359,17 +416,31 @@ function renderTradelines(tradelines){
     });
 
     const vWrap = node.querySelector(".tl-violations");
+    const prevBtn = node.querySelector(".tl-reason-prev");
+    const nextBtn = node.querySelector(".tl-reason-next");
     const vs = tl.violations || [];
-    vWrap.innerHTML = vs.length
-      ? vs.map((v, vidx) => `
+    let vStart = 0;
+    function renderViolations(){
+      if(!vs.length){
+        vWrap.innerHTML = `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
+        prevBtn.classList.add("hidden");
+        nextBtn.classList.add("hidden");
+        return;
+      }
+      vWrap.innerHTML = vs.slice(vStart, vStart + 3).map((v, vidx) => `
         <label class="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">
-          <input type="checkbox" class="violation" value="${vidx}"/>
+          <input type="checkbox" class="violation" value="${vidx + vStart}"/>
           <div>
             <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}</div>
             ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
           </div>
-        </label>`).join("")
-      : `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
+        </label>`).join("");
+      prevBtn.classList.toggle("hidden", vStart <= 0);
+      nextBtn.classList.toggle("hidden", vStart + 3 >= vs.length);
+    }
+    renderViolations();
+    prevBtn.addEventListener("click", ()=>{ if(vStart>0){ vStart -= 3; renderViolations(); }});
+    nextBtn.addEventListener("click", ()=>{ if(vStart + 3 < vs.length){ vStart += 3; renderViolations(); }});
 
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
@@ -435,26 +506,6 @@ function renderTradelines(tradelines){
   window.__crm_helpers?.attachCardHandlers?.(container);
 }
 
-function renderInquiries(inquiries){
-  const wrap = $("#inqList");
-  if(!wrap) return;
-  wrap.innerHTML = "";
-  CURRENT_INQUIRIES = inquiries || [];
-  Object.keys(inquirySelection).forEach(k=> delete inquirySelection[k]);
-  const tpl = $("#inqTemplate")?.content;
-  CURRENT_INQUIRIES.forEach((inq, idx)=>{
-    const node = tpl.cloneNode(true);
-    node.querySelector(".inq-creditor").textContent = inq.creditor || "Unknown";
-    node.querySelector(".inq-bureau").textContent = inq.bureau || "";
-    node.querySelector(".inq-date").textContent = inq.date || "";
-    const cb = node.querySelector(".inq-dispute");
-    cb.checked = inq.dispute !== false;
-    inquirySelection[idx] = cb.checked;
-    cb.addEventListener("change", ()=>{ inquirySelection[idx] = cb.checked; });
-    wrap.appendChild(node);
-  });
-}
-
 function renderCollectors(collectors){
   const wrap = $("#collectorList");
   if(!wrap) return;
@@ -473,11 +524,6 @@ function renderCollectors(collectors){
     cb.addEventListener("change", ()=>{ collectorSelection[idx] = cb.checked; });
     wrap.appendChild(node);
   });
-}
-
-
-function collectInquirySelections(){
-  return CURRENT_INQUIRIES.filter((_, idx)=> inquirySelection[idx]);
 }
 
 function collectCollectorSelections(){
@@ -570,17 +616,15 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     if(!currentConsumerId || !currentReportId) throw new Error("Select a consumer and a report first.");
     const selections = collectSelections();
     const includePI = $("#cbPersonalInfo").checked;
-    const includeInq = $("#cbInquiries").checked;
     const includeCol = $("#cbCollectors").checked;
-    const inqSelections = includeInq ? collectInquirySelections() : [];
     const colSelections = includeCol ? collectCollectorSelections() : [];
-    if(!selections.length && !includePI && !inqSelections.length && !colSelections.length) throw new Error("Pick at least one tradeline, inquiry, collector, or select Personal Info.");
+    if(!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one tradeline, collector, or select Personal Info.");
     const requestType = getRequestType();
 
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, inquiries: inqSelections, collectors: colSelections })
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, collectors: colSelections })
 
     });
     if(!resp.ok){
@@ -917,56 +961,6 @@ const tlList = $("#tlList");
 const obs = new MutationObserver(()=> attachCardHandlers(tlList));
 obs.observe(tlList, { childList:true, subtree:true });
 
-// Global hotkeys
-function isTypingTarget(el){ return el && (el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.isContentEditable); }
-document.addEventListener("keydown",(e)=>{
-  if (isTypingTarget(document.activeElement)) return;
-  const k = e.key.toLowerCase();
-
-  if (k==="h"){ e.preventDefault(); openHelp(); return; }
-  if (k==="n"){ e.preventDefault(); $("#btnNewConsumer")?.click(); return; }
-  if (k==="u"){ e.preventDefault(); $("#btnUpload")?.click(); return; }
-  if (k==="e"){ e.preventDefault(); $("#btnEditConsumer")?.click(); return; }
-  if (k==="g"){ e.preventDefault(); $("#btnGenerate")?.click(); return; }
-
-  if (k==="r"){ // remove focused card
-    e.preventDefault();
-    const card = window.__crm_helpers?.focusCardRef?.();
-    if (card) card.querySelector(".tl-remove")?.click();
-    return;
-  }
-  if (k==="a"){ // toggle all bureaus
-    e.preventDefault();
-    const card = window.__crm_helpers?.focusCardRef?.();
-    if (card) window.__crm_helpers.toggleWholeCardSelection(card);
-    return;
-  }
-
-  if (k==="c"){ // context clear
-    e.preventDefault();
-    if (!$("#editModal").classList.contains("hidden")){
-      // clear edit form
-      $("#editForm").querySelectorAll("input").forEach(i=> i.value="");
-      return;
-    }
-    // clear filters + mode
-    activeFilters.clear(); tlPage = 1; renderFilterBar(); renderTradelines(CURRENT_REPORT?.tradelines||[]);
-    window.__crm_helpers?.clearMode?.();
-    return;
-  }
-
-  if (k === "escape"){
-    e.preventDefault();
-    setMode(null);
-    return;
-  }
-
-  // Modes (i/d/s)
-  const m = MODES.find(x=>x.hotkey===k);
-  if (m){ e.preventDefault(); setMode(m.key); return; }
-});
-
-
 // Library modal
 async function openLibrary(){
   const modal = $("#libraryModal");
@@ -994,6 +988,7 @@ $("#libraryModal").addEventListener("click", (e)=>{ if(e.target.id==="libraryMod
 
 // ===================== Init =====================
 loadConsumers();
+loadTracker();
 
 const companyName = localStorage.getItem("companyName");
 if (companyName) {
