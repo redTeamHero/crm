@@ -320,7 +320,6 @@ app.post("/api/generate", async (req,res)=>{
   try{
     const { consumerId, reportId, selections, requestType, personalInfo, inquiries, collectors } = req.body;
 
-    const { consumerId, reportId, selections, requestType, personalInfo, inquiries } = req.body;
     const db = loadDB();
     const consumer = db.consumers.find(c=>c.id===consumerId);
     if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
@@ -581,6 +580,7 @@ app.listen(PORT, ()=> {
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
 });
+
 
 
 
