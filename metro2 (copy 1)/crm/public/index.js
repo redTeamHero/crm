@@ -16,6 +16,7 @@ let CURRENT_INQUIRIES = [];
 const inquirySelection = {};
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
+const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
 
 // ----- UI helpers -----
 function showErr(msg){
@@ -173,6 +174,7 @@ async function selectConsumer(id){
   $("#selConsumer").textContent = c ? c.name : "—";
   await refreshReports();
   await loadConsumerState();
+  loadTracker();
 }
 
 // ===================== Reports =====================
@@ -205,6 +207,20 @@ $("#reportPicker").addEventListener("change", async (e)=>{
   currentReportId = e.target.value || null;
   await loadReportJSON();
 });
+
+function loadTracker(){
+  if(!currentConsumerId){ $("#step1").checked = false; $("#step2").checked = false; return; }
+  const data = trackerData[currentConsumerId] || { step1:false, step2:false };
+  $("#step1").checked = !!data.step1;
+  $("#step2").checked = !!data.step2;
+}
+function saveTracker(){
+  if(!currentConsumerId) return;
+  trackerData[currentConsumerId] = { step1:$("#step1").checked, step2:$("#step2").checked };
+  localStorage.setItem("trackerData", JSON.stringify(trackerData));
+}
+$("#step1").addEventListener("change", saveTracker);
+$("#step2").addEventListener("change", saveTracker);
 
 async function loadReportJSON(){
   clearErr();

@@ -20,6 +20,7 @@ let LETTERS = [];          // [{ index, filename, bureau, creditor, htmlUrl }]
 let page = 1;
 const PER_PAGE = 10;
 let lastPreview = null;    // currently previewed letter object
+let editing = false;
 
 function paginate(){
   const total = Math.max(1, Math.ceil(LETTERS.length / PER_PAGE));
@@ -77,6 +78,10 @@ function openPreview(L){
   $("#pvMeta").textContent  = `${L.bureau} • ${L.creditor || "Unknown Creditor"}`;
   $("#pvOpen").href = L.htmlUrl;
   $("#pvFrame").src = L.htmlUrl;
+  $("#pvFrame").classList.remove("hidden");
+  $("#pvEditor").classList.add("hidden");
+  $("#pvSave").classList.add("hidden");
+  editing = false;
   $("#previewModal").style.display = "flex";
   document.body.style.overflow = "hidden";
 }
@@ -91,6 +96,38 @@ $("#previewModal").addEventListener("click", (e)=>{ if(e.target.id==="previewMod
 $("#pvOpen").setAttribute("data-tip", "Open HTML (H)");
 $("#pvPrint").setAttribute("data-tip", "Print (P)");
 $("#btnBack").setAttribute("data-tip", "Back to CRM");
+$("#pvEdit").setAttribute("data-tip", "Edit");
+$("#pvSave").setAttribute("data-tip", "Save");
+
+$("#pvEdit").addEventListener("click", async ()=>{
+  if(!lastPreview) return;
+  try{
+    const resp = await fetch(lastPreview.htmlUrl);
+    const txt = await resp.text();
+    $("#pvEditor").value = txt;
+    $("#pvFrame").classList.add("hidden");
+    $("#pvEditor").classList.remove("hidden");
+    $("#pvSave").classList.remove("hidden");
+    editing = true;
+  }catch(e){ showErr("Failed to load letter for editing."); }
+});
+
+$("#pvSave").addEventListener("click", async ()=>{
+  if(!editing || !lastPreview) return;
+  try{
+    const html = $("#pvEditor").value;
+    await api(`/api/letters/${encodeURIComponent(JOB_ID)}/${lastPreview.index}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html })
+    });
+    $("#pvFrame").srcdoc = html;
+    $("#pvFrame").classList.remove("hidden");
+    $("#pvEditor").classList.add("hidden");
+    $("#pvSave").classList.add("hidden");
+    editing = false;
+  }catch(e){ showErr("Failed to save letter."); }
+});
 
 // Print from preview modal
 $("#pvPrint").addEventListener("click", ()=>{

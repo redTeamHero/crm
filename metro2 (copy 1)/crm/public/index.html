@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#007AFF" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css" />
   <style>
     :root{
       --glass-bg: rgba(255,255,255,0.4);
@@ -30,8 +31,6 @@
     .chip{ border:1px solid var(--glass-brd); padding:4px 10px; border-radius:999px; font-size:12px; background:rgba(255,255,255,.7); cursor:pointer; user-select:none }
     .chip.active{ background:var(--accent-bg); border-color:var(--accent) }
     .muted{ color:var(--muted) }
-    .btn{ border:1px solid var(--accent); border-radius:10px; padding:6px 12px; background:white/80; position:relative; }
-    .btn:hover{ background:#f9fafb }
     .tl-card{ transition:transform .2s ease, box-shadow .15s ease, background .15s ease; }
     .tl-card:hover{ transform: translateY(-1px) scale(1.01) }
     .tl-card.selected{ box-shadow:0 0 0 2px var(--green) inset; background:var(--green-bg) }
@@ -73,18 +72,16 @@
   <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
     <div class="text-xl font-semibold">Metro 2 CRM</div>
     <div class="flex items-center gap-2">
-      <button id="btnMarketing" class="btn" data-tip="Marketing">+ Marketing</button>
       <a href="/dashboard" class="btn">Dashboard</a>
       <a href="/clients" class="btn">Clients</a>
+      <a href="/leads" class="btn">Leads</a>
       <a href="/schedule" class="btn">Schedule</a>
       <a id="navCompany" href="/my-company" class="btn">My Company</a>
       <a href="/billing" class="btn">Billing</a>
       <a href="/letters" class="btn">Letter</a>
       <a href="/library" class="btn">Library</a>
       <button id="btnCreditors" class="btn" data-tip="Creditor Library">Creditors</button>
-      <button id="btnUpload" class="btn" data-tip="Upload HTML (U)">Upload HTML</button>
       <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
-      <input id="fileInput" type="file" accept=".html,.htm,text/html" class="hidden" />
     </div>
   </div>
 </header>
@@ -96,6 +93,13 @@
     <div id="modeBar" class="flex gap-2 flex-wrap"></div>
     <div class="text-sm muted mt-1">
       Click a mode, then click tradeline cards to tag them. Click the mode again to exit.
+    </div>
+    <div class="mt-4">
+      <div class="font-medium mb-1">Client Tracker</div>
+      <div id="trackerSteps" class="flex gap-4 text-sm">
+        <label class="flex items-center gap-2"><input type="checkbox" id="step1" /> Step 1</label>
+        <label class="flex items-center gap-2"><input type="checkbox" id="step2" /> Step 2</label>
+      </div>
     </div>
   </div>
 </div>
@@ -131,8 +135,11 @@
             <div class="text-sm muted">Report: <select id="reportPicker" class="border rounded px-2 py-1 text-sm"></select></div>
           </div>
           <div class="flex gap-2">
+            <button id="btnUpload" class="btn" data-tip="Upload HTML (U)">Upload HTML</button>
+            <button id="btnDataBreach" class="btn" data-tip="Databreach options">Databreach</button>
             <button id="btnAuditReport" class="btn" data-tip="Run audit on current report">Audit</button>
             <button id="btnDeleteReport" class="btn" data-tip="Delete current report (click)">Delete Report</button>
+            <input id="fileInput" type="file" accept=".html,.htm,text/html" class="hidden" />
           </div>
         </div>
       </div>

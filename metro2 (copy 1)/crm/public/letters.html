@@ -5,24 +5,12 @@
   <title>Generated Letters</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css" />
   <style>
     :root {
-      --glass-bg: rgba(255,255,255,0.4);
-      --glass-brd: rgba(255,255,255,0.25);
-      --muted:#6b7280;
       --green:#22c55e;
       --green-bg: rgba(34,197,94,.12);
     }
-    body{
-      background:#f7fafc;
-      color:#0f172a;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial;
-    }
-    .glass{ background:var(--glass-bg); border:1px solid var(--glass-brd); border-radius:18px; backdrop-filter:blur(12px) saturate(180%); box-shadow:0 8px 24px rgba(0,0,0,.1); }
-    .card{ border-radius:18px; padding:16px }
-    .btn{ border:1px solid var(--glass-brd); border-radius:10px; padding:6px 12px; background:white/80; }
-    .btn:hover{ background:#f9fafb }
-    .muted{ color:var(--muted) }
     .tl-card{ transition:transform .15s ease, box-shadow .15s ease, background .15s ease; cursor:pointer; }
     .tl-card:hover{ transform:translateY(-1px); }
     .tl-card.negative{ box-shadow:0 0 0 2px #ef4444 inset, 0 8px 24px rgba(0,0,0,.1); background:rgba(239,68,68,.12); }
@@ -35,13 +23,25 @@
 </head>
 <body>
 <header class="p-4">
-  <div class="max-w-7xl mx-auto flex items-center justify-between glass card">
-    <h1 class="text-xl font-semibold">Generated Letters</h1>
-    <div class="text-sm muted">Job: <span id="jobId">—</span></div>
+  <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
+    <div class="text-xl font-semibold">Metro 2 CRM</div>
+    <div class="flex items-center gap-2">
+      <a href="/dashboard" class="btn">Dashboard</a>
+      <a href="/clients" class="btn">Clients</a>
+      <a href="/leads" class="btn">Leads</a>
+      <a href="/schedule" class="btn">Schedule</a>
+      <a id="navCompany" href="/my-company" class="btn">My Company</a>
+      <a href="/billing" class="btn">Billing</a>
+      <a href="/letters" class="btn">Letter</a>
+      <a href="/library" class="btn">Library</a>
+      <button id="btnCreditors" class="btn" data-tip="Creditor Library">Creditors</button>
+      <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
+    </div>
   </div>
 </header>
 
 <main class="max-w-7xl mx-auto p-4 space-y-4">
+  <div class="text-sm muted">Job: <span id="jobId">—</span></div>
   <div id="err" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg"></div>
 
   <div class="glass card">
@@ -75,10 +75,13 @@
       <div class="flex items-center gap-2">
         <a id="pvOpen" target="_blank" class="btn">Open HTML</a>
         <button id="pvPrint" class="btn">Print</button>
+        <button id="pvEdit" class="btn">Edit</button>
+        <button id="pvSave" class="btn hidden">Save</button>
         <button id="pvClose" class="btn">Close</button>
       </div>
     </header>
     <iframe id="pvFrame" src="about:blank"></iframe>
+    <textarea id="pvEditor" class="hidden w-full h-full p-2 font-mono text-sm"></textarea>
   </div>
 </div>
 
