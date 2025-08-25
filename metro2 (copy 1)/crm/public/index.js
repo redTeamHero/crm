@@ -15,6 +15,8 @@ let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
+const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || "[]");
+
 const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
 
 // ----- UI helpers -----
@@ -238,6 +240,11 @@ function renderTrackerSteps(){
   const wrap = document.querySelector("#trackerSteps");
   if(!wrap) return;
   wrap.innerHTML = "";
+  if(trackerSteps.length === 0){
+    wrap.innerHTML = '<div class="muted">No steps yet. Add one below.</div>';
+    return;
+  }
+
   trackerSteps.forEach((step,i)=>{
     const div = document.createElement("div");
     div.className = "flex items-center gap-1 step-item";
@@ -259,6 +266,24 @@ function renderTrackerSteps(){
     });
   });
 }
+const addStepBtn = document.querySelector("#addStep");
+const newStepInput = document.querySelector("#newStepName");
+if(addStepBtn){
+  addStepBtn.addEventListener("click", ()=>{
+    let name = (newStepInput?.value || "").trim();
+    if(!name) name = `Step ${trackerSteps.length + 1}`;
+    trackerSteps.push(name);
+    localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
+    if(newStepInput) newStepInput.value = "";
+    renderTrackerSteps();
+    loadTracker();
+  });
+}
+if(newStepInput){
+  newStepInput.addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); addStepBtn?.click(); }
+  });
+}
 document.querySelector("#addStep").addEventListener("click", ()=>{
   const inp = document.querySelector("#newStepName");
   let name = (inp.value || "").trim();
@@ -272,6 +297,7 @@ document.querySelector("#addStep").addEventListener("click", ()=>{
 document.querySelector("#newStepName").addEventListener("keydown", e=>{
   if(e.key === "Enter"){ e.preventDefault(); document.querySelector("#addStep").click(); }
 });
+ 
 
 async function loadReportJSON(){
   clearErr();
