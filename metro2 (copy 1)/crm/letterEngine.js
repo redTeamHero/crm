@@ -476,6 +476,95 @@ function buildLetterHTML({
   return { filename, html: letterBody };
 }
 
+function buildPersonalInfoLetterHTML({ consumer, bureau }) {
+  const dateStr = todayISO();
+  const bureauMeta = BUREAU_ADDR[bureau];
+  const row = (label, value) =>
+    value
+      ? `<tr><td class="bg-gray-50 border px-2 py-1">${label}</td><td class="border px-2 py-1">${safe(value)}</td></tr>`
+      : "";
+  const infoTable = `
+    <table class="w-full text-sm border-collapse">
+      <tbody>
+        ${row("Name", consumer.name)}
+        ${row(
+          "Address",
+          [consumer.addr1, consumer.addr2].filter(Boolean).join("<br>")
+        )}
+        ${row(
+          "City / State / ZIP",
+          [consumer.city, consumer.state, consumer.zip]
+            .filter(Boolean)
+            .join(", ")
+        )}
+        ${row("Phone", consumer.phone)}
+        ${row("Email", consumer.email)}
+        ${row("SSN (last 4)", consumer.ssn_last4)}
+        ${row("DOB", consumer.dob)}
+      </tbody>
+    </table>
+  `;
+
+  const letterBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${bureau} – Personal Information Dispute</title>
+  <style>
+    @media print { @page { margin: 1in; } }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
+    * { word-break:break-word; }
+    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
+    .muted{ color:#6b7280; }
+    h1{ font-size:20px; margin-bottom:8px; }
+    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
+    table { table-layout: fixed; width:100%; border-collapse:collapse; }
+    td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div style="display:flex; gap:24px; margin-bottom:16px;">
+    <div class="card" style="flex:1;">
+      <strong>${safe(consumer.name)}</strong><br>
+      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
+      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
+      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
+      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
+      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
+      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
+    </div>
+    <div class="card" style="flex:1;">
+      <strong>${bureauMeta.name}</strong><br>
+      ${bureauMeta.addr1}<br>${bureauMeta.addr2}
+    </div>
+  </div>
+  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  <h1>${colorize("Personal Information Dispute")}</h1>
+  <p>${colorize("Please update your records to reflect my correct personal information and remove any other data that does not belong to me.")}</p>
+  <h2>My Correct Information</h2>
+  ${infoTable}
+  <p>${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}</p>
+</body>
+</html>
+  `.trim();
+
+  const filename = `${bureau}_personal_info_dispute_${new Date()
+    .toISOString()
+    .slice(0, 10)}.html`;
+
+  return { filename, html: letterBody };
+}
+
+function generatePersonalInfoLetters({ consumer }) {
+  const letters = [];
+  for (const bureau of ALL_BUREAUS) {
+    const { filename, html } = buildPersonalInfoLetterHTML({ consumer, bureau });
+    letters.push({ bureau, creditor: "Personal Information", filename, html });
+  }
+  return letters;
+}
+
 function generateLetters({ report, selections, consumer, requestType = "correct" }) {
   const SPECIAL_ONE_BUREAU = new Set(["identity", "breach", "assault"]);
   const letters = [];
@@ -549,7 +638,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
   return letters;
 }
 
-export { generateLetters };
+export { generateLetters, generatePersonalInfoLetters };
 
 
 

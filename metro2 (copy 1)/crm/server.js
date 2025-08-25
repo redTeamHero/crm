@@ -10,7 +10,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import { generateLetters } from "./letterEngine.js";
+import { generateLetters, generatePersonalInfoLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
@@ -301,7 +301,7 @@ function loadJobFromDisk(jobId){
 // Generate letters (from selections) -> memory + disk
 app.post("/api/generate", async (req,res)=>{
   try{
-    const { consumerId, reportId, selections, requestType } = req.body;
+    const { consumerId, reportId, selections, requestType, personalInfo } = req.body;
     const db = loadDB();
     const consumer = db.consumers.find(c=>c.id===consumerId);
     if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
@@ -315,6 +315,9 @@ app.post("/api/generate", async (req,res)=>{
     };
 
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
+    if (personalInfo) {
+      letters.push(...generatePersonalInfoLetters({ consumer: consumerForLetter }));
+    }
     const jobId = crypto.randomBytes(8).toString("hex");
 
     fs.mkdirSync(LETTERS_DIR, { recursive: true });
