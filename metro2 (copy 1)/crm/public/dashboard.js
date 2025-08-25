@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('dashNote', noteEl.value);
     });
   }
+
   if (!feedEl) return;
 
   const rssUrl = 'https://hnrss.org/frontpage';

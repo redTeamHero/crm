@@ -6,6 +6,8 @@
   --accent-hover: #005bb5;
 }
 body {
+  background: url('revolv-bg.png') no-repeat center center fixed;
+
   background: url('https://oaidalleapiprodscus.blob.core.windows.net/private/org-0wr6-MmsVsAoySVeRNi8SBcg/user-m7WsLOVdUdyUCifpaEPLm5on/img-2zGep0D1kw5SAarQuqwipE1O.png?st=2023-09-15T22%3A04%3A32Z&se=2023-09-16T00%3A04%3A32Z&sp=r&sv=2021-08-06&sr=b&rscd=inline&rsct=image/png&skoid=0b2c39b1-5014-4c67-895c-78013a8ab7be&sktid=f1aff27d-e18b-42bf-a096-7c6b6dd88b26&skt=2023-09-15T21%3A52%3A52Z&ske=2023-09-16T21%3A52%3A52Z&sks=b&skv=2021-08-06&sig=zzR%2B6C0wgY7i5uaeNIXSTIKC5zzYfQUHvqiCldzW/hY%3D') no-repeat center center fixed;
   background-size: cover;
   color:#0f172a;
