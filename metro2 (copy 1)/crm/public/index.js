@@ -9,7 +9,7 @@ let DB = { consumers: [] };
 let currentConsumerId = null;
 let currentReportId = null;
 let CURRENT_REPORT = null;
-const TL_PAGE_SIZE = 12;
+let tlPageSize = 6;
 let tlPage = 1;
 let tlTotalPages = 1;
 let CURRENT_INQUIRIES = [];
@@ -168,6 +168,12 @@ $("#tlPrev").addEventListener("click", ()=>{
 });
 $("#tlNext").addEventListener("click", ()=>{
   if (tlPage<tlTotalPages){ tlPage++; renderTradelines(CURRENT_REPORT?.tradelines || []); }
+});
+$("#tlPageSize").addEventListener("change", (e)=>{
+  const val = e.target.value;
+  tlPageSize = val === "all" ? Infinity : parseInt(val, 10) || 6;
+  tlPage = 1;
+  renderTradelines(CURRENT_REPORT?.tradelines || []);
 });
 
 async function selectConsumer(id){
@@ -329,10 +335,11 @@ function renderTradelines(tradelines){
     visible.push({ tl, idx, tags });
   });
 
-  tlTotalPages = Math.max(1, Math.ceil(visible.length / TL_PAGE_SIZE));
+  const pageSize = tlPageSize === Infinity ? (visible.length || 1) : tlPageSize;
+  tlTotalPages = Math.max(1, Math.ceil(visible.length / pageSize));
   if (tlPage > tlTotalPages) tlPage = tlTotalPages;
-  const start = (tlPage - 1) * TL_PAGE_SIZE;
-  const pageItems = visible.slice(start, start + TL_PAGE_SIZE);
+  const start = (tlPage - 1) * pageSize;
+  const pageItems = visible.slice(start, start + pageSize);
 
   pageItems.forEach(({ tl, idx, tags }) => {
     const node = tpl.cloneNode(true);
@@ -359,17 +366,31 @@ function renderTradelines(tradelines){
     });
 
     const vWrap = node.querySelector(".tl-violations");
+    const prevBtn = node.querySelector(".tl-reason-prev");
+    const nextBtn = node.querySelector(".tl-reason-next");
     const vs = tl.violations || [];
-    vWrap.innerHTML = vs.length
-      ? vs.map((v, vidx) => `
+    let vStart = 0;
+    function renderViolations(){
+      if(!vs.length){
+        vWrap.innerHTML = `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
+        prevBtn.classList.add("hidden");
+        nextBtn.classList.add("hidden");
+        return;
+      }
+      vWrap.innerHTML = vs.slice(vStart, vStart + 3).map((v, vidx) => `
         <label class="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">
-          <input type="checkbox" class="violation" value="${vidx}"/>
+          <input type="checkbox" class="violation" value="${vidx + vStart}"/>
           <div>
             <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}</div>
             ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
           </div>
-        </label>`).join("")
-      : `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
+        </label>`).join("");
+      prevBtn.classList.toggle("hidden", vStart <= 0);
+      nextBtn.classList.toggle("hidden", vStart + 3 >= vs.length);
+    }
+    renderViolations();
+    prevBtn.addEventListener("click", ()=>{ if(vStart>0){ vStart -= 3; renderViolations(); }});
+    nextBtn.addEventListener("click", ()=>{ if(vStart + 3 < vs.length){ vStart += 3; renderViolations(); }});
 
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
