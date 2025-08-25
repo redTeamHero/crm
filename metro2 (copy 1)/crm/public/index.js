@@ -745,6 +745,31 @@ $("#fileInput").addEventListener("change", async (e)=>{
   }
 });
 
+// Data breach lookup
+$("#btnDataBreach").addEventListener("click", async ()=>{
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  const c = DB.consumers.find(x=>x.id===currentConsumerId);
+  if(!c?.email) return showErr("Selected consumer has no email.");
+  const btn = $("#btnDataBreach");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Checking...";
+  try{
+    const res = await api(`/api/databreach?email=${encodeURIComponent(c.email)}`);
+    if(!res?.ok) return showErr(res?.error || "Breach check failed.");
+    const list = res.breaches || [];
+    const msg = list.length
+      ? `${c.email} found in:\n\n${list.map(b=>b.Name || b.name || "unknown").join("\n")}`
+      : `${c.email} not found in known breaches.`;
+    alert(msg);
+  }catch(err){
+    showErr(String(err));
+  }finally{
+    btn.textContent = old;
+    btn.disabled = false;
+  }
+});
+
 // Audit report
 $("#btnAuditReport").addEventListener("click", async ()=>{
   if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
