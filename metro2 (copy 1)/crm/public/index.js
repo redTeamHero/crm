@@ -12,8 +12,6 @@ let CURRENT_REPORT = null;
 let tlPageSize = 6;
 let tlPage = 1;
 let tlTotalPages = 1;
-let CURRENT_INQUIRIES = [];
-const inquirySelection = {};
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
@@ -241,13 +239,12 @@ async function loadReportJSON(){
   Object.keys(selectionState).forEach(k=> delete selectionState[k]);
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines || []);
-  renderInquiries(CURRENT_REPORT.inquiries || []);
   renderCollectors(CURRENT_REPORT.creditor_contacts || []);
 
 }
 
 // ===================== Filters (unchanged) =====================
-const ALL_TAGS = ["Collections","Inquiries","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
+const ALL_TAGS = ["Collections","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
 const activeFilters = new Set();
 const hiddenTradelines = new Set();
 const selectionState = {};
@@ -263,7 +260,6 @@ function deriveTags(tl){
   if (bureaus.some(b => hasWord(per[b]?.payment_status, "collection") || hasWord(per[b]?.account_status, "collection"))
       || hasWord(name, "collection")) tags.add("Collections");
 
-  if ((tl.violations||[]).some(v => hasWord(v.title, "inquiry"))) tags.add("Inquiries");
 
   if (bureaus.some(b => hasWord(per[b]?.payment_status, "late") || hasWord(per[b]?.payment_status, "delinquent"))
       || bureaus.some(b => (maybeNum(per[b]?.past_due) || 0) > 0)) tags.add("Late Payments");
@@ -456,26 +452,6 @@ function renderTradelines(tradelines){
   window.__crm_helpers?.attachCardHandlers?.(container);
 }
 
-function renderInquiries(inquiries){
-  const wrap = $("#inqList");
-  if(!wrap) return;
-  wrap.innerHTML = "";
-  CURRENT_INQUIRIES = inquiries || [];
-  Object.keys(inquirySelection).forEach(k=> delete inquirySelection[k]);
-  const tpl = $("#inqTemplate")?.content;
-  CURRENT_INQUIRIES.forEach((inq, idx)=>{
-    const node = tpl.cloneNode(true);
-    node.querySelector(".inq-creditor").textContent = inq.creditor || "Unknown";
-    node.querySelector(".inq-bureau").textContent = inq.bureau || "";
-    node.querySelector(".inq-date").textContent = inq.date || "";
-    const cb = node.querySelector(".inq-dispute");
-    cb.checked = inq.dispute !== false;
-    inquirySelection[idx] = cb.checked;
-    cb.addEventListener("change", ()=>{ inquirySelection[idx] = cb.checked; });
-    wrap.appendChild(node);
-  });
-}
-
 function renderCollectors(collectors){
   const wrap = $("#collectorList");
   if(!wrap) return;
@@ -494,11 +470,6 @@ function renderCollectors(collectors){
     cb.addEventListener("change", ()=>{ collectorSelection[idx] = cb.checked; });
     wrap.appendChild(node);
   });
-}
-
-
-function collectInquirySelections(){
-  return CURRENT_INQUIRIES.filter((_, idx)=> inquirySelection[idx]);
 }
 
 function collectCollectorSelections(){
@@ -591,17 +562,15 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     if(!currentConsumerId || !currentReportId) throw new Error("Select a consumer and a report first.");
     const selections = collectSelections();
     const includePI = $("#cbPersonalInfo").checked;
-    const includeInq = $("#cbInquiries").checked;
     const includeCol = $("#cbCollectors").checked;
-    const inqSelections = includeInq ? collectInquirySelections() : [];
     const colSelections = includeCol ? collectCollectorSelections() : [];
-    if(!selections.length && !includePI && !inqSelections.length && !colSelections.length) throw new Error("Pick at least one tradeline, inquiry, collector, or select Personal Info.");
+    if(!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one tradeline, collector, or select Personal Info.");
     const requestType = getRequestType();
 
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, inquiries: inqSelections, collectors: colSelections })
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, collectors: colSelections })
 
     });
     if(!resp.ok){
