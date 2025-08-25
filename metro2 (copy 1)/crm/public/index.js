@@ -491,13 +491,14 @@ $("#btnGenerate").addEventListener("click", async ()=>{
   try{
     if(!currentConsumerId || !currentReportId) throw new Error("Select a consumer and a report first.");
     const selections = collectSelections();
-    if(!selections.length) throw new Error("Pick at least one tradeline, at least one bureau, and any violations you want.");
+    const includePI = $("#cbPersonalInfo").checked;
+    if(!selections.length && !includePI) throw new Error("Pick at least one tradeline, at least one bureau, and any violations you want, or select Personal Info.");
     const requestType = getRequestType();
 
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType })
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI })
     });
     if(!resp.ok){
       const txt = await resp.text().catch(()=> "");
