@@ -147,6 +147,7 @@ export async function savePdf(html){
 
   try{
     const execPath = await detectChromium();
+    console.log("Launching Chromium for PDF generation", execPath || "(default)");
     const browser = await puppeteer.launch({
       headless:true,
       args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"],
@@ -156,10 +157,13 @@ export async function savePdf(html){
     await page.setContent(html, { waitUntil: 'load' });
     await page.pdf({ path: outPath, format:'Letter', printBackground:true, margin:{top:'1in',bottom:'1in',left:'1in',right:'1in'} });
     await browser.close();
+    console.log("PDF generated at", outPath);
     return { path: outPath, url: `/reports/${filename}` };
   }catch(err){
+    console.error("PDF generation failed, saving HTML instead:", err.message);
     const htmlPath = outPath.replace(/\.pdf$/, '.html');
     await fs.writeFile(htmlPath, html, 'utf-8');
+    console.log("HTML fallback saved to", htmlPath);
     return { path: htmlPath, url: `/reports/${path.basename(htmlPath)}`, warning: err.message };
   }
 }
@@ -178,6 +182,11 @@ if(fileURLToPath(import.meta.url) === path.resolve(process.argv[1])){
   const normalized = normalizeReport(raw);
   const html = renderHtml(normalized);
   const result = await savePdf(html);
-  console.log('PDF saved to', result.path);
+  if(result.warning){
+    console.log('PDF generation failed:', result.warning);
+    console.log('HTML saved to', result.path);
+  }else{
+    console.log('PDF saved to', result.path);
+  }
   console.log('Shareable link (when served):', result.url);
 }
