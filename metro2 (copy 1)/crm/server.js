@@ -52,6 +52,7 @@ app.use(express.static(PUBLIC_DIR));
 app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboard.html")));
 app.get("/clients", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+app.get("/leads", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "leads.html")));
 app.get("/schedule", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "schedule.html")));
 app.get("/my-company", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "my-company.html")));
 app.get("/billing", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "billing.html")));
@@ -59,6 +60,12 @@ app.get("/library", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.h
 app.get("/letter", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "letters.html")));
 app.get("/letters", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "letters.html")));
 app.get("/letters/:jobId", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "letters.html")));
+app.get("/quiz", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
+app.get("/portal/:id", (req, res) => {
+  const f = path.join(PUBLIC_DIR, `portal-${req.params.id}.html`);
+  if (fs.existsSync(f)) return res.sendFile(f);
+  res.status(404).send("Portal not found");
+});
 
 // ---------- Simple JSON "DB" ----------
 const DB_PATH = path.join(__dirname, "db.json");
@@ -128,6 +135,13 @@ app.post("/api/consumers", (req,res)=>{
   saveDB(db);
   // log event
   addEvent(id, "consumer_created", { name: consumer.name });
+  try {
+    const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
+    const html = tmpl.replace(/{{name}}/g, consumer.name);
+    fs.writeFileSync(path.join(PUBLIC_DIR, `portal-${id}.html`), html);
+  } catch (e) {
+    console.error("Failed to create client portal", e);
+  }
   res.json({ ok:true, consumer });
 });
 
@@ -432,6 +446,28 @@ app.get("/api/letters/:jobId/:idx.html", (req,res)=>{
   if(!L) return res.status(404).send("Letter not found.");
   res.setHeader("Content-Type","text/html; charset=utf-8");
   res.send(L.html);
+});
+
+app.put("/api/letters/:jobId/:idx", async (req,res)=>{
+  const { jobId, idx } = req.params;
+  const html = req.body?.html;
+  if(typeof html !== "string") return res.status(400).json({ ok:false, error:"Missing html" });
+  let job = getJobMem(jobId);
+  if(job){
+    const L = job.letters[Number(idx)];
+    if(!L) return res.status(404).json({ ok:false, error:"Letter not found" });
+    L.html = html;
+    try{ fs.writeFileSync(path.join(LETTERS_DIR, L.filename), html); }
+    catch(e){ return res.status(500).json({ ok:false, error:String(e) }); }
+    return res.json({ ok:true });
+  }
+  const disk = loadJobFromDisk(jobId);
+  if(!disk) return res.status(404).json({ ok:false, error:"Job not found" });
+  const Lm = disk.letters[Number(idx)];
+  if(!Lm) return res.status(404).json({ ok:false, error:"Letter not found" });
+  try{ fs.writeFileSync(Lm.htmlPath, html); }
+  catch(e){ return res.status(500).json({ ok:false, error:String(e) }); }
+  res.json({ ok:true });
 });
 
 // Render letter PDF on-the-fly
