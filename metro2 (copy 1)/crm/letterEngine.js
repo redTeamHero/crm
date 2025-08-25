@@ -763,5 +763,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 
 export { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters };
 
+export { generateLetters, generatePersonalInfoLetters, generateInquiryLetters };
+
 
 

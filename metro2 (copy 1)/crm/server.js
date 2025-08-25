@@ -29,6 +29,16 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 
+// Basic request logging for debugging
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const ms = Date.now() - start;
+    console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl} -> ${res.statusCode} ${ms}ms`);
+  });
+  next();
+});
+
 // periodically surface due letter reminders
 processAllReminders();
 setInterval(() => {
@@ -309,6 +319,8 @@ function loadJobFromDisk(jobId){
 app.post("/api/generate", async (req,res)=>{
   try{
     const { consumerId, reportId, selections, requestType, personalInfo, inquiries, collectors } = req.body;
+
+    const { consumerId, reportId, selections, requestType, personalInfo, inquiries } = req.body;
     const db = loadDB();
     const consumer = db.consumers.find(c=>c.id===consumerId);
     if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
@@ -331,6 +343,7 @@ app.post("/api/generate", async (req,res)=>{
     if (Array.isArray(collectors) && collectors.length) {
       letters.push(...generateDebtCollectorLetters({ consumer: consumerForLetter, collectors }));
     }
+
     const jobId = crypto.randomBytes(8).toString("hex");
 
     fs.mkdirSync(LETTERS_DIR, { recursive: true });
@@ -345,6 +358,8 @@ app.post("/api/generate", async (req,res)=>{
       tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length,
       inquiries: Array.isArray(inquiries) ? inquiries.length : 0,
       collectors: Array.isArray(collectors) ? collectors.length : 0
+
+      inquiries: Array.isArray(inquiries) ? inquiries.length : 0
     });
 
     // schedule reminders for subsequent playbook steps

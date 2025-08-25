@@ -41,6 +41,11 @@ function formatEvent(ev){
     const inqPart = inquiries ? ` and ${escapeHtml(inquiries)} inquiry${inquiries===1?"":"s"}` : "";
     const colPart = collectors ? ` and ${escapeHtml(collectors)} collector${collectors===1?"":"s"}` : "";
     body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}${inqPart}${colPart}.</div>`;
+
+    const { count, requestType, tradelines, inquiries = 0 } = ev.payload || {};
+    title = "Letters generated";
+    const inqPart = inquiries ? ` and ${escapeHtml(inquiries)} inquiry${inquiries===1?"":"s"}` : "";
+    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}${inqPart}.</div>`;
   } else if(ev.type === "audit_generated"){
     const { reportId, file } = ev.payload || {};
     title = "Audit generated";
@@ -218,6 +223,7 @@ async function loadReportJSON(){
   renderTradelines(CURRENT_REPORT.tradelines || []);
   renderInquiries(CURRENT_REPORT.inquiries || []);
   renderCollectors(CURRENT_REPORT.creditor_contacts || []);
+
 }
 
 // ===================== Filters (unchanged) =====================
@@ -455,6 +461,7 @@ function renderCollectors(collectors){
   });
 }
 
+
 function collectInquirySelections(){
   return CURRENT_INQUIRIES.filter((_, idx)=> inquirySelection[idx]);
 }
@@ -462,6 +469,7 @@ function collectInquirySelections(){
 function collectCollectorSelections(){
   return CURRENT_COLLECTORS.filter((_, idx)=> collectorSelection[idx]);
 }
+
 
 // Zoom modal builders
 function renderPB(pb){
@@ -553,12 +561,16 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     const inqSelections = includeInq ? collectInquirySelections() : [];
     const colSelections = includeCol ? collectCollectorSelections() : [];
     if(!selections.length && !includePI && !inqSelections.length && !colSelections.length) throw new Error("Pick at least one tradeline, inquiry, collector, or select Personal Info.");
+    const inqSelections = includeInq ? collectInquirySelections() : [];
+    if(!selections.length && !includePI && !inqSelections.length) throw new Error("Pick at least one tradeline, inquiry, or select Personal Info.");
     const requestType = getRequestType();
 
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
       body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, inquiries: inqSelections, collectors: colSelections })
+
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, inquiries: inqSelections })
     });
     if(!resp.ok){
       const txt = await resp.text().catch(()=> "");
