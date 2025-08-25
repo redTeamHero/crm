@@ -12,6 +12,10 @@ let CURRENT_REPORT = null;
 const TL_PAGE_SIZE = 12;
 let tlPage = 1;
 let tlTotalPages = 1;
+let CURRENT_INQUIRIES = [];
+const inquirySelection = {};
+let CURRENT_COLLECTORS = [];
+const collectorSelection = {};
 
 // ----- UI helpers -----
 function showErr(msg){
@@ -32,9 +36,11 @@ function formatEvent(ev){
   let title = escapeHtml(ev.type);
   let body = "";
   if(ev.type === "letters_generated"){
-    const { count, requestType, tradelines } = ev.payload || {};
+    const { count, requestType, tradelines, inquiries = 0, collectors = 0 } = ev.payload || {};
     title = "Letters generated";
-    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}.</div>`;
+    const inqPart = inquiries ? ` and ${escapeHtml(inquiries)} inquiry${inquiries===1?"":"s"}` : "";
+    const colPart = collectors ? ` and ${escapeHtml(collectors)} collector${collectors===1?"":"s"}` : "";
+    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}${inqPart}${colPart}.</div>`;
   } else if(ev.type === "audit_generated"){
     const { reportId, file } = ev.payload || {};
     title = "Audit generated";
@@ -210,6 +216,8 @@ async function loadReportJSON(){
   Object.keys(selectionState).forEach(k=> delete selectionState[k]);
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines || []);
+  renderInquiries(CURRENT_REPORT.inquiries || []);
+  renderCollectors(CURRENT_REPORT.creditor_contacts || []);
 }
 
 // ===================== Filters (unchanged) =====================
@@ -407,6 +415,54 @@ function renderTradelines(tradelines){
   window.__crm_helpers?.attachCardHandlers?.(container);
 }
 
+function renderInquiries(inquiries){
+  const wrap = $("#inqList");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  CURRENT_INQUIRIES = inquiries || [];
+  Object.keys(inquirySelection).forEach(k=> delete inquirySelection[k]);
+  const tpl = $("#inqTemplate")?.content;
+  CURRENT_INQUIRIES.forEach((inq, idx)=>{
+    const node = tpl.cloneNode(true);
+    node.querySelector(".inq-creditor").textContent = inq.creditor || "Unknown";
+    node.querySelector(".inq-bureau").textContent = inq.bureau || "";
+    node.querySelector(".inq-date").textContent = inq.date || "";
+    const cb = node.querySelector(".inq-dispute");
+    cb.checked = inq.dispute !== false;
+    inquirySelection[idx] = cb.checked;
+    cb.addEventListener("change", ()=>{ inquirySelection[idx] = cb.checked; });
+    wrap.appendChild(node);
+  });
+}
+
+function renderCollectors(collectors){
+  const wrap = $("#collectorList");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  CURRENT_COLLECTORS = collectors || [];
+  Object.keys(collectorSelection).forEach(k=> delete collectorSelection[k]);
+  const tpl = $("#collectorTemplate")?.content;
+  CURRENT_COLLECTORS.forEach((col, idx)=>{
+    const node = tpl.cloneNode(true);
+    node.querySelector(".collector-name").textContent = col.name || "Unknown";
+    node.querySelector(".collector-phone").textContent = col.phone || "";
+    node.querySelector(".collector-type").textContent = col.type || "";
+    const cb = node.querySelector(".collector-pick");
+    cb.checked = col.type === "debt_collector";
+    collectorSelection[idx] = cb.checked;
+    cb.addEventListener("change", ()=>{ collectorSelection[idx] = cb.checked; });
+    wrap.appendChild(node);
+  });
+}
+
+function collectInquirySelections(){
+  return CURRENT_INQUIRIES.filter((_, idx)=> inquirySelection[idx]);
+}
+
+function collectCollectorSelections(){
+  return CURRENT_COLLECTORS.filter((_, idx)=> collectorSelection[idx]);
+}
+
 // Zoom modal builders
 function renderPB(pb){
   if (!pb) return "<div class='text-sm muted'>No data.</div>";
@@ -492,13 +548,17 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     if(!currentConsumerId || !currentReportId) throw new Error("Select a consumer and a report first.");
     const selections = collectSelections();
     const includePI = $("#cbPersonalInfo").checked;
-    if(!selections.length && !includePI) throw new Error("Pick at least one tradeline, at least one bureau, and any violations you want, or select Personal Info.");
+    const includeInq = $("#cbInquiries").checked;
+    const includeCol = $("#cbCollectors").checked;
+    const inqSelections = includeInq ? collectInquirySelections() : [];
+    const colSelections = includeCol ? collectCollectorSelections() : [];
+    if(!selections.length && !includePI && !inqSelections.length && !colSelections.length) throw new Error("Pick at least one tradeline, inquiry, collector, or select Personal Info.");
     const requestType = getRequestType();
 
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI })
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, inquiries: inqSelections, collectors: colSelections })
     });
     if(!resp.ok){
       const txt = await resp.text().catch(()=> "");
@@ -895,6 +955,31 @@ $("#helpClose").addEventListener("click", ()=>{
   document.body.style.overflow = "";
 });
 $("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ $("#helpClose").click(); } });
+
+// Library modal
+async function openLibrary(){
+  const modal = $("#libraryModal");
+  try{
+    const resp = await fetch("/api/library");
+    const data = await resp.json().catch(()=>({}));
+    const list = data.library || {};
+    const wrap = $("#libraryList");
+    wrap.innerHTML = Object.entries(list).map(([name, info])=>{
+      return `<div><span class="font-medium">${escapeHtml(name)}</span> - ${escapeHtml(info.type||"")}${info.phone?` • ${escapeHtml(info.phone)}`:""}</div>`;
+    }).join("") || "<div class='muted'>No entries.</div>";
+  }catch{
+    $("#libraryList").innerHTML = "<div class='muted'>Failed to load.</div>";
+  }
+  modal.classList.remove("hidden"); modal.classList.add("flex");
+  document.body.style.overflow = "hidden";
+}
+$("#btnLibrary").addEventListener("click", openLibrary);
+$("#libraryClose").addEventListener("click", ()=>{
+  const modal = $("#libraryModal");
+  modal.classList.add("hidden"); modal.classList.remove("flex");
+  document.body.style.overflow = "";
+});
+$("#libraryModal").addEventListener("click", (e)=>{ if(e.target.id==="libraryModal"){ $("#libraryClose").click(); } });
 
 // ===================== Init =====================
 loadConsumers();

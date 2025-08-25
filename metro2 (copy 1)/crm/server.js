@@ -10,7 +10,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import { generateLetters, generatePersonalInfoLetters } from "./letterEngine.js";
+import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
@@ -48,6 +48,12 @@ const DB_PATH = path.join(__dirname, "db.json");
 function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }catch{ return { consumers: [] }; } }
 function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
 
+const LIB_PATH = path.join(__dirname, "creditor_library.json");
+function loadLibrary(){
+  try{ return JSON.parse(fs.readFileSync(LIB_PATH, "utf-8")); }
+  catch{ return {}; }
+}
+
 // ---------- Upload handling ----------
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -82,6 +88,7 @@ async function runPythonAnalyzer(htmlContent){
 
 // =================== Consumers ===================
 app.get("/api/consumers", (_req,res)=> res.json(loadDB()));
+app.get("/api/library", (_req,res)=> res.json({ ok:true, library: loadLibrary() }));
 
 app.post("/api/consumers", (req,res)=>{
   const db = loadDB();
@@ -301,7 +308,7 @@ function loadJobFromDisk(jobId){
 // Generate letters (from selections) -> memory + disk
 app.post("/api/generate", async (req,res)=>{
   try{
-    const { consumerId, reportId, selections, requestType, personalInfo } = req.body;
+    const { consumerId, reportId, selections, requestType, personalInfo, inquiries, collectors } = req.body;
     const db = loadDB();
     const consumer = db.consumers.find(c=>c.id===consumerId);
     if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
@@ -318,6 +325,12 @@ app.post("/api/generate", async (req,res)=>{
     if (personalInfo) {
       letters.push(...generatePersonalInfoLetters({ consumer: consumerForLetter }));
     }
+    if (Array.isArray(inquiries) && inquiries.length) {
+      letters.push(...generateInquiryLetters({ consumer: consumerForLetter, inquiries }));
+    }
+    if (Array.isArray(collectors) && collectors.length) {
+      letters.push(...generateDebtCollectorLetters({ consumer: consumerForLetter, collectors }));
+    }
     const jobId = crypto.randomBytes(8).toString("hex");
 
     fs.mkdirSync(LETTERS_DIR, { recursive: true });
@@ -329,7 +342,9 @@ app.post("/api/generate", async (req,res)=>{
     // log state
     addEvent(consumer.id, "letters_generated", {
       jobId, requestType, count: letters.length,
-      tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length
+      tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length,
+      inquiries: Array.isArray(inquiries) ? inquiries.length : 0,
+      collectors: Array.isArray(collectors) ? collectors.length : 0
     });
 
     // schedule reminders for subsequent playbook steps
