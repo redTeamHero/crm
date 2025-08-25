@@ -3,10 +3,13 @@
 
 import argparse
 import json
+import os
 import re
 from bs4 import BeautifulSoup
 from datetime import datetime
 from collections import defaultdict
+from urllib.request import urlopen, Request
+from urllib.parse import quote_plus
 
 MONEY_RE = re.compile(r"[-+]?\$?\s*([0-9]{1,3}(?:,[0,9]{3})*(?:\.[0-9]{2})?|[0-9]+(?:\.[0-9]{2})?)")
 DATE_FORMATS = ["%m/%d/%Y", "%m/%d/%y", "%Y-%m-%d"]
@@ -337,6 +340,106 @@ def extract_all_tradelines(soup):
         })
     return results
 
+
+LIB_PATH = os.path.join(os.path.dirname(__file__), "creditor_library.json")
+
+def load_library():
+    try:
+        with open(LIB_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_library(lib):
+    try:
+        with open(LIB_PATH, "w", encoding="utf-8") as f:
+            json.dump(lib, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+def classify_creditor(name):
+    query = quote_plus(f"{name} debt collector")
+    url = f"https://www.google.com/search?q={query}"
+    try:
+        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urlopen(req, timeout=5) as resp:
+            html = resp.read().decode("utf-8", errors="ignore").lower()
+            if "collection agency" in html or "debt collector" in html:
+                return "debt_collector"
+    except Exception:
+        pass
+    return "original_creditor"
+
+def parse_inquiries(soup):
+    inquiries = []
+    for tbl in soup.select("table.re-even-odd.rpt_content_table.rpt_content_header.rpt_table4column"):
+        header = clean_text(tbl.find_previous("div", class_="sub_header"))
+        if "inquiries" not in header.lower():
+            continue
+        rows = tbl.select("tr")
+        if not rows:
+            continue
+        # assume header defines column order
+        cols = [clean_text(th).lower() for th in rows[0].find_all("th")]
+        for tr in rows[1:]:
+            tds = tr.find_all("td")
+            if len(tds) < len(cols):
+                continue
+            data = {cols[i]: clean_text(tds[i]) for i in range(len(cols))}
+            creditor = data.get("creditor") or data.get("company") or ""
+            date = parse_date(data.get("date") or data.get("inquiry date") or data.get("inquiry_date"))
+            bureau = data.get("bureau") or data.get("credit bureau") or data.get("credit_bureau")
+            inquiries.append({"creditor": creditor, "date": date, "bureau": bureau})
+    return inquiries
+
+def mark_inquiry_disputes(inquiries, tradelines):
+    for inq in inquiries:
+        inq_month = (inq.get("date") or "")[:7]
+        keep = False
+        for tl in tradelines:
+            name = (tl.get("meta", {}).get("creditor") or "").lower()
+            if inq.get("creditor", "").lower() in name or name in (inq.get("creditor", "").lower()):
+                for pb in tl.get("per_bureau", {}).values():
+                    opened = (pb.get("date_opened") or "")[:7]
+                    if opened and opened == inq_month:
+                        keep = True
+                        break
+            if keep:
+                break
+        inq["dispute"] = not keep
+
+def parse_creditor_contacts(soup):
+    contacts = []
+    container = soup.find("div", id="CreditorContacts")
+    if not container:
+        return contacts
+    text = container.get_text("\n")
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        m = re.search(r"(.+?)\s+(\(\d{3}\)\s*\d{3}-\d{4})", line)
+        if m:
+            name, phone = m.groups()
+        else:
+            name, phone = line, None
+        contacts.append({"name": name.strip(), "phone": phone})
+    return contacts
+
+def process_creditor_contacts(contacts):
+    lib = load_library()
+    for c in contacts:
+        entry = lib.get(c["name"])
+        if entry:
+            c["type"] = entry.get("type")
+            c["phone"] = c.get("phone") or entry.get("phone")
+            continue
+        ctype = classify_creditor(c["name"])
+        c["type"] = ctype
+        lib[c["name"]] = {"type": ctype, "phone": c.get("phone")}
+    save_library(lib)
+    return contacts
+
 def main():
     ap = argparse.ArgumentParser(description="Audit multiple tradelines in an HTML report for Metro 2-style violations.")
     ap.add_argument("-i", "--input", required=True, help="Path to input HTML file (can contain multiple tradelines)")
@@ -348,6 +451,9 @@ def main():
 
     soup = BeautifulSoup(html, "html.parser")
     tradelines = extract_all_tradelines(soup)
+    inquiries = parse_inquiries(soup)
+    mark_inquiry_disputes(inquiries, tradelines)
+    contacts = process_creditor_contacts(parse_creditor_contacts(soup))
 
     if not tradelines:
         print("✖ No tradeline 4-column tables were found. Check that the HTML layout matches the expected structure.")
@@ -383,7 +489,11 @@ def main():
         })
 
     with open(args.output, "w", encoding="utf-8") as f:
-        json.dump({"tradelines": normalized}, f, indent=2, ensure_ascii=False)
+        json.dump({
+            "tradelines": normalized,
+            "inquiries": inquiries,
+            "creditor_contacts": contacts
+        }, f, indent=2, ensure_ascii=False)
 
     print(f"\n✓ JSON report saved to: {args.output}")
 
