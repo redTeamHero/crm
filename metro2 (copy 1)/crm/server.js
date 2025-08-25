@@ -293,6 +293,259 @@ app.post("/api/databreach", async (req, res) => {
 const LETTERS_DIR = path.resolve("./letters");
 const JOBS_INDEX_PATH = path.join(LETTERS_DIR, "_jobs.json");
 
+app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
+  const db=loadDB();
+  const c=db.consumers.find(x=>x.id===req.params.id);
+  if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const r=c.reports.find(x=>x.id===req.params.rid);
+  if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+
+  const selections = Array.isArray(req.body?.selections) && req.body.selections.length
+    ? req.body.selections
+    : null;
+
+  try{
+    const normalized = normalizeReport(r.data, selections);
+    const html = renderHtml(normalized, c.name);
+    const result = await savePdf(html);
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+    res.json({ ok:true, url: result.url, warning: result.warning });
+  }catch(e){
+    res.status(500).json({ ok:false, error: String(e) });
+  }
+});
+
+// Check consumer email against Have I Been Pwned
+// Use POST so email isn't logged in query string
+app.post("/api/databreach", async (req, res) => {
+  const email = String(req.body.email || "").trim();
+  if (!email) return res.status(400).json({ ok: false, error: "Email required" });
+  const apiKey = process.env.HIBP_API_KEY;
+  if (!apiKey) return res.status(500).json({ ok: false, error: "HIBP API key not configured" });
+  try {
+    const hibpRes = await fetch(
+      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+      {
+        headers: {
+          "hibp-api-key": apiKey,
+          "user-agent": "crm-app"
+        }
+      }
+    );
+    if (hibpRes.status === 404) {
+      return res.json({ ok: true, breaches: [] });
+    }
+    if (!hibpRes.ok) {
+      const text = await hibpRes.text().catch(() => "");
+      return res
+        .status(hibpRes.status)
+        .json({ ok: false, error: text || `HIBP request failed (status ${hibpRes.status})` });
+    }
+    const data = await hibpRes.json();
+    res.json({ ok: true, breaches: data });
+  } catch (e) {
+    console.error("HIBP check failed", e);
+    res.status(500).json({ ok: false, error: "HIBP request failed" });
+  }
+});
+
+// =================== Letters & PDFs ===================
+const LETTERS_DIR = path.resolve("./letters");
+const JOBS_INDEX_PATH = path.join(LETTERS_DIR, "_jobs.json");
+
+app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
+  const db=loadDB();
+  const c=db.consumers.find(x=>x.id===req.params.id);
+  if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const r=c.reports.find(x=>x.id===req.params.rid);
+  if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+
+  const selections = Array.isArray(req.body?.selections) && req.body.selections.length
+    ? req.body.selections
+    : null;
+
+  try{
+    const normalized = normalizeReport(r.data, selections);
+    const html = renderHtml(normalized, c.name);
+    const result = await savePdf(html);
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+    res.json({ ok:true, url: result.url, warning: result.warning });
+  }catch(e){
+    res.status(500).json({ ok:false, error: String(e) });
+  }
+});
+
+// Check consumer email against Have I Been Pwned
+// Use POST so email isn't logged in query string
+app.post("/api/databreach", async (req, res) => {
+  const email = String(req.body.email || "").trim();
+  if (!email) return res.status(400).json({ ok: false, error: "Email required" });
+  const apiKey = process.env.HIBP_API_KEY;
+  if (!apiKey) return res.status(500).json({ ok: false, error: "HIBP API key not configured" });
+  try {
+    const hibpRes = await fetch(
+      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+      {
+        headers: {
+          "hibp-api-key": apiKey,
+          "user-agent": "crm-app"
+        }
+      }
+    );
+    if (hibpRes.status === 404) {
+      return res.json({ ok: true, breaches: [] });
+    }
+    if (!hibpRes.ok) {
+      const text = await hibpRes.text().catch(() => "");
+      return res
+        .status(hibpRes.status)
+        .json({ ok: false, error: text || `HIBP request failed (status ${hibpRes.status})` });
+    }
+    const data = await hibpRes.json();
+    res.json({ ok: true, breaches: data });
+  } catch (e) {
+    console.error("HIBP check failed", e);
+    res.status(500).json({ ok: false, error: "HIBP request failed" });
+  }
+});
+
+// =================== Letters & PDFs ===================
+const LETTERS_DIR = path.resolve("./letters");
+const JOBS_INDEX_PATH = path.join(LETTERS_DIR, "_jobs.json");
+
+app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
+  const db=loadDB();
+  const c=db.consumers.find(x=>x.id===req.params.id);
+  if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const r=c.reports.find(x=>x.id===req.params.rid);
+  if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+
+  const selections = Array.isArray(req.body?.selections) && req.body.selections.length
+    ? req.body.selections
+    : null;
+
+  try{
+    const normalized = normalizeReport(r.data, selections);
+    const html = renderHtml(normalized, c.name);
+    const result = await savePdf(html);
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+    res.json({ ok:true, url: result.url, warning: result.warning });
+  }catch(e){
+    res.status(500).json({ ok:false, error: String(e) });
+  }
+});
+
+// Check consumer email against Have I Been Pwned
+// Use POST so email isn't logged in query string
+app.post("/api/databreach", async (req, res) => {
+  const email = String(req.body.email || "").trim();
+  if (!email) return res.status(400).json({ ok: false, error: "Email required" });
+  const apiKey = process.env.HIBP_API_KEY;
+  if (!apiKey) return res.status(500).json({ ok: false, error: "HIBP API key not configured" });
+  try {
+    const hibpRes = await fetch(
+      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+      {
+        headers: {
+          "hibp-api-key": apiKey,
+          "user-agent": "crm-app"
+        }
+      }
+    );
+    if (hibpRes.status === 404) {
+      return res.json({ ok: true, breaches: [] });
+    }
+    if (!hibpRes.ok) {
+      const text = await hibpRes.text().catch(() => "");
+      return res
+        .status(hibpRes.status)
+        .json({ ok: false, error: text || `HIBP request failed (status ${hibpRes.status})` });
+    }
+    const data = await hibpRes.json();
+    res.json({ ok: true, breaches: data });
+  } catch (e) {
+    console.error("HIBP check failed", e);
+    res.status(500).json({ ok: false, error: "HIBP request failed" });
+  }
+});
+
+// =================== Letters & PDFs ===================
+const LETTERS_DIR = path.resolve("./letters");
+const JOBS_INDEX_PATH = path.join(LETTERS_DIR, "_jobs.json");
+
+app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
+  const db=loadDB();
+  const c=db.consumers.find(x=>x.id===req.params.id);
+  if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const r=c.reports.find(x=>x.id===req.params.rid);
+  if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+
+  const selections = Array.isArray(req.body?.selections) && req.body.selections.length
+    ? req.body.selections
+    : null;
+
+  try{
+    const normalized = normalizeReport(r.data, selections);
+    const html = renderHtml(normalized, c.name);
+    const result = await savePdf(html);
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+    res.json({ ok:true, url: result.url, warning: result.warning });
+  }catch(e){
+
+  const selections = Array.isArray(req.body?.selections) ? req.body.selections : [];
+  if(!selections.length) return res.status(400).json({ ok:false, error:"No selections provided" });
+
+  try{
+    const normalized = normalizeReport(r.data, selections);
+    const html = renderHtml(normalized, c.name);
+    const result = await savePdf(html);
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+    res.json({ ok:true, url: result.url, warning: result.warning });
+  }catch(e){
+    res.status(500).json({ ok:false, error: String(e) });
+  }
+});
+
+// Check consumer email against Have I Been Pwned
+// Use POST so email isn't logged in query string
+app.post("/api/databreach", async (req, res) => {
+  const email = String(req.body.email || "").trim();
+app.get("/api/databreach", async (req, res) => {
+  const email = String(req.query.email || "").trim();
+  if (!email) return res.status(400).json({ ok: false, error: "Email required" });
+  const apiKey = process.env.HIBP_API_KEY;
+  if (!apiKey) return res.status(500).json({ ok: false, error: "HIBP API key not configured" });
+  try {
+    const hibpRes = await fetch(
+      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+      {
+        headers: {
+          "hibp-api-key": apiKey,
+          "user-agent": "crm-app"
+        }
+      }
+    );
+    if (hibpRes.status === 404) {
+      return res.json({ ok: true, breaches: [] });
+    }
+    if (!hibpRes.ok) {
+      const text = await hibpRes.text().catch(() => "");
+      return res
+        .status(hibpRes.status)
+        .json({ ok: false, error: text || `HIBP request failed (status ${hibpRes.status})` });
+    }
+    const data = await hibpRes.json();
+    res.json({ ok: true, breaches: data });
+  } catch (e) {
+    console.error("HIBP check failed", e);
+    res.status(500).json({ ok: false, error: "HIBP request failed" });
+  }
+});
+
+// =================== Letters & PDFs ===================
+const LETTERS_DIR = path.resolve("./letters");
+const JOBS_INDEX_PATH = path.join(LETTERS_DIR, "_jobs.json");
+
 // in-memory jobs
 const JOB_TTL_MS = 30*60*1000;
 const jobs = new Map(); // jobId -> { letters, createdAt }
