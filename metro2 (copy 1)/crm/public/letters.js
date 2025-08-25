@@ -21,6 +21,7 @@ let page = 1;
 const PER_PAGE = 10;
 let lastPreview = null;    // currently previewed letter object
 let editing = false;
+let editDoc = null;      // DOM document when editing
 
 function paginate(){
   const total = Math.max(1, Math.ceil(LETTERS.length / PER_PAGE));
@@ -82,6 +83,7 @@ function openPreview(L){
   $("#pvEditor").classList.add("hidden");
   $("#pvSave").classList.add("hidden");
   editing = false;
+  editDoc = null;
   $("#previewModal").style.display = "flex";
   document.body.style.overflow = "hidden";
 }
@@ -104,28 +106,35 @@ $("#pvEdit").addEventListener("click", async ()=>{
   try{
     const resp = await fetch(lastPreview.htmlUrl);
     const txt = await resp.text();
-    $("#pvEditor").value = txt;
-    $("#pvFrame").classList.add("hidden");
+    editDoc = new DOMParser().parseFromString(txt, "text/html");
+    $("#pvEditor").value = editDoc.body.innerText;
     $("#pvEditor").classList.remove("hidden");
+    $("#pvFrame").srcdoc = editDoc.documentElement.outerHTML;
     $("#pvSave").classList.remove("hidden");
     editing = true;
   }catch(e){ showErr("Failed to load letter for editing."); }
 });
 
+$("#pvEditor").addEventListener("input", ()=>{
+  if(!editDoc) return;
+  editDoc.body.innerText = $("#pvEditor").value;
+  $("#pvFrame").srcdoc = editDoc.documentElement.outerHTML;
+});
+
 $("#pvSave").addEventListener("click", async ()=>{
   if(!editing || !lastPreview) return;
   try{
-    const html = $("#pvEditor").value;
+    const html = editDoc ? editDoc.documentElement.outerHTML : "";
     await api(`/api/letters/${encodeURIComponent(JOB_ID)}/${lastPreview.index}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ html })
     });
     $("#pvFrame").srcdoc = html;
-    $("#pvFrame").classList.remove("hidden");
     $("#pvEditor").classList.add("hidden");
     $("#pvSave").classList.add("hidden");
     editing = false;
+    editDoc = null;
   }catch(e){ showErr("Failed to save letter."); }
 });
 
