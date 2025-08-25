@@ -78,6 +78,7 @@
       <button id="btnEditConsumer" class="btn" data-tip="Edit Consumer (E)">Edit Consumer</button>
       <button id="btnUpload" class="btn" data-tip="Upload HTML (U)">Upload HTML</button>
       <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
+      <button id="btnLibrary" class="btn" data-tip="Creditor Library">Library</button>
       <input id="fileInput" type="file" accept=".html,.htm,text/html" class="hidden" />
     </div>
   </div>
@@ -153,6 +154,10 @@
             <label class="text-sm flex items-center gap-2" title="Generate inquiry dispute letters">
               <input type="checkbox" id="cbInquiries" /> Inquiries
             </label>
+            <label class="text-sm flex items-center gap-2" title="Generate debt collector letters">
+              <input type="checkbox" id="cbCollectors" /> Collectors
+            </label>
+
             <label class="text-sm flex items-center gap-2" title="Generate personal information letters">
               <input type="checkbox" id="cbPersonalInfo" /> Personal Info
             </label>
@@ -172,6 +177,12 @@
         <div class="font-semibold">Inquiries</div>
         <div id="inqList" class="space-y-2 mt-2"></div>
       </div>
+
+      <div class="glass card">
+        <div class="font-semibold">Debt Collectors</div>
+        <div id="collectorList" class="space-y-2 mt-2"></div>
+      </div>
+
 
       <!-- Files & Activity -->
     
@@ -234,6 +245,17 @@
     <div class="flex-1">
       <div class="font-medium inq-creditor"></div>
       <div class="text-xs muted"><span class="inq-bureau"></span> • <span class="inq-date"></span></div>
+    </div>
+  </div>
+</template>
+
+<!-- Debt collector item template -->
+<template id="collectorTemplate">
+  <div class="flex items-center gap-2">
+    <input type="checkbox" class="collector-pick" />
+    <div class="flex-1">
+      <div class="font-medium collector-name"></div>
+      <div class="text-xs muted"><span class="collector-type"></span> • <span class="collector-phone"></span></div>
     </div>
   </div>
 </template>
@@ -311,6 +333,17 @@
         <div class="text-xs muted">Opens new tab</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Library Modal -->
+<div id="libraryModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)]">
+  <div class="glass card w-[min(560px,92vw)] space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="font-semibold">Creditor Library</div>
+      <button id="libraryClose" class="btn">×</button>
+    </div>
+    <div id="libraryList" class="max-h-[60vh] overflow-auto text-sm space-y-1"></div>
   </div>
 </div>
 

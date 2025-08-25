@@ -631,6 +631,63 @@ function generateInquiryLetters({ consumer, inquiries = [] }) {
   return letters;
 }
 
+function buildCollectorLetterHTML({ consumer, collector }) {
+  const dateStr = todayISO();
+  const letterBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${safe(collector.name)} – Collection Notice</title>
+  <style>
+    @media print { @page { margin: 1in; } }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
+    * { word-break:break-word; }
+    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
+    .muted{ color:#6b7280; }
+    h1{ font-size:20px; margin-bottom:8px; }
+  </style>
+</head>
+<body>
+  <div style="display:flex; gap:24px; margin-bottom:16px;">
+    <div class="card" style="flex:1;">
+      <strong>${safe(consumer.name)}</strong><br>
+      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
+      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
+      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
+      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
+      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
+      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
+    </div>
+    <div class="card" style="flex:1;">
+      <strong>${safe(collector.name)}</strong><br>
+      ${collector.phone ? "Phone: "+safe(collector.phone)+"<br>" : ""}
+    </div>
+  </div>
+  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  <h1>${colorize("Debt Validation Request")}</h1>
+  <p>${colorize("Please provide validation of the debt you allege is owed. Until validation is provided, cease all collection activities and communication with me regarding this account.")}</p>
+  <p>${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}</p>
+</body>
+</html>
+  `.trim();
+
+  const fnSafe = safe(collector.name)
+    .replace(/[^a-z0-9]+/gi, "_")
+    .replace(/^_+|_+$/g, "");
+  const filename = `${fnSafe}_collector_letter_${new Date().toISOString().slice(0,10)}.html`;
+  return { filename, html: letterBody };
+}
+
+function generateDebtCollectorLetters({ consumer, collectors = [] }) {
+  const letters = [];
+  for (const col of collectors) {
+    const { filename, html } = buildCollectorLetterHTML({ consumer, collector: col });
+    letters.push({ collector: col.name, filename, html });
+  }
+  return letters;
+}
+
 function generateLetters({ report, selections, consumer, requestType = "correct" }) {
   const SPECIAL_ONE_BUREAU = new Set(["identity", "breach", "assault"]);
   const letters = [];
@@ -703,6 +760,8 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 
   return letters;
 }
+
+export { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters };
 
 export { generateLetters, generatePersonalInfoLetters, generateInquiryLetters };
 
