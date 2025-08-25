@@ -5,8 +5,26 @@
   <title>Hotkey Quiz</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body class="bg-slate-50 text-slate-900">
+  <header class="p-4">
+    <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <div class="flex items-center gap-2">
+        <a href="/dashboard" class="btn">Dashboard</a>
+        <a href="/clients" class="btn">Clients</a>
+        <a href="/leads" class="btn">Leads</a>
+        <a href="/schedule" class="btn">Schedule</a>
+        <a id="navCompany" href="/my-company" class="btn">My Company</a>
+        <a href="/billing" class="btn">Billing</a>
+        <a href="/letters" class="btn">Letter</a>
+        <a href="/library" class="btn">Library</a>
+        <button id="btnCreditors" class="btn" data-tip="Creditor Library">Creditors</button>
+        <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
+      </div>
+    </div>
+  </header>
   <main class="max-w-3xl mx-auto p-6">
     <div class="bg-white rounded-2xl shadow p-6">
       <div class="flex items-center justify-between">
@@ -15,7 +33,7 @@
       </div>
       <p class="text-sm text-slate-600 mt-1">Quick 6-question multiple-choice to learn the keyboard shortcuts.</p>
 
-      <div id="quiz" class="mt-4 space-y-4"></div>
+  <div id="quiz" class="mt-4 space-y-4"></div>
 
       <div class="mt-4 flex items-center gap-3">
         <button id="btnSubmit" class="border rounded px-4 py-2">Submit</button>
@@ -26,5 +44,6 @@
   </main>
 
   <script type="module" src="quiz.js"></script>
+  <script src="/common.js"></script>
 </body>
 </html>

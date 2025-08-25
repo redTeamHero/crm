@@ -16,6 +16,7 @@ let CURRENT_INQUIRIES = [];
 const inquirySelection = {};
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
+const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
 
 // ----- UI helpers -----
 function showErr(msg){
@@ -127,8 +128,10 @@ function renderConsumers(){
     const n = tpl.cloneNode(true);
     n.querySelector(".name").textContent = c.name || "(no name)";
     n.querySelector(".email").textContent = c.email || "";
-    n.querySelector(".select").addEventListener("click", ()=> selectConsumer(c.id));
-    n.querySelector(".delete").addEventListener("click", async ()=>{
+    const card = n.querySelector(".consumer-card");
+    card.addEventListener("click", ()=> selectConsumer(c.id));
+    n.querySelector(".delete").addEventListener("click", async (e)=>{
+      e.stopPropagation();
       if(!confirm(`Delete ${c.name}?`)) return;
       const res = await api(`/api/consumers/${c.id}`, { method:"DELETE" });
       if(!res?.ok) return showErr(res?.error || "Failed to delete consumer.");
@@ -173,6 +176,7 @@ async function selectConsumer(id){
   $("#selConsumer").textContent = c ? c.name : "—";
   await refreshReports();
   await loadConsumerState();
+  loadTracker();
 }
 
 // ===================== Reports =====================
@@ -205,6 +209,20 @@ $("#reportPicker").addEventListener("change", async (e)=>{
   currentReportId = e.target.value || null;
   await loadReportJSON();
 });
+
+function loadTracker(){
+  if(!currentConsumerId){ $("#step1").checked = false; $("#step2").checked = false; return; }
+  const data = trackerData[currentConsumerId] || { step1:false, step2:false };
+  $("#step1").checked = !!data.step1;
+  $("#step2").checked = !!data.step2;
+}
+function saveTracker(){
+  if(!currentConsumerId) return;
+  trackerData[currentConsumerId] = { step1:$("#step1").checked, step2:$("#step2").checked };
+  localStorage.setItem("trackerData", JSON.stringify(trackerData));
+}
+$("#step1").addEventListener("change", saveTracker);
+$("#step2").addEventListener("change", saveTracker);
 
 async function loadReportJSON(){
   clearErr();
@@ -948,18 +966,6 @@ document.addEventListener("keydown",(e)=>{
   if (m){ e.preventDefault(); setMode(m.key); return; }
 });
 
-// Help modal simple control
-function openHelp(){
-  const modal = $("#helpModal");
-  modal.classList.remove("hidden"); modal.classList.add("flex");
-  document.body.style.overflow = "hidden";
-}
-$("#helpClose").addEventListener("click", ()=>{
-  const modal = $("#helpModal");
-  modal.classList.add("hidden"); modal.classList.remove("flex");
-  document.body.style.overflow = "";
-});
-$("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ $("#helpClose").click(); } });
 
 // Library modal
 async function openLibrary(){
