@@ -770,6 +770,10 @@ $("#btnDataBreach").addEventListener("click", async ()=>{
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: c.email })
     });
+
+
+
+    const res = await api(`/api/databreach?email=${encodeURIComponent(c.email)}`);
     if(!res?.ok) return showErr(res?.error || "Breach check failed.");
     const list = res.breaches || [];
     const msg = list.length
