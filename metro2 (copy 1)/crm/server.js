@@ -10,7 +10,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import { generateLetters, generatePersonalInfoLetters } from "./letterEngine.js";
+import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
@@ -301,7 +301,7 @@ function loadJobFromDisk(jobId){
 // Generate letters (from selections) -> memory + disk
 app.post("/api/generate", async (req,res)=>{
   try{
-    const { consumerId, reportId, selections, requestType, personalInfo } = req.body;
+    const { consumerId, reportId, selections, requestType, personalInfo, inquiries } = req.body;
     const db = loadDB();
     const consumer = db.consumers.find(c=>c.id===consumerId);
     if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
@@ -318,6 +318,9 @@ app.post("/api/generate", async (req,res)=>{
     if (personalInfo) {
       letters.push(...generatePersonalInfoLetters({ consumer: consumerForLetter }));
     }
+    if (Array.isArray(inquiries) && inquiries.length) {
+      letters.push(...generateInquiryLetters({ consumer: consumerForLetter, inquiries }));
+    }
     const jobId = crypto.randomBytes(8).toString("hex");
 
     fs.mkdirSync(LETTERS_DIR, { recursive: true });
@@ -329,7 +332,8 @@ app.post("/api/generate", async (req,res)=>{
     // log state
     addEvent(consumer.id, "letters_generated", {
       jobId, requestType, count: letters.length,
-      tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length
+      tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length,
+      inquiries: Array.isArray(inquiries) ? inquiries.length : 0
     });
 
     // schedule reminders for subsequent playbook steps

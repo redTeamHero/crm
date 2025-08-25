@@ -12,6 +12,8 @@ let CURRENT_REPORT = null;
 const TL_PAGE_SIZE = 12;
 let tlPage = 1;
 let tlTotalPages = 1;
+let CURRENT_INQUIRIES = [];
+const inquirySelection = {};
 
 // ----- UI helpers -----
 function showErr(msg){
@@ -32,9 +34,10 @@ function formatEvent(ev){
   let title = escapeHtml(ev.type);
   let body = "";
   if(ev.type === "letters_generated"){
-    const { count, requestType, tradelines } = ev.payload || {};
+    const { count, requestType, tradelines, inquiries = 0 } = ev.payload || {};
     title = "Letters generated";
-    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}.</div>`;
+    const inqPart = inquiries ? ` and ${escapeHtml(inquiries)} inquiry${inquiries===1?"":"s"}` : "";
+    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}${inqPart}.</div>`;
   } else if(ev.type === "audit_generated"){
     const { reportId, file } = ev.payload || {};
     title = "Audit generated";
@@ -210,6 +213,7 @@ async function loadReportJSON(){
   Object.keys(selectionState).forEach(k=> delete selectionState[k]);
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines || []);
+  renderInquiries(CURRENT_REPORT.inquiries || []);
 }
 
 // ===================== Filters (unchanged) =====================
@@ -407,6 +411,30 @@ function renderTradelines(tradelines){
   window.__crm_helpers?.attachCardHandlers?.(container);
 }
 
+function renderInquiries(inquiries){
+  const wrap = $("#inqList");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  CURRENT_INQUIRIES = inquiries || [];
+  Object.keys(inquirySelection).forEach(k=> delete inquirySelection[k]);
+  const tpl = $("#inqTemplate")?.content;
+  CURRENT_INQUIRIES.forEach((inq, idx)=>{
+    const node = tpl.cloneNode(true);
+    node.querySelector(".inq-creditor").textContent = inq.creditor || "Unknown";
+    node.querySelector(".inq-bureau").textContent = inq.bureau || "";
+    node.querySelector(".inq-date").textContent = inq.date || "";
+    const cb = node.querySelector(".inq-dispute");
+    cb.checked = inq.dispute !== false;
+    inquirySelection[idx] = cb.checked;
+    cb.addEventListener("change", ()=>{ inquirySelection[idx] = cb.checked; });
+    wrap.appendChild(node);
+  });
+}
+
+function collectInquirySelections(){
+  return CURRENT_INQUIRIES.filter((_, idx)=> inquirySelection[idx]);
+}
+
 // Zoom modal builders
 function renderPB(pb){
   if (!pb) return "<div class='text-sm muted'>No data.</div>";
@@ -492,13 +520,15 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     if(!currentConsumerId || !currentReportId) throw new Error("Select a consumer and a report first.");
     const selections = collectSelections();
     const includePI = $("#cbPersonalInfo").checked;
-    if(!selections.length && !includePI) throw new Error("Pick at least one tradeline, at least one bureau, and any violations you want, or select Personal Info.");
+    const includeInq = $("#cbInquiries").checked;
+    const inqSelections = includeInq ? collectInquirySelections() : [];
+    if(!selections.length && !includePI && !inqSelections.length) throw new Error("Pick at least one tradeline, inquiry, or select Personal Info.");
     const requestType = getRequestType();
 
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI })
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, inquiries: inqSelections })
     });
     if(!resp.ok){
       const txt = await resp.text().catch(()=> "");
