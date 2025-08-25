@@ -128,8 +128,10 @@ function renderConsumers(){
     const n = tpl.cloneNode(true);
     n.querySelector(".name").textContent = c.name || "(no name)";
     n.querySelector(".email").textContent = c.email || "";
-    n.querySelector(".select").addEventListener("click", ()=> selectConsumer(c.id));
-    n.querySelector(".delete").addEventListener("click", async ()=>{
+    const card = n.querySelector(".consumer-card");
+    card.addEventListener("click", ()=> selectConsumer(c.id));
+    n.querySelector(".delete").addEventListener("click", async (e)=>{
+      e.stopPropagation();
       if(!confirm(`Delete ${c.name}?`)) return;
       const res = await api(`/api/consumers/${c.id}`, { method:"DELETE" });
       if(!res?.ok) return showErr(res?.error || "Failed to delete consumer.");
@@ -964,18 +966,6 @@ document.addEventListener("keydown",(e)=>{
   if (m){ e.preventDefault(); setMode(m.key); return; }
 });
 
-// Help modal simple control
-function openHelp(){
-  const modal = $("#helpModal");
-  modal.classList.remove("hidden"); modal.classList.add("flex");
-  document.body.style.overflow = "hidden";
-}
-$("#helpClose").addEventListener("click", ()=>{
-  const modal = $("#helpModal");
-  modal.classList.add("hidden"); modal.classList.remove("flex");
-  document.body.style.overflow = "";
-});
-$("#helpModal").addEventListener("click", (e)=>{ if(e.target.id==="helpModal"){ $("#helpClose").click(); } });
 
 // Library modal
 async function openLibrary(){
