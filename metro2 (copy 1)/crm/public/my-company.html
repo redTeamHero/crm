@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>My Company</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-8">
+  <h1 class="text-2xl font-bold mb-4">My Company</h1>
+  <form id="companyForm" class="space-y-4">
+    <label class="block">
+      <span class="text-sm">Company Name</span>
+      <input id="companyName" class="border rounded px-2 py-1 w-full" />
+    </label>
+    <button class="btn border px-4 py-2 rounded" type="submit">Save</button>
+  </form>
+  <script>
+    document.getElementById('companyForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const name = document.getElementById('companyName').value.trim();
+      if(name){
+        localStorage.setItem('companyName', name);
+        window.location.href = '/';
+      }
+    });
+  </script>
+</body>
+</html>
+

@@ -50,6 +50,13 @@ setInterval(() => {
 const PUBLIC_DIR = path.join(__dirname, "public");
 app.use(express.static(PUBLIC_DIR));
 app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboard.html")));
+app.get("/clients", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+app.get("/schedule", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "schedule.html")));
+app.get("/my-company", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "my-company.html")));
+app.get("/billing", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "billing.html")));
+app.get("/library", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
+app.get("/letter", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "letters.html")));
 app.get("/letters", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "letters.html")));
 app.get("/letters/:jobId", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "letters.html")));
 
