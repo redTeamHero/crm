@@ -17,6 +17,8 @@ const collectorSelection = {};
 const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
 const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || "[]");
 
+const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
+
 // ----- UI helpers -----
 function showErr(msg){
   const e = $("#err");
@@ -242,6 +244,7 @@ function renderTrackerSteps(){
     wrap.innerHTML = '<div class="muted">No steps yet. Add one below.</div>';
     return;
   }
+
   trackerSteps.forEach((step,i)=>{
     const div = document.createElement("div");
     div.className = "flex items-center gap-1 step-item";
@@ -281,6 +284,20 @@ if(newStepInput){
     if(e.key === "Enter"){ e.preventDefault(); addStepBtn?.click(); }
   });
 }
+document.querySelector("#addStep").addEventListener("click", ()=>{
+  const inp = document.querySelector("#newStepName");
+  let name = (inp.value || "").trim();
+  if(!name) name = `Step ${trackerSteps.length + 1}`;
+  trackerSteps.push(name);
+  localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
+  inp.value = "";
+  renderTrackerSteps();
+  loadTracker();
+});
+document.querySelector("#newStepName").addEventListener("keydown", e=>{
+  if(e.key === "Enter"){ e.preventDefault(); document.querySelector("#addStep").click(); }
+});
+ 
 
 async function loadReportJSON(){
   clearErr();
