@@ -260,6 +260,43 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 async function hibpLookup(email) {
   const apiKey = process.env.HIBP_API_KEY;
   if (!apiKey) return { ok: false, status: 500, error: "HIBP API key not configured" };
+app.post("/api/databreach", async (req, res) => {
+  const email = String(req.body.email || "").trim();
+  if (!email) return res.status(400).json({ ok: false, error: "Email required" });
+  const apiKey = process.env.HIBP_API_KEY;
+  if (!apiKey) return res.status(500).json({ ok: false, error: "HIBP API key not configured" });
+  try {
+    const hibpRes = await fetch(
+      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+      {
+        headers: {
+          "hibp-api-key": apiKey,
+          "user-agent": "crm-app"
+        }
+      }
+    );
+    if (hibpRes.status === 404) {
+      return res.json({ ok: true, breaches: [] });
+    }
+    if (!hibpRes.ok) {
+      const text = await hibpRes.text().catch(() => "");
+      return res
+        .status(hibpRes.status)
+        .json({ ok: false, error: text || `HIBP request failed (status ${hibpRes.status})` });
+    }
+    const data = await hibpRes.json();
+    res.json({ ok: true, breaches: data });
+  } catch (e) {
+    console.error("HIBP check failed", e);
+    res.status(500).json({ ok: false, error: "HIBP request failed" });
+  }
+});
+
+app.get("/api/databreach", async (req, res) => {
+  const email = String(req.query.email || "").trim();
+  if (!email) return res.status(400).json({ ok: false, error: "Email required" });
+  const apiKey = process.env.HIBP_API_KEY;
+  if (!apiKey) return res.status(500).json({ ok: false, error: "HIBP API key not configured" });
   try {
     const hibpRes = await fetch(
       `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
@@ -305,6 +342,21 @@ app.get("/api/databreach", async (req, res) => {
   const email = String(req.query.email || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
   await handleDataBreach(email, res);
+
+      return res.json({ ok: true, breaches: [] });
+    }
+    if (!hibpRes.ok) {
+      const text = await hibpRes.text().catch(() => "");
+      return res
+        .status(hibpRes.status)
+        .json({ ok: false, error: text || `HIBP request failed (status ${hibpRes.status})` });
+    }
+    const data = await hibpRes.json();
+    res.json({ ok: true, breaches: data });
+  } catch (e) {
+    console.error("HIBP check failed", e);
+    res.status(500).json({ ok: false, error: "HIBP request failed" });
+  }
 });
 
 // =================== Letters & PDFs ===================
