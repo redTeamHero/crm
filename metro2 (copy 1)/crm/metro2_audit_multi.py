@@ -31,6 +31,8 @@ FIELD_ALIASES = {
     "Comments:": "comments",
     "Date Last Active:": "date_last_active",
     "Date of Last Payment:": "date_last_payment",
+    "Date of First Delinquency:": "date_first_delinquency",
+    "DOFD:": "date_first_delinquency",
 }
 
 def parse_money(val):
@@ -131,7 +133,7 @@ def normalize_record(rows):
             elif field_key in ("months_terms",):
                 per_bureau[b][field_key] = parse_int(raw)
                 per_bureau[b][field_key + "_raw"] = raw
-            elif field_key in ("date_opened", "last_reported", "date_last_active", "date_last_payment"):
+            elif field_key in ("date_opened", "last_reported", "date_last_active", "date_last_payment", "date_first_delinquency"):
                 per_bureau[b][field_key] = parse_date(raw)
                 per_bureau[b][field_key + "_raw"] = raw
             else:
@@ -140,6 +142,24 @@ def normalize_record(rows):
 
 def v(category, title, detail, evidence):
     return {"category": category, "title": title, "detail": detail, "evidence": evidence}
+
+# Late-payment CSS classes used in payment history cells
+HSTRY_LATE_CLASSES = {
+    "hstry-30", "hstry-60", "hstry-90", "hstry-120", "hstry-150", "hstry-180"
+}
+
+def extract_payment_history(tbl):
+    """Return per-bureau payment history class sequences."""
+    history = {b: [] for b in BUREAUS}
+    bureau_map = {"tu": "TransUnion", "exp": "Experian", "eqf": "Equifax"}
+    for abbr, bureau in bureau_map.items():
+        selector = f'td[ng-class*="history.{abbr}.css"]'
+        for td in tbl.select(selector):
+            classes = td.get("class", [])
+            code = next((c for c in classes if c.startswith("hstry-")), None)
+            if code:
+                history[bureau].append(code)
+    return history
 
 def check_violations(per_bureau):
     violations = []
@@ -175,6 +195,7 @@ def check_violations(per_bureau):
         ("date_opened", "Dates", "Date Opened differs across bureaus", False),
         ("last_reported", "Dates", "Last Reported date differs across bureaus", False),
         ("date_last_payment", "Dates", "Date of Last Payment differs across bureaus", False),
+        ("date_first_delinquency", "Dates", "Date of First Delinquency differs across bureaus", False),
     ]
     for field, cat, title, ignore_zero in X_BUREAU_FIELDS:
         diff, vals = conflicting(field, ignore_zero=ignore_zero)
@@ -193,8 +214,16 @@ def check_violations(per_bureau):
         date_opened = data.get("date_opened")
         last_reported = data.get("last_reported")
         date_last_payment = data.get("date_last_payment")
+        dofd = data.get("date_first_delinquency")
         months_terms = data.get("months_terms")
         comments = (data.get("comments") or "")
+        history_seq = data.get("payment_history") or []
+
+        if not dofd:
+            v("Dates",
+              f"Missing Date of First Delinquency ({b})",
+              "Date of First Delinquency not reported.",
+              {"bureau": b})
 
         # Past-due > 0 but "Current"
         if past_due and past_due > 0 and pstat.startswith("current"):
@@ -254,6 +283,26 @@ def check_violations(per_bureau):
               "Open revolving accounts typically carry a CL or a note that H/C is being used.",
               {"bureau": b, "high_credit": hc, "credit_limit": cl, "comments": comments})
 
+        if ("charge" in pstat or "charge" in status) and (bal is not None and bal > 0):
+            v("Balances & Amounts",
+              f"Charge-off with non-zero balance ({b})",
+              "Charge-off accounts should have a zero balance.",
+              {"bureau": b, "balance": bal, "payment_status": data.get("payment_status"), "account_status": data.get("account_status")})
+
+        if history_seq:
+            if any(c in HSTRY_LATE_CLASSES for c in history_seq):
+                v("Payment History",
+                  f"Late payment markers present ({b})",
+                  "Payment history shows late payments.",
+                  {"bureau": b, "history": history_seq})
+            for prev, curr in zip(history_seq, history_seq[1:]):
+                if curr in HSTRY_LATE_CLASSES and prev not in HSTRY_LATE_CLASSES:
+                    v("Payment History",
+                      f"Abrupt late payment after positive ({b})",
+                      "Late payment follows a positive month.",
+                      {"bureau": b, "sequence": [prev, curr]})
+                    break
+
     return violations
 
 
@@ -268,6 +317,10 @@ def extract_all_tradelines(soup):
         creditor = nearest_creditor_header(tbl)
         rows = extract_rows(tbl)
         per_bureau = normalize_record(rows)
+        histories = extract_payment_history(tbl)
+        for b in BUREAUS:
+            if histories.get(b):
+                per_bureau[b]["payment_history"] = histories[b]
         meta = {
             "creditor": creditor,
             "account_numbers": {b: per_bureau[b].get("account_number") for b in BUREAUS if per_bureau[b].get("account_number")}
