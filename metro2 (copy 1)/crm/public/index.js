@@ -978,7 +978,7 @@ async function openLibrary(){
   modal.classList.remove("hidden"); modal.classList.add("flex");
   document.body.style.overflow = "hidden";
 }
-$("#btnLibrary").addEventListener("click", openLibrary);
+$("#btnCreditors").addEventListener("click", openLibrary);
 $("#libraryClose").addEventListener("click", ()=>{
   const modal = $("#libraryModal");
   modal.classList.add("hidden"); modal.classList.remove("flex");
@@ -988,4 +988,9 @@ $("#libraryModal").addEventListener("click", (e)=>{ if(e.target.id==="libraryMod
 
 // ===================== Init =====================
 loadConsumers();
+
+const companyName = localStorage.getItem("companyName");
+if (companyName) {
+  $("#navCompany").textContent = companyName;
+}
 
