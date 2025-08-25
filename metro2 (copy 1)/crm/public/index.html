@@ -84,9 +84,10 @@
   <div class="glass card space-y-4">
     <div>
       <div class="font-medium mb-1">Client Tracker</div>
-      <div id="trackerSteps" class="flex gap-4 text-sm">
-        <label class="flex items-center gap-2"><input type="checkbox" id="step1" /> Step 1</label>
-        <label class="flex items-center gap-2"><input type="checkbox" id="step2" /> Step 2</label>
+      <div id="trackerSteps" class="flex flex-wrap gap-4 text-sm"></div>
+      <div class="flex items-center gap-2 mt-2 text-sm">
+        <input id="newStepName" class="border rounded px-2 py-1 flex-1" placeholder="New step name" />
+        <button id="addStep" class="btn text-sm">Add Step</button>
       </div>
     </div>
     <div>
@@ -252,6 +253,7 @@
         <button class="tl-reason-prev btn text-xs hidden">Prev</button>
         <button class="tl-reason-next btn text-xs hidden">Next</button>
       </div>
+
 
 
 

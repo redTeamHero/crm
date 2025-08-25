@@ -15,6 +15,7 @@ let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
+const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
 
 // ----- UI helpers -----
 function showErr(msg){
@@ -215,18 +216,62 @@ $("#reportPicker").addEventListener("change", async (e)=>{
 });
 
 function loadTracker(){
-  if(!currentConsumerId){ $("#step1").checked = false; $("#step2").checked = false; return; }
-  const data = trackerData[currentConsumerId] || { step1:false, step2:false };
-  $("#step1").checked = !!data.step1;
-  $("#step2").checked = !!data.step2;
+  renderTrackerSteps();
+  if(!currentConsumerId) return;
+  const data = trackerData[currentConsumerId] || {};
+  trackerSteps.forEach(step=>{
+    const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
+    if(cb) cb.checked = !!data[step];
+  });
 }
 function saveTracker(){
   if(!currentConsumerId) return;
-  trackerData[currentConsumerId] = { step1:$("#step1").checked, step2:$("#step2").checked };
+  const data = trackerData[currentConsumerId] || {};
+  trackerSteps.forEach(step=>{
+    const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
+    if(cb) data[step] = cb.checked;
+  });
+  trackerData[currentConsumerId] = data;
   localStorage.setItem("trackerData", JSON.stringify(trackerData));
 }
-$("#step1").addEventListener("change", saveTracker);
-$("#step2").addEventListener("change", saveTracker);
+function renderTrackerSteps(){
+  const wrap = document.querySelector("#trackerSteps");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  trackerSteps.forEach((step,i)=>{
+    const div = document.createElement("div");
+    div.className = "flex items-center gap-1 step-item";
+    div.innerHTML = `<label class="flex items-center gap-2"><input type="checkbox" data-step="${step}" /> <span>${step}</span></label><button class="remove-step" data-index="${i}" aria-label="Remove step">&times;</button>`;
+    wrap.appendChild(div);
+  });
+  wrap.querySelectorAll("input[type=checkbox]").forEach(cb=>{
+    cb.addEventListener("change", saveTracker);
+  });
+  wrap.querySelectorAll(".remove-step").forEach(btn=>{
+    btn.addEventListener("click", e=>{
+      const idx = parseInt(e.target.dataset.index);
+      const removed = trackerSteps.splice(idx,1)[0];
+      Object.values(trackerData).forEach(obj=>{ delete obj[removed]; });
+      localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
+      localStorage.setItem("trackerData", JSON.stringify(trackerData));
+      renderTrackerSteps();
+      loadTracker();
+    });
+  });
+}
+document.querySelector("#addStep").addEventListener("click", ()=>{
+  const inp = document.querySelector("#newStepName");
+  let name = (inp.value || "").trim();
+  if(!name) name = `Step ${trackerSteps.length + 1}`;
+  trackerSteps.push(name);
+  localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
+  inp.value = "";
+  renderTrackerSteps();
+  loadTracker();
+});
+document.querySelector("#newStepName").addEventListener("keydown", e=>{
+  if(e.key === "Enter"){ e.preventDefault(); document.querySelector("#addStep").click(); }
+});
 
 async function loadReportJSON(){
   clearErr();
@@ -934,6 +979,7 @@ $("#libraryModal").addEventListener("click", (e)=>{ if(e.target.id==="libraryMod
 
 // ===================== Init =====================
 loadConsumers();
+loadTracker();
 
 const companyName = localStorage.getItem("companyName");
 if (companyName) {
