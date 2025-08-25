@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+
   if (!feedEl) return;
 
   const rssUrl = 'https://hnrss.org/frontpage';
