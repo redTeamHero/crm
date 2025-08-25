@@ -358,7 +358,6 @@ app.post("/api/generate", async (req,res)=>{
       inquiries: Array.isArray(inquiries) ? inquiries.length : 0,
       collectors: Array.isArray(collectors) ? collectors.length : 0
 
-      inquiries: Array.isArray(inquiries) ? inquiries.length : 0
     });
 
     // schedule reminders for subsequent playbook steps
@@ -580,6 +579,7 @@ app.listen(PORT, ()=> {
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
 });
+
 
 
 
