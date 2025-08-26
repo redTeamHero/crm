@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
       set('dashRetention', retention.toFixed(1)+"%");
       const convEl = document.getElementById('dashConversion');
       if(convEl) convEl.textContent = conversion.toFixed(1)+"%";
+
     })
     .catch(err=> console.error('Failed to load dashboard stats', err));
 });
