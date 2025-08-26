@@ -26,8 +26,24 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+let nodemailer = null;
+try {
+  nodemailer = (await import("nodemailer")).default;
+} catch (e) {
+  console.warn("Nodemailer not installed");
+}
+
 const app = express();
 app.use(express.json({ limit: "10mb" }));
+let mailer = null;
+if(nodemailer && process.env.SMTP_HOST){
+  mailer = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false,
+    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
+  });
+}
 
 // Basic request logging for debugging
 app.use((req, res, next) => {
@@ -71,6 +87,15 @@ app.get("/portal/:id", (req, res) => {
 const DB_PATH = path.join(__dirname, "db.json");
 function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }catch{ return { consumers: [] }; } }
 function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
+
+const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
+function loadLettersDB(){ try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }catch{ return { jobs: [] }; } }
+function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
+function recordLettersJob(consumerId, jobId, letters){
+  const db = loadLettersDB();
+  db.jobs.push({ consumerId, jobId, createdAt: Date.now(), letters: letters.map(L=>({ filename:L.filename, bureau:L.bureau, creditor:L.creditor })) });
+  saveLettersDB(db);
+}
 
 const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
@@ -133,6 +158,8 @@ app.post("/api/consumers", (req,res)=>{
     zip:   req.body.zip   || "",
     ssn_last4: req.body.ssn_last4 || "",
     dob: req.body.dob || "",
+    sale: Number(req.body.sale) || 0,
+    paid: Number(req.body.paid) || 0,
     reports: []
   };
   db.consumers.push(consumer);
@@ -157,7 +184,9 @@ app.put("/api/consumers/:id", (req,res)=>{
     name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
     addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
     state:req.body.state??c.state, zip:req.body.zip??c.zip, ssn_last4:req.body.ssn_last4??c.ssn_last4,
-    dob:req.body.dob??c.dob
+    dob:req.body.dob??c.dob,
+    sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
+    paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
   });
   saveDB(db);
   addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
@@ -429,6 +458,7 @@ app.post("/api/generate", async (req,res)=>{
 
     putJobMem(jobId, letters);
     persistJobToDisk(jobId, letters);
+    recordLettersJob(consumer.id, jobId, letters);
 
     // log state
     addEvent(consumer.id, "letters_generated", {
@@ -621,6 +651,33 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   }
 });
 
+app.post("/api/letters/:jobId/email", async (req,res)=>{
+  const { jobId } = req.params;
+  const to = String(req.body?.to || "").trim();
+  if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
+  if(!mailer) return res.status(500).json({ ok:false, error:"Email not configured" });
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
+  }
+  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  try{
+    const attachments = job.letters.map(L=>({ filename: L.filename, path: L.htmlPath || path.join(LETTERS_DIR, L.filename) }));
+    await mailer.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject: `Letters ${jobId}`,
+      text: `Attached letters for job ${jobId}`,
+      attachments
+    });
+    res.json({ ok:true });
+  }catch(e){
+    console.error(e);
+    res.status(500).json({ ok:false, error:String(e) });
+  }
+});
+
 app.get("/api/jobs/:jobId/letters", (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}`;
   app._router.handle(req, res);
@@ -679,6 +736,7 @@ app.listen(PORT, ()=> {
   console.log(`CRM ready    http://localhost:${PORT}`);
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
+  console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
 
 
