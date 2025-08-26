@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (feedEl) {
     const rssUrl = 'https://hnrss.org/frontpage';
     const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
-
     fetch(apiUrl)
       .then(r => r.json())
       .then(data => {
@@ -14,9 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         feedEl.innerHTML = items.slice(0,5).map(item => {
-          const title = item.title;
-          const link = item.link;
-          return `<div><a href="${link}" target="_blank" class="text-blue-600 underline">${title}</a></div>`;
+          return `<div class="news-item"><a href="${item.link}" target="_blank" class="text-blue-600 underline">${item.title}</a></div>`;
         }).join('');
       })
       .catch(err => {
@@ -34,30 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-
-
-
-  if (!feedEl) return;
-
-  const rssUrl = 'https://hnrss.org/frontpage';
-  const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
-
-  fetch(apiUrl)
+  fetch('/api/consumers')
     .then(r => r.json())
     .then(data => {
-      const items = data.items || [];
-      if (!items.length) {
-        feedEl.textContent = 'No news available.';
-        return;
-      }
-      feedEl.innerHTML = items.slice(0,5).map(item => {
-        const title = item.title;
-        const link = item.link;
-        return `<div><a href="${link}" target="_blank" class="text-blue-600 underline">${title}</a></div>`;
-      }).join('');
+      const consumers = data.consumers || [];
+      const leads = JSON.parse(localStorage.getItem('leads') || '[]');
+      const totalSales = consumers.reduce((s,c)=> s + Number(c.sale || 0), 0);
+      const totalPaid = consumers.reduce((s,c)=> s + Number(c.paid || 0), 0);
+      const fmt = (n)=> `$${n.toFixed(2)}`;
+      const set = (id, val)=>{ const el=document.getElementById(id); if(el) el.textContent = val; };
+      set('dashLeads', leads.length);
+      set('dashClients', consumers.length);
+      set('dashSales', fmt(totalSales));
+      set('dashPayments', fmt(totalPaid));
     })
-    .catch(err => {
-      console.error('Failed to load news feed', err);
-      feedEl.textContent = 'Failed to load news.';
-    });
+    .catch(err=> console.error('Failed to load dashboard stats', err));
 });
