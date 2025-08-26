@@ -22,6 +22,7 @@ const PER_PAGE = 10;
 let lastPreview = null;    // currently previewed letter object
 let editing = false;
 let editDoc = null;      // DOM document when editing
+let editEl = null;       // element whose text is being edited
 
 function paginate(){
   const total = Math.max(1, Math.ceil(LETTERS.length / PER_PAGE));
@@ -84,6 +85,7 @@ function openPreview(L){
   $("#pvSave").classList.add("hidden");
   editing = false;
   editDoc = null;
+  editEl = null;
   $("#previewModal").style.display = "flex";
   document.body.style.overflow = "hidden";
 }
@@ -107,7 +109,8 @@ $("#pvEdit").addEventListener("click", async ()=>{
     const resp = await fetch(lastPreview.htmlUrl);
     const txt = await resp.text();
     editDoc = new DOMParser().parseFromString(txt, "text/html");
-    $("#pvEditor").value = editDoc.body.innerText;
+    editEl = editDoc.querySelector("pre") || editDoc.body;
+    $("#pvEditor").value = editEl.innerText;
     $("#pvEditor").classList.remove("hidden");
     $("#pvFrame").srcdoc = editDoc.documentElement.outerHTML;
     $("#pvSave").classList.remove("hidden");
@@ -116,8 +119,8 @@ $("#pvEdit").addEventListener("click", async ()=>{
 });
 
 $("#pvEditor").addEventListener("input", ()=>{
-  if(!editDoc) return;
-  editDoc.body.innerText = $("#pvEditor").value;
+  if(!editDoc || !editEl) return;
+  editEl.innerText = $("#pvEditor").value;
   $("#pvFrame").srcdoc = editDoc.documentElement.outerHTML;
 });
 
@@ -135,6 +138,7 @@ $("#pvSave").addEventListener("click", async ()=>{
     $("#pvSave").classList.add("hidden");
     editing = false;
     editDoc = null;
+    editEl = null;
   }catch(e){ showErr("Failed to save letter."); }
 });
 
