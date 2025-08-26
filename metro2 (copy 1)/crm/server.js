@@ -46,6 +46,7 @@ if(nodemailer && process.env.SMTP_HOST){
   });
 }
 
+
 // Basic request logging for debugging
 app.use((req, res, next) => {
   const start = Date.now();
@@ -98,12 +99,15 @@ function recordLettersJob(consumerId, jobId, letters){
   saveLettersDB(db);
 }
 
+const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
+function loadLeadsDB(){ try{ return JSON.parse(fs.readFileSync(LEADS_DB_PATH,"utf-8")); }catch{ return { leads: [] }; } }
+function saveLeadsDB(db){ fs.writeFileSync(LEADS_DB_PATH, JSON.stringify(db,null,2)); }
 
 const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
   try{ return JSON.parse(fs.readFileSync(LIB_PATH, "utf-8")); }
   catch{ return {}; }
-}
+
 
 // ---------- Upload handling ----------
 const upload = multer({ storage: multer.memoryStorage() });
@@ -163,7 +167,6 @@ app.post("/api/consumers", (req,res)=>{
     reports: []
   };
 
-
   db.consumers.push(consumer);
   saveDB(db);
   // log event
@@ -190,6 +193,7 @@ app.put("/api/consumers/:id", (req,res)=>{
     sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
     paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
   });
+
   saveDB(db);
   addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
   res.json({ ok:true, consumer:c });
@@ -238,6 +242,7 @@ app.delete("/api/leads/:id", (req,res)=>{
 app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   const db=loadDB();
   const consumer = db.consumers.find(c=>c.id===req.params.id);
+
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });
 
@@ -485,14 +490,6 @@ app.post("/api/generate", async (req,res)=>{
 
     fs.mkdirSync(LETTERS_DIR, { recursive: true });
     for(const L of letters){ fs.writeFileSync(path.join(LETTERS_DIR, L.filename), L.html, "utf-8"); }
-
-    putJobMem(jobId, letters);
-    persistJobToDisk(jobId, letters);
-    recordLettersJob(consumer.id, jobId, letters);
-
-    putJobMem(jobId, letters);
-    persistJobToDisk(jobId, letters);
-    recordLettersJob(consumer.id, jobId, letters);
 
     putJobMem(jobId, letters);
     persistJobToDisk(jobId, letters);
@@ -838,6 +835,7 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
 
 
 
