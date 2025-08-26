@@ -91,6 +91,10 @@ function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }ca
 function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
+function loadLettersDB(){
+  try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }
+  catch{ return { jobs: [], templates: [], sequences: [], contracts: [] }; }
+}
 
 function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
 function recordLettersJob(consumerId, jobId, letters){
@@ -219,7 +223,8 @@ app.delete("/api/consumers/:id", (req,res)=>{
 });
 
 // =================== Leads ===================
-app.get("/api/leads", (_req,res)=> res.json(loadLeadsDB()));
+app.get("/api/leads", (_req,res)=> res.json({ ok:true, ...loadLeadsDB() }));
+
 
 app.post("/api/leads", (req,res)=>{
   const db = loadLeadsDB();
@@ -244,6 +249,78 @@ app.delete("/api/leads/:id", (req,res)=>{
   db.leads.splice(idx,1);
   saveLeadsDB(db);
   res.json({ ok:true });
+});
+
+// =================== Invoices ===================
+app.get("/api/invoices/:consumerId", (req,res)=>{
+  const db = loadInvoicesDB();
+  const list = db.invoices.filter(inv => inv.consumerId === req.params.consumerId);
+  res.json({ ok:true, invoices: list });
+});
+
+app.post("/api/invoices", (req,res)=>{
+  const db = loadInvoicesDB();
+  const inv = {
+    id: nanoid(10),
+    consumerId: req.body.consumerId,
+    desc: req.body.desc || "",
+    amount: Number(req.body.amount) || 0,
+    due: req.body.due || null,
+    paid: !!req.body.paid
+  };
+  db.invoices.push(inv);
+  saveInvoicesDB(db);
+  res.json({ ok:true, invoice: inv });
+});
+
+app.put("/api/invoices/:id", (req,res)=>{
+  const db = loadInvoicesDB();
+  const inv = db.invoices.find(i=>i.id===req.params.id);
+  if(!inv) return res.status(404).json({ ok:false, error:"Not found" });
+  if(req.body.desc !== undefined) inv.desc = req.body.desc;
+  if(req.body.amount !== undefined) inv.amount = Number(req.body.amount) || 0;
+  if(req.body.due !== undefined) inv.due = req.body.due;
+  if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
+  saveInvoicesDB(db);
+  res.json({ ok:true, invoice: inv });
+});
+
+// =================== Templates / Sequences / Contracts ===================
+app.get("/api/templates", (_req,res)=>{
+  const db = loadLettersDB();
+  res.json({
+    ok: true,
+    templates: db.templates || [],
+    sequences: db.sequences || [],
+    contracts: db.contracts || []
+  });
+});
+
+app.post("/api/templates", (req,res)=>{
+  const db = loadLettersDB();
+  const tpl = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
+  db.templates = db.templates || [];
+  db.templates.push(tpl);
+  saveLettersDB(db);
+  res.json({ ok:true, template: tpl });
+});
+
+app.post("/api/sequences", (req,res)=>{
+  const db = loadLettersDB();
+  const seq = { id: nanoid(8), name: req.body.name || "", templates: req.body.templates || [] };
+  db.sequences = db.sequences || [];
+  db.sequences.push(seq);
+  saveLettersDB(db);
+  res.json({ ok:true, sequence: seq });
+});
+
+app.post("/api/contracts", (req,res)=>{
+  const db = loadLettersDB();
+  const ct = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
+  db.contracts = db.contracts || [];
+  db.contracts.push(ct);
+  saveLettersDB(db);
+  res.json({ ok:true, contract: ct });
 });
 
 
@@ -539,6 +616,20 @@ app.post("/api/generate", async (req,res)=>{
   }
 });
 
+// List stored letter jobs
+app.get("/api/letters", (_req,res)=>{
+  const ldb = loadLettersDB();
+  const cdb = loadDB();
+  const jobs = ldb.jobs.map(j => ({
+    jobId: j.jobId,
+    consumerId: j.consumerId,
+    consumerName: cdb.consumers.find(c=>c.id===j.consumerId)?.name || "",
+    createdAt: j.createdAt,
+    count: (j.letters || []).length
+  }));
+  res.json({ ok:true, jobs });
+});
+
 // List letters for a job
 app.get("/api/letters/:jobId", (req,res)=>{
   const { jobId } = req.params;
@@ -781,3 +872,4 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+

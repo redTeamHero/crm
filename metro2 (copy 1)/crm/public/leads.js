@@ -12,7 +12,11 @@ function leadRow(lead){
     <div class="text-xs">${lead.source || ''}</div>
     <div class="text-xs">${lead.notes || ''}</div>
   </div>
-  <button class="btn text-xs" data-id="${lead.id}">Convert</button>`;
+  <div class="flex gap-2">
+    <button class="convert btn text-xs" data-id="${lead.id}">Convert</button>
+    <button class="delete btn text-xs bg-red-500 text-white" data-id="${lead.id}">Delete</button>
+  </div>`;
+
   return div;
 }
 
@@ -22,7 +26,8 @@ async function renderLeads(){
   list.innerHTML = '';
   data.leads.forEach(l=>{
     const row = leadRow(l);
-    row.querySelector('button').addEventListener('click', async()=>{
+    row.querySelector('.convert').addEventListener('click', async()=>{
+
       await fetch('/api/consumers', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -31,6 +36,11 @@ async function renderLeads(){
       await fetch(`/api/leads/${l.id}`, { method:'DELETE' });
       window.location.href = '/clients';
     });
+    row.querySelector('.delete').addEventListener('click', async()=>{
+      await fetch(`/api/leads/${l.id}`, { method:'DELETE' });
+      renderLeads();
+    });
+
     list.appendChild(row);
   });
 }

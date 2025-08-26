@@ -209,6 +209,30 @@ $("#btnEmailAll").addEventListener("click", async ()=>{
 
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
 
+async function loadJobs(){
+  const list = $("#jobList");
+  list.innerHTML = "";
+  try {
+    const resp = await api('/api/letters');
+    (resp.jobs || []).forEach(j => {
+      const div = document.createElement('div');
+      div.className = 'flex items-center justify-between border rounded px-2 py-1';
+      const date = new Date(j.createdAt).toLocaleString();
+      div.innerHTML = `<div>
+        <div class="font-medium">${escapeHtml(j.consumerName || j.consumerId)}</div>
+        <div class="text-xs">${date} • ${j.count} letter(s)</div>
+      </div>
+      <a class="btn text-xs" href="/letters?job=${encodeURIComponent(j.jobId)}">Open</a>`;
+      list.appendChild(div);
+    });
+    if(!resp.jobs || !resp.jobs.length){
+      list.innerHTML = '<div class="muted text-sm">No letter jobs yet.</div>';
+    }
+  } catch (e) {
+    list.innerHTML = '<div class="text-red-600">Failed to load letter jobs.</div>';
+  }
+}
+
 async function loadLetters(jobId){
   clearErr();
   $("#jobId").textContent = jobId || "—";
@@ -231,8 +255,11 @@ async function loadLetters(jobId){
 
 const JOB_ID = getJobId();
 if (!JOB_ID) {
-  showErr("Missing job parameter.");
+  $("#lettersSection").classList.add('hidden');
+  $("#jobsSection").classList.remove('hidden');
+  loadJobs();
 } else {
+  $("#jobsSection").classList.add('hidden');
   loadLetters(JOB_ID);
 }
 
