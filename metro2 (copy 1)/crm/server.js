@@ -37,6 +37,28 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 let mailer = null;
 if(nodemailer && process.env.SMTP_HOST){
+
+import nodemailer from "nodemailer";
+import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
+import { PLAYBOOKS } from "./playbook.js";
+import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
+import {
+  listConsumerState,
+  addEvent,
+  addFileMeta,
+  consumerUploadsDir,
+  addReminder,
+  processAllReminders,
+} from "./state.js";
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+app.use(express.json({ limit: "10mb" }));
+let mailer = null;
+if(process.env.SMTP_HOST){
   mailer = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),
