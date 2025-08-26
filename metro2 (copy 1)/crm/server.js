@@ -1,51 +1,3 @@
-// server.js
-import express from "express";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { createRequire } from "module";
-import multer from "multer";
-import { nanoid } from "nanoid";
-import { spawn, spawnSync } from "child_process";
-import puppeteer from "puppeteer";
-import crypto from "crypto";
-import os from "os";
-import archiver from "archiver";
-import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
-import { PLAYBOOKS } from "./playbook.js";
-import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
-import {
-  listConsumerState,
-  addEvent,
-  addFileMeta,
-  consumerUploadsDir,
-  addReminder,
-  processAllReminders,
-} from "./state.js";
-
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const require = createRequire(import.meta.url);
-let nodemailer = null;
-try {
-  nodemailer = require("nodemailer");
-} catch (e) {
-  console.warn("Nodemailer not installed");
-}
-
-const app = express();
-app.use(express.json({ limit: "10mb" }));
-let mailer = null;
-if(nodemailer && process.env.SMTP_HOST){
-  mailer = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false,
-    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
-  });
-}
 
 import puppeteer from "puppeteer";
 import crypto from "crypto";
@@ -862,11 +814,8 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
-  console.log(`CRM ready    http://localhost:${PORT}`);
-  console.log(`DB           ${DB_PATH}`);
-  console.log(`Letters dir  ${LETTERS_DIR}`);
-  console.log(`Letters DB   ${LETTERS_DB_PATH}`);
-});
+
+
 
 
 
