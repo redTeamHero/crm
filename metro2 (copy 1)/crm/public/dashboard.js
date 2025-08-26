@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+
   fetch('/api/consumers')
     .then(r => r.json())
     .then(data => {
@@ -46,4 +47,4 @@ document.addEventListener('DOMContentLoaded', () => {
       set('dashPayments', fmt(totalPaid));
     })
     .catch(err=> console.error('Failed to load dashboard stats', err));
-
+});
