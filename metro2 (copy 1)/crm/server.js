@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import fs from "fs";
 import path from "path";
@@ -46,6 +45,7 @@ if(nodemailer && process.env.SMTP_HOST){
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
   });
 }
+
 
 // Basic request logging for debugging
 app.use((req, res, next) => {
@@ -107,7 +107,7 @@ const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
   try{ return JSON.parse(fs.readFileSync(LIB_PATH, "utf-8")); }
   catch{ return {}; }
-}
+
 
 // ---------- Upload handling ----------
 const upload = multer({ storage: multer.memoryStorage() });
@@ -146,9 +146,7 @@ async function runPythonAnalyzer(htmlContent){
 }
 
 // =================== Consumers ===================
-app.get("/api/consumers", (_req,res)=> res.json(loadDB()));
 app.get("/api/library", (_req,res)=> res.json({ ok:true, library: loadLibrary() }));
-
 app.post("/api/consumers", (req,res)=>{
   const db = loadDB();
   const id = nanoid(10);
@@ -168,6 +166,7 @@ app.post("/api/consumers", (req,res)=>{
     paid: Number(req.body.paid) || 0,
     reports: []
   };
+
   db.consumers.push(consumer);
   saveDB(db);
   // log event
@@ -194,6 +193,7 @@ app.put("/api/consumers/:id", (req,res)=>{
     sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
     paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
   });
+
   saveDB(db);
   addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
   res.json({ ok:true, consumer:c });
@@ -242,6 +242,7 @@ app.delete("/api/leads/:id", (req,res)=>{
 app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   const db=loadDB();
   const consumer = db.consumers.find(c=>c.id===req.params.id);
+
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });
 
@@ -713,6 +714,68 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
 });
 
 app.get("/api/jobs/:jobId/letters", (req, res) => {
+
+});
+
+app.post("/api/letters/:jobId/email", async (req,res)=>{
+  const { jobId } = req.params;
+  const to = String(req.body?.to || "").trim();
+  if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
+  if(!mailer) return res.status(500).json({ ok:false, error:"Email not configured" });
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
+  }
+  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  try{
+    const attachments = job.letters.map(L=>({ filename: L.filename, path: L.htmlPath || path.join(LETTERS_DIR, L.filename) }));
+    await mailer.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject: `Letters ${jobId}`,
+      text: `Attached letters for job ${jobId}`,
+      attachments
+    });
+    res.json({ ok:true });
+  }catch(e){
+    console.error(e);
+    res.status(500).json({ ok:false, error:String(e) });
+  }
+});
+
+app.get("/api/jobs/:jobId/letters", (req, res) => {
+
+});
+
+app.post("/api/letters/:jobId/email", async (req,res)=>{
+  const { jobId } = req.params;
+  const to = String(req.body?.to || "").trim();
+  if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
+  if(!mailer) return res.status(500).json({ ok:false, error:"Email not configured" });
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
+  }
+  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  try{
+    const attachments = job.letters.map(L=>({ filename: L.filename, path: L.htmlPath || path.join(LETTERS_DIR, L.filename) }));
+    await mailer.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject: `Letters ${jobId}`,
+      text: `Attached letters for job ${jobId}`,
+      attachments
+    });
+    res.json({ ok:true });
+  }catch(e){
+    console.error(e);
+    res.status(500).json({ ok:false, error:String(e) });
+  }
+});
+
+app.get("/api/jobs/:jobId/letters", (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}`;
   app._router.handle(req, res);
 });
@@ -772,6 +835,19 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
