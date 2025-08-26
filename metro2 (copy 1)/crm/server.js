@@ -147,14 +147,7 @@ app.post("/api/consumers", (req,res)=>{
     paid: Number(req.body.paid) || 0,
     reports: []
   };
-    state: req.body.state || "",
-    zip:   req.body.zip   || "",
-    ssn_last4: req.body.ssn_last4 || "",
-    dob: req.body.dob || "",
-    sale: Number(req.body.sale) || 0,
-    paid: Number(req.body.paid) || 0,
-    reports: []
-  };
+
   db.consumers.push(consumer);
   saveDB(db);
   // log event
@@ -775,6 +768,7 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
 
 
 
