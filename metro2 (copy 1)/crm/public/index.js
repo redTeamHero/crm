@@ -157,6 +157,7 @@ function renderConsumers(){
         $("#activityList").innerHTML = "";
         updatePortalLink();
         setSelectedConsumerId(null);
+
       }
       loadConsumers();
     });
@@ -195,6 +196,7 @@ async function selectConsumer(id){
   const c = DB.consumers.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
    setSelectedConsumerId(id);
+
   updatePortalLink();
   await refreshReports();
   await loadConsumerState();
