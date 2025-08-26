@@ -129,6 +129,7 @@ async function loadConsumers(){
   if (!data || !data.consumers) { showErr("Could not load consumers."); return; }
   DB = data;
   renderConsumers();
+  restoreSelectedConsumer();
 }
 function renderConsumers(){
   const wrap = $("#consumerList");
@@ -155,6 +156,8 @@ function renderConsumers(){
         $("#selConsumer").textContent = "—";
         $("#activityList").innerHTML = "";
         updatePortalLink();
+        setSelectedConsumerId(null);
+
       }
       loadConsumers();
     });
@@ -192,10 +195,19 @@ async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.consumers.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
+   setSelectedConsumerId(id);
+
   updatePortalLink();
   await refreshReports();
   await loadConsumerState();
   loadTracker();
+}
+
+function restoreSelectedConsumer(){
+  const stored = getSelectedConsumerId();
+  if(stored && DB.consumers.find(c=>c.id===stored)){
+    selectConsumer(stored);
+  }
 }
 
 // ===================== Reports =====================

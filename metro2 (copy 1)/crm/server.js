@@ -91,7 +91,7 @@ function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }ca
 function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
-function loadLettersDB(){ try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }catch{ return { jobs: [] }; } }
+
 function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
 function recordLettersJob(consumerId, jobId, letters){
   const db = loadLettersDB();
@@ -102,6 +102,14 @@ function recordLettersJob(consumerId, jobId, letters){
 const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
 function loadLeadsDB(){ try{ return JSON.parse(fs.readFileSync(LEADS_DB_PATH,"utf-8")); }catch{ return { leads: [] }; } }
 function saveLeadsDB(db){ fs.writeFileSync(LEADS_DB_PATH, JSON.stringify(db,null,2)); }
+
+const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
+function loadInvoicesDB(){
+  try{ return JSON.parse(fs.readFileSync(INVOICES_DB_PATH, "utf-8")); }
+  catch{ return { invoices: [] }; }
+}
+function saveInvoicesDB(db){ fs.writeFileSync(INVOICES_DB_PATH, JSON.stringify(db,null,2)); }
+
 
 const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
@@ -237,6 +245,7 @@ app.delete("/api/leads/:id", (req,res)=>{
   saveLeadsDB(db);
   res.json({ ok:true });
 });
+
 
 // Upload HTML -> analyze -> save under consumer
 app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
@@ -772,11 +781,3 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
-
-
-
-
-
-
-
-

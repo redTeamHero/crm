@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
+
   fetch('/api/consumers')
     .then(r => r.json())
     .then(data => {

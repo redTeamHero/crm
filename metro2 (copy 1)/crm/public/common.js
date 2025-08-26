@@ -112,9 +112,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   bindHelp();
   initPalette();
   initVoiceNotes();
+  window.selectedConsumerId = localStorage.getItem('selectedConsumerId') || null;
+
 });
 
 window.openHelp = openHelp;
+
+window.getSelectedConsumerId = function(){
+  return window.selectedConsumerId;
+};
+window.setSelectedConsumerId = function(id){
+  window.selectedConsumerId = id;
+  if(id) localStorage.setItem('selectedConsumerId', id);
+  else localStorage.removeItem('selectedConsumerId');
+};
+
 
 function initVoiceNotes(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
