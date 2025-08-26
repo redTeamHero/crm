@@ -8,28 +8,32 @@
 </head>
 <body>
 <header class="p-4">
-  <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
-    <div class="text-xl font-semibold">Metro 2 CRM</div>
-    <div class="flex items-center gap-2">
-      <a href="/dashboard" class="btn">Dashboard</a>
-      <a href="/clients" class="btn">Clients</a>
-      <a href="/leads" class="btn">Leads</a>
-      <a href="/schedule" class="btn">Schedule</a>
-      <a id="navCompany" href="/my-company" class="btn">My Company</a>
-      <a href="/billing" class="btn">Billing</a>
-      <a href="/letters" class="btn">Letter</a>
-      <a href="/library" class="btn">Library</a>
-      <button id="btnCreditors" class="btn" data-tip="Creditor Library">Creditors</button>
-      <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
-    </div>
+  <div class="max-w-3xl mx-auto flex items-center justify-between">
+    <div id="companyName" class="text-xl font-semibold">Client Portal</div>
+    <nav class="flex items-center gap-2">
+      <a id="navDashboard" href="#" class="btn">Dashboard</a>
+      <a href="#uploads" class="btn">My Uploads</a>
+    </nav>
   </div>
 </header>
-<main class="max-w-3xl mx-auto p-4">
-  <h1 class="text-2xl font-bold mb-4">Welcome, {{name}}</h1>
-  <p>This is your client access portal.</p>
-</main>
-<script src="/common.js"></script>
-  <script src="/hotkeys.js"></script>
+<main class="max-w-3xl mx-auto p-4 space-y-4">
+  <h1 class="text-2xl font-bold">Welcome, {{name}}</h1>
 
+  <div class="glass card">
+    <div class="font-medium mb-2">Current Step</div>
+    <div id="currentStep" class="text-lg">Loading...</div>
+  </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">Our Team</div>
+    <div id="teamList" class="space-y-2 text-sm">Loading...</div>
+  </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">News</div>
+    <div id="newsFeed" class="text-sm space-y-1">Loading...</div>
+  </div>
+</main>
+<script src="/client-portal.js"></script>
 </body>
 </html>
