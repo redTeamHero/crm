@@ -97,6 +97,10 @@ async function runPythonAnalyzer(htmlContent){
   py.stderr.on("data",d=>stderr+=d.toString());
 
   return new Promise((resolve,reject)=>{
+    py.on("error", async(err) => {
+      try { await fs.promises.rm(tmpDir,{recursive:true,force:true}); }catch{}
+      reject(err);
+    });
     py.on("close", async(code)=>{
       try{
         if(code!==0) throw new Error(`Analyzer exit ${code}\n${stderr}\n${stdout}`);
