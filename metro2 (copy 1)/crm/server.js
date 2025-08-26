@@ -142,9 +142,7 @@ async function runPythonAnalyzer(htmlContent){
 }
 
 // =================== Consumers ===================
-app.get("/api/consumers", (_req,res)=> res.json(loadDB()));
 app.get("/api/library", (_req,res)=> res.json({ ok:true, library: loadLibrary() }));
-
 app.post("/api/consumers", (req,res)=>{
   const db = loadDB();
   const id = nanoid(10);
@@ -165,14 +163,6 @@ app.post("/api/consumers", (req,res)=>{
     reports: []
   };
 
-    state: req.body.state || "",
-    zip:   req.body.zip   || "",
-    ssn_last4: req.body.ssn_last4 || "",
-    dob: req.body.dob || "",
-    sale: Number(req.body.sale) || 0,
-    paid: Number(req.body.paid) || 0,
-    reports: []
-  };
 
   db.consumers.push(consumer);
   saveDB(db);
@@ -192,23 +182,6 @@ app.put("/api/consumers/:id", (req,res)=>{
   const db = loadDB();
   const c = db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
-  Object.assign(c, {
-    name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
-    addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
-    state:req.body.state??c.state, zip:req.body.zip??c.zip, ssn_last4:req.body.ssn_last4??c.ssn_last4,
-    dob:req.body.dob??c.dob,
-    sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
-    paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
-  });
-  Object.assign(c, {
-    name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
-    addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
-    state:req.body.state??c.state, zip:req.body.zip??c.zip, ssn_last4:req.body.ssn_last4??c.ssn_last4,
-    dob:req.body.dob??c.dob,
-    sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
-    paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
-  });
-
   Object.assign(c, {
     name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
     addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
@@ -865,11 +838,7 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
-  console.log(`CRM ready    http://localhost:${PORT}`);
-  console.log(`DB           ${DB_PATH}`);
-  console.log(`Letters dir  ${LETTERS_DIR}`);
-  console.log(`Letters DB   ${LETTERS_DB_PATH}`);
-});
+
 
 
 
