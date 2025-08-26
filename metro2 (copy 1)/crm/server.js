@@ -1,6 +1,15 @@
-
-
-import nodemailer from "nodemailer";
+import express from "express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { createRequire } from "module";
+import multer from "multer";
+import { nanoid } from "nanoid";
+import { spawn, spawnSync } from "child_process";
+import puppeteer from "puppeteer";
+import crypto from "crypto";
+import os from "os";
+import archiver from "archiver";
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
@@ -12,6 +21,11 @@ import {
   addReminder,
   processAllReminders,
 } from "./state.js";
+
+
+
+
+
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -768,6 +782,7 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
 
 
 
