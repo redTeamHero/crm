@@ -3,6 +3,7 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
 import multer from "multer";
 import { nanoid } from "nanoid";
 import { spawn, spawnSync } from "child_process";
@@ -26,8 +27,25 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const require = createRequire(import.meta.url);
+let nodemailer = null;
+try {
+  nodemailer = require("nodemailer");
+} catch (e) {
+  console.warn("Nodemailer not installed");
+}
+
 const app = express();
 app.use(express.json({ limit: "10mb" }));
+let mailer = null;
+if(nodemailer && process.env.SMTP_HOST){
+  mailer = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false,
+    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
+  });
+}
 
 // Basic request logging for debugging
 app.use((req, res, next) => {
@@ -71,6 +89,29 @@ app.get("/portal/:id", (req, res) => {
 const DB_PATH = path.join(__dirname, "db.json");
 function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }catch{ return { consumers: [] }; } }
 function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
+
+const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
+function loadLettersDB(){
+  try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }
+  catch{ return { jobs: [], templates: [], sequences: [], contracts: [] }; }
+}
+function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
+function recordLettersJob(consumerId, jobId, letters){
+  const db = loadLettersDB();
+  db.jobs.push({ consumerId, jobId, createdAt: Date.now(), letters: letters.map(L=>({ filename:L.filename, bureau:L.bureau, creditor:L.creditor })) });
+  saveLettersDB(db);
+}
+
+const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
+function loadLeadsDB(){ try{ return JSON.parse(fs.readFileSync(LEADS_DB_PATH,"utf-8")); }catch{ return { leads: [] }; } }
+function saveLeadsDB(db){ fs.writeFileSync(LEADS_DB_PATH, JSON.stringify(db,null,2)); }
+
+const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
+function loadInvoicesDB(){
+  try{ return JSON.parse(fs.readFileSync(INVOICES_DB_PATH, "utf-8")); }
+  catch{ return { invoices: [] }; }
+}
+function saveInvoicesDB(db){ fs.writeFileSync(INVOICES_DB_PATH, JSON.stringify(db,null,2)); }
 
 const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
@@ -133,6 +174,8 @@ app.post("/api/consumers", (req,res)=>{
     zip:   req.body.zip   || "",
     ssn_last4: req.body.ssn_last4 || "",
     dob: req.body.dob || "",
+    sale: Number(req.body.sale) || 0,
+    paid: Number(req.body.paid) || 0,
     reports: []
   };
   db.consumers.push(consumer);
@@ -157,7 +200,9 @@ app.put("/api/consumers/:id", (req,res)=>{
     name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
     addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
     state:req.body.state??c.state, zip:req.body.zip??c.zip, ssn_last4:req.body.ssn_last4??c.ssn_last4,
-    dob:req.body.dob??c.dob
+    dob:req.body.dob??c.dob,
+    sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
+    paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
   });
   saveDB(db);
   addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
@@ -173,6 +218,106 @@ app.delete("/api/consumers/:id", (req,res)=>{
   saveDB(db);
   addEvent(removed.id, "consumer_deleted", {});
   res.json({ ok:true });
+});
+
+// =================== Leads ===================
+app.get("/api/leads", (_req,res)=> res.json({ ok:true, ...loadLeadsDB() }));
+
+app.post("/api/leads", (req,res)=>{
+  const db = loadLeadsDB();
+  const id = nanoid(10);
+  const lead = {
+    id,
+    name: req.body.name || "",
+    email: req.body.email || "",
+    phone: req.body.phone || "",
+    source: req.body.source || "",
+    notes: req.body.notes || ""
+  };
+  db.leads.push(lead);
+  saveLeadsDB(db);
+  res.json({ ok:true, lead });
+});
+
+app.delete("/api/leads/:id", (req,res)=>{
+  const db = loadLeadsDB();
+  const idx = db.leads.findIndex(l=>l.id===req.params.id);
+  if(idx === -1) return res.status(404).json({ error:"Not found" });
+  db.leads.splice(idx,1);
+  saveLeadsDB(db);
+  res.json({ ok:true });
+});
+
+// =================== Invoices ===================
+app.get("/api/invoices/:consumerId", (req,res)=>{
+  const db = loadInvoicesDB();
+  const list = db.invoices.filter(inv => inv.consumerId === req.params.consumerId);
+  res.json({ ok:true, invoices: list });
+});
+
+app.post("/api/invoices", (req,res)=>{
+  const db = loadInvoicesDB();
+  const inv = {
+    id: nanoid(10),
+    consumerId: req.body.consumerId,
+    desc: req.body.desc || "",
+    amount: Number(req.body.amount) || 0,
+    due: req.body.due || null,
+    paid: !!req.body.paid
+  };
+  db.invoices.push(inv);
+  saveInvoicesDB(db);
+  res.json({ ok:true, invoice: inv });
+});
+
+app.put("/api/invoices/:id", (req,res)=>{
+  const db = loadInvoicesDB();
+  const inv = db.invoices.find(i=>i.id===req.params.id);
+  if(!inv) return res.status(404).json({ ok:false, error:"Not found" });
+  if(req.body.desc !== undefined) inv.desc = req.body.desc;
+  if(req.body.amount !== undefined) inv.amount = Number(req.body.amount) || 0;
+  if(req.body.due !== undefined) inv.due = req.body.due;
+  if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
+  saveInvoicesDB(db);
+  res.json({ ok:true, invoice: inv });
+});
+
+// =================== Templates / Sequences / Contracts ===================
+app.get("/api/templates", (_req,res)=>{
+  const db = loadLettersDB();
+  res.json({
+    ok: true,
+    templates: db.templates || [],
+    sequences: db.sequences || [],
+    contracts: db.contracts || []
+  });
+});
+
+app.post("/api/templates", (req,res)=>{
+  const db = loadLettersDB();
+  const tpl = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
+  db.templates = db.templates || [];
+  db.templates.push(tpl);
+  saveLettersDB(db);
+  res.json({ ok:true, template: tpl });
+});
+
+app.post("/api/sequences", (req,res)=>{
+  const db = loadLettersDB();
+  const seq = { id: nanoid(8), name: req.body.name || "", templates: req.body.templates || [] };
+  db.sequences = db.sequences || [];
+  db.sequences.push(seq);
+  saveLettersDB(db);
+  res.json({ ok:true, sequence: seq });
+});
+
+app.post("/api/contracts", (req,res)=>{
+  const db = loadLettersDB();
+  const ct = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
+  db.contracts = db.contracts || [];
+  db.contracts.push(ct);
+  saveLettersDB(db);
+  res.json({ ok:true, contract: ct });
 });
 
 // Upload HTML -> analyze -> save under consumer
@@ -429,6 +574,7 @@ app.post("/api/generate", async (req,res)=>{
 
     putJobMem(jobId, letters);
     persistJobToDisk(jobId, letters);
+    recordLettersJob(consumer.id, jobId, letters);
 
     // log state
     addEvent(consumer.id, "letters_generated", {
@@ -464,6 +610,20 @@ app.post("/api/generate", async (req,res)=>{
     console.error(e);
     res.status(500).json({ ok:false, error:String(e) });
   }
+});
+
+// List stored letter jobs
+app.get("/api/letters", (_req,res)=>{
+  const ldb = loadLettersDB();
+  const cdb = loadDB();
+  const jobs = ldb.jobs.map(j => ({
+    jobId: j.jobId,
+    consumerId: j.consumerId,
+    consumerName: cdb.consumers.find(c=>c.id===j.consumerId)?.name || "",
+    createdAt: j.createdAt,
+    count: (j.letters || []).length
+  }));
+  res.json({ ok:true, jobs });
 });
 
 // List letters for a job
@@ -621,6 +781,33 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   }
 });
 
+app.post("/api/letters/:jobId/email", async (req,res)=>{
+  const { jobId } = req.params;
+  const to = String(req.body?.to || "").trim();
+  if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
+  if(!mailer) return res.status(500).json({ ok:false, error:"Email not configured" });
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
+  }
+  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  try{
+    const attachments = job.letters.map(L=>({ filename: L.filename, path: L.htmlPath || path.join(LETTERS_DIR, L.filename) }));
+    await mailer.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject: `Letters ${jobId}`,
+      text: `Attached letters for job ${jobId}`,
+      attachments
+    });
+    res.json({ ok:true });
+  }catch(e){
+    console.error(e);
+    res.status(500).json({ ok:false, error:String(e) });
+  }
+});
+
 app.get("/api/jobs/:jobId/letters", (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}`;
   app._router.handle(req, res);
@@ -679,6 +866,7 @@ app.listen(PORT, ()=> {
   console.log(`CRM ready    http://localhost:${PORT}`);
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
+  console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
 
 

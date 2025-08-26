@@ -11,6 +11,8 @@
       "zip": "test",
       "ssn_last4": "test",
       "dob": "test",
+      "sale": 0,
+      "paid": 0,
       "reports": [
         {
           "id": "luyj4L6n",
