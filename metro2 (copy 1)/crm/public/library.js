@@ -5,10 +5,32 @@ const api = (u,o={}) => fetch(u,o).then(r=>r.json());
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c])); }
 
 async function loadAll(){
-  const data = await api('/api/templates');
-  renderTemplates(data.templates||[]);
-  renderSequences(data.sequences||[]);
-  renderContracts(data.contracts||[]);
+  const [tplData, jobData] = await Promise.all([
+    api('/api/templates'),
+    api('/api/letters')
+  ]);
+  renderLetterJobs(jobData.jobs || []);
+  renderTemplates(tplData.templates||[]);
+  renderSequences(tplData.sequences||[]);
+  renderContracts(tplData.contracts||[]);
+}
+
+function renderLetterJobs(list){
+  let card = document.getElementById('jobCard');
+  if(!card){
+    card = document.createElement('div');
+    card.id = 'jobCard';
+    card.className = 'glass card';
+    card.innerHTML = '<div class="font-medium mb-2">Generated Letters</div><div id="jobList" class="space-y-1 text-sm"></div>';
+    document.querySelector('main').prepend(card);
+  }
+  const wrap = card.querySelector('#jobList');
+  wrap.innerHTML = '';
+  list.forEach(j=>{
+    const div = document.createElement('div');
+    div.innerHTML = `<a href="/letters?job=${encodeURIComponent(j.jobId)}" class="text-blue-600 underline">Job ${j.jobId} (${j.count}) ${escapeHtml(j.consumerName||'')}</a>`;
+    wrap.appendChild(div);
+  });
 }
 
 function renderTemplates(list){

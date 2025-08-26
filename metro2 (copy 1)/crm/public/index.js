@@ -734,6 +734,7 @@ $("#btnEditConsumer").addEventListener("click", ()=>{
   f.dob.value = c.dob || "";
   f.sale.value = c.sale ?? "";
   f.paid.value = c.paid ?? "";
+  f.status.value = c.status || "active";
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
 });
