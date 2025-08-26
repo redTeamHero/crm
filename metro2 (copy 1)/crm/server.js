@@ -10,6 +10,34 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
+import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
+import { PLAYBOOKS } from "./playbook.js";
+import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
+import {
+  listConsumerState,
+  addEvent,
+  addFileMeta,
+  consumerUploadsDir,
+  addReminder,
+  processAllReminders,
+} from "./state.js";
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let nodemailer = null;
+try {
+  nodemailer = (await import("nodemailer")).default;
+} catch (e) {
+  console.warn("Nodemailer not installed");
+}
+
+const app = express();
+app.use(express.json({ limit: "10mb" }));
+let mailer = null;
+if(nodemailer && process.env.SMTP_HOST){
+
 import nodemailer from "nodemailer";
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
@@ -152,6 +180,8 @@ app.post("/api/consumers", (req,res)=>{
     zip:   req.body.zip   || "",
     ssn_last4: req.body.ssn_last4 || "",
     dob: req.body.dob || "",
+    sale: Number(req.body.sale) || 0,
+    paid: Number(req.body.paid) || 0,
     reports: []
   };
   db.consumers.push(consumer);
@@ -176,7 +206,9 @@ app.put("/api/consumers/:id", (req,res)=>{
     name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
     addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
     state:req.body.state??c.state, zip:req.body.zip??c.zip, ssn_last4:req.body.ssn_last4??c.ssn_last4,
-    dob:req.body.dob??c.dob
+    dob:req.body.dob??c.dob,
+    sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
+    paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
   });
   saveDB(db);
   addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });

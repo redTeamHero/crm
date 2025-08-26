@@ -30,4 +30,21 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('dashNote', noteEl.value);
     });
   }
+
+  fetch('/api/consumers')
+    .then(r => r.json())
+    .then(data => {
+      const consumers = data.consumers || [];
+      const leads = JSON.parse(localStorage.getItem('leads') || '[]');
+      const totalSales = consumers.reduce((s,c)=> s + Number(c.sale || 0), 0);
+      const totalPaid = consumers.reduce((s,c)=> s + Number(c.paid || 0), 0);
+      const fmt = (n)=> `$${n.toFixed(2)}`;
+      const set = (id, val)=>{ const el=document.getElementById(id); if(el) el.textContent = val; };
+      set('dashLeads', leads.length);
+      set('dashClients', consumers.length);
+      set('dashSales', fmt(totalSales));
+      set('dashPayments', fmt(totalPaid));
+    })
+    .catch(err=> console.error('Failed to load dashboard stats', err));
+
 });

@@ -722,6 +722,8 @@ $("#btnEditConsumer").addEventListener("click", ()=>{
   f.zip.value = c.zip || "";
   f.ssn_last4.value = c.ssn_last4 || "";
   f.dob.value = c.dob || "";
+  f.sale.value = c.sale ?? "";
+  f.paid.value = c.paid ?? "";
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
 });
