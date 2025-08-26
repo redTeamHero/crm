@@ -1,35 +1,4 @@
 
-import puppeteer from "puppeteer";
-import crypto from "crypto";
-import os from "os";
-import archiver from "archiver";
-import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
-import { PLAYBOOKS } from "./playbook.js";
-import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
-import {
-  listConsumerState,
-  addEvent,
-  addFileMeta,
-  consumerUploadsDir,
-  addReminder,
-  processAllReminders,
-} from "./state.js";
-
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-let nodemailer = null;
-try {
-  nodemailer = (await import("nodemailer")).default;
-} catch (e) {
-  console.warn("Nodemailer not installed");
-}
-
-const app = express();
-app.use(express.json({ limit: "10mb" }));
-let mailer = null;
-if(nodemailer && process.env.SMTP_HOST){
 
 import nodemailer from "nodemailer";
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
@@ -814,6 +783,7 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
 
 
 
