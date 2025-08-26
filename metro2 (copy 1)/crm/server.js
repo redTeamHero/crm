@@ -107,9 +107,6 @@ function loadLibrary(){
   try{ return JSON.parse(fs.readFileSync(LIB_PATH, "utf-8")); }
   catch{ return {}; }
 }
-const DB_PATH = path.join(__dirname, "db.json");
-function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }catch{ return { consumers: [] }; } }
-function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
 function loadLettersDB(){ try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }catch{ return { jobs: [] }; } }
@@ -892,6 +889,7 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
 
 
 
