@@ -3,9 +3,50 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
 import multer from "multer";
 import { nanoid } from "nanoid";
 import { spawn, spawnSync } from "child_process";
+import puppeteer from "puppeteer";
+import crypto from "crypto";
+import os from "os";
+import archiver from "archiver";
+import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
+import { PLAYBOOKS } from "./playbook.js";
+import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
+import {
+  listConsumerState,
+  addEvent,
+  addFileMeta,
+  consumerUploadsDir,
+  addReminder,
+  processAllReminders,
+} from "./state.js";
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const require = createRequire(import.meta.url);
+let nodemailer = null;
+try {
+  nodemailer = require("nodemailer");
+} catch (e) {
+  console.warn("Nodemailer not installed");
+}
+
+const app = express();
+app.use(express.json({ limit: "10mb" }));
+let mailer = null;
+if(nodemailer && process.env.SMTP_HOST){
+  mailer = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: false,
+    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
+  });
+}
+
 import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
@@ -119,6 +160,15 @@ function recordLettersJob(consumerId, jobId, letters){
   saveLettersDB(db);
 }
 
+const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
+function loadLettersDB(){ try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }catch{ return { jobs: [] }; } }
+function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
+function recordLettersJob(consumerId, jobId, letters){
+  const db = loadLettersDB();
+  db.jobs.push({ consumerId, jobId, createdAt: Date.now(), letters: letters.map(L=>({ filename:L.filename, bureau:L.bureau, creditor:L.creditor })) });
+  saveLettersDB(db);
+}
+
 const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
   try{ return JSON.parse(fs.readFileSync(LIB_PATH, "utf-8")); }
@@ -184,6 +234,14 @@ app.post("/api/consumers", (req,res)=>{
     paid: Number(req.body.paid) || 0,
     reports: []
   };
+    state: req.body.state || "",
+    zip:   req.body.zip   || "",
+    ssn_last4: req.body.ssn_last4 || "",
+    dob: req.body.dob || "",
+    sale: Number(req.body.sale) || 0,
+    paid: Number(req.body.paid) || 0,
+    reports: []
+  };
   db.consumers.push(consumer);
   saveDB(db);
   // log event
@@ -202,6 +260,15 @@ app.put("/api/consumers/:id", (req,res)=>{
   const db = loadDB();
   const c = db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  Object.assign(c, {
+    name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
+    addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
+    state:req.body.state??c.state, zip:req.body.zip??c.zip, ssn_last4:req.body.ssn_last4??c.ssn_last4,
+    dob:req.body.dob??c.dob,
+    sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
+    paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
+  });
+
   Object.assign(c, {
     name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
     addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
@@ -482,6 +549,10 @@ app.post("/api/generate", async (req,res)=>{
     persistJobToDisk(jobId, letters);
     recordLettersJob(consumer.id, jobId, letters);
 
+    putJobMem(jobId, letters);
+    persistJobToDisk(jobId, letters);
+    recordLettersJob(consumer.id, jobId, letters);
+
     // log state
     addEvent(consumer.id, "letters_generated", {
       jobId, requestType, count: letters.length,
@@ -701,6 +772,37 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
 });
 
 app.get("/api/jobs/:jobId/letters", (req, res) => {
+
+});
+
+app.post("/api/letters/:jobId/email", async (req,res)=>{
+  const { jobId } = req.params;
+  const to = String(req.body?.to || "").trim();
+  if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
+  if(!mailer) return res.status(500).json({ ok:false, error:"Email not configured" });
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
+  }
+  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  try{
+    const attachments = job.letters.map(L=>({ filename: L.filename, path: L.htmlPath || path.join(LETTERS_DIR, L.filename) }));
+    await mailer.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject: `Letters ${jobId}`,
+      text: `Attached letters for job ${jobId}`,
+      attachments
+    });
+    res.json({ ok:true });
+  }catch(e){
+    console.error(e);
+    res.status(500).json({ ok:false, error:String(e) });
+  }
+});
+
+app.get("/api/jobs/:jobId/letters", (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}`;
   app._router.handle(req, res);
 });
@@ -755,6 +857,11 @@ app.get("/api/consumers/:id/state/files/:stored", (req,res)=>{
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, ()=> {
+  console.log(`CRM ready    http://localhost:${PORT}`);
+  console.log(`DB           ${DB_PATH}`);
+  console.log(`Letters dir  ${LETTERS_DIR}`);
+  console.log(`Letters DB   ${LETTERS_DB_PATH}`);
+});
   console.log(`CRM ready    http://localhost:${PORT}`);
   console.log(`DB           ${DB_PATH}`);
   console.log(`Letters dir  ${LETTERS_DIR}`);
