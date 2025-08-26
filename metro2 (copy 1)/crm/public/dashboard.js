@@ -47,4 +47,3 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(err=> console.error('Failed to load dashboard stats', err));
 
-});
