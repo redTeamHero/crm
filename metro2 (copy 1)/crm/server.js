@@ -101,7 +101,6 @@ function recordLettersJob(consumerId, jobId, letters){
 const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
 function loadLeadsDB(){ try{ return JSON.parse(fs.readFileSync(LEADS_DB_PATH,"utf-8")); }catch{ return { leads: [] }; } }
 function saveLeadsDB(db){ fs.writeFileSync(LEADS_DB_PATH, JSON.stringify(db,null,2)); }
-function loadLettersDB(){ try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }catch{ return { jobs: [] }; } }
 function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
 function recordLettersJob(consumerId, jobId, letters){
   const db = loadLettersDB();
@@ -880,6 +879,7 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
 
 
 
