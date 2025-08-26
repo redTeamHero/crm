@@ -91,10 +91,7 @@ function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }ca
 function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
-function loadLettersDB(){
-  try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }
-  catch{ return { jobs: [], templates: [], sequences: [], contracts: [] }; }
-}
+
 function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
 function recordLettersJob(consumerId, jobId, letters){
   const db = loadLettersDB();
@@ -112,6 +109,7 @@ function loadInvoicesDB(){
   catch{ return { invoices: [] }; }
 }
 function saveInvoicesDB(db){ fs.writeFileSync(INVOICES_DB_PATH, JSON.stringify(db,null,2)); }
+
 
 const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
@@ -248,77 +246,6 @@ app.delete("/api/leads/:id", (req,res)=>{
   res.json({ ok:true });
 });
 
-// =================== Invoices ===================
-app.get("/api/invoices/:consumerId", (req,res)=>{
-  const db = loadInvoicesDB();
-  const list = db.invoices.filter(inv => inv.consumerId === req.params.consumerId);
-  res.json({ ok:true, invoices: list });
-});
-
-app.post("/api/invoices", (req,res)=>{
-  const db = loadInvoicesDB();
-  const inv = {
-    id: nanoid(10),
-    consumerId: req.body.consumerId,
-    desc: req.body.desc || "",
-    amount: Number(req.body.amount) || 0,
-    due: req.body.due || null,
-    paid: !!req.body.paid
-  };
-  db.invoices.push(inv);
-  saveInvoicesDB(db);
-  res.json({ ok:true, invoice: inv });
-});
-
-app.put("/api/invoices/:id", (req,res)=>{
-  const db = loadInvoicesDB();
-  const inv = db.invoices.find(i=>i.id===req.params.id);
-  if(!inv) return res.status(404).json({ ok:false, error:"Not found" });
-  if(req.body.desc !== undefined) inv.desc = req.body.desc;
-  if(req.body.amount !== undefined) inv.amount = Number(req.body.amount) || 0;
-  if(req.body.due !== undefined) inv.due = req.body.due;
-  if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
-  saveInvoicesDB(db);
-  res.json({ ok:true, invoice: inv });
-});
-
-// =================== Templates / Sequences / Contracts ===================
-app.get("/api/templates", (_req,res)=>{
-  const db = loadLettersDB();
-  res.json({
-    ok: true,
-    templates: db.templates || [],
-    sequences: db.sequences || [],
-    contracts: db.contracts || []
-  });
-});
-
-app.post("/api/templates", (req,res)=>{
-  const db = loadLettersDB();
-  const tpl = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
-  db.templates = db.templates || [];
-  db.templates.push(tpl);
-  saveLettersDB(db);
-  res.json({ ok:true, template: tpl });
-});
-
-app.post("/api/sequences", (req,res)=>{
-  const db = loadLettersDB();
-  const seq = { id: nanoid(8), name: req.body.name || "", templates: req.body.templates || [] };
-  db.sequences = db.sequences || [];
-  db.sequences.push(seq);
-  saveLettersDB(db);
-  res.json({ ok:true, sequence: seq });
-});
-
-app.post("/api/contracts", (req,res)=>{
-  const db = loadLettersDB();
-  const ct = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
-  db.contracts = db.contracts || [];
-  db.contracts.push(ct);
-  saveLettersDB(db);
-  res.json({ ok:true, contract: ct });
-});
 
 // Upload HTML -> analyze -> save under consumer
 app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
@@ -854,12 +781,3 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
-
-
-
-
-
-
-
-
-

@@ -31,13 +31,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  Promise.all([
-    fetch('/api/consumers').then(r => r.json()),
-    fetch('/api/leads').then(r => r.json())
-  ])
-    .then(([cData, lData]) => {
-      const consumers = cData.consumers || [];
-      const leads = lData.leads || [];
+
+
+  fetch('/api/consumers')
+    .then(r => r.json())
+    .then(data => {
+      const consumers = data.consumers || [];
+      const leads = JSON.parse(localStorage.getItem('leads') || '[]');
       const totalSales = consumers.reduce((s,c)=> s + Number(c.sale || 0), 0);
       const totalPaid = consumers.reduce((s,c)=> s + Number(c.paid || 0), 0);
       const fmt = (n)=> `$${n.toFixed(2)}`;
