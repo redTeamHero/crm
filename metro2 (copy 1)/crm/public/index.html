@@ -85,13 +85,12 @@
     <div>
       <div class="font-medium mb-1">Client Tracker</div>
       <div id="trackerSteps" class="flex flex-wrap gap-4 text-sm"></div>
-      <div class="flex items-center gap-2 mt-2 text-sm">
-        <input id="newStepName" class="border rounded px-2 py-1 flex-1" placeholder="New step name" />
-        <button id="addStep" class="btn text-sm">Add Step</button>
+      <div id="stepControls" class="flex items-center gap-2 mt-2 text-sm">
+        <button id="addStep" class="btn text-sm" title="Add step">+</button>
       </div>
     </div>
     <div>
-      <div class="font-medium mb-2">Quick Actions</div>
+        <div class="font-medium mb-2">Quick Actions</div>
       <div id="modeBar" class="flex gap-2 flex-wrap"></div>
       <div class="text-sm muted mt-1">
         Click a mode, then click tradeline cards to tag them. Click the mode again to exit.
@@ -274,15 +273,16 @@
 
 <!-- Inquiry item template -->
 <!-- Debt collector item template -->
-<template id="collectorTemplate">
-  <div class="flex items-center gap-2">
-    <input type="checkbox" class="collector-pick" />
-    <div class="flex-1">
-      <div class="font-medium collector-name"></div>
-      <div class="text-xs muted"><span class="collector-type"></span> • <span class="collector-phone"></span></div>
+  <template id="collectorTemplate">
+    <div class="flex items-center gap-2">
+      <input type="checkbox" class="collector-pick" />
+      <div class="flex-1">
+        <div class="font-medium collector-name"></div>
+        <div class="text-xs muted collector-address"></div>
+        <div class="text-xs muted collector-phone"></div>
+      </div>
     </div>
-  </div>
-</template>
+  </template>
 
 <!-- Edit Consumer Modal -->
 <div id="editModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)]">

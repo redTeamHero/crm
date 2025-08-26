@@ -264,37 +264,33 @@ function renderTrackerSteps(){
     });
   });
 }
-const addStepBtn = document.querySelector("#addStep");
-const newStepInput = document.querySelector("#newStepName");
-if(addStepBtn){
-  addStepBtn.addEventListener("click", ()=>{
-    let name = (newStepInput?.value || "").trim();
-    if(!name) name = `Step ${trackerSteps.length + 1}`;
-    trackerSteps.push(name);
-    localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
-    if(newStepInput) newStepInput.value = "";
-    renderTrackerSteps();
-    loadTracker();
-  });
-}
-if(newStepInput){
-  newStepInput.addEventListener("keydown", e=>{
-    if(e.key === "Enter"){ e.preventDefault(); addStepBtn?.click(); }
-  });
-}
-document.querySelector("#addStep").addEventListener("click", ()=>{
-  const inp = document.querySelector("#newStepName");
-  let name = (inp.value || "").trim();
-  if(!name) name = `Step ${trackerSteps.length + 1}`;
-  trackerSteps.push(name);
-  localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
-  inp.value = "";
-  renderTrackerSteps();
-  loadTracker();
-});
-document.querySelector("#newStepName").addEventListener("keydown", e=>{
-  if(e.key === "Enter"){ e.preventDefault(); document.querySelector("#addStep").click(); }
-});
+  const addStepBtn = document.querySelector("#addStep");
+  if(addStepBtn){
+    addStepBtn.addEventListener("click", ()=>{
+      // If an input already exists, ignore
+      if(document.querySelector("#newStepName")) return;
+      const wrap = document.querySelector("#stepControls");
+      const inp = document.createElement("input");
+      inp.id = "newStepName";
+      inp.placeholder = "New step name";
+      inp.className = "border rounded px-2 py-1 flex-1";
+      wrap.insertBefore(inp, addStepBtn);
+      inp.focus();
+      const finish = ()=>{
+        let name = (inp.value || "").trim();
+        if(!name) name = `Step ${trackerSteps.length + 1}`;
+        trackerSteps.push(name);
+        localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
+        inp.remove();
+        renderTrackerSteps();
+        loadTracker();
+      };
+      inp.addEventListener("keydown", e=>{
+        if(e.key === "Enter"){ e.preventDefault(); finish(); }
+        if(e.key === "Escape"){ inp.remove(); }
+      });
+    });
+  }
  
 
 async function loadReportJSON(){
@@ -534,19 +530,19 @@ function renderCollectors(collectors){
   wrap.innerHTML = "";
   CURRENT_COLLECTORS = collectors || [];
   Object.keys(collectorSelection).forEach(k=> delete collectorSelection[k]);
-  const tpl = $("#collectorTemplate")?.content;
-  CURRENT_COLLECTORS.forEach((col, idx)=>{
-    const node = tpl.cloneNode(true);
-    node.querySelector(".collector-name").textContent = col.name || "Unknown";
-    node.querySelector(".collector-phone").textContent = col.phone || "";
-    node.querySelector(".collector-type").textContent = col.type || "";
-    const cb = node.querySelector(".collector-pick");
-    cb.checked = col.type === "debt_collector";
-    collectorSelection[idx] = cb.checked;
-    cb.addEventListener("change", ()=>{ collectorSelection[idx] = cb.checked; });
-    wrap.appendChild(node);
-  });
-}
+    const tpl = $("#collectorTemplate")?.content;
+    CURRENT_COLLECTORS.forEach((col, idx)=>{
+      const node = tpl.cloneNode(true);
+      node.querySelector(".collector-name").textContent = col.name || "Unknown";
+      node.querySelector(".collector-address").textContent = col.address || "";
+      node.querySelector(".collector-phone").textContent = col.phone || "";
+      const cb = node.querySelector(".collector-pick");
+      cb.checked = col.type === "debt_collector";
+      collectorSelection[idx] = cb.checked;
+      cb.addEventListener("change", ()=>{ collectorSelection[idx] = cb.checked; });
+      wrap.appendChild(node);
+    });
+  }
 
 function collectCollectorSelections(){
   return CURRENT_COLLECTORS.filter((_, idx)=> collectorSelection[idx]);
