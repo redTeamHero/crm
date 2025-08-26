@@ -178,6 +178,8 @@ app.post("/api/consumers", (req,res)=>{
     dob: req.body.dob || "",
     sale: Number(req.body.sale) || 0,
     paid: Number(req.body.paid) || 0,
+    status: req.body.status || "active",
+
     reports: []
   };
   db.consumers.push(consumer);
@@ -204,7 +206,9 @@ app.put("/api/consumers/:id", (req,res)=>{
     state:req.body.state??c.state, zip:req.body.zip??c.zip, ssn_last4:req.body.ssn_last4??c.ssn_last4,
     dob:req.body.dob??c.dob,
     sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
-    paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid
+    paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid,
+    status: req.body.status ?? c.status ?? "active"
+
   });
   saveDB(db);
   addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
@@ -235,9 +239,27 @@ app.post("/api/leads", (req,res)=>{
     email: req.body.email || "",
     phone: req.body.phone || "",
     source: req.body.source || "",
-    notes: req.body.notes || ""
+    notes: req.body.notes || "",
+    status: "new"
+
   };
   db.leads.push(lead);
+  saveLeadsDB(db);
+  res.json({ ok:true, lead });
+});
+
+app.put("/api/leads/:id", (req,res)=>{
+  const db = loadLeadsDB();
+  const lead = db.leads.find(l=>l.id===req.params.id);
+  if(!lead) return res.status(404).json({ error:"Not found" });
+  Object.assign(lead, {
+    name: req.body.name ?? lead.name,
+    email: req.body.email ?? lead.email,
+    phone: req.body.phone ?? lead.phone,
+    source: req.body.source ?? lead.source,
+    notes: req.body.notes ?? lead.notes,
+    status: req.body.status ?? lead.status
+  });
   saveLeadsDB(db);
   res.json({ ok:true, lead });
 });
@@ -872,4 +894,3 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
-

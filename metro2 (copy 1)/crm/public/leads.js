@@ -14,6 +14,7 @@ function leadRow(lead){
   </div>
   <div class="flex gap-2">
     <button class="convert btn text-xs" data-id="${lead.id}">Convert</button>
+    <button class="drop btn text-xs" data-id="${lead.id}">Drop</button>
     <button class="delete btn text-xs bg-red-500 text-white" data-id="${lead.id}">Delete</button>
   </div>`;
 
@@ -25,6 +26,7 @@ async function renderLeads(){
   const list = document.getElementById('leadList');
   list.innerHTML = '';
   data.leads.forEach(l=>{
+    if(l.status && l.status !== 'new') return;
     const row = leadRow(l);
     row.querySelector('.convert').addEventListener('click', async()=>{
 
@@ -33,9 +35,22 @@ async function renderLeads(){
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ name:l.name, email:l.email, phone:l.phone })
       });
-      await fetch(`/api/leads/${l.id}`, { method:'DELETE' });
+      await fetch(`/api/leads/${l.id}`, {
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ status:'completed' })
+      });
       window.location.href = '/clients';
     });
+    row.querySelector('.drop').addEventListener('click', async()=>{
+      await fetch(`/api/leads/${l.id}`, {
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ status:'dropped' })
+      });
+      renderLeads();
+    });
+
     row.querySelector('.delete').addEventListener('click', async()=>{
       await fetch(`/api/leads/${l.id}`, { method:'DELETE' });
       renderLeads();
