@@ -17,6 +17,18 @@ const collectorSelection = {};
 const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
 const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
 
+function updatePortalLink(){
+  const a = $("#clientPortalLink");
+  if(!a) return;
+  if(currentConsumerId){
+    a.href = `/portal-${currentConsumerId}.html`;
+    a.classList.remove("hidden");
+  } else {
+    a.href = "#";
+    a.classList.add("hidden");
+  }
+}
+
 // ----- UI helpers -----
 function showErr(msg){
   const e = $("#err");
@@ -142,6 +154,7 @@ function renderConsumers(){
         $("#tlList").innerHTML = "";
         $("#selConsumer").textContent = "—";
         $("#activityList").innerHTML = "";
+        updatePortalLink();
       }
       loadConsumers();
     });
@@ -179,6 +192,7 @@ async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.consumers.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
+  updatePortalLink();
   await refreshReports();
   await loadConsumerState();
   loadTracker();
@@ -666,15 +680,28 @@ $("#btnGenerate").addEventListener("click", async ()=>{
 });
 
 // ===================== Toolbar =====================
-$("#btnNewConsumer").addEventListener("click", async ()=>{
-  const name = prompt("Consumer name?");
-  if(!name) return;
+$("#btnNewConsumer").addEventListener("click", ()=>{
+  const m = $("#newModal");
+  $("#newForm").reset();
+  m.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+});
+$("#newClose").addEventListener("click", ()=> closeNew());
+$("#newCancel").addEventListener("click", ()=> closeNew());
+function closeNew(){
+  $("#newModal").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+$("#newForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const payload = Object.fromEntries(new FormData(e.currentTarget).entries());
   const res = await api("/api/consumers", {
     method:"POST",
     headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({ name })
+    body: JSON.stringify(payload)
   });
   if(!res?.ok) return showErr(res?.error || "Failed to create consumer.");
+  closeNew();
   await loadConsumers();
   await selectConsumer(res.consumer.id);
 });
@@ -1041,6 +1068,7 @@ $("#libraryModal").addEventListener("click", (e)=>{ if(e.target.id==="libraryMod
 // ===================== Init =====================
 loadConsumers();
 loadTracker();
+updatePortalLink();
 
 const companyName = localStorage.getItem("companyName");
 if (companyName) {
