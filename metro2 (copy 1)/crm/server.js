@@ -95,15 +95,30 @@ function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
 function loadLettersDB(){
-  try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }
-  catch{ return { jobs: [], templates: [], sequences: [], contracts: [] }; }
+  try{
+    const raw = fs.readFileSync(LETTERS_DB_PATH,"utf-8");
+    const db = JSON.parse(raw);
+    console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
+    return db;
+  }catch(e){
+    console.warn("letters-db.json missing or invalid, using empty structure");
+    return { jobs: [], templates: [], sequences: [], contracts: [] };
+  }
 }
 
-function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
+function saveLettersDB(db){
+  fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2));
+  console.log(`Saved letters DB with ${db.jobs.length} jobs`);
+}
 function recordLettersJob(consumerId, jobId, letters){
+  console.log(`Recording letters job ${jobId} for consumer ${consumerId}`);
   const db = loadLettersDB();
   db.jobs.push({ consumerId, jobId, createdAt: Date.now(), letters: letters.map(L=>({ filename:L.filename, bureau:L.bureau, creditor:L.creditor })) });
   saveLettersDB(db);
+}
+if(!fs.existsSync(LETTERS_DB_PATH)){
+  console.log(`letters-db.json not found. Initializing at ${LETTERS_DB_PATH}`);
+  saveLettersDB({ jobs: [], templates: [], sequences: [], contracts: [] });
 }
 
 const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
@@ -527,6 +542,7 @@ app.get("/api/databreach", async (req, res) => {
 
 // =================== Letters & PDFs ===================
 const LETTERS_DIR = path.resolve("./letters");
+fs.mkdirSync(LETTERS_DIR,{ recursive:true });
 const JOBS_INDEX_PATH = path.join(LETTERS_DIR, "_jobs.json");
 
 // in-memory jobs
@@ -583,6 +599,7 @@ async function launchBrowser(){
 
 // Create job: memory + disk
 function persistJobToDisk(jobId, letters){
+  console.log(`Persisting job ${jobId} with ${letters.length} letters to disk`);
   const idx = loadJobsIndex();
   idx.jobs[jobId] = {
     createdAt: Date.now(),
@@ -593,17 +610,23 @@ function persistJobToDisk(jobId, letters){
     }))
   };
   saveJobsIndex(idx);
+  console.log(`Job ${jobId} saved to index at ${JOBS_INDEX_PATH}`);
 }
 
 // Load job from disk (returns { letters: [{... , htmlPath}]})
 function loadJobFromDisk(jobId){
+  console.log(`Loading job ${jobId} from disk`);
   const idx = loadJobsIndex();
   const meta = idx.jobs?.[jobId];
-  if(!meta) return null;
+  if(!meta){
+    console.warn(`Job ${jobId} not found on disk`);
+    return null;
+  }
   const letters = (meta.letters || []).map(item => ({
     ...item,
     htmlPath: path.join(LETTERS_DIR, item.filename),
   }));
+  console.log(`Loaded job ${jobId} with ${letters.length} letters from disk`);
   return { letters, createdAt: meta.createdAt || Date.now() };
 }
 
@@ -635,14 +658,19 @@ app.post("/api/generate", async (req,res)=>{
       letters.push(...generateDebtCollectorLetters({ consumer: consumerForLetter, collectors }));
     }
 
+    console.log(`Generated ${letters.length} letters for consumer ${consumer.id}`);
     const jobId = crypto.randomBytes(8).toString("hex");
 
     fs.mkdirSync(LETTERS_DIR, { recursive: true });
-    for(const L of letters){ fs.writeFileSync(path.join(LETTERS_DIR, L.filename), L.html, "utf-8"); }
+    for(const L of letters){
+      fs.writeFileSync(path.join(LETTERS_DIR, L.filename), L.html, "utf-8");
+      console.log(`Saved letter ${L.filename}`);
+    }
 
     putJobMem(jobId, letters);
     persistJobToDisk(jobId, letters);
     recordLettersJob(consumer.id, jobId, letters);
+    console.log(`Letters job ${jobId} recorded with ${letters.length} letters`);
 
     // log state
     addEvent(consumer.id, "letters_generated", {
@@ -691,12 +719,14 @@ app.get("/api/letters", (_req,res)=>{
     createdAt: j.createdAt,
     count: (j.letters || []).length
   }));
+  console.log(`Listing ${jobs.length} letter jobs`);
   res.json({ ok:true, jobs });
 });
 
 // List letters for a job
 app.get("/api/letters/:jobId", (req,res)=>{
   const { jobId } = req.params;
+  console.log(`Fetching job ${jobId}`);
   let job = getJobMem(jobId);
   if(!job){
     const disk = loadJobFromDisk(jobId);
@@ -713,12 +743,14 @@ app.get("/api/letters/:jobId", (req,res)=>{
   if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
 
   const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor }));
+  console.log(`Job ${jobId} has ${meta.length} letters`);
   res.json({ ok:true, letters: meta });
 });
 
 // Serve letter HTML (preview embed)
 app.get("/api/letters/:jobId/:idx.html", (req,res)=>{
   const { jobId, idx } = req.params;
+  console.log(`Serving HTML for job ${jobId} letter ${idx}`);
   let job = getJobMem(jobId);
   if(!job){
     const disk = loadJobFromDisk(jobId);
@@ -738,6 +770,7 @@ app.put("/api/letters/:jobId/:idx", async (req,res)=>{
   const { jobId, idx } = req.params;
   const html = req.body?.html;
   if(typeof html !== "string") return res.status(400).json({ ok:false, error:"Missing html" });
+  console.log(`Updating letter ${idx} for job ${jobId}`);
   let job = getJobMem(jobId);
   if(job){
     const L = job.letters[Number(idx)];
@@ -745,6 +778,7 @@ app.put("/api/letters/:jobId/:idx", async (req,res)=>{
     L.html = html;
     try{ fs.writeFileSync(path.join(LETTERS_DIR, L.filename), html); }
     catch(e){ return res.status(500).json({ ok:false, error:String(e) }); }
+    console.log(`Letter ${L.filename} updated on disk`);
     return res.json({ ok:true });
   }
   const disk = loadJobFromDisk(jobId);
@@ -753,12 +787,14 @@ app.put("/api/letters/:jobId/:idx", async (req,res)=>{
   if(!Lm) return res.status(404).json({ ok:false, error:"Letter not found" });
   try{ fs.writeFileSync(Lm.htmlPath, html); }
   catch(e){ return res.status(500).json({ ok:false, error:String(e) }); }
+  console.log(`Letter ${Lm.htmlPath} updated on disk`);
   res.json({ ok:true });
 });
 
 // Render letter PDF on-the-fly
 app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   const { jobId, idx } = req.params;
+  console.log(`Generating PDF for job ${jobId} letter ${idx}`);
   let html;
   let filenameBase = "letter";
 
@@ -802,9 +838,13 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
     const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
     await page.close();
+    if(!pdf || pdf.length === 0){
+      throw new Error("Generated PDF is empty");
+    }
 
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
+    console.log(`Generated PDF for ${filenameBase} (${pdf.length} bytes)`);
     res.send(pdf);
   }catch(e){
     console.error("PDF error:", e);
