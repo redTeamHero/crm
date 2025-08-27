@@ -20,11 +20,45 @@
   <h1 class="text-2xl font-bold">Welcome, {{name}}</h1>
 
   <div class="glass card">
+    <div class="font-medium mb-2">Credit Score</div>
+    <div id="scoreValue" class="text-lg mb-2">0</div>
+    <div class="w-full bg-gray-200 rounded h-2">
+      <div id="scoreBar" class="h-2 bg-green-500 rounded" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="glass card">
     <div class="font-medium mb-2">Current Step</div>
     <div id="currentStep" class="text-lg">Loading...</div>
   </div>
 
   <div class="glass card">
+    <div class="font-medium mb-2">Dispute Timeline</div>
+    <div id="timeline" class="text-sm space-y-1">No disputes yet.</div>
+  </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">Credit Report Snapshot</div>
+    <div id="reportSnapshot" class="text-sm space-y-1">No data.</div>
+  </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">Education</div>
+    <div id="education" class="text-sm space-y-1">No educational items.</div>
+  </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">Milestones</div>
+    <div id="milestones" class="text-sm space-y-1">No milestones yet.</div>
+  </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">Document Center</div>
+    <div id="docList" class="text-sm space-y-1">No documents uploaded.</div>
+  </div>
+
+  <div class="glass card">
+
     <div class="font-medium mb-2">Our Team</div>
     <div id="teamList" class="space-y-2 text-sm">Loading...</div>
   </div>
@@ -33,6 +67,18 @@
     <div class="font-medium mb-2">News</div>
     <div id="newsFeed" class="text-sm space-y-1">Loading...</div>
   </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">Debt Payoff Calculator</div>
+    <form id="debtForm" class="space-y-2">
+      <input type="number" id="debtAmount" class="input w-full" placeholder="Debt Amount" required />
+      <input type="number" id="debtRate" class="input w-full" placeholder="Interest Rate %" required />
+      <input type="number" id="debtPayment" class="input w-full" placeholder="Monthly Payment" required />
+      <button type="submit" class="btn">Calculate</button>
+    </form>
+    <div id="debtResult" class="text-sm mt-2"></div>
+  </div>
+
 </main>
 <script src="/client-portal.js"></script>
 </body>
