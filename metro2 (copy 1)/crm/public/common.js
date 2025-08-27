@@ -107,13 +107,13 @@ function bindHelp(){
   document.getElementById('helpModal')?.addEventListener('click', (e)=>{ if(e.target.id==='helpModal') closeHelp(); });
 }
 
+window.selectedConsumerId = localStorage.getItem('selectedConsumerId') || null;
+
 document.addEventListener('DOMContentLoaded', ()=>{
   ensureHelpModal();
   bindHelp();
   initPalette();
   initVoiceNotes();
-  window.selectedConsumerId = localStorage.getItem('selectedConsumerId') || null;
-
 });
 
 window.openHelp = openHelp;
