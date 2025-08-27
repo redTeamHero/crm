@@ -558,7 +558,7 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 // Check consumer email against Have I Been Pwned
 // Use POST so email isn't logged in query string
 async function hibpLookup(email) {
-  const apiKey = process.env.63a05b3069ff4e6ba75ceb1112885749;
+  const apiKey = process.env.HIBP_API_KEY;
   if (!apiKey) return { ok: false, status: 500, error: "HIBP API key not configured" };
   try {
     const hibpRes = await fetch(
