@@ -11,7 +11,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import * as cheerio from "cheerio";
+
 import { PassThrough } from "stream";
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
@@ -779,30 +779,6 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
 
   const lower = filenameBase.toLowerCase();
   const useOcr = lower.includes("dispute") && !lower.includes("audit") && !lower.includes("breach");
-  if(useOcr){
-    try{
-      const $ = cheerio.load(html);
-      $('style,script').remove();
-      const text = $('body').text();
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(),"ocr-"));
-      const txt = path.join(tmp,"letter.txt");
-      const out = path.join(tmp,"letter.pdf");
-      fs.writeFileSync(txt,text,"utf-8");
-      await new Promise((resolve,reject)=>{
-        const py = spawn("python3",[path.join(__dirname,"ocr_resistant_pdf.py"),"--in",txt,"--out",out]);
-        py.on("error",reject);
-        py.on("close",c=>c===0?resolve():reject(new Error("python exit "+c)));
-      });
-      const pdf = fs.readFileSync(out);
-      fs.rmSync(tmp,{recursive:true,force:true});
-      res.setHeader("Content-Type","application/pdf");
-      res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
-      return res.send(pdf);
-    }catch(err){
-      console.error("OCR PDF error, falling back:", err);
-    }
-  }
-
 
   let browser;
   try{
@@ -813,6 +789,16 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     await page.emulateMediaType("screen");
     try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
     try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+    if(useOcr){
+      try{
+        await page.addStyleTag({
+          content: `body{background-image:
+            repeating-linear-gradient(0deg,rgba(0,0,0,0.03)0,rgba(0,0,0,0.03)1px,transparent 1px,transparent 40px),
+            repeating-linear-gradient(90deg,rgba(0,0,0,0.03)0,rgba(0,0,0,0.03)1px,transparent 1px,transparent 40px),
+            repeating-linear-gradient(45deg,rgba(0,0,0,0.04)0,rgba(0,0,0,0.04)4px,transparent 4px,transparent 20px);
+            }`});
+      }catch(e){ console.warn("Failed to apply OCR style", e); }
+    }
     await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
     const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
     await page.close();
