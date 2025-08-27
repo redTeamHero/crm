@@ -143,15 +143,24 @@
           </div>
         </div>
       </div>
-        <div class="glass card">
+      <div class="glass card">
         <div class="flex items-center justify-between mb-2">
           <div class="font-semibold">Files & Activity</div>
           <div class="flex items-center gap-2">
             <input id="activityFile" type="file" class="hidden" />
             <button id="btnAddFile" class="btn" data-tip="Upload file to this consumer">+ Add File</button>
+            <a id="activityPortalLink" class="btn hidden" href="#" target="_blank">Client Portal</a>
           </div>
         </div>
         <div id="activityList" class="space-y-2 text-sm max-h-48 overflow-y-auto"></div>
+      </div>
+      <div class="glass card">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">Messages</div>
+          <button id="btnSendMsg" class="btn text-sm">Send</button>
+        </div>
+        <div id="msgList" class="space-y-2 text-sm max-h-48 overflow-y-auto"></div>
+        <textarea id="msgInput" class="w-full border rounded p-2 text-sm" rows="2" placeholder="Type message..."></textarea>
       </div>
       <div class="glass card">
         <div class="font-semibold mb-2">Filters</div>

@@ -96,6 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const docEl = document.getElementById('docList');
+  const messageBanner = document.getElementById('messageBanner');
+  const messageSection = document.getElementById('messageSection');
+  const messageList = document.getElementById('messageList');
+  const messageForm = document.getElementById('messageForm');
   function loadDocs(){
     if (!(docEl && consumerId)) return;
     fetch(`/api/consumers/${consumerId}/state`)
@@ -108,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(() => { docEl.textContent = 'Failed to load documents.'; });
   }
   loadDocs();
+  loadMessages();
 
   const debtForm = document.getElementById('debtForm');
   if (debtForm) {
@@ -123,6 +128,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function loadMessages(){
+    if (!(consumerId && messageList)) return;
+    fetch(`/api/messages/${consumerId}`)
+      .then(r => r.json())
+      .then(data => {
+        const msgs = data.messages || [];
+        if (messageBanner) {
+          if (msgs.length) {
+            messageBanner.textContent = msgs[0].payload?.text || '';
+            messageBanner.classList.remove('hidden');
+          } else {
+            messageBanner.classList.add('hidden');
+          }
+        }
+        if (!msgs.length) {
+          messageList.innerHTML = '<div class="muted">No messages.</div>';
+        } else {
+          messageList.innerHTML = msgs.map(m => {
+            const from = m.payload?.from === 'host' ? 'msg-host' : 'msg-client';
+            const when = new Date(m.at).toLocaleString();
+            return `<div class="${from} p-2 rounded"><div class="text-xs muted">${when}</div><div>${m.payload?.text||''}</div></div>`;
+          }).join('');
+        }
+      })
+      .catch(() => { messageList.innerHTML = '<div class="muted">Failed to load messages.</div>'; });
+  }
+
+  if (messageForm && consumerId) {
+    messageForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+      fetch(`/api/messages/${consumerId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'client', text }) })
+        .then(r => r.json())
+        .then(() => { input.value = ''; loadMessages(); });
+    });
+  }
+
   // Handle uploads view
   const portalMain = document.getElementById('portalMain');
   const uploadSection = document.getElementById('uploadSection');
@@ -130,9 +174,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hash === '#uploads') {
       portalMain.classList.add('hidden');
       uploadSection.classList.remove('hidden');
+      if(messageSection) messageSection.classList.add('hidden');
+    } else if (hash === '#messages') {
+      portalMain.classList.add('hidden');
+      uploadSection.classList.add('hidden');
+      if(messageSection) { messageSection.classList.remove('hidden'); loadMessages(); }
     } else {
       portalMain.classList.remove('hidden');
       uploadSection.classList.add('hidden');
+      if(messageSection) messageSection.classList.add('hidden');
     }
   }
   showSection(location.hash);

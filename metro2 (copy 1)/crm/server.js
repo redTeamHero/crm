@@ -132,6 +132,24 @@ function loadInvoicesDB(){
 }
 function saveInvoicesDB(db){ fs.writeFileSync(INVOICES_DB_PATH, JSON.stringify(db,null,2)); }
 
+function renderInvoiceHtml(inv, company = {}, consumer = {}) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+  <style>
+    body { font-family: sans-serif; margin:40px; }
+    h1 { text-align:center; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:8px; border-bottom:1px solid #ddd; text-align:left; }
+  </style>
+  </head><body>
+  <h1>${company.name || 'Invoice'}</h1>
+  <p><strong>Bill To:</strong> ${consumer.name || ''}</p>
+  <table>
+    <thead><tr><th>Description</th><th>Amount</th><th>Due</th></tr></thead>
+    <tbody><tr><td>${inv.desc}</td><td>$${Number(inv.amount).toFixed(2)}</td><td>${inv.due || ''}</td></tr></tbody>
+  </table>
+  </body></html>`;
+}
+
 
 const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
@@ -298,7 +316,7 @@ app.get("/api/invoices/:consumerId", (req,res)=>{
   res.json({ ok:true, invoices: list });
 });
 
-app.post("/api/invoices", (req,res)=>{
+app.post("/api/invoices", async (req,res)=>{
   const db = loadInvoicesDB();
   const inv = {
     id: nanoid(10),
@@ -306,8 +324,42 @@ app.post("/api/invoices", (req,res)=>{
     desc: req.body.desc || "",
     amount: Number(req.body.amount) || 0,
     due: req.body.due || null,
-    paid: !!req.body.paid
+    paid: !!req.body.paid,
+    pdf: null,
   };
+
+  try {
+    const company = req.body.company || {};
+    const mainDb = loadDB();
+    const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
+    const html = renderInvoiceHtml(inv, company, consumer);
+    const result = await savePdf(html);
+    const uploadsDir = consumerUploadsDir(inv.consumerId);
+    const fid = nanoid(10);
+    const storedName = `${fid}.pdf`;
+    const dest = path.join(uploadsDir, storedName);
+    await fs.promises.copyFile(result.path, dest);
+    const stat = await fs.promises.stat(dest);
+    addFileMeta(inv.consumerId, {
+      id: fid,
+      originalName: `invoice_${inv.id}.pdf`,
+      storedName,
+      type: "invoice",
+      size: stat.size,
+      mimetype: "application/pdf",
+      uploadedAt: new Date().toISOString(),
+    });
+    inv.pdf = storedName;
+  } catch (err) {
+    console.error("Failed to generate invoice PDF", err);
+  }
+
+  const payLink = req.body.payLink || `https://pay.example.com/${inv.id}`;
+  addEvent(inv.consumerId, "message", {
+    from: "system",
+    text: `Payment due for ${inv.desc} ($${inv.amount.toFixed(2)}). Pay here: ${payLink}`,
+  });
+
   db.invoices.push(inv);
   saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
@@ -323,6 +375,20 @@ app.put("/api/invoices/:id", (req,res)=>{
   if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
   saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
+});
+
+// =================== Messages ===================
+app.get("/api/messages/:consumerId", (req,res)=>{
+  const cstate = listConsumerState(req.params.consumerId);
+  const msgs = (cstate.events || []).filter(e=>e.type === "message");
+  res.json({ ok:true, messages: msgs });
+});
+
+app.post("/api/messages/:consumerId", (req,res)=>{
+  const text = req.body.text || "";
+  const from = req.body.from || "host";
+  addEvent(req.params.consumerId, "message", { from, text });
+  res.json({ ok:true });
 });
 
 // =================== Templates / Sequences / Contracts ===================
