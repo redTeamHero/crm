@@ -36,9 +36,14 @@ function getStateCode(st){
 }
 function renderClientMap(consumers){
   const mapEl = document.getElementById('clientMap');
-  if(!mapEl) return;
+  if(!mapEl || typeof L === 'undefined') return;
+  if(!mapEl.style.height) mapEl.style.height = '16rem';
   const map = L.map(mapEl).setView([37.8,-96],4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'© OpenStreetMap contributors'}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap contributors'
+  }).addTo(map);
+  setTimeout(()=>map.invalidateSize(),0);
+
   consumers.forEach(c=>{
     const code = getStateCode(c.state);
     const coords = stateCenters[code];

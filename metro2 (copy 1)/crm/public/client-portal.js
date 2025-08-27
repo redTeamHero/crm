@@ -114,6 +114,25 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDocs();
   loadMessages();
 
+  const goalBtn = document.getElementById('btnGoal');
+  if(goalBtn){
+    const confettiEl = document.getElementById('confetti');
+    goalBtn.addEventListener('click', () => {
+      if(!confettiEl) return;
+      for(let i=0;i<20;i++){
+        const s=document.createElement('span');
+        s.className='confetti-piece';
+        const tx=(Math.random()-0.5)*200;
+        const ty=(-Math.random()*150-50);
+        s.style.setProperty('--tx', tx+'px');
+        s.style.setProperty('--ty', ty+'px');
+        s.style.backgroundColor=`hsl(${Math.random()*360},80%,60%)`;
+        confettiEl.appendChild(s);
+        setTimeout(()=>s.remove(),1200);
+      }
+    });
+  }
+
   const debtForm = document.getElementById('debtForm');
   if (debtForm) {
     debtForm.addEventListener('submit', e => {
