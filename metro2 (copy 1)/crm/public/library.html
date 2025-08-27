@@ -24,11 +24,39 @@
     </div>
   </div>
 </header>
-<main class="max-w-7xl mx-auto p-4">
-  <h1 class="text-2xl font-bold mb-4">Library</h1>
-  <p>This is a placeholder for the Library page.</p>
+<main class="max-w-7xl mx-auto p-4 space-y-4">
+  <div class="glass card">
+    <div class="font-medium mb-2">Letter Templates</div>
+    <div id="tplList" class="space-y-2"></div>
+    <form id="tplForm" class="mt-4 flex flex-col gap-2">
+      <input id="tplName" class="border rounded px-2 py-1 text-sm" placeholder="Template name" />
+      <textarea id="tplBody" class="border rounded p-2 text-sm" rows="4" placeholder="Template body"></textarea>
+      <button class="btn text-sm self-start" type="submit">Add Template</button>
+    </form>
+  </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">Sequences</div>
+    <div id="seqList" class="space-y-2"></div>
+    <form id="seqForm" class="mt-4 flex flex-col gap-2">
+      <input id="seqName" class="border rounded px-2 py-1 text-sm" placeholder="Sequence name" />
+      <input id="seqTemplates" class="border rounded px-2 py-1 text-sm" placeholder="Template IDs (comma separated)" />
+      <button class="btn text-sm self-start" type="submit">Add Sequence</button>
+    </form>
+  </div>
+
+  <div class="glass card">
+    <div class="font-medium mb-2">Contracts</div>
+    <div id="contractList" class="space-y-2"></div>
+    <form id="contractForm" class="mt-4 flex flex-col gap-2">
+      <input id="contractName" class="border rounded px-2 py-1 text-sm" placeholder="Contract name" />
+      <textarea id="contractBody" class="border rounded p-2 text-sm" rows="4" placeholder="Contract body"></textarea>
+      <button class="btn text-sm self-start" type="submit">Add Contract</button>
+    </form>
+  </div>
 </main>
 <script src="/common.js"></script>
-  <script src="/hotkeys.js"></script>
+<script src="/hotkeys.js"></script>
+<script src="/library.js" type="module"></script>
 </body>
 </html>
