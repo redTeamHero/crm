@@ -324,25 +324,31 @@ app.post("/api/invoices", async (req,res)=>{
     pdf: null,
   };
 
+  let result;
   try {
     const company = req.body.company || {};
     const mainDb = loadDB();
     const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
     const html = renderInvoiceHtml(inv, company, consumer);
-    const result = await savePdf(html);
+    result = await savePdf(html);
+    const ext = path.extname(result.path) || ".html";
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+    if (result.warning || ext !== ".pdf") {
+      console.error("Invoice PDF generation failed", result.warning);
+    }
     const uploadsDir = consumerUploadsDir(inv.consumerId);
     const fid = nanoid(10);
-    const storedName = `${fid}.pdf`;
+    const storedName = `${fid}${ext}`;
     const dest = path.join(uploadsDir, storedName);
     await fs.promises.copyFile(result.path, dest);
     const stat = await fs.promises.stat(dest);
     addFileMeta(inv.consumerId, {
       id: fid,
-      originalName: `invoice_${inv.id}.pdf`,
+      originalName: `invoice_${inv.id}${ext}`,
       storedName,
       type: "invoice",
       size: stat.size,
-      mimetype: "application/pdf",
+      mimetype: mime,
       uploadedAt: new Date().toISOString(),
     });
     inv.pdf = storedName;
@@ -359,7 +365,7 @@ app.post("/api/invoices", async (req,res)=>{
 
   db.invoices.push(inv);
   saveInvoicesDB(db);
-  res.json({ ok:true, invoice: inv });
+  res.json({ ok:true, invoice: inv, warning: result?.warning });
 });
 
 app.put("/api/invoices/:id", (req,res)=>{
@@ -517,12 +523,16 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
     const normalized = normalizeReport(r.data, selections);
     const html = renderHtml(normalized, c.name);
     const result = await savePdf(html);
+    const ext = path.extname(result.path) || ".html";
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+    if (result.warning || ext !== ".pdf") {
+      console.error("Audit PDF generation failed", result.warning);
+    }
 
     // copy report into consumer uploads and register metadata
     try {
       const uploadsDir = consumerUploadsDir(c.id);
       const id = nanoid(10);
-      const ext = path.extname(result.path) || ".pdf";
       const storedName = `${id}${ext}`;
       const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
       const date = new Date().toISOString().slice(0,10);
@@ -536,7 +546,7 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
         storedName,
         type: "audit",
         size: stat.size,
-        mimetype: "application/pdf",
+        mimetype: mime,
         uploadedAt: new Date().toISOString(),
       });
     } catch(err) {
