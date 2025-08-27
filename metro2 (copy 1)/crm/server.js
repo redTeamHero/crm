@@ -331,11 +331,13 @@ app.post("/api/invoices", async (req,res)=>{
     const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
     const html = renderInvoiceHtml(inv, company, consumer);
     result = await savePdf(html);
-    const ext = path.extname(result.path) || ".html";
-    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+    let ext = path.extname(result.path);
     if (result.warning || ext !== ".pdf") {
       console.error("Invoice PDF generation failed", result.warning);
+      ext = ".html";
     }
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+
     const uploadsDir = consumerUploadsDir(inv.consumerId);
     const fid = nanoid(10);
     const storedName = `${fid}${ext}`;
@@ -523,11 +525,13 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
     const normalized = normalizeReport(r.data, selections);
     const html = renderHtml(normalized, c.name);
     const result = await savePdf(html);
-    const ext = path.extname(result.path) || ".html";
-    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+    let ext = path.extname(result.path);
     if (result.warning || ext !== ".pdf") {
       console.error("Audit PDF generation failed", result.warning);
+      ext = ".html";
     }
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+
 
     // copy report into consumer uploads and register metadata
     try {
@@ -861,9 +865,6 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     filenameBase = path.basename(Lm.htmlPath).replace(/\.html?$/i,"");
   }
 
-  const lower = filenameBase.toLowerCase();
-  const useOcr = lower.includes("dispute") && !lower.includes("audit") && !lower.includes("breach");
-
   let browser;
   try{
     browser = await launchBrowser();
@@ -873,16 +874,6 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     await page.emulateMediaType("screen");
     try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
     try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-    if(useOcr){
-      try{
-        await page.addStyleTag({
-          content: `body{background-image:
-            repeating-linear-gradient(0deg,rgba(0,0,0,0.03)0,rgba(0,0,0,0.03)1px,transparent 1px,transparent 40px),
-            repeating-linear-gradient(90deg,rgba(0,0,0,0.03)0,rgba(0,0,0,0.03)1px,transparent 1px,transparent 40px),
-            repeating-linear-gradient(45deg,rgba(0,0,0,0.04)0,rgba(0,0,0,0.04)4px,transparent 4px,transparent 20px);
-            }`});
-      }catch(e){ console.warn("Failed to apply OCR style", e); }
-    }
     await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
     const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
     await page.close();
