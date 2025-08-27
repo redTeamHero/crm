@@ -1,6 +1,7 @@
 /* public/client-portal.js */
 document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
+
   const consumerId = idMatch ? idMatch[1] : null;
 
   const dash = document.getElementById('navDashboard');
@@ -116,4 +117,5 @@ document.addEventListener('DOMContentLoaded', () => {
       else result.textContent = 'Payment too low to cover interest.';
     });
   }
+
 });

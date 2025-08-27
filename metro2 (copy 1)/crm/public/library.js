@@ -31,6 +31,7 @@ function renderLetterJobs(list){
     div.innerHTML = `<a href="/letters?job=${encodeURIComponent(j.jobId)}" class="text-blue-600 underline">Job ${j.jobId} (${j.count}) ${escapeHtml(j.consumerName||'')}</a>`;
     wrap.appendChild(div);
   });
+
 }
 
 function renderTemplates(list){

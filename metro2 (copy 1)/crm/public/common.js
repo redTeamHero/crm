@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   initPalette();
   initVoiceNotes();
   window.selectedConsumerId = localStorage.getItem('selectedConsumerId') || null;
+
 });
 
 window.openHelp = openHelp;
@@ -125,6 +126,7 @@ window.setSelectedConsumerId = function(id){
   if(id) localStorage.setItem('selectedConsumerId', id);
   else localStorage.removeItem('selectedConsumerId');
 };
+
 
 function initVoiceNotes(){
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

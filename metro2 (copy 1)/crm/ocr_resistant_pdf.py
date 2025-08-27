@@ -178,6 +178,7 @@ def render_ocr_resistant_pdf(text: str, out_path: str, style: Optional[OCRStyle]
     rgb = page.convert("RGB")
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     rgb.save(out_path, "PDF", resolution=150.0)
+
     return out_path
 
 def _parse_pt_rect(val: List[str]) -> Tuple[int,int,int,int]:

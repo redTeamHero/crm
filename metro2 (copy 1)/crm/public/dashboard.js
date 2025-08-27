@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
       titleEl.value = n.title;
       noteEl.value = n.content;
     });
+
     saveBtn.addEventListener('click', () => {
       const title = titleEl.value.trim() || 'Untitled';
       notes.push({ title, content: noteEl.value });
@@ -79,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
       set('dashRetention', retention.toFixed(1)+"%");
       const convEl = document.getElementById('dashConversion');
       if(convEl) convEl.textContent = conversion.toFixed(1)+"%";
+
     })
     .catch(err=> console.error('Failed to load dashboard stats', err));
 });
