@@ -7,6 +7,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
 
+  const mascotEl = document.getElementById('mascot');
+  if (mascotEl && window.lottie) {
+    lottie.loadAnimation({
+      container: mascotEl,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: 'https://assets2.lottiefiles.com/packages/lf20_tusxd6ku.json'
+    });
+  }
+
+  document.querySelectorAll('button, .btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      const circle=document.createElement('span');
+      circle.className='ripple';
+      const rect=btn.getBoundingClientRect();
+      const size=Math.max(rect.width,rect.height);
+      circle.style.width=circle.style.height=size+'px';
+      circle.style.left=e.clientX-rect.left-size/2+'px';
+      circle.style.top=e.clientY-rect.top-size/2+'px';
+      btn.appendChild(circle);
+      setTimeout(()=>circle.remove(),700);
+    });
+  });
+
   const company = JSON.parse(localStorage.getItem('companyInfo') || '{}');
   if (company.name) {
     const cn = document.getElementById('companyName');
@@ -49,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         feedEl.innerHTML = items.slice(0,5).map(item => `
-          <div class="news-item"><a href="${item.link}" target="_blank">${item.title}</a></div>
+          <div class="news-item"><a href="${item.link}" target="_blank" class="flex items-center gap-1">${item.title}<span class="wiggle-arrow">↗</span></a></div>
         `).join('');
       })
       .catch(err => {
@@ -59,15 +84,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const scoreVal = document.getElementById('scoreValue');
-  const scoreBar = document.getElementById('scoreBar');
-  if (scoreVal && scoreBar) {
+  const scoreProg = document.getElementById('scoreProgress');
+  const scoreConfetti = document.getElementById('scoreConfetti');
+  if (scoreVal && scoreProg) {
     const score = JSON.parse(localStorage.getItem('creditScore') || '{"start":0,"current":0}');
-    scoreVal.textContent = score.current + (score.start ? ` (start ${score.start})` : '');
-    const pct = score.start ? Math.min(1, Math.max(0, (score.current - score.start) / (850 - score.start))) * 100 : 0;
-    scoreBar.style.width = pct + '%';
-    if (score.current > score.start) {
+    scoreVal.textContent = score.current;
+    const pct = Math.min(1, score.current / 850);
+    const circ = 339.292;
+    scoreProg.style.strokeDashoffset = circ * (1 - pct);
+    if (score.current > (score.start || 0) && scoreConfetti && window.lottie) {
+      lottie.loadAnimation({
+        container: scoreConfetti,
+        renderer: 'svg',
+        loop: false,
+        autoplay: true,
+        path: 'https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json'
+      });
+      setTimeout(() => { scoreConfetti.innerHTML = ''; }, 1500);
       const ms = document.getElementById('milestones');
-      if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${score.current - score.start} points!</div>`;
+      if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${score.current - (score.start || 0)} points!</div>`;
     }
   }
 
@@ -75,8 +110,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (timelineEl) {
     const timeline = JSON.parse(localStorage.getItem('disputeTimeline') || '[]');
     if (!timeline.length) {
-      timelineEl.textContent = 'No disputes yet.';
+      const empty = document.getElementById('timelineEmpty');
+      if (empty && window.lottie) {
+        lottie.loadAnimation({
+          container: empty,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          path: 'https://assets2.lottiefiles.com/packages/lf20_fyye8suv.json'
+        });
+      }
     } else {
+      const tt = document.getElementById('timelineText');
+      if (tt) tt.remove();
+      const te = document.getElementById('timelineEmpty');
+      if (te) te.remove();
       timelineEl.innerHTML = timeline.map(t => `<div class="timeline-item"><span class="font-medium">${t.account}</span> - ${t.stage}</div>`).join('');
     }
   }
@@ -117,18 +165,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const goalBtn = document.getElementById('btnGoal');
   if(goalBtn){
     const confettiEl = document.getElementById('confetti');
+    const burstEl = document.getElementById('goalBurst');
     goalBtn.addEventListener('click', () => {
-      if(!confettiEl) return;
-      for(let i=0;i<20;i++){
-        const s=document.createElement('span');
-        s.className='confetti-piece';
-        const tx=(Math.random()-0.5)*200;
-        const ty=(-Math.random()*150-50);
-        s.style.setProperty('--tx', tx+'px');
-        s.style.setProperty('--ty', ty+'px');
-        s.style.backgroundColor=`hsl(${Math.random()*360},80%,60%)`;
-        confettiEl.appendChild(s);
-        setTimeout(()=>s.remove(),1200);
+      if(confettiEl){
+        for(let i=0;i<20;i++){
+          const s=document.createElement('span');
+          s.className='confetti-piece';
+          const tx=(Math.random()-0.5)*200;
+          const ty=(-Math.random()*150-50);
+          s.style.setProperty('--tx', tx+'px');
+          s.style.setProperty('--ty', ty+'px');
+          s.style.backgroundColor=`hsl(${Math.random()*360},80%,60%)`;
+          confettiEl.appendChild(s);
+          setTimeout(()=>s.remove(),1200);
+        }
+      }
+      if(burstEl && window.lottie){
+        lottie.loadAnimation({
+          container: burstEl,
+          renderer: 'svg',
+          loop: false,
+          autoplay: true,
+          path: 'https://assets7.lottiefiles.com/packages/lf20_jei1c95b.json'
+        }).addEventListener('complete',()=>{burstEl.innerHTML='';});
+
       }
     });
   }

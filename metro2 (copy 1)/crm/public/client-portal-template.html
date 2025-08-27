@@ -3,19 +3,30 @@
 <head>
   <meta charset="utf-8">
   <title>Client Portal - {{name}}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/style.css" />
-  <style>
-    @keyframes blob{0%,100%{transform:translate(0,0);}33%{transform:translate(15px,-10px);}66%{transform:translate(-10px,10px);}}
-    .animate-blob{animation:blob 10s ease-in-out infinite;}
-    .confetti-piece{position:absolute;width:6px;height:6px;border-radius:1px;animation:confetti 1.2s ease-out forwards;}
-    @keyframes confetti{to{transform:translate(var(--tx),var(--ty)) rotate(720deg);opacity:0;}}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      @keyframes blob{0%,100%{transform:translate(0,0);}33%{transform:translate(15px,-10px);}66%{transform:translate(-10px,10px);}}
+      .animate-blob{animation:blob 10s ease-in-out infinite;}
+      .confetti-piece{position:absolute;width:6px;height:6px;border-radius:1px;animation:confetti 1.2s ease-out forwards;}
+      @keyframes confetti{to{transform:translate(var(--tx),var(--ty)) rotate(720deg);opacity:0;}}
+    .btn{position:relative;overflow:hidden;}
+    .btn span.ripple{position:absolute;border-radius:50%;transform:scale(0);animation:ripple 700ms ease-out;background:rgba(255,255,255,0.6);}
+    @keyframes ripple{to{transform:scale(3);opacity:0;}}
+    .btn:hover::after{content:'✨';position:absolute;right:4px;top:2px;pointer-events:none;}
+    .wiggle-arrow{display:inline-block;transition:transform .2s;}
+    .wiggle-arrow:hover{transform:translateX(2px);}
+
   </style>
 </head>
 <body>
 <header class="p-4">
   <div class="max-w-3xl mx-auto flex items-center justify-between">
-    <div id="companyName" class="text-xl font-semibold">Client Portal</div>
+    <div class="flex items-center gap-2">
+      <div id="mascot" class="w-12 h-12"></div>
+      <div id="companyName" class="text-xl font-semibold">Client Portal</div>
+    </div>
     <nav class="flex items-center gap-2">
       <a id="navDashboard" href="#" class="btn">Dashboard</a>
       <a href="#messages" class="btn">Messages</a>
@@ -34,17 +45,30 @@
 <main id="portalMain" class="max-w-3xl mx-auto p-4 space-y-4">
   <div class="glass card relative overflow-hidden">
     <div class="pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 opacity-20 blur-3xl animate-blob"></div>
-    <h2 class="mb-2 text-2xl font-bold">Welcome, {{name}}</h2>
+    <div class="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-gradient-to-tr from-cyan-400 to-emerald-400 opacity-20 blur-3xl animate-blob"></div>
+    <h2 class="mb-2 text-2xl font-bold flex items-center gap-2">Welcome, {{name}}</h2>
     <p class="text-sm text-gray-600">Let’s knock out today’s tasks.</p>
     <button id="btnGoal" class="mt-4 rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95">Mark Today’s Goal Done</button>
     <div id="confetti" class="pointer-events-none absolute inset-0"></div>
+    <div id="goalBurst" class="pointer-events-none absolute inset-0"></div>
+
   </div>
 
   <div class="glass card">
     <div class="font-medium mb-2">Credit Score</div>
-    <div id="scoreValue" class="text-lg mb-2">0</div>
-    <div class="w-full bg-gray-200 rounded h-2">
-      <div id="scoreBar" class="h-2 bg-green-500 rounded" style="width:0%"></div>
+    <div class="relative grid place-items-center">
+      <svg id="scoreRing" viewBox="0 0 140 140" class="w-32 h-32 -rotate-90">
+        <circle cx="70" cy="70" r="54" stroke="#e5e7eb" stroke-width="12" fill="none"></circle>
+        <circle id="scoreProgress" cx="70" cy="70" r="54" stroke="url(#g)" stroke-width="12" stroke-linecap="round" fill="none" stroke-dasharray="339.292" stroke-dashoffset="339.292"></circle>
+        <defs>
+          <linearGradient id="g" x1="0" x2="1">
+            <stop offset="0%" stop-color="#10b981" />
+            <stop offset="100%" stop-color="#06b6d4" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div id="scoreValue" class="absolute text-2xl font-bold">0</div>
+      <div id="scoreConfetti" class="pointer-events-none absolute inset-0"></div>
     </div>
   </div>
 
@@ -55,7 +79,10 @@
 
   <div class="glass card">
     <div class="font-medium mb-2">Dispute Timeline</div>
-    <div id="timeline" class="text-sm space-y-1">No disputes yet.</div>
+    <div id="timeline" class="text-sm space-y-1 flex flex-col items-center justify-center">
+      <div id="timelineEmpty" class="w-32 h-32"></div>
+      <div id="timelineText" class="mt-2">No disputes yet.</div>
+    </div>
   </div>
 
   <div class="glass card">
