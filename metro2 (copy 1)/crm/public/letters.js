@@ -100,6 +100,8 @@ $("#previewModal").addEventListener("click", (e)=>{ if(e.target.id==="previewMod
 $("#pvOpen").setAttribute("data-tip", "Open HTML (H)");
 $("#pvPrint").setAttribute("data-tip", "Print (P)");
 $("#btnBack").setAttribute("data-tip", "Back to CRM");
+$("#btnDownloadAll").setAttribute("data-tip", "Download all letters as PDF");
+$("#btnEmailAll").setAttribute("data-tip", "Email all letters");
 $("#pvEdit").setAttribute("data-tip", "Edit");
 $("#pvSave").setAttribute("data-tip", "Save");
 
@@ -189,7 +191,47 @@ $("#btnDownloadAll").addEventListener("click", ()=>{
   window.location.href = `/api/letters/${encodeURIComponent(JOB_ID)}/all.zip`;
 });
 
+$("#btnEmailAll").addEventListener("click", async ()=>{
+  if (!JOB_ID) return;
+  const to = prompt("Send to which email?");
+  if (!to) return;
+  try{
+    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/email`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ to })
+    });
+    const data = await resp.json().catch(()=> ({}));
+    if(!data?.ok) throw new Error(data?.error || "Failed to email letters.");
+    alert("Letters emailed.");
+  }catch(e){ showErr(e.message || String(e)); }
+});
+
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
+
+async function loadJobs(){
+  const list = $("#jobList");
+  list.innerHTML = "";
+  try {
+    const resp = await api('/api/letters');
+    (resp.jobs || []).forEach(j => {
+      const div = document.createElement('div');
+      div.className = 'flex items-center justify-between border rounded px-2 py-1';
+      const date = new Date(j.createdAt).toLocaleString();
+      div.innerHTML = `<div>
+        <div class="font-medium">${escapeHtml(j.consumerName || j.consumerId)}</div>
+        <div class="text-xs">${date} • ${j.count} letter(s)</div>
+      </div>
+      <a class="btn text-xs" href="/letters?job=${encodeURIComponent(j.jobId)}">Open</a>`;
+      list.appendChild(div);
+    });
+    if(!resp.jobs || !resp.jobs.length){
+      list.innerHTML = '<div class="muted text-sm">No letter jobs yet.</div>';
+    }
+  } catch (e) {
+    list.innerHTML = '<div class="text-red-600">Failed to load letter jobs.</div>';
+  }
+}
 
 async function loadLetters(jobId){
   clearErr();
@@ -213,8 +255,11 @@ async function loadLetters(jobId){
 
 const JOB_ID = getJobId();
 if (!JOB_ID) {
-  showErr("Missing job parameter.");
+  $("#lettersSection").classList.add('hidden');
+  $("#jobsSection").classList.remove('hidden');
+  loadJobs();
 } else {
+  $("#jobsSection").classList.add('hidden');
   loadLetters(JOB_ID);
 }
 
