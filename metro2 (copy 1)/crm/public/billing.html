@@ -30,7 +30,18 @@
   <div id="billingContent" class="space-y-4 hidden">
     <div class="glass card">
       <div class="font-medium mb-2">Invoices</div>
-      <div id="invoiceList" class="space-y-2"></div>
+      <table id="invoiceTable" class="invoice-table w-full">
+        <thead>
+          <tr>
+            <th class="text-left">Description</th>
+            <th class="text-left">Amount</th>
+            <th class="text-left">Due</th>
+            <th class="text-left">Status</th>
+            <th class="text-left">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceBody"></tbody>
+      </table>
 
       <form id="invoiceForm" class="mt-4 flex flex-wrap items-end gap-2">
         <input id="invDesc" class="border rounded px-2 py-1 text-sm flex-1" placeholder="Description" />
