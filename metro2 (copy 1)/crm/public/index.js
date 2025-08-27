@@ -1084,31 +1084,6 @@ const tlList = $("#tlList");
 const obs = new MutationObserver(()=> attachCardHandlers(tlList));
 obs.observe(tlList, { childList:true, subtree:true });
 
-// Library modal
-async function openLibrary(){
-  const modal = $("#libraryModal");
-  try{
-    const resp = await fetch("/api/library");
-    const data = await resp.json().catch(()=>({}));
-    const list = data.library || {};
-    const wrap = $("#libraryList");
-    wrap.innerHTML = Object.entries(list).map(([name, info])=>{
-      return `<div><span class="font-medium">${escapeHtml(name)}</span> - ${escapeHtml(info.type||"")}${info.phone?` • ${escapeHtml(info.phone)}`:""}</div>`;
-    }).join("") || "<div class='muted'>No entries.</div>";
-  }catch{
-    $("#libraryList").innerHTML = "<div class='muted'>Failed to load.</div>";
-  }
-  modal.classList.remove("hidden"); modal.classList.add("flex");
-  document.body.style.overflow = "hidden";
-}
-$("#btnCreditors").addEventListener("click", openLibrary);
-$("#libraryClose").addEventListener("click", ()=>{
-  const modal = $("#libraryModal");
-  modal.classList.add("hidden"); modal.classList.remove("flex");
-  document.body.style.overflow = "";
-});
-$("#libraryModal").addEventListener("click", (e)=>{ if(e.target.id==="libraryModal"){ $("#libraryClose").click(); } });
-
 // ===================== Init =====================
 loadConsumers();
 loadTracker();

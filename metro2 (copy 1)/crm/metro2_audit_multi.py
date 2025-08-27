@@ -340,36 +340,6 @@ def extract_all_tradelines(soup):
         })
     return results
 
-
-LIB_PATH = os.path.join(os.path.dirname(__file__), "creditor_library.json")
-
-def load_library():
-    try:
-        with open(LIB_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_library(lib):
-    try:
-        with open(LIB_PATH, "w", encoding="utf-8") as f:
-            json.dump(lib, f, indent=2, ensure_ascii=False)
-    except Exception:
-        pass
-
-def classify_creditor(name):
-    query = quote_plus(f"{name} debt collector")
-    url = f"https://www.google.com/search?q={query}"
-    try:
-        req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urlopen(req, timeout=5) as resp:
-            html = resp.read().decode("utf-8", errors="ignore").lower()
-            if "collection agency" in html or "debt collector" in html:
-                return "debt_collector"
-    except Exception:
-        pass
-    return "original_creditor"
-
 def parse_inquiries(soup):
     inquiries = []
     for tbl in soup.select("table.re-even-odd.rpt_content_table.rpt_content_header.rpt_table4column"):
@@ -427,17 +397,7 @@ def parse_creditor_contacts(soup):
     return contacts
 
 def process_creditor_contacts(contacts):
-    lib = load_library()
-    for c in contacts:
-        entry = lib.get(c["name"])
-        if entry:
-            c["type"] = entry.get("type")
-            c["phone"] = c.get("phone") or entry.get("phone")
-            continue
-        ctype = classify_creditor(c["name"])
-        c["type"] = ctype
-        lib[c["name"]] = {"type": ctype, "phone": c.get("phone")}
-    save_library(lib)
+    """Placeholder for future creditor library processing."""
     return contacts
 
 def main():
