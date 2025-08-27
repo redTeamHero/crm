@@ -11,6 +11,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
+
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
@@ -735,6 +736,32 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     filenameBase = path.basename(Lm.htmlPath).replace(/\.html?$/i,"");
   }
 
+  const lower = filenameBase.toLowerCase();
+  const useOcr = lower.includes("dispute") && !lower.includes("audit") && !lower.includes("breach");
+  if(useOcr){
+    try{
+      const $ = cheerio.load(html);
+      const text = $.text();
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(),"ocr-"));
+      const txt = path.join(tmp,"letter.txt");
+      const out = path.join(tmp,"letter.pdf");
+      fs.writeFileSync(txt,text,"utf-8");
+      await new Promise((resolve,reject)=>{
+        const py = spawn("python3",[path.join(__dirname,"ocr_resistant_pdf.py"),"--in",txt,"--out",out]);
+        py.on("error",reject);
+        py.on("close",c=>c===0?resolve():reject(new Error("python exit "+c)));
+      });
+      const pdf = fs.readFileSync(out);
+      fs.rmSync(tmp,{recursive:true,force:true});
+      res.setHeader("Content-Type","application/pdf");
+      res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
+      return res.send(pdf);
+    }catch(err){
+      console.error("OCR PDF error, falling back:", err);
+    }
+  }
+
+
   let browser;
   try{
     browser = await launchBrowser();
@@ -894,4 +921,5 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
 
