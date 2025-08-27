@@ -1,8 +1,43 @@
 /* public/client-portal.js */
+const productTiers = [
+  { deletions:150, score:780, name:'Wealth Builder', icon:'👑', class:'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message:'Legendary status — mortgages, lines, and cards all bend in your favor. You’ve built true financial freedom.' },
+  { deletions:125, score:760, name:'Elite Borrower', icon:'🦸', class:'bg-red-100 text-red-700', message:'You’ve achieved elite borrower status — lenders see you as top-tier.' },
+  { deletions:100, score:750, name:'Funding Power', icon:'🏆', class:'bg-yellow-200 text-yellow-800', message:'You’ve become a funding champion — major approvals are within reach.' },
+  { deletions:75, score:740, name:'Travel & Rewards', icon:'✈️', class:'bg-indigo-100 text-indigo-700', message:'You now qualify for premium travel rewards and lifestyle cards.' },
+  { deletions:50, score:720, name:'Credit Line Access', icon:'💼', class:'bg-blue-100 text-blue-700', message:'Business and personal credit lines are opening up.' },
+  { deletions:40, score:700, name:'Mortgage Ready', icon:'🏡', class:'bg-green-100 text-green-700', message:'You’re building toward homeownership — mortgage approvals are now within reach.' },
+  { deletions:30, score:680, name:'Loan Lever', icon:'🏦', class:'bg-lime-100 text-lime-700', message:'Personal loan doors are opening — leverage your clean report.' },
+  { deletions:20, score:650, name:'Prime Plastic', icon:'💳', class:'bg-cyan-100 text-cyan-700', message:'You’re climbing into prime cards with real rewards.' },
+  { deletions:10, score:0, name:'Auto Access', icon:'🚗', class:'bg-orange-100 text-orange-700', message:'Now you’re positioned for auto financing approvals.' },
+  { deletions:5, score:0, name:'Retail Ready', icon:'🛍️', class:'bg-emerald-100 text-emerald-700', message:'You’re ready for retail cards — momentum is building.' },
+  { deletions:1, score:0, name:'Approval Spark', icon:'✅', class:'bg-emerald-100 text-emerald-700', message:'Your first approval spark — you’re clearing the way for credit opportunities.' },
+  { deletions:0, score:0, name:'Secured Start', icon:'🔒', class:'bg-emerald-100 text-emerald-700', message:'You’ve planted the seed — secured cards are your first step to building credit.' },
+];
+
+function getProductTier(deletions, score){
+  for(const tier of productTiers){
+    if(deletions >= tier.deletions && (!tier.score || score >= tier.score)) return tier;
+  }
+  return productTiers[productTiers.length-1];
+}
+
+function renderProductTier(){
+  const el = document.getElementById('tierBadge');
+  if(!el) return;
+  const deletions = Number(localStorage.getItem('deletions') || 0);
+  const scoreData = JSON.parse(localStorage.getItem('creditScore') || '{"current":0}');
+  const score = Number(scoreData.current || 0);
+  const tier = getProductTier(deletions, score);
+  el.className = `hidden sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
+  el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${tier.name}</span>`;
+  el.title = tier.message;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
   const consumerId = idMatch ? idMatch[1] : null;
+  renderProductTier();
 
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
@@ -106,9 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const timeline = JSON.parse(localStorage.getItem('disputeTimeline') || '[]');
   const timelineEl = document.getElementById('timeline');
   if (timelineEl) {
-    const timeline = JSON.parse(localStorage.getItem('disputeTimeline') || '[]');
     if (!timeline.length) {
       const empty = document.getElementById('timelineEmpty');
       if (empty && window.lottie) {
@@ -126,6 +161,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const te = document.getElementById('timelineEmpty');
       if (te) te.remove();
       timelineEl.innerHTML = timeline.map(t => `<div class="timeline-item"><span class="font-medium">${t.account}</span> - ${t.stage}</div>`).join('');
+    }
+  }
+
+  const summaryEl = document.getElementById('disputeSummary');
+  if(summaryEl){
+    const perRound = 10;
+    if(timeline.length){
+      const rounds = Math.ceil(timeline.length / perRound);
+      summaryEl.textContent = `${timeline.length} items across ${rounds} round${rounds===1?'':'s'} (${perRound} per round)`;
+    } else {
+      summaryEl.textContent = 'No disputes yet.';
     }
   }
 

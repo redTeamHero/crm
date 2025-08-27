@@ -11,6 +11,8 @@
       .animate-blob{animation:blob 10s ease-in-out infinite;}
       .confetti-piece{position:absolute;width:6px;height:6px;border-radius:1px;animation:confetti 1.2s ease-out forwards;}
       @keyframes confetti{to{transform:translate(var(--tx),var(--ty)) rotate(720deg);opacity:0;}}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+    .animate-fadeInUp{animation:fadeInUp .6s ease-out both;}
     .btn{position:relative;overflow:hidden;}
     .btn span.ripple{position:absolute;border-radius:50%;transform:scale(0);animation:ripple 700ms ease-out;background:rgba(255,255,255,0.6);}
     @keyframes ripple{to{transform:scale(3);opacity:0;}}
@@ -35,9 +37,9 @@
       <a href="#educationSection" class="btn">Education</a>
       
     </nav>
-    <div id="streakPill" class="hidden sm:flex items-center gap-2 rounded-full bg-orange-100 px-4 py-2 text-orange-700 shadow-sm">
-      <span class="animate-pulse text-xl">🔥</span>
-      <span class="font-semibold text-sm">7-day streak</span>
+    <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm animate-fadeInUp" title="You’ve planted the seed — secured cards are your first step to building credit.">
+      <span class="text-xl">🔒</span>
+      <span class="font-semibold text-sm">Secured Start</span>
     </div>
   </div>
 </header>
@@ -83,6 +85,7 @@
       <div id="timelineEmpty" class="w-32 h-32"></div>
       <div id="timelineText" class="mt-2">No disputes yet.</div>
     </div>
+    <div id="disputeSummary" class="text-sm mt-2"></div>
   </div>
 
   <div class="glass card">
