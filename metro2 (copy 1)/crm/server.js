@@ -356,6 +356,7 @@ app.post("/api/invoices", async (req,res)=>{
     text: `Payment due for ${inv.desc} ($${inv.amount.toFixed(2)}). Pay here: ${payLink}`,
   });
 
+
   db.invoices.push(inv);
   saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
