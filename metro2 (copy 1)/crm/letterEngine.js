@@ -400,13 +400,17 @@ function buildLetterHTML({
   const intro = colorize(mc.intro);
   const ask = colorize(mc.ask);
   const afterIssuesPara = mc.afterIssues ? `<p>${colorize(mc.afterIssues)}</p>` : "";
-  const breachSection = (modeKey === "breach" && consumer.breaches && consumer.breaches.length)
-    ? `<h2>Data Breaches</h2><ul>${consumer.breaches.map(b=>`<li>${safe(b)}</li>`).join("")}</ul>`
-    : "";
+  const breachSection =
+    modeKey === "breach" && consumer.breaches && consumer.breaches.length
+      ? `<h2>Data Breaches</h2><p>The following breaches exposed my information:</p><ul>${consumer.breaches
+          .map((b) => `<li>${safe(b)}</li>`)
+          .join("")}</ul>`
+      : "";
   const verifyLine = colorize(
     "Please provide the method of verification... if you cannot verify... delete the item and send me an updated report."
   );
   const signOff = `${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}`;
+
 
   const letterBody = `
 <!DOCTYPE html>
@@ -452,6 +456,7 @@ function buildLetterHTML({
     <h2>Bureau‑Specific Details (${bureau})</h2>
     ${tlBlock}
     <h2>Specific Issues (Selected)</h2>
+
     ${chosenList}
     ${afterIssuesPara}
     <p>${verifyLine}</p>
