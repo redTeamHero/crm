@@ -202,6 +202,7 @@ async function selectConsumer(id){
   updatePortalLink();
   await refreshReports();
   await loadConsumerState();
+  await loadMessages();
   loadTracker();
 }
 
@@ -866,7 +867,9 @@ async function loadConsumerState(){
   if (!currentConsumerId){ $("#activityList").innerHTML = ""; return; }
   const resp = await api(`/api/consumers/${currentConsumerId}/state`);
   if (!resp?.ok){ $("#activityList").innerHTML = `<div class="muted">No activity.</div>`; return; }
-  const { events=[], files=[] } = resp.state || {};
+  const allEvents = resp.state?.events || [];
+  const events = allEvents.filter(ev => ev.type !== "message");
+  const files = resp.state?.files || [];
   const list = [];
 
   if (files.length){
@@ -911,6 +914,29 @@ $("#activityFile").addEventListener("change", async (e)=>{
   }catch(err){
     showErr(String(err));
   }
+});
+
+async function loadMessages(){
+  if(!currentConsumerId){ $("#msgList").innerHTML = ""; return; }
+  const resp = await api(`/api/messages/${currentConsumerId}`);
+  if(!resp?.ok){ $("#msgList").innerHTML = `<div class="muted">No messages.</div>`; return; }
+  const msgs = resp.messages || [];
+  if(!msgs.length){ $("#msgList").innerHTML = `<div class="muted">No messages.</div>`; return; }
+  $("#msgList").innerHTML = msgs.map(m=>{
+    const from = m.payload?.from === 'host' ? 'msg-host' : 'msg-client';
+    const when = new Date(m.at).toLocaleString();
+    return `<div class="${from} p-2 rounded"><div class="text-xs muted">${when}</div><div>${escapeHtml(m.payload?.text||'')}</div></div>`;
+  }).join('');
+}
+
+$("#btnSendMsg").addEventListener("click", async ()=>{
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  const txt = $("#msgInput").value.trim();
+  if(!txt) return;
+  const res = await api(`/api/messages/${currentConsumerId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text: txt, from:'host' }) });
+  if(!res?.ok) return showErr(res.error || "Failed to send message.");
+  $("#msgInput").value = "";
+  await loadMessages();
 });
 
 // ===================== Modes + Global Hotkeys =====================

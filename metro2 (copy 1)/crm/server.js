@@ -83,9 +83,12 @@ app.get(["/letters", "/letters/:jobId"], (_req, res) =>
 );
 app.get("/quiz", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
 app.get("/portal/:id", (req, res) => {
-  const f = path.join(PUBLIC_DIR, `portal-${req.params.id}.html`);
-  if (fs.existsSync(f)) return res.sendFile(f);
-  res.status(404).send("Portal not found");
+  const db = loadDB();
+  const consumer = db.consumers.find(c => c.id === req.params.id);
+  if (!consumer) return res.status(404).send("Portal not found");
+  const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
+  const html = tmpl.replace(/{{name}}/g, consumer.name);
+  res.send(html);
 });
 
 // ---------- Simple JSON "DB" ----------
@@ -222,13 +225,6 @@ app.post("/api/consumers", (req,res)=>{
   saveDB(db);
   // log event
   addEvent(id, "consumer_created", { name: consumer.name });
-  try {
-    const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
-    const html = tmpl.replace(/{{name}}/g, consumer.name);
-    fs.writeFileSync(path.join(PUBLIC_DIR, `portal-${id}.html`), html);
-  } catch (e) {
-    console.error("Failed to create client portal", e);
-  }
   res.json({ ok:true, consumer });
 });
 
@@ -354,6 +350,13 @@ app.post("/api/invoices", async (req,res)=>{
     console.error("Failed to generate invoice PDF", err);
   }
 
+  const payLink = req.body.payLink || `https://pay.example.com/${inv.id}`;
+  addEvent(inv.consumerId, "message", {
+    from: "system",
+    text: `Payment due for ${inv.desc} ($${inv.amount.toFixed(2)}). Pay here: ${payLink}`,
+  });
+
+
   db.invoices.push(inv);
   saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
@@ -369,6 +372,20 @@ app.put("/api/invoices/:id", (req,res)=>{
   if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
   saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
+});
+
+// =================== Messages ===================
+app.get("/api/messages/:consumerId", (req,res)=>{
+  const cstate = listConsumerState(req.params.consumerId);
+  const msgs = (cstate.events || []).filter(e=>e.type === "message");
+  res.json({ ok:true, messages: msgs });
+});
+
+app.post("/api/messages/:consumerId", (req,res)=>{
+  const text = req.body.text || "";
+  const from = req.body.from || "host";
+  addEvent(req.params.consumerId, "message", { from, text });
+  res.json({ ok:true });
 });
 
 // =================== Templates / Sequences / Contracts ===================
