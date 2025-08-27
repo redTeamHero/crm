@@ -810,10 +810,11 @@ $("#btnDataBreach").addEventListener("click", async ()=>{
     const res = await api(`/api/databreach`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: c.email })
+      body: JSON.stringify({ email: c.email, consumerId: c.id })
     });
     if(!res?.ok) return showErr(res?.error || "Breach check failed.");
     const list = res.breaches || [];
+    c.breaches = list.map(b=>b.Name || b.name || "");
     const msg = list.length
       ? `${c.email} found in:\n\n${list.map(b=>b.Name || b.name || "unknown").join("\n")}`
       : `${c.email} not found in known breaches.`;
