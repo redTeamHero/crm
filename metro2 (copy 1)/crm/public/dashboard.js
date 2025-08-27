@@ -43,6 +43,7 @@ function renderClientMap(consumers){
     attribution:'© OpenStreetMap contributors'
   }).addTo(map);
   setTimeout(()=>map.invalidateSize(),0);
+
   consumers.forEach(c=>{
     const code = getStateCode(c.state);
     const coords = stateCenters[code];

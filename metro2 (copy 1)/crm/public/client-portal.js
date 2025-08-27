@@ -188,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
           autoplay: true,
           path: 'https://assets7.lottiefiles.com/packages/lf20_jei1c95b.json'
         }).addEventListener('complete',()=>{burstEl.innerHTML='';});
+
       }
     });
   }

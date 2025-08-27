@@ -17,6 +17,7 @@
     .btn:hover::after{content:'✨';position:absolute;right:4px;top:2px;pointer-events:none;}
     .wiggle-arrow{display:inline-block;transition:transform .2s;}
     .wiggle-arrow:hover{transform:translateX(2px);}
+
   </style>
 </head>
 <body>
@@ -28,10 +29,11 @@
     </div>
     <nav class="flex items-center gap-2">
       <a id="navDashboard" href="#" class="btn">Dashboard</a>
+      <a href="#messages" class="btn">Messages</a>
       <a href="#uploads" class="btn">My Uploads</a>
       <a href="#documentSection" class="btn">Document Center</a>
       <a href="#educationSection" class="btn">Education</a>
-      <a href="#messages" class="btn">Messages</a>
+      
     </nav>
     <div id="streakPill" class="hidden sm:flex items-center gap-2 rounded-full bg-orange-100 px-4 py-2 text-orange-700 shadow-sm">
       <span class="animate-pulse text-xl">🔥</span>
@@ -49,6 +51,7 @@
     <button id="btnGoal" class="mt-4 rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95">Mark Today’s Goal Done</button>
     <div id="confetti" class="pointer-events-none absolute inset-0"></div>
     <div id="goalBurst" class="pointer-events-none absolute inset-0"></div>
+
   </div>
 
   <div class="glass card">
@@ -94,7 +97,7 @@
 
   <div class="glass card">
 
-    <div class="font-medium mb-2">Our Team</div>
+    <div class="font-medium mb-2">Your Team Members</div>
     <div id="teamList" class="space-y-2 text-sm">Loading...</div>
   </div>
 

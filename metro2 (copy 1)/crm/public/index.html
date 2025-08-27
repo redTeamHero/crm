@@ -87,8 +87,7 @@
 
         <div class="font-medium">Client Tracker</div>
         <div id="stepControls" class="flex items-center gap-2 text-sm">
-          <a id="clientPortalLink" class="btn text-sm hidden" href="#" target="_blank">Client Portal</a>
-          <button id="addStep" class="btn text-sm" title="Add step">+</button>
+          <button id="addStep" class="btn text-[10px]" title="Add step">+</button>
         </div>
 
       </div>
@@ -128,6 +127,14 @@
 
     <!-- Right side -->
     <section class="space-y-4">
+        <div class="glass card">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-semibold">Messages</div>
+          <button id="btnSendMsg" class="btn text-sm">Send</button>
+        </div>
+        <div id="msgList" class="space-y-2 text-sm max-h-48 overflow-y-auto"></div>
+        <textarea id="msgInput" class="w-full border rounded p-2 text-sm" rows="2" placeholder="Type message..."></textarea>
+      </div>
       <div class="glass card">
         <div class="flex items-center justify-between">
           <div>
@@ -154,14 +161,7 @@
         </div>
         <div id="activityList" class="space-y-2 text-sm max-h-48 overflow-y-auto"></div>
       </div>
-      <div class="glass card">
-        <div class="flex items-center justify-between mb-2">
-          <div class="font-semibold">Messages</div>
-          <button id="btnSendMsg" class="btn text-sm">Send</button>
-        </div>
-        <div id="msgList" class="space-y-2 text-sm max-h-48 overflow-y-auto"></div>
-        <textarea id="msgInput" class="w-full border rounded p-2 text-sm" rows="2" placeholder="Type message..."></textarea>
-      </div>
+    
       <div class="glass card">
         <div class="font-semibold mb-2">Filters</div>
         <div id="filterBar" class="flex flex-wrap gap-2"></div>
