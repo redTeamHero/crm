@@ -149,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('file', fileInput.files[0]);
       const typeSel = document.getElementById('uploadType');
       if (typeSel) formData.append('type', typeSel.value || '');
+
       fetch(`/api/consumers/${consumerId}/state/upload`, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
@@ -156,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
             status.textContent = 'Uploaded successfully.';
             fileInput.value = '';
             if (typeSel) typeSel.value = 'id';
+
             location.hash = '#';
             loadDocs();
           } else {
