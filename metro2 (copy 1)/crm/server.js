@@ -77,7 +77,6 @@ app.get("/leads", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "leads.html"
 app.get("/schedule", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "schedule.html")));
 app.get("/my-company", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "my-company.html")));
 app.get("/billing", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "billing.html")));
-app.get("/library", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
 app.get(["/letters", "/letters/:jobId"], (_req, res) =>
   res.sendFile(path.join(PUBLIC_DIR, "letters.html"))
 );
@@ -154,12 +153,6 @@ function renderInvoiceHtml(inv, company = {}, consumer = {}) {
 }
 
 
-const LIB_PATH = path.join(__dirname, "creditor_library.json");
-function loadLibrary(){
-  try{ return JSON.parse(fs.readFileSync(LIB_PATH, "utf-8")); }
-  catch{ return {}; }
-}
-
 // ---------- Upload handling ----------
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -198,8 +191,6 @@ async function runPythonAnalyzer(htmlContent){
 
 // =================== Consumers ===================
 app.get("/api/consumers", (_req,res)=> res.json(loadDB()));
-app.get("/api/library", (_req,res)=> res.json({ ok:true, library: loadLibrary() }));
-
 app.post("/api/consumers", (req,res)=>{
   const db = loadDB();
   const id = nanoid(10);
