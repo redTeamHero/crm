@@ -167,22 +167,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Handle uploads view
+  // Handle section navigation
   const portalMain = document.getElementById('portalMain');
   const uploadSection = document.getElementById('uploadSection');
+  const educationSection = document.getElementById('educationSection');
+  const documentSection = document.getElementById('documentSection');
   function showSection(hash){
-    if (hash === '#uploads') {
-      portalMain.classList.add('hidden');
+    if (portalMain) portalMain.classList.add('hidden');
+    if (uploadSection) uploadSection.classList.add('hidden');
+    if (messageSection) messageSection.classList.add('hidden');
+    if (educationSection) educationSection.classList.add('hidden');
+    if (documentSection) documentSection.classList.add('hidden');
+
+    if (hash === '#uploads' && uploadSection) {
       uploadSection.classList.remove('hidden');
-      if(messageSection) messageSection.classList.add('hidden');
-    } else if (hash === '#messages') {
-      portalMain.classList.add('hidden');
-      uploadSection.classList.add('hidden');
-      if(messageSection) { messageSection.classList.remove('hidden'); loadMessages(); }
-    } else {
+    } else if (hash === '#messages' && messageSection) {
+      messageSection.classList.remove('hidden');
+      loadMessages();
+    } else if (hash === '#educationSection' && educationSection) {
+      educationSection.classList.remove('hidden');
+    } else if (hash === '#documentSection' && documentSection) {
+      documentSection.classList.remove('hidden');
+      loadDocs();
+    } else if (portalMain) {
       portalMain.classList.remove('hidden');
-      uploadSection.classList.add('hidden');
-      if(messageSection) messageSection.classList.add('hidden');
     }
   }
   showSection(location.hash);
