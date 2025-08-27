@@ -81,34 +81,8 @@ function isNegative(pb) {
   });
 }
 
-// Light pastel palette to hinder basic OCR while remaining human-readable
-
-// Restricted pastel palette for OCR disruption
-const OCR_COLORS = [
-  "#ffb347", // pastel orange
- // "#ffa500", // fluorescent orange
-//  "#ffff99", // light yellow
-  "#add8e6", // light blue
-  "#90ee90", // light green
-  "#ffd1dc", // pale pink
-];
-
 function colorize(text) {
-  if (!text) return "";
-  const letters = Array.from(text);
-  return letters
-    .map((ch, idx) => {
-      if (/\s/.test(ch)) return ch;
-      if (idx === 0) {
-        return `<span style="color:#000000">${ch}</span>`;
-      }
-      if (Math.random() < 0.2) {
-        const color = OCR_COLORS[Math.floor(Math.random() * OCR_COLORS.length)];
-        return `<span style="color:${color}">${ch}</span>`;
-      }
-      return ch; // default body color (blue)
-    })
-    .join("");
+  return text || "";
 }
 
 
