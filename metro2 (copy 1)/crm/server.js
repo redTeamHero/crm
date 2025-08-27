@@ -829,31 +829,6 @@ app.get("/api/letters/:jobId/:idx.html", (req,res)=>{
   res.send(L.html);
 });
 
-app.put("/api/letters/:jobId/:idx", async (req,res)=>{
-  const { jobId, idx } = req.params;
-  const html = req.body?.html;
-  if(typeof html !== "string") return res.status(400).json({ ok:false, error:"Missing html" });
-  console.log(`Updating letter ${idx} for job ${jobId}`);
-  let job = getJobMem(jobId);
-  if(job){
-    const L = job.letters[Number(idx)];
-    if(!L) return res.status(404).json({ ok:false, error:"Letter not found" });
-    L.html = html;
-    try{ fs.writeFileSync(path.join(LETTERS_DIR, L.filename), html); }
-    catch(e){ return res.status(500).json({ ok:false, error:String(e) }); }
-    console.log(`Letter ${L.filename} updated on disk`);
-    return res.json({ ok:true });
-  }
-  const disk = loadJobFromDisk(jobId);
-  if(!disk) return res.status(404).json({ ok:false, error:"Job not found" });
-  const Lm = disk.letters[Number(idx)];
-  if(!Lm) return res.status(404).json({ ok:false, error:"Letter not found" });
-  try{ fs.writeFileSync(Lm.htmlPath, html); }
-  catch(e){ return res.status(500).json({ ok:false, error:String(e) }); }
-  console.log(`Letter ${Lm.htmlPath} updated on disk`);
-  res.json({ ok:true });
-});
-
 // Render letter PDF on-the-fly
 app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   const { jobId, idx } = req.params;

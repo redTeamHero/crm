@@ -20,9 +20,6 @@ let LETTERS = [];          // [{ index, filename, bureau, creditor, htmlUrl }]
 let page = 1;
 const PER_PAGE = 10;
 let lastPreview = null;    // currently previewed letter object
-let editing = false;
-let editDoc = null;      // DOM document when editing
-let editEl = null;       // element whose text is being edited
 
 function paginate(){
   const total = Math.max(1, Math.ceil(LETTERS.length / PER_PAGE));
@@ -81,12 +78,6 @@ function openPreview(L){
   $("#pvMeta").textContent  = `${L.bureau} • ${L.creditor || "Unknown Creditor"}`;
   $("#pvOpen").href = L.htmlUrl;
   $("#pvFrame").src = L.htmlUrl;
-  $("#pvFrame").classList.remove("hidden");
-  $("#pvEditor").classList.add("hidden");
-  $("#pvSave").classList.add("hidden");
-  editing = false;
-  editDoc = null;
-  editEl = null;
   $("#previewModal").style.display = "flex";
   document.body.style.overflow = "hidden";
 }
@@ -103,47 +94,6 @@ $("#pvPrint").setAttribute("data-tip", "Print (P)");
 $("#btnBack").setAttribute("data-tip", "Back to CRM");
 $("#btnDownloadAll").setAttribute("data-tip", "Download all letters as PDF");
 $("#btnEmailAll").setAttribute("data-tip", "Email all letters");
-$("#pvEdit").setAttribute("data-tip", "Edit");
-$("#pvSave").setAttribute("data-tip", "Save");
-
-$("#pvEdit").addEventListener("click", async ()=>{
-  if(!lastPreview) return;
-  try{
-    const resp = await fetch(lastPreview.htmlUrl);
-    const txt = await resp.text();
-    editDoc = new DOMParser().parseFromString(txt, "text/html");
-    editEl = editDoc.querySelector("pre") || editDoc.body;
-    $("#pvEditor").value = editEl.innerText;
-    $("#pvEditor").classList.remove("hidden");
-    $("#pvFrame").srcdoc = editDoc.documentElement.outerHTML;
-    $("#pvSave").classList.remove("hidden");
-    editing = true;
-  }catch(e){ showErr("Failed to load letter for editing."); }
-});
-
-$("#pvEditor").addEventListener("input", ()=>{
-  if(!editDoc || !editEl) return;
-  editEl.innerText = $("#pvEditor").value;
-  $("#pvFrame").srcdoc = editDoc.documentElement.outerHTML;
-});
-
-$("#pvSave").addEventListener("click", async ()=>{
-  if(!editing || !lastPreview) return;
-  try{
-    const html = editDoc ? editDoc.documentElement.outerHTML : "";
-    await api(`/api/letters/${encodeURIComponent(JOB_ID)}/${lastPreview.index}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html })
-    });
-    $("#pvFrame").srcdoc = html;
-    $("#pvEditor").classList.add("hidden");
-    $("#pvSave").classList.add("hidden");
-    editing = false;
-    editDoc = null;
-    editEl = null;
-  }catch(e){ showErr("Failed to save letter."); }
-});
 
 // Print from preview modal
 $("#pvPrint").addEventListener("click", ()=>{
