@@ -589,22 +589,36 @@ async function hibpLookup(email) {
   }
 }
 
-async function handleDataBreach(email, res) {
+async function handleDataBreach(email, consumerId, res) {
   const result = await hibpLookup(email);
+  if (result.ok && consumerId) {
+    try {
+      const db = loadDB();
+      const c = db.consumers.find(x => x.id === consumerId);
+      if (c) {
+        c.breaches = (result.breaches || []).map(b => b.Name || b.name || "");
+        saveDB(db);
+      }
+    } catch (err) {
+      console.error("Failed to store breach info", err);
+    }
+  }
   if (result.ok) return res.json(result);
   res.status(result.status || 500).json({ ok: false, error: result.error });
 }
 
 app.post("/api/databreach", async (req, res) => {
   const email = String(req.body.email || "").trim();
+  const consumerId = String(req.body.consumerId || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
-  await handleDataBreach(email, res);
+  await handleDataBreach(email, consumerId, res);
 });
 
 app.get("/api/databreach", async (req, res) => {
   const email = String(req.query.email || "").trim();
+  const consumerId = String(req.query.consumerId || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
-  await handleDataBreach(email, res);
+  await handleDataBreach(email, consumerId, res);
 });
 
 
@@ -712,7 +726,8 @@ app.post("/api/generate", async (req,res)=>{
     const consumerForLetter = {
       name: consumer.name, email: consumer.email, phone: consumer.phone,
       addr1: consumer.addr1, addr2: consumer.addr2, city: consumer.city, state: consumer.state, zip: consumer.zip,
-      ssn_last4: consumer.ssn_last4, dob: consumer.dob
+      ssn_last4: consumer.ssn_last4, dob: consumer.dob,
+      breaches: consumer.breaches || []
     };
 
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
