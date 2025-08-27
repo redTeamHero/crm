@@ -131,4 +131,31 @@ body.voice-active #voiceNotes{display:block;}
   background: var(--accent);
 }
 
+/* Invoice table styling */
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.invoice-table th, .invoice-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--glass-brd);
+  text-align: left;
+}
+
+/* Status badges */
+.badge {
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.badge-paid {
+  background: #DEF7EC;
+  color: #046C4E;
+}
+.badge-unpaid {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
 

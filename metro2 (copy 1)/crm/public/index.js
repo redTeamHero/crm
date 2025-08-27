@@ -18,16 +18,17 @@ const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
 const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
 
 function updatePortalLink(){
-  const a = $("#clientPortalLink");
-  if(!a) return;
-  if(currentConsumerId){
-    a.href = `/portal/${currentConsumerId}`;
-
-    a.classList.remove("hidden");
-  } else {
-    a.href = "#";
-    a.classList.add("hidden");
-  }
+  const links = ["#clientPortalLink", "#activityPortalLink"].map(sel => $(sel));
+  links.forEach(a => {
+    if(!a) return;
+    if(currentConsumerId){
+      a.href = `/portal/${currentConsumerId}`;
+      a.classList.remove("hidden");
+    } else {
+      a.href = "#";
+      a.classList.add("hidden");
+    }
+  });
 }
 
 // ----- UI helpers -----
