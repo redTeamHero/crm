@@ -13,10 +13,12 @@
     <nav class="flex items-center gap-2">
       <a id="navDashboard" href="#" class="btn">Dashboard</a>
       <a href="#uploads" class="btn">My Uploads</a>
+      <a href="#documentSection" class="btn">Document Center</a>
+      <a href="#educationSection" class="btn">Education</a>
     </nav>
   </div>
 </header>
-<main class="max-w-3xl mx-auto p-4 space-y-4">
+<main id="portalMain" class="max-w-3xl mx-auto p-4 space-y-4">
   <h1 class="text-2xl font-bold">Welcome, {{name}}</h1>
 
   <div class="glass card">
@@ -42,7 +44,7 @@
     <div id="reportSnapshot" class="text-sm space-y-1">No data.</div>
   </div>
 
-  <div class="glass card">
+  <div id="educationSection" class="glass card">
     <div class="font-medium mb-2">Education</div>
     <div id="education" class="text-sm space-y-1">No educational items.</div>
   </div>
@@ -53,7 +55,7 @@
     <div id="milestones" class="text-sm space-y-1">No milestones yet.</div>
   </div>
 
-  <div class="glass card">
+  <div id="documentSection" class="glass card">
     <div class="font-medium mb-2">Document Center</div>
     <div id="docList" class="text-sm space-y-1">No documents uploaded.</div>
   </div>
@@ -73,14 +75,26 @@
     <div class="font-medium mb-2">Debt Payoff Calculator</div>
     <form id="debtForm" class="space-y-2">
       <input type="number" id="debtAmount" class="input w-full" placeholder="Debt Amount" required />
-      <input type="number" id="debtRate" class="input w-full" placeholder="Interest Rate %" required />
-      <input type="number" id="debtPayment" class="input w-full" placeholder="Monthly Payment" required />
+      <input type="number" id="debtRate" class="input w-full" placeholder="APR %" required />
+      <input type="number" id="debtMonths" class="input w-full" placeholder="Months to Payoff" required />
       <button type="submit" class="btn">Calculate</button>
     </form>
     <div id="debtResult" class="text-sm mt-2"></div>
   </div>
 
 </main>
+<div id="uploadSection" class="max-w-3xl mx-auto p-4 hidden">
+  <h2 class="text-xl font-bold mb-2">Upload Documents</h2>
+  <form id="uploadForm" class="space-y-2">
+    <select id="uploadType" class="input w-full">
+      <option value="id">Government ID</option>
+      <option value="residency">Proof of Residency</option>
+    </select>
+    <input type="file" id="uploadFile" class="input w-full" required />
+    <button type="submit" class="btn">Upload</button>
+  </form>
+  <div id="uploadStatus" class="text-sm mt-2"></div>
+</div>
 <script src="/client-portal.js"></script>
 </body>
 </html>
