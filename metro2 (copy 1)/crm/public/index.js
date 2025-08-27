@@ -21,7 +21,8 @@ function updatePortalLink(){
   const a = $("#clientPortalLink");
   if(!a) return;
   if(currentConsumerId){
-    a.href = `/portal-${currentConsumerId}.html`;
+    a.href = `/portal/${currentConsumerId}`;
+
     a.classList.remove("hidden");
   } else {
     a.href = "#";

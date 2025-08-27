@@ -1,6 +1,7 @@
 /* public/client-portal.js */
 document.addEventListener('DOMContentLoaded', () => {
-  const idMatch = location.pathname.match(/portal-(.+)\.html$/);
+  const idMatch = location.pathname.match(/\/portal\/(.+)$/);
+
   const consumerId = idMatch ? idMatch[1] : null;
 
   const dash = document.getElementById('navDashboard');

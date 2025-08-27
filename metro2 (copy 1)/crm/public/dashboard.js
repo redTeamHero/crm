@@ -25,23 +25,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const noteEl = document.getElementById('dashNote');
   const titleEl = document.getElementById('dashNoteTitle');
-  const listEl = document.getElementById('noteList');
+  const selectEl = document.getElementById('noteSelect');
   const saveBtn = document.getElementById('dashSaveNote');
-  if (noteEl && saveBtn && titleEl && listEl) {
+  if (noteEl && saveBtn && titleEl && selectEl) {
     let notes = JSON.parse(localStorage.getItem('dashNotes') || '[]');
     function renderNotes(){
-      listEl.innerHTML = notes.map((n,i)=>
-        `<div class="flex items-center justify-between"><span>${escapeHtml(n.title)}</span><button data-idx="${i}" class="btn text-xs">Load</button></div>`
-      ).join('');
-      listEl.querySelectorAll('button').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const n = notes[btn.dataset.idx];
-          titleEl.value = n.title;
-          noteEl.value = n.content;
-        });
-      });
+      const opts = ['<option value="">Select saved note...</option>'];
+      notes.forEach((n,i)=> opts.push(`<option value="${i}">${escapeHtml(n.title)}</option>`));
+      selectEl.innerHTML = opts.join('');
     }
     renderNotes();
+    selectEl.addEventListener('change', () => {
+      const idx = selectEl.value;
+      if(idx === ''){ titleEl.value = ''; noteEl.value = ''; return; }
+      const n = notes[Number(idx)];
+      titleEl.value = n.title;
+      noteEl.value = n.content;
+    });
+
     saveBtn.addEventListener('click', () => {
       const title = titleEl.value.trim() || 'Untitled';
       notes.push({ title, content: noteEl.value });

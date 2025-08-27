@@ -11,6 +11,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
+import * as cheerio from "cheerio";
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
@@ -921,5 +922,6 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
+
 
 
