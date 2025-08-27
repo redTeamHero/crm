@@ -54,6 +54,7 @@ function renderCards(){
         </div>
         <div class="flex gap-2">
           <a class="btn text-sm open-html" href="${L.htmlUrl}" target="_blank" data-tip="Open HTML (H)">Open HTML</a>
+          <a class="btn text-sm" href="/api/letters/${encodeURIComponent(JOB_ID)}/${L.index}.pdf" data-tip="Download PDF">Download PDF</a>
           <button class="btn text-sm do-print" data-tip="Print (P)">Print</button>
         </div>
       </div>
