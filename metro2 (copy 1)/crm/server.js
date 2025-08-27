@@ -11,7 +11,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import * as cheerio from "cheerio";
+
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
@@ -96,6 +96,7 @@ function loadLettersDB(){
   try{ return JSON.parse(fs.readFileSync(LETTERS_DB_PATH,"utf-8")); }
   catch{ return { jobs: [], templates: [], sequences: [], contracts: [] }; }
 }
+
 function saveLettersDB(db){ fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2)); }
 function recordLettersJob(consumerId, jobId, letters){
   const db = loadLettersDB();
@@ -113,6 +114,7 @@ function loadInvoicesDB(){
   catch{ return { invoices: [] }; }
 }
 function saveInvoicesDB(db){ fs.writeFileSync(INVOICES_DB_PATH, JSON.stringify(db,null,2)); }
+
 
 const LIB_PATH = path.join(__dirname, "creditor_library.json");
 function loadLibrary(){
@@ -178,6 +180,7 @@ app.post("/api/consumers", (req,res)=>{
     sale: Number(req.body.sale) || 0,
     paid: Number(req.body.paid) || 0,
     status: req.body.status || "active",
+
     reports: []
   };
   db.consumers.push(consumer);
@@ -206,6 +209,7 @@ app.put("/api/consumers/:id", (req,res)=>{
     sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
     paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid,
     status: req.body.status ?? c.status ?? "active"
+
   });
   saveDB(db);
   addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
@@ -226,6 +230,7 @@ app.delete("/api/consumers/:id", (req,res)=>{
 // =================== Leads ===================
 app.get("/api/leads", (_req,res)=> res.json({ ok:true, ...loadLeadsDB() }));
 
+
 app.post("/api/leads", (req,res)=>{
   const db = loadLeadsDB();
   const id = nanoid(10);
@@ -237,6 +242,7 @@ app.post("/api/leads", (req,res)=>{
     source: req.body.source || "",
     notes: req.body.notes || "",
     status: "new"
+
   };
   db.leads.push(lead);
   saveLeadsDB(db);
@@ -339,6 +345,7 @@ app.post("/api/contracts", (req,res)=>{
   saveLettersDB(db);
   res.json({ ok:true, contract: ct });
 });
+
 
 // Upload HTML -> analyze -> save under consumer
 app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
@@ -754,6 +761,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     }
   }
 
+
   let browser;
   try{
     browser = await launchBrowser();
@@ -913,12 +921,5 @@ app.listen(PORT, ()=> {
   console.log(`Letters dir  ${LETTERS_DIR}`);
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
-
-
-
-
-
-
-
 
 
