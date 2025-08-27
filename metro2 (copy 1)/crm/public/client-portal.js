@@ -116,4 +116,5 @@ document.addEventListener('DOMContentLoaded', () => {
       else result.textContent = 'Payment too low to cover interest.';
     });
   }
+
 });

@@ -157,6 +157,7 @@ function renderConsumers(){
         $("#activityList").innerHTML = "";
         updatePortalLink();
         setSelectedConsumerId(null);
+
       }
       loadConsumers();
     });
@@ -195,6 +196,7 @@ async function selectConsumer(id){
   const c = DB.consumers.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
    setSelectedConsumerId(id);
+
   updatePortalLink();
   await refreshReports();
   await loadConsumerState();
@@ -735,6 +737,7 @@ $("#btnEditConsumer").addEventListener("click", ()=>{
   f.sale.value = c.sale ?? "";
   f.paid.value = c.paid ?? "";
   f.status.value = c.status || "active";
+
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
 });

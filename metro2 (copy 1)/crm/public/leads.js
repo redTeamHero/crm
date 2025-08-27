@@ -17,6 +17,7 @@ function leadRow(lead){
     <button class="drop btn text-xs" data-id="${lead.id}">Drop</button>
     <button class="delete btn text-xs bg-red-500 text-white" data-id="${lead.id}">Delete</button>
   </div>`;
+
   return div;
 }
 
@@ -28,6 +29,7 @@ async function renderLeads(){
     if(l.status && l.status !== 'new') return;
     const row = leadRow(l);
     row.querySelector('.convert').addEventListener('click', async()=>{
+
       await fetch('/api/consumers', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -48,10 +50,12 @@ async function renderLeads(){
       });
       renderLeads();
     });
+
     row.querySelector('.delete').addEventListener('click', async()=>{
       await fetch(`/api/leads/${l.id}`, { method:'DELETE' });
       renderLeads();
     });
+
     list.appendChild(row);
   });
 }
