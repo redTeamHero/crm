@@ -541,7 +541,7 @@ app.get("/api/databreach", async (req, res) => {
 
 
 // =================== Letters & PDFs ===================
-const LETTERS_DIR = path.resolve("./letters");
+const LETTERS_DIR = path.join(__dirname, "letters");
 fs.mkdirSync(LETTERS_DIR,{ recursive:true });
 const JOBS_INDEX_PATH = path.join(LETTERS_DIR, "_jobs.json");
 
