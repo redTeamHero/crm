@@ -11,7 +11,7 @@ import puppeteer from "puppeteer";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import * as cheerio from "cheerio";
+import { PassThrough } from "stream";
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
@@ -438,7 +438,33 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
     const normalized = normalizeReport(r.data, selections);
     const html = renderHtml(normalized, c.name);
     const result = await savePdf(html);
-    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.path });
+
+    // copy report into consumer uploads and register metadata
+    try {
+      const uploadsDir = consumerUploadsDir(c.id);
+      const id = nanoid(10);
+      const ext = path.extname(result.path) || ".pdf";
+      const storedName = `${id}${ext}`;
+      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const date = new Date().toISOString().slice(0,10);
+      const originalName = `${safe}_${date}_audit${ext}`;
+      const dest = path.join(uploadsDir, storedName);
+      await fs.promises.copyFile(result.path, dest);
+      const stat = await fs.promises.stat(dest);
+      addFileMeta(c.id, {
+        id,
+        originalName,
+        storedName,
+        type: "audit",
+        size: stat.size,
+        mimetype: "application/pdf",
+        uploadedAt: new Date().toISOString(),
+      });
+    } catch(err) {
+      console.error("Failed to store audit file", err);
+    }
+
+    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.url });
     res.json({ ok:true, url: result.url, warning: result.warning });
   }catch(e){
     res.status(500).json({ ok:false, error: String(e) });
@@ -752,30 +778,6 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
 
   const lower = filenameBase.toLowerCase();
   const useOcr = lower.includes("dispute") && !lower.includes("audit") && !lower.includes("breach");
-  if(useOcr){
-    try{
-      const $ = cheerio.load(html);
-      $('style,script').remove();
-      const text = $('body').text();
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(),"ocr-"));
-      const txt = path.join(tmp,"letter.txt");
-      const out = path.join(tmp,"letter.pdf");
-      fs.writeFileSync(txt,text,"utf-8");
-      await new Promise((resolve,reject)=>{
-        const py = spawn("python3",[path.join(__dirname,"ocr_resistant_pdf.py"),"--in",txt,"--out",out]);
-        py.on("error",reject);
-        py.on("close",c=>c===0?resolve():reject(new Error("python exit "+c)));
-      });
-      const pdf = fs.readFileSync(out);
-      fs.rmSync(tmp,{recursive:true,force:true});
-      res.setHeader("Content-Type","application/pdf");
-      res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
-      return res.send(pdf);
-    }catch(err){
-      console.error("OCR PDF error, falling back:", err);
-    }
-  }
-
 
   let browser;
   try{
@@ -786,6 +788,16 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     await page.emulateMediaType("screen");
     try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
     try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+    if(useOcr){
+      try{
+        await page.addStyleTag({
+          content: `body{background-image:
+            repeating-linear-gradient(0deg,rgba(0,0,0,0.03)0,rgba(0,0,0,0.03)1px,transparent 1px,transparent 40px),
+            repeating-linear-gradient(90deg,rgba(0,0,0,0.03)0,rgba(0,0,0,0.03)1px,transparent 1px,transparent 40px),
+            repeating-linear-gradient(45deg,rgba(0,0,0,0.04)0,rgba(0,0,0,0.04)4px,transparent 4px,transparent 20px);
+            }`});
+      }catch(e){ console.warn("Failed to apply OCR style", e); }
+    }
     await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
     const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
     await page.close();
@@ -818,10 +830,37 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
 
   res.setHeader("Content-Type","application/zip");
   res.setHeader("Content-Disposition",`attachment; filename="letters_${jobId}.zip"`);
-
   const archive = archiver('zip',{ zlib:{ level:9 } });
   archive.on('error', err => { console.error(err); try{ res.status(500).end("Zip error"); }catch{} });
-  archive.pipe(res);
+
+  // determine consumer for logging and file storage
+  let fileStream, storedName, originalName, consumer, id;
+  try{
+    const ldb = loadLettersDB();
+    const meta = ldb.jobs.find(j=>j.jobId === jobId);
+    if(meta?.consumerId){
+      const db = loadDB();
+      consumer = db.consumers.find(c=>c.id === meta.consumerId);
+    }
+  }catch{}
+
+  if(consumer){
+    const pass = new PassThrough();
+    archive.pipe(pass);
+    pass.pipe(res);
+
+    const dir = consumerUploadsDir(consumer.id);
+    id = nanoid(10);
+    storedName = `${id}.zip`;
+    const safe = (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g,'_');
+    const date = new Date().toISOString().slice(0,10);
+    originalName = `${safe}_${date}_letters.zip`;
+    const fullPath = path.join(dir, storedName);
+    fileStream = fs.createWriteStream(fullPath);
+    pass.pipe(fileStream);
+  } else {
+    archive.pipe(res);
+  }
 
   let browser;
   try{
@@ -841,6 +880,23 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
       archive.append(pdf,{ name });
     }
     await archive.finalize();
+
+    if(fileStream && consumer){
+      await new Promise(resolve => fileStream.on('close', resolve));
+      try{
+        const stat = await fs.promises.stat(path.join(consumerUploadsDir(consumer.id), storedName));
+        addFileMeta(consumer.id, {
+          id,
+          originalName,
+          storedName,
+          type: 'letters_zip',
+          size: stat.size,
+          mimetype: 'application/zip',
+          uploadedAt: new Date().toISOString(),
+        });
+        addEvent(consumer.id, 'letters_downloaded', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
+      }catch(err){ console.error('Failed to record zip', err); }
+    }
   }catch(e){
     console.error("Zip generation failed:", e);
     try{ res.status(500).end("Failed to create zip."); }catch{}
