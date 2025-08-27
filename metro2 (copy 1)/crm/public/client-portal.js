@@ -84,10 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const snapEl = document.getElementById('reportSnapshot');
   if (snapEl) {
     const snap = JSON.parse(localStorage.getItem('creditSnapshot') || '{}');
-    const deleted = (snap.deleted || []).map(a => `<div class="text-green-600">✅ ${a}</div>`).join('');
-    const disputing = (snap.disputing || []).map(a => `<div class="text-yellow-600">⚠️ ${a}</div>`).join('');
     const negative = (snap.negative || []).map(a => `<div class="text-red-600">❌ ${a}</div>`).join('');
-    snapEl.innerHTML = deleted + disputing + negative || 'No data.';
+    snapEl.innerHTML = negative || 'No negative items.';
   }
 
   const eduEl = document.getElementById('education');
@@ -98,11 +96,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const docEl = document.getElementById('docList');
-  if (docEl) {
-    const docs = JSON.parse(localStorage.getItem('uploads') || '[]');
-    if (!docs.length) docEl.textContent = 'No documents uploaded.';
-    else docEl.innerHTML = docs.map(d => `<div class="news-item">${d.name || 'Document'} - ${d.status || 'uploaded'}</div>`).join('');
+  function loadDocs(){
+    if (!(docEl && consumerId)) return;
+    fetch(`/api/consumers/${consumerId}/state`)
+      .then(r => r.json())
+      .then(data => {
+        const docs = data.state?.files || [];
+        if (!docs.length) docEl.textContent = 'No documents uploaded.';
+        else docEl.innerHTML = docs.map(d => `<div class="news-item"><a href="/api/consumers/${consumerId}/state/files/${d.storedName}" target="_blank">${d.originalName}</a></div>`).join('');
+      })
+      .catch(() => { docEl.textContent = 'Failed to load documents.'; });
   }
+  loadDocs();
 
   const debtForm = document.getElementById('debtForm');
   if (debtForm) {
@@ -110,11 +115,51 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const amount = parseFloat(document.getElementById('debtAmount').value);
       const rate = parseFloat(document.getElementById('debtRate').value) / 100 / 12;
-      const payment = parseFloat(document.getElementById('debtPayment').value);
+      const months = parseFloat(document.getElementById('debtMonths').value);
       const result = document.getElementById('debtResult');
-      const months = Math.log(payment / (payment - amount * rate)) / Math.log(1 + rate);
-      if (isFinite(months) && months > 0) result.textContent = `Approx ${Math.ceil(months)} months to payoff.`;
-      else result.textContent = 'Payment too low to cover interest.';
+      const payment = amount * rate / (1 - Math.pow(1 + rate, -months));
+      if (isFinite(payment) && payment > 0) result.textContent = `Monthly payment approx $${payment.toFixed(2)}`;
+      else result.textContent = 'Invalid values.';
+    });
+  }
+
+  // Handle uploads view
+  const portalMain = document.getElementById('portalMain');
+  const uploadSection = document.getElementById('uploadSection');
+  function showSection(hash){
+    if (hash === '#uploads') {
+      portalMain.classList.add('hidden');
+      uploadSection.classList.remove('hidden');
+    } else {
+      portalMain.classList.remove('hidden');
+      uploadSection.classList.add('hidden');
+    }
+  }
+  showSection(location.hash);
+  window.addEventListener('hashchange', () => showSection(location.hash));
+
+  const uploadForm = document.getElementById('uploadForm');
+  if (uploadForm && consumerId) {
+    uploadForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const fileInput = document.getElementById('uploadFile');
+      const status = document.getElementById('uploadStatus');
+      if (!fileInput.files.length) return;
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      fetch(`/api/consumers/${consumerId}/state/upload`, { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            status.textContent = 'Uploaded successfully.';
+            fileInput.value = '';
+            location.hash = '#';
+            loadDocs();
+          } else {
+            status.textContent = 'Upload failed.';
+          }
+        })
+        .catch(() => { status.textContent = 'Upload failed.'; });
     });
   }
 

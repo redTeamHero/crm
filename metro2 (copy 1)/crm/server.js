@@ -358,6 +358,19 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   try{
     const analyzed = await runPythonAnalyzer(req.file.buffer.toString("utf-8"));
     const rid = nanoid(8);
+    // store original uploaded file so clients can access it from document center
+    const uploadDir = consumerUploadsDir(consumer.id);
+    const ext = (req.file.originalname.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
+    const storedName = `${rid}${ext}`;
+    await fs.promises.writeFile(path.join(uploadDir, storedName), req.file.buffer);
+    addFileMeta(consumer.id, {
+      id: rid,
+      originalName: req.file.originalname,
+      storedName,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      uploadedAt: new Date().toISOString(),
+    });
     consumer.reports.unshift({
       id: rid,
       uploadedAt: new Date().toISOString(),
@@ -742,7 +755,8 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   if(useOcr){
     try{
       const $ = cheerio.load(html);
-      const text = $.text();
+      $('style,script').remove();
+      const text = $('body').text();
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(),"ocr-"));
       const txt = path.join(tmp,"letter.txt");
       const out = path.join(tmp,"letter.pdf");
