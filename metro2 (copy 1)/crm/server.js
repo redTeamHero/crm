@@ -906,17 +906,25 @@ app.post("/api/consumers/:id/state/upload", fileUpload.single("file"), async (re
   const dir = consumerUploadsDir(consumer.id);
   const id = nanoid(10);
   const ext = (req.file.originalname.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
+  const type = (req.body.type || '').toLowerCase().replace(/[^a-z0-9]+/g, '_') || 'doc';
+  const safeName = (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  const date = new Date().toISOString().slice(0,10);
   const storedName = `${id}${ext}`;
+  const originalName = `${safeName}_${date}_${type}${ext}`;
   const fullPath = path.join(dir, storedName);
   await fs.promises.writeFile(fullPath, req.file.buffer);
 
   const rec = {
-    id, originalName: req.file.originalname, storedName,
-    size: req.file.size, mimetype: req.file.mimetype,
+    id,
+    originalName,
+    storedName,
+    type,
+    size: req.file.size,
+    mimetype: req.file.mimetype,
     uploadedAt: new Date().toISOString()
   };
   addFileMeta(consumer.id, rec);
-  addEvent(consumer.id, "file_uploaded", { id, name: req.file.originalname, size: req.file.size });
+  addEvent(consumer.id, "file_uploaded", { id, name: originalName, size: req.file.size });
 
   res.json({ ok:true, file: { ...rec, url: `/api/consumers/${consumer.id}/state/files/${storedName}` } });
 });

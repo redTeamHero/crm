@@ -476,6 +476,10 @@ function buildLetterHTML({
   return { filename, html: letterBody };
 }
 
+function namePrefix(consumer) {
+  return (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+}
+
 function buildPersonalInfoLetterHTML({ consumer, bureau }) {
   const dateStr = todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
@@ -549,7 +553,7 @@ function buildPersonalInfoLetterHTML({ consumer, bureau }) {
 </html>
   `.trim();
 
-  const filename = `${bureau}_personal_info_dispute_${new Date()
+  const filename = `${namePrefix(consumer)}_${bureau}_personal_info_dispute_${new Date()
     .toISOString()
     .slice(0, 10)}.html`;
 
@@ -610,7 +614,7 @@ function buildInquiryLetterHTML({ consumer, bureau, inquiry }) {
   const fnSafeCred = safe(inquiry.creditor || "Unknown")
     .replace(/[^a-z0-9]+/gi, "_")
     .replace(/^_+|_+$/g, "");
-  const filename = `${bureau}_${fnSafeCred}_inquiry_dispute_${new Date()
+  const filename = `${namePrefix(consumer)}_${bureau}_${fnSafeCred}_inquiry_dispute_${new Date()
     .toISOString()
     .slice(0, 10)}.html`;
 
@@ -675,7 +679,7 @@ function buildCollectorLetterHTML({ consumer, collector }) {
   const fnSafe = safe(collector.name)
     .replace(/[^a-z0-9]+/gi, "_")
     .replace(/^_+|_+$/g, "");
-  const filename = `${fnSafe}_collector_letter_${new Date().toISOString().slice(0,10)}.html`;
+  const filename = `${namePrefix(consumer)}_${fnSafe}_collector_letter_${new Date().toISOString().slice(0,10)}.html`;
   return { filename, html: letterBody };
 }
 
@@ -747,6 +751,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
             .replace(/^_+|_+$/g, "");
           filename = filename.replace("_dispute_", `_${safeStep}_`);
         }
+        filename = `${namePrefix(consumer)}_${filename}`;
         letters.push({
           bureau,
           tradelineIndex: sel.tradelineIndex,
