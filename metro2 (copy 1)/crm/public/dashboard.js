@@ -29,28 +29,46 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveBtn = document.getElementById('dashSaveNote');
   if (noteEl && saveBtn && titleEl && selectEl) {
     let notes = JSON.parse(localStorage.getItem('dashNotes') || '[]');
+    let selectedIdx = -1;
     function renderNotes(){
       const opts = ['<option value="">Select saved note...</option>'];
       notes.forEach((n,i)=> opts.push(`<option value="${i}">${escapeHtml(n.title)}</option>`));
       selectEl.innerHTML = opts.join('');
+      if(selectedIdx >= 0) selectEl.value = String(selectedIdx);
     }
     renderNotes();
     selectEl.addEventListener('change', () => {
-      const idx = selectEl.value;
-      if(idx === ''){ titleEl.value = ''; noteEl.value = ''; return; }
-      const n = notes[Number(idx)];
+      selectedIdx = selectEl.value === '' ? -1 : Number(selectEl.value);
+      if(selectedIdx === -1){ titleEl.value = ''; noteEl.value = ''; return; }
+      const n = notes[selectedIdx];
       titleEl.value = n.title;
       noteEl.value = n.content;
     });
 
-    saveBtn.addEventListener('click', () => {
+    function saveNote(){
       const title = titleEl.value.trim() || 'Untitled';
-      notes.push({ title, content: noteEl.value });
+      const content = noteEl.value;
+      if(selectedIdx >= 0){
+        notes[selectedIdx] = { title, content };
+      } else {
+        notes.push({ title, content });
+        selectedIdx = notes.length - 1;
+      }
       localStorage.setItem('dashNotes', JSON.stringify(notes));
-      titleEl.value = '';
-      noteEl.value = '';
       renderNotes();
+    }
+
+    saveBtn.addEventListener('click', () => {
+      saveNote();
     });
+
+    let autoSaveTimer;
+    function scheduleAutoSave(){
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(saveNote, 1000);
+    }
+    noteEl.addEventListener('input', scheduleAutoSave);
+    titleEl.addEventListener('input', scheduleAutoSave);
   }
 
   Promise.all([
