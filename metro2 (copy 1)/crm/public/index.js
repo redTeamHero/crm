@@ -495,6 +495,8 @@ function renderTradelines(tradelines){
     const prevBtn = node.querySelector(".tl-reason-prev");
     const nextBtn = node.querySelector(".tl-reason-next");
     const vs = tl.violations || [];
+    const maxSeverity = vs.reduce((m, v) => Math.max(m, v.severity || 0), 0);
+    if (maxSeverity) card.classList.add(`severity-${maxSeverity}`);
     let vStart = 0;
     function renderViolations(){
       if(!vs.length){
@@ -504,10 +506,10 @@ function renderTradelines(tradelines){
         return;
       }
       vWrap.innerHTML = vs.slice(vStart, vStart + 3).map((v, vidx) => `
-        <label class="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">
+        <label class="violation-item flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer severity-${v.severity || 1}">
           <input type="checkbox" class="violation" value="${vidx + vStart}"/>
           <div>
-            <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}</div>
+            <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}${v.severity ? `<span class="severity-tag severity-${v.severity}">S${v.severity}</span>` : ""}</div>
             ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
           </div>
         </label>`).join("");
