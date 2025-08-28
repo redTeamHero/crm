@@ -1427,6 +1427,6 @@ app.listen(PORT, ()=> {
   console.log(`Letters DB   ${LETTERS_DB_PATH}`);
 });
 
-
+}
 
 // End of server.js
