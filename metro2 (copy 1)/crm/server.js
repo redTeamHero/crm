@@ -721,7 +721,6 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
     res.status(500).json({ ok: false, error: String(e) });
   }
 
-
 });
 
 app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
