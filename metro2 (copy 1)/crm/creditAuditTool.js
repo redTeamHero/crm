@@ -26,7 +26,11 @@ export function normalizeReport(raw, selections = null){
       const idxs = Array.isArray(sel.violationIdxs) && sel.violationIdxs.length ? sel.violationIdxs : null;
       const issues = (tl.violations||[])
         .filter((_,i)=> !idxs || idxs.includes(i))
-        .map(v=>({ title:v.title, detail:v.detail }));
+        .map(v=>({
+          title: v.title,
+          detail: v.detail,
+          bureau: v.evidence?.bureau || 'All Bureaus'
+        }));
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });
   } else {
@@ -35,7 +39,11 @@ export function normalizeReport(raw, selections = null){
       for(const [bureau, data] of Object.entries(tl.per_bureau||{})){
         bureaus[bureau] = data;
       }
-      const issues = (tl.violations||[]).map(v=>({ title:v.title, detail:v.detail }));
+      const issues = (tl.violations||[]).map(v=>({
+        title: v.title,
+        detail: v.detail,
+        bureau: v.evidence?.bureau || 'All Bureaus'
+      }));
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });
   }
@@ -90,11 +98,13 @@ export function renderHtml(report, consumerName = "Consumer"){
       return `<tr class="row${diff}"><th>${escapeHtml(label)}</th>${cells}</tr>`;
     }).join('');
 
-    const issueItems = (acc.issues || []).map(i => {
-      if(!i || !i.title) return "";
-      const action = recommendAction(i.title);
-      return `<li>${escapeHtml(i.title)} - ${escapeHtml(i.detail || "")} ${escapeHtml(action)}</li>`;
-    }).filter(Boolean).join('');
+    const issueItems = (acc.issues || [])
+      .sort((a,b)=> (a.bureau||'').localeCompare(b.bureau||''))
+      .map(i => {
+        if(!i || !i.title) return "";
+        const action = recommendAction(i.title);
+        return `<li><strong>${escapeHtml(i.bureau)}</strong>: ${escapeHtml(i.title)} - This violates Metro 2 standard because ${escapeHtml(i.detail || "")}. ${escapeHtml(action)}</li>`;
+      }).filter(Boolean).join('');
     const issueBlock = issueItems ? `<p><strong>Audit Reasons:</strong></p><ul>${issueItems}</ul>` : "";
     return `
       <h2>${escapeHtml(acc.creditor)}</h2>
