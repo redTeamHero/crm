@@ -326,8 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         const msgs = data.messages || [];
         if (messageBanner) {
-          if (msgs.length) {
-            messageBanner.textContent = msgs[0].payload?.text || '';
+          const hostMsg = msgs.find(m => m.payload?.from === 'host');
+          if (hostMsg) {
+            messageBanner.textContent = hostMsg.payload?.text || '';
             messageBanner.classList.remove('hidden');
           } else {
             messageBanner.classList.add('hidden');
