@@ -151,6 +151,9 @@ function isNegative(k,v){
 
 // Save HTML as PDF under public/reports and return shareable link
 export async function savePdf(html){
+  if(!html || !html.trim()){
+    throw new Error("No HTML content provided");
+  }
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const outDir = path.join(__dirname, 'public', 'reports');
   await fs.mkdir(outDir, { recursive: true });

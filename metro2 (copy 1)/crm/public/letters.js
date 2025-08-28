@@ -92,8 +92,6 @@ $("#previewModal").addEventListener("click", (e)=>{ if(e.target.id==="previewMod
 $("#pvOpen").setAttribute("data-tip", "Open HTML (H)");
 $("#pvPrint").setAttribute("data-tip", "Print (P)");
 $("#btnBack").setAttribute("data-tip", "Back to CRM");
-$("#btnDownloadAll").setAttribute("data-tip", "Download all letters as PDF");
-$("#btnEmailAll").setAttribute("data-tip", "Email all letters");
 
 // Print from preview modal
 $("#pvPrint").addEventListener("click", ()=>{
@@ -137,15 +135,57 @@ $("#next").addEventListener("click", ()=>{
 // back
 $("#btnBack").addEventListener("click", ()=>{ location.href = "/"; });
 
-$("#btnDownloadAll").addEventListener("click", ()=>{
+$("#btnDownloadAll").addEventListener("click", async ()=>{
   if (!JOB_ID) return;
-  window.location.href = `/api/letters/${encodeURIComponent(JOB_ID)}/all.zip`;
+  const btn = $("#btnDownloadAll");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Preparing...";
+  try {
+    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/all.zip`);
+    if(!resp.ok) throw new Error("Failed to download zip");
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `letters_${JOB_ID}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 1000);
+  } catch(e){ showErr(e.message || String(e)); }
+  finally {
+    btn.disabled = false;
+    btn.textContent = old;
+  }
+});
+
+$("#btnPortalAll").addEventListener("click", async ()=>{
+  if(!JOB_ID) return;
+  const btn = $("#btnPortalAll");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+  try{
+    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/portal`, { method:"POST" });
+    const data = await resp.json().catch(()=> ({}));
+    if(!data?.ok) throw new Error(data?.error || "Failed to send to portal.");
+    alert("Letters sent to client portal.");
+  }catch(e){ showErr(e.message || String(e)); }
+  finally {
+    btn.disabled = false;
+    btn.textContent = old;
+  }
 });
 
 $("#btnEmailAll").addEventListener("click", async ()=>{
   if (!JOB_ID) return;
   const to = prompt("Send to which email?");
   if (!to) return;
+  const btn = $("#btnEmailAll");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Sending...";
   try{
     const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/email`, {
       method:"POST",
@@ -156,6 +196,10 @@ $("#btnEmailAll").addEventListener("click", async ()=>{
     if(!data?.ok) throw new Error(data?.error || "Failed to email letters.");
     alert("Letters emailed.");
   }catch(e){ showErr(e.message || String(e)); }
+  finally {
+    btn.disabled = false;
+    btn.textContent = old;
+  }
 });
 
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
