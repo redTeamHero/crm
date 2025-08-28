@@ -6,7 +6,11 @@ const THEMES = {
   red:    { accent: '#FF3B30', hover: '#c82d24', bg: 'rgba(255,59,48,0.12)', glassBg: 'rgba(255,59,48,0.15)', glassBrd: 'rgba(255,59,48,0.3)' },
   purple: { accent: '#AF52DE', hover: '#893dba', bg: 'rgba(175,82,222,0.12)', glassBg: 'rgba(175,82,222,0.15)', glassBrd: 'rgba(175,82,222,0.3)' },
   teal:   { accent: '#14B8A6', hover: '#0d9488', bg: 'rgba(20,184,166,0.12)', glassBg: 'rgba(20,184,166,0.15)', glassBrd: 'rgba(20,184,166,0.3)' },
-  pink:   { accent: '#EC4899', hover: '#c0347a', bg: 'rgba(236,72,153,0.12)', glassBg: 'rgba(236,72,153,0.15)', glassBrd: 'rgba(236,72,153,0.3)' }
+  pink:   { accent: '#EC4899', hover: '#c0347a', bg: 'rgba(236,72,153,0.12)', glassBg: 'rgba(236,72,153,0.15)', glassBrd: 'rgba(236,72,153,0.3)' },
+  spacegray: { accent: '#1C1C1E', hover: '#0d0d0d', bg: 'rgba(28,28,30,0.12)', glassBg: 'rgba(28,28,30,0.15)', glassBrd: 'rgba(28,28,30,0.3)' },
+  metallicgrey: { accent: '#9FA2A4', hover: '#7e8082', bg: 'rgba(159,162,164,0.12)', glassBg: 'rgba(159,162,164,0.15)', glassBrd: 'rgba(159,162,164,0.3)' },
+  black: { accent: '#000000', hover: '#333333', bg: 'rgba(0,0,0,0.12)', glassBg: 'rgba(0,0,0,0.15)', glassBrd: 'rgba(0,0,0,0.3)' },
+  glass: { accent: 'rgba(255,255,255,0.7)', hover: 'rgba(255,255,255,0.5)', bg: 'rgba(255,255,255,0.12)', glassBg: 'rgba(255,255,255,0.25)', glassBrd: 'rgba(255,255,255,0.4)' }
 };
 
 function applyTheme(name){
