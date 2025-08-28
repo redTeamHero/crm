@@ -32,6 +32,38 @@ import {
   addReminder,
   processAllReminders,
 } from "./state.js";
+import { load as cheerioLoad } from "cheerio";
+
+function htmlToPlainText(html){
+  const $ = cheerioLoad(html || "");
+  $("style,script").remove();
+  $("br").replaceWith("\n");
+  $("p,div,h1,h2,h3,h4,h5,h6,li,tr,table").each((_, el) => {
+    $(el).append("\n");
+  });
+  const text = $.root().text();
+  return text
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function generateOcrPdf(text){
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ocr-'));
+  const txtPath = path.join(tmpDir, 'letter.txt');
+  const pdfPath = path.join(tmpDir, 'letter.pdf');
+  fs.writeFileSync(txtPath, text, 'utf8');
+  const script = path.join(__dirname, 'ocr_resistant_pdf.py');
+  const res = spawnSync('python3', [script, '--in', txtPath, '--out', pdfPath, '--preset', 'strong']);
+  if(res.status !== 0){
+    console.error(res.stderr?.toString() || 'OCR script failed');
+    throw new Error('OCR script failed');
+  }
+  const buf = fs.readFileSync(pdfPath);
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+  return buf;
+}
 
 function htmlToPlainText(html){
   return html
