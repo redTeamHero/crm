@@ -1049,14 +1049,15 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
     const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
     await page.close();
-    if(!pdf || pdf.length === 0){
+    const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+    if(!pdfBuffer || pdfBuffer.length === 0){
       throw new Error("Generated PDF is empty");
     }
 
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
-    console.log(`Generated PDF for ${filenameBase} (${pdf.length} bytes)`);
-    res.send(pdf);
+    console.log(`Generated PDF for ${filenameBase} (${pdfBuffer.length} bytes)`);
+    res.send(pdfBuffer);
   }catch(e){
     console.error("PDF error:", e);
     res.status(500).send("Failed to render PDF.");
@@ -1131,9 +1132,10 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
+      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
-        archive.append(pdf,{ name });
+        archive.append(pdfBuffer,{ name });
       }catch(err){
         logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
         throw err;
@@ -1206,8 +1208,9 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
+      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
       const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
-      attachments.push({ filename: name, content: pdf, contentType: 'application/pdf' });
+      attachments.push({ filename: name, content: pdfBuffer, contentType: 'application/pdf' });
     }
 
     await mailer.sendMail({
@@ -1287,9 +1290,10 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
       await page.close();
+      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
-        archive.append(pdf,{ name });
+        archive.append(pdfBuffer,{ name });
       }catch(err){
         logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
         throw err;
