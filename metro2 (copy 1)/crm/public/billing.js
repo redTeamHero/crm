@@ -15,7 +15,9 @@ if(!consumerId){
 async function loadInvoices(){
   const data = await api(`/api/invoices/${consumerId}`);
   const body = $('#invoiceBody');
+  const newRow = document.getElementById('invNewRow');
   body.innerHTML = '';
+  if(newRow) body.appendChild(newRow);
   (data.invoices||[]).forEach(inv=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -38,12 +40,11 @@ async function loadInvoices(){
   });
 }
 
-$('#invoiceForm')?.addEventListener('submit', async e=>{
-  e.preventDefault();
+document.getElementById('invAdd')?.addEventListener('click', async ()=>{
   const desc = $('#invDesc').value.trim();
   const amount = parseFloat($('#invAmount').value) || 0;
   const due = $('#invDue').value;
-  if(!desc || !amount){ return; }
+  if(!desc || !amount) return;
   const company = JSON.parse(localStorage.getItem('companyInfo')||'{}');
   await api('/api/invoices', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ consumerId, desc, amount, due, company }) });
   $('#invDesc').value='';
