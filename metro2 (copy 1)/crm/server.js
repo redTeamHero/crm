@@ -14,7 +14,8 @@ import archiver from "archiver";
 
 import { PassThrough } from "stream";
 
-import { logInfo, logError } from "./logger.js";
+import { logInfo, logError, logWarn } from "./logger.js";
+
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
@@ -67,6 +68,9 @@ process.on("unhandledRejection", err => {
 });
 process.on("uncaughtException", err => {
   logError("UNCAUGHT_EXCEPTION", "Uncaught exception", err);
+});
+process.on("warning", warn => {
+  logWarn("NODE_WARNING", warn.message, { stack: warn.stack });
 });
 
 
@@ -717,6 +721,7 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
     res.status(500).json({ ok: false, error: String(e) });
   }
 
+
 });
 
 app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
@@ -1026,6 +1031,11 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     if(!Lm || !fs.existsSync(Lm.htmlPath)) return res.status(404).send("Letter not found.");
     html = fs.readFileSync(Lm.htmlPath,"utf-8");
     filenameBase = path.basename(Lm.htmlPath).replace(/\.html?$/i,"");
+  }
+
+  if(!html || !html.trim()){
+    logError("LETTER_HTML_MISSING", "No HTML content for PDF generation", null, { jobId, idx });
+    return res.status(500).send("No HTML content to render");
   }
 
   let browser;

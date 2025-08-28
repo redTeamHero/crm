@@ -11,3 +11,4 @@ export function logError(code, message, err, meta = {}) {
   }
   console.error(JSON.stringify(entry));
 }
+
