@@ -146,7 +146,7 @@ async function rewordWithAI(text, tone) {
         Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-4.1-mini",
         messages: [
           { role: "system", content: "You reword credit dispute statements." },
           {
