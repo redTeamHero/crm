@@ -412,6 +412,7 @@ function buildLetterHTML({
   const signOff = `${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}`;
 
 
+
   const letterBody = `
 <!DOCTYPE html>
 <html>
