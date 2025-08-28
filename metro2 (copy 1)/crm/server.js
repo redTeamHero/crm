@@ -32,37 +32,19 @@ import {
   addReminder,
   processAllReminders,
 } from "./state.js";
-import { load as cheerioLoad } from "cheerio";
-
 function htmlToPlainText(html){
-  const $ = cheerioLoad(html || "");
-  $("style,script").remove();
-  $("br").replaceWith("\n");
-  $("p,div,h1,h2,h3,h4,h5,h6,li,tr,table").each((_, el) => {
-    $(el).append("\n");
-  });
-  const text = $.root().text();
-  return text
-    .replace(/\u00a0/g, ' ')
-    .replace(/\r/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<(br|BR)\s*\/?>(\n)?/g, '\n')
-    .replace(/<\/(p|div|h[1-6]|tr|table)>/gi, '\n\n')
-    .replace(/<\/li>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
+  return (html || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|tr|table)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\r/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n")
     .trim();
 }
-
 
 function generateOcrPdf(text){
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ocr-'));
