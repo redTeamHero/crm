@@ -605,6 +605,7 @@ function renderBreachAuditHtml(consumer) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial, sans-serif;margin:20px;}h1{text-align:center;}ul{margin-top:10px;}</style></head><body><h1>${escapeHtml(consumer.name || "Consumer")}</h1><h2>Data Breach Audit</h2><p>Email: ${escapeHtml(consumer.email || "")}</p><ul>${list}</ul><footer><hr/><div style="font-size:0.8em;color:#555;margin-top:20px;">Generated ${escapeHtml(dateStr)}</div></footer></body></html>`;
 }
 
+
 async function handleDataBreach(email, consumerId, res) {
   const result = await hibpLookup(email);
   if (result.ok && consumerId) {
@@ -676,7 +677,49 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
   }
+
 });
+
+app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
+  const db = loadDB();
+  const c = db.consumers.find(x => x.id === req.params.id);
+  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
+  try {
+    const html = renderBreachAuditHtml(c);
+    const result = await savePdf(html);
+    let ext = path.extname(result.path);
+    if (result.warning || ext !== ".pdf") {
+      ext = ".html";
+    }
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+    try {
+      const uploadsDir = consumerUploadsDir(c.id);
+      const id = nanoid(10);
+      const storedName = `${id}${ext}`;
+      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const date = new Date().toISOString().slice(0, 10);
+      const originalName = `${safe}_${date}_breach_audit${ext}`;
+      const dest = path.join(uploadsDir, storedName);
+      await fs.promises.copyFile(result.path, dest);
+      const stat = await fs.promises.stat(dest);
+      addFileMeta(c.id, {
+        id,
+        originalName,
+        storedName,
+        type: "breach-audit",
+        size: stat.size,
+        mimetype: mime,
+        uploadedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Failed to store breach audit file", err);
+    }
+    addEvent(c.id, "breach_audit_generated", { file: result.url });
+    res.json({ ok: true, url: result.url, warning: result.warning });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+
 
 
 // =================== Letters & PDFs ===================
@@ -1073,6 +1116,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
 
   let browser;
   try{
+
     browser = await launchBrowser();
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
@@ -1182,6 +1226,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     res.status(500).json({ ok:false, error:String(e) });
   }finally{
     try{ await browser?.close(); }catch{}
+
   }
 });
 
