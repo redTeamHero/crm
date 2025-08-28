@@ -6,8 +6,8 @@ import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import multer from "multer";
 import { nanoid } from "nanoid";
-import { spawn, spawnSync } from "child_process";
-import puppeteer from "puppeteer";
+import { spawn } from "child_process";
+import { htmlToPdfBuffer } from "./pdfUtils.js";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
@@ -17,6 +17,7 @@ import { PassThrough } from "stream";
 import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer } from "./utils.js";
+
 
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
@@ -137,27 +138,22 @@ app.get("/portal/:id", (req, res) => {
 });
 
 // ---------- Simple JSON "DB" ----------
+
 const DB_PATH = path.join(__dirname, "db.json");
-function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }catch{ return { consumers: [] }; } }
-function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
+const loadDB = () => readJson(DB_PATH, { consumers: [] });
+const saveDB = db => writeJson(DB_PATH, db);
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
-function loadLettersDB(){
-  try{
-    const raw = fs.readFileSync(LETTERS_DB_PATH,"utf-8");
-    const db = JSON.parse(raw);
-    console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
-    return db;
-  }catch(e){
-    console.warn("letters-db.json missing or invalid, using empty structure");
-    return { jobs: [], templates: [], sequences: [], contracts: [] };
-  }
-}
-
-function saveLettersDB(db){
-  fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2));
+const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [] };
+const loadLettersDB = () => {
+  const db = readJson(LETTERS_DB_PATH, LETTERS_DEFAULT);
+  console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
+  return db;
+};
+const saveLettersDB = db => {
+  writeJson(LETTERS_DB_PATH, db);
   console.log(`Saved letters DB with ${db.jobs.length} jobs`);
-}
+};
 function recordLettersJob(consumerId, jobId, letters){
   console.log(`Recording letters job ${jobId} for consumer ${consumerId}`);
   const db = loadLettersDB();
@@ -166,19 +162,16 @@ function recordLettersJob(consumerId, jobId, letters){
 }
 if(!fs.existsSync(LETTERS_DB_PATH)){
   console.log(`letters-db.json not found. Initializing at ${LETTERS_DB_PATH}`);
-  saveLettersDB({ jobs: [], templates: [], sequences: [], contracts: [] });
+  saveLettersDB(LETTERS_DEFAULT);
 }
 
 const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
-function loadLeadsDB(){ try{ return JSON.parse(fs.readFileSync(LEADS_DB_PATH,"utf-8")); }catch{ return { leads: [] }; } }
-function saveLeadsDB(db){ fs.writeFileSync(LEADS_DB_PATH, JSON.stringify(db,null,2)); }
+const loadLeadsDB = () => readJson(LEADS_DB_PATH, { leads: [] });
+const saveLeadsDB = db => writeJson(LEADS_DB_PATH, db);
 
 const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
-function loadInvoicesDB(){
-  try{ return JSON.parse(fs.readFileSync(INVOICES_DB_PATH, "utf-8")); }
-  catch{ return { invoices: [] }; }
-}
-function saveInvoicesDB(db){ fs.writeFileSync(INVOICES_DB_PATH, JSON.stringify(db,null,2)); }
+const loadInvoicesDB = () => readJson(INVOICES_DB_PATH, { invoices: [] });
+const saveInvoicesDB = db => writeJson(INVOICES_DB_PATH, db);
 
 function renderInvoiceHtml(inv, company = {}, consumer = {}) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
@@ -800,33 +793,6 @@ function saveJobsIndex(idx){
   fs.writeFileSync(JOBS_INDEX_PATH, JSON.stringify(idx,null,2));
 }
 
-// chromium detection for puppeteer
-async function detectChromium(){
-  if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  const candidates = [
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-    "/snap/bin/chromium",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable"
-  ];
-  for (const p of candidates) {
-    try {
-      await fs.promises.access(p, fs.constants.X_OK);
-      const check = spawnSync(p, ["--version"], { stdio: "ignore" });
-      if (check.status === 0) return p;
-    } catch {}
-  }
-  return null;
-}
-
-async function launchBrowser(){
-  const execPath = await detectChromium();
-  const opts = { headless:true, args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-zygote","--single-process"] };
-  if(execPath) opts.executablePath = execPath;
-  return puppeteer.launch(opts);
-}
-
 // Create job: memory + disk
 function persistJobToDisk(jobId, letters){
   console.log(`Persisting job ${jobId} with ${letters.length} letters to disk`);
@@ -1040,6 +1006,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   }
 
   let browserInstance;
+
   try{
     browserInstance = await launchBrowser();
     const page = await browserInstance.newPage();
@@ -1056,6 +1023,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
       throw new Error("Generated PDF is empty");
     }
 
+
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
     console.log(`Generated PDF for ${filenameBase} (${pdfBuffer.length} bytes)`);
@@ -1064,6 +1032,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     console.error("PDF error:", e);
     res.status(500).send("Failed to render PDF.");
   }finally{ try{ await browserInstance?.close(); }catch{} }
+
 });
 
 app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
@@ -1123,6 +1092,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   let browserInstance;
   try{
     browserInstance = await launchBrowser();
+
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const page = await browserInstance.newPage();
@@ -1135,6 +1105,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
       const pdfBuffer = ensureBuffer(pdf);
+
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
         archive.append(pdfBuffer,{ name });
@@ -1167,6 +1138,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
     try{ res.status(500).json({ ok:false, errorCode:'ZIP_BUILD_FAILED', message:'Failed to create zip.' }); }catch{}
   }finally{
     try{ await browserInstance?.close(); }catch{}
+
   }
 });
 
@@ -1197,6 +1169,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
   try{
 
     browserInstance = await launchBrowser();
+
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
@@ -1211,6 +1184,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
       const pdfBuffer = ensureBuffer(pdf);
+
       const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       attachments.push({ filename: name, content: pdfBuffer, contentType: 'application/pdf' });
     }
@@ -1235,6 +1209,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
 
   }finally{
     try{ await browserInstance?.close(); }catch{}
+
   }
 });
 
@@ -1264,6 +1239,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     logInfo('PORTAL_UPLOAD_START', 'Building portal ZIP', { jobId, consumerId: consumer.id });
 
     browserInstance = await launchBrowser();
+
     const dir = consumerUploadsDir(consumer.id);
     const id = nanoid(10);
     const storedName = `${id}.zip`;
@@ -1293,6 +1269,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
       await page.close();
       const pdfBuffer = ensureBuffer(pdf);
+
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
         archive.append(pdfBuffer,{ name });
@@ -1323,6 +1300,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     res.status(500).json({ ok:false, errorCode:'PORTAL_UPLOAD_FAILED', message:String(e) });
   }finally{
     try{ await browserInstance?.close(); }catch{}
+
 
   }
 });
