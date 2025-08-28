@@ -188,4 +188,8 @@ body.voice-active #voiceNotes{display:block;}
   color: #fff;
 }
 
+.tl-card.selected input[type="checkbox"] {
+  accent-color: currentColor;
+}
+
 
