@@ -16,6 +16,8 @@ import { PassThrough } from "stream";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
+import { ensureBuffer, readJson, writeJson } from "./utils.js";
+
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
@@ -136,24 +138,22 @@ app.get("/portal/:id", (req, res) => {
 
 // ---------- Simple JSON "DB" ----------
 const DB_PATH = path.join(__dirname, "db.json");
-function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }catch{ return { consumers: [] }; } }
-function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
+function loadDB(){ return readJson(DB_PATH, { consumers: [] }); }
+function saveDB(db){ writeJson(DB_PATH, db); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
 function loadLettersDB(){
-  try{
-    const raw = fs.readFileSync(LETTERS_DB_PATH,"utf-8");
-    const db = JSON.parse(raw);
+  const db = readJson(LETTERS_DB_PATH, null);
+  if(db){
     console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
     return db;
-  }catch(e){
-    console.warn("letters-db.json missing or invalid, using empty structure");
-    return { jobs: [], templates: [], sequences: [], contracts: [] };
   }
+  console.warn("letters-db.json missing or invalid, using empty structure");
+  return { jobs: [], templates: [], sequences: [], contracts: [] };
 }
 
 function saveLettersDB(db){
-  fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2));
+  writeJson(LETTERS_DB_PATH, db);
   console.log(`Saved letters DB with ${db.jobs.length} jobs`);
 }
 function recordLettersJob(consumerId, jobId, letters){
@@ -168,15 +168,12 @@ if(!fs.existsSync(LETTERS_DB_PATH)){
 }
 
 const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
-function loadLeadsDB(){ try{ return JSON.parse(fs.readFileSync(LEADS_DB_PATH,"utf-8")); }catch{ return { leads: [] }; } }
-function saveLeadsDB(db){ fs.writeFileSync(LEADS_DB_PATH, JSON.stringify(db,null,2)); }
+function loadLeadsDB(){ return readJson(LEADS_DB_PATH, { leads: [] }); }
+function saveLeadsDB(db){ writeJson(LEADS_DB_PATH, db); }
 
 const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
-function loadInvoicesDB(){
-  try{ return JSON.parse(fs.readFileSync(INVOICES_DB_PATH, "utf-8")); }
-  catch{ return { invoices: [] }; }
-}
-function saveInvoicesDB(db){ fs.writeFileSync(INVOICES_DB_PATH, JSON.stringify(db,null,2)); }
+function loadInvoicesDB(){ return readJson(INVOICES_DB_PATH, { invoices: [] }); }
+function saveInvoicesDB(db){ writeJson(INVOICES_DB_PATH, db); }
 
 function renderInvoiceHtml(inv, company = {}, consumer = {}) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
@@ -1037,10 +1034,10 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     return res.status(500).send("No HTML content to render");
   }
 
-  let browser;
+  let browserInstance;
   try{
-    browser = await launchBrowser();
-    const page = await browser.newPage();
+    browserInstance = await launchBrowser();
+    const page = await browserInstance.newPage();
     const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
     await page.goto(dataUrl, { waitUntil:"load", timeout:60000 });
     await page.emulateMediaType("screen");
@@ -1049,7 +1046,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
     const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
     await page.close();
-    const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+    const pdfBuffer = ensureBuffer(pdf);
     if(!pdfBuffer || pdfBuffer.length === 0){
       throw new Error("Generated PDF is empty");
     }
@@ -1061,7 +1058,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   }catch(e){
     console.error("PDF error:", e);
     res.status(500).send("Failed to render PDF.");
-  }finally{ try{ await browser?.close(); }catch{} }
+  }finally{ try{ await browserInstance?.close(); }catch{} }
 });
 
 app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
@@ -1118,12 +1115,12 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
     archive.pipe(res);
   }
 
-  let browser;
+  let browserInstance;
   try{
-    browser = await launchBrowser();
+    browserInstance = await launchBrowser();
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
-      const page = await browser.newPage();
+      const page = await browserInstance.newPage();
       const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
       await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
       await page.emulateMediaType("screen");
@@ -1132,7 +1129,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = ensureBuffer(pdf);
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
         archive.append(pdfBuffer,{ name });
@@ -1164,7 +1161,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
     logError('ZIP_BUILD_FAILED', 'Zip generation failed', e, { jobId });
     try{ res.status(500).json({ ok:false, errorCode:'ZIP_BUILD_FAILED', message:'Failed to create zip.' }); }catch{}
   }finally{
-    try{ await browser?.close(); }catch{}
+    try{ await browserInstance?.close(); }catch{}
   }
 });
 
@@ -1191,15 +1188,15 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     }
   }catch{}
 
-  let browser;
+  let browserInstance;
   try{
 
-    browser = await launchBrowser();
+    browserInstance = await launchBrowser();
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, L.filename), "utf-8"));
-      const page = await browser.newPage();
+      const page = await browserInstance.newPage();
       const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
       await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
       await page.emulateMediaType("screen");
@@ -1208,7 +1205,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = ensureBuffer(pdf);
       const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       attachments.push({ filename: name, content: pdfBuffer, contentType: 'application/pdf' });
     }
@@ -1232,7 +1229,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     res.status(500).json({ ok:false, errorCode:'EMAIL_SEND_FAILED', message:String(e) });
 
   }finally{
-    try{ await browser?.close(); }catch{}
+    try{ await browserInstance?.close(); }catch{}
   }
 });
 
@@ -1257,11 +1254,11 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   }catch{}
   if(!consumer) return res.status(400).json({ ok:false, error:"Consumer not found" });
 
-  let browser;
+  let browserInstance;
   try{
     logInfo('PORTAL_UPLOAD_START', 'Building portal ZIP', { jobId, consumerId: consumer.id });
 
-    browser = await launchBrowser();
+    browserInstance = await launchBrowser();
     const dir = consumerUploadsDir(consumer.id);
     const id = nanoid(10);
     const storedName = `${id}.zip`;
@@ -1281,7 +1278,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, L.filename), 'utf-8'));
-      const page = await browser.newPage();
+      const page = await browserInstance.newPage();
       const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
       await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
       await page.emulateMediaType('screen');
@@ -1290,7 +1287,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
       await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = ensureBuffer(pdf);
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
         archive.append(pdfBuffer,{ name });
@@ -1320,7 +1317,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     logError('PORTAL_UPLOAD_FAILED', 'Letters portal upload failed', e, { jobId });
     res.status(500).json({ ok:false, errorCode:'PORTAL_UPLOAD_FAILED', message:String(e) });
   }finally{
-    try{ await browser?.close(); }catch{}
+    try{ await browserInstance?.close(); }catch{}
 
   }
 });
