@@ -155,11 +155,21 @@ async function rewordWithAI(text, tone) {
         ],
       }),
     });
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => "");
+      logError(
+        "AI_REWORD_FAILED",
+        "OpenAI API error",
+        null,
+        { status: resp.status, body: errText }
+      );
+      return text;
+    }
     const data = await resp.json().catch(() => ({}));
     const out = data.choices?.[0]?.message?.content?.trim() || text;
     return out.replace(/—/g, "-");
   } catch (e) {
-    console.error("AI reword failed", e);
+    logError("AI_REWORD_FAILED", "AI reword request failed", e);
     return text;
   }
 }
