@@ -28,7 +28,7 @@
   <div id="noClient" class="glass card hidden">Select a client from the Clients page first.</div>
 
   <div id="billingContent" class="space-y-4 hidden">
-    <div class="glass card max-w-3xl mx-auto">
+    <div class="glass card max-w-lg mx-auto">
       <div class="font-medium mb-2 text-center">Invoices</div>
       <table id="invoiceTable" class="invoice-table w-full text-sm">
         <thead>
@@ -40,15 +40,16 @@
             <th class="text-left">Actions</th>
           </tr>
         </thead>
-        <tbody id="invoiceBody"></tbody>
+        <tbody id="invoiceBody">
+          <tr id="invNewRow">
+            <td><input id="invDesc" class="border rounded px-2 py-1 text-sm w-full" placeholder="Description" /></td>
+            <td><input id="invAmount" type="number" step="0.01" class="border rounded px-2 py-1 text-sm w-full" placeholder="Amount" /></td>
+            <td><input id="invDue" type="date" class="border rounded px-2 py-1 text-sm w-full" /></td>
+            <td></td>
+            <td><button id="invAdd" class="btn text-sm" type="button">Add</button></td>
+          </tr>
+        </tbody>
       </table>
-
-      <form id="invoiceForm" class="mt-4 flex flex-wrap items-end gap-2 justify-center">
-        <input id="invDesc" class="border rounded px-2 py-1 text-sm flex-1" placeholder="Description" />
-        <input id="invAmount" type="number" step="0.01" class="border rounded px-2 py-1 text-sm w-32" placeholder="Amount" />
-        <input id="invDue" type="date" class="border rounded px-2 py-1 text-sm" />
-        <button class="btn text-sm" type="submit">Add</button>
-      </form>
     </div>
   </div>
 </main>
