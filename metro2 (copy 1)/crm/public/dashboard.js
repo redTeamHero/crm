@@ -120,36 +120,45 @@ document.addEventListener('DOMContentLoaded', () => {
   const msgList = document.getElementById('msgList');
   const msgInput = document.getElementById('msgInput');
   const msgSend = document.getElementById('msgSend');
-  let activeConsumer = null;
+  const msgClient = document.getElementById('msgClient');
+  let consumers = [];
 
   async function renderMessages(){
-    if(!activeConsumer || !msgList) return;
+    if(!msgList) return;
     try{
-      const data = await fetch(`/api/messages/${activeConsumer}`).then(r=>r.json());
-      const msgs = data.messages || [];
+      const all = await Promise.all(consumers.map(async c=>{
+        const data = await fetch(`/api/messages/${c.id}`).then(r=>r.json());
+        return (data.messages || []).map(m=>({ consumer: c, ...m }));
+      }));
+      const msgs = all.flat().sort((a,b)=> new Date(b.at) - new Date(a.at));
       if(!msgs.length){
         msgList.textContent = 'No messages.';
         return;
       }
-      msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${m.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.text)}</div>`).join('');
+      msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${escapeHtml(m.consumer.name || '')} - ${m.payload?.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.payload?.text || '')}</div>`).join('');
     }catch(e){
       msgList.textContent = 'Failed to load messages.';
     }
   }
 
-  if(msgList && msgInput && msgSend){
-    fetch('/api/consumers').then(r=>r.json()).then(data=>{
-      const list = data.consumers || [];
-      if(list.length){
-        activeConsumer = list[0].id;
-        renderMessages();
+  async function loadConsumers(){
+    try{
+      const data = await fetch('/api/consumers').then(r=>r.json());
+      consumers = data.consumers || [];
+      if(msgClient){
+        msgClient.innerHTML = '<option value="">Select client...</option>' + consumers.map(c=>`<option value="${c.id}">${escapeHtml(c.name || 'Unnamed')}</option>`).join('');
       }
-    });
+      renderMessages();
+    }catch(e){}
+  }
 
+  if(msgList && msgInput && msgSend){
+    loadConsumers();
     msgSend.addEventListener('click', async ()=>{
       const text = msgInput.value.trim();
-      if(!text || !activeConsumer) return;
-      await fetch(`/api/messages/${activeConsumer}`, {
+      const consumerId = msgClient?.value;
+      if(!text || !consumerId) return;
+      await fetch(`/api/messages/${consumerId}`, {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ text, from:'host' })
