@@ -16,7 +16,7 @@ import { PassThrough } from "stream";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
-import { ensureBuffer } from "./utils.js";
+import { ensureBuffer, readJson, writeJson } from "./utils.js";
 
 
 
@@ -140,17 +140,22 @@ app.get("/portal/:id", (req, res) => {
 // ---------- Simple JSON "DB" ----------
 
 const DB_PATH = path.join(__dirname, "db.json");
-const loadDB = () => readJson(DB_PATH, { consumers: [] });
-const saveDB = db => writeJson(DB_PATH, db);
+function loadDB(){ return readJson(DB_PATH, { consumers: [] }); }
+function saveDB(db){ writeJson(DB_PATH, db); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
-const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [] };
-const loadLettersDB = () => {
-  const db = readJson(LETTERS_DB_PATH, LETTERS_DEFAULT);
-  console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
-  return db;
-};
-const saveLettersDB = db => {
+function loadLettersDB(){
+  const db = readJson(LETTERS_DB_PATH, null);
+  if(db){
+    console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
+    return db;
+  }
+  console.warn("letters-db.json missing or invalid, using empty structure");
+  return { jobs: [], templates: [], sequences: [], contracts: [] };
+}
+
+function saveLettersDB(db){
+
   writeJson(LETTERS_DB_PATH, db);
   console.log(`Saved letters DB with ${db.jobs.length} jobs`);
 };
@@ -166,12 +171,13 @@ if(!fs.existsSync(LETTERS_DB_PATH)){
 }
 
 const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
-const loadLeadsDB = () => readJson(LEADS_DB_PATH, { leads: [] });
-const saveLeadsDB = db => writeJson(LEADS_DB_PATH, db);
+function loadLeadsDB(){ return readJson(LEADS_DB_PATH, { leads: [] }); }
+function saveLeadsDB(db){ writeJson(LEADS_DB_PATH, db); }
 
 const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
-const loadInvoicesDB = () => readJson(INVOICES_DB_PATH, { invoices: [] });
-const saveInvoicesDB = db => writeJson(INVOICES_DB_PATH, db);
+function loadInvoicesDB(){ return readJson(INVOICES_DB_PATH, { invoices: [] }); }
+function saveInvoicesDB(db){ writeJson(INVOICES_DB_PATH, db); }
+
 
 function renderInvoiceHtml(inv, company = {}, consumer = {}) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
