@@ -248,12 +248,25 @@ document.addEventListener('DOMContentLoaded', () => {
     el.innerHTML = items.map(it=>`<div class="glass card tl-card flex items-center justify-between"><div class="font-medium">${esc(it.name)}</div><div class="flex gap-2"><a class="btn text-xs" href="${it.url}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${it.jobId}">Mail</button>`:''}</div></div>`).join('');
     if(allowMail){
       el.querySelectorAll('.mail-act').forEach(btn=>{
-        btn.addEventListener('click',()=>{
+        btn.addEventListener('click',async ()=>{
           const jobId = btn.getAttribute('data-job');
-          const mailed = JSON.parse(localStorage.getItem('mailedLetters')||'[]');
-          if(!mailed.includes(jobId)) mailed.push(jobId);
-          localStorage.setItem('mailedLetters', JSON.stringify(mailed));
-          loadMail();
+          btn.disabled = true;
+          try{
+            const resp = await fetch(`/api/letters/${encodeURIComponent(jobId)}/mail`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ consumerId })
+            });
+            const data = await resp.json().catch(()=>({}));
+            if(!data?.ok) throw new Error(data?.error || 'Failed to mail letters');
+            const mailed = JSON.parse(localStorage.getItem('mailedLetters')||'[]');
+            if(!mailed.includes(jobId)) mailed.push(jobId);
+            localStorage.setItem('mailedLetters', JSON.stringify(mailed));
+            loadMail();
+          }catch(e){
+            alert(e.message || 'Failed to mail letters.');
+            btn.disabled = false;
+          }
         });
       });
     }

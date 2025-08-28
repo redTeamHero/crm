@@ -19,6 +19,7 @@ import { PassThrough } from "stream";
 import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer, readJson, writeJson } from "./utils.js";
+import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 
 const fetchFn = globalThis.fetch || nodeFetch;
 
@@ -1294,6 +1295,37 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   }finally{
     try{ await browserInstance?.close(); }catch{}
 
+  }
+});
+
+app.post("/api/letters/:jobId/mail", async (req,res)=>{
+  const { jobId } = req.params;
+  const consumerId = String(req.body?.consumerId || "").trim();
+  if(!consumerId) return res.status(400).json({ ok:false, error:"consumerId required" });
+  const db = loadDB();
+  const consumer = db.consumers.find(c=>c.id===consumerId);
+  if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
+
+  const cstate = listConsumerState(consumerId);
+  const ev = cstate.events.find(e=>e.type==='letters_portal_sent' && e.payload?.jobId===jobId);
+  if(!ev) return res.status(404).json({ ok:false, error:"Letters not found" });
+  const stored = ev.payload.file.split('/').pop();
+  const filePath = path.join(consumerUploadsDir(consumerId), stored);
+  try{
+    const result = await sendCertifiedMail({
+      filePath,
+      toName: consumer.name,
+      toAddress: consumer.addr1,
+      toCity: consumer.city,
+      toState: consumer.state,
+      toZip: consumer.zip
+    });
+    addEvent(consumerId, 'letters_mailed', { jobId, provider: 'simplecertifiedmail', result });
+    res.json({ ok:true });
+    logInfo('SCM_MAIL_SUCCESS', 'Sent letters via SimpleCertifiedMail', { jobId, consumerId });
+  }catch(e){
+    logError('SCM_MAIL_FAILED', 'Failed to mail via SimpleCertifiedMail', e, { jobId, consumerId });
+    res.status(500).json({ ok:false, errorCode:'SCM_MAIL_FAILED', message:String(e) });
   }
 });
 
