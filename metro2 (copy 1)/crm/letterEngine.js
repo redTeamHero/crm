@@ -317,47 +317,62 @@ function buildViolationListHTML(violations, selectedIds) {
 }
 
 // Mode-based copy
-function modeCopy(modeKey, requestType) {
+function modeCopy(modeKey, requestType, hasEvidence = false) {
   if (modeKey === "identity") {
     return {
       heading: "Identity Theft Block Request (FCRA §605B)",
-      intro: `I am a victim of identity theft...`,
-      ask: `Please block or remove the item...`,
-      afterIssues: `Enclosures may include...`,
+      intro: `I am a victim of identity theft. The item(s) listed below were the result of fraudulent activity and are not mine. Under the FCRA (§605B), you are required to block the reporting of identity theft–related information.`,
+      ask: `Please block or remove the item(s) from my credit file and send me an updated report.`,
+      afterIssues: `Provide written confirmation of your actions within 30 days as required by law.`,
+      evidence: hasEvidence
+        ? `Enclosed are supporting documents: FTC Identity Theft Report, police report, government-issued ID, and proof of current address.`
+        : ``,
     };
   }
+
   if (modeKey === "breach") {
     return {
       heading: "Data Breach–Related Reinvestigation Request",
-      intro: `My identifiers may have been exposed in a data breach...`,
+      intro: `I am disputing the accuracy of the following account(s) because my personal identifiers were compromised in a data breach. Information reported from a compromised source cannot be verified as accurate, complete, or attributable to me. Under the FCRA (§607(b) maximum possible accuracy and §605B blocking of identity theft–related data), I request a reinvestigation.`,
       ask: requestType === "delete"
-        ? `If you cannot verify the accuracy... delete the item.`
-        : `If you identify any inaccuracy... provide me an updated report.`,
-      afterIssues: `Please document the method of verification...`,
+        ? `Please delete or block this account if it cannot be verified as 100% accurate and legitimately mine.`
+        : `If you identify any inaccuracy or unverifiable data, correct it and provide me with an updated credit report.`,
+      afterIssues: `Please document the method of verification, including the name and contact information of any furnisher relied upon. Provide your written results within 30 days as required by the FCRA.`,
+      evidence: hasEvidence
+        ? `Enclosed are supporting documents: breach notification letter, FTC Identity Theft Report, government-issued ID, and proof of current address.`
+        : ``,
     };
   }
+
   if (modeKey === "assault") {
     return {
       heading: "Safety & Confidentiality Handling – Special Circumstances",
-      intro: `Due to safety concerns...`,
+      intro: `Due to documented safety concerns, I am requesting special handling of the information below to ensure my privacy and security.`,
       ask: requestType === "delete"
-        ? `If the information cannot be verified… remove it.`
-        : `If the information is inaccurate… correct it.`,
-      afterIssues: `Please avoid disclosing unnecessary personal contact details.`,
+        ? `If the information cannot be verified with certainty, please remove it immediately.`
+        : `If the information is inaccurate or incomplete, please correct it without disclosing sensitive personal details.`,
+      afterIssues: `Please avoid disclosing unnecessary personal contact details in any correspondence.`,
+      evidence: hasEvidence
+        ? `Enclosed are supporting documents: restraining order, law enforcement letter, or other evidence of safety concerns.`
+        : ``,
     };
   }
+
+  // Default fallback
   return {
     heading: requestType === "delete"
       ? "Request for Deletion of Inaccurate/Unverifiable Information"
       : "Request for Correction of Inaccurate/Incomplete Information",
-    intro: `I am disputing the reporting of the tradeline below...`,
+    intro: `I am disputing the reporting of the tradeline below because it is inaccurate, incomplete, or unverifiable.`,
     ask: requestType === "delete"
       ? "Please delete the inaccurate/unverifiable information pursuant to the FCRA."
       : "Please correct the inaccurate/incomplete reporting pursuant to the FCRA.",
-    afterIssues: "",
+    afterIssues: `Provide your investigation results in writing within 30 days as required by law.`,
+    evidence: hasEvidence
+      ? `Enclosed are supporting documents: government-issued ID and proof of address.`
+      : ``,
   };
 }
-
 // Build letter HTML and filename
 function buildLetterHTML({
   consumer,
@@ -395,6 +410,11 @@ function buildLetterHTML({
     "Please provide the method of verification... if you cannot verify... delete the item and send me an updated report."
   );
   const signOff = `${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}`;
+
+
+
+
+
 
   const letterBody = `
 <!DOCTYPE html>
@@ -440,6 +460,7 @@ function buildLetterHTML({
     <h2>Bureau‑Specific Details (${bureau})</h2>
     ${tlBlock}
     <h2>Specific Issues (Selected)</h2>
+
     ${chosenList}
     ${afterIssuesPara}
     <p>${verifyLine}</p>
@@ -748,6 +769,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 }
 
 export { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters };
+
 
 
 
