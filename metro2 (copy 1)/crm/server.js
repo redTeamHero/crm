@@ -14,6 +14,8 @@ import archiver from "archiver";
 
 import { PassThrough } from "stream";
 
+import { logInfo, logError } from "./logger.js";
+
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
@@ -59,6 +61,14 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+process.on("unhandledRejection", err => {
+  logError("UNHANDLED_REJECTION", "Unhandled promise rejection", err);
+});
+process.on("uncaughtException", err => {
+  logError("UNCAUGHT_EXCEPTION", "Uncaught exception", err);
+});
+
 
 async function rewordWithAI(text, tone) {
   const key = process.env.OPENAI_API_KEY;
@@ -709,6 +719,48 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
 
 });
 
+app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
+  const db = loadDB();
+  const c = db.consumers.find(x => x.id === req.params.id);
+  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
+  try {
+    const html = renderBreachAuditHtml(c);
+    const result = await savePdf(html);
+    let ext = path.extname(result.path);
+    if (result.warning || ext !== ".pdf") {
+      ext = ".html";
+    }
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+    try {
+      const uploadsDir = consumerUploadsDir(c.id);
+      const id = nanoid(10);
+      const storedName = `${id}${ext}`;
+      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const date = new Date().toISOString().slice(0, 10);
+      const originalName = `${safe}_${date}_breach_audit${ext}`;
+      const dest = path.join(uploadsDir, storedName);
+      await fs.promises.copyFile(result.path, dest);
+      const stat = await fs.promises.stat(dest);
+      addFileMeta(c.id, {
+        id,
+        originalName,
+        storedName,
+        type: "breach-audit",
+        size: stat.size,
+        mimetype: mime,
+        uploadedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Failed to store breach audit file", err);
+    }
+    addEvent(c.id, "breach_audit_generated", { file: result.url });
+    res.json({ ok: true, url: result.url, warning: result.warning });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+
+});
+
 
 
 
@@ -1022,7 +1074,10 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   res.setHeader("Content-Type","application/zip");
   res.setHeader("Content-Disposition",`attachment; filename="letters_${jobId}.zip"`);
   const archive = archiver('zip',{ zlib:{ level:9 } });
-  archive.on('error', err => { console.error(err); try{ res.status(500).end("Zip error"); }catch{} });
+  archive.on('error', err => {
+    logError('ARCHIVE_STREAM_ERROR', 'Archive stream error', err, { jobId });
+    try{ res.status(500).json({ ok:false, errorCode:'ARCHIVE_STREAM_ERROR', message:'Zip error' }); }catch{}
+  });
 
   // determine consumer for logging and file storage
   let fileStream, storedName, originalName, consumer, id;
@@ -1068,7 +1123,12 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
-      archive.append(pdf,{ name });
+      try{
+        archive.append(pdf,{ name });
+      }catch(err){
+        logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
+        throw err;
+      }
     }
     await archive.finalize();
 
@@ -1086,11 +1146,12 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
           uploadedAt: new Date().toISOString(),
         });
         addEvent(consumer.id, 'letters_downloaded', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
-      }catch(err){ console.error('Failed to record zip', err); }
+      }catch(err){ logError('ZIP_RECORD_FAILED', 'Failed to record zip', err, { jobId, consumerId: consumer.id }); }
     }
+    logInfo('ZIP_BUILD_SUCCESS', 'Letters zip created', { jobId });
   }catch(e){
-    console.error("Zip generation failed:", e);
-    try{ res.status(500).end("Failed to create zip."); }catch{}
+    logError('ZIP_BUILD_FAILED', 'Zip generation failed', e, { jobId });
+    try{ res.status(500).json({ ok:false, errorCode:'ZIP_BUILD_FAILED', message:'Failed to create zip.' }); }catch{}
   }finally{
     try{ await browser?.close(); }catch{}
   }
@@ -1153,9 +1214,11 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     }
 
     res.json({ ok:true });
+    logInfo('EMAIL_SEND_SUCCESS', 'Letters emailed', { jobId, to, count: attachments.length });
   }catch(e){
-    console.error(e);
-    res.status(500).json({ ok:false, error:String(e) });
+    logError('EMAIL_SEND_FAILED', 'Failed to email letters', e, { jobId, to });
+    res.status(500).json({ ok:false, errorCode:'EMAIL_SEND_FAILED', message:String(e) });
+
   }finally{
     try{ await browser?.close(); }catch{}
   }
@@ -1184,6 +1247,8 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
 
   let browser;
   try{
+    logInfo('PORTAL_UPLOAD_START', 'Building portal ZIP', { jobId, consumerId: consumer.id });
+
     browser = await launchBrowser();
     const dir = consumerUploadsDir(consumer.id);
     const id = nanoid(10);
@@ -1194,6 +1259,11 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     const fullPath = path.join(dir, storedName);
     const out = fs.createWriteStream(fullPath);
     const archive = archiver('zip',{ zlib:{ level:9 } });
+    archive.on('error', err => {
+      logError('ARCHIVE_STREAM_ERROR', 'Archive stream error', err, { jobId });
+      try{ res.status(500).json({ ok:false, errorCode:'ARCHIVE_STREAM_ERROR', message:'Zip error' }); }catch{}
+    });
+
     archive.pipe(out);
 
     for(let i=0;i<job.letters.length;i++){
@@ -1209,7 +1279,13 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
       await page.close();
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
-      archive.append(pdf,{ name });
+      try{
+        archive.append(pdf,{ name });
+      }catch(err){
+        logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
+        throw err;
+      }
+
     }
 
     await archive.finalize();
@@ -1225,10 +1301,11 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       uploadedAt: new Date().toISOString(),
     });
     addEvent(consumer.id, 'letters_portal_sent', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
+    logInfo('PORTAL_UPLOAD_SUCCESS', 'Portal ZIP stored', { jobId, consumerId: consumer.id });
     res.json({ ok:true });
   }catch(e){
-    console.error('Letters portal upload failed:', e);
-    res.status(500).json({ ok:false, error:String(e) });
+    logError('PORTAL_UPLOAD_FAILED', 'Letters portal upload failed', e, { jobId });
+    res.status(500).json({ ok:false, errorCode:'PORTAL_UPLOAD_FAILED', message:String(e) });
   }finally{
     try{ await browser?.close(); }catch{}
 
