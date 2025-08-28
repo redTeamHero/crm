@@ -32,6 +32,7 @@ function editTemplate(id){
   document.getElementById('tplAsk').value = tpl.ask || '';
   document.getElementById('tplAfter').value = tpl.afterIssues || '';
   document.getElementById('tplEvidence').value = tpl.evidence || '';
+  updatePreview();
 }
 
 function newTemplate(){
@@ -41,6 +42,7 @@ function newTemplate(){
   document.getElementById('tplAsk').value = '';
   document.getElementById('tplAfter').value = '';
   document.getElementById('tplEvidence').value = '';
+  updatePreview();
 }
 
 async function saveTemplate(){
@@ -65,6 +67,16 @@ async function saveTemplate(){
     renderTemplates();
     editTemplate(data.template.id);
   }
+}
+
+function updatePreview(){
+  const heading = document.getElementById('tplHeading').value;
+  const intro = document.getElementById('tplIntro').value;
+  const ask = document.getElementById('tplAsk').value;
+  const after = document.getElementById('tplAfter').value;
+  const evidence = document.getElementById('tplEvidence').value;
+  const preview = [heading, intro, ask, after, evidence].filter(Boolean).join('\n\n');
+  document.getElementById('tplPreview').textContent = preview;
 }
 
 function renderSequences(){
@@ -117,6 +129,10 @@ document.getElementById('saveTemplate').onclick = saveTemplate;
 document.getElementById('newTemplate').onclick = newTemplate;
 document.getElementById('saveSequence').onclick = saveSequence;
 document.getElementById('newSequence').onclick = newSequence;
+
+['tplHeading','tplIntro','tplAsk','tplAfter','tplEvidence'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
 
 loadLibrary();
 
