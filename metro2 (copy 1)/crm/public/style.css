@@ -38,6 +38,20 @@ body {
 .text-accent { color: var(--accent); }
 .bg-accent-subtle { background: var(--accent-bg); color: var(--accent); }
 
+.chip {
+  border: 1px solid var(--glass-brd);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(255,255,255,.7);
+  cursor: pointer;
+  user-select: none;
+}
+.chip.active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+
 #themePalette {
   position: fixed;
   top: 50%;

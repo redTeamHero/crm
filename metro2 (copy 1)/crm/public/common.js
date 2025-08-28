@@ -4,7 +4,9 @@ const THEMES = {
   green:  { accent: '#34C759', hover: '#248a3d', bg: 'rgba(52,199,89,0.12)', glassBg: 'rgba(52,199,89,0.15)', glassBrd: 'rgba(52,199,89,0.3)' },
   orange: { accent: '#FF9500', hover: '#cc7600', bg: 'rgba(255,149,0,0.12)', glassBg: 'rgba(255,149,0,0.15)', glassBrd: 'rgba(255,149,0,0.3)' },
   red:    { accent: '#FF3B30', hover: '#c82d24', bg: 'rgba(255,59,48,0.12)', glassBg: 'rgba(255,59,48,0.15)', glassBrd: 'rgba(255,59,48,0.3)' },
-  purple: { accent: '#AF52DE', hover: '#893dba', bg: 'rgba(175,82,222,0.12)', glassBg: 'rgba(175,82,222,0.15)', glassBrd: 'rgba(175,82,222,0.3)' }
+  purple: { accent: '#AF52DE', hover: '#893dba', bg: 'rgba(175,82,222,0.12)', glassBg: 'rgba(175,82,222,0.15)', glassBrd: 'rgba(175,82,222,0.3)' },
+  teal:   { accent: '#14B8A6', hover: '#0d9488', bg: 'rgba(20,184,166,0.12)', glassBg: 'rgba(20,184,166,0.15)', glassBrd: 'rgba(20,184,166,0.3)' },
+  pink:   { accent: '#EC4899', hover: '#c0347a', bg: 'rgba(236,72,153,0.12)', glassBg: 'rgba(236,72,153,0.15)', glassBrd: 'rgba(236,72,153,0.3)' }
 };
 
 function applyTheme(name){
@@ -15,6 +17,7 @@ function applyTheme(name){
   root.setProperty('--accent-bg', t.bg);
   root.setProperty('--glass-bg', t.glassBg);
   root.setProperty('--glass-brd', t.glassBrd);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.accent);
   localStorage.setItem('theme', name);
 }
 
@@ -23,15 +26,12 @@ function initPalette(){
   const wrap = document.createElement('div');
   wrap.id = 'themePalette';
   wrap.className = 'collapsed';
+  const bubbles = Object.entries(THEMES)
+    .map(([name, t]) => `<div class="bubble" data-theme="${name}" style="background:${t.accent}"></div>`)
+    .join('');
   wrap.innerHTML = `
     <button class="toggle">▶</button>
-    <div class="palette-bubbles">
-      <div class="bubble" data-theme="blue" style="background:#007AFF"></div>
-      <div class="bubble" data-theme="green" style="background:#34C759"></div>
-      <div class="bubble" data-theme="orange" style="background:#FF9500"></div>
-      <div class="bubble" data-theme="red" style="background:#FF3B30"></div>
-      <div class="bubble" data-theme="purple" style="background:#AF52DE"></div>
-    </div>
+    <div class="palette-bubbles">${bubbles}</div>
     <button id="voiceMic" class="mic">🎤</button>`;
   document.body.appendChild(wrap);
   const toggle = wrap.querySelector('.toggle');
