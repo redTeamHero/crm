@@ -138,26 +138,41 @@ process.on("warning", warn => {
 async function rewordWithAI(text, tone) {
   const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
   if (!key || !text) return text;
-  try {
-    const resp = await fetchFn("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
+
+  const payload = {
+    model: "gpt-4.1-mini",
+    messages: [
+      { role: "system", content: "You reword credit dispute statements." },
+      {
+        role: "user",
+        content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${text}`,
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You reword credit dispute statements." },
-          {
-            role: "user",
-            content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${text}`,
-          },
-        ],
-      }),
-    });
-    if (!resp.ok) {
+    ],
+  };
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const resp = await fetchFn("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        const out = data.choices?.[0]?.message?.content?.trim() || text;
+        return out.replace(/—/g, "-");
+      }
+
       const errText = await resp.text().catch(() => "");
+      if (resp.status === 429 && attempt < 2) {
+        const retry = Number(resp.headers.get("retry-after")) || 20;
+        await new Promise(r => setTimeout(r, retry * 1000));
+        continue;
+      }
       logError(
         "AI_REWORD_FAILED",
         "OpenAI API error",
@@ -165,14 +180,17 @@ async function rewordWithAI(text, tone) {
         { status: resp.status, body: errText }
       );
       return text;
+    } catch (e) {
+      if (attempt < 2) {
+        await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+        continue;
+      }
+      logError("AI_REWORD_FAILED", "AI reword request failed", e);
+      return text;
     }
-    const data = await resp.json().catch(() => ({}));
-    const out = data.choices?.[0]?.message?.content?.trim() || text;
-    return out.replace(/—/g, "-");
-  } catch (e) {
-    logError("AI_REWORD_FAILED", "AI reword request failed", e);
-    return text;
   }
+
+  return text;
 }
 
 // periodically surface due letter reminders
