@@ -605,6 +605,7 @@ function renderBreachAuditHtml(consumer) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial, sans-serif;margin:20px;}h1{text-align:center;}ul{margin-top:10px;}</style></head><body><h1>${escapeHtml(consumer.name || "Consumer")}</h1><h2>Data Breach Audit</h2><p>Email: ${escapeHtml(consumer.email || "")}</p><ul>${list}</ul><footer><hr/><div style="font-size:0.8em;color:#555;margin-top:20px;">Generated ${escapeHtml(dateStr)}</div></footer></body></html>`;
 }
 
+
 async function handleDataBreach(email, consumerId, res) {
   const result = await hibpLookup(email);
   if (result.ok && consumerId) {
@@ -676,6 +677,7 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
   }
+
 });
 
 
