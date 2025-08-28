@@ -75,6 +75,7 @@ def _load_font(paths: List[str], size: int) -> ImageFont.FreeTypeFont:
 
 def _wrap_text(text: str, max_w: int, font: ImageFont.FreeTypeFont) -> List[str]:
     """Wrap plain text into lines that fit within max_w."""
+
     lines: List[str] = []
     for paragraph in text.split("\n"):
         if not paragraph.strip():
@@ -166,6 +167,7 @@ def render_ocr_resistant_pdf(text: str, out_path: str, style: Optional[OCRStyle]
     max_w = style.page_w - style.margin*2
     lines = _wrap_text(text, max_w, font)
     line_h = int(font.size * 1.15)
+
     lines_per_page = max(1, (style.page_h - style.margin*2) // line_h)
     pages: List[Image.Image] = []
     for start in range(0, len(lines), lines_per_page):
@@ -181,6 +183,7 @@ def render_ocr_resistant_pdf(text: str, out_path: str, style: Optional[OCRStyle]
         pages.append(page.convert("RGB"))
     os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
     pages[0].save(out_path, save_all=True, append_images=pages[1:])
+
     return out_path
 
 def _parse_pt_rect(val: List[str]) -> Tuple[int,int,int,int]:
