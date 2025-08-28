@@ -39,6 +39,7 @@ function generateOcrPdf(html){
   fs.writeFileSync(htmlPath, html, 'utf8');
   const script = path.join(__dirname, 'ocr_resistant_pdf.py');
   const res = spawnSync('python3', [script, '--in', htmlPath, '--out', pdfPath, '--preset', 'strong']);
+
   if(res.status !== 0){
     console.error(res.stderr?.toString() || 'OCR script failed');
     throw new Error('OCR script failed');
@@ -1107,6 +1108,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   if(useOcr){
     try{
       const pdfBuffer = generateOcrPdf(html);
+
       res.setHeader("Content-Type","application/pdf");
       res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
       console.log(`Generated OCR PDF for ${filenameBase} (${pdfBuffer.length} bytes)`);
@@ -1213,6 +1215,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
 
       if (L.useOcr) {
         const pdfBuffer = generateOcrPdf(L.html);
+
         try{ archive.append(pdfBuffer,{ name }); }catch(err){
           logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
           throw err;
@@ -1299,6 +1302,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
       let pdfBuffer;
       if (L.useOcr) {
         pdfBuffer = generateOcrPdf(html);
+
       } else {
         const page = await browserInstance.newPage();
         const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
@@ -1392,6 +1396,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
 
       if (L.useOcr) {
         const pdfBuffer = generateOcrPdf(html);
+
         try{ archive.append(pdfBuffer,{ name }); }catch(err){
           logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
           throw err;
