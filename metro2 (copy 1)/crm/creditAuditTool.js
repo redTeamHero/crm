@@ -12,6 +12,26 @@ export async function fetchCreditReport(){
   return JSON.parse(raw);
 }
 
+function statuteRefs(title){
+  const t = String(title || '').toLowerCase();
+  if(t.includes('balance') || t.includes('past due')){
+    return {
+      fcra: '15 U.S.C. §1681s-2(a)(1)(A) - furnishers must report accurate balance information',
+      fdcpa: '15 U.S.C. §1692e(2)(A) - prohibits false representation of the amount owed'
+    };
+  }
+  if(t.includes('late') || t.includes('delinquent')){
+    return {
+      fcra: '15 U.S.C. §1681e(b) - agencies must ensure maximum possible accuracy of payment history',
+      fdcpa: '15 U.S.C. §1692e(8) - bars communicating false credit information'
+    };
+  }
+  return {
+    fcra: '15 U.S.C. §1681s-2 - furnishers must provide accurate information and correct errors',
+    fdcpa: '15 U.S.C. §1692e - prohibits false or misleading representations'
+  };
+}
+
 // Normalize report into array of accounts with balances/statuses/issues
 export function normalizeReport(raw, selections = null){
   const accounts = [];
@@ -26,11 +46,17 @@ export function normalizeReport(raw, selections = null){
       const idxs = Array.isArray(sel.violationIdxs) && sel.violationIdxs.length ? sel.violationIdxs : null;
       const issues = (tl.violations||[])
         .filter((_,i)=> !idxs || idxs.includes(i))
-        .map(v=>({
-          title: v.title,
-          detail: v.detail,
-          bureau: v.evidence?.bureau || 'All Bureaus'
-        }));
+        .map(v=>{
+          const legal = statuteRefs(v.title);
+          return {
+            title: v.title,
+            detail: v.detail,
+            bureau: v.evidence?.bureau || 'All Bureaus',
+            fcra: legal.fcra,
+            fdcpa: legal.fdcpa
+          };
+        });
+
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });
   } else {
@@ -39,11 +65,17 @@ export function normalizeReport(raw, selections = null){
       for(const [bureau, data] of Object.entries(tl.per_bureau||{})){
         bureaus[bureau] = data;
       }
-      const issues = (tl.violations||[]).map(v=>({
-        title: v.title,
-        detail: v.detail,
-        bureau: v.evidence?.bureau || 'All Bureaus'
-      }));
+      const issues = (tl.violations||[]).map(v=>{
+        const legal = statuteRefs(v.title);
+        return {
+          title: v.title,
+          detail: v.detail,
+          bureau: v.evidence?.bureau || 'All Bureaus',
+          fcra: legal.fcra,
+          fdcpa: legal.fdcpa
+        };
+      });
+
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });
   }
@@ -103,7 +135,8 @@ export function renderHtml(report, consumerName = "Consumer"){
       .map(i => {
         if(!i || !i.title) return "";
         const action = recommendAction(i.title);
-        return `<li><strong>${escapeHtml(i.bureau)}</strong>: ${escapeHtml(i.title)} - This violates Metro 2 standard because ${escapeHtml(i.detail || "")}. ${escapeHtml(action)}</li>`;
+        return `<li><strong>${escapeHtml(i.bureau)}</strong>: ${escapeHtml(i.title)} - This violates Metro 2 standard because ${escapeHtml(i.detail || "")}. It also violates FCRA ${escapeHtml(i.fcra)} and FDCPA ${escapeHtml(i.fdcpa)}. ${escapeHtml(action)}</li>`;
+
       }).filter(Boolean).join('');
     const issueBlock = issueItems ? `<p><strong>Audit Reasons:</strong></p><ul>${issueItems}</ul>` : "";
     return `
