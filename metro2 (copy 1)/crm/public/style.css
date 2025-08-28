@@ -5,8 +5,8 @@
   --muted: #6b7280;
   --accent: #007AFF;
   --accent-hover: #005bb5;
-  --accent-bg: rgba(0,122,255,0.12);
-  --green-bg: rgba(34,197,94,0.12);
+  --accent-bg: #007AFF;
+  --green-bg: #22C55E;
 }
 body {
   /* Use root-relative path so asset resolves regardless of deployment directory */
@@ -163,9 +163,11 @@ body.voice-active #voiceNotes{display:block;}
 /* Messaging */
 .msg-host {
   background: var(--accent-bg);
+  color: #fff;
 }
 .msg-client {
   background: var(--green-bg);
+  color: #fff;
 }
 
 
