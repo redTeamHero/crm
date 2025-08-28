@@ -16,6 +16,8 @@ import { PassThrough } from "stream";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
+import { ensureBuffer } from "./utils.js";
+
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
@@ -1049,7 +1051,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
     const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
     await page.close();
-    const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+    const pdfBuffer = ensureBuffer(pdf);
     if(!pdfBuffer || pdfBuffer.length === 0){
       throw new Error("Generated PDF is empty");
     }
@@ -1132,7 +1134,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = ensureBuffer(pdf);
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
         archive.append(pdfBuffer,{ name });
@@ -1208,7 +1210,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = ensureBuffer(pdf);
       const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       attachments.push({ filename: name, content: pdfBuffer, contentType: 'application/pdf' });
     }
@@ -1290,7 +1292,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
       const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
       await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = ensureBuffer(pdf);
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
         archive.append(pdfBuffer,{ name });
