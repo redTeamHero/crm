@@ -37,6 +37,7 @@ from typing import List, Tuple, Optional
 from PIL import Image, ImageDraw, ImageFont
 from bs4 import BeautifulSoup
 
+
 @dataclass
 class OCRStyle:
     page_w: int = 1700
@@ -76,6 +77,7 @@ def _load_font(paths: List[str], size: int) -> ImageFont.FreeTypeFont:
 
 def _wrap_text(text: str, max_w: int, font: ImageFont.FreeTypeFont) -> List[str]:
     """Wrap plain text into lines that fit within max_w."""
+
     lines: List[str] = []
     for paragraph in text.split("\n"):
         if not paragraph.strip():
@@ -119,6 +121,7 @@ def _extract_sections(html: str) -> List[Tuple[str, bool]]:
         apply = "ocr" in (el.get("class") or [])
         sections.append((text, apply))
     return sections
+
 
 def _apply_mask_for_safe_zones(layer: Image.Image, safe_zones: List[Tuple[int, int, int, int]]) -> Image.Image:
     if not safe_zones:
@@ -212,17 +215,20 @@ def render_ocr_resistant_pdf(html: str, out_path: str, style: Optional[OCRStyle]
         if not run_flag:
             safe.append((0, run_start, style.page_w, y - run_start))
         style.safe_zones = safe
+
         add_light_grid(page, style)
         add_neutral_watermark(page, style)
         d = ImageDraw.Draw(page)
         y = style.margin
         for line, _ in page_lines:
+
             d.text((style.margin, y), line, font=font, fill=(0,0,0))
             y += line_h
         add_speckles(page, style)
         pages.append(page.convert("RGB"))
     os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
     pages[0].save(out_path, save_all=True, append_images=pages[1:])
+
     return out_path
 
 def _parse_pt_rect(val: List[str]) -> Tuple[int,int,int,int]:
@@ -257,6 +263,7 @@ def _make_preset(name: str) -> OCRStyle:
 def main():
     ap = argparse.ArgumentParser(description="Generate OCR-resistant PDF with neutral watermark.")
     ap.add_argument("--in", dest="infile", required=True, help="Path to input HTML")
+
     ap.add_argument("--out", dest="outfile", required=True, help="Path to output .pdf")
     ap.add_argument("--preset", choices=["subtle","strong"], default="strong", help="Strength preset")
     ap.add_argument("--page", default=None, help="Custom page size WxH (e.g., 1700x2200)")
@@ -278,6 +285,7 @@ def main():
     args = ap.parse_args()
     with open(args.infile, "r", encoding="utf-8", errors="ignore") as f:
         html = f.read()
+
     style = _make_preset(args.preset)
     if args.page:
         w,h = args.page.lower().split("x")
@@ -316,6 +324,7 @@ def main():
     if args.safe_zone:
         style.safe_zones = [tuple(map(int,sz)) for sz in args.safe_zone]
     out = render_ocr_resistant_pdf(html, args.outfile, style)
+
     print(f"Saved: {out}")
 
 if __name__ == "__main__":

@@ -50,6 +50,7 @@ async function generateOcrPdf(html){
     }`;
   const injected = html.replace('</head>', `<style>${ocrCss}</style></head>`);
   return await htmlToPdfBuffer(injected);
+
 }
 
 
@@ -1111,6 +1112,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   if(useOcr){
     try{
       const pdfBuffer = await generateOcrPdf(html);
+
       res.setHeader("Content-Type","application/pdf");
       res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
       console.log(`Generated OCR PDF for ${filenameBase} (${pdfBuffer.length} bytes)`);
@@ -1217,6 +1219,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
 
       if (L.useOcr) {
         const pdfBuffer = await generateOcrPdf(L.html);
+
         try{ archive.append(pdfBuffer,{ name }); }catch(err){
           logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
           throw err;
@@ -1303,6 +1306,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
       let pdfBuffer;
       if (L.useOcr) {
         pdfBuffer = await generateOcrPdf(html);
+
       } else {
         const page = await browserInstance.newPage();
         const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
@@ -1396,6 +1400,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
 
       if (L.useOcr) {
         const pdfBuffer = await generateOcrPdf(html);
+
         try{ archive.append(pdfBuffer,{ name }); }catch(err){
           logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
           throw err;

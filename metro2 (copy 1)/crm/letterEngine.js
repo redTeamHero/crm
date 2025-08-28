@@ -402,6 +402,7 @@ function buildLetterHTML({
   const afterIssuesPara = mc.afterIssues ? `<p class="ocr">${colorize(mc.afterIssues)}</p>` : "";
   const evidencePara = mc.evidence ? `<p class="ocr">${colorize(mc.evidence)}</p>` : "";
   const breachSection =
+
     modeKey === "breach" && consumer.breaches && consumer.breaches.length
       ? `<h2>Data Breaches</h2><p>The following breaches exposed my information:</p><ul>${consumer.breaches
           .map((b) => `<li>${safe(b)}</li>`)
