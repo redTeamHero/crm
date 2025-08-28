@@ -22,6 +22,7 @@
       <a href="/settings" class="btn">Settings</a>
       <a href="/library" class="btn">Library</a>
       <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
+      <button id="btnInvite" class="btn" style="background: var(--green-bg);">Invite +</button>
     </div>
   </div>
 </header>
@@ -40,7 +41,10 @@
         <textarea id="tplAsk" class="w-full border rounded px-2 py-1 text-sm" placeholder="Ask"></textarea>
         <textarea id="tplAfter" class="w-full border rounded px-2 py-1 text-sm" placeholder="After Issues"></textarea>
         <textarea id="tplEvidence" class="w-full border rounded px-2 py-1 text-sm" placeholder="Evidence"></textarea>
-        <button id="saveTemplate" class="btn text-sm">Save Template</button>
+        <div class="flex gap-2">
+          <button id="saveTemplate" class="btn text-sm">Save Template</button>
+          <button id="saveTemplateCopy" class="btn text-sm">Save As New</button>
+        </div>
       </div>
       <div class="flex-1">
         <div id="tplPreview" class="w-full border rounded px-2 py-1 text-sm whitespace-pre-line"></div>
@@ -57,7 +61,7 @@
       </div>
       <div class="flex-1 space-y-2">
         <input id="seqName" class="w-full border rounded px-2 py-1 text-sm" placeholder="Sequence Name" />
-        <input id="seqTemplates" class="w-full border rounded px-2 py-1 text-sm" placeholder="Template IDs (comma separated)" />
+        <div id="seqTemplates" class="border rounded px-2 py-1 text-sm space-y-1 max-h-60 overflow-y-auto"></div>
         <button id="saveSequence" class="btn text-sm">Save Sequence</button>
       </div>
     </div>

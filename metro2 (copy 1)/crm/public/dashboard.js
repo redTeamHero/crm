@@ -87,16 +87,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const msgList = document.getElementById('msgList');
   let activeConsumer = null;
 
+
   async function renderMessages(){
-    if(!activeConsumer || !msgList) return;
+    if(!msgList) return;
     try{
-      const data = await fetch(`/api/messages/${activeConsumer}`).then(r=>r.json());
-      const msgs = data.messages || [];
+      const all = await Promise.all(consumers.map(async c=>{
+        const data = await fetch(`/api/messages/${c.id}`).then(r=>r.json());
+        return (data.messages || []).map(m=>({ consumer: c, ...m }));
+      }));
+      const msgs = all.flat().sort((a,b)=> new Date(b.at) - new Date(a.at));
       if(!msgs.length){
         msgList.textContent = 'No messages.';
         return;
       }
-      msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${m.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.text)}</div>`).join('');
+      msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${escapeHtml(m.consumer.name || '')} - ${m.payload?.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.payload?.text || '')}</div>`).join('');
     }catch(e){
       msgList.textContent = 'Failed to load messages.';
     }
@@ -109,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeConsumer = list[0].id;
         renderMessages();
       }
+
     });
   }
 
