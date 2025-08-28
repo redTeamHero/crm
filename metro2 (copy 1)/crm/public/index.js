@@ -61,6 +61,16 @@ function formatEvent(ev){
     title = "Audit generated";
     const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
     body = `<div class="text-xs mt-1">Report ${escapeHtml(reportId||"")} ${link}</div>`;
+  } else if(ev.type === "breach_audit_generated"){
+    const { file } = ev.payload || {};
+    title = "Data breach audit generated";
+    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
+    body = `<div class="text-xs mt-1">${link}</div>`;
+  } else if(ev.type === "letters_portal_sent"){
+    const { file } = ev.payload || {};
+    title = "Letters sent to portal";
+    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
+    body = `<div class="text-xs mt-1">${link}</div>`;
   } else if(ev.type === "consumer_created"){
     const { name } = ev.payload || {};
     title = "Consumer created";
@@ -810,14 +820,46 @@ $("#btnDataBreach").addEventListener("click", async ()=>{
     const res = await api(`/api/databreach`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: c.email })
+      body: JSON.stringify({ email: c.email, consumerId: c.id })
     });
     if(!res?.ok) return showErr(res?.error || "Breach check failed.");
     const list = res.breaches || [];
-    const msg = list.length
-      ? `${c.email} found in:\n\n${list.map(b=>b.Name || b.name || "unknown").join("\n")}`
-      : `${c.email} not found in known breaches.`;
-    alert(msg);
+    c.breaches = list.map(b=>b.Name || b.name || "");
+    const body = $("#breachBody");
+    const content = list.length
+      ? `<p>${escapeHtml(c.email)} found in:</p><ul>${list.map(b=>`<li>${escapeHtml(b.Name || b.name || "unknown")}</li>`).join("")}</ul>`
+      : `<p>No breaches found for ${escapeHtml(c.email)}.</p>`;
+    body.innerHTML = content;
+    const modal = $("#breachModal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  }catch(err){
+    showErr(String(err));
+  }finally{
+    btn.textContent = old;
+    btn.disabled = false;
+  }
+});
+
+// Data breach modal handlers
+$("#breachClose").addEventListener("click", ()=>{
+  const m = $("#breachModal");
+  m.classList.add("hidden");
+  m.classList.remove("flex");
+});
+
+$("#breachSend").addEventListener("click", async ()=>{
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  const btn = $("#breachSend");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Generating...";
+  try{
+    const res = await fetch(`/api/consumers/${currentConsumerId}/databreach/audit`, { method:"POST" }).then(r=>r.json());
+    if(!res?.ok) return showErr(res?.error || "Failed to generate audit.");
+    if(res.url) window.open(res.url, "_blank");
+    if(res.warning) showErr(res.warning);
+    await loadConsumerState();
   }catch(err){
     showErr(String(err));
   }finally{
