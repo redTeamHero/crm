@@ -320,6 +320,11 @@ function renderTradelines(tradelines){
       });
     }
 
+    const ocrCb = card.querySelector('.use-ocr');
+    if (ocrCb) {
+      // no extra behavior needed; presence indicates OCR request
+    }
+
     // initialize special badges if any from previous state (when re-rendering)
     updateCardSpecialVisual(card);
 
@@ -358,9 +363,12 @@ function collectSelections(){
       ? card.querySelector('.gpt-tone')?.value || ''
       : '';
 
+    const useOcr = card.querySelector('.use-ocr')?.checked || false;
+
     if (bureaus.length || special.length){
       const entry = { tradelineIndex, bureaus, violationIdxs, special };
       if (aiTone) entry.aiTone = aiTone;
+      if (useOcr) entry.useOcr = true;
       selections.push(entry);
     }
   });
