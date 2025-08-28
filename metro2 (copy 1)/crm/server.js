@@ -242,6 +242,7 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
         try { onResponse(resp); } catch {}
       }
 
+
       if (resp.ok) return resp;
 
       const status = resp.status;
@@ -254,6 +255,7 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
         }
         const jitter = Math.random() * 1000;
         await new Promise(r => setTimeout(r, wait + jitter));
+
         continue;
       }
 
@@ -268,6 +270,7 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
       }
       const jitter = Math.random() * 1000;
       await new Promise(r => setTimeout(r, wait + jitter));
+
     }
   }
   throw new Error("Failed after retries");
@@ -312,6 +315,7 @@ async function rewordWithAI(text, tone) {
       logError("AI_REWORD_FAILED", "OpenAI API error", e);
       return text;
     }
+
 }
 
 // periodically surface due letter reminders
