@@ -186,6 +186,16 @@
             <label class="text-sm flex items-center gap-2" title="Generate personal information letters">
               <input type="checkbox" id="cbPersonalInfo" /> Personal Info
             </label>
+            <label class="text-sm flex items-center gap-2" title="Use AI to reword letters">
+              <input type="checkbox" id="cbUseGpt" /> AI Reword
+            </label>
+            <select id="gptTone" class="border rounded text-sm px-1 py-0.5" disabled>
+              <option value="Professional & Polite">Professional & Polite</option>
+              <option value="Firm / Legalistic (No-Nonsense)">Firm / Legalistic (No-Nonsense)</option>
+              <option value="Plain-English / Conversational">Plain-English / Conversational</option>
+              <option value="Cooperative / Helpful (Problem-Solving)">Cooperative / Helpful (Problem-Solving)</option>
+              <option value="Urgent / Concerned (Still Respectful)">Urgent / Concerned (Still Respectful)</option>
+            </select>
             <button id="btnSelectAll" class="btn text-sm" data-tip="Select or deselect all tradelines">Select All</button>
             <button id="btnSelectNegative" class="btn text-sm" data-tip="Select or deselect negative tradelines">Select Negative</button>
             <button id="btnGenerate" class="btn" data-tip="Generate Letters (G)">Generate Letters</button>
@@ -263,14 +273,6 @@
     </div>
 
     <div class="mt-2 flex items-center gap-2 text-xs">
-      <label class="flex items-center gap-1"><input type="checkbox" class="use-gpt" /> AI Reword</label>
-      <select class="gpt-tone border rounded px-1 py-0.5">
-        <option value="Professional & Polite">Professional & Polite</option>
-        <option value="Firm / Legalistic (No-Nonsense)">Firm / Legalistic (No-Nonsense)</option>
-        <option value="Plain-English / Conversational">Plain-English / Conversational</option>
-        <option value="Cooperative / Helpful (Problem-Solving)">Cooperative / Helpful (Problem-Solving)</option>
-        <option value="Urgent / Concerned (Still Respectful)">Urgent / Concerned (Still Respectful)</option>
-      </select>
       <label class="flex items-center gap-1"><input type="checkbox" class="use-ocr" /> OCR</label>
     </div>
 
