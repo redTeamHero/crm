@@ -49,21 +49,19 @@
     <div class="text-sm muted">Job: <span id="jobId">—</span></div>
     <div id="err" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg"></div>
 
-    <div class="glass card">
-      <div class="flex flex-wrap items-center justify-between gap-2">
+    <div class="glass card text-center">
+      <div class="flex flex-col items-center gap-2">
         <div class="font-medium">Letters</div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center justify-center gap-2">
           <button id="btnDownloadAll" class="btn" data-tip="Download all letters as ZIP">Download All</button>
           <button id="btnPortalAll" class="btn" data-tip="Upload letters to client portal">Send to Portal</button>
           <button id="btnEmailAll" class="btn" data-tip="Email letters as PDF attachments">Email All</button>
-
           <button id="btnBack" class="btn">← Back to CRM</button>
         </div>
-
       </div>
 
       <div id="count" class="text-sm muted mt-1"></div>
-      <div id="cards" class="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 mt-3"></div>
+      <div id="cards" class="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 mt-3 justify-items-center"></div>
 
       <div class="flex items-center justify-between mt-4">
         <button id="prev" class="btn">‹ Prev</button>
