@@ -6,8 +6,8 @@ import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import multer from "multer";
 import { nanoid } from "nanoid";
-import { spawn, spawnSync } from "child_process";
-import puppeteer from "puppeteer";
+import { spawn } from "child_process";
+import { htmlToPdfBuffer } from "./pdfUtils.js";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
@@ -798,33 +798,6 @@ function saveJobsIndex(idx){
   fs.writeFileSync(JOBS_INDEX_PATH, JSON.stringify(idx,null,2));
 }
 
-// chromium detection for puppeteer
-async function detectChromium(){
-  if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  const candidates = [
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
-    "/snap/bin/chromium",
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable"
-  ];
-  for (const p of candidates) {
-    try {
-      await fs.promises.access(p, fs.constants.X_OK);
-      const check = spawnSync(p, ["--version"], { stdio: "ignore" });
-      if (check.status === 0) return p;
-    } catch {}
-  }
-  return null;
-}
-
-async function launchBrowser(){
-  const execPath = await detectChromium();
-  const opts = { headless:true, args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage","--disable-gpu","--no-zygote","--single-process"] };
-  if(execPath) opts.executablePath = execPath;
-  return puppeteer.launch(opts);
-}
-
 // Create job: memory + disk
 function persistJobToDisk(jobId, letters){
   console.log(`Persisting job ${jobId} with ${letters.length} letters to disk`);
@@ -1037,23 +1010,8 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     return res.status(500).send("No HTML content to render");
   }
 
-  let browser;
   try{
-    browser = await launchBrowser();
-    const page = await browser.newPage();
-    const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
-    await page.goto(dataUrl, { waitUntil:"load", timeout:60000 });
-    await page.emulateMediaType("screen");
-    try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
-    try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-    await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-    const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
-    await page.close();
-    const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
-    if(!pdfBuffer || pdfBuffer.length === 0){
-      throw new Error("Generated PDF is empty");
-    }
-
+    const pdfBuffer = await htmlToPdfBuffer(html);
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
     console.log(`Generated PDF for ${filenameBase} (${pdfBuffer.length} bytes)`);
@@ -1061,7 +1019,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   }catch(e){
     console.error("PDF error:", e);
     res.status(500).send("Failed to render PDF.");
-  }finally{ try{ await browser?.close(); }catch{} }
+  }
 });
 
 app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
@@ -1118,21 +1076,10 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
     archive.pipe(res);
   }
 
-  let browser;
   try{
-    browser = await launchBrowser();
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
-      const page = await browser.newPage();
-      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
-      await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
-      await page.emulateMediaType("screen");
-      try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
-      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-      const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
-      await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = await htmlToPdfBuffer(L.html);
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
         archive.append(pdfBuffer,{ name });
@@ -1163,8 +1110,6 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   }catch(e){
     logError('ZIP_BUILD_FAILED', 'Zip generation failed', e, { jobId });
     try{ res.status(500).json({ ok:false, errorCode:'ZIP_BUILD_FAILED', message:'Failed to create zip.' }); }catch{}
-  }finally{
-    try{ await browser?.close(); }catch{}
   }
 });
 
@@ -1191,24 +1136,12 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     }
   }catch{}
 
-  let browser;
   try{
-
-    browser = await launchBrowser();
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, L.filename), "utf-8"));
-      const page = await browser.newPage();
-      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
-      await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
-      await page.emulateMediaType("screen");
-      try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
-      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-      const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
-      await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = await htmlToPdfBuffer(html);
       const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       attachments.push({ filename: name, content: pdfBuffer, contentType: 'application/pdf' });
     }
@@ -1231,8 +1164,6 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     logError('EMAIL_SEND_FAILED', 'Failed to email letters', e, { jobId, to });
     res.status(500).json({ ok:false, errorCode:'EMAIL_SEND_FAILED', message:String(e) });
 
-  }finally{
-    try{ await browser?.close(); }catch{}
   }
 });
 
@@ -1257,11 +1188,9 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   }catch{}
   if(!consumer) return res.status(400).json({ ok:false, error:"Consumer not found" });
 
-  let browser;
   try{
     logInfo('PORTAL_UPLOAD_START', 'Building portal ZIP', { jobId, consumerId: consumer.id });
 
-    browser = await launchBrowser();
     const dir = consumerUploadsDir(consumer.id);
     const id = nanoid(10);
     const storedName = `${id}.zip`;
@@ -1281,16 +1210,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, L.filename), 'utf-8'));
-      const page = await browser.newPage();
-      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
-      await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
-      await page.emulateMediaType('screen');
-      try{ await page.waitForFunction(()=>document.readyState==='complete',{timeout:60000}); }catch{}
-      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-      const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
-      await page.close();
-      const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+      const pdfBuffer = await htmlToPdfBuffer(html);
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       try{
         archive.append(pdfBuffer,{ name });
@@ -1319,9 +1239,6 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   }catch(e){
     logError('PORTAL_UPLOAD_FAILED', 'Letters portal upload failed', e, { jobId });
     res.status(500).json({ ok:false, errorCode:'PORTAL_UPLOAD_FAILED', message:String(e) });
-  }finally{
-    try{ await browser?.close(); }catch{}
-
   }
 });
 
