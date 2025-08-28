@@ -3,9 +3,9 @@
   --glass-bg: rgba(255,255,255,0.25);
   --glass-brd: rgba(255,255,255,0.15);
   --muted: #6b7280;
-  --accent: #007AFF;
-  --accent-hover: #005bb5;
-  --accent-bg: rgba(0,122,255,0.12);
+  --accent: #AF52DE;
+  --accent-hover: #893dba;
+  --accent-bg: rgba(175,82,222,0.12);
   --green-bg: rgba(34,197,94,0.12);
 }
 body {
@@ -34,6 +34,9 @@ body {
 }
 .btn:hover { background: var(--accent-hover); }
 .muted { color: var(--muted); }
+
+.text-accent { color: var(--accent); }
+.bg-accent-subtle { background: var(--accent-bg); color: var(--accent); }
 
 #themePalette {
   position: fixed;
