@@ -56,6 +56,7 @@ export function normalizeReport(raw, selections = null){
             fdcpa: legal.fdcpa
           };
         });
+
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });
   } else {
@@ -74,6 +75,7 @@ export function normalizeReport(raw, selections = null){
           fdcpa: legal.fdcpa
         };
       });
+
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });
   }
@@ -134,6 +136,7 @@ export function renderHtml(report, consumerName = "Consumer"){
         if(!i || !i.title) return "";
         const action = recommendAction(i.title);
         return `<li><strong>${escapeHtml(i.bureau)}</strong>: ${escapeHtml(i.title)} - This violates Metro 2 standard because ${escapeHtml(i.detail || "")}. It also violates FCRA ${escapeHtml(i.fcra)} and FDCPA ${escapeHtml(i.fdcpa)}. ${escapeHtml(action)}</li>`;
+
       }).filter(Boolean).join('');
     const issueBlock = issueItems ? `<p><strong>Audit Reasons:</strong></p><ul>${issueItems}</ul>` : "";
     return `
