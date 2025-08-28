@@ -486,6 +486,20 @@ app.put("/api/invoices/:id", (req,res)=>{
 });
 
 // =================== Messages ===================
+app.get("/api/messages", (_req, res) => {
+  const db = loadDB();
+  const all = [];
+  for (const c of db.consumers || []) {
+    const cstate = listConsumerState(c.id);
+    const msgs = (cstate.events || [])
+      .filter(e => e.type === "message")
+      .map(m => ({ ...m, consumer: { id: c.id, name: c.name || "" } }));
+    all.push(...msgs);
+  }
+  all.sort((a, b) => new Date(b.at) - new Date(a.at));
+  res.json({ ok: true, messages: all });
+});
+
 app.get("/api/messages/:consumerId", (req,res)=>{
   const cstate = listConsumerState(req.params.consumerId);
   const msgs = (cstate.events || []).filter(e=>e.type === "message");
