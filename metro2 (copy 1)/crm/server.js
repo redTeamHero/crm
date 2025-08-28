@@ -12,12 +12,15 @@ import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
 import puppeteer from "puppeteer";
+import nodeFetch from "node-fetch";
 
 import { PassThrough } from "stream";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer, readJson, writeJson } from "./utils.js";
+
+const fetchFn = globalThis.fetch || nodeFetch;
 
 
 
@@ -135,7 +138,7 @@ async function rewordWithAI(text, tone) {
   const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
   if (!key || !text) return text;
   try {
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    const resp = await fetchFn("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -708,7 +711,7 @@ async function hibpLookup(email) {
   const apiKey = loadSettings().hibpApiKey || process.env.HIBP_API_KEY;
   if (!apiKey) return { ok: false, status: 500, error: "HIBP API key not configured" };
   try {
-    const hibpRes = await fetch(
+    const hibpRes = await fetchFn(
       `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
       {
         headers: {
