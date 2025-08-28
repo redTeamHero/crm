@@ -397,6 +397,7 @@ function buildLetterHTML({
   const chosenList = buildViolationListHTML(tl.violations, selectedViolationIdxs);
   const mc = modeCopy(modeKey, requestType);
 
+
   const intro = colorize(mc.intro);
   const ask = colorize(mc.ask);
   const afterIssuesPara = mc.afterIssues ? `<p>${colorize(mc.afterIssues)}</p>` : "";
@@ -410,6 +411,7 @@ function buildLetterHTML({
     "Please provide the method of verification... if you cannot verify... delete the item and send me an updated report."
   );
   const signOff = `${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}`;
+
 
 
 

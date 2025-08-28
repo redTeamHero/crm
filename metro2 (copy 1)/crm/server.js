@@ -678,7 +678,6 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
     res.status(500).json({ ok: false, error: String(e) });
   }
 
-});
 
 
 // =================== Letters & PDFs ===================
@@ -1061,8 +1060,38 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
   }
   if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+
+  // find consumer for logging
+  let consumer = null;
   try{
-    const attachments = job.letters.map(L=>({ filename: L.filename, path: L.htmlPath || path.join(LETTERS_DIR, L.filename) }));
+    const ldb = loadLettersDB();
+    const meta = ldb.jobs.find(j=>j.jobId === jobId);
+    if(meta?.consumerId){
+      const db = loadDB();
+      consumer = db.consumers.find(c=>c.id === meta.consumerId) || null;
+    }
+  }catch{}
+
+  let browser;
+  try{
+    browser = await launchBrowser();
+    const attachments = [];
+    for(let i=0;i<job.letters.length;i++){
+      const L = job.letters[i];
+      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, L.filename), "utf-8"));
+      const page = await browser.newPage();
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+      await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
+      await page.emulateMediaType("screen");
+      try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
+      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
+      const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
+      await page.close();
+      const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
+      attachments.push({ filename: name, content: pdf, contentType: 'application/pdf' });
+    }
+
     await mailer.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to,
@@ -1070,10 +1099,17 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
       text: `Attached letters for job ${jobId}`,
       attachments
     });
+
+    if(consumer){
+      try{ addEvent(consumer.id, 'letters_emailed', { jobId, to, count: attachments.length }); }catch{}
+    }
+
     res.json({ ok:true });
   }catch(e){
     console.error(e);
     res.status(500).json({ ok:false, error:String(e) });
+  }finally{
+    try{ await browser?.close(); }catch{}
   }
 });
 
