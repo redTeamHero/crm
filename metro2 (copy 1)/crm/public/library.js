@@ -10,6 +10,7 @@ async function loadLibrary(){
   sequences = data.sequences || [];
   renderTemplates();
   renderSequences();
+  renderSeqTemplateOptions([]);
 }
 
 function renderTemplates(){
@@ -47,13 +48,13 @@ function newTemplate(){
 
 async function saveTemplate(){
   const payload = {
-    id: currentTemplateId,
     heading: document.getElementById('tplHeading').value,
     intro: document.getElementById('tplIntro').value,
     ask: document.getElementById('tplAsk').value,
     afterIssues: document.getElementById('tplAfter').value,
     evidence: document.getElementById('tplEvidence').value
   };
+  if(currentTemplateId) payload.id = currentTemplateId;
   const res = await fetch('/api/templates', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -66,7 +67,14 @@ async function saveTemplate(){
     else { templates.push(data.template); }
     renderTemplates();
     editTemplate(data.template.id);
+    const selected = Array.from(document.querySelectorAll('#seqTemplates input[type="checkbox"]:checked')).map(cb => cb.value);
+    renderSeqTemplateOptions(selected);
   }
+}
+
+function saveTemplateAsNew(){
+  currentTemplateId = null;
+  saveTemplate();
 }
 
 function updatePreview(){
@@ -91,24 +99,41 @@ function renderSequences(){
   });
 }
 
+function renderSeqTemplateOptions(selected){
+  const container = document.getElementById('seqTemplates');
+  container.innerHTML = '';
+  templates.forEach(t => {
+    const label = document.createElement('label');
+    label.className = 'flex items-center gap-1 text-xs';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = t.id;
+    cb.checked = selected.includes(t.id);
+    label.appendChild(cb);
+    label.append(t.heading || '(no heading)');
+    container.appendChild(label);
+  });
+}
+
 function editSequence(id){
   const seq = sequences.find(s => s.id === id) || {};
   currentSequenceId = id;
   document.getElementById('seqName').value = seq.name || '';
-  document.getElementById('seqTemplates').value = (seq.templates || []).join(', ');
+  renderSeqTemplateOptions(seq.templates || []);
 }
 
 function newSequence(){
   currentSequenceId = null;
   document.getElementById('seqName').value = '';
-  document.getElementById('seqTemplates').value = '';
+  renderSeqTemplateOptions([]);
 }
 
 async function saveSequence(){
+  const selected = Array.from(document.querySelectorAll('#seqTemplates input[type="checkbox"]:checked')).map(cb => cb.value);
   const payload = {
     id: currentSequenceId,
     name: document.getElementById('seqName').value,
-    templates: document.getElementById('seqTemplates').value.split(',').map(s=>s.trim()).filter(Boolean)
+    templates: selected
   };
   const res = await fetch('/api/sequences', {
     method: 'POST',
@@ -127,6 +152,7 @@ async function saveSequence(){
 
 document.getElementById('saveTemplate').onclick = saveTemplate;
 document.getElementById('newTemplate').onclick = newTemplate;
+document.getElementById('saveTemplateCopy').onclick = saveTemplateAsNew;
 document.getElementById('saveSequence').onclick = saveSequence;
 document.getElementById('newSequence').onclick = newSequence;
 
