@@ -3,10 +3,11 @@
   --glass-bg: rgba(255,255,255,0.25);
   --glass-brd: rgba(255,255,255,0.15);
   --muted: #6b7280;
-  --accent: #AF52DE;
-  --accent-hover: #893dba;
-  --accent-bg: rgba(175,82,222,0.12);
-  --green-bg: rgba(34,197,94,0.12);
+  --accent: #007AFF;
+  --accent-hover: #005bb5;
+  --accent-bg: #007AFF;
+  --green-bg: #22C55E;
+
 }
 body {
   /* Use root-relative path so asset resolves regardless of deployment directory */
@@ -166,9 +167,11 @@ body.voice-active #voiceNotes{display:block;}
 /* Messaging */
 .msg-host {
   background: var(--accent-bg);
+  color: #fff;
 }
 .msg-client {
   background: var(--green-bg);
+  color: #fff;
 }
 
 
