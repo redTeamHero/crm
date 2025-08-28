@@ -16,7 +16,9 @@ import { PassThrough } from "stream";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
-import { readJson, writeJson } from "./db-utils.js";
+import { ensureBuffer } from "./utils.js";
+
+
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
@@ -1003,9 +1005,11 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     return res.status(500).send("No HTML content to render");
   }
 
+  let browserInstance;
+
   try{
-    browser = await launchBrowser();
-    const page = await browser.newPage();
+    browserInstance = await launchBrowser();
+    const page = await browserInstance.newPage();
     const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
     await page.goto(dataUrl, { waitUntil:"load", timeout:60000 });
     await page.emulateMediaType("screen");
@@ -1027,7 +1031,8 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   }catch(e){
     console.error("PDF error:", e);
     res.status(500).send("Failed to render PDF.");
-  }
+  }finally{ try{ await browserInstance?.close(); }catch{} }
+
 });
 
 app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
@@ -1084,10 +1089,13 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
     archive.pipe(res);
   }
 
+  let browserInstance;
   try{
+    browserInstance = await launchBrowser();
+
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
-      const page = await browser.newPage();
+      const page = await browserInstance.newPage();
       const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
       await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
       await page.emulateMediaType("screen");
@@ -1128,6 +1136,9 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   }catch(e){
     logError('ZIP_BUILD_FAILED', 'Zip generation failed', e, { jobId });
     try{ res.status(500).json({ ok:false, errorCode:'ZIP_BUILD_FAILED', message:'Failed to create zip.' }); }catch{}
+  }finally{
+    try{ await browserInstance?.close(); }catch{}
+
   }
 });
 
@@ -1154,12 +1165,16 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     }
   }catch{}
 
+  let browserInstance;
   try{
+
+    browserInstance = await launchBrowser();
+
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, L.filename), "utf-8"));
-      const page = await browser.newPage();
+      const page = await browserInstance.newPage();
       const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
       await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
       await page.emulateMediaType("screen");
@@ -1192,6 +1207,9 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     logError('EMAIL_SEND_FAILED', 'Failed to email letters', e, { jobId, to });
     res.status(500).json({ ok:false, errorCode:'EMAIL_SEND_FAILED', message:String(e) });
 
+  }finally{
+    try{ await browserInstance?.close(); }catch{}
+
   }
 });
 
@@ -1216,8 +1234,11 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   }catch{}
   if(!consumer) return res.status(400).json({ ok:false, error:"Consumer not found" });
 
+  let browserInstance;
   try{
     logInfo('PORTAL_UPLOAD_START', 'Building portal ZIP', { jobId, consumerId: consumer.id });
+
+    browserInstance = await launchBrowser();
 
     const dir = consumerUploadsDir(consumer.id);
     const id = nanoid(10);
@@ -1238,7 +1259,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, L.filename), 'utf-8'));
-      const page = await browser.newPage();
+      const page = await browserInstance.newPage();
       const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
       await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
       await page.emulateMediaType('screen');
@@ -1277,6 +1298,10 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   }catch(e){
     logError('PORTAL_UPLOAD_FAILED', 'Letters portal upload failed', e, { jobId });
     res.status(500).json({ ok:false, errorCode:'PORTAL_UPLOAD_FAILED', message:String(e) });
+  }finally{
+    try{ await browserInstance?.close(); }catch{}
+
+
   }
 });
 
