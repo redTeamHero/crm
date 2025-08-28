@@ -1301,16 +1301,17 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
 app.post("/api/letters/:jobId/mail", async (req,res)=>{
   const { jobId } = req.params;
   const consumerId = String(req.body?.consumerId || "").trim();
+  const file = String(req.body?.file || "").trim();
   if(!consumerId) return res.status(400).json({ ok:false, error:"consumerId required" });
+  if(!file) return res.status(400).json({ ok:false, error:"file required" });
   const db = loadDB();
   const consumer = db.consumers.find(c=>c.id===consumerId);
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
 
   const cstate = listConsumerState(consumerId);
-  const ev = cstate.events.find(e=>e.type==='letters_portal_sent' && e.payload?.jobId===jobId);
-  if(!ev) return res.status(404).json({ ok:false, error:"Letters not found" });
-  const stored = ev.payload.file.split('/').pop();
-  const filePath = path.join(consumerUploadsDir(consumerId), stored);
+  const ev = cstate.events.find(e=>e.type==='letters_portal_sent' && e.payload?.jobId===jobId && e.payload?.file?.endsWith(`/state/files/${file}`));
+  if(!ev) return res.status(404).json({ ok:false, error:"Letter not found" });
+  const filePath = path.join(consumerUploadsDir(consumerId), file);
   try{
     const result = await sendCertifiedMail({
       filePath,
@@ -1320,11 +1321,11 @@ app.post("/api/letters/:jobId/mail", async (req,res)=>{
       toState: consumer.state,
       toZip: consumer.zip
     });
-    addEvent(consumerId, 'letters_mailed', { jobId, provider: 'simplecertifiedmail', result });
+    addEvent(consumerId, 'letters_mailed', { jobId, file: ev.payload.file, provider: 'simplecertifiedmail', result });
     res.json({ ok:true });
-    logInfo('SCM_MAIL_SUCCESS', 'Sent letters via SimpleCertifiedMail', { jobId, consumerId });
+    logInfo('SCM_MAIL_SUCCESS', 'Sent letter via SimpleCertifiedMail', { jobId, consumerId, file });
   }catch(e){
-    logError('SCM_MAIL_FAILED', 'Failed to mail via SimpleCertifiedMail', e, { jobId, consumerId });
+    logError('SCM_MAIL_FAILED', 'Failed to mail via SimpleCertifiedMail', e, { jobId, consumerId, file });
     res.status(500).json({ ok:false, errorCode:'SCM_MAIL_FAILED', message:String(e) });
   }
 });
@@ -1431,82 +1432,60 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   const needsBrowser = job.letters.some(l => !l.useOcr);
   let browserInstance;
   try{
-    logInfo('PORTAL_UPLOAD_START', 'Building portal ZIP', { jobId, consumerId: consumer.id });
+    logInfo('PORTAL_UPLOAD_START', 'Building portal letters', { jobId, consumerId: consumer.id });
 
     if (needsBrowser) browserInstance = await launchBrowser();
 
     const dir = consumerUploadsDir(consumer.id);
-    const id = nanoid(10);
-    const storedName = `${id}.zip`;
     const safe = (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g,'_');
     const date = new Date().toISOString().slice(0,10);
-    const originalName = `${safe}_${date}_letters.zip`;
-    const fullPath = path.join(dir, storedName);
-    const out = fs.createWriteStream(fullPath);
-    const archive = archiver('zip',{ zlib:{ level:9 } });
-    archive.on('error', err => {
-      logError('ARCHIVE_STREAM_ERROR', 'Archive stream error', err, { jobId });
-      try{ res.status(500).json({ ok:false, errorCode:'ARCHIVE_STREAM_ERROR', message:'Zip error' }); }catch{}
-    });
-
-    archive.pipe(out);
 
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, L.filename), 'utf-8'));
 
-      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
-
+      let pdfBuffer;
       if (L.useOcr) {
-        const pdfBuffer = await generateOcrPdf(html);
-
-        try{ archive.append(pdfBuffer,{ name }); }catch(err){
-          logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
-          throw err;
-        }
-        continue;
+        pdfBuffer = await generateOcrPdf(html);
+      } else {
+        const page = await browserInstance.newPage();
+        const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+        await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
+        await page.emulateMediaType('screen');
+        try{ await page.waitForFunction(()=>document.readyState==='complete',{timeout:60000}); }catch{}
+        try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+        await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
+        const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
+        await page.close();
+        pdfBuffer = ensureBuffer(pdf);
       }
 
-      const page = await browserInstance.newPage();
-      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
-      await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
-      await page.emulateMediaType('screen');
-      try{ await page.waitForFunction(()=>document.readyState==='complete',{timeout:60000}); }catch{}
-      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-      const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
-      await page.close();
-      const pdfBuffer = ensureBuffer(pdf);
-
-      try{ archive.append(pdfBuffer,{ name }); }catch(err){
-        logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
-        throw err;
-      }
-
+      const id = nanoid(10);
+      const storedName = `${id}.pdf`;
+      const base = (L.filename||`letter${i}`).replace(/\.html?$/i,"");
+      const originalName = `${safe}_${date}_${base}.pdf`;
+      const fullPath = path.join(dir, storedName);
+      await fs.promises.writeFile(fullPath, pdfBuffer);
+      const stat = await fs.promises.stat(fullPath);
+      addFileMeta(consumer.id, {
+        id,
+        originalName,
+        storedName,
+        type: 'letter_pdf',
+        size: stat.size,
+        mimetype: 'application/pdf',
+        uploadedAt: new Date().toISOString(),
+      });
+      addEvent(consumer.id, 'letters_portal_sent', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
     }
 
-    await archive.finalize();
-    await new Promise(resolve => out.on('close', resolve));
-    const stat = await fs.promises.stat(fullPath);
-    addFileMeta(consumer.id, {
-      id,
-      originalName,
-      storedName,
-      type: 'letters_zip',
-      size: stat.size,
-      mimetype: 'application/zip',
-      uploadedAt: new Date().toISOString(),
-    });
-    addEvent(consumer.id, 'letters_portal_sent', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
-    logInfo('PORTAL_UPLOAD_SUCCESS', 'Portal ZIP stored', { jobId, consumerId: consumer.id });
-    res.json({ ok:true });
+    logInfo('PORTAL_UPLOAD_SUCCESS', 'Portal letters stored', { jobId, consumerId: consumer.id, count: job.letters.length });
+    res.json({ ok:true, count: job.letters.length });
   }catch(e){
     logError('PORTAL_UPLOAD_FAILED', 'Letters portal upload failed', e, { jobId });
     res.status(500).json({ ok:false, errorCode:'PORTAL_UPLOAD_FAILED', message:String(e) });
   }finally{
     try{ await browserInstance?.close(); }catch{}
-
-
   }
 });
 

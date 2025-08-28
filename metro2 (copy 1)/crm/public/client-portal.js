@@ -228,8 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const stored = (ev.payload?.file||'').split('/').pop();
           const meta = files.find(f=>f.storedName===stored);
           const name = meta?.originalName || `Letters ${jobId}`;
-          const rec = { jobId, name, url: ev.payload?.file || '#' };
-          if(mailedSet.has(jobId)) mailed.push(rec); else waiting.push(rec);
+          const rec = { jobId, name, url: ev.payload?.file || '#', file: stored };
+          if(mailedSet.has(stored)) mailed.push(rec); else waiting.push(rec);
         }
         renderMailList(mailWaiting, waiting, true);
         renderMailList(mailMailed, mailed, false);
@@ -245,22 +245,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderMailList(el, items, allowMail){
     if(!el) return;
     if(!items.length){ el.innerHTML='<div class="muted text-sm">No letters.</div>'; return; }
-    el.innerHTML = items.map(it=>`<div class="glass card tl-card flex items-center justify-between"><div class="font-medium">${esc(it.name)}</div><div class="flex gap-2"><a class="btn text-xs" href="${it.url}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${it.jobId}">Mail</button>`:''}</div></div>`).join('');
+    el.innerHTML = items.map(it=>`<div class="glass card tl-card flex items-center justify-between"><div class="font-medium">${esc(it.name)}</div><div class="flex gap-2"><a class="btn text-xs" href="${it.url}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${it.jobId}" data-file="${it.file}">Mail</button>`:''}</div></div>`).join('');
     if(allowMail){
       el.querySelectorAll('.mail-act').forEach(btn=>{
         btn.addEventListener('click',async ()=>{
           const jobId = btn.getAttribute('data-job');
+          const file = btn.getAttribute('data-file');
           btn.disabled = true;
           try{
             const resp = await fetch(`/api/letters/${encodeURIComponent(jobId)}/mail`, {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ consumerId })
+              body: JSON.stringify({ consumerId, file })
             });
             const data = await resp.json().catch(()=>({}));
             if(!data?.ok) throw new Error(data?.error || 'Failed to mail letters');
             const mailed = JSON.parse(localStorage.getItem('mailedLetters')||'[]');
-            if(!mailed.includes(jobId)) mailed.push(jobId);
+            if(!mailed.includes(file)) mailed.push(file);
             localStorage.setItem('mailedLetters', JSON.stringify(mailed));
             loadMail();
           }catch(e){
