@@ -208,7 +208,21 @@ $("#btnSelectAll").addEventListener("click", ()=>{
   const cards = Array.from(document.querySelectorAll(".tl-card"));
   if (!cards.length) return;
   const allSelected = cards.every(c => c.classList.contains("selected"));
-  cards.forEach(c => setCardSelected(c, !allSelected));
+  cards.forEach(c => {
+    setCardSelected(c, !allSelected);
+    if (!allSelected) autoSelectBestViolation(c);
+  });
+  updateSelectAllButton();
+});
+
+$("#btnSelectNegative")?.addEventListener("click", ()=>{
+  const cards = Array.from(document.querySelectorAll(".tl-card.negative"));
+  if (!cards.length) return;
+  const allSelected = cards.every(c => c.classList.contains("selected"));
+  cards.forEach(c => {
+    setCardSelected(c, !allSelected);
+    if (!allSelected) autoSelectBestViolation(c);
+  });
   updateSelectAllButton();
 });
 
@@ -416,11 +430,18 @@ function passesFilter(tags){ if (activeFilters.size === 0) return true; return t
 
 // ===================== Tradelines + Zoom =====================
 function updateSelectAllButton(){
-  const btn = $("#btnSelectAll");
-  if (!btn) return;
+  const btnAll = $("#btnSelectAll");
+  const btnNeg = $("#btnSelectNegative");
   const cards = Array.from(document.querySelectorAll(".tl-card"));
-  const allSelected = cards.length > 0 && cards.every(c => c.classList.contains("selected"));
-  btn.textContent = allSelected ? "Deselect All" : "Select All";
+  if (btnAll){
+    const allSelected = cards.length > 0 && cards.every(c => c.classList.contains("selected"));
+    btnAll.textContent = allSelected ? "Deselect All" : "Select All";
+  }
+  if (btnNeg){
+    const negatives = cards.filter(c => c.classList.contains("negative"));
+    const allNegSelected = negatives.length > 0 && negatives.every(c => c.classList.contains("selected"));
+    btnNeg.textContent = allNegSelected ? "Deselect Negative" : "Select Negative";
+  }
 }
 
 function setCardSelected(card, on){
@@ -446,6 +467,27 @@ function updateSelectionStateFromCard(card){
   const useOcr = card.querySelector('.use-ocr')?.checked || false;
   selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook, useOcr };
   updateSelectAllButton();
+}
+
+function autoSelectBestViolation(card){
+  const idx = Number(card.dataset.index);
+  const tl = CURRENT_REPORT?.tradelines?.[idx];
+  if (!tl) return;
+  const vs = tl.violations || [];
+  if (!vs.length) return;
+  let bestIdx = 0;
+  let bestSeverity = -Infinity;
+  vs.forEach((v,i)=>{
+    const sev = v.severity || 0;
+    if (sev > bestSeverity){
+      bestSeverity = sev;
+      bestIdx = i;
+    }
+  });
+  card.querySelectorAll('.violation').forEach(cb => {
+    cb.checked = Number(cb.value) === bestIdx;
+  });
+  updateSelectionStateFromCard(card);
 }
 
 function renderTradelines(tradelines){

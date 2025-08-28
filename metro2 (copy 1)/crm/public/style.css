@@ -217,10 +217,7 @@ body.voice-active #voiceNotes{display:block;}
   border-left-color: #3B82F6;
   background: #DBEAFE;
 }
-.violation-item.severity-1 {
-  border-left-color: #10B981;
-  background: #D1FAE5;
-}
+
 
 .severity-tag {
   margin-left: 4px;
@@ -233,14 +230,14 @@ body.voice-active #voiceNotes{display:block;}
 .severity-tag.severity-4 { background: #B45309; color: #fff; }
 .severity-tag.severity-3 { background: #F59E0B; color: #fff; }
 .severity-tag.severity-2 { background: #3B82F6; color: #fff; }
-.severity-tag.severity-1 { background: #10B981; color: #fff; }
+
 
 /* Tradeline card severity borders */
 .tl-card.severity-5 { box-shadow: 0 0 0 2px #991B1B; }
 .tl-card.severity-4 { box-shadow: 0 0 0 2px #B45309; }
 .tl-card.severity-3 { box-shadow: 0 0 0 2px #F59E0B; }
 .tl-card.severity-2 { box-shadow: 0 0 0 2px #3B82F6; }
-.tl-card.severity-1 { box-shadow: 0 0 0 2px #10B981; }
+
 
 /* Ensure selection highlight overrides severity */
 .tl-card.selected { box-shadow: 0 0 0 2px var(--green); }
