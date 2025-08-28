@@ -427,7 +427,8 @@ function updateSelectionStateFromCard(card){
   const violationIdxs = preserved.concat(visibleChecked);
   const specialMode = getSpecialModeForCard(card);
   const playbook = card.querySelector('.tl-playbook-select')?.value || null;
-  selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook };
+  const useOcr = card.querySelector('.use-ocr')?.checked || false;
+  selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook, useOcr };
 }
 
 function renderTradelines(tradelines){
@@ -507,6 +508,10 @@ function renderTradelines(tradelines){
     renderViolations();
     prevBtn.addEventListener("click", ()=>{ if(vStart>0){ vStart -= 3; renderViolations(); }});
     nextBtn.addEventListener("click", ()=>{ if(vStart + 3 < vs.length){ vStart += 3; renderViolations(); }});
+
+    const ocrCb = node.querySelector('.use-ocr');
+    if (selectionState[idx]?.useOcr) ocrCb.checked = true;
+    ocrCb.addEventListener('change', () => updateSelectionStateFromCard(card));
 
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
@@ -668,6 +673,9 @@ function collectSelections(){
     };
     if (data.violationIdxs && data.violationIdxs.length){
       sel.violationIdxs = data.violationIdxs;
+    }
+    if (data.useOcr){
+      sel.useOcr = true;
     }
     return sel;
   });
