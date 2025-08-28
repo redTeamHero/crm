@@ -60,6 +60,36 @@ app.use((req, res, next) => {
   next();
 });
 
+async function rewordWithAI(text, tone) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key || !text) return text;
+  try {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "You reword credit dispute statements." },
+          {
+            role: "user",
+            content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${text}`,
+          },
+        ],
+      }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    const out = data.choices?.[0]?.message?.content?.trim() || text;
+    return out.replace(/—/g, "-");
+  } catch (e) {
+    console.error("AI reword failed", e);
+    return text;
+  }
+}
+
 // periodically surface due letter reminders
 processAllReminders();
 setInterval(() => {
@@ -829,6 +859,21 @@ app.post("/api/generate", async (req,res)=>{
       ssn_last4: consumer.ssn_last4, dob: consumer.dob,
       breaches: consumer.breaches || []
     };
+
+    for (const sel of selections || []) {
+      if (sel.aiTone) {
+        const tl = reportWrap.data?.tradelines?.[sel.tradelineIndex];
+        if (tl && Array.isArray(sel.violationIdxs)) {
+          for (const vidx of sel.violationIdxs) {
+            const v = tl.violations?.[vidx];
+            if (v) {
+              v.title = await rewordWithAI(v.title || "", sel.aiTone);
+              if (v.detail) v.detail = await rewordWithAI(v.detail, sel.aiTone);
+            }
+          }
+        }
+      }
+    }
 
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
     if (personalInfo) {
