@@ -17,6 +17,7 @@ function logError(code, message, err, meta = {}) {
     message,
     ...meta,
   };
+
   if (err) {
     entry.error = err.message;
     if (err.stack) entry.stack = err.stack;
