@@ -194,6 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const messageSection = document.getElementById('messageSection');
   const messageList = document.getElementById('messageList');
   const messageForm = document.getElementById('messageForm');
+  const mailSection = document.getElementById('mailSection');
+  const mailWaiting = document.getElementById('mailWaiting');
+  const mailMailed = document.getElementById('mailMailed');
+  const mailTabWaiting = document.getElementById('mailTabWaiting');
+  const mailTabMailed = document.getElementById('mailTabMailed');
   function loadDocs(){
     if (!(docEl && consumerId)) return;
     fetch(`/api/consumers/${consumerId}/state`)
@@ -207,6 +212,67 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   loadDocs();
   loadMessages();
+
+  function loadMail(){
+    if (!(mailWaiting && mailMailed && consumerId)) return;
+    fetch(`/api/consumers/${consumerId}/state`)
+      .then(r=>r.json())
+      .then(data=>{
+        const events = data.state?.events || [];
+        const files = data.state?.files || [];
+        const mailEvents = events.filter(e=>e.type==='letters_portal_sent');
+        const mailedSet = new Set(JSON.parse(localStorage.getItem('mailedLetters')||'[]'));
+        const waiting=[], mailed=[];
+        for(const ev of mailEvents){
+          const jobId = ev.payload?.jobId || '';
+          const stored = (ev.payload?.file||'').split('/').pop();
+          const meta = files.find(f=>f.storedName===stored);
+          const name = meta?.originalName || `Letters ${jobId}`;
+          const rec = { jobId, name, url: ev.payload?.file || '#' };
+          if(mailedSet.has(jobId)) mailed.push(rec); else waiting.push(rec);
+        }
+        renderMailList(mailWaiting, waiting, true);
+        renderMailList(mailMailed, mailed, false);
+      })
+      .catch(()=>{
+        mailWaiting.textContent='Failed to load letters.';
+        mailMailed.textContent='Failed to load letters.';
+      });
+  }
+
+  function esc(str){ return String(str).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+  function renderMailList(el, items, allowMail){
+    if(!el) return;
+    if(!items.length){ el.innerHTML='<div class="muted text-sm">No letters.</div>'; return; }
+    el.innerHTML = items.map(it=>`<div class="glass card tl-card flex items-center justify-between"><div class="font-medium">${esc(it.name)}</div><div class="flex gap-2"><a class="btn text-xs" href="${it.url}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${it.jobId}">Mail</button>`:''}</div></div>`).join('');
+    if(allowMail){
+      el.querySelectorAll('.mail-act').forEach(btn=>{
+        btn.addEventListener('click',()=>{
+          const jobId = btn.getAttribute('data-job');
+          const mailed = JSON.parse(localStorage.getItem('mailedLetters')||'[]');
+          if(!mailed.includes(jobId)) mailed.push(jobId);
+          localStorage.setItem('mailedLetters', JSON.stringify(mailed));
+          loadMail();
+        });
+      });
+    }
+  }
+
+  if(mailTabWaiting && mailTabMailed){
+    mailTabWaiting.addEventListener('click',()=>{
+      mailTabWaiting.classList.add('active');
+      mailTabMailed.classList.remove('active');
+      if(mailWaiting) mailWaiting.classList.remove('hidden');
+      if(mailMailed) mailMailed.classList.add('hidden');
+    });
+    mailTabMailed.addEventListener('click',()=>{
+      mailTabMailed.classList.add('active');
+      mailTabWaiting.classList.remove('active');
+      if(mailMailed) mailMailed.classList.remove('hidden');
+      if(mailWaiting) mailWaiting.classList.add('hidden');
+    });
+  }
 
   const goalBtn = document.getElementById('btnGoal');
   if(goalBtn){
@@ -303,6 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (messageSection) messageSection.classList.add('hidden');
     if (educationSection) educationSection.classList.add('hidden');
     if (documentSection) documentSection.classList.add('hidden');
+    if (mailSection) mailSection.classList.add('hidden');
 
     if (hash === '#uploads' && uploadSection) {
       uploadSection.classList.remove('hidden');
@@ -314,6 +381,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (hash === '#documentSection' && documentSection) {
       documentSection.classList.remove('hidden');
       loadDocs();
+    } else if (hash === '#mailSection' && mailSection) {
+      mailSection.classList.remove('hidden');
+      loadMail();
     } else if (portalMain) {
       portalMain.classList.remove('hidden');
     }

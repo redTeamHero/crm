@@ -34,6 +34,7 @@
       <a href="#messages" class="btn">Messages</a>
       <a href="#uploads" class="btn">My Uploads</a>
       <a href="#documentSection" class="btn">Document Center</a>
+      <a href="#mailSection" class="btn">Mail</a>
       <a href="#educationSection" class="btn">Education</a>
       
     </nav>
@@ -153,6 +154,15 @@
     <div class="font-medium mb-2">Document Center</div>
     <div id="docList" class="text-sm space-y-1">No documents uploaded.</div>
   </div>
+</div>
+<div id="mailSection" class="max-w-3xl mx-auto p-4 hidden">
+  <h2 class="text-xl font-bold mb-2">Mail</h2>
+  <div class="flex gap-2 mb-2">
+    <button id="mailTabWaiting" class="btn chip active">Waiting</button>
+    <button id="mailTabMailed" class="btn chip">Mailed</button>
+  </div>
+  <div id="mailWaiting" class="space-y-2"></div>
+  <div id="mailMailed" class="space-y-2 hidden"></div>
 </div>
 <script src="/client-portal.js"></script>
 </body>
