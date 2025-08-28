@@ -38,7 +38,8 @@ function htmlToPlainText(html){
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<(br|BR)\s*\/?>(\n)?/g, '\n')
-    .replace(/<\/(p|div|h[1-6]|li|tr|table)>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|tr|table)>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
 
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')

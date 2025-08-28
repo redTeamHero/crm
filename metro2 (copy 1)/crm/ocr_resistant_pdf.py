@@ -73,7 +73,9 @@ def _load_font(paths: List[str], size: int) -> ImageFont.FreeTypeFont:
                 pass
     return ImageFont.load_default()
 
-def _draw_text_block(draw: ImageDraw.ImageDraw, text: str, x: int, y: int, max_w: int, font: ImageFont.FreeTypeFont, line_height_mult: float = 1.35, fill=(0,0,0)) -> int:
+def _wrap_text(text: str, max_w: int, font: ImageFont.FreeTypeFont) -> List[str]:
+    """Wrap plain text into lines that fit within max_w."""
+
     lines: List[str] = []
     for paragraph in text.split("\n"):
         if not paragraph.strip():
@@ -98,13 +100,7 @@ def _draw_text_block(draw: ImageDraw.ImageDraw, text: str, x: int, y: int, max_w
                 line = line.rsplit(" ", 1)[0]
             refined.append(line)
         lines.extend(refined)
-
-    line_h = int(font.size * line_height_mult)
-    cy = y
-    for line in lines:
-        draw.text((x, cy), line, font=font, fill=fill)
-        cy += line_h
-    return cy
+    return lines
 
 def _apply_mask_for_safe_zones(layer: Image.Image, safe_zones: List[Tuple[int, int, int, int]]) -> Image.Image:
     if not safe_zones:
@@ -165,20 +161,28 @@ def add_speckles(base: Image.Image, style: OCRStyle) -> None:
     base.alpha_composite(speck)
 
 def render_ocr_resistant_pdf(text: str, out_path: str, style: Optional[OCRStyle]=None) -> str:
+    """Render an OCR-resistant PDF from plain text. Supports multiple pages."""
     style = style or OCRStyle()
-    page = Image.new("RGBA", (style.page_w, style.page_h), (255,255,255,255))
-    add_light_grid(page, style)
-    add_neutral_watermark(page, style)
     font = _load_font(style.font_paths, style.font_size)
-    d = ImageDraw.Draw(page)
-    x = style.margin
-    y = style.margin
     max_w = style.page_w - style.margin*2
-    _draw_text_block(d, text, x, y, max_w, font)
-    add_speckles(page, style)
-    rgb = page.convert("RGB")
+    lines = _wrap_text(text, max_w, font)
+    line_h = int(font.size * 1.35)
+    lines_per_page = max(1, (style.page_h - style.margin*2) // line_h)
+    pages: List[Image.Image] = []
+    for start in range(0, len(lines), lines_per_page):
+        page = Image.new("RGBA", (style.page_w, style.page_h), (255,255,255,255))
+        add_light_grid(page, style)
+        add_neutral_watermark(page, style)
+        d = ImageDraw.Draw(page)
+        y = style.margin
+        for line in lines[start:start+lines_per_page]:
+            d.text((style.margin, y), line, font=font, fill=(0,0,0))
+            y += line_h
+        add_speckles(page, style)
+        pages.append(page.convert("RGB"))
     os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
-    rgb.save(out_path)
+    pages[0].save(out_path, save_all=True, append_images=pages[1:])
+
     return out_path
 
 def _parse_pt_rect(val: List[str]) -> Tuple[int,int,int,int]:
