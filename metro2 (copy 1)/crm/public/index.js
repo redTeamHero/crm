@@ -204,6 +204,14 @@ $("#tlPageSize").addEventListener("change", (e)=>{
   renderTradelines(CURRENT_REPORT?.tradelines || []);
 });
 
+$("#btnSelectAll").addEventListener("click", ()=>{
+  const cards = Array.from(document.querySelectorAll(".tl-card"));
+  if (!cards.length) return;
+  const allSelected = cards.every(c => c.classList.contains("selected"));
+  cards.forEach(c => setCardSelected(c, !allSelected));
+  updateSelectAllButton();
+});
+
 async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.consumers.find(x=>x.id===id);
@@ -407,6 +415,14 @@ function renderFilterBar(){
 function passesFilter(tags){ if (activeFilters.size === 0) return true; return tags.some(t => activeFilters.has(t)); }
 
 // ===================== Tradelines + Zoom =====================
+function updateSelectAllButton(){
+  const btn = $("#btnSelectAll");
+  if (!btn) return;
+  const cards = Array.from(document.querySelectorAll(".tl-card"));
+  const allSelected = cards.length > 0 && cards.every(c => c.classList.contains("selected"));
+  btn.textContent = allSelected ? "Deselect All" : "Select All";
+}
+
 function setCardSelected(card, on){
   card.classList.toggle("selected", !!on);
   card.querySelectorAll('input.bureau').forEach(cb => { cb.checked = !!on; });
@@ -416,7 +432,7 @@ function setCardSelected(card, on){
 function updateSelectionStateFromCard(card){
   const idx = Number(card.dataset.index);
   const bureaus = Array.from(card.querySelectorAll('.bureau:checked')).map(cb=>cb.value);
-  if (!bureaus.length) { delete selectionState[idx]; return; }
+  if (!bureaus.length) { delete selectionState[idx]; updateSelectAllButton(); return; }
 
   // Preserve previously selected violations that may not be rendered
   const existing = selectionState[idx]?.violationIdxs || [];
@@ -429,6 +445,7 @@ function updateSelectionStateFromCard(card){
   const playbook = card.querySelector('.tl-playbook-select')?.value || null;
   const useOcr = card.querySelector('.use-ocr')?.checked || false;
   selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook, useOcr };
+  updateSelectAllButton();
 }
 
 function renderTradelines(tradelines){
@@ -561,6 +578,8 @@ function renderTradelines(tradelines){
   if (!container.children.length){
     container.innerHTML = `<div class="muted">No tradelines match the current filters.</div>`;
   }
+
+  updateSelectAllButton();
 
   $("#tlPage").textContent = String(tlPage);
   $("#tlPages").textContent = String(tlTotalPages);
