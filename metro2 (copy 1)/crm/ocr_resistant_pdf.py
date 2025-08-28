@@ -35,6 +35,8 @@ import random
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 from PIL import Image, ImageDraw, ImageFont
+from bs4 import BeautifulSoup
+
 
 @dataclass
 class OCRStyle:
@@ -102,6 +104,25 @@ def _wrap_text(text: str, max_w: int, font: ImageFont.FreeTypeFont) -> List[str]
         lines.extend(refined)
     return lines
 
+def _extract_sections(html: str) -> List[Tuple[str, bool]]:
+    """Return list of (text, apply_ocr) blocks from HTML.
+    Elements with class 'ocr' get overlays; others become safe zones."""
+    if "<" not in html:
+        return [(html, True)]
+    soup = BeautifulSoup(html, "html.parser")
+    body = soup.body or soup
+    sections: List[Tuple[str, bool]] = []
+    for el in body.children:
+        if isinstance(el, str):
+            continue
+        text = el.get_text("\n", strip=True)
+        if not text:
+            continue
+        apply = "ocr" in (el.get("class") or [])
+        sections.append((text, apply))
+    return sections
+
+
 def _apply_mask_for_safe_zones(layer: Image.Image, safe_zones: List[Tuple[int, int, int, int]]) -> Image.Image:
     if not safe_zones:
         return layer
@@ -160,23 +181,47 @@ def add_speckles(base: Image.Image, style: OCRStyle) -> None:
     speck = _apply_mask_for_safe_zones(speck, style.safe_zones)
     base.alpha_composite(speck)
 
-def render_ocr_resistant_pdf(text: str, out_path: str, style: Optional[OCRStyle]=None) -> str:
-    """Render an OCR-resistant PDF from plain text. Supports multiple pages."""
+def render_ocr_resistant_pdf(html: str, out_path: str, style: Optional[OCRStyle]=None) -> str:
+    """Render an OCR-resistant PDF from HTML. Only elements with class 'ocr' get overlays."""
     style = style or OCRStyle()
     font = _load_font(style.font_paths, style.font_size)
-    max_w = style.page_w - style.margin*2
-    lines = _wrap_text(text, max_w, font)
+    max_w = style.page_w - style.margin * 2
+    sections = _extract_sections(html)
+    line_blocks: List[Tuple[str, bool]] = []
+    for text, apply in sections:
+        wrapped = _wrap_text(text, max_w, font)
+        for line in wrapped:
+            line_blocks.append((line, apply))
+        line_blocks.append(("", apply))
+    while line_blocks and line_blocks[-1][0] == "":
+        line_blocks.pop()
     line_h = int(font.size * 1.15)
-
     lines_per_page = max(1, (style.page_h - style.margin*2) // line_h)
     pages: List[Image.Image] = []
-    for start in range(0, len(lines), lines_per_page):
+    for start in range(0, len(line_blocks), lines_per_page):
+        page_lines = line_blocks[start:start+lines_per_page]
         page = Image.new("RGBA", (style.page_w, style.page_h), (255,255,255,255))
+        safe: List[Tuple[int,int,int,int]] = []
+        y = style.margin
+        run_flag = page_lines[0][1] if page_lines else True
+        run_start = y
+        for line, flag in page_lines:
+            if flag != run_flag:
+                if not run_flag:
+                    safe.append((0, run_start, style.page_w, y - run_start))
+                run_flag = flag
+                run_start = y
+            y += line_h
+        if not run_flag:
+            safe.append((0, run_start, style.page_w, y - run_start))
+        style.safe_zones = safe
+
         add_light_grid(page, style)
         add_neutral_watermark(page, style)
         d = ImageDraw.Draw(page)
         y = style.margin
-        for line in lines[start:start+lines_per_page]:
+        for line, _ in page_lines:
+
             d.text((style.margin, y), line, font=font, fill=(0,0,0))
             y += line_h
         add_speckles(page, style)
@@ -217,7 +262,8 @@ def _make_preset(name: str) -> OCRStyle:
 
 def main():
     ap = argparse.ArgumentParser(description="Generate OCR-resistant PDF with neutral watermark.")
-    ap.add_argument("--in", dest="infile", required=True, help="Path to input .txt")
+    ap.add_argument("--in", dest="infile", required=True, help="Path to input HTML")
+
     ap.add_argument("--out", dest="outfile", required=True, help="Path to output .pdf")
     ap.add_argument("--preset", choices=["subtle","strong"], default="strong", help="Strength preset")
     ap.add_argument("--page", default=None, help="Custom page size WxH (e.g., 1700x2200)")
@@ -238,7 +284,8 @@ def main():
     ap.add_argument("--safe-zone", nargs=4, action="append", metavar=("X","Y","W","H"), help="Rectangle (px) where overlays are disabled (can repeat)")
     args = ap.parse_args()
     with open(args.infile, "r", encoding="utf-8", errors="ignore") as f:
-        text = f.read()
+        html = f.read()
+
     style = _make_preset(args.preset)
     if args.page:
         w,h = args.page.lower().split("x")
@@ -276,7 +323,8 @@ def main():
         style.speckle_rgba = (r,g,b,max(0,min(255,args.speckle_alpha)))
     if args.safe_zone:
         style.safe_zones = [tuple(map(int,sz)) for sz in args.safe_zone]
-    out = render_ocr_resistant_pdf(text, args.outfile, style)
+    out = render_ocr_resistant_pdf(html, args.outfile, style)
+
     print(f"Saved: {out}")
 
 if __name__ == "__main__":
