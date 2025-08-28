@@ -66,6 +66,12 @@ function formatEvent(ev){
     title = "Data breach audit generated";
     const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
     body = `<div class="text-xs mt-1">${link}</div>`;
+  } else if(ev.type === "letters_portal_sent"){
+    const { file } = ev.payload || {};
+    title = "Letters sent to portal";
+    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
+    body = `<div class="text-xs mt-1">${link}</div>`;
+
   } else if(ev.type === "consumer_created"){
     const { name } = ev.payload || {};
     title = "Consumer created";

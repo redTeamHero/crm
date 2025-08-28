@@ -142,6 +142,16 @@ $("#btnDownloadAll").addEventListener("click", ()=>{
   window.location.href = `/api/letters/${encodeURIComponent(JOB_ID)}/all.zip`;
 });
 
+$("#btnPortalAll").addEventListener("click", async ()=>{
+  if(!JOB_ID) return;
+  try{
+    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/portal`, { method:"POST" });
+    const data = await resp.json().catch(()=> ({}));
+    if(!data?.ok) throw new Error(data?.error || "Failed to send to portal.");
+    alert("Letters sent to client portal.");
+  }catch(e){ showErr(e.message || String(e)); }
+});
+
 $("#btnEmailAll").addEventListener("click", async ()=>{
   if (!JOB_ID) return;
   const to = prompt("Send to which email?");
