@@ -1,5 +1,6 @@
 let templates = [];
 let sequences = [];
+let mainTemplates = [];
 let currentTemplateId = null;
 let currentSequenceId = null;
 
@@ -10,12 +11,17 @@ async function loadLibrary(){
   sequences = data.sequences || [];
   renderTemplates();
   renderSequences();
+  const defRes = await fetch('/api/templates/defaults');
+  const defData = await defRes.json().catch(()=>({}));
+  mainTemplates = defData.templates || [];
+  renderMainTemplates();
 }
 
 function renderTemplates(){
   const list = document.getElementById('templateList');
   list.innerHTML = '';
-  templates.forEach(t => {
+  const sorted = [...templates].sort((a,b)=>(a.heading||'').localeCompare(b.heading||''));
+  sorted.forEach(t => {
     const div = document.createElement('div');
     div.textContent = t.heading || '(no heading)';
     div.className = 'chip';
@@ -24,8 +30,34 @@ function renderTemplates(){
   });
 }
 
+function renderMainTemplates(){
+  const list = document.getElementById('mainList');
+  if(!list) return;
+  list.innerHTML = '';
+  const sorted = [...mainTemplates].sort((a,b)=>(a.heading||'').localeCompare(b.heading||''));
+  sorted.forEach(t => {
+    const div = document.createElement('div');
+    div.textContent = t.heading || '(no heading)';
+    div.className = 'chip';
+    div.onclick = () => useMainTemplate(t.id);
+    list.appendChild(div);
+  });
+}
+
 function editTemplate(id){
   const tpl = templates.find(t => t.id === id) || {};
+  currentTemplateId = id;
+  document.getElementById('tplHeading').value = tpl.heading || '';
+  document.getElementById('tplIntro').value = tpl.intro || '';
+  document.getElementById('tplAsk').value = tpl.ask || '';
+  document.getElementById('tplAfter').value = tpl.afterIssues || '';
+  document.getElementById('tplEvidence').value = tpl.evidence || '';
+  updatePreview();
+}
+
+function useMainTemplate(id){
+  const tpl = mainTemplates.find(t => t.id === id);
+  if(!tpl) return;
   currentTemplateId = id;
   document.getElementById('tplHeading').value = tpl.heading || '';
   document.getElementById('tplIntro').value = tpl.intro || '';

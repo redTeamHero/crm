@@ -458,6 +458,9 @@ function defaultTemplates(){
     { id: "standard", ...modeCopy(null, "delete", true) }
   ];
 }
+app.get("/api/templates/defaults", (_req,res)=>{
+  res.json({ ok:true, templates: defaultTemplates() });
+});
 app.get("/api/templates", (_req,res)=>{
   const db = loadLettersDB();
   if(!db.templates || db.templates.length === 0){
