@@ -6,11 +6,12 @@ import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import multer from "multer";
 import { nanoid } from "nanoid";
-import { spawn } from "child_process";
+import { spawn, spawnSync } from "child_process";
 import { htmlToPdfBuffer } from "./pdfUtils.js";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
+import puppeteer from "puppeteer";
 
 import { PassThrough } from "stream";
 
@@ -39,6 +40,35 @@ const __dirname = path.dirname(__filename);
 const SETTINGS_PATH = path.join(__dirname, "settings.json");
 function loadSettings(){ return readJson(SETTINGS_PATH, { openaiApiKey: "", hibpApiKey: "" }); }
 function saveSettings(data){ writeJson(SETTINGS_PATH, data); }
+
+async function detectChromium(){
+  if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
+  const candidates = [
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/snap/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable'
+  ];
+  for(const p of candidates){
+    try{
+      await fs.promises.access(p, fs.constants.X_OK);
+      const check = spawnSync(p, ['--version'], { stdio:'ignore' });
+      if(check.status === 0) return p;
+    }catch{}
+  }
+  return null;
+}
+
+async function launchBrowser(){
+  const execPath = await detectChromium();
+  const opts = {
+    headless:true,
+    args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote','--single-process']
+  };
+  if(execPath) opts.executablePath = execPath;
+  return puppeteer.launch(opts);
+}
 
 const require = createRequire(import.meta.url);
 let nodemailer = null;
