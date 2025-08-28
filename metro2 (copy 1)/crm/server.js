@@ -15,7 +15,7 @@ import archiver from "archiver";
 import { PassThrough } from "stream";
 
 import { logInfo, logError, logWarn } from "./logger.js";
-
+import { readJson, writeJson } from "./db-utils.js";
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
@@ -135,27 +135,22 @@ app.get("/portal/:id", (req, res) => {
 });
 
 // ---------- Simple JSON "DB" ----------
+
 const DB_PATH = path.join(__dirname, "db.json");
-function loadDB(){ try{ return JSON.parse(fs.readFileSync(DB_PATH,"utf-8")); }catch{ return { consumers: [] }; } }
-function saveDB(db){ fs.writeFileSync(DB_PATH, JSON.stringify(db,null,2)); }
+const loadDB = () => readJson(DB_PATH, { consumers: [] });
+const saveDB = db => writeJson(DB_PATH, db);
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
-function loadLettersDB(){
-  try{
-    const raw = fs.readFileSync(LETTERS_DB_PATH,"utf-8");
-    const db = JSON.parse(raw);
-    console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
-    return db;
-  }catch(e){
-    console.warn("letters-db.json missing or invalid, using empty structure");
-    return { jobs: [], templates: [], sequences: [], contracts: [] };
-  }
-}
-
-function saveLettersDB(db){
-  fs.writeFileSync(LETTERS_DB_PATH, JSON.stringify(db,null,2));
+const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [] };
+const loadLettersDB = () => {
+  const db = readJson(LETTERS_DB_PATH, LETTERS_DEFAULT);
+  console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
+  return db;
+};
+const saveLettersDB = db => {
+  writeJson(LETTERS_DB_PATH, db);
   console.log(`Saved letters DB with ${db.jobs.length} jobs`);
-}
+};
 function recordLettersJob(consumerId, jobId, letters){
   console.log(`Recording letters job ${jobId} for consumer ${consumerId}`);
   const db = loadLettersDB();
@@ -164,19 +159,16 @@ function recordLettersJob(consumerId, jobId, letters){
 }
 if(!fs.existsSync(LETTERS_DB_PATH)){
   console.log(`letters-db.json not found. Initializing at ${LETTERS_DB_PATH}`);
-  saveLettersDB({ jobs: [], templates: [], sequences: [], contracts: [] });
+  saveLettersDB(LETTERS_DEFAULT);
 }
 
 const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
-function loadLeadsDB(){ try{ return JSON.parse(fs.readFileSync(LEADS_DB_PATH,"utf-8")); }catch{ return { leads: [] }; } }
-function saveLeadsDB(db){ fs.writeFileSync(LEADS_DB_PATH, JSON.stringify(db,null,2)); }
+const loadLeadsDB = () => readJson(LEADS_DB_PATH, { leads: [] });
+const saveLeadsDB = db => writeJson(LEADS_DB_PATH, db);
 
 const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
-function loadInvoicesDB(){
-  try{ return JSON.parse(fs.readFileSync(INVOICES_DB_PATH, "utf-8")); }
-  catch{ return { invoices: [] }; }
-}
-function saveInvoicesDB(db){ fs.writeFileSync(INVOICES_DB_PATH, JSON.stringify(db,null,2)); }
+const loadInvoicesDB = () => readJson(INVOICES_DB_PATH, { invoices: [] });
+const saveInvoicesDB = db => writeJson(INVOICES_DB_PATH, db);
 
 function renderInvoiceHtml(inv, company = {}, consumer = {}) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
