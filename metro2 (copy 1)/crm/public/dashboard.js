@@ -87,18 +87,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const msgList = document.getElementById('msgList');
   let activeConsumer = null;
 
+
   async function renderMessages(){
-    if(!activeConsumer || !msgList) return;
+    if(!msgList) return;
     try{
       const resp = await fetch(`/api/messages/${activeConsumer}`);
       if(!resp.ok) throw new Error('bad response');
       const data = await resp.json().catch(()=>({}));
       const msgs = Array.isArray(data.messages) ? data.messages : [];
+
       if(!msgs.length){
         msgList.textContent = 'No messages.';
         return;
       }
-      msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${m.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.text)}</div>`).join('');
+      msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${escapeHtml(m.consumer.name || '')} - ${m.payload?.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.payload?.text || '')}</div>`).join('');
     }catch(e){
       console.error('Failed to load messages', e);
       msgList.textContent = 'Failed to load messages.';
@@ -121,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Failed to load consumers', err);
         msgList.textContent = 'Failed to load messages.';
       });
+
   }
 
   const noteEl = document.getElementById('dashNote');
