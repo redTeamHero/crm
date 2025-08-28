@@ -40,6 +40,7 @@ function htmlToPlainText(html){
     .replace(/<(br|BR)\s*\/?>(\n)?/g, '\n')
     .replace(/<\/(p|div|h[1-6]|tr|table)>/gi, '\n\n')
     .replace(/<\/li>/gi, '\n')
+
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -49,6 +50,7 @@ function htmlToPlainText(html){
     .replace(/&#39;/g, "'")
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
+
     .trim();
 }
 
