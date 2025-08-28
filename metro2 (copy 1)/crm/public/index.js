@@ -59,17 +59,17 @@ function formatEvent(ev){
   } else if(ev.type === "audit_generated"){
     const { reportId, file } = ev.payload || {};
     title = "Audit generated";
-    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
+    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-accent underline">open</a>` : "";
     body = `<div class="text-xs mt-1">Report ${escapeHtml(reportId||"")} ${link}</div>`;
   } else if(ev.type === "breach_audit_generated"){
     const { file } = ev.payload || {};
     title = "Data breach audit generated";
-    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
+    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-accent underline">open</a>` : "";
     body = `<div class="text-xs mt-1">${link}</div>`;
   } else if(ev.type === "letters_portal_sent"){
     const { file } = ev.payload || {};
     title = "Letters sent to portal";
-    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-blue-600 underline">open</a>` : "";
+    const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-accent underline">open</a>` : "";
     body = `<div class="text-xs mt-1">${link}</div>`;
 
   } else if(ev.type === "consumer_created"){

@@ -7,6 +7,7 @@
   --accent-hover: #005bb5;
   --accent-bg: #007AFF;
   --green-bg: #22C55E;
+
 }
 body {
   /* Use root-relative path so asset resolves regardless of deployment directory */
@@ -34,6 +35,9 @@ body {
 }
 .btn:hover { background: var(--accent-hover); }
 .muted { color: var(--muted); }
+
+.text-accent { color: var(--accent); }
+.bg-accent-subtle { background: var(--accent-bg); color: var(--accent); }
 
 #themePalette {
   position: fixed;

@@ -9,7 +9,7 @@ const deletionTiers = [
   { threshold: 60, name: 'Credit Surgeon', icon: '🩺', class: 'bg-cyan-100 text-cyan-700', message: 'Precision deletions.' },
   { threshold: 50, name: 'Dispute Master', icon: '🥋', class: 'bg-purple-100 text-purple-700', message: 'Mastering the dispute process.' },
   { threshold: 40, name: 'Debt Slayer', icon: '⚔️', class: 'bg-gray-100 text-gray-700', message: 'Slaying negative accounts.' },
-  { threshold: 30, name: 'Report Scrubber', icon: '🧼', class: 'bg-blue-100 text-blue-700', message: 'Deep cleaning your credit.' },
+  { threshold: 30, name: 'Report Scrubber', icon: '🧼', class: 'bg-accent-subtle', message: 'Deep cleaning your credit.' },
   { threshold: 20, name: 'Score Shifter', icon: '📊', class: 'bg-green-100 text-green-700', message: 'Scores are improving.' },
   { threshold: 15, name: 'Credit Cleaner', icon: '🧽', class: 'bg-yellow-100 text-yellow-700', message: 'Your report is shining.' },
   { threshold: 10, name: 'Balance Buster', icon: '💥', class: 'bg-orange-100 text-orange-700', message: 'Breaking negative balances.' },
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         feedEl.innerHTML = items.slice(0,5).map(item => {
-          return `<div class="news-item"><a href="${item.link}" target="_blank" class="text-blue-600 underline">${item.title}</a></div>`;
+          return `<div class="news-item"><a href="${item.link}" target="_blank" class="text-accent underline">${item.title}</a></div>`;
         }).join('');
       })
       .catch(err => {
