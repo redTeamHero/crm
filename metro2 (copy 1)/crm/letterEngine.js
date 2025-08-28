@@ -313,7 +313,7 @@ function buildViolationListHTML(violations, selectedIds) {
           ${evHTML ? `<div style="margin-top:6px;">${evHTML}</div>` : ""}
         </li>`;
     }).join("");
-  return `<ol style="margin:0;padding-left:18px;">${items}</ol>`;
+  return `<ol class="ocr" style="margin:0;padding-left:18px;">${items}</ol>`;
 }
 
 // Mode-based copy
@@ -456,9 +456,10 @@ function buildLetterHTML({
       </div>
     </div>
     <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
-    <h1 class="ocr">${colorize(mc.heading)}</h1>
+    <h1>${colorize(mc.heading)}</h1>
     <p class="ocr">${intro}</p>
     <p class="ocr">${ask}</p>
+
     ${breachSection}
     <h2>Comparison (All Available Bureaus)</h2>
     ${compTable}
@@ -471,6 +472,7 @@ function buildLetterHTML({
     ${afterIssuesPara}
     <p>${verifyLine}</p>
     <p>${signOff}</p>
+
   </body>
   </html>`.trim();
 

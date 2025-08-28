@@ -122,7 +122,6 @@ def _extract_sections(html: str) -> List[Tuple[str, bool]]:
         sections.append((text, apply))
     return sections
 
-
 def _apply_mask_for_safe_zones(layer: Image.Image, safe_zones: List[Tuple[int, int, int, int]]) -> Image.Image:
     if not safe_zones:
         return layer
