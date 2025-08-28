@@ -771,7 +771,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
   return letters;
 }
 
-export { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters };
+export { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters, modeCopy };
 
 
 

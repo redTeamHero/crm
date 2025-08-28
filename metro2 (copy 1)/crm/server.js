@@ -20,7 +20,7 @@ import { ensureBuffer, readJson, writeJson } from "./utils.js";
 
 
 
-import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
+import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters, modeCopy } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
@@ -450,11 +450,23 @@ app.post("/api/messages/:consumerId", (req,res)=>{
 });
 
 // =================== Templates / Sequences / Contracts ===================
+function defaultTemplates(){
+  return [
+    { id: "identity", ...modeCopy("identity", "delete", true) },
+    { id: "breach",   ...modeCopy("breach", "delete", true) },
+    { id: "assault",  ...modeCopy("assault", "delete", true) },
+    { id: "standard", ...modeCopy(null, "delete", true) }
+  ];
+}
 app.get("/api/templates", (_req,res)=>{
   const db = loadLettersDB();
+  if(!db.templates || db.templates.length === 0){
+    db.templates = defaultTemplates();
+    saveLettersDB(db);
+  }
   res.json({
     ok: true,
-    templates: db.templates || [],
+    templates: db.templates,
     sequences: db.sequences || [],
     contracts: db.contracts || []
   });
