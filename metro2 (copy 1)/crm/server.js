@@ -167,6 +167,7 @@ async function rewordWithAI(text, tone) {
         return out.replace(/—/g, "-");
       }
 
+
       const errText = await resp.text().catch(() => "");
       if (resp.status === 429 && attempt < 2) {
         const retry = Number(resp.headers.get("retry-after")) || 20;
