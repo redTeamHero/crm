@@ -855,6 +855,7 @@ $("#breachSend").addEventListener("click", async ()=>{
     if(res.url) window.open(res.url, "_blank");
     if(res.warning) showErr(res.warning);
     await loadConsumerState();
+
   }catch(err){
     showErr(String(err));
   }finally{
