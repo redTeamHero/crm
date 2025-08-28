@@ -208,7 +208,21 @@ $("#btnSelectAll").addEventListener("click", ()=>{
   const cards = Array.from(document.querySelectorAll(".tl-card"));
   if (!cards.length) return;
   const allSelected = cards.every(c => c.classList.contains("selected"));
-  cards.forEach(c => setCardSelected(c, !allSelected));
+  cards.forEach(c => {
+    setCardSelected(c, !allSelected);
+    if (!allSelected) autoSelectBestViolation(c);
+  });
+  updateSelectAllButton();
+});
+
+$("#btnSelectNegative")?.addEventListener("click", ()=>{
+  const cards = Array.from(document.querySelectorAll(".tl-card.negative"));
+  if (!cards.length) return;
+  const allSelected = cards.every(c => c.classList.contains("selected"));
+  cards.forEach(c => {
+    setCardSelected(c, !allSelected);
+    if (!allSelected) autoSelectBestViolation(c);
+  });
   updateSelectAllButton();
 });
 
@@ -416,11 +430,18 @@ function passesFilter(tags){ if (activeFilters.size === 0) return true; return t
 
 // ===================== Tradelines + Zoom =====================
 function updateSelectAllButton(){
-  const btn = $("#btnSelectAll");
-  if (!btn) return;
+  const btnAll = $("#btnSelectAll");
+  const btnNeg = $("#btnSelectNegative");
   const cards = Array.from(document.querySelectorAll(".tl-card"));
-  const allSelected = cards.length > 0 && cards.every(c => c.classList.contains("selected"));
-  btn.textContent = allSelected ? "Deselect All" : "Select All";
+  if (btnAll){
+    const allSelected = cards.length > 0 && cards.every(c => c.classList.contains("selected"));
+    btnAll.textContent = allSelected ? "Deselect All" : "Select All";
+  }
+  if (btnNeg){
+    const negatives = cards.filter(c => c.classList.contains("negative"));
+    const allNegSelected = negatives.length > 0 && negatives.every(c => c.classList.contains("selected"));
+    btnNeg.textContent = allNegSelected ? "Deselect Negative" : "Select Negative";
+  }
 }
 
 function setCardSelected(card, on){
@@ -446,6 +467,27 @@ function updateSelectionStateFromCard(card){
   const useOcr = card.querySelector('.use-ocr')?.checked || false;
   selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook, useOcr };
   updateSelectAllButton();
+}
+
+function autoSelectBestViolation(card){
+  const idx = Number(card.dataset.index);
+  const tl = CURRENT_REPORT?.tradelines?.[idx];
+  if (!tl) return;
+  const vs = tl.violations || [];
+  if (!vs.length) return;
+  let bestIdx = 0;
+  let bestSeverity = -Infinity;
+  vs.forEach((v,i)=>{
+    const sev = v.severity || 0;
+    if (sev > bestSeverity){
+      bestSeverity = sev;
+      bestIdx = i;
+    }
+  });
+  card.querySelectorAll('.violation').forEach(cb => {
+    cb.checked = Number(cb.value) === bestIdx;
+  });
+  updateSelectionStateFromCard(card);
 }
 
 function renderTradelines(tradelines){
@@ -495,6 +537,8 @@ function renderTradelines(tradelines){
     const prevBtn = node.querySelector(".tl-reason-prev");
     const nextBtn = node.querySelector(".tl-reason-next");
     const vs = tl.violations || [];
+    const maxSeverity = vs.reduce((m, v) => Math.max(m, v.severity || 0), 0);
+    if (maxSeverity) card.classList.add(`severity-${maxSeverity}`);
     let vStart = 0;
     function renderViolations(){
       if(!vs.length){
@@ -504,10 +548,10 @@ function renderTradelines(tradelines){
         return;
       }
       vWrap.innerHTML = vs.slice(vStart, vStart + 3).map((v, vidx) => `
-        <label class="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">
+        <label class="violation-item flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer severity-${v.severity || 1}">
           <input type="checkbox" class="violation" value="${vidx + vStart}"/>
           <div>
-            <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}</div>
+            <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}${v.severity ? `<span class="severity-tag severity-${v.severity}">S${v.severity}</span>` : ""}</div>
             ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
           </div>
         </label>`).join("");
