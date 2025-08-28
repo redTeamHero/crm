@@ -15,7 +15,8 @@ async function loadLibrary(){
 function renderTemplates(){
   const list = document.getElementById('templateList');
   list.innerHTML = '';
-  templates.forEach(t => {
+  const sorted = [...templates].sort((a,b)=>(a.heading||'').localeCompare(b.heading||''));
+  sorted.forEach(t => {
     const div = document.createElement('div');
     div.textContent = t.heading || '(no heading)';
     div.className = 'chip';

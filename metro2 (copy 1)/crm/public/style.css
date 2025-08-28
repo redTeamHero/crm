@@ -7,6 +7,7 @@
   --accent-hover: #005bb5;
   --accent-bg: #007AFF;
   --green-bg: #22C55E;
+  --btn-text: #fff;
 
 }
 body {
@@ -26,7 +27,7 @@ body {
 .card { border-radius:18px; padding:16px }
 .btn {
   background: var(--accent);
-  color: white;
+  color: var(--btn-text);
   border: none;
   border-radius: 10px;
   padding: 6px 12px;
@@ -188,8 +189,12 @@ body.voice-active #voiceNotes{display:block;}
   color: #fff;
 }
 
+.tl-card.selected {
+  box-shadow: 0 0 0 2px var(--green);
+}
+
 .tl-card.selected input[type="checkbox"] {
-  accent-color: currentColor;
+  accent-color: var(--green);
 }
 
 
