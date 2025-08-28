@@ -1,17 +1,18 @@
 /* public/common.js */
 const THEMES = {
-  blue:   { accent: '#007AFF', hover: '#005bb5', glassBg: 'rgba(0,122,255,0.15)', glassBrd: 'rgba(0,122,255,0.3)' },
-  green:  { accent: '#34C759', hover: '#248a3d', glassBg: 'rgba(52,199,89,0.15)', glassBrd: 'rgba(52,199,89,0.3)' },
-  orange: { accent: '#FF9500', hover: '#cc7600', glassBg: 'rgba(255,149,0,0.15)', glassBrd: 'rgba(255,149,0,0.3)' },
-  red:    { accent: '#FF3B30', hover: '#c82d24', glassBg: 'rgba(255,59,48,0.15)', glassBrd: 'rgba(255,59,48,0.3)' },
-  purple: { accent: '#AF52DE', hover: '#893dba', glassBg: 'rgba(175,82,222,0.15)', glassBrd: 'rgba(175,82,222,0.3)' }
+  blue:   { accent: '#007AFF', hover: '#005bb5', bg: 'rgba(0,122,255,0.12)', glassBg: 'rgba(0,122,255,0.15)', glassBrd: 'rgba(0,122,255,0.3)' },
+  green:  { accent: '#34C759', hover: '#248a3d', bg: 'rgba(52,199,89,0.12)', glassBg: 'rgba(52,199,89,0.15)', glassBrd: 'rgba(52,199,89,0.3)' },
+  orange: { accent: '#FF9500', hover: '#cc7600', bg: 'rgba(255,149,0,0.12)', glassBg: 'rgba(255,149,0,0.15)', glassBrd: 'rgba(255,149,0,0.3)' },
+  red:    { accent: '#FF3B30', hover: '#c82d24', bg: 'rgba(255,59,48,0.12)', glassBg: 'rgba(255,59,48,0.15)', glassBrd: 'rgba(255,59,48,0.3)' },
+  purple: { accent: '#AF52DE', hover: '#893dba', bg: 'rgba(175,82,222,0.12)', glassBg: 'rgba(175,82,222,0.15)', glassBrd: 'rgba(175,82,222,0.3)' }
 };
 
 function applyTheme(name){
-  const t = THEMES[name] || THEMES.blue;
+  const t = THEMES[name] || THEMES.purple;
   const root = document.documentElement.style;
   root.setProperty('--accent', t.accent);
   root.setProperty('--accent-hover', t.hover);
+  root.setProperty('--accent-bg', t.bg);
   root.setProperty('--glass-bg', t.glassBg);
   root.setProperty('--glass-brd', t.glassBrd);
   localStorage.setItem('theme', name);
@@ -43,7 +44,7 @@ function initPalette(){
     if(!b) return;
     applyTheme(b.dataset.theme);
   });
-  const saved = localStorage.getItem('theme') || 'blue';
+  const saved = localStorage.getItem('theme') || 'purple';
   applyTheme(saved);
 }
 
