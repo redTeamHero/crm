@@ -91,30 +91,39 @@ document.addEventListener('DOMContentLoaded', () => {
   async function renderMessages(){
     if(!msgList) return;
     try{
-      const all = await Promise.all(consumers.map(async c=>{
-        const data = await fetch(`/api/messages/${c.id}`).then(r=>r.json());
-        return (data.messages || []).map(m=>({ consumer: c, ...m }));
-      }));
-      const msgs = all.flat().sort((a,b)=> new Date(b.at) - new Date(a.at));
+      const resp = await fetch(`/api/messages/${activeConsumer}`);
+      if(!resp.ok) throw new Error('bad response');
+      const data = await resp.json().catch(()=>({}));
+      const msgs = Array.isArray(data.messages) ? data.messages : [];
+
       if(!msgs.length){
         msgList.textContent = 'No messages.';
         return;
       }
       msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${escapeHtml(m.consumer.name || '')} - ${m.payload?.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.payload?.text || '')}</div>`).join('');
     }catch(e){
+      console.error('Failed to load messages', e);
       msgList.textContent = 'Failed to load messages.';
     }
   }
 
   if(msgList){
-    fetch('/api/consumers').then(r=>r.json()).then(data=>{
-      const list = data.consumers || [];
-      if(list.length){
-        activeConsumer = list[0].id;
-        renderMessages();
-      }
+    fetch('/api/consumers')
+      .then(r=>r.json())
+      .then(data=>{
+        const list = data.consumers || [];
+        if(list.length){
+          activeConsumer = list[0].id;
+          renderMessages();
+        } else {
+          msgList.textContent = 'No messages.';
+        }
+      })
+      .catch(err=>{
+        console.error('Failed to load consumers', err);
+        msgList.textContent = 'Failed to load messages.';
+      });
 
-    });
   }
 
   const noteEl = document.getElementById('dashNote');

@@ -189,8 +189,12 @@ body.voice-active #voiceNotes{display:block;}
   color: #fff;
 }
 
+.tl-card.selected {
+  box-shadow: 0 0 0 2px var(--green);
+}
+
 .tl-card.selected input[type="checkbox"] {
-  accent-color: currentColor;
+  accent-color: var(--green);
 }
 
 
