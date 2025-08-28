@@ -16,6 +16,7 @@ import { PassThrough } from "stream";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
+
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters } from "./letterEngine.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
@@ -71,6 +72,7 @@ process.on("uncaughtException", err => {
 process.on("warning", warn => {
   logWarn("NODE_WARNING", warn.message, { stack: warn.stack });
 });
+
 
 async function rewordWithAI(text, tone) {
   const key = process.env.OPENAI_API_KEY;
@@ -718,7 +720,53 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
   }
+
+
 });
+
+app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
+  const db = loadDB();
+  const c = db.consumers.find(x => x.id === req.params.id);
+  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
+  try {
+    const html = renderBreachAuditHtml(c);
+    const result = await savePdf(html);
+    let ext = path.extname(result.path);
+    if (result.warning || ext !== ".pdf") {
+      ext = ".html";
+    }
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+    try {
+      const uploadsDir = consumerUploadsDir(c.id);
+      const id = nanoid(10);
+      const storedName = `${id}${ext}`;
+      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const date = new Date().toISOString().slice(0, 10);
+      const originalName = `${safe}_${date}_breach_audit${ext}`;
+      const dest = path.join(uploadsDir, storedName);
+      await fs.promises.copyFile(result.path, dest);
+      const stat = await fs.promises.stat(dest);
+      addFileMeta(c.id, {
+        id,
+        originalName,
+        storedName,
+        type: "breach-audit",
+        size: stat.size,
+        mimetype: mime,
+        uploadedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Failed to store breach audit file", err);
+    }
+    addEvent(c.id, "breach_audit_generated", { file: result.url });
+    res.json({ ok: true, url: result.url, warning: result.warning });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+
+});
+
+
 
 
 // =================== Letters & PDFs ===================
@@ -1144,6 +1192,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
 
   let browser;
   try{
+
     browser = await launchBrowser();
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
@@ -1179,6 +1228,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
   }catch(e){
     logError('EMAIL_SEND_FAILED', 'Failed to email letters', e, { jobId, to });
     res.status(500).json({ ok:false, errorCode:'EMAIL_SEND_FAILED', message:String(e) });
+
   }finally{
     try{ await browser?.close(); }catch{}
   }
@@ -1208,6 +1258,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   let browser;
   try{
     logInfo('PORTAL_UPLOAD_START', 'Building portal ZIP', { jobId, consumerId: consumer.id });
+
     browser = await launchBrowser();
     const dir = consumerUploadsDir(consumer.id);
     const id = nanoid(10);
@@ -1222,6 +1273,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       logError('ARCHIVE_STREAM_ERROR', 'Archive stream error', err, { jobId });
       try{ res.status(500).json({ ok:false, errorCode:'ARCHIVE_STREAM_ERROR', message:'Zip error' }); }catch{}
     });
+
     archive.pipe(out);
 
     for(let i=0;i<job.letters.length;i++){
@@ -1243,6 +1295,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
         logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
         throw err;
       }
+
     }
 
     await archive.finalize();
@@ -1265,6 +1318,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     res.status(500).json({ ok:false, errorCode:'PORTAL_UPLOAD_FAILED', message:String(e) });
   }finally{
     try{ await browser?.close(); }catch{}
+
   }
 });
 

@@ -12,7 +12,3 @@ export function logError(code, message, err, meta = {}) {
   console.error(JSON.stringify(entry));
 }
 
-export function logWarn(code, message, meta = {}) {
-  const entry = { level: 'warn', time: new Date().toISOString(), code, message, ...meta };
-  console.warn(JSON.stringify(entry));
-}

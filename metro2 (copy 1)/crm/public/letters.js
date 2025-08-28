@@ -176,7 +176,10 @@ $("#btnPortalAll").addEventListener("click", async ()=>{
     btn.disabled = false;
     btn.textContent = old;
   }
+
 });
+
+
 
 $("#btnEmailAll").addEventListener("click", async ()=>{
   if (!JOB_ID) return;
