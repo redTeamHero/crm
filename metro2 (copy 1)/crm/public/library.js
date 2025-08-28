@@ -48,13 +48,13 @@ function newTemplate(){
 
 async function saveTemplate(){
   const payload = {
-    id: currentTemplateId,
     heading: document.getElementById('tplHeading').value,
     intro: document.getElementById('tplIntro').value,
     ask: document.getElementById('tplAsk').value,
     afterIssues: document.getElementById('tplAfter').value,
     evidence: document.getElementById('tplEvidence').value
   };
+  if(currentTemplateId) payload.id = currentTemplateId;
   const res = await fetch('/api/templates', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -67,7 +67,14 @@ async function saveTemplate(){
     else { templates.push(data.template); }
     renderTemplates();
     editTemplate(data.template.id);
+    const selected = Array.from(document.querySelectorAll('#seqTemplates input[type="checkbox"]:checked')).map(cb => cb.value);
+    renderSeqTemplateOptions(selected);
   }
+}
+
+function saveTemplateAsNew(){
+  currentTemplateId = null;
+  saveTemplate();
 }
 
 function updatePreview(){
@@ -145,6 +152,7 @@ async function saveSequence(){
 
 document.getElementById('saveTemplate').onclick = saveTemplate;
 document.getElementById('newTemplate').onclick = newTemplate;
+document.getElementById('saveTemplateCopy').onclick = saveTemplateAsNew;
 document.getElementById('saveSequence').onclick = saveSequence;
 document.getElementById('newSequence').onclick = newSequence;
 
