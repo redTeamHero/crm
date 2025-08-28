@@ -32,6 +32,21 @@ import {
   addReminder,
   processAllReminders,
 } from "./state.js";
+function generateOcrPdf(html){
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ocr-'));
+  const htmlPath = path.join(tmpDir, 'letter.html');
+  const pdfPath = path.join(tmpDir, 'letter.pdf');
+  fs.writeFileSync(htmlPath, html, 'utf8');
+  const script = path.join(__dirname, 'ocr_resistant_pdf.py');
+  const res = spawnSync('python3', [script, '--in', htmlPath, '--out', pdfPath, '--preset', 'strong']);
+  if(res.status !== 0){
+    console.error(res.stderr?.toString() || 'OCR script failed');
+    throw new Error('OCR script failed');
+  }
+  const buf = fs.readFileSync(pdfPath);
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+  return buf;
+}
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -876,7 +891,8 @@ function persistJobToDisk(jobId, letters){
     letters: letters.map(L => ({
       filename: L.filename,
       bureau: L.bureau,
-      creditor: L.creditor
+      creditor: L.creditor,
+      useOcr: !!L.useOcr
     }))
   };
   saveJobsIndex(idx);
@@ -942,6 +958,11 @@ app.post("/api/generate", async (req,res)=>{
     }
     if (Array.isArray(collectors) && collectors.length) {
       letters.push(...generateDebtCollectorLetters({ consumer: consumerForLetter, collectors }));
+    }
+
+    for (const L of letters) {
+      const sel = (selections || []).find(s => s.tradelineIndex === L.tradelineIndex);
+      if (sel?.useOcr) L.useOcr = true;
     }
 
     console.log(`Generated ${letters.length} letters for consumer ${consumer.id}`);
@@ -1021,7 +1042,8 @@ app.get("/api/letters/:jobId", (req,res)=>{
         filename: path.basename(d.htmlPath),
         bureau: d.bureau,
         creditor: d.creditor,
-        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>"
+        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>",
+        useOcr: d.useOcr
       })));
       job = getJobMem(jobId);
     }
@@ -1058,6 +1080,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
   console.log(`Generating PDF for job ${jobId} letter ${idx}`);
   let html;
   let filenameBase = "letter";
+  let useOcr = false;
 
   let job = getJobMem(jobId);
   if(job){
@@ -1065,6 +1088,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     if(!L) return res.status(404).send("Letter not found.");
     html = L.html;
     filenameBase = (L.filename||"letter").replace(/\.html?$/i,"");
+    useOcr = !!L.useOcr;
   }else{
     const disk = loadJobFromDisk(jobId);
     if(!disk) return res.status(404).send("Job not found or expired.");
@@ -1072,11 +1096,25 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
     if(!Lm || !fs.existsSync(Lm.htmlPath)) return res.status(404).send("Letter not found.");
     html = fs.readFileSync(Lm.htmlPath,"utf-8");
     filenameBase = path.basename(Lm.htmlPath).replace(/\.html?$/i,"");
+    useOcr = !!Lm.useOcr;
   }
 
   if(!html || !html.trim()){
     logError("LETTER_HTML_MISSING", "No HTML content for PDF generation", null, { jobId, idx });
     return res.status(500).send("No HTML content to render");
+  }
+
+  if(useOcr){
+    try{
+      const pdfBuffer = generateOcrPdf(html);
+      res.setHeader("Content-Type","application/pdf");
+      res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
+      console.log(`Generated OCR PDF for ${filenameBase} (${pdfBuffer.length} bytes)`);
+      return res.send(pdfBuffer);
+    }catch(e){
+      console.error("OCR PDF error:", e);
+      return res.status(500).send("Failed to render OCR PDF.");
+    }
   }
 
   let browserInstance;
@@ -1119,7 +1157,8 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
         filename: path.basename(d.htmlPath),
         bureau: d.bureau,
         creditor: d.creditor,
-        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>"
+        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>",
+        useOcr: d.useOcr
       })));
       job = getJobMem(jobId);
     }
@@ -1163,12 +1202,24 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
     archive.pipe(res);
   }
 
+  const needsBrowser = job.letters.some(l => !l.useOcr);
   let browserInstance;
   try{
-    browserInstance = await launchBrowser();
+    if (needsBrowser) browserInstance = await launchBrowser();
 
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
+      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
+
+      if (L.useOcr) {
+        const pdfBuffer = generateOcrPdf(L.html);
+        try{ archive.append(pdfBuffer,{ name }); }catch(err){
+          logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
+          throw err;
+        }
+        continue;
+      }
+
       const page = await browserInstance.newPage();
       const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
       await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
@@ -1179,11 +1230,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
       const pdfBuffer = ensureBuffer(pdf);
-
-      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
-      try{
-        archive.append(pdfBuffer,{ name });
-      }catch(err){
+      try{ archive.append(pdfBuffer,{ name }); }catch(err){
         logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
         throw err;
       }
@@ -1224,7 +1271,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
   let job = getJobMem(jobId);
   if(!job){
     const disk = loadJobFromDisk(jobId);
-    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
+    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath, useOcr: d.useOcr })) }; }
   }
   if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
 
@@ -1239,25 +1286,31 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     }
   }catch{}
 
+  const needsBrowser = job.letters.some(l => !l.useOcr);
   let browserInstance;
   try{
-
-    browserInstance = await launchBrowser();
+    if (needsBrowser) browserInstance = await launchBrowser();
 
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, L.filename), "utf-8"));
-      const page = await browserInstance.newPage();
-      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
-      await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
-      await page.emulateMediaType("screen");
-      try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
-      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-      const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
-      await page.close();
-      const pdfBuffer = ensureBuffer(pdf);
+
+      let pdfBuffer;
+      if (L.useOcr) {
+        pdfBuffer = generateOcrPdf(html);
+      } else {
+        const page = await browserInstance.newPage();
+        const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+        await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
+        await page.emulateMediaType("screen");
+        try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
+        try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+        await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
+        const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
+        await page.close();
+        pdfBuffer = ensureBuffer(pdf);
+      }
 
       const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
       attachments.push({ filename: name, content: pdfBuffer, contentType: 'application/pdf' });
@@ -1292,7 +1345,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   let job = getJobMem(jobId);
   if(!job){
     const disk = loadJobFromDisk(jobId);
-    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
+    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath, useOcr: d.useOcr })) }; }
   }
   if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
 
@@ -1308,11 +1361,12 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   }catch{}
   if(!consumer) return res.status(400).json({ ok:false, error:"Consumer not found" });
 
+  const needsBrowser = job.letters.some(l => !l.useOcr);
   let browserInstance;
   try{
     logInfo('PORTAL_UPLOAD_START', 'Building portal ZIP', { jobId, consumerId: consumer.id });
 
-    browserInstance = await launchBrowser();
+    if (needsBrowser) browserInstance = await launchBrowser();
 
     const dir = consumerUploadsDir(consumer.id);
     const id = nanoid(10);
@@ -1333,6 +1387,18 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, L.filename), 'utf-8'));
+
+      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
+
+      if (L.useOcr) {
+        const pdfBuffer = generateOcrPdf(html);
+        try{ archive.append(pdfBuffer,{ name }); }catch(err){
+          logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
+          throw err;
+        }
+        continue;
+      }
+
       const page = await browserInstance.newPage();
       const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
       await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
@@ -1344,10 +1410,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       await page.close();
       const pdfBuffer = ensureBuffer(pdf);
 
-      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
-      try{
-        archive.append(pdfBuffer,{ name });
-      }catch(err){
+      try{ archive.append(pdfBuffer,{ name }); }catch(err){
         logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
         throw err;
       }
