@@ -311,6 +311,15 @@ function renderTradelines(tradelines){
       });
     });
 
+    const gptCb = card.querySelector('.use-gpt');
+    const toneSel = card.querySelector('.gpt-tone');
+    if (gptCb && toneSel) {
+      toneSel.disabled = true;
+      gptCb.addEventListener('change', () => {
+        toneSel.disabled = !gptCb.checked;
+      });
+    }
+
     // initialize special badges if any from previous state (when re-rendering)
     updateCardSpecialVisual(card);
 
@@ -345,8 +354,14 @@ function collectSelections(){
     if (specialSelections.breach.has(tradelineIndex))   special.push("data_breach");
     if (specialSelections.assault.has(tradelineIndex))  special.push("sexual_assault");
 
+    const aiTone = card.querySelector('.use-gpt')?.checked
+      ? card.querySelector('.gpt-tone')?.value || ''
+      : '';
+
     if (bureaus.length || special.length){
-      selections.push({ tradelineIndex, bureaus, violationIdxs, special });
+      const entry = { tradelineIndex, bureaus, violationIdxs, special };
+      if (aiTone) entry.aiTone = aiTone;
+      selections.push(entry);
     }
   });
   return selections;
