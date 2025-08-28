@@ -71,10 +71,15 @@ function renderClientMap(consumers){
   const mapEl = document.getElementById('clientMap');
   if(!mapEl || typeof L === 'undefined') return;
   if(!mapEl.style.height) mapEl.style.height = '16rem';
-  const map = L.map(mapEl).setView([37.8,-96],4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap contributors'
-  }).addTo(map);
+  const map = L.map(mapEl, { zoomControl: true }).setView([37.8,-96],4);
+  mapEl.style.background = '#e5e7eb';
+  fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json')
+    .then(r=>r.json())
+    .then(data=>{
+      L.geoJSON(data, {
+        style:{ color:'#ffffff', weight:1, fillColor:'#7c3aed', fillOpacity:1 }
+      }).addTo(map);
+    });
   setTimeout(()=>map.invalidateSize(),0);
 
   consumers.forEach(c=>{
