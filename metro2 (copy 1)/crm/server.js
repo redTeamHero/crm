@@ -46,33 +46,11 @@ function htmlToPlainText(html){
     .replace(/\u00a0/g, ' ')
     .replace(/\r/g, '')
     .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function generateOcrPdf(text){
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ocr-'));
-  const txtPath = path.join(tmpDir, 'letter.txt');
-  const pdfPath = path.join(tmpDir, 'letter.pdf');
-  fs.writeFileSync(txtPath, text, 'utf8');
-  const script = path.join(__dirname, 'ocr_resistant_pdf.py');
-  const res = spawnSync('python3', [script, '--in', txtPath, '--out', pdfPath, '--preset', 'strong']);
-  if(res.status !== 0){
-    console.error(res.stderr?.toString() || 'OCR script failed');
-    throw new Error('OCR script failed');
-  }
-  const buf = fs.readFileSync(pdfPath);
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-  return buf;
-}
-
-function htmlToPlainText(html){
-  return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<(br|BR)\s*\/?>(\n)?/g, '\n')
     .replace(/<\/(p|div|h[1-6]|tr|table)>/gi, '\n\n')
     .replace(/<\/li>/gi, '\n')
-
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -82,9 +60,9 @@ function htmlToPlainText(html){
     .replace(/&#39;/g, "'")
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
-
     .trim();
 }
+
 
 function generateOcrPdf(text){
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ocr-'));
