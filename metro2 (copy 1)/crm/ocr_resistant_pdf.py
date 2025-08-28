@@ -166,7 +166,8 @@ def render_ocr_resistant_pdf(text: str, out_path: str, style: Optional[OCRStyle]
     font = _load_font(style.font_paths, style.font_size)
     max_w = style.page_w - style.margin*2
     lines = _wrap_text(text, max_w, font)
-    line_h = int(font.size * 1.35)
+    line_h = int(font.size * 1.15)
+
     lines_per_page = max(1, (style.page_h - style.margin*2) // line_h)
     pages: List[Image.Image] = []
     for start in range(0, len(lines), lines_per_page):
