@@ -6,7 +6,10 @@ const THEMES = {
   red:    { accent: '#FF3B30', hover: '#c82d24', bg: 'rgba(255,59,48,0.12)', glassBg: 'rgba(255,59,48,0.15)', glassBrd: 'rgba(255,59,48,0.3)' },
   purple: { accent: '#AF52DE', hover: '#893dba', bg: 'rgba(175,82,222,0.12)', glassBg: 'rgba(175,82,222,0.15)', glassBrd: 'rgba(175,82,222,0.3)' },
   teal:   { accent: '#14B8A6', hover: '#0d9488', bg: 'rgba(20,184,166,0.12)', glassBg: 'rgba(20,184,166,0.15)', glassBrd: 'rgba(20,184,166,0.3)' },
-  pink:   { accent: '#EC4899', hover: '#c0347a', bg: 'rgba(236,72,153,0.12)', glassBg: 'rgba(236,72,153,0.15)', glassBrd: 'rgba(236,72,153,0.3)' }
+  pink:   { accent: '#EC4899', hover: '#c0347a', bg: 'rgba(236,72,153,0.12)', glassBg: 'rgba(236,72,153,0.15)', glassBrd: 'rgba(236,72,153,0.3)' },
+  spacegray: { accent: '#1C1C1E', hover: '#0d0d0d', bg: 'rgba(28,28,30,0.12)', glassBg: 'rgba(28,28,30,0.15)', glassBrd: 'rgba(28,28,30,0.3)' },
+  metallicgrey: { accent: '#9FA2A4', hover: '#7e8082', bg: 'rgba(159,162,164,0.12)', glassBg: 'rgba(159,162,164,0.15)', glassBrd: 'rgba(159,162,164,0.3)' },
+  glass: { accent: 'rgba(255,255,255,0.7)', hover: 'rgba(255,255,255,0.5)', bg: 'rgba(255,255,255,0.12)', glassBg: 'rgba(255,255,255,0.25)', glassBrd: 'rgba(255,255,255,0.4)', btnText: '#000' }
 };
 
 function applyTheme(name){
@@ -17,6 +20,7 @@ function applyTheme(name){
   root.setProperty('--accent-bg', t.bg);
   root.setProperty('--glass-bg', t.glassBg);
   root.setProperty('--glass-brd', t.glassBrd);
+  root.setProperty('--btn-text', t.btnText || '#fff');
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.accent);
   localStorage.setItem('theme', name);
 }
@@ -46,6 +50,51 @@ function initPalette(){
   });
   const saved = localStorage.getItem('theme') || 'purple';
   applyTheme(saved);
+}
+
+const deletionTiers = [
+  { threshold: 150, name: 'Credit Legend', icon: '👑', class: 'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message: 'The ultimate, rare achievement.' },
+  { threshold: 125, name: 'Credit Hero', icon: '🦸', class: 'bg-red-100 text-red-700', message: 'You’re now the hero of your credit story.' },
+  { threshold: 100, name: 'Credit Champion', icon: '🏆', class: 'bg-yellow-200 text-yellow-800', message: 'Championing your credit victory.' },
+  { threshold: 75, name: 'Credit Warrior', icon: '🛡️', class: 'bg-indigo-100 text-indigo-700', message: 'Battle-ready credit repair fighter.' },
+  { threshold: 60, name: 'Credit Surgeon', icon: '🩺', class: 'bg-cyan-100 text-cyan-700', message: 'Precision deletions.' },
+  { threshold: 50, name: 'Dispute Master', icon: '🥋', class: 'bg-purple-100 text-purple-700', message: 'Mastering the dispute process.' },
+  { threshold: 40, name: 'Debt Slayer', icon: '⚔️', class: 'bg-gray-100 text-gray-700', message: 'Slaying negative accounts.' },
+  { threshold: 30, name: 'Report Scrubber', icon: '🧼', class: 'bg-accent-subtle', message: 'Deep cleaning your credit.' },
+  { threshold: 20, name: 'Score Shifter', icon: '📊', class: 'bg-green-100 text-green-700', message: 'Scores are improving.' },
+  { threshold: 15, name: 'Credit Cleaner', icon: '🧽', class: 'bg-yellow-100 text-yellow-700', message: 'Your report is shining.' },
+  { threshold: 10, name: 'Balance Buster', icon: '💥', class: 'bg-orange-100 text-orange-700', message: 'Breaking negative balances.' },
+  { threshold: 5, name: 'Debt Duster', icon: '🧹', class: 'bg-emerald-100 text-emerald-700', message: 'Cleaning up the dust.' },
+  { threshold: 0, name: 'Rookie', icon: '📄', class: 'bg-emerald-100 text-emerald-700', message: 'You’ve started your journey.' },
+];
+
+function getDeletionTier(count){
+  for(const tier of deletionTiers){
+    if(count >= tier.threshold) return tier;
+  }
+  return deletionTiers[deletionTiers.length-1];
+}
+
+function ensureTierBadge(){
+  if(document.getElementById('tierBadge')) return;
+  const nav = document.querySelector('header .flex.items-center.gap-2');
+  if(!nav) return;
+  const div = document.createElement('div');
+  div.id = 'tierBadge';
+  div.className = 'hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm animate-fadeInUp';
+  div.title = "You've started your journey.";
+  div.innerHTML = '<span class="text-xl">📄</span><span class="font-semibold text-sm">Rookie</span>';
+  nav.appendChild(div);
+}
+
+function renderDeletionTier(){
+  const el = document.getElementById('tierBadge');
+  if(!el) return;
+  const deletions = Number(localStorage.getItem('deletions') || 0);
+  const tier = getDeletionTier(deletions);
+  el.className = `hidden sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
+  el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${tier.name}</span>`;
+  el.title = tier.message;
 }
 
 function ensureHelpModal(){
@@ -115,6 +164,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   bindHelp();
   initPalette();
   initVoiceNotes();
+  ensureTierBadge();
+  renderDeletionTier();
 });
 
 window.openHelp = openHelp;

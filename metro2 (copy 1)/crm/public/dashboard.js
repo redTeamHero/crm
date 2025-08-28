@@ -1,38 +1,6 @@
 /* public/dashboard.js */
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c])); }
 
-const deletionTiers = [
-  { threshold: 150, name: 'Credit Legend', icon: '👑', class: 'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message: 'The ultimate, rare achievement.' },
-  { threshold: 125, name: 'Credit Hero', icon: '🦸', class: 'bg-red-100 text-red-700', message: 'You’re now the hero of your credit story.' },
-  { threshold: 100, name: 'Credit Champion', icon: '🏆', class: 'bg-yellow-200 text-yellow-800', message: 'Championing your credit victory.' },
-  { threshold: 75, name: 'Credit Warrior', icon: '🛡️', class: 'bg-indigo-100 text-indigo-700', message: 'Battle-ready credit repair fighter.' },
-  { threshold: 60, name: 'Credit Surgeon', icon: '🩺', class: 'bg-cyan-100 text-cyan-700', message: 'Precision deletions.' },
-  { threshold: 50, name: 'Dispute Master', icon: '🥋', class: 'bg-purple-100 text-purple-700', message: 'Mastering the dispute process.' },
-  { threshold: 40, name: 'Debt Slayer', icon: '⚔️', class: 'bg-gray-100 text-gray-700', message: 'Slaying negative accounts.' },
-  { threshold: 30, name: 'Report Scrubber', icon: '🧼', class: 'bg-accent-subtle', message: 'Deep cleaning your credit.' },
-  { threshold: 20, name: 'Score Shifter', icon: '📊', class: 'bg-green-100 text-green-700', message: 'Scores are improving.' },
-  { threshold: 15, name: 'Credit Cleaner', icon: '🧽', class: 'bg-yellow-100 text-yellow-700', message: 'Your report is shining.' },
-  { threshold: 10, name: 'Balance Buster', icon: '💥', class: 'bg-orange-100 text-orange-700', message: 'Breaking negative balances.' },
-  { threshold: 5, name: 'Debt Duster', icon: '🧹', class: 'bg-emerald-100 text-emerald-700', message: 'Cleaning up the dust.' },
-  { threshold: 0, name: 'Rookie', icon: '📄', class: 'bg-emerald-100 text-emerald-700', message: 'You’ve started your journey.' }
-];
-
-function getDeletionTier(count){
-  for(const tier of deletionTiers){
-    if(count >= tier.threshold) return tier;
-  }
-  return deletionTiers[deletionTiers.length-1];
-}
-
-function renderDeletionTier(){
-  const el = document.getElementById('tierBadge');
-  if(!el) return;
-  const deletions = Number(localStorage.getItem('deletions') || 0);
-  const tier = getDeletionTier(deletions);
-  el.className = `hidden sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
-  el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${tier.name}</span>`;
-  el.title = tier.message;
-}
 
 const stateCenters = {
   AL:[32.806671,-86.79113], AK:[61.370716,-152.404419], AZ:[33.729759,-111.431221], AR:[34.969704,-92.373123],
@@ -94,7 +62,6 @@ function renderClientMap(consumers){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  renderDeletionTier();
   const feedEl = document.getElementById('newsFeed');
   if (feedEl) {
     const rssUrl = 'https://hnrss.org/frontpage';
@@ -118,8 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const msgList = document.getElementById('msgList');
-  const msgInput = document.getElementById('msgInput');
-  const msgSend = document.getElementById('msgSend');
   let activeConsumer = null;
 
   async function renderMessages(){
@@ -137,25 +102,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  if(msgList && msgInput && msgSend){
+  if(msgList){
     fetch('/api/consumers').then(r=>r.json()).then(data=>{
       const list = data.consumers || [];
       if(list.length){
         activeConsumer = list[0].id;
         renderMessages();
       }
-    });
-
-    msgSend.addEventListener('click', async ()=>{
-      const text = msgInput.value.trim();
-      if(!text || !activeConsumer) return;
-      await fetch(`/api/messages/${activeConsumer}`, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ text, from:'host' })
-      });
-      msgInput.value = '';
-      renderMessages();
     });
   }
 
