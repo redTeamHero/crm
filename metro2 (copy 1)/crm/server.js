@@ -36,6 +36,10 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const SETTINGS_PATH = path.join(__dirname, "settings.json");
+function loadSettings(){ return readJson(SETTINGS_PATH, { openaiApiKey: "", hibpApiKey: "" }); }
+function saveSettings(data){ writeJson(SETTINGS_PATH, data); }
+
 const require = createRequire(import.meta.url);
 let nodemailer = null;
 try {
@@ -78,7 +82,7 @@ process.on("warning", warn => {
 
 
 async function rewordWithAI(text, tone) {
-  const key = process.env.OPENAI_API_KEY;
+  const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
   if (!key || !text) return text;
   try {
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -128,6 +132,7 @@ app.get(["/letters", "/letters/:jobId"], (_req, res) =>
   res.sendFile(path.join(PUBLIC_DIR, "letters.html"))
 );
 app.get("/quiz", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
+app.get("/settings", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
 app.get("/portal/:id", (req, res) => {
   const db = loadDB();
   const consumer = db.consumers.find(c => c.id === req.params.id);
@@ -135,6 +140,16 @@ app.get("/portal/:id", (req, res) => {
   const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
   const html = tmpl.replace(/{{name}}/g, consumer.name);
   res.send(html);
+});
+
+app.get("/api/settings", (_req, res) => {
+  res.json({ ok: true, settings: loadSettings() });
+});
+
+app.post("/api/settings", (req, res) => {
+  const { openaiApiKey = "", hibpApiKey = "" } = req.body || {};
+  saveSettings({ openaiApiKey, hibpApiKey });
+  res.json({ ok: true });
 });
 
 // ---------- Simple JSON "DB" ----------
@@ -603,7 +618,7 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 // Check consumer email against Have I Been Pwned
 // Use POST so email isn't logged in query string
 async function hibpLookup(email) {
-  const apiKey = process.env.HIBP_API_KEY;
+  const apiKey = loadSettings().hibpApiKey || process.env.HIBP_API_KEY;
   if (!apiKey) return { ok: false, status: 500, error: "HIBP API key not configured" };
   try {
     const hibpRes = await fetch(
