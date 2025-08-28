@@ -131,6 +131,7 @@ app.get("/billing", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "billing.h
 app.get(["/letters", "/letters/:jobId"], (_req, res) =>
   res.sendFile(path.join(PUBLIC_DIR, "letters.html"))
 );
+app.get("/library", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
 app.get("/quiz", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
 app.get("/settings", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
 app.get("/portal/:id", (req, res) => {
@@ -159,6 +160,7 @@ function loadDB(){ return readJson(DB_PATH, { consumers: [] }); }
 function saveDB(db){ writeJson(DB_PATH, db); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
+const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [] };
 function loadLettersDB(){
   const db = readJson(LETTERS_DB_PATH, null);
   if(db){
@@ -460,18 +462,24 @@ app.get("/api/templates", (_req,res)=>{
 
 app.post("/api/templates", (req,res)=>{
   const db = loadLettersDB();
-  const tpl = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
   db.templates = db.templates || [];
-  db.templates.push(tpl);
+  const { id = nanoid(8), heading = "", intro = "", ask = "", afterIssues = "", evidence = "" } = req.body || {};
+  const existing = db.templates.find(t => t.id === id);
+  const tpl = { id, heading, intro, ask, afterIssues, evidence };
+  if(existing){ Object.assign(existing, tpl); }
+  else { db.templates.push(tpl); }
   saveLettersDB(db);
   res.json({ ok:true, template: tpl });
 });
 
 app.post("/api/sequences", (req,res)=>{
   const db = loadLettersDB();
-  const seq = { id: nanoid(8), name: req.body.name || "", templates: req.body.templates || [] };
   db.sequences = db.sequences || [];
-  db.sequences.push(seq);
+  const { id = nanoid(8), name = "", templates = [] } = req.body || {};
+  const existing = db.sequences.find(s => s.id === id);
+  const seq = { id, name, templates };
+  if(existing){ Object.assign(existing, seq); }
+  else { db.sequences.push(seq); }
   saveLettersDB(db);
   res.json({ ok:true, sequence: seq });
 });

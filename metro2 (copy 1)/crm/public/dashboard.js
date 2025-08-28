@@ -117,6 +117,48 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
+  const msgList = document.getElementById('msgList');
+  const msgInput = document.getElementById('msgInput');
+  const msgSend = document.getElementById('msgSend');
+  let activeConsumer = null;
+
+  async function renderMessages(){
+    if(!activeConsumer || !msgList) return;
+    try{
+      const data = await fetch(`/api/messages/${activeConsumer}`).then(r=>r.json());
+      const msgs = data.messages || [];
+      if(!msgs.length){
+        msgList.textContent = 'No messages.';
+        return;
+      }
+      msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${m.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.text)}</div>`).join('');
+    }catch(e){
+      msgList.textContent = 'Failed to load messages.';
+    }
+  }
+
+  if(msgList && msgInput && msgSend){
+    fetch('/api/consumers').then(r=>r.json()).then(data=>{
+      const list = data.consumers || [];
+      if(list.length){
+        activeConsumer = list[0].id;
+        renderMessages();
+      }
+    });
+
+    msgSend.addEventListener('click', async ()=>{
+      const text = msgInput.value.trim();
+      if(!text || !activeConsumer) return;
+      await fetch(`/api/messages/${activeConsumer}`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ text, from:'host' })
+      });
+      msgInput.value = '';
+      renderMessages();
+    });
+  }
+
   const noteEl = document.getElementById('dashNote');
   const titleEl = document.getElementById('dashNoteTitle');
   const selectEl = document.getElementById('noteSelect');

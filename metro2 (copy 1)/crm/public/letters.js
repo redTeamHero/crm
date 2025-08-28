@@ -42,12 +42,12 @@ function renderCards(){
   }
   items.forEach((L) => {
     const div = document.createElement("div");
-    div.className = "glass card tl-card";
+    div.className = "glass card tl-card w-full";
     div.innerHTML = `
       <div class="flex items-start justify-between">
         <div>
           <div class="font-semibold">${escapeHtml(L.creditor || "Unknown Creditor")}</div>
-          <div class="text-sm muted">${escapeHtml(L.bureau)} &nbsp;•&nbsp; ${escapeHtml(L.filename)}</div>
+          <div class="text-sm muted">${escapeHtml(L.bureau)}</div>
         </div>
         <div class="flex flex-wrap gap-2 justify-end">
           <a class="btn text-xs open-html" href="${L.htmlUrl}" target="_blank" data-tip="Open HTML (H)">Open HTML</a>
@@ -74,8 +74,8 @@ function renderCards(){
 
 function openPreview(L){
   lastPreview = L;
-  $("#pvTitle").textContent = L.filename;
-  $("#pvMeta").textContent  = `${L.bureau} • ${L.creditor || "Unknown Creditor"}`;
+  $("#pvTitle").textContent = L.creditor || "Letter";
+  $("#pvMeta").textContent  = `${L.bureau}`;
   $("#pvOpen").href = L.htmlUrl;
   $("#pvFrame").src = L.htmlUrl;
   $("#previewModal").style.display = "flex";
