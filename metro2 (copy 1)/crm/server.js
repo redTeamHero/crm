@@ -32,21 +32,25 @@ import {
   addReminder,
   processAllReminders,
 } from "./state.js";
-function generateOcrPdf(html){
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ocr-'));
-  const htmlPath = path.join(tmpDir, 'letter.html');
-  const pdfPath = path.join(tmpDir, 'letter.pdf');
-  fs.writeFileSync(htmlPath, html, 'utf8');
-  const script = path.join(__dirname, 'ocr_resistant_pdf.py');
-  const res = spawnSync('python3', [script, '--in', htmlPath, '--out', pdfPath, '--preset', 'strong']);
+async function generateOcrPdf(html){
+  const noise = "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAqElEQVR4nM1XSRKAMAjrO/n/Qzw5HpQlJNTm5EyRUBpDXeuBrRjZehteYpSwEm9o4u6uoffMeUaSjx1PFdsKiIjKRajVDhMr29UWW7b2q6ioYiQiYYm2wmsXYi6psajssFJIGDM+rRQem4mwXaTSRF45pp1J/sVQFwhW0SODItoRens5xqBcZCI58rpzQzaVFPFUwqjNmX9/5lXM4LGz7xRAER/xf0WRXElyH0vwJrWaAAAAAElFTkSuQmCC";
+  const ocrCss = `
+    .ocr{position:relative;}
+    .ocr::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(100,100,100,0.15) 0, rgba(100,100,100,0.15) 1px, transparent 1px, transparent 32px),
+        repeating-linear-gradient(90deg, rgba(100,100,100,0.15) 0, rgba(100,100,100,0.15) 1px, transparent 1px, transparent 32px),
+        repeating-linear-gradient(45deg, rgba(120,120,120,0.35) 0, rgba(120,120,120,0.35) 4px, transparent 4px, transparent 200px),
+        url('data:image/png;base64,${noise}');
+      background-size:32px 32px,32px 32px,200px 200px,30px 30px;
+    }`;
+  const injected = html.replace('</head>', `<style>${ocrCss}</style></head>`);
+  return await htmlToPdfBuffer(injected);
 
-  if(res.status !== 0){
-    console.error(res.stderr?.toString() || 'OCR script failed');
-    throw new Error('OCR script failed');
-  }
-  const buf = fs.readFileSync(pdfPath);
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-  return buf;
 }
 
 
@@ -1107,7 +1111,7 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
 
   if(useOcr){
     try{
-      const pdfBuffer = generateOcrPdf(html);
+      const pdfBuffer = await generateOcrPdf(html);
 
       res.setHeader("Content-Type","application/pdf");
       res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
@@ -1214,7 +1218,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
 
       if (L.useOcr) {
-        const pdfBuffer = generateOcrPdf(L.html);
+        const pdfBuffer = await generateOcrPdf(L.html);
 
         try{ archive.append(pdfBuffer,{ name }); }catch(err){
           logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
@@ -1301,7 +1305,7 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
 
       let pdfBuffer;
       if (L.useOcr) {
-        pdfBuffer = generateOcrPdf(html);
+        pdfBuffer = await generateOcrPdf(html);
 
       } else {
         const page = await browserInstance.newPage();
@@ -1395,7 +1399,7 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
       const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
 
       if (L.useOcr) {
-        const pdfBuffer = generateOcrPdf(html);
+        const pdfBuffer = await generateOcrPdf(html);
 
         try{ archive.append(pdfBuffer,{ name }); }catch(err){
           logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
