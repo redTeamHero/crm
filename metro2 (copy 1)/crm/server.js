@@ -589,22 +589,93 @@ async function hibpLookup(email) {
   }
 }
 
-async function handleDataBreach(email, res) {
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[c]);
+}
+
+function renderBreachAuditHtml(consumer) {
+  const list = (consumer.breaches || []).map(b => `<li>${escapeHtml(b)}</li>`).join("") || "<li>No breaches found.</li>";
+  const dateStr = new Date().toLocaleString();
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial, sans-serif;margin:20px;}h1{text-align:center;}ul{margin-top:10px;}</style></head><body><h1>${escapeHtml(consumer.name || "Consumer")}</h1><h2>Data Breach Audit</h2><p>Email: ${escapeHtml(consumer.email || "")}</p><ul>${list}</ul><footer><hr/><div style="font-size:0.8em;color:#555;margin-top:20px;">Generated ${escapeHtml(dateStr)}</div></footer></body></html>`;
+}
+
+async function handleDataBreach(email, consumerId, res) {
   const result = await hibpLookup(email);
+  if (result.ok && consumerId) {
+    try {
+      const db = loadDB();
+      const c = db.consumers.find(x => x.id === consumerId);
+      if (c) {
+        c.breaches = (result.breaches || []).map(b => b.Name || b.name || "");
+        saveDB(db);
+      }
+    } catch (err) {
+      console.error("Failed to store breach info", err);
+    }
+  }
   if (result.ok) return res.json(result);
   res.status(result.status || 500).json({ ok: false, error: result.error });
 }
 
 app.post("/api/databreach", async (req, res) => {
   const email = String(req.body.email || "").trim();
+  const consumerId = String(req.body.consumerId || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
-  await handleDataBreach(email, res);
+  await handleDataBreach(email, consumerId, res);
 });
 
 app.get("/api/databreach", async (req, res) => {
   const email = String(req.query.email || "").trim();
+  const consumerId = String(req.query.consumerId || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
-  await handleDataBreach(email, res);
+  await handleDataBreach(email, consumerId, res);
+});
+
+app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
+  const db = loadDB();
+  const c = db.consumers.find(x => x.id === req.params.id);
+  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
+  try {
+    const html = renderBreachAuditHtml(c);
+    const result = await savePdf(html);
+    let ext = path.extname(result.path);
+    if (result.warning || ext !== ".pdf") {
+      ext = ".html";
+    }
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+    try {
+      const uploadsDir = consumerUploadsDir(c.id);
+      const id = nanoid(10);
+      const storedName = `${id}${ext}`;
+      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const date = new Date().toISOString().slice(0, 10);
+      const originalName = `${safe}_${date}_breach_audit${ext}`;
+      const dest = path.join(uploadsDir, storedName);
+      await fs.promises.copyFile(result.path, dest);
+      const stat = await fs.promises.stat(dest);
+      addFileMeta(c.id, {
+        id,
+        originalName,
+        storedName,
+        type: "breach-audit",
+        size: stat.size,
+        mimetype: mime,
+        uploadedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Failed to store breach audit file", err);
+    }
+    addEvent(c.id, "breach_audit_generated", { file: result.url });
+    res.json({ ok: true, url: result.url, warning: result.warning });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
 });
 
 
@@ -712,7 +783,8 @@ app.post("/api/generate", async (req,res)=>{
     const consumerForLetter = {
       name: consumer.name, email: consumer.email, phone: consumer.phone,
       addr1: consumer.addr1, addr2: consumer.addr2, city: consumer.city, state: consumer.state, zip: consumer.zip,
-      ssn_last4: consumer.ssn_last4, dob: consumer.dob
+      ssn_last4: consumer.ssn_last4, dob: consumer.dob,
+      breaches: consumer.breaches || []
     };
 
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
@@ -987,8 +1059,38 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
     if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
   }
   if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+
+  // find consumer for logging
+  let consumer = null;
   try{
-    const attachments = job.letters.map(L=>({ filename: L.filename, path: L.htmlPath || path.join(LETTERS_DIR, L.filename) }));
+    const ldb = loadLettersDB();
+    const meta = ldb.jobs.find(j=>j.jobId === jobId);
+    if(meta?.consumerId){
+      const db = loadDB();
+      consumer = db.consumers.find(c=>c.id === meta.consumerId) || null;
+    }
+  }catch{}
+
+  let browser;
+  try{
+    browser = await launchBrowser();
+    const attachments = [];
+    for(let i=0;i<job.letters.length;i++){
+      const L = job.letters[i];
+      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, L.filename), "utf-8"));
+      const page = await browser.newPage();
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+      await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
+      await page.emulateMediaType("screen");
+      try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
+      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
+      const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
+      await page.close();
+      const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
+      attachments.push({ filename: name, content: pdf, contentType: 'application/pdf' });
+    }
+
     await mailer.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to,
@@ -996,10 +1098,90 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
       text: `Attached letters for job ${jobId}`,
       attachments
     });
+
+    if(consumer){
+      try{ addEvent(consumer.id, 'letters_emailed', { jobId, to, count: attachments.length }); }catch{}
+    }
+
     res.json({ ok:true });
   }catch(e){
     console.error(e);
     res.status(500).json({ ok:false, error:String(e) });
+  }finally{
+    try{ await browser?.close(); }catch{}
+  }
+});
+
+app.post("/api/letters/:jobId/portal", async (req,res)=>{
+  const { jobId } = req.params;
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath })) }; }
+  }
+  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+
+  // locate consumer for storage
+  let consumer = null;
+  try{
+    const ldb = loadLettersDB();
+    const meta = ldb.jobs.find(j=>j.jobId === jobId);
+    if(meta?.consumerId){
+      const db = loadDB();
+      consumer = db.consumers.find(c=>c.id === meta.consumerId) || null;
+    }
+  }catch{}
+  if(!consumer) return res.status(400).json({ ok:false, error:"Consumer not found" });
+
+  let browser;
+  try{
+    browser = await launchBrowser();
+    const dir = consumerUploadsDir(consumer.id);
+    const id = nanoid(10);
+    const storedName = `${id}.zip`;
+    const safe = (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g,'_');
+    const date = new Date().toISOString().slice(0,10);
+    const originalName = `${safe}_${date}_letters.zip`;
+    const fullPath = path.join(dir, storedName);
+    const out = fs.createWriteStream(fullPath);
+    const archive = archiver('zip',{ zlib:{ level:9 } });
+    archive.pipe(out);
+
+    for(let i=0;i<job.letters.length;i++){
+      const L = job.letters[i];
+      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, L.filename), 'utf-8'));
+      const page = await browser.newPage();
+      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
+      await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
+      await page.emulateMediaType('screen');
+      try{ await page.waitForFunction(()=>document.readyState==='complete',{timeout:60000}); }catch{}
+      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
+      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
+      const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
+      await page.close();
+      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
+      archive.append(pdf,{ name });
+    }
+
+    await archive.finalize();
+    await new Promise(resolve => out.on('close', resolve));
+    const stat = await fs.promises.stat(fullPath);
+    addFileMeta(consumer.id, {
+      id,
+      originalName,
+      storedName,
+      type: 'letters_zip',
+      size: stat.size,
+      mimetype: 'application/zip',
+      uploadedAt: new Date().toISOString(),
+    });
+    addEvent(consumer.id, 'letters_portal_sent', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
+    res.json({ ok:true });
+  }catch(e){
+    console.error('Letters portal upload failed:', e);
+    res.status(500).json({ ok:false, error:String(e) });
+  }finally{
+    try{ await browser?.close(); }catch{}
   }
 });
 
