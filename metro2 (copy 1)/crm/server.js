@@ -134,6 +134,144 @@ process.on("warning", warn => {
   logWarn("NODE_WARNING", warn.message, { stack: warn.stack });
 });
 
+// Scheduler that respects OpenAI rate-limit headers
+class RateLimitScheduler {
+  constructor() {
+    this.limitRequests = Infinity;
+    this.limitTokens = Infinity;
+    this.remainingRequests = Infinity;
+    this.remainingTokens = Infinity;
+    this.resetRequests = 0;
+    this.resetTokens = 0;
+    this.avgTokens = 1000; // initial guess
+    this.count = 0;
+    this.concurrency = 1;
+    this.intervalMs = 0;
+    this.active = 0;
+    this.queue = [];
+    this.nextAllowed = 0;
+  }
+
+  updateFromHeaders(h) {
+    const toNum = v => (v === null ? NaN : Number(v));
+    const lr = toNum(h.get("x-ratelimit-limit-requests"));
+    const lt = toNum(h.get("x-ratelimit-limit-tokens"));
+    const rr = toNum(h.get("x-ratelimit-remaining-requests"));
+    const rt = toNum(h.get("x-ratelimit-remaining-tokens"));
+    const rrs = toNum(h.get("x-ratelimit-reset-requests"));
+    const rts = toNum(h.get("x-ratelimit-reset-tokens"));
+    if (!isNaN(lr)) this.limitRequests = lr;
+    if (!isNaN(lt)) this.limitTokens = lt;
+    if (!isNaN(rr)) this.remainingRequests = rr;
+    if (!isNaN(rt)) this.remainingTokens = rt;
+    if (!isNaN(rrs)) this.resetRequests = rrs * 1000;
+    if (!isNaN(rts)) this.resetTokens = rts * 1000;
+
+    // recompute safe concurrency and spacing
+    this.intervalMs = isFinite(this.limitRequests) ? 60000 / this.limitRequests : 0;
+    const safeConcurrency = Math.min(
+      this.limitRequests,
+      Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
+    );
+    this.concurrency = Math.max(1, safeConcurrency);
+
+    if (this.remainingRequests <= 0 || this.remainingTokens <= 0) {
+      this.nextAllowed = Math.max(this.resetRequests, this.resetTokens);
+    }
+  }
+
+  updateUsage(tokens) {
+    if (typeof tokens === "number" && tokens > 0) {
+      this.count++;
+      this.avgTokens = (this.avgTokens * (this.count - 1) + tokens) / this.count;
+      const safeConcurrency = Math.min(
+        this.limitRequests,
+        Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
+      );
+      this.concurrency = Math.max(1, safeConcurrency);
+    }
+  }
+
+  async schedule(fn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ fn, resolve, reject });
+      this._dequeue();
+    });
+  }
+
+  _dequeue() {
+    if (this.active >= this.concurrency) return;
+    if (!this.queue.length) return;
+
+    const now = Date.now();
+    const wait = Math.max(0, this.nextAllowed - now);
+    if (wait > 0) {
+      setTimeout(() => this._dequeue(), wait);
+      return;
+    }
+
+    const task = this.queue.shift();
+    this.active++;
+    this.nextAllowed = now + this.intervalMs;
+
+    Promise.resolve()
+      .then(task.fn)
+      .then(res => {
+        this.active--;
+        task.resolve(res);
+        this._dequeue();
+      })
+      .catch(err => {
+        this.active--;
+        task.reject(err);
+        this._dequeue();
+      });
+  }
+}
+
+const openAIScheduler = new RateLimitScheduler();
+
+async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onResponse) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const resp = scheduler
+        ? await scheduler.schedule(() => fetchFn(url, options))
+        : await fetchFn(url, options);
+
+      if (onResponse) {
+        try { onResponse(resp); } catch {}
+      }
+
+      if (resp.ok) return resp;
+
+      const status = resp.status;
+      if ((status === 429 || status >= 500) && attempt < maxRetries) {
+        const ra = Number(resp.headers.get("retry-after"));
+        let wait = ra ? ra * 1000 : Math.pow(2, attempt) * 1000;
+        if (scheduler) {
+          const extra = scheduler.nextAllowed - Date.now();
+          if (extra > wait) wait = extra;
+        }
+        const jitter = Math.random() * 1000;
+        await new Promise(r => setTimeout(r, wait + jitter));
+        continue;
+      }
+
+      const errText = await resp.text().catch(() => "");
+      throw new Error(`HTTP ${status}: ${errText}`);
+    } catch (err) {
+      if (attempt >= maxRetries) throw err;
+      let wait = Math.pow(2, attempt) * 1000;
+      if (scheduler) {
+        const extra = scheduler.nextAllowed - Date.now();
+        if (extra > wait) wait = extra;
+      }
+      const jitter = Math.random() * 1000;
+      await new Promise(r => setTimeout(r, wait + jitter));
+    }
+  }
+  throw new Error("Failed after retries");
+}
 
 async function rewordWithAI(text, tone) {
   const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
@@ -150,48 +288,30 @@ async function rewordWithAI(text, tone) {
     ],
   };
 
-  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const resp = await fetchFn("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${key}`,
+      const resp = await fetchWithRetries(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${key}`,
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
-
-      if (resp.ok) {
-        const data = await resp.json().catch(() => ({}));
-        const out = data.choices?.[0]?.message?.content?.trim() || text;
-        return out.replace(/—/g, "-");
-      }
-
-
-      const errText = await resp.text().catch(() => "");
-      if (resp.status === 429 && attempt < 2) {
-        const retry = Number(resp.headers.get("retry-after")) || 20;
-        await new Promise(r => setTimeout(r, retry * 1000));
-        continue;
-      }
-      logError(
-        "AI_REWORD_FAILED",
-        "OpenAI API error",
-        null,
-        { status: resp.status, body: errText }
+        5,
+        openAIScheduler,
+        r => openAIScheduler.updateFromHeaders(r.headers)
       );
-      return text;
+
+      const data = await resp.json().catch(() => ({}));
+      openAIScheduler.updateUsage(data.usage?.total_tokens);
+      const out = data.choices?.[0]?.message?.content?.trim() || text;
+      return out.replace(/—/g, "-");
     } catch (e) {
-      if (attempt < 2) {
-        await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
-        continue;
-      }
-      logError("AI_REWORD_FAILED", "AI reword request failed", e);
+      logError("AI_REWORD_FAILED", "OpenAI API error", e);
       return text;
     }
-  }
-
-  return text;
 }
 
 // periodically surface due letter reminders
