@@ -15,3 +15,4 @@ export function readJson(filePath, fallback){
 export function writeJson(filePath, data){
   fs.writeFileSync(filePath, JSON.stringify(data,null,2));
 }
+
