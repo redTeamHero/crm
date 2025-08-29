@@ -64,9 +64,13 @@ function renderClientMap(consumers){
 document.addEventListener('DOMContentLoaded', () => {
   const feedEl = document.getElementById('newsFeed');
   if (feedEl) {
-    const rssUrl = 'https://hnrss.org/frontpage';
-    const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
-    fetch(apiUrl)
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(cfg => {
+        const rssUrl = cfg.settings?.rssFeedUrl || 'https://hnrss.org/frontpage';
+        const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
+        return fetch(apiUrl);
+      })
       .then(r => r.json())
       .then(data => {
         const items = data.items || [];
@@ -107,6 +111,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if(msgList){
     renderMessages();
+  }
+
+  const eventList = document.getElementById('eventList');
+
+  async function renderEvents(){
+    if(!eventList) return;
+    try{
+      const resp = await fetch('/api/calendar/events');
+      if(!resp.ok) throw new Error('bad response');
+      const data = await resp.json();
+      const events = Array.isArray(data.events) ? data.events : [];
+      if(!events.length){
+        eventList.textContent = 'No events.';
+        return;
+      }
+      eventList.innerHTML = events.map(ev => {
+        const start = ev.start?.dateTime || ev.start?.date || '';
+        return `<div>${escapeHtml(ev.summary || '')} - ${escapeHtml(start)}</div>`;
+      }).join('');
+    }catch(e){
+      console.error('Failed to load events', e);
+      eventList.textContent = 'Failed to load events.';
+    }
+  }
+
+  if(eventList){
+    renderEvents();
   }
 
   const noteEl = document.getElementById('dashNote');

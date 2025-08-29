@@ -20,6 +20,7 @@ import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer, readJson, writeJson } from "./utils.js";
 import { sendCertifiedMail } from "./simpleCertifiedMail.js";
+import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy } from "./googleCalendar.js";
 
 const fetchFn = globalThis.fetch || nodeFetch;
 
@@ -68,7 +69,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SETTINGS_PATH = path.join(__dirname, "settings.json");
-function loadSettings(){ return readJson(SETTINGS_PATH, { openaiApiKey: "", hibpApiKey: "" }); }
+function loadSettings(){
+  return readJson(SETTINGS_PATH, {
+    openaiApiKey: "",
+    hibpApiKey: "",
+    rssFeedUrl: "https://hnrss.org/frontpage",
+    googleCalendarToken: "",
+    googleCalendarId: "",
+  });
+}
 function saveSettings(data){ writeJson(SETTINGS_PATH, data); }
 
 async function detectChromium(){
@@ -378,9 +387,61 @@ app.get("/api/settings", (_req, res) => {
 });
 
 app.post("/api/settings", (req, res) => {
-  const { openaiApiKey = "", hibpApiKey = "" } = req.body || {};
-  saveSettings({ openaiApiKey, hibpApiKey });
+  const {
+    openaiApiKey = "",
+    hibpApiKey = "",
+    rssFeedUrl = "",
+    googleCalendarToken = "",
+    googleCalendarId = "",
+  } = req.body || {};
+  saveSettings({ openaiApiKey, hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId });
   res.json({ ok: true });
+});
+
+app.get("/api/calendar/events", async (_req, res) => {
+  try {
+    const events = await listCalendarEvents();
+    res.json({ ok: true, events });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/calendar/events", async (req, res) => {
+  try {
+    const ev = await createCalendarEvent(req.body);
+    res.json({ ok: true, event: ev });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.put("/api/calendar/events/:id", async (req, res) => {
+  try {
+    const ev = await updateCalendarEvent(req.params.id, req.body);
+    res.json({ ok: true, event: ev });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.delete("/api/calendar/events/:id", async (req, res) => {
+  try {
+    await deleteCalendarEvent(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/calendar/freebusy", async (req, res) => {
+  try {
+    const { timeMin, timeMax } = req.body || {};
+    const fb = await calendarFreeBusy(timeMin, timeMax);
+    res.json({ ok: true, fb });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ---------- Simple JSON "DB" ----------
@@ -690,6 +751,15 @@ app.post("/api/messages/:consumerId", (req,res)=>{
   const text = req.body.text || "";
   const from = req.body.from || "host";
   addEvent(req.params.consumerId, "message", { from, text });
+  res.json({ ok:true });
+});
+
+app.post("/api/consumers/:consumerId/events", (req,res)=>{
+  const { type, payload } = req.body || {};
+  if(!type){
+    return res.status(400).json({ ok:false, error:'type required' });
+  }
+  addEvent(req.params.consumerId, type, payload || {});
   res.json({ ok:true });
 });
 
