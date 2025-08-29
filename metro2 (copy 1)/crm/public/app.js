@@ -132,6 +132,28 @@ function dedupeTradelines(lines){
   });
 }
 
+function mergeBureauViolations(vs){
+  const map = new Map();
+  (vs||[]).forEach(v=>{
+    const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
+    const base = (m[1] || v.title || "").trim();
+    const bureau = m[2];
+    const key = `${v.category||""}|${base}`;
+    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+    const entry = map.get(key);
+    if(bureau) entry.bureaus.add(bureau);
+    if(v.detail) entry.details.add(v.detail.replace(/\s*\((TransUnion|Experian|Equifax)\)$/,""));
+    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+  });
+  return Array.from(map.values()).map(e=>({
+    category:e.category,
+    title: e.bureaus.size ? `${e.title} (${Array.from(e.bureaus).join(', ')})` : e.title,
+    detail: Array.from(e.details).join(' '),
+    severity: e.severity
+  }));
+}
+
+
 function deriveTags(tl){
   const tags = new Set();
   const name = (tl.meta?.creditor || "");
@@ -288,7 +310,7 @@ function renderTradelines(tradelines){
 
     // violations list
     const vWrap = node.querySelector(".tl-violations");
-    const vs = tl.violations || [];
+    const vs = mergeBureauViolations(tl.violations || []);
     vWrap.innerHTML = vs.length
       ? vs.map((v, vidx) => `
         <label class="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">

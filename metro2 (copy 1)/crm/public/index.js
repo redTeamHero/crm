@@ -402,6 +402,28 @@ function dedupeTradelines(lines){
     return true;
   });
 }
+
+function mergeBureauViolations(vs){
+  const map = new Map();
+  (vs||[]).forEach(v=>{
+    const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
+    const base = (m[1] || v.title || "").trim();
+    const bureau = m[2];
+    const key = `${v.category||""}|${base}`;
+    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+    const entry = map.get(key);
+    if(bureau) entry.bureaus.add(bureau);
+    if(v.detail) entry.details.add(v.detail.replace(/\s*\((TransUnion|Experian|Equifax)\)$/,""));
+    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+  });
+  return Array.from(map.values()).map(e=>({
+    category:e.category,
+    title: e.bureaus.size ? `${e.title} (${Array.from(e.bureaus).join(', ')})` : e.title,
+    detail: Array.from(e.details).join(' '),
+    severity: e.severity
+  }));
+}
+
 function deriveTags(tl){
   const tags = new Set();
   const name = (tl.meta?.creditor || "");
@@ -497,7 +519,7 @@ function autoSelectBestViolation(card){
   const idx = Number(card.dataset.index);
   const tl = CURRENT_REPORT?.tradelines?.[idx];
   if (!tl) return;
-  const vs = tl.violations || [];
+  const vs = mergeBureauViolations(tl.violations || []);
   if (!vs.length) return;
   let bestIdx = 0;
   let bestSeverity = -Infinity;
@@ -560,7 +582,7 @@ function renderTradelines(tradelines){
     const vWrap = node.querySelector(".tl-violations");
     const prevBtn = node.querySelector(".tl-reason-prev");
     const nextBtn = node.querySelector(".tl-reason-next");
-    const vs = tl.violations || [];
+    const vs = mergeBureauViolations(tl.violations || []);
     const maxSeverity = vs.reduce((m, v) => Math.max(m, v.severity || 0), 0);
     if (maxSeverity) card.classList.add(`severity-${maxSeverity}`);
     let vStart = 0;
@@ -705,7 +727,7 @@ function renderPB(pb){
 }
 function buildZoomHTML(tl){
   const per = tl.per_bureau || {};
-  const vlist = (tl.violations||[]).map(v=>`
+  const vlist = mergeBureauViolations(tl.violations||[]).map(v=>`
     <li class="mb-2">
       <div class="font-medium">${escapeHtml(v.category||"")} – ${escapeHtml(v.title||"")}</div>
       ${v.detail? `<div class="text-gray-600">${escapeHtml(v.detail)}</div>` : ""}
