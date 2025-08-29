@@ -341,8 +341,18 @@ async function rewordWithAI(text, tone) {
     segments.push(text.slice(i, i + CHUNK_SIZE));
   }
 
-  const results = [];
-  for (const segment of segments) {
+  // guard against extremely large inputs that could exhaust memory
+  const MAX_CHARS = Number(process.env.AI_MAX_CHARS || 100_000);
+  if (text.length > MAX_CHARS) {
+    logWarn("AI_INPUT_TRUNCATED", "Truncating AI input", { size: text.length });
+    text = text.slice(0, MAX_CHARS);
+  }
+
+  const CHUNK_SIZE = 2000;
+  let output = "";
+  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+    const segment = text.slice(i, i + CHUNK_SIZE);
+
     const payload = {
       model: "gpt-4.1-mini",
       max_tokens: 256,
@@ -372,7 +382,8 @@ async function rewordWithAI(text, tone) {
         r => openAIScheduler.updateFromHeaders(r.headers)
       );
 
-      let out = "";
+      let segOut = "";
+
       const decoder = new TextDecoder();
       let buffer = "";
       for await (const streamChunk of resp.body) {
@@ -387,19 +398,22 @@ async function rewordWithAI(text, tone) {
           try {
             const json = JSON.parse(data);
             const token = json.choices?.[0]?.delta?.content;
-            if (token) out += token;
+            if (token) segOut += token;
           } catch {}
         }
+        // prevent buffer from growing indefinitely in malformed streams
+        if (buffer.length > 10_000) buffer = buffer.slice(-1_000);
       }
       openAIScheduler.updateUsage(payload.max_tokens);
-      results.push((out.trim() || segment).replace(/—/g, "-"));
+      output += (segOut.trim() || segment).replace(/—/g, "-");
     } catch (e) {
       logError("AI_REWORD_FAILED", "OpenAI API error", e);
-      results.push(segment);
+      output += segment;
     }
   }
 
-  return results.join("");
+  return output;
+
 }
 
 // periodically surface due letter reminders
