@@ -370,11 +370,12 @@ async function loadReportJSON(){
   const data = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`);
   if(!data?.ok) return showErr(data?.error || "Failed to load report JSON.");
   CURRENT_REPORT = data.report;
+  CURRENT_REPORT.tradelines = dedupeTradelines(CURRENT_REPORT.tradelines || []);
   tlPage = 1;
   hiddenTradelines.clear();
   Object.keys(selectionState).forEach(k=> delete selectionState[k]);
   renderFilterBar();
-  renderTradelines(CURRENT_REPORT.tradelines || []);
+  renderTradelines(CURRENT_REPORT.tradelines);
   renderCollectors(CURRENT_REPORT.creditor_contacts || []);
 
 }
@@ -387,6 +388,20 @@ const selectionState = {};
 
 function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); }
 function maybeNum(x){ return typeof x === "number" ? x : null; }
+function dedupeTradelines(lines){
+  const seen = new Set();
+  return (lines||[]).filter(tl=>{
+    const key = [
+      tl.meta?.creditor || "",
+      tl.per_bureau?.TransUnion?.account_number || "",
+      tl.per_bureau?.Experian?.account_number || "",
+      tl.per_bureau?.Equifax?.account_number || ""
+    ].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 function deriveTags(tl){
   const tags = new Set();
   const name = (tl.meta?.creditor || "");
@@ -410,7 +425,7 @@ function deriveTags(tl){
   if (medical.some(k => hasWord(name, k))) tags.add("Medical Bills");
 
   if (tags.size === 0) tags.add("Other");
-  return Array.from(tags);
+  return Array.from(tags).map(t => t.trim());
 }
 
 function renderFilterBar(){
