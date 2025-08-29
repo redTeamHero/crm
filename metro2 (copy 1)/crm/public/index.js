@@ -19,6 +19,7 @@ const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 
 
 const gptCb = $("#cbUseGpt");
 const gptToneSel = $("#gptTone");
+const ocrCb = $("#cbUseOcr");
 if (gptCb && gptToneSel) {
   gptToneSel.disabled = true;
   gptCb.addEventListener("change", () => {
@@ -517,8 +518,7 @@ function updateSelectionStateFromCard(card){
   const violationIdxs = preserved.concat(visibleChecked);
   const specialMode = getSpecialModeForCard(card);
   const playbook = card.querySelector('.tl-playbook-select')?.value || null;
-  const useOcr = card.querySelector('.use-ocr')?.checked || false;
-  selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook, useOcr };
+  selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook };
   updateSelectAllButton();
 }
 
@@ -622,10 +622,6 @@ function renderTradelines(tradelines){
     renderViolations();
     prevBtn.addEventListener("click", ()=>{ if(vStart>0){ vStart -= 3; renderViolations(); }});
     nextBtn.addEventListener("click", ()=>{ if(vStart + 3 < vs.length){ vStart += 3; renderViolations(); }});
-
-    const ocrCb = node.querySelector('.use-ocr');
-    if (selectionState[idx]?.useOcr) ocrCb.checked = true;
-    ocrCb.addEventListener('change', () => updateSelectionStateFromCard(card));
 
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
@@ -781,6 +777,7 @@ function getSpecialModeForCard(card){
 }
 function collectSelections(){
   const aiTone = gptCb?.checked ? gptToneSel?.value || "" : "";
+  const useOcr = ocrCb?.checked || false;
   return Object.entries(selectionState).map(([tradelineIndex, data]) => {
     const sel = {
       tradelineIndex: Number(tradelineIndex),
@@ -791,7 +788,7 @@ function collectSelections(){
     if (data.violationIdxs && data.violationIdxs.length){
       sel.violationIdxs = data.violationIdxs;
     }
-    if (data.useOcr){
+    if (useOcr){
       sel.useOcr = true;
     }
     if (aiTone){

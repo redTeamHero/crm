@@ -14,8 +14,6 @@ import archiver from "archiver";
 import puppeteer from "puppeteer";
 import nodeFetch from "node-fetch";
 
-import { PassThrough } from "stream";
-
 import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer, readJson, writeJson } from "./utils.js";
@@ -150,13 +148,34 @@ process.on("warning", warn => {
   logWarn("NODE_WARNING", warn.message, { stack: warn.stack });
 });
 
+// Basic resource monitoring to catch memory or CPU spikes
+const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
+const RESOURCE_CHECK_MS = Number(process.env.RESOURCE_CHECK_MS || 60_000);
+let lastCpu = process.cpuUsage();
+setInterval(() => {
+  try {
+    const { rss } = process.memoryUsage();
+    if (rss > MAX_RSS_MB * 1024 * 1024) {
+      logWarn("HIGH_MEMORY_USAGE", "Memory usage high", { rss });
+    }
+    const cpu = process.cpuUsage(lastCpu);
+    lastCpu = process.cpuUsage();
+    const cpuMs = (cpu.user + cpu.system) / 1000;
+    if (cpuMs > 1000) {
+      logWarn("HIGH_CPU_USAGE", "CPU usage high", { cpuMs });
+    }
+  } catch (e) {
+    logWarn("RESOURCE_MONITOR_FAILED", e.message);
+  }
+}, RESOURCE_CHECK_MS);
+
 // Scheduler that respects OpenAI rate-limit headers
 class RateLimitScheduler {
   constructor() {
-    this.limitRequests = Infinity;
-    this.limitTokens = Infinity;
-    this.remainingRequests = Infinity;
-    this.remainingTokens = Infinity;
+    this.limitRequests = Number(process.env.OPENAI_RPM) || Infinity;
+    this.limitTokens = Number(process.env.OPENAI_TPM) || Infinity;
+    this.remainingRequests = this.limitRequests;
+    this.remainingTokens = this.limitTokens;
     this.resetRequests = 0;
     this.resetTokens = 0;
     this.avgTokens = 1000; // initial guess
@@ -167,6 +186,8 @@ class RateLimitScheduler {
     this.queue = [];
     this.slotTimes = [0];
     this.globalReset = 0;
+    this.maxConcurrency = Number(process.env.OPENAI_MAX_CONCURRENCY || Infinity);
+    this.maxQueue = Number(process.env.OPENAI_MAX_QUEUE || 1000);
   }
 
   get nextAllowed(){
@@ -191,7 +212,8 @@ class RateLimitScheduler {
     this.intervalMs = isFinite(this.limitRequests) ? 60000 / this.limitRequests : 0;
     const safeConcurrency = Math.min(
       this.limitRequests,
-      Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
+      Math.floor(this.limitTokens / Math.max(this.avgTokens, 1)),
+      this.maxConcurrency
     );
     this.concurrency = Math.max(1, safeConcurrency);
     while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
@@ -210,15 +232,21 @@ class RateLimitScheduler {
       this.avgTokens = (this.avgTokens * (this.count - 1) + tokens) / this.count;
       const safeConcurrency = Math.min(
         this.limitRequests,
-        Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
+        Math.floor(this.limitTokens / Math.max(this.avgTokens, 1)),
+        this.maxConcurrency
       );
       this.concurrency = Math.max(1, safeConcurrency);
-    while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
-    if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
+      while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
+      if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
     }
   }
 
   async schedule(fn) {
+    if (this.queue.length >= this.maxQueue) {
+      const err = new Error("Rate limit queue full");
+      logWarn("OPENAI_QUEUE_FULL", err.message, { size: this.queue.length });
+      throw err;
+    }
     return new Promise((resolve, reject) => {
       this.queue.push({ fn, resolve, reject });
       this._dequeue();
@@ -287,6 +315,7 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
           if (extra > wait) wait = extra;
         }
         const jitter = Math.random() * 1000;
+        logWarn("OPENAI_RETRY", `Retrying after HTTP ${status}`, { attempt: attempt + 1, wait });
         await new Promise(r => setTimeout(r, wait + jitter));
 
         continue;
@@ -295,13 +324,17 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
       const errText = await resp.text().catch(() => "");
       throw new Error(`HTTP ${status}: ${errText}`);
     } catch (err) {
-      if (attempt >= maxRetries) throw err;
+      if (attempt >= maxRetries) {
+        logError("OPENAI_FETCH_FAILED", err.message, err);
+        throw err;
+      }
       let wait = Math.pow(2, attempt) * 1000;
       if (scheduler) {
         const extra = scheduler.nextAllowed - Date.now();
         if (extra > wait) wait = extra;
       }
       const jitter = Math.random() * 1000;
+      logWarn("OPENAI_RETRY", err.message, { attempt: attempt + 1, wait });
       await new Promise(r => setTimeout(r, wait + jitter));
 
     }
@@ -313,16 +346,30 @@ async function rewordWithAI(text, tone) {
   const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
   if (!key || !text) return text;
 
-  const payload = {
-    model: "gpt-4.1-mini",
-    messages: [
-      { role: "system", content: "You reword credit dispute statements." },
-      {
-        role: "user",
-        content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${text}`,
-      },
-    ],
-  };
+  // guard against extremely large inputs that could exhaust memory
+  const MAX_CHARS = Number(process.env.AI_MAX_CHARS || 100_000);
+  if (text.length > MAX_CHARS) {
+    logWarn("AI_INPUT_TRUNCATED", "Truncating AI input", { size: text.length });
+    text = text.slice(0, MAX_CHARS);
+  }
+
+  const CHUNK_SIZE = Number(process.env.AI_CHUNK_SIZE || 2000);
+  const MAX_TOKENS = Number(process.env.AI_MAX_TOKENS || 256);
+  let output = "";
+  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+    const segment = text.slice(i, i + CHUNK_SIZE);
+    const payload = {
+      model: "gpt-4.1-mini",
+      max_tokens: MAX_TOKENS,
+      stream: true,
+      messages: [
+        { role: "system", content: "You reword credit dispute statements." },
+        {
+          role: "user",
+          content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${segment}`,
+        },
+      ],
+    };
 
     try {
       const resp = await fetchWithRetries(
@@ -340,15 +387,36 @@ async function rewordWithAI(text, tone) {
         r => openAIScheduler.updateFromHeaders(r.headers)
       );
 
-      const data = await resp.json().catch(() => ({}));
-      openAIScheduler.updateUsage(data.usage?.total_tokens);
-      const out = data.choices?.[0]?.message?.content?.trim() || text;
-      return out.replace(/—/g, "-");
+      let segOut = "";
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for await (const streamChunk of resp.body) {
+        buffer += decoder.decode(streamChunk, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop();
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data:")) continue;
+          const data = line.slice(5).trim();
+          if (data === "[DONE]") break;
+          try {
+            const json = JSON.parse(data);
+            const token = json.choices?.[0]?.delta?.content;
+            if (token) segOut += token;
+          } catch {}
+        }
+        // prevent buffer from growing indefinitely in malformed streams
+        if (buffer.length > 10_000) buffer = buffer.slice(-1_000);
+      }
+      openAIScheduler.updateUsage(payload.max_tokens);
+      output += (segOut.trim() || segment).replace(/—/g, "-");
     } catch (e) {
       logError("AI_REWORD_FAILED", "OpenAI API error", e);
-      return text;
+      output += segment;
     }
+  }
 
+  return output;
 }
 
 // periodically surface due letter reminders
