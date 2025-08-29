@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const rssEl = document.getElementById('rssFeedUrl');
   const gcalTokenEl = document.getElementById('gcalToken');
   const gcalIdEl = document.getElementById('gcalId');
+
   const saveBtn = document.getElementById('saveSettings');
   const msgEl = document.getElementById('saveMsg');
 
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (rssEl) rssEl.value = data.settings?.rssFeedUrl || '';
       if (gcalTokenEl) gcalTokenEl.value = data.settings?.googleCalendarToken || '';
       if (gcalIdEl) gcalIdEl.value = data.settings?.googleCalendarId || '';
+
     } catch (e) {
       console.error('Failed to load settings', e);
     }
@@ -30,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rssFeedUrl: rssEl.value.trim(),
         googleCalendarToken: gcalTokenEl.value.trim(),
         googleCalendarId: gcalIdEl.value.trim()
+
       };
       try {
         await fetch('/api/settings', {

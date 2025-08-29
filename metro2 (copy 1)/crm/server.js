@@ -78,6 +78,7 @@ function loadSettings(){
     googleCalendarId: "",
   });
 }
+
 function saveSettings(data){ writeJson(SETTINGS_PATH, data); }
 
 async function detectChromium(){
@@ -395,6 +396,7 @@ app.post("/api/settings", (req, res) => {
     googleCalendarId = "",
   } = req.body || {};
   saveSettings({ openaiApiKey, hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId });
+
   res.json({ ok: true });
 });
 
