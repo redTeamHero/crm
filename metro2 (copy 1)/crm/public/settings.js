@@ -2,6 +2,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const openaiEl = document.getElementById('openaiKey');
   const hibpEl = document.getElementById('hibpKey');
+  const rssEl = document.getElementById('rssFeedUrl');
   const saveBtn = document.getElementById('saveSettings');
   const msgEl = document.getElementById('saveMsg');
 
@@ -11,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await resp.json();
       if (openaiEl) openaiEl.value = data.settings?.openaiApiKey || '';
       if (hibpEl) hibpEl.value = data.settings?.hibpApiKey || '';
+      if (rssEl) rssEl.value = data.settings?.rssFeedUrl || '';
     } catch (e) {
       console.error('Failed to load settings', e);
     }
@@ -20,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.addEventListener('click', async () => {
       const body = {
         openaiApiKey: openaiEl.value.trim(),
-        hibpApiKey: hibpEl.value.trim()
+        hibpApiKey: hibpEl.value.trim(),
+        rssFeedUrl: rssEl.value.trim()
       };
       try {
         await fetch('/api/settings', {

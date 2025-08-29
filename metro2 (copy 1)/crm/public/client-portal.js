@@ -98,9 +98,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const feedEl = document.getElementById('newsFeed');
   if (feedEl) {
-    const rssUrl = 'https://hnrss.org/frontpage';
-    const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
-    fetch(apiUrl)
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(cfg => {
+        const rssUrl = cfg.settings?.rssFeedUrl || 'https://hnrss.org/frontpage';
+        const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
+        return fetch(apiUrl);
+      })
       .then(r => r.json())
       .then(data => {
         const items = data.items || [];
