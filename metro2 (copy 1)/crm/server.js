@@ -150,6 +150,26 @@ process.on("warning", warn => {
   logWarn("NODE_WARNING", warn.message, { stack: warn.stack });
 });
 
+// Basic resource monitoring to catch memory or CPU spikes
+const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
+let lastCpu = process.cpuUsage();
+setInterval(() => {
+  try {
+    const { rss } = process.memoryUsage();
+    if (rss > MAX_RSS_MB * 1024 * 1024) {
+      logWarn("HIGH_MEMORY_USAGE", "Memory usage high", { rss });
+    }
+    const cpu = process.cpuUsage(lastCpu);
+    lastCpu = process.cpuUsage();
+    const cpuMs = (cpu.user + cpu.system) / 1000;
+    if (cpuMs > 1000) {
+      logWarn("HIGH_CPU_USAGE", "CPU usage high", { cpuMs });
+    }
+  } catch (e) {
+    logWarn("RESOURCE_MONITOR_FAILED", e.message);
+  }
+}, 60_000);
+
 // Scheduler that respects OpenAI rate-limit headers
 class RateLimitScheduler {
   constructor() {
@@ -167,6 +187,7 @@ class RateLimitScheduler {
     this.queue = [];
     this.slotTimes = [0];
     this.globalReset = 0;
+    this.maxConcurrency = Number(process.env.OPENAI_MAX_CONCURRENCY || Infinity);
   }
 
   get nextAllowed(){
@@ -191,7 +212,8 @@ class RateLimitScheduler {
     this.intervalMs = isFinite(this.limitRequests) ? 60000 / this.limitRequests : 0;
     const safeConcurrency = Math.min(
       this.limitRequests,
-      Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
+      Math.floor(this.limitTokens / Math.max(this.avgTokens, 1)),
+      this.maxConcurrency
     );
     this.concurrency = Math.max(1, safeConcurrency);
     while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
@@ -210,11 +232,12 @@ class RateLimitScheduler {
       this.avgTokens = (this.avgTokens * (this.count - 1) + tokens) / this.count;
       const safeConcurrency = Math.min(
         this.limitRequests,
-        Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
+        Math.floor(this.limitTokens / Math.max(this.avgTokens, 1)),
+        this.maxConcurrency
       );
       this.concurrency = Math.max(1, safeConcurrency);
-    while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
-    if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
+      while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
+      if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
     }
   }
 
@@ -313,16 +336,29 @@ async function rewordWithAI(text, tone) {
   const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
   if (!key || !text) return text;
 
-  const payload = {
-    model: "gpt-4.1-mini",
-    messages: [
-      { role: "system", content: "You reword credit dispute statements." },
-      {
-        role: "user",
-        content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${text}`,
-      },
-    ],
-  };
+  // guard against extremely large inputs that could exhaust memory
+  const MAX_CHARS = Number(process.env.AI_MAX_CHARS || 100_000);
+  if (text.length > MAX_CHARS) {
+    logWarn("AI_INPUT_TRUNCATED", "Truncating AI input", { size: text.length });
+    text = text.slice(0, MAX_CHARS);
+  }
+
+  const CHUNK_SIZE = 2000;
+  let output = "";
+  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+    const segment = text.slice(i, i + CHUNK_SIZE);
+    const payload = {
+      model: "gpt-4.1-mini",
+      max_tokens: 256,
+      stream: true,
+      messages: [
+        { role: "system", content: "You reword credit dispute statements." },
+        {
+          role: "user",
+          content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${segment}`,
+        },
+      ],
+    };
 
     try {
       const resp = await fetchWithRetries(
@@ -340,15 +376,36 @@ async function rewordWithAI(text, tone) {
         r => openAIScheduler.updateFromHeaders(r.headers)
       );
 
-      const data = await resp.json().catch(() => ({}));
-      openAIScheduler.updateUsage(data.usage?.total_tokens);
-      const out = data.choices?.[0]?.message?.content?.trim() || text;
-      return out.replace(/—/g, "-");
+      let segOut = "";
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for await (const streamChunk of resp.body) {
+        buffer += decoder.decode(streamChunk, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop();
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data:")) continue;
+          const data = line.slice(5).trim();
+          if (data === "[DONE]") break;
+          try {
+            const json = JSON.parse(data);
+            const token = json.choices?.[0]?.delta?.content;
+            if (token) segOut += token;
+          } catch {}
+        }
+        // prevent buffer from growing indefinitely in malformed streams
+        if (buffer.length > 10_000) buffer = buffer.slice(-1_000);
+      }
+      openAIScheduler.updateUsage(payload.max_tokens);
+      output += (segOut.trim() || segment).replace(/—/g, "-");
     } catch (e) {
       logError("AI_REWORD_FAILED", "OpenAI API error", e);
-      return text;
+      output += segment;
     }
+  }
 
+  return output;
 }
 
 // periodically surface due letter reminders
