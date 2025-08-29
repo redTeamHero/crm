@@ -108,13 +108,29 @@ async function loadReportJSON(){
   const data = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`).catch(()=>({}));
   if(!data?.ok) return showErr(data?.error || "Failed to load report");
   CURRENT_REPORT = data.report;
+  CURRENT_REPORT.tradelines = dedupeTradelines(CURRENT_REPORT.tradelines || []);
 
   renderFilterBar();
-  renderTradelines(CURRENT_REPORT.tradelines || []);
+  renderTradelines(CURRENT_REPORT.tradelines);
 }
 
 function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); }
 function maybeNum(x){ return typeof x==="number" ? x : null; }
+
+function dedupeTradelines(lines){
+  const seen = new Set();
+  return (lines||[]).filter(tl=>{
+    const key = [
+      tl.meta?.creditor || "",
+      tl.per_bureau?.TransUnion?.account_number || "",
+      tl.per_bureau?.Experian?.account_number || "",
+      tl.per_bureau?.Equifax?.account_number || ""
+    ].join("|");
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 function deriveTags(tl){
   const tags = new Set();
@@ -140,7 +156,7 @@ function deriveTags(tl){
   if (medical.some(k => hasWord(name, k))) tags.add("Medical Bills");
 
   if (tags.size === 0) tags.add("Other");
-  return Array.from(tags);
+  return Array.from(tags).map(t => t.trim());
 }
 
 function renderFilterBar(){
