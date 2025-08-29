@@ -200,23 +200,13 @@ body.voice-active #voiceNotes{display:block;}
 /* Violation severity styling */
 .violation-item {
   border-left: 4px solid transparent;
+  border: 1px solid var(--glass-brd);
+  background: var(--glass-bg);
 }
-.violation-item.severity-5 {
-  border-left-color: #991B1B;
-  background: #FEE2E2;
-}
-.violation-item.severity-4 {
-  border-left-color: #B45309;
-  background: #FFEDD5;
-}
-.violation-item.severity-3 {
-  border-left-color: #F59E0B;
-  background: #FEF3C7;
-}
-.violation-item.severity-2 {
-  border-left-color: #3B82F6;
-  background: #DBEAFE;
-}
+.violation-item.severity-5 { border-left-color: #991B1B; }
+.violation-item.severity-4 { border-left-color: #B45309; }
+.violation-item.severity-3 { border-left-color: #F59E0B; }
+.violation-item.severity-2 { border-left-color: #3B82F6; }
 
 
 .severity-tag {

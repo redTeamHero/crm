@@ -391,8 +391,15 @@ function maybeNum(x){ return typeof x === "number" ? x : null; }
 function dedupeTradelines(lines){
   const seen = new Set();
   return (lines||[]).filter(tl=>{
+    const name = (tl.meta?.creditor || "").trim();
+    if (!name || name.toLowerCase() === "risk factors") return false;
+    const per = tl.per_bureau || {};
+    const hasData = ["TransUnion","Experian","Equifax"].some(b => Object.keys(per[b]||{}).length);
+    const hasViolations = (tl.violations||[]).length > 0;
+    if (!hasData && !hasViolations) return false;
     const key = [
-      tl.meta?.creditor || "",
+      name,
+
       tl.per_bureau?.TransUnion?.account_number || "",
       tl.per_bureau?.Experian?.account_number || "",
       tl.per_bureau?.Equifax?.account_number || ""
