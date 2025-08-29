@@ -153,6 +153,7 @@ function mergeBureauViolations(vs){
   }));
 }
 
+
 function deriveTags(tl){
   const tags = new Set();
   const name = (tl.meta?.creditor || "");
