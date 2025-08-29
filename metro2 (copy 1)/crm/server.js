@@ -14,8 +14,6 @@ import archiver from "archiver";
 import puppeteer from "puppeteer";
 import nodeFetch from "node-fetch";
 
-import { PassThrough } from "stream";
-
 import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer, readJson, writeJson } from "./utils.js";
@@ -191,6 +189,8 @@ class RateLimitScheduler {
     this.slotTimes = [0];
     this.globalReset = 0;
     this.maxConcurrency = Number(process.env.OPENAI_MAX_CONCURRENCY || Infinity);
+    this.maxQueue = Number(process.env.OPENAI_MAX_QUEUE || 1000);
+
   }
 
   get nextAllowed(){
@@ -245,6 +245,11 @@ class RateLimitScheduler {
   }
 
   async schedule(fn) {
+    if (this.queue.length >= this.maxQueue) {
+      const err = new Error("Rate limit queue full");
+      logWarn("OPENAI_QUEUE_FULL", err.message, { size: this.queue.length });
+      throw err;
+    }
     return new Promise((resolve, reject) => {
       this.queue.push({ fn, resolve, reject });
       this._dequeue();

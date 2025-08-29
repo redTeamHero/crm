@@ -22,8 +22,11 @@ const gptToneSel = $("#gptTone");
 const ocrCb = $("#cbUseOcr");
 if (gptCb && gptToneSel) {
   gptToneSel.disabled = true;
+  gptToneSel.classList.add("hidden");
   gptCb.addEventListener("change", () => {
-    gptToneSel.disabled = !gptCb.checked;
+    const enabled = gptCb.checked;
+    gptToneSel.disabled = !enabled;
+    gptToneSel.classList.toggle("hidden", !enabled);
   });
 }
 
