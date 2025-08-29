@@ -177,7 +177,7 @@
       <div class="glass card">
         <div class="flex items-center justify-between">
           <div class="font-semibold">Tradelines</div>
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-3">
             <label class="text-sm flex items-center gap-2" title="Generate correction letters">
               <input type="radio" name="rtype" value="correct" checked /> Correct
             </label>
@@ -192,9 +192,12 @@
               <input type="checkbox" id="cbPersonalInfo" /> Personal Info
             </label>
             <label class="text-sm flex items-center gap-2" title="Use AI to reword letters">
-              <input type="checkbox" id="cbUseGpt" /> AI Reword
+              <input type="checkbox" id="cbUseGpt" /> AI
             </label>
-            <select id="gptTone" class="border rounded text-sm px-1 py-0.5" disabled>
+            <label class="text-sm flex items-center gap-2" title="Render OCR-resistant PDFs">
+              <input type="checkbox" id="cbUseOcr" /> OCR
+            </label>
+            <select id="gptTone" class="border rounded text-sm px-1 py-0.5 hidden" disabled>
               <option value="Professional & Polite">Professional & Polite</option>
               <option value="Firm / Legalistic (No-Nonsense)">Firm / Legalistic (No-Nonsense)</option>
               <option value="Plain-English / Conversational">Plain-English / Conversational</option>
@@ -275,10 +278,6 @@
       <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="TransUnion" /> TransUnion</label>
       <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Experian" /> Experian</label>
       <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Equifax" /> Equifax</label>
-    </div>
-
-    <div class="mt-2 flex items-center gap-2 text-xs">
-      <label class="flex items-center gap-1"><input type="checkbox" class="use-ocr" /> OCR</label>
     </div>
 
     <div class="tl-tags flex gap-2 mt-2 flex-wrap"></div>
