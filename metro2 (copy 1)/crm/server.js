@@ -152,6 +152,8 @@ process.on("warning", warn => {
 
 // Basic resource monitoring to catch memory or CPU spikes
 const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
+const RESOURCE_CHECK_MS = Number(process.env.RESOURCE_CHECK_MS || 60_000);
+
 let lastCpu = process.cpuUsage();
 setInterval(() => {
   try {
@@ -168,15 +170,16 @@ setInterval(() => {
   } catch (e) {
     logWarn("RESOURCE_MONITOR_FAILED", e.message);
   }
-}, 60_000);
+}, RESOURCE_CHECK_MS);
+
 
 // Scheduler that respects OpenAI rate-limit headers
 class RateLimitScheduler {
   constructor() {
-    this.limitRequests = Infinity;
-    this.limitTokens = Infinity;
-    this.remainingRequests = Infinity;
-    this.remainingTokens = Infinity;
+    this.limitRequests = Number(process.env.OPENAI_RPM) || Infinity;
+    this.limitTokens = Number(process.env.OPENAI_TPM) || Infinity;
+    this.remainingRequests = this.limitRequests;
+    this.remainingTokens = this.limitTokens;
     this.resetRequests = 0;
     this.resetTokens = 0;
     this.avgTokens = 1000; // initial guess
@@ -310,6 +313,7 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
           if (extra > wait) wait = extra;
         }
         const jitter = Math.random() * 1000;
+        logWarn("OPENAI_RETRY", `Retrying after HTTP ${status}`, { attempt: attempt + 1, wait });
         await new Promise(r => setTimeout(r, wait + jitter));
 
         continue;
@@ -318,13 +322,17 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
       const errText = await resp.text().catch(() => "");
       throw new Error(`HTTP ${status}: ${errText}`);
     } catch (err) {
-      if (attempt >= maxRetries) throw err;
+      if (attempt >= maxRetries) {
+        logError("OPENAI_FETCH_FAILED", err.message, err);
+        throw err;
+      }
       let wait = Math.pow(2, attempt) * 1000;
       if (scheduler) {
         const extra = scheduler.nextAllowed - Date.now();
         if (extra > wait) wait = extra;
       }
       const jitter = Math.random() * 1000;
+      logWarn("OPENAI_RETRY", err.message, { attempt: attempt + 1, wait });
       await new Promise(r => setTimeout(r, wait + jitter));
 
     }
@@ -335,14 +343,23 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
 async function rewordWithAI(text, tone) {
   const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
   if (!key || !text) return text;
-  const CHUNK_SIZE = 2000;
+
+  // guard against extremely large inputs that could exhaust memory
+  const MAX_CHARS = Number(process.env.AI_MAX_CHARS || 100_000);
+  if (text.length > MAX_CHARS) {
+    logWarn("AI_INPUT_TRUNCATED", "Truncating AI input", { size: text.length });
+    text = text.slice(0, MAX_CHARS);
+  }
+
+  const CHUNK_SIZE = Number(process.env.AI_CHUNK_SIZE || 2000);
+  const MAX_TOKENS = Number(process.env.AI_MAX_TOKENS || 256);
   let output = "";
   for (let i = 0; i < text.length; i += CHUNK_SIZE) {
     const segment = text.slice(i, i + CHUNK_SIZE);
-
     const payload = {
       model: "gpt-4.1-mini",
-      max_tokens: 256,
+      max_tokens: MAX_TOKENS,
+
       stream: true,
       messages: [
         { role: "system", content: "You reword credit dispute statements." },
@@ -399,8 +416,8 @@ async function rewordWithAI(text, tone) {
     }
   }
 
-  return output;
 
+  return output;
 }
 
 // periodically surface due letter reminders
