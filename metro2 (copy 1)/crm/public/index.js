@@ -17,18 +17,8 @@ const collectorSelection = {};
 const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
 const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
 
-const gptCb = $("#cbUseGpt");
-const gptToneSel = $("#gptTone");
 const ocrCb = $("#cbUseOcr");
-if (gptCb && gptToneSel) {
-  gptToneSel.disabled = true;
-  gptToneSel.classList.add("hidden");
-  gptCb.addEventListener("change", () => {
-    const enabled = gptCb.checked;
-    gptToneSel.disabled = !enabled;
-    gptToneSel.classList.toggle("hidden", !enabled);
-  });
-}
+
 
 function updatePortalLink(){
   const links = ["#clientPortalLink", "#activityPortalLink"].map(sel => $(sel));
@@ -779,7 +769,7 @@ function getSpecialModeForCard(card){
   return null;
 }
 function collectSelections(){
-  const aiTone = gptCb?.checked ? gptToneSel?.value || "" : "";
+
   const useOcr = ocrCb?.checked || false;
   return Object.entries(selectionState).map(([tradelineIndex, data]) => {
     const sel = {
@@ -793,9 +783,6 @@ function collectSelections(){
     }
     if (useOcr){
       sel.useOcr = true;
-    }
-    if (aiTone){
-      sel.aiTone = aiTone;
     }
     return sel;
   });

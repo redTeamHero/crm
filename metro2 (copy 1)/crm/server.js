@@ -14,6 +14,7 @@ import archiver from "archiver";
 import puppeteer from "puppeteer";
 import nodeFetch from "node-fetch";
 
+
 import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer, readJson, writeJson } from "./utils.js";
@@ -69,7 +70,6 @@ const __dirname = path.dirname(__filename);
 const SETTINGS_PATH = path.join(__dirname, "settings.json");
 function loadSettings(){
   return readJson(SETTINGS_PATH, {
-    openaiApiKey: "",
     hibpApiKey: "",
     rssFeedUrl: "https://hnrss.org/frontpage",
     googleCalendarToken: "",
@@ -163,7 +163,7 @@ setInterval(() => {
     lastCpu = process.cpuUsage();
     const cpuMs = (cpu.user + cpu.system) / 1000;
     if (cpuMs > 1000) {
-      logWarn("HIGH_CPU_USAGE", "CPU usage high", { cpuMs });
+      logWarn
     }
   } catch (e) {
     logWarn("RESOURCE_MONITOR_FAILED", e.message);
@@ -171,259 +171,6 @@ setInterval(() => {
 }, RESOURCE_CHECK_MS);
 
 
-// Scheduler that respects OpenAI rate-limit headers
-class RateLimitScheduler {
-  constructor() {
-    this.limitRequests = Number(process.env.OPENAI_RPM) || Infinity;
-    this.limitTokens = Number(process.env.OPENAI_TPM) || Infinity;
-    this.remainingRequests = this.limitRequests;
-    this.remainingTokens = this.limitTokens;
-    this.resetRequests = 0;
-    this.resetTokens = 0;
-    this.avgTokens = 1000; // initial guess
-    this.count = 0;
-    this.concurrency = 1;
-    this.intervalMs = 0;
-    this.active = 0;
-    this.queue = [];
-    this.slotTimes = [0];
-    this.globalReset = 0;
-    this.maxConcurrency = Number(process.env.OPENAI_MAX_CONCURRENCY || Infinity);
-    this.maxQueue = Number(process.env.OPENAI_MAX_QUEUE || 1000);
-
-  }
-
-  get nextAllowed(){
-    return Math.max(Math.min(...this.slotTimes), this.globalReset);
-  }
-
-  updateFromHeaders(h) {
-    const toNum = v => (v === null ? NaN : Number(v));
-    const lr = toNum(h.get("x-ratelimit-limit-requests"));
-    const lt = toNum(h.get("x-ratelimit-limit-tokens"));
-    const rr = toNum(h.get("x-ratelimit-remaining-requests"));
-    const rt = toNum(h.get("x-ratelimit-remaining-tokens"));
-    const rrs = toNum(h.get("x-ratelimit-reset-requests"));
-    const rts = toNum(h.get("x-ratelimit-reset-tokens"));
-    if (!isNaN(lr)) this.limitRequests = lr;
-    if (!isNaN(lt)) this.limitTokens = lt;
-    if (!isNaN(rr)) this.remainingRequests = rr;
-    if (!isNaN(rt)) this.remainingTokens = rt;
-    if (!isNaN(rrs)) this.resetRequests = Date.now() + rrs * 1000;
-    if (!isNaN(rts)) this.resetTokens = Date.now() + rts * 1000;
-
-    this.intervalMs = isFinite(this.limitRequests) ? 60000 / this.limitRequests : 0;
-    const safeConcurrency = Math.min(
-      this.limitRequests,
-      Math.floor(this.limitTokens / Math.max(this.avgTokens, 1)),
-      this.maxConcurrency
-    );
-    this.concurrency = Math.max(1, safeConcurrency);
-    while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
-    if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
-
-    if (this.remainingRequests <= 0 || this.remainingTokens <= 0) {
-      this.globalReset = Math.max(this.resetRequests, this.resetTokens);
-    } else {
-      this.globalReset = 0;
-    }
-  }
-
-  updateUsage(tokens) {
-    if (typeof tokens === "number" && tokens > 0) {
-      this.count++;
-      this.avgTokens = (this.avgTokens * (this.count - 1) + tokens) / this.count;
-      const safeConcurrency = Math.min(
-        this.limitRequests,
-        Math.floor(this.limitTokens / Math.max(this.avgTokens, 1)),
-        this.maxConcurrency
-      );
-      this.concurrency = Math.max(1, safeConcurrency);
-      while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
-      if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
-    }
-  }
-
-  async schedule(fn) {
-    if (this.queue.length >= this.maxQueue) {
-      const err = new Error("Rate limit queue full");
-      logWarn("OPENAI_QUEUE_FULL", err.message, { size: this.queue.length });
-      throw err;
-    }
-    return new Promise((resolve, reject) => {
-      this.queue.push({ fn, resolve, reject });
-      this._dequeue();
-    });
-  }
-
-  _dequeue() {
-    if (this.active >= this.concurrency) return;
-    if (!this.queue.length) return;
-
-    const now = Date.now();
-    const nextSlot = Math.min(...this.slotTimes);
-    const nextAllowed = Math.max(nextSlot, this.globalReset);
-    const wait = Math.max(0, nextAllowed - now);
-    if (wait > 0) {
-      setTimeout(() => this._dequeue(), wait);
-      return;
-    }
-
-    const idx = this.slotTimes.indexOf(nextSlot);
-    const task = this.queue.shift();
-    this.active++;
-    this.slotTimes[idx] = now + this.intervalMs;
-
-    Promise.resolve()
-      .then(task.fn)
-      .then(res => {
-        this.active--;
-        task.resolve(res);
-        this._dequeue();
-      })
-      .catch(err => {
-        this.active--;
-        task.reject(err);
-        this._dequeue();
-      });
-
-    if (this.active < this.concurrency && this.queue.length) {
-      this._dequeue();
-    }
-  }
-}
-
-const openAIScheduler = new RateLimitScheduler();
-
-async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onResponse) {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const resp = scheduler
-        ? await scheduler.schedule(() => fetchFn(url, options))
-        : await fetchFn(url, options);
-
-      if (onResponse) {
-        try { onResponse(resp); } catch {}
-      }
-
-
-      if (resp.ok) return resp;
-
-      const status = resp.status;
-      if ((status === 429 || status >= 500) && attempt < maxRetries) {
-        const ra = Number(resp.headers.get("retry-after"));
-        let wait = ra ? ra * 1000 : Math.pow(2, attempt) * 1000;
-        if (scheduler) {
-          const extra = scheduler.nextAllowed - Date.now();
-          if (extra > wait) wait = extra;
-        }
-        const jitter = Math.random() * 1000;
-        logWarn("OPENAI_RETRY", `Retrying after HTTP ${status}`, { attempt: attempt + 1, wait });
-        await new Promise(r => setTimeout(r, wait + jitter));
-
-        continue;
-      }
-
-      const errText = await resp.text().catch(() => "");
-      throw new Error(`HTTP ${status}: ${errText}`);
-    } catch (err) {
-      if (attempt >= maxRetries) {
-        logError("OPENAI_FETCH_FAILED", err.message, err);
-        throw err;
-      }
-      let wait = Math.pow(2, attempt) * 1000;
-      if (scheduler) {
-        const extra = scheduler.nextAllowed - Date.now();
-        if (extra > wait) wait = extra;
-      }
-      const jitter = Math.random() * 1000;
-      logWarn("OPENAI_RETRY", err.message, { attempt: attempt + 1, wait });
-      await new Promise(r => setTimeout(r, wait + jitter));
-
-    }
-  }
-  throw new Error("Failed after retries");
-}
-
-async function rewordWithAI(text, tone) {
-  const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
-  if (!key || !text) return text;
-
-  // guard against extremely large inputs that could exhaust memory
-  const MAX_CHARS = Number(process.env.AI_MAX_CHARS || 100_000);
-  if (text.length > MAX_CHARS) {
-    logWarn("AI_INPUT_TRUNCATED", "Truncating AI input", { size: text.length });
-    text = text.slice(0, MAX_CHARS);
-  }
-
-  const CHUNK_SIZE = Number(process.env.AI_CHUNK_SIZE || 2000);
-  const MAX_TOKENS = Number(process.env.AI_MAX_TOKENS || 256);
-  let output = "";
-  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
-    const segment = text.slice(i, i + CHUNK_SIZE);
-    const payload = {
-      model: "gpt-4.1-mini",
-      max_tokens: MAX_TOKENS,
-
-      stream: true,
-      messages: [
-        { role: "system", content: "You reword credit dispute statements." },
-        {
-          role: "user",
-          content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${segment}`,
-        },
-      ],
-    };
-
-    try {
-      const resp = await fetchWithRetries(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${key}`,
-          },
-          body: JSON.stringify(payload),
-        },
-        5,
-        openAIScheduler,
-        r => openAIScheduler.updateFromHeaders(r.headers)
-      );
-
-      let segOut = "";
-
-      const decoder = new TextDecoder();
-      let buffer = "";
-      for await (const streamChunk of resp.body) {
-        buffer += decoder.decode(streamChunk, { stream: true });
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop();
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line.startsWith("data:")) continue;
-          const data = line.slice(5).trim();
-          if (data === "[DONE]") break;
-          try {
-            const json = JSON.parse(data);
-            const token = json.choices?.[0]?.delta?.content;
-            if (token) segOut += token;
-          } catch {}
-        }
-        // prevent buffer from growing indefinitely in malformed streams
-        if (buffer.length > 10_000) buffer = buffer.slice(-1_000);
-      }
-      openAIScheduler.updateUsage(payload.max_tokens);
-      output += (segOut.trim() || segment).replace(/—/g, "-");
-    } catch (e) {
-      logError("AI_REWORD_FAILED", "OpenAI API error", e);
-      output += segment;
-    }
-  }
-
-
-  return output;
-}
 
 // periodically surface due letter reminders
 processAllReminders();
@@ -446,6 +193,7 @@ app.get(["/letters", "/letters/:jobId"], (_req, res) =>
   res.sendFile(path.join(PUBLIC_DIR, "letters.html"))
 );
 app.get("/library", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
+app.get("/tradelines", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
 app.get("/quiz", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
 app.get("/settings", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
 app.get("/portal/:id", (req, res) => {
@@ -463,13 +211,12 @@ app.get("/api/settings", (_req, res) => {
 
 app.post("/api/settings", (req, res) => {
   const {
-    openaiApiKey = "",
     hibpApiKey = "",
     rssFeedUrl = "",
     googleCalendarToken = "",
     googleCalendarId = "",
   } = req.body || {};
-  saveSettings({ openaiApiKey, hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId });
+  saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId });
 
   res.json({ ok: true });
 });
@@ -505,6 +252,15 @@ app.delete("/api/calendar/events/:id", async (req, res) => {
   try {
     await deleteCalendarEvent(req.params.id);
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/tradelines", async (_req, res) => {
+  try {
+    const tradelines = await scrapeTradelines();
+    res.json({ ok: true, tradelines });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -1062,6 +818,42 @@ async function hibpLookup(email) {
   }
 }
 
+async function scrapeTradelines() {
+  const resp = await fetchFn('https://tradelinesupply.com/pricing/');
+  const html = await resp.text();
+  const $ = cheerio.load(html);
+  const items = [];
+  $('tr').each((_, row) => {
+    const productTd = $(row).find('td.product_data');
+    const priceTd = $(row).find('td.product_price');
+    if (!productTd.length || !priceTd.length) return;
+    const bankName = (productTd.data('bankname') || '').toString().trim();
+    const creditLimitRaw = (productTd.data('creditlimit') || '').toString().replace(/[$,]/g, '');
+    const creditLimit = parseInt(creditLimitRaw, 10) || 0;
+    const dateOpened = (productTd.data('dateopened') || '').toString().trim();
+    const purchaseBy = (productTd.data('purchasebydate') || '').toString().trim();
+    const reportingPeriod = (productTd.data('reportingperiod') || '').toString().trim();
+    const priceText = priceTd.text().trim();
+    const match = /\$\s?(\d+(?:,\d{3})*(?:\.\d{2})?)/.exec(priceText);
+    if (!match) return;
+    const basePrice = parseFloat(match[1].replace(/,/g, ''));
+    let finalPrice;
+    if (basePrice < 500) finalPrice = basePrice + 100;
+    else if (basePrice <= 1000) finalPrice = basePrice + 200;
+    else finalPrice = basePrice + 300;
+    items.push({
+      buy_link: `/buy?bank=${encodeURIComponent(bankName)}&price=${finalPrice}`,
+      bank: bankName,
+      price: Math.round(finalPrice * 100) / 100,
+      limit: creditLimit,
+      age: dateOpened,
+      statement_date: purchaseBy,
+      reporting: reportingPeriod
+    });
+  });
+  return items;
+}
+
 function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, c => ({
     "&": "&amp;",
@@ -1279,20 +1071,6 @@ app.post("/api/generate", async (req,res)=>{
       breaches: consumer.breaches || []
     };
 
-    for (const sel of selections || []) {
-      if (sel.aiTone) {
-        const tl = reportWrap.data?.tradelines?.[sel.tradelineIndex];
-        if (tl && Array.isArray(sel.violationIdxs)) {
-          for (const vidx of sel.violationIdxs) {
-            const v = tl.violations?.[vidx];
-            if (v) {
-              v.title = await rewordWithAI(v.title || "", sel.aiTone);
-              if (v.detail) v.detail = await rewordWithAI(v.detail, sel.aiTone);
-            }
-          }
-        }
-      }
-    }
 
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
     if (personalInfo) {
