@@ -1,6 +1,5 @@
 /* public/settings.js */
 document.addEventListener('DOMContentLoaded', () => {
-  const openaiEl = document.getElementById('openaiKey');
   const hibpEl = document.getElementById('hibpKey');
   const rssEl = document.getElementById('rssFeedUrl');
   const gcalTokenEl = document.getElementById('gcalToken');
@@ -13,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const resp = await fetch('/api/settings');
       const data = await resp.json();
-      if (openaiEl) openaiEl.value = data.settings?.openaiApiKey || '';
       if (hibpEl) hibpEl.value = data.settings?.hibpApiKey || '';
       if (rssEl) rssEl.value = data.settings?.rssFeedUrl || '';
       if (gcalTokenEl) gcalTokenEl.value = data.settings?.googleCalendarToken || '';
@@ -27,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
       const body = {
-        openaiApiKey: openaiEl.value.trim(),
         hibpApiKey: hibpEl.value.trim(),
         rssFeedUrl: rssEl.value.trim(),
         googleCalendarToken: gcalTokenEl.value.trim(),
