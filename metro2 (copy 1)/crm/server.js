@@ -151,6 +151,7 @@ process.on("warning", warn => {
 // Basic resource monitoring to catch memory or CPU spikes
 const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
 const RESOURCE_CHECK_MS = Number(process.env.RESOURCE_CHECK_MS || 60_000);
+
 let lastCpu = process.cpuUsage();
 setInterval(() => {
   try {
@@ -168,6 +169,7 @@ setInterval(() => {
     logWarn("RESOURCE_MONITOR_FAILED", e.message);
   }
 }, RESOURCE_CHECK_MS);
+
 
 // Scheduler that respects OpenAI rate-limit headers
 class RateLimitScheduler {
@@ -188,6 +190,7 @@ class RateLimitScheduler {
     this.globalReset = 0;
     this.maxConcurrency = Number(process.env.OPENAI_MAX_CONCURRENCY || Infinity);
     this.maxQueue = Number(process.env.OPENAI_MAX_QUEUE || 1000);
+
   }
 
   get nextAllowed(){
@@ -361,6 +364,7 @@ async function rewordWithAI(text, tone) {
     const payload = {
       model: "gpt-4.1-mini",
       max_tokens: MAX_TOKENS,
+
       stream: true,
       messages: [
         { role: "system", content: "You reword credit dispute statements." },
@@ -388,6 +392,7 @@ async function rewordWithAI(text, tone) {
       );
 
       let segOut = "";
+
       const decoder = new TextDecoder();
       let buffer = "";
       for await (const streamChunk of resp.body) {
@@ -415,6 +420,7 @@ async function rewordWithAI(text, tone) {
       output += segment;
     }
   }
+
 
   return output;
 }
