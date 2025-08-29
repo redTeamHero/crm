@@ -335,6 +335,11 @@ async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onRespo
 async function rewordWithAI(text, tone) {
   const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
   if (!key || !text) return text;
+  const CHUNK_SIZE = 2000;
+  const segments = [];
+  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+    segments.push(text.slice(i, i + CHUNK_SIZE));
+  }
 
   // guard against extremely large inputs that could exhaust memory
   const MAX_CHARS = Number(process.env.AI_MAX_CHARS || 100_000);
@@ -347,6 +352,7 @@ async function rewordWithAI(text, tone) {
   let output = "";
   for (let i = 0; i < text.length; i += CHUNK_SIZE) {
     const segment = text.slice(i, i + CHUNK_SIZE);
+
     const payload = {
       model: "gpt-4.1-mini",
       max_tokens: 256,
@@ -377,6 +383,7 @@ async function rewordWithAI(text, tone) {
       );
 
       let segOut = "";
+
       const decoder = new TextDecoder();
       let buffer = "";
       for await (const streamChunk of resp.body) {
@@ -406,6 +413,7 @@ async function rewordWithAI(text, tone) {
   }
 
   return output;
+
 }
 
 // periodically surface due letter reminders
