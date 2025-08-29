@@ -113,6 +113,33 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMessages();
   }
 
+  const eventList = document.getElementById('eventList');
+
+  async function renderEvents(){
+    if(!eventList) return;
+    try{
+      const resp = await fetch('/api/calendar/events');
+      if(!resp.ok) throw new Error('bad response');
+      const data = await resp.json();
+      const events = Array.isArray(data.events) ? data.events : [];
+      if(!events.length){
+        eventList.textContent = 'No events.';
+        return;
+      }
+      eventList.innerHTML = events.map(ev => {
+        const start = ev.start?.dateTime || ev.start?.date || '';
+        return `<div>${escapeHtml(ev.summary || '')} - ${escapeHtml(start)}</div>`;
+      }).join('');
+    }catch(e){
+      console.error('Failed to load events', e);
+      eventList.textContent = 'Failed to load events.';
+    }
+  }
+
+  if(eventList){
+    renderEvents();
+  }
+
   const noteEl = document.getElementById('dashNote');
   const titleEl = document.getElementById('dashNoteTitle');
   const selectEl = document.getElementById('noteSelect');
