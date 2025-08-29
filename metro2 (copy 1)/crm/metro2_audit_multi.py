@@ -300,7 +300,7 @@ def detect_furnisher_type(per_bureau):
     candidates = []
     for b in BUREAUS:
         d = per_bureau.get(b, {})
-        at = (d.get("account_type") or "" + " " + d.get("account_designator") or "").lower()
+        at = f"{d.get('account_type', '')} {d.get('account_designator', '')}".strip().lower()
         cls = (d.get("creditor_class") or "").lower()
         oc  = (d.get("original_creditor") or "").lower()
         if "student" in at or "education" in at or "student" in oc:

@@ -68,7 +68,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SETTINGS_PATH = path.join(__dirname, "settings.json");
-function loadSettings(){ return readJson(SETTINGS_PATH, { openaiApiKey: "", hibpApiKey: "" }); }
+function loadSettings(){ return readJson(SETTINGS_PATH, { openaiApiKey: "", hibpApiKey: "", rssFeedUrl: "https://hnrss.org/frontpage" }); }
 function saveSettings(data){ writeJson(SETTINGS_PATH, data); }
 
 async function detectChromium(){
@@ -378,8 +378,8 @@ app.get("/api/settings", (_req, res) => {
 });
 
 app.post("/api/settings", (req, res) => {
-  const { openaiApiKey = "", hibpApiKey = "" } = req.body || {};
-  saveSettings({ openaiApiKey, hibpApiKey });
+  const { openaiApiKey = "", hibpApiKey = "", rssFeedUrl = "" } = req.body || {};
+  saveSettings({ openaiApiKey, hibpApiKey, rssFeedUrl });
   res.json({ ok: true });
 });
 

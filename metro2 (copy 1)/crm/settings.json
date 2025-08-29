@@ -1,5 +1,6 @@
 {
   "openaiApiKey": "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",
-  "hibpApiKey": "63a05b3069ff4e6ba75ceb1112885749"
+  "hibpApiKey": "63a05b3069ff4e6ba75ceb1112885749",
+  "rssFeedUrl": "https://hnrss.org/frontpage"
 }
 
