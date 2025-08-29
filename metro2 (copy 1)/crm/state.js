@@ -3,6 +3,7 @@
 
 import fs from "fs";
 import path from "path";
+import { createEvent as createCalendarEvent } from "./googleCalendar.js";
 
 const DATA_DIR = path.resolve("./data");
 const STATE_PATH = path.join(DATA_DIR, "state.json");
@@ -66,13 +67,17 @@ export function listConsumerState(consumerId) {
 export function addEvent(consumerId, type, payload = {}) {
   const st = loadState();
   const c = ensureConsumer(st, consumerId);
-  c.events.unshift({
+  const ev = {
     id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
     type,
     payload,
     at: new Date().toISOString(),
-  });
+  };
+  c.events.unshift(ev);
   saveState(st);
+  if (payload?.calendar) {
+    createCalendarEvent(payload.calendar).catch(() => {});
+  }
 }
 
 export function addFileMeta(consumerId, fileRec) {

@@ -159,6 +159,87 @@ function mergeBureauViolations(vs){
   }));
 }
 
+
+function dedupeTradelines(lines){
+  const seen = new Set();
+  return (lines||[]).filter(tl=>{
+    const name = (tl.meta?.creditor || "").trim();
+    if (!name || name.toLowerCase() === "risk factors") return false;
+    const per = tl.per_bureau || {};
+    const hasData = ["TransUnion","Experian","Equifax"].some(b => Object.keys(per[b]||{}).length);
+    const hasViolations = (tl.violations||[]).length > 0;
+    if (!hasData && !hasViolations) return false;
+    const key = [
+      name,
+      tl.per_bureau?.TransUnion?.account_number || "",
+      tl.per_bureau?.Experian?.account_number || "",
+      tl.per_bureau?.Equifax?.account_number || ""
+    ].join("|");
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mergeBureauViolations(vs){
+  const map = new Map();
+  (vs||[]).forEach(v=>{
+    const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
+    const base = (m[1] || v.title || "").trim();
+    const bureau = m[2];
+    const key = `${v.category||""}|${base}`;
+    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+    const entry = map.get(key);
+    if(bureau) entry.bureaus.add(bureau);
+    if(v.detail) entry.details.add(v.detail.replace(/\s*\((TransUnion|Experian|Equifax)\)$/,""));
+    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+  });
+  return Array.from(map.values()).map(e=>({
+    category:e.category,
+    title: e.bureaus.size ? `${e.title} (${Array.from(e.bureaus).join(', ')})` : e.title,
+    detail: Array.from(e.details).join(' '),
+    severity: e.severity
+  }));
+}
+
+
+function dedupeTradelines(lines){
+  const seen = new Set();
+  return (lines||[]).filter(tl=>{
+    const key = [
+      tl.meta?.creditor || "",
+      tl.per_bureau?.TransUnion?.account_number || "",
+      tl.per_bureau?.Experian?.account_number || "",
+      tl.per_bureau?.Equifax?.account_number || ""
+    ].join("|");
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mergeBureauViolations(vs){
+  const map = new Map();
+  (vs||[]).forEach(v=>{
+    const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
+    const base = (m[1] || v.title || "").trim();
+    const bureau = m[2];
+    const key = `${v.category||""}|${base}`;
+    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+    const entry = map.get(key);
+    if(bureau) entry.bureaus.add(bureau);
+    if(v.detail) entry.details.add(v.detail.replace(/\s*\((TransUnion|Experian|Equifax)\)$/,""));
+    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+  });
+  return Array.from(map.values()).map(e=>({
+    category:e.category,
+    title: e.bureaus.size ? `${e.title} (${Array.from(e.bureaus).join(', ')})` : e.title,
+    detail: Array.from(e.details).join(' '),
+    severity: e.severity
+  }));
+}
+
+
 function deriveTags(tl){
   const tags = new Set();
   const name = (tl.meta?.creditor || "");
@@ -185,6 +266,8 @@ function deriveTags(tl){
   if (tags.size === 0) tags.add("Other");
   return Array.from(tags).map(t => t.trim());
 }
+
+
 
 function renderFilterBar(){
   const bar = $("#filterBar"); bar.innerHTML = "";
@@ -316,6 +399,7 @@ function renderTradelines(tradelines){
     // violations list
     const vWrap = node.querySelector(".tl-violations");
     const vs = mergeBureauViolations(tl.violations || []);
+
     vWrap.innerHTML = vs.length
       ? vs.map((v, vidx) => `
         <label class="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">

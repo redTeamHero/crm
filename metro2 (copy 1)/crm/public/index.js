@@ -399,6 +399,7 @@ function dedupeTradelines(lines){
     if (!hasData && !hasViolations) return false;
     const key = [
       name,
+
       tl.per_bureau?.TransUnion?.account_number || "",
       tl.per_bureau?.Experian?.account_number || "",
       tl.per_bureau?.Equifax?.account_number || ""
@@ -429,6 +430,7 @@ function mergeBureauViolations(vs){
     severity: e.severity
   }));
 }
+
 function deriveTags(tl){
   const tags = new Set();
   const name = (tl.meta?.creditor || "");
