@@ -370,11 +370,12 @@ async function loadReportJSON(){
   const data = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`);
   if(!data?.ok) return showErr(data?.error || "Failed to load report JSON.");
   CURRENT_REPORT = data.report;
+  CURRENT_REPORT.tradelines = dedupeTradelines(CURRENT_REPORT.tradelines || []);
   tlPage = 1;
   hiddenTradelines.clear();
   Object.keys(selectionState).forEach(k=> delete selectionState[k]);
   renderFilterBar();
-  renderTradelines(CURRENT_REPORT.tradelines || []);
+  renderTradelines(CURRENT_REPORT.tradelines);
   renderCollectors(CURRENT_REPORT.creditor_contacts || []);
 
 }
@@ -387,6 +388,41 @@ const selectionState = {};
 
 function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); }
 function maybeNum(x){ return typeof x === "number" ? x : null; }
+function dedupeTradelines(lines){
+  const seen = new Set();
+  return (lines||[]).filter(tl=>{
+    const key = [
+      tl.meta?.creditor || "",
+      tl.per_bureau?.TransUnion?.account_number || "",
+      tl.per_bureau?.Experian?.account_number || "",
+      tl.per_bureau?.Equifax?.account_number || ""
+    ].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mergeBureauViolations(vs){
+  const map = new Map();
+  (vs||[]).forEach(v=>{
+    const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
+    const base = (m[1] || v.title || "").trim();
+    const bureau = m[2];
+    const key = `${v.category||""}|${base}`;
+    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+    const entry = map.get(key);
+    if(bureau) entry.bureaus.add(bureau);
+    if(v.detail) entry.details.add(v.detail.replace(/\s*\((TransUnion|Experian|Equifax)\)$/,""));
+    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+  });
+  return Array.from(map.values()).map(e=>({
+    category:e.category,
+    title: e.bureaus.size ? `${e.title} (${Array.from(e.bureaus).join(', ')})` : e.title,
+    detail: Array.from(e.details).join(' '),
+    severity: e.severity
+  }));
+}
 function deriveTags(tl){
   const tags = new Set();
   const name = (tl.meta?.creditor || "");
@@ -410,7 +446,7 @@ function deriveTags(tl){
   if (medical.some(k => hasWord(name, k))) tags.add("Medical Bills");
 
   if (tags.size === 0) tags.add("Other");
-  return Array.from(tags);
+  return Array.from(tags).map(t => t.trim());
 }
 
 function renderFilterBar(){
@@ -482,7 +518,7 @@ function autoSelectBestViolation(card){
   const idx = Number(card.dataset.index);
   const tl = CURRENT_REPORT?.tradelines?.[idx];
   if (!tl) return;
-  const vs = tl.violations || [];
+  const vs = mergeBureauViolations(tl.violations || []);
   if (!vs.length) return;
   let bestIdx = 0;
   let bestSeverity = -Infinity;
@@ -545,7 +581,7 @@ function renderTradelines(tradelines){
     const vWrap = node.querySelector(".tl-violations");
     const prevBtn = node.querySelector(".tl-reason-prev");
     const nextBtn = node.querySelector(".tl-reason-next");
-    const vs = tl.violations || [];
+    const vs = mergeBureauViolations(tl.violations || []);
     const maxSeverity = vs.reduce((m, v) => Math.max(m, v.severity || 0), 0);
     if (maxSeverity) card.classList.add(`severity-${maxSeverity}`);
     let vStart = 0;
@@ -690,7 +726,7 @@ function renderPB(pb){
 }
 function buildZoomHTML(tl){
   const per = tl.per_bureau || {};
-  const vlist = (tl.violations||[]).map(v=>`
+  const vlist = mergeBureauViolations(tl.violations||[]).map(v=>`
     <li class="mb-2">
       <div class="font-medium">${escapeHtml(v.category||"")} – ${escapeHtml(v.title||"")}</div>
       ${v.detail? `<div class="text-gray-600">${escapeHtml(v.detail)}</div>` : ""}

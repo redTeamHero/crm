@@ -108,13 +108,50 @@ async function loadReportJSON(){
   const data = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`).catch(()=>({}));
   if(!data?.ok) return showErr(data?.error || "Failed to load report");
   CURRENT_REPORT = data.report;
+  CURRENT_REPORT.tradelines = dedupeTradelines(CURRENT_REPORT.tradelines || []);
 
   renderFilterBar();
-  renderTradelines(CURRENT_REPORT.tradelines || []);
+  renderTradelines(CURRENT_REPORT.tradelines);
 }
 
 function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); }
 function maybeNum(x){ return typeof x==="number" ? x : null; }
+
+function dedupeTradelines(lines){
+  const seen = new Set();
+  return (lines||[]).filter(tl=>{
+    const key = [
+      tl.meta?.creditor || "",
+      tl.per_bureau?.TransUnion?.account_number || "",
+      tl.per_bureau?.Experian?.account_number || "",
+      tl.per_bureau?.Equifax?.account_number || ""
+    ].join("|");
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function mergeBureauViolations(vs){
+  const map = new Map();
+  (vs||[]).forEach(v=>{
+    const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
+    const base = (m[1] || v.title || "").trim();
+    const bureau = m[2];
+    const key = `${v.category||""}|${base}`;
+    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+    const entry = map.get(key);
+    if(bureau) entry.bureaus.add(bureau);
+    if(v.detail) entry.details.add(v.detail.replace(/\s*\((TransUnion|Experian|Equifax)\)$/,""));
+    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+  });
+  return Array.from(map.values()).map(e=>({
+    category:e.category,
+    title: e.bureaus.size ? `${e.title} (${Array.from(e.bureaus).join(', ')})` : e.title,
+    detail: Array.from(e.details).join(' '),
+    severity: e.severity
+  }));
+}
 
 function deriveTags(tl){
   const tags = new Set();
@@ -140,7 +177,7 @@ function deriveTags(tl){
   if (medical.some(k => hasWord(name, k))) tags.add("Medical Bills");
 
   if (tags.size === 0) tags.add("Other");
-  return Array.from(tags);
+  return Array.from(tags).map(t => t.trim());
 }
 
 function renderFilterBar(){
@@ -272,7 +309,7 @@ function renderTradelines(tradelines){
 
     // violations list
     const vWrap = node.querySelector(".tl-violations");
-    const vs = tl.violations || [];
+    const vs = mergeBureauViolations(tl.violations || []);
     vWrap.innerHTML = vs.length
       ? vs.map((v, vidx) => `
         <label class="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer">
