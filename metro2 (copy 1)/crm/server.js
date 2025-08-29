@@ -36,6 +36,12 @@ import {
   addReminder,
   processAllReminders,
 } from "./state.js";
+function injectStyle(html, css){
+  if(/<head[^>]*>/i.test(html)){
+    return html.replace(/<\/head>/i, `<style>${css}</style></head>`);
+  }
+  return `<style>${css}</style>` + html;
+}
 async function generateOcrPdf(html){
   const noise = "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAqElEQVR4nM1XSRKAMAjrO/n/Qzw5HpQlJNTm5EyRUBpDXeuBrRjZehteYpSwEm9o4u6uoffMeUaSjx1PFdsKiIjKRajVDhMr29UWW7b2q6ioYiQiYYm2wmsXYi6psajssFJIGDM+rRQem4mwXaTSRF45pp1J/sVQFwhW0SODItoRens5xqBcZCI58rpzQzaVFPFUwqjNmX9/5lXM4LGz7xRAER/xf0WRXElyH0vwJrWaAAAAAElFTkSuQmCC";
   const ocrCss = `
@@ -52,7 +58,7 @@ async function generateOcrPdf(html){
         url('data:image/png;base64,${noise}');
       background-size:32px 32px,32px 32px,200px 200px,30px 30px;
     }`;
-  const injected = html.replace('</head>', `<style>${ocrCss}</style></head>`);
+  const injected = injectStyle(html, ocrCss);
   return await htmlToPdfBuffer(injected);
 
 }
@@ -149,7 +155,12 @@ class RateLimitScheduler {
     this.intervalMs = 0;
     this.active = 0;
     this.queue = [];
-    this.nextAllowed = 0;
+    this.slotTimes = [0];
+    this.globalReset = 0;
+  }
+
+  get nextAllowed(){
+    return Math.max(Math.min(...this.slotTimes), this.globalReset);
   }
 
   updateFromHeaders(h) {
@@ -164,19 +175,22 @@ class RateLimitScheduler {
     if (!isNaN(lt)) this.limitTokens = lt;
     if (!isNaN(rr)) this.remainingRequests = rr;
     if (!isNaN(rt)) this.remainingTokens = rt;
-    if (!isNaN(rrs)) this.resetRequests = rrs * 1000;
-    if (!isNaN(rts)) this.resetTokens = rts * 1000;
+    if (!isNaN(rrs)) this.resetRequests = Date.now() + rrs * 1000;
+    if (!isNaN(rts)) this.resetTokens = Date.now() + rts * 1000;
 
-    // recompute safe concurrency and spacing
     this.intervalMs = isFinite(this.limitRequests) ? 60000 / this.limitRequests : 0;
     const safeConcurrency = Math.min(
       this.limitRequests,
       Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
     );
     this.concurrency = Math.max(1, safeConcurrency);
+    while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
+    if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
 
     if (this.remainingRequests <= 0 || this.remainingTokens <= 0) {
-      this.nextAllowed = Math.max(this.resetRequests, this.resetTokens);
+      this.globalReset = Math.max(this.resetRequests, this.resetTokens);
+    } else {
+      this.globalReset = 0;
     }
   }
 
@@ -189,6 +203,8 @@ class RateLimitScheduler {
         Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
       );
       this.concurrency = Math.max(1, safeConcurrency);
+    while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
+    if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
     }
   }
 
@@ -204,15 +220,18 @@ class RateLimitScheduler {
     if (!this.queue.length) return;
 
     const now = Date.now();
-    const wait = Math.max(0, this.nextAllowed - now);
+    const nextSlot = Math.min(...this.slotTimes);
+    const nextAllowed = Math.max(nextSlot, this.globalReset);
+    const wait = Math.max(0, nextAllowed - now);
     if (wait > 0) {
       setTimeout(() => this._dequeue(), wait);
       return;
     }
 
+    const idx = this.slotTimes.indexOf(nextSlot);
     const task = this.queue.shift();
     this.active++;
-    this.nextAllowed = now + this.intervalMs;
+    this.slotTimes[idx] = now + this.intervalMs;
 
     Promise.resolve()
       .then(task.fn)
@@ -226,6 +245,10 @@ class RateLimitScheduler {
         task.reject(err);
         this._dequeue();
       });
+
+    if (this.active < this.concurrency && this.queue.length) {
+      this._dequeue();
+    }
   }
 }
 

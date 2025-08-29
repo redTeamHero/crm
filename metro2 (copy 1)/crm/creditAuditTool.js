@@ -60,7 +60,8 @@ export function normalizeReport(raw, selections = null){
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });
   } else {
-    raw.tradelines.forEach(tl=>{
+    const tradelines = Array.isArray(raw.tradelines) ? raw.tradelines : [];
+    tradelines.forEach(tl=>{
       const bureaus = {};
       for(const [bureau, data] of Object.entries(tl.per_bureau||{})){
         bureaus[bureau] = data;
@@ -202,11 +203,11 @@ export async function savePdf(html){
   await fs.mkdir(outDir, { recursive: true });
   const filename = `credit-repair-audit-${Date.now()}.pdf`;
   const outPath = path.join(outDir, filename);
-
+  let browser;
   try{
     const execPath = await detectChromium();
     console.log("Launching Chromium for PDF generation", execPath || "(default)");
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless:true,
       args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"],
       executablePath: execPath || undefined
@@ -214,7 +215,6 @@ export async function savePdf(html){
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'load' });
     await page.pdf({ path: outPath, format:'Letter', printBackground:true, margin:{top:'1in',bottom:'1in',left:'1in',right:'1in'} });
-    await browser.close();
     console.log("PDF generated at", outPath);
     return { path: outPath, url: `/reports/${filename}` };
   }catch(err){
@@ -223,6 +223,8 @@ export async function savePdf(html){
     await fs.writeFile(htmlPath, html, 'utf-8');
     console.log("HTML fallback saved to", htmlPath);
     return { path: htmlPath, url: `/reports/${path.basename(htmlPath)}`, warning: err.message };
+  } finally {
+    if (browser) await browser.close();
   }
 }
 
