@@ -336,19 +336,6 @@ async function rewordWithAI(text, tone) {
   const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
   if (!key || !text) return text;
   const CHUNK_SIZE = 2000;
-  const segments = [];
-  for (let i = 0; i < text.length; i += CHUNK_SIZE) {
-    segments.push(text.slice(i, i + CHUNK_SIZE));
-  }
-
-  // guard against extremely large inputs that could exhaust memory
-  const MAX_CHARS = Number(process.env.AI_MAX_CHARS || 100_000);
-  if (text.length > MAX_CHARS) {
-    logWarn("AI_INPUT_TRUNCATED", "Truncating AI input", { size: text.length });
-    text = text.slice(0, MAX_CHARS);
-  }
-
-  const CHUNK_SIZE = 2000;
   let output = "";
   for (let i = 0; i < text.length; i += CHUNK_SIZE) {
     const segment = text.slice(i, i + CHUNK_SIZE);
