@@ -210,53 +210,5 @@ if(preview){
   });
 }
 
-// draggable panel
-const panel = document.getElementById('templatePanel');
-const handle = document.getElementById('dragBubble');
-if(panel && handle){
-  let offsetX = 0, offsetY = 0, dragging = false;
-
-  function startDrag(x, y){
-    dragging = true;
-    offsetX = x - panel.offsetLeft;
-    offsetY = y - panel.offsetTop;
-    document.body.style.userSelect = 'none';
-  }
-
-  function moveDrag(x, y){
-    if(!dragging) return;
-    panel.style.left = (x - offsetX) + 'px';
-    panel.style.top = (y - offsetY) + 'px';
-  }
-
-  function endDrag(){
-    dragging = false;
-    document.body.style.userSelect = '';
-  }
-
-  handle.addEventListener('mousedown', e => {
-    startDrag(e.clientX, e.clientY);
-  });
-  handle.addEventListener('touchstart', e => {
-    const t = e.touches[0];
-    if(t){
-      startDrag(t.clientX, t.clientY);
-      e.preventDefault();
-    }
-  }, { passive:false });
-
-  window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
-  window.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-    if(t){
-      moveDrag(t.clientX, t.clientY);
-      e.preventDefault();
-    }
-  }, { passive:false });
-
-  window.addEventListener('mouseup', endDrag);
-  window.addEventListener('touchend', endDrag);
-}
-
 loadLibrary();
 
