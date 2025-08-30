@@ -39,12 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadMembers() {
     if (!auth || !listEl) return;
+    if (addBtn) addBtn.disabled = true;
     try {
       const res = await fetch('/api/users', {
         headers: { Authorization: 'Basic ' + auth }
       });
+      if (res.status === 401 || res.status === 403) {
+        alert('You are not authorized to add team members');
+        return;
+      }
       const data = await res.json();
       members = data.users || [];
+      if (addBtn) addBtn.disabled = false;
       const teamData = members.map(m => ({ name: m.username, role: m.role, email: m.email }));
       localStorage.setItem('teamMembers', JSON.stringify(teamData));
     } catch {
@@ -71,32 +77,40 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const addBtn = document.getElementById('addTeamMember');
+  if (addBtn) addBtn.disabled = true;
   if (addBtn) {
     addBtn.addEventListener('click', async () => {
       const uEl = document.getElementById('tmUser');
       const pEl = document.getElementById('tmPass');
       if (!uEl.value.trim() || !auth) return;
-      const perms = [];
-      if (document.getElementById('permContacts').checked) perms.push('contacts');
-      if (document.getElementById('permTasks').checked) perms.push('tasks');
-      if (document.getElementById('permReports').checked) perms.push('reports');
-      await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Basic ' + auth
-        },
-        body: JSON.stringify({
-          username: uEl.value.trim(),
-          password: pEl.value,
-          role: 'member',
-          permissions: perms
-        })
-      });
-      // Generate shareable link that preloads credentials via ?auth param
-      const link = `${location.origin}/dashboard?auth=${btoa(`${uEl.value.trim()}:${pEl.value}`)}`;
-      // Offer the link for copying/sharing
-      prompt('Share this link with the new team member:', link);
+      const body = { username: uEl.value.trim() };
+      if (pEl.value) body.password = pEl.value;
+      let res;
+      try {
+        res = await fetch('/api/team-members', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Basic ' + auth
+          },
+          body: JSON.stringify(body)
+        });
+      } catch {
+        alert('Network error while creating team member');
+        return;
+      }
+      if (res.status === 401 || res.status === 403) {
+        alert('You are not authorized to add team members');
+        addBtn.disabled = true;
+        return;
+      }
+      if (!res.ok) {
+        alert('Failed to create team member');
+        return;
+      }
+      const { member } = await res.json();
+      const link = `${location.origin}/team/${member.token}`;
+      prompt(`Share this link with the new team member:\n${link}\nInitial password: ${member.password}`, link);
 
       uEl.value = '';
       pEl.value = '';
