@@ -304,7 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     tradelineList.innerHTML = data.map(t=>`
-      <div class="flex items-center justify-between p-2 border rounded">
+      <div class="tradeline-item flex items-center justify-between p-2">
+
         <div>
           <div class="font-medium">${t.bank}</div>
           <div class="text-xs muted">${t.age} | $${t.limit} limit</div>
@@ -410,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
           messageList.innerHTML = msgs.map(m => {
             const from = m.payload?.from === 'host' ? 'msg-host' : 'msg-client';
             const when = new Date(m.at).toLocaleString();
-            return `<div class="${from} p-2 rounded"><div class="text-xs muted">${when}</div><div>${m.payload?.text||''}</div></div>`;
+            return `<div class="message ${from}"><div class="text-xs muted">${when}</div><div>${esc(m.payload?.text||'')}</div></div>`;
           }).join('');
         }
       })
