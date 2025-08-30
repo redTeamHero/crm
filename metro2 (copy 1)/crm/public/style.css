@@ -59,7 +59,7 @@ body {
 #themePalette {
   position: fixed;
   top: 50%;
-  right: 8px;
+  left: 8px;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
@@ -78,6 +78,7 @@ body {
 }
 #themePalette .palette-controls { display: none; }
 #themePalette:not(.collapsed) .palette-controls {
+
   display: flex;
   align-items: center;
   gap: 8px;
