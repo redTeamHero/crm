@@ -269,7 +269,12 @@ app.get("/portal/:id", (req, res) => {
   const consumer = db.consumers.find(c => c.id === req.params.id);
   if (!consumer) return res.status(404).send("Portal not found");
   const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
-  const html = tmpl.replace(/{{name}}/g, consumer.name);
+  let html = tmpl.replace(/{{name}}/g, consumer.name);
+  if (consumer.creditScore) {
+    const scoreJson = JSON.stringify(consumer.creditScore);
+    const script = `\n<script>localStorage.setItem('creditScore', ${JSON.stringify(scoreJson)});</script>`;
+    html = html.replace('</body>', `${script}\n</body>`);
+  }
   res.send(html);
 });
 
@@ -499,6 +504,25 @@ async function runPythonAnalyzer(htmlContent){
       finally{ try{ await fs.promises.rm(tmpDir,{recursive:true,force:true}); }catch{} }
     });
   });
+}
+
+// Attempt to pull credit scores from raw HTML uploads so the client portal
+// can display them without requiring additional manual input. The format of
+// consumer credit reports varies, but typically the bureau name appears near a
+// three-digit score. This helper scans the HTML text for each bureau and
+// returns any score it finds.
+function extractCreditScores(html){
+  const scores = {};
+  const patterns = {
+    transunion: /transunion[^0-9]{0,100}(\d{3})/i,
+    experian: /experian[^0-9]{0,100}(\d{3})/i,
+    equifax: /equifax[^0-9]{0,100}(\d{3})/i,
+  };
+  for(const [key, re] of Object.entries(patterns)){
+    const m = html.match(re);
+    if(m) scores[key] = Number(m[1]);
+  }
+  return scores;
 }
 
 // =================== Consumers ===================
@@ -938,7 +962,12 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });
 
   try{
-    const analyzed = await runPythonAnalyzer(req.file.buffer.toString("utf-8"));
+    const htmlText = req.file.buffer.toString("utf-8");
+    const analyzed = await runPythonAnalyzer(htmlText);
+    const scores = extractCreditScores(htmlText);
+    if (Object.keys(scores).length) {
+      consumer.creditScore = { ...consumer.creditScore, ...scores };
+    }
     // compare bureau-reported personal info against consumer record
     const normalize = s => (s || "").toString().trim().toLowerCase();
     const mismatches = {};
