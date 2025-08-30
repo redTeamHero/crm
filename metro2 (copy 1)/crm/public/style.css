@@ -59,7 +59,7 @@ body {
 #themePalette {
   position: fixed;
   top: 50%;
-  right: 8px;
+  left: 8px;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
@@ -78,6 +78,7 @@ body {
 }
 #themePalette.collapsed .palette-controls { display: none; }
 #themePalette .palette-controls {
+
   display: flex;
   align-items: center;
   gap: 8px;
@@ -208,14 +209,11 @@ body.voice-active #voiceNotes{display:block;}
   accent-color: var(--green);
 }
 
-#host-nav,#team-nav{position:fixed;left:0;right:0;}
+#host-nav,#team-nav{position:sticky;left:0;right:0;}
 #host-nav{top:0;z-index:50;}
 #team-nav{top:0;z-index:40;}
 #host-nav + #team-nav{top:60px;}
 body{padding-top:0;}
-body:has(#host-nav){padding-top:60px;}
-body:has(#team-nav){padding-top:60px;}
-body:has(#host-nav + #team-nav){padding-top:120px;}
 
 
 /* Violation severity styling */
