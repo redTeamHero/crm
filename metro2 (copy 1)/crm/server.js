@@ -75,6 +75,7 @@ function loadSettings(){
     rssFeedUrl: "https://hnrss.org/frontpage",
     googleCalendarToken: "",
     googleCalendarId: "",
+    stripeApiKey: "",
   });
 }
 
@@ -115,6 +116,12 @@ try {
   nodemailer = require("nodemailer");
 } catch (e) {
   console.warn("Nodemailer not installed");
+}
+let StripeLib = null;
+try {
+  StripeLib = require("stripe");
+} catch (e) {
+  console.warn("Stripe not installed");
 }
 
 const app = express();
@@ -235,6 +242,38 @@ app.get("/portal/:id", (req, res) => {
   res.send(html);
 });
 
+app.get("/buy", async (req, res) => {
+  const { bank = "", price = "" } = req.query || {};
+  const settings = loadSettings();
+  if (!StripeLib || !settings.stripeApiKey) {
+    return res.status(500).send("Stripe not configured");
+  }
+  const amt = Math.round(parseFloat(price) * 100);
+  if (!amt) return res.status(400).send("Invalid price");
+  try {
+    const stripe = new StripeLib(settings.stripeApiKey);
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: { name: `${bank} Tradeline` },
+            unit_amount: amt,
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${req.protocol}://${req.get('host')}/?success=1`,
+      cancel_url: `${req.protocol}://${req.get('host')}/?canceled=1`,
+    });
+    res.redirect(303, session.url);
+  } catch (e) {
+    console.error("Stripe checkout error", e);
+    res.status(500).send("Checkout failed");
+  }
+});
+
 app.get("/api/settings", (_req, res) => {
   res.json({ ok: true, settings: loadSettings() });
 });
@@ -245,8 +284,9 @@ app.post("/api/settings", (req, res) => {
     rssFeedUrl = "",
     googleCalendarToken = "",
     googleCalendarId = "",
+    stripeApiKey = "",
   } = req.body || {};
-  saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId });
+  saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId, stripeApiKey });
 
   res.json({ ok: true });
 });

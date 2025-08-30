@@ -2,7 +2,8 @@
   "hibpApiKey": "63a05b3069ff4e6ba75ceb1112885749",
   "rssFeedUrl": "https://hnrss.org/frontpage",
   "googleCalendarToken": "",
-  "googleCalendarId": ""
+  "googleCalendarId": "",
+  "stripeApiKey": ""
 
 }
 

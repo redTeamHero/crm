@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const rssEl = document.getElementById('rssFeedUrl');
   const gcalTokenEl = document.getElementById('gcalToken');
   const gcalIdEl = document.getElementById('gcalId');
+  const stripeEl = document.getElementById('stripeKey');
 
   const saveBtn = document.getElementById('saveSettings');
   const msgEl = document.getElementById('saveMsg');
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (rssEl) rssEl.value = data.settings?.rssFeedUrl || '';
       if (gcalTokenEl) gcalTokenEl.value = data.settings?.googleCalendarToken || '';
       if (gcalIdEl) gcalIdEl.value = data.settings?.googleCalendarId || '';
+      if (stripeEl) stripeEl.value = data.settings?.stripeApiKey || '';
 
     } catch (e) {
       console.error('Failed to load settings', e);
@@ -28,7 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
         hibpApiKey: hibpEl.value.trim(),
         rssFeedUrl: rssEl.value.trim(),
         googleCalendarToken: gcalTokenEl.value.trim(),
-        googleCalendarId: gcalIdEl.value.trim()
+        googleCalendarId: gcalIdEl.value.trim(),
+        stripeApiKey: stripeEl.value.trim()
 
       };
       try {
