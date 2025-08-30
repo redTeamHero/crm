@@ -104,7 +104,8 @@ function recommendAction(issueTitle){
 // Build HTML report mimicking uploaded audit structure with bureau comparison
 export function renderHtml(report, consumerName = "Consumer"){
   const accountSections = report.accounts.map(acc => {
-    const bureaus = Object.keys(acc.bureaus || {});
+    const bureauData = acc.bureaus || {};
+    const bureaus = Object.keys(bureauData);
     const fields = [
       ["account_number", "Account #"],
       ["account_type", "Account Type"],
@@ -135,6 +136,11 @@ export function renderHtml(report, consumerName = "Consumer"){
       .sort((a,b)=> (a.bureau||'').localeCompare(b.bureau||''))
       .map(i => {
         if(!i || !i.title) return "";
+        if(i.bureau !== 'All Bureaus'){
+          const info = bureauData[i.bureau];
+          const hasData = info && Object.values(info).some(v => v !== "" && v != null);
+          if(!hasData) return "";
+        }
         const action = recommendAction(i.title);
         return `<li><strong>${escapeHtml(i.bureau)}</strong>: ${escapeHtml(i.title)} - This violates Metro 2 standard because ${escapeHtml(i.detail || "")}. It also violates FCRA ${escapeHtml(i.fcra)} and FDCPA ${escapeHtml(i.fdcpa)}. ${escapeHtml(action)}</li>`;
 
