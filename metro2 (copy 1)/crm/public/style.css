@@ -88,6 +88,12 @@ body {
   border: 2px solid #fff;
   cursor: pointer;
 }
+#themePalette .alpha-slider{
+  -webkit-appearance:none;
+  width:100px;
+  transform:rotate(-90deg);
+}
+#themePalette.collapsed .alpha-slider{display:none;}
 #themePalette .mic {
   width:32px;
   height:32px;
