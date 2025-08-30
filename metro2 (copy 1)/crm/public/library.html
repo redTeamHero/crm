@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/style.css" />
   <style>
-    #templatePanel{position:fixed;top:40px;left:40px;z-index:40;}
+    #templatePanel{position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:40;width:90vw;max-width:1100px;}
     .drag-bubble{width:20px;height:20px;border-radius:50%;background:#d1d5db;position:absolute;top:-10px;right:-10px;cursor:grab;box-shadow:0 2px 4px rgba(0,0,0,0.2);}
   </style>
 </head>
@@ -53,18 +53,18 @@
         </div>
       </div>
       <div class="flex-1 space-y-2">
-        <input id="tplHeading" class="w-full border rounded px-2 py-1 text-sm" placeholder="Heading" />
-        <textarea id="tplIntro" class="w-full border rounded px-2 py-1 text-sm" placeholder="Intro"></textarea>
-        <textarea id="tplAsk" class="w-full border rounded px-2 py-1 text-sm" placeholder="Ask"></textarea>
-        <textarea id="tplAfter" class="w-full border rounded px-2 py-1 text-sm" placeholder="After Issues"></textarea>
-        <textarea id="tplEvidence" class="w-full border rounded px-2 py-1 text-sm" placeholder="Evidence"></textarea>
+        <input id="tplHeading" class="input w-full text-sm" placeholder="Heading" />
+        <textarea id="tplIntro" class="input w-full text-sm" placeholder="Intro"></textarea>
+        <textarea id="tplAsk" class="input w-full text-sm" placeholder="Ask"></textarea>
+        <textarea id="tplAfter" class="input w-full text-sm" placeholder="After Issues"></textarea>
+        <textarea id="tplEvidence" class="input w-full text-sm" placeholder="Evidence"></textarea>
         <div class="flex gap-2">
           <button id="saveTemplate" class="btn text-sm">Save Template</button>
           <button id="saveTemplateCopy" class="btn text-sm">Save As New</button>
         </div>
       </div>
       <div class="flex-1">
-        <div id="tplPreview" class="w-full border rounded px-2 py-1 text-sm whitespace-pre-line" title="Drop a template here to load it"></div>
+        <div id="tplPreview" class="input w-full text-sm whitespace-pre-line" title="Drop a template here to load it"></div>
       </div>
     </div>
   </div>
@@ -77,8 +77,8 @@
         <div id="sequenceList" class="space-y-1 text-sm"></div>
       </div>
       <div class="flex-1 space-y-2">
-        <input id="seqName" class="w-full border rounded px-2 py-1 text-sm" placeholder="Sequence Name" />
-        <div id="seqTemplates" class="border rounded px-2 py-1 text-sm space-y-1 max-h-60 overflow-y-auto"></div>
+        <input id="seqName" class="input w-full text-sm" placeholder="Sequence Name" />
+        <div id="seqTemplates" class="input w-full text-sm space-y-1 max-h-60 overflow-y-auto"></div>
         <button id="saveSequence" class="btn text-sm">Save Sequence</button>
       </div>
     </div>
