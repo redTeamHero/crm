@@ -661,6 +661,7 @@ app.delete("/api/contacts/:id", authenticate, requireRole("admin"), (req,res)=>{
   res.json({ ok:true });
 });
 
+
 // =================== Tasks ===================
 app.get("/api/tasks", authenticate, (req,res)=>{
   const db = loadTasksDB();
@@ -692,6 +693,7 @@ app.get("/api/reports/summary", authenticate, (_req,res)=>{
   const tasks = loadTasksDB().tasks;
   const completedTasks = tasks.filter(t=>t.completed).length;
   res.json({ ok:true, summary:{ contacts, tasks:{ total: tasks.length, completed: completedTasks } } });
+
 });
 
 // =================== Messages ===================
