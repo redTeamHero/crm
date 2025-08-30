@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const { member } = await res.json();
       const link = `${location.origin}/team/${member.token}`;
-      prompt(`Share this link with the new team member. Initial password: ${member.password}`, link);
+      prompt(`Share this link with the new team member:\n${link}\nInitial password: ${member.password}`, link);
 
       uEl.value = '';
       pEl.value = '';
