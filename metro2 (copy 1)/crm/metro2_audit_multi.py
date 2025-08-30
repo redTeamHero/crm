@@ -597,6 +597,39 @@ def run_rules_for_tradeline(creditor, per_bureau, rule_profile):
     return violations, furnisher_type
 
 # -----------------------------
+# Personal information parsing
+# -----------------------------
+
+def parse_personal_info(soup):
+    """Extract per-bureau name, DOB and addresses from the personal-information table."""
+    results = {b: {"name": None, "dob": None, "addresses": []} for b in BUREAUS}
+    for tbl in soup.select("table.re-even-odd.rpt_content_table.rpt_content_header.rpt_table4column"):
+        header = clean_text(tbl.find_previous("div", class_="sub_header"))
+        if "personal" not in header.lower():
+            continue
+        rows = tbl.select("tr")
+        if not rows:
+            continue
+        for tr in rows[1:]:
+            tds = tr.find_all("td")
+            if len(tds) < 4:
+                continue
+            label = clean_text(tds[0]).lower()
+            for idx, bureau in enumerate(BUREAUS, start=1):
+                val = clean_text(tds[idx]) if idx < len(tds) else ""
+                if not val:
+                    continue
+                if "name" in label:
+                    results[bureau]["name"] = val
+                elif "birth" in label or "dob" in label:
+                    results[bureau]["dob"] = parse_date(val) or val
+                elif "address" in label:
+                    results[bureau]["addresses"].append(val)
+        break
+    # Drop bureaus with no info
+    return {b: info for b, info in results.items() if any([info["name"], info["dob"], info["addresses"]])}
+
+# -----------------------------
 # Inquiry parsing & hygiene
 # -----------------------------
 
@@ -759,6 +792,7 @@ def main():
         html = f.read()
 
     soup = BeautifulSoup(html, "html.parser")
+    personal_info = parse_personal_info(soup)
     tradelines = extract_all_tradelines(soup)
     inquiries = parse_inquiries(soup)
 
@@ -821,6 +855,7 @@ def main():
         })
 
     out = {
+        "personal_info": personal_info,
         "tradelines": normalized,
         "inquiries": inquiries,
     }
