@@ -26,6 +26,10 @@ function renderTemplates(){
     const div = document.createElement('div');
     div.textContent = t.heading || '(no heading)';
     div.className = 'chip';
+    div.draggable = true;
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', t.id);
+    });
     div.onclick = () => editTemplate(t.id);
     list.appendChild(div);
   });
@@ -40,6 +44,10 @@ function renderMainTemplates(){
     const div = document.createElement('div');
     div.textContent = t.heading || '(no heading)';
     div.className = 'chip';
+    div.draggable = true;
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', t.id);
+    });
     div.onclick = () => useMainTemplate(t.id);
     list.appendChild(div);
   });
@@ -191,6 +199,38 @@ document.getElementById('newSequence').onclick = newSequence;
 ['tplHeading','tplIntro','tplAsk','tplAfter','tplEvidence'].forEach(id => {
   document.getElementById(id).addEventListener('input', updatePreview);
 });
+
+const preview = document.getElementById('tplPreview');
+if(preview){
+  preview.addEventListener('dragover', e=> e.preventDefault());
+  preview.addEventListener('drop', e=> {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    if(id) editTemplate(id);
+  });
+}
+
+// draggable panel
+const panel = document.getElementById('templatePanel');
+const handle = document.getElementById('dragBubble');
+if(panel && handle){
+  let offsetX = 0, offsetY = 0, dragging = false;
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    offsetX = e.clientX - panel.offsetLeft;
+    offsetY = e.clientY - panel.offsetTop;
+    document.body.style.userSelect = 'none';
+  });
+  window.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    panel.style.left = (e.clientX - offsetX) + 'px';
+    panel.style.top = (e.clientY - offsetY) + 'px';
+  });
+  window.addEventListener('mouseup', ()=>{
+    dragging = false;
+    document.body.style.userSelect = '';
+  });
+}
 
 loadLibrary();
 

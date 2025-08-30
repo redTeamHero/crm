@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tradelines</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<header class="p-4">
+  <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
+    <div class="text-xl font-semibold">Metro 2 CRM</div>
+    <div class="flex items-center gap-2">
+      <a href="/dashboard" class="btn">Dashboard</a>
+      <a href="/clients" class="btn">Clients</a>
+      <a href="/leads" class="btn">Leads</a>
+      <a href="/schedule" class="btn">Schedule</a>
+      <a id="navCompany" href="/my-company" class="btn">My Company</a>
+      <a href="/billing" class="btn">Billing</a>
+      <a href="/letters" class="btn">Letter</a>
+      <a href="/settings" class="btn">Settings</a>
+      <a href="/tradelines" class="btn">Tradelines</a>
+      <a href="/library" class="btn">Library</a>
+      <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
+      <button id="btnInvite" class="btn" style="background: var(--green-bg);">Invite +</button>
+    </div>
+  </div>
+</header>
+<main class="max-w-7xl mx-auto px-4 py-6">
+  <h1 class="text-4xl font-bold text-center mb-6">📊 Browse Tradelines</h1>
+
+  <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+    <input type="text" id="search" placeholder="Search by bank..." class="flex-1 min-w-[200px] px-4 py-2 rounded border shadow-sm focus:ring-2 focus:ring-blue-500">
+    <select id="sort" class="flex-1 min-w-[150px] px-4 py-2 rounded border shadow-sm focus:ring-2 focus:ring-blue-500">
+      <option value="">Sort by</option>
+      <option value="price-asc">Price ↑</option>
+      <option value="price-desc">Price ↓</option>
+      <option value="limit-asc">Limit ↑</option>
+      <option value="limit-desc">Limit ↓</option>
+      <option value="age-asc">Age ↑</option>
+      <option value="age-desc">Age ↓</option>
+    </select>
+  </div>
+
+  <div id="bank-list" class="mb-4 text-sm text-gray-600 italic"></div>
+  <div id="tradeline-container" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"></div>
+
+  <div class="flex justify-center mt-6">
+    <button id="prev" class="px-4 py-2 mx-1 bg-gray-300 hover:bg-gray-400 transition rounded">Prev</button>
+    <button id="next" class="px-4 py-2 mx-1 bg-gray-300 hover:bg-gray-400 transition rounded">Next</button>
+  </div>
+</main>
+
+<a href="#" id="mobile-buy" class="fixed bottom-5 right-5 bg-blue-600 text-white text-sm px-4 py-2 rounded-full shadow-lg block md:hidden hidden z-50">Buy Now</a>
+
+<script src="/common.js"></script>
+<script src="/hotkeys.js"></script>
+<script src="/tradelines.js"></script>
+</body>
+</html>
+
