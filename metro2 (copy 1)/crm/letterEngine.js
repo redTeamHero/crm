@@ -490,31 +490,36 @@ function namePrefix(consumer) {
   return (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '_');
 }
 
-function buildPersonalInfoLetterHTML({ consumer, bureau }) {
+function buildPersonalInfoLetterHTML({ consumer, bureau, mismatchedFields = [] }) {
   const dateStr = todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
+  const mismatchSet = new Set(mismatchedFields);
   const row = (label, value) =>
     value
       ? `<tr><td class="bg-gray-50 border px-2 py-1">${label}</td><td class="border px-2 py-1">${safe(value)}</td></tr>`
       : "";
+  const maybeRow = (keys, label, value) =>
+    keys.some((k) => mismatchSet.has(k)) ? row(label, value) : "";
   const infoTable = `
     <table class="w-full text-sm border-collapse">
       <tbody>
-        ${row("Name", consumer.name)}
-        ${row(
+        ${maybeRow(["name"], "Name", consumer.name)}
+        ${maybeRow(
+          ["addr1", "addr2", "address"],
           "Address",
           [consumer.addr1, consumer.addr2].filter(Boolean).join("<br>")
         )}
-        ${row(
+        ${maybeRow(
+          ["city", "state", "zip", "city_state_zip"],
           "City / State / ZIP",
           [consumer.city, consumer.state, consumer.zip]
             .filter(Boolean)
             .join(", ")
         )}
-        ${row("Phone", consumer.phone)}
-        ${row("Email", consumer.email)}
-        ${row("SSN (last 4)", consumer.ssn_last4)}
-        ${row("DOB", consumer.dob)}
+        ${maybeRow(["phone"], "Phone", consumer.phone)}
+        ${maybeRow(["email"], "Email", consumer.email)}
+        ${maybeRow(["ssn_last4", "ssn"], "SSN (last 4)", consumer.ssn_last4)}
+        ${maybeRow(["dob"], "DOB", consumer.dob)}
       </tbody>
     </table>
   `;
@@ -570,10 +575,14 @@ function buildPersonalInfoLetterHTML({ consumer, bureau }) {
   return { filename, html: letterBody };
 }
 
-function generatePersonalInfoLetters({ consumer }) {
+function generatePersonalInfoLetters({ consumer, mismatchedFields = [] }) {
   const letters = [];
   for (const bureau of ALL_BUREAUS) {
-    const { filename, html } = buildPersonalInfoLetterHTML({ consumer, bureau });
+    const { filename, html } = buildPersonalInfoLetterHTML({
+      consumer,
+      bureau,
+      mismatchedFields,
+    });
     letters.push({ bureau, creditor: "Personal Information", filename, html });
   }
   return letters;

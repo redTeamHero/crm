@@ -1348,8 +1348,13 @@ app.post("/api/generate", async (req,res)=>{
 
 
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
-    if (personalInfo) {
-      letters.push(...generatePersonalInfoLetters({ consumer: consumerForLetter }));
+    if (Array.isArray(personalInfo) && personalInfo.length) {
+      letters.push(
+        ...generatePersonalInfoLetters({
+          consumer: consumerForLetter,
+          mismatchedFields: personalInfo,
+        })
+      );
     }
     if (Array.isArray(inquiries) && inquiries.length) {
       letters.push(...generateInquiryLetters({ consumer: consumerForLetter, inquiries }));
