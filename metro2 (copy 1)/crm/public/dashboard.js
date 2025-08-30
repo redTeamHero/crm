@@ -50,13 +50,19 @@ function renderClientMap(consumers){
     });
   setTimeout(()=>map.invalidateSize(),0);
 
-  consumers.forEach(c=>{
+  const grouped = consumers.reduce((acc,c)=>{
     const code = getStateCode(c.state);
+    if(!code) return acc;
+    (acc[code] ||= []).push(c.name || '');
+    return acc;
+  },{});
+
+  Object.entries(grouped).forEach(([code,names])=>{
     const coords = stateCenters[code];
     if(coords){
       L.circleMarker(coords,{ radius:6, color:'#059669', fillColor:'#10b981', fillOpacity:0.7 })
         .addTo(map)
-        .bindPopup(c.name || '');
+        .bindPopup(names.join('<br>'));
     }
   });
 }
