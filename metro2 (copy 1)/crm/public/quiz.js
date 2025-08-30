@@ -11,7 +11,7 @@ const QUESTIONS = [
   },
   {
     q: "What does R do on the CRM page?",
-    a: ["Removes focused card or current report", "Refreshes page", "Runs analyzer", "Renames consumer"],
+    a: ["Removes focused card or current report", "Refreshes page", "Records note", "Renames consumer"],
     correct: 0,
   },
   {
