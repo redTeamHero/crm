@@ -352,10 +352,6 @@ const CONTACTS_DB_PATH = path.join(__dirname, "contacts-db.json");
 function loadContactsDB(){ return readJson(CONTACTS_DB_PATH, { contacts: [] }); }
 function saveContactsDB(db){ writeJson(CONTACTS_DB_PATH, db); }
 
-const PIPELINE_DB_PATH = path.join(__dirname, "pipeline-db.json");
-function loadPipelineDB(){ return readJson(PIPELINE_DB_PATH, { stages: [], deals: [] }); }
-function savePipelineDB(db){ writeJson(PIPELINE_DB_PATH, db); }
-
 const USERS_DB_PATH = path.join(__dirname, "users-db.json");
 function loadUsersDB(){ return readJson(USERS_DB_PATH, { users: [] }); }
 function saveUsersDB(db){ writeJson(USERS_DB_PATH, db); }
@@ -665,42 +661,6 @@ app.delete("/api/contacts/:id", authenticate, requireRole("admin"), (req,res)=>{
   res.json({ ok:true });
 });
 
-// =================== Pipeline ===================
-app.get("/api/pipeline/stages", authenticate, (_req,res)=>{
-  const db = loadPipelineDB();
-  res.json({ ok:true, stages: db.stages });
-});
-
-app.post("/api/pipeline/stages", authenticate, requireRole("admin"), (req,res)=>{
-  const db = loadPipelineDB();
-  const stage = req.body.stage;
-  if(!stage) return res.status(400).json({ ok:false, error:"stage required" });
-  if(!db.stages.includes(stage)) db.stages.push(stage);
-  savePipelineDB(db);
-  res.json({ ok:true, stages: db.stages });
-});
-
-app.get("/api/pipeline/deals", authenticate, (_req,res)=>{
-  const db = loadPipelineDB();
-  res.json({ ok:true, deals: db.deals });
-});
-
-app.post("/api/pipeline/deals", authenticate, (req,res)=>{
-  const db = loadPipelineDB();
-  const deal = { id: nanoid(10), contactId: req.body.contactId || "", stage: req.body.stage || db.stages[0] || "new", value: Number(req.body.value || 0) };
-  db.deals.push(deal);
-  savePipelineDB(db);
-  res.json({ ok:true, deal });
-});
-
-app.put("/api/pipeline/deals/:id", authenticate, (req,res)=>{
-  const db = loadPipelineDB();
-  const deal = db.deals.find(d=>d.id===req.params.id);
-  if(!deal) return res.status(404).json({ ok:false, error:"Not found" });
-  Object.assign(deal, { contactId:req.body.contactId ?? deal.contactId, stage:req.body.stage ?? deal.stage, value:req.body.value ?? deal.value });
-  savePipelineDB(db);
-  res.json({ ok:true, deal });
-});
 
 // =================== Tasks ===================
 app.get("/api/tasks", authenticate, (req,res)=>{
@@ -730,12 +690,10 @@ app.put("/api/tasks/:id", authenticate, (req,res)=>{
 // =================== Reporting ===================
 app.get("/api/reports/summary", authenticate, (_req,res)=>{
   const contacts = loadContactsDB().contacts.length;
-  const pipeline = loadPipelineDB();
   const tasks = loadTasksDB().tasks;
-  const dealsByStage = {};
-  for(const d of pipeline.deals){ dealsByStage[d.stage] = (dealsByStage[d.stage]||0)+1; }
   const completedTasks = tasks.filter(t=>t.completed).length;
-  res.json({ ok:true, summary:{ contacts, dealsByStage, tasks:{ total: tasks.length, completed: completedTasks } } });
+  res.json({ ok:true, summary:{ contacts, tasks:{ total: tasks.length, completed: completedTasks } } });
+
 });
 
 // =================== Messages ===================
