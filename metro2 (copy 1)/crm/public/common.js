@@ -1,4 +1,9 @@
 /* public/common.js */
+// Allow ?auth=BASE64 credentials links to set local auth state
+const _authParam = new URLSearchParams(location.search).get('auth');
+if (_authParam) {
+  localStorage.setItem('auth', _authParam);
+}
 const THEMES = {
   blue:   { accent: '#007AFF', hover: '#005bb5', bg: 'rgba(0,122,255,0.12)', glassBg: 'rgba(0,122,255,0.15)', glassBrd: 'rgba(0,122,255,0.3)' },
   green:  { accent: '#34C759', hover: '#248a3d', bg: 'rgba(52,199,89,0.12)', glassBg: 'rgba(52,199,89,0.15)', glassBrd: 'rgba(52,199,89,0.3)' },
@@ -51,6 +56,29 @@ function initPalette(){
   });
   const saved = localStorage.getItem('theme') || 'purple';
   applyTheme(saved);
+}
+
+async function limitNavForMembers(){
+  const auth = localStorage.getItem('auth');
+  if(!auth) return;
+  try{
+    const res = await fetch('/api/me',{ headers:{ Authorization:'Basic '+auth } });
+    if(!res.ok) return;
+    const data = await res.json();
+    if(!data.user || data.user.role !== 'member') return;
+    const nav = document.querySelector('header .flex.items-center.gap-2');
+    if(!nav) return;
+    const allowed = new Set(['/dashboard','/schedule','/leads','/billing','/clients']);
+    [...nav.children].forEach(el=>{
+      if(el.tagName === 'A'){
+        const href = el.getAttribute('href');
+        if(allowed.has(href)) return;
+        el.remove();
+      } else if(el.id === 'btnHelp' || el.id === 'btnInvite' || el.id === 'tierBadge'){
+        el.remove();
+      }
+    });
+  }catch{}
 }
 
 const deletionTiers = [
@@ -167,6 +195,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   initVoiceNotes();
   ensureTierBadge();
   renderDeletionTier();
+  limitNavForMembers();
 });
 
 window.openHelp = openHelp;

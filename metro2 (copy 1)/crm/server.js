@@ -161,7 +161,10 @@ function getAuthUser(req){
   if(!auth.startsWith("Basic ")) return null;
   const [user, pass] = Buffer.from(auth.slice(6), "base64").toString().split(":");
   const db = loadUsersDB();
-  return db.users.find(u=>u.username===user && u.password===pass) || null;
+  const found = db.users.find(u=>u.username===user && u.password===pass);
+  if(!found) return null;
+  return { ...found, permissions: found.permissions || [] };
+
 }
 
 function authenticate(req,res,next){
@@ -183,6 +186,23 @@ function requireRole(role){
     next();
   };
 }
+
+function hasPermission(user, perm){
+  return !!(user && (user.role === "admin" || (user.permissions || []).includes(perm)));
+}
+
+function requirePermission(perm){
+  return (req,res,next)=>{
+    if(!hasPermission(req.user, perm)) return res.status(403).json({ ok:false, error:"Forbidden" });
+    next();
+  };
+}
+
+function forbidMember(req,res,next){
+  if(req.user && req.user.role === "member") return res.status(403).send("Forbidden");
+  next();
+}
+
 
 // Basic resource monitoring to catch memory or CPU spikes
 const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
@@ -219,20 +239,20 @@ setInterval(() => {
 // ---------- Static UI ----------
 const PUBLIC_DIR = path.join(__dirname, "public");
 app.use(express.static(PUBLIC_DIR));
-app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+app.get("/", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboard.html")));
 app.get("/clients", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/leads", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "leads.html")));
 app.get("/schedule", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "schedule.html")));
-app.get("/my-company", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "my-company.html")));
+app.get("/my-company", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "my-company.html")));
 app.get("/billing", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "billing.html")));
-app.get(["/letters", "/letters/:jobId"], (_req, res) =>
+app.get(["/letters", "/letters/:jobId"], optionalAuth, forbidMember, (_req, res) =>
   res.sendFile(path.join(PUBLIC_DIR, "letters.html"))
 );
-app.get("/library", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
-app.get("/tradelines", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
-app.get("/quiz", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
-app.get("/settings", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
+app.get("/library", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
+app.get("/tradelines", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
+app.get("/quiz", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
+app.get("/settings", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
 app.get("/portal/:id", (req, res) => {
   const db = loadDB();
   const consumer = db.consumers.find(c => c.id === req.params.id);
@@ -658,24 +678,37 @@ app.put("/api/invoices/:id", (req,res)=>{
 app.post("/api/users", optionalAuth, (req,res)=>{
   const db = loadUsersDB();
   if(db.users.length>0 && (!req.user || req.user.role !== "admin")) return res.status(403).json({ ok:false, error:"Forbidden" });
-  const user = { id: nanoid(10), username: req.body.username || "", password: req.body.password || "", role: req.body.role || "user" };
+  const user = {
+    id: nanoid(10),
+    username: req.body.username || "",
+    password: req.body.password || "",
+    role: req.body.role || "member",
+    permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
+  };
   db.users.push(user);
   saveUsersDB(db);
-  res.json({ ok:true, user: { id: user.id, username: user.username, role: user.role } });
+  res.json({ ok:true, user: { id: user.id, username: user.username, role: user.role, permissions: user.permissions } });
+
 });
 
 app.get("/api/users", authenticate, requireRole("admin"), (_req,res)=>{
   const db = loadUsersDB();
-  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, role:u.role })) });
+  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, role:u.role, permissions: u.permissions || [] })) });
+});
+
+app.get("/api/me", authenticate, (req,res)=>{
+  res.json({ ok:true, user: { id: req.user.id, username: req.user.username, role: req.user.role, permissions: req.user.permissions || [] } });
 });
 
 // =================== Contacts ===================
-app.get("/api/contacts", authenticate, (_req,res)=>{
+app.get("/api/contacts", authenticate, requirePermission("contacts"), (_req,res)=>{
+
   const db = loadContactsDB();
   res.json({ ok:true, contacts: db.contacts });
 });
 
-app.post("/api/contacts", authenticate, (req,res)=>{
+app.post("/api/contacts", authenticate, requirePermission("contacts"), (req,res)=>{
+
   const db = loadContactsDB();
   const contact = { id: nanoid(10), name: req.body.name || "", email: req.body.email || "", phone: req.body.phone || "", notes: req.body.notes || "" };
   db.contacts.push(contact);
@@ -683,7 +716,8 @@ app.post("/api/contacts", authenticate, (req,res)=>{
   res.json({ ok:true, contact });
 });
 
-app.put("/api/contacts/:id", authenticate, (req,res)=>{
+app.put("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,res)=>{
+
   const db = loadContactsDB();
   const contact = db.contacts.find(c=>c.id===req.params.id);
   if(!contact) return res.status(404).json({ ok:false, error:"Not found" });
@@ -692,7 +726,8 @@ app.put("/api/contacts/:id", authenticate, (req,res)=>{
   res.json({ ok:true, contact });
 });
 
-app.delete("/api/contacts/:id", authenticate, requireRole("admin"), (req,res)=>{
+app.delete("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,res)=>{
+
   const db = loadContactsDB();
   const idx = db.contacts.findIndex(c=>c.id===req.params.id);
   if(idx===-1) return res.status(404).json({ ok:false, error:"Not found" });
@@ -701,15 +736,16 @@ app.delete("/api/contacts/:id", authenticate, requireRole("admin"), (req,res)=>{
   res.json({ ok:true });
 });
 
-
 // =================== Tasks ===================
-app.get("/api/tasks", authenticate, (req,res)=>{
+app.get("/api/tasks", authenticate, requirePermission("tasks"), (req,res)=>{
+
   const db = loadTasksDB();
   const tasks = db.tasks.filter(t=>t.userId===req.user.id);
   res.json({ ok:true, tasks });
 });
 
-app.post("/api/tasks", authenticate, (req,res)=>{
+app.post("/api/tasks", authenticate, requirePermission("tasks"), (req,res)=>{
+
   const db = loadTasksDB();
   const task = { id: nanoid(10), userId: req.user.id, desc: req.body.desc || "", due: req.body.due || null, completed: false, status: "pending" };
   db.tasks.push(task);
@@ -717,7 +753,8 @@ app.post("/api/tasks", authenticate, (req,res)=>{
   res.json({ ok:true, task });
 });
 
-app.put("/api/tasks/:id", authenticate, (req,res)=>{
+app.put("/api/tasks/:id", authenticate, requirePermission("tasks"), (req,res)=>{
+
   const db = loadTasksDB();
   const task = db.tasks.find(t=>t.id===req.params.id && t.userId===req.user.id);
   if(!task) return res.status(404).json({ ok:false, error:"Not found" });
@@ -728,7 +765,8 @@ app.put("/api/tasks/:id", authenticate, (req,res)=>{
 });
 
 // =================== Reporting ===================
-app.get("/api/reports/summary", authenticate, (_req,res)=>{
+app.get("/api/reports/summary", authenticate, requirePermission("reports"), (_req,res)=>{
+
   const contacts = loadContactsDB().contacts.length;
   const tasks = loadTasksDB().tasks;
   const completedTasks = tasks.filter(t=>t.completed).length;
@@ -757,10 +795,16 @@ app.get("/api/messages/:consumerId", (req,res)=>{
   res.json({ ok:true, messages: msgs });
 });
 
-app.post("/api/messages/:consumerId", (req,res)=>{
+app.post("/api/messages/:consumerId", optionalAuth, (req,res)=>{
   const text = req.body.text || "";
-  const from = req.body.from || "host";
-  addEvent(req.params.consumerId, "message", { from, text });
+  let from = req.body.from || "host";
+  const payload = { from, text };
+  if (req.user) {
+    from = req.user.username;
+    payload.from = from;
+    payload.userId = req.user.id;
+  }
+  addEvent(req.params.consumerId, "message", payload);
   res.json({ ok:true });
 });
 

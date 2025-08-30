@@ -15,12 +15,16 @@
       <a href="/clients" class="btn">Clients</a>
       <a href="/leads" class="btn">Leads</a>
       <a href="/schedule" class="btn">Schedule</a>
-      <a id="navCompany" href="/my-company" class="btn">My Company</a>
       <a href="/billing" class="btn">Billing</a>
-      <a href="/letters" class="btn">Letter</a>
-      <a href="/settings" class="btn">Settings</a>
+      <div class="relative group">
+        <a href="/settings" class="btn">Settings</a>
+        <div class="absolute hidden group-hover:flex flex-col right-0 mt-2 glass card p-2 gap-2 z-10">
+          <a id="navCompany" href="/my-company" class="btn text-sm">My Company</a>
+          <a href="/letters" class="btn text-sm">Letter</a>
+          <a href="/library" class="btn text-sm">Library</a>
+        </div>
+      </div>
       <a href="/tradelines" class="btn">Tradelines</a>
-      <a href="/library" class="btn">Library</a>
       <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
       <button id="btnInvite" class="btn" style="background: var(--green-bg);">Invite +</button>
     </div>
@@ -42,10 +46,14 @@
     <div class="font-medium">Team Members</div>
     <div id="teamMemberList" class="space-y-2 text-sm"></div>
     <div class="flex flex-col sm:flex-row gap-2">
-      <input id="tmName" class="flex-1 border rounded px-2 py-1 text-sm" placeholder="Name" />
-      <input id="tmRole" class="flex-1 border rounded px-2 py-1 text-sm" placeholder="Role" />
-      <input id="tmEmail" class="flex-1 border rounded px-2 py-1 text-sm" placeholder="Email" />
-      <button id="addTeamMember" class="btn text-sm">Add</button>
+      <input id="tmUser" class="flex-1 border rounded px-2 py-1 text-sm" placeholder="Username" />
+      <input id="tmPass" type="password" class="flex-1 border rounded px-2 py-1 text-sm" placeholder="Password" />
+    </div>
+    <div class="flex flex-wrap items-center gap-2 text-sm">
+      <label class="flex items-center gap-1"><input type="checkbox" id="permContacts"> Contacts</label>
+      <label class="flex items-center gap-1"><input type="checkbox" id="permTasks"> Tasks</label>
+      <label class="flex items-center gap-1"><input type="checkbox" id="permReports"> Reports</label>
+      <button id="addTeamMember" class="btn text-sm ml-auto">Add</button>
     </div>
   </div>
 </main>

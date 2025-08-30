@@ -1082,9 +1082,12 @@ async function loadMessages(){
   const msgs = resp.messages || [];
   if(!msgs.length){ $("#msgList").innerHTML = `<div class="muted">No messages.</div>`; return; }
   $("#msgList").innerHTML = msgs.map(m=>{
-    const from = m.payload?.from === 'host' ? 'msg-host' : 'msg-client';
+    const fromUser = m.payload?.from;
+    const isClient = fromUser === 'client';
+    const cls = isClient ? 'msg-client' : 'msg-host';
+    const label = isClient ? 'Client' : escapeHtml(fromUser || 'Host');
     const when = new Date(m.at).toLocaleString();
-    return `<div class="${from} p-2 rounded"><div class="text-xs muted">${when}</div><div>${escapeHtml(m.payload?.text||'')}</div></div>`;
+    return `<div class="${cls} p-2 rounded"><div class="text-xs muted">${label} • ${when}</div><div>${escapeHtml(m.payload?.text||'')}</div></div>`;
   }).join('');
 }
 
@@ -1092,7 +1095,7 @@ $("#btnSendMsg").addEventListener("click", async ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
   const txt = $("#msgInput").value.trim();
   if(!txt) return;
-  const res = await api(`/api/messages/${currentConsumerId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text: txt, from:'host' }) });
+  const res = await api(`/api/messages/${currentConsumerId}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text: txt }) });
   if(!res?.ok) return showErr(res.error || "Failed to send message.");
   $("#msgInput").value = "";
   await loadMessages();

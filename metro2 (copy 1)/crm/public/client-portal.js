@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     tradelineList.innerHTML = data.map(t=>`
       <div class="tradeline-item flex items-center justify-between p-2">
+
         <div>
           <div class="font-medium">${t.bank}</div>
           <div class="text-xs muted">${t.age} | $${t.limit} limit</div>
@@ -396,9 +397,10 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         const msgs = data.messages || [];
         if (messageBanner) {
-          const hostMsg = msgs.find(m => m.payload?.from === 'host');
+          const hostMsg = msgs.find(m => m.payload?.from && m.payload.from !== 'client');
           if (hostMsg) {
-            messageBanner.textContent = hostMsg.payload?.text || '';
+            const prefix = hostMsg.payload?.from ? hostMsg.payload.from + ': ' : '';
+            messageBanner.textContent = prefix + (hostMsg.payload?.text || '');
             messageBanner.classList.remove('hidden');
           } else {
             messageBanner.classList.add('hidden');
@@ -408,9 +410,12 @@ document.addEventListener('DOMContentLoaded', () => {
           messageList.innerHTML = '<div class="muted">No messages.</div>';
         } else {
           messageList.innerHTML = msgs.map(m => {
-            const from = m.payload?.from === 'host' ? 'msg-host' : 'msg-client';
+            const fromUser = m.payload?.from;
+            const isClient = fromUser === 'client';
+            const cls = isClient ? 'msg-client' : 'msg-host';
+            const name = isClient ? 'You' : fromUser || 'Host';
             const when = new Date(m.at).toLocaleString();
-            return `<div class="message ${from}"><div class="text-xs muted">${when}</div><div>${esc(m.payload?.text||'')}</div></div>`;
+
           }).join('');
         }
       })
