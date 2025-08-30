@@ -134,15 +134,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const scoreVal = document.getElementById('scoreValue');
+  const scoreTU = document.getElementById('scoreTU');
+  const scoreEX = document.getElementById('scoreEX');
+  const scoreEQ = document.getElementById('scoreEQ');
   const scoreProg = document.getElementById('scoreProgress');
   const scoreConfetti = document.getElementById('scoreConfetti');
   if (scoreVal && scoreProg) {
-    const score = JSON.parse(localStorage.getItem('creditScore') || '{"start":0,"current":0}');
-    scoreVal.textContent = score.current;
-    const pct = Math.min(1, score.current / 850);
+    const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
+    const tu = Number(score.transunion || score.tu || score.current || 0);
+    const ex = Number(score.experian || score.exp || 0);
+    const eq = Number(score.equifax || score.eq || 0);
+    if (scoreTU) scoreTU.textContent = tu;
+    if (scoreEX) scoreEX.textContent = ex;
+    if (scoreEQ) scoreEQ.textContent = eq;
+    const scores = [tu, ex, eq].filter(n => n > 0);
+    const avg = scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0;
+    const pct = Math.min(1, avg / 850);
     const circ = 339.292;
     scoreProg.style.strokeDashoffset = circ * (1 - pct);
-    if (score.current > (score.start || 0) && scoreConfetti && window.lottie) {
+    const start = Number(score.start || 0);
+    if (avg > start && scoreConfetti && window.lottie) {
       lottie.loadAnimation({
         container: scoreConfetti,
         renderer: 'svg',
@@ -152,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       setTimeout(() => { scoreConfetti.innerHTML = ''; }, 1500);
       const ms = document.getElementById('milestones');
-      if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${score.current - (score.start || 0)} points!</div>`;
+      if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${Math.round(avg - start)} points!</div>`;
     }
   }
 
