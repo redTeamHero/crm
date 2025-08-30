@@ -80,6 +80,7 @@
       <a href="/billing" class="btn">Billing</a>
       <a href="/letters" class="btn">Letter</a>
       <a href="/settings" class="btn">Settings</a>
+      <a href="/tradelines" class="btn">Tradelines</a>
       <a href="/library" class="btn">Library</a>
       <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
       <button id="btnInvite" class="btn" style="background: var(--green-bg);">Invite +</button>
@@ -177,7 +178,7 @@
       <div class="glass card">
         <div class="flex items-center justify-between">
           <div class="font-semibold">Tradelines</div>
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-3">
             <label class="text-sm flex items-center gap-2" title="Generate correction letters">
               <input type="radio" name="rtype" value="correct" checked /> Correct
             </label>
@@ -192,15 +193,11 @@
               <input type="checkbox" id="cbPersonalInfo" /> Personal Info
             </label>
             <label class="text-sm flex items-center gap-2" title="Use AI to reword letters">
-              <input type="checkbox" id="cbUseGpt" /> AI Reword
+              <input type="checkbox" id="cbUseGpt" /> AI
             </label>
-            <select id="gptTone" class="border rounded text-sm px-1 py-0.5" disabled>
-              <option value="Professional & Polite">Professional & Polite</option>
-              <option value="Firm / Legalistic (No-Nonsense)">Firm / Legalistic (No-Nonsense)</option>
-              <option value="Plain-English / Conversational">Plain-English / Conversational</option>
-              <option value="Cooperative / Helpful (Problem-Solving)">Cooperative / Helpful (Problem-Solving)</option>
-              <option value="Urgent / Concerned (Still Respectful)">Urgent / Concerned (Still Respectful)</option>
-            </select>
+            <label class="text-sm flex items-center gap-2" title="Render OCR-resistant PDFs">
+              <input type="checkbox" id="cbUseOcr" /> OCR
+            </label>
             <button id="btnSelectAll" class="btn text-sm" data-tip="Select or deselect all tradelines">Select All</button>
             <button id="btnSelectNegative" class="btn text-sm" data-tip="Select or deselect negative tradelines">Select Negative</button>
             <button id="btnGenerate" class="btn" data-tip="Generate Letters (G)">Generate Letters</button>
@@ -275,10 +272,6 @@
       <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="TransUnion" /> TransUnion</label>
       <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Experian" /> Experian</label>
       <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Equifax" /> Equifax</label>
-    </div>
-
-    <div class="mt-2 flex items-center gap-2 text-xs">
-      <label class="flex items-center gap-1"><input type="checkbox" class="use-ocr" /> OCR</label>
     </div>
 
     <div class="tl-tags flex gap-2 mt-2 flex-wrap"></div>

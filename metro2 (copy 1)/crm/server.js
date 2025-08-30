@@ -13,8 +13,7 @@ import os from "os";
 import archiver from "archiver";
 import puppeteer from "puppeteer";
 import nodeFetch from "node-fetch";
-
-import { PassThrough } from "stream";
+import * as cheerio from "cheerio";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
@@ -71,7 +70,6 @@ const __dirname = path.dirname(__filename);
 const SETTINGS_PATH = path.join(__dirname, "settings.json");
 function loadSettings(){
   return readJson(SETTINGS_PATH, {
-    openaiApiKey: "",
     hibpApiKey: "",
     rssFeedUrl: "https://hnrss.org/frontpage",
     googleCalendarToken: "",
@@ -150,206 +148,27 @@ process.on("warning", warn => {
   logWarn("NODE_WARNING", warn.message, { stack: warn.stack });
 });
 
-// Scheduler that respects OpenAI rate-limit headers
-class RateLimitScheduler {
-  constructor() {
-    this.limitRequests = Infinity;
-    this.limitTokens = Infinity;
-    this.remainingRequests = Infinity;
-    this.remainingTokens = Infinity;
-    this.resetRequests = 0;
-    this.resetTokens = 0;
-    this.avgTokens = 1000; // initial guess
-    this.count = 0;
-    this.concurrency = 1;
-    this.intervalMs = 0;
-    this.active = 0;
-    this.queue = [];
-    this.slotTimes = [0];
-    this.globalReset = 0;
-  }
-
-  get nextAllowed(){
-    return Math.max(Math.min(...this.slotTimes), this.globalReset);
-  }
-
-  updateFromHeaders(h) {
-    const toNum = v => (v === null ? NaN : Number(v));
-    const lr = toNum(h.get("x-ratelimit-limit-requests"));
-    const lt = toNum(h.get("x-ratelimit-limit-tokens"));
-    const rr = toNum(h.get("x-ratelimit-remaining-requests"));
-    const rt = toNum(h.get("x-ratelimit-remaining-tokens"));
-    const rrs = toNum(h.get("x-ratelimit-reset-requests"));
-    const rts = toNum(h.get("x-ratelimit-reset-tokens"));
-    if (!isNaN(lr)) this.limitRequests = lr;
-    if (!isNaN(lt)) this.limitTokens = lt;
-    if (!isNaN(rr)) this.remainingRequests = rr;
-    if (!isNaN(rt)) this.remainingTokens = rt;
-    if (!isNaN(rrs)) this.resetRequests = Date.now() + rrs * 1000;
-    if (!isNaN(rts)) this.resetTokens = Date.now() + rts * 1000;
-
-    this.intervalMs = isFinite(this.limitRequests) ? 60000 / this.limitRequests : 0;
-    const safeConcurrency = Math.min(
-      this.limitRequests,
-      Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
-    );
-    this.concurrency = Math.max(1, safeConcurrency);
-    while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
-    if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
-
-    if (this.remainingRequests <= 0 || this.remainingTokens <= 0) {
-      this.globalReset = Math.max(this.resetRequests, this.resetTokens);
-    } else {
-      this.globalReset = 0;
+// Basic resource monitoring to catch memory or CPU spikes
+const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
+const RESOURCE_CHECK_MS = Number(process.env.RESOURCE_CHECK_MS || 60_000);
+let lastCpu = process.cpuUsage();
+setInterval(() => {
+  try {
+    const { rss } = process.memoryUsage();
+    if (rss > MAX_RSS_MB * 1024 * 1024) {
+      logWarn("HIGH_MEMORY_USAGE", "Memory usage high", { rss });
     }
-  }
-
-  updateUsage(tokens) {
-    if (typeof tokens === "number" && tokens > 0) {
-      this.count++;
-      this.avgTokens = (this.avgTokens * (this.count - 1) + tokens) / this.count;
-      const safeConcurrency = Math.min(
-        this.limitRequests,
-        Math.floor(this.limitTokens / Math.max(this.avgTokens, 1))
-      );
-      this.concurrency = Math.max(1, safeConcurrency);
-    while (this.slotTimes.length < this.concurrency) this.slotTimes.push(0);
-    if (this.slotTimes.length > this.concurrency) this.slotTimes.length = this.concurrency;
+    const cpu = process.cpuUsage(lastCpu);
+    lastCpu = process.cpuUsage();
+    const cpuMs = (cpu.user + cpu.system) / 1000;
+    if (cpuMs > 1000) {
+      logWarn("HIGH_CPU_USAGE", "CPU usage high", { cpuMs });
     }
+  } catch (e) {
+    logWarn("RESOURCE_MONITOR_FAILED", e.message);
   }
+}, RESOURCE_CHECK_MS);
 
-  async schedule(fn) {
-    return new Promise((resolve, reject) => {
-      this.queue.push({ fn, resolve, reject });
-      this._dequeue();
-    });
-  }
-
-  _dequeue() {
-    if (this.active >= this.concurrency) return;
-    if (!this.queue.length) return;
-
-    const now = Date.now();
-    const nextSlot = Math.min(...this.slotTimes);
-    const nextAllowed = Math.max(nextSlot, this.globalReset);
-    const wait = Math.max(0, nextAllowed - now);
-    if (wait > 0) {
-      setTimeout(() => this._dequeue(), wait);
-      return;
-    }
-
-    const idx = this.slotTimes.indexOf(nextSlot);
-    const task = this.queue.shift();
-    this.active++;
-    this.slotTimes[idx] = now + this.intervalMs;
-
-    Promise.resolve()
-      .then(task.fn)
-      .then(res => {
-        this.active--;
-        task.resolve(res);
-        this._dequeue();
-      })
-      .catch(err => {
-        this.active--;
-        task.reject(err);
-        this._dequeue();
-      });
-
-    if (this.active < this.concurrency && this.queue.length) {
-      this._dequeue();
-    }
-  }
-}
-
-const openAIScheduler = new RateLimitScheduler();
-
-async function fetchWithRetries(url, options, maxRetries = 5, scheduler, onResponse) {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const resp = scheduler
-        ? await scheduler.schedule(() => fetchFn(url, options))
-        : await fetchFn(url, options);
-
-      if (onResponse) {
-        try { onResponse(resp); } catch {}
-      }
-
-
-      if (resp.ok) return resp;
-
-      const status = resp.status;
-      if ((status === 429 || status >= 500) && attempt < maxRetries) {
-        const ra = Number(resp.headers.get("retry-after"));
-        let wait = ra ? ra * 1000 : Math.pow(2, attempt) * 1000;
-        if (scheduler) {
-          const extra = scheduler.nextAllowed - Date.now();
-          if (extra > wait) wait = extra;
-        }
-        const jitter = Math.random() * 1000;
-        await new Promise(r => setTimeout(r, wait + jitter));
-
-        continue;
-      }
-
-      const errText = await resp.text().catch(() => "");
-      throw new Error(`HTTP ${status}: ${errText}`);
-    } catch (err) {
-      if (attempt >= maxRetries) throw err;
-      let wait = Math.pow(2, attempt) * 1000;
-      if (scheduler) {
-        const extra = scheduler.nextAllowed - Date.now();
-        if (extra > wait) wait = extra;
-      }
-      const jitter = Math.random() * 1000;
-      await new Promise(r => setTimeout(r, wait + jitter));
-
-    }
-  }
-  throw new Error("Failed after retries");
-}
-
-async function rewordWithAI(text, tone) {
-  const key = loadSettings().openaiApiKey || process.env.OPENAI_API_KEY;
-  if (!key || !text) return text;
-
-  const payload = {
-    model: "gpt-4.1-mini",
-    messages: [
-      { role: "system", content: "You reword credit dispute statements." },
-      {
-        role: "user",
-        content: `Tone: ${tone}\nReword the following text. Do not use the \"—\" character.\nText: ${text}`,
-      },
-    ],
-  };
-
-    try {
-      const resp = await fetchWithRetries(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${key}`,
-          },
-          body: JSON.stringify(payload),
-        },
-        5,
-        openAIScheduler,
-        r => openAIScheduler.updateFromHeaders(r.headers)
-      );
-
-      const data = await resp.json().catch(() => ({}));
-      openAIScheduler.updateUsage(data.usage?.total_tokens);
-      const out = data.choices?.[0]?.message?.content?.trim() || text;
-      return out.replace(/—/g, "-");
-    } catch (e) {
-      logError("AI_REWORD_FAILED", "OpenAI API error", e);
-      return text;
-    }
-
-}
 
 // periodically surface due letter reminders
 processAllReminders();
@@ -372,6 +191,7 @@ app.get(["/letters", "/letters/:jobId"], (_req, res) =>
   res.sendFile(path.join(PUBLIC_DIR, "letters.html"))
 );
 app.get("/library", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
+app.get("/tradelines", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
 app.get("/quiz", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
 app.get("/settings", (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
 app.get("/portal/:id", (req, res) => {
@@ -389,13 +209,12 @@ app.get("/api/settings", (_req, res) => {
 
 app.post("/api/settings", (req, res) => {
   const {
-    openaiApiKey = "",
     hibpApiKey = "",
     rssFeedUrl = "",
     googleCalendarToken = "",
     googleCalendarId = "",
   } = req.body || {};
-  saveSettings({ openaiApiKey, hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId });
+  saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId });
 
   res.json({ ok: true });
 });
@@ -431,6 +250,15 @@ app.delete("/api/calendar/events/:id", async (req, res) => {
   try {
     await deleteCalendarEvent(req.params.id);
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/tradelines", async (_req, res) => {
+  try {
+    const tradelines = await scrapeTradelines();
+    res.json({ ok: true, tradelines });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -988,6 +816,42 @@ async function hibpLookup(email) {
   }
 }
 
+async function scrapeTradelines() {
+  const resp = await fetchFn('https://tradelinesupply.com/pricing/');
+  const html = await resp.text();
+  const $ = cheerio.load(html);
+  const items = [];
+  $('tr').each((_, row) => {
+    const productTd = $(row).find('td.product_data');
+    const priceTd = $(row).find('td.product_price');
+    if (!productTd.length || !priceTd.length) return;
+    const bankName = (productTd.data('bankname') || '').toString().trim();
+    const creditLimitRaw = (productTd.data('creditlimit') || '').toString().replace(/[$,]/g, '');
+    const creditLimit = parseInt(creditLimitRaw, 10) || 0;
+    const dateOpened = (productTd.data('dateopened') || '').toString().trim();
+    const purchaseBy = (productTd.data('purchasebydate') || '').toString().trim();
+    const reportingPeriod = (productTd.data('reportingperiod') || '').toString().trim();
+    const priceText = priceTd.text().trim();
+    const match = /\$\s?(\d+(?:,\d{3})*(?:\.\d{2})?)/.exec(priceText);
+    if (!match) return;
+    const basePrice = parseFloat(match[1].replace(/,/g, ''));
+    let finalPrice;
+    if (basePrice < 500) finalPrice = basePrice + 100;
+    else if (basePrice <= 1000) finalPrice = basePrice + 200;
+    else finalPrice = basePrice + 300;
+    items.push({
+      buy_link: `/buy?bank=${encodeURIComponent(bankName)}&price=${finalPrice}`,
+      bank: bankName,
+      price: Math.round(finalPrice * 100) / 100,
+      limit: creditLimit,
+      age: dateOpened,
+      statement_date: purchaseBy,
+      reporting: reportingPeriod
+    });
+  });
+  return items;
+}
+
 function escapeHtml(str) {
   return String(str || "").replace(/[&<>"']/g, c => ({
     "&": "&amp;",
@@ -1205,20 +1069,6 @@ app.post("/api/generate", async (req,res)=>{
       breaches: consumer.breaches || []
     };
 
-    for (const sel of selections || []) {
-      if (sel.aiTone) {
-        const tl = reportWrap.data?.tradelines?.[sel.tradelineIndex];
-        if (tl && Array.isArray(sel.violationIdxs)) {
-          for (const vidx of sel.violationIdxs) {
-            const v = tl.violations?.[vidx];
-            if (v) {
-              v.title = await rewordWithAI(v.title || "", sel.aiTone);
-              if (v.detail) v.detail = await rewordWithAI(v.detail, sel.aiTone);
-            }
-          }
-        }
-      }
-    }
 
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
     if (personalInfo) {
