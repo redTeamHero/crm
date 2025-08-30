@@ -102,7 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
         msgList.textContent = 'No messages.';
         return;
       }
-      msgList.innerHTML = msgs.map(m=>`<div><span class="font-medium">${escapeHtml(m.consumer?.name || '')} - ${m.payload?.from==='host'?'You':'Client'}:</span> ${escapeHtml(m.payload?.text || '')}</div>`).join('');
+      msgList.innerHTML = msgs.map(m=>{
+        const sender = m.payload?.from === 'client' ? 'Client' : m.payload?.from || 'Host';
+        return `<div><span class="font-medium">${escapeHtml(m.consumer?.name || '')} - ${escapeHtml(sender)}:</span> ${escapeHtml(m.payload?.text || '')}</div>`;
+      }).join('');
     }catch(e){
       console.error('Failed to load messages', e);
       msgList.textContent = 'Failed to load messages.';
