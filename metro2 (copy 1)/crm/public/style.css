@@ -103,6 +103,7 @@ body {
   color:#fff;
   cursor:pointer;
 }
+#themePalette.collapsed .mic{display:none;}
 
 #voiceOverlay{
   position:fixed;
