@@ -57,17 +57,17 @@ function initPalette(){
     .map(([name, t]) => `<div class="bubble" data-theme="${name}" style="background:${t.accent}"></div>`)
     .join('');
   wrap.innerHTML = `
-    <button class="toggle">▶</button>
+    <button class="toggle">◀</button>
     <div class="palette-controls">
-      <div class="palette-bubbles">${bubbles}</div>
       <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
+      <div class="palette-bubbles">${bubbles}</div>
     </div>
     <button id="voiceMic" class="mic">🎤</button>`;
   document.body.appendChild(wrap);
   const toggle = wrap.querySelector('.toggle');
   toggle.addEventListener('click', ()=>{
     wrap.classList.toggle('collapsed');
-    toggle.textContent = wrap.classList.contains('collapsed') ? '▶' : '◀';
+    toggle.textContent = wrap.classList.contains('collapsed') ? '◀' : '▶';
   });
   wrap.addEventListener('click', (e)=>{
     const b = e.target.closest('.bubble');
