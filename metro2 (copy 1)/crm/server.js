@@ -149,6 +149,34 @@ process.on("warning", warn => {
   logWarn("NODE_WARNING", warn.message, { stack: warn.stack });
 });
 
+function getAuthUser(req){
+  const auth = req.headers.authorization || "";
+  if(!auth.startsWith("Basic ")) return null;
+  const [user, pass] = Buffer.from(auth.slice(6), "base64").toString().split(":");
+  const db = loadUsersDB();
+  return db.users.find(u=>u.username===user && u.password===pass) || null;
+}
+
+function authenticate(req,res,next){
+  const u = getAuthUser(req);
+  if(!u) return res.status(401).json({ ok:false, error:"Unauthorized" });
+  req.user = u;
+  next();
+}
+
+function optionalAuth(req,res,next){
+  const u = getAuthUser(req);
+  if(u) req.user = u;
+  next();
+}
+
+function requireRole(role){
+  return (req,res,next)=>{
+    if(!req.user || req.user.role !== role) return res.status(403).json({ ok:false, error:"Forbidden" });
+    next();
+  };
+}
+
 // Basic resource monitoring to catch memory or CPU spikes
 const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
 const RESOURCE_CHECK_MS = Number(process.env.RESOURCE_CHECK_MS || 60_000);
@@ -319,6 +347,36 @@ function saveLeadsDB(db){ writeJson(LEADS_DB_PATH, db); }
 const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
 function loadInvoicesDB(){ return readJson(INVOICES_DB_PATH, { invoices: [] }); }
 function saveInvoicesDB(db){ writeJson(INVOICES_DB_PATH, db); }
+
+const CONTACTS_DB_PATH = path.join(__dirname, "contacts-db.json");
+function loadContactsDB(){ return readJson(CONTACTS_DB_PATH, { contacts: [] }); }
+function saveContactsDB(db){ writeJson(CONTACTS_DB_PATH, db); }
+
+const PIPELINE_DB_PATH = path.join(__dirname, "pipeline-db.json");
+function loadPipelineDB(){ return readJson(PIPELINE_DB_PATH, { stages: [], deals: [] }); }
+function savePipelineDB(db){ writeJson(PIPELINE_DB_PATH, db); }
+
+const USERS_DB_PATH = path.join(__dirname, "users-db.json");
+function loadUsersDB(){ return readJson(USERS_DB_PATH, { users: [] }); }
+function saveUsersDB(db){ writeJson(USERS_DB_PATH, db); }
+
+const TASKS_DB_PATH = path.join(__dirname, "tasks-db.json");
+function loadTasksDB(){ return readJson(TASKS_DB_PATH, { tasks: [] }); }
+function saveTasksDB(db){ writeJson(TASKS_DB_PATH, db); }
+
+function processTasks(){
+  const db = loadTasksDB();
+  let changed = false;
+  const now = Date.now();
+  for(const t of db.tasks){
+    if(!t.completed){
+      const status = t.due && new Date(t.due).getTime() < now ? "overdue" : "pending";
+      if(t.status !== status){ t.status = status; changed = true; }
+    }
+  }
+  if(changed) saveTasksDB(db);
+}
+setInterval(processTasks, 60_000);
 
 
 function renderInvoiceHtml(inv, company = {}, consumer = {}) {
@@ -558,6 +616,126 @@ app.put("/api/invoices/:id", (req,res)=>{
   if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
   saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
+});
+
+// =================== Users ===================
+app.post("/api/users", optionalAuth, (req,res)=>{
+  const db = loadUsersDB();
+  if(db.users.length>0 && (!req.user || req.user.role !== "admin")) return res.status(403).json({ ok:false, error:"Forbidden" });
+  const user = { id: nanoid(10), username: req.body.username || "", password: req.body.password || "", role: req.body.role || "user" };
+  db.users.push(user);
+  saveUsersDB(db);
+  res.json({ ok:true, user: { id: user.id, username: user.username, role: user.role } });
+});
+
+app.get("/api/users", authenticate, requireRole("admin"), (_req,res)=>{
+  const db = loadUsersDB();
+  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, role:u.role })) });
+});
+
+// =================== Contacts ===================
+app.get("/api/contacts", authenticate, (_req,res)=>{
+  const db = loadContactsDB();
+  res.json({ ok:true, contacts: db.contacts });
+});
+
+app.post("/api/contacts", authenticate, (req,res)=>{
+  const db = loadContactsDB();
+  const contact = { id: nanoid(10), name: req.body.name || "", email: req.body.email || "", phone: req.body.phone || "", notes: req.body.notes || "" };
+  db.contacts.push(contact);
+  saveContactsDB(db);
+  res.json({ ok:true, contact });
+});
+
+app.put("/api/contacts/:id", authenticate, (req,res)=>{
+  const db = loadContactsDB();
+  const contact = db.contacts.find(c=>c.id===req.params.id);
+  if(!contact) return res.status(404).json({ ok:false, error:"Not found" });
+  Object.assign(contact, { name:req.body.name ?? contact.name, email:req.body.email ?? contact.email, phone:req.body.phone ?? contact.phone, notes:req.body.notes ?? contact.notes });
+  saveContactsDB(db);
+  res.json({ ok:true, contact });
+});
+
+app.delete("/api/contacts/:id", authenticate, requireRole("admin"), (req,res)=>{
+  const db = loadContactsDB();
+  const idx = db.contacts.findIndex(c=>c.id===req.params.id);
+  if(idx===-1) return res.status(404).json({ ok:false, error:"Not found" });
+  db.contacts.splice(idx,1);
+  saveContactsDB(db);
+  res.json({ ok:true });
+});
+
+// =================== Pipeline ===================
+app.get("/api/pipeline/stages", authenticate, (_req,res)=>{
+  const db = loadPipelineDB();
+  res.json({ ok:true, stages: db.stages });
+});
+
+app.post("/api/pipeline/stages", authenticate, requireRole("admin"), (req,res)=>{
+  const db = loadPipelineDB();
+  const stage = req.body.stage;
+  if(!stage) return res.status(400).json({ ok:false, error:"stage required" });
+  if(!db.stages.includes(stage)) db.stages.push(stage);
+  savePipelineDB(db);
+  res.json({ ok:true, stages: db.stages });
+});
+
+app.get("/api/pipeline/deals", authenticate, (_req,res)=>{
+  const db = loadPipelineDB();
+  res.json({ ok:true, deals: db.deals });
+});
+
+app.post("/api/pipeline/deals", authenticate, (req,res)=>{
+  const db = loadPipelineDB();
+  const deal = { id: nanoid(10), contactId: req.body.contactId || "", stage: req.body.stage || db.stages[0] || "new", value: Number(req.body.value || 0) };
+  db.deals.push(deal);
+  savePipelineDB(db);
+  res.json({ ok:true, deal });
+});
+
+app.put("/api/pipeline/deals/:id", authenticate, (req,res)=>{
+  const db = loadPipelineDB();
+  const deal = db.deals.find(d=>d.id===req.params.id);
+  if(!deal) return res.status(404).json({ ok:false, error:"Not found" });
+  Object.assign(deal, { contactId:req.body.contactId ?? deal.contactId, stage:req.body.stage ?? deal.stage, value:req.body.value ?? deal.value });
+  savePipelineDB(db);
+  res.json({ ok:true, deal });
+});
+
+// =================== Tasks ===================
+app.get("/api/tasks", authenticate, (req,res)=>{
+  const db = loadTasksDB();
+  const tasks = db.tasks.filter(t=>t.userId===req.user.id);
+  res.json({ ok:true, tasks });
+});
+
+app.post("/api/tasks", authenticate, (req,res)=>{
+  const db = loadTasksDB();
+  const task = { id: nanoid(10), userId: req.user.id, desc: req.body.desc || "", due: req.body.due || null, completed: false, status: "pending" };
+  db.tasks.push(task);
+  saveTasksDB(db);
+  res.json({ ok:true, task });
+});
+
+app.put("/api/tasks/:id", authenticate, (req,res)=>{
+  const db = loadTasksDB();
+  const task = db.tasks.find(t=>t.id===req.params.id && t.userId===req.user.id);
+  if(!task) return res.status(404).json({ ok:false, error:"Not found" });
+  Object.assign(task, { desc:req.body.desc ?? task.desc, due:req.body.due ?? task.due, completed:req.body.completed ?? task.completed });
+  if(task.completed) task.status = "done";
+  saveTasksDB(db);
+  res.json({ ok:true, task });
+});
+
+// =================== Reporting ===================
+app.get("/api/reports/summary", authenticate, (_req,res)=>{
+  const contacts = loadContactsDB().contacts.length;
+  const pipeline = loadPipelineDB();
+  const tasks = loadTasksDB().tasks;
+  const dealsByStage = {};
+  for(const d of pipeline.deals){ dealsByStage[d.stage] = (dealsByStage[d.stage]||0)+1; }
+  const completedTasks = tasks.filter(t=>t.completed).length;
+  res.json({ ok:true, summary:{ contacts, dealsByStage, tasks:{ total: tasks.length, completed: completedTasks } } });
 });
 
 // =================== Messages ===================
