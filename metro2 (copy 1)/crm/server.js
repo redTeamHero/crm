@@ -13,6 +13,7 @@ import os from "os";
 import archiver from "archiver";
 import puppeteer from "puppeteer";
 import nodeFetch from "node-fetch";
+import * as cheerio from "cheerio";
 
 
 import { logInfo, logError, logWarn } from "./logger.js";
@@ -163,7 +164,8 @@ setInterval(() => {
     lastCpu = process.cpuUsage();
     const cpuMs = (cpu.user + cpu.system) / 1000;
     if (cpuMs > 1000) {
-      logWarn
+      logWarn("HIGH_CPU_USAGE", "CPU usage high", { cpuMs });
+
     }
   } catch (e) {
     logWarn("RESOURCE_MONITOR_FAILED", e.message);
