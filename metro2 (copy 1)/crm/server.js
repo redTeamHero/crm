@@ -154,7 +154,10 @@ function getAuthUser(req){
   if(!auth.startsWith("Basic ")) return null;
   const [user, pass] = Buffer.from(auth.slice(6), "base64").toString().split(":");
   const db = loadUsersDB();
-  return db.users.find(u=>u.username===user && u.password===pass) || null;
+  const found = db.users.find(u=>u.username===user && u.password===pass);
+  if(!found) return null;
+  return { ...found, permissions: found.permissions || [] };
+
 }
 
 function authenticate(req,res,next){
@@ -176,6 +179,18 @@ function requireRole(role){
     next();
   };
 }
+
+function hasPermission(user, perm){
+  return !!(user && (user.role === "admin" || (user.permissions || []).includes(perm)));
+}
+
+function requirePermission(perm){
+  return (req,res,next)=>{
+    if(!hasPermission(req.user, perm)) return res.status(403).json({ ok:false, error:"Forbidden" });
+    next();
+  };
+}
+
 
 // Basic resource monitoring to catch memory or CPU spikes
 const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
@@ -618,24 +633,33 @@ app.put("/api/invoices/:id", (req,res)=>{
 app.post("/api/users", optionalAuth, (req,res)=>{
   const db = loadUsersDB();
   if(db.users.length>0 && (!req.user || req.user.role !== "admin")) return res.status(403).json({ ok:false, error:"Forbidden" });
-  const user = { id: nanoid(10), username: req.body.username || "", password: req.body.password || "", role: req.body.role || "user" };
+  const user = {
+    id: nanoid(10),
+    username: req.body.username || "",
+    password: req.body.password || "",
+    role: req.body.role || "member",
+    permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
+  };
   db.users.push(user);
   saveUsersDB(db);
-  res.json({ ok:true, user: { id: user.id, username: user.username, role: user.role } });
+  res.json({ ok:true, user: { id: user.id, username: user.username, role: user.role, permissions: user.permissions } });
+
 });
 
 app.get("/api/users", authenticate, requireRole("admin"), (_req,res)=>{
   const db = loadUsersDB();
-  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, role:u.role })) });
+  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, role:u.role, permissions: u.permissions || [] })) });
 });
 
 // =================== Contacts ===================
-app.get("/api/contacts", authenticate, (_req,res)=>{
+app.get("/api/contacts", authenticate, requirePermission("contacts"), (_req,res)=>{
+
   const db = loadContactsDB();
   res.json({ ok:true, contacts: db.contacts });
 });
 
-app.post("/api/contacts", authenticate, (req,res)=>{
+app.post("/api/contacts", authenticate, requirePermission("contacts"), (req,res)=>{
+
   const db = loadContactsDB();
   const contact = { id: nanoid(10), name: req.body.name || "", email: req.body.email || "", phone: req.body.phone || "", notes: req.body.notes || "" };
   db.contacts.push(contact);
@@ -643,7 +667,8 @@ app.post("/api/contacts", authenticate, (req,res)=>{
   res.json({ ok:true, contact });
 });
 
-app.put("/api/contacts/:id", authenticate, (req,res)=>{
+app.put("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,res)=>{
+
   const db = loadContactsDB();
   const contact = db.contacts.find(c=>c.id===req.params.id);
   if(!contact) return res.status(404).json({ ok:false, error:"Not found" });
@@ -652,7 +677,8 @@ app.put("/api/contacts/:id", authenticate, (req,res)=>{
   res.json({ ok:true, contact });
 });
 
-app.delete("/api/contacts/:id", authenticate, requireRole("admin"), (req,res)=>{
+app.delete("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,res)=>{
+
   const db = loadContactsDB();
   const idx = db.contacts.findIndex(c=>c.id===req.params.id);
   if(idx===-1) return res.status(404).json({ ok:false, error:"Not found" });
@@ -661,15 +687,16 @@ app.delete("/api/contacts/:id", authenticate, requireRole("admin"), (req,res)=>{
   res.json({ ok:true });
 });
 
-
 // =================== Tasks ===================
-app.get("/api/tasks", authenticate, (req,res)=>{
+app.get("/api/tasks", authenticate, requirePermission("tasks"), (req,res)=>{
+
   const db = loadTasksDB();
   const tasks = db.tasks.filter(t=>t.userId===req.user.id);
   res.json({ ok:true, tasks });
 });
 
-app.post("/api/tasks", authenticate, (req,res)=>{
+app.post("/api/tasks", authenticate, requirePermission("tasks"), (req,res)=>{
+
   const db = loadTasksDB();
   const task = { id: nanoid(10), userId: req.user.id, desc: req.body.desc || "", due: req.body.due || null, completed: false, status: "pending" };
   db.tasks.push(task);
@@ -677,7 +704,8 @@ app.post("/api/tasks", authenticate, (req,res)=>{
   res.json({ ok:true, task });
 });
 
-app.put("/api/tasks/:id", authenticate, (req,res)=>{
+app.put("/api/tasks/:id", authenticate, requirePermission("tasks"), (req,res)=>{
+
   const db = loadTasksDB();
   const task = db.tasks.find(t=>t.id===req.params.id && t.userId===req.user.id);
   if(!task) return res.status(404).json({ ok:false, error:"Not found" });
@@ -688,7 +716,8 @@ app.put("/api/tasks/:id", authenticate, (req,res)=>{
 });
 
 // =================== Reporting ===================
-app.get("/api/reports/summary", authenticate, (_req,res)=>{
+app.get("/api/reports/summary", authenticate, requirePermission("reports"), (_req,res)=>{
+
   const contacts = loadContactsDB().contacts.length;
   const tasks = loadTasksDB().tasks;
   const completedTasks = tasks.filter(t=>t.completed).length;

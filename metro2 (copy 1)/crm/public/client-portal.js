@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     tradelineList.innerHTML = data.map(t=>`
       <div class="tradeline-item flex items-center justify-between p-2">
+
         <div>
           <div class="font-medium">${t.bank}</div>
           <div class="text-xs muted">${t.age} | $${t.limit} limit</div>
