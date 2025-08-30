@@ -58,6 +58,29 @@ function initPalette(){
   applyTheme(saved);
 }
 
+async function limitNavForMembers(){
+  const auth = localStorage.getItem('auth');
+  if(!auth) return;
+  try{
+    const res = await fetch('/api/me',{ headers:{ Authorization:'Basic '+auth } });
+    if(!res.ok) return;
+    const data = await res.json();
+    if(!data.user || data.user.role !== 'member') return;
+    const nav = document.querySelector('header .flex.items-center.gap-2');
+    if(!nav) return;
+    const allowed = new Set(['/dashboard','/schedule','/leads','/billing','/clients']);
+    [...nav.children].forEach(el=>{
+      if(el.tagName === 'A'){
+        const href = el.getAttribute('href');
+        if(allowed.has(href)) return;
+        el.remove();
+      } else if(el.id === 'btnHelp' || el.id === 'btnInvite' || el.id === 'tierBadge'){
+        el.remove();
+      }
+    });
+  }catch{}
+}
+
 const deletionTiers = [
   { threshold: 150, name: 'Credit Legend', icon: '👑', class: 'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message: 'The ultimate, rare achievement.' },
   { threshold: 125, name: 'Credit Hero', icon: '🦸', class: 'bg-red-100 text-red-700', message: 'You’re now the hero of your credit story.' },
@@ -172,6 +195,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   initVoiceNotes();
   ensureTierBadge();
   renderDeletionTier();
+  limitNavForMembers();
 });
 
 window.openHelp = openHelp;
