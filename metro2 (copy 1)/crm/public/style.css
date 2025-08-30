@@ -59,7 +59,7 @@ body {
 #themePalette {
   position: fixed;
   top: 50%;
-  left: 8px;
+  right: 8px;
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;

@@ -29,11 +29,14 @@ function applyTheme(name){
   root.setProperty('--btn-text', t.btnText || '#fff');
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.accent);
   localStorage.setItem('theme', name);
+
   const slider = document.getElementById('glassAlpha');
-  if (slider) {
-    const m = t.glassBg.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\)/);
-    slider.value = m ? parseFloat(m[1]) : 0.15;
-  }
+  const match = t.glassBg.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\)/);
+  const themeAlpha = match ? parseFloat(match[1]) : 0.15;
+  const savedAlpha = parseFloat(localStorage.getItem('glassAlpha'));
+  const alpha = isNaN(savedAlpha) ? themeAlpha : savedAlpha;
+  if (slider) slider.value = alpha;
+  setGlassAlpha(alpha);
 }
 
 function setGlassAlpha(alpha){
@@ -73,28 +76,11 @@ function initPalette(){
     const b = e.target.closest('.bubble');
     if(!b) return;
     applyTheme(b.dataset.theme);
-    const slider = document.getElementById('glassAlpha');
-    if (slider) {
-      const m = getComputedStyle(document.documentElement).getPropertyValue('--glass-bg')
-        .match(/rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\)/);
-      if (m) slider.value = parseFloat(m[1]);
-    }
   });
   const saved = localStorage.getItem('theme') || 'purple';
   applyTheme(saved);
   const slider = wrap.querySelector('#glassAlpha');
-  const savedAlpha = localStorage.getItem('glassAlpha');
-  let alphaVal;
-  if(savedAlpha !== null){
-    alphaVal = parseFloat(savedAlpha);
-    setGlassAlpha(alphaVal);
-  }else{
-    const m = getComputedStyle(document.documentElement).getPropertyValue('--glass-bg')
-      .match(/rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\)/);
-    alphaVal = m ? parseFloat(m[1]) : 0.15;
-  }
   if(slider){
-    slider.value = alphaVal;
     slider.addEventListener('input', e=>{
       const v = parseFloat(e.target.value);
       setGlassAlpha(v);
