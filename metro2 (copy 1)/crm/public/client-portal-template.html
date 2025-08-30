@@ -35,9 +35,8 @@
       <a href="#educationSection" class="btn">Education</a>
       <a href="#documentSection" class="btn">Docs</a>
       <a href="#mailSection" class="btn">Mail</a>
+      <a href="#tradelines" class="btn">Tradelines</a>
       <a href="#uploads" class="btn">Uploads</a>
-
-      
     </nav>
     <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm animate-fadeInUp" title="You’ve planted the seed — secured cards are your first step to building credit.">
       <span class="text-xl">🔒</span>
@@ -164,6 +163,20 @@
   </div>
   <div id="mailWaiting" class="space-y-2"></div>
   <div id="mailMailed" class="space-y-2 hidden"></div>
+</div>
+<div id="tradelinesSection" class="max-w-3xl mx-auto p-4 hidden">
+  <h2 class="text-xl font-bold mb-2">Tradelines</h2>
+  <input id="tradelineSearch" type="text" class="input w-full mb-2" placeholder="Search by bank..." />
+  <select id="tradelineSort" class="input w-full mb-2">
+    <option value="">Sort by</option>
+    <option value="price-asc">Price ↑</option>
+    <option value="price-desc">Price ↓</option>
+    <option value="limit-asc">Limit ↑</option>
+    <option value="limit-desc">Limit ↓</option>
+    <option value="age-asc">Age ↑</option>
+    <option value="age-desc">Age ↓</option>
+  </select>
+  <div id="tradelineList" class="space-y-2 max-h-96 overflow-y-auto"></div>
 </div>
 <script src="/client-portal.js"></script>
 </body>
