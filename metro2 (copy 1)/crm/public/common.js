@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   initVoiceNotes();
   ensureTierBadge();
   renderDeletionTier();
-  limitNavForMembers();
+  // limitNavForMembers(); // disabled during host/team nav debugging
 });
 
 window.openHelp = openHelp;
