@@ -939,6 +939,31 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
 
   try{
     const analyzed = await runPythonAnalyzer(req.file.buffer.toString("utf-8"));
+    // compare bureau-reported personal info against consumer record
+    const normalize = s => (s || "").toString().trim().toLowerCase();
+    const mismatches = {};
+    if (analyzed?.personalInfo && typeof analyzed.personalInfo === "object") {
+      for (const [bureau, info] of Object.entries(analyzed.personalInfo)) {
+        if (!info) continue;
+        const diff = {};
+        if (info.name && consumer.name && normalize(info.name) !== normalize(consumer.name)) {
+          diff.name = info.name;
+        }
+        if (info.dob && consumer.dob && info.dob !== consumer.dob) {
+          diff.dob = info.dob;
+        }
+        const addr = info.address || {};
+        const addrFields = ["addr1", "addr2", "city", "state", "zip"];
+        const addrMismatch = addrFields.some(f => addr[f] && consumer[f] && normalize(addr[f]) !== normalize(consumer[f]));
+        if (addrMismatch) {
+          diff.address = addr;
+        }
+        if (Object.keys(diff).length) {
+          mismatches[bureau] = diff;
+        }
+      }
+    }
+    analyzed.personalInfoMismatches = mismatches;
     const rid = nanoid(8);
     // store original uploaded file so clients can access it from document center
     const uploadDir = consumerUploadsDir(consumer.id);
@@ -952,13 +977,14 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       size: req.file.size,
       mimetype: req.file.mimetype,
       uploadedAt: new Date().toISOString(),
+      personalInfoMismatches: mismatches,
     });
     consumer.reports.unshift({
       id: rid,
       uploadedAt: new Date().toISOString(),
       filename: req.file.originalname,
       size: req.file.size,
-      summary: { tradelines: analyzed?.tradelines?.length || 0 },
+      summary: { tradelines: analyzed?.tradelines?.length || 0, personalInfoMismatches: mismatches },
       data: analyzed
     });
     saveDB(db);
