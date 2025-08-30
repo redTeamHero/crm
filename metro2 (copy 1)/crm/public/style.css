@@ -232,7 +232,12 @@ body.voice-active #voiceNotes{display:block;}
 .tl-card.selected { box-shadow: 0 0 0 2px var(--green); }
 
 /* Ensure navigation dropdowns appear above other panels */
-header .group > div {
+header {
+  position: relative;
+  z-index: 200;
+}
+
+header .group > div.absolute {
   z-index: 100 !important;
 }
 
