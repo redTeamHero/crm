@@ -39,12 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadMembers() {
     if (!auth || !listEl) return;
+    if (addBtn) addBtn.disabled = true;
     try {
       const res = await fetch('/api/users', {
         headers: { Authorization: 'Basic ' + auth }
       });
+      if (res.status === 401 || res.status === 403) {
+        alert('You are not authorized to add team members');
+        return;
+      }
       const data = await res.json();
       members = data.users || [];
+      if (addBtn) addBtn.disabled = false;
       const teamData = members.map(m => ({ name: m.username, role: m.role, email: m.email }));
       localStorage.setItem('teamMembers', JSON.stringify(teamData));
     } catch {
@@ -71,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const addBtn = document.getElementById('addTeamMember');
+  if (addBtn) addBtn.disabled = true;
   if (addBtn) {
     addBtn.addEventListener('click', async () => {
       const uEl = document.getElementById('tmUser');
@@ -94,6 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (res.status === 401 || res.status === 403) {
         alert('You are not authorized to add team members');
+        addBtn.disabled = true;
+
         return;
       }
       if (!res.ok) {
