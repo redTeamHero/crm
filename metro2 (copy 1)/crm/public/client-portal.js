@@ -427,6 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = isClient ? 'You' : fromUser || 'Host';
             const when = new Date(m.at).toLocaleString();
             return `<div class="message ${cls}"><div class="text-xs muted">${name} • ${when}</div><div>${escapeHtml(m.payload?.text || '')}</div></div>`;
+
           }).join('');
         }
       })

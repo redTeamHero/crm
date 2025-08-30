@@ -678,11 +678,12 @@ app.put("/api/invoices/:id", (req,res)=>{
 app.post("/api/users", optionalAuth, (req,res)=>{
   const db = loadUsersDB();
   if(db.users.length>0 && (!req.user || req.user.role !== "admin")) return res.status(403).json({ ok:false, error:"Forbidden" });
+  const role = req.body.role || (db.users.length === 0 ? "admin" : "member");
   const user = {
     id: nanoid(10),
     username: req.body.username || "",
     password: req.body.password || "",
-    role: req.body.role || "member",
+    role,
     permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
   };
   db.users.push(user);
