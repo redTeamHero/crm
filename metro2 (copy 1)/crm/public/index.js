@@ -1087,7 +1087,7 @@ async function loadMessages(){
     const cls = isClient ? 'msg-client' : 'msg-host';
     const label = isClient ? 'Client' : escapeHtml(fromUser || 'Host');
     const when = new Date(m.at).toLocaleString();
-    return `<div class="${cls} p-2 rounded"><div class="text-xs muted">${label} • ${when}</div><div>${escapeHtml(m.payload?.text||'')}</div></div>`;
+    return `<div class="message ${cls}"><div class="text-xs muted">${label} • ${when}</div><div>${escapeHtml(m.payload?.text||'')}</div></div>`;
   }).join('');
 }
 

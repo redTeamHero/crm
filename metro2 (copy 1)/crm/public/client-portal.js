@@ -33,6 +33,17 @@ function renderProductTier(){
   el.title = tier.message;
 }
 
+function escapeHtml(s){
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return String(s||'').replace(/[&<>"']/g, c => map[c]);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
@@ -415,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const cls = isClient ? 'msg-client' : 'msg-host';
             const name = isClient ? 'You' : fromUser || 'Host';
             const when = new Date(m.at).toLocaleString();
-            return `<div class="message ${cls}"><div class="text-xs muted">${esc(name)} • ${when}</div><div>${esc(m.payload?.text||'')}</div></div>`;
+            return `<div class="message ${cls}"><div class="text-xs muted">${name} • ${when}</div><div>${escapeHtml(m.payload?.text || '')}</div></div>`;
 
           }).join('');
         }
