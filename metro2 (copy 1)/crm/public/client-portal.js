@@ -416,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = isClient ? 'You' : fromUser || 'Host';
             const when = new Date(m.at).toLocaleString();
             return `<div class="message ${cls}"><div class="text-xs muted">${esc(name)} • ${when}</div><div>${esc(m.payload?.text||'')}</div></div>`;
+
           }).join('');
         }
       })

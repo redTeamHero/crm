@@ -210,27 +210,5 @@ if(preview){
   });
 }
 
-// draggable panel
-const panel = document.getElementById('templatePanel');
-const handle = document.getElementById('dragBubble');
-if(panel && handle){
-  let offsetX = 0, offsetY = 0, dragging = false;
-  handle.addEventListener('mousedown', e => {
-    dragging = true;
-    offsetX = e.clientX - panel.offsetLeft;
-    offsetY = e.clientY - panel.offsetTop;
-    document.body.style.userSelect = 'none';
-  });
-  window.addEventListener('mousemove', e => {
-    if(!dragging) return;
-    panel.style.left = (e.clientX - offsetX) + 'px';
-    panel.style.top = (e.clientY - offsetY) + 'px';
-  });
-  window.addEventListener('mouseup', ()=>{
-    dragging = false;
-    document.body.style.userSelect = '';
-  });
-}
-
 loadLibrary();
 

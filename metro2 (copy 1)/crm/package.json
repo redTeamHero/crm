@@ -17,6 +17,7 @@
     "nanoid": "^5.1.5",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.12",
-    "puppeteer": "^24.17.0"
+    "puppeteer": "^24.17.0",
+    "stripe": "^18.5.0"
   }
 }
