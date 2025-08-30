@@ -139,13 +139,13 @@ function currentPageItems(){
   return items.slice(start, start+PAGE_SIZE);
 }
 
-async function loadConsumers(){
+async function loadConsumers(restore = true){
   clearErr();
   const data = await api("/api/consumers");
   if (!data || !data.consumers) { showErr("Could not load consumers."); return; }
   DB = data;
   renderConsumers();
-  restoreSelectedConsumer();
+  if (restore) restoreSelectedConsumer();
 }
 function renderConsumers(){
   const wrap = $("#consumerList");
@@ -843,7 +843,7 @@ $("#newForm").addEventListener("submit", async (e)=>{
   });
   if(!res?.ok) return showErr(res?.error || "Failed to create consumer.");
   closeNew();
-  await loadConsumers();
+  await loadConsumers(false);
   await selectConsumer(res.consumer.id);
 });
 
@@ -887,7 +887,7 @@ $("#editForm").addEventListener("submit", async (e)=>{
   });
   if(!res?.ok) return showErr(res?.error || "Failed to save.");
   closeEdit();
-  await loadConsumers();
+  await loadConsumers(false);
   const c = DB.consumers.find(x=>x.id===currentConsumerId);
   $("#selConsumer").textContent = c ? c.name : "—";
 });
