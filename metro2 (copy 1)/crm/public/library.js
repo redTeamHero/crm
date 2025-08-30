@@ -144,7 +144,7 @@ function renderSeqTemplateOptions(selected){
   container.innerHTML = '';
   templates.forEach(t => {
     const label = document.createElement('label');
-    label.className = 'flex items-center gap-1 text-xs';
+    label.className = 'flex items-center gap-2 text-xs p-1 rounded hover:bg-white/60';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.value = t.id;
