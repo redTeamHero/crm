@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const link = `${location.origin}/dashboard?auth=${btoa(`${uEl.value.trim()}:${pEl.value}`)}`;
       // Offer the link for copying/sharing
       prompt('Share this link with the new team member:', link);
+
       uEl.value = '';
       pEl.value = '';
       document.getElementById('permContacts').checked = false;
