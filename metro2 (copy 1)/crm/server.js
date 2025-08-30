@@ -75,6 +75,7 @@ function loadSettings(){
     rssFeedUrl: "https://hnrss.org/frontpage",
     googleCalendarToken: "",
     googleCalendarId: "",
+    stripeApiKey: "",
   });
 }
 
@@ -245,8 +246,9 @@ app.post("/api/settings", (req, res) => {
     rssFeedUrl = "",
     googleCalendarToken = "",
     googleCalendarId = "",
+    stripeApiKey = "",
   } = req.body || {};
-  saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId });
+  saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId, stripeApiKey });
 
   res.json({ ok: true });
 });
