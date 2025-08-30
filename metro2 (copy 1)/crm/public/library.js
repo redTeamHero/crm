@@ -175,6 +175,7 @@ async function saveSequence(){
     templates: selected
   };
   if (currentSequenceId != null) payload.id = currentSequenceId;
+
   const res = await fetch('/api/sequences', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

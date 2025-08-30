@@ -33,6 +33,43 @@ function renderProductTier(){
   el.title = tier.message;
 }
 
+function renderScore(){
+  const scoreVal = document.getElementById('scoreValue');
+  const scoreTU = document.getElementById('scoreTU');
+  const scoreEX = document.getElementById('scoreEX');
+  const scoreEQ = document.getElementById('scoreEQ');
+  const scoreProg = document.getElementById('scoreProgress');
+  const scoreConfetti = document.getElementById('scoreConfetti');
+  if (scoreVal && scoreProg) {
+    const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
+    const tu = Number(score.transunion || score.tu || score.current || 0);
+    const ex = Number(score.experian || score.exp || 0);
+    const eq = Number(score.equifax || score.eq || 0);
+    if (scoreTU) scoreTU.textContent = tu;
+    if (scoreEX) scoreEX.textContent = ex;
+    if (scoreEQ) scoreEQ.textContent = eq;
+    const scores = [tu, ex, eq].filter(n => n > 0);
+    const avg = scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0;
+    const pct = Math.min(1, avg / 850);
+    const circ = 339.292;
+    scoreProg.style.strokeDashoffset = circ * (1 - pct);
+    const start = Number(score.start || 0);
+    if (avg > start && scoreConfetti && window.lottie) {
+      lottie.loadAnimation({
+        container: scoreConfetti,
+        renderer: 'svg',
+        loop: false,
+        autoplay: true,
+        path: 'https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json'
+      });
+      setTimeout(() => { scoreConfetti.innerHTML = ''; }, 1500);
+      const ms = document.getElementById('milestones');
+      if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${Math.round(avg - start)} points!</div>`;
+    }
+    renderProductTier();
+  }
+}
+
 function escapeHtml(s){
   const map = {
     '&': '&amp;',
@@ -48,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
   const consumerId = idMatch ? idMatch[1] : null;
-  renderProductTier();
+  renderScore();
 
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
@@ -133,39 +170,15 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  const scoreVal = document.getElementById('scoreValue');
-  const scoreTU = document.getElementById('scoreTU');
-  const scoreEX = document.getElementById('scoreEX');
-  const scoreEQ = document.getElementById('scoreEQ');
-  const scoreProg = document.getElementById('scoreProgress');
-  const scoreConfetti = document.getElementById('scoreConfetti');
-  if (scoreVal && scoreProg) {
-    const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
-    const tu = Number(score.transunion || score.tu || score.current || 0);
-    const ex = Number(score.experian || score.exp || 0);
-    const eq = Number(score.equifax || score.eq || 0);
-    if (scoreTU) scoreTU.textContent = tu;
-    if (scoreEX) scoreEX.textContent = ex;
-    if (scoreEQ) scoreEQ.textContent = eq;
-    const scores = [tu, ex, eq].filter(n => n > 0);
-    const avg = scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0;
-    const pct = Math.min(1, avg / 850);
-    const circ = 339.292;
-    scoreProg.style.strokeDashoffset = circ * (1 - pct);
-    const start = Number(score.start || 0);
-    if (avg > start && scoreConfetti && window.lottie) {
-      lottie.loadAnimation({
-        container: scoreConfetti,
-        renderer: 'svg',
-        loop: false,
-        autoplay: true,
-        path: 'https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json'
-      });
-      setTimeout(() => { scoreConfetti.innerHTML = ''; }, 1500);
-      const ms = document.getElementById('milestones');
-      if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${Math.round(avg - start)} points!</div>`;
-    }
-  }
+  window.addEventListener('storage', e => {
+    if (e.key === 'creditScore') renderScore();
+  });
+  const _setItem = localStorage.setItem;
+  localStorage.setItem = function(key, value) {
+    _setItem.apply(this, arguments);
+    if (key === 'creditScore') renderScore();
+  };
+
 
   const timeline = JSON.parse(localStorage.getItem('disputeTimeline') || '[]');
   const timelineEl = document.getElementById('timeline');
