@@ -76,7 +76,12 @@ body {
   color: #fff;
   cursor: pointer;
 }
-#themePalette.collapsed .palette-bubbles { display: none; }
+#themePalette.collapsed .palette-controls { display: none; }
+#themePalette .palette-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 #themePalette .palette-bubbles {
   display: flex;
   flex-direction: column;
@@ -94,7 +99,6 @@ body {
   width:100px;
   transform:rotate(-90deg);
 }
-#themePalette.collapsed .alpha-slider{display:none;}
 #themePalette .mic {
   width:32px;
   height:32px;

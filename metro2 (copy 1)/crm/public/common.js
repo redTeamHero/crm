@@ -58,8 +58,10 @@ function initPalette(){
     .join('');
   wrap.innerHTML = `
     <button class="toggle">▶</button>
-    <div class="palette-bubbles">${bubbles}</div>
-    <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
+    <div class="palette-controls">
+      <div class="palette-bubbles">${bubbles}</div>
+      <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
+    </div>
     <button id="voiceMic" class="mic">🎤</button>`;
   document.body.appendChild(wrap);
   const toggle = wrap.querySelector('.toggle');
