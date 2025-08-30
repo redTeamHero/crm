@@ -76,27 +76,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const uEl = document.getElementById('tmUser');
       const pEl = document.getElementById('tmPass');
       if (!uEl.value.trim() || !auth) return;
-      const perms = [];
-      if (document.getElementById('permContacts').checked) perms.push('contacts');
-      if (document.getElementById('permTasks').checked) perms.push('tasks');
-      if (document.getElementById('permReports').checked) perms.push('reports');
-      await fetch('/api/users', {
+      const body = { username: uEl.value.trim() };
+      if (pEl.value) body.password = pEl.value;
+      const res = await fetch('/api/team-members', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: 'Basic ' + auth
         },
-        body: JSON.stringify({
-          username: uEl.value.trim(),
-          password: pEl.value,
-          role: 'member',
-          permissions: perms
-        })
+        body: JSON.stringify(body)
       });
-      // Generate shareable link that preloads credentials via ?auth param
-      const link = `${location.origin}/dashboard?auth=${btoa(`${uEl.value.trim()}:${pEl.value}`)}`;
-      // Offer the link for copying/sharing
-      prompt('Share this link with the new team member:', link);
+      const { member } = await res.json();
+      const link = `${location.origin}/team/${member.token}`;
+      prompt(`Share this link with the new team member. Initial password: ${member.password}`, link);
 
       uEl.value = '';
       pEl.value = '';
