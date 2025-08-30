@@ -78,14 +78,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!uEl.value.trim() || !auth) return;
       const body = { username: uEl.value.trim() };
       if (pEl.value) body.password = pEl.value;
-      const res = await fetch('/api/team-members', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Basic ' + auth
-        },
-        body: JSON.stringify(body)
-      });
+      let res;
+      try {
+        res = await fetch('/api/team-members', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Basic ' + auth
+          },
+          body: JSON.stringify(body)
+        });
+      } catch {
+        alert('Network error while creating team member');
+        return;
+      }
+      if (res.status === 401 || res.status === 403) {
+        alert('You are not authorized to add team members');
+        return;
+      }
+      if (!res.ok) {
+        alert('Failed to create team member');
+        return;
+      }
+
       const { member } = await res.json();
       const link = `${location.origin}/team/${member.token}`;
       prompt(`Share this link with the new team member:\n${link}\nInitial password: ${member.password}`, link);
