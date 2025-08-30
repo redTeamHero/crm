@@ -76,8 +76,8 @@ body {
   color: #fff;
   cursor: pointer;
 }
-#themePalette.collapsed .palette-controls { display: none; }
-#themePalette .palette-controls {
+#themePalette .palette-controls { display: none; }
+#themePalette:not(.collapsed) .palette-controls {
 
   display: flex;
   align-items: center;
@@ -97,8 +97,13 @@ body {
 }
 #themePalette .alpha-slider{
   -webkit-appearance:none;
-  width:100px;
+  width:120px;
   transform:rotate(-90deg);
+  border:2px solid var(--accent);
+  border-radius:8px;
+  box-shadow:0 0 4px var(--accent);
+  background:#fff;
+  accent-color: var(--accent);
 }
 #themePalette .mic {
   width:32px;
