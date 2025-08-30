@@ -100,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Failed to create team member');
         return;
       }
+
       const { member } = await res.json();
       const link = `${location.origin}/team/${member.token}`;
       prompt(`Share this link with the new team member:\n${link}\nInitial password: ${member.password}`, link);
