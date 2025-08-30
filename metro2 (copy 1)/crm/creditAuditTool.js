@@ -120,14 +120,16 @@ export function renderHtml(report, consumerName = "Consumer"){
     ];
 
     const rows = fields.map(([field, label]) => {
-      const values = bureaus.map(b => {
+      const rawValues = bureaus.map(b => {
         const info = acc.bureaus[b] || {};
         return info[field] ?? "";
       });
-      const diff = new Set(values.filter(v => v !== "")).size > 1 ? " diff" : "";
-      const cells = values.map(v => {
+      const displayValues = rawValues.map(v => field === "payment_status" ? friendlyStatus(v) : v);
+      const diff = new Set(displayValues.filter(v => v !== "")).size > 1 ? " diff" : "";
+      const cells = rawValues.map((v, i) => {
+        const displayVal = displayValues[i];
         const neg = isNegative(field, v) ? ' class="neg"' : '';
-        return `<td${neg}>${escapeHtml(v)}</td>`;
+        return `<td${neg}>${escapeHtml(displayVal)}</td>`;
       }).join('');
       return `<tr class="row${diff}"><th>${escapeHtml(label)}</th>${cells}</tr>`;
     }).join('');
