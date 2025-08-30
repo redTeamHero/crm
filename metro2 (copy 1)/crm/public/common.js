@@ -65,7 +65,8 @@ async function limitNavForMembers(){
     const res = await fetch('/api/me',{ headers:{ Authorization:'Basic '+auth } });
     if(!res.ok) return;
     const data = await res.json();
-    if(!data.user || data.user.role !== 'member') return;
+    const role = (data.user?.role || '').toLowerCase();
+    if(!role.includes('member')) return;
     const nav = document.querySelector('header .flex.items-center.gap-2');
     if(!nav) return;
     const allowed = new Set(['/dashboard','/schedule','/leads','/billing','/clients']);
