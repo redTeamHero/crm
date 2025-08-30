@@ -171,10 +171,10 @@ function newSequence(){
 async function saveSequence(){
   const selected = Array.from(document.querySelectorAll('#seqTemplates input[type="checkbox"]:checked')).map(cb => cb.value);
   const payload = {
-    id: currentSequenceId,
     name: document.getElementById('seqName').value,
     templates: selected
   };
+  if (currentSequenceId != null) payload.id = currentSequenceId;
   const res = await fetch('/api/sequences', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
