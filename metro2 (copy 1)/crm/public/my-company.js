@@ -23,4 +23,5 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('companyInfo', JSON.stringify(data));
     });
   }
+
 });
