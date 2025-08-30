@@ -203,6 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const mailMailed = document.getElementById('mailMailed');
   const mailTabWaiting = document.getElementById('mailTabWaiting');
   const mailTabMailed = document.getElementById('mailTabMailed');
+  const tradelinesSection = document.getElementById('tradelinesSection');
+  const tradelineList = document.getElementById('tradelineList');
+  const tradelineSearch = document.getElementById('tradelineSearch');
+  const tradelineSort = document.getElementById('tradelineSort');
+  let allTradelines = [];
   function loadDocs(){
     if (!(docEl && consumerId)) return;
     fetch(`/api/consumers/${consumerId}/state`)
@@ -291,6 +296,53 @@ document.addEventListener('DOMContentLoaded', () => {
       if(mailWaiting) mailWaiting.classList.add('hidden');
     });
   }
+
+  function renderTradelines(data){
+    if(!tradelineList) return;
+    if(!data.length){
+      tradelineList.innerHTML = '<div class="muted text-sm">No tradelines found.</div>';
+      return;
+    }
+    tradelineList.innerHTML = data.map(t=>`
+      <div class="flex items-center justify-between p-2 border rounded">
+        <div>
+          <div class="font-medium">${t.bank}</div>
+          <div class="text-xs muted">${t.age} | $${t.limit} limit</div>
+        </div>
+        <div class="text-right">
+          <div class="font-semibold">$${t.price}</div>
+          <a href="${t.buy_link}" class="btn text-xs px-2 py-1">Buy</a>
+        </div>
+      </div>`).join('');
+  }
+
+  function filterTradelines(){
+    let data = allTradelines.filter(t=>t.bank.toLowerCase().includes((tradelineSearch?.value||'').toLowerCase()));
+    const sort = tradelineSort?.value;
+    if(sort==='price-asc') data.sort((a,b)=>a.price-b.price);
+    if(sort==='price-desc') data.sort((a,b)=>b.price-a.price);
+    if(sort==='limit-asc') data.sort((a,b)=>a.limit-b.limit);
+    if(sort==='limit-desc') data.sort((a,b)=>b.limit-a.limit);
+    if(sort==='age-asc') data.sort((a,b)=>(a.age||'').localeCompare(b.age||''));
+    if(sort==='age-desc') data.sort((a,b)=>(b.age||'').localeCompare(a.age||''));
+    renderTradelines(data);
+  }
+
+  async function loadTradelines(){
+    if(!tradelineList) return;
+    if(allTradelines.length){ filterTradelines(); return; }
+    try{
+      const resp = await fetch('/api/tradelines');
+      const data = await resp.json();
+      allTradelines = data.tradelines || [];
+      filterTradelines();
+    }catch(e){
+      tradelineList.innerHTML = '<div class="muted text-sm">Failed to load tradelines.</div>';
+    }
+  }
+
+  if(tradelineSearch) tradelineSearch.addEventListener('input', filterTradelines);
+  if(tradelineSort) tradelineSort.addEventListener('change', filterTradelines);
 
   const goalBtn = document.getElementById('btnGoal');
   if(goalBtn){
@@ -382,6 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const uploadSection = document.getElementById('uploadSection');
   const educationSection = document.getElementById('educationSection');
   const documentSection = document.getElementById('documentSection');
+  
   function showSection(hash){
     if (portalMain) portalMain.classList.add('hidden');
     if (uploadSection) uploadSection.classList.add('hidden');
@@ -389,6 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (educationSection) educationSection.classList.add('hidden');
     if (documentSection) documentSection.classList.add('hidden');
     if (mailSection) mailSection.classList.add('hidden');
+    if (tradelinesSection) tradelinesSection.classList.add('hidden');
 
     if (hash === '#uploads' && uploadSection) {
       uploadSection.classList.remove('hidden');
@@ -403,6 +457,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (hash === '#mailSection' && mailSection) {
       mailSection.classList.remove('hidden');
       loadMail();
+    } else if (hash === '#tradelines' && tradelinesSection) {
+      tradelinesSection.classList.remove('hidden');
+      loadTradelines();
     } else if (portalMain) {
       portalMain.classList.remove('hidden');
     }
