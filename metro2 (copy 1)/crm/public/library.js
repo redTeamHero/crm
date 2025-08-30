@@ -174,7 +174,8 @@ async function saveSequence(){
     name: document.getElementById('seqName').value,
     templates: selected
   };
-  if(currentSequenceId) payload.id = currentSequenceId;
+  if (currentSequenceId != null) payload.id = currentSequenceId;
+
   const res = await fetch('/api/sequences', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
