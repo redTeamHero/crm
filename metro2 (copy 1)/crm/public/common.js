@@ -1,4 +1,9 @@
 /* public/common.js */
+// Allow ?auth=BASE64 credentials links to set local auth state
+const _authParam = new URLSearchParams(location.search).get('auth');
+if (_authParam) {
+  localStorage.setItem('auth', _authParam);
+}
 const THEMES = {
   blue:   { accent: '#007AFF', hover: '#005bb5', bg: 'rgba(0,122,255,0.12)', glassBg: 'rgba(0,122,255,0.15)', glassBrd: 'rgba(0,122,255,0.3)' },
   green:  { accent: '#34C759', hover: '#248a3d', bg: 'rgba(52,199,89,0.12)', glassBg: 'rgba(52,199,89,0.15)', glassBrd: 'rgba(52,199,89,0.3)' },
