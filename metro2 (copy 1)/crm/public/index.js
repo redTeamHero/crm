@@ -19,6 +19,7 @@ const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 
 
 const ocrCb = $("#cbUseOcr");
 
+
 function updatePortalLink(){
   const links = ["#clientPortalLink", "#activityPortalLink"].map(sel => $(sel));
   links.forEach(a => {
@@ -768,6 +769,7 @@ function getSpecialModeForCard(card){
   return null;
 }
 function collectSelections(){
+
   const useOcr = ocrCb?.checked || false;
   return Object.entries(selectionState).map(([tradelineIndex, data]) => {
     const sel = {

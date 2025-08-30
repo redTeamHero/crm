@@ -15,6 +15,7 @@ import puppeteer from "puppeteer";
 import nodeFetch from "node-fetch";
 import * as cheerio from "cheerio";
 
+
 import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer, readJson, writeJson } from "./utils.js";
@@ -151,6 +152,7 @@ process.on("warning", warn => {
 // Basic resource monitoring to catch memory or CPU spikes
 const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
 const RESOURCE_CHECK_MS = Number(process.env.RESOURCE_CHECK_MS || 60_000);
+
 let lastCpu = process.cpuUsage();
 setInterval(() => {
   try {
@@ -163,11 +165,13 @@ setInterval(() => {
     const cpuMs = (cpu.user + cpu.system) / 1000;
     if (cpuMs > 1000) {
       logWarn("HIGH_CPU_USAGE", "CPU usage high", { cpuMs });
+
     }
   } catch (e) {
     logWarn("RESOURCE_MONITOR_FAILED", e.message);
   }
 }, RESOURCE_CHECK_MS);
+
 
 
 // periodically surface due letter reminders
