@@ -45,8 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const data = await res.json();
       members = data.users || [];
+      const teamData = members.map(m => ({ name: m.username, role: m.role, email: m.email }));
+      localStorage.setItem('teamMembers', JSON.stringify(teamData));
     } catch {
       members = [];
+      localStorage.removeItem('teamMembers');
     }
     renderMembers();
   }
