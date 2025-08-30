@@ -748,10 +748,16 @@ app.get("/api/messages/:consumerId", (req,res)=>{
   res.json({ ok:true, messages: msgs });
 });
 
-app.post("/api/messages/:consumerId", (req,res)=>{
+app.post("/api/messages/:consumerId", optionalAuth, (req,res)=>{
   const text = req.body.text || "";
-  const from = req.body.from || "host";
-  addEvent(req.params.consumerId, "message", { from, text });
+  let from = req.body.from || "host";
+  const payload = { from, text };
+  if (req.user) {
+    from = req.user.username;
+    payload.from = from;
+    payload.userId = req.user.id;
+  }
+  addEvent(req.params.consumerId, "message", payload);
   res.json({ ok:true });
 });
 
