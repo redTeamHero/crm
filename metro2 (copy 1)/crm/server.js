@@ -238,6 +238,11 @@ setInterval(() => {
 
 // ---------- Static UI ----------
 const PUBLIC_DIR = path.join(__dirname, "public");
+const TEAM_TEMPLATE = (()=>{
+  try{
+    return fs.readFileSync(path.join(PUBLIC_DIR, "team-member-template.html"), "utf-8");
+  }catch{return "";}
+})();
 app.use(express.static(PUBLIC_DIR));
 app.get("/", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboard.html")));
@@ -253,6 +258,12 @@ app.get("/library", optionalAuth, forbidMember, (_req, res) => res.sendFile(path
 app.get("/tradelines", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
 app.get("/quiz", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
 app.get("/settings", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
+app.get("/team/:token", (req,res)=>{
+  const token = path.basename(req.params.token);
+  const file = path.join(PUBLIC_DIR, `team-${token}.html`);
+  if(!fs.existsSync(file)) return res.status(404).send("Not found");
+  res.sendFile(file);
+});
 app.get("/portal/:id", (req, res) => {
   const db = loadDB();
   const consumer = db.consumers.find(c => c.id === req.params.id);
@@ -699,6 +710,47 @@ app.get("/api/users", authenticate, requireRole("admin"), (_req,res)=>{
 
 app.get("/api/me", authenticate, (req,res)=>{
   res.json({ ok:true, user: { id: req.user.id, username: req.user.username, role: req.user.role, permissions: req.user.permissions || [] } });
+});
+
+app.post("/api/team-members", authenticate, requireRole("admin"), (req,res)=>{
+  const db = loadUsersDB();
+  const token = nanoid(12);
+  const password = req.body.password || nanoid(8);
+  const member = {
+    id: nanoid(10),
+    username: req.body.username || "",
+    name: req.body.name || "",
+    token,
+    password,
+    role: "member",
+    mustReset: true,
+    permissions: []
+  };
+  db.users.push(member);
+  saveUsersDB(db);
+  if(TEAM_TEMPLATE){
+    const html = TEAM_TEMPLATE.replace(/\{\{token\}\}/g, token).replace(/\{\{name\}\}/g, member.name || member.username || "Team Member");
+    try{ fs.writeFileSync(path.join(PUBLIC_DIR, `team-${token}.html`), html); }catch{}
+  }
+  res.json({ ok:true, member: { id: member.id, username: member.username, token, password } });
+});
+
+app.post("/api/team/:token/login", (req,res)=>{
+  const db = loadUsersDB();
+  const member = db.users.find(u=>u.token===req.params.token);
+  if(!member) return res.status(404).json({ ok:false, error:"Not found" });
+  if(req.body.password !== member.password) return res.status(401).json({ ok:false, error:"Invalid password" });
+  res.json({ ok:true, mustReset: member.mustReset });
+});
+
+app.post("/api/team/:token/reset", (req,res)=>{
+  const db = loadUsersDB();
+  const member = db.users.find(u=>u.token===req.params.token);
+  if(!member) return res.status(404).json({ ok:false, error:"Not found" });
+  member.password = req.body.password || "";
+  member.mustReset = false;
+  saveUsersDB(db);
+  res.json({ ok:true });
 });
 
 // =================== Contacts ===================

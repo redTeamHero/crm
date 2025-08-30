@@ -1,2 +1,4 @@
 **/node_modules/
 **/public/reports/
+**/public/team-*.html
+!**/public/team-member-template.html

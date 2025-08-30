@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Team Member {{name}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="p-4">
+  <div id="login">
+    <h1 class="text-xl mb-2">Team Member Login</h1>
+    <input id="pw" type="password" class="input mb-2" placeholder="Password" />
+    <button id="loginBtn" class="btn">Login</button>
+  </div>
+  <div id="reset" class="hidden">
+    <h1 class="text-xl mb-2">Reset Password</h1>
+    <input id="newPw" type="password" class="input mb-2" placeholder="New Password" />
+    <button id="resetBtn" class="btn">Set Password</button>
+  </div>
+  <div id="dashboard" class="hidden">
+    <nav class="mb-4 flex gap-2">
+      <a href="#" class="btn">Dashboard</a>
+      <a href="#clients" class="btn">Client</a>
+      <a href="#leads" class="btn">Leads</a>
+      <a href="#billing" class="btn">Billing</a>
+      <a href="#schedule" class="btn">Schedule</a>
+    </nav>
+    <h2 class="text-lg">Welcome, {{name}}</h2>
+  </div>
+<script>
+const token = "{{token}}";
+function showDash(){
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('reset').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+}
+document.getElementById('loginBtn').onclick = async () => {
+  const pw = document.getElementById('pw').value;
+  const res = await fetch(`/api/team/${token}/login`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({password: pw})
+  });
+  const data = await res.json();
+  if(!data.ok){ alert('Login failed'); return; }
+  if(data.mustReset){
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('reset').classList.remove('hidden');
+  }else{
+    showDash();
+  }
+};
+document.getElementById('resetBtn').onclick = async () => {
+  const pw = document.getElementById('newPw').value;
+  const res = await fetch(`/api/team/${token}/reset`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({password: pw})
+  });
+  const data = await res.json();
+  if(data.ok){ showDash(); }
+  else{ alert('Reset failed'); }
+};
+</script>
+</body>
+</html>
