@@ -76,8 +76,9 @@ body {
   color: #fff;
   cursor: pointer;
 }
-#themePalette .palette-controls { display: none; }
-#themePalette:not(.collapsed) .palette-controls {
+#themePalette.collapsed .palette-controls { display: none; }
+#themePalette .palette-controls {
+
   display: flex;
   align-items: center;
   gap: 8px;
