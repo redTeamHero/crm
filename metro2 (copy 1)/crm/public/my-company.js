@@ -102,12 +102,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.status === 401 || res.status === 403) {
         alert('You are not authorized to add team members');
         addBtn.disabled = true;
+
         return;
       }
       if (!res.ok) {
         alert('Failed to create team member');
         return;
       }
+
       const { member } = await res.json();
       const link = `${location.origin}/team/${member.token}`;
       prompt(`Share this link with the new team member:\n${link}\nInitial password: ${member.password}`, link);
