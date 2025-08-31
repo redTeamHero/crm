@@ -24,8 +24,10 @@ if (navContainer) {
   btnLogout.className = 'btn';
   btnLogout.textContent = 'Logout';
   btnLogout.addEventListener('click', () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('auth');
+    // clear all locally stored state when logging out to avoid
+    // carrying data between different user sessions
+    localStorage.clear();
+
     location.href = '/login.html';
   });
   navContainer.appendChild(btnLogout);
