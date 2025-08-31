@@ -11,9 +11,24 @@ if (_tokenParam) {
 }
 
 // redirect to login if not authenticated
-if (location.pathname !== '/login.html') {
+if (location.pathname !== '/' && location.pathname !== '/login.html') {
   const hasAuth = localStorage.getItem('token') || localStorage.getItem('auth');
   if (!hasAuth) location.href = '/login.html';
+}
+
+// append a logout button to the nav if present
+const navContainer = document.querySelector('header .flex.items-center.gap-2');
+if (navContainer) {
+  const btnLogout = document.createElement('button');
+  btnLogout.id = 'btnLogout';
+  btnLogout.className = 'btn';
+  btnLogout.textContent = 'Logout';
+  btnLogout.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth');
+    location.href = '/login.html';
+  });
+  navContainer.appendChild(btnLogout);
 }
 const THEMES = {
   blue:   { accent: '#007AFF', hover: '#005bb5', bg: 'rgba(0,122,255,0.12)', glassBg: 'rgba(0,122,255,0.15)', glassBrd: 'rgba(0,122,255,0.3)' },

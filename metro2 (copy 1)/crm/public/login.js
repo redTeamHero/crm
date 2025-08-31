@@ -16,12 +16,12 @@ async function handleAuth(endpoint){
     if(!res.ok || !data.ok){
       throw new Error(data.error || 'Request failed');
     }
-    if(data.token){
-      localStorage.setItem('token', data.token);
-      // legacy basic auth support
-      localStorage.setItem('auth', btoa(`${username}:${password}`));
-      location.href = '/index.html';
-    }
+      if(data.token){
+        localStorage.setItem('token', data.token);
+        // legacy basic auth support
+        localStorage.setItem('auth', btoa(`${username}:${password}`));
+        location.href = '/clients';
+      }
   }catch(err){
     showError(err.message);
   }
