@@ -16,12 +16,15 @@ async function handleAuth(endpoint){
     if(!res.ok || !data.ok){
       throw new Error(data.error || 'Request failed');
     }
-    if(data.token){
-      localStorage.setItem('token', data.token);
-      // legacy basic auth support
-      localStorage.setItem('auth', btoa(`${username}:${password}`));
-      location.href = '/index.html';
-    }
+      if(data.token){
+        // start a fresh local state for the newly authenticated user
+        // so previous user data doesn't leak between accounts
+        localStorage.clear();
+        localStorage.setItem('token', data.token);
+        // legacy basic auth support
+        localStorage.setItem('auth', btoa(`${username}:${password}`));
+        location.href = '/clients';
+      }
   }catch(err){
     showError(err.message);
   }

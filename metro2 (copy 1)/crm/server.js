@@ -264,8 +264,10 @@ const TEAM_TEMPLATE = (()=>{
     return fs.readFileSync(path.join(PUBLIC_DIR, "team-member-template.html"), "utf-8");
   }catch{return "";}
 })();
-app.use(express.static(PUBLIC_DIR));
-app.get("/", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+  // Disable default index to avoid auto-serving the app without auth
+  app.use(express.static(PUBLIC_DIR, { index: false }));
+  // Serve login by default so users aren't dropped straight into the app
+  app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
 app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboard.html")));
 app.get("/clients", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/leads", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "leads.html")));
