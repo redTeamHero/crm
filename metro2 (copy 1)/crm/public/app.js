@@ -559,7 +559,8 @@ $("#fileInput").addEventListener("change", async (e)=>{
     const fd = new FormData();
     fd.append("file", file, file.name);
     const res = await fetch(`/api/consumers/${currentConsumerId}/upload`, {
-      method:"POST",
+      method: "POST",
+      headers: authHeader(),
       body: fd
     }).then(r=>r.json());
     if(!res?.ok) return showErr(res?.error || "Upload failed");
