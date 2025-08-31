@@ -188,6 +188,7 @@ function requireRole(role){
 }
 
 function hasPermission(user, perm){
+  if (perm === "letters") return !!user;
   return !!(user && (user.role === "admin" || (user.permissions || []).includes(perm)));
 }
 
@@ -405,11 +406,43 @@ function saveLettersDB(db){
   writeJson(LETTERS_DB_PATH, db);
   console.log(`Saved letters DB with ${db.jobs.length} jobs`);
 };
-function recordLettersJob(consumerId, jobId, letters){
+function recordLettersJob(userId, consumerId, jobId, letters){
   console.log(`Recording letters job ${jobId} for consumer ${consumerId}`);
   const db = loadLettersDB();
-  db.jobs.push({ consumerId, jobId, createdAt: Date.now(), letters: letters.map(L=>({ filename:L.filename, bureau:L.bureau, creditor:L.creditor })) });
+  db.jobs.push({
+    userId,
+    consumerId,
+    jobId,
+    createdAt: Date.now(),
+    letters: letters.map(L=>({ filename:L.filename, bureau:L.bureau, creditor:L.creditor }))
+  });
   saveLettersDB(db);
+}
+
+function getUserJobMeta(jobId, userId){
+  const ldb = loadLettersDB();
+  return ldb.jobs.find(j=>j.jobId === jobId && j.userId === userId) || null;
+}
+
+function loadJobForUser(jobId, userId){
+  const meta = getUserJobMeta(jobId, userId);
+  if(!meta) return null;
+  let job = getJobMem(jobId);
+  if(!job){
+    const disk = loadJobFromDisk(jobId);
+    if(disk){
+      putJobMem(jobId, disk.letters.map(d => ({
+        filename: path.basename(d.htmlPath),
+        bureau: d.bureau,
+        creditor: d.creditor,
+        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>",
+        useOcr: d.useOcr
+      })));
+      job = getJobMem(jobId);
+    }
+  }
+  if(!job) return null;
+  return { meta, job };
 }
 if(!fs.existsSync(LETTERS_DB_PATH)){
   console.log(`letters-db.json not found. Initializing at ${LETTERS_DB_PATH}`);
@@ -778,16 +811,17 @@ app.post("/api/team/:token/reset", (req,res)=>{
 });
 
 // =================== Contacts ===================
-app.get("/api/contacts", authenticate, requirePermission("contacts"), (_req,res)=>{
+app.get("/api/contacts", authenticate, requirePermission("contacts"), (req,res)=>{
 
   const db = loadContactsDB();
-  res.json({ ok:true, contacts: db.contacts });
+  const contacts = db.contacts.filter(c=>c.userId===req.user.id);
+  res.json({ ok:true, contacts });
 });
 
 app.post("/api/contacts", authenticate, requirePermission("contacts"), (req,res)=>{
 
   const db = loadContactsDB();
-  const contact = { id: nanoid(10), name: req.body.name || "", email: req.body.email || "", phone: req.body.phone || "", notes: req.body.notes || "" };
+  const contact = { id: nanoid(10), userId: req.user.id, name: req.body.name || "", email: req.body.email || "", phone: req.body.phone || "", notes: req.body.notes || "" };
   db.contacts.push(contact);
   saveContactsDB(db);
   res.json({ ok:true, contact });
@@ -796,7 +830,7 @@ app.post("/api/contacts", authenticate, requirePermission("contacts"), (req,res)
 app.put("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,res)=>{
 
   const db = loadContactsDB();
-  const contact = db.contacts.find(c=>c.id===req.params.id);
+  const contact = db.contacts.find(c=>c.id===req.params.id && c.userId===req.user.id);
   if(!contact) return res.status(404).json({ ok:false, error:"Not found" });
   Object.assign(contact, { name:req.body.name ?? contact.name, email:req.body.email ?? contact.email, phone:req.body.phone ?? contact.phone, notes:req.body.notes ?? contact.notes });
   saveContactsDB(db);
@@ -806,7 +840,7 @@ app.put("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,r
 app.delete("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,res)=>{
 
   const db = loadContactsDB();
-  const idx = db.contacts.findIndex(c=>c.id===req.params.id);
+  const idx = db.contacts.findIndex(c=>c.id===req.params.id && c.userId===req.user.id);
   if(idx===-1) return res.status(404).json({ ok:false, error:"Not found" });
   db.contacts.splice(idx,1);
   saveContactsDB(db);
@@ -842,10 +876,10 @@ app.put("/api/tasks/:id", authenticate, requirePermission("tasks"), (req,res)=>{
 });
 
 // =================== Reporting ===================
-app.get("/api/reports/summary", authenticate, requirePermission("reports"), (_req,res)=>{
+app.get("/api/reports/summary", authenticate, requirePermission("reports"), (req,res)=>{
 
-  const contacts = loadContactsDB().contacts.length;
-  const tasks = loadTasksDB().tasks;
+  const contacts = loadContactsDB().contacts.filter(c=>c.userId===req.user.id).length;
+  const tasks = loadTasksDB().tasks.filter(t=>t.userId===req.user.id);
   const completedTasks = tasks.filter(t=>t.completed).length;
   res.json({ ok:true, summary:{ contacts, tasks:{ total: tasks.length, completed: completedTasks } } });
 
@@ -1384,7 +1418,7 @@ function loadJobFromDisk(jobId){
 }
 
 // Generate letters (from selections) -> memory + disk
-app.post("/api/generate", async (req,res)=>{
+app.post("/api/generate", authenticate, requirePermission("letters"), async (req,res)=>{
   try{
     const { consumerId, reportId, selections, requestType, personalInfo, inquiries, collectors } = req.body;
 
@@ -1434,7 +1468,7 @@ app.post("/api/generate", async (req,res)=>{
 
     putJobMem(jobId, letters);
     persistJobToDisk(jobId, letters);
-    recordLettersJob(consumer.id, jobId, letters);
+    recordLettersJob(req.user.id, consumer.id, jobId, letters);
     console.log(`Letters job ${jobId} recorded with ${letters.length} letters`);
 
     // log state
@@ -1474,10 +1508,10 @@ app.post("/api/generate", async (req,res)=>{
 });
 
 // List stored letter jobs
-app.get("/api/letters", (_req,res)=>{
+app.get("/api/letters", authenticate, requirePermission("letters"), (req,res)=>{
   const ldb = loadLettersDB();
   const cdb = loadDB();
-  const jobs = ldb.jobs.map(j => ({
+  const jobs = ldb.jobs.filter(j=>j.userId===req.user.id).map(j => ({
     jobId: j.jobId,
     consumerId: j.consumerId,
     consumerName: cdb.consumers.find(c=>c.id===j.consumerId)?.name || "",
@@ -1489,43 +1523,22 @@ app.get("/api/letters", (_req,res)=>{
 });
 
 // List letters for a job
-app.get("/api/letters/:jobId", (req,res)=>{
+app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), (req,res)=>{
   const { jobId } = req.params;
-  console.log(`Fetching job ${jobId}`);
-  let job = getJobMem(jobId);
-  if(!job){
-    const disk = loadJobFromDisk(jobId);
-    if(disk){
-      putJobMem(jobId, disk.letters.map(d => ({
-        filename: path.basename(d.htmlPath),
-        bureau: d.bureau,
-        creditor: d.creditor,
-        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>",
-        useOcr: d.useOcr
-      })));
-      job = getJobMem(jobId);
-    }
-  }
-  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
-
+  const result = loadJobForUser(jobId, req.user.id);
+  if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  const { job } = result;
   const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor }));
   console.log(`Job ${jobId} has ${meta.length} letters`);
   res.json({ ok:true, letters: meta });
 });
 
 // Serve letter HTML (preview embed)
-app.get("/api/letters/:jobId/:idx.html", (req,res)=>{
+app.get("/api/letters/:jobId/:idx.html", authenticate, requirePermission("letters"), (req,res)=>{
   const { jobId, idx } = req.params;
-  console.log(`Serving HTML for job ${jobId} letter ${idx}`);
-  let job = getJobMem(jobId);
-  if(!job){
-    const disk = loadJobFromDisk(jobId);
-    if(!disk) return res.status(404).send("Job not found or expired.");
-    const Lm = disk.letters[Number(idx)];
-    if(!Lm || !fs.existsSync(Lm.htmlPath)) return res.status(404).send("Letter not found.");
-    res.setHeader("Content-Type","text/html; charset=utf-8");
-    return res.send(fs.readFileSync(Lm.htmlPath,"utf-8"));
-  }
+  const result = loadJobForUser(jobId, req.user.id);
+  if(!result) return res.status(404).send("Job not found or expired.");
+  const { job } = result;
   const L = job.letters[Number(idx)];
   if(!L) return res.status(404).send("Letter not found.");
   res.setHeader("Content-Type","text/html; charset=utf-8");
@@ -1533,29 +1546,17 @@ app.get("/api/letters/:jobId/:idx.html", (req,res)=>{
 });
 
 // Render letter PDF on-the-fly
-app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
+app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters"), async (req,res)=>{
   const { jobId, idx } = req.params;
   console.log(`Generating PDF for job ${jobId} letter ${idx}`);
-  let html;
-  let filenameBase = "letter";
-  let useOcr = false;
-
-  let job = getJobMem(jobId);
-  if(job){
-    const L = job.letters[Number(idx)];
-    if(!L) return res.status(404).send("Letter not found.");
-    html = L.html;
-    filenameBase = (L.filename||"letter").replace(/\.html?$/i,"");
-    useOcr = !!L.useOcr;
-  }else{
-    const disk = loadJobFromDisk(jobId);
-    if(!disk) return res.status(404).send("Job not found or expired.");
-    const Lm = disk.letters[Number(idx)];
-    if(!Lm || !fs.existsSync(Lm.htmlPath)) return res.status(404).send("Letter not found.");
-    html = fs.readFileSync(Lm.htmlPath,"utf-8");
-    filenameBase = path.basename(Lm.htmlPath).replace(/\.html?$/i,"");
-    useOcr = !!Lm.useOcr;
-  }
+  const result = loadJobForUser(jobId, req.user.id);
+  if(!result) return res.status(404).send("Job not found or expired.");
+  const { job } = result;
+  const L = job.letters[Number(idx)];
+  if(!L) return res.status(404).send("Letter not found.");
+  let html = L.html;
+  let filenameBase = (L.filename||"letter").replace(/\.html?$/i,"");
+  let useOcr = !!L.useOcr;
 
   if(!html || !html.trim()){
     logError("LETTER_HTML_MISSING", "No HTML content for PDF generation", null, { jobId, idx });
@@ -1606,23 +1607,11 @@ app.get("/api/letters/:jobId/:idx.pdf", async (req,res)=>{
 
 });
 
-app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
+app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"), async (req,res)=>{
   const { jobId } = req.params;
-  let job = getJobMem(jobId);
-  if(!job){
-    const disk = loadJobFromDisk(jobId);
-    if(disk){
-      putJobMem(jobId, disk.letters.map(d => ({
-        filename: path.basename(d.htmlPath),
-        bureau: d.bureau,
-        creditor: d.creditor,
-        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>",
-        useOcr: d.useOcr
-      })));
-      job = getJobMem(jobId);
-    }
-  }
-  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  const result = loadJobForUser(jobId, req.user.id);
+  if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  const { job, meta } = result;
 
   res.setHeader("Content-Type","application/zip");
   res.setHeader("Content-Disposition",`attachment; filename="letters_${jobId}.zip"`);
@@ -1635,9 +1624,7 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   // determine consumer for logging and file storage
   let fileStream, storedName, originalName, consumer, id;
   try{
-    const ldb = loadLettersDB();
-    const meta = ldb.jobs.find(j=>j.jobId === jobId);
-    if(meta?.consumerId){
+    if(meta.consumerId){
       const db = loadDB();
       consumer = db.consumers.find(c=>c.id === meta.consumerId);
     }
@@ -1723,8 +1710,10 @@ app.get("/api/letters/:jobId/all.zip", async (req,res)=>{
   }
 });
 
-app.post("/api/letters/:jobId/mail", async (req,res)=>{
+app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"), async (req,res)=>{
   const { jobId } = req.params;
+  const result = loadJobForUser(jobId, req.user.id);
+  if(!result) return res.status(404).json({ ok:false, error:"Job not found" });
   const consumerId = String(req.body?.consumerId || "").trim();
   const file = String(req.body?.file || "").trim();
   if(!consumerId) return res.status(400).json({ ok:false, error:"consumerId required" });
@@ -1755,24 +1744,19 @@ app.post("/api/letters/:jobId/mail", async (req,res)=>{
   }
 });
 
-app.post("/api/letters/:jobId/email", async (req,res)=>{
+app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters"), async (req,res)=>{
   const { jobId } = req.params;
   const to = String(req.body?.to || "").trim();
   if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
   if(!mailer) return res.status(500).json({ ok:false, error:"Email not configured" });
-  let job = getJobMem(jobId);
-  if(!job){
-    const disk = loadJobFromDisk(jobId);
-    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath, useOcr: d.useOcr })) }; }
-  }
-  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  const result = loadJobForUser(jobId, req.user.id);
+  if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  const { job, meta } = result;
 
   // find consumer for logging
   let consumer = null;
   try{
-    const ldb = loadLettersDB();
-    const meta = ldb.jobs.find(j=>j.jobId === jobId);
-    if(meta?.consumerId){
+    if(meta.consumerId){
       const db = loadDB();
       consumer = db.consumers.find(c=>c.id === meta.consumerId) || null;
     }
@@ -1833,21 +1817,16 @@ app.post("/api/letters/:jobId/email", async (req,res)=>{
   }
 });
 
-app.post("/api/letters/:jobId/portal", async (req,res)=>{
+app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"), async (req,res)=>{
   const { jobId } = req.params;
-  let job = getJobMem(jobId);
-  if(!job){
-    const disk = loadJobFromDisk(jobId);
-    if(disk){ job = { letters: disk.letters.map(d=>({ filename: path.basename(d.htmlPath), htmlPath: d.htmlPath, useOcr: d.useOcr })) }; }
-  }
-  if(!job) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  const result = loadJobForUser(jobId, req.user.id);
+  if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
+  const { job, meta } = result;
 
   // locate consumer for storage
   let consumer = null;
   try{
-    const ldb = loadLettersDB();
-    const meta = ldb.jobs.find(j=>j.jobId === jobId);
-    if(meta?.consumerId){
+    if(meta.consumerId){
       const db = loadDB();
       consumer = db.consumers.find(c=>c.id === meta.consumerId) || null;
     }
@@ -1914,15 +1893,15 @@ app.post("/api/letters/:jobId/portal", async (req,res)=>{
   }
 });
 
-app.get("/api/jobs/:jobId/letters", (req, res) => {
+app.get("/api/jobs/:jobId/letters", authenticate, requirePermission("letters"), (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}`;
   app._router.handle(req, res);
 });
-app.get("/api/jobs/:jobId/letters/:idx.html", (req, res) => {
+app.get("/api/jobs/:jobId/letters/:idx.html", authenticate, requirePermission("letters"), (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}/${req.params.idx}.html`;
   app._router.handle(req, res);
 });
-app.get("/api/jobs/:jobId/letters/:idx.pdf", (req, res) => {
+app.get("/api/jobs/:jobId/letters/:idx.pdf", authenticate, requirePermission("letters"), (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}/${req.params.idx}.pdf`;
   app._router.handle(req, res);
 });
