@@ -27,6 +27,7 @@ if (navContainer) {
     // clear all locally stored state when logging out to avoid
     // carrying data between different user sessions
     localStorage.clear();
+
     location.href = '/login.html';
   });
   navContainer.appendChild(btnLogout);
