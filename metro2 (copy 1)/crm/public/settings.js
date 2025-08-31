@@ -1,5 +1,6 @@
 /* public/settings.js */
 document.addEventListener('DOMContentLoaded', () => {
+  const panelEl = document.getElementById('adminPanel');
   const hibpEl = document.getElementById('hibpKey');
   const rssEl = document.getElementById('rssFeedUrl');
   const gcalTokenEl = document.getElementById('gcalToken');
@@ -24,6 +25,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function init() {
+    try {
+      const resp = await fetch('/api/me');
+      const data = await resp.json();
+      if (data.user?.role === 'admin') {
+        panelEl?.classList.remove('hidden');
+        await load();
+      }
+    } catch (e) {
+      console.error('Failed to load user', e);
+    }
+  }
+
   if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
       const body = {
@@ -31,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rssFeedUrl: rssEl.value.trim(),
         googleCalendarToken: gcalTokenEl.value.trim(),
         googleCalendarId: gcalIdEl.value.trim(),
-        stripeApiKey: stripeEl.value.trim()
+        stripeApiKey: stripeEl.value.trim(),
 
       };
       try {
@@ -50,6 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  load();
+  init();
 });
 

@@ -209,6 +209,7 @@ function requireRole(role){
 }
 
 function hasPermission(user, perm){
+  if (perm === "letters") return !!user;
   return !!(user && (user.role === "admin" || (user.permissions || []).includes(perm)));
 }
 
