@@ -497,6 +497,9 @@ function processTasks(){
   }
   if(changed) saveTasksDB(db);
 }
+
+// Process tasks immediately on startup so their status is accurate
+processTasks();
 setInterval(processTasks, 60_000);
 
 
