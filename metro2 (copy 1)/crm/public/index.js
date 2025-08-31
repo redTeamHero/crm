@@ -910,7 +910,11 @@ $("#fileInput").addEventListener("change", async (e)=>{
   try{
     const fd = new FormData();
     fd.append("file", file, file.name);
-    const res = await fetch(`/api/consumers/${currentConsumerId}/upload`, { method:"POST", body: fd });
+    const res = await fetch(`/api/consumers/${currentConsumerId}/upload`, {
+      method: "POST",
+      headers: authHeader(),
+      body: fd
+    });
     const data = await res.json().catch(()=> ({}));
     if(!data?.ok) throw new Error(data?.error || `Upload failed (HTTP ${res.status})`);
     await refreshReports();
@@ -1066,7 +1070,11 @@ $("#activityFile").addEventListener("change", async (e)=>{
   try{
     const fd = new FormData();
     fd.append("file", file, file.name);
-    const res = await fetch(`/api/consumers/${currentConsumerId}/state/upload`, { method:"POST", body: fd });
+    const res = await fetch(`/api/consumers/${currentConsumerId}/state/upload`, {
+      method: "POST",
+      headers: authHeader(),
+      body: fd
+    });
     const data = await res.json().catch(()=> ({}));
     if(!data?.ok) throw new Error(data?.error || `Upload failed`);
     await loadConsumerState();

@@ -14,6 +14,8 @@ import archiver from "archiver";
 import puppeteer from "puppeteer";
 import nodeFetch from "node-fetch";
 import * as cheerio from "cheerio";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 
 
 import { logInfo, logError, logWarn } from "./logger.js";
@@ -23,6 +25,13 @@ import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy } from "./googleCalendar.js";
 
 const fetchFn = globalThis.fetch || nodeFetch;
+
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
+const TOKEN_EXPIRES_IN = "1h";
+
+function generateToken(user){
+  return jwt.sign({ id: user.id, username: user.username, role: user.role, permissions: user.permissions || [] }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES_IN });
+}
 
 
 
@@ -158,13 +167,25 @@ process.on("warning", warn => {
 
 function getAuthUser(req){
   const auth = req.headers.authorization || "";
-  if(!auth.startsWith("Basic ")) return null;
-  const [user, pass] = Buffer.from(auth.slice(6), "base64").toString().split(":");
   const db = loadUsersDB();
-  const found = db.users.find(u=>u.username===user && u.password===pass);
-  if(!found) return null;
-  return { ...found, permissions: found.permissions || [] };
-
+  if(auth.startsWith("Bearer ")){
+    try{
+      const payload = jwt.verify(auth.slice(7), JWT_SECRET);
+      const found = db.users.find(u=>u.id===payload.id);
+      if(!found) return null;
+      return { ...found, permissions: found.permissions || [] };
+    }catch{
+      return null;
+    }
+  }
+  if(auth.startsWith("Basic ")){
+    const [user, pass] = Buffer.from(auth.slice(6), "base64").toString().split(":");
+    const found = db.users.find(u=>u.username===user);
+    if(!found) return null;
+    if(!bcrypt.compareSync(pass, found.password)) return null;
+    return { ...found, permissions: found.permissions || [] };
+  }
+  return null;
 }
 
 function authenticate(req,res,next){
@@ -244,8 +265,10 @@ const TEAM_TEMPLATE = (()=>{
     return fs.readFileSync(path.join(PUBLIC_DIR, "team-member-template.html"), "utf-8");
   }catch{return "";}
 })();
-app.use(express.static(PUBLIC_DIR));
-app.get("/", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+  // Disable default index to avoid auto-serving the app without auth
+  app.use(express.static(PUBLIC_DIR, { index: false }));
+  // Serve login by default so users aren't dropped straight into the app
+  app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
 app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboard.html")));
 app.get("/clients", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/leads", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "leads.html")));
@@ -743,6 +766,49 @@ app.put("/api/invoices/:id", (req,res)=>{
 });
 
 // =================== Users ===================
+app.post("/api/register", (req,res)=>{
+  const db = loadUsersDB();
+  if(db.users.find(u=>u.username===req.body.username)) return res.status(400).json({ ok:false, error:"User exists" });
+  const user = {
+    id: nanoid(10),
+    username: req.body.username || "",
+    password: bcrypt.hashSync(req.body.password || "", 10),
+    role: "member",
+    permissions: []
+  };
+  db.users.push(user);
+  saveUsersDB(db);
+  res.json({ ok:true, token: generateToken(user) });
+});
+
+app.post("/api/login", (req,res)=>{
+  const db = loadUsersDB();
+  const user = db.users.find(u=>u.username===req.body.username);
+  if(!user) return res.status(401).json({ ok:false, error:"Invalid credentials" });
+  if(!bcrypt.compareSync(req.body.password || "", user.password)) return res.status(401).json({ ok:false, error:"Invalid credentials" });
+  res.json({ ok:true, token: generateToken(user) });
+});
+
+app.post("/api/request-password-reset", (req,res)=>{
+  const db = loadUsersDB();
+  const user = db.users.find(u=>u.username===req.body.username);
+  if(!user) return res.status(404).json({ ok:false, error:"Not found" });
+  const token = nanoid(12);
+  user.resetToken = token;
+  saveUsersDB(db);
+  res.json({ ok:true, token });
+});
+
+app.post("/api/reset-password", (req,res)=>{
+  const db = loadUsersDB();
+  const user = db.users.find(u=>u.username===req.body.username && u.resetToken===req.body.token);
+  if(!user) return res.status(400).json({ ok:false, error:"Invalid token" });
+  user.password = bcrypt.hashSync(req.body.password || "", 10);
+  delete user.resetToken;
+  saveUsersDB(db);
+  res.json({ ok:true });
+});
+
 app.post("/api/users", optionalAuth, (req,res)=>{
   const db = loadUsersDB();
   if(db.users.length>0 && (!req.user || req.user.role !== "admin")) return res.status(403).json({ ok:false, error:"Forbidden" });
@@ -750,7 +816,7 @@ app.post("/api/users", optionalAuth, (req,res)=>{
   const user = {
     id: nanoid(10),
     username: req.body.username || "",
-    password: req.body.password || "",
+    password: bcrypt.hashSync(req.body.password || "", 10),
     role,
     permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
   };
@@ -772,7 +838,8 @@ app.get("/api/me", authenticate, (req,res)=>{
 app.post("/api/team-members", authenticate, requireRole("admin"), (req,res)=>{
   const db = loadUsersDB();
   const token = nanoid(12);
-  const password = req.body.password || nanoid(8);
+  const passwordPlain = req.body.password || nanoid(8);
+  const password = bcrypt.hashSync(passwordPlain, 10);
   const member = {
     id: nanoid(10),
     username: req.body.username || "",
@@ -789,22 +856,22 @@ app.post("/api/team-members", authenticate, requireRole("admin"), (req,res)=>{
     const html = TEAM_TEMPLATE.replace(/\{\{token\}\}/g, token).replace(/\{\{name\}\}/g, member.name || member.username || "Team Member");
     try{ fs.writeFileSync(path.join(PUBLIC_DIR, `team-${token}.html`), html); }catch{}
   }
-  res.json({ ok:true, member: { id: member.id, username: member.username, token, password } });
+  res.json({ ok:true, member: { id: member.id, username: member.username, token, password: passwordPlain } });
 });
 
 app.post("/api/team/:token/login", (req,res)=>{
   const db = loadUsersDB();
   const member = db.users.find(u=>u.token===req.params.token);
   if(!member) return res.status(404).json({ ok:false, error:"Not found" });
-  if(req.body.password !== member.password) return res.status(401).json({ ok:false, error:"Invalid password" });
-  res.json({ ok:true, mustReset: member.mustReset });
+  if(!bcrypt.compareSync(req.body.password || "", member.password)) return res.status(401).json({ ok:false, error:"Invalid password" });
+  res.json({ ok:true, token: generateToken(member), mustReset: member.mustReset });
 });
 
 app.post("/api/team/:token/reset", (req,res)=>{
   const db = loadUsersDB();
   const member = db.users.find(u=>u.token===req.params.token);
   if(!member) return res.status(404).json({ ok:false, error:"Not found" });
-  member.password = req.body.password || "";
+  member.password = bcrypt.hashSync(req.body.password || "", 10);
   member.mustReset = false;
   saveUsersDB(db);
   res.json({ ok:true });
@@ -1419,6 +1486,7 @@ function loadJobFromDisk(jobId){
 
 // Generate letters (from selections) -> memory + disk
 app.post("/api/generate", authenticate, requirePermission("letters"), async (req,res)=>{
+
   try{
     const { consumerId, reportId, selections, requestType, personalInfo, inquiries, collectors } = req.body;
 
@@ -1509,6 +1577,7 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
 
 // List stored letter jobs
 app.get("/api/letters", authenticate, requirePermission("letters"), (req,res)=>{
+
   const ldb = loadLettersDB();
   const cdb = loadDB();
   const jobs = ldb.jobs.filter(j=>j.userId===req.user.id).map(j => ({
@@ -1524,6 +1593,7 @@ app.get("/api/letters", authenticate, requirePermission("letters"), (req,res)=>{
 
 // List letters for a job
 app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), (req,res)=>{
+
   const { jobId } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
@@ -1535,6 +1605,7 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), (req,
 
 // Serve letter HTML (preview embed)
 app.get("/api/letters/:jobId/:idx.html", authenticate, requirePermission("letters"), (req,res)=>{
+
   const { jobId, idx } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).send("Job not found or expired.");
@@ -1547,6 +1618,7 @@ app.get("/api/letters/:jobId/:idx.html", authenticate, requirePermission("letter
 
 // Render letter PDF on-the-fly
 app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId, idx } = req.params;
   console.log(`Generating PDF for job ${jobId} letter ${idx}`);
   const result = loadJobForUser(jobId, req.user.id);
@@ -1608,6 +1680,7 @@ app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters
 });
 
 app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
@@ -1711,6 +1784,7 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
 });
 
 app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found" });
@@ -1745,6 +1819,7 @@ app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"),
 });
 
 app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId } = req.params;
   const to = String(req.body?.to || "").trim();
   if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
@@ -1818,6 +1893,7 @@ app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters")
 });
 
 app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
@@ -1902,6 +1978,7 @@ app.get("/api/jobs/:jobId/letters/:idx.html", authenticate, requirePermission("l
   app._router.handle(req, res);
 });
 app.get("/api/jobs/:jobId/letters/:idx.pdf", authenticate, requirePermission("letters"), (req, res) => {
+
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}/${req.params.idx}.pdf`;
   app._router.handle(req, res);
 });

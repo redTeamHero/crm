@@ -1,8 +1,36 @@
 /* public/common.js */
-// Allow ?auth=BASE64 credentials links to set local auth state
-const _authParam = new URLSearchParams(location.search).get('auth');
+// Allow ?auth=BASE64 or ?token=JWT links to set local auth state
+const params = new URLSearchParams(location.search);
+const _authParam = params.get('auth');
 if (_authParam) {
   localStorage.setItem('auth', _authParam);
+}
+const _tokenParam = params.get('token');
+if (_tokenParam) {
+  localStorage.setItem('token', _tokenParam);
+}
+
+// redirect to login if not authenticated
+if (location.pathname !== '/' && location.pathname !== '/login.html') {
+  const hasAuth = localStorage.getItem('token') || localStorage.getItem('auth');
+  if (!hasAuth) location.href = '/login.html';
+}
+
+// append a logout button to the nav if present
+const navContainer = document.querySelector('header .flex.items-center.gap-2');
+if (navContainer) {
+  const btnLogout = document.createElement('button');
+  btnLogout.id = 'btnLogout';
+  btnLogout.className = 'btn';
+  btnLogout.textContent = 'Logout';
+  btnLogout.addEventListener('click', () => {
+    // clear all locally stored state when logging out to avoid
+    // carrying data between different user sessions
+    localStorage.clear();
+
+    location.href = '/login.html';
+  });
+  navContainer.appendChild(btnLogout);
 }
 const THEMES = {
   blue:   { accent: '#007AFF', hover: '#005bb5', bg: 'rgba(0,122,255,0.12)', glassBg: 'rgba(0,122,255,0.15)', glassBrd: 'rgba(0,122,255,0.3)' },
@@ -89,11 +117,19 @@ function initPalette(){
   }
 }
 
-async function limitNavForMembers(){
+function authHeader(){
+  const token = localStorage.getItem('token');
+  if(token) return { Authorization: 'Bearer '+token };
   const auth = localStorage.getItem('auth');
-  if(!auth) return;
+  if(auth) return { Authorization: 'Basic '+auth };
+  return {};
+}
+
+async function limitNavForMembers(){
+  const headers = authHeader();
+  if(Object.keys(headers).length === 0) return;
   try{
-    const res = await fetch('/api/me',{ headers:{ Authorization:'Basic '+auth } });
+    const res = await fetch('/api/me',{ headers });
     if(!res.ok) return;
     const data = await res.json();
     const role = (data.user?.role || '').toLowerCase();
