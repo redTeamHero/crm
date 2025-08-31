@@ -1484,7 +1484,8 @@ function loadJobFromDisk(jobId){
 }
 
 // Generate letters (from selections) -> memory + disk
-app.post("/api/generate", authenticate, async (req,res)=>{
+app.post("/api/generate", authenticate, requirePermission("letters"), async (req,res)=>{
+
   try{
     const { consumerId, reportId, selections, requestType, personalInfo, inquiries, collectors } = req.body;
 
@@ -1574,7 +1575,8 @@ app.post("/api/generate", authenticate, async (req,res)=>{
 });
 
 // List stored letter jobs
-app.get("/api/letters", authenticate, (req,res)=>{
+app.get("/api/letters", authenticate, requirePermission("letters"), (req,res)=>{
+
   const ldb = loadLettersDB();
   const cdb = loadDB();
   const jobs = ldb.jobs.filter(j=>j.userId===req.user.id).map(j => ({
@@ -1589,7 +1591,8 @@ app.get("/api/letters", authenticate, (req,res)=>{
 });
 
 // List letters for a job
-app.get("/api/letters/:jobId", authenticate, (req,res)=>{
+app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), (req,res)=>{
+
   const { jobId } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
@@ -1600,7 +1603,8 @@ app.get("/api/letters/:jobId", authenticate, (req,res)=>{
 });
 
 // Serve letter HTML (preview embed)
-app.get("/api/letters/:jobId/:idx.html", authenticate, (req,res)=>{
+app.get("/api/letters/:jobId/:idx.html", authenticate, requirePermission("letters"), (req,res)=>{
+
   const { jobId, idx } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).send("Job not found or expired.");
@@ -1612,7 +1616,8 @@ app.get("/api/letters/:jobId/:idx.html", authenticate, (req,res)=>{
 });
 
 // Render letter PDF on-the-fly
-app.get("/api/letters/:jobId/:idx.pdf", authenticate, async (req,res)=>{
+app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId, idx } = req.params;
   console.log(`Generating PDF for job ${jobId} letter ${idx}`);
   const result = loadJobForUser(jobId, req.user.id);
@@ -1673,7 +1678,8 @@ app.get("/api/letters/:jobId/:idx.pdf", authenticate, async (req,res)=>{
 
 });
 
-app.get("/api/letters/:jobId/all.zip", authenticate, async (req,res)=>{
+app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
@@ -1776,7 +1782,8 @@ app.get("/api/letters/:jobId/all.zip", authenticate, async (req,res)=>{
   }
 });
 
-app.post("/api/letters/:jobId/mail", authenticate, async (req,res)=>{
+app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found" });
@@ -1810,7 +1817,8 @@ app.post("/api/letters/:jobId/mail", authenticate, async (req,res)=>{
   }
 });
 
-app.post("/api/letters/:jobId/email", authenticate, async (req,res)=>{
+app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId } = req.params;
   const to = String(req.body?.to || "").trim();
   if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
@@ -1883,7 +1891,8 @@ app.post("/api/letters/:jobId/email", authenticate, async (req,res)=>{
   }
 });
 
-app.post("/api/letters/:jobId/portal", authenticate, async (req,res)=>{
+app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"), async (req,res)=>{
+
   const { jobId } = req.params;
   const result = loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
@@ -1959,15 +1968,16 @@ app.post("/api/letters/:jobId/portal", authenticate, async (req,res)=>{
   }
 });
 
-app.get("/api/jobs/:jobId/letters", authenticate, (req, res) => {
+app.get("/api/jobs/:jobId/letters", authenticate, requirePermission("letters"), (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}`;
   app._router.handle(req, res);
 });
-app.get("/api/jobs/:jobId/letters/:idx.html", authenticate, (req, res) => {
+app.get("/api/jobs/:jobId/letters/:idx.html", authenticate, requirePermission("letters"), (req, res) => {
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}/${req.params.idx}.html`;
   app._router.handle(req, res);
 });
-app.get("/api/jobs/:jobId/letters/:idx.pdf", authenticate, (req, res) => {
+app.get("/api/jobs/:jobId/letters/:idx.pdf", authenticate, requirePermission("letters"), (req, res) => {
+
   req.url = `/api/letters/${encodeURIComponent(req.params.jobId)}/${req.params.idx}.pdf`;
   app._router.handle(req, res);
 });
