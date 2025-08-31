@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Login - Metro 2 CRM</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#AF52DE" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gray-100">
+  <div class="glass card w-full max-w-sm space-y-4">
+    <h1 class="text-xl font-semibold text-center">Sign in</h1>
+    <div id="err" class="hidden p-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded"></div>
+    <input id="username" type="text" placeholder="Username" class="w-full border rounded px-3 py-2" />
+    <input id="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" />
+    <button id="btnLogin" class="btn w-full">Login</button>
+    <button id="btnRegister" class="btn w-full" style="background:var(--green-bg)">Register</button>
+    <button id="btnReset" class="btn w-full" style="background:var(--accent-bg)">Reset Password</button>
+  </div>
+  <script src="/common.js"></script>
+  <script src="/login.js"></script>
+</body>
+</html>
