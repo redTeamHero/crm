@@ -118,11 +118,10 @@ def clean_text(el):
     return " ".join(el.get_text(separator=" ", strip=True).split())
 
 def is_tradeline_table(tbl):
-    ths = [clean_text(th) for th in tbl.select("tr th")]
     return (
-        any("TransUnion" in t for t in ths) and
-        any("Experian" in t for t in ths) and
-        any("Equifax" in t for t in ths)
+        tbl.select_one("th.headerTUC") and
+        tbl.select_one("th.headerEXP") and
+        tbl.select_one("th.headerEQF")
     )
 
 def nearest_creditor_header(tbl):
@@ -147,17 +146,39 @@ def nearest_creditor_header(tbl):
 
 def extract_rows(table):
     rows = []
-    for tr in table.select("tr"):
-        tds = tr.find_all("td", recursive=False)
-        if not tds:
+    header = table.find("tr")
+    if not header:
+        return rows
+
+    col_map = {}
+    for idx, th in enumerate(header.find_all("th")):
+        classes = th.get("class", [])
+        if "headerTUC" in classes:
+            col_map[idx] = "TransUnion"
+        elif "headerEXP" in classes:
+            col_map[idx] = "Experian"
+        elif "headerEQF" in classes:
+            col_map[idx] = "Equifax"
+
+    for tr in table.find_all("tr")[1:]:
+        label_td = tr.find("td", class_="label")
+        if not label_td:
             continue
-        label = clean_text(tds[0]) if tds else ""
+        label = clean_text(label_td)
         if label not in FIELD_ALIASES:
             continue
+
         by_bureau = {}
-        for i, b in enumerate(BUREAUS, start=1):
-            val = clean_text(tds[i]) if i < len(tds) else ""
-            by_bureau[b] = "" if val == "-" else val
+        tds = tr.find_all("td")
+        for idx, td in enumerate(tds):
+            if idx == 0 or "info" not in td.get("class", []):
+                continue
+            bureau = col_map.get(idx)
+            if not bureau:
+                continue
+            val = clean_text(td)
+            by_bureau[bureau] = "" if val == "-" else val
+
         rows.append((FIELD_ALIASES[label], by_bureau))
     return rows
 
@@ -698,7 +719,7 @@ def mark_inquiry_disputes(inquiries, tradelines):
 
 def extract_all_tradelines(soup):
     results = []
-    for tbl in soup.select("table"):
+    for tbl in soup.select("table.rpt_content_table.rpt_table4column"):
         if not is_tradeline_table(tbl):
             continue
         creditor = nearest_creditor_header(tbl)
