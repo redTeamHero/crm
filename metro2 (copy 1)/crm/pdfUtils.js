@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import { spawnSync } from 'child_process';
 
-async function detectChromium(){
+export async function detectChromium(){
   if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
   const candidates = [
     '/usr/bin/chromium',
@@ -21,14 +21,26 @@ async function detectChromium(){
   return null;
 }
 
+export async function launchBrowser(options = {}){
+  const defaultArgs = ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote','--single-process'];
+  const opts = {
+    headless: true,
+    args: defaultArgs,
+    ...options,
+  };
+  opts.args = [...defaultArgs, ...(options.args || [])];
+  if(!opts.executablePath){
+    const execPath = await detectChromium();
+    if(execPath) opts.executablePath = execPath;
+  }
+  return puppeteer.launch(opts);
+}
+
 export async function htmlToPdfBuffer(html){
   if(!html || !html.trim()) throw new Error('No HTML content provided');
   let browser;
   try{
-    const execPath = await detectChromium();
-    const opts = { headless:true, args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote','--single-process'] };
-    if(execPath) opts.executablePath = execPath;
-    browser = await puppeteer.launch(opts);
+    browser = await launchBrowser();
     const page = await browser.newPage();
     const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
     await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });

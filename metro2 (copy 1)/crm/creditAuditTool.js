@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import puppeteer from 'puppeteer';
+import { detectChromium, launchBrowser } from './pdfUtils.js';
 
 // ----- Data Source -----
 // Simulate pulling credit-report JSON from internal API/scrape
@@ -215,8 +215,7 @@ export async function savePdf(html){
   try{
     const execPath = await detectChromium();
     console.log("Launching Chromium for PDF generation", execPath || "(default)");
-    browser = await puppeteer.launch({
-      headless:true,
+    browser = await launchBrowser({
       args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"],
       executablePath: execPath || undefined
     });
@@ -234,14 +233,6 @@ export async function savePdf(html){
   } finally {
     if (browser) await browser.close();
   }
-}
-
-async function detectChromium(){
-  if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
-  for(const p of ['/usr/bin/chromium','/usr/bin/chromium-browser','/snap/bin/chromium','/usr/bin/google-chrome','/usr/bin/google-chrome-stable']){
-    try{ await fs.access(p); return p; }catch{}
-  }
-  return null;
 }
 
 // CLI usage
