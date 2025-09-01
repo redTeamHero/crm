@@ -4,9 +4,7 @@
 //   const { tradelines } = parseCreditReportHTML(document);
 //   // or: parseCreditReportHTML(new DOMParser().parseFromString(html, "text/html"));
 //
-// Usage (Node + jsdom):
-//   import { JSDOM } from "jsdom";
-//   const dom = new JSDOM(html);
+
 //   const { tradelines } = parseCreditReportHTML(dom.window.document);
 
 function parseCreditReportHTML(doc) {
@@ -124,6 +122,7 @@ function parseCreditReportHTML(doc) {
           // Combined cells sometimes have child elements instead of explicit separators.
           // Gather each sub-value and map them to their respective fields.
           const parts = cellParts(td, ruleDef.fields.length);
+
           ruleDef.fields.forEach((field, j) => {
             const raw = (parts[j] || "").trim();
             setField(pb, field, raw);
