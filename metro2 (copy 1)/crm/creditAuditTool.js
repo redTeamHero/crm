@@ -245,7 +245,7 @@ async function detectChromium(){
 }
 
 // CLI usage
-if(fileURLToPath(import.meta.url) === path.resolve(process.argv[1])){
+ if(fileURLToPath(import.meta.url) === path.resolve(process.argv[1] || '')){
   const raw = await fetchCreditReport();
   const normalized = normalizeReport(raw);
   const html = renderHtml(normalized);
