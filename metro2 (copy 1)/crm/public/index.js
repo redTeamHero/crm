@@ -545,16 +545,19 @@ function renderTradelines(tradelines){
   tradelines.forEach((tl, idx)=>{
     if (hiddenTradelines.has(idx)) return;
 
-    // Skip tradelines with no bureau data. Some parsed reports include
-    // placeholder entries that contain an empty `per_bureau` object and no
-    // useful information, which resulted in blank cards being rendered in
-    // the UI. These cards only showed a generic violation like "Missing Date
-    // of First Delinquency" and provided no actionable data. By filtering out
-    // these empty entries up front, only meaningful tradelines are displayed
-    // to the user.
-    const hasBureauData = Object.values(tl.per_bureau || {})
-      .some(b => b && Object.keys(b).length);
-    if (!hasBureauData) return;
+    // Skip tradelines with no meaningful bureau data or account numbers.
+    // Some parsed reports include placeholder entries with empty `per_bureau`
+    // sections and no account numbers, which resulted in blank cards that only
+    // displayed generic violations like "Missing Date of First Delinquency".
+    // Filtering these out up front keeps the visible list focused on usable
+    // tradelines.
+    const pb = tl.per_bureau || {};
+    const hasBureauData = ["TransUnion","Experian","Equifax"]
+      .some(b => Object.keys(pb[b] || {}).length);
+    const hasAcct = Object.keys(tl.meta?.account_numbers || {}).length > 0;
+    const hasVios = (tl.violations || []).length > 0;
+    if (!hasBureauData && !hasAcct && !hasVios) return;
+
 
     const tags = deriveTags(tl);
     if (!passesFilter(tags)) return;
