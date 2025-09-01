@@ -1,7 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { htmlToPdfBuffer } from './pdfUtils.js';
+import { detectChromium, launchBrowser } from './pdfUtils.js';
+
 
 // ----- Data Source -----
 // Simulate pulling credit-report JSON from internal API/scrape
@@ -212,8 +213,16 @@ export async function savePdf(html){
   const filename = `credit-repair-audit-${Date.now()}.pdf`;
   const outPath = path.join(outDir, filename);
   try{
-    const pdfBuffer = await htmlToPdfBuffer(html);
-    await fs.writeFile(outPath, pdfBuffer);
+    const execPath = await detectChromium();
+    console.log("Launching Chromium for PDF generation", execPath || "(default)");
+    browser = await launchBrowser({
+      args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"],
+      executablePath: execPath || undefined
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'load' });
+    await page.pdf({ path: outPath, format:'Letter', printBackground:true, margin:{top:'1in',bottom:'1in',left:'1in',right:'1in'} });
+
     console.log("PDF generated at", outPath);
     return { path: outPath, url: `/reports/${filename}` };
   }catch(err){
@@ -222,6 +231,9 @@ export async function savePdf(html){
     await fs.writeFile(htmlPath, html, 'utf-8');
     console.log("HTML fallback saved to", htmlPath);
     return { path: htmlPath, url: `/reports/${path.basename(htmlPath)}`, warning: err.message };
+  } finally {
+    if (browser) await browser.close();
+
   }
 }
 
