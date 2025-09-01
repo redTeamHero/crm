@@ -544,6 +544,20 @@ function renderTradelines(tradelines){
   const visible = [];
   tradelines.forEach((tl, idx)=>{
     if (hiddenTradelines.has(idx)) return;
+
+    // Skip tradelines with no meaningful bureau data or account numbers.
+    // Some parsed reports include placeholder entries with empty `per_bureau`
+    // sections and no account numbers, which resulted in blank cards that only
+    // displayed generic violations like "Missing Date of First Delinquency".
+    // Filtering these out up front keeps the visible list focused on usable
+    // tradelines.
+    const pb = tl.per_bureau || {};
+    const hasBureauData = ["TransUnion","Experian","Equifax"]
+      .some(b => Object.keys(pb[b] || {}).length);
+    const hasAcct = Object.keys(tl.meta?.account_numbers || {}).length > 0;
+    const hasVios = (tl.violations || []).length > 0;
+    if (!hasBureauData && !hasAcct && !hasVios) return;
+
     const tags = deriveTags(tl);
     if (!passesFilter(tags)) return;
     visible.push({ tl, idx, tags });
