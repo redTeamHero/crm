@@ -50,8 +50,10 @@ function hasAnyData(pb) {
   if (!pb) return false;
   const keys = [
     "account_number",
+    "account_type",
     "account_status",
     "payment_status",
+    "monthly_payment",
     "balance",
     "credit_limit",
     "high_credit",
@@ -195,22 +197,49 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
       fields: ["account_number"],
       renderCell: (pb) => safe(pb.account_number, "—"),
     }),
-    renderRow("Account Status / Payment Status", available, tl, conflictMap, errorMap, {
-      fields: ["account_status", "payment_status"],
-      renderCell: (pb) => `${safe(pb.account_status, "—")} / ${safe(pb.payment_status, "—")}`,
+    renderRow("Account Type", available, tl, conflictMap, errorMap, {
+      fields: ["account_type"],
+      renderCell: (pb) => safe(pb.account_type, "—"),
     }),
-    renderRow("Balance / Past Due", available, tl, conflictMap, errorMap, {
-      fields: ["balance", "past_due"],
-      renderCell: (pb) => `${fieldVal(pb, "balance") || "—"} / ${fieldVal(pb, "past_due") || "—"}`,
+    renderRow("Account Status", available, tl, conflictMap, errorMap, {
+      fields: ["account_status"],
+      renderCell: (pb) => safe(pb.account_status, "—"),
     }),
-    renderRow("Credit Limit / High Credit", available, tl, conflictMap, errorMap, {
-      fields: ["credit_limit", "high_credit"],
-      renderCell: (pb) => `${fieldVal(pb, "credit_limit") || "—"} / ${fieldVal(pb, "high_credit") || "—"}`,
+    renderRow("Payment Status", available, tl, conflictMap, errorMap, {
+      fields: ["payment_status"],
+      renderCell: (pb) => safe(pb.payment_status, "—"),
     }),
-    renderRow("Dates", available, tl, conflictMap, errorMap, {
-      fields: ["date_opened", "last_reported", "date_last_payment"],
-      renderCell: (pb) =>
-        `Opened: ${fieldVal(pb, "date_opened") || "—"} | Last Reported: ${fieldVal(pb, "last_reported") || "—"} | Last Payment: ${fieldVal(pb, "date_last_payment") || "—"}`,
+    renderRow("Payment", available, tl, conflictMap, errorMap, {
+      fields: ["monthly_payment"],
+      renderCell: (pb) => fieldVal(pb, "monthly_payment") || "—",
+    }),
+    renderRow("Balance", available, tl, conflictMap, errorMap, {
+      fields: ["balance"],
+      renderCell: (pb) => fieldVal(pb, "balance") || "—",
+    }),
+    renderRow("Credit Limit", available, tl, conflictMap, errorMap, {
+      fields: ["credit_limit"],
+      renderCell: (pb) => fieldVal(pb, "credit_limit") || "—",
+    }),
+    renderRow("High Credit", available, tl, conflictMap, errorMap, {
+      fields: ["high_credit"],
+      renderCell: (pb) => fieldVal(pb, "high_credit") || "—",
+    }),
+    renderRow("Past Due", available, tl, conflictMap, errorMap, {
+      fields: ["past_due"],
+      renderCell: (pb) => fieldVal(pb, "past_due") || "—",
+    }),
+    renderRow("Date Opened", available, tl, conflictMap, errorMap, {
+      fields: ["date_opened"],
+      renderCell: (pb) => fieldVal(pb, "date_opened") || "—",
+    }),
+    renderRow("Last Reported", available, tl, conflictMap, errorMap, {
+      fields: ["last_reported"],
+      renderCell: (pb) => fieldVal(pb, "last_reported") || "—",
+    }),
+    renderRow("Date Last Payment", available, tl, conflictMap, errorMap, {
+      fields: ["date_last_payment"],
+      renderCell: (pb) => fieldVal(pb, "date_last_payment") || "—",
     }),
     renderRow("Comments", available, tl, conflictMap, errorMap, {
       fields: ["comments"],
@@ -241,8 +270,10 @@ function buildTradelineBlockHTML(tl, bureau) {
   const pb = tl.per_bureau[bureau] ||= {};
   const creds = {
     acct: safe(pb.account_number, "N/A"),
+    type: safe(pb.account_type, "N/A"),
     status: safe(pb.account_status, "N/A"),
     payStatus: safe(pb.payment_status, "N/A"),
+    payment: fieldVal(pb, "monthly_payment") || "N/A",
     bal: fieldVal(pb, "balance") || "N/A",
     cl: fieldVal(pb, "credit_limit") || "N/A",
     hc: fieldVal(pb, "high_credit") || "N/A",
@@ -258,10 +289,17 @@ function buildTradelineBlockHTML(tl, bureau) {
       <tbody>
         <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Creditor</td><td style="padding:6px;border:1px solid #e5e7eb;">${safe(tl.meta.creditor, "Unknown")}</td></tr>
         <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Acct # (${bureau})</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.acct}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Status/Payment</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.status} / ${creds.payStatus}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Balance / Past Due</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.bal} / ${creds.pd}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Credit Limit / High Credit</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.cl} / ${creds.hc}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Dates</td><td style="padding:6px;border:1px solid #e5e7eb;">Opened: ${creds.opened} | Last Reported: ${creds.lastRpt} | Last Payment: ${creds.lastPay}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Account Type</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.type}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Account Status</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.status}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Payment Status</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.payStatus}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Payment</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.payment}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Balance</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.bal}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Credit Limit</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.cl}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">High Credit</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.hc}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Past Due</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.pd}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Date Opened</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.opened}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Last Reported</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.lastRpt}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Date Last Payment</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.lastPay}</td></tr>
         ${creds.comments ? `<tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Comments</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.comments}</td></tr>` : ""}
       </tbody>
     </table>`;
