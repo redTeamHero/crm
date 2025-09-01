@@ -395,4 +395,6 @@ function parseCreditReportHTML(doc) {
 }
 
 export { parseCreditReportHTML };
+export default parseCreditReportHTML;
+
 
