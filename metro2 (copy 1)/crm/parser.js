@@ -5,8 +5,7 @@
 //   // or: parseCreditReportHTML(new DOMParser().parseFromString(html, "text/html"));
 //
 // Usage (Node + jsdom):
-//   import { JSDOM } from "jsdom";
-//   const dom = new JSDOM(html);
+w JSDOM(html);
 //   const { tradelines } = parseCreditReportHTML(dom.window.document);
 
 function parseCreditReportHTML(doc) {
