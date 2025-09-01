@@ -151,7 +151,8 @@ def extract_rows(table):
         return rows
 
     col_map = {}
-    for idx, th in enumerate(header.find_all("th")):
+    for idx, th in enumerate(header.find_all("th", recursive=False)):
+
         classes = th.get("class", [])
         if "headerTUC" in classes:
             col_map[idx] = "TransUnion"
@@ -159,8 +160,8 @@ def extract_rows(table):
             col_map[idx] = "Experian"
         elif "headerEQF" in classes:
             col_map[idx] = "Equifax"
+    for tr in table.find_all("tr", recursive=False)[1:]:
 
-    for tr in table.find_all("tr")[1:]:
         label_td = tr.find("td", class_="label")
         if not label_td:
             continue
@@ -169,7 +170,8 @@ def extract_rows(table):
             continue
 
         by_bureau = {}
-        tds = tr.find_all("td")
+        tds = tr.find_all("td", recursive=False)
+
         for idx, td in enumerate(tds):
             if idx == 0 or "info" not in td.get("class", []):
                 continue
