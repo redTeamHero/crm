@@ -4,8 +4,7 @@
 //   const { tradelines } = parseCreditReportHTML(document);
 //   // or: parseCreditReportHTML(new DOMParser().parseFromString(html, "text/html"));
 //
-// Usage (Node + jsdom):
-w JSDOM(html);
+
 //   const { tradelines } = parseCreditReportHTML(dom.window.document);
 
 function parseCreditReportHTML(doc) {
@@ -120,12 +119,10 @@ function parseCreditReportHTML(doc) {
         }
 
         if (ruleDef.kind === "combined") {
-          // Combined cell value holds multiple parts separated by "/","|" etc. But the HTML we parse
-          // is already split per the provided rows. For safety, we still split by separators if present.
-          const val = cellText(td);
+          // Combined cells sometimes have child elements instead of explicit separators.
+          // Gather each sub-value and map them to their respective fields.
+          const parts = cellParts(td, ruleDef.fields.length);
 
-          // Try to split into as many parts as fields length.
-          const parts = smartSplit(val, ruleDef.fields.length);
           ruleDef.fields.forEach((field, j) => {
             const raw = (parts[j] || "").trim();
             setField(pb, field, raw);
@@ -180,6 +177,24 @@ function parseCreditReportHTML(doc) {
     }
     const joined = parts.join(" ").replace(/\s+/g, " ").trim();
     return joined;
+  }
+
+  // For combined cells, try to extract multiple values from child nodes
+  function cellParts(td, expectedParts) {
+    if (!td) return Array(expectedParts).fill("");
+
+    const nodes = Array.from(td.childNodes).filter((n) => {
+      if (n.nodeType === 3) return Boolean((n.textContent || "").trim());
+      if (n.nodeType === 1) return Boolean((n.textContent || "").trim());
+      return false;
+    });
+    const texts = nodes.map((n) => (n.textContent || "").trim()).filter(Boolean);
+    if (texts.length >= expectedParts) {
+      return texts.slice(0, expectedParts);
+    }
+
+    // Fallback to smart splitting of the joined text
+    return smartSplit(texts.join(" "), expectedParts);
   }
 
   function normalizeBureau(s) {
@@ -307,6 +322,14 @@ function parseCreditReportHTML(doc) {
     // Then try slash
     let bySlash = val.split("/").map((s) => s.trim());
     if (bySlash.length >= expectedParts) return bySlash;
+
+    // Then try splitting on multiple spaces (often used when values are in separate spans)
+    let bySpace = val.split(/\s{2,}/).map((s) => s.trim()).filter(Boolean);
+    if (bySpace.length >= expectedParts) return bySpace;
+
+    // Finally, split on single spaces as a last resort if multiple numeric pieces are glued
+    let bySingle = val.split(/\s+/).map((s) => s.trim()).filter(Boolean);
+    if (bySingle.length >= expectedParts) return bySingle;
 
     // Fallback: return the whole value in the first field
     const arr = Array(expectedParts).fill("");
