@@ -558,6 +558,7 @@ function renderTradelines(tradelines){
     const hasVios = (tl.violations || []).length > 0;
     if (!hasBureauData && !hasAcct && !hasVios) return;
 
+
     const tags = deriveTags(tl);
     if (!passesFilter(tags)) return;
     visible.push({ tl, idx, tags });
