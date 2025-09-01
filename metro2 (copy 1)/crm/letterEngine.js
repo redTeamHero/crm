@@ -40,12 +40,16 @@ function futureISO(offsetDays) {
     day: "numeric",
   });
 }
+
 function safe(val, fallback = "") {
   return val == null ? fallback : String(val);
 }
+
 function fieldVal(pb, key) {
   return safe(pb?.[`${key}_raw`] ?? pb?.[key], "");
 }
+
+// PATCH 1: hasAnyData tolerant of arrays (e.g., comments)
 function hasAnyData(pb) {
   if (!pb) return false;
   const keys = [
@@ -63,9 +67,15 @@ function hasAnyData(pb) {
     "date_last_payment",
     "comments",
   ];
-  return keys.some((k) => fieldVal(pb, k).trim() !== "");
+  return keys.some((k) => {
+    const v = pb?.[`${k}_raw`] ?? pb?.[k];
+    if (Array.isArray(v)) return v.join("").trim() !== "";
+    if (v == null) return false;
+    return String(v).trim() !== "";
+  });
 }
 
+// PATCH 2: isNegative robust to array comments
 function isNegative(pb) {
   if (!pb) return false;
   const NEG_WORDS = [
@@ -78,15 +88,16 @@ function isNegative(pb) {
   ];
   const fields = ["payment_status", "account_status", "comments"];
   return fields.some((k) => {
-    const v = fieldVal(pb, k).toLowerCase();
-    return NEG_WORDS.some((w) => v.includes(w));
+    const raw = pb?.[`${k}_raw`] ?? pb?.[k];
+    const v = Array.isArray(raw) ? raw.join(" ") : String(raw || "");
+    const t = v.toLowerCase();
+    return NEG_WORDS.some((w) => t.includes(w));
   });
 }
 
 function colorize(text) {
   return text || "";
 }
-
 
 // Conflict detection (trimmed)
 const EVIDENCE_KEY_TO_FIELD = {
@@ -165,7 +176,7 @@ function cellStyle({ conflict, error }) {
 function renderRow(label, available, tl, conflictMap, errorMap, renderersByField) {
   const tds = available
     .map((b) => {
-      const pb = tl.per_bureau[b] ||= {};
+      const pb = (tl.per_bureau[b] ||= {});
       let conflict = false, error = false;
       for (const f of renderersByField.fields) {
         if (conflictMap[f]?.[b] === "conflict") conflict = true;
@@ -241,9 +252,14 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
       fields: ["date_last_payment"],
       renderCell: (pb) => fieldVal(pb, "date_last_payment") || "—",
     }),
+    // PATCH 3: Comments rendered correctly (arrays join with <br>)
     renderRow("Comments", available, tl, conflictMap, errorMap, {
       fields: ["comments"],
-      renderCell: (pb) => safe(pb.comments, "—"),
+      renderCell: (pb) => {
+        const v = pb.comments_raw ?? pb.comments;
+        if (Array.isArray(v)) return v.length ? v.map(safe).join("<br>") : "—";
+        return safe(v, "—");
+      },
     }),
   ];
 
@@ -267,7 +283,12 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
 
 // Letter-specific block
 function buildTradelineBlockHTML(tl, bureau) {
-  const pb = tl.per_bureau[bureau] ||= {};
+  const pb = (tl.per_bureau[bureau] ||= {});
+  const commentsVal = pb.comments_raw ?? pb.comments;
+  const commentsHTML = Array.isArray(commentsVal)
+    ? commentsVal.map(safe).join("<br>")
+    : safe(commentsVal, "");
+
   const creds = {
     acct: safe(pb.account_number, "N/A"),
     type: safe(pb.account_type, "N/A"),
@@ -281,7 +302,7 @@ function buildTradelineBlockHTML(tl, bureau) {
     opened: fieldVal(pb, "date_opened") || "N/A",
     lastRpt: fieldVal(pb, "last_reported") || "N/A",
     lastPay: fieldVal(pb, "date_last_payment") || "N/A",
-    comments: safe(pb.comments, ""),
+    comments: commentsHTML,
   };
 
   return `
@@ -411,6 +432,7 @@ function modeCopy(modeKey, requestType, hasEvidence = false) {
       : ``,
   };
 }
+
 // Build letter HTML and filename
 function buildLetterHTML({
   consumer,
@@ -440,24 +462,15 @@ function buildLetterHTML({
   const afterIssuesPara = mc.afterIssues ? `<p class="ocr">${colorize(mc.afterIssues)}</p>` : "";
   const evidencePara = mc.evidence ? `<p class="ocr">${colorize(mc.evidence)}</p>` : "";
   const breachSection =
-
     modeKey === "breach" && consumer.breaches && consumer.breaches.length
       ? `<h2>Data Breaches</h2><p>The following breaches exposed my information:</p><ul>${consumer.breaches
           .map((b) => `<li>${safe(b)}</li>`)
           .join("")}</ul>`
       : "";
   const verifyLine = colorize(
-    "Please provide the method of verification... if you cannot verify... delete the item and send me an updated report."
+    "Please provide the method of verification, including the name and contact information of any furnisher relied upon. If you cannot verify the information with maximum possible accuracy, delete the item and send me an updated report."
   );
   const signOff = `${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}`;
-
-
-
-
-
-
-
-
 
   const letterBody = `
 <!DOCTYPE html>
@@ -465,54 +478,57 @@ function buildLetterHTML({
 <head>
   <meta charset="utf-8">
   <title>${bureau} – ${mc.heading}</title>
-    <style>
-      @media print { @page { margin: 1in; } }
-      body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
-      * { word-break:break-word; }
-      .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
-      .muted{ color:#6b7280; }
-      h1{ font-size:20px; margin-bottom:8px; }
-      h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
-      table { table-layout: fixed; width:100%; border-collapse:collapse; }
-      td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
-    </style>
-  </head>
-  <body>
-    <div style="display:flex; gap:24px; margin-bottom:16px;">
-      <div class="card" style="flex:1;">
-        <strong>${safe(consumer.name)}</strong><br>
-        ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
-        ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
-        ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
-        ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
-        ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
-        ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
-      </div>
-      <div class="card" style="flex:1;">
-        <strong>${bureauMeta.name}</strong><br>
-        ${bureauMeta.addr1}<br>${bureauMeta.addr2}
-      </div>
+  <style>
+    @media print { @page { margin: 1in; } }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
+    * { word-break:break-word; }
+    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
+    .muted{ color:#6b7280; }
+    h1{ font-size:20px; margin-bottom:8px; }
+    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
+    table { table-layout: fixed; width:100%; border-collapse:collapse; }
+    td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div style="display:flex; gap:24px; margin-bottom:16px;">
+    <div class="card" style="flex:1;">
+      <strong>${safe(consumer.name)}</strong><br>
+      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
+      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
+      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
+      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
+      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
+      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
     </div>
-    <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
-    <h1>${colorize(mc.heading)}</h1>
-    <p class="ocr">${intro}</p>
-    <p class="ocr">${ask}</p>
+    <div class="card" style="flex:1;">
+      <strong>${bureauMeta.name}</strong><br>
+      ${bureauMeta.addr1}<br>${bureauMeta.addr2}
+    </div>
+  </div>
+  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
 
-    ${breachSection}
-    <h2>Comparison (All Available Bureaus)</h2>
-    ${compTable}
-    <h2>Bureau‑Specific Details (${bureau})</h2>
-    ${tlBlock}
-    <h2>Specific Issues (Selected)</h2>
+  <h1>${colorize(mc.heading)}</h1>
+  <p class="ocr">${intro}</p>
+  <p class="ocr">${ask}</p>
 
-    ${chosenList}
-    ${evidencePara}
-    ${afterIssuesPara}
-    <p>${verifyLine}</p>
-    <p>${signOff}</p>
+  ${breachSection}
+  <h2>Comparison (All Available Bureaus)</h2>
+  ${compTable}
 
-  </body>
-  </html>`.trim();
+  <h2>Bureau-Specific Details (${bureau})</h2>
+  ${tlBlock}
+
+  <h2>Specific Issues (Selected)</h2>
+  ${chosenList}
+
+  ${evidencePara}
+  ${afterIssuesPara}
+
+  <p>${verifyLine}</p>
+  <p>${signOff}</p>
+</body>
+</html>`.trim();
 
   const fnSafeCred = safe(tl.meta.creditor, "Unknown")
     .replace(/[^a-z0-9]+/gi, "_")
@@ -550,9 +566,7 @@ function buildPersonalInfoLetterHTML({ consumer, bureau, mismatchedFields = [] }
         ${maybeRow(
           ["city", "state", "zip", "city_state_zip"],
           "City / State / ZIP",
-          [consumer.city, consumer.state, consumer.zip]
-            .filter(Boolean)
-            .join(", ")
+          [consumer.city, consumer.state, consumer.zip].filter(Boolean).join(", ")
         )}
         ${maybeRow(["phone"], "Phone", consumer.phone)}
         ${maybeRow(["email"], "Email", consumer.email)}
@@ -757,9 +771,11 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
     const tl = report.tradelines?.[sel.tradelineIndex];
     if (!tl) continue;
 
+    // Auto-flag: negative appears on one bureau only => incomplete/misleading
     const bureausPresent = Object.entries(tl.per_bureau || {})
       .filter(([_, pb]) => hasAnyData(pb))
       .map(([b]) => b);
+
     if (
       bureausPresent.length === 1 &&
       isNegative(tl.per_bureau[bureausPresent[0]])
@@ -782,6 +798,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
 
     const isSpecial = SPECIAL_ONE_BUREAU.has(sel.specialMode);
     const comparisonBureaus = isSpecial ? [sel.bureaus[0]] : ALL_BUREAUS;
+
     const play = sel.playbook && PLAYBOOKS[sel.playbook];
     const steps = play ? play.letters : [null];
 
@@ -823,10 +840,10 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
   return letters;
 }
 
-export { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters, modeCopy };
-
-
-
-
-
-
+export {
+  generateLetters,
+  generatePersonalInfoLetters,
+  generateInquiryLetters,
+  generateDebtCollectorLetters,
+  modeCopy
+};
