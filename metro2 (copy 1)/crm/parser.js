@@ -27,6 +27,7 @@ function parseCreditReportHTML(doc) {
         (ngInclude && ngInclude.parentElement) ||
         table.closest("td") ||
         table.parentElement;
+
     }
 
     const tl = {
@@ -274,6 +275,7 @@ function parseCreditReportHTML(doc) {
       configurable: true,
       writable: true,
     });
+
     pb[field] = normalized;
   }
 
