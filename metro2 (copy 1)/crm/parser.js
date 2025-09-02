@@ -20,7 +20,14 @@ function parseCreditReportHTML(doc) {
   if (!tlTables.length) return results;
 
   for (const table of tlTables) {
-    const container = table.closest("td.ng-binding, ng-include, body") || table.parentElement;
+    let container = table.closest("td.ng-binding");
+    if (!container) {
+      const ngInclude = table.closest("ng-include");
+      container =
+        (ngInclude && ngInclude.parentElement) ||
+        table.closest("td") ||
+        table.parentElement;
+    }
 
     const tl = {
       meta: { creditor: null },
@@ -111,7 +118,8 @@ function parseCreditReportHTML(doc) {
           if (remarks.length) {
             // store array and also a joined string for convenience
             pb.comments = remarks;
-            pb.comments_raw = remarks.slice(); // original lines
+            ensureRaw(pb);
+            pb.raw.comments = remarks.slice(); // original lines
           } else if (!pb.comments) {
             pb.comments = []; // keep array semantics
           }
@@ -136,7 +144,8 @@ function parseCreditReportHTML(doc) {
     }
 
     // ---- E) Payment history table ----
-    const histTable = container.querySelector("table.addr_hsrty");
+    let histTable = container.querySelector("table.addr_hsrty") ||
+      findFollowing(container, "table.addr_hsrty");
     if (histTable) {
       const hist = parseHistoryTable(histTable);
       tl.history = hist.byBureau;
@@ -154,6 +163,20 @@ function parseCreditReportHTML(doc) {
   function rows(table) {
     const bodyRows = table.querySelectorAll("tbody > tr");
     return bodyRows.length ? Array.from(bodyRows) : Array.from(table.querySelectorAll("tr"));
+  }
+
+  function findFollowing(el, selector) {
+    let cur = el;
+    while (cur && cur !== doc.body) {
+      let sib = cur.nextElementSibling;
+      while (sib) {
+        if (sib.matches && sib.matches(selector)) return sib;
+        if (sib.matches && sib.matches("table.rpt_content_table.rpt_content_header.rpt_table4column")) return null;
+        sib = sib.nextElementSibling;
+      }
+      cur = cur.parentElement;
+    }
+    return null;
   }
 
   function text(el) {
@@ -242,8 +265,22 @@ function parseCreditReportHTML(doc) {
 
   function setField(pb, field, raw) {
     const normalized = normalizeFieldValue(field, raw);
-    pb[`${field}_raw`] = raw || "";
+    ensureRaw(pb);
+    const val = raw || "";
+    pb.raw[field] = val;
+    Object.defineProperty(pb, `${field}_raw`, {
+      value: val,
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    });
     pb[field] = normalized;
+  }
+
+  function ensureRaw(pb) {
+    if (!pb.raw) {
+      Object.defineProperty(pb, "raw", { value: {}, enumerable: false, configurable: true });
+    }
   }
 
   function normalizeFieldValue(field, raw) {
@@ -305,7 +342,7 @@ function parseCreditReportHTML(doc) {
     const dd = String(d.getDate()).padStart(2, "0");
     const yyyy = d.getFullYear();
     return `${mm}/${dd}/${yyyy}`;
-    // (If you need to keep original, it's in *_raw)
+    // (If you need to keep original, it's stored in pb.raw[field])
   }
 
   // smart split for combined cells like "X / Y" or "Opened: A | Last Reported: B | Last Payment: C"
