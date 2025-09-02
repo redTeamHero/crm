@@ -20,7 +20,11 @@ function parseCreditReportHTML(doc) {
   if (!tlTables.length) return results;
 
   for (const table of tlTables) {
-    const container = table.closest("td.ng-binding, ng-include, body") || table.parentElement;
+    let container = table.closest("td.ng-binding");
+    if (!container) {
+      const ngInclude = table.closest("ng-include");
+      container = (ngInclude && ngInclude.parentElement) || table.parentElement;
+    }
 
     const tl = {
       meta: { creditor: null },
@@ -111,7 +115,8 @@ function parseCreditReportHTML(doc) {
           if (remarks.length) {
             // store array and also a joined string for convenience
             pb.comments = remarks;
-            pb.comments_raw = remarks.slice(); // original lines
+            ensureRaw(pb);
+            pb.raw.comments = remarks.slice(); // original lines
           } else if (!pb.comments) {
             pb.comments = []; // keep array semantics
           }
@@ -242,8 +247,15 @@ function parseCreditReportHTML(doc) {
 
   function setField(pb, field, raw) {
     const normalized = normalizeFieldValue(field, raw);
-    pb[`${field}_raw`] = raw || "";
+    ensureRaw(pb);
+    pb.raw[field] = raw || "";
     pb[field] = normalized;
+  }
+
+  function ensureRaw(pb) {
+    if (!pb.raw) {
+      Object.defineProperty(pb, "raw", { value: {}, enumerable: false, configurable: true });
+    }
   }
 
   function normalizeFieldValue(field, raw) {
@@ -305,7 +317,7 @@ function parseCreditReportHTML(doc) {
     const dd = String(d.getDate()).padStart(2, "0");
     const yyyy = d.getFullYear();
     return `${mm}/${dd}/${yyyy}`;
-    // (If you need to keep original, it's in *_raw)
+    // (If you need to keep original, it's stored in pb.raw[field])
   }
 
   // smart split for combined cells like "X / Y" or "Opened: A | Last Reported: B | Last Payment: C"
