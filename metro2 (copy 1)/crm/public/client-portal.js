@@ -70,17 +70,6 @@ function renderScore(){
   }
 }
 
-function escapeHtml(s){
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  };
-  return String(s||'').replace(/[&<>"']/g, c => map[c]);
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 

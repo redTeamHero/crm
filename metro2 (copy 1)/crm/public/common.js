@@ -1,5 +1,25 @@
 /* public/common.js */
+
+// Escape HTML entities for safe DOM insertion
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+}
+
+// Consistent currency formatter used across UI modules
+function formatCurrency(val) {
+  const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.-]/g, ''));
+  return isNaN(num) ? '—' : `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 // Allow ?auth=BASE64 or ?token=JWT links to set local auth state
+// (runs early so tokens in query strings are captured immediately)
+//
 const params = new URLSearchParams(location.search);
 const _authParam = params.get('auth');
 if (_authParam) {
@@ -83,7 +103,7 @@ function initPalette(){
   if(document.getElementById('themePalette')) return;
   const wrap = document.createElement('div');
   wrap.id = 'themePalette';
-  wrap.className = 'collapsed';
+  wrap.className = 'palette collapsed';
   const bubbles = Object.entries(THEMES)
     .map(([name, t]) => `<div class="bubble" data-theme="${name}" style="background:${t.accent}"></div>`)
     .join('');

@@ -33,6 +33,21 @@ function statuteRefs(title){
   };
 }
 
+function buildIssues(tl, idxs = null){
+  return (tl.violations||[])
+    .filter((_,i)=> !idxs || idxs.includes(i))
+    .map(v=>{
+      const legal = statuteRefs(v.title);
+      return {
+        title: v.title,
+        detail: v.detail,
+        bureau: v.evidence?.bureau || 'All Bureaus',
+        fcra: legal.fcra,
+        fdcpa: legal.fdcpa
+      };
+    });
+}
+
 // Normalize report into array of accounts with balances/statuses/issues
 export function normalizeReport(raw, selections = null){
   const accounts = [];
@@ -45,18 +60,7 @@ export function normalizeReport(raw, selections = null){
         if(tl.per_bureau?.[b]) bureaus[b] = tl.per_bureau[b];
       });
       const idxs = Array.isArray(sel.violationIdxs) && sel.violationIdxs.length ? sel.violationIdxs : null;
-      const issues = (tl.violations||[])
-        .filter((_,i)=> !idxs || idxs.includes(i))
-        .map(v=>{
-          const legal = statuteRefs(v.title);
-          return {
-            title: v.title,
-            detail: v.detail,
-            bureau: v.evidence?.bureau || 'All Bureaus',
-            fcra: legal.fcra,
-            fdcpa: legal.fdcpa
-          };
-        });
+      const issues = buildIssues(tl, idxs);
 
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });
@@ -67,16 +71,7 @@ export function normalizeReport(raw, selections = null){
       for(const [bureau, data] of Object.entries(tl.per_bureau||{})){
         bureaus[bureau] = data;
       }
-      const issues = (tl.violations||[]).map(v=>{
-        const legal = statuteRefs(v.title);
-        return {
-          title: v.title,
-          detail: v.detail,
-          bureau: v.evidence?.bureau || 'All Bureaus',
-          fcra: legal.fcra,
-          fdcpa: legal.fdcpa
-        };
-      });
+      const issues = buildIssues(tl);
 
       accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
     });

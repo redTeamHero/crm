@@ -491,21 +491,7 @@ function buildLetterHTML({
   </style>
 </head>
 <body>
-  <div style="display:flex; gap:24px; margin-bottom:16px;">
-    <div class="card" style="flex:1;">
-      <strong>${safe(consumer.name)}</strong><br>
-      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
-      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
-      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
-      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
-      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
-      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
-    </div>
-    <div class="card" style="flex:1;">
-      <strong>${bureauMeta.name}</strong><br>
-      ${bureauMeta.addr1}<br>${bureauMeta.addr2}
-    </div>
-  </div>
+  ${buildLetterHeader(consumer, bureauMeta)}
   <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
 
   <h1>${colorize(mc.heading)}</h1>
@@ -542,6 +528,26 @@ function buildLetterHTML({
 
 function namePrefix(consumer) {
   return (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+}
+
+function buildLetterHeader(consumer, recipient){
+  return `
+  <div style="display:flex; gap:24px; margin-bottom:16px;">
+    <div class="card" style="flex:1;">
+      <strong>${safe(consumer.name)}</strong><br>
+      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
+      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
+      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
+      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
+      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
+      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
+    </div>
+    <div class="card" style="flex:1;">
+      <strong>${safe(recipient.name)}</strong><br>
+      ${recipient.addr1 ? safe(recipient.addr1)+"<br>" : ""}${recipient.addr2 ? safe(recipient.addr2) : ""}
+      ${recipient.phone ? `${(recipient.addr1||recipient.addr2)?"<br>" : ""}Phone: ${safe(recipient.phone)}` : ""}
+    </div>
+  </div>`;
 }
 
 function buildPersonalInfoLetterHTML({ consumer, bureau, mismatchedFields = [] }) {
@@ -595,21 +601,7 @@ function buildPersonalInfoLetterHTML({ consumer, bureau, mismatchedFields = [] }
   </style>
 </head>
 <body>
-  <div style="display:flex; gap:24px; margin-bottom:16px;">
-    <div class="card" style="flex:1;">
-      <strong>${safe(consumer.name)}</strong><br>
-      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
-      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
-      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
-      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
-      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
-      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
-    </div>
-    <div class="card" style="flex:1;">
-      <strong>${bureauMeta.name}</strong><br>
-      ${bureauMeta.addr1}<br>${bureauMeta.addr2}
-    </div>
-  </div>
+  ${buildLetterHeader(consumer, bureauMeta)}
   <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
   <h1>${colorize("Personal Information Dispute")}</h1>
   <p>${colorize("Please update your records to reflect my correct personal information and remove any other data that does not belong to me.")}</p>
@@ -659,21 +651,7 @@ function buildInquiryLetterHTML({ consumer, bureau, inquiry }) {
   </style>
 </head>
 <body>
-  <div style="display:flex; gap:24px; margin-bottom:16px;">
-    <div class="card" style="flex:1;">
-      <strong>${safe(consumer.name)}</strong><br>
-      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
-      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
-      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
-      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
-      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
-      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
-    </div>
-    <div class="card" style="flex:1;">
-      <strong>${bureauMeta.name}</strong><br>
-      ${bureauMeta.addr1}<br>${bureauMeta.addr2}
-    </div>
-  </div>
+  ${buildLetterHeader(consumer, bureauMeta)}
   <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
   <h1>${colorize("Unauthorized Inquiry Dispute")}</h1>
   <p>${colorize(`Please remove the inquiry by ${safe(inquiry.creditor)} dated ${safe(inquiry.date)} from my ${bureau} credit file. I did not authorize this inquiry.`)}</p>
@@ -724,21 +702,7 @@ function buildCollectorLetterHTML({ consumer, collector }) {
   </style>
 </head>
 <body>
-  <div style="display:flex; gap:24px; margin-bottom:16px;">
-    <div class="card" style="flex:1;">
-      <strong>${safe(consumer.name)}</strong><br>
-      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
-      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
-      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
-      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
-      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
-      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
-    </div>
-    <div class="card" style="flex:1;">
-      <strong>${safe(collector.name)}</strong><br>
-      ${collector.phone ? "Phone: "+safe(collector.phone)+"<br>" : ""}
-    </div>
-  </div>
+  ${buildLetterHeader(consumer, collector)}
   <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
   <h1>${colorize("Debt Validation Request")}</h1>
   <p>${colorize("Please provide validation of the debt you allege is owed. Until validation is provided, cease all collection activities and communication with me regarding this account.")}</p>

@@ -37,14 +37,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     paginated.forEach(t => {
       const el = document.createElement('div');
       el.className = 'bg-white shadow-md rounded-xl p-4 hover:shadow-lg transition transform hover:scale-[1.01] duration-200';
-      el.innerHTML = `
-        <h2 class="text-xl font-semibold">${t.bank}</h2>
-        <p class="text-sm text-gray-600 mb-2">${t.age} | $${t.limit} limit</p>
-        <p class="text-lg font-bold text-green-600">$${t.price}</p>
-        <p class="text-xs text-gray-400">Statement: ${t.statement_date}</p>
-        <p class="text-xs text-gray-400">Reports to: ${t.reporting}</p>
-        <a href="${t.buy_link}" class="inline-block mt-3 bg-blue-500 text-white text-sm px-4 py-2 rounded hover:bg-blue-600 transition">Buy Now</a>
-      `;
+
+      const bank = document.createElement('h2');
+      bank.className = 'text-xl font-semibold';
+      bank.textContent = t.bank;
+      el.appendChild(bank);
+
+      const meta = document.createElement('p');
+      meta.className = 'text-sm text-gray-600 mb-2';
+      meta.textContent = `${t.age} | ${formatCurrency(t.limit)} limit`;
+      el.appendChild(meta);
+
+      const price = document.createElement('p');
+      price.className = 'text-lg font-bold text-green-600';
+      price.textContent = formatCurrency(t.price);
+      el.appendChild(price);
+
+      const stmt = document.createElement('p');
+      stmt.className = 'text-xs text-gray-400';
+      stmt.textContent = `Statement: ${t.statement_date}`;
+      el.appendChild(stmt);
+
+      const rep = document.createElement('p');
+      rep.className = 'text-xs text-gray-400';
+      rep.textContent = `Reports to: ${t.reporting}`;
+      el.appendChild(rep);
+
+      const link = document.createElement('a');
+      link.href = t.buy_link;
+      link.className = 'inline-block mt-3 bg-blue-500 text-white text-sm px-4 py-2 rounded hover:bg-blue-600 transition';
+      link.textContent = 'Buy Now';
+      el.appendChild(link);
+
       container.appendChild(el);
     });
 
