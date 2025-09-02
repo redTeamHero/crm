@@ -20,7 +20,11 @@ function parseCreditReportHTML(doc) {
   if (!tlTables.length) return results;
 
   for (const table of tlTables) {
-    const container = table.closest("td.ng-binding, ng-include, body") || table.parentElement;
+    let container = table.closest("td.ng-binding");
+    if (!container) {
+      const ngInclude = table.closest("ng-include");
+      container = (ngInclude && ngInclude.parentElement) || table.parentElement;
+    }
 
     const tl = {
       meta: { creditor: null },
