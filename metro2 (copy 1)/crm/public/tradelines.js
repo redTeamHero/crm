@@ -46,11 +46,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       const meta = document.createElement('p');
       meta.className = 'text-sm text-gray-600 mb-2';
       meta.textContent = `${t.age} | ${formatCurrency(t.limit)} limit`;
+
       el.appendChild(meta);
 
       const price = document.createElement('p');
       price.className = 'text-lg font-bold text-green-600';
       price.textContent = formatCurrency(t.price);
+
       el.appendChild(price);
 
       const stmt = document.createElement('p');
