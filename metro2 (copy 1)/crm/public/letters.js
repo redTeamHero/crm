@@ -205,8 +205,6 @@ $("#btnEmailAll").addEventListener("click", async ()=>{
   }
 });
 
-function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
-
 async function loadJobs(){
   const list = $("#jobList");
   list.innerHTML = "";

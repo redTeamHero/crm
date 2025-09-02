@@ -46,8 +46,6 @@ function clearErr(){
   const e = $("#err");
   if (e) { e.textContent = ""; e.classList.add("hidden"); }
 }
-function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-
 function formatEvent(ev){
   const when = new Date(ev.at).toLocaleString();
   let title = escapeHtml(ev.type);
@@ -717,8 +715,13 @@ function collectCollectorSelections(){
 // Zoom modal builders
 function renderPB(pb){
   if (!pb) return "<div class='text-sm muted'>No data.</div>";
-  const get = (k) => escapeHtml(pb?.[k] ?? pb?.[`${k}_raw`] ?? "—");
-  const row = (k,l) => `<tr><td class="bg-gray-50 border px-2 py-1">${l}</td><td class="border px-2 py-1">${get(k)}</td></tr>`;
+  const currencyFields = new Set(["balance","past_due","credit_limit","high_credit"]);
+  const get = (k) => pb?.[k] ?? pb?.[`${k}_raw`];
+  const row = (k,l) => {
+    let val = get(k);
+    val = currencyFields.has(k) ? formatCurrency(val) : escapeHtml(val ?? "—");
+    return `<tr><td class="bg-gray-50 border px-2 py-1">${l}</td><td class="border px-2 py-1">${val}</td></tr>`;
+  };
   return `
     <table class="w-full text-sm border-collapse">
       <tbody class="[&_td]:border [&_th]:border">
