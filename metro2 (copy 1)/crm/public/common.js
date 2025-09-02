@@ -83,7 +83,7 @@ function initPalette(){
   if(document.getElementById('themePalette')) return;
   const wrap = document.createElement('div');
   wrap.id = 'themePalette';
-  wrap.className = 'collapsed';
+  wrap.className = 'palette collapsed';
   const bubbles = Object.entries(THEMES)
     .map(([name, t]) => `<div class="bubble" data-theme="${name}" style="background:${t.accent}"></div>`)
     .join('');

@@ -56,7 +56,7 @@ body {
   border-color: var(--accent);
 }
 
-#themePalette {
+.palette {
   position: fixed;
   top: 50%;
   right: 8px;
@@ -67,7 +67,7 @@ body {
   gap: 8px;
   z-index: 40;
 }
-#themePalette .toggle {
+.palette .toggle {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -76,26 +76,25 @@ body {
   color: #fff;
   cursor: pointer;
 }
-#themePalette .palette-controls { display: none; }
-#themePalette:not(.collapsed) .palette-controls {
-
-  display: flex;
+.palette .palette-controls {
+  display: none;
   align-items: center;
   gap: 8px;
 }
-#themePalette .palette-bubbles {
+.palette:not(.collapsed) .palette-controls { display: flex; }
+.palette .palette-bubbles {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-#themePalette .bubble {
+.palette .bubble {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   border: 2px solid #fff;
   cursor: pointer;
 }
-#themePalette .alpha-slider{
+.palette .alpha-slider{
   -webkit-appearance:none;
   width:120px;
   transform:rotate(-90deg);
@@ -105,7 +104,7 @@ body {
   background:#fff;
   accent-color: var(--accent);
 }
-#themePalette .mic {
+.palette .mic {
   width:32px;
   height:32px;
   border-radius:50%;
@@ -114,7 +113,7 @@ body {
   color:#fff;
   cursor:pointer;
 }
-#themePalette.collapsed .mic{display:none;}
+.palette.collapsed .mic{display:none;}
 
 #voiceOverlay{
   position:fixed;
