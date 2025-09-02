@@ -23,7 +23,11 @@ function parseCreditReportHTML(doc) {
     let container = table.closest("td.ng-binding");
     if (!container) {
       const ngInclude = table.closest("ng-include");
-      container = (ngInclude && ngInclude.parentElement) || table.parentElement;
+      container =
+        (ngInclude && ngInclude.parentElement) ||
+        table.closest("td") ||
+        table.parentElement;
+
     }
 
     const tl = {
@@ -141,7 +145,8 @@ function parseCreditReportHTML(doc) {
     }
 
     // ---- E) Payment history table ----
-    const histTable = container.querySelector("table.addr_hsrty");
+    let histTable = container.querySelector("table.addr_hsrty") ||
+      findFollowing(container, "table.addr_hsrty");
     if (histTable) {
       const hist = parseHistoryTable(histTable);
       tl.history = hist.byBureau;
@@ -159,6 +164,20 @@ function parseCreditReportHTML(doc) {
   function rows(table) {
     const bodyRows = table.querySelectorAll("tbody > tr");
     return bodyRows.length ? Array.from(bodyRows) : Array.from(table.querySelectorAll("tr"));
+  }
+
+  function findFollowing(el, selector) {
+    let cur = el;
+    while (cur && cur !== doc.body) {
+      let sib = cur.nextElementSibling;
+      while (sib) {
+        if (sib.matches && sib.matches(selector)) return sib;
+        if (sib.matches && sib.matches("table.rpt_content_table.rpt_content_header.rpt_table4column")) return null;
+        sib = sib.nextElementSibling;
+      }
+      cur = cur.parentElement;
+    }
+    return null;
   }
 
   function text(el) {
