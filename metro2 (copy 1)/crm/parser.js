@@ -248,7 +248,15 @@ function parseCreditReportHTML(doc) {
   function setField(pb, field, raw) {
     const normalized = normalizeFieldValue(field, raw);
     ensureRaw(pb);
-    pb.raw[field] = raw || "";
+    const val = raw || "";
+    pb.raw[field] = val;
+    Object.defineProperty(pb, `${field}_raw`, {
+      value: val,
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    });
+
     pb[field] = normalized;
   }
 
