@@ -18,10 +18,11 @@ async function loadLibrary(){
 
 }
 
-function renderTemplates(){
-  const list = document.getElementById('templateList');
+function renderList(items, containerId, clickHandler){
+  const list = document.getElementById(containerId);
+  if(!list) return;
   list.innerHTML = '';
-  const sorted = [...templates].sort((a,b)=>(a.heading||'').localeCompare(b.heading||''));
+  const sorted = [...items].sort((a,b)=>(a.heading||'').localeCompare(b.heading||''));
   sorted.forEach(t => {
     const div = document.createElement('div');
     div.textContent = t.heading || '(no heading)';
@@ -30,27 +31,17 @@ function renderTemplates(){
     div.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', t.id);
     });
-    div.onclick = () => editTemplate(t.id);
+    div.onclick = () => clickHandler(t.id);
     list.appendChild(div);
   });
 }
 
+function renderTemplates(){
+  renderList(templates, 'templateList', editTemplate);
+}
+
 function renderMainTemplates(){
-  const list = document.getElementById('mainList');
-  if(!list) return;
-  list.innerHTML = '';
-  const sorted = [...mainTemplates].sort((a,b)=>(a.heading||'').localeCompare(b.heading||''));
-  sorted.forEach(t => {
-    const div = document.createElement('div');
-    div.textContent = t.heading || '(no heading)';
-    div.className = 'chip';
-    div.draggable = true;
-    div.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('text/plain', t.id);
-    });
-    div.onclick = () => useMainTemplate(t.id);
-    list.appendChild(div);
-  });
+  renderList(mainTemplates, 'mainList', useMainTemplate);
 }
 
 function editTemplate(id){
