@@ -13,6 +13,7 @@ function stripAngularMarkup(markup){
     .replace(/<\/?ng-[^>]*>/gi,'')
     // drop generic <ng> elements like <ng>...</ng>
     .replace(/<\/?ng[^->][^>]*>/gi,'')
+
     // remove ng-* attributes on regular elements
     .replace(/\sng-[a-z-]+="[^"]*"/gi,'')
     // strip the ng-binding class but retain other classes

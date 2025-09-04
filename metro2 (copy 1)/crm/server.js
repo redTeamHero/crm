@@ -1058,6 +1058,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       } else {
         analyzed.tradelines = jsParsed.tradelines;
       }
+
       if (!analyzed.personalInfo && jsParsed.personalInfo) {
         analyzed.personalInfo = jsParsed.personalInfo;
       }
