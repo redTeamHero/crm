@@ -16,6 +16,8 @@ import * as cheerio from "cheerio";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { PassThrough } from "stream";
+import { JSDOM } from "jsdom";
+import parseCreditReportHTML from "./parser.js";
 
 
 import { logInfo, logError, logWarn } from "./logger.js";
@@ -1032,7 +1034,36 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
 
   try{
     const htmlText = req.file.buffer.toString("utf-8");
-    const analyzed = await runPythonAnalyzer(htmlText);
+    let analyzed = {};
+    try {
+      const py = await runPythonAnalyzer(htmlText);
+      analyzed = py || {};
+    } catch (e) {
+      console.warn("Python analyzer failed", e);
+    }
+    try {
+      const dom = new JSDOM(htmlText);
+      const jsParsed = parseCreditReportHTML(dom.window.document);
+      if (Array.isArray(analyzed.tradelines) && analyzed.tradelines.length) {
+        analyzed.tradelines = analyzed.tradelines.map((tl, idx) => {
+          const jsTl = jsParsed.tradelines[idx] || {};
+          return {
+            ...jsTl,
+            ...tl,
+            violations: tl.violations || jsTl.violations || [],
+            violations_grouped:
+              tl.violations_grouped || jsTl.violations_grouped || {},
+          };
+        });
+      } else {
+        analyzed.tradelines = jsParsed.tradelines;
+      }
+      if (!analyzed.personalInfo && jsParsed.personalInfo) {
+        analyzed.personalInfo = jsParsed.personalInfo;
+      }
+    } catch (e) {
+      console.warn("JS parser failed", e);
+    }
     const scores = extractCreditScores(htmlText);
     if (Object.keys(scores).length) {
       consumer.creditScore = { ...consumer.creditScore, ...scores };
