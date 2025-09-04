@@ -2,6 +2,22 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import { spawnSync } from 'child_process';
 
+function stripAngularMarkup(markup){
+  if(!markup) return markup;
+  return markup
+    // remove Angular-specific HTML comments like <!-- ngRepeat: ... -->
+    .replace(/<!--[^>]*ng[^>]*-->/gi,'')
+    // drop <ng-*> elements while keeping their inner content
+    .replace(/<\/?ng-[^>]*>/gi,'')
+    // remove ng-* attributes on regular elements
+    .replace(/\sng-[a-z-]+="[^"]*"/gi,'')
+    // strip the ng-binding class but retain other classes
+    .replace(/class="([^"]*)ng-binding([^"]*)"/gi,(m,pre,post)=>{
+      const classes = `${pre} ${post}`.trim().replace(/\s+/g,' ');
+      return classes ? `class="${classes}"` : '';
+    });
+}
+
 export async function detectChromium(){
   if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
   const candidates = [
@@ -38,12 +54,23 @@ export async function launchBrowser(options = {}){
 
 export async function htmlToPdfBuffer(html){
   if(!html || !html.trim()) throw new Error('No HTML content provided');
+  html = stripAngularMarkup(html);
   let browser;
   try{
-    browser = await launchBrowser();
+    try{
+      browser = await launchBrowser();
+    }catch(err){
+      throw new Error(
+        `Chromium failed to launch. Install system deps (e.g. libatk1.0-0, libx11) or set PUPPETEER_EXECUTABLE_PATH.\nOriginal error: ${err.message}`
+      );
+    }
     const page = await browser.newPage();
-    const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
-    await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
+    // Using setContent instead of navigating to a data URL ensures the
+    // uploaded HTML is parsed directly. When navigating to a data URL,
+    // Puppeteer sometimes produces a blank PDF because the page never
+    // properly finishes loading. setContent reliably renders the provided
+    // markup and allows relative asset URLs to resolve.
+    await page.setContent(html,{ waitUntil:'load', timeout:60000 });
     await page.emulateMediaType('screen');
     try{ await page.waitForFunction(()=>document.readyState==='complete',{timeout:60000}); }catch{}
     try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
