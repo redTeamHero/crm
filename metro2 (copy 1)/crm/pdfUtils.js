@@ -7,8 +7,13 @@ function stripAngularMarkup(markup){
   return markup
     // remove Angular-specific HTML comments like <!-- ngRepeat: ... -->
     .replace(/<!--[^>]*ng[^>]*-->/gi,'')
+    // unwrap any <td class="ng-binding"> so nested cells don't break layout
+    .replace(/<td[^>]*class="[^"]*ng-binding[^"]*"[^>]*>([\s\S]*?)<\/td>/gi,'$1')
     // drop <ng-*> elements while keeping their inner content
     .replace(/<\/?ng-[^>]*>/gi,'')
+    // drop generic <ng> elements like <ng>...</ng>
+    .replace(/<\/?ng[^->][^>]*>/gi,'')
+
     // remove ng-* attributes on regular elements
     .replace(/\sng-[a-z-]+="[^"]*"/gi,'')
     // strip the ng-binding class but retain other classes
