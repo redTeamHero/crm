@@ -10,6 +10,7 @@
     "audit": "node creditAuditTool.js",
     "postinstall": "python3 -m pip install --user -r requirements.txt",
     "test": "node --test tests/*.test.js"
+
   },
   "dependencies": {
     "archiver": "^6.0.2",
@@ -24,5 +25,9 @@
     "jsdom": "^24.0.0",
     "puppeteer": "^24.17.0",
     "stripe": "^18.5.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
   }
 }

@@ -2056,12 +2056,16 @@ app.get("/api/consumers/:id/state/files/:stored", (req,res)=>{
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=> {
-  console.log(`CRM ready    http://localhost:${PORT}`);
-  console.log(`DB           ${DB_PATH}`);
-  console.log(`Letters dir  ${LETTERS_DIR}`);
-  console.log(`Letters DB   ${LETTERS_DB_PATH}`);
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(`CRM ready    http://localhost:${PORT}`);
+    console.log(`DB           ${DB_PATH}`);
+    console.log(`Letters dir  ${LETTERS_DIR}`);
+    console.log(`Letters DB   ${LETTERS_DB_PATH}`);
+  });
+}
+
+export default app;
 
 
 
