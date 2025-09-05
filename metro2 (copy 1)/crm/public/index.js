@@ -552,7 +552,7 @@ function renderTradelines(tradelines){
     const pb = tl.per_bureau || {};
     const hasBureauData = ["TransUnion","Experian","Equifax"]
       .some(b => Object.keys(pb[b] || {}).length);
-    const hasAcct = Object.keys(tl.meta?.account_numbers || {}).length > 0;
+    const hasAcct = Object.values(tl.meta?.account_numbers || {}).some(v => v);
     const hasVios = (tl.violations || []).length > 0;
     if (!hasBureauData && !hasAcct && !hasVios) return;
 
