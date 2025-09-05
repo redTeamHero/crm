@@ -1235,7 +1235,20 @@ function toggleCardMode(card, modeKey){
 
   // remove other mode classes before toggling desired one
   MODES.forEach(m => { if (m.cardClass !== info.cardClass) card.classList.remove(m.cardClass); });
-  card.classList.toggle(info.cardClass);
+  const added = card.classList.toggle(info.cardClass);
+
+  if (added) {
+    const bureaus = Array.from(card.querySelectorAll('input.bureau'));
+    if (bureaus.length) {
+      if (!bureaus.some(cb => cb.checked)) {
+        // default to first available bureau
+        bureaus[0].checked = true;
+      }
+    } else {
+      console.warn('No bureaus available to select for card');
+    }
+  }
+
   updateCardBadges(card);
   updateSelectionStateFromCard(card);
 }
