@@ -1295,14 +1295,6 @@ function updateCardBadges(card){
       wrap.appendChild(s);
     }
   });
-
-  const mode = MODES.find(m => card.classList.contains(m.cardClass));
-  if (mode){
-    const s = document.createElement("span");
-    s.className = `chip chip-mini chip-${mode.key}`;
-    s.textContent = mode.chip;
-    wrap.appendChild(s);
-  }
 }
 window.__crm_helpers = {
   attachCardHandlers,
