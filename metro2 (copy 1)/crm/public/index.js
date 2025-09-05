@@ -862,7 +862,15 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, requestType, personalInfo: includePI, collectors: colSelections })
+      body: JSON.stringify({
+        consumerId: currentConsumerId,
+        reportId: currentReportId,
+        selections,
+        requestType,
+        personalInfo: includePI,
+        collectors: colSelections,
+        useOcr: ocrCb?.checked || false,
+      })
 
     });
     if(!resp.ok){

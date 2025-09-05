@@ -72,3 +72,9 @@ await test('collectSelections captures creditor info and skips incomplete specia
   assert.deepEqual(s.accountNumbers, { TransUnion:'TU123', Experian:'EX456', Equifax:'EQ789' });
   assert.ok(warnings.length === 1);
 });
+
+ocrEl.checked = true;
+const selectionsOcr = collectSelections();
+await test('checking #cbUseOcr marks selections for OCR', () => {
+  assert.ok(selectionsOcr.every(s => s.useOcr));
+});

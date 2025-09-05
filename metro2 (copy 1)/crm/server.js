@@ -1507,7 +1507,16 @@ function loadJobFromDisk(jobId){
 app.post("/api/generate", authenticate, requirePermission("letters"), async (req,res)=>{
 
   try{
-    const { consumerId, reportId, selections, requestType, personalInfo, inquiries, collectors } = req.body;
+    const {
+      consumerId,
+      reportId,
+      selections,
+      requestType,
+      personalInfo,
+      inquiries,
+      collectors,
+      useOcr,
+    } = req.body;
 
     const db = loadDB();
     const consumer = db.consumers.find(c=>c.id===consumerId);
@@ -1545,8 +1554,11 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
     }
 
     for (const L of letters) {
+      L.useOcr = !!useOcr;
+    }
+    for (const L of letters) {
       const sel = (selections || []).find(s => s.tradelineIndex === L.tradelineIndex);
-      if (sel?.useOcr) L.useOcr = true;
+      if (sel && sel.useOcr !== undefined) L.useOcr = !!sel.useOcr;
     }
 
     console.log(`Generated ${letters.length} letters for consumer ${consumer.id}`);
