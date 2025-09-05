@@ -21,7 +21,8 @@ function stripAngularMarkup(markup){
       const classes = `${pre} ${post}`.trim().replace(/\s+/g,' ');
       return classes ? `class="${classes}"` : '';
     });
-}
+} // end stripAngularMarkup
+
 
 export async function detectChromium(){
   if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
