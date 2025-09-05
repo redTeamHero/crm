@@ -10,6 +10,7 @@ function dummy(){
       if(_p === 'classList') return { add(){}, remove(){}, toggle(){} };
       if(_p === 'content') return dummy();
       if(_p === 'style') return {};
+      if(_p === 'textContent') return '';
       return dummy();
     },
     apply(){ return dummy(); }
@@ -18,10 +19,26 @@ function dummy(){
 
 const ocrEl = { checked:false };
 
+const cards = {
+  '1': {
+    querySelector(sel){
+      const map = {
+        '.tl-creditor': { textContent: 'ACME Credit' },
+        '.tl-tu-acct': { textContent: 'TU123' },
+        '.tl-exp-acct': { textContent: 'EX456' },
+        '.tl-eqf-acct': { textContent: 'EQ789' }
+      };
+      return map[sel] || null;
+    }
+  }
+};
+
 globalThis.document = {
   querySelector: (sel)=> {
     if (sel === '#cbUseOcr') return ocrEl;
     if (sel === '#err') return null; // force alert in showErr
+    const m = sel.match(/\.tl-card\[data-index="(\d+)"\]/);
+    if (m) return cards[m[1]] || dummy();
     return dummy();
   },
   querySelectorAll: () => [],
@@ -47,8 +64,11 @@ selectionState[2] = { bureaus:[], specialMode:'identity' };
 
 const selections = collectSelections();
 
-await test('collectSelections skips incomplete special modes', () => {
+await test('collectSelections captures creditor info and skips incomplete special modes', () => {
   assert.equal(selections.length, 1);
-  assert.equal(selections[0].tradelineIndex, 1);
+  const s = selections[0];
+  assert.equal(s.tradelineIndex, 1);
+  assert.equal(s.creditor, 'ACME Credit');
+  assert.deepEqual(s.accountNumbers, { TransUnion:'TU123', Experian:'EX456', Equifax:'EQ789' });
   assert.ok(warnings.length === 1);
 });
