@@ -248,7 +248,7 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
       fields: ["last_reported"],
       renderCell: (pb) => fieldVal(pb, "last_reported") || "—",
     }),
-    renderRow("Date Last Payment", available, tl, conflictMap, errorMap, {
+    renderRow("Date of Last Payment:", available, tl, conflictMap, errorMap, {
       fields: ["date_last_payment"],
       renderCell: (pb) => fieldVal(pb, "date_last_payment") || "—",
     }),
@@ -811,3 +811,4 @@ export {
   generateDebtCollectorLetters,
   modeCopy
 };
+
