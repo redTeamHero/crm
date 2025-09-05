@@ -80,7 +80,7 @@ function parseCreditReportHTML(doc) {
       rule("Past Due", ["past_due"]),
       rule("Date Opened", ["date_opened"]),
       rule("Last Reported", ["last_reported"]),
-      rule("Date Last Payment", ["date_last_payment"]),
+      rule(/Date(?: of)? Last Payment/i, ["date_last_payment"]),
       rule("Date Last Active", ["date_last_active"]),
       rule("No. of Months (terms)", ["months_terms"]),
 
@@ -234,13 +234,23 @@ function parseCreditReportHTML(doc) {
   }
 
   function matchRule(rules, label) {
-    // exact first
-    let r = rules.find((x) => x.label === label);
+    // exact string match first
+    let r = rules.find((x) => typeof x.label === "string" && x.label === label);
     if (r) return r;
 
-    // loose fallbacks (in case the source uses minor variants/spaces)
+    // regex match
+    r = rules.find((x) => x.label instanceof RegExp && x.label.test(label));
+    if (r) return r;
+
+    // loose fallbacks for string labels (trim spaces, case-insensitive)
     const L = label.toLowerCase().replace(/\s+/g, " ").trim();
-    return rules.find((x) => x.label.toLowerCase().replace(/\s+/g, " ").trim() === L) || null;
+    return (
+      rules.find(
+        (x) =>
+          typeof x.label === "string" &&
+          x.label.toLowerCase().replace(/\s+/g, " ").trim() === L
+      ) || null
+    );
   }
 
   function extractComments(td) {
