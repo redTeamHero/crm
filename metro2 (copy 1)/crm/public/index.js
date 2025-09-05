@@ -824,6 +824,18 @@ function collectSelections(){
     if (data.violationIdxs && data.violationIdxs.length){
       sel.violationIdxs = data.violationIdxs;
     }
+    const card = document.querySelector(`.tl-card[data-index="${tradelineIndex}"]`);
+    if (card){
+      const creditor = card.querySelector('.tl-creditor')?.textContent?.trim();
+      const accountNumbers = {
+        TransUnion: card.querySelector('.tl-tu-acct')?.textContent?.trim(),
+        Experian: card.querySelector('.tl-exp-acct')?.textContent?.trim(),
+        Equifax: card.querySelector('.tl-eqf-acct')?.textContent?.trim()
+      };
+      if (creditor) sel.creditor = creditor;
+      const acctClean = Object.fromEntries(Object.entries(accountNumbers).filter(([,v])=>v));
+      if (Object.keys(acctClean).length) sel.accountNumbers = acctClean;
+    }
     if (useOcr){
       sel.useOcr = true;
     }

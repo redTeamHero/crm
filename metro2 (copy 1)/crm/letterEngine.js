@@ -735,6 +735,21 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
     const tl = report.tradelines?.[sel.tradelineIndex];
     if (!tl) continue;
 
+    if (sel.creditor) {
+      tl.meta = tl.meta || {};
+      tl.meta.creditor = sel.creditor;
+    }
+    if (sel.accountNumbers) {
+      tl.meta = tl.meta || {};
+      tl.meta.account_numbers = tl.meta.account_numbers || {};
+      tl.per_bureau = tl.per_bureau || {};
+      for (const [b, acct] of Object.entries(sel.accountNumbers)) {
+        if (!acct) continue;
+        tl.meta.account_numbers[b] = acct;
+        (tl.per_bureau[b] ||= {}).account_number = acct;
+      }
+    }
+
     // Auto-flag: negative appears on one bureau only => incomplete/misleading
     const bureausPresent = Object.entries(tl.per_bureau || {})
       .filter(([_, pb]) => hasAnyData(pb))

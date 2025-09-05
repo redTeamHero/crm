@@ -64,3 +64,32 @@ await test('server rejects and accepts selections appropriately', async () => {
     server.kill();
   }
 });
+
+await test('letters include manual creditor and account numbers', async () => {
+  const server = await startServer();
+  try {
+    const db = JSON.parse(fs.readFileSync(path.join(root, 'db.json'), 'utf8'));
+    const consumerId = db.consumers[0].id;
+    const reportId = db.consumers[0].reports[0].id;
+    const selection = {
+      tradelineIndex: 0,
+      bureaus: ['TransUnion'],
+      creditor: 'Manual Creditor',
+      accountNumbers: { TransUnion: '123456789' }
+    };
+    const { res, json } = await fetchJson(`http://localhost:${PORT}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consumerId, reportId, selections: [selection], requestType: 'correct' })
+    });
+    assert.equal(res.status, 200);
+    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    await fetchJson(`http://localhost:${PORT}/api/letters/${jobId}`);
+    const htmlRes = await fetch(`http://localhost:${PORT}/api/letters/${jobId}/0.html`);
+    const html = await htmlRes.text();
+    assert.ok(html.includes('Manual Creditor'));
+    assert.ok(html.includes('123456789'));
+  } finally {
+    server.kill();
+  }
+});
