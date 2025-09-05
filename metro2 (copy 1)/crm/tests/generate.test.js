@@ -93,3 +93,36 @@ await test('letters include manual creditor and account numbers', async () => {
     server.kill();
   }
 });
+
+await test('useOcr flag applies to all generated letters', async () => {
+  const server = await startServer();
+  try {
+    const db = JSON.parse(fs.readFileSync(path.join(root, 'db.json'), 'utf8'));
+    const consumerId = db.consumers[0].id;
+    const reportId = db.consumers[0].reports[0].id;
+    const selection = { tradelineIndex: 0, bureaus: ['TransUnion'] };
+    const payload = {
+      consumerId,
+      reportId,
+      selections: [selection],
+      requestType: 'correct',
+      personalInfo: ['name'],
+      collectors: [{ name: 'Collector Test' }],
+      useOcr: true,
+    };
+    const { res, json } = await fetchJson(`http://localhost:${PORT}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    assert.equal(res.status, 200);
+    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    const idx = JSON.parse(fs.readFileSync(path.join(root, 'letters', '_jobs.json'), 'utf8'));
+    const job = idx.jobs[jobId];
+    assert.ok(job);
+    assert.ok(job.letters.length > 0);
+    assert.ok(job.letters.every(l => l.useOcr));
+  } finally {
+    server.kill();
+  }
+});
