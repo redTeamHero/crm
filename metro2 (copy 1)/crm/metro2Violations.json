@@ -1,0 +1,20 @@
+{
+  "PST_DUE_CURR": {
+    "violation": "Past-due reported while account marked 'current'",
+    "fcraSection": "605(a)",
+    "severity": 5,
+    "snippets": {
+      "en": "Per FCRA §605(a), reporting a past-due amount on an account shown as current is inaccurate and must be corrected.",
+      "es": "Según la FCRA §605(a), reportar un monto vencido en una cuenta marcada como al día es inexacto y debe corregirse."
+    }
+  },
+  "LATE_NO_PAST_DUE": {
+    "violation": "Late status but no past-due balance",
+    "fcraSection": "607(b)",
+    "severity": 4,
+    "snippets": {
+      "en": "Per FCRA §607(b), data must reflect maximum possible accuracy. A late status with no past-due balance fails this standard.",
+      "es": "Según la FCRA §607(b), los datos deben reflejar la máxima exactitud posible. Un estado de atraso sin saldo vencido no cumple con este estándar."
+    }
+  }
+}
