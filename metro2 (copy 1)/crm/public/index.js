@@ -408,11 +408,13 @@ function mergeBureauViolations(vs){
     const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
     const base = (m[1] || v.title || "").trim();
     const bureau = m[2];
-    const key = `${v.category||""}|${base}`;
+    const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)$/,'').trim();
+    const evKey = detailClean || JSON.stringify(v.evidence || {});
+    const key = `${v.category||""}|${base}|${evKey}`;
     if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
     const entry = map.get(key);
     if(bureau) entry.bureaus.add(bureau);
-    if(v.detail) entry.details.add(v.detail.replace(/\s*\((TransUnion|Experian|Equifax)\)$/,""));
+    if(detailClean) entry.details.add(detailClean);
     if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
   });
   return Array.from(map.values()).map(e=>({
@@ -598,15 +600,24 @@ function renderTradelines(tradelines){
     const vs = mergeBureauViolations(tl.violations || []);
     const maxSeverity = vs.reduce((m, v) => Math.max(m, v.severity || 0), 0);
     if (maxSeverity) card.classList.add(`severity-${maxSeverity}`);
+    const pageSize = vs.length > 5 ? 3 : vs.length;
     let vStart = 0;
+    let countEl = node.querySelector('.tl-violations-count');
+    if(!countEl){
+      countEl = document.createElement('div');
+      countEl.className = 'text-xs muted mt-1';
+      vWrap.parentNode.insertBefore(countEl, vWrap);
+    }
     function renderViolations(){
       if(!vs.length){
         vWrap.innerHTML = `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
+        countEl.textContent = '0 violations';
         prevBtn.classList.add("hidden");
         nextBtn.classList.add("hidden");
         return;
       }
-      vWrap.innerHTML = vs.slice(vStart, vStart + 3).map((v, vidx) => `
+      const end = Math.min(vStart + pageSize, vs.length);
+      vWrap.innerHTML = vs.slice(vStart, end).map((v, vidx) => `
         <label class="violation-item flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer severity-${v.severity || 1}">
           <input type="checkbox" class="violation" value="${vidx + vStart}"/>
           <div>
@@ -622,12 +633,20 @@ function renderTradelines(tradelines){
         if (saved.includes(val)) cb.checked = true;
         cb.addEventListener('change', () => updateSelectionStateFromCard(card));
       });
-      prevBtn.classList.toggle("hidden", vStart <= 0);
-      nextBtn.classList.toggle("hidden", vStart + 3 >= vs.length);
+      countEl.textContent = `Showing ${vStart + 1}-${end} of ${vs.length} violation${vs.length===1?"":"s"}`;
+      if(vs.length > pageSize){
+        prevBtn.classList.remove('hidden');
+        nextBtn.classList.remove('hidden');
+        prevBtn.disabled = vStart <= 0;
+        nextBtn.disabled = end >= vs.length;
+      } else {
+        prevBtn.classList.add('hidden');
+        nextBtn.classList.add('hidden');
+      }
     }
     renderViolations();
-    prevBtn.addEventListener("click", ()=>{ if(vStart>0){ vStart -= 3; renderViolations(); }});
-    nextBtn.addEventListener("click", ()=>{ if(vStart + 3 < vs.length){ vStart += 3; renderViolations(); }});
+    prevBtn.addEventListener("click", ()=>{ if(vStart>0){ vStart -= pageSize; renderViolations(); }});
+    nextBtn.addEventListener("click", ()=>{ if(vStart + pageSize < vs.length){ vStart += pageSize; renderViolations(); }});
 
     node.querySelector(".tl-remove").addEventListener("click",(e)=>{
       e.stopPropagation();
