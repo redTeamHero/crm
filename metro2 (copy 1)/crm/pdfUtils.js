@@ -21,7 +21,6 @@ function stripAngularMarkup(markup){
       const classes = `${pre} ${post}`.trim().replace(/\s+/g,' ');
       return classes ? `class="${classes}"` : '';
     });
-}
 
 export async function detectChromium(){
   if(process.env.PUPPETEER_EXECUTABLE_PATH) return process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -66,7 +65,7 @@ export async function htmlToPdfBuffer(html){
       browser = await launchBrowser();
     }catch(err){
       throw new Error(
-        `Chromium failed to launch. Install system deps (e.g. libatk1.0-0, libx11) or set PUPPETEER_EXECUTABLE_PATH.\nOriginal error: ${err.message}`
+        `Chromium failed to launch. Install system deps (libnss3, libnspr4) via 'npm run setup:chrome' or set PUPPETEER_EXECUTABLE_PATH.\nOriginal error: ${err.message}`
       );
     }
     const page = await browser.newPage();

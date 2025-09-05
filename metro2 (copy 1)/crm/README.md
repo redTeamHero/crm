@@ -22,6 +22,16 @@ Use `metro2Violations.json` as a quick reference for common Metro-2 and FCRA con
 2. Keep descriptions factual and align each rule with FCRA accuracy requirements—avoid implying guaranteed deletions or timeframes.
 3. Run `npm test` to validate changes and maintain compliance.
 
+## Chromium dependencies
+
+Puppeteer needs system libraries (`libnss3`, `libnspr4`) to render PDFs. On Debian/Ubuntu run:
+
+```bash
+npm run setup:chrome
+```
+
+Without them, letter generation will fail with errors like `libnspr4.so: cannot open shared object file`.
+
 ## Quick Start
 
 1. **Run audit** – parse `data/report.json` and create a shareable report.
