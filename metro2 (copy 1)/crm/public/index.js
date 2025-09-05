@@ -1308,7 +1308,8 @@ window.__crm_helpers = {
   attachCardHandlers,
   focusCardRef: ()=> lastFocusedCard,
   toggleWholeCardSelection,
-  clearMode: ()=>{ activeMode=null; updateModeButtons(); }
+  clearMode: ()=>{ activeMode=null; updateModeButtons(); },
+  setMode,
 };
 
 const tlList = $("#tlList");
