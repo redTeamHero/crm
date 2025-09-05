@@ -1,0 +1,21 @@
+{
+  "X_BUREAU_FIELD_MISMATCH": {"fieldsImpacted": [], "severity": 5, "fcraSection": "607(b)"},
+  "X_BUREAU_UTIL_DISPARITY": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "MISSING_DOFD": {"fieldsImpacted": [], "severity": 3, "fcraSection": "623(a)(5)"},
+  "CURRENT_BUT_PASTDUE": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "ZERO_BALANCE_BUT_PASTDUE": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "LATE_STATUS_NO_PASTDUE": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "OPEN_ZERO_CL_WITH_HC_COMMENT": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "DATE_ORDER_SANITY": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "REVOLVING_WITH_TERMS": {"fieldsImpacted": [], "severity": 2, "fcraSection": "607(b)"},
+  "REVOLVING_NO_CL_OR_HC": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "INSTALLMENT_WITH_CL": {"fieldsImpacted": [], "severity": 2, "fcraSection": "607(b)"},
+  "CO_OR_COLLECTION_PASTDUE": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "AU_COMMENT_ECOA_CONFLICT": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "DEROG_RATING_BUT_CURRENT": {"fieldsImpacted": [], "severity": 2, "fcraSection": "607(b)"},
+  "DISPUTE_COMMENT_NEEDS_XB": {"fieldsImpacted": [], "severity": 4, "fcraSection": "611"},
+  "CLOSED_BUT_MONTHLY_PAYMENT": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "STALE_ACTIVE_REPORTING": {"fieldsImpacted": [], "severity": 3, "fcraSection": "607(b)"},
+  "DOFD_OBSOLETE_7Y": {"fieldsImpacted": [], "severity": 5, "fcraSection": "605(a)"},
+  "SL_NO_LATES_DURING_DEFERMENT": {"fieldsImpacted": [], "severity": 2, "fcraSection": "607(b)"}
+}
