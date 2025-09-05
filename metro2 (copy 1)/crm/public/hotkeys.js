@@ -14,7 +14,7 @@ document.addEventListener('keydown', (e) => {
   if (k === 'e') { e.preventDefault(); click('btnEditConsumer'); }
   if (k === 'g') { e.preventDefault(); click('btnGenerate'); }
   if (k === 'r') { e.preventDefault(); document.querySelector('.tl-remove')?.click(); }
-  if (k === 'd') { e.preventDefault(); window.__crm_helpers?.setMode?.('breach'); }
-  if (k === 's') { e.preventDefault(); window.__crm_helpers?.setMode?.('assault'); }
-  if (k === 'i') { e.preventDefault(); window.__crm_helpers?.setMode?.('identity'); }
+  if (k === 'd') { e.preventDefault(); trackEvent?.('hotkey_mode', { key: 'd', mode: 'breach' }); window.__crm_helpers?.setMode?.('breach'); }
+  if (k === 's') { e.preventDefault(); trackEvent?.('hotkey_mode', { key: 's', mode: 'assault' }); window.__crm_helpers?.setMode?.('assault'); }
+  if (k === 'i') { e.preventDefault(); trackEvent?.('hotkey_mode', { key: 'i', mode: 'identity' }); window.__crm_helpers?.setMode?.('identity'); }
 });
