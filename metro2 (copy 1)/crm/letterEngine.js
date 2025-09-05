@@ -1,6 +1,7 @@
 // letterEngine.js
 
 import { PLAYBOOKS } from './playbook.js';
+import { enrichTradeline } from './pullTradelineData.js';
 import fs from 'fs';
 
 // Load Metro 2 violation definitions
@@ -810,6 +811,9 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
         ];
       }
     }
+
+    // Ensure each tradeline has complete data before letter creation
+    enrichTradeline(tl);
 
     const isSpecial = SPECIAL_ONE_BUREAU.has(sel.specialMode);
     const comparisonBureaus = isSpecial ? [sel.bureaus[0]] : ALL_BUREAUS;
