@@ -1,6 +1,36 @@
 // letterEngine.js
 
 import { PLAYBOOKS } from './playbook.js';
+import fs from 'fs';
+
+// Load Metro 2 violation definitions
+const VIOLATION_DEFS = JSON.parse(
+  fs.readFileSync(new URL('./metro2Violations.json', import.meta.url))
+);
+
+function getViolationInfo(code) {
+  return VIOLATION_DEFS[code] || null;
+}
+
+function getSeverity(v) {
+  const meta = getViolationInfo(v.code);
+  return meta?.severity ?? v.severity ?? 1;
+}
+
+function filterViolationsBySeverity(violations = [], minSeverity = 1, locale = 'en') {
+  return violations
+    .filter((v) => getSeverity(v) >= minSeverity)
+    .sort((a, b) => getSeverity(b) - getSeverity(a))
+    .map((v) => {
+      const meta = getViolationInfo(v.code) || {};
+      return {
+        ...v,
+        ...meta,
+        detail: meta.snippets?.[locale] || v.detail,
+        severity: getSeverity(v),
+      };
+    });
+}
 
 const BUREAU_ADDR = {
   TransUnion: {
@@ -359,19 +389,25 @@ function renderEvidenceHTML(evidence) {
     ).join("");
 }
 
-function buildViolationListHTML(violations, selectedIds) {
+function buildViolationListHTML(violations, selectedIds, { locale = 'en', minSeverity = 1 } = {}) {
   if (!violations?.length) return "<p>No specific violations were selected.</p>";
-  const items = violations
-    .filter((_, idx) => selectedIds.includes(idx))
+  const selected = selectedIds.map((idx) => violations[idx]).filter(Boolean);
+  const enriched = filterViolationsBySeverity(selected, minSeverity, locale);
+  const items = enriched
     .map((v) => {
       const evHTML = renderEvidenceHTML(v.evidence);
+      const fcraText = v.fcraSection && v.detail && !v.detail.includes(v.fcraSection)
+        ? `Per FCRA §${v.fcraSection}, ${v.detail}`
+        : v.detail;
       return `
         <li style="margin-bottom:12px;">
-          <strong>${safe(v.category)} – ${safe(v.title)}</strong>
-          ${v.detail ? `<div style="margin-top:4px;">${safe(v.detail)}</div>` : ""}
-          ${evHTML ? `<div style="margin-top:6px;">${evHTML}</div>` : ""}
+          <strong>${safe(v.violation || v.category || '')}</strong>
+          ${v.severity ? ` <span class=\"severity-tag severity-${v.severity}\">S${v.severity}</span>` : ''}
+          ${fcraText ? `<div style=\"margin-top:4px;\">${safe(fcraText)}</div>` : ''}
+          ${evHTML ? `<div style=\"margin-top:6px;\">${evHTML}</div>` : ''}
         </li>`;
-    }).join("");
+    })
+    .join("");
   return `<ol class="ocr" style="margin:0;padding-left:18px;">${items}</ol>`;
 }
 
@@ -824,6 +860,7 @@ export {
   generatePersonalInfoLetters,
   generateInquiryLetters,
   generateDebtCollectorLetters,
-  modeCopy
+  modeCopy,
+  filterViolationsBySeverity
 };
 
