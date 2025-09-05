@@ -1521,7 +1521,12 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
       ssn_last4: consumer.ssn_last4, dob: consumer.dob,
       breaches: consumer.breaches || []
     };
-
+    for (const sel of selections || []) {
+      if (!Array.isArray(sel.bureaus) || sel.bureaus.length === 0) {
+        logWarn("MISSING_BUREAUS", "Rejecting selection without bureaus", sel);
+        return res.status(400).json({ ok:false, error:"Selection missing bureaus" });
+      }
+    }
 
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
     if (Array.isArray(personalInfo) && personalInfo.length) {
