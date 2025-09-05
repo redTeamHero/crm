@@ -17,6 +17,33 @@ function formatCurrency(val) {
   return isNaN(num) ? '—' : `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// Lightweight analytics helper exposed globally
+function trackEvent(name, props = {}) {
+  if (window.plausible) {
+    window.plausible(name, { props });
+  } else {
+    console.debug('trackEvent', name, props);
+  }
+}
+window.trackEvent = trackEvent;
+
+document.addEventListener('DOMContentLoaded', () => {
+  trackEvent('page_view', { path: location.pathname });
+  initAbTest();
+});
+
+function initAbTest() {
+  const btn = document.getElementById('btnInvite');
+  if (!btn) return;
+  let variant = localStorage.getItem('cta_variant');
+  if (!variant) {
+    variant = Math.random() < 0.5 ? 'invite_plus' : 'add_team_member';
+    localStorage.setItem('cta_variant', variant);
+  }
+  btn.textContent = variant === 'invite_plus' ? 'Invite +' : 'Add Team Member';
+  trackEvent('ab_exposure', { experiment: 'cta_copy', variant });
+}
+
 // Allow ?auth=BASE64 or ?token=JWT links to set local auth state
 // (runs early so tokens in query strings are captured immediately)
 //

@@ -32,6 +32,7 @@ async function loadInvoices(){
     if(btn){
       btn.addEventListener('click', async ()=>{
         await api(`/api/invoices/${inv.id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({paid:true}) });
+        trackEvent('purchase', { amount: inv.amount });
         loadInvoices();
       });
     }

@@ -120,6 +120,7 @@ async function printLetter(L){
   try {
     ifr.contentWindow.focus();
     ifr.contentWindow.print();
+    trackEvent('letter_generated', { jobId: JOB_ID, index: L.index });
   } finally {
     setTimeout(()=> document.body.removeChild(ifr), 1000);
   }
@@ -153,6 +154,7 @@ $("#btnDownloadAll").addEventListener("click", async ()=>{
     a.click();
     a.remove();
     setTimeout(()=> URL.revokeObjectURL(url), 1000);
+    trackEvent('letters_download_all', { jobId: JOB_ID, count: LETTERS.length });
   } catch(e){ showErr(e.message || String(e)); }
   finally {
     btn.disabled = false;
