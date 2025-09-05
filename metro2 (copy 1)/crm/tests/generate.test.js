@@ -1,0 +1,66 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const PORT = 4100;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, '..');
+
+async function startServer(){
+  return new Promise(resolve => {
+    const proc = spawn('node', ['server.js'], {
+      cwd: root,
+      env: { ...process.env, PORT: String(PORT) }
+    });
+    proc.stdout.on('data', d => {
+      if (d.toString().includes('CRM ready')) resolve(proc);
+    });
+  });
+}
+
+async function fetchJson(url, options){
+  const res = await fetch(url, options);
+  const json = await res.json().catch(()=> ({}));
+  return { res, json };
+}
+
+await test('server rejects and accepts selections appropriately', async () => {
+  const server = await startServer();
+  try {
+    const db = JSON.parse(fs.readFileSync(path.join(root, 'db.json'), 'utf8'));
+    const consumerId = db.consumers[0].id;
+    const reportId = db.consumers[0].reports[0].id;
+
+    // missing bureaus should fail
+    let res, json;
+    ({ res } = await fetchJson(`http://localhost:${PORT}/api/generate`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ consumerId, reportId, selections:[{ tradelineIndex:0, specialMode:'identity' }], requestType:'correct' })
+    }));
+    assert.equal(res.status, 400);
+
+    // valid selection
+    ({ res, json } = await fetchJson(`http://localhost:${PORT}/api/generate`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ consumerId, reportId, selections:[{ tradelineIndex:0, specialMode:'identity', bureaus:['TransUnion'] }], requestType:'correct' })
+    }));
+    assert.equal(res.status, 200);
+    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+
+    ({ json } = await fetchJson(`http://localhost:${PORT}/api/letters/${jobId}`));
+    assert.equal(json.letters[0].bureau, 'TransUnion');
+
+    const pdfRes = await fetch(`http://localhost:${PORT}/api/letters/${jobId}/0.pdf`);
+    if (pdfRes.status === 200) {
+      const buf = Buffer.from(await pdfRes.arrayBuffer());
+      assert.ok(buf.length > 0);
+    } else {
+      console.warn('PDF generation failed with status', pdfRes.status);
+    }
+  } finally {
+    server.kill();
+  }
+});

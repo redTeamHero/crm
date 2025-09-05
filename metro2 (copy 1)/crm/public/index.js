@@ -808,7 +808,13 @@ function getSpecialModeForCard(card){
 function collectSelections(){
 
   const useOcr = ocrCb?.checked || false;
-  return Object.entries(selectionState).map(([tradelineIndex, data]) => {
+  const incomplete = [];
+  const selections = [];
+  for (const [tradelineIndex, data] of Object.entries(selectionState)){
+    if (data.specialMode && (!data.bureaus || data.bureaus.length === 0)){
+      incomplete.push(tradelineIndex);
+      continue;
+    }
     const sel = {
       tradelineIndex: Number(tradelineIndex),
       bureaus: data.bureaus,
@@ -821,9 +827,14 @@ function collectSelections(){
     if (useOcr){
       sel.useOcr = true;
     }
-    return sel;
-  });
+    selections.push(sel);
+  }
+  if (incomplete.length){
+    showErr(`Select at least one bureau for special mode card${incomplete.length>1?'s':''}: ${incomplete.join(', ')}. Incomplete selections were skipped.`);
+  }
+  return selections;
 }
+export { collectSelections, selectionState, showErr };
 
 $("#btnGenerate").addEventListener("click", async ()=>{
   clearErr();
