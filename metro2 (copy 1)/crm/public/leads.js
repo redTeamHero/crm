@@ -73,6 +73,7 @@ document.getElementById('saveLead').addEventListener('click', async()=>{
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify(lead)
   });
+  trackEvent('lead_submission', { source: lead.source || 'unknown' });
   document.getElementById('leadName').value='';
   document.getElementById('leadEmail').value='';
   document.getElementById('leadPhone').value='';
