@@ -1,0 +1,467 @@
+[
+  {
+    "id": 1,
+    "violation": "Missing or invalid Date of First Delinquency",
+    "fieldsImpacted": [
+      "Date of First Delinquency"
+    ],
+    "severity": 5,
+    "fcraSection": "\u00a7 623(a)(5)"
+  },
+  {
+    "id": 2,
+    "violation": "Payment history inconsistent with status",
+    "fieldsImpacted": [
+      "Payment History",
+      "Account Status"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 607(b)"
+  },
+  {
+    "id": 3,
+    "violation": "Account reported as open after closure",
+    "fieldsImpacted": [
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(2)"
+  },
+  {
+    "id": 4,
+    "violation": "Late payment reported after account paid",
+    "fieldsImpacted": [
+      "Payment History"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 607(b)"
+  },
+  {
+    "id": 5,
+    "violation": "Balance reported greater than credit limit",
+    "fieldsImpacted": [
+      "Balance",
+      "Credit Limit"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 6,
+    "violation": "Incorrect high credit/limit for installment loan",
+    "fieldsImpacted": [
+      "High Credit",
+      "Credit Limit"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 7,
+    "violation": "Payment rating inconsistent with account status",
+    "fieldsImpacted": [
+      "Payment Rating",
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 8,
+    "violation": "Charge-off lacks required DOFD",
+    "fieldsImpacted": [
+      "Date of First Delinquency",
+      "Charge-Off"
+    ],
+    "severity": 5,
+    "fcraSection": "\u00a7 623(a)(5)"
+  },
+  {
+    "id": 9,
+    "violation": "Missing original creditor name on collection account",
+    "fieldsImpacted": [
+      "Creditor Name"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 10,
+    "violation": "Duplicate account reported",
+    "fieldsImpacted": [
+      "Account Number"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 607(b)"
+  },
+  {
+    "id": 11,
+    "violation": "Wrong account type (revolving vs installment)",
+    "fieldsImpacted": [
+      "Account Type"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 607(b)"
+  },
+  {
+    "id": 12,
+    "violation": "Past due amount reported on current account",
+    "fieldsImpacted": [
+      "Past Due",
+      "Account Status"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 13,
+    "violation": "Account re-aged without proof",
+    "fieldsImpacted": [
+      "Date Opened",
+      "Payment History"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 14,
+    "violation": "Inaccurate last payment date",
+    "fieldsImpacted": [
+      "Last Payment Date"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(2)"
+  },
+  {
+    "id": 15,
+    "violation": "Inaccurate account status code",
+    "fieldsImpacted": [
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 16,
+    "violation": "Balance reported after bankruptcy discharge",
+    "fieldsImpacted": [
+      "Balance"
+    ],
+    "severity": 5,
+    "fcraSection": "\u00a7 607(b)"
+  },
+  {
+    "id": 17,
+    "violation": "Account reported as active after settlement",
+    "fieldsImpacted": [
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 18,
+    "violation": "Payment history reported after account closed",
+    "fieldsImpacted": [
+      "Payment History"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 607(b)"
+  },
+  {
+    "id": 19,
+    "violation": "Missing credit limit for revolving account",
+    "fieldsImpacted": [
+      "Credit Limit"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 20,
+    "violation": "Missing current balance",
+    "fieldsImpacted": [
+      "Balance"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 21,
+    "violation": "Consumer statement omitted",
+    "fieldsImpacted": [
+      "Consumer Statement"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 609(c)"
+  },
+  {
+    "id": 22,
+    "violation": "Dispute flag missing when account disputed",
+    "fieldsImpacted": [
+      "Dispute Flag"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 623(a)(3)"
+  },
+  {
+    "id": 23,
+    "violation": "Dispute flag left after dispute resolved",
+    "fieldsImpacted": [
+      "Dispute Flag"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(3)"
+  },
+  {
+    "id": 24,
+    "violation": "Account opened date after last payment date",
+    "fieldsImpacted": [
+      "Date Opened",
+      "Last Payment Date"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 25,
+    "violation": "Last reported date before date opened",
+    "fieldsImpacted": [
+      "Last Reported",
+      "Date Opened"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 26,
+    "violation": "Charge-off amount differs from balance",
+    "fieldsImpacted": [
+      "Charge-Off Amount",
+      "Balance"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 27,
+    "violation": "Missing creditor classification code",
+    "fieldsImpacted": [
+      "Creditor Classification"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 28,
+    "violation": "Ownership code incorrect",
+    "fieldsImpacted": [
+      "Ownership Code"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 29,
+    "violation": "Debt reported as joint when individual",
+    "fieldsImpacted": [
+      "Ownership Code"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 30,
+    "violation": "Missing Terms Duration for installment account",
+    "fieldsImpacted": [
+      "Terms Duration"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 31,
+    "violation": "Inaccurate scheduled monthly payment",
+    "fieldsImpacted": [
+      "Scheduled Monthly Payment"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 32,
+    "violation": "Portfolio type missing for collection",
+    "fieldsImpacted": [
+      "Portfolio Type"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 33,
+    "violation": "Inaccurate collateral code",
+    "fieldsImpacted": [
+      "Collateral"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 34,
+    "violation": "Account reported as repossessed but balance >0",
+    "fieldsImpacted": [
+      "Account Status",
+      "Balance"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 35,
+    "violation": "Missing ECOA code",
+    "fieldsImpacted": [
+      "ECOA Code"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 36,
+    "violation": "Payment history blocks incorrect",
+    "fieldsImpacted": [
+      "Payment History"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 607(b)"
+  },
+  {
+    "id": 37,
+    "violation": "Date of last activity inconsistent with status",
+    "fieldsImpacted": [
+      "Date of Last Activity",
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 38,
+    "violation": "Incorrect MOP code",
+    "fieldsImpacted": [
+      "MOP"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 39,
+    "violation": "Missing Special Comment code for paid collection",
+    "fieldsImpacted": [
+      "Special Comment"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 40,
+    "violation": "Obsolete account still reporting",
+    "fieldsImpacted": [
+      "Date Opened",
+      "Status"
+    ],
+    "severity": 5,
+    "fcraSection": "\u00a7 605(a)"
+  },
+  {
+    "id": 41,
+    "violation": "Closed account shows past due",
+    "fieldsImpacted": [
+      "Account Status",
+      "Past Due"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 42,
+    "violation": "Account transferred but still reporting balance",
+    "fieldsImpacted": [
+      "Account Status",
+      "Balance"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 43,
+    "violation": "Missing bankruptcy chapter",
+    "fieldsImpacted": [
+      "Bankruptcy Chapter"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 44,
+    "violation": "Wrong currency code",
+    "fieldsImpacted": [
+      "Currency Code"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 45,
+    "violation": "Account status inconsistent across bureaus",
+    "fieldsImpacted": [
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 46,
+    "violation": "Inaccurate charge-off date",
+    "fieldsImpacted": [
+      "Charge-Off Date"
+    ],
+    "severity": 4,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 47,
+    "violation": "Missing first delinquency date on collection",
+    "fieldsImpacted": [
+      "Date of First Delinquency"
+    ],
+    "severity": 5,
+    "fcraSection": "\u00a7 623(a)(5)"
+  },
+  {
+    "id": 48,
+    "violation": "Inaccurate original loan amount",
+    "fieldsImpacted": [
+      "Original Loan Amount"
+    ],
+    "severity": 3,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 49,
+    "violation": "Missing secured indicator",
+    "fieldsImpacted": [
+      "Secured Indicator"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 623(a)(1)"
+  },
+  {
+    "id": 50,
+    "violation": "Incorrect FCRA compliance code",
+    "fieldsImpacted": [
+      "Compliance Code"
+    ],
+    "severity": 2,
+    "fcraSection": "\u00a7 607(b)"
+  }
+]
