@@ -192,6 +192,18 @@ function forbidMember(req,res,next){
   next();
 }
 
+function deepMerge(a = {}, b = {}) {
+  const res = { ...a };
+  for (const [key, val] of Object.entries(b || {})) {
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      res[key] = deepMerge(res[key] && typeof res[key] === "object" ? res[key] : {}, val);
+    } else {
+      res[key] = val;
+    }
+  }
+  return res;
+}
+
 
 // Basic resource monitoring to catch memory or CPU spikes
 const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
@@ -1047,13 +1059,20 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       if (Array.isArray(analyzed.tradelines) && analyzed.tradelines.length) {
         analyzed.tradelines = analyzed.tradelines.map((tl, idx) => {
           const jsTl = jsParsed.tradelines[idx] || {};
-          return {
-            ...jsTl,
-            ...tl,
-            violations: tl.violations || jsTl.violations || [],
-            violations_grouped:
-              tl.violations_grouped || jsTl.violations_grouped || {},
-          };
+          const merged = { ...tl, ...jsTl };
+          merged.meta = deepMerge(tl.meta, jsTl.meta);
+          merged.per_bureau = deepMerge(tl.per_bureau, jsTl.per_bureau);
+          merged.violations =
+            Array.isArray(tl.violations) && tl.violations.length
+              ? tl.violations
+              : Array.isArray(jsTl.violations) && jsTl.violations.length
+                ? jsTl.violations
+                : [];
+          merged.violations_grouped =
+            tl.violations_grouped && Object.keys(tl.violations_grouped).length
+              ? tl.violations_grouped
+              : jsTl.violations_grouped || {};
+          return merged;
         });
       } else {
         analyzed.tradelines = jsParsed.tradelines;
