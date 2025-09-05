@@ -79,6 +79,26 @@ SEVERITY = {
 
 TODAY = date.today().isoformat()
 
+# Load violation metadata for enrichment
+_VIOLATION_DATA_PATH = os.path.join(
+    os.path.dirname(__file__), "data", "metro2Violations.json"
+)
+try:
+    with open(_VIOLATION_DATA_PATH, "r", encoding="utf-8") as f:
+        _raw = json.load(f)
+        if isinstance(_raw, dict):
+            VIOLATION_META = _raw
+        else:
+            VIOLATION_META = {}
+            for itm in _raw:
+                key = itm.get("id") or itm.get("key") or itm.get("title")
+                if key:
+                    VIOLATION_META[key] = itm
+except Exception:
+    VIOLATION_META = {}
+
+_CURRENT_RULE_ID = None
+
 # -----------------------------
 # Utility functions
 # -----------------------------
@@ -245,13 +265,29 @@ class RuleContext:
         self.rule_profile = rule_profile      # dict controlling which rules are enabled
 
 def make_violation(category, title, detail, evidence):
-    return {
+    """Construct a violation record and enrich with metadata."""
+    v = {
         "category": category,
         "title": title,
         "detail": detail,
         "evidence": evidence,
-        "severity": SEVERITY.get(category, 1)
     }
+
+    rule_id = _CURRENT_RULE_ID
+    meta = {}
+    if rule_id:
+        meta = VIOLATION_META.get(rule_id) or VIOLATION_META.get(title, {})
+        v["id"] = rule_id
+    if meta:
+        if "fieldsImpacted" in meta:
+            v["fieldsImpacted"] = meta.get("fieldsImpacted")
+        if "fcraSection" in meta:
+            v["fcraSection"] = meta.get("fcraSection")
+        v["severity"] = meta.get("severity", SEVERITY.get(category, 1))
+    else:
+        v["severity"] = SEVERITY.get(category, 1)
+
+    return v
 
 # Registry: name -> rule metadata & function
 RULES = {}
@@ -592,6 +628,7 @@ def r_sl_no_lates_during_deferment(ctx, bureau, data, add):
 # -----------------------------
 
 def run_rules_for_tradeline(creditor, per_bureau, rule_profile):
+    global _CURRENT_RULE_ID
     violations = []
     furnisher_type = detect_furnisher_type(per_bureau)
     ctx = RuleContext(creditor, per_bureau, furnisher_type, rule_profile)
@@ -605,7 +642,9 @@ def run_rules_for_tradeline(creditor, per_bureau, rule_profile):
             continue
         if not is_rule_enabled(name, furnisher_type, rule_profile):
             continue
+        _CURRENT_RULE_ID = name
         meta["fn"](ctx, add)
+        _CURRENT_RULE_ID = None
 
     # Per-bureau rules
     for b in BUREAUS:
@@ -615,7 +654,9 @@ def run_rules_for_tradeline(creditor, per_bureau, rule_profile):
                 continue
             if not is_rule_enabled(name, furnisher_type, rule_profile):
                 continue
+            _CURRENT_RULE_ID = name
             meta["fn"](ctx, b, data, add)
+            _CURRENT_RULE_ID = None
 
     return violations, furnisher_type
 
