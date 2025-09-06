@@ -34,40 +34,35 @@ function renderProductTier(){
 }
 
 function renderScore(){
-  const scoreVal = document.getElementById('scoreValue');
-  const scoreTU = document.getElementById('scoreTU');
-  const scoreEX = document.getElementById('scoreEX');
-  const scoreEQ = document.getElementById('scoreEQ');
-  const scoreProg = document.getElementById('scoreProgress');
+  const widget = document.getElementById('creditScoreWidget');
+  if (!widget) return;
+  const tuEl = widget.querySelector('.tu');
+  const exEl = widget.querySelector('.ex');
+  const eqEl = widget.querySelector('.eq');
   const scoreConfetti = document.getElementById('scoreConfetti');
-  if (scoreVal && scoreProg) {
-    const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
-    const tu = Number(score.transunion || score.tu || score.current || 0);
-    const ex = Number(score.experian || score.exp || 0);
-    const eq = Number(score.equifax || score.eq || 0);
-    if (scoreTU) scoreTU.textContent = tu;
-    if (scoreEX) scoreEX.textContent = ex;
-    if (scoreEQ) scoreEQ.textContent = eq;
-    const scores = [tu, ex, eq].filter(n => n > 0);
-    const avg = scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0;
-    const pct = Math.min(1, avg / 850);
-    const circ = 339.292;
-    scoreProg.style.strokeDashoffset = circ * (1 - pct);
-    const start = Number(score.start || 0);
-    if (avg > start && scoreConfetti && window.lottie) {
-      lottie.loadAnimation({
-        container: scoreConfetti,
-        renderer: 'svg',
-        loop: false,
-        autoplay: true,
-        path: 'https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json'
-      });
-      setTimeout(() => { scoreConfetti.innerHTML = ''; }, 1500);
-      const ms = document.getElementById('milestones');
-      if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${Math.round(avg - start)} points!</div>`;
-    }
-    renderProductTier();
+  const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
+  const tu = Number(score.transunion || score.tu || score.current || 0);
+  const ex = Number(score.experian || score.exp || 0);
+  const eq = Number(score.equifax || score.eq || 0);
+  if (tuEl) tuEl.textContent = tu;
+  if (exEl) exEl.textContent = ex;
+  if (eqEl) eqEl.textContent = eq;
+  const scores = [tu, ex, eq].filter(n => n > 0);
+  const avg = scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0;
+  const start = Number(score.start || 0);
+  if (avg > start && scoreConfetti && window.lottie) {
+    lottie.loadAnimation({
+      container: scoreConfetti,
+      renderer: 'svg',
+      loop: false,
+      autoplay: true,
+      path: 'https://assets10.lottiefiles.com/packages/lf20_j1adxtyb.json'
+    });
+    setTimeout(() => { scoreConfetti.innerHTML = ''; }, 1500);
+    const ms = document.getElementById('milestones');
+    if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${Math.round(avg - start)} points!</div>`;
   }
+  renderProductTier();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
