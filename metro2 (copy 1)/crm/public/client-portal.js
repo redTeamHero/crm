@@ -37,6 +37,7 @@ function renderProductTier(score){
     scoreVal = Number(scoreData.current || scoreData.transunion || scoreData.tu || 0);
   }
   const tier = getProductTier(deletions, scoreVal);
+
   el.className = `hidden sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
   el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${tier.name}</span>`;
   el.title = tier.message;
