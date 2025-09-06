@@ -50,14 +50,7 @@ function renderScore(){
   const exEl = widget.querySelector('.ex');
   const eqEl = widget.querySelector('.eq');
   const scoreConfetti = document.getElementById('scoreConfetti');
-  let score = localStorage.getItem('creditScore');
-  try {
-    score = JSON.parse(score);
-    if (typeof score === 'string') score = JSON.parse(score);
-  } catch {
-    score = {};
-  }
-
+  const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
   const tu = Number(score.transunion || score.tu || score.current || 0);
   const ex = Number(score.experian || score.exp || 0);
   const eq = Number(score.equifax || score.eq || 0);
