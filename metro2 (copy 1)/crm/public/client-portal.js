@@ -21,19 +21,23 @@ function getProductTier(deletions, score){
   return productTiers[productTiers.length-1];
 }
 
-function renderProductTier(){
+function renderProductTier(score){
   const el = document.getElementById('tierBadge');
   if(!el) return;
   const deletions = Number(localStorage.getItem('deletions') || 0);
-  let scoreData;
-  try {
-    scoreData = JSON.parse(localStorage.getItem('creditScore') || '{"current":0}');
-    if (typeof scoreData === 'string') scoreData = JSON.parse(scoreData);
-  } catch {
-    scoreData = { current: 0 };
+  let scoreVal;
+  if(score !== undefined){
+    if(typeof score === 'object'){
+      scoreVal = Number(score.current || score.transunion || score.tu || 0);
+    } else {
+      scoreVal = Number(score);
+    }
+  } else {
+    const scoreData = JSON.parse(localStorage.getItem('creditScore') || '{"current":0}');
+    scoreVal = Number(scoreData.current || scoreData.transunion || scoreData.tu || 0);
   }
-  const score = Number(scoreData.current || 0);
-  const tier = getProductTier(deletions, score);
+  const tier = getProductTier(deletions, scoreVal);
+
   el.className = `hidden sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
   el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${tier.name}</span>`;
   el.title = tier.message;
@@ -75,7 +79,7 @@ function renderScore(){
     const ms = document.getElementById('milestones');
     if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${Math.round(avg - start)} points!</div>`;
   }
-  renderProductTier();
+  renderProductTier(score);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
