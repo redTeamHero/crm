@@ -57,23 +57,20 @@
 
   </div>
 
-  <div class="glass card">
+  <div id="creditScoreWidget" class="glass card">
     <div class="font-medium mb-2">Credit Score</div>
-    <div class="relative grid place-items-center">
-      <svg id="scoreRing" viewBox="0 0 140 140" class="w-32 h-32 -rotate-90">
-        <circle cx="70" cy="70" r="54" stroke="#e5e7eb" stroke-width="12" fill="none"></circle>
-        <circle id="scoreProgress" cx="70" cy="70" r="54" stroke="url(#g)" stroke-width="12" stroke-linecap="round" fill="none" stroke-dasharray="339.292" stroke-dashoffset="339.292"></circle>
-        <defs>
-          <linearGradient id="g" x1="0" x2="1">
-            <stop offset="0%" stop-color="#10b981" />
-            <stop offset="100%" stop-color="#06b6d4" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div id="scoreValue" class="absolute text-2xl font-bold flex gap-2">
-        <span id="scoreTU" class="text-blue-500">0</span>
-        <span id="scoreEX" class="text-purple-500">0</span>
-        <span id="scoreEQ" class="text-red-500">0</span>
+    <div class="relative grid grid-cols-3 gap-4 text-center">
+      <div>
+        <div class="text-xs text-gray-500">TransUnion</div>
+        <div class="tu text-2xl font-bold">0</div>
+      </div>
+      <div>
+        <div class="text-xs text-gray-500">Experian</div>
+        <div class="ex text-2xl font-bold">0</div>
+      </div>
+      <div>
+        <div class="text-xs text-gray-500">Equifax</div>
+        <div class="eq text-2xl font-bold">0</div>
       </div>
       <div id="scoreConfetti" class="pointer-events-none absolute inset-0"></div>
     </div>
