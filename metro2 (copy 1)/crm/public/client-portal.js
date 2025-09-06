@@ -47,6 +47,7 @@ function renderScore(){
   } catch {
     score = {};
   }
+
   const tu = Number(score.transunion || score.tu || score.current || 0);
   const ex = Number(score.experian || score.exp || 0);
   const eq = Number(score.equifax || score.eq || 0);
