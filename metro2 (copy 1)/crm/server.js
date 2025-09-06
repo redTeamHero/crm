@@ -274,8 +274,8 @@ app.get("/portal/:id", (req, res) => {
   const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
   let html = tmpl.replace(/{{name}}/g, consumer.name);
   if (consumer.creditScore) {
-    const scoreJson = JSON.stringify(consumer.creditScore);
-    const script = `\n<script>localStorage.setItem('creditScore', ${JSON.stringify(scoreJson)});</script>`;
+    const scoreJson = JSON.stringify(consumer.creditScore).replace(/<\/script/g, '<\\/script>');
+    const script = `\n<script>localStorage.setItem('creditScore', '${scoreJson}');</script>`;
     html = html.replace('</body>', `${script}\n</body>`);
   }
   res.send(html);
