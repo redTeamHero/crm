@@ -25,7 +25,13 @@ function renderProductTier(){
   const el = document.getElementById('tierBadge');
   if(!el) return;
   const deletions = Number(localStorage.getItem('deletions') || 0);
-  const scoreData = JSON.parse(localStorage.getItem('creditScore') || '{"current":0}');
+  let scoreData;
+  try {
+    scoreData = JSON.parse(localStorage.getItem('creditScore') || '{"current":0}');
+    if (typeof scoreData === 'string') scoreData = JSON.parse(scoreData);
+  } catch {
+    scoreData = { current: 0 };
+  }
   const score = Number(scoreData.current || 0);
   const tier = getProductTier(deletions, score);
   el.className = `hidden sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
