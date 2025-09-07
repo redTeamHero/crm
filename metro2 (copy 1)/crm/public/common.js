@@ -77,7 +77,7 @@ window.userRole = _payload.role || null;
 function restrictRoutes(role){
   const allowed = {
     host: null,
-    team: ['/dashboard','/clients','/leads','/schedule','/billing','/','/index.html','/login.html'],
+    team: ['/dashboard','/clients','/leads','/schedule','/billing','/','/index.html','/login.html','/team-member-template.html'],
     client: ['/client-portal','/portal','/login.html','/']
   }[role];
   if(!allowed) return;
