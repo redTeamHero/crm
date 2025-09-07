@@ -7,7 +7,7 @@ const api = (u, o = {}) => fetch(u, o).then(r => r.json()).catch(e => ({ ok:fals
 
 const role = typeof window !== 'undefined' ? (window.userRole || 'host') : 'host';
 if (typeof window !== 'undefined' && role === 'client') {
-  window.location.href = '/client-portal.html';
+  window.location.href = '/client-portal-template.html';
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
   document.addEventListener('DOMContentLoaded', () => {
