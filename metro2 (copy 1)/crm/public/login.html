@@ -14,6 +14,17 @@
     <div id="err" class="hidden p-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded"></div>
     <input id="username" type="text" placeholder="Username" class="w-full border rounded px-3 py-2" />
     <input id="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2" />
+    <div class="flex justify-around text-sm">
+      <label class="flex items-center gap-1">
+        <input type="radio" name="role" value="host" checked /> Host
+      </label>
+      <label class="flex items-center gap-1">
+        <input type="radio" name="role" value="client" /> Client
+      </label>
+      <label class="flex items-center gap-1">
+        <input type="radio" name="role" value="team" /> Team Member
+      </label>
+    </div>
     <button id="btnLogin" class="btn w-full">Login</button>
     <button id="btnRegister" class="btn w-full" style="background:var(--green-bg)">Register</button>
     <button id="btnReset" class="btn w-full" style="background:var(--accent-bg)">Reset Password</button>

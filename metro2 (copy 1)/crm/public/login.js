@@ -1,31 +1,27 @@
 /* public/login.js */
-async function handleAuth(endpoint){
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value;
-  if(!username || !password){
-    showError('Username and password required');
-    return;
-  }
+async function handleAuth(endpoint, body){
   try{
     const res = await fetch(endpoint,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
     if(!res.ok || !data.ok){
       throw new Error(data.error || 'Request failed');
     }
-      if(data.token){
-        // start a fresh local state for the newly authenticated user
-        // so previous user data doesn't leak between accounts
-        localStorage.clear();
+    if(data.token){
+      // start a fresh local state for the newly authenticated user
+      // so previous user data doesn't leak between accounts
+      localStorage.clear();
 
-        localStorage.setItem('token', data.token);
-        // legacy basic auth support
-        localStorage.setItem('auth', btoa(`${username}:${password}`));
-        location.href = '/clients';
+      localStorage.setItem('token', data.token);
+      // legacy basic auth support for host/client
+      if(body.username){
+        localStorage.setItem('auth', btoa(`${body.username}:${body.password}`));
       }
+      location.href = '/clients';
+    }
   }catch(err){
     showError(err.message);
   }
@@ -37,8 +33,37 @@ function showError(msg){
   el.classList.remove('hidden');
 }
 
-document.getElementById('btnLogin').addEventListener('click', ()=>handleAuth('/api/login'));
-document.getElementById('btnRegister').addEventListener('click', ()=>handleAuth('/api/register'));
+document.getElementById('btnLogin').addEventListener('click', ()=>{
+  const role = document.querySelector('input[name="role"]:checked').value;
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  if(!username || !password){
+    showError('Username/token and password required');
+    return;
+  }
+  let endpoint, body;
+  if(role === 'host'){
+    endpoint = '/api/login';
+    body = { username, password };
+  }else if(role === 'client'){
+    endpoint = '/api/client/login';
+    body = { username, password };
+  }else{
+    endpoint = `/api/team/${encodeURIComponent(username)}/login`;
+    body = { password };
+  }
+  handleAuth(endpoint, body);
+});
+
+document.getElementById('btnRegister').addEventListener('click', ()=>{
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  if(!username || !password){
+    showError('Username and password required');
+    return;
+  }
+  handleAuth('/api/register', { username, password });
+});
 
 // simple password reset flow using prompts
  document.getElementById('btnReset').addEventListener('click', async ()=>{
