@@ -262,6 +262,7 @@ app.get("/library", optionalAuth, forbidMember, (_req, res) => res.sendFile(path
 app.get("/tradelines", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
 app.get("/quiz", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
 app.get("/settings", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
+app.get("/client-portal.html", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "client-portal-template.html")));
 app.get("/team/:token", (req,res)=>{
   const token = path.basename(req.params.token);
   const file = path.join(PUBLIC_DIR, `team-${token}.html`);
