@@ -422,8 +422,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadMessages(){
     if (!(consumerId && messageList)) return;
     fetch(`/api/messages/${consumerId}`)
-      .then(r => r.json())
-      .then(data => {
+      .then(r => {
+        if (!r.ok) throw new Error('Network response was not ok');
+        return r.text();
+      })
+      .then(text => {
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Invalid JSON');
+        }
         const msgs = data.messages || [];
         if (messageBanner) {
           const hostMsg = msgs.find(m => m.payload?.from && m.payload.from !== 'client');
@@ -445,11 +454,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = isClient ? 'You' : fromUser || 'Host';
             const when = new Date(m.at).toLocaleString();
             return `<div class="message ${cls}"><div class="text-xs muted">${name} • ${when}</div><div>${escapeHtml(m.payload?.text || '')}</div></div>`;
-
           }).join('');
         }
       })
-      .catch(() => { messageList.innerHTML = '<div class="muted">Failed to load messages.</div>'; });
+      .catch(err => {
+        console.error('Failed to load messages', err);
+        messageList.innerHTML = '<div class="muted">Failed to load messages. <a href="#" id="retryMessages">Retry</a></div>';
+        const retry = document.getElementById('retryMessages');
+        if (retry) retry.addEventListener('click', e => { e.preventDefault(); loadMessages(); });
+      });
   }
 
   if (messageForm && consumerId) {
