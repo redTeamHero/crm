@@ -28,8 +28,8 @@ let tlPage = 1;
 let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
-const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
-const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
+let trackerData = {};
+let trackerSteps = [];
 
 const ocrCb = $("#cbUseOcr");
 
@@ -251,7 +251,7 @@ async function selectConsumer(id){
   await refreshReports();
   await loadConsumerState();
   await loadMessages();
-  loadTracker();
+  await loadTracker();
 }
 
 function restoreSelectedConsumer(){
@@ -292,24 +292,55 @@ $("#reportPicker").addEventListener("change", async (e)=>{
   await loadReportJSON();
 });
 
-function loadTracker(){
+async function loadTracker(){
+  clearErr();
+  const url = currentConsumerId ? `/api/consumers/${currentConsumerId}/tracker` : '/api/tracker/steps';
+  const data = await api(url);
+  if(!data || !data.steps){ showErr('Could not load tracker.'); return; }
+  trackerSteps = data.steps || [];
+  if(currentConsumerId){
+    trackerData[currentConsumerId] = data.completed || {};
+  }
   renderTrackerSteps();
-  if(!currentConsumerId) return;
-  const data = trackerData[currentConsumerId] || {};
-  trackerSteps.forEach(step=>{
-    const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
-    if(cb) cb.checked = !!data[step];
-  });
+  if(currentConsumerId){
+    trackerSteps.forEach(step=>{
+      const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
+      if(cb) cb.checked = !!trackerData[currentConsumerId][step];
+    });
+  }
 }
-function saveTracker(){
+async function saveTracker(){
   if(!currentConsumerId) return;
-  const data = trackerData[currentConsumerId] || {};
+  const completed = {};
   trackerSteps.forEach(step=>{
     const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
-    if(cb) data[step] = cb.checked;
+    if(cb) completed[step] = cb.checked;
   });
-  trackerData[currentConsumerId] = data;
-  localStorage.setItem("trackerData", JSON.stringify(trackerData));
+  trackerData[currentConsumerId] = completed;
+  try{
+    const resp = await fetch(`/api/consumers/${currentConsumerId}/tracker`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ completed })
+    });
+    const d = await resp.json().catch(()=>({}));
+    if(!d?.ok) throw new Error(d?.error || 'Failed to sync tracker');
+  }catch(e){
+    showErr(e.message || 'Failed to sync tracker');
+  }
+}
+async function syncTrackerSteps(){
+  try{
+    const resp = await fetch('/api/tracker/steps', {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ steps: trackerSteps })
+    });
+    const d = await resp.json().catch(()=>({}));
+    if(!d?.ok) throw new Error(d?.error || 'Failed to save steps');
+  }catch(e){
+    showErr(e.message || 'Failed to save steps');
+  }
 }
 function renderTrackerSteps(){
   const wrap = document.querySelector("#trackerSteps");
@@ -334,8 +365,7 @@ function renderTrackerSteps(){
       const idx = parseInt(e.target.dataset.index);
       const removed = trackerSteps.splice(idx,1)[0];
       Object.values(trackerData).forEach(obj=>{ delete obj[removed]; });
-      localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
-      localStorage.setItem("trackerData", JSON.stringify(trackerData));
+      syncTrackerSteps();
       renderTrackerSteps();
       loadTracker();
     });
@@ -357,7 +387,7 @@ function renderTrackerSteps(){
         let name = (inp.value || "").trim();
         if(!name) name = `Step ${trackerSteps.length + 1}`;
         trackerSteps.push(name);
-        localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
+        syncTrackerSteps();
         inp.remove();
         renderTrackerSteps();
         loadTracker();

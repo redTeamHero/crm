@@ -48,6 +48,9 @@ import {
   addReminder,
   processAllReminders,
   listTracker,
+  setTrackerSteps,
+  markTrackerStep,
+  getTrackerSteps,
 } from "./state.js";
 function injectStyle(html, css){
   if(/<head[^>]*>/i.test(html)){
@@ -2043,6 +2046,25 @@ app.get("/api/jobs/:jobId/letters/:idx.pdf", authenticate, requirePermission("le
 app.get("/api/consumers/:id/tracker", (req,res)=>{
   const t = listTracker(req.params.id);
   res.json(t);
+});
+
+app.get("/api/tracker/steps", (_req, res) => {
+  res.json({ ok: true, steps: getTrackerSteps() });
+});
+
+app.put("/api/tracker/steps", (req, res) => {
+  const steps = Array.isArray(req.body?.steps) ? req.body.steps : [];
+  setTrackerSteps(steps);
+  res.json({ ok: true });
+});
+
+app.post("/api/consumers/:id/tracker", (req, res) => {
+  const completed = req.body?.completed || {};
+  for (const [step, done] of Object.entries(completed)) {
+    markTrackerStep(req.params.id, step, !!done);
+  }
+  addEvent(req.params.id, "tracker_updated", { completed });
+  res.json({ ok: true });
 });
 
 app.get("/api/consumers/:id/state", (req,res)=>{
