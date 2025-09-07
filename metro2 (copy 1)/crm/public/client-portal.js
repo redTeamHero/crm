@@ -80,6 +80,20 @@ function loadScores(){
   renderScore(score);
 }
 
+function renderTeamList(){
+  const teamList = document.getElementById('teamList');
+  if (!teamList) return;
+  const team = JSON.parse(localStorage.getItem('teamMembers') || '[]');
+  if (!team.length) {
+    teamList.textContent = 'No team members added.';
+  } else {
+    teamList.innerHTML = team.map(m => {
+      const role = m.role ? `<div class="text-xs muted">${m.role}${m.email? ' - ' + m.email : ''}</div>` : (m.email ? `<div class="text-xs muted">${m.email}</div>` : '');
+      return `<div class="news-item"><div class="font-medium">${m.name}</div>${role}</div>`;
+    }).join('');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
@@ -120,18 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cn) cn.textContent = company.name;
   }
 
-  const teamList = document.getElementById('teamList');
-  const team = JSON.parse(localStorage.getItem('teamMembers') || '[]');
-  if (teamList) {
-    if (!team.length) {
-      teamList.textContent = 'No team members added.';
-    } else {
-      teamList.innerHTML = team.map(m => {
-        const role = m.role ? `<div class="text-xs muted">${m.role}${m.email? ' - ' + m.email : ''}</div>` : (m.email ? `<div class="text-xs muted">${m.email}</div>` : '');
-        return `<div class="news-item"><div class="font-medium">${m.name}</div>${role}</div>`;
-      }).join('');
-    }
-  }
+  renderTeamList();
 
   const stepEl = document.getElementById('currentStep');
   if (consumerId && stepEl) {
@@ -176,11 +179,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.addEventListener('storage', e => {
     if (e.key === 'creditScore') loadScores();
+    if (e.key === 'teamMembers') renderTeamList();
   });
   const _setItem = localStorage.setItem;
   localStorage.setItem = function(key, value) {
     _setItem.apply(this, arguments);
     if (key === 'creditScore') loadScores();
+    if (key === 'teamMembers') renderTeamList();
   };
 
 
