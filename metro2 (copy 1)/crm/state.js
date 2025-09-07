@@ -109,6 +109,11 @@ export function listTracker(consumerId) {
   return { steps, completed: c.tracker || {} };
 }
 
+export function getTrackerSteps() {
+  const st = loadState();
+  return st.trackerSteps || [];
+}
+
 export function setTrackerSteps(steps = []) {
   const st = loadState();
   st.trackerSteps = steps;

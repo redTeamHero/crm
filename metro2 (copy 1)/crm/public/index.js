@@ -28,7 +28,8 @@ let tlPage = 1;
 let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
-const trackerData = {};
+let trackerData = {};
+
 let trackerSteps = [];
 
 const ocrCb = $("#cbUseOcr");
@@ -291,31 +292,57 @@ $("#reportPicker").addEventListener("change", async (e)=>{
   currentReportId = e.target.value || null;
   await loadReportJSON();
 });
- 
+
 async function loadTracker(){
-  const res = await api(currentConsumerId ? `/api/consumers/${currentConsumerId}/tracker` : "/api/tracker/steps");
-  trackerSteps = res.steps || [];
+  clearErr();
+  const url = currentConsumerId ? `/api/consumers/${currentConsumerId}/tracker` : '/api/tracker/steps';
+  const data = await api(url);
+  if(!data || !data.steps){ showErr('Could not load tracker.'); return; }
+  trackerSteps = data.steps || [];
+  if(currentConsumerId){
+    trackerData[currentConsumerId] = data.completed || {};
+  }
   renderTrackerSteps();
+  if(currentConsumerId){
+    trackerSteps.forEach(step=>{
+      const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
+      if(cb) cb.checked = !!trackerData[currentConsumerId][step];
+    });
+  }
+}
+async function saveTracker(){
   if(!currentConsumerId) return;
-  const data = res.completed || {};
-  trackerData[currentConsumerId] = data;
+  const completed = {};
   trackerSteps.forEach(step=>{
     const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
-    if(cb) cb.checked = !!data[step];
+    if(cb) completed[step] = cb.checked;
   });
+  trackerData[currentConsumerId] = completed;
+  try{
+    const resp = await fetch(`/api/consumers/${currentConsumerId}/tracker`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ completed })
+    });
+    const d = await resp.json().catch(()=>({}));
+    if(!d?.ok) throw new Error(d?.error || 'Failed to sync tracker');
+  }catch(e){
+    showErr(e.message || 'Failed to sync tracker');
+  }
 }
+async function syncTrackerSteps(){
+  try{
+    const resp = await fetch('/api/tracker/steps', {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ steps: trackerSteps })
+    });
+    const d = await resp.json().catch(()=>({}));
+    if(!d?.ok) throw new Error(d?.error || 'Failed to save steps');
+  }catch(e){
+    showErr(e.message || 'Failed to save steps');
+  }
 
-async function toggleTracker(e){
-  if(!currentConsumerId) return;
-  const step = e.target.dataset.step;
-  const done = e.target.checked;
-  trackerData[currentConsumerId] ??= {};
-  trackerData[currentConsumerId][step] = done;
-  await api(`/api/consumers/${currentConsumerId}/tracker`, {
-    method: "POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify({ step, done })
-  });
 }
 function renderTrackerSteps(){
   const wrap = document.querySelector("#trackerSteps");
@@ -340,11 +367,8 @@ function renderTrackerSteps(){
       const idx = parseInt(e.target.dataset.index);
       const removed = trackerSteps.splice(idx,1)[0];
       Object.values(trackerData).forEach(obj=>{ delete obj[removed]; });
-      await api("/api/tracker/steps", {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ steps: trackerSteps })
-      });
+      syncTrackerSteps();
+
       renderTrackerSteps();
       loadTracker();
     });
@@ -366,6 +390,8 @@ function renderTrackerSteps(){
         let name = (inp.value || "").trim();
         if(!name) name = `Step ${trackerSteps.length + 1}`;
         trackerSteps.push(name);
+        syncTrackerSteps();
+
         inp.remove();
         await api("/api/tracker/steps", {
           method: "POST",

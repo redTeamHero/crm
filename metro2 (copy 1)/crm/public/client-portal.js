@@ -135,13 +135,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const stepEl = document.getElementById('currentStep');
   if (consumerId && stepEl) {
-    fetch(`/api/consumers/${consumerId}/tracker`)
-      .then(r => r.json())
-      .then(({ steps = [], completed = {} }) => {
-        const idx = steps.findIndex(s => !completed[s]);
-        stepEl.textContent = idx === -1 ? 'Completed' : steps[idx];
-      })
-      .catch(() => { stepEl.textContent = 'Unknown'; });
+    const fetchStep = () => {
+      fetch(`/api/consumers/${consumerId}/tracker`)
+        .then(r => r.json())
+        .then(({ steps = [], completed = {} }) => {
+          const idx = steps.findIndex(s => !completed[s]);
+          stepEl.textContent = idx === -1 ? 'Completed' : steps[idx];
+        })
+        .catch(() => { stepEl.textContent = 'Unknown'; });
+    };
+    fetchStep();
+    setInterval(fetchStep, 30000);
   }
 
   const feedEl = document.getElementById('newsFeed');
