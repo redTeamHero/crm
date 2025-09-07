@@ -30,6 +30,33 @@ window.trackEvent = trackEvent;
 document.addEventListener('DOMContentLoaded', () => {
   trackEvent('page_view', { path: location.pathname });
   initAbTest();
+  const btnInvite = document.getElementById('btnInvite');
+  if (btnInvite) {
+    btnInvite.addEventListener('click', async () => {
+      const email = prompt('Teammate email?');
+      if (!email) return;
+      const name = prompt('Teammate name?');
+      if (!name) return;
+      try {
+        const res = await fetch('/api/team-members', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...authHeader()
+          },
+          body: JSON.stringify({ username: email, name })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.member) throw new Error(data.error || 'Request failed');
+        alert(`Token: ${data.member.token}\nTemp Password: ${data.member.password}`);
+        const team = JSON.parse(localStorage.getItem('teamMembers') || '[]');
+        team.push({ name, email, role: 'team' });
+        localStorage.setItem('teamMembers', JSON.stringify(team));
+      } catch (err) {
+        alert('Failed to invite member');
+      }
+    });
+  }
   applyRoleNav(window.userRole);
 });
 
