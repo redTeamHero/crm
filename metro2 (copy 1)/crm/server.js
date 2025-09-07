@@ -47,6 +47,7 @@ import {
   consumerUploadsDir,
   addReminder,
   processAllReminders,
+  listTracker,
 } from "./state.js";
 function injectStyle(html, css){
   if(/<head[^>]*>/i.test(html)){
@@ -2020,6 +2021,11 @@ app.get("/api/jobs/:jobId/letters/:idx.pdf", authenticate, requirePermission("le
 });
 
 // =================== Consumer STATE (events + files) ===================
+app.get("/api/consumers/:id/tracker", (req,res)=>{
+  const t = listTracker(req.params.id);
+  res.json(t);
+});
+
 app.get("/api/consumers/:id/state", (req,res)=>{
   const cstate = listConsumerState(req.params.id);
   res.json({ ok:true, state: cstate });

@@ -130,12 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const stepEl = document.getElementById('currentStep');
   if (consumerId && stepEl) {
-    const steps = JSON.parse(localStorage.getItem('trackerSteps') || '[]');
-    const data = JSON.parse(localStorage.getItem('trackerData') || '{}')[consumerId] || {};
-    const idx = steps.findIndex(s => !data[s]);
-    let current = 'Completed';
-    if (idx !== -1) current = steps[idx];
-    stepEl.textContent = current;
+    fetch(`/api/consumers/${consumerId}/tracker`)
+      .then(r => r.json())
+      .then(({ steps = [], completed = {} }) => {
+        const idx = steps.findIndex(s => !completed[s]);
+        stepEl.textContent = idx === -1 ? 'Completed' : steps[idx];
+      })
+      .catch(() => { stepEl.textContent = 'Unknown'; });
   }
 
   const feedEl = document.getElementById('newsFeed');
