@@ -852,7 +852,7 @@ app.post("/api/team-members", authenticate, requireRole("admin"), (req,res)=>{
     name: req.body.name || "",
     token,
     password,
-    role: "member",
+    role: "team",
     mustReset: true,
     permissions: []
   };
