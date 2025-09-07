@@ -43,23 +43,23 @@ function renderProductTier(score){
   el.title = tier.message;
 }
 
-function renderScore(){
+function renderScore(score){
   const widget = document.getElementById('creditScoreWidget');
   if (!widget) return;
   const tuEl = widget.querySelector('.tu');
   const exEl = widget.querySelector('.ex');
   const eqEl = widget.querySelector('.eq');
   const scoreConfetti = document.getElementById('scoreConfetti');
-  const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
-  const tu = Number(score.transunion || score.tu || score.current || 0);
-  const ex = Number(score.experian || score.exp || 0);
-  const eq = Number(score.equifax || score.eq || 0);
+  const data = score || JSON.parse(localStorage.getItem('creditScore') || '{}');
+  const tu = Number(data.transunion || data.tu || data.current || 0);
+  const ex = Number(data.experian || data.exp || 0);
+  const eq = Number(data.equifax || data.eq || 0);
   if (tuEl) tuEl.textContent = tu;
   if (exEl) exEl.textContent = ex;
   if (eqEl) eqEl.textContent = eq;
   const scores = [tu, ex, eq].filter(n => n > 0);
   const avg = scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0;
-  const start = Number(score.start || 0);
+  const start = Number(data.start || 0);
   if (avg > start && scoreConfetti && window.lottie) {
     lottie.loadAnimation({
       container: scoreConfetti,
@@ -72,14 +72,19 @@ function renderScore(){
     const ms = document.getElementById('milestones');
     if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${Math.round(avg - start)} points!</div>`;
   }
-  renderProductTier(score);
+  renderProductTier(data);
+}
+
+function loadScores(){
+  const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
+  renderScore(score);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
   const consumerId = idMatch ? idMatch[1] : null;
-  renderScore();
+  loadScores();
 
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
@@ -165,12 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('storage', e => {
-    if (e.key === 'creditScore') renderScore();
+    if (e.key === 'creditScore') loadScores();
   });
   const _setItem = localStorage.setItem;
   localStorage.setItem = function(key, value) {
     _setItem.apply(this, arguments);
-    if (key === 'creditScore') renderScore();
+    if (key === 'creditScore') loadScores();
   };
 
 
