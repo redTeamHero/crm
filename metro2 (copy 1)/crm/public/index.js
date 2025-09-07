@@ -985,6 +985,10 @@ $("#fileInput").addEventListener("change", async (e)=>{
     });
     const data = await res.json().catch(()=> ({}));
     if(!data?.ok) throw new Error(data?.error || `Upload failed (HTTP ${res.status})`);
+    if (data.creditScore) {
+      localStorage.setItem("creditScore", JSON.stringify(data.creditScore));
+      window.dispatchEvent(new StorageEvent("storage", { key: "creditScore" }));
+    }
     await refreshReports();
     await loadConsumerState();
   }catch(err){

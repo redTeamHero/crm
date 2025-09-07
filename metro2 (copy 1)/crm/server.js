@@ -1142,7 +1142,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       filename: req.file.originalname,
       size: req.file.size
     });
-    res.json({ ok:true, reportId: rid });
+    res.json({ ok:true, reportId: rid, creditScore: consumer.creditScore });
   }catch(e){
     console.error("Analyzer error:", e);
     res.status(500).json({ ok:false, error: String(e) });
