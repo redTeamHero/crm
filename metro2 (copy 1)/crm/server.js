@@ -48,6 +48,8 @@ import {
   addReminder,
   processAllReminders,
   listTracker,
+  setTrackerSteps,
+  markTrackerStep,
 } from "./state.js";
 function injectStyle(html, css){
   if(/<head[^>]*>/i.test(html)){
@@ -2041,6 +2043,28 @@ app.get("/api/jobs/:jobId/letters/:idx.pdf", authenticate, requirePermission("le
 
 // =================== Consumer STATE (events + files) ===================
 app.get("/api/consumers/:id/tracker", (req,res)=>{
+  const t = listTracker(req.params.id);
+  res.json(t);
+});
+
+app.get("/api/tracker/steps", (req,res)=>{
+  const t = listTracker(req.query.consumerId || "_global");
+  res.json(t);
+});
+
+app.post("/api/tracker/steps", (req,res)=>{
+  const steps = Array.isArray(req.body?.steps) ? req.body.steps : [];
+  setTrackerSteps(steps);
+  const t = listTracker(req.body?.consumerId || req.query.consumerId || "_global");
+  res.json(t);
+});
+
+app.post("/api/consumers/:id/tracker", (req,res)=>{
+  const { step, done = true } = req.body || {};
+  if (typeof step !== "string") {
+    return res.status(400).json({ ok:false, error:"Invalid step" });
+  }
+  markTrackerStep(req.params.id, step, done);
   const t = listTracker(req.params.id);
   res.json(t);
 });
