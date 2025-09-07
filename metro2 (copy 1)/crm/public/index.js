@@ -5,6 +5,20 @@ import { PLAYBOOKS } from './playbooks.js';
 const $ = (s) => document.querySelector(s);
 const api = (u, o = {}) => fetch(u, o).then(r => r.json()).catch(e => ({ ok:false, error:String(e) }));
 
+const role = typeof window !== 'undefined' ? (window.userRole || 'host') : 'host';
+if (typeof window !== 'undefined' && role === 'client') {
+  window.location.href = '/client-portal.html';
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (role !== 'host') {
+      ['btnInvite', 'btnNewConsumer', 'btnEditConsumer', 'btnDeleteReport'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+    }
+  });
+}
+
 let DB = { consumers: [] };
 let currentConsumerId = null;
 let currentReportId = null;
