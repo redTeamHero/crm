@@ -28,8 +28,8 @@ let tlPage = 1;
 let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
-const trackerData = JSON.parse(localStorage.getItem("trackerData")||"{}");
-const trackerSteps = JSON.parse(localStorage.getItem("trackerSteps") || '["Step 1","Step 2"]');
+const trackerData = {};
+let trackerSteps = [];
 
 const ocrCb = $("#cbUseOcr");
 
@@ -251,7 +251,7 @@ async function selectConsumer(id){
   await refreshReports();
   await loadConsumerState();
   await loadMessages();
-  loadTracker();
+  await loadTracker();
 }
 
 function restoreSelectedConsumer(){
@@ -291,25 +291,31 @@ $("#reportPicker").addEventListener("change", async (e)=>{
   currentReportId = e.target.value || null;
   await loadReportJSON();
 });
-
-function loadTracker(){
+ 
+async function loadTracker(){
+  const res = await api(currentConsumerId ? `/api/consumers/${currentConsumerId}/tracker` : "/api/tracker/steps");
+  trackerSteps = res.steps || [];
   renderTrackerSteps();
   if(!currentConsumerId) return;
-  const data = trackerData[currentConsumerId] || {};
+  const data = res.completed || {};
+  trackerData[currentConsumerId] = data;
   trackerSteps.forEach(step=>{
     const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
     if(cb) cb.checked = !!data[step];
   });
 }
-function saveTracker(){
+
+async function toggleTracker(e){
   if(!currentConsumerId) return;
-  const data = trackerData[currentConsumerId] || {};
-  trackerSteps.forEach(step=>{
-    const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
-    if(cb) data[step] = cb.checked;
+  const step = e.target.dataset.step;
+  const done = e.target.checked;
+  trackerData[currentConsumerId] ??= {};
+  trackerData[currentConsumerId][step] = done;
+  await api(`/api/consumers/${currentConsumerId}/tracker`, {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify({ step, done })
   });
-  trackerData[currentConsumerId] = data;
-  localStorage.setItem("trackerData", JSON.stringify(trackerData));
 }
 function renderTrackerSteps(){
   const wrap = document.querySelector("#trackerSteps");
@@ -327,15 +333,18 @@ function renderTrackerSteps(){
     wrap.appendChild(div);
   });
   wrap.querySelectorAll("input[type=checkbox]").forEach(cb=>{
-    cb.addEventListener("change", saveTracker);
+    cb.addEventListener("change", toggleTracker);
   });
   wrap.querySelectorAll(".remove-step").forEach(btn=>{
-    btn.addEventListener("click", e=>{
+    btn.addEventListener("click", async e=>{
       const idx = parseInt(e.target.dataset.index);
       const removed = trackerSteps.splice(idx,1)[0];
       Object.values(trackerData).forEach(obj=>{ delete obj[removed]; });
-      localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
-      localStorage.setItem("trackerData", JSON.stringify(trackerData));
+      await api("/api/tracker/steps", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ steps: trackerSteps })
+      });
       renderTrackerSteps();
       loadTracker();
     });
@@ -353,12 +362,16 @@ function renderTrackerSteps(){
       inp.className = "border rounded px-2 py-1 flex-1";
       wrap.insertBefore(inp, addStepBtn);
       inp.focus();
-      const finish = ()=>{
+      const finish = async ()=>{
         let name = (inp.value || "").trim();
         if(!name) name = `Step ${trackerSteps.length + 1}`;
         trackerSteps.push(name);
-        localStorage.setItem("trackerSteps", JSON.stringify(trackerSteps));
         inp.remove();
+        await api("/api/tracker/steps", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ steps: trackerSteps })
+        });
         renderTrackerSteps();
         loadTracker();
       };
