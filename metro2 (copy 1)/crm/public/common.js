@@ -30,6 +30,7 @@ window.trackEvent = trackEvent;
 document.addEventListener('DOMContentLoaded', () => {
   trackEvent('page_view', { path: location.pathname });
   initAbTest();
+  applyRoleNav(window.userRole);
 });
 
 function initAbTest() {
@@ -63,6 +64,31 @@ if (location.pathname !== '/' && location.pathname !== '/login.html') {
   if (!hasAuth) location.href = '/login.html';
 }
 
+function parseJwt(t){
+  try{
+    return JSON.parse(atob(t.split('.')[1]));
+  }catch{return {};}
+}
+
+const _tok = localStorage.getItem('token');
+const _payload = _tok ? parseJwt(_tok) : {};
+window.userRole = _payload.role || null;
+
+function restrictRoutes(role){
+  const allowed = {
+    host: null,
+    team: ['/dashboard','/clients','/leads','/schedule','/billing','/','/index.html','/login.html'],
+    client: ['/client-portal','/portal','/login.html','/']
+  }[role];
+  if(!allowed) return;
+  const path = location.pathname;
+  const ok = allowed.some(p=> path.startsWith(p));
+  if(!ok){
+    location.href = role === 'client' ? '/client-portal.html' : '/dashboard';
+  }
+}
+restrictRoutes(window.userRole);
+
 // append a logout button to the nav if present
 const navContainer = document.querySelector('header .flex.items-center.gap-2');
 if (navContainer) {
@@ -78,6 +104,26 @@ if (navContainer) {
     location.href = '/login.html';
   });
   navContainer.appendChild(btnLogout);
+}
+
+function applyRoleNav(role){
+  const nav = document.querySelector('header .flex.items-center.gap-2');
+  if(!nav) return;
+  if(role === 'client'){
+    nav.style.display = 'none';
+    return;
+  }
+  if(role === 'team'){
+    const allowed = new Set(['/dashboard','/clients','/leads','/schedule','/billing']);
+    [...nav.children].forEach(el=>{
+      if(el.tagName === 'A'){
+        const href = el.getAttribute('href');
+        if(!allowed.has(href)) el.remove();
+      }else if(el.id === 'btnInvite' || el.id === 'btnHelp' || el.id === 'tierBadge'){
+        el.remove();
+      }
+    });
+  }
 }
 const THEMES = {
   blue:   { accent: '#007AFF', hover: '#005bb5', bg: 'rgba(0,122,255,0.12)', glassBg: 'rgba(0,122,255,0.15)', glassBrd: 'rgba(0,122,255,0.3)' },
