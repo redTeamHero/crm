@@ -57,3 +57,8 @@ npm install
 npm test
 ```
 
+### Unauthorized access check
+
+The test suite includes assertions that a non-admin token receives `403 Forbidden` when accessing admin-only routes like `/api/users` and `/api/team-members`.
+
+

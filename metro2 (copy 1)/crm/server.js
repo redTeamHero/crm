@@ -179,8 +179,13 @@ function optionalAuth(req,res,next){
   next();
 }
 
-function requireRole(_role){
-  return (_req, _res, next)=> next();
+function requireRole(role){
+  return (req, res, next) => {
+    if (req.user && req.user.role === role) {
+      return next();
+    }
+    res.status(403).send("Forbidden");
+  };
 }
 
 function hasPermission(user, perm){
