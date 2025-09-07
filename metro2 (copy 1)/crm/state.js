@@ -11,25 +11,26 @@ const STATE_PATH = path.join(DATA_DIR, "state.json");
 function ensureDirs() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(STATE_PATH)) {
-    fs.writeFileSync(STATE_PATH, JSON.stringify({ consumers: {} }, null, 2));
+    fs.writeFileSync(STATE_PATH, JSON.stringify({ consumers: {}, trackerSteps: [] }, null, 2));
   }
 }
 function loadState() {
   ensureDirs();
   try { return JSON.parse(fs.readFileSync(STATE_PATH, "utf-8")); }
-  catch { return { consumers: {} }; }
+  catch { return { consumers: {}, trackerSteps: [] }; }
 }
 function saveState(st) {
   ensureDirs();
   fs.writeFileSync(STATE_PATH, JSON.stringify(st, null, 2));
 }
 function ensureConsumer(st, consumerId) {
-  st.consumers[consumerId] ??= { events: [], files: [], reminders: [] };
+  st.consumers[consumerId] ??= { events: [], files: [], reminders: [], tracker: {} };
   // normalize older records missing reminders
   const c = st.consumers[consumerId];
   c.events ??= [];
   c.files ??= [];
   c.reminders ??= [];
+  c.tracker ??= {};
   return c;
 }
 
@@ -97,6 +98,28 @@ export function addReminder(consumerId, reminder) {
 export function processAllReminders() {
   const st = loadState();
   processReminders(st);
+  saveState(st);
+}
+
+export function listTracker(consumerId) {
+  const st = loadState();
+  const steps = st.trackerSteps || [];
+  const c = ensureConsumer(st, consumerId);
+  saveState(st);
+  return { steps, completed: c.tracker || {} };
+}
+
+export function setTrackerSteps(steps = []) {
+  const st = loadState();
+  st.trackerSteps = steps;
+  saveState(st);
+}
+
+export function markTrackerStep(consumerId, step, done = true) {
+  const st = loadState();
+  const c = ensureConsumer(st, consumerId);
+  c.tracker ??= {};
+  if (done) c.tracker[step] = true; else delete c.tracker[step];
   saveState(st);
 }
 
