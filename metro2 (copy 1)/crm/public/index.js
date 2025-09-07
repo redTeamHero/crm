@@ -29,6 +29,7 @@ let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 let trackerData = {};
+
 let trackerSteps = [];
 
 const ocrCb = $("#cbUseOcr");
@@ -341,6 +342,7 @@ async function syncTrackerSteps(){
   }catch(e){
     showErr(e.message || 'Failed to save steps');
   }
+
 }
 function renderTrackerSteps(){
   const wrap = document.querySelector("#trackerSteps");
@@ -358,14 +360,15 @@ function renderTrackerSteps(){
     wrap.appendChild(div);
   });
   wrap.querySelectorAll("input[type=checkbox]").forEach(cb=>{
-    cb.addEventListener("change", saveTracker);
+    cb.addEventListener("change", toggleTracker);
   });
   wrap.querySelectorAll(".remove-step").forEach(btn=>{
-    btn.addEventListener("click", e=>{
+    btn.addEventListener("click", async e=>{
       const idx = parseInt(e.target.dataset.index);
       const removed = trackerSteps.splice(idx,1)[0];
       Object.values(trackerData).forEach(obj=>{ delete obj[removed]; });
       syncTrackerSteps();
+
       renderTrackerSteps();
       loadTracker();
     });
@@ -383,12 +386,18 @@ function renderTrackerSteps(){
       inp.className = "border rounded px-2 py-1 flex-1";
       wrap.insertBefore(inp, addStepBtn);
       inp.focus();
-      const finish = ()=>{
+      const finish = async ()=>{
         let name = (inp.value || "").trim();
         if(!name) name = `Step ${trackerSteps.length + 1}`;
         trackerSteps.push(name);
         syncTrackerSteps();
+
         inp.remove();
+        await api("/api/tracker/steps", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ steps: trackerSteps })
+        });
         renderTrackerSteps();
         loadTracker();
       };

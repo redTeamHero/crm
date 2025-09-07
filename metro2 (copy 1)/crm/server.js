@@ -51,6 +51,7 @@ import {
   setTrackerSteps,
   markTrackerStep,
   getTrackerSteps,
+
 } from "./state.js";
 function injectStyle(html, css){
   if(/<head[^>]*>/i.test(html)){
@@ -2065,6 +2066,7 @@ app.post("/api/consumers/:id/tracker", (req, res) => {
   }
   addEvent(req.params.id, "tracker_updated", { completed });
   res.json({ ok: true });
+
 });
 
 app.get("/api/consumers/:id/state", (req,res)=>{
