@@ -1,5 +1,5 @@
 /* public/login.js */
-async function handleAuth(endpoint, body){
+async function handleAuth(endpoint, body, role){
   try{
     const res = await fetch(endpoint,{
       method:'POST',
@@ -20,7 +20,16 @@ async function handleAuth(endpoint, body){
       if(body.username){
         localStorage.setItem('auth', btoa(`${body.username}:${body.password}`));
       }
-      location.href = '/clients';
+      switch(role){
+        case 'client':
+          location.href = '/client-portal-template.html';
+          break;
+        case 'team':
+          location.href = '/team-member-template.html';
+          break;
+        default:
+          location.href = '/clients';
+      }
     }
   }catch(err){
     showError(err.message);
@@ -52,7 +61,7 @@ document.getElementById('btnLogin').addEventListener('click', ()=>{
     endpoint = `/api/team/${encodeURIComponent(username)}/login`;
     body = { password };
   }
-  handleAuth(endpoint, body);
+  handleAuth(endpoint, body, role);
 });
 
 document.getElementById('btnRegister').addEventListener('click', ()=>{
@@ -62,7 +71,7 @@ document.getElementById('btnRegister').addEventListener('click', ()=>{
     showError('Username and password required');
     return;
   }
-  handleAuth('/api/register', { username, password });
+  handleAuth('/api/register', { username, password }, 'host');
 });
 
 // simple password reset flow using prompts
