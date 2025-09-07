@@ -772,6 +772,24 @@ app.post("/api/login", (req,res)=>{
   res.json({ ok:true, token: generateToken(user) });
 });
 
+app.post("/api/client/login", (req,res)=>{
+  const db = loadDB();
+  let client = null;
+  if(req.body.token){
+    client = db.consumers.find(c=>c.portalToken===req.body.token);
+  } else if(req.body.email){
+    client = db.consumers.find(c=>c.email===req.body.email);
+    if(!client || !client.password || !bcrypt.compareSync(req.body.password || "", client.password)){
+      return res.status(401).json({ ok:false, error:"Invalid credentials" });
+    }
+  } else {
+    return res.status(400).json({ ok:false, error:"Missing credentials" });
+  }
+  if(!client) return res.status(401).json({ ok:false, error:"Invalid credentials" });
+  const u = { id: client.id, username: client.email || client.name || "client", role: "client", permissions: [] };
+  res.json({ ok:true, token: generateToken(u) });
+});
+
 app.post("/api/request-password-reset", (req,res)=>{
   const db = loadUsersDB();
   const user = db.users.find(u=>u.username===req.body.username);
