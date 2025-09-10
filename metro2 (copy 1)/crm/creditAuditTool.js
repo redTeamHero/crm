@@ -129,22 +129,22 @@ export function renderHtml(report, consumerName = "Consumer"){
     const bureauData = acc.bureaus || {};
     const bureaus = Object.keys(bureauData);
     const fields = [
-      ["account_number", "Account #"],
-      ["account_type", "Account Type"],
-      ["payment_status", "Account Payment Status"],
-      ["balance_raw", "Balance"],
-      ["past_due_raw", "Past Due"],
-      ["high_credit_raw", "High Credit"],
-      ["date_opened_raw", "Date Opened"],
-      ["last_reported_raw", "Last Reported"],
-      ["date_last_payment_raw", "Date of Last Payment"],
-      ["comments", "Comments"],
+      ["account_number_raw", "account_number", "Account #"],
+      ["account_type_raw", "account_type", "Account Type"],
+      ["payment_status_raw", "payment_status", "Account Payment Status"],
+      ["balance_raw", "balance", "Balance"],
+      ["past_due_raw", "past_due", "Past Due"],
+      ["high_credit_raw", "high_credit", "High Credit"],
+      ["date_opened_raw", "date_opened", "Date Opened"],
+      ["last_reported_raw", "last_reported", "Last Reported"],
+      ["date_last_payment_raw", "date_last_payment", "Date of Last Payment"],
+      ["comments", "comments", "Comments"],
     ];
 
-    const rows = fields.map(([field, label]) => {
+    const rows = fields.map(([fieldRaw, field, label]) => {
       const rawValues = bureaus.map(b => {
         const info = acc.bureaus[b] || {};
-        return info[field] ?? "";
+        return info[fieldRaw] ?? info[field] ?? "";
       });
       const displayValues = rawValues.map(v => field === "payment_status" ? friendlyStatus(v) : v);
       const diff = new Set(displayValues.filter(v => v !== "")).size > 1 ? " diff" : "";

@@ -265,7 +265,7 @@ function parseCreditReportHTML(doc) {
     pb.raw[field] = val;
     Object.defineProperty(pb, `${field}_raw`, {
       value: val,
-      enumerable: false,
+      enumerable: true,
       configurable: true,
       writable: true,
     });
