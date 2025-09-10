@@ -463,5 +463,427 @@
     ],
     "severity": 2,
     "fcraSection": "§ 607(b)"
+  },
+  "51": {
+    "id": 51,
+    "violation": "Authorized user reported as individual or joint",
+    "fieldsImpacted": [
+      "ECOA Code",
+      "Ownership Code"
+    ],
+    "severity": 4,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), data must be maximally accurate. Reporting an authorized user as an individual or joint obligor misstates liability.",
+      "es": "Según la FCRA §607(b), los datos deben ser lo más exactos posible. Reportar a un usuario autorizado como deudor individual o conjunto tergiversa la responsabilidad."
+    }
+  },
+  "52": {
+    "id": 52,
+    "violation": "Consumer-closed account not labeled 'closed at consumer's request'",
+    "fieldsImpacted": [
+      "Account Status",
+      "Special Comment"
+    ],
+    "severity": 2,
+    "fcraSection": "§ 623(a)(2)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(2), furnishers must update information for accuracy. Failing to mark an account closed at consumer’s request misrepresents closure.",
+      "es": "Según la FCRA §623(a)(2), los proveedores deben actualizar la información para asegurar exactitud. No marcar una cuenta como cerrada por el consumidor tergiversa el cierre."
+    }
+  },
+  "53": {
+    "id": 53,
+    "violation": "Account sold/assigned but still reported with collectible balance",
+    "fieldsImpacted": [
+      "Account Status",
+      "Balance",
+      "Special Comment"
+    ],
+    "severity": 4,
+    "fcraSection": "§ 623(a)(2)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(2), once a debt is sold or transferred, the original account must reflect $0 balance and transfer notation.",
+      "es": "Según la FCRA §623(a)(2), una vez que se vende o se transfiere una deuda, la cuenta original debe reflejar saldo $0 y la anotación de transferencia."
+    }
+  },
+  "54": {
+    "id": 54,
+    "violation": "Paid charge-off still reporting non-zero balance",
+    "fieldsImpacted": [
+      "Balance",
+      "Special Comment"
+    ],
+    "severity": 4,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), furnishers must maintain accuracy. A paid charge-off must show $0 balance.",
+      "es": "Según la FCRA §607(b), los proveedores deben mantener exactitud. Una cuenta castigada pagada debe mostrar saldo $0."
+    }
+  },
+  "55": {
+    "id": 55,
+    "violation": "Settlement not reflected ('settled for less than full balance' missing)",
+    "fieldsImpacted": [
+      "Account Status",
+      "Special Comment",
+      "Balance"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 623(a)(2)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(2), furnishers must update settled debts. Accounts should reflect 'settled for less' when applicable.",
+      "es": "Según la FCRA §623(a)(2), los proveedores deben actualizar deudas liquidadas. Las cuentas deben reflejar 'liquidada por menos' cuando corresponda."
+    }
+  },
+  "56": {
+    "id": 56,
+    "violation": "Collection account includes payment history grid",
+    "fieldsImpacted": [
+      "Payment History",
+      "Portfolio Type"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), data must not mislead. Collections should not carry monthly payment grids.",
+      "es": "Según la FCRA §607(b), los datos no deben inducir a error. Las cobranzas no deben incluir historiales de pago mensuales."
+    }
+  },
+  "57": {
+    "id": 57,
+    "violation": "Date closed missing or inconsistent with status",
+    "fieldsImpacted": [
+      "Date Closed",
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 623(a)(1)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(1), accuracy requires closure dates to align with status. Missing or inconsistent dates are misleading.",
+      "es": "Según la FCRA §623(a)(1), la exactitud requiere que las fechas de cierre coincidan con el estado. Las fechas faltantes o inconsistentes son engañosas."
+    }
+  },
+  "58": {
+    "id": 58,
+    "violation": "Date closed precedes date opened",
+    "fieldsImpacted": [
+      "Date Closed",
+      "Date Opened"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), dates must be consistent. A closure date earlier than the open date is impossible and inaccurate.",
+      "es": "Según la FCRA §607(b), las fechas deben ser consistentes. Una fecha de cierre anterior a la de apertura es imposible e inexacta."
+    }
+  },
+  "59": {
+    "id": 59,
+    "violation": "High credit missing for charge card (no preset limit)",
+    "fieldsImpacted": [
+      "High Credit",
+      "Credit Limit",
+      "Account Type"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), furnishers must provide complete data. Charge cards require reporting of highest balance used.",
+      "es": "Según la FCRA §607(b), los proveedores deben proporcionar datos completos. Las tarjetas de cargo requieren reportar el saldo más alto usado."
+    }
+  },
+  "60": {
+    "id": 60,
+    "violation": "Terms frequency/duration missing on installment loan",
+    "fieldsImpacted": [
+      "Terms Frequency",
+      "Terms Duration"
+    ],
+    "severity": 2,
+    "fcraSection": "§ 623(a)(1)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(1), furnishers must report accurate account terms. Missing term details make the loan misleading.",
+      "es": "Según la FCRA §623(a)(1), los proveedores deben reportar términos precisos de la cuenta. La falta de términos hace que el préstamo sea engañoso."
+    }
+  },
+  "61": {
+    "id": 61,
+    "violation": "Scheduled payment amount reported after payoff",
+    "fieldsImpacted": [
+      "Scheduled Monthly Payment",
+      "Account Status"
+    ],
+    "severity": 2,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), reporting a scheduled payment after payoff is inaccurate and must be corrected.",
+      "es": "Según la FCRA §607(b), reportar un pago programado después de liquidar la deuda es inexacto y debe corregirse."
+    }
+  },
+  "62": {
+    "id": 62,
+    "violation": "Post-discharge late codes on bankruptcy accounts",
+    "fieldsImpacted": [
+      "Payment History",
+      "Special Comment",
+      "Balance"
+    ],
+    "severity": 5,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), reporting new lates after bankruptcy discharge misrepresents liability and must be removed.",
+      "es": "Según la FCRA §607(b), reportar nuevas moras después de una descarga de bancarrota tergiversa la obligación y debe eliminarse."
+    }
+  },
+  "63": {
+    "id": 63,
+    "violation": "Bankruptcy included account not coded with correct CII/remark",
+    "fieldsImpacted": [
+      "Consumer Information Indicator",
+      "Special Comment"
+    ],
+    "severity": 4,
+    "fcraSection": "§ 623(a)(2)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(2), bankruptcy-included accounts must be updated with proper coding. Omission misleads about liability.",
+      "es": "Según la FCRA §623(a)(2), las cuentas incluidas en la bancarrota deben actualizarse con el código apropiado. La omisión confunde sobre la obligación."
+    }
+  },
+  "64": {
+    "id": 64,
+    "violation": "Reaffirmed debt not identified post-bankruptcy",
+    "fieldsImpacted": [
+      "Special Comment",
+      "Consumer Information Indicator"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 623(a)(2)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(2), reaffirmed debts must be identified clearly after bankruptcy.",
+      "es": "Según la FCRA §623(a)(2), las deudas reafirmadas deben identificarse claramente después de la bancarrota."
+    }
+  },
+  "65": {
+    "id": 65,
+    "violation": "Natural disaster forbearance not coded (CII 'D')",
+    "fieldsImpacted": [
+      "Consumer Information Indicator",
+      "Special Comment"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 623(a)(2)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(2), furnishers must update accounts in forbearance due to natural disaster with proper indicator.",
+      "es": "Según la FCRA §623(a)(2), los proveedores deben actualizar las cuentas en indulgencia por desastre natural con el indicador apropiado."
+    }
+  },
+  "66": {
+    "id": 66,
+    "violation": "Active duty alert/indicator omitted when provided",
+    "fieldsImpacted": [
+      "Consumer Information Indicator"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 605A",
+    "snippets": {
+      "en": "Per FCRA §605A, CRAs must honor requests for active duty alerts. Omission fails to protect service members.",
+      "es": "Según la FCRA §605A, las agencias deben cumplir con las alertas de servicio activo. La omisión no protege a los miembros del servicio."
+    }
+  },
+  "67": {
+    "id": 67,
+    "violation": "Deceased indicator used without verification",
+    "fieldsImpacted": [
+      "Consumer Information Indicator"
+    ],
+    "severity": 5,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), furnishers must not report a consumer as deceased without verified evidence.",
+      "es": "Según la FCRA §607(b), los proveedores no deben reportar a un consumidor como fallecido sin evidencia verificada."
+    }
+  },
+  "68": {
+    "id": 68,
+    "violation": "Inconsistent DOFD across multiple tradelines of same debt",
+    "fieldsImpacted": [
+      "Date of First Delinquency"
+    ],
+    "severity": 4,
+    "fcraSection": "§ 623(a)(5)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(5), all tradelines for the same debt must share the same DOFD. Inconsistencies unlawfully extend reporting.",
+      "es": "Según la FCRA §623(a)(5), todas las líneas de crédito de la misma deuda deben compartir la misma DOFD. Las inconsistencias extienden ilegalmente el reporte."
+    }
+  },
+  "69": {
+    "id": 69,
+    "violation": "Charge-off continues accruing new delinquencies",
+    "fieldsImpacted": [
+      "Payment History",
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), once charged-off, accounts should not accumulate new late codes.",
+      "es": "Según la FCRA §607(b), una vez castigadas, las cuentas no deben acumular nuevas moras."
+    }
+  },
+  "70": {
+    "id": 70,
+    "violation": "Interest/fees accruing after charge-off not reflected correctly",
+    "fieldsImpacted": [
+      "Balance",
+      "Charge-Off Amount",
+      "Special Comment"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), furnishers must reflect accurate balances. Improper handling of interest/fees post-charge-off misleads.",
+      "es": "Según la FCRA §607(b), los proveedores deben reflejar saldos exactos. El manejo inadecuado de intereses/cargos después del castigo es engañoso."
+    }
+  },
+  "71": {
+    "id": 71,
+    "violation": "Original creditor name missing on sold/collection debt",
+    "fieldsImpacted": [
+      "Creditor Name",
+      "Portfolio Type"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 623(a)(1)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(1), collections must identify the original creditor. Omission prevents proper verification.",
+      "es": "Según la FCRA §623(a)(1), las cobranzas deben identificar al acreedor original. La omisión impide la verificación adecuada."
+    }
+  },
+  "72": {
+    "id": 72,
+    "violation": "Portfolio type inconsistent with account type",
+    "fieldsImpacted": [
+      "Portfolio Type",
+      "Account Type"
+    ],
+    "severity": 2,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), data must be consistent. Portfolio type must align with account type.",
+      "es": "Según la FCRA §607(b), los datos deben ser consistentes. El tipo de portafolio debe coincidir con el tipo de cuenta."
+    }
+  },
+  "73": {
+    "id": 73,
+    "violation": "Collateral/secured indicator conflicts with account type",
+    "fieldsImpacted": [
+      "Collateral",
+      "Secured Indicator",
+      "Account Type"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), security indicators must align with account type. Conflicts indicate inaccurate reporting.",
+      "es": "Según la FCRA §607(b), los indicadores de garantía deben coincidir con el tipo de cuenta. Los conflictos indican un reporte inexacto."
+    }
+  },
+  "74": {
+    "id": 74,
+    "violation": "Missing or invalid creditor classification (industry) code",
+    "fieldsImpacted": [
+      "Creditor Classification"
+    ],
+    "severity": 2,
+    "fcraSection": "§ 623(a)(1)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(1), creditor classification must be reported correctly. Missing or invalid codes impair accuracy.",
+      "es": "Según la FCRA §623(a)(1), la clasificación del acreedor debe reportarse correctamente. Los códigos faltantes o inválidos afectan la exactitud."
+    }
+  },
+  "75": {
+    "id": 75,
+    "violation": "Narrative/Special Comment contradicts status (e.g., 'paid' but shows past due)",
+    "fieldsImpacted": [
+      "Special Comment",
+      "Account Status",
+      "Past Due"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), remarks must not conflict with status. Contradictions mislead lenders and consumers.",
+      "es": "Según la FCRA §607(b), los comentarios no deben contradecir el estado. Las contradicciones engañan a prestamistas y consumidores."
+    }
+  },
+  "76": {
+    "id": 76,
+    "violation": "Last reported date not refreshed after material update",
+    "fieldsImpacted": [
+      "Last Reported"
+    ],
+    "severity": 2,
+    "fcraSection": "§ 623(a)(2)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(2), furnishers must update last reported date when data changes materially.",
+      "es": "Según la FCRA §623(a)(2), los proveedores deben actualizar la última fecha de reporte cuando los datos cambien materialmente."
+    }
+  },
+  "77": {
+    "id": 77,
+    "violation": "Date of account information (DAI) missing or stale",
+    "fieldsImpacted": [
+      "Date of Account Information"
+    ],
+    "severity": 2,
+    "fcraSection": "§ 623(a)(2)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(2), furnishers must provide current account information dates for accuracy.",
+      "es": "Según la FCRA §623(a)(2), los proveedores deben proporcionar fechas actuales de información de cuenta para exactitud."
+    }
+  },
+  "78": {
+    "id": 78,
+    "violation": "Past-due amount reported on closed, $0 balance account",
+    "fieldsImpacted": [
+      "Past Due",
+      "Account Status",
+      "Balance"
+    ],
+    "severity": 4,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), closed accounts with $0 balance cannot show a past-due amount.",
+      "es": "Según la FCRA §607(b), las cuentas cerradas con saldo $0 no pueden mostrar un monto vencido."
+    }
+  },
+  "79": {
+    "id": 79,
+    "violation": "Open-end account missing credit limit causing inflated utilization",
+    "fieldsImpacted": [
+      "Credit Limit",
+      "Balance"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 607(b)",
+    "snippets": {
+      "en": "Per FCRA §607(b), omitting a credit limit on revolving accounts misstates utilization ratios.",
+      "es": "Según la FCRA §607(b), omitir un límite de crédito en cuentas revolventes tergiversa las proporciones de utilización."
+    }
+  },
+  "80": {
+    "id": 80,
+    "violation": "Inaccurate payment rating (e.g., 'OK') while status is delinquent",
+    "fieldsImpacted": [
+      "Payment Rating",
+      "Account Status"
+    ],
+    "severity": 3,
+    "fcraSection": "§ 623(a)(1)",
+    "snippets": {
+      "en": "Per FCRA §623(a)(1), payment rating must reflect actual status. 'OK' while delinquent is inaccurate.",
+      "es": "Según la FCRA §623(a)(1), la calificación de pago debe reflejar el estado real. 'OK' mientras esté moroso es inexacto."
+    }
   }
 }

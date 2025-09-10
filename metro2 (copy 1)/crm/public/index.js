@@ -474,6 +474,7 @@ export function mergeBureauViolations(vs){
       if(detailClean) entry.details.add(detailClean);
       if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
     });
+
   });
   return Array.from(map.values()).map(e=>({
     category:e.category,

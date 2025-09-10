@@ -88,4 +88,5 @@ test('mergeBureauViolations splits violations with bureaus array', async () => {
   ]);
   assert.equal(merged.length, 2);
   assert.deepEqual(merged.map(v=>v.bureaus), [['TransUnion'], ['Experian']]);
+
 });
