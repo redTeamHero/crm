@@ -12,7 +12,7 @@ test('filterViolationsBySeverity prioritizes high severity', () => {
   assert.equal(filtered[0].code, 'MISSING_DOFD');
 });
 
-test('mergeBureauViolations keeps distinct ids', async () => {
+test('mergeBureauViolations keeps violations separate per bureau', async () => {
   const stubEl = {};
   stubEl.addEventListener = () => {};
   stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };
@@ -40,18 +40,21 @@ test('mergeBureauViolations keeps distinct ids', async () => {
     {
       id: 'A1',
       category: 'cat',
-      title: 'Same Title (TransUnion)',
-      detail: 'Same Detail (TransUnion)',
-      severity: 1
+      title: 'Same Title',
+      detail: 'Same Detail',
+      severity: 1,
+      evidence: { bureau: 'TransUnion' }
     },
     {
-      id: 'B2',
+      id: 'A1',
       category: 'cat',
-      title: 'Same Title (Experian)',
-      detail: 'Same Detail (Experian)',
-      severity: 1
+      title: 'Same Title',
+      detail: 'Same Detail',
+      severity: 1,
+      evidence: { bureau: 'Experian' }
     }
   ];
   const merged = mergeBureauViolations(input);
   assert.equal(merged.length, 2);
+  assert.deepEqual(merged.map(v=>v.bureaus), [['TransUnion'], ['Experian']]);
 });
