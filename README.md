@@ -20,6 +20,15 @@ npm install
 npm start
 ```
 
+Generate a shareable audit (converts a credit report HTML to JSON and renders it):
+```bash
+cd "metro2 (copy 1)/crm"
+# From an HTML report
+node creditAuditTool.js path/to/report.html
+# Or from an existing JSON report
+node creditAuditTool.js data/report.json
+```
+
 ## Test
 ```bash
 npm test
