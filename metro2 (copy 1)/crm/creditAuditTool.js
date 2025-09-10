@@ -1,14 +1,37 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
 import { detectChromium, launchBrowser } from './pdfUtils.js';
 
 
 // ----- Data Source -----
-// Simulate pulling credit-report JSON from internal API/scrape
-export async function fetchCreditReport(){
+// Load credit report JSON; if an HTML file is provided, run the Python
+// metro2_audit_multi.py script to convert it into JSON first.
+export async function fetchCreditReport(srcPath){
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const reportPath = path.join(__dirname, 'data', 'report.json');
+  let reportPath = srcPath;
+
+  if (!reportPath) {
+    reportPath = path.join(__dirname, 'data', 'report.json');
+  }
+
+  if (reportPath.toLowerCase().endsWith('.html')) {
+    const outPath = path.join(__dirname, 'data', 'report.json');
+    await new Promise((resolve, reject) => {
+      const py = spawn('python', [
+        path.join(__dirname, 'metro2_audit_multi.py'),
+        '-i', reportPath,
+        '-o', outPath
+      ], { stdio: 'inherit' });
+      py.on('close', code => {
+        if (code === 0) resolve();
+        else reject(new Error(`metro2_audit_multi.py exited with code ${code}`));
+      });
+    });
+    reportPath = outPath;
+  }
+
   const raw = await fs.readFile(reportPath, 'utf-8');
   return JSON.parse(raw);
 }
@@ -207,6 +230,7 @@ export async function savePdf(html){
   await fs.mkdir(outDir, { recursive: true });
   const filename = `credit-repair-audit-${Date.now()}.pdf`;
   const outPath = path.join(outDir, filename);
+  let browser;
   try{
     const execPath = await detectChromium();
     console.log("Launching Chromium for PDF generation", execPath || "(default)");
@@ -233,15 +257,17 @@ export async function savePdf(html){
 }
 
 // CLI usage
- if(fileURLToPath(import.meta.url) === path.resolve(process.argv[1] || '')){
-  const raw = await fetchCreditReport();
+if (fileURLToPath(import.meta.url) === path.resolve(process.argv[1] || '')) {
+  const src = process.argv[2]; // optional path to HTML or JSON credit report
+  const raw = await fetchCreditReport(src);
   const normalized = normalizeReport(raw);
-  const html = renderHtml(normalized);
+  const name = raw.personal_info?.name || 'Consumer';
+  const html = renderHtml(normalized, name);
   const result = await savePdf(html);
-  if(result.warning){
+  if (result.warning) {
     console.log('PDF generation failed:', result.warning);
     console.log('HTML saved to', result.path);
-  }else{
+  } else {
     console.log('PDF saved to', result.path);
   }
   console.log('Shareable link (when served):', result.url);
