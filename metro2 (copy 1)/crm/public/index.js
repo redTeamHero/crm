@@ -457,19 +457,24 @@ function dedupeTradelines(lines){
 
 export function mergeBureauViolations(vs){
   const map = new Map();
-  (vs||[]).forEach(v=>{
+  (vs || []).forEach(v => {
     const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
     const base = (m[1] || v.title || "").trim();
-    const bureau = v.evidence?.bureau || m[2];
     const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)$/,'').trim();
     const evKey = detailClean || JSON.stringify(v.evidence || {});
     const id = v.id || v.code || "";
-    const key = `${id}|${v.category||""}|${base}|${evKey}|${bureau||""}`;
-    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
-    const entry = map.get(key);
-    if(bureau) entry.bureaus.add(bureau);
-    if(detailClean) entry.details.add(detailClean);
-    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+    const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[2]].filter(Boolean);
+    const list = bureaus.length ? bureaus : [""];
+
+    list.forEach(bureau => {
+      const key = `${id}|${v.category||""}|${base}|${evKey}|${bureau}`;
+      if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+      const entry = map.get(key);
+      if(bureau) entry.bureaus.add(bureau);
+      if(detailClean) entry.details.add(detailClean);
+      if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+    });
+
   });
   return Array.from(map.values()).map(e=>({
     category:e.category,
