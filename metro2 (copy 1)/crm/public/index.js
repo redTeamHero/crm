@@ -433,8 +433,8 @@ const selectionState = {};
 
 function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); }
 function maybeNum(x){ return typeof x === "number" ? x : null; }
-function dedupeTradelines(lines){
-  const seen = new Set();
+export function dedupeTradelines(lines){
+  const seen = new Map();
   return (lines||[]).filter(tl=>{
     const name = (tl.meta?.creditor || "").trim();
     if (!name || name.toLowerCase() === "risk factors") return false;
@@ -442,16 +442,16 @@ function dedupeTradelines(lines){
     const hasData = ["TransUnion","Experian","Equifax"].some(b => Object.keys(per[b]||{}).length);
     const hasViolations = (tl.violations||[]).length > 0;
     if (!hasData && !hasViolations) return false;
-    const key = [
-      name,
-
-      tl.per_bureau?.TransUnion?.account_number || "",
-      tl.per_bureau?.Experian?.account_number || "",
-      tl.per_bureau?.Equifax?.account_number || ""
-    ].join("|");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+    const nums = [
+      per.TransUnion?.account_number,
+      per.Experian?.account_number,
+      per.Equifax?.account_number
+    ].filter(Boolean);
+    const set = seen.get(name) || new Set();
+    const dup = nums.some(n => set.has(n));
+    nums.forEach(n => set.add(n));
+    seen.set(name,set);
+    return !dup;
   });
 }
 
