@@ -457,25 +457,30 @@ function dedupeTradelines(lines){
 
 export function mergeBureauViolations(vs){
   const map = new Map();
-  (vs||[]).forEach(v=>{
+  (vs || []).forEach(v => {
     const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
     const base = (m[1] || v.title || "").trim();
-    const bureau = m[2];
     const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)$/,'').trim();
     const evKey = detailClean || JSON.stringify(v.evidence || {});
     const id = v.id || v.code || "";
-    const key = `${id}|${v.category||""}|${base}|${evKey}`;
-    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
-    const entry = map.get(key);
-    if(bureau) entry.bureaus.add(bureau);
-    if(detailClean) entry.details.add(detailClean);
-    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+    const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[2]].filter(Boolean);
+    const list = bureaus.length ? bureaus : [""];
+
+    list.forEach(bureau => {
+      const key = `${id}|${v.category||""}|${base}|${evKey}|${bureau}`;
+      if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+      const entry = map.get(key);
+      if(bureau) entry.bureaus.add(bureau);
+      if(detailClean) entry.details.add(detailClean);
+      if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+    });
   });
   return Array.from(map.values()).map(e=>({
     category:e.category,
-    title: e.bureaus.size ? `${e.title} (${Array.from(e.bureaus).join(', ')})` : e.title,
+    title: e.title,
     detail: Array.from(e.details).join(' '),
-    severity: e.severity
+    severity: e.severity,
+    bureaus: Array.from(e.bureaus)
   }));
 }
 
@@ -676,6 +681,7 @@ function renderTradelines(tradelines){
           <input type="checkbox" class="violation" value="${vidx + vStart}"/>
           <div>
             <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}${v.severity ? `<span class="severity-tag severity-${v.severity}">S${v.severity}</span>` : ""}</div>
+            ${v.bureaus && v.bureaus.length ? `<div class="text-xs mt-1">${v.bureaus.map(b=>'<span class="badge badge-bureau">'+escapeHtml(b)+'</span>').join(' ')}</div>` : ""}
             ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
           </div>
         </label>`).join("");
@@ -816,7 +822,7 @@ function buildZoomHTML(tl){
   const per = tl.per_bureau || {};
   const vlist = mergeBureauViolations(tl.violations||[]).map(v=>`
     <li class="mb-2">
-      <div class="font-medium">${escapeHtml(v.category||"")} – ${escapeHtml(v.title||"")}</div>
+      <div class="font-medium">${escapeHtml(v.category||"")} – ${escapeHtml(v.title||"")}${v.bureaus && v.bureaus.length ? ' '+v.bureaus.map(b=>'<span class="badge badge-bureau">'+escapeHtml(b)+'</span>').join(' ') : ''}</div>
       ${v.detail? `<div class="text-gray-600">${escapeHtml(v.detail)}</div>` : ""}
     </li>`).join("") || "<div class='text-sm muted'>No violations detected.</div>";
 
