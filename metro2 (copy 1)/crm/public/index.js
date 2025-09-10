@@ -458,12 +458,12 @@ function dedupeTradelines(lines){
 export function mergeBureauViolations(vs){
   const map = new Map();
   (vs || []).forEach(v => {
-    const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
-    const base = (m[1] || v.title || "").trim();
-    const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)$/,'').trim();
+    const m = v.title?.match(/\((TransUnion|Experian|Equifax)\)/) || [];
+    const base = (v.title || "").replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
+    const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
     const evKey = detailClean || JSON.stringify(v.evidence || {});
     const id = v.id || v.code || "";
-    const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[2]].filter(Boolean);
+    const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[1]].filter(Boolean);
     const list = bureaus.length ? bureaus : [""];
 
     list.forEach(bureau => {
