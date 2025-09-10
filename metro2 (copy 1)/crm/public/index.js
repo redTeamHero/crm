@@ -455,7 +455,7 @@ function dedupeTradelines(lines){
   });
 }
 
-function mergeBureauViolations(vs){
+export function mergeBureauViolations(vs){
   const map = new Map();
   (vs||[]).forEach(v=>{
     const m = v.title?.match(/^(.*?)(?:\s*\((TransUnion|Experian|Equifax)\))?$/) || [];
@@ -463,7 +463,8 @@ function mergeBureauViolations(vs){
     const bureau = m[2];
     const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)$/,'').trim();
     const evKey = detailClean || JSON.stringify(v.evidence || {});
-    const key = `${v.category||""}|${base}|${evKey}`;
+    const id = v.id || v.code || "";
+    const key = `${id}|${v.category||""}|${base}|${evKey}`;
     if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
     const entry = map.get(key);
     if(bureau) entry.bureaus.add(bureau);
