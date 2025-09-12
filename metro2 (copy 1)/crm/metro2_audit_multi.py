@@ -432,6 +432,8 @@ def r_cross_bureau_utilization_disparity(ctx, add):
 
 @rule("MISSING_DOFD", "Dates")
 def r_missing_dofd(ctx, bureau, data, add):
+    if not (data.get("account_number") or data.get("balance")):
+        return
     if not data.get("date_first_delinquency"):
         add(make_violation("Dates",
                            f"Missing Date of First Delinquency ({bureau})",
