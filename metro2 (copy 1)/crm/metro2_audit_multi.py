@@ -80,22 +80,28 @@ SEVERITY = {
 TODAY = date.today().isoformat()
 
 # Load violation metadata for enrichment
-_VIOLATION_DATA_PATH = os.path.join(
-    os.path.dirname(__file__), "data", "metro2Violations.json"
-)
-try:
-    with open(_VIOLATION_DATA_PATH, "r", encoding="utf-8") as f:
-        _raw = json.load(f)
-        if isinstance(_raw, dict):
-            VIOLATION_META = _raw
-        else:
-            VIOLATION_META = {}
-            for itm in _raw:
-                key = itm.get("id") or itm.get("key") or itm.get("title")
-                if key:
-                    VIOLATION_META[key] = itm
-except Exception:
-    VIOLATION_META = {}
+_BASE_DIR = os.path.dirname(__file__)
+_VIOLATION_PATHS = [
+    os.path.join(_BASE_DIR, "metro2Violations.json"),
+    os.path.join(_BASE_DIR, "data", "metro2Violations.json"),
+]
+VIOLATION_META = {}
+for _VIOLATION_DATA_PATH in _VIOLATION_PATHS:
+    if not os.path.exists(_VIOLATION_DATA_PATH):
+        continue
+    try:
+        with open(_VIOLATION_DATA_PATH, "r", encoding="utf-8") as f:
+            _raw = json.load(f)
+            if isinstance(_raw, dict):
+                VIOLATION_META = _raw
+            else:
+                for itm in _raw:
+                    key = itm.get("id") or itm.get("key") or itm.get("title")
+                    if key:
+                        VIOLATION_META[key] = itm
+            break
+    except Exception:
+        continue
 
 _CURRENT_RULE_ID = None
 
