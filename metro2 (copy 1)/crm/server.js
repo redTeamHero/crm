@@ -555,6 +555,22 @@ async function runPythonAnalyzer(htmlContent){
   });
 }
 
+function runBasicRuleAudit(report = {}) {
+  for (const tl of report.tradelines || []) {
+    tl.violations = tl.violations || [];
+    const tu = tl.per_bureau?.TransUnion || {};
+    const past = (tu.past_due || "").replace(/[^0-9]/g, "");
+    if (/current/i.test(tu.account_status || "") && past && past !== "0") {
+      if (!tl.violations.some(v => v.id === "PAST_DUE_CURRENT")) {
+        tl.violations.push({
+          id: "PAST_DUE_CURRENT",
+          title: "Account marked current but shows past due amount",
+        });
+      }
+    }
+  }
+}
+
 // Attempt to pull credit scores from raw HTML uploads so the client portal
 // can display them without requiring additional manual input. The format of
 // consumer credit reports varies, but typically the bureau name appears near a
@@ -1077,42 +1093,33 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     const htmlText = req.file.buffer.toString("utf-8");
     let analyzed = {};
     try {
-      const py = await runPythonAnalyzer(htmlText);
-      analyzed = py || {};
-    } catch (e) {
-      console.warn("Python analyzer failed", e);
-    }
-    try {
       const dom = new JSDOM(htmlText);
       const jsParsed = parseCreditReportHTML(dom.window.document);
-      if (Array.isArray(analyzed.tradelines) && analyzed.tradelines.length) {
-        analyzed.tradelines = analyzed.tradelines.map((tl, idx) => {
-          const jsTl = jsParsed.tradelines[idx] || {};
-          const merged = { ...tl, ...jsTl };
-          merged.meta = deepMerge(tl.meta, jsTl.meta);
-          merged.per_bureau = deepMerge(tl.per_bureau, jsTl.per_bureau);
-          merged.violations =
-            Array.isArray(tl.violations) && tl.violations.length
-              ? tl.violations
-              : Array.isArray(jsTl.violations) && jsTl.violations.length
-                ? jsTl.violations
-                : [];
-          merged.violations_grouped =
-            tl.violations_grouped && Object.keys(tl.violations_grouped).length
-              ? tl.violations_grouped
-              : jsTl.violations_grouped || {};
-          return merged;
-        });
-      } else {
-        analyzed.tradelines = jsParsed.tradelines;
-      }
-
-      if (!analyzed.personalInfo && jsParsed.personalInfo) {
+      analyzed.tradelines = jsParsed.tradelines || [];
+      if (jsParsed.personalInfo) {
         analyzed.personalInfo = jsParsed.personalInfo;
       }
     } catch (e) {
       console.warn("JS parser failed", e);
     }
+
+    try {
+      const py = await runPythonAnalyzer(htmlText);
+      py?.tradelines?.forEach((tl, idx) => {
+        const base = analyzed.tradelines[idx] || (analyzed.tradelines[idx] = {});
+        base.meta = deepMerge(base.meta, tl.meta);
+        base.per_bureau = deepMerge(base.per_bureau, tl.per_bureau);
+        base.violations = tl.violations || base.violations || [];
+        base.violations_grouped = tl.violations_grouped || base.violations_grouped || {};
+      });
+      if (!analyzed.personalInfo && py?.personalInfo) {
+        analyzed.personalInfo = py.personalInfo;
+      }
+    } catch (e) {
+      logError("PYTHON_ANALYZER_ERROR", "Python analyzer failed", e);
+    }
+
+    runBasicRuleAudit(analyzed);
     const scores = extractCreditScores(htmlText);
     if (Object.keys(scores).length) {
       consumer.creditScore = { ...consumer.creditScore, ...scores };
