@@ -3,7 +3,8 @@ import { loadMetro2Violations } from './utils.js';
 const metadata = loadMetro2Violations();
 
 export function enrich(code, extra = {}) {
-  return { code, ...(metadata[code] || {}), ...extra };
+  const key = code.toUpperCase();
+  return { code: key, ...(metadata[key] || {}), ...extra };
 }
 
 export function validateTradeline(t){

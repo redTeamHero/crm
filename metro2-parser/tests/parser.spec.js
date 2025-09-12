@@ -23,3 +23,13 @@ test('extracts DOFD and flags past-due inconsistency', () => {
 test('unknown violation codes return only code', () => {
   assert.deepStrictEqual(enrich('UNKNOWN_CODE'), { code: 'UNKNOWN_CODE' });
 });
+
+test('lowercase violation codes return same metadata as uppercase', () => {
+  const upperPastDue = enrich('CURRENT_BUT_PASTDUE');
+  const lowerPastDue = enrich('current_but_pastdue');
+  assert.deepStrictEqual(lowerPastDue, upperPastDue);
+
+  const upperMissingDofd = enrich('MISSING_DOFD');
+  const lowerMissingDofd = enrich('missing_dofd');
+  assert.deepStrictEqual(lowerMissingDofd, upperMissingDofd);
+});
