@@ -28,8 +28,3 @@ const METRO2_VIOLATIONS_PATH = path.join(
 export function loadMetro2Violations() {
   return readJson(METRO2_VIOLATIONS_PATH, {});
 }
-
-export function loadMetro2Violations() {
-  return readJson(METRO2_VIOLATIONS_PATH, {});
-}
-
