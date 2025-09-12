@@ -2,8 +2,8 @@ import { loadMetro2Violations } from './utils.js';
 
 const metadata = loadMetro2Violations();
 
-function enrich(code, extra = {}) {
-  return { code, ...metadata[code], ...extra };
+export function enrich(code, extra = {}) {
+  return { code, ...(metadata[code] || {}), ...extra };
 }
 
 export function validateTradeline(t){
