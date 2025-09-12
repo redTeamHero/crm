@@ -79,24 +79,16 @@ SEVERITY = {
 
 TODAY = date.today().isoformat()
 
-# Load violation metadata for enrichment (shared with Node letter engine)
+# Load violation metadata for enrichment
 _VIOLATION_DATA_PATH = os.path.join(
-    os.path.dirname(__file__), "metro2Violations.json"
+    os.path.dirname(__file__), "data", "metro2Violations.json"
 )
 try:
     with open(_VIOLATION_DATA_PATH, "r", encoding="utf-8") as f:
         _raw = json.load(f)
-        if isinstance(_raw, dict):
-            VIOLATION_META = _raw
-        else:
-            VIOLATION_META = {}
-            for itm in _raw:
-                key = itm.get("id") or itm.get("key") or itm.get("title")
-                if key:
-                    VIOLATION_META[key] = itm
+        VIOLATION_META = _raw if isinstance(_raw, dict) else {}
 except Exception:
     VIOLATION_META = {}
-
 
 _CURRENT_RULE_ID = None
 
@@ -933,3 +925,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
