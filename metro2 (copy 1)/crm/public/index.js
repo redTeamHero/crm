@@ -461,13 +461,16 @@ export function mergeBureauViolations(vs){
     const m = v.title?.match(/\((TransUnion|Experian|Equifax)\)/) || [];
     const base = (v.title || "").replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
     const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
-    const evKey = detailClean || JSON.stringify(v.evidence || {});
+    const evCopy = v.evidence ? JSON.parse(JSON.stringify(v.evidence)) : {};
+    delete evCopy.bureau;
+    const evKey = detailClean || JSON.stringify(evCopy);
     const id = v.id || v.code || "";
     const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[1]].filter(Boolean);
     const list = bureaus.length ? bureaus : [""];
+    const explicitBureaus = Array.isArray(v.bureaus);
 
     list.forEach(bureau => {
-      const key = `${id}|${v.category||""}|${base}|${evKey}|${bureau}`;
+      const key = `${id}|${v.category||""}|${base}|${evKey}${explicitBureaus ? `|${bureau}` : ''}`;
       if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
       const entry = map.get(key);
       if(bureau) entry.bureaus.add(bureau);

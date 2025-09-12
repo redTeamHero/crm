@@ -12,7 +12,7 @@ test('filterViolationsBySeverity prioritizes high severity', () => {
   assert.equal(filtered[0].code, 'MISSING_DOFD');
 });
 
-test('mergeBureauViolations keeps violations separate per bureau', async () => {
+test('mergeBureauViolations consolidates violations differing only by bureau', async () => {
   const stubEl = {};
   stubEl.addEventListener = () => {};
   stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };
@@ -55,8 +55,8 @@ test('mergeBureauViolations keeps violations separate per bureau', async () => {
     }
   ];
   const merged = mergeBureauViolations(input);
-  assert.equal(merged.length, 2);
-  assert.deepEqual(merged.map(v=>v.bureaus), [['TransUnion'], ['Experian']]);
+  assert.equal(merged.length, 1);
+  assert.deepEqual(merged[0].bureaus.sort(), ['Experian','TransUnion']);
 });
 
 test('mergeBureauViolations splits violations with bureaus array', async () => {
