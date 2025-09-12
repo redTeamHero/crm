@@ -1,5 +1,10 @@
 import { JSDOM } from 'jsdom';
 import parseCreditReportHTML from './parser.js';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
+import os from 'os';
 
 const ALL_BUREAUS = ['TransUnion', 'Experian', 'Equifax'];
 const ENRICH_FIELDS = [
@@ -40,7 +45,7 @@ function enrichTradeline(tl, override = {}) {
   return tl;
 }
 
-async function pullTradelineData({ apiUrl, fetchImpl = fetch, overrides = {} }) {
+async function pullTradelineData({ apiUrl, fetchImpl = fetch, overrides = {}, auditImpl = runMetro2Audit }) {
   const res = await fetchImpl(apiUrl);
   if (!res.ok) throw new Error(`Failed to fetch report: ${res.status}`);
   const html = await res.text();
@@ -50,8 +55,40 @@ async function pullTradelineData({ apiUrl, fetchImpl = fetch, overrides = {} }) 
     const ov = overrides[tl.meta?.creditor] || {};
     enrichTradeline(tl, ov);
   }
+  try {
+    const audit = auditImpl ? await auditImpl(html) : null;
+    const audited = audit?.tradelines || [];
+    report.tradelines?.forEach((tl, idx) => {
+      tl.violations = audited[idx]?.violations || [];
+      tl.violations_grouped = audited[idx]?.violations_grouped || {};
+    });
+  } catch (err) {
+    console.error('metro2_audit_multi.py failed', err);
+  }
   return report;
 }
 
 export { pullTradelineData, enrichTradeline };
 export default pullTradelineData;
+
+async function runMetro2Audit(html) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const tmpHtml = path.join(os.tmpdir(), `tl-${Date.now()}.html`);
+  const tmpJson = path.join(os.tmpdir(), `tl-${Date.now()}.json`);
+  await fs.writeFile(tmpHtml, html, 'utf-8');
+  await new Promise((resolve, reject) => {
+    const py = spawn('python', [
+      path.join(__dirname, 'metro2_audit_multi.py'),
+      '-i', tmpHtml,
+      '-o', tmpJson
+    ], { stdio: 'ignore' });
+    py.on('close', code => code === 0 ? resolve() : reject(new Error(`metro2_audit_multi.py exited with code ${code}`)));
+  });
+  try {
+    const raw = await fs.readFile(tmpJson, 'utf-8');
+    return JSON.parse(raw);
+  } finally {
+    fs.unlink(tmpHtml).catch(() => {});
+    fs.unlink(tmpJson).catch(() => {});
+  }
+}
