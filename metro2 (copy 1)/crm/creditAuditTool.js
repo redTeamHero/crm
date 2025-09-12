@@ -8,7 +8,7 @@ import { detectChromium, launchBrowser } from './pdfUtils.js';
 // ----- Data Source -----
 // Load credit report JSON; if an HTML file is provided, run the Python
 // metro2_audit_multi.py script to convert it into JSON first.
-export async function fetchCreditReport(srcPath){
+async function fetchCreditReport(srcPath){
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   let reportPath = srcPath;
 
