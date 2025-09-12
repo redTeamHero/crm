@@ -19,11 +19,15 @@ export function writeJson(filePath, data){
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Canonical Metro 2 violation metadata shared by audit engine and letter generator
 const METRO2_VIOLATIONS_PATH = path.join(
   __dirname,
+  "data",
   "metro2Violations.json"
 );
+
+export function loadMetro2Violations() {
+  return readJson(METRO2_VIOLATIONS_PATH, {});
+}
 
 export function loadMetro2Violations() {
   return readJson(METRO2_VIOLATIONS_PATH, {});
