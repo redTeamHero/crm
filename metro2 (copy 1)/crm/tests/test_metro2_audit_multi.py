@@ -9,6 +9,25 @@ class TestMissingDOFD(unittest.TestCase):
         m2.r_missing_dofd({}, "Experian", {}, violations.append)
         self.assertEqual(violations, [])
 
+    def test_enriched_violation_has_severity_and_fcra(self):
+        violations = []
+        # Simulate rule execution context
+        m2._CURRENT_RULE_ID = "MISSING_DOFD"
+        m2.r_missing_dofd({}, "Experian", {"account_number": "1", "balance": 50}, violations.append)
+        m2._CURRENT_RULE_ID = None
+        self.assertEqual(len(violations), 1)
+        v = violations[0]
+        self.assertEqual(v["severity"], 5)
+        self.assertEqual(v["fcraSection"], "§ 623(a)(5)")
+
+    def test_unknown_rule_falls_back(self):
+        # Directly create violation with unknown code
+        m2._CURRENT_RULE_ID = "UNKNOWN_RULE"
+        v = m2.make_violation("Dates", "Unknown", "", {})
+        m2._CURRENT_RULE_ID = None
+        self.assertNotIn("fcraSection", v)
+        self.assertEqual(v["severity"], m2.SEVERITY["Dates"])
+
 
 if __name__ == "__main__":
     unittest.main()

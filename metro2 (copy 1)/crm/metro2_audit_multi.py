@@ -97,6 +97,7 @@ try:
 except Exception:
     VIOLATION_META = {}
 
+
 _CURRENT_RULE_ID = None
 
 # -----------------------------
