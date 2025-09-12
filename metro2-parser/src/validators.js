@@ -3,7 +3,8 @@ import { loadMetro2Violations } from './utils.js';
 const metadata = loadMetro2Violations();
 
 export function enrich(code, extra = {}) {
-  return { code, ...(metadata[code] || {}), ...extra };
+  const meta = metadata[code] || { violation: 'Unknown violation code' };
+  return { code, ...meta, ...extra };
 }
 
 export function validateTradeline(t){
