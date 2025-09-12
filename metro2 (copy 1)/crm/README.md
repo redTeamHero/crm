@@ -4,6 +4,8 @@
 
 Use `metro2Violations.json` as a quick reference for common Metro-2 and FCRA conflicts. The file drives both the audit engine that flags report issues and the letter generator that cites the correct statutes.
 
+**Note:** `metro2Violations.json` in this directory is the canonical source for violation metadata. Both the Python audit engine and the Node letter engine load from this shared file—avoid copying it elsewhere to prevent divergence.
+
 ### Sample entry
 
 ```json

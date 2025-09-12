@@ -79,9 +79,9 @@ SEVERITY = {
 
 TODAY = date.today().isoformat()
 
-# Load violation metadata for enrichment
+# Load violation metadata for enrichment (shared with Node letter engine)
 _VIOLATION_DATA_PATH = os.path.join(
-    os.path.dirname(__file__), "data", "metro2Violations.json"
+    os.path.dirname(__file__), "metro2Violations.json"
 )
 try:
     with open(_VIOLATION_DATA_PATH, "r", encoding="utf-8") as f:
