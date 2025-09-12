@@ -26,3 +26,13 @@ test('unknown violation codes fall back to default message', () => {
     { code: 'UNKNOWN_CODE', violation: 'Unknown violation code' }
   );
 });
+
+test('lowercase violation codes return same metadata as uppercase', () => {
+  const upperPastDue = enrich('CURRENT_BUT_PASTDUE');
+  const lowerPastDue = enrich('current_but_pastdue');
+  assert.deepStrictEqual(lowerPastDue, upperPastDue);
+
+  const upperMissingDofd = enrich('MISSING_DOFD');
+  const lowerMissingDofd = enrich('missing_dofd');
+  assert.deepStrictEqual(lowerMissingDofd, upperMissingDofd);
+});

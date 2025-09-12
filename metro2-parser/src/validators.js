@@ -3,8 +3,9 @@ import { loadMetro2Violations } from './utils.js';
 const metadata = loadMetro2Violations();
 
 export function enrich(code, extra = {}) {
-  const meta = metadata[code] || { violation: 'Unknown violation code' };
-  return { code, ...meta, ...extra };
+  const key = code.toUpperCase();
+  return { code: key, ...(metadata[key] || {}), ...extra };
+
 }
 
 export function validateTradeline(t){
