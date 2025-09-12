@@ -71,13 +71,18 @@ function parseCreditReportHTML(doc) {
       rule("Last Reported", ["last_reported"]),
       rule(/Date(?: of)? Last Payment/i, ["date_last_payment"]),
       rule("Date Last Active", ["date_last_active"]),
+      rule(/Date(?: of)? First Delinquency/i, ["date_first_delinquency"]),
       rule("No. of Months (terms)", ["months_terms"]),
 
       // combined rows
       rule("Account Status / Payment Status", ["account_status", "payment_status"], "combined"),
       rule("Balance / Past Due", ["balance", "past_due"], "combined"),
       rule("Credit Limit / High Credit", ["credit_limit", "high_credit"], "combined"),
-      rule("Dates", ["date_opened", "last_reported", "date_last_payment"], "combined"),
+      rule(
+        "Dates",
+        ["date_opened", "last_reported", "date_last_payment", "date_first_delinquency"],
+        "combined"
+      ),
 
       // comments row
       rule("Comments", ["comments"], "comments"),
