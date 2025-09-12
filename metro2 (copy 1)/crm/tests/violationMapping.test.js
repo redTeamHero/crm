@@ -13,6 +13,7 @@ test('filterViolationsBySeverity prioritizes high severity', () => {
 });
 
 test('mergeBureauViolations merges same violation across bureaus', async () => {
+
   const stubEl = {};
   stubEl.addEventListener = () => {};
   stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };

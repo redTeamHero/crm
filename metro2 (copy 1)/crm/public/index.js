@@ -461,7 +461,9 @@ export function mergeBureauViolations(vs){
     const m = v.title?.match(/\((TransUnion|Experian|Equifax)\)/) || [];
     const base = (v.title || "").replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
     const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
-    const evKey = detailClean || JSON.stringify(v.evidence || {});
+    const evCopy = v.evidence ? JSON.parse(JSON.stringify(v.evidence)) : {};
+    delete evCopy.bureau;
+    const evKey = detailClean || JSON.stringify(evCopy);
     const id = v.id || v.code || "";
     const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[1]].filter(Boolean);
     const key = `${id}|${v.category||""}|${base}|${evKey}`;
@@ -470,6 +472,7 @@ export function mergeBureauViolations(vs){
     bureaus.forEach(bureau => entry.bureaus.add(bureau));
     if(detailClean) entry.details.add(detailClean);
     if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+
   });
   return Array.from(map.values()).map(e=>({
     category:e.category,
