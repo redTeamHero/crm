@@ -284,6 +284,7 @@ def make_violation(category, title, detail, evidence):
 
 # Registry: name -> rule metadata & function
 RULES = {}
+SEEN_ACCOUNT_NUMBERS = defaultdict(dict)
 
 def rule(name, category, furnisher_types=None, default_enabled=True):
     """
@@ -422,6 +423,20 @@ def r_cross_bureau_utilization_disparity(ctx, add):
                            "Material utilization disparity across bureaus",
                            "Large differences in revolving utilization can be misleading.",
                            {"utilization_by_bureau": utils}))
+
+@rule("DUPLICATE_ACCOUNT", "Duplicate/Conflicting Reporting")
+def r_duplicate_account(ctx, bureau, data, add):
+    acct = data.get("account_number")
+    if not acct:
+        return
+    prev = SEEN_ACCOUNT_NUMBERS[bureau].get(acct)
+    if prev:
+        add(make_violation("Duplicate/Conflicting Reporting",
+                           f"Duplicate account number reported ({bureau})",
+                           "Same account number appears on multiple tradelines.",
+                           {"bureau": bureau, "account_number": acct, "creditors": [prev, ctx.creditor]}))
+    else:
+        SEEN_ACCOUNT_NUMBERS[bureau][acct] = ctx.creditor
 
 @rule("MISSING_DOFD", "Dates")
 def r_missing_dofd(ctx, bureau, data, add):
@@ -601,6 +616,55 @@ def r_dofd_obsolete_7y(ctx, bureau, data, add):
                                f"Negative item older than 7 years from DOFD ({bureau})",
                                "Aged beyond standard obsolescence period; investigate for deletion.",
                                {"bureau": bureau, "dofd": dofd, "age_years": round(yrs,2)}))
+
+# --- Newly added numeric-code rules ---
+
+@rule("3", "Account Status & Codes")
+def r_3(ctx, bureau, data, add):
+    status = (data.get("account_status") or "").strip().lower()
+    closed = data.get("date_closed")
+    if closed and status in {"open", "current"}:
+        add(make_violation(
+            "Account Status & Codes",
+            f"Account reported open after closure ({bureau})",
+            "Date Closed present but status indicates account open.",
+            {"bureau": bureau, "account_status": data.get("account_status"), "date_closed": closed}))
+
+@rule("8", "Dates")
+def r_8(ctx, bureau, data, add):
+    status = (data.get("account_status") or "").lower()
+    if "charge" in status and not data.get("date_first_delinquency"):
+        add(make_violation(
+            "Dates",
+            f"Charge-off without DOFD ({bureau})",
+            "Charge-off accounts must report a Date of First Delinquency.",
+            {"bureau": bureau}))
+
+@rule("9", "Data Definitions")
+def r_9(ctx, bureau, data, add):
+    status = (data.get("account_status") or "").lower()
+    if "collection" in status and not data.get("original_creditor"):
+        add(make_violation(
+            "Data Definitions",
+            f"Collection missing original creditor ({bureau})",
+            "Collection accounts should list the original creditor.",
+            {"bureau": bureau}))
+
+@rule("10", "Duplicate/Conflicting Reporting")
+def r_10(ctx, bureau, data, add):
+    acct = data.get("account_number")
+    if not acct:
+        return
+    seen = ctx.setdefault("_seen_accounts", set())
+    key = (bureau, acct)
+    if key in seen:
+        add(make_violation(
+            "Duplicate/Conflicting Reporting",
+            f"Duplicate account number {acct} ({bureau})",
+            "Account number appears multiple times for the same bureau.",
+            {"bureau": bureau, "account_number": acct}))
+    else:
+        seen.add(key)
 
 # --- Student-loan-specific example rules ---
 
@@ -860,6 +924,7 @@ def main():
         return
 
     # Run rule engine on each tradeline
+    SEEN_ACCOUNT_NUMBERS.clear()
     all_results = []
     violations_map = defaultdict(list)
     furnisher_types = []

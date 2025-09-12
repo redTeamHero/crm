@@ -25,7 +25,8 @@
       "Account Status"
     ],
     "severity": 3,
-    "fcraSection": "§ 623(a)(2)"
+    "fcraSection": "§ 623(a)(2)",
+    "ruleSet": "Account Status & Codes"
   },
   "SL_NO_LATES_DURING_DEFERMENT": {
     "id": 4,
@@ -74,7 +75,8 @@
       "Charge-Off"
     ],
     "severity": 5,
-    "fcraSection": "§ 623(a)(5)"
+    "fcraSection": "§ 623(a)(5)",
+    "ruleSet": "Dates"
   },
   "9": {
     "id": 9,
@@ -83,16 +85,18 @@
       "Creditor Name"
     ],
     "severity": 3,
-    "fcraSection": "§ 623(a)(1)"
+    "fcraSection": "§ 623(a)(1)",
+    "ruleSet": "Data Definitions"
   },
-  "10": {
+  "DUPLICATE_ACCOUNT": {
     "id": 10,
     "violation": "Duplicate account reported",
     "fieldsImpacted": [
       "Account Number"
     ],
     "severity": 3,
-    "fcraSection": "§ 607(b)"
+    "fcraSection": "§ 607(b)",
+    "ruleSet": "Duplicate/Conflicting Reporting"
   },
   "REVOLVING_WITH_TERMS": {
     "id": 11,

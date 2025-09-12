@@ -20,8 +20,11 @@ test('extracts DOFD and flags past-due inconsistency', () => {
   );
 });
 
-test('unknown violation codes return only code', () => {
-  assert.deepStrictEqual(enrich('UNKNOWN_CODE'), { code: 'UNKNOWN_CODE' });
+test('unknown violation codes fall back to default message', () => {
+  assert.deepStrictEqual(
+    enrich('UNKNOWN_CODE'),
+    { code: 'UNKNOWN_CODE', violation: 'Unknown violation code' }
+  );
 });
 
 test('lowercase violation codes return same metadata as uppercase', () => {
