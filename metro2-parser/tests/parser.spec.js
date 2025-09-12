@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseReport } from '../src/index.js';
+import { enrich } from '../src/validators.js';
 import fs from 'fs';
 
 test('extracts DOFD and flags past-due inconsistency', () => {
@@ -17,4 +18,8 @@ test('extracts DOFD and flags past-due inconsistency', () => {
       fcraSection: '§ 623(a)(1)'
     }
   );
+});
+
+test('unknown violation codes return only code', () => {
+  assert.deepStrictEqual(enrich('UNKNOWN_CODE'), { code: 'UNKNOWN_CODE' });
 });
