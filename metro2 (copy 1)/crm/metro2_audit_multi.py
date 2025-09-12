@@ -284,6 +284,7 @@ def make_violation(category, title, detail, evidence):
 
 # Registry: name -> rule metadata & function
 RULES = {}
+SEEN_ACCOUNT_NUMBERS = defaultdict(dict)
 
 def rule(name, category, furnisher_types=None, default_enabled=True):
     """
@@ -422,6 +423,20 @@ def r_cross_bureau_utilization_disparity(ctx, add):
                            "Material utilization disparity across bureaus",
                            "Large differences in revolving utilization can be misleading.",
                            {"utilization_by_bureau": utils}))
+
+@rule("DUPLICATE_ACCOUNT", "Duplicate/Conflicting Reporting")
+def r_duplicate_account(ctx, bureau, data, add):
+    acct = data.get("account_number")
+    if not acct:
+        return
+    prev = SEEN_ACCOUNT_NUMBERS[bureau].get(acct)
+    if prev:
+        add(make_violation("Duplicate/Conflicting Reporting",
+                           f"Duplicate account number reported ({bureau})",
+                           "Same account number appears on multiple tradelines.",
+                           {"bureau": bureau, "account_number": acct, "creditors": [prev, ctx.creditor]}))
+    else:
+        SEEN_ACCOUNT_NUMBERS[bureau][acct] = ctx.creditor
 
 @rule("MISSING_DOFD", "Dates")
 def r_missing_dofd(ctx, bureau, data, add):
@@ -909,6 +924,7 @@ def main():
         return
 
     # Run rule engine on each tradeline
+    SEEN_ACCOUNT_NUMBERS.clear()
     all_results = []
     violations_map = defaultdict(list)
     furnisher_types = []

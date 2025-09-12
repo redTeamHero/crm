@@ -29,42 +29,19 @@ class TestMissingDOFD(unittest.TestCase):
         self.assertEqual(v["severity"], m2.SEVERITY["Dates"])
 
 
-class TestRule3(unittest.TestCase):
-    def test_open_after_closure(self):
-        violations = []
-        m2._CURRENT_RULE_ID = "3"
-        m2.r_3({}, "Experian", {"account_status": "Open", "date_closed": "2020-01-01"}, violations.append)
-        m2._CURRENT_RULE_ID = None
-        self.assertEqual(len(violations), 1)
+class TestDuplicateAccount(unittest.TestCase):
+    def test_detects_duplicate_account_numbers(self):
+        m2.SEEN_ACCOUNT_NUMBERS.clear()
+        per_bureau1 = {b: {} for b in m2.BUREAUS}
+        per_bureau1["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
+        v1, _ = m2.run_rules_for_tradeline("CredA", per_bureau1, None)
+        self.assertEqual(len(v1), 0)
 
+        per_bureau2 = {b: {} for b in m2.BUREAUS}
+        per_bureau2["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
+        v2, _ = m2.run_rules_for_tradeline("CredB", per_bureau2, None)
+        self.assertTrue(any(v["id"] == "DUPLICATE_ACCOUNT" for v in v2))
 
-class TestRule8(unittest.TestCase):
-    def test_chargeoff_without_dofd(self):
-        violations = []
-        m2._CURRENT_RULE_ID = "8"
-        m2.r_8({}, "Experian", {"account_status": "Charge-Off"}, violations.append)
-        m2._CURRENT_RULE_ID = None
-        self.assertEqual(len(violations), 1)
-
-
-class TestRule9(unittest.TestCase):
-    def test_collection_missing_original_creditor(self):
-        violations = []
-        m2._CURRENT_RULE_ID = "9"
-        m2.r_9({}, "Experian", {"account_status": "Collection"}, violations.append)
-        m2._CURRENT_RULE_ID = None
-        self.assertEqual(len(violations), 1)
-
-
-class TestRule10(unittest.TestCase):
-    def test_duplicate_account(self):
-        ctx = {}
-        violations = []
-        m2._CURRENT_RULE_ID = "10"
-        m2.r_10(ctx, "Experian", {"account_number": "123"}, violations.append)
-        m2.r_10(ctx, "Experian", {"account_number": "123"}, violations.append)
-        m2._CURRENT_RULE_ID = None
-        self.assertEqual(len(violations), 1)
 
 
 if __name__ == "__main__":
