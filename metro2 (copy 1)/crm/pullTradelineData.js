@@ -54,6 +54,14 @@ async function pullTradelineData({ apiUrl, fetchImpl = fetch, overrides = {}, au
   for (const tl of report.tradelines || []) {
     const ov = overrides[tl.meta?.creditor] || {};
     enrichTradeline(tl, ov);
+    tl.meta = tl.meta || {};
+    tl.meta.account_numbers = tl.meta.account_numbers || {};
+    for (const b of ALL_BUREAUS) {
+      const acct = tl.per_bureau?.[b]?.account_number;
+      if (acct && !tl.meta.account_numbers[b]) {
+        tl.meta.account_numbers[b] = acct;
+      }
+    }
   }
   try {
     const audit = auditImpl ? await auditImpl(html) : null;
