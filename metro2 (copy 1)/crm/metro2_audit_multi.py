@@ -602,6 +602,55 @@ def r_dofd_obsolete_7y(ctx, bureau, data, add):
                                "Aged beyond standard obsolescence period; investigate for deletion.",
                                {"bureau": bureau, "dofd": dofd, "age_years": round(yrs,2)}))
 
+# --- Newly added numeric-code rules ---
+
+@rule("3", "Account Status & Codes")
+def r_3(ctx, bureau, data, add):
+    status = (data.get("account_status") or "").strip().lower()
+    closed = data.get("date_closed")
+    if closed and status in {"open", "current"}:
+        add(make_violation(
+            "Account Status & Codes",
+            f"Account reported open after closure ({bureau})",
+            "Date Closed present but status indicates account open.",
+            {"bureau": bureau, "account_status": data.get("account_status"), "date_closed": closed}))
+
+@rule("8", "Dates")
+def r_8(ctx, bureau, data, add):
+    status = (data.get("account_status") or "").lower()
+    if "charge" in status and not data.get("date_first_delinquency"):
+        add(make_violation(
+            "Dates",
+            f"Charge-off without DOFD ({bureau})",
+            "Charge-off accounts must report a Date of First Delinquency.",
+            {"bureau": bureau}))
+
+@rule("9", "Data Definitions")
+def r_9(ctx, bureau, data, add):
+    status = (data.get("account_status") or "").lower()
+    if "collection" in status and not data.get("original_creditor"):
+        add(make_violation(
+            "Data Definitions",
+            f"Collection missing original creditor ({bureau})",
+            "Collection accounts should list the original creditor.",
+            {"bureau": bureau}))
+
+@rule("10", "Duplicate/Conflicting Reporting")
+def r_10(ctx, bureau, data, add):
+    acct = data.get("account_number")
+    if not acct:
+        return
+    seen = ctx.setdefault("_seen_accounts", set())
+    key = (bureau, acct)
+    if key in seen:
+        add(make_violation(
+            "Duplicate/Conflicting Reporting",
+            f"Duplicate account number {acct} ({bureau})",
+            "Account number appears multiple times for the same bureau.",
+            {"bureau": bureau, "account_number": acct}))
+    else:
+        seen.add(key)
+
 # --- Student-loan-specific example rules ---
 
 @rule("SL_NO_LATES_DURING_DEFERMENT", "Payment History", furnisher_types=["student_loan"])

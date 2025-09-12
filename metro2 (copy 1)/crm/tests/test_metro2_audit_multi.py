@@ -29,5 +29,43 @@ class TestMissingDOFD(unittest.TestCase):
         self.assertEqual(v["severity"], m2.SEVERITY["Dates"])
 
 
+class TestRule3(unittest.TestCase):
+    def test_open_after_closure(self):
+        violations = []
+        m2._CURRENT_RULE_ID = "3"
+        m2.r_3({}, "Experian", {"account_status": "Open", "date_closed": "2020-01-01"}, violations.append)
+        m2._CURRENT_RULE_ID = None
+        self.assertEqual(len(violations), 1)
+
+
+class TestRule8(unittest.TestCase):
+    def test_chargeoff_without_dofd(self):
+        violations = []
+        m2._CURRENT_RULE_ID = "8"
+        m2.r_8({}, "Experian", {"account_status": "Charge-Off"}, violations.append)
+        m2._CURRENT_RULE_ID = None
+        self.assertEqual(len(violations), 1)
+
+
+class TestRule9(unittest.TestCase):
+    def test_collection_missing_original_creditor(self):
+        violations = []
+        m2._CURRENT_RULE_ID = "9"
+        m2.r_9({}, "Experian", {"account_status": "Collection"}, violations.append)
+        m2._CURRENT_RULE_ID = None
+        self.assertEqual(len(violations), 1)
+
+
+class TestRule10(unittest.TestCase):
+    def test_duplicate_account(self):
+        ctx = {}
+        violations = []
+        m2._CURRENT_RULE_ID = "10"
+        m2.r_10(ctx, "Experian", {"account_number": "123"}, violations.append)
+        m2.r_10(ctx, "Experian", {"account_number": "123"}, violations.append)
+        m2._CURRENT_RULE_ID = None
+        self.assertEqual(len(violations), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
