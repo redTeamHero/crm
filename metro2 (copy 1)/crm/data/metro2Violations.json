@@ -85,7 +85,7 @@
     "severity": 3,
     "fcraSection": "§ 623(a)(1)"
   },
-  "10": {
+  "DUPLICATE_ACCOUNT": {
     "id": 10,
     "violation": "Duplicate account reported",
     "fieldsImpacted": [

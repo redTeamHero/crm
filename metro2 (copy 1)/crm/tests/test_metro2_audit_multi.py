@@ -29,5 +29,19 @@ class TestMissingDOFD(unittest.TestCase):
         self.assertEqual(v["severity"], m2.SEVERITY["Dates"])
 
 
+class TestDuplicateAccount(unittest.TestCase):
+    def test_detects_duplicate_account_numbers(self):
+        m2.SEEN_ACCOUNT_NUMBERS.clear()
+        per_bureau1 = {b: {} for b in m2.BUREAUS}
+        per_bureau1["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
+        v1, _ = m2.run_rules_for_tradeline("CredA", per_bureau1, None)
+        self.assertEqual(len(v1), 0)
+
+        per_bureau2 = {b: {} for b in m2.BUREAUS}
+        per_bureau2["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
+        v2, _ = m2.run_rules_for_tradeline("CredB", per_bureau2, None)
+        self.assertTrue(any(v["id"] == "DUPLICATE_ACCOUNT" for v in v2))
+
+
 if __name__ == "__main__":
     unittest.main()
