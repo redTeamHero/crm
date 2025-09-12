@@ -69,7 +69,7 @@ function parseCreditReportHTML(doc) {
       rule("Past Due", ["past_due"]),
       rule("Date Opened", ["date_opened"]),
       rule("Last Reported", ["last_reported"]),
-      rule(/Date(?: of)? Last Payment/i, ["date_last_payment"]),
+      rule(/(Date\s*of\s*)?Last Payment(?:\s*Date)?/i, ["date_last_payment"]),
       rule("Date Last Active", ["date_last_active"]),
       rule("No. of Months (terms)", ["months_terms"]),
 
