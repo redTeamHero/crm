@@ -2,12 +2,10 @@
 
 import { PLAYBOOKS } from './playbook.js';
 import { enrichTradeline } from './pullTradelineData.js';
-import fs from 'fs';
+import { loadMetro2Violations } from './utils.js';
 
-// Load Metro 2 violation definitions
-const VIOLATION_DEFS = JSON.parse(
-  fs.readFileSync(new URL('./metro2Violations.json', import.meta.url))
-);
+// Load Metro 2 violation definitions from shared metadata
+const VIOLATION_DEFS = loadMetro2Violations();
 
 function getViolationInfo(code) {
   return VIOLATION_DEFS[code] || null;
