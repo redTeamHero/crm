@@ -45,6 +45,11 @@
       width: 90vw;
       max-width: 1100px;
     }
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
+    .modal{width:min(1100px,96vw);max-height:min(90vh,900px);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.25);background:white;display:flex;flex-direction:column;overflow:hidden}
+    .modal header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(0,0,0,.08);background:var(--glass-bg);backdrop-filter: blur(10px)}
+    .modal .body{padding:16px;overflow-y:auto}
   </style>
 </head>
 <body>
@@ -79,10 +84,6 @@
     <div class="flex gap-4">
       <div class="w-1/3 space-y-4">
         <div>
-          <button id="newTemplate" class="btn w-full mb-2">New Template</button>
-          <div id="templateList" class="space-y-1 text-sm"></div>
-        </div>
-        <div>
           <div class="font-medium text-sm">Main Letters</div>
           <div id="mainList" class="space-y-1 text-sm"></div>
         </div>
@@ -93,13 +94,16 @@
         <textarea id="tplAsk" class="input w-full text-sm" placeholder="Ask"></textarea>
         <textarea id="tplAfter" class="input w-full text-sm" placeholder="After Issues"></textarea>
         <textarea id="tplEvidence" class="input w-full text-sm" placeholder="Evidence"></textarea>
-        <div class="flex gap-2">
+        <div id="tplPreview" class="input w-full text-sm whitespace-pre-line h-48 overflow-y-auto" title="Drop a template here to load it"></div>
+        <div class="flex justify-end gap-2">
           <button id="saveTemplate" class="btn text-sm">Save Template</button>
           <button id="saveTemplateCopy" class="btn text-sm">Save As New</button>
         </div>
       </div>
-      <div class="flex-1">
-        <div id="tplPreview" class="input w-full text-sm whitespace-pre-line" title="Drop a template here to load it"></div>
+      <div class="w-1/3 space-y-4">
+        <button id="newTemplate" class="btn w-full mb-2">New Template</button>
+        <div class="font-medium text-sm">Letter Templates</div>
+        <div id="templateList" class="space-y-1 text-sm max-h-96 overflow-y-auto"></div>
       </div>
     </div>
   </div>
@@ -119,6 +123,26 @@
     </div>
   </div>
 </main>
+<!-- New Template Modal -->
+<div id="tplModal" class="modal-backdrop">
+  <div class="modal">
+    <header>
+      <div class="font-medium">New Template</div>
+      <button id="tplModalClose" class="btn text-sm">Close</button>
+    </header>
+    <div class="body space-y-2">
+      <input id="modalTplHeading" class="input w-full text-sm" placeholder="Heading" />
+      <textarea id="modalTplIntro" class="input w-full text-sm" placeholder="Intro"></textarea>
+      <textarea id="modalTplAsk" class="input w-full text-sm" placeholder="Ask"></textarea>
+      <textarea id="modalTplAfter" class="input w-full text-sm" placeholder="After Issues"></textarea>
+      <textarea id="modalTplEvidence" class="input w-full text-sm" placeholder="Evidence"></textarea>
+      <div class="flex justify-end gap-2">
+        <button id="modalSaveTemplate" class="btn text-sm">Save Template</button>
+        <button id="modalSaveTemplateCopy" class="btn text-sm">Save As New</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script type="module" src="/common.js"></script>
 <script src="/library.js"></script>
 </body>

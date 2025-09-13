@@ -88,25 +88,19 @@ async function assignMainTemplate(slotId, templateId){
   }
 }
 
-function newTemplate(){
+function openTemplateModal(){
   currentTemplateId = null;
-  document.getElementById('tplHeading').value = '';
-  document.getElementById('tplIntro').value = '';
-  document.getElementById('tplAsk').value = '';
-  document.getElementById('tplAfter').value = '';
-  document.getElementById('tplEvidence').value = '';
-  updatePreview();
+  document.getElementById('tplModal').style.display='flex';
+  ['modalTplHeading','modalTplIntro','modalTplAsk','modalTplAfter','modalTplEvidence'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
 }
 
-async function saveTemplate(){
-  const payload = {
-    heading: document.getElementById('tplHeading').value,
-    intro: document.getElementById('tplIntro').value,
-    ask: document.getElementById('tplAsk').value,
-    afterIssues: document.getElementById('tplAfter').value,
-    evidence: document.getElementById('tplEvidence').value
-  };
-  if(currentTemplateId) payload.id = currentTemplateId;
+function closeTemplateModal(){
+  document.getElementById('tplModal').style.display='none';
+}
+
+async function upsertTemplate(payload){
   const res = await fetch('/api/templates', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -118,15 +112,41 @@ async function saveTemplate(){
     if(existing){ Object.assign(existing, data.template); }
     else { templates.push(data.template); }
     renderTemplates();
-    editTemplate(data.template.id);
     const selected = Array.from(document.querySelectorAll('#seqTemplates input[type="checkbox"]:checked')).map(cb => cb.value);
     renderSeqTemplateOptions(selected);
+    return data.template.id;
   }
+}
+
+async function saveTemplate(){
+  const payload = {
+    heading: document.getElementById('tplHeading').value,
+    intro: document.getElementById('tplIntro').value,
+    ask: document.getElementById('tplAsk').value,
+    afterIssues: document.getElementById('tplAfter').value,
+    evidence: document.getElementById('tplEvidence').value
+  };
+  if(currentTemplateId) payload.id = currentTemplateId;
+  const id = await upsertTemplate(payload);
+  if(id) editTemplate(id);
 }
 
 function saveTemplateAsNew(){
   currentTemplateId = null;
   saveTemplate();
+}
+
+async function saveTemplateFromModal(){
+  const payload = {
+    heading: document.getElementById('modalTplHeading').value,
+    intro: document.getElementById('modalTplIntro').value,
+    ask: document.getElementById('modalTplAsk').value,
+    afterIssues: document.getElementById('modalTplAfter').value,
+    evidence: document.getElementById('modalTplEvidence').value
+  };
+  const id = await upsertTemplate(payload);
+  if(id) editTemplate(id);
+  closeTemplateModal();
 }
 
 function updatePreview(){
@@ -204,8 +224,11 @@ async function saveSequence(){
 }
 
 document.getElementById('saveTemplate').onclick = saveTemplate;
-document.getElementById('newTemplate').onclick = newTemplate;
 document.getElementById('saveTemplateCopy').onclick = saveTemplateAsNew;
+document.getElementById('newTemplate').onclick = openTemplateModal;
+document.getElementById('tplModalClose').onclick = closeTemplateModal;
+document.getElementById('modalSaveTemplate').onclick = saveTemplateFromModal;
+document.getElementById('modalSaveTemplateCopy').onclick = saveTemplateFromModal;
 document.getElementById('saveSequence').onclick = saveSequence;
 document.getElementById('newSequence').onclick = newSequence;
 
