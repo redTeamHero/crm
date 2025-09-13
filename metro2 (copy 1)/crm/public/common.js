@@ -255,12 +255,16 @@ export async function api(url, options = {}) {
     const res = await fetch(url, { ...options, headers });
     const text = await res.text();
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === 'object') {
+        return { status: res.status, ...parsed };
+      }
+      return { status: res.status, data: parsed };
     } catch {
-      return text;
+      return { status: res.status, ok: res.ok, data: text };
     }
   } catch (err) {
-    return { ok: false, error: String(err) };
+    return { ok: false, status: 0, error: String(err) };
   }
 }
 
