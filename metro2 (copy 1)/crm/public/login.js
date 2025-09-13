@@ -13,6 +13,7 @@
     /* ignore network or auth errors and show login */
   }
 })();
+
 async function handleAuth(endpoint, body, role){
   try{
     const res = await fetch(endpoint,{
