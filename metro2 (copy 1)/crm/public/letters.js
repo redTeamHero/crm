@@ -20,6 +20,7 @@ let LETTERS = [];          // [{ index, filename, bureau, creditor, htmlUrl }]
 let page = 1;
 const PER_PAGE = 10;
 let lastPreview = null;    // currently previewed letter object
+const TOKEN = localStorage.getItem('token');
 
 function paginate(){
   const total = Math.max(1, Math.ceil(LETTERS.length / PER_PAGE));
@@ -51,7 +52,7 @@ function renderCards(){
         </div>
         <div class="flex flex-wrap gap-2 justify-end">
           <a class="btn text-xs open-html" href="${L.htmlUrl}" target="_blank" data-tip="Open HTML (H)">Open HTML</a>
-          <a class="btn text-xs" href="/api/letters/${encodeURIComponent(JOB_ID)}/${L.index}.pdf" data-tip="Download PDF">Download PDF</a>
+          <a class="btn text-xs" href="/api/letters/${encodeURIComponent(JOB_ID)}/${L.index}.pdf${TOKEN ? `?token=${encodeURIComponent(TOKEN)}` : ''}" data-tip="Download PDF">Download PDF</a>
           <button class="btn text-xs do-print" data-tip="Print (P)">Print</button>
         </div>
       </div>
@@ -143,7 +144,8 @@ $("#btnDownloadAll").addEventListener("click", async ()=>{
   btn.disabled = true;
   btn.textContent = "Preparing...";
   try {
-    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/all.zip`);
+    const tokenParam = TOKEN ? `?token=${encodeURIComponent(TOKEN)}` : '';
+    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/all.zip${tokenParam}`);
     if(!resp.ok) throw new Error("Failed to download zip");
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
@@ -235,12 +237,13 @@ async function loadLetters(jobId){
   try {
     const resp = await api(`/api/letters/${encodeURIComponent(jobId)}`);
     if (!resp?.ok) throw new Error(resp?.error || "Failed to load letters for this job.");
+    const tokenParam = TOKEN ? `?token=${encodeURIComponent(TOKEN)}` : '';
     LETTERS = (resp.letters || []).map((x) => ({
       index: x.index,
       filename: x.filename,
       bureau: x.bureau,
       creditor: x.creditor,
-      htmlUrl: `/api/letters/${encodeURIComponent(jobId)}/${x.index}.html`
+      htmlUrl: `/api/letters/${encodeURIComponent(jobId)}/${x.index}.html${tokenParam}`
     }));
     page = 1;
     renderCards();
