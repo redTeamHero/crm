@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { JSDOM } from 'jsdom';
+import { readKey, writeKey } from '../kvdb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const USERS_DB_PATH = path.join(__dirname, '..', 'users-db.json');
 const COMMON_JS_PATH = path.join(__dirname, '..', 'public', 'common.js');
 
 function extractFunction(name) {
@@ -19,8 +19,8 @@ function extractFunction(name) {
 }
 
 test('team member login issues team role token', async () => {
-  const original = fs.existsSync(USERS_DB_PATH) ? fs.readFileSync(USERS_DB_PATH) : null;
-  fs.writeFileSync(USERS_DB_PATH, JSON.stringify({ users: [] }, null, 2));
+  const original = await readKey('users', null);
+  await writeKey('users', { users: [] });
   process.env.NODE_ENV = 'test';
   const { default: app } = await import('../server.js');
 
@@ -39,8 +39,8 @@ test('team member login issues team role token', async () => {
   const payload = jwt.decode(loginRes.body.token);
   assert.equal(payload.role, 'team');
 
-  if (original) fs.writeFileSync(USERS_DB_PATH, original);
-  else fs.unlinkSync(USERS_DB_PATH);
+  if (original) await writeKey('users', original);
+  else await writeKey('users', { users: [] });
 });
 
 test('restrictRoutes redirects unauthorized paths for team', () => {

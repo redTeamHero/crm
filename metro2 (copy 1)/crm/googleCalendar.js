@@ -1,16 +1,10 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
 import nodeFetch from 'node-fetch';
-import { readJson } from './utils.js';
+import { readKey } from './kvdb.js';
 
 const fetchFn = globalThis.fetch || nodeFetch;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const SETTINGS_PATH = path.join(__dirname, 'settings.json');
-
 async function getConfig() {
-  const settings = await readJson(SETTINGS_PATH, {});
+  const settings = await readKey('settings', {});
   return {
     token: settings.googleCalendarToken || '',
     calendarId: settings.googleCalendarId || ''

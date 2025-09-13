@@ -2,3 +2,4 @@
 **/public/reports/
 **/public/team-*.html
 !**/public/team-member-template.html
+**/*.sqlite

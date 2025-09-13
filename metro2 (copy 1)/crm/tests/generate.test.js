@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { readKey } from '../kvdb.js';
 
 const PORT = 4100;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30,7 +30,7 @@ async function fetchJson(url, options){
 await test('server rejects and accepts selections appropriately', async () => {
   const server = await startServer();
   try {
-    const db = JSON.parse(fs.readFileSync(path.join(root, 'db.json'), 'utf8'));
+    const { json: db } = await fetchJson(`http://localhost:${PORT}/api/consumers`);
     const consumerId = db.consumers[0].id;
     const reportId = db.consumers[0].reports[0].id;
 
@@ -68,7 +68,7 @@ await test('server rejects and accepts selections appropriately', async () => {
 await test('letters include manual creditor and account numbers', async () => {
   const server = await startServer();
   try {
-    const db = JSON.parse(fs.readFileSync(path.join(root, 'db.json'), 'utf8'));
+    const { json: db } = await fetchJson(`http://localhost:${PORT}/api/consumers`);
     const consumerId = db.consumers[0].id;
     const reportId = db.consumers[0].reports[0].id;
     const selection = {
@@ -97,7 +97,7 @@ await test('letters include manual creditor and account numbers', async () => {
 await test('useOcr flag applies to all generated letters', async () => {
   const server = await startServer();
   try {
-    const db = JSON.parse(fs.readFileSync(path.join(root, 'db.json'), 'utf8'));
+    const { json: db } = await fetchJson(`http://localhost:${PORT}/api/consumers`);
     const consumerId = db.consumers[0].id;
     const reportId = db.consumers[0].reports[0].id;
     const selection = { tradelineIndex: 0, bureaus: ['TransUnion'] };
@@ -117,7 +117,7 @@ await test('useOcr flag applies to all generated letters', async () => {
     });
     assert.equal(res.status, 200);
     const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
-    const idx = JSON.parse(fs.readFileSync(path.join(root, 'letters', '_jobs.json'), 'utf8'));
+    const idx = await readKey('letter_jobs_idx', { jobs: {} });
     const job = idx.jobs[jobId];
     assert.ok(job);
     assert.ok(job.letters.length > 0);
