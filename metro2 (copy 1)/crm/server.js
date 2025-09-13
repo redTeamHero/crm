@@ -247,10 +247,9 @@ setInterval(() => {
 
 
 // periodically surface due letter reminders
-processAllReminders();
+processAllReminders().catch(e => console.error("Reminder check failed", e));
 setInterval(() => {
-  try { processAllReminders(); }
-  catch (e) { console.error("Reminder check failed", e); }
+  processAllReminders().catch(e => console.error("Reminder check failed", e));
 }, 60 * 60 * 1000);
 
 // ---------- Static UI ----------
@@ -649,7 +648,7 @@ app.post("/api/consumers", authenticate, requirePermission("consumers"), async (
   db.consumers.push(consumer);
   await saveDB(db);
   // log event
-  addEvent(id, "consumer_created", { name: consumer.name });
+  await addEvent(id, "consumer_created", { name: consumer.name });
   res.json({ ok:true, consumer });
 });
 
@@ -670,7 +669,7 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
 
   });
   await saveDB(db);
-  addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
+  await addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
   res.json({ ok:true, consumer:c });
 });
 
@@ -683,7 +682,7 @@ app.delete("/api/consumers/:id", authenticate, requirePermission("consumers"), a
   const removed = db.consumers[i];
   db.consumers.splice(i,1);
   await saveDB(db);
-  addEvent(removed.id, "consumer_deleted", {});
+  await addEvent(removed.id, "consumer_deleted", {});
   res.json({ ok:true });
 });
 
@@ -773,7 +772,7 @@ app.post("/api/invoices", async (req,res)=>{
     const dest = path.join(uploadsDir, storedName);
     await fs.promises.copyFile(result.path, dest);
     const stat = await fs.promises.stat(dest);
-    addFileMeta(inv.consumerId, {
+    await addFileMeta(inv.consumerId, {
       id: fid,
       originalName: `invoice_${inv.id}${ext}`,
       storedName,
@@ -788,7 +787,7 @@ app.post("/api/invoices", async (req,res)=>{
   }
 
   const payLink = req.body.payLink || `https://pay.example.com/${inv.id}`;
-  addEvent(inv.consumerId, "message", {
+  await addEvent(inv.consumerId, "message", {
     from: "system",
     text: `Payment due for ${inv.desc} ($${inv.amount.toFixed(2)}). Pay here: ${payLink}`,
   });
@@ -1023,7 +1022,7 @@ app.get("/api/messages", async (_req, res) => {
   const db = await loadDB();
   const all = [];
   for (const c of db.consumers || []) {
-    const cstate = listConsumerState(c.id);
+    const cstate = await listConsumerState(c.id);
     const msgs = (cstate.events || [])
       .filter(e => e.type === "message")
       .map(m => ({ ...m, consumer: { id: c.id, name: c.name || "" } }));
@@ -1033,13 +1032,13 @@ app.get("/api/messages", async (_req, res) => {
   res.json({ ok: true, messages: all });
 });
 
-app.get("/api/messages/:consumerId", (req,res)=>{
-  const cstate = listConsumerState(req.params.consumerId);
+app.get("/api/messages/:consumerId", async (req,res)=>{
+  const cstate = await listConsumerState(req.params.consumerId);
   const msgs = (cstate.events || []).filter(e=>e.type === "message");
   res.json({ ok:true, messages: msgs });
 });
 
-app.post("/api/messages/:consumerId", optionalAuth, (req,res)=>{
+app.post("/api/messages/:consumerId", optionalAuth, async (req,res)=>{
   const text = req.body.text || "";
   let from = req.body.from || "host";
   const payload = { from, text };
@@ -1048,16 +1047,16 @@ app.post("/api/messages/:consumerId", optionalAuth, (req,res)=>{
     payload.from = from;
     payload.userId = req.user.id;
   }
-  addEvent(req.params.consumerId, "message", payload);
+  await addEvent(req.params.consumerId, "message", payload);
   res.json({ ok:true });
 });
 
-app.post("/api/consumers/:consumerId/events", (req,res)=>{
+app.post("/api/consumers/:consumerId/events", async (req,res)=>{
   const { type, payload } = req.body || {};
   if(!type){
     return res.status(400).json({ ok:false, error:'type required' });
   }
-  addEvent(req.params.consumerId, type, payload || {});
+  await addEvent(req.params.consumerId, type, payload || {});
   res.json({ ok:true });
 });
 
@@ -1194,7 +1193,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     const ext = (req.file.originalname.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
     const storedName = `${rid}${ext}`;
     await fs.promises.writeFile(path.join(uploadDir, storedName), req.file.buffer);
-    addFileMeta(consumer.id, {
+    await addFileMeta(consumer.id, {
       id: rid,
       originalName: req.file.originalname,
       storedName,
@@ -1212,7 +1211,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       data: analyzed
     });
     await saveDB(db);
-    addEvent(consumer.id, "report_uploaded", {
+    await addEvent(consumer.id, "report_uploaded", {
       reportId: rid,
       filename: req.file.originalname,
       size: req.file.size
@@ -1251,7 +1250,7 @@ app.delete("/api/consumers/:id/report/:rid", async (req,res)=>{
   const removed = c.reports[i];
   c.reports.splice(i,1);
   await saveDB(db);
-  addEvent(c.id, "report_deleted", { reportId: removed?.id, filename: removed?.filename });
+  await addEvent(c.id, "report_deleted", { reportId: removed?.id, filename: removed?.filename });
   res.json({ ok:true });
 });
 
@@ -1289,7 +1288,7 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
       const dest = path.join(uploadsDir, storedName);
       await fs.promises.copyFile(result.path, dest);
       const stat = await fs.promises.stat(dest);
-      addFileMeta(c.id, {
+      await addFileMeta(c.id, {
         id,
         originalName,
         storedName,
@@ -1302,7 +1301,7 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
       console.error("Failed to store audit file", err);
     }
 
-    addEvent(c.id, "audit_generated", { reportId: r.id, file: result.url });
+    await addEvent(c.id, "audit_generated", { reportId: r.id, file: result.url });
     res.json({ ok:true, url: result.url, warning: result.warning });
   }catch(e){
     res.status(500).json({ ok:false, error: String(e) });
@@ -1431,7 +1430,7 @@ async function generateBreachAudit(consumer) {
     const dest = path.join(uploadsDir, storedName);
     await fs.promises.copyFile(result.path, dest);
     const stat = await fs.promises.stat(dest);
-    addFileMeta(consumer.id, {
+    await addFileMeta(consumer.id, {
       id,
       originalName,
       storedName,
@@ -1443,7 +1442,7 @@ async function generateBreachAudit(consumer) {
   } catch (err) {
     console.error("Failed to store breach audit file", err);
   }
-  addEvent(consumer.id, "breach_audit_generated", { file: result.url });
+  await addEvent(consumer.id, "breach_audit_generated", { file: result.url });
   return { ok: true, url: result.url, warning: result.warning };
 }
 
@@ -1642,7 +1641,7 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
     console.log(`Letters job ${jobId} recorded with ${letters.length} letters`);
 
     // log state
-    addEvent(consumer.id, "letters_generated", {
+    await addEvent(consumer.id, "letters_generated", {
       jobId, requestType, count: letters.length,
       tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length,
       inquiries: Array.isArray(inquiries) ? inquiries.length : 0,
@@ -1657,7 +1656,7 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
       play.letters.slice(1).forEach((title, idx) => {
         const due = new Date();
         due.setDate(due.getDate() + (idx + 1) * 30);
-        addReminder(consumer.id, {
+        await addReminder(consumer.id, {
           id: `rem_${Date.now()}_${Math.random().toString(16).slice(2)}`,
           due: due.toISOString(),
           payload: {
@@ -1876,7 +1875,7 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
       await new Promise(resolve => fileStream.on('close', resolve));
       try{
         const stat = await fs.promises.stat(path.join(consumerUploadsDir(consumer.id), storedName));
-        addFileMeta(consumer.id, {
+        await addFileMeta(consumer.id, {
           id,
           originalName,
           storedName,
@@ -1885,7 +1884,7 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
           mimetype: 'application/zip',
           uploadedAt: new Date().toISOString(),
         });
-        addEvent(consumer.id, 'letters_downloaded', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
+        await addEvent(consumer.id, 'letters_downloaded', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
       }catch(err){ logError('ZIP_RECORD_FAILED', 'Failed to record zip', err, { jobId, consumerId: consumer.id }); }
     }
     logInfo('ZIP_BUILD_SUCCESS', 'Letters zip created', { jobId });
@@ -1911,7 +1910,7 @@ app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"),
   const consumer = db.consumers.find(c=>c.id===consumerId);
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
 
-  const cstate = listConsumerState(consumerId);
+  const cstate = await listConsumerState(consumerId);
   const ev = cstate.events.find(e=>e.type==='letters_portal_sent' && e.payload?.jobId===jobId && e.payload?.file?.endsWith(`/state/files/${file}`));
   if(!ev) return res.status(404).json({ ok:false, error:"Letter not found" });
   const filePath = path.join(consumerUploadsDir(consumerId), file);
@@ -1924,7 +1923,7 @@ app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"),
       toState: consumer.state,
       toZip: consumer.zip
     });
-    addEvent(consumerId, 'letters_mailed', { jobId, file: ev.payload.file, provider: 'simplecertifiedmail', result });
+    await addEvent(consumerId, 'letters_mailed', { jobId, file: ev.payload.file, provider: 'simplecertifiedmail', result });
     res.json({ ok:true });
     logInfo('SCM_MAIL_SUCCESS', 'Sent letter via SimpleCertifiedMail', { jobId, consumerId, file });
   }catch(e){
@@ -1992,7 +1991,7 @@ app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters")
     });
 
     if(consumer){
-      try{ addEvent(consumer.id, 'letters_emailed', { jobId, to, count: attachments.length }); }catch{}
+      try{ await addEvent(consumer.id, 'letters_emailed', { jobId, to, count: attachments.length }); }catch{}
     }
 
     res.json({ ok:true });
@@ -2062,7 +2061,7 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
       const fullPath = path.join(dir, storedName);
       await fs.promises.writeFile(fullPath, pdfBuffer);
       const stat = await fs.promises.stat(fullPath);
-      addFileMeta(consumer.id, {
+      await addFileMeta(consumer.id, {
         id,
         originalName,
         storedName,
@@ -2071,7 +2070,7 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
         mimetype: 'application/pdf',
         uploadedAt: new Date().toISOString(),
       });
-      addEvent(consumer.id, 'letters_portal_sent', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
+      await addEvent(consumer.id, 'letters_portal_sent', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
     }
 
     logInfo('PORTAL_UPLOAD_SUCCESS', 'Portal letters stored', { jobId, consumerId: consumer.id, count: job.letters.length });
@@ -2099,33 +2098,33 @@ app.get("/api/jobs/:jobId/letters/:idx.pdf", authenticate, requirePermission("le
 });
 
 // =================== Consumer STATE (events + files) ===================
-app.get("/api/consumers/:id/tracker", (req,res)=>{
-  const t = listTracker(req.params.id);
+app.get("/api/consumers/:id/tracker", async (req,res)=>{
+  const t = await listTracker(req.params.id);
   res.json(t);
 });
 
-app.get("/api/tracker/steps", (_req, res) => {
-  res.json({ ok: true, steps: getTrackerSteps() });
+app.get("/api/tracker/steps", async (_req, res) => {
+  res.json({ ok: true, steps: await getTrackerSteps() });
 });
 
-app.put("/api/tracker/steps", (req, res) => {
+app.put("/api/tracker/steps", async (req, res) => {
   const steps = Array.isArray(req.body?.steps) ? req.body.steps : [];
-  setTrackerSteps(steps);
+  await setTrackerSteps(steps);
   res.json({ ok: true });
 });
 
-app.post("/api/consumers/:id/tracker", (req, res) => {
+app.post("/api/consumers/:id/tracker", async (req, res) => {
   const completed = req.body?.completed || {};
   for (const [step, done] of Object.entries(completed)) {
-    markTrackerStep(req.params.id, step, !!done);
+    await markTrackerStep(req.params.id, step, !!done);
   }
-  addEvent(req.params.id, "tracker_updated", { completed });
+  await addEvent(req.params.id, "tracker_updated", { completed });
   res.json({ ok: true });
 
 });
 
-app.get("/api/consumers/:id/state", (req,res)=>{
-  const cstate = listConsumerState(req.params.id);
+app.get("/api/consumers/:id/state", async (req,res)=>{
+  const cstate = await listConsumerState(req.params.id);
   res.json({ ok:true, state: cstate });
 });
 
@@ -2157,8 +2156,8 @@ app.post("/api/consumers/:id/state/upload", fileUpload.single("file"), async (re
     mimetype: req.file.mimetype,
     uploadedAt: new Date().toISOString()
   };
-  addFileMeta(consumer.id, rec);
-  addEvent(consumer.id, "file_uploaded", { id, name: originalName, size: req.file.size });
+  await addFileMeta(consumer.id, rec);
+  await addEvent(consumer.id, "file_uploaded", { id, name: originalName, size: req.file.size });
 
   res.json({ ok:true, file: { ...rec, url: `/api/consumers/${consumer.id}/state/files/${storedName}` } });
 });
