@@ -193,8 +193,11 @@ function hasPermission(user, perm){
   return !!(user && (user.role === "admin" || (user.permissions || []).includes(perm)));
 }
 
-function requirePermission(_perm){
-  return (_req, _res, next)=> next();
+function requirePermission(perm){
+  return (req, res, next) => {
+    if (hasPermission(req.user, perm)) return next();
+    res.status(403).send("Forbidden");
+  };
 }
 
 function forbidMember(req,res,next){
@@ -593,6 +596,7 @@ function extractCreditScores(html){
 app.get("/api/consumers", async (_req,res)=> res.json(await loadDB()));
 app.post("/api/consumers", async (req,res)=>{
   const db = await loadDB();
+
   const id = nanoid(10);
   const consumer = {
     id,
@@ -621,6 +625,7 @@ app.post("/api/consumers", async (req,res)=>{
 
 app.put("/api/consumers/:id", async (req,res)=>{
   const db = await loadDB();
+
   const c = db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   Object.assign(c, {
@@ -640,6 +645,7 @@ app.put("/api/consumers/:id", async (req,res)=>{
 
 app.delete("/api/consumers/:id", async (req,res)=>{
   const db=await loadDB();
+
   const i=db.consumers.findIndex(c=>c.id===req.params.id);
   if(i===-1) return res.status(404).json({ ok:false, error:"Consumer not found" });
   const removed = db.consumers[i];

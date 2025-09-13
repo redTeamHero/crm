@@ -1,6 +1,5 @@
 import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import { loadMetro2Violations } from "../../shared/violations.js";
 
 export function ensureBuffer(data) {
   return Buffer.isBuffer(data) ? data : Buffer.from(data);
@@ -35,3 +34,4 @@ const METRO2_VIOLATIONS_PATH = path.join(
 export async function loadMetro2Violations() {
   return readJson(METRO2_VIOLATIONS_PATH, {});
 }
+
