@@ -600,18 +600,36 @@ async function runPythonAnalyzer(htmlContent){
   });
 }
 
-function runBasicRuleAudit(report = {}) {
+export function runBasicRuleAudit(report = {}) {
   for (const tl of report.tradelines || []) {
     tl.violations = tl.violations || [];
-    const tu = tl.per_bureau?.TransUnion || {};
+    const add = (id, title) => {
+      if (!tl.violations.some(v => v.id === id)) {
+        tl.violations.push({ id, title });
+      }
+    };
+
+    const perBureau = tl.per_bureau || {};
+    const tu = perBureau.TransUnion || {};
     const past = (tu.past_due || "").replace(/[^0-9]/g, "");
     if (/current/i.test(tu.account_status || "") && past && past !== "0") {
-      if (!tl.violations.some(v => v.id === "PAST_DUE_CURRENT")) {
-        tl.violations.push({
-          id: "PAST_DUE_CURRENT",
-          title: "Account marked current but shows past due amount",
-        });
+      add("PAST_DUE_CURRENT", "Account marked current but shows past due amount");
+    }
+
+    for (const data of Object.values(perBureau)) {
+      if (/charge[- ]?off|collection/i.test(data.account_status || "") && !data.date_first_delinquency) {
+        add("MISSING_DOFD", "Charge-off or collection missing date of first delinquency");
+        break;
       }
+    }
+
+    const balances = Object.values(perBureau)
+      .map(b => b.balance)
+      .filter(v => v !== undefined && v !== null)
+      .map(v => Number(String(v).replace(/[^0-9.-]/g, "")))
+      .filter(n => !isNaN(n));
+    if (balances.length > 1 && new Set(balances).size > 1) {
+      add("BALANCE_MISMATCH", "Balances differ across bureaus");
     }
   }
 }
