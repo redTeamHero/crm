@@ -85,7 +85,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const SETTINGS_PATH = path.join(__dirname, "settings.json");
-function loadSettings(){
+async function loadSettings(){
   return readJson(SETTINGS_PATH, {
     hibpApiKey: "",
     rssFeedUrl: "https://hnrss.org/frontpage",
@@ -95,7 +95,7 @@ function loadSettings(){
   });
 }
 
-function saveSettings(data){ writeJson(SETTINGS_PATH, data); }
+async function saveSettings(data){ await writeJson(SETTINGS_PATH, data); }
 
 
 const require = createRequire(import.meta.url);
@@ -144,9 +144,9 @@ process.on("warning", warn => {
   logWarn("NODE_WARNING", warn.message, { stack: warn.stack });
 });
 
-function getAuthUser(req){
+async function getAuthUser(req){
   const auth = req.headers.authorization || "";
-  const db = loadUsersDB();
+  const db = await loadUsersDB();
   if(auth.startsWith("Bearer ")){
     try{
       const payload = jwt.verify(auth.slice(7), JWT_SECRET);
@@ -167,14 +167,14 @@ function getAuthUser(req){
   return null;
 }
 
-function authenticate(req, res, next){
-  const u = getAuthUser(req);
+async function authenticate(req, res, next){
+  const u = await getAuthUser(req);
   req.user = u || { id: "public", username: "public", role: "admin", permissions: [] };
   next();
 }
 
-function optionalAuth(req,res,next){
-  const u = getAuthUser(req);
+async function optionalAuth(req,res,next){
+  const u = await getAuthUser(req);
   if(u) req.user = u;
   next();
 }
@@ -278,8 +278,8 @@ app.get("/team/:token", (req,res)=>{
   if(!fs.existsSync(file)) return res.status(404).send("Not found");
   res.sendFile(file);
 });
-app.get("/portal/:id", (req, res) => {
-  const db = loadDB();
+app.get("/portal/:id", async (req, res) => {
+  const db = await loadDB();
   const consumer = db.consumers.find(c => c.id === req.params.id);
   if (!consumer) return res.status(404).send("Portal not found");
   const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
@@ -294,7 +294,7 @@ app.get("/portal/:id", (req, res) => {
 
 app.get("/buy", async (req, res) => {
   const { bank = "", price = "" } = req.query || {};
-  const settings = loadSettings();
+  const settings = await loadSettings();
   if (!StripeLib || !settings.stripeApiKey) {
     return res.status(500).send("Stripe not configured");
   }
@@ -324,11 +324,11 @@ app.get("/buy", async (req, res) => {
   }
 });
 
-app.get("/api/settings", (_req, res) => {
-  res.json({ ok: true, settings: loadSettings() });
+app.get("/api/settings", async (_req, res) => {
+  res.json({ ok: true, settings: await loadSettings() });
 });
 
-app.post("/api/settings", (req, res) => {
+app.post("/api/settings", async (req, res) => {
   const {
     hibpApiKey = "",
     rssFeedUrl = "",
@@ -336,7 +336,7 @@ app.post("/api/settings", (req, res) => {
     googleCalendarId = "",
     stripeApiKey = "",
   } = req.body || {};
-  saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId, stripeApiKey });
+  await saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId, stripeApiKey });
 
   res.json({ ok: true });
 });
@@ -399,13 +399,13 @@ app.post("/api/calendar/freebusy", async (req, res) => {
 // ---------- Simple JSON "DB" ----------
 
 const DB_PATH = path.join(__dirname, "db.json");
-function loadDB(){ return readJson(DB_PATH, { consumers: [] }); }
-function saveDB(db){ writeJson(DB_PATH, db); }
+async function loadDB(){ return readJson(DB_PATH, { consumers: [] }); }
+async function saveDB(db){ await writeJson(DB_PATH, db); }
 
 const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
 const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [] };
-function loadLettersDB(){
-  const db = readJson(LETTERS_DB_PATH, null);
+async function loadLettersDB(){
+  const db = await readJson(LETTERS_DB_PATH, null);
   if(db){
     console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
     return db;
@@ -414,14 +414,13 @@ function loadLettersDB(){
   return { jobs: [], templates: [], sequences: [], contracts: [] };
 }
 
-function saveLettersDB(db){
-
-  writeJson(LETTERS_DB_PATH, db);
+async function saveLettersDB(db){
+  await writeJson(LETTERS_DB_PATH, db);
   console.log(`Saved letters DB with ${db.jobs.length} jobs`);
 };
-function recordLettersJob(userId, consumerId, jobId, letters){
+async function recordLettersJob(userId, consumerId, jobId, letters){
   console.log(`Recording letters job ${jobId} for consumer ${consumerId}`);
-  const db = loadLettersDB();
+  const db = await loadLettersDB();
   db.jobs.push({
     userId,
     consumerId,
@@ -429,16 +428,16 @@ function recordLettersJob(userId, consumerId, jobId, letters){
     createdAt: Date.now(),
     letters: letters.map(L=>({ filename:L.filename, bureau:L.bureau, creditor:L.creditor }))
   });
-  saveLettersDB(db);
+  await saveLettersDB(db);
 }
 
-function getUserJobMeta(jobId, userId){
-  const ldb = loadLettersDB();
+async function getUserJobMeta(jobId, userId){
+  const ldb = await loadLettersDB();
   return ldb.jobs.find(j=>j.jobId === jobId && j.userId === userId) || null;
 }
 
-function loadJobForUser(jobId, userId){
-  const meta = getUserJobMeta(jobId, userId);
+async function loadJobForUser(jobId, userId){
+  const meta = await getUserJobMeta(jobId, userId);
   if(!meta) return null;
   let job = getJobMem(jobId);
   if(!job){
@@ -459,31 +458,31 @@ function loadJobForUser(jobId, userId){
 }
 if(!fs.existsSync(LETTERS_DB_PATH)){
   console.log(`letters-db.json not found. Initializing at ${LETTERS_DB_PATH}`);
-  saveLettersDB(LETTERS_DEFAULT);
+  await saveLettersDB(LETTERS_DEFAULT);
 }
 
 const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
-function loadLeadsDB(){ return readJson(LEADS_DB_PATH, { leads: [] }); }
-function saveLeadsDB(db){ writeJson(LEADS_DB_PATH, db); }
+async function loadLeadsDB(){ return readJson(LEADS_DB_PATH, { leads: [] }); }
+async function saveLeadsDB(db){ await writeJson(LEADS_DB_PATH, db); }
 
 const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
-function loadInvoicesDB(){ return readJson(INVOICES_DB_PATH, { invoices: [] }); }
-function saveInvoicesDB(db){ writeJson(INVOICES_DB_PATH, db); }
+async function loadInvoicesDB(){ return readJson(INVOICES_DB_PATH, { invoices: [] }); }
+async function saveInvoicesDB(db){ await writeJson(INVOICES_DB_PATH, db); }
 
 const CONTACTS_DB_PATH = path.join(__dirname, "contacts-db.json");
-function loadContactsDB(){ return readJson(CONTACTS_DB_PATH, { contacts: [] }); }
-function saveContactsDB(db){ writeJson(CONTACTS_DB_PATH, db); }
+async function loadContactsDB(){ return readJson(CONTACTS_DB_PATH, { contacts: [] }); }
+async function saveContactsDB(db){ await writeJson(CONTACTS_DB_PATH, db); }
 
 const USERS_DB_PATH = path.join(__dirname, "users-db.json");
-function loadUsersDB(){ return readJson(USERS_DB_PATH, { users: [] }); }
-function saveUsersDB(db){ writeJson(USERS_DB_PATH, db); }
+async function loadUsersDB(){ return readJson(USERS_DB_PATH, { users: [] }); }
+async function saveUsersDB(db){ await writeJson(USERS_DB_PATH, db); }
 
 const TASKS_DB_PATH = path.join(__dirname, "tasks-db.json");
-function loadTasksDB(){ return readJson(TASKS_DB_PATH, { tasks: [] }); }
-function saveTasksDB(db){ writeJson(TASKS_DB_PATH, db); }
+async function loadTasksDB(){ return readJson(TASKS_DB_PATH, { tasks: [] }); }
+async function saveTasksDB(db){ await writeJson(TASKS_DB_PATH, db); }
 
-function processTasks(){
-  const db = loadTasksDB();
+async function processTasks(){
+  const db = await loadTasksDB();
   let changed = false;
   const now = Date.now();
   for(const t of db.tasks){
@@ -492,7 +491,7 @@ function processTasks(){
       if(t.status !== status){ t.status = status; changed = true; }
     }
   }
-  if(changed) saveTasksDB(db);
+  if(changed) await saveTasksDB(db);
 }
 
 // Process tasks immediately on startup so their status is accurate
@@ -591,9 +590,9 @@ function extractCreditScores(html){
 }
 
 // =================== Consumers ===================
-app.get("/api/consumers", (_req,res)=> res.json(loadDB()));
-app.post("/api/consumers", (req,res)=>{
-  const db = loadDB();
+app.get("/api/consumers", async (_req,res)=> res.json(await loadDB()));
+app.post("/api/consumers", async (req,res)=>{
+  const db = await loadDB();
   const id = nanoid(10);
   const consumer = {
     id,
@@ -614,14 +613,14 @@ app.post("/api/consumers", (req,res)=>{
     reports: []
   };
   db.consumers.push(consumer);
-  saveDB(db);
+  await saveDB(db);
   // log event
   addEvent(id, "consumer_created", { name: consumer.name });
   res.json({ ok:true, consumer });
 });
 
-app.put("/api/consumers/:id", (req,res)=>{
-  const db = loadDB();
+app.put("/api/consumers/:id", async (req,res)=>{
+  const db = await loadDB();
   const c = db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   Object.assign(c, {
@@ -634,28 +633,28 @@ app.put("/api/consumers/:id", (req,res)=>{
     status: req.body.status ?? c.status ?? "active"
 
   });
-  saveDB(db);
+  await saveDB(db);
   addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
   res.json({ ok:true, consumer:c });
 });
 
-app.delete("/api/consumers/:id", (req,res)=>{
-  const db=loadDB();
+app.delete("/api/consumers/:id", async (req,res)=>{
+  const db=await loadDB();
   const i=db.consumers.findIndex(c=>c.id===req.params.id);
   if(i===-1) return res.status(404).json({ ok:false, error:"Consumer not found" });
   const removed = db.consumers[i];
   db.consumers.splice(i,1);
-  saveDB(db);
+  await saveDB(db);
   addEvent(removed.id, "consumer_deleted", {});
   res.json({ ok:true });
 });
 
 // =================== Leads ===================
-app.get("/api/leads", (_req,res)=> res.json({ ok:true, ...loadLeadsDB() }));
+app.get("/api/leads", async (_req,res)=> res.json({ ok:true, ...(await loadLeadsDB()) }));
 
 
-app.post("/api/leads", (req,res)=>{
-  const db = loadLeadsDB();
+app.post("/api/leads", async (req,res)=>{
+  const db = await loadLeadsDB();
   const id = nanoid(10);
   const lead = {
     id,
@@ -668,12 +667,12 @@ app.post("/api/leads", (req,res)=>{
 
   };
   db.leads.push(lead);
-  saveLeadsDB(db);
+  await saveLeadsDB(db);
   res.json({ ok:true, lead });
 });
 
-app.put("/api/leads/:id", (req,res)=>{
-  const db = loadLeadsDB();
+app.put("/api/leads/:id", async (req,res)=>{
+  const db = await loadLeadsDB();
   const lead = db.leads.find(l=>l.id===req.params.id);
   if(!lead) return res.status(404).json({ error:"Not found" });
   Object.assign(lead, {
@@ -684,28 +683,28 @@ app.put("/api/leads/:id", (req,res)=>{
     notes: req.body.notes ?? lead.notes,
     status: req.body.status ?? lead.status
   });
-  saveLeadsDB(db);
+  await saveLeadsDB(db);
   res.json({ ok:true, lead });
 });
 
-app.delete("/api/leads/:id", (req,res)=>{
-  const db = loadLeadsDB();
+app.delete("/api/leads/:id", async (req,res)=>{
+  const db = await loadLeadsDB();
   const idx = db.leads.findIndex(l=>l.id===req.params.id);
   if(idx === -1) return res.status(404).json({ error:"Not found" });
   db.leads.splice(idx,1);
-  saveLeadsDB(db);
+  await saveLeadsDB(db);
   res.json({ ok:true });
 });
 
 // =================== Invoices ===================
-app.get("/api/invoices/:consumerId", (req,res)=>{
-  const db = loadInvoicesDB();
+app.get("/api/invoices/:consumerId", async (req,res)=>{
+  const db = await loadInvoicesDB();
   const list = db.invoices.filter(inv => inv.consumerId === req.params.consumerId);
   res.json({ ok:true, invoices: list });
 });
 
 app.post("/api/invoices", async (req,res)=>{
-  const db = loadInvoicesDB();
+  const db = await loadInvoicesDB();
   const inv = {
     id: nanoid(10),
     consumerId: req.body.consumerId,
@@ -719,7 +718,7 @@ app.post("/api/invoices", async (req,res)=>{
   let result;
   try {
     const company = req.body.company || {};
-    const mainDb = loadDB();
+    const mainDb = await loadDB();
     const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
     const html = renderInvoiceHtml(inv, company, consumer);
     result = await savePdf(html);
@@ -758,25 +757,25 @@ app.post("/api/invoices", async (req,res)=>{
 
 
   db.invoices.push(inv);
-  saveInvoicesDB(db);
+  await saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv, warning: result?.warning });
 });
 
-app.put("/api/invoices/:id", (req,res)=>{
-  const db = loadInvoicesDB();
+app.put("/api/invoices/:id", async (req,res)=>{
+  const db = await loadInvoicesDB();
   const inv = db.invoices.find(i=>i.id===req.params.id);
   if(!inv) return res.status(404).json({ ok:false, error:"Not found" });
   if(req.body.desc !== undefined) inv.desc = req.body.desc;
   if(req.body.amount !== undefined) inv.amount = Number(req.body.amount) || 0;
   if(req.body.due !== undefined) inv.due = req.body.due;
   if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
-  saveInvoicesDB(db);
+  await saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
 });
 
 // =================== Users ===================
-app.post("/api/register", (req,res)=>{
-  const db = loadUsersDB();
+app.post("/api/register", async (req,res)=>{
+  const db = await loadUsersDB();
   if(db.users.find(u=>u.username===req.body.username)) return res.status(400).json({ ok:false, error:"User exists" });
   const user = {
     id: nanoid(10),
@@ -786,20 +785,20 @@ app.post("/api/register", (req,res)=>{
     permissions: []
   };
   db.users.push(user);
-  saveUsersDB(db);
+  await saveUsersDB(db);
   res.json({ ok:true, token: generateToken(user) });
 });
 
-app.post("/api/login", (req,res)=>{
-  const db = loadUsersDB();
+app.post("/api/login", async (req,res)=>{
+  const db = await loadUsersDB();
   const user = db.users.find(u=>u.username===req.body.username);
   if(!user) return res.status(401).json({ ok:false, error:"Invalid credentials" });
   if(!bcrypt.compareSync(req.body.password || "", user.password)) return res.status(401).json({ ok:false, error:"Invalid credentials" });
   res.json({ ok:true, token: generateToken(user) });
 });
 
-app.post("/api/client/login", (req,res)=>{
-  const db = loadDB();
+app.post("/api/client/login", async (req,res)=>{
+  const db = await loadDB();
   let client = null;
   if(req.body.token){
     client = db.consumers.find(c=>c.portalToken===req.body.token);
@@ -816,28 +815,28 @@ app.post("/api/client/login", (req,res)=>{
   res.json({ ok:true, token: generateToken(u) });
 });
 
-app.post("/api/request-password-reset", (req,res)=>{
-  const db = loadUsersDB();
+app.post("/api/request-password-reset", async (req,res)=>{
+  const db = await loadUsersDB();
   const user = db.users.find(u=>u.username===req.body.username);
   if(!user) return res.status(404).json({ ok:false, error:"Not found" });
   const token = nanoid(12);
   user.resetToken = token;
-  saveUsersDB(db);
+  await saveUsersDB(db);
   res.json({ ok:true, token });
 });
 
-app.post("/api/reset-password", (req,res)=>{
-  const db = loadUsersDB();
+app.post("/api/reset-password", async (req,res)=>{
+  const db = await loadUsersDB();
   const user = db.users.find(u=>u.username===req.body.username && u.resetToken===req.body.token);
   if(!user) return res.status(400).json({ ok:false, error:"Invalid token" });
   user.password = bcrypt.hashSync(req.body.password || "", 10);
   delete user.resetToken;
-  saveUsersDB(db);
+  await saveUsersDB(db);
   res.json({ ok:true });
 });
 
-app.post("/api/users", optionalAuth, (req,res)=>{
-  const db = loadUsersDB();
+app.post("/api/users", optionalAuth, async (req,res)=>{
+  const db = await loadUsersDB();
   if(db.users.length>0 && (!req.user || req.user.role !== "admin")) return res.status(403).json({ ok:false, error:"Forbidden" });
   const role = req.body.role || (db.users.length === 0 ? "admin" : "member");
   const user = {
@@ -848,13 +847,13 @@ app.post("/api/users", optionalAuth, (req,res)=>{
     permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
   };
   db.users.push(user);
-  saveUsersDB(db);
+  await saveUsersDB(db);
   res.json({ ok:true, user: { id: user.id, username: user.username, role: user.role, permissions: user.permissions } });
 
 });
 
-app.get("/api/users", authenticate, requireRole("admin"), (_req,res)=>{
-  const db = loadUsersDB();
+app.get("/api/users", authenticate, requireRole("admin"), async (_req,res)=>{
+  const db = await loadUsersDB();
   res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, role:u.role, permissions: u.permissions || [] })) });
 });
 
@@ -862,8 +861,8 @@ app.get("/api/me", authenticate, (req,res)=>{
   res.json({ ok:true, user: { id: req.user.id, username: req.user.username, role: req.user.role, permissions: req.user.permissions || [] } });
 });
 
-app.post("/api/team-members", authenticate, requireRole("admin"), (req,res)=>{
-  const db = loadUsersDB();
+app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res)=>{
+  const db = await loadUsersDB();
   const token = nanoid(12);
   const passwordPlain = req.body.password || nanoid(8);
   const password = bcrypt.hashSync(passwordPlain, 10);
@@ -878,7 +877,7 @@ app.post("/api/team-members", authenticate, requireRole("admin"), (req,res)=>{
     permissions: []
   };
   db.users.push(member);
-  saveUsersDB(db);
+  await saveUsersDB(db);
   if(TEAM_TEMPLATE){
     const html = TEAM_TEMPLATE.replace(/\{\{token\}\}/g, token).replace(/\{\{name\}\}/g, member.name || member.username || "Team Member");
     try{ fs.writeFileSync(path.join(PUBLIC_DIR, `team-${token}.html`), html); }catch{}
@@ -886,102 +885,102 @@ app.post("/api/team-members", authenticate, requireRole("admin"), (req,res)=>{
   res.json({ ok:true, member: { id: member.id, username: member.username, token, password: passwordPlain } });
 });
 
-app.post("/api/team/:token/login", (req,res)=>{
-  const db = loadUsersDB();
+app.post("/api/team/:token/login", async (req,res)=>{
+  const db = await loadUsersDB();
   const member = db.users.find(u=>u.token===req.params.token);
   if(!member) return res.status(404).json({ ok:false, error:"Not found" });
   if(!bcrypt.compareSync(req.body.password || "", member.password)) return res.status(401).json({ ok:false, error:"Invalid password" });
   res.json({ ok:true, token: generateToken(member), mustReset: member.mustReset });
 });
 
-app.post("/api/team/:token/reset", (req,res)=>{
-  const db = loadUsersDB();
+app.post("/api/team/:token/reset", async (req,res)=>{
+  const db = await loadUsersDB();
   const member = db.users.find(u=>u.token===req.params.token);
   if(!member) return res.status(404).json({ ok:false, error:"Not found" });
   member.password = bcrypt.hashSync(req.body.password || "", 10);
   member.mustReset = false;
-  saveUsersDB(db);
+  await saveUsersDB(db);
   res.json({ ok:true });
 });
 
 // =================== Contacts ===================
-app.get("/api/contacts", authenticate, requirePermission("contacts"), (req,res)=>{
+app.get("/api/contacts", authenticate, requirePermission("contacts"), async (req,res)=>{
 
-  const db = loadContactsDB();
+  const db = await loadContactsDB();
   const contacts = db.contacts.filter(c=>c.userId===req.user.id);
   res.json({ ok:true, contacts });
 });
 
-app.post("/api/contacts", authenticate, requirePermission("contacts"), (req,res)=>{
+app.post("/api/contacts", authenticate, requirePermission("contacts"), async (req,res)=>{
 
-  const db = loadContactsDB();
+  const db = await loadContactsDB();
   const contact = { id: nanoid(10), userId: req.user.id, name: req.body.name || "", email: req.body.email || "", phone: req.body.phone || "", notes: req.body.notes || "" };
   db.contacts.push(contact);
-  saveContactsDB(db);
+  await saveContactsDB(db);
   res.json({ ok:true, contact });
 });
 
-app.put("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,res)=>{
+app.put("/api/contacts/:id", authenticate, requirePermission("contacts"), async (req,res)=>{
 
-  const db = loadContactsDB();
+  const db = await loadContactsDB();
   const contact = db.contacts.find(c=>c.id===req.params.id && c.userId===req.user.id);
   if(!contact) return res.status(404).json({ ok:false, error:"Not found" });
   Object.assign(contact, { name:req.body.name ?? contact.name, email:req.body.email ?? contact.email, phone:req.body.phone ?? contact.phone, notes:req.body.notes ?? contact.notes });
-  saveContactsDB(db);
+  await saveContactsDB(db);
   res.json({ ok:true, contact });
 });
 
-app.delete("/api/contacts/:id", authenticate, requirePermission("contacts"), (req,res)=>{
+app.delete("/api/contacts/:id", authenticate, requirePermission("contacts"), async (req,res)=>{
 
-  const db = loadContactsDB();
+  const db = await loadContactsDB();
   const idx = db.contacts.findIndex(c=>c.id===req.params.id && c.userId===req.user.id);
   if(idx===-1) return res.status(404).json({ ok:false, error:"Not found" });
   db.contacts.splice(idx,1);
-  saveContactsDB(db);
+  await saveContactsDB(db);
   res.json({ ok:true });
 });
 
 // =================== Tasks ===================
-app.get("/api/tasks", authenticate, requirePermission("tasks"), (req,res)=>{
+app.get("/api/tasks", authenticate, requirePermission("tasks"), async (req,res)=>{
 
-  const db = loadTasksDB();
+  const db = await loadTasksDB();
   const tasks = db.tasks.filter(t=>t.userId===req.user.id);
   res.json({ ok:true, tasks });
 });
 
-app.post("/api/tasks", authenticate, requirePermission("tasks"), (req,res)=>{
+app.post("/api/tasks", authenticate, requirePermission("tasks"), async (req,res)=>{
 
-  const db = loadTasksDB();
+  const db = await loadTasksDB();
   const task = { id: nanoid(10), userId: req.user.id, desc: req.body.desc || "", due: req.body.due || null, completed: false, status: "pending" };
   db.tasks.push(task);
-  saveTasksDB(db);
+  await saveTasksDB(db);
   res.json({ ok:true, task });
 });
 
-app.put("/api/tasks/:id", authenticate, requirePermission("tasks"), (req,res)=>{
+app.put("/api/tasks/:id", authenticate, requirePermission("tasks"), async (req,res)=>{
 
-  const db = loadTasksDB();
+  const db = await loadTasksDB();
   const task = db.tasks.find(t=>t.id===req.params.id && t.userId===req.user.id);
   if(!task) return res.status(404).json({ ok:false, error:"Not found" });
   Object.assign(task, { desc:req.body.desc ?? task.desc, due:req.body.due ?? task.due, completed:req.body.completed ?? task.completed });
   if(task.completed) task.status = "done";
-  saveTasksDB(db);
+  await saveTasksDB(db);
   res.json({ ok:true, task });
 });
 
 // =================== Reporting ===================
-app.get("/api/reports/summary", authenticate, requirePermission("reports"), (req,res)=>{
+app.get("/api/reports/summary", authenticate, requirePermission("reports"), async (req,res)=>{
 
-  const contacts = loadContactsDB().contacts.filter(c=>c.userId===req.user.id).length;
-  const tasks = loadTasksDB().tasks.filter(t=>t.userId===req.user.id);
+  const contacts = (await loadContactsDB()).contacts.filter(c=>c.userId===req.user.id).length;
+  const tasks = (await loadTasksDB()).tasks.filter(t=>t.userId===req.user.id);
   const completedTasks = tasks.filter(t=>t.completed).length;
   res.json({ ok:true, summary:{ contacts, tasks:{ total: tasks.length, completed: completedTasks } } });
 
 });
 
 // =================== Messages ===================
-app.get("/api/messages", (_req, res) => {
-  const db = loadDB();
+app.get("/api/messages", async (_req, res) => {
+  const db = await loadDB();
   const all = [];
   for (const c of db.consumers || []) {
     const cstate = listConsumerState(c.id);
@@ -1034,11 +1033,11 @@ function defaultTemplates(){
 app.get("/api/templates/defaults", (_req,res)=>{
   res.json({ ok:true, templates: defaultTemplates() });
 });
-app.get("/api/templates", (_req,res)=>{
-  const db = loadLettersDB();
+app.get("/api/templates", async (_req,res)=>{
+  const db = await loadLettersDB();
   if(!db.templates || db.templates.length === 0){
     db.templates = defaultTemplates();
-    saveLettersDB(db);
+    await saveLettersDB(db);
   }
   res.json({
     ok: true,
@@ -1048,43 +1047,43 @@ app.get("/api/templates", (_req,res)=>{
   });
 });
 
-app.post("/api/templates", (req,res)=>{
-  const db = loadLettersDB();
+app.post("/api/templates", async (req,res)=>{
+  const db = await loadLettersDB();
   db.templates = db.templates || [];
   const { id = nanoid(8), heading = "", intro = "", ask = "", afterIssues = "", evidence = "" } = req.body || {};
   const existing = db.templates.find(t => t.id === id);
   const tpl = { id, heading, intro, ask, afterIssues, evidence };
   if(existing){ Object.assign(existing, tpl); }
   else { db.templates.push(tpl); }
-  saveLettersDB(db);
+  await saveLettersDB(db);
   res.json({ ok:true, template: tpl });
 });
 
-app.post("/api/sequences", (req,res)=>{
-  const db = loadLettersDB();
+app.post("/api/sequences", async (req,res)=>{
+  const db = await loadLettersDB();
   db.sequences = db.sequences || [];
   const { id = nanoid(8), name = "", templates = [] } = req.body || {};
   const existing = db.sequences.find(s => s.id === id);
   const seq = { id, name, templates };
   if(existing){ Object.assign(existing, seq); }
   else { db.sequences.push(seq); }
-  saveLettersDB(db);
+  await saveLettersDB(db);
   res.json({ ok:true, sequence: seq });
 });
 
-app.post("/api/contracts", (req,res)=>{
-  const db = loadLettersDB();
+app.post("/api/contracts", async (req,res)=>{
+  const db = await loadLettersDB();
   const ct = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
   db.contracts = db.contracts || [];
   db.contracts.push(ct);
-  saveLettersDB(db);
+  await saveLettersDB(db);
   res.json({ ok:true, contract: ct });
 });
 
 
 // Upload HTML -> analyze -> save under consumer
 app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
-  const db=loadDB();
+  const db=await loadDB();
   const consumer = db.consumers.find(c=>c.id===req.params.id);
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });
@@ -1172,7 +1171,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       summary: { tradelines: analyzed?.tradelines?.length || 0, personalInfoMismatches: mismatches },
       data: analyzed
     });
-    saveDB(db);
+    await saveDB(db);
     addEvent(consumer.id, "report_uploaded", {
       reportId: rid,
       filename: req.file.originalname,
@@ -1185,15 +1184,15 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   }
 });
 
-app.get("/api/consumers/:id/reports", (req,res)=>{
-  const db=loadDB();
+app.get("/api/consumers/:id/reports", async (req,res)=>{
+  const db=await loadDB();
   const c=db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   res.json({ ok:true, reports: c.reports.map(r=>({ id:r.id, uploadedAt:r.uploadedAt, filename:r.filename, summary:r.summary })) });
 });
 
-app.get("/api/consumers/:id/report/:rid", (req,res)=>{
-  const db=loadDB();
+app.get("/api/consumers/:id/report/:rid", async (req,res)=>{
+  const db=await loadDB();
   const c=db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   const r=c.reports.find(x=>x.id===req.params.rid);
@@ -1203,21 +1202,21 @@ app.get("/api/consumers/:id/report/:rid", (req,res)=>{
   }});
 });
 
-app.delete("/api/consumers/:id/report/:rid", (req,res)=>{
-  const db=loadDB();
+app.delete("/api/consumers/:id/report/:rid", async (req,res)=>{
+  const db=await loadDB();
   const c=db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   const i=c.reports.findIndex(x=>x.id===req.params.rid);
   if(i===-1) return res.status(404).json({ ok:false, error:"Report not found" });
   const removed = c.reports[i];
   c.reports.splice(i,1);
-  saveDB(db);
+  await saveDB(db);
   addEvent(c.id, "report_deleted", { reportId: removed?.id, filename: removed?.filename });
   res.json({ ok:true });
 });
 
 app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
-  const db=loadDB();
+  const db=await loadDB();
   const c=db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   const r=c.reports.find(x=>x.id===req.params.rid);
@@ -1273,7 +1272,7 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 // Check consumer email against Have I Been Pwned
 // Use POST so email isn't logged in query string
 async function hibpLookup(email) {
-  const apiKey = loadSettings().hibpApiKey || process.env.HIBP_API_KEY;
+  const apiKey = (await loadSettings()).hibpApiKey || process.env.HIBP_API_KEY;
   if (!apiKey) return { ok: false, status: 500, error: "HIBP API key not configured" };
   try {
     const hibpRes = await fetchFn(
@@ -1360,11 +1359,11 @@ async function handleDataBreach(email, consumerId, res) {
   const result = await hibpLookup(email);
   if (result.ok && consumerId) {
     try {
-      const db = loadDB();
+      const db = await loadDB();
       const c = db.consumers.find(x => x.id === consumerId);
       if (c) {
         c.breaches = (result.breaches || []).map(b => b.Name || b.name || "");
-        saveDB(db);
+        await saveDB(db);
       }
     } catch (err) {
       console.error("Failed to store breach info", err);
@@ -1389,7 +1388,7 @@ app.get("/api/databreach", async (req, res) => {
 });
 
 app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
-  const db = loadDB();
+  const db = await loadDB();
   const c = db.consumers.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
   try {
@@ -1431,7 +1430,7 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
 });
 
 app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
-  const db = loadDB();
+  const db = await loadDB();
   const c = db.consumers.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
   try {
@@ -1584,7 +1583,7 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
       useOcr,
     } = req.body;
 
-    const db = loadDB();
+    const db = await loadDB();
     const consumer = db.consumers.find(c=>c.id===consumerId);
     if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
     const reportWrap = consumer.reports.find(r=>r.id===reportId);
@@ -1679,10 +1678,10 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
 });
 
 // List stored letter jobs
-app.get("/api/letters", authenticate, requirePermission("letters"), (req,res)=>{
+app.get("/api/letters", authenticate, requirePermission("letters"), async (req,res)=>{
 
-  const ldb = loadLettersDB();
-  const cdb = loadDB();
+  const ldb = await loadLettersDB();
+  const cdb = await loadDB();
   const jobs = ldb.jobs.filter(j=>j.userId===req.user.id).map(j => ({
     jobId: j.jobId,
     consumerId: j.consumerId,
@@ -1694,13 +1693,13 @@ app.get("/api/letters", authenticate, requirePermission("letters"), (req,res)=>{
   res.json({ ok:true, jobs });
 });
 
-app.delete("/api/letters/:jobId", authenticate, requirePermission("letters"), (req,res)=>{
+app.delete("/api/letters/:jobId", authenticate, requirePermission("letters"), async (req,res)=>{
   const { jobId } = req.params;
   try{
     deleteJob(jobId);
-    const ldb = loadLettersDB();
+    const ldb = await loadLettersDB();
     ldb.jobs = ldb.jobs.filter(j => !(j.jobId === jobId && j.userId === req.user.id));
-    saveLettersDB(ldb);
+    await saveLettersDB(ldb);
     res.json({ ok:true });
   }catch(e){
     res.status(500).json({ ok:false, error:String(e) });
@@ -1708,10 +1707,10 @@ app.delete("/api/letters/:jobId", authenticate, requirePermission("letters"), (r
 });
 
 // List letters for a job
-app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), (req,res)=>{
+app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), async (req,res)=>{
 
   const { jobId } = req.params;
-  const result = loadJobForUser(jobId, req.user.id);
+  const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job } = result;
   const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor }));
@@ -1720,10 +1719,10 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), (req,
 });
 
 // Serve letter HTML (preview embed)
-app.get("/api/letters/:jobId/:idx.html", authenticate, requirePermission("letters"), (req,res)=>{
+app.get("/api/letters/:jobId/:idx.html", authenticate, requirePermission("letters"), async (req,res)=>{
 
   const { jobId, idx } = req.params;
-  const result = loadJobForUser(jobId, req.user.id);
+  const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).send("Job not found or expired.");
   const { job } = result;
   const L = job.letters[Number(idx)];
@@ -1737,7 +1736,7 @@ app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters
 
   const { jobId, idx } = req.params;
   console.log(`Generating PDF for job ${jobId} letter ${idx}`);
-  const result = loadJobForUser(jobId, req.user.id);
+  const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).send("Job not found or expired.");
   const { job } = result;
   const L = job.letters[Number(idx)];
@@ -1798,7 +1797,7 @@ app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters
 app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"), async (req,res)=>{
 
   const { jobId } = req.params;
-  const result = loadJobForUser(jobId, req.user.id);
+  const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job, meta } = result;
 
@@ -1814,7 +1813,7 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
   let fileStream, storedName, originalName, consumer, id;
   try{
     if(meta.consumerId){
-      const db = loadDB();
+      const db = await loadDB();
       consumer = db.consumers.find(c=>c.id === meta.consumerId);
     }
   }catch{}
@@ -1902,13 +1901,13 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
 app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"), async (req,res)=>{
 
   const { jobId } = req.params;
-  const result = loadJobForUser(jobId, req.user.id);
+  const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found" });
   const consumerId = String(req.body?.consumerId || "").trim();
   const file = String(req.body?.file || "").trim();
   if(!consumerId) return res.status(400).json({ ok:false, error:"consumerId required" });
   if(!file) return res.status(400).json({ ok:false, error:"file required" });
-  const db = loadDB();
+  const db = await loadDB();
   const consumer = db.consumers.find(c=>c.id===consumerId);
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
 
@@ -1940,7 +1939,7 @@ app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters")
   const to = String(req.body?.to || "").trim();
   if(!to) return res.status(400).json({ ok:false, error:"Missing recipient" });
   if(!mailer) return res.status(500).json({ ok:false, error:"Email not configured" });
-  const result = loadJobForUser(jobId, req.user.id);
+  const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job, meta } = result;
 
@@ -1948,7 +1947,7 @@ app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters")
   let consumer = null;
   try{
     if(meta.consumerId){
-      const db = loadDB();
+      const db = await loadDB();
       consumer = db.consumers.find(c=>c.id === meta.consumerId) || null;
     }
   }catch{}
@@ -2011,7 +2010,7 @@ app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters")
 app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"), async (req,res)=>{
 
   const { jobId } = req.params;
-  const result = loadJobForUser(jobId, req.user.id);
+  const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job, meta } = result;
 
@@ -2019,7 +2018,7 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
   let consumer = null;
   try{
     if(meta.consumerId){
-      const db = loadDB();
+      const db = await loadDB();
       consumer = db.consumers.find(c=>c.id === meta.consumerId) || null;
     }
   }catch{}
@@ -2133,7 +2132,7 @@ app.get("/api/consumers/:id/state", (req,res)=>{
 // Upload an attachment (photo/proof/etc.)
 const fileUpload = multer({ storage: multer.memoryStorage() });
 app.post("/api/consumers/:id/state/upload", fileUpload.single("file"), async (req,res)=>{
-  const db = loadDB();
+  const db = await loadDB();
   const consumer = db.consumers.find(c=>c.id===req.params.id);
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });

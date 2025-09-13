@@ -6,16 +6,23 @@ export function ensureBuffer(data) {
   return Buffer.isBuffer(data) ? data : Buffer.from(data);
 }
 
-export function readJson(filePath, fallback){
+export async function readJson(filePath, fallback){
   try{
-    return JSON.parse(fs.readFileSync(filePath,"utf-8"));
-  }catch{
+    const data = await fs.promises.readFile(filePath,"utf-8");
+    return JSON.parse(data);
+  }catch(err){
+    console.error(`Failed to read ${filePath}:`, err);
     return fallback;
   }
 }
 
-export function writeJson(filePath, data){
-  fs.writeFileSync(filePath, JSON.stringify(data,null,2));
+export async function writeJson(filePath, data){
+  try{
+    await fs.promises.writeFile(filePath, JSON.stringify(data,null,2));
+  }catch(err){
+    console.error(`Failed to write ${filePath}:`, err);
+    throw err;
+  }
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +32,6 @@ const METRO2_VIOLATIONS_PATH = path.join(
   "metro2Violations.json"
 );
 
-export function loadMetro2Violations() {
+export async function loadMetro2Violations() {
   return readJson(METRO2_VIOLATIONS_PATH, {});
 }
