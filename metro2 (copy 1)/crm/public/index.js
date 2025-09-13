@@ -156,7 +156,15 @@ function currentPageItems(){
 async function loadConsumers(restore = true){
   clearErr();
   const data = await api("/api/consumers");
-  if (!data || !data.consumers) { showErr("Could not load consumers."); return; }
+  if (data.status === 401 || data.status === 403 || data.error === 'Forbidden') {
+    alert('Please log in');
+    location.href = '/login.html';
+    return;
+  }
+  if (data.ok === false || !data.consumers) {
+    showErr(data.error || 'Could not load consumers.');
+    return;
+  }
   DB = data;
   renderConsumers();
   if (restore) restoreSelectedConsumer();
