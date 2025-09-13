@@ -2,6 +2,7 @@
 
 // If a user already has valid auth, skip the login form
 document.addEventListener('DOMContentLoaded', async () => {
+
   const headers = authHeader();
   if (!headers.Authorization) return; // nothing saved
   try {
@@ -13,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     /* ignore network or auth errors and show login */
   }
 });
+
 async function handleAuth(endpoint, body, role){
   try{
     const res = await fetch(endpoint,{
