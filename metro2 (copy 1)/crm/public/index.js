@@ -1,9 +1,9 @@
 /* public/index.js */
 
 import { PLAYBOOKS } from './playbooks.js';
+import { authHeader, api } from './common.js';
 
 const $ = (s) => document.querySelector(s);
-const api = (u, o = {}) => fetch(u, o).then(r => r.json()).catch(e => ({ ok:false, error:String(e) }));
 
 const role = typeof window !== 'undefined' ? (window.userRole || 'host') : 'host';
 if (typeof window !== 'undefined' && role === 'client') {

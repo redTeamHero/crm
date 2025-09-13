@@ -25,7 +25,7 @@ function trackEvent(name, props = {}) {
     console.debug('trackEvent', name, props);
   }
 }
-window.trackEvent = trackEvent;
+if (typeof window !== 'undefined') window.trackEvent = trackEvent;
 
 document.addEventListener('DOMContentLoaded', () => {
   trackEvent('page_view', { path: location.pathname });
@@ -237,12 +237,31 @@ function initPalette(){
   }
 }
 
-function authHeader(){
+export function authHeader(){
   const token = localStorage.getItem('token');
   if(token) return { Authorization: 'Bearer '+token };
   const auth = localStorage.getItem('auth');
   if(auth) return { Authorization: 'Basic '+auth };
   return {};
+}
+
+export async function api(url, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...authHeader(),
+    ...(options.headers || {})
+  };
+  try {
+    const res = await fetch(url, { ...options, headers });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
 }
 
 async function limitNavForMembers(){
@@ -428,7 +447,7 @@ function initVoiceNotes(){
     document.body.classList.add('voice-active');
     startRec();
   }
-  function closeNotes(){
+function closeNotes(){
     active = false;
     document.body.classList.remove('voice-active');
     try{ rec.stop(); }catch{}
@@ -445,4 +464,8 @@ function initVoiceNotes(){
   mic.addEventListener('click', openNotes);
   closeBtn.addEventListener('click', ()=>{ closeNotes(); });
   startRec();
+}
+
+if (typeof window !== 'undefined') {
+  Object.assign(window, { escapeHtml, formatCurrency, trackEvent, authHeader, api });
 }
