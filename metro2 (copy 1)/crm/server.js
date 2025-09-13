@@ -833,10 +833,18 @@ app.post("/api/register", async (req,res)=>{
 });
 
 app.post("/api/login", async (req,res)=>{
+  logInfo("LOGIN_ATTEMPT", "Admin login attempt", { username: req.body.username });
   const db = await loadUsersDB();
   const user = db.users.find(u=>u.username===req.body.username);
-  if(!user) return res.status(401).json({ ok:false, error:"Invalid credentials" });
-  if(!bcrypt.compareSync(req.body.password || "", user.password)) return res.status(401).json({ ok:false, error:"Invalid credentials" });
+  if(!user){
+    logWarn("LOGIN_FAIL", "Admin login failed: user not found", { username: req.body.username });
+    return res.status(401).json({ ok:false, error:"Invalid credentials" });
+  }
+  if(!bcrypt.compareSync(req.body.password || "", user.password)){
+    logWarn("LOGIN_FAIL", "Admin login failed: wrong password", { username: req.body.username });
+    return res.status(401).json({ ok:false, error:"Invalid credentials" });
+  }
+  logInfo("LOGIN_SUCCESS", "Admin login successful", { userId: user.id });
   res.json({ ok:true, token: generateToken(user) });
 });
 
@@ -844,17 +852,24 @@ app.post("/api/client/login", async (req,res)=>{
   const db = await loadDB();
   let client = null;
   if(req.body.token){
+    logInfo("CLIENT_LOGIN_ATTEMPT", "Client login with token", { tokenPrefix: req.body.token.slice(0,4) });
     client = db.consumers.find(c=>c.portalToken===req.body.token);
   } else if(req.body.email){
+    logInfo("CLIENT_LOGIN_ATTEMPT", "Client login with email", { email: req.body.email });
     client = db.consumers.find(c=>c.email===req.body.email);
     if(!client || !client.password || !bcrypt.compareSync(req.body.password || "", client.password)){
+      logWarn("CLIENT_LOGIN_FAIL", "Client login failed: invalid password", { email: req.body.email });
       return res.status(401).json({ ok:false, error:"Invalid credentials" });
     }
   } else {
     return res.status(400).json({ ok:false, error:"Missing credentials" });
   }
-  if(!client) return res.status(401).json({ ok:false, error:"Invalid credentials" });
+  if(!client){
+    logWarn("CLIENT_LOGIN_FAIL", "Client login failed: not found", { email: req.body.email, tokenPrefix: req.body.token && req.body.token.slice(0,4) });
+    return res.status(401).json({ ok:false, error:"Invalid credentials" });
+  }
   const u = { id: client.id, username: client.email || client.name || "client", role: "client", permissions: [] };
+  logInfo("CLIENT_LOGIN_SUCCESS", "Client login successful", { clientId: client.id });
   res.json({ ok:true, token: generateToken(u) });
 });
 
@@ -942,10 +957,18 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
 });
 
 app.post("/api/team/:token/login", async (req,res)=>{
+  logInfo("TEAM_LOGIN_ATTEMPT", "Team member login attempt", { tokenPrefix: req.params.token.slice(0,4) });
   const db = await loadUsersDB();
   const member = db.users.find(u=>u.token===req.params.token);
-  if(!member) return res.status(404).json({ ok:false, error:"Not found" });
-  if(!bcrypt.compareSync(req.body.password || "", member.password)) return res.status(401).json({ ok:false, error:"Invalid password" });
+  if(!member){
+    logWarn("TEAM_LOGIN_FAIL", "Team member login failed: token not found", { tokenPrefix: req.params.token.slice(0,4) });
+    return res.status(404).json({ ok:false, error:"Not found" });
+  }
+  if(!bcrypt.compareSync(req.body.password || "", member.password)){
+    logWarn("TEAM_LOGIN_FAIL", "Team member login failed: wrong password", { memberId: member.id });
+    return res.status(401).json({ ok:false, error:"Invalid password" });
+  }
+  logInfo("TEAM_LOGIN_SUCCESS", "Team member login successful", { memberId: member.id });
   res.json({ ok:true, token: generateToken(member), mustReset: member.mustReset });
 });
 
