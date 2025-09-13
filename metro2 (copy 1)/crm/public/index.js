@@ -1105,6 +1105,13 @@ $("#fileInput").addEventListener("change", async (e)=>{
     });
     const data = await res.json().catch(()=> ({}));
     if(!data?.ok) throw new Error(data?.error || `Upload failed (HTTP ${res.status})`);
+    if (Array.isArray(data.errors) && data.errors.length) {
+      console.warn('Upload completed with errors:', data.errors);
+      const pyErr = data.errors.find(e => e.step === 'python_analyzer');
+      if (pyErr) {
+        alert(`Python analyzer failed: ${pyErr.message}`);
+      }
+    }
     if (data.creditScore) {
       localStorage.setItem("creditScore", JSON.stringify(data.creditScore));
       window.dispatchEvent(new StorageEvent("storage", { key: "creditScore" }));
