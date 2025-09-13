@@ -302,6 +302,7 @@ function parseCreditReportHTML(doc) {
 
     // dates -> output as MM/DD/YYYY when possible
     if (["date_opened", "last_reported", "date_last_payment", "date_last_active", "date_closed"].includes(field)) {
+
       const d = coerceDateMDY(v);
       return d || v;
     }
