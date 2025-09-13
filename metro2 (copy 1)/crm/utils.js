@@ -1,5 +1,4 @@
 import fs from "fs";
-import { loadMetro2Violations } from "../../shared/violations.js";
 
 export function ensureBuffer(data) {
   return Buffer.isBuffer(data) ? data : Buffer.from(data);
