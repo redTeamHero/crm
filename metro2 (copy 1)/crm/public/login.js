@@ -1,4 +1,9 @@
 /* public/login.js */
+
+// If a user already has auth state, skip the login form
+if (localStorage.getItem('token') || localStorage.getItem('auth')) {
+  location.href = '/clients';
+}
 async function handleAuth(endpoint, body, role){
   try{
     const res = await fetch(endpoint,{
