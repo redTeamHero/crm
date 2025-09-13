@@ -170,6 +170,8 @@ async function loadConsumers(restore = true){
   const data = await api("/api/consumers");
   if (data.status === 401 || data.status === 403 || data.error === 'Forbidden') {
     alert('Please log in');
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth');
     location.href = '/login.html';
     return;
   }
