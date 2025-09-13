@@ -22,6 +22,10 @@ Data is stored in a local SQLite file `crm.sqlite` in the CRM directory, replaci
 npm start
 ```
 
+## Schedule
+
+The `/schedule` page hooks into Google Calendar. Click any date to add a booking, meeting, phone call, or availability note. The page checks Google Calendar's free/busy API to prevent double‑booking.
+
 Generate a shareable audit (converts a credit report HTML to JSON and renders it):
 ```bash
 cd "metro2 (copy 1)/crm"
