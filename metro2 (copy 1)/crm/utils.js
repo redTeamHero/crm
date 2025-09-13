@@ -31,7 +31,4 @@ const METRO2_VIOLATIONS_PATH = path.join(
   "metro2Violations.json"
 );
 
-export async function loadMetro2Violations() {
-  return readJson(METRO2_VIOLATIONS_PATH, {});
-}
 
