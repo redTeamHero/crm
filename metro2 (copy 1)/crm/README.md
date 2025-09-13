@@ -50,6 +50,16 @@ Without them, letter generation will fail with errors like `libnspr4.so: cannot 
    npm start
    ```
 
+4. **Full pipeline demo** – create tradeline cards and a sample dispute letter from the bundled sample report.
+
+   ```bash
+   node reportPipeline.js
+   ```
+
+   Outputs:
+   - `data/tradelineCards.json` – normalized accounts with issues for the client portal
+   - `letter.html` – demo letter for the first tradeline and violation
+
 ## Tests
 
 Install dependencies and run the test suite:
