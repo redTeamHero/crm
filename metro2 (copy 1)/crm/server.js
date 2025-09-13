@@ -148,7 +148,10 @@ process.on("warning", warn => {
 });
 
 async function getAuthUser(req){
-  const auth = req.headers.authorization || "";
+  let auth = req.headers.authorization || "";
+  if(!auth && req.query && req.query.token){
+    auth = `Bearer ${req.query.token}`;
+  }
   const db = await loadUsersDB();
   if(auth.startsWith("Bearer ")){
     try{
