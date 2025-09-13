@@ -29,6 +29,8 @@ test('member with consumers permission can access /api/consumers', async () => {
 
   const res = await request(app).get('/api/consumers').set('Authorization', 'Bearer ' + memberToken);
   assert.equal(res.status, 200);
+  assert.equal(res.body.ok, true);
+  assert.equal(Array.isArray(res.body.consumers), true);
 
   if (original) await writeKey('users', original); else await writeKey('users', { users: [] });
 });

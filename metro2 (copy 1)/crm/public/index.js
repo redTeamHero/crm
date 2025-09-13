@@ -20,7 +20,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   });
 }
 
-let DB = { consumers: [] };
+let DB = [];
 let currentConsumerId = null;
 let currentReportId = null;
 let CURRENT_REPORT = null;
@@ -151,8 +151,8 @@ let consPage = 1;
 
 function filteredConsumers(){
   const q = consQuery.trim().toLowerCase();
-  if (!q) return DB.consumers.slice();
-  return DB.consumers.filter(c=>{
+  if (!q) return DB.slice();
+  return DB.filter(c=>{
     return [c.name,c.email,c.phone,c.addr1,c.city,c.state,c.zip].some(v=> (v||"").toLowerCase().includes(q));
   });
 }
@@ -177,7 +177,7 @@ async function loadConsumers(restore = true){
     showErr(data.error || 'Could not load consumers.');
     return;
   }
-  DB = data;
+  DB = data.consumers;
   renderConsumers();
   if (restore) restoreSelectedConsumer();
 }
@@ -265,7 +265,7 @@ $("#btnSelectNegative")?.addEventListener("click", ()=>{
 
 async function selectConsumer(id){
   currentConsumerId = id;
-  const c = DB.consumers.find(x=>x.id===id);
+  const c = DB.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
    setSelectedConsumerId(id);
 
@@ -278,7 +278,7 @@ async function selectConsumer(id){
 
 function restoreSelectedConsumer(){
   const stored = getSelectedConsumerId();
-  if(stored && DB.consumers.find(c=>c.id===stored)){
+  if(stored && DB.find(c=>c.id===stored)){
     selectConsumer(stored);
   }
 }
@@ -1023,7 +1023,7 @@ $("#newForm").addEventListener("submit", async (e)=>{
 $("#btnEditClient").addEventListener("click", ()=>{
   const m = $("#editModal");
   if(!currentConsumerId){ showErr("Select a consumer first."); return; }
-  const c = DB.consumers.find(x=>x.id===currentConsumerId);
+  const c = DB.find(x=>x.id===currentConsumerId);
   if(!c){ showErr("Consumer not found."); return; }
   const f = $("#editForm");
   f.name.value = c.name || "";
@@ -1061,7 +1061,7 @@ $("#editForm").addEventListener("submit", async (e)=>{
   if(!res?.ok) return showErr(res?.error || "Failed to save.");
   closeEdit();
   await loadConsumers(false);
-  const c = DB.consumers.find(x=>x.id===currentConsumerId);
+  const c = DB.find(x=>x.id===currentConsumerId);
   $("#selConsumer").textContent = c ? c.name : "—";
 });
 
@@ -1118,7 +1118,7 @@ $("#fileInput").addEventListener("change", async (e)=>{
 // Data breach lookup
 $("#btnDataBreach").addEventListener("click", async ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
-  const c = DB.consumers.find(x=>x.id===currentConsumerId);
+  const c = DB.find(x=>x.id===currentConsumerId);
   if(!c?.email) return showErr("Selected consumer has no email.");
   const btn = $("#btnDataBreach");
   const old = btn.textContent;
