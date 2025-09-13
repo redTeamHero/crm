@@ -1,21 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import { readKey, writeKey } from '../kvdb.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const USERS_DB_PATH = path.join(__dirname, '..', 'users-db.json');
-const original = fs.existsSync(USERS_DB_PATH) ? fs.readFileSync(USERS_DB_PATH) : null;
-const DB_PATH = path.join(__dirname, '..', 'db.json');
-const consumerId = JSON.parse(fs.readFileSync(DB_PATH, 'utf8')).consumers[0].id;
+const originalUsers = await readKey('users', null);
+const consumerId = (await readKey('consumers', { consumers: [] })).consumers[0].id;
+
 
 const admin = { id: 'a1', username: 'admin', password: bcrypt.hashSync('secret', 10), role: 'admin', permissions: [] };
 const member = { id: 'm1', username: 'member', password: bcrypt.hashSync('secret', 10), role: 'member', permissions: [] };
-fs.writeFileSync(USERS_DB_PATH, JSON.stringify({ users: [admin, member] }, null, 2));
+await writeKey('users', { users: [admin, member] });
 
 process.env.NODE_ENV = 'test';
 const { default: app } = await import('../server.js');
@@ -69,7 +65,8 @@ test('member cannot delete consumer', async () => {
   assert.equal(res.status, 403);
 });
 
-test.after(() => {
-  if (original) fs.writeFileSync(USERS_DB_PATH, original);
-  else fs.unlinkSync(USERS_DB_PATH);
+test.after(async () => {
+  if (originalUsers) await writeKey('users', originalUsers);
+  else await writeKey('users', { users: [] });
+
 });

@@ -3,12 +3,9 @@ import { fileURLToPath } from 'url';
 import { readJson } from './utils.js';
 import { fetchFn } from './fetchUtil.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const SETTINGS_PATH = path.join(__dirname, 'settings.json');
 
 async function getConfig() {
-  const settings = await readJson(SETTINGS_PATH, {});
+  const settings = await readKey('settings', {});
   return {
     token: settings.googleCalendarToken || '',
     calendarId: settings.googleCalendarId || ''

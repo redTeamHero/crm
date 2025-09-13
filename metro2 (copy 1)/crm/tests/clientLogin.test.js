@@ -1,16 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readKey, writeKey } from '../kvdb.js';
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, '..', 'db.json');
-
-const original = fs.existsSync(DB_PATH) ? fs.readFileSync(DB_PATH) : null;
 const client = {
   id: 'c1',
   name: 'Test Client',
@@ -19,7 +12,9 @@ const client = {
   portalToken: 'tok123',
   reports: []
 };
-fs.writeFileSync(DB_PATH, JSON.stringify({ consumers: [client] }, null, 2));
+
+const original = await readKey('consumers', null);
+await writeKey('consumers', { consumers: [client] });
 
 process.env.NODE_ENV = 'test';
 const { default: app } = await import('../server.js');
@@ -37,7 +32,7 @@ test('client login via email/password', async () => {
   assert.equal(res.body.ok, true);
 });
 
-test.after(() => {
-  if (original) fs.writeFileSync(DB_PATH, original);
-  else fs.unlinkSync(DB_PATH);
+test.after(async () => {
+  if (original) await writeKey('consumers', original);
+  else await writeKey('consumers', { consumers: [] });
 });

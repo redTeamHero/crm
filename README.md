@@ -12,6 +12,8 @@ cd "metro2 (copy 1)/crm"
 npm install
 ```
 
+Data is stored in a local SQLite file `crm.sqlite` in the CRM directory, replacing the old JSON-based storage.
+
 ## Environment
 - `PORT` (optional, defaults to 3000)
 
