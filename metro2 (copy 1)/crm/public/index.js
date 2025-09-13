@@ -12,7 +12,7 @@ if (typeof window !== 'undefined' && role === 'client') {
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
   document.addEventListener('DOMContentLoaded', () => {
     if (role !== 'host') {
-      ['btnInvite', 'btnNewConsumer', 'btnEditConsumer', 'btnDeleteReport'].forEach(id => {
+      ['btnInvite', 'btnCreateClient', 'btnEditClient', 'btnDeleteReport'].forEach(id => {
         document.getElementById(id)?.classList.add('hidden');
       });
     }
@@ -949,7 +949,7 @@ $("#btnGenerate").addEventListener("click", async ()=>{
 });
 
 // ===================== Toolbar =====================
-$("#btnNewConsumer").addEventListener("click", ()=>{
+$("#btnCreateClient").addEventListener("click", ()=>{
   const m = $("#newModal");
   $("#newForm").reset();
   m.classList.remove("hidden");
@@ -975,7 +975,7 @@ $("#newForm").addEventListener("submit", async (e)=>{
   await selectConsumer(res.consumer.id);
 });
 
-$("#btnEditConsumer").addEventListener("click", ()=>{
+$("#btnEditClient").addEventListener("click", ()=>{
   const m = $("#editModal");
   if(!currentConsumerId){ showErr("Select a consumer first."); return; }
   const c = DB.consumers.find(x=>x.id===currentConsumerId);
