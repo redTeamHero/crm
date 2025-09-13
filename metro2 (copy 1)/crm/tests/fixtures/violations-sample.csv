@@ -1,0 +1,3 @@
+code,violation,severity,fcraSection
+MISSING_DOFD,Missing or invalid Date of First Delinquency,5,§ 623(a)(5)
+LATE_STATUS_NO_PASTDUE,Payment history inconsistent with status,4,§ 607(b)

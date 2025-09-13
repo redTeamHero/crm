@@ -18,6 +18,15 @@ Use `metro2Violations.json` as a quick reference for common Metro-2 and FCRA con
 }
 ```
 
+### Usage example
+
+```js
+import { loadMetro2Violations } from './utils.js';
+
+const violations = await loadMetro2Violations();
+console.log(violations.MISSING_DOFD.severity); // 5
+```
+
 ### Extending the dataset
 
 1. Append new objects to `metro2Violations.json` with `code`, `title`, `detail`, `severity`, and `fcra` fields.
