@@ -5,6 +5,7 @@ describe("API endpoints", () => {
   test("GET /api/consumers returns list", async () => {
     const res = await request(app).get("/api/consumers");
     expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
     expect(Array.isArray(res.body.consumers)).toBe(true);
   });
 

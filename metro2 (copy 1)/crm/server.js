@@ -624,7 +624,9 @@ function extractCreditScores(html){
 }
 
 // =================== Consumers ===================
-app.get("/api/consumers", authenticate, requirePermission("consumers"), async (_req,res)=> res.json(await loadDB()));
+app.get("/api/consumers", authenticate, requirePermission("consumers"), async (_req, res) => {
+  res.json({ ok: true, consumers: (await loadDB()).consumers });
+});
 app.post("/api/consumers", authenticate, requirePermission("consumers"), async (req,res)=>{
 
   const db = await loadDB();
