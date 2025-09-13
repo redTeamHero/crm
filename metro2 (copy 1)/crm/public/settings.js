@@ -12,6 +12,52 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveBtn = document.getElementById('saveSettings');
   const msgEl = document.getElementById('saveMsg');
 
+  const hotkeyEls = {
+    help: document.getElementById('hotkeyHelp'),
+    newConsumer: document.getElementById('hotkeyNewConsumer'),
+    upload: document.getElementById('hotkeyUpload'),
+    editConsumer: document.getElementById('hotkeyEditConsumer'),
+    generate: document.getElementById('hotkeyGenerate'),
+    remove: document.getElementById('hotkeyRemove'),
+    modeBreach: document.getElementById('hotkeyModeBreach'),
+    modeAssault: document.getElementById('hotkeyModeAssault'),
+    modeIdentity: document.getElementById('hotkeyModeIdentity')
+  };
+  const saveHotkeysBtn = document.getElementById('saveHotkeys');
+  const hotkeyMsgEl = document.getElementById('hotkeyMsg');
+  const defaultHotkeys = {
+    help: 'h',
+    newConsumer: 'n',
+    upload: 'u',
+    editConsumer: 'e',
+    generate: 'g',
+    remove: 'r',
+    modeBreach: 'd',
+    modeAssault: 's',
+    modeIdentity: 'i'
+  };
+
+  function loadHotkeys() {
+    let stored = {};
+    try { stored = JSON.parse(localStorage.getItem('hotkeys')) || {}; } catch {}
+    const hk = { ...defaultHotkeys, ...stored };
+    for (const k in hotkeyEls) if (hotkeyEls[k]) hotkeyEls[k].value = hk[k] || '';
+  }
+
+  loadHotkeys();
+
+  if (saveHotkeysBtn) {
+    saveHotkeysBtn.addEventListener('click', () => {
+      const hk = {};
+      for (const k in hotkeyEls) hk[k] = (hotkeyEls[k].value || '').trim().toLowerCase().slice(0,1);
+      localStorage.setItem('hotkeys', JSON.stringify(hk));
+      if (hotkeyMsgEl) {
+        hotkeyMsgEl.classList.remove('hidden');
+        setTimeout(() => hotkeyMsgEl.classList.add('hidden'), 2000);
+      }
+    });
+  }
+
   async function load() {
     try {
       const resp = await fetch('/api/settings');

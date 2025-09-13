@@ -76,6 +76,23 @@
     <div class="font-medium">User Permissions</div>
     <div id="userList" class="space-y-2 text-sm"></div>
   </div>
+
+  <div id="hotkeyPanel" class="glass card space-y-2">
+    <div class="font-medium">Keyboard Shortcuts</div>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      <label class="flex items-center gap-2">Help <input id="hotkeyHelp" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+      <label class="flex items-center gap-2">New Consumer <input id="hotkeyNewConsumer" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+      <label class="flex items-center gap-2">Upload <input id="hotkeyUpload" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+      <label class="flex items-center gap-2">Edit Consumer <input id="hotkeyEditConsumer" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+      <label class="flex items-center gap-2">Generate <input id="hotkeyGenerate" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+      <label class="flex items-center gap-2">Remove Tradeline <input id="hotkeyRemove" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+      <label class="flex items-center gap-2">Mode: Breach <input id="hotkeyModeBreach" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+      <label class="flex items-center gap-2">Mode: Assault <input id="hotkeyModeAssault" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+      <label class="flex items-center gap-2">Mode: Identity <input id="hotkeyModeIdentity" class="w-12 border rounded px-2 py-1 text-sm" maxlength="1" /></label>
+    </div>
+    <button id="saveHotkeys" class="btn text-sm">Save Hotkeys</button>
+    <div id="hotkeyMsg" class="text-sm muted hidden">Saved!</div>
+  </div>
 </main>
 <script type="module" src="/common.js"></script>
 <script src="/hotkeys.js"></script>
