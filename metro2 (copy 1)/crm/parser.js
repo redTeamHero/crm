@@ -17,6 +17,9 @@ function parseCreditReportHTML(doc) {
   const tlTables = Array.from(
     doc.querySelectorAll("table.rpt_content_table.rpt_content_header.rpt_table4column")
   );
+  if (!tlTables.length) {
+    throw new Error("No tradeline tables found");
+  }
 
   // Parse each tradeline table block
   for (const table of tlTables) {
@@ -140,7 +143,10 @@ function parseCreditReportHTML(doc) {
       tl.history_summary = hist.summary;
     }
 
-    results.tradelines.push(tl);
+    const hasData = Object.values(tl.per_bureau).some((pb) => Object.keys(pb).length);
+    if (hasData) {
+      results.tradelines.push(tl);
+    }
   }
 
   // ---- F) Inquiries (hard pulls) ----
