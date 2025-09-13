@@ -11,7 +11,6 @@ import { htmlToPdfBuffer, launchBrowser } from "./pdfUtils.js";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import nodeFetch from "node-fetch";
 import * as cheerio from "cheerio";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -27,13 +26,13 @@ import { readKey, writeKey, DB_FILE } from "./kvdb.js";
 import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy } from "./googleCalendar.js";
 
-const fetchFn = globalThis.fetch || nodeFetch;
+import { fetchFn } from "./fetchUtil.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 const TOKEN_EXPIRES_IN = "1h";
 
 function generateToken(user){
-  return jwt.sign({ id: user.id, username: user.username, role: user.role, permissions: user.permissions || [] }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES_IN });
+  return jwt.sign({ id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions || [] }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES_IN });
 }
 
 
@@ -625,6 +624,7 @@ function extractCreditScores(html){
 // =================== Consumers ===================
 app.get("/api/consumers", authenticate, requirePermission("consumers"), async (_req,res)=> res.json(await loadDB()));
 app.post("/api/consumers", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db = await loadDB();
 
   const id = nanoid(10);
@@ -654,6 +654,7 @@ app.post("/api/consumers", authenticate, requirePermission("consumers"), async (
 });
 
 app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db = await loadDB();
 
   const c = db.consumers.find(x=>x.id===req.params.id);
@@ -674,6 +675,7 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
 });
 
 app.delete("/api/consumers/:id", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db=await loadDB();
 
   const i=db.consumers.findIndex(c=>c.id===req.params.id);
@@ -816,6 +818,7 @@ app.post("/api/register", async (req,res)=>{
   const user = {
     id: nanoid(10),
     username: req.body.username || "",
+    name: req.body.name || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role: "member",
     permissions: []
@@ -878,23 +881,24 @@ app.post("/api/users", optionalAuth, async (req,res)=>{
   const user = {
     id: nanoid(10),
     username: req.body.username || "",
+    name: req.body.name || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role,
     permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
   };
   db.users.push(user);
   await saveUsersDB(db);
-  res.json({ ok:true, user: { id: user.id, username: user.username, role: user.role, permissions: user.permissions } });
+  res.json({ ok:true, user: { id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions } });
 
 });
 
 app.get("/api/users", authenticate, requireRole("admin"), async (_req,res)=>{
   const db = await loadUsersDB();
-  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, role:u.role, permissions: u.permissions || [] })) });
+  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, name:u.name, role:u.role, permissions: u.permissions || [] })) });
 });
 
 app.get("/api/me", authenticate, (req,res)=>{
-  res.json({ ok:true, user: { id: req.user.id, username: req.user.username, role: req.user.role, permissions: req.user.permissions || [] } });
+  res.json({ ok:true, user: { id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role, permissions: req.user.permissions || [] } });
 });
 
 app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res)=>{
@@ -1409,6 +1413,52 @@ async function handleDataBreach(email, consumerId, res) {
   res.status(result.status || 500).json({ ok: false, error: result.error });
 }
 
+async function generateBreachAudit(consumer) {
+  const html = renderBreachAuditHtml(consumer);
+  const result = await savePdf(html);
+  let ext = path.extname(result.path);
+  if (result.warning || ext !== ".pdf") {
+    ext = ".html";
+  }
+  const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+  try {
+    const uploadsDir = consumerUploadsDir(consumer.id);
+    const id = nanoid(10);
+    const storedName = `${id}${ext}`;
+    const safe = (consumer.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    const date = new Date().toISOString().slice(0, 10);
+    const originalName = `${safe}_${date}_breach_audit${ext}`;
+    const dest = path.join(uploadsDir, storedName);
+    await fs.promises.copyFile(result.path, dest);
+    const stat = await fs.promises.stat(dest);
+    addFileMeta(consumer.id, {
+      id,
+      originalName,
+      storedName,
+      type: "breach-audit",
+      size: stat.size,
+      mimetype: mime,
+      uploadedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Failed to store breach audit file", err);
+  }
+  addEvent(consumer.id, "breach_audit_generated", { file: result.url });
+  return { ok: true, url: result.url, warning: result.warning };
+}
+
+async function handleConsumerBreachAudit(req, res) {
+  const db = await loadDB();
+  const consumer = db.consumers.find(x => x.id === req.params.id);
+  if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+  try {
+    const result = await generateBreachAudit(consumer);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+}
+
 app.post("/api/databreach", async (req, res) => {
   const email = String(req.body.email || "").trim();
   const consumerId = String(req.body.consumerId || "").trim();
@@ -1423,89 +1473,8 @@ app.get("/api/databreach", async (req, res) => {
   await handleDataBreach(email, consumerId, res);
 });
 
-app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
-  const db = await loadDB();
-  const c = db.consumers.find(x => x.id === req.params.id);
-  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
-  try {
-    const html = renderBreachAuditHtml(c);
-    const result = await savePdf(html);
-    let ext = path.extname(result.path);
-    if (result.warning || ext !== ".pdf") {
-      ext = ".html";
-    }
-    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
-    try {
-      const uploadsDir = consumerUploadsDir(c.id);
-      const id = nanoid(10);
-      const storedName = `${id}${ext}`;
-      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
-      const date = new Date().toISOString().slice(0, 10);
-      const originalName = `${safe}_${date}_breach_audit${ext}`;
-      const dest = path.join(uploadsDir, storedName);
-      await fs.promises.copyFile(result.path, dest);
-      const stat = await fs.promises.stat(dest);
-      addFileMeta(c.id, {
-        id,
-        originalName,
-        storedName,
-        type: "breach-audit",
-        size: stat.size,
-        mimetype: mime,
-        uploadedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error("Failed to store breach audit file", err);
-    }
-    addEvent(c.id, "breach_audit_generated", { file: result.url });
-    res.json({ ok: true, url: result.url, warning: result.warning });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: String(e) });
-  }
 
-});
-
-app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
-  const db = await loadDB();
-  const c = db.consumers.find(x => x.id === req.params.id);
-  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
-  try {
-    const html = renderBreachAuditHtml(c);
-    const result = await savePdf(html);
-    let ext = path.extname(result.path);
-    if (result.warning || ext !== ".pdf") {
-      ext = ".html";
-    }
-    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
-    try {
-      const uploadsDir = consumerUploadsDir(c.id);
-      const id = nanoid(10);
-      const storedName = `${id}${ext}`;
-      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
-      const date = new Date().toISOString().slice(0, 10);
-      const originalName = `${safe}_${date}_breach_audit${ext}`;
-      const dest = path.join(uploadsDir, storedName);
-      await fs.promises.copyFile(result.path, dest);
-      const stat = await fs.promises.stat(dest);
-      addFileMeta(c.id, {
-        id,
-        originalName,
-        storedName,
-        type: "breach-audit",
-        size: stat.size,
-        mimetype: mime,
-        uploadedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error("Failed to store breach audit file", err);
-    }
-    addEvent(c.id, "breach_audit_generated", { file: result.url });
-    res.json({ ok: true, url: result.url, warning: result.warning });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: String(e) });
-  }
-
-});
+app.post("/api/consumers/:id/databreach/audit", handleConsumerBreachAudit);
 
 
 

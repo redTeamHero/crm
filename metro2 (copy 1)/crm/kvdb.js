@@ -20,6 +20,7 @@ export function readKey(key, fallback) {
   return new Promise((resolve) => {
     db.get('SELECT value FROM kv WHERE key = ?', [key], (err, row) => {
       db.close();
+
       if (err || !row) return resolve(fallback);
       try {
         resolve(JSON.parse(row.value));
@@ -33,6 +34,7 @@ export function readKey(key, fallback) {
 export function writeKey(key, value) {
   const db = new sqlite3.Database(DB_FILE);
   init(db);
+
   return new Promise((resolve, reject) => {
     const val = JSON.stringify(value);
     db.run(
@@ -40,6 +42,7 @@ export function writeKey(key, value) {
       [key, val],
       (err) => {
         db.close();
+
         if (err) reject(err);
         else resolve();
       }
@@ -57,3 +60,4 @@ export function deleteKey(key) {
     });
   });
 }
+

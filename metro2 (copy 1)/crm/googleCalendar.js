@@ -3,6 +3,7 @@ import { readKey } from './kvdb.js';
 
 const fetchFn = globalThis.fetch || nodeFetch;
 
+
 async function getConfig() {
   const settings = await readKey('settings', {});
   return {

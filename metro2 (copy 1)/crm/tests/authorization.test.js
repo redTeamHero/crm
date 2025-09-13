@@ -8,6 +8,7 @@ import { readKey, writeKey } from '../kvdb.js';
 const originalUsers = await readKey('users', null);
 const consumerId = (await readKey('consumers', { consumers: [] })).consumers[0].id;
 
+
 const admin = { id: 'a1', username: 'admin', password: bcrypt.hashSync('secret', 10), role: 'admin', permissions: [] };
 const member = { id: 'm1', username: 'member', password: bcrypt.hashSync('secret', 10), role: 'member', permissions: [] };
 await writeKey('users', { users: [admin, member] });
@@ -67,4 +68,5 @@ test('member cannot delete consumer', async () => {
 test.after(async () => {
   if (originalUsers) await writeKey('users', originalUsers);
   else await writeKey('users', { users: [] });
+
 });
