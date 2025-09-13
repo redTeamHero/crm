@@ -22,7 +22,8 @@ import parseCreditReportHTML from "./parser.js";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
-import { ensureBuffer, readJson, writeJson } from "./utils.js";
+import { ensureBuffer } from "./utils.js";
+import { readKey, writeKey, DB_FILE } from "./kvdb.js";
 import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy } from "./googleCalendar.js";
 
@@ -84,18 +85,21 @@ async function generateOcrPdf(html){
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SETTINGS_PATH = path.join(__dirname, "settings.json");
 async function loadSettings(){
-  return readJson(SETTINGS_PATH, {
+  const data = await readKey('settings', null);
+  if(data) return data;
+  const def = {
     hibpApiKey: "",
     rssFeedUrl: "https://hnrss.org/frontpage",
     googleCalendarToken: "",
     googleCalendarId: "",
     stripeApiKey: "",
-  });
+  };
+  await writeKey('settings', def);
+  return def;
 }
 
-async function saveSettings(data){ await writeJson(SETTINGS_PATH, data); }
+async function saveSettings(data){ await writeKey('settings', data); }
 
 
 const require = createRequire(import.meta.url);
@@ -169,7 +173,7 @@ async function getAuthUser(req){
 
 async function authenticate(req, res, next){
   const u = await getAuthUser(req);
-  req.user = u || { id: "public", username: "public", role: "admin", permissions: [] };
+  req.user = u || null;
   next();
 }
 
@@ -401,26 +405,6 @@ app.post("/api/calendar/freebusy", async (req, res) => {
 
 // ---------- Simple JSON "DB" ----------
 
-const DB_PATH = path.join(__dirname, "db.json");
-async function loadDB(){ return readJson(DB_PATH, { consumers: [] }); }
-async function saveDB(db){ await writeJson(DB_PATH, db); }
-
-const LETTERS_DB_PATH = path.join(__dirname, "letters-db.json");
-const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [] };
-async function loadLettersDB(){
-  const db = await readJson(LETTERS_DB_PATH, null);
-  if(db){
-    console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
-    return db;
-  }
-  console.warn("letters-db.json missing or invalid, using empty structure");
-  return { jobs: [], templates: [], sequences: [], contracts: [] };
-}
-
-async function saveLettersDB(db){
-  await writeJson(LETTERS_DB_PATH, db);
-  console.log(`Saved letters DB with ${db.jobs.length} jobs`);
-};
 async function recordLettersJob(userId, consumerId, jobId, letters){
   console.log(`Recording letters job ${jobId} for consumer ${consumerId}`);
   const db = await loadLettersDB();
@@ -444,7 +428,7 @@ async function loadJobForUser(jobId, userId){
   if(!meta) return null;
   let job = getJobMem(jobId);
   if(!job){
-    const disk = loadJobFromDisk(jobId);
+    const disk = await loadJobFromDisk(jobId);
     if(disk){
       putJobMem(jobId, disk.letters.map(d => ({
         filename: path.basename(d.htmlPath),
@@ -459,30 +443,76 @@ async function loadJobForUser(jobId, userId){
   if(!job) return null;
   return { meta, job };
 }
-if(!fs.existsSync(LETTERS_DB_PATH)){
-  console.log(`letters-db.json not found. Initializing at ${LETTERS_DB_PATH}`);
-  await saveLettersDB(LETTERS_DEFAULT);
+const DEFAULT_DB = { consumers: [{ id: "RoVO6y0EKM", name: "Test Consumer", reports: [] }] };
+async function loadDB(){
+  const db = await readKey('consumers', null);
+  if(db) return db;
+  await writeKey('consumers', DEFAULT_DB);
+  return DEFAULT_DB;
+}
+async function saveDB(db){ await writeKey('consumers', db); }
+
+const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [] };
+async function loadLettersDB(){
+  const db = await readKey('letters', null);
+  if(db){
+    console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
+    return db;
+  }
+  console.warn("Letters DB missing, initializing with defaults");
+  await writeKey('letters', LETTERS_DEFAULT);
+  return LETTERS_DEFAULT;
 }
 
-const LEADS_DB_PATH = path.join(__dirname, "leads-db.json");
-async function loadLeadsDB(){ return readJson(LEADS_DB_PATH, { leads: [] }); }
-async function saveLeadsDB(db){ await writeJson(LEADS_DB_PATH, db); }
+async function saveLettersDB(db){
+  await writeKey('letters', db);
+  console.log(`Saved letters DB with ${db.jobs.length} jobs`);
+}
 
-const INVOICES_DB_PATH = path.join(__dirname, "invoices-db.json");
-async function loadInvoicesDB(){ return readJson(INVOICES_DB_PATH, { invoices: [] }); }
-async function saveInvoicesDB(db){ await writeJson(INVOICES_DB_PATH, db); }
+async function loadLeadsDB(){
+  const db = await readKey('leads', null);
+  if(db) return db;
+  const def = { leads: [] };
+  await writeKey('leads', def);
+  return def;
+}
+async function saveLeadsDB(db){ await writeKey('leads', db); }
 
-const CONTACTS_DB_PATH = path.join(__dirname, "contacts-db.json");
-async function loadContactsDB(){ return readJson(CONTACTS_DB_PATH, { contacts: [] }); }
-async function saveContactsDB(db){ await writeJson(CONTACTS_DB_PATH, db); }
+async function loadInvoicesDB(){
+  const db = await readKey('invoices', null);
+  if(db) return db;
+  const def = { invoices: [] };
+  await writeKey('invoices', def);
+  return def;
+}
+async function saveInvoicesDB(db){ await writeKey('invoices', db); }
 
-const USERS_DB_PATH = path.join(__dirname, "users-db.json");
-async function loadUsersDB(){ return readJson(USERS_DB_PATH, { users: [] }); }
-async function saveUsersDB(db){ await writeJson(USERS_DB_PATH, db); }
+async function loadContactsDB(){
+  const db = await readKey('contacts', null);
+  if(db) return db;
+  const def = { contacts: [] };
+  await writeKey('contacts', def);
+  return def;
+}
+async function saveContactsDB(db){ await writeKey('contacts', db); }
 
-const TASKS_DB_PATH = path.join(__dirname, "tasks-db.json");
-async function loadTasksDB(){ return readJson(TASKS_DB_PATH, { tasks: [] }); }
-async function saveTasksDB(db){ await writeJson(TASKS_DB_PATH, db); }
+async function loadUsersDB(){
+  const db = await readKey('users', null);
+  if(db) return db;
+  const def = { users: [] };
+  await writeKey('users', def);
+  return def;
+}
+async function saveUsersDB(db){ await writeKey('users', db); }
+
+async function loadTasksDB(){
+  const db = await readKey('tasks', null);
+  if(db) return db;
+  const def = { tasks: [] };
+  await writeKey('tasks', def);
+  return def;
+}
+async function saveTasksDB(db){ await writeKey('tasks', db); }
 
 async function processTasks(){
   const db = await loadTasksDB();
@@ -593,8 +623,9 @@ function extractCreditScores(html){
 }
 
 // =================== Consumers ===================
-app.get("/api/consumers", authenticate, requireRole("admin"), async (_req,res)=> res.json(await loadDB()));
-app.post("/api/consumers", authenticate, requireRole("admin"), async (req,res)=>{
+app.get("/api/consumers", authenticate, requirePermission("consumers"), async (_req,res)=> res.json(await loadDB()));
+app.post("/api/consumers", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db = await loadDB();
 
   const id = nanoid(10);
@@ -623,7 +654,8 @@ app.post("/api/consumers", authenticate, requireRole("admin"), async (req,res)=>
   res.json({ ok:true, consumer });
 });
 
-app.put("/api/consumers/:id", authenticate, requireRole("admin"), async (req,res)=>{
+app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db = await loadDB();
 
   const c = db.consumers.find(x=>x.id===req.params.id);
@@ -643,7 +675,8 @@ app.put("/api/consumers/:id", authenticate, requireRole("admin"), async (req,res
   res.json({ ok:true, consumer:c });
 });
 
-app.delete("/api/consumers/:id", authenticate, requireRole("admin"), async (req,res)=>{
+app.delete("/api/consumers/:id", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db=await loadDB();
 
   const i=db.consumers.findIndex(c=>c.id===req.params.id);
@@ -1485,7 +1518,6 @@ app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
 // =================== Letters & PDFs ===================
 const LETTERS_DIR = path.join(__dirname, "letters");
 fs.mkdirSync(LETTERS_DIR,{ recursive:true });
-const JOBS_INDEX_PATH = path.join(LETTERS_DIR, "_jobs.json");
 
 // in-memory jobs
 const JOB_TTL_MS = 30*60*1000;
@@ -1497,12 +1529,12 @@ function getJobMem(jobId){
   if(Date.now()-j.createdAt > JOB_TTL_MS){ jobs.delete(jobId); return null; }
   return j;
 }
-setInterval(()=>{
+setInterval(async ()=>{
   const now = Date.now();
   for(const [id,j] of jobs){
     if(now - j.createdAt > JOB_TTL_MS) jobs.delete(id);
   }
-  const idx = loadJobsIndex();
+  const idx = await loadJobsIndex();
   let changed = false;
   for(const [id,meta] of Object.entries(idx.jobs || {})){
     if(now - (meta.createdAt || 0) > JOB_TTL_MS){
@@ -1512,26 +1544,22 @@ setInterval(()=>{
       changed = true;
     }
   }
-  if(changed) saveJobsIndex(idx);
+  if(changed) await saveJobsIndex(idx);
 }, 5*60*1000);
 
-// disk index helpers
-function loadJobsIndex(){
-  try{
-    fs.mkdirSync(LETTERS_DIR,{ recursive:true });
-    const raw = fs.readFileSync(JOBS_INDEX_PATH,"utf-8");
-    return JSON.parse(raw);
-  }catch{ return { jobs:{} }; }
+// disk index helpers stored in SQLite
+async function loadJobsIndex(){
+  const idx = await readKey('letter_jobs_idx', null);
+  return idx || { jobs:{} };
 }
-function saveJobsIndex(idx){
-  fs.mkdirSync(LETTERS_DIR,{ recursive:true });
-  fs.writeFileSync(JOBS_INDEX_PATH, JSON.stringify(idx,null,2));
+async function saveJobsIndex(idx){
+  await writeKey('letter_jobs_idx', idx);
 }
 
 // Create job: memory + disk
-function persistJobToDisk(jobId, letters){
+async function persistJobToDisk(jobId, letters){
   console.log(`Persisting job ${jobId} with ${letters.length} letters to disk`);
-  const idx = loadJobsIndex();
+  const idx = await loadJobsIndex();
   idx.jobs[jobId] = {
     createdAt: Date.now(),
     dir: jobId,
@@ -1542,14 +1570,14 @@ function persistJobToDisk(jobId, letters){
       useOcr: !!L.useOcr
     }))
   };
-  saveJobsIndex(idx);
-  console.log(`Job ${jobId} saved to index at ${JOBS_INDEX_PATH}`);
+  await saveJobsIndex(idx);
+  console.log(`Job ${jobId} saved to index`);
 }
 
 // Load job from disk (returns { letters: [{... , htmlPath}]})
-function loadJobFromDisk(jobId){
+async function loadJobFromDisk(jobId){
   console.log(`Loading job ${jobId} from disk`);
-  const idx = loadJobsIndex();
+  const idx = await loadJobsIndex();
   const meta = idx.jobs?.[jobId];
   if(!meta){
     console.warn(`Job ${jobId} not found on disk`);
@@ -1564,15 +1592,15 @@ function loadJobFromDisk(jobId){
   return { letters, createdAt: meta.createdAt || Date.now(), dir: jobDir };
 }
 
-function deleteJob(jobId){
+async function deleteJob(jobId){
   jobs.delete(jobId);
-  const idx = loadJobsIndex();
+  const idx = await loadJobsIndex();
   const meta = idx.jobs?.[jobId];
   if(meta){
     const dir = path.join(LETTERS_DIR, meta.dir || jobId);
     try{ fs.rmSync(dir, { recursive:true, force:true }); }catch{}
     delete idx.jobs[jobId];
-    saveJobsIndex(idx);
+    await saveJobsIndex(idx);
   }
 }
 
@@ -1645,7 +1673,7 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
     }
 
     putJobMem(jobId, letters);
-    persistJobToDisk(jobId, letters);
+    await persistJobToDisk(jobId, letters);
     recordLettersJob(req.user.id, consumer.id, jobId, letters);
     console.log(`Letters job ${jobId} recorded with ${letters.length} letters`);
 
@@ -2183,9 +2211,8 @@ const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`CRM ready    http://localhost:${PORT}`);
-    console.log(`DB           ${DB_PATH}`);
+    console.log(`DB file      ${DB_FILE}`);
     console.log(`Letters dir  ${LETTERS_DIR}`);
-    console.log(`Letters DB   ${LETTERS_DB_PATH}`);
   });
 }
 

@@ -1,15 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { readKey, writeKey } from '../kvdb.js';
 
 const PORT = 4103;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
-const DB_PATH = path.join(root, 'db.json');
-
 async function startServer(){
   return new Promise(resolve => {
     const proc = spawn('node', ['server.js'], {
@@ -29,14 +27,12 @@ async function fetchJson(url, options){
 }
 
 await test('jobs with identical filenames are isolated', async () => {
-  const originalDb = fs.readFileSync(DB_PATH, 'utf8');
-  const db = JSON.parse(originalDb);
+  const originalDb = await readKey('consumers', { consumers: [] });
+  const db = JSON.parse(JSON.stringify(originalDb));
   const base = db.consumers[0];
-  const clone = JSON.parse(JSON.stringify(base));
-  clone.id = 'clone123';
-  clone.name = 'Second Consumer';
+  const clone = { ...base, id: 'clone123', name: 'Second Consumer' };
   db.consumers.push(clone);
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  await writeKey('consumers', db);
 
   const server = await startServer();
   try {
@@ -75,6 +71,6 @@ await test('jobs with identical filenames are isolated', async () => {
     if(zipRes2.status === 200) assert.ok(buf2.length > 0);
   } finally {
     server.kill();
-    fs.writeFileSync(DB_PATH, originalDb);
+    await writeKey('consumers', originalDb);
   }
 });
