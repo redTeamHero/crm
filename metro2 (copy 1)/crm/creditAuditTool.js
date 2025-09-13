@@ -32,7 +32,8 @@ async function fetchCreditReport(srcPath){
         });
       });
     } catch(err) {
-      throw new Error(`Failed to convert HTML report: ${err.message}`);
+      console.error(`Failed to convert HTML report: ${err.message}`);
+      return {};
     }
     reportPath = outPath;
   }
@@ -41,13 +42,15 @@ async function fetchCreditReport(srcPath){
   try {
     raw = await fs.readFile(reportPath, 'utf-8');
   } catch(err) {
-    throw new Error(`Failed to read report: ${err.message}`);
+    console.error(`Failed to read report: ${err.message}`);
+    return {};
   }
 
   try {
     return JSON.parse(raw);
   } catch(err) {
-    throw new Error(`Invalid report JSON: ${err.message}`);
+    console.error(`Invalid report JSON: ${err.message}`);
+    return {};
   }
 }
 
