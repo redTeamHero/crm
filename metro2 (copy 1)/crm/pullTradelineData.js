@@ -76,7 +76,7 @@ async function pullTradelineData({ apiUrl, fetchImpl = fetch, overrides = {}, au
   return report;
 }
 
-export { pullTradelineData, enrichTradeline };
+export { enrichTradeline };
 export default pullTradelineData;
 
 async function runMetro2Audit(html) {
