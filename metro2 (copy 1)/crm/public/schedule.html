@@ -74,6 +74,27 @@
     </div>
   </div>
 </main>
+
+<div id="eventModal" class="fixed inset-0 hidden items-center justify-center bg-black/50">
+  <div class="bg-white p-4 rounded w-80">
+    <h2 class="text-lg font-bold mb-2">Event</h2>
+    <label class="block mb-2 text-sm">Date
+      <input id="eventDate" type="date" class="border p-1 w-full">
+    </label>
+    <label class="block mb-2 text-sm">Type
+      <input id="eventType" type="text" class="border p-1 w-full" placeholder="booking/meeting/phone">
+    </label>
+    <label class="block mb-4 text-sm">Details
+      <input id="eventText" type="text" class="border p-1 w-full">
+    </label>
+    <div class="flex justify-end gap-2">
+      <button id="deleteEvent" class="btn bg-red-600 hidden">Delete</button>
+      <button id="cancelEvent" class="btn">Cancel</button>
+      <button id="saveEvent" class="btn">Save</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="/common.js"></script>
 <script src="/hotkeys.js"></script>
 <script src="/schedule.js"></script>
