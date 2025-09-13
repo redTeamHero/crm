@@ -1048,6 +1048,17 @@ $("#fileInput").addEventListener("change", async (e)=>{
       localStorage.setItem("creditScore", JSON.stringify(data.creditScore));
       window.dispatchEvent(new StorageEvent("storage", { key: "creditScore" }));
     }
+    currentReportId = data.reportId;
+    CURRENT_REPORT = null;
+    tlPage = 1;
+    tlTotalPages = 1;
+    CURRENT_COLLECTORS = [];
+    Object.keys(collectorSelection).forEach(k=> delete collectorSelection[k]);
+    hiddenTradelines.clear();
+    Object.keys(selectionState).forEach(k=> delete selectionState[k]);
+    trackerData = {};
+    trackerSteps = [];
+    await loadReportJSON();
     await refreshReports();
     await loadConsumerState();
   }catch(err){
