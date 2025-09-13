@@ -1,6 +1,6 @@
 // public/billing.js
+import { api } from './common.js';
 const $ = (s) => document.querySelector(s);
-const api = (u,o={}) => fetch(u,o).then(r=>r.json());
 
 const consumerId = getSelectedConsumerId();
 
@@ -31,7 +31,7 @@ async function loadInvoices(){
     const btn = tr.querySelector('.mark-paid');
     if(btn){
       btn.addEventListener('click', async ()=>{
-        await api(`/api/invoices/${inv.id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({paid:true}) });
+        await api(`/api/invoices/${inv.id}`, { method:'PUT', body: JSON.stringify({paid:true}) });
         trackEvent('purchase', { amount: inv.amount });
         loadInvoices();
       });
@@ -46,7 +46,7 @@ document.getElementById('invAdd')?.addEventListener('click', async ()=>{
   const due = $('#invDue').value;
   if(!desc || !amount) return;
   const company = JSON.parse(localStorage.getItem('companyInfo')||'{}');
-  await api('/api/invoices', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ consumerId, desc, amount, due, company }) });
+  await api('/api/invoices', { method:'POST', body: JSON.stringify({ consumerId, desc, amount, due, company }) });
   $('#invDesc').value='';
   $('#invAmount').value='';
   $('#invDue').value='';

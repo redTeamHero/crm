@@ -1,6 +1,6 @@
 // public/letters.js
+import { api } from './common.js';
 const $ = (s) => document.querySelector(s);
-const api = (u, o={}) => fetch(u, o).then(r => r.json());
 
 function showErr(msg){
   const e=$("#err"); e.textContent=msg; e.classList.remove("hidden");
@@ -192,12 +192,10 @@ $("#btnEmailAll").addEventListener("click", async ()=>{
   btn.disabled = true;
   btn.textContent = "Sending...";
   try{
-    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/email`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
+    const data = await api(`/api/letters/${encodeURIComponent(JOB_ID)}/email`, {
+      method: 'POST',
       body: JSON.stringify({ to })
     });
-    const data = await resp.json().catch(()=> ({}));
     if(!data?.ok) throw new Error(data?.error || "Failed to email letters.");
     alert("Letters emailed.");
   }catch(e){ showErr(e.message || String(e)); }
