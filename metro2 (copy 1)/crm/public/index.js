@@ -419,6 +419,7 @@ async function loadReportJSON(){
   tlPage = 1;
   hiddenTradelines.clear();
   Object.keys(selectionState).forEach(k=> delete selectionState[k]);
+  activeFilters.clear();
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines);
   renderCollectors(CURRENT_REPORT.creditor_contacts || []);
