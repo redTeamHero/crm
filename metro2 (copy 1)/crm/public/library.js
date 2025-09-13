@@ -52,9 +52,26 @@ function renderMainTemplates(){
   renderList(mainTemplates, 'mainList', useMainTemplate, assignMainTemplate);
 }
 
+function showTemplateEditor(){
+  const editor = document.getElementById('tplEditor');
+  if(editor) editor.classList.remove('hidden');
+}
+
+function hideTemplateEditor(){
+  const editor = document.getElementById('tplEditor');
+  if(editor) editor.classList.add('hidden');
+  currentTemplateId = null;
+  ['tplHeading','tplIntro','tplAsk','tplAfter','tplEvidence'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  updatePreview();
+}
+
 function editTemplate(id){
   const tpl = templates.find(t => t.id === id) || {};
   currentTemplateId = id;
+  showTemplateEditor();
   document.getElementById('tplHeading').value = tpl.heading || '';
   document.getElementById('tplIntro').value = tpl.intro || '';
   document.getElementById('tplAsk').value = tpl.ask || '';
@@ -67,6 +84,7 @@ function useMainTemplate(id){
   const tpl = mainTemplates.find(t => t.id === id);
   if(!tpl) return;
   currentTemplateId = id;
+  showTemplateEditor();
   document.getElementById('tplHeading').value = tpl.heading || '';
   document.getElementById('tplIntro').value = tpl.intro || '';
   document.getElementById('tplAsk').value = tpl.ask || '';
@@ -88,16 +106,14 @@ async function assignMainTemplate(slotId, templateId){
   }
 }
 
-function openTemplateModal(){
+function openTemplateEditor(){
   currentTemplateId = null;
-  document.getElementById('tplModal').style.display='flex';
-  ['modalTplHeading','modalTplIntro','modalTplAsk','modalTplAfter','modalTplEvidence'].forEach(id=>{
-    document.getElementById(id).value='';
+  showTemplateEditor();
+  ['tplHeading','tplIntro','tplAsk','tplAfter','tplEvidence'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value='';
   });
-}
-
-function closeTemplateModal(){
-  document.getElementById('tplModal').style.display='none';
+  updatePreview();
 }
 
 async function upsertTemplate(payload){
@@ -134,19 +150,6 @@ async function saveTemplate(){
 function saveTemplateAsNew(){
   currentTemplateId = null;
   saveTemplate();
-}
-
-async function saveTemplateFromModal(){
-  const payload = {
-    heading: document.getElementById('modalTplHeading').value,
-    intro: document.getElementById('modalTplIntro').value,
-    ask: document.getElementById('modalTplAsk').value,
-    afterIssues: document.getElementById('modalTplAfter').value,
-    evidence: document.getElementById('modalTplEvidence').value
-  };
-  const id = await upsertTemplate(payload);
-  if(id) editTemplate(id);
-  closeTemplateModal();
 }
 
 function updatePreview(){
@@ -225,10 +228,8 @@ async function saveSequence(){
 
 document.getElementById('saveTemplate').onclick = saveTemplate;
 document.getElementById('saveTemplateCopy').onclick = saveTemplateAsNew;
-document.getElementById('newTemplate').onclick = openTemplateModal;
-document.getElementById('tplModalClose').onclick = closeTemplateModal;
-document.getElementById('modalSaveTemplate').onclick = saveTemplateFromModal;
-document.getElementById('modalSaveTemplateCopy').onclick = saveTemplateFromModal;
+document.getElementById('newTemplate').onclick = openTemplateEditor;
+document.getElementById('cancelTemplate').onclick = hideTemplateEditor;
 document.getElementById('saveSequence').onclick = saveSequence;
 document.getElementById('newSequence').onclick = newSequence;
 
