@@ -168,11 +168,15 @@ function currentPageItems(){
 async function loadConsumers(restore = true){
   clearErr();
   const data = await api("/api/consumers");
-  if (data.status === 401 || data.status === 403 || data.error === 'Forbidden') {
+  if (data.status === 401) {
     alert('Please log in');
     localStorage.removeItem('token');
     localStorage.removeItem('auth');
     location.href = '/login.html';
+    return;
+  }
+  if (data.status === 403 || data.error === 'Forbidden') {
+    alert('Forbidden / ask admin for access');
     return;
   }
   if (data.ok === false || !data.consumers) {
