@@ -504,10 +504,11 @@ export function mergeBureauViolations(vs){
     const id = v.id || v.code || "";
     const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[1]].filter(Boolean);
     const key = `${id}|${v.category||""}|${base}|${evKey}`;
-    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),severity:v.severity||0});
+    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),debugs:new Set(),severity:v.severity||0});
     const entry = map.get(key);
     bureaus.forEach(bureau => entry.bureaus.add(bureau));
     if(detailClean) entry.details.add(detailClean);
+    if(v.debug) entry.debugs.add(v.debug);
     if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
 
   });
@@ -516,7 +517,8 @@ export function mergeBureauViolations(vs){
     title: e.title,
     detail: Array.from(e.details).join(' '),
     severity: e.severity,
-    bureaus: Array.from(e.bureaus)
+    bureaus: Array.from(e.bureaus),
+    debug: Array.from(e.debugs).join('\n')
   }));
 }
 
@@ -744,6 +746,7 @@ function renderTradelines(tradelines){
             <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}${v.severity ? `<span class="severity-tag severity-${v.severity}">S${v.severity}</span>` : ""}</div>
             ${v.bureaus && v.bureaus.length ? `<div class="text-xs mt-1">${v.bureaus.map(b=>'<span class="badge badge-bureau">'+escapeHtml(b)+'</span>').join(' ')}</div>` : ""}
             ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
+            ${v.debug ? `<pre class="debug">${escapeHtml(v.debug)}</pre>` : ""}
           </div>
         </label>`).join("");
 
@@ -887,6 +890,7 @@ function buildZoomHTML(tl){
     <li class="mb-2">
       <div class="font-medium">${escapeHtml(v.category||"")} – ${escapeHtml(v.title||"")}${v.bureaus && v.bureaus.length ? ' '+v.bureaus.map(b=>'<span class="badge badge-bureau">'+escapeHtml(b)+'</span>').join(' ') : ''}</div>
       ${v.detail? `<div class="text-gray-600">${escapeHtml(v.detail)}</div>` : ""}
+      ${v.debug ? `<pre class="debug">${escapeHtml(v.debug)}</pre>` : ""}
     </li>`).join("") || "<div class='text-sm muted'>No violations detected.</div>";
 
   return `

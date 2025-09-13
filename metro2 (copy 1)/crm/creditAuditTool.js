@@ -84,7 +84,8 @@ function buildIssues(tl, idxs = null){
         bureau: v.evidence?.bureau || 'All Bureaus',
         severity: v.severity,
         fcra: legal.fcra,
-        fdcpa: legal.fdcpa
+        fdcpa: legal.fdcpa,
+        debug: v.debug
       };
     });
 }
@@ -188,7 +189,8 @@ export function renderHtml(report, consumerName = "Consumer"){
         const action = recommendAction(i.title);
         const code = i.code ? `[${escapeHtml(i.code)}] ` : "";
         const sev = i.severity ? ` (Severity ${escapeHtml(String(i.severity))})` : "";
-        return `<li><strong>${escapeHtml(i.bureau)}</strong>: ${code}${escapeHtml(i.title)}${sev} - This violates Metro 2 standard because ${escapeHtml(i.detail || "")}. It also violates FCRA ${escapeHtml(i.fcra)} and FDCPA ${escapeHtml(i.fdcpa)}. ${escapeHtml(action)}</li>`;
+        const debugBlock = i.debug ? `<pre class="debug">${escapeHtml(i.debug)}</pre>` : "";
+        return `<li><strong>${escapeHtml(i.bureau)}</strong>: ${code}${escapeHtml(i.title)}${sev} - This violates Metro 2 standard because ${escapeHtml(i.detail || "")}. It also violates FCRA ${escapeHtml(i.fcra)} and FDCPA ${escapeHtml(i.fdcpa)}. ${escapeHtml(action)}${debugBlock}</li>`;
 
       }).filter(Boolean).join('');
     const issueBlock = issueItems ? `<p><strong>Audit Reasons:</strong></p><ul>${issueItems}</ul>` : "";
@@ -213,6 +215,7 @@ export function renderHtml(report, consumerName = "Consumer"){
   th.bureau{text-align:center;background:#f5f5f5;}
   tr.diff td{background:#fff3cd;}
   .neg{background:#fee2e2;color:#b91c1c;}
+  pre.debug{background:#f3f4f6;border:1px solid #ddd;padding:4px;white-space:pre-wrap;font-size:0.8em;margin-top:4px;}
   footer{margin-top:40px;font-size:0.8em;color:#555;}
   </style></head>
   <body>
