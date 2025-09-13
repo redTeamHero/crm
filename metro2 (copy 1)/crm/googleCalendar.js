@@ -1,9 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import nodeFetch from 'node-fetch';
 import { readJson } from './utils.js';
-
-const fetchFn = globalThis.fetch || nodeFetch;
+import { fetchFn } from './fetchUtil.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
