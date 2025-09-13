@@ -1649,25 +1649,27 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
 
     });
 
-    // schedule reminders for subsequent playbook steps
-    for (const sel of selections || []) {
-      const play = sel.playbook && PLAYBOOKS[sel.playbook];
-      if (!play) continue;
-      play.letters.slice(1).forEach((title, idx) => {
-        const due = new Date();
-        due.setDate(due.getDate() + (idx + 1) * 30);
-        await addReminder(consumer.id, {
-          id: `rem_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-          due: due.toISOString(),
-          payload: {
-            tradelineIndex: sel.tradelineIndex,
-            playbook: sel.playbook,
-            step: title,
-            stepNumber: idx + 2,
-          },
-        });
-      });
-    }
+for (const sel of selections || []) {
+  const play = sel.playbook && PLAYBOOKS[sel.playbook];
+  if (!play) continue;
+
+  const letters = play.letters.slice(1); // skip the first letter
+  for (const [idx, title] of letters.entries()) {
+    const due = new Date();
+    due.setDate(due.getDate() + (idx + 1) * 30);
+
+    await addReminder(consumer.id, {
+      id: `rem_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      due: due.toISOString(),
+      payload: {
+        tradelineIndex: sel.tradelineIndex,
+        playbook: sel.playbook,
+        step: title,
+        stepNumber: idx + 2,
+      },
+    });
+  }
+}
 
     res.json({ ok:true, redirect: `/letters?job=${jobId}` });
   }catch(e){
