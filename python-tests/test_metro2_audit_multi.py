@@ -1,5 +1,9 @@
 import unittest
+import sys
+from pathlib import Path
 
+# Allow importing metro2_audit_multi from the project directory
+sys.path.append(str(Path(__file__).resolve().parents[1] / "metro2 (copy 1)" / "crm"))
 import metro2_audit_multi as m2
 
 
@@ -34,14 +38,13 @@ class TestDuplicateAccount(unittest.TestCase):
         m2.SEEN_ACCOUNT_NUMBERS.clear()
         per_bureau1 = {b: {} for b in m2.BUREAUS}
         per_bureau1["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
-        v1, _ = m2.run_rules_for_tradeline("CredA", per_bureau1, None)
+        v1, _ = m2.run_rules_for_tradeline("CredA", per_bureau1, {"global": {"disabled": ["10"]}})
         self.assertEqual(len(v1), 0)
 
         per_bureau2 = {b: {} for b in m2.BUREAUS}
         per_bureau2["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
-        v2, _ = m2.run_rules_for_tradeline("CredB", per_bureau2, None)
+        v2, _ = m2.run_rules_for_tradeline("CredB", per_bureau2, {"global": {"disabled": ["10"]}})
         self.assertTrue(any(v["id"] == "DUPLICATE_ACCOUNT" for v in v2))
-
 
 
 if __name__ == "__main__":

@@ -30,8 +30,16 @@ node creditAuditTool.js data/report.json
 ```
 
 ## Test
+
+### Node tests
 ```bash
+cd "metro2 (copy 1)/crm"
 npm test
+```
+
+### Python tests
+```bash
+./python-tests/run.sh
 ```
 
 ## Deploy
