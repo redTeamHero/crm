@@ -1,9 +1,19 @@
 /* public/login.js */
 
-// If a user already has auth state, skip the login form
-if (localStorage.getItem('token') || localStorage.getItem('auth')) {
-  location.href = '/clients';
-}
+// If a user already has valid auth, skip the login form
+(async () => {
+  const headers = authHeader();
+  if (!headers.Authorization) return; // nothing saved
+  try {
+    const res = await fetch('/api/me', { headers });
+    if (res.ok) {
+      location.href = '/clients';
+    }
+  } catch {
+    /* ignore network or auth errors and show login */
+  }
+})();
+
 async function handleAuth(endpoint, body, role){
   try{
     const res = await fetch(endpoint,{
