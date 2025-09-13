@@ -33,7 +33,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 const TOKEN_EXPIRES_IN = "1h";
 
 function generateToken(user){
-  return jwt.sign({ id: user.id, username: user.username, role: user.role, permissions: user.permissions || [] }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES_IN });
+  return jwt.sign({ id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions || [] }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES_IN });
 }
 
 
@@ -625,6 +625,7 @@ function extractCreditScores(html){
 // =================== Consumers ===================
 app.get("/api/consumers", authenticate, requirePermission("consumers"), async (_req,res)=> res.json(await loadDB()));
 app.post("/api/consumers", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db = await loadDB();
 
   const id = nanoid(10);
@@ -654,6 +655,7 @@ app.post("/api/consumers", authenticate, requirePermission("consumers"), async (
 });
 
 app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db = await loadDB();
 
   const c = db.consumers.find(x=>x.id===req.params.id);
@@ -674,6 +676,7 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
 });
 
 app.delete("/api/consumers/:id", authenticate, requirePermission("consumers"), async (req,res)=>{
+
   const db=await loadDB();
 
   const i=db.consumers.findIndex(c=>c.id===req.params.id);
@@ -816,6 +819,7 @@ app.post("/api/register", async (req,res)=>{
   const user = {
     id: nanoid(10),
     username: req.body.username || "",
+    name: req.body.name || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role: "member",
     permissions: []
@@ -878,23 +882,24 @@ app.post("/api/users", optionalAuth, async (req,res)=>{
   const user = {
     id: nanoid(10),
     username: req.body.username || "",
+    name: req.body.name || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role,
     permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
   };
   db.users.push(user);
   await saveUsersDB(db);
-  res.json({ ok:true, user: { id: user.id, username: user.username, role: user.role, permissions: user.permissions } });
+  res.json({ ok:true, user: { id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions } });
 
 });
 
 app.get("/api/users", authenticate, requireRole("admin"), async (_req,res)=>{
   const db = await loadUsersDB();
-  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, role:u.role, permissions: u.permissions || [] })) });
+  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, name:u.name, role:u.role, permissions: u.permissions || [] })) });
 });
 
 app.get("/api/me", authenticate, (req,res)=>{
-  res.json({ ok:true, user: { id: req.user.id, username: req.user.username, role: req.user.role, permissions: req.user.permissions || [] } });
+  res.json({ ok:true, user: { id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role, permissions: req.user.permissions || [] } });
 });
 
 app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res)=>{
