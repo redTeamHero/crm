@@ -1,5 +1,19 @@
 /* public/login.js */
 
+function redirectByRole(user){
+  const role = user?.role;
+  const perms = user?.permissions || [];
+  if(role === 'client'){
+    location.href = '/client-portal-template.html';
+  }else if(role === 'team'){
+    location.href = '/team-member-template.html';
+  }else if(role === 'admin' || (role === 'member' && perms.includes('consumers'))){
+    location.href = '/clients';
+  }else{
+    location.href = '/clients';
+  }
+}
+
 // If a user already has valid auth, skip the login form
 document.addEventListener('DOMContentLoaded', async () => {
 
@@ -8,14 +22,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const res = await fetch('/api/me', { headers });
     if (res.ok) {
-      location.href = '/clients';
+      const data = await res.json();
+      redirectByRole(data.user);
     }
   } catch {
     /* ignore network or auth errors and show login */
   }
 });
 
-async function handleAuth(endpoint, body, role){
+async function handleAuth(endpoint, body){
   try{
     const res = await fetch(endpoint,{
       method:'POST',
@@ -36,16 +51,15 @@ async function handleAuth(endpoint, body, role){
       if(body.username){
         localStorage.setItem('auth', btoa(`${body.username}:${body.password}`));
       }
-      switch(role){
-        case 'client':
-          location.href = '/client-portal-template.html';
-          break;
-        case 'team':
-          location.href = '/team-member-template.html';
-          break;
-        default:
-          location.href = '/clients';
-      }
+      try{
+        const meRes = await fetch('/api/me', { headers: authHeader() });
+        if(meRes.ok){
+          const meData = await meRes.json();
+          redirectByRole(meData.user);
+          return;
+        }
+      }catch{}
+      redirectByRole();
     }
   }catch(err){
     showError(err.message);
@@ -77,7 +91,7 @@ document.getElementById('btnLogin').addEventListener('click', ()=>{
     endpoint = `/api/team/${encodeURIComponent(username)}/login`;
     body = { password };
   }
-  handleAuth(endpoint, body, role);
+  handleAuth(endpoint, body);
 });
 
 document.getElementById('btnRegister').addEventListener('click', ()=>{
@@ -87,7 +101,7 @@ document.getElementById('btnRegister').addEventListener('click', ()=>{
     showError('Username and password required');
     return;
   }
-  handleAuth('/api/register', { username, password }, 'host');
+  handleAuth('/api/register', { username, password });
 });
 
 // simple password reset flow using prompts
