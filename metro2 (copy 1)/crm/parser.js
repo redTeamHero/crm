@@ -74,6 +74,7 @@ function parseCreditReportHTML(doc) {
       rule("Last Reported", ["last_reported"]),
       rule(/(Date\s*of\s*)?Last Payment(?:\s*Date)?/i, ["date_last_payment"]),
       rule("Date Last Active", ["date_last_active"]),
+      rule("Date Closed", ["date_closed"]),
       rule(/Date(?: of)? First Delinquency/i, ["date_first_delinquency"]),
       rule("No. of Months (terms)", ["months_terms"]),
 
@@ -300,16 +301,8 @@ function parseCreditReportHTML(doc) {
     }
 
     // dates -> output as MM/DD/YYYY when possible
-    if (
-      [
-        "date_opened",
-        "last_reported",
-        "date_last_payment",
-        "date_last_active",
-        "date_closed",
-        "date_first_delinquency",
-      ].includes(field)
-    ) {
+    if (["date_opened", "last_reported", "date_last_payment", "date_last_active", "date_closed"].includes(field)) {
+
       const d = coerceDateMDY(v);
       return d || v;
     }
