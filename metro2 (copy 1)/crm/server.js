@@ -193,8 +193,11 @@ function hasPermission(user, perm){
   return !!(user && (user.role === "admin" || (user.permissions || []).includes(perm)));
 }
 
-function requirePermission(_perm){
-  return (_req, _res, next)=> next();
+function requirePermission(perm){
+  return (req, res, next) => {
+    if (hasPermission(req.user, perm)) return next();
+    res.status(403).send("Forbidden");
+  };
 }
 
 function forbidMember(req,res,next){
@@ -591,8 +594,8 @@ function extractCreditScores(html){
 }
 
 // =================== Consumers ===================
-app.get("/api/consumers", (_req,res)=> res.json(loadDB()));
-app.post("/api/consumers", (req,res)=>{
+app.get("/api/consumers", authenticate, requirePermission("consumers"), (_req,res)=> res.json(loadDB()));
+app.post("/api/consumers", authenticate, requirePermission("consumers"), (req,res)=>{
   const db = loadDB();
   const id = nanoid(10);
   const consumer = {
@@ -620,7 +623,7 @@ app.post("/api/consumers", (req,res)=>{
   res.json({ ok:true, consumer });
 });
 
-app.put("/api/consumers/:id", (req,res)=>{
+app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), (req,res)=>{
   const db = loadDB();
   const c = db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
@@ -639,7 +642,7 @@ app.put("/api/consumers/:id", (req,res)=>{
   res.json({ ok:true, consumer:c });
 });
 
-app.delete("/api/consumers/:id", (req,res)=>{
+app.delete("/api/consumers/:id", authenticate, requirePermission("consumers"), (req,res)=>{
   const db=loadDB();
   const i=db.consumers.findIndex(c=>c.id===req.params.id);
   if(i===-1) return res.status(404).json({ ok:false, error:"Consumer not found" });

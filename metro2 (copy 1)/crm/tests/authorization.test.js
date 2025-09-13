@@ -10,6 +10,8 @@ import jwt from 'jsonwebtoken';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const USERS_DB_PATH = path.join(__dirname, '..', 'users-db.json');
 const original = fs.existsSync(USERS_DB_PATH) ? fs.readFileSync(USERS_DB_PATH) : null;
+const DB_PATH = path.join(__dirname, '..', 'db.json');
+const consumerId = JSON.parse(fs.readFileSync(DB_PATH, 'utf8')).consumers[0].id;
 
 const admin = { id: 'a1', username: 'admin', password: bcrypt.hashSync('secret', 10), role: 'admin', permissions: [] };
 const member = { id: 'm1', username: 'member', password: bcrypt.hashSync('secret', 10), role: 'member', permissions: [] };
@@ -34,6 +36,36 @@ test('member cannot create team member', async () => {
     .post('/api/team-members')
     .set('Authorization', `Bearer ${token(member)}`)
     .send({ username: 'newbie' });
+  assert.equal(res.status, 403);
+});
+
+test('member cannot list consumers', async () => {
+  const res = await request(app)
+    .get('/api/consumers')
+    .set('Authorization', `Bearer ${token(member)}`);
+  assert.equal(res.status, 403);
+});
+
+test('member cannot create consumer', async () => {
+  const res = await request(app)
+    .post('/api/consumers')
+    .set('Authorization', `Bearer ${token(member)}`)
+    .send({ name: 'Test' });
+  assert.equal(res.status, 403);
+});
+
+test('member cannot update consumer', async () => {
+  const res = await request(app)
+    .put(`/api/consumers/${consumerId}`)
+    .set('Authorization', `Bearer ${token(member)}`)
+    .send({ name: 'Nope' });
+  assert.equal(res.status, 403);
+});
+
+test('member cannot delete consumer', async () => {
+  const res = await request(app)
+    .delete(`/api/consumers/${consumerId}`)
+    .set('Authorization', `Bearer ${token(member)}`);
   assert.equal(res.status, 403);
 });
 
