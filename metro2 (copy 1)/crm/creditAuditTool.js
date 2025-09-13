@@ -144,7 +144,8 @@ function recommendAction(issueTitle){
 
 // Build HTML report mimicking uploaded audit structure with bureau comparison
 export function renderHtml(report, consumerName = "Consumer"){
-  const accountSections = report.accounts.map(acc => {
+  const filtered = (report.accounts || []).filter(acc => Object.keys(acc.bureaus || {}).length);
+  const accountSections = filtered.map(acc => {
     const bureauData = acc.bureaus || {};
     const bureaus = Object.keys(bureauData);
     const fields = [
@@ -208,6 +209,8 @@ export function renderHtml(report, consumerName = "Consumer"){
     `;
   }).join("\n");
 
+  const sectionsHtml = accountSections || '<p>No bureau data</p>';
+
   const dateStr = new Date(report.generatedAt).toLocaleString();
   return `<!DOCTYPE html>
   <html><head><meta charset="utf-8"/><style>
@@ -226,7 +229,7 @@ export function renderHtml(report, consumerName = "Consumer"){
   <h1>${escapeHtml(consumerName)}</h1>
   <h1>Credit Repair Audit</h1>
   <h1>Your First Steps To Financial Freedom!</h1>
-  ${accountSections}
+  ${sectionsHtml}
   <footer>
     <hr/>
     <p>This report is for informational purposes only and is not legal advice.</p>
