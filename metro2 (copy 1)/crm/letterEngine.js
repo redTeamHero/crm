@@ -486,6 +486,7 @@ function buildLetterHTML({
   comparisonBureaus,
   modeKey,
   dateOverride,
+  template,
 }) {
   const dateStr = dateOverride || todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
@@ -498,7 +499,15 @@ function buildLetterHTML({
   );
   const tlBlock = buildTradelineBlockHTML(tl, bureau);
   const chosenList = buildViolationListHTML(tl.violations, selectedViolationIdxs);
-  const mc = modeCopy(modeKey, requestType);
+  const mc = template
+    ? {
+        heading: template.heading || "",
+        intro: template.intro || "",
+        ask: template.ask || "",
+        afterIssues: template.afterIssues || "",
+        evidence: template.evidence || "",
+      }
+    : modeCopy(modeKey, requestType);
 
   const intro = colorize(mc.intro);
   const ask = colorize(mc.ask);
@@ -757,9 +766,10 @@ function generateDebtCollectorLetters({ consumer, collectors = [] }) {
   return letters;
 }
 
-function generateLetters({ report, selections, consumer, requestType = "correct" }) {
+function generateLetters({ report, selections, consumer, requestType = "correct", templates = [] }) {
   const SPECIAL_ONE_BUREAU = new Set(["identity", "breach", "assault"]);
   const letters = [];
+  const templateMap = Object.fromEntries((templates || []).map(t => [t.id, t]));
 
   for (const sel of selections || []) {
     const tl = report.tradelines?.[sel.tradelineIndex];
@@ -819,15 +829,18 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
       for (const bureau of sel.bureaus || []) {
         if (!ALL_BUREAUS.includes(bureau)) continue;
 
+        const req = sel.requestType || requestType;
+        const tpl = sel.templateId ? templateMap[sel.templateId] : null;
         let letter = buildLetterHTML({
           consumer,
           bureau,
           tl,
           selectedViolationIdxs: sel.violationIdxs || [],
-          requestType,
+          requestType: req,
           comparisonBureaus,
           modeKey: sel.specialMode || null,
           dateOverride,
+          template: tpl,
         });
         let filename = letter.filename;
         if (play) {

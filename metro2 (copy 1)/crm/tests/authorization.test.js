@@ -6,7 +6,14 @@ import jwt from 'jsonwebtoken';
 import { readKey, writeKey } from '../kvdb.js';
 
 const originalUsers = await readKey('users', null);
-const consumerId = (await readKey('consumers', { consumers: [] })).consumers[0].id;
+let consumerId;
+const consumersDb = await readKey('consumers', null);
+if (consumersDb?.consumers?.length) {
+  consumerId = consumersDb.consumers[0].id;
+} else {
+  consumerId = 'test-consumer';
+  await writeKey('consumers', { consumers: [{ id: consumerId, name: 'Test', reports: [] }] });
+}
 
 
 const admin = { id: 'a1', username: 'admin', password: bcrypt.hashSync('secret', 10), role: 'admin', permissions: [] };

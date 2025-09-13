@@ -126,3 +126,35 @@ await test('useOcr flag applies to all generated letters', async () => {
     server.kill();
   }
 });
+
+await test('custom template selection applies template content', async () => {
+  const server = await startServer();
+  try {
+    const { json: db } = await fetchJson(`http://localhost:${PORT}/api/consumers`);
+    const consumerId = db.consumers[0].id;
+    const reportId = db.consumers[0].reports[0].id;
+    const tplRes = await fetchJson(`http://localhost:${PORT}/api/templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ heading: 'Custom Heading' })
+    });
+    const tplId = tplRes.json?.template?.id;
+    const payload = {
+      consumerId,
+      reportId,
+      selections: [{ tradelineIndex: 0, bureaus: ['TransUnion'], templateId: tplId }],
+    };
+    const { res, json } = await fetchJson(`http://localhost:${PORT}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    assert.equal(res.status, 200);
+    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    const htmlRes = await fetch(`http://localhost:${PORT}/api/letters/${jobId}/0.html`);
+    const html = await htmlRes.text();
+    assert.ok(html.includes('Custom Heading'));
+  } finally {
+    server.kill();
+  }
+});

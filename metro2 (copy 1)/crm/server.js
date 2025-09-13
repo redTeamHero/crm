@@ -1610,7 +1610,7 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
       consumerId,
       reportId,
       selections,
-      requestType,
+      requestType = 'correct',
       personalInfo,
       inquiries,
       collectors,
@@ -1636,7 +1636,8 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
       }
     }
 
-    const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType });
+    const lettersDb = await loadLettersDB();
+    const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType, templates: lettersDb.templates || [] });
     if (Array.isArray(personalInfo) && personalInfo.length) {
       letters.push(
         ...generatePersonalInfoLetters({

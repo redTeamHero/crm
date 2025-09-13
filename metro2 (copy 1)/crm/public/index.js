@@ -35,6 +35,18 @@ let trackerSteps = [];
 
 const ocrCb = $("#cbUseOcr");
 
+let CUSTOM_TEMPLATES = [];
+
+async function loadTemplates(){
+  try{
+    const res = await fetch('/api/templates');
+    const data = await res.json().catch(()=>({}));
+    CUSTOM_TEMPLATES = data.templates || [];
+    document.querySelectorAll('.tl-letter-select').forEach(sel=>populateLetterSelectOptions(sel));
+  }catch{}
+}
+loadTemplates();
+
 
 function updatePortalLink(){
   const links = ["#clientPortalLink", "#activityPortalLink"].map(sel => $(sel));
@@ -565,6 +577,26 @@ function setCardSelected(card, on){
   updateSelectionStateFromCard(card);
 }
 
+function populateLetterSelectOptions(sel, saved){
+  if(!sel) return;
+  const prev = saved || sel.value;
+  sel.innerHTML = '';
+  [
+    { value:'correct', label:'Correct' },
+    { value:'delete', label:'Delete' }
+  ].forEach(o=>{
+    const opt = document.createElement('option');
+    opt.value = o.value; opt.textContent = o.label; sel.appendChild(opt);
+  });
+  CUSTOM_TEMPLATES.forEach(t=>{
+    const opt = document.createElement('option');
+    opt.value = `tpl:${t.id}`;
+    opt.textContent = t.heading || '(no heading)';
+    sel.appendChild(opt);
+  });
+  if(prev) sel.value = prev;
+}
+
 function updateSelectionStateFromCard(card){
   const idx = Number(card.dataset.index);
   const bureaus = Array.from(card.querySelectorAll('.bureau:checked')).map(cb=>cb.value);
@@ -579,7 +611,8 @@ function updateSelectionStateFromCard(card){
   const violationIdxs = preserved.concat(visibleChecked);
   const specialMode = getSpecialModeForCard(card);
   const playbook = card.querySelector('.tl-playbook-select')?.value || null;
-  selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook };
+  const letterType = card.querySelector('.tl-letter-select')?.value || 'correct';
+  selectionState[idx] = { bureaus, violationIdxs, specialMode, playbook, letterType };
   updateSelectAllButton();
 }
 
@@ -652,6 +685,10 @@ function renderTradelines(tradelines){
     node.querySelector(".tl-tu-acct").textContent  = tl.per_bureau?.TransUnion?.account_number || "";
     node.querySelector(".tl-exp-acct").textContent = tl.per_bureau?.Experian?.account_number || "";
     node.querySelector(".tl-eqf-acct").textContent = tl.per_bureau?.Equifax?.account_number || "";
+
+    const letterSel = node.querySelector('.tl-letter-select');
+    populateLetterSelectOptions(letterSel, selectionState[idx]?.letterType);
+    letterSel?.addEventListener('change', ()=> updateSelectionStateFromCard(card));
 
     const tagWrap = node.querySelector(".tl-tags");
     tagWrap.innerHTML = "";
@@ -744,6 +781,8 @@ function renderTradelines(tradelines){
         const sel = node.querySelector('.tl-playbook-select');
         if (sel) sel.value = saved.playbook;
       }
+      const ls = node.querySelector('.tl-letter-select');
+      if (ls && saved.letterType) ls.value = saved.letterType;
       if (saved.bureaus?.length) card.classList.add("selected");
       if (saved.specialMode){
         const info = MODES.find(m => m.key === saved.specialMode);
@@ -864,10 +903,6 @@ $("#zoomClose").addEventListener("click", closeZoomModal);
 $("#zoomModal").addEventListener("click", (e)=>{ if(e.target.id==="zoomModal") closeZoomModal(); });
 
 // ===================== Selection → Generate =====================
-function getRequestType(){
-  const r = document.querySelector('input[name="rtype"]:checked');
-  return r ? r.value : "correct";
-}
 function getSpecialModeForCard(card){
   if (card.classList.contains("mode-identity")) return "identity";
   if (card.classList.contains("mode-breach"))   return "breach";
@@ -905,6 +940,10 @@ function collectSelections(){
       const acctClean = Object.fromEntries(Object.entries(accountNumbers).filter(([,v])=>v));
       if (Object.keys(acctClean).length) sel.accountNumbers = acctClean;
     }
+    if (data.letterType){
+      if (data.letterType.startsWith('tpl:')) sel.templateId = data.letterType.slice(4);
+      else sel.requestType = data.letterType;
+    }
     if (useOcr){
       sel.useOcr = true;
     }
@@ -926,8 +965,6 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     const includeCol = $("#cbCollectors").checked;
     const colSelections = includeCol ? collectCollectorSelections() : [];
     if(!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one tradeline, collector, or select Personal Info.");
-    const requestType = getRequestType();
-
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
@@ -935,7 +972,6 @@ $("#btnGenerate").addEventListener("click", async ()=>{
         consumerId: currentConsumerId,
         reportId: currentReportId,
         selections,
-        requestType,
         personalInfo: includePI,
         collectors: colSelections,
         useOcr: ocrCb?.checked || false,
