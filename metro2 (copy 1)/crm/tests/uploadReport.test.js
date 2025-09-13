@@ -60,3 +60,42 @@ test('uploading two reports stores both with violations', async () => {
   const has2 = tlines2.some(tl => (tl.violations || []).length > 0);
   assert.equal(has2, true);
 });
+
+// Ensure filters don't hide violations from a new upload
+
+async function simulateFilterUpload(reportHtml) {
+  // helper to tweak report so server treats as distinct
+  return Buffer.from(reportHtml.toString().replace(/TransUnion/, 'TransUnion '));
+}
+
+test('uploading a second report after filtering still shows violations', async () => {
+  const reportHtml = await fs.readFile(reportPath);
+  const create = await request(app).post('/api/consumers').send({ name: 'Filter User' });
+  assert.equal(create.status, 200);
+  const id = create.body.consumer.id;
+
+  const first = await request(app)
+    .post(`/api/consumers/${id}/upload`)
+    .attach('file', reportHtml, 'report.html');
+  assert.equal(first.status, 200);
+  const rid1 = first.body.reportId;
+  assert.ok(rid1);
+
+  // simulate enabling a filter by requesting with a query param
+  const filtered = await request(app).get(`/api/consumers/${id}/report/${rid1}?tag=Collections`);
+  assert.equal(filtered.status, 200);
+
+  const secondFile = await simulateFilterUpload(reportHtml);
+  const second = await request(app)
+    .post(`/api/consumers/${id}/upload`)
+    .attach('file', secondFile, 'report2.html');
+  assert.equal(second.status, 200);
+  const rid2 = second.body.reportId;
+  assert.ok(rid2);
+
+  const fetched2 = await request(app).get(`/api/consumers/${id}/report/${rid2}`);
+  assert.equal(fetched2.status, 200);
+  const tlines2 = fetched2.body.report.tradelines || [];
+  const has2 = tlines2.some(tl => (tl.violations || []).length > 0);
+  assert.equal(has2, true);
+});
