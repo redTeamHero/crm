@@ -1199,9 +1199,9 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });
 
+  const errors = [];
   try{
     const htmlText = req.file.buffer.toString("utf-8");
-    const errors = [];
     let analyzed = {};
 
     try {
@@ -1308,7 +1308,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     res.json({ ok:true, reportId: rid, creditScore: consumer.creditScore, errors });
   }catch(e){
     logError("UPLOAD_PROCESSING_FAILED", "Analyzer error", e);
-    res.status(500).json({ ok:false, error: "Failed to process uploaded report" });
+    res.status(500).json({ ok:false, error: "Failed to process uploaded report", errors });
   }
 });
 
