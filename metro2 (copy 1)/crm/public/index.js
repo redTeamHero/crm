@@ -12,7 +12,8 @@ if (typeof window !== 'undefined' && role === 'client') {
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
   document.addEventListener('DOMContentLoaded', () => {
     if (role !== 'host') {
-      ['btnInvite', 'btnCreateClient', 'btnEditClient', 'btnDeleteReport'].forEach(id => {
+      ['btnInvite', 'btnNewConsumer', 'btnEditConsumer'].forEach(id => {
+
         document.getElementById(id)?.classList.add('hidden');
       });
     }
