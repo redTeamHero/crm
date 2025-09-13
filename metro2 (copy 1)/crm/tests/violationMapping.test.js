@@ -35,6 +35,7 @@ test('mergeBureauViolations merges same violation across bureaus', async () => {
   globalThis.window = {};
   globalThis.MutationObserver = class { observe(){} disconnect(){} };
   globalThis.localStorage = { getItem: () => null, setItem: () => {} };
+  globalThis.location = { search: '', pathname: '/' };
 
   const { mergeBureauViolations } = await import('../public/index.js');
   const input = [
@@ -82,6 +83,7 @@ test('mergeBureauViolations merges bureaus array into single violation', async (
   globalThis.window = {};
   globalThis.MutationObserver = class { observe(){} disconnect(){} };
   globalThis.localStorage = { getItem: () => null, setItem: () => {} };
+  globalThis.location = { search: '', pathname: '/' };
 
   const { mergeBureauViolations } = await import('../public/index.js');
   const merged = mergeBureauViolations([
