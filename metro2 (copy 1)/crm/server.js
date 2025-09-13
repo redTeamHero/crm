@@ -1414,6 +1414,52 @@ async function handleDataBreach(email, consumerId, res) {
   res.status(result.status || 500).json({ ok: false, error: result.error });
 }
 
+async function generateBreachAudit(consumer) {
+  const html = renderBreachAuditHtml(consumer);
+  const result = await savePdf(html);
+  let ext = path.extname(result.path);
+  if (result.warning || ext !== ".pdf") {
+    ext = ".html";
+  }
+  const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+  try {
+    const uploadsDir = consumerUploadsDir(consumer.id);
+    const id = nanoid(10);
+    const storedName = `${id}${ext}`;
+    const safe = (consumer.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    const date = new Date().toISOString().slice(0, 10);
+    const originalName = `${safe}_${date}_breach_audit${ext}`;
+    const dest = path.join(uploadsDir, storedName);
+    await fs.promises.copyFile(result.path, dest);
+    const stat = await fs.promises.stat(dest);
+    addFileMeta(consumer.id, {
+      id,
+      originalName,
+      storedName,
+      type: "breach-audit",
+      size: stat.size,
+      mimetype: mime,
+      uploadedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Failed to store breach audit file", err);
+  }
+  addEvent(consumer.id, "breach_audit_generated", { file: result.url });
+  return { ok: true, url: result.url, warning: result.warning };
+}
+
+async function handleConsumerBreachAudit(req, res) {
+  const db = await loadDB();
+  const consumer = db.consumers.find(x => x.id === req.params.id);
+  if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+  try {
+    const result = await generateBreachAudit(consumer);
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+}
+
 app.post("/api/databreach", async (req, res) => {
   const email = String(req.body.email || "").trim();
   const consumerId = String(req.body.consumerId || "").trim();
@@ -1428,89 +1474,8 @@ app.get("/api/databreach", async (req, res) => {
   await handleDataBreach(email, consumerId, res);
 });
 
-app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
-  const db = await loadDB();
-  const c = db.consumers.find(x => x.id === req.params.id);
-  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
-  try {
-    const html = renderBreachAuditHtml(c);
-    const result = await savePdf(html);
-    let ext = path.extname(result.path);
-    if (result.warning || ext !== ".pdf") {
-      ext = ".html";
-    }
-    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
-    try {
-      const uploadsDir = consumerUploadsDir(c.id);
-      const id = nanoid(10);
-      const storedName = `${id}${ext}`;
-      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
-      const date = new Date().toISOString().slice(0, 10);
-      const originalName = `${safe}_${date}_breach_audit${ext}`;
-      const dest = path.join(uploadsDir, storedName);
-      await fs.promises.copyFile(result.path, dest);
-      const stat = await fs.promises.stat(dest);
-      addFileMeta(c.id, {
-        id,
-        originalName,
-        storedName,
-        type: "breach-audit",
-        size: stat.size,
-        mimetype: mime,
-        uploadedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error("Failed to store breach audit file", err);
-    }
-    addEvent(c.id, "breach_audit_generated", { file: result.url });
-    res.json({ ok: true, url: result.url, warning: result.warning });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: String(e) });
-  }
 
-});
-
-app.post("/api/consumers/:id/databreach/audit", async (req, res) => {
-  const db = await loadDB();
-  const c = db.consumers.find(x => x.id === req.params.id);
-  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
-  try {
-    const html = renderBreachAuditHtml(c);
-    const result = await savePdf(html);
-    let ext = path.extname(result.path);
-    if (result.warning || ext !== ".pdf") {
-      ext = ".html";
-    }
-    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
-    try {
-      const uploadsDir = consumerUploadsDir(c.id);
-      const id = nanoid(10);
-      const storedName = `${id}${ext}`;
-      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
-      const date = new Date().toISOString().slice(0, 10);
-      const originalName = `${safe}_${date}_breach_audit${ext}`;
-      const dest = path.join(uploadsDir, storedName);
-      await fs.promises.copyFile(result.path, dest);
-      const stat = await fs.promises.stat(dest);
-      addFileMeta(c.id, {
-        id,
-        originalName,
-        storedName,
-        type: "breach-audit",
-        size: stat.size,
-        mimetype: mime,
-        uploadedAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error("Failed to store breach audit file", err);
-    }
-    addEvent(c.id, "breach_audit_generated", { file: result.url });
-    res.json({ ok: true, url: result.url, warning: result.warning });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: String(e) });
-  }
-
-});
+app.post("/api/consumers/:id/databreach/audit", handleConsumerBreachAudit);
 
 
 
