@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveBtn = document.getElementById('saveEvent');
   const deleteBtn = document.getElementById('deleteEvent');
   const cancelBtn = document.getElementById('cancelEvent');
+  const newBtn = document.getElementById('newEvent');
 
   let current = new Date();
   let events = [];
@@ -175,6 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await addEvent(dateStr, type, text);
     }
     closeModal();
+    render();
   });
 
   deleteBtn.addEventListener('click', async () => {
@@ -185,6 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   cancelBtn.addEventListener('click', closeModal);
+
+  newBtn.addEventListener('click', () => {
+    const today = new Date().toISOString().split('T')[0];
+    openModal(today);
+  });
 
   prevBtn.addEventListener('click', () => { current.setMonth(current.getMonth() - 1); render(); });
   nextBtn.addEventListener('click', () => { current.setMonth(current.getMonth() + 1); render(); });
