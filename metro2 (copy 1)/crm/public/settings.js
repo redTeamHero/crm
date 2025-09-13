@@ -1,6 +1,8 @@
 /* public/settings.js */
 document.addEventListener('DOMContentLoaded', () => {
   const panelEl = document.getElementById('adminPanel');
+  const userMgrEl = document.getElementById('userManager');
+  const userListEl = document.getElementById('userList');
   const hibpEl = document.getElementById('hibpKey');
   const rssEl = document.getElementById('rssFeedUrl');
   const gcalTokenEl = document.getElementById('gcalToken');
@@ -31,7 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await resp.json();
       if (data.user?.role === 'admin') {
         panelEl?.classList.remove('hidden');
-        await load();
+        userMgrEl?.classList.remove('hidden');
+        await Promise.all([load(), loadUsers()]);
       }
     } catch (e) {
       console.error('Failed to load user', e);
@@ -65,5 +68,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   init();
+  
+  async function loadUsers() {
+    if (!userListEl) return;
+    try {
+      const resp = await fetch('/api/users', { headers: authHeader() });
+      const data = await resp.json();
+      renderUsers(data.users || []);
+    } catch (e) {
+      console.error('Failed to load users', e);
+    }
+  }
+
+  function renderUsers(users) {
+    userListEl.innerHTML = '';
+    users.forEach(u => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between';
+      const label = document.createElement('span');
+      label.textContent = u.name || u.username;
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      chk.checked = (u.permissions || []).includes('consumers');
+      chk.addEventListener('change', async () => {
+        const perms = new Set(u.permissions || []);
+        if (chk.checked) perms.add('consumers');
+        else perms.delete('consumers');
+        await fetch(`/api/users/${u.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...authHeader() },
+          body: JSON.stringify({ permissions: [...perms] })
+        });
+        u.permissions = [...perms];
+      });
+      row.append(label, chk);
+      userListEl.appendChild(row);
+    });
+  }
 });
 

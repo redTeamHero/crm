@@ -899,6 +899,18 @@ app.get("/api/users", authenticate, requireRole("admin"), async (_req,res)=>{
   res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, name:u.name, role:u.role, permissions: u.permissions || [] })) });
 });
 
+app.put("/api/users/:id", authenticate, requireRole("admin"), async (req,res)=>{
+  const db = await loadUsersDB();
+  const user = db.users.find(u=>u.id === req.params.id);
+  if(!user) return res.status(404).json({ ok:false, error:"Not found" });
+  if(typeof req.body.name === "string") user.name = req.body.name;
+  if(typeof req.body.username === "string") user.username = req.body.username;
+  if(req.body.password) user.password = bcrypt.hashSync(req.body.password,10);
+  if(Array.isArray(req.body.permissions)) user.permissions = req.body.permissions;
+  await saveUsersDB(db);
+  res.json({ ok:true, user: { id:user.id, username:user.username, name:user.name, role:user.role, permissions:user.permissions || [] } });
+});
+
 app.get("/api/me", authenticate, (req,res)=>{
   res.json({ ok:true, user: { id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role, permissions: req.user.permissions || [] } });
 });
