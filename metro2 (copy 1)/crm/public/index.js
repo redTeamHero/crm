@@ -422,7 +422,7 @@ function renderTrackerSteps(){
         inp.remove();
         await api("/api/tracker/steps", {
           method: "POST",
-          headers: { "Content-Type":"application/json" },
+          headers: { "Content-Type":"application/json", ...authHeader() },
           body: JSON.stringify({ steps: trackerSteps })
         });
         renderTrackerSteps();
@@ -463,25 +463,34 @@ function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); 
 function maybeNum(x){ return typeof x === "number" ? x : null; }
 export function dedupeTradelines(lines){
   const seen = new Map();
-  return (lines||[]).filter(tl=>{
+  const result = [];
+  (lines || []).forEach(tl => {
     const name = (tl.meta?.creditor || "").trim();
-    if (!name || name.toLowerCase() === "risk factors") return false;
+    if (!name || name.toLowerCase() === "risk factors") return;
     const per = tl.per_bureau || {};
-    const hasData = ["TransUnion","Experian","Equifax"].some(b => Object.keys(per[b]||{}).length);
-    const hasViolations = (tl.violations||[]).length > 0;
-    if (!hasData && !hasViolations) return false;
+    const hasData = ["TransUnion","Experian","Equifax"].some(b => Object.keys(per[b] || {}).length);
+    const hasViolations = (tl.violations || []).length > 0;
+    if (!hasData && !hasViolations) return;
     const nums = [
       per.TransUnion?.account_number,
       per.Experian?.account_number,
       per.Equifax?.account_number
-    ].filter(Boolean);
-    const set = seen.get(name) || new Set();
-    const dup = nums.some(n => set.has(n));
-    nums.forEach(n => set.add(n));
-    seen.set(name,set);
-    return !dup;
+    ].filter(Boolean).join("|");
+    const key = `${name}|${nums}`;
+    if (seen.has(key)) {
+      const idx = seen.get(key);
+      const existing = result[idx];
+      if ((tl.violations || []).length > (existing.violations || []).length) {
+        result[idx] = tl;
+      }
+    } else {
+      seen.set(key, result.length);
+      result.push(tl);
+    }
   });
+  return result;
 }
+
 
 export function mergeBureauViolations(vs){
   const map = new Map();
@@ -973,7 +982,7 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     if(!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one tradeline, collector, or select Personal Info.");
     const resp = await fetch("/api/generate", {
       method: "POST",
-      headers: { "Content-Type":"application/json" },
+      headers: { "Content-Type":"application/json", ...authHeader() },
       body: JSON.stringify({
         consumerId: currentConsumerId,
         reportId: currentReportId,
