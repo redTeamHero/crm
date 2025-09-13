@@ -1,3 +1,20 @@
+const SENSITIVE_KEYS = new Set(["ssn", "email", "token"]);
+
+function redactSensitive(data) {
+  if (!data || typeof data !== "object") return data;
+  if (Array.isArray(data)) return data.map(redactSensitive);
+
+  const result = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
+      result[key] = "[REDACTED]";
+    } else {
+      result[key] = redactSensitive(value);
+    }
+  }
+  return result;
+}
+
 function logInfo(code, message, meta = {}) {
   const entry = {
     level: "info",
@@ -6,7 +23,7 @@ function logInfo(code, message, meta = {}) {
     message,
     ...meta,
   };
-  console.log(JSON.stringify(entry));
+  console.log(JSON.stringify(redactSensitive(entry)));
 }
 
 function logError(code, message, err, meta = {}) {
@@ -22,7 +39,7 @@ function logError(code, message, err, meta = {}) {
     entry.error = err.message;
     if (err.stack) entry.stack = err.stack;
   }
-  console.error(JSON.stringify(entry));
+  console.error(JSON.stringify(redactSensitive(entry)));
 }
 
 function logWarn(code, message, meta = {}) {
@@ -33,8 +50,8 @@ function logWarn(code, message, meta = {}) {
     message,
     ...meta,
   };
-  console.warn(JSON.stringify(entry));
+  console.warn(JSON.stringify(redactSensitive(entry)));
 }
 
-export { logInfo, logError, logWarn };
+export { logInfo, logError, logWarn, redactSensitive };
 
