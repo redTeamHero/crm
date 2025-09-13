@@ -170,13 +170,30 @@ export function renderHtml(report, consumerName = "Consumer"){
         const info = acc.bureaus[b] || {};
         return info[fieldRaw] ?? info[field] ?? "";
       });
-      const displayValues = rawValues.map(v => ["payment_status", "account_status"].includes(field) ? friendlyStatus(v) : v);
-      const diff = new Set(displayValues.filter(v => v !== "")).size > 1 ? " diff" : "";
+
+      const displayValues = rawValues.map(v => {
+        if (field === "comments" && Array.isArray(v)) {
+          return v.join("<br>");
+        }
+        return ["payment_status", "account_status"].includes(field) ? friendlyStatus(v) : v;
+      });
+
+      const diffValues = rawValues.map(v => {
+        if (field === "comments" && Array.isArray(v)) {
+          return v.join("\n");
+        }
+        return ["payment_status", "account_status"].includes(field) ? friendlyStatus(v) : v;
+      });
+
+      const diff = new Set(diffValues.filter(v => v !== "")).size > 1 ? " diff" : "";
+
       const cells = rawValues.map((v, i) => {
         const displayVal = displayValues[i];
         const neg = isNegative(field, v) ? ' class="neg"' : '';
-        return `<td${neg}>${escapeHtml(displayVal)}</td>`;
+        const htmlVal = escapeHtml(displayVal).replace(/&lt;br&gt;/g, '<br>');
+        return `<td${neg}>${htmlVal}</td>`;
       }).join('');
+
       return `<tr class="row${diff}"><th>${escapeHtml(label)}</th>${cells}</tr>`;
     }).join('');
 
