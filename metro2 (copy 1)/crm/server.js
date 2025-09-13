@@ -187,7 +187,7 @@ function requireRole(role){
     if (req.user && req.user.role === role) {
       return next();
     }
-    res.status(403).send("Forbidden");
+    res.status(403).json({ ok:false, error:'Forbidden' });
   };
 }
 
@@ -199,12 +199,12 @@ function hasPermission(user, perm){
 function requirePermission(perm){
   return (req, res, next) => {
     if (hasPermission(req.user, perm)) return next();
-    res.status(403).send("Forbidden");
+    res.status(403).json({ ok:false, error:'Forbidden' });
   };
 }
 
 function forbidMember(req,res,next){
-  if(req.user && req.user.role === "member") return res.status(403).send("Forbidden");
+  if(req.user && req.user.role === "member") return res.status(403).json({ ok:false, error:'Forbidden' });
   next();
 }
 
@@ -301,7 +301,7 @@ app.get("/buy", async (req, res) => {
   const { bank = "", price = "" } = req.query || {};
   const settings = await loadSettings();
   if (!StripeLib || !settings.stripeApiKey) {
-    return res.status(500).send("Stripe not configured");
+    return res.status(500).json({ ok:false, error:'Stripe not configured' });
   }
   const amt = Math.round(parseFloat(price) * 100);
   if (!amt) return res.status(400).send("Invalid price");
@@ -325,7 +325,7 @@ app.get("/buy", async (req, res) => {
     res.redirect(303, session.url);
   } catch (e) {
     console.error("Stripe checkout error", e);
-    res.status(500).send("Checkout failed");
+    res.status(500).json({ ok:false, error:'Checkout failed' });
   }
 });
 
@@ -1771,7 +1771,7 @@ app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters
 
   if(!html || !html.trim()){
     logError("LETTER_HTML_MISSING", "No HTML content for PDF generation", null, { jobId, idx });
-    return res.status(500).send("No HTML content to render");
+    return res.status(500).json({ ok:false, error:'No HTML content to render' });
   }
 
   if(useOcr){
@@ -1784,7 +1784,7 @@ app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters
       return res.send(pdfBuffer);
     }catch(e){
       console.error("OCR PDF error:", e);
-      return res.status(500).send("Failed to render OCR PDF.");
+      return res.status(500).json({ ok:false, error:'Failed to render OCR PDF.' });
     }
   }
 
@@ -1813,7 +1813,7 @@ app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters
     res.send(pdfBuffer);
   }catch(e){
     console.error("PDF error:", e);
-    res.status(500).send("Failed to render PDF.");
+    res.status(500).json({ ok:false, error:'Failed to render PDF.' });
   }finally{ try{ await browserInstance?.close(); }catch{} }
 
 });
