@@ -11,7 +11,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const USERS_DB_PATH = path.join(__dirname, '..', 'users-db.json');
 const original = fs.existsSync(USERS_DB_PATH) ? fs.readFileSync(USERS_DB_PATH) : null;
 const DB_PATH = path.join(__dirname, '..', 'db.json');
-const consumerId = JSON.parse(fs.readFileSync(DB_PATH, 'utf8')).consumers[0].id;
+let consumerId = 'c1';
+try {
+  const dbData = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+  consumerId = dbData.consumers?.[0]?.id || 'c1';
+} catch {}
 
 const admin = { id: 'a1', username: 'admin', password: bcrypt.hashSync('secret', 10), role: 'admin', permissions: [] };
 const member = { id: 'm1', username: 'member', password: bcrypt.hashSync('secret', 10), role: 'member', permissions: [] };
@@ -67,6 +71,17 @@ test('member cannot delete consumer', async () => {
     .delete(`/api/consumers/${consumerId}`)
     .set('Authorization', `Bearer ${token(member)}`);
   assert.equal(res.status, 403);
+});
+
+test('registration stores user name', async () => {
+  const reg = await request(app)
+    .post('/api/register')
+    .send({ username: 'alice', password: 'pw', name: 'Alice' });
+  assert.equal(reg.body.ok, true);
+  const me = await request(app)
+    .get('/api/me')
+    .set('Authorization', 'Bearer ' + reg.body.token);
+  assert.equal(me.body.user.name, 'Alice');
 });
 
 test.after(() => {
