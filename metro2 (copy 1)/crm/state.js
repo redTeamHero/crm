@@ -4,24 +4,40 @@
 import fs from "fs";
 import path from "path";
 import { createEvent as createCalendarEvent } from "./googleCalendar.js";
+import { readKey, writeKey } from "./kvdb.js";
 
 const DATA_DIR = path.resolve("./data");
+// Old JSON state path (kept for migration only)
 const STATE_PATH = path.join(DATA_DIR, "state.json");
 
 function ensureDirs() {
+  // Ensure base data dir exists for uploads; state is kept in SQLite
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(STATE_PATH)) {
-    fs.writeFileSync(STATE_PATH, JSON.stringify({ consumers: {}, trackerSteps: [] }, null, 2));
+}
+
+async function loadState() {
+  ensureDirs();
+  // Try loading from SQLite first
+  let st = await readKey("consumer_state", null);
+  if (st) return st;
+
+  // Fallback: migrate from legacy JSON file if present
+  if (fs.existsSync(STATE_PATH)) {
+    try {
+      const raw = fs.readFileSync(STATE_PATH, "utf-8");
+      st = JSON.parse(raw);
+      await writeKey("consumer_state", st);
+      return st;
+    } catch {}
   }
+
+  st = { consumers: {}, trackerSteps: [] };
+  await writeKey("consumer_state", st);
+  return st;
 }
-function loadState() {
-  ensureDirs();
-  try { return JSON.parse(fs.readFileSync(STATE_PATH, "utf-8")); }
-  catch { return { consumers: {}, trackerSteps: [] }; }
-}
-function saveState(st) {
-  ensureDirs();
-  fs.writeFileSync(STATE_PATH, JSON.stringify(st, null, 2));
+
+async function saveState(st) {
+  await writeKey("consumer_state", st);
 }
 function ensureConsumer(st, consumerId) {
   st.consumers[consumerId] ??= { events: [], files: [], reminders: [], tracker: {} };
@@ -57,16 +73,16 @@ function processReminders(st) {
 }
 
 // ---- Public API ----
-export function listConsumerState(consumerId) {
-  const st = loadState();
+export async function listConsumerState(consumerId) {
+  const st = await loadState();
   const c = ensureConsumer(st, consumerId);
   processReminders(st);
-  saveState(st);
+  await saveState(st);
   return c;
 }
 
-export function addEvent(consumerId, type, payload = {}) {
-  const st = loadState();
+export async function addEvent(consumerId, type, payload = {}) {
+  const st = await loadState();
   const c = ensureConsumer(st, consumerId);
   const ev = {
     id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
@@ -75,57 +91,57 @@ export function addEvent(consumerId, type, payload = {}) {
     at: new Date().toISOString(),
   };
   c.events.unshift(ev);
-  saveState(st);
+  await saveState(st);
   if (payload?.calendar) {
     createCalendarEvent(payload.calendar).catch(() => {});
   }
 }
 
-export function addFileMeta(consumerId, fileRec) {
-  const st = loadState();
+export async function addFileMeta(consumerId, fileRec) {
+  const st = await loadState();
   const c = ensureConsumer(st, consumerId);
   c.files.unshift(fileRec); // newest first
-  saveState(st);
+  await saveState(st);
 }
 
-export function addReminder(consumerId, reminder) {
-  const st = loadState();
+export async function addReminder(consumerId, reminder) {
+  const st = await loadState();
   const c = ensureConsumer(st, consumerId);
   c.reminders.push(reminder);
-  saveState(st);
+  await saveState(st);
 }
 
-export function processAllReminders() {
-  const st = loadState();
+export async function processAllReminders() {
+  const st = await loadState();
   processReminders(st);
-  saveState(st);
+  await saveState(st);
 }
 
-export function listTracker(consumerId) {
-  const st = loadState();
+export async function listTracker(consumerId) {
+  const st = await loadState();
   const steps = st.trackerSteps || [];
   const c = ensureConsumer(st, consumerId);
-  saveState(st);
+  await saveState(st);
   return { steps, completed: c.tracker || {} };
 }
 
-export function getTrackerSteps() {
-  const st = loadState();
+export async function getTrackerSteps() {
+  const st = await loadState();
   return st.trackerSteps || [];
 }
 
-export function setTrackerSteps(steps = []) {
-  const st = loadState();
+export async function setTrackerSteps(steps = []) {
+  const st = await loadState();
   st.trackerSteps = steps;
-  saveState(st);
+  await saveState(st);
 }
 
-export function markTrackerStep(consumerId, step, done = true) {
-  const st = loadState();
+export async function markTrackerStep(consumerId, step, done = true) {
+  const st = await loadState();
   const c = ensureConsumer(st, consumerId);
   c.tracker ??= {};
   if (done) c.tracker[step] = true; else delete c.tracker[step];
-  saveState(st);
+  await saveState(st);
 }
 
 // Paths for storing/serving files for a consumer
