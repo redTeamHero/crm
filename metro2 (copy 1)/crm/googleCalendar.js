@@ -1,7 +1,7 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { readJson } from './utils.js';
-import { fetchFn } from './fetchUtil.js';
+import nodeFetch from 'node-fetch';
+import { readKey } from './kvdb.js';
+
+const fetchFn = globalThis.fetch || nodeFetch;
 
 
 async function getConfig() {
