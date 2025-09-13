@@ -18,7 +18,7 @@ async function loadLibrary(){
 
 }
 
-function renderList(items, containerId, clickHandler){
+function renderList(items, containerId, clickHandler, dropHandler){
   const list = document.getElementById(containerId);
   if(!list) return;
   list.innerHTML = '';
@@ -31,6 +31,14 @@ function renderList(items, containerId, clickHandler){
     div.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', t.id);
     });
+    if(dropHandler){
+      div.addEventListener('dragover', e => e.preventDefault());
+      div.addEventListener('drop', e => {
+        e.preventDefault();
+        const draggedId = e.dataTransfer.getData('text/plain');
+        if(draggedId) dropHandler(t.id, draggedId);
+      });
+    }
     div.onclick = () => clickHandler(t.id);
     list.appendChild(div);
   });
@@ -41,7 +49,7 @@ function renderTemplates(){
 }
 
 function renderMainTemplates(){
-  renderList(mainTemplates, 'mainList', useMainTemplate);
+  renderList(mainTemplates, 'mainList', useMainTemplate, assignMainTemplate);
 }
 
 function editTemplate(id){
@@ -65,6 +73,19 @@ function useMainTemplate(id){
   document.getElementById('tplAfter').value = tpl.afterIssues || '';
   document.getElementById('tplEvidence').value = tpl.evidence || '';
   updatePreview();
+}
+
+async function assignMainTemplate(slotId, templateId){
+  const res = await fetch('/api/templates/defaults', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slotId, templateId })
+  });
+  const data = await res.json().catch(()=>({}));
+  if(data.templates){
+    mainTemplates = data.templates;
+    renderMainTemplates();
+  }
 }
 
 function newTemplate(){
