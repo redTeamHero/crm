@@ -147,10 +147,15 @@ export function renderHtml(report, consumerName = "Consumer"){
       ["account_number_raw", "account_number", "Account #"],
       ["account_type_raw", "account_type", "Account Type"],
       ["payment_status_raw", "payment_status", "Account Payment Status"],
+      ["account_status_raw", "account_status", "Account Status"],
       ["balance_raw", "balance", "Balance"],
       ["past_due_raw", "past_due", "Past Due"],
       ["high_credit_raw", "high_credit", "High Credit"],
+      ["credit_limit_raw", "credit_limit", "Credit Limit"],
+      ["monthly_payment_raw", "monthly_payment", "Payment"],
       ["date_opened_raw", "date_opened", "Date Opened"],
+      ["date_last_active_raw", "date_last_active", "Date Last Active"],
+      ["date_closed_raw", "date_closed", "Date Closed"],
       ["last_reported_raw", "last_reported", "Last Reported"],
       ["date_last_payment_raw", "date_last_payment", "Date of Last Payment"],
       ["comments", "comments", "Comments"],
@@ -161,7 +166,7 @@ export function renderHtml(report, consumerName = "Consumer"){
         const info = acc.bureaus[b] || {};
         return info[fieldRaw] ?? info[field] ?? "";
       });
-      const displayValues = rawValues.map(v => field === "payment_status" ? friendlyStatus(v) : v);
+      const displayValues = rawValues.map(v => ["payment_status", "account_status"].includes(field) ? friendlyStatus(v) : v);
       const diff = new Set(displayValues.filter(v => v !== "")).size > 1 ? " diff" : "";
       const cells = rawValues.map((v, i) => {
         const displayVal = displayValues[i];
