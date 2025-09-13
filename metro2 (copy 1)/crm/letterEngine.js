@@ -5,7 +5,7 @@ import { enrichTradeline } from './pullTradelineData.js';
 import { loadMetro2Violations } from './utils.js';
 
 // Load Metro 2 violation definitions from shared metadata
-const VIOLATION_DEFS = loadMetro2Violations();
+const VIOLATION_DEFS = await loadMetro2Violations();
 
 function getViolationInfo(code) {
   return VIOLATION_DEFS[code] || null;
