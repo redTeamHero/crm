@@ -593,8 +593,36 @@ function buildLetterHeader(consumer, recipient){
   </div>`;
 }
 
-function buildPersonalInfoLetterHTML({ consumer, bureau, mismatchedFields = [] }) {
+function buildLetterTemplate({ title, bodyHtml, consumer, headerData }) {
   const dateStr = todayISO();
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${title}</title>
+  <style>
+    @media print { @page { margin: 1in; } }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
+    * { word-break:break-word; }
+    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
+    .muted{ color:#6b7280; }
+    h1{ font-size:20px; margin-bottom:8px; }
+    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
+    table { table-layout: fixed; width:100%; border-collapse:collapse; }
+    td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  ${buildLetterHeader(consumer, headerData)}
+  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  ${bodyHtml}
+</body>
+</html>
+  `.trim();
+}
+
+function buildPersonalInfoLetterHTML({ consumer, bureau, mismatchedFields = [] }) {
   const bureauMeta = BUREAU_ADDR[bureau];
   const mismatchSet = new Set(mismatchedFields);
   const row = (label, value) =>
@@ -625,35 +653,20 @@ function buildPersonalInfoLetterHTML({ consumer, bureau, mismatchedFields = [] }
     </table>
   `;
 
-  const letterBody = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${bureau} – Personal Information Dispute</title>
-  <style>
-    @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
-    * { word-break:break-word; }
-    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
-    .muted{ color:#6b7280; }
-    h1{ font-size:20px; margin-bottom:8px; }
-    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
-    table { table-layout: fixed; width:100%; border-collapse:collapse; }
-    td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
-  </style>
-</head>
-<body>
-  ${buildLetterHeader(consumer, bureauMeta)}
-  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  const bodyHtml = `
   <h1>${colorize("Personal Information Dispute")}</h1>
   <p>${colorize("Please update your records to reflect my correct personal information and remove any other data that does not belong to me.")}</p>
   <h2>My Correct Information</h2>
   ${infoTable}
   <p>${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}</p>
-</body>
-</html>
-  `.trim();
+  `;
+
+  const letterBody = buildLetterTemplate({
+    title: `${bureau} – Personal Information Dispute`,
+    bodyHtml,
+    consumer,
+    headerData: bureauMeta,
+  });
 
   const filename = `${namePrefix(consumer)}_${bureau}_personal_info_dispute_${new Date()
     .toISOString()
@@ -676,32 +689,19 @@ function generatePersonalInfoLetters({ consumer, mismatchedFields = [] }) {
 }
 
 function buildInquiryLetterHTML({ consumer, bureau, inquiry }) {
-  const dateStr = todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
-  const letterBody = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${bureau} – Inquiry Dispute</title>
-  <style>
-    @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
-    * { word-break:break-word; }
-    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
-    .muted{ color:#6b7280; }
-    h1{ font-size:20px; margin-bottom:8px; }
-  </style>
-</head>
-<body>
-  ${buildLetterHeader(consumer, bureauMeta)}
-  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  const bodyHtml = `
   <h1>${colorize("Unauthorized Inquiry Dispute")}</h1>
   <p>${colorize(`Please remove the inquiry by ${safe(inquiry.creditor)} dated ${safe(inquiry.date)} from my ${bureau} credit file. I did not authorize this inquiry.`)}</p>
   <p>${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}</p>
-</body>
-</html>
-  `.trim();
+  `;
+
+  const letterBody = buildLetterTemplate({
+    title: `${bureau} – Inquiry Dispute`,
+    bodyHtml,
+    consumer,
+    headerData: bureauMeta,
+  });
 
   const fnSafeCred = safe(inquiry.creditor || "Unknown")
     .replace(/[^a-z0-9]+/gi, "_")
@@ -728,31 +728,18 @@ function generateInquiryLetters({ consumer, inquiries = [] }) {
 }
 
 function buildCollectorLetterHTML({ consumer, collector }) {
-  const dateStr = todayISO();
-  const letterBody = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${safe(collector.name)} – Collection Notice</title>
-  <style>
-    @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
-    * { word-break:break-word; }
-    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
-    .muted{ color:#6b7280; }
-    h1{ font-size:20px; margin-bottom:8px; }
-  </style>
-</head>
-<body>
-  ${buildLetterHeader(consumer, collector)}
-  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  const bodyHtml = `
   <h1>${colorize("Debt Validation Request")}</h1>
   <p>${colorize("Please provide validation of the debt you allege is owed. Until validation is provided, cease all collection activities and communication with me regarding this account.")}</p>
   <p>${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}</p>
-</body>
-</html>
-  `.trim();
+  `;
+
+  const letterBody = buildLetterTemplate({
+    title: `${safe(collector.name)} – Collection Notice`,
+    bodyHtml,
+    consumer,
+    headerData: collector,
+  });
 
   const fnSafe = safe(collector.name)
     .replace(/[^a-z0-9]+/gi, "_")
