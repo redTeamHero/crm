@@ -1,7 +1,8 @@
-import nodeFetch from 'node-fetch';
-import { readKey } from './kvdb.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { readJson } from './utils.js';
+import { fetchFn } from './fetchUtil.js';
 
-const fetchFn = globalThis.fetch || nodeFetch;
 
 async function getConfig() {
   const settings = await readKey('settings', {});

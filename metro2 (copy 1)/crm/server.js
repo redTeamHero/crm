@@ -11,7 +11,6 @@ import { htmlToPdfBuffer, launchBrowser } from "./pdfUtils.js";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import nodeFetch from "node-fetch";
 import * as cheerio from "cheerio";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -27,7 +26,7 @@ import { readKey, writeKey, DB_FILE } from "./kvdb.js";
 import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy } from "./googleCalendar.js";
 
-const fetchFn = globalThis.fetch || nodeFetch;
+import { fetchFn } from "./fetchUtil.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
 const TOKEN_EXPIRES_IN = "1h";

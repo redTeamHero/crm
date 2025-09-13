@@ -1,7 +1,5 @@
 import fs from "fs";
-import nodeFetch from "node-fetch";
-
-const fetchFn = globalThis.fetch || nodeFetch;
+import { fetchFn } from "./fetchUtil.js";
 
 export async function sendCertifiedMail({ filePath, toName = "", toAddress = "", toCity = "", toState = "", toZip = "" }) {
   const apiKey = process.env.SCM_API_KEY;
