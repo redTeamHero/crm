@@ -449,11 +449,14 @@ async function loadDB(){
   return DEFAULT_DB;
 }
 async function saveDB(db){ await writeKey('consumers', db); }
-
-const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [] };
+const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [], mainTemplates: defaultTemplates().map(t=>t.id) };
 async function loadLettersDB(){
   const db = await readKey('letters', null);
   if(db){
+    if(!Array.isArray(db.mainTemplates) || db.mainTemplates.length === 0){
+      db.mainTemplates = defaultTemplates().map(t=>t.id);
+      await saveLettersDB(db);
+    }
     console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
     return db;
   }
@@ -1069,8 +1072,28 @@ function defaultTemplates(){
     { id: "standard", ...modeCopy(null, "delete", true) }
   ];
 }
-app.get("/api/templates/defaults", (_req,res)=>{
-  res.json({ ok:true, templates: defaultTemplates() });
+app.get("/api/templates/defaults", async (_req,res)=>{
+  const db = await loadLettersDB();
+  const ids = db.mainTemplates && db.mainTemplates.length ? db.mainTemplates : defaultTemplates().map(t=>t.id);
+  const all = [...defaultTemplates(), ...(db.templates || [])];
+  const map = Object.fromEntries(all.map(t=>[t.id, t]));
+  const templates = ids.map(id => map[id]).filter(Boolean);
+  res.json({ ok:true, templates });
+});
+
+app.post("/api/templates/defaults", async (req,res)=>{
+  const { slotId, templateId } = req.body || {};
+  const db = await loadLettersDB();
+  db.mainTemplates = db.mainTemplates && db.mainTemplates.length ? db.mainTemplates : defaultTemplates().map(t=>t.id);
+  const idx = db.mainTemplates.findIndex(id => id === slotId);
+  if(idx !== -1){
+    db.mainTemplates[idx] = templateId;
+  }
+  await saveLettersDB(db);
+  const all = [...defaultTemplates(), ...(db.templates || [])];
+  const map = Object.fromEntries(all.map(t=>[t.id, t]));
+  const templates = db.mainTemplates.map(id => map[id]).filter(Boolean);
+  res.json({ ok:true, templates });
 });
 app.get("/api/templates", async (_req,res)=>{
   const db = await loadLettersDB();
