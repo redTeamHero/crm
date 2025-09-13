@@ -1490,7 +1490,23 @@ function getJobMem(jobId){
   if(Date.now()-j.createdAt > JOB_TTL_MS){ jobs.delete(jobId); return null; }
   return j;
 }
-setInterval(()=>{ const now=Date.now(); for(const [id,j] of jobs){ if(now-j.createdAt>JOB_TTL_MS) jobs.delete(id); } }, 5*60*1000);
+setInterval(()=>{
+  const now = Date.now();
+  for(const [id,j] of jobs){
+    if(now - j.createdAt > JOB_TTL_MS) jobs.delete(id);
+  }
+  const idx = loadJobsIndex();
+  let changed = false;
+  for(const [id,meta] of Object.entries(idx.jobs || {})){
+    if(now - (meta.createdAt || 0) > JOB_TTL_MS){
+      const dir = path.join(LETTERS_DIR, meta.dir || id);
+      try{ fs.rmSync(dir, { recursive:true, force:true }); }catch{}
+      delete idx.jobs[id];
+      changed = true;
+    }
+  }
+  if(changed) saveJobsIndex(idx);
+}, 5*60*1000);
 
 // disk index helpers
 function loadJobsIndex(){
@@ -1511,6 +1527,7 @@ function persistJobToDisk(jobId, letters){
   const idx = loadJobsIndex();
   idx.jobs[jobId] = {
     createdAt: Date.now(),
+    dir: jobId,
     letters: letters.map(L => ({
       filename: L.filename,
       bureau: L.bureau,
@@ -1531,12 +1548,25 @@ function loadJobFromDisk(jobId){
     console.warn(`Job ${jobId} not found on disk`);
     return null;
   }
+  const jobDir = meta.dir || jobId;
   const letters = (meta.letters || []).map(item => ({
     ...item,
-    htmlPath: path.join(LETTERS_DIR, item.filename),
+    htmlPath: path.join(LETTERS_DIR, jobDir, item.filename),
   }));
   console.log(`Loaded job ${jobId} with ${letters.length} letters from disk`);
-  return { letters, createdAt: meta.createdAt || Date.now() };
+  return { letters, createdAt: meta.createdAt || Date.now(), dir: jobDir };
+}
+
+function deleteJob(jobId){
+  jobs.delete(jobId);
+  const idx = loadJobsIndex();
+  const meta = idx.jobs?.[jobId];
+  if(meta){
+    const dir = path.join(LETTERS_DIR, meta.dir || jobId);
+    try{ fs.rmSync(dir, { recursive:true, force:true }); }catch{}
+    delete idx.jobs[jobId];
+    saveJobsIndex(idx);
+  }
 }
 
 // Generate letters (from selections) -> memory + disk
@@ -1600,9 +1630,10 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
     console.log(`Generated ${letters.length} letters for consumer ${consumer.id}`);
     const jobId = crypto.randomBytes(8).toString("hex");
 
-    fs.mkdirSync(LETTERS_DIR, { recursive: true });
+    const jobDir = path.join(LETTERS_DIR, jobId);
+    fs.mkdirSync(jobDir, { recursive: true });
     for(const L of letters){
-      fs.writeFileSync(path.join(LETTERS_DIR, L.filename), L.html, "utf-8");
+      fs.writeFileSync(path.join(jobDir, L.filename), L.html, "utf-8");
       console.log(`Saved letter ${L.filename}`);
     }
 
@@ -1661,6 +1692,19 @@ app.get("/api/letters", authenticate, requirePermission("letters"), (req,res)=>{
   }));
   console.log(`Listing ${jobs.length} letter jobs`);
   res.json({ ok:true, jobs });
+});
+
+app.delete("/api/letters/:jobId", authenticate, requirePermission("letters"), (req,res)=>{
+  const { jobId } = req.params;
+  try{
+    deleteJob(jobId);
+    const ldb = loadLettersDB();
+    ldb.jobs = ldb.jobs.filter(j => !(j.jobId === jobId && j.userId === req.user.id));
+    saveLettersDB(ldb);
+    res.json({ ok:true });
+  }catch(e){
+    res.status(500).json({ ok:false, error:String(e) });
+  }
 });
 
 // List letters for a job
@@ -1917,7 +1961,7 @@ app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters")
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
-      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, L.filename), "utf-8"));
+      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, jobId, L.filename), "utf-8"));
 
       let pdfBuffer;
       if (L.useOcr) {
@@ -1994,7 +2038,7 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
 
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
-      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, L.filename), 'utf-8'));
+      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, jobId, L.filename), 'utf-8'));
 
       let pdfBuffer;
       if (L.useOcr) {
