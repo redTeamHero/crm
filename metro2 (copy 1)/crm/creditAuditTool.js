@@ -18,22 +18,37 @@ async function fetchCreditReport(srcPath){
 
   if (reportPath.toLowerCase().endsWith('.html')) {
     const outPath = path.join(__dirname, 'data', 'report.json');
-    await new Promise((resolve, reject) => {
-      const py = spawn('python', [
-        path.join(__dirname, 'metro2_audit_multi.py'),
-        '-i', reportPath,
-        '-o', outPath
-      ], { stdio: 'inherit' });
-      py.on('close', code => {
-        if (code === 0) resolve();
-        else reject(new Error(`metro2_audit_multi.py exited with code ${code}`));
+    try {
+      await new Promise((resolve, reject) => {
+        const py = spawn('python', [
+          path.join(__dirname, 'metro2_audit_multi.py'),
+          '-i', reportPath,
+          '-o', outPath
+        ], { stdio: 'inherit' });
+        py.on('error', reject);
+        py.on('close', code => {
+          if (code === 0) resolve();
+          else reject(new Error(`metro2_audit_multi.py exited with code ${code}`));
+        });
       });
-    });
+    } catch(err) {
+      throw new Error(`Failed to convert HTML report: ${err.message}`);
+    }
     reportPath = outPath;
   }
 
-  const raw = await fs.readFile(reportPath, 'utf-8');
-  return JSON.parse(raw);
+  let raw;
+  try {
+    raw = await fs.readFile(reportPath, 'utf-8');
+  } catch(err) {
+    throw new Error(`Failed to read report: ${err.message}`);
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch(err) {
+    throw new Error(`Invalid report JSON: ${err.message}`);
+  }
 }
 
 function statuteRefs(title){

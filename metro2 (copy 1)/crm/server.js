@@ -1198,7 +1198,9 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
 
   try{
     const htmlText = req.file.buffer.toString("utf-8");
+    const errors = [];
     let analyzed = {};
+
     try {
       const dom = new JSDOM(htmlText);
       const jsParsed = parseCreditReportHTML(dom.window.document);
@@ -1207,7 +1209,8 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
         analyzed.personalInfo = jsParsed.personalInfo;
       }
     } catch (e) {
-      console.warn("JS parser failed", e);
+      logError("JS_PARSER_FAILED", "JS parser failed", e);
+      errors.push({ step: "js_parse", message: e.message });
     }
 
     try {
@@ -1224,13 +1227,27 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       }
     } catch (e) {
       logError("PYTHON_ANALYZER_ERROR", "Python analyzer failed", e);
+      errors.push({ step: "python_analyzer", message: e.message });
     }
 
-    runBasicRuleAudit(analyzed);
-    const scores = extractCreditScores(htmlText);
-    if (Object.keys(scores).length) {
-      consumer.creditScore = { ...consumer.creditScore, ...scores };
+    try {
+      runBasicRuleAudit(analyzed);
+    } catch(e){
+      logError("RULE_AUDIT_ERROR", "Basic rule audit failed", e);
+      errors.push({ step: "rule_audit", message: e.message });
     }
+
+    let scores = {};
+    try{
+      scores = extractCreditScores(htmlText);
+      if (Object.keys(scores).length) {
+        consumer.creditScore = { ...consumer.creditScore, ...scores };
+      }
+    }catch(e){
+      logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
+      errors.push({ step: "score_extract", message: e.message });
+    }
+
     // compare bureau-reported personal info against consumer record
     const normalize = s => (s || "").toString().trim().toLowerCase();
     const mismatches = {};
@@ -1285,10 +1302,10 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       filename: req.file.originalname,
       size: req.file.size
     });
-    res.json({ ok:true, reportId: rid, creditScore: consumer.creditScore });
+    res.json({ ok:true, reportId: rid, creditScore: consumer.creditScore, errors });
   }catch(e){
-    console.error("Analyzer error:", e);
-    res.status(500).json({ ok:false, error: String(e) });
+    logError("UPLOAD_PROCESSING_FAILED", "Analyzer error", e);
+    res.status(500).json({ ok:false, error: "Failed to process uploaded report" });
   }
 });
 
@@ -1336,15 +1353,29 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
 
   try{
     const normalized = normalizeReport(r.data, selections);
-    const html = renderHtml(normalized, c.name);
-    const result = await savePdf(html);
+
+    let html;
+    try {
+      html = renderHtml(normalized, c.name);
+    } catch (err) {
+      logError("HTML_RENDER_ERROR", "Failed to render audit HTML", err, { consumerId: c.id, reportId: r.id });
+      return res.status(500).json({ ok:false, error: "Failed to render audit HTML" });
+    }
+
+    let result;
+    try {
+      result = await savePdf(html);
+    } catch (err) {
+      logError("PDF_GENERATION_ERROR", "Failed to generate audit PDF", err, { consumerId: c.id, reportId: r.id });
+      return res.status(500).json({ ok:false, error: "Failed to generate audit document" });
+    }
+
     let ext = path.extname(result.path);
     if (result.warning || ext !== ".pdf") {
       console.error("Audit PDF generation failed", result.warning);
       ext = ".html";
     }
     const mime = ext === ".pdf" ? "application/pdf" : "text/html";
-
 
     // copy report into consumer uploads and register metadata
     try {
@@ -1367,13 +1398,14 @@ app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
         uploadedAt: new Date().toISOString(),
       });
     } catch(err) {
-      console.error("Failed to store audit file", err);
+      logError("AUDIT_STORE_FAILED", "Failed to store audit file", err, { consumerId: c.id, reportId: r.id });
     }
 
     await addEvent(c.id, "audit_generated", { reportId: r.id, file: result.url });
     res.json({ ok:true, url: result.url, warning: result.warning });
   }catch(e){
-    res.status(500).json({ ok:false, error: String(e) });
+    logError("AUDIT_PIPELINE_ERROR", "Audit generation failed", e, { consumerId: c.id, reportId: r.id });
+    res.status(500).json({ ok:false, error: "Audit generation failed" });
   }
 });
 
