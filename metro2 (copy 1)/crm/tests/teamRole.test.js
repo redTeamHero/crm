@@ -24,8 +24,7 @@ test('team member login issues team role token', async () => {
   process.env.NODE_ENV = 'test';
   const { default: app } = await import('../server.js');
 
-  await request(app).post('/api/users').send({ username: 'admin', password: 'secret' });
-  const adminLogin = await request(app).post('/api/login').send({ username: 'admin', password: 'secret' });
+  const adminLogin = await request(app).post('/api/login').send({ username: 'ducky', password: 'duck' });
   const adminToken = adminLogin.body.token;
 
   const created = await request(app)

@@ -14,6 +14,8 @@ npm install
 
 Data is stored in a local SQLite file `crm.sqlite` in the CRM directory, replacing the old JSON-based storage.
 
+On first run, the server seeds an admin user with username `ducky` and password `duck`.
+
 ## Environment
 - `PORT` (optional, defaults to 3000)
 

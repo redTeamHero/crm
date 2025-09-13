@@ -59,6 +59,8 @@ Without them, letter generation will fail with errors like `libnspr4.so: cannot 
    npm start
    ```
 
+   The server seeds a default admin account (`ducky` / `duck`) for first-time access.
+
 4. **Full pipeline demo** – create tradeline cards and a sample dispute letter from the bundled sample report.
 
    ```bash
