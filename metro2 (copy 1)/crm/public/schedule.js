@@ -16,7 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
       events = (data.events || []).map(ev => ({
         id: ev.id,
         date: (ev.start?.date || ev.start?.dateTime || '').split('T')[0],
-        text: ev.summary || ''
+        text: ev.summary || '',
+        type: ev.description || ''
       }));
     } catch (e) {
       console.error('Failed to load events', e);
@@ -24,13 +25,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function addEvent(dateStr, text) {
+  async function addEvent(dateStr, type, text) {
     try {
       await fetch('/api/calendar/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           summary: text,
+          description: type,
           start: { date: dateStr },
           end: { date: dateStr }
         })
@@ -42,11 +44,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function checkAvailability(dateStr) {
+    try {
+      const timeMin = `${dateStr}T00:00:00Z`;
+      const timeMax = `${dateStr}T23:59:59Z`;
+      const resp = await fetch('/api/calendar/freebusy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeMin, timeMax })
+      });
+      const data = await resp.json();
+      const calId = Object.keys(data.fb?.calendars || {})[0];
+      return calId ? data.fb.calendars[calId].busy : [];
+    } catch (e) {
+      console.error('Failed to check availability', e);
+      return [];
+    }
+  }
+
   function renderList() {
     if (!listEl) return;
     const upcoming = events.slice().sort((a, b) => a.date.localeCompare(b.date));
     listEl.innerHTML = '<h2 class="text-xl font-bold mb-2">Upcoming</h2>' +
-      upcoming.map(e => `<div class="mb-1">${e.date}: ${e.text}</div>`).join('');
+      upcoming.map(e => `<div class="mb-1">${e.date}: [${e.type||'event'}] ${e.text}</div>`).join('');
   }
 
   function render() {
@@ -70,11 +90,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const todays = events.filter(e => e.date === dateStr);
       const list = document.createElement('div');
       list.className = 'text-xs overflow-y-auto max-h-16';
-      list.innerHTML = todays.map(e => `<div>- ${e.text}</div>`).join('');
+      list.innerHTML = todays.map(e => `<div>- [${e.type||'event'}] ${e.text}</div>`).join('');
       cell.appendChild(list);
       cell.addEventListener('click', async () => {
-        const text = prompt(`Appointment details for ${dateStr}:`);
-        if (text) await addEvent(dateStr, text);
+        const busy = await checkAvailability(dateStr);
+        const busyInfo = busy.length ? `\nCurrently busy:\n${busy.map(b => `${b.start.slice(11,16)}-${b.end.slice(11,16)}`).join('\n')}` : '';
+        const type = prompt(`Type for ${dateStr} (booking/meeting/phone/availability):${busyInfo}`);
+        if (!type) return;
+        const text = prompt(`Details for ${type} on ${dateStr}:`);
+        if (text) await addEvent(dateStr, type, text);
       });
       calEl.appendChild(cell);
     }
