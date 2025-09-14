@@ -44,3 +44,4 @@ test('editing a tradeline updates stored report', async () => {
     assert.equal(fetched.body.report.tradelines[0].per_bureau.TransUnion.account_number, '0000');
     assert.equal(fetched.body.report.tradelines[0].meta.manual_reason, manualReason);
   });
+

@@ -1383,6 +1383,7 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
   if(isNaN(idx) || !r.data.tradelines?.[idx]) return res.status(404).json({ ok:false, error:"Tradeline not found" });
   const tl = r.data.tradelines[idx];
   const { creditor, per_bureau, manual_reason } = req.body || {};
+
   if(creditor !== undefined){
     tl.meta = tl.meta || {};
     tl.meta.creditor = creditor;
@@ -1391,6 +1392,7 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
     tl.meta = tl.meta || {};
     tl.meta.manual_reason = manual_reason;
   }
+
   if(per_bureau){
     tl.per_bureau = tl.per_bureau || {};
     ["TransUnion","Experian","Equifax"].forEach(b=>{

@@ -1114,6 +1114,7 @@ function openTlEdit(idx){
   f.exp_account_number.value = tl.per_bureau?.Experian?.account_number || "";
   f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
   f.manual_reason.value = tl.meta?.manual_reason || "";
+
   $("#tlEditModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
@@ -1132,6 +1133,7 @@ $("#tlEditForm").addEventListener("submit", async (e)=>{
   tl.per_bureau = tl.per_bureau || {};
   tl.meta.creditor = f.creditor.value.trim();
   tl.meta.manual_reason = f.manual_reason.value.trim();
+
   const map = { TransUnion: 'tu_account_number', Experian: 'exp_account_number', Equifax: 'eqf_account_number' };
   for (const [bureau, field] of Object.entries(map)) {
     const val = f[field].value.trim();
@@ -1141,6 +1143,7 @@ $("#tlEditForm").addEventListener("submit", async (e)=>{
     const payload = {
       creditor: tl.meta.creditor,
       manual_reason: tl.meta.manual_reason,
+
       per_bureau: {
         TransUnion: { account_number: f.tu_account_number.value.trim() },
         Experian: { account_number: f.exp_account_number.value.trim() },
