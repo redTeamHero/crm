@@ -12,6 +12,7 @@
 
 function parseCreditReportHTML(doc) {
   const results = { tradelines: [], inquiries: [], inquiry_summary: {} };
+  const NON_CREDITOR_HEADERS = new Set(["risk factors"]);
 
   // ---- Locate all tradeline comparison tables ----
   const tlTables = Array.from(
@@ -46,7 +47,11 @@ function parseCreditReportHTML(doc) {
 
     // ---- A) Creditor (header above the table) ----
     const creditorEl = container.querySelector("div.sub_header");
-    tl.meta.creditor = text(creditorEl) || "Unknown";
+    const creditorName = (text(creditorEl) || "").trim();
+    if (NON_CREDITOR_HEADERS.has(creditorName.toLowerCase())) {
+      continue; // skip non-creditor sections like "Risk Factors"
+    }
+    tl.meta.creditor = creditorName || "Unknown";
 
     // ---- B) Bureau order from the header row ----
     const trs = rows(table);

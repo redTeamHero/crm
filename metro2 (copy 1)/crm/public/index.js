@@ -466,7 +466,7 @@ export function dedupeTradelines(lines){
   const result = [];
   (lines || []).forEach(tl => {
     const name = (tl.meta?.creditor || "").trim();
-    if (!name || name.toLowerCase() === "risk factors") return;
+    if (!name) return;
     const per = tl.per_bureau || {};
     const hasData = ["TransUnion","Experian","Equifax"].some(b => Object.keys(per[b] || {}).length);
     const hasViolations = (tl.violations || []).length > 0;
