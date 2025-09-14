@@ -9,19 +9,30 @@ const PORT = 4100;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
+let auth = {};
+
 async function startServer(){
   return new Promise(resolve => {
     const proc = spawn('node', ['server.js'], {
       cwd: root,
       env: { ...process.env, PORT: String(PORT) }
     });
-    proc.stdout.on('data', d => {
-      if (d.toString().includes('CRM ready')) resolve(proc);
+    proc.stdout.on('data', async d => {
+      if (d.toString().includes('CRM ready')) {
+        const login = await fetchJson(`http://localhost:${PORT}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'ducky', password: 'duck' })
+        });
+        auth = { Authorization: `Bearer ${login.json.token}` };
+        resolve(proc);
+      }
     });
   });
 }
 
-async function fetchJson(url, options){
+async function fetchJson(url, options = {}){
+  options.headers = { ...(options.headers || {}), ...auth };
   const res = await fetch(url, options);
   const json = await res.json().catch(()=> ({}));
   return { res, json };
@@ -90,6 +101,31 @@ await test('letters include manual creditor and account numbers', async () => {
     const html = await htmlRes.text();
     assert.ok(html.includes('Manual Creditor'));
     assert.ok(html.includes('123456789'));
+  } finally {
+    server.kill();
+  }
+});
+
+await test('letters include manual dispute reason', async () => {
+  const server = await startServer();
+  try {
+    const { json: db } = await fetchJson(`http://localhost:${PORT}/api/consumers`);
+    const consumerId = db.consumers[0].id;
+    const reportId = db.consumers[0].reports[0].id;
+    const selection = {
+      tradelineIndex: 0,
+      bureaus: ['TransUnion'],
+      specificDisputeReason: 'Manual reason'
+    };
+    const { res, json } = await fetchJson(`http://localhost:${PORT}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consumerId, reportId, selections: [selection], requestType: 'correct' })
+    });
+    assert.equal(res.status, 200);
+    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    const { json: letters } = await fetchJson(`http://localhost:${PORT}/api/letters/${jobId}`);
+    assert.equal(letters.letters[0].specificDisputeReason, 'Manual reason');
   } finally {
     server.kill();
   }

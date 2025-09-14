@@ -852,7 +852,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "_")
             .replace(/^_+|_+$/g, "");
-          filename = filename.replace("_dispute_", `_${safeStep}_`);
+        filename = filename.replace("_dispute_", `_${safeStep}_`);
         }
         filename = `${namePrefix(consumer)}_${filename}`;
         letters.push({
@@ -860,6 +860,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
           tradelineIndex: sel.tradelineIndex,
           creditor: tl.meta.creditor,
           requestType: req,
+          specificDisputeReason: sel.specificDisputeReason,
           ...letter,
           filename,
         });

@@ -1373,6 +1373,37 @@ app.delete("/api/consumers/:id/report/:rid", async (req,res)=>{
   res.json({ ok:true });
 });
 
+app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
+  const db=await loadDB();
+  const c=db.consumers.find(x=>x.id===req.params.id);
+  if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const r=c.reports.find(x=>x.id===req.params.rid);
+  if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+  const idx = Number(req.params.tidx);
+  if(isNaN(idx) || !r.data.tradelines?.[idx]) return res.status(404).json({ ok:false, error:"Tradeline not found" });
+  const tl = r.data.tradelines[idx];
+  const { creditor, per_bureau, manual_reason } = req.body || {};
+  if(creditor !== undefined){
+    tl.meta = tl.meta || {};
+    tl.meta.creditor = creditor;
+  }
+  if(manual_reason !== undefined){
+    tl.meta = tl.meta || {};
+    tl.meta.manual_reason = manual_reason;
+  }
+  if(per_bureau){
+    tl.per_bureau = tl.per_bureau || {};
+    ["TransUnion","Experian","Equifax"].forEach(b=>{
+      if(per_bureau[b]){
+        tl.per_bureau[b] = { ...(tl.per_bureau[b] || {}), ...per_bureau[b] };
+      }
+    });
+  }
+  runBasicRuleAudit(r.data);
+  await saveDB(db);
+  res.json({ ok:true, tradeline: tl });
+});
+
 app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
   const db=await loadDB();
   const c=db.consumers.find(x=>x.id===req.params.id);
@@ -1855,7 +1886,7 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), async
   const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job } = result;
-  const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor, requestType:L.requestType }));
+  const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor, requestType:L.requestType, specificDisputeReason: L.specificDisputeReason }));
 
   console.log(`Job ${jobId} has ${meta.length} letters`);
   res.json({ ok:true, letters: meta });
