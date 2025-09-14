@@ -38,6 +38,7 @@ function generateToken(user){
 
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters, modeCopy } from "./letterEngine.js";
+import LETTER_TEMPLATES from "./letterTemplates.js";
 import { PLAYBOOKS } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
@@ -1181,6 +1182,10 @@ app.get("/api/templates", async (_req,res)=>{
     sequences: db.sequences || [],
     contracts: db.contracts || []
   });
+});
+
+app.get("/api/sample-letters", (_req, res) => {
+  res.json({ ok: true, templates: LETTER_TEMPLATES });
 });
 
 app.post("/api/templates", async (req,res)=>{
