@@ -36,6 +36,14 @@ let trackerSteps = [];
 let consumerFiles = [];
 
 let metro2Violations = [];
+function renderReasonOptions(filter=""){
+  const sel = $("#tlReasonSelect");
+  if(!sel) return;
+  const f = filter.toLowerCase();
+  const opts = metro2Violations.filter(r => r.toLowerCase().includes(f));
+  sel.innerHTML = '<option value="">Select reason</option>' +
+    opts.map(r => `<option value="${r}">${r}</option>`).join('');
+}
 async function loadMetro2Violations(){
   try{
     const res = await fetch('metro2Violations.json');
@@ -66,13 +74,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sel = $("#tlReasonSelect");
   if(sel){
     await loadMetro2Violations();
-    sel.innerHTML = '<option value="">Select reason</option>' +
-      metro2Violations.map(r => `<option value="${r}">${r}</option>`).join('');
+    renderReasonOptions();
 
     sel.addEventListener('change', e => {
       const txt = $("#tlReasonText");
       if(txt) txt.value = e.target.value;
     });
+    $("#tlReasonSearch")?.addEventListener('input', e => {
+      renderReasonOptions(e.target.value);
+    });
+
   }
 });
 
@@ -1137,6 +1148,11 @@ function openTlEdit(idx){
   const tl = CURRENT_REPORT?.tradelines?.[idx];
   if(!tl) return;
   const f = $("#tlEditForm");
+  const reasonSearch = $("#tlReasonSearch");
+  if(reasonSearch){
+    reasonSearch.value = "";
+    renderReasonOptions();
+  }
   f.dataset.idx = idx;
   f.creditor.value = tl.meta?.creditor || "";
   f.tu_account_number.value = tl.per_bureau?.TransUnion?.account_number || "";
@@ -1190,6 +1206,11 @@ function closeTlEdit(){
   $("#tlHtmlContainer").classList.add("hidden");
   const sel = $("#tlReasonSelect");
   if(sel) sel.value = "";
+  const search = $("#tlReasonSearch");
+  if(search){
+    search.value = "";
+    renderReasonOptions();
+  }
 
 }
 $("#tlHtmlInput")?.addEventListener("change", e=>{
