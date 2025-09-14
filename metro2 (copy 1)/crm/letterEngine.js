@@ -852,18 +852,19 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "_")
             .replace(/^_+|_+$/g, "");
-          filename = filename.replace("_dispute_", `_${safeStep}_`);
-        }
-        filename = `${namePrefix(consumer)}_${filename}`;
-        letters.push({
-          bureau,
-          tradelineIndex: sel.tradelineIndex,
-          creditor: tl.meta.creditor,
-          ...letter,
-          filename,
-        });
+        filename = filename.replace("_dispute_", `_${safeStep}_`);
       }
-    });
+      filename = `${namePrefix(consumer)}_${filename}`;
+      letters.push({
+        bureau,
+        tradelineIndex: sel.tradelineIndex,
+        creditor: tl.meta.creditor,
+        specificDisputeReason: sel.specificDisputeReason,
+        ...letter,
+        filename,
+      });
+    }
+  });
   }
 
   return letters;

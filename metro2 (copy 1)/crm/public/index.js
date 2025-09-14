@@ -947,6 +947,14 @@ function collectSelections(){
       specialMode: data.specialMode,
       playbook: data.playbook || undefined
     };
+    const reasonMap = {
+      identity: 'identity theft',
+      breach: 'data breach',
+      assault: 'sexual assault'
+    };
+    if (data.specialMode && reasonMap[data.specialMode]) {
+      sel.specificDisputeReason = reasonMap[data.specialMode];
+    }
     if (data.violationIdxs && data.violationIdxs.length){
       sel.violationIdxs = data.violationIdxs;
     }

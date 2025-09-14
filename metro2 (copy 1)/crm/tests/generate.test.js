@@ -52,6 +52,7 @@ await test('server rejects and accepts selections appropriately', async () => {
 
     ({ json } = await fetchJson(`http://localhost:${PORT}/api/letters/${jobId}`));
     assert.equal(json.letters[0].bureau, 'TransUnion');
+    assert.equal(json.letters[0].specificDisputeReason, 'identity theft');
 
     const pdfRes = await fetch(`http://localhost:${PORT}/api/letters/${jobId}/0.pdf`);
     if (pdfRes.status === 200) {
