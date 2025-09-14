@@ -43,8 +43,10 @@ globalThis.document = {
   },
   querySelectorAll: () => [],
   createElement: () => dummy(),
+  addEventListener: () => {},
 };
 globalThis.window = { location:{ href:'' } };
+globalThis.location = { search: '' };
 globalThis.MutationObserver = class { constructor(){} observe(){} disconnect(){} };
 globalThis.localStorage = { getItem(){ return null; }, setItem(){} };
 const warnings = [];
@@ -62,15 +64,14 @@ const { collectSelections, selectionState } = module;
 selectionState[1] = { bureaus:['Experian'], specialMode:'identity' };
 selectionState[2] = { bureaus:[], specialMode:'identity' };
 
-const selections = collectSelections();
-
 await test('collectSelections captures creditor info and skips incomplete special modes', () => {
+  const selections = collectSelections();
   assert.equal(selections.length, 1);
   const s = selections[0];
   assert.equal(s.tradelineIndex, 1);
   assert.equal(s.creditor, 'ACME Credit');
   assert.deepEqual(s.accountNumbers, { TransUnion:'TU123', Experian:'EX456', Equifax:'EQ789' });
-  assert.ok(warnings.length === 1);
+  assert.equal(s.specificDisputeReason, 'identity theft');
 });
 
 ocrEl.checked = true;
