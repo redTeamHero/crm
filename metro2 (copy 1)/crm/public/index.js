@@ -42,6 +42,7 @@ const METRO2_VIOLATIONS = [
   "Account status code mismatch"
 ];
 
+
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
@@ -1165,6 +1166,7 @@ function openTlEdit(idx){
       }catch{}
     };
     iframe.src = url;
+
     $("#tlHtmlContainer").classList.remove("hidden");
   }else{
     $("#tlHtmlPreview").src = "";
@@ -1181,7 +1183,17 @@ function closeTlEdit(){
   $("#tlHtmlContainer").classList.add("hidden");
   const sel = $("#tlReasonSelect");
   if(sel) sel.value = "";
+
 }
+$("#tlHtmlInput")?.addEventListener("change", e=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  if(tlHtmlUrl){ URL.revokeObjectURL(tlHtmlUrl); }
+  tlHtmlUrl = URL.createObjectURL(file);
+  $("#tlHtmlPreview").src = tlHtmlUrl;
+  $("#tlHtmlContainer").classList.remove("hidden");
+
+});
 $("#tlEditCancel").addEventListener("click", ()=> closeTlEdit());
 $("#tlEditForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
