@@ -791,9 +791,12 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
     }
 
     // Auto-flag: negative appears on one bureau only => incomplete/misleading
-    const bureausPresent = Object.entries(tl.per_bureau || {})
-      .filter(([_, pb]) => hasAnyData(pb))
-      .map(([b]) => b);
+    const bureausWithData = new Set(
+      Object.entries(tl.per_bureau || {})
+        .filter(([_, pb]) => hasAnyData(pb))
+        .map(([b]) => b)
+    );
+    const bureausPresent = Array.from(bureausWithData);
 
     if (
       bureausPresent.length === 1 &&
@@ -828,6 +831,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
       const dateOverride = play ? futureISO(stepIdx * 30) : undefined;
       for (const bureau of sel.bureaus || []) {
         if (!ALL_BUREAUS.includes(bureau)) continue;
+        if (!bureausWithData.has(bureau)) continue;
 
         const req = sel.requestType || requestType;
         const tpl = sel.templateId ? templateMap[sel.templateId] : null;
