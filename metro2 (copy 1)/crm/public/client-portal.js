@@ -189,11 +189,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
 
-  const timeline = JSON.parse(localStorage.getItem('disputeTimeline') || '[]');
-  const timelineEl = document.getElementById('timeline');
-  if (timelineEl) {
-    if (!timeline.length) {
-      const empty = document.getElementById('timelineEmpty');
+  const items = JSON.parse(localStorage.getItem('itemsInDispute') || localStorage.getItem('disputeTimeline') || '[]');
+  const itemsEl = document.getElementById('itemsInDispute');
+  if (itemsEl) {
+    if (!items.length) {
+      const empty = document.getElementById('itemsInDisputeEmpty');
       if (empty && window.lottie) {
         lottie.loadAnimation({
           container: empty,
@@ -204,22 +204,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
     } else {
-      const tt = document.getElementById('timelineText');
+      const tt = document.getElementById('itemsInDisputeText');
       if (tt) tt.remove();
-      const te = document.getElementById('timelineEmpty');
+      const te = document.getElementById('itemsInDisputeEmpty');
       if (te) te.remove();
-      timelineEl.innerHTML = timeline.map(t => `<div class="timeline-item"><span class="font-medium">${t.account}</span> - ${t.stage}</div>`).join('');
+      itemsEl.innerHTML = items.map(t => `<div class="timeline-item"><span class="font-medium">${t.account}</span> - ${t.stage}</div>`).join('');
     }
   }
 
-  const summaryEl = document.getElementById('disputeSummary');
+  const summaryEl = document.getElementById('itemsSummary');
   if(summaryEl){
     const perRound = 10;
-    if(timeline.length){
-      const rounds = Math.ceil(timeline.length / perRound);
-      summaryEl.textContent = `${timeline.length} items across ${rounds} round${rounds===1?'':'s'} (${perRound} per round)`;
+    if(items.length){
+      const rounds = Math.ceil(items.length / perRound);
+      summaryEl.textContent = `${items.length} items across ${rounds} round${rounds===1?'':'s'} (${perRound} per round)`;
     } else {
-      summaryEl.textContent = 'No disputes yet.';
+      summaryEl.textContent = 'No items in dispute.';
     }
   }
 
