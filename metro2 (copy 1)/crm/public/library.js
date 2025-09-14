@@ -1,6 +1,5 @@
 let templates = [];
 let sequences = [];
-let mainTemplates = [];
 let currentTemplateId = null;
 let currentSequenceId = null;
 let currentRequestType = 'correct';
@@ -18,17 +17,18 @@ async function loadLibrary(){
     spanish: t.spanish
   }));
   templates = [...templates, ...sampleTemplates];
+  const seenIds = new Set();
+  templates = templates.filter(t => {
+    if(seenIds.has(t.id)) return false;
+    seenIds.add(t.id);
+    return true;
+  });
   sequences = data.sequences || [];
   renderTemplates();
   renderSequences();
-  const defRes = await fetch('/api/templates/defaults');
-  const defData = await defRes.json().catch(()=>({}));
-  mainTemplates = defData.templates || [];
-  renderMainTemplates();
-
 }
 
-function renderList(items, containerId, clickHandler, dropHandler){
+function renderList(items, containerId, clickHandler){
   const list = document.getElementById(containerId);
   if(!list) return;
   list.innerHTML = '';
@@ -41,14 +41,6 @@ function renderList(items, containerId, clickHandler, dropHandler){
     div.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', t.id);
     });
-    if(dropHandler){
-      div.addEventListener('dragover', e => e.preventDefault());
-      div.addEventListener('drop', e => {
-        e.preventDefault();
-        const draggedId = e.dataTransfer.getData('text/plain');
-        if(draggedId) dropHandler(t.id, draggedId);
-      });
-    }
     div.onclick = () => clickHandler(t.id);
     list.appendChild(div);
   });
@@ -56,10 +48,6 @@ function renderList(items, containerId, clickHandler, dropHandler){
 
 function renderTemplates(){
   renderList(templates, 'templateList', editTemplate);
-}
-
-function renderMainTemplates(){
-  renderList(mainTemplates, 'mainList', useMainTemplate, assignMainTemplate);
 }
 
 function showTemplateEditor(){
@@ -92,42 +80,6 @@ function editTemplate(id){
   document.getElementById('tplAfter').value = tpl.afterIssues || '';
   document.getElementById('tplEvidence').value = tpl.evidence || '';
   updatePreview();
-}
-
-function useMainTemplate(id){
-  const tpl = mainTemplates.find(t => t.id === id);
-  if(!tpl) return;
-  currentTemplateId = id;
-  showTemplateEditor();
-  document.getElementById('tplHeading').value = tpl.heading || '';
-  currentRequestType = tpl.requestType || 'correct';
-  document.getElementById('tplIntro').value = tpl.intro || '';
-  document.getElementById('tplAsk').value = tpl.ask || '';
-  document.getElementById('tplAfter').value = tpl.afterIssues || '';
-  document.getElementById('tplEvidence').value = tpl.evidence || '';
-  updatePreview();
-}
-
-async function assignMainTemplate(slotId, templateId){
-  const isSwap = mainTemplates.some(t => t.id === templateId);
-  let res = await fetch('/api/templates/defaults', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slotId, templateId })
-  });
-  let data = await res.json().catch(()=>({}));
-  if(isSwap){
-    res = await fetch('/api/templates/defaults', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slotId: templateId, templateId: slotId })
-    });
-    data = await res.json().catch(()=>({}));
-  }
-  if(data.templates){
-    mainTemplates = data.templates;
-    renderMainTemplates();
-  }
 }
 
 function openTemplateEditor(){

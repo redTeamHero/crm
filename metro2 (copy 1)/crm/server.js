@@ -39,7 +39,7 @@ function generateToken(user){
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters, modeCopy } from "./letterEngine.js";
 import LETTER_TEMPLATES from "./letterTemplates.js";
-import { PLAYBOOKS } from "./playbook.js";
+import { loadPlaybooks } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
   listConsumerState,
@@ -1775,7 +1775,8 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
     }
 
     const lettersDb = await loadLettersDB();
-    const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType, templates: lettersDb.templates || [] });
+    const playbooks = await loadPlaybooks();
+    const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType, templates: lettersDb.templates || [], playbooks });
     if (Array.isArray(personalInfo) && personalInfo.length) {
       letters.push(
         ...generatePersonalInfoLetters({
@@ -1829,27 +1830,27 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
 
     });
 
-for (const sel of selections || []) {
-  const play = sel.playbook && PLAYBOOKS[sel.playbook];
-  if (!play) continue;
+    for (const sel of selections || []) {
+      const play = sel.playbook && playbooks[sel.playbook];
+      if (!play) continue;
 
-  const letters = play.letters.slice(1); // skip the first letter
-  for (const [idx, title] of letters.entries()) {
-    const due = new Date();
-    due.setDate(due.getDate() + (idx + 1) * 30);
+      const followUps = play.letters.slice(1); // skip the first letter
+      for (const [idx, title] of followUps.entries()) {
+        const due = new Date();
+        due.setDate(due.getDate() + (idx + 1) * 30);
 
-    await addReminder(consumer.id, {
-      id: `rem_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-      due: due.toISOString(),
-      payload: {
-        tradelineIndex: sel.tradelineIndex,
-        playbook: sel.playbook,
-        step: title,
-        stepNumber: idx + 2,
-      },
-    });
-  }
-}
+        await addReminder(consumer.id, {
+          id: `rem_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+          due: due.toISOString(),
+          payload: {
+            tradelineIndex: sel.tradelineIndex,
+            playbook: sel.playbook,
+            step: title,
+            stepNumber: idx + 2,
+          },
+        });
+      }
+    }
 
     res.json({ ok:true, redirect: `/letters?job=${jobId}` });
   }catch(e){
