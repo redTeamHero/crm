@@ -53,13 +53,15 @@ function renderMainTemplates(){
 }
 
 function showTemplateEditor(){
-  const editor = document.getElementById('tplEditor');
-  if(editor) editor.classList.remove('hidden');
+  const modal = document.getElementById('templateModal');
+  if(modal) modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 }
 
 function hideTemplateEditor(){
-  const editor = document.getElementById('tplEditor');
-  if(editor) editor.classList.add('hidden');
+  const modal = document.getElementById('templateModal');
+  if(modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
   currentTemplateId = null;
   ['tplHeading','tplIntro','tplAsk','tplAfter','tplEvidence'].forEach(id => {
     const el = document.getElementById(id);
@@ -239,6 +241,13 @@ document.getElementById('newTemplate').onclick = openTemplateEditor;
 document.getElementById('cancelTemplate').onclick = hideTemplateEditor;
 document.getElementById('saveSequence').onclick = saveSequence;
 document.getElementById('newSequence').onclick = newSequence;
+
+const templateModal = document.getElementById('templateModal');
+if(templateModal){
+  templateModal.addEventListener('click', e => {
+    if(e.target.id === 'templateModal') hideTemplateEditor();
+  });
+}
 
 ['tplHeading','tplIntro','tplAsk','tplAfter','tplEvidence'].forEach(id => {
   document.getElementById(id).addEventListener('input', updatePreview);
