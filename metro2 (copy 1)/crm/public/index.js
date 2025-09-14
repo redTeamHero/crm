@@ -33,6 +33,19 @@ let trackerData = {};
 
 let trackerSteps = [];
 
+let consumerFiles = [];
+
+let metro2Violations = [];
+async function loadMetro2Violations(){
+  try{
+    const res = await fetch('metro2Violations.json');
+    const data = await res.json();
+    metro2Violations = Object.values(data).map(v=>v.violation);
+  }catch(err){
+    console.error('Failed to load Metro-2 violations', err);
+  }
+}
+
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
@@ -46,6 +59,20 @@ async function loadTemplates(){
   }catch{}
 }
 loadTemplates();
+
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const sel = $("#tlReasonSelect");
+  if(sel){
+    await loadMetro2Violations();
+    sel.innerHTML = '<option value="">Select reason</option>' +
+      metro2Violations.map(r => `<option value="${r}">${r}</option>`).join('');
+    sel.addEventListener('change', e => {
+      const txt = $("#tlReasonText");
+      if(txt) txt.value = e.target.value;
+    });
+  }
+});
 
 
 function updatePortalLink(){
@@ -1115,12 +1142,50 @@ function openTlEdit(idx){
   f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
   f.manual_reason.value = tl.meta?.manual_reason || "";
 
+  const reasonSel = $("#tlReasonSelect");
+  const reasonText = $("#tlReasonText");
+  if(reasonSel){
+    reasonSel.value = metro2Violations.includes(f.manual_reason.value) ? f.manual_reason.value : "";
+    if(reasonSel.value && reasonText) reasonText.value = reasonSel.value;
+  }
+
+  const fileRec = consumerFiles.find(f => f.id === currentReportId);
+  if(fileRec){
+    const url = `/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(fileRec.storedName)}`;
+    const iframe = $("#tlHtmlPreview");
+    iframe.onload = () => {
+      try{
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        const nums = [f.tu_account_number.value, f.exp_account_number.value, f.eqf_account_number.value]
+          .map(s => s.trim()).filter(Boolean);
+        let target;
+        const els = Array.from(doc.body?.getElementsByTagName('*') || []);
+        for(const num of nums){
+          for(const el of els){
+            if(el.textContent?.includes(num)){ target = el; break; }
+          }
+          if(target) break;
+        }
+        if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
+      }catch{}
+    };
+    iframe.src = url;
+    $("#tlHtmlContainer").classList.remove("hidden");
+  }else{
+    $("#tlHtmlPreview").src = "";
+    $("#tlHtmlContainer").classList.add("hidden");
+  }
+
   $("#tlEditModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
 function closeTlEdit(){
   $("#tlEditModal").classList.add("hidden");
   document.body.style.overflow = "";
+  $("#tlHtmlPreview").src = "";
+  $("#tlHtmlContainer").classList.add("hidden");
+  const sel = $("#tlReasonSelect");
+  if(sel) sel.value = "";
 }
 $("#tlEditCancel").addEventListener("click", ()=> closeTlEdit());
 $("#tlEditForm").addEventListener("submit", async (e)=>{
@@ -1323,6 +1388,7 @@ async function loadConsumerState(){
   const allEvents = resp.state?.events || [];
   const events = allEvents.filter(ev => ev.type !== "message");
   const files = resp.state?.files || [];
+  consumerFiles = files;
   const list = [];
 
   if (files.length){
