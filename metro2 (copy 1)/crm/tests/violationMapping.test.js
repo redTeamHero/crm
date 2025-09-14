@@ -94,6 +94,38 @@ test('mergeBureauViolations merges bureaus array into single violation', async (
 
 });
 
+test('mergeBureauViolations preserves first violation index', async () => {
+  const stubEl = {};
+  stubEl.addEventListener = () => {};
+  stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };
+  stubEl.querySelector = () => stubEl;
+  stubEl.querySelectorAll = () => [];
+  stubEl.appendChild = () => {};
+  stubEl.innerHTML = '';
+  stubEl.textContent = '';
+  stubEl.style = {};
+  stubEl.dataset = {};
+  globalThis.document = {
+    querySelector: () => stubEl,
+    querySelectorAll: () => [],
+    getElementById: () => stubEl,
+    addEventListener: () => {},
+    createElement: () => stubEl,
+    body: { style: {} }
+  };
+  globalThis.window = {};
+  globalThis.MutationObserver = class { observe(){} disconnect(){} };
+  globalThis.localStorage = { getItem: () => null, setItem: () => {} };
+  globalThis.location = { search: '', pathname: '/' };
+
+  const { mergeBureauViolations } = await import('../public/index.js');
+  const merged = mergeBureauViolations([
+    { id: 'A1', category: 'cat', title: 'Same Title', detail: 'Same Detail', evidence: { bureau: 'TransUnion' } },
+    { id: 'A1', category: 'cat', title: 'Same Title', detail: 'Same Detail', evidence: { bureau: 'Experian' } },
+  ]);
+  assert.equal(merged[0].idx, 0);
+});
+
 test('renderViolations shows violation text when title missing', async () => {
   const stubEl = {};
   stubEl.addEventListener = () => {};

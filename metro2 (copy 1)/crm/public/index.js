@@ -494,7 +494,7 @@ export function dedupeTradelines(lines){
 
 export function mergeBureauViolations(vs){
   const map = new Map();
-  (vs || []).forEach(v => {
+  (vs || []).forEach((v, idx) => {
     const text = v.title || v.violation || "";
     const m = text.match(/\((TransUnion|Experian|Equifax)\)/) || [];
     const base = text.replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
@@ -506,7 +506,7 @@ export function mergeBureauViolations(vs){
     const id = v.id || v.code || "";
     const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[1]].filter(Boolean);
     const key = `${id}|${v.category||""}|${base}|${evKey}`;
-    if(!map.has(key)) map.set(key,{category:v.category,title:base,bureaus:new Set(),details:new Set(),debugs:new Set(),severity:v.severity||0});
+    if(!map.has(key)) map.set(key, { category: v.category, title: base, bureaus: new Set(), details: new Set(), debugs: new Set(), severity: v.severity || 0, idx });
     const entry = map.get(key);
     bureaus.forEach(bureau => entry.bureaus.add(bureau));
     if(detailClean) entry.details.add(detailClean);
@@ -514,13 +514,14 @@ export function mergeBureauViolations(vs){
     if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
 
   });
-  return Array.from(map.values()).map(e=>({
-    category:e.category,
+  return Array.from(map.values()).map(e => ({
+    category: e.category,
     title: e.title,
     detail: Array.from(e.details).join(' '),
     severity: e.severity,
     bureaus: Array.from(e.bureaus),
-    debug: Array.from(e.debugs).join('\n')
+    debug: Array.from(e.debugs).join('\n'),
+    idx: e.idx
   }));
 }
 
@@ -741,9 +742,9 @@ function renderTradelines(tradelines){
         return;
       }
       const end = Math.min(vStart + pageSize, vs.length);
-      vWrap.innerHTML = vs.slice(vStart, end).map((v, vidx) => `
+      vWrap.innerHTML = vs.slice(vStart, end).map(v => `
         <label class="violation-item flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer severity-${v.severity || 1}">
-          <input type="checkbox" class="violation" value="${vidx + vStart}"/>
+          <input type="checkbox" class="violation" value="${v.idx}"/>
           <div>
             <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || v.violation || "")}${v.severity ? `<span class="severity-tag severity-${v.severity}">S${v.severity}</span>` : ""}</div>
             ${v.bureaus && v.bureaus.length ? `<div class="text-xs mt-1">${v.bureaus.map(b=>'<span class="badge badge-bureau">'+escapeHtml(b)+'</span>').join(' ')}</div>` : ""}

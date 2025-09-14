@@ -1246,8 +1246,14 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
         const base = analyzed.tradelines[idx] || (analyzed.tradelines[idx] = {});
         base.meta = deepMerge(base.meta, tl.meta);
         base.per_bureau = deepMerge(base.per_bureau, tl.per_bureau);
-        base.violations = tl.violations || base.violations || [];
-        base.violations_grouped = tl.violations_grouped || base.violations_grouped || {};
+        base.violations = [
+          ...(base.violations || []),
+          ...(tl.violations || []),
+        ];
+        base.violations_grouped = deepMerge(
+          base.violations_grouped || {},
+          tl.violations_grouped || {}
+        );
       });
       if (!analyzed.personalInfo && py?.personalInfo) {
         analyzed.personalInfo = py.personalInfo;
