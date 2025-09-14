@@ -10,9 +10,9 @@ test('extracts DOFD and flags past-due inconsistency', () => {
   const v = result.tradelines[0].violations.find(v => v.code === 'CURRENT_BUT_PASTDUE' && v.bureau === 'TransUnion');
   assert.ok(v, 'should flag past-due inconsistency for TransUnion');
   assert.deepStrictEqual(
-    { code: v.code, violation: v.violation, severity: v.severity, fcraSection: v.fcraSection },
+    { id: v.id, violation: v.violation, severity: v.severity, fcraSection: v.fcraSection },
     {
-      code: 'CURRENT_BUT_PASTDUE',
+      id: 12,
       violation: 'Past due amount reported on current account',
       severity: 4,
       fcraSection: '§ 623(a)(1)'
@@ -20,9 +20,28 @@ test('extracts DOFD and flags past-due inconsistency', () => {
   );
 });
 
-test('validateTradeline returns enriched violation objects', () => {
-  const violations = validateTradeline({ account_status: 'Current', past_due: 100 });
-  assert.deepStrictEqual(violations, [enrich('CURRENT_BUT_PASTDUE')]);
+test('validateTradeline executes multiple rule types', () => {
+  const comparison = validateTradeline({ account_status: 'Current', past_due: 100 });
+  assert.deepStrictEqual(comparison, [
+    {
+      code: 'CURRENT_BUT_PASTDUE',
+      id: 12,
+      violation: 'Past due amount reported on current account',
+      severity: 4,
+      fcraSection: '§ 623(a)(1)'
+    }
+  ]);
+
+  const missing = validateTradeline({ account_status: 'Charge-off' });
+  assert.deepStrictEqual(missing, [
+    {
+      code: 'MISSING_DOFD',
+      id: 1,
+      violation: 'Missing or invalid Date of First Delinquency',
+      severity: 5,
+      fcraSection: '§ 623(a)(5)'
+    }
+  ]);
 });
 
 test('unknown violation codes fall back to default message', () => {
