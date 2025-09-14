@@ -3,6 +3,7 @@ let sequences = [];
 let mainTemplates = [];
 let currentTemplateId = null;
 let currentSequenceId = null;
+let currentRequestType = 'correct';
 
 async function loadLibrary(){
   const res = await fetch('/api/templates');
@@ -67,8 +68,7 @@ function hideTemplateEditor(){
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
-  const typeEl = document.getElementById('tplType');
-  if(typeEl) typeEl.value = 'correct';
+  currentRequestType = 'correct';
   updatePreview();
 }
 
@@ -77,7 +77,7 @@ function editTemplate(id){
   currentTemplateId = id;
   showTemplateEditor();
   document.getElementById('tplHeading').value = tpl.heading || '';
-  document.getElementById('tplType').value = tpl.requestType || 'correct';
+  currentRequestType = tpl.requestType || 'correct';
   document.getElementById('tplIntro').value = tpl.intro || '';
   document.getElementById('tplAsk').value = tpl.ask || '';
   document.getElementById('tplAfter').value = tpl.afterIssues || '';
@@ -91,7 +91,7 @@ function useMainTemplate(id){
   currentTemplateId = id;
   showTemplateEditor();
   document.getElementById('tplHeading').value = tpl.heading || '';
-  document.getElementById('tplType').value = tpl.requestType || 'correct';
+  currentRequestType = tpl.requestType || 'correct';
   document.getElementById('tplIntro').value = tpl.intro || '';
   document.getElementById('tplAsk').value = tpl.ask || '';
   document.getElementById('tplAfter').value = tpl.afterIssues || '';
@@ -119,8 +119,7 @@ function openTemplateEditor(){
     const el = document.getElementById(id);
     if(el) el.value='';
   });
-  const typeEl = document.getElementById('tplType');
-  if(typeEl) typeEl.value = 'correct';
+  currentRequestType = 'correct';
   updatePreview();
 }
 
@@ -145,7 +144,7 @@ async function upsertTemplate(payload){
 async function saveTemplate(){
   const payload = {
     heading: document.getElementById('tplHeading').value,
-    requestType: document.getElementById('tplType').value,
+    requestType: currentRequestType,
     intro: document.getElementById('tplIntro').value,
     ask: document.getElementById('tplAsk').value,
     afterIssues: document.getElementById('tplAfter').value,
