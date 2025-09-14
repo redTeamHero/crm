@@ -1,6 +1,4 @@
 // letterEngine.js
-
-import { PLAYBOOKS } from './playbook.js';
 import { enrichTradeline } from './pullTradelineData.js';
 import { loadMetro2Violations } from './utils.js';
 
@@ -785,7 +783,7 @@ function generateDebtCollectorLetters({ consumer, collectors = [] }) {
   return letters;
 }
 
-function generateLetters({ report, selections, consumer, requestType = "correct", templates = [] }) {
+function generateLetters({ report, selections, consumer, requestType = "correct", templates = [], playbooks = {} }) {
   const SPECIAL_ONE_BUREAU = new Set(["identity", "breach", "assault"]);
   const letters = [];
   const templateMap = Object.fromEntries((templates || []).map(t => [t.id, t]));
@@ -843,7 +841,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
     const isSpecial = SPECIAL_ONE_BUREAU.has(sel.specialMode);
     const comparisonBureaus = isSpecial ? [sel.bureaus[0]] : ALL_BUREAUS;
 
-    const play = sel.playbook && PLAYBOOKS[sel.playbook];
+    const play = sel.playbook && playbooks[sel.playbook];
     const steps = play ? play.letters : [null];
 
     steps.forEach((stepTitle, stepIdx) => {
