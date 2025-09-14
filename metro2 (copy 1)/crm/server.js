@@ -1856,6 +1856,7 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), async
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job } = result;
   const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor, requestType:L.requestType }));
+
   console.log(`Job ${jobId} has ${meta.length} letters`);
   res.json({ ok:true, letters: meta });
 });

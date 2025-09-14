@@ -867,6 +867,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
     });
   }
 
+
   return letters;
 }
 
