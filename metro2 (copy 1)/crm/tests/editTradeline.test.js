@@ -26,18 +26,22 @@ test('editing a tradeline updates stored report', async () => {
   assert.equal(upload.status, 200);
   const rid = upload.body.reportId;
 
-  const newCreditor = 'Edited Creditor';
-  const put = await request(app)
-    .put(`/api/consumers/${id}/report/${rid}/tradeline/0`)
-    .set(auth)
-    .send({ creditor: newCreditor, per_bureau: { TransUnion: { account_number: '0000' } } });
-  assert.equal(put.status, 200);
-  assert.equal(put.body.ok, true);
-  assert.equal(put.body.tradeline.meta.creditor, newCreditor);
-  assert.equal(put.body.tradeline.per_bureau.TransUnion.account_number, '0000');
+    const newCreditor = 'Edited Creditor';
+    const manualReason = 'Incorrect balance';
+    const put = await request(app)
+      .put(`/api/consumers/${id}/report/${rid}/tradeline/0`)
+      .set(auth)
+      .send({ creditor: newCreditor, manual_reason: manualReason, per_bureau: { TransUnion: { account_number: '0000' } } });
+    assert.equal(put.status, 200);
+    assert.equal(put.body.ok, true);
+    assert.equal(put.body.tradeline.meta.creditor, newCreditor);
+    assert.equal(put.body.tradeline.per_bureau.TransUnion.account_number, '0000');
+    assert.equal(put.body.tradeline.meta.manual_reason, manualReason);
 
   const fetched = await request(app).get(`/api/consumers/${id}/report/${rid}`).set(auth);
   assert.equal(fetched.status, 200);
-  assert.equal(fetched.body.report.tradelines[0].meta.creditor, newCreditor);
-  assert.equal(fetched.body.report.tradelines[0].per_bureau.TransUnion.account_number, '0000');
-});
+    assert.equal(fetched.body.report.tradelines[0].meta.creditor, newCreditor);
+    assert.equal(fetched.body.report.tradelines[0].per_bureau.TransUnion.account_number, '0000');
+    assert.equal(fetched.body.report.tradelines[0].meta.manual_reason, manualReason);
+  });
+

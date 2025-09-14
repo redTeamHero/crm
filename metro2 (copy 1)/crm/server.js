@@ -1382,11 +1382,17 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
   const idx = Number(req.params.tidx);
   if(isNaN(idx) || !r.data.tradelines?.[idx]) return res.status(404).json({ ok:false, error:"Tradeline not found" });
   const tl = r.data.tradelines[idx];
-  const { creditor, per_bureau } = req.body || {};
+  const { creditor, per_bureau, manual_reason } = req.body || {};
+
   if(creditor !== undefined){
     tl.meta = tl.meta || {};
     tl.meta.creditor = creditor;
   }
+  if(manual_reason !== undefined){
+    tl.meta = tl.meta || {};
+    tl.meta.manual_reason = manual_reason;
+  }
+
   if(per_bureau){
     tl.per_bureau = tl.per_bureau || {};
     ["TransUnion","Experian","Equifax"].forEach(b=>{
@@ -1882,7 +1888,7 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), async
   const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job } = result;
-  const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor, requestType:L.requestType }));
+  const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor, requestType:L.requestType, specificDisputeReason: L.specificDisputeReason }));
 
   console.log(`Job ${jobId} has ${meta.length} letters`);
   res.json({ ok:true, letters: meta });

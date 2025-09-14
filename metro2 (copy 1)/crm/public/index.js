@@ -705,6 +705,7 @@ function renderTradelines(tradelines){
     node.querySelector(".tl-tu-acct").textContent  = tl.per_bureau?.TransUnion?.account_number || "";
     node.querySelector(".tl-exp-acct").textContent = tl.per_bureau?.Experian?.account_number || "";
     node.querySelector(".tl-eqf-acct").textContent = tl.per_bureau?.Equifax?.account_number || "";
+    node.querySelector(".tl-manual-reason").textContent = tl.meta?.manual_reason || "";
 
     const letterSel = node.querySelector('.tl-letter-select');
     populateLetterSelectOptions(letterSel, selectionState[idx]?.letterType);
@@ -957,7 +958,10 @@ function collectSelections(){
       breach: 'data breach',
       assault: 'sexual assault'
     };
-    if (data.specialMode && reasonMap[data.specialMode]) {
+    const tl = CURRENT_REPORT?.tradelines?.[Number(tradelineIndex)];
+    if (tl?.meta?.manual_reason) {
+      sel.specificDisputeReason = tl.meta.manual_reason;
+    } else if (data.specialMode && reasonMap[data.specialMode]) {
       sel.specificDisputeReason = reasonMap[data.specialMode];
     }
     if (data.violationIdxs && data.violationIdxs.length){
@@ -1109,6 +1113,8 @@ function openTlEdit(idx){
   f.tu_account_number.value = tl.per_bureau?.TransUnion?.account_number || "";
   f.exp_account_number.value = tl.per_bureau?.Experian?.account_number || "";
   f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
+  f.manual_reason.value = tl.meta?.manual_reason || "";
+
   $("#tlEditModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
@@ -1126,6 +1132,8 @@ $("#tlEditForm").addEventListener("submit", async (e)=>{
   tl.meta = tl.meta || {};
   tl.per_bureau = tl.per_bureau || {};
   tl.meta.creditor = f.creditor.value.trim();
+  tl.meta.manual_reason = f.manual_reason.value.trim();
+
   const map = { TransUnion: 'tu_account_number', Experian: 'exp_account_number', Equifax: 'eqf_account_number' };
   for (const [bureau, field] of Object.entries(map)) {
     const val = f[field].value.trim();
@@ -1134,6 +1142,8 @@ $("#tlEditForm").addEventListener("submit", async (e)=>{
   if(currentConsumerId && currentReportId){
     const payload = {
       creditor: tl.meta.creditor,
+      manual_reason: tl.meta.manual_reason,
+
       per_bureau: {
         TransUnion: { account_number: f.tu_account_number.value.trim() },
         Experian: { account_number: f.exp_account_number.value.trim() },
