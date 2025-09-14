@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseReport } from '../src/index.js';
-import { enrich } from '../src/validators.js';
+import { enrich, validateTradeline } from '../src/validators.js';
 import fs from 'fs';
 
 test('extracts DOFD and flags past-due inconsistency', () => {
@@ -18,6 +18,11 @@ test('extracts DOFD and flags past-due inconsistency', () => {
       fcraSection: '§ 623(a)(1)'
     }
   );
+});
+
+test('validateTradeline returns enriched violation objects', () => {
+  const violations = validateTradeline({ account_status: 'Current', past_due: 100 });
+  assert.deepStrictEqual(violations, [enrich('CURRENT_BUT_PASTDUE')]);
 });
 
 test('unknown violation codes fall back to default message', () => {
