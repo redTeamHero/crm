@@ -396,22 +396,32 @@ function renderEvidenceHTML(evidence) {
     ).join("");
 }
 
-function buildViolationListHTML(violations, selectedIds, { locale = 'en', minSeverity = 1 } = {}) {
-  if (!violations?.length) return "<p>No specific violations were selected.</p>";
+function buildViolationListHTML(
+  violations,
+  selectedIds,
+  manualReason,
+  { locale = 'en', minSeverity = 1 } = {}
+) {
+  const hasSelections = Array.isArray(selectedIds) && selectedIds.length > 0;
+  if (!violations?.length || !hasSelections) {
+    if (manualReason) return `<p>${safe(manualReason)}</p>`;
+    return "<p>No specific violations were selected.</p>";
+  }
   const selected = selectedIds.map((idx) => violations[idx]).filter(Boolean);
   const enriched = filterViolationsBySeverity(selected, minSeverity, locale);
   const items = enriched
     .map((v) => {
       const evHTML = renderEvidenceHTML(v.evidence);
-      const fcraText = v.fcraSection && v.detail && !v.detail.includes(v.fcraSection)
-        ? `Per FCRA §${v.fcraSection}, ${v.detail}`
-        : v.detail;
+      const fcraText =
+        v.fcraSection && v.detail && !v.detail.includes(v.fcraSection)
+          ? `Per FCRA §${v.fcraSection}, ${v.detail}`
+          : v.detail;
       return `
         <li style="margin-bottom:12px;">
           <strong>${safe(v.violation || v.category || '')}</strong>
-          ${v.severity ? ` <span class=\"severity-tag severity-${v.severity}\">S${v.severity}</span>` : ''}
-          ${fcraText ? `<div style=\"margin-top:4px;\">${safe(fcraText)}</div>` : ''}
-          ${evHTML ? `<div style=\"margin-top:6px;\">${evHTML}</div>` : ''}
+          ${v.severity ? ` <span class=\\"severity-tag severity-${v.severity}\\">S${v.severity}</span>` : ''}
+          ${fcraText ? `<div style=\\"margin-top:4px;\\">${safe(fcraText)}</div>` : ''}
+          ${evHTML ? `<div style=\\"margin-top:6px;\\">${evHTML}</div>` : ''}
         </li>`;
     })
     .join("");
@@ -482,6 +492,7 @@ function buildLetterHTML({
   bureau,
   tl,
   selectedViolationIdxs,
+  specificDisputeReason,
   requestType,
   comparisonBureaus,
   modeKey,
@@ -498,7 +509,11 @@ function buildLetterHTML({
     errorMap
   );
   const tlBlock = buildTradelineBlockHTML(tl, bureau);
-  const chosenList = buildViolationListHTML(tl.violations, selectedViolationIdxs);
+  const chosenList = buildViolationListHTML(
+    tl.violations,
+    selectedViolationIdxs,
+    specificDisputeReason
+  );
   const mc = template
     ? {
         heading: template.heading || "",
@@ -840,6 +855,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
           bureau,
           tl,
           selectedViolationIdxs: sel.violationIdxs || [],
+          specificDisputeReason: sel.specificDisputeReason,
           requestType: req,
           comparisonBureaus,
           modeKey: sel.specialMode || null,
