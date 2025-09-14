@@ -126,6 +126,9 @@ await test('letters include manual dispute reason', async () => {
     const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
     const { json: letters } = await fetchJson(`http://localhost:${PORT}/api/letters/${jobId}`);
     assert.equal(letters.letters[0].specificDisputeReason, 'Manual reason');
+    const htmlRes = await fetch(`http://localhost:${PORT}/api/letters/${jobId}/0.html`);
+    const html = await htmlRes.text();
+    assert.ok(html.includes('Manual reason'));
   } finally {
     server.kill();
   }
