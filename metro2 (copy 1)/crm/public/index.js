@@ -495,9 +495,11 @@ export function dedupeTradelines(lines){
 export function mergeBureauViolations(vs){
   const map = new Map();
   (vs || []).forEach(v => {
-    const m = v.title?.match(/\((TransUnion|Experian|Equifax)\)/) || [];
-    const base = (v.title || "").replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
-    const detailClean = (v.detail || "").replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
+    const text = v.title || v.violation || "";
+    const m = text.match(/\((TransUnion|Experian|Equifax)\)/) || [];
+    const base = text.replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
+    const detailSrc = v.title ? (v.detail || "") : (v.detail || v.violation || "");
+    const detailClean = detailSrc.replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
     const evCopy = v.evidence ? JSON.parse(JSON.stringify(v.evidence)) : {};
     delete evCopy.bureau;
     const evKey = detailClean || JSON.stringify(evCopy);
@@ -743,7 +745,7 @@ function renderTradelines(tradelines){
         <label class="violation-item flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer severity-${v.severity || 1}">
           <input type="checkbox" class="violation" value="${vidx + vStart}"/>
           <div>
-            <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || "")}${v.severity ? `<span class="severity-tag severity-${v.severity}">S${v.severity}</span>` : ""}</div>
+            <div class="font-medium text-sm wrap-anywhere">${escapeHtml(v.category || "")} – ${escapeHtml(v.title || v.violation || "")}${v.severity ? `<span class="severity-tag severity-${v.severity}">S${v.severity}</span>` : ""}</div>
             ${v.bureaus && v.bureaus.length ? `<div class="text-xs mt-1">${v.bureaus.map(b=>'<span class="badge badge-bureau">'+escapeHtml(b)+'</span>').join(' ')}</div>` : ""}
             ${v.detail ? `<div class="text-sm text-gray-600 wrap-anywhere">${escapeHtml(v.detail)}</div>` : ""}
             ${v.debug ? `<pre class="debug">${escapeHtml(v.debug)}</pre>` : ""}
