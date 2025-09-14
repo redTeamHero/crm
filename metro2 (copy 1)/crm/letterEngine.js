@@ -25,7 +25,7 @@ function filterViolationsBySeverity(violations = [], minSeverity = 1, locale = '
       return {
         ...v,
         ...meta,
-        detail: meta.snippets?.[locale] || v.detail,
+        detail: meta.snippets?.[locale] || v.detail || meta.violation,
         severity: getSeverity(v),
       };
     });
