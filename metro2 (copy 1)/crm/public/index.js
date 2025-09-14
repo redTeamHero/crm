@@ -33,14 +33,18 @@ let trackerData = {};
 
 let trackerSteps = [];
 
-let CONSUMER_FILES = [];
+let consumerFiles = [];
 
-const METRO2_VIOLATIONS = [
-  "Balance inconsistent with status",
-  "Missing date of first delinquency",
-  "Incorrect past due amount",
-  "Account status code mismatch"
-];
+let metro2Violations = [];
+async function loadMetro2Violations(){
+  try{
+    const res = await fetch('metro2Violations.json');
+    const data = await res.json();
+    metro2Violations = Object.values(data).map(v=>v.violation);
+  }catch(err){
+    console.error('Failed to load Metro-2 violations', err);
+  }
+}
 
 
 const ocrCb = $("#cbUseOcr");
@@ -58,11 +62,13 @@ async function loadTemplates(){
 loadTemplates();
 
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const sel = $("#tlReasonSelect");
   if(sel){
+    await loadMetro2Violations();
     sel.innerHTML = '<option value="">Select reason</option>' +
-      METRO2_VIOLATIONS.map(r => `<option value="${r}">${r}</option>`).join('');
+      metro2Violations.map(r => `<option value="${r}">${r}</option>`).join('');
+
     sel.addEventListener('change', e => {
       const txt = $("#tlReasonText");
       if(txt) txt.value = e.target.value;
@@ -1141,11 +1147,12 @@ function openTlEdit(idx){
   const reasonSel = $("#tlReasonSelect");
   const reasonText = $("#tlReasonText");
   if(reasonSel){
-    reasonSel.value = METRO2_VIOLATIONS.includes(f.manual_reason.value) ? f.manual_reason.value : "";
+    reasonSel.value = metro2Violations.includes(f.manual_reason.value) ? f.manual_reason.value : "";
     if(reasonSel.value && reasonText) reasonText.value = reasonSel.value;
   }
 
-  const fileRec = CONSUMER_FILES.find(f => f.id === currentReportId);
+  const fileRec = consumerFiles.find(f => f.id === currentReportId);
+
   if(fileRec){
     const url = `/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(fileRec.storedName)}`;
     const iframe = $("#tlHtmlPreview");
@@ -1395,7 +1402,8 @@ async function loadConsumerState(){
   const allEvents = resp.state?.events || [];
   const events = allEvents.filter(ev => ev.type !== "message");
   const files = resp.state?.files || [];
-  CONSUMER_FILES = files;
+  consumerFiles = files;
+
   const list = [];
 
   if (files.length){
