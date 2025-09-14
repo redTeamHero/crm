@@ -41,3 +41,20 @@ test('lowercase violation codes return same metadata as uppercase', () => {
   const lowerMissingDofd = enrich('missing_dofd');
   assert.deepStrictEqual(lowerMissingDofd, upperMissingDofd);
 });
+
+test('parses alternate label names', () => {
+  const html = fs.readFileSync('tests/fixtures/report-alt.html','utf8');
+  const result = parseReport(html);
+  const eq = result.tradelines[0].per_bureau['Equifax'];
+  assert.equal(eq.account_number, '12345');
+  assert.equal(eq.account_status, 'Current');
+});
+
+test('handles combined balance/past due rows', () => {
+  const html = fs.readFileSync('tests/fixtures/report-alt.html','utf8');
+  const eq = parseReport(html).tradelines[0].per_bureau['Equifax'];
+  assert.equal(eq.balance, 500);
+  assert.equal(eq.past_due, 0);
+  assert.equal(eq.balance_raw, '$500');
+  assert.equal(eq.past_due_raw, '$0');
+});
