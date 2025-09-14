@@ -782,6 +782,11 @@ function renderTradelines(tradelines){
       renderTradelines(tradelines);
     });
 
+    node.querySelector(".tl-edit").addEventListener("click", (e) => {
+      e.stopPropagation();
+      openTlEdit(idx);
+    });
+
     const nameEl = node.querySelector(".tl-creditor");
     if (nameEl) {
       nameEl.classList.add("cursor-pointer");
@@ -1093,6 +1098,56 @@ $("#editForm").addEventListener("submit", async (e)=>{
   await loadConsumers(false);
   const c = DB.find(x=>x.id===currentConsumerId);
   $("#selConsumer").textContent = c ? c.name : "—";
+});
+
+function openTlEdit(idx){
+  const tl = CURRENT_REPORT?.tradelines?.[idx];
+  if(!tl) return;
+  const f = $("#tlEditForm");
+  f.dataset.idx = idx;
+  f.creditor.value = tl.meta?.creditor || "";
+  f.tu_account_number.value = tl.per_bureau?.TransUnion?.account_number || "";
+  f.exp_account_number.value = tl.per_bureau?.Experian?.account_number || "";
+  f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
+  $("#tlEditModal").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+function closeTlEdit(){
+  $("#tlEditModal").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+$("#tlEditCancel").addEventListener("click", ()=> closeTlEdit());
+$("#tlEditForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const f = e.currentTarget;
+  const idx = Number(f.dataset.idx);
+  const tl = CURRENT_REPORT?.tradelines?.[idx];
+  if(!tl) return;
+  tl.meta = tl.meta || {};
+  tl.per_bureau = tl.per_bureau || {};
+  tl.meta.creditor = f.creditor.value.trim();
+  const map = { TransUnion: 'tu_account_number', Experian: 'exp_account_number', Equifax: 'eqf_account_number' };
+  for (const [bureau, field] of Object.entries(map)) {
+    const val = f[field].value.trim();
+    tl.per_bureau[bureau] = { ...(tl.per_bureau[bureau] || {}), account_number: val };
+  }
+  if(currentConsumerId && currentReportId){
+    const payload = {
+      creditor: tl.meta.creditor,
+      per_bureau: {
+        TransUnion: { account_number: f.tu_account_number.value.trim() },
+        Experian: { account_number: f.exp_account_number.value.trim() },
+        Equifax: { account_number: f.eqf_account_number.value.trim() }
+      }
+    };
+    const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}/tradeline/${idx}`, {
+      method:'PUT',
+      body: JSON.stringify(payload)
+    });
+    if(!res?.ok) return showErr(res?.error || 'Failed to save.');
+  }
+  renderTradelines(CURRENT_REPORT.tradelines);
+  closeTlEdit();
 });
 
 // Upload report
