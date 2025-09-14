@@ -1373,6 +1373,33 @@ app.delete("/api/consumers/:id/report/:rid", async (req,res)=>{
   res.json({ ok:true });
 });
 
+app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
+  const db=await loadDB();
+  const c=db.consumers.find(x=>x.id===req.params.id);
+  if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const r=c.reports.find(x=>x.id===req.params.rid);
+  if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+  const idx = Number(req.params.tidx);
+  if(isNaN(idx) || !r.data.tradelines?.[idx]) return res.status(404).json({ ok:false, error:"Tradeline not found" });
+  const tl = r.data.tradelines[idx];
+  const { creditor, per_bureau } = req.body || {};
+  if(creditor !== undefined){
+    tl.meta = tl.meta || {};
+    tl.meta.creditor = creditor;
+  }
+  if(per_bureau){
+    tl.per_bureau = tl.per_bureau || {};
+    ["TransUnion","Experian","Equifax"].forEach(b=>{
+      if(per_bureau[b]){
+        tl.per_bureau[b] = { ...(tl.per_bureau[b] || {}), ...per_bureau[b] };
+      }
+    });
+  }
+  runBasicRuleAudit(r.data);
+  await saveDB(db);
+  res.json({ ok:true, tradeline: tl });
+});
+
 app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
   const db=await loadDB();
   const c=db.consumers.find(x=>x.id===req.params.id);
