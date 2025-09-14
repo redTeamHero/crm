@@ -18,6 +18,12 @@ async function loadLibrary(){
     spanish: t.spanish
   }));
   templates = [...templates, ...sampleTemplates];
+  const seenIds = new Set();
+  templates = templates.filter(t => {
+    if(seenIds.has(t.id)) return false;
+    seenIds.add(t.id);
+    return true;
+  });
   sequences = data.sequences || [];
   renderTemplates();
   renderSequences();
