@@ -1142,7 +1142,8 @@ function defaultTemplates(){
     { id: "identity", requestType:"delete", ...modeCopy("identity", "delete", true) },
     { id: "breach",   requestType:"delete", ...modeCopy("breach", "delete", true) },
     { id: "assault",  requestType:"delete", ...modeCopy("assault", "delete", true) },
-    { id: "standard", requestType:"delete", ...modeCopy(null, "delete", true) }
+    { id: "correct",  requestType:"correct", ...modeCopy(null, "correct", true) },
+    { id: "delete",   requestType:"delete", ...modeCopy(null, "delete", true) }
   ];
 }
 app.get("/api/templates/defaults", async (_req,res)=>{
