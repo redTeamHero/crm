@@ -17,26 +17,43 @@ document.addEventListener('DOMContentLoaded', () => {
   let current = new Date();
   let events = [];
   let editingId = null;
+  // disable actions until events load
+  saveBtn.disabled = true;
+  deleteBtn.disabled = true;
 
   async function loadEvents() {
     try {
       const resp = await fetch('/api/calendar/events');
       const data = await resp.json();
+      if (!resp.ok) {
+        alert(data.error || 'Failed to load events');
+        events = [];
+        saveBtn.disabled = true;
+        deleteBtn.disabled = true;
+        return false;
+      }
       events = (data.events || []).map(ev => ({
         id: ev.id,
         date: (ev.start?.date || ev.start?.dateTime || '').split('T')[0],
         text: ev.summary || '',
         type: ev.description || ''
       }));
+      saveBtn.disabled = false;
+      deleteBtn.disabled = false;
+      return true;
     } catch (e) {
       console.error('Failed to load events', e);
       events = [];
+      alert('Failed to load events');
+      saveBtn.disabled = true;
+      deleteBtn.disabled = true;
+      return false;
     }
   }
 
   async function addEvent(dateStr, type, text) {
     try {
-      await fetch('/api/calendar/events', {
+      const resp = await fetch('/api/calendar/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -46,16 +63,22 @@ document.addEventListener('DOMContentLoaded', () => {
           end: { date: dateStr }
         })
       });
+      const data = await resp.json();
+      if (!resp.ok) {
+        alert(data.error || 'Failed to create event');
+        return;
+      }
       await loadEvents();
       render();
     } catch (e) {
       console.error('Failed to create event', e);
+      alert('Failed to create event');
     }
   }
 
   async function updateEvent(id, dateStr, type, text) {
     try {
-      await fetch(`/api/calendar/events/${id}`, {
+      const resp = await fetch(`/api/calendar/events/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,20 +88,32 @@ document.addEventListener('DOMContentLoaded', () => {
           end: { date: dateStr }
         })
       });
+      const data = await resp.json();
+      if (!resp.ok) {
+        alert(data.error || 'Failed to update event');
+        return;
+      }
       await loadEvents();
       render();
     } catch (e) {
       console.error('Failed to update event', e);
+      alert('Failed to update event');
     }
   }
 
   async function deleteEventById(id) {
     try {
-      await fetch(`/api/calendar/events/${id}`, { method: 'DELETE' });
+      const resp = await fetch(`/api/calendar/events/${id}`, { method: 'DELETE' });
+      const data = await resp.json();
+      if (!resp.ok) {
+        alert(data.error || 'Failed to delete event');
+        return;
+      }
       await loadEvents();
       render();
     } catch (e) {
       console.error('Failed to delete event', e);
+      alert('Failed to delete event');
     }
   }
 
