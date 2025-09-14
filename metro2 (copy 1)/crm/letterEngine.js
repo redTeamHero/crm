@@ -487,19 +487,19 @@ function modeCopy(modeKey, requestType, hasEvidence = false) {
 }
 
 // Build letter HTML and filename
-function buildLetterHTML({
-  consumer,
-  bureau,
-  tl,
-  selectedViolationIdxs,
-
-  requestType,
-  comparisonBureaus,
-  modeKey,
-  dateOverride,
-  template,
-
-}) {
+function buildLetterHTML(opts) {
+  const {
+    consumer,
+    bureau,
+    tl,
+    selectedViolationIdxs,
+    requestType,
+    comparisonBureaus,
+    modeKey,
+    dateOverride,
+    template,
+    specificDisputeReason,
+  } = opts || {};
   const dateStr = dateOverride || todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
   const { conflictMap, errorMap } = buildConflictMap(tl.violations || []);
@@ -510,8 +510,12 @@ function buildLetterHTML({
     errorMap
   );
   const tlBlock = buildTradelineBlockHTML(tl, bureau);
-  const chosenList = specificDisputeReason
-    ? `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>${safe(specificDisputeReason)}</strong></li></ol>`
+  const manualReason =
+    typeof specificDisputeReason === 'string' && specificDisputeReason.trim()
+      ? specificDisputeReason.trim()
+      : null;
+  const chosenList = manualReason
+    ? `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>${safe(manualReason)}</strong></li></ol>`
     : buildViolationListHTML(tl.violations, selectedViolationIdxs);
 
   const mc = template
@@ -855,14 +859,14 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
           bureau,
           tl,
           selectedViolationIdxs: sel.violationIdxs || [],
-
           requestType: req,
           comparisonBureaus,
           modeKey: sel.specialMode || null,
           dateOverride,
           template: tpl,
-
+          specificDisputeReason: sel.specificDisputeReason,
         });
+
         let filename = letter.filename;
         if (play) {
           const safeStep = (stepTitle || `step${stepIdx + 1}`)
