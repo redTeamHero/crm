@@ -33,7 +33,7 @@ let trackerData = {};
 
 let trackerSteps = [];
 
-let tlHtmlUrl;
+let CONSUMER_FILES = [];
 
 
 const ocrCb = $("#cbUseOcr");
@@ -1118,11 +1118,15 @@ function openTlEdit(idx){
   f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
   f.manual_reason.value = tl.meta?.manual_reason || "";
 
-  $("#tlHtmlInput").value = "";
-  if(tlHtmlUrl){ URL.revokeObjectURL(tlHtmlUrl); tlHtmlUrl = null; }
-  $("#tlHtmlContainer").classList.add("hidden");
-  $("#tlHtmlPreview").src = "";
-
+  const fileRec = CONSUMER_FILES.find(f => f.id === currentReportId);
+  if(fileRec){
+    const url = `/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(fileRec.storedName)}`;
+    $("#tlHtmlPreview").src = url;
+    $("#tlHtmlContainer").classList.remove("hidden");
+  }else{
+    $("#tlHtmlPreview").src = "";
+    $("#tlHtmlContainer").classList.add("hidden");
+  }
 
   $("#tlEditModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -1130,10 +1134,9 @@ function openTlEdit(idx){
 function closeTlEdit(){
   $("#tlEditModal").classList.add("hidden");
   document.body.style.overflow = "";
-  if(tlHtmlUrl){ URL.revokeObjectURL(tlHtmlUrl); tlHtmlUrl = null; }
-  $("#tlHtmlContainer").classList.add("hidden");
-  $("#tlHtmlInput").value = "";
   $("#tlHtmlPreview").src = "";
+  $("#tlHtmlContainer").classList.add("hidden");
+
 }
 $("#tlHtmlInput")?.addEventListener("change", e=>{
   const file = e.target.files?.[0];
@@ -1345,6 +1348,7 @@ async function loadConsumerState(){
   const allEvents = resp.state?.events || [];
   const events = allEvents.filter(ev => ev.type !== "message");
   const files = resp.state?.files || [];
+  CONSUMER_FILES = files;
   const list = [];
 
   if (files.length){
