@@ -6,7 +6,13 @@
       "Date of First Delinquency"
     ],
     "severity": 5,
-    "fcraSection": "§ 623(a)(5)"
+    "fcraSection": "§ 623(a)(5)",
+    "rule": {
+      "all": [
+        { "field": "account_status", "eq": "Charge-off" },
+        { "field": "date_first_delinquency", "exists": false }
+      ]
+    }
   },
   "LATE_STATUS_NO_PASTDUE": {
     "id": 2,
@@ -115,7 +121,13 @@
       "Account Status"
     ],
     "severity": 4,
-    "fcraSection": "§ 623(a)(1)"
+    "fcraSection": "§ 623(a)(1)",
+    "rule": {
+      "all": [
+        { "field": "account_status", "eq": "Current" },
+        { "field": "past_due", "gt": 0 }
+      ]
+    }
   },
   "13": {
     "id": 13,
