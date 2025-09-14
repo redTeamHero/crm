@@ -1,0 +1,52 @@
+[
+  {
+    "key": "account_number",
+    "patterns": [
+      { "exact": "Account #" },
+      { "regex": "^Acct\\s?#$" },
+      { "exact": "Account Number" }
+    ]
+  },
+  {
+    "key": "account_type",
+    "patterns": [ { "exact": "Account Type" } ]
+  },
+  {
+    "key": "account_status",
+    "patterns": [
+      { "exact": "Payment Status" },
+      { "exact": "Account Status" }
+    ]
+  },
+  {
+    "key": "balance",
+    "patterns": [ { "exact": "Balance" } ],
+    "normalizer": "parseMoney"
+  },
+  {
+    "key": "past_due",
+    "patterns": [ { "exact": "Past Due" } ],
+    "normalizer": "parseMoney"
+  },
+  {
+    "keys": ["balance", "past_due"],
+    "patterns": [ { "regex": "^Balance\\s*/\\s*Past Due$" } ],
+    "normalizer": "parseMoney",
+    "split": "/"
+  },
+  {
+    "key": "date_opened",
+    "patterns": [ { "exact": "Date Opened" } ],
+    "normalizer": "toMDY"
+  },
+  {
+    "key": "last_reported",
+    "patterns": [ { "exact": "Last Reported" } ],
+    "normalizer": "toMDY"
+  },
+  {
+    "key": "date_first_delinquency",
+    "patterns": [ { "exact": "Date of First Delinquency" } ],
+    "normalizer": "toMDY"
+  }
+]
