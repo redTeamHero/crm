@@ -269,7 +269,13 @@ const TEAM_TEMPLATE = (()=>{
 app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboard.html")));
 app.get("/clients", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/leads", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "leads.html")));
-app.get("/schedule", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "schedule.html")));
+app.get("/schedule", async (_req, res) => {
+  const settings = await loadSettings();
+  if (!settings.googleCalendarToken || !settings.googleCalendarId) {
+    return res.status(400).send("Google Calendar token or ID missing. Add them in Settings before using the schedule.");
+  }
+  res.sendFile(path.join(PUBLIC_DIR, "schedule.html"));
+});
 app.get("/my-company", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "my-company.html")));
 app.get("/billing", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "billing.html")));
 app.get(["/letters", "/letters/:jobId"], optionalAuth, forbidMember, (_req, res) =>

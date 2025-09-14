@@ -28,6 +28,13 @@ npm start
 
 The `/schedule` page hooks into Google Calendar. Click any date to add a booking, meeting, phone call, or availability note. The page checks Google Calendar's free/busy API to prevent double‑booking.
 
+### Google Calendar setup
+
+1. Visit the [Google Cloud Console](https://console.cloud.google.com/) and create a project.
+2. Enable the **Google Calendar API** for the project and generate an OAuth access token or service account.
+3. In Google Calendar, open **Settings → Integrate calendar** to copy the calendar's **Calendar ID**.
+4. Paste the token and Calendar ID into the Settings page under **Google Calendar Token** and **Google Calendar ID**, then save.
+
 Generate a shareable audit (converts a credit report HTML to JSON and renders it):
 ```bash
 cd "metro2 (copy 1)/crm"
