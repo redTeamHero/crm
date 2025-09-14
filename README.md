@@ -47,6 +47,13 @@ node creditAuditTool.js path/to/report.html
 node creditAuditTool.js data/report.json
 ```
 
+Convert a raw credit report HTML directly into dispute-ready PDF letters:
+```bash
+cd "metro2 (copy 1)/crm"
+node htmlToDisputePdf.js path/to/report.html output/dir
+```
+
+
 ## Test
 
 ### Node tests
