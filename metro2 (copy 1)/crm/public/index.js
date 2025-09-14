@@ -33,6 +33,8 @@ let trackerData = {};
 
 let trackerSteps = [];
 
+let tlPdfUrl;
+
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
@@ -1115,13 +1117,30 @@ function openTlEdit(idx){
   f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
   f.manual_reason.value = tl.meta?.manual_reason || "";
 
+  $("#tlPdfInput").value = "";
+  if(tlPdfUrl){ URL.revokeObjectURL(tlPdfUrl); tlPdfUrl = null; }
+  $("#tlPdfContainer").classList.add("hidden");
+  $("#tlPdfPreview").src = "";
+
   $("#tlEditModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
 function closeTlEdit(){
   $("#tlEditModal").classList.add("hidden");
   document.body.style.overflow = "";
+  if(tlPdfUrl){ URL.revokeObjectURL(tlPdfUrl); tlPdfUrl = null; }
+  $("#tlPdfContainer").classList.add("hidden");
+  $("#tlPdfInput").value = "";
+  $("#tlPdfPreview").src = "";
 }
+$("#tlPdfInput")?.addEventListener("change", e=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  if(tlPdfUrl){ URL.revokeObjectURL(tlPdfUrl); }
+  tlPdfUrl = URL.createObjectURL(file);
+  $("#tlPdfPreview").src = tlPdfUrl;
+  $("#tlPdfContainer").classList.remove("hidden");
+});
 $("#tlEditCancel").addEventListener("click", ()=> closeTlEdit());
 $("#tlEditForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
