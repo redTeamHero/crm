@@ -54,6 +54,7 @@ async function loadMetro2Violations(){
   }
 }
 
+
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
@@ -74,6 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if(sel){
     await loadMetro2Violations();
     renderReasonOptions();
+
     sel.addEventListener('change', e => {
       const txt = $("#tlReasonText");
       if(txt) txt.value = e.target.value;
@@ -81,6 +83,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     $("#tlReasonSearch")?.addEventListener('input', e => {
       renderReasonOptions(e.target.value);
     });
+
   }
 });
 
@@ -1167,6 +1170,7 @@ function openTlEdit(idx){
   }
 
   const fileRec = consumerFiles.find(f => f.id === currentReportId);
+
   if(fileRec){
     const url = `/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(fileRec.storedName)}`;
     const iframe = $("#tlHtmlPreview");
@@ -1187,6 +1191,7 @@ function openTlEdit(idx){
       }catch{}
     };
     iframe.src = url;
+
     $("#tlHtmlContainer").classList.remove("hidden");
   }else{
     $("#tlHtmlPreview").src = "";
@@ -1208,7 +1213,17 @@ function closeTlEdit(){
     search.value = "";
     renderReasonOptions();
   }
+
 }
+$("#tlHtmlInput")?.addEventListener("change", e=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  if(tlHtmlUrl){ URL.revokeObjectURL(tlHtmlUrl); }
+  tlHtmlUrl = URL.createObjectURL(file);
+  $("#tlHtmlPreview").src = tlHtmlUrl;
+  $("#tlHtmlContainer").classList.remove("hidden");
+
+});
 $("#tlEditCancel").addEventListener("click", ()=> closeTlEdit());
 $("#tlEditForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
@@ -1411,6 +1426,7 @@ async function loadConsumerState(){
   const events = allEvents.filter(ev => ev.type !== "message");
   const files = resp.state?.files || [];
   consumerFiles = files;
+
   const list = [];
 
   if (files.length){
