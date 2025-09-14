@@ -4,6 +4,7 @@ import {
   generatePersonalInfoLetters,
   generateInquiryLetters,
   generateDebtCollectorLetters,
+  generateLetters,
 } from '../letterEngine.js';
 
 const consumer = {
@@ -42,5 +43,23 @@ test('collector letter includes collector name', () => {
   });
   assert.match(letter.html, /Debt Validation Request/);
   assert.match(letter.html, /Collection Co/);
+});
+
+test('generateLetters skips bureaus with no data', () => {
+  const report = {
+    tradelines: [
+      {
+        meta: { creditor: 'Cred' },
+        per_bureau: {
+          TransUnion: { account_number: '123', balance: 100 },
+          Equifax: {},
+        },
+      },
+    ],
+  };
+  const selections = [{ tradelineIndex: 0, bureaus: ['TransUnion', 'Equifax'] }];
+  const letters = generateLetters({ report, selections, consumer });
+  assert.equal(letters.length, 1);
+  assert.equal(letters[0].bureau, 'TransUnion');
 });
 
