@@ -33,6 +33,8 @@ let trackerData = {};
 
 let trackerSteps = [];
 
+let CONSUMER_FILES = [];
+
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
@@ -1115,12 +1117,24 @@ function openTlEdit(idx){
   f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
   f.manual_reason.value = tl.meta?.manual_reason || "";
 
+  const fileRec = CONSUMER_FILES.find(f => f.id === currentReportId);
+  if(fileRec){
+    const url = `/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(fileRec.storedName)}`;
+    $("#tlHtmlPreview").src = url;
+    $("#tlHtmlContainer").classList.remove("hidden");
+  }else{
+    $("#tlHtmlPreview").src = "";
+    $("#tlHtmlContainer").classList.add("hidden");
+  }
+
   $("#tlEditModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
 function closeTlEdit(){
   $("#tlEditModal").classList.add("hidden");
   document.body.style.overflow = "";
+  $("#tlHtmlPreview").src = "";
+  $("#tlHtmlContainer").classList.add("hidden");
 }
 $("#tlEditCancel").addEventListener("click", ()=> closeTlEdit());
 $("#tlEditForm").addEventListener("submit", async (e)=>{
@@ -1323,6 +1337,7 @@ async function loadConsumerState(){
   const allEvents = resp.state?.events || [];
   const events = allEvents.filter(ev => ev.type !== "message");
   const files = resp.state?.files || [];
+  CONSUMER_FILES = files;
   const list = [];
 
   if (files.length){

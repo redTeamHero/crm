@@ -419,7 +419,7 @@
 
 <!-- Edit Tradeline Modal -->
 <div id="tlEditModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)] z-[999]">
-  <form id="tlEditForm" class="glass card w-[min(560px,92vw)] space-y-3">
+  <form id="tlEditForm" class="glass card w-[min(900px,95vw)] space-y-3">
     <div class="flex items-center justify-between">
       <div class="font-semibold">Edit Tradeline</div>
       <div class="flex gap-2">
@@ -427,13 +427,19 @@
         <button type="submit" class="btn">Save</button>
       </div>
     </div>
-    <div class="grid gap-2 text-sm">
-      <label class="flex flex-col">Creditor<input name="creditor" class="border rounded px-2 py-1" /></label>
-      <label class="flex flex-col">TransUnion Account #<input name="tu_account_number" class="border rounded px-2 py-1" /></label>
-      <label class="flex flex-col">Experian Account #<input name="exp_account_number" class="border rounded px-2 py-1" /></label>
-      <label class="flex flex-col">Equifax Account #<input name="eqf_account_number" class="border rounded px-2 py-1" /></label>
-      <label class="flex flex-col">Dispute Reason<textarea name="manual_reason" class="border rounded px-2 py-1" rows="3"></textarea></label>
-
+    <div class="flex gap-4 text-sm">
+      <div class="flex-1 space-y-2">
+        <div id="tlHtmlContainer" class="hidden border rounded h-[400px]">
+          <iframe id="tlHtmlPreview" class="w-full h-full"></iframe>
+        </div>
+      </div>
+      <div class="flex-1 grid gap-2">
+        <label class="flex flex-col">Creditor<input name="creditor" class="border rounded px-2 py-1" /></label>
+        <label class="flex flex-col">TransUnion Account #<input name="tu_account_number" class="border rounded px-2 py-1" /></label>
+        <label class="flex flex-col">Experian Account #<input name="exp_account_number" class="border rounded px-2 py-1" /></label>
+        <label class="flex flex-col">Equifax Account #<input name="eqf_account_number" class="border rounded px-2 py-1" /></label>
+        <label class="flex flex-col">Dispute Reason<textarea name="manual_reason" class="border rounded px-2 py-1" rows="3"></textarea></label>
+      </div>
     </div>
   </form>
 </div>
