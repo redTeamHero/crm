@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { parseReport as parseCheerio } from '../src/index.js';
+import { parseReport } from '../src/index.js';
 import { parseReport as parseDOM } from '../../metro2-browser/src/index.js';
 import { enrich, validateTradeline } from '../../metro2-core/src/index.js';
 import fs from 'fs';
 
 test('adapters produce identical output and flag past-due inconsistency', () => {
   const html = fs.readFileSync('tests/fixtures/report.html','utf8');
-  const nodeResult = parseCheerio(html);
+  const nodeResult = parseReport(html);
   const dom = new JSDOM(html);
   const browserResult = parseDOM(dom.window.document);
   assert.deepStrictEqual(browserResult, nodeResult);
