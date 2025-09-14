@@ -1139,10 +1139,10 @@ app.post("/api/consumers/:consumerId/events", async (req,res)=>{
 // =================== Templates / Sequences / Contracts ===================
 function defaultTemplates(){
   return [
-    { id: "identity", ...modeCopy("identity", "delete", true) },
-    { id: "breach",   ...modeCopy("breach", "delete", true) },
-    { id: "assault",  ...modeCopy("assault", "delete", true) },
-    { id: "standard", ...modeCopy(null, "delete", true) }
+    { id: "identity", requestType:"delete", ...modeCopy("identity", "delete", true) },
+    { id: "breach",   requestType:"delete", ...modeCopy("breach", "delete", true) },
+    { id: "assault",  requestType:"delete", ...modeCopy("assault", "delete", true) },
+    { id: "standard", requestType:"delete", ...modeCopy(null, "delete", true) }
   ];
 }
 app.get("/api/templates/defaults", async (_req,res)=>{
@@ -1185,9 +1185,9 @@ app.get("/api/templates", async (_req,res)=>{
 app.post("/api/templates", async (req,res)=>{
   const db = await loadLettersDB();
   db.templates = db.templates || [];
-  const { id = nanoid(8), heading = "", intro = "", ask = "", afterIssues = "", evidence = "" } = req.body || {};
+  const { id = nanoid(8), heading = "", intro = "", ask = "", afterIssues = "", evidence = "", requestType = "correct" } = req.body || {};
   const existing = db.templates.find(t => t.id === id);
-  const tpl = { id, heading, intro, ask, afterIssues, evidence };
+  const tpl = { id, heading, intro, ask, afterIssues, evidence, requestType };
   if(existing){ Object.assign(existing, tpl); }
   else { db.templates.push(tpl); }
   await saveLettersDB(db);
@@ -1776,8 +1776,14 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
     console.log(`Letters job ${jobId} recorded with ${letters.length} letters`);
 
     // log state
+    let jobRequestType = requestType;
+    if (selections && selections.length) {
+      const firstSel = selections[0];
+      const tpl = firstSel.templateId && (lettersDb.templates || []).find(t => t.id === firstSel.templateId);
+      jobRequestType = firstSel.requestType || tpl?.requestType || requestType;
+    }
     await addEvent(consumer.id, "letters_generated", {
-      jobId, requestType, count: letters.length,
+      jobId, requestType: jobRequestType, count: letters.length,
       tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length,
       inquiries: Array.isArray(inquiries) ? inquiries.length : 0,
       collectors: Array.isArray(collectors) ? collectors.length : 0
@@ -1849,7 +1855,7 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), async
   const result = await loadJobForUser(jobId, req.user.id);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job } = result;
-  const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor }));
+  const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor, requestType:L.requestType }));
   console.log(`Job ${jobId} has ${meta.length} letters`);
   res.json({ ok:true, letters: meta });
 });

@@ -833,8 +833,8 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
         if (!ALL_BUREAUS.includes(bureau)) continue;
         if (!bureausWithData.has(bureau)) continue;
 
-        const req = sel.requestType || requestType;
         const tpl = sel.templateId ? templateMap[sel.templateId] : null;
+        const req = sel.requestType || tpl?.requestType || requestType;
         let letter = buildLetterHTML({
           consumer,
           bureau,
@@ -859,6 +859,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
           bureau,
           tradelineIndex: sel.tradelineIndex,
           creditor: tl.meta.creditor,
+          requestType: req,
           ...letter,
           filename,
         });

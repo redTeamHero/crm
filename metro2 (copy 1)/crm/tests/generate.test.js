@@ -158,3 +158,34 @@ await test('custom template selection applies template content', async () => {
     server.kill();
   }
 });
+
+await test('template requestType defaults selection type', async () => {
+  const server = await startServer();
+  try {
+    const { json: db } = await fetchJson(`http://localhost:${PORT}/api/consumers`);
+    const consumerId = db.consumers[0].id;
+    const reportId = db.consumers[0].reports[0].id;
+    const tplRes = await fetchJson(`http://localhost:${PORT}/api/templates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ heading: 'Delete Heading', requestType: 'delete' })
+    });
+    const tplId = tplRes.json?.template?.id;
+    const payload = {
+      consumerId,
+      reportId,
+      selections: [{ tradelineIndex: 0, bureaus: ['TransUnion'], templateId: tplId }],
+    };
+    const { res, json } = await fetchJson(`http://localhost:${PORT}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    assert.equal(res.status, 200);
+    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    const { json: meta } = await fetchJson(`http://localhost:${PORT}/api/letters/${jobId}`);
+    assert.equal(meta.letters[0].requestType, 'delete');
+  } finally {
+    server.kill();
+  }
+});
