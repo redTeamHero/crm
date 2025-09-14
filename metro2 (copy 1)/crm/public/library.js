@@ -9,6 +9,15 @@ async function loadLibrary(){
   const res = await fetch('/api/templates');
   const data = await res.json().catch(()=>({}));
   templates = data.templates || [];
+  const sampleRes = await fetch('/api/sample-letters');
+  const sampleData = await sampleRes.json().catch(()=>({}));
+  const sampleTemplates = (sampleData.templates || []).map(t => ({
+    id: t.id,
+    heading: t.name,
+    intro: t.english,
+    spanish: t.spanish
+  }));
+  templates = [...templates, ...sampleTemplates];
   sequences = data.sequences || [];
   renderTemplates();
   renderSequences();
