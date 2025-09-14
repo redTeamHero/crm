@@ -35,6 +35,13 @@ let trackerSteps = [];
 
 let CONSUMER_FILES = [];
 
+const METRO2_VIOLATIONS = [
+  "Balance inconsistent with status",
+  "Missing date of first delinquency",
+  "Incorrect past due amount",
+  "Account status code mismatch"
+];
+
 
 const ocrCb = $("#cbUseOcr");
 
@@ -49,6 +56,19 @@ async function loadTemplates(){
   }catch{}
 }
 loadTemplates();
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = $("#tlReasonSelect");
+  if(sel){
+    sel.innerHTML = '<option value="">Select reason</option>' +
+      METRO2_VIOLATIONS.map(r => `<option value="${r}">${r}</option>`).join('');
+    sel.addEventListener('change', e => {
+      const txt = $("#tlReasonText");
+      if(txt) txt.value = e.target.value;
+    });
+  }
+});
 
 
 function updatePortalLink(){
@@ -1118,10 +1138,35 @@ function openTlEdit(idx){
   f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
   f.manual_reason.value = tl.meta?.manual_reason || "";
 
+  const reasonSel = $("#tlReasonSelect");
+  const reasonText = $("#tlReasonText");
+  if(reasonSel){
+    reasonSel.value = METRO2_VIOLATIONS.includes(f.manual_reason.value) ? f.manual_reason.value : "";
+    if(reasonSel.value && reasonText) reasonText.value = reasonSel.value;
+  }
+
   const fileRec = CONSUMER_FILES.find(f => f.id === currentReportId);
   if(fileRec){
     const url = `/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(fileRec.storedName)}`;
-    $("#tlHtmlPreview").src = url;
+    const iframe = $("#tlHtmlPreview");
+    iframe.onload = () => {
+      try{
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        const nums = [f.tu_account_number.value, f.exp_account_number.value, f.eqf_account_number.value]
+          .map(s => s.trim()).filter(Boolean);
+        let target;
+        const els = Array.from(doc.body?.getElementsByTagName('*') || []);
+        for(const num of nums){
+          for(const el of els){
+            if(el.textContent?.includes(num)){ target = el; break; }
+          }
+          if(target) break;
+        }
+        if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
+      }catch{}
+    };
+    iframe.src = url;
+
     $("#tlHtmlContainer").classList.remove("hidden");
   }else{
     $("#tlHtmlPreview").src = "";
@@ -1136,6 +1181,8 @@ function closeTlEdit(){
   document.body.style.overflow = "";
   $("#tlHtmlPreview").src = "";
   $("#tlHtmlContainer").classList.add("hidden");
+  const sel = $("#tlReasonSelect");
+  if(sel) sel.value = "";
 
 }
 $("#tlHtmlInput")?.addEventListener("change", e=>{
