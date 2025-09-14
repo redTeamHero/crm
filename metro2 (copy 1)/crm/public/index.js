@@ -33,6 +33,8 @@ let trackerData = {};
 
 let trackerSteps = [];
 
+let tlHtmlUrl;
+
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
@@ -1115,13 +1117,30 @@ function openTlEdit(idx){
   f.eqf_account_number.value = tl.per_bureau?.Equifax?.account_number || "";
   f.manual_reason.value = tl.meta?.manual_reason || "";
 
+  $("#tlHtmlInput").value = "";
+  if(tlHtmlUrl){ URL.revokeObjectURL(tlHtmlUrl); tlHtmlUrl = null; }
+  $("#tlHtmlContainer").classList.add("hidden");
+  $("#tlHtmlPreview").src = "";
+
   $("#tlEditModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
 function closeTlEdit(){
   $("#tlEditModal").classList.add("hidden");
   document.body.style.overflow = "";
+  if(tlHtmlUrl){ URL.revokeObjectURL(tlHtmlUrl); tlHtmlUrl = null; }
+  $("#tlHtmlContainer").classList.add("hidden");
+  $("#tlHtmlInput").value = "";
+  $("#tlHtmlPreview").src = "";
 }
+$("#tlHtmlInput")?.addEventListener("change", e=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  if(tlHtmlUrl){ URL.revokeObjectURL(tlHtmlUrl); }
+  tlHtmlUrl = URL.createObjectURL(file);
+  $("#tlHtmlPreview").src = tlHtmlUrl;
+  $("#tlHtmlContainer").classList.remove("hidden");
+});
 $("#tlEditCancel").addEventListener("click", ()=> closeTlEdit());
 $("#tlEditForm").addEventListener("submit", async (e)=>{
   e.preventDefault();
