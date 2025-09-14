@@ -487,6 +487,7 @@ function buildLetterHTML({
   modeKey,
   dateOverride,
   template,
+  specificDisputeReason,
 }) {
   const dateStr = dateOverride || todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
@@ -498,7 +499,9 @@ function buildLetterHTML({
     errorMap
   );
   const tlBlock = buildTradelineBlockHTML(tl, bureau);
-  const chosenList = buildViolationListHTML(tl.violations, selectedViolationIdxs);
+  const chosenList = specificDisputeReason
+    ? `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>${safe(specificDisputeReason)}</strong></li></ol>`
+    : buildViolationListHTML(tl.violations, selectedViolationIdxs);
   const mc = template
     ? {
         heading: template.heading || "",
@@ -845,6 +848,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
           modeKey: sel.specialMode || null,
           dateOverride,
           template: tpl,
+          specificDisputeReason: sel.specificDisputeReason,
         });
         let filename = letter.filename;
         if (play) {
