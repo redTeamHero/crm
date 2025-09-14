@@ -9,6 +9,7 @@ import { enrich, validateTradeline } from '../../metro2-core/src/index.js';
 test('adapters produce identical output and flag past-due inconsistency', () => {
   const html = fs.readFileSync('tests/fixtures/report.html','utf8');
   const nodeResult = parseCheerio(html);
+
   const dom = new JSDOM(html);
   const browserResult = parseDOM(dom.window.document);
   assert.deepStrictEqual(browserResult, nodeResult);
@@ -19,6 +20,7 @@ test('adapters produce identical output and flag past-due inconsistency', () => 
 test('validateTradeline returns enriched violation objects', () => {
   const violations = validateTradeline({ account_status: 'Current', past_due: 100 });
   assert.deepStrictEqual(violations, [enrich('CURRENT_BUT_PASTDUE')]);
+
 });
 
 test('unknown violation codes fall back to default message', () => {
@@ -37,3 +39,4 @@ test('lowercase violation codes return same metadata as uppercase', () => {
   const lowerMissingDofd = enrich('missing_dofd');
   assert.deepStrictEqual(lowerMissingDofd, upperMissingDofd);
 });
+

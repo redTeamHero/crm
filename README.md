@@ -18,6 +18,9 @@ On first run, the server seeds an admin user with username `ducky` and password 
 
 ## Environment
 - `PORT` (optional, defaults to 3000)
+- `METRO2_VIOLATIONS_PATH` (optional; path to `metro2Violations.json`. If unset, the app searches the repo.)
+
+Copy `.env.sample` to `.env` and adjust values as needed.
 
 ## Run
 ```bash

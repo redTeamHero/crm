@@ -16,3 +16,4 @@ export function parseReport(html){
   });
   return { tradelines, history: parseHistory(), inquiries: parseInquiries() };
 }
+

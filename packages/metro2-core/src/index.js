@@ -30,4 +30,5 @@ export function parseHistory(){
 
 export function parseInquiries(){
   return [];
+
 }

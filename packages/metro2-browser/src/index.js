@@ -12,3 +12,4 @@ export function parseReport(doc){
   });
   return { tradelines, history: parseHistory(), inquiries: parseInquiries() };
 }
+=
