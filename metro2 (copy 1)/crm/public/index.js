@@ -35,6 +35,7 @@ let trackerSteps = [];
 
 let tlHtmlUrl;
 
+
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
@@ -1122,6 +1123,7 @@ function openTlEdit(idx){
   $("#tlHtmlContainer").classList.add("hidden");
   $("#tlHtmlPreview").src = "";
 
+
   $("#tlEditModal").classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
@@ -1140,6 +1142,7 @@ $("#tlHtmlInput")?.addEventListener("change", e=>{
   tlHtmlUrl = URL.createObjectURL(file);
   $("#tlHtmlPreview").src = tlHtmlUrl;
   $("#tlHtmlContainer").classList.remove("hidden");
+
 });
 $("#tlEditCancel").addEventListener("click", ()=> closeTlEdit());
 $("#tlEditForm").addEventListener("submit", async (e)=>{
