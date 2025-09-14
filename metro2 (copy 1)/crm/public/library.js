@@ -109,12 +109,21 @@ function useMainTemplate(id){
 }
 
 async function assignMainTemplate(slotId, templateId){
-  const res = await fetch('/api/templates/defaults', {
+  const isSwap = mainTemplates.some(t => t.id === templateId);
+  let res = await fetch('/api/templates/defaults', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ slotId, templateId })
   });
-  const data = await res.json().catch(()=>({}));
+  let data = await res.json().catch(()=>({}));
+  if(isSwap){
+    res = await fetch('/api/templates/defaults', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slotId: templateId, templateId: slotId })
+    });
+    data = await res.json().catch(()=>({}));
+  }
   if(data.templates){
     mainTemplates = data.templates;
     renderMainTemplates();
