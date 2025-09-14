@@ -833,8 +833,8 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
         if (!ALL_BUREAUS.includes(bureau)) continue;
         if (!bureausWithData.has(bureau)) continue;
 
-        const req = sel.requestType || requestType;
         const tpl = sel.templateId ? templateMap[sel.templateId] : null;
+        const req = sel.requestType || tpl?.requestType || requestType;
         let letter = buildLetterHTML({
           consumer,
           bureau,
@@ -852,20 +852,21 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "_")
             .replace(/^_+|_+$/g, "");
-        filename = filename.replace("_dispute_", `_${safeStep}_`);
+          filename = filename.replace("_dispute_", `_${safeStep}_`);
+        }
+        filename = `${namePrefix(consumer)}_${filename}`;
+        letters.push({
+          bureau,
+          tradelineIndex: sel.tradelineIndex,
+          creditor: tl.meta.creditor,
+          requestType: req,
+          ...letter,
+          filename,
+        });
       }
-      filename = `${namePrefix(consumer)}_${filename}`;
-      letters.push({
-        bureau,
-        tradelineIndex: sel.tradelineIndex,
-        creditor: tl.meta.creditor,
-        specificDisputeReason: sel.specificDisputeReason,
-        ...letter,
-        filename,
-      });
-    }
-  });
+    });
   }
+
 
   return letters;
 }
