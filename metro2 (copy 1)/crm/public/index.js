@@ -999,15 +999,17 @@ function collectSelections(){
       assault: 'sexual assault'
     };
     const tl = CURRENT_REPORT?.tradelines?.[Number(tradelineIndex)];
-    if (tl?.meta?.manual_reason) {
-      sel.specificDisputeReason = tl.meta.manual_reason;
+    const card = document.querySelector(`.tl-card[data-index="${tradelineIndex}"]`);
+    const cardReason = card?.querySelector('.tl-manual-reason')?.textContent?.trim();
+    const manualReason = cardReason || tl?.meta?.manual_reason;
+    if (manualReason) {
+      sel.specificDisputeReason = manualReason;
     } else if (data.specialMode && reasonMap[data.specialMode]) {
       sel.specificDisputeReason = reasonMap[data.specialMode];
     }
     if (data.violationIdxs && data.violationIdxs.length){
       sel.violationIdxs = data.violationIdxs;
     }
-    const card = document.querySelector(`.tl-card[data-index="${tradelineIndex}"]`);
     if (card){
       const creditor = card.querySelector('.tl-creditor')?.textContent?.trim();
       const accountNumbers = {
