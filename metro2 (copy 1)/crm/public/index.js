@@ -532,37 +532,32 @@ export function dedupeTradelines(lines){
 }
 
 
-export function mergeBureauViolations(vs){
-  const map = new Map();
-  (vs || []).forEach((v, idx) => {
-    const text = v.title || v.violation || "";
-    const m = text.match(/\((TransUnion|Experian|Equifax)\)/) || [];
-    const base = text.replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
-    const detailSrc = v.title ? (v.detail || "") : (v.detail || v.violation || "");
-    const detailClean = detailSrc.replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
-    const evCopy = v.evidence ? JSON.parse(JSON.stringify(v.evidence)) : {};
-    delete evCopy.bureau;
-    const evKey = detailClean || JSON.stringify(evCopy);
-    const id = v.id || v.code || "";
-    const bureaus = v.bureaus || [v.evidence?.bureau || v.bureau || m[1]].filter(Boolean);
-    const key = `${id}|${v.category||""}|${base}|${evKey}`;
-    if(!map.has(key)) map.set(key, { category: v.category, title: base, bureaus: new Set(), details: new Set(), debugs: new Set(), severity: v.severity || 0, idx });
-    const entry = map.get(key);
-    bureaus.forEach(bureau => entry.bureaus.add(bureau));
-    if(detailClean) entry.details.add(detailClean);
-    if(v.debug) entry.debugs.add(v.debug);
-    if((v.severity||0) > entry.severity) entry.severity = v.severity||0;
+export function normalizeViolations(vs){
+  return (vs || []).map((v, idx) => {
+    const rawTitle = v?.title ?? "";
+    const fallbackTitle = rawTitle || v?.violation || "";
+    const cleanedTitle = fallbackTitle.replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
+    const title = cleanedTitle || fallbackTitle;
 
+    const baseDetail = v?.detail ?? (rawTitle ? "" : (v?.violation || ""));
+    const cleanedDetail = baseDetail.replace(/\s*\((TransUnion|Experian|Equifax)\)/g, "").trim();
+    const detail = cleanedDetail || baseDetail;
+
+    const bureauCandidates = [
+      ...(Array.isArray(v?.bureaus) ? v.bureaus : []),
+      v?.bureau,
+      v?.evidence?.bureau
+    ].filter(Boolean);
+    const bureaus = Array.from(new Set(bureauCandidates));
+
+    return {
+      ...v,
+      title,
+      detail,
+      bureaus,
+      idx: v?.idx ?? idx
+    };
   });
-  return Array.from(map.values()).map(e => ({
-    category: e.category,
-    title: e.title,
-    detail: Array.from(e.details).join(' '),
-    severity: e.severity,
-    bureaus: Array.from(e.bureaus),
-    debug: Array.from(e.debugs).join('\n'),
-    idx: e.idx
-  }));
 }
 
 function deriveTags(tl){
@@ -680,7 +675,7 @@ function autoSelectBestViolation(card){
   const idx = Number(card.dataset.index);
   const tl = CURRENT_REPORT?.tradelines?.[idx];
   if (!tl) return;
-  const vs = mergeBureauViolations(tl.violations || []);
+  const vs = normalizeViolations(tl.violations || []);
   if (!vs.length) return;
   let bestIdx = 0;
   let bestSeverity = -Infinity;
@@ -763,7 +758,7 @@ function renderTradelines(tradelines){
     const vWrap = node.querySelector(".tl-violations");
     const prevBtn = node.querySelector(".tl-reason-prev");
     const nextBtn = node.querySelector(".tl-reason-next");
-    const vs = mergeBureauViolations(tl.violations || []);
+    const vs = normalizeViolations(tl.violations || []);
     const maxSeverity = vs.reduce((m, v) => Math.max(m, v.severity || 0), 0);
     if (maxSeverity) card.classList.add(`severity-${maxSeverity}`);
     const pageSize = vs.length > 5 ? 3 : vs.length;
@@ -935,7 +930,7 @@ function renderPB(pb){
 }
 function buildZoomHTML(tl){
   const per = tl.per_bureau || {};
-  const vlist = mergeBureauViolations(tl.violations||[]).map(v=>`
+  const vlist = normalizeViolations(tl.violations||[]).map(v=>`
     <li class="mb-2">
       <div class="font-medium">${escapeHtml(v.category||"")} – ${escapeHtml(v.title||"")}${v.bureaus && v.bureaus.length ? ' '+v.bureaus.map(b=>'<span class="badge badge-bureau">'+escapeHtml(b)+'</span>').join(' ') : ''}</div>
       ${v.detail? `<div class="text-gray-600">${escapeHtml(v.detail)}</div>` : ""}
