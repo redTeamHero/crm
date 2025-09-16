@@ -46,6 +46,22 @@ class TestDuplicateAccount(unittest.TestCase):
         v2, _ = m2.run_rules_for_tradeline("CredB", per_bureau2, {"global": {"disabled": ["10"]}})
         self.assertTrue(any(v["id"] == "DUPLICATE_ACCOUNT" for v in v2))
 
+    def test_rule_10_emits_duplicate_violation_without_exception(self):
+        original_bureaus = list(m2.BUREAUS)
+        try:
+            m2.BUREAUS = original_bureaus + ["TransUnion"]
+            per_bureau = {b: {} for b in original_bureaus}
+            per_bureau["TransUnion"]["account_number"] = "DUP-123"
+            per_bureau["Experian"]["account_number"] = "EXP-999"
+            per_bureau["Equifax"]["account_number"] = "EQF-888"
+
+            m2.SEEN_ACCOUNT_NUMBERS.clear()
+            violations, _ = m2.run_rules_for_tradeline("CredDup", per_bureau, None)
+        finally:
+            m2.BUREAUS = original_bureaus
+
+        self.assertTrue(any(v.get("id") == "10" for v in violations))
+
 
 if __name__ == "__main__":
     unittest.main()
