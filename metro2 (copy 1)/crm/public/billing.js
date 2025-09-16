@@ -1,5 +1,5 @@
 // public/billing.js
-import { api } from './common.js';
+import { api, escapeHtml } from './common.js';
 const $ = (s) => document.querySelector(s);
 
 const consumerId = getSelectedConsumerId();

@@ -1,7 +1,7 @@
 /* public/common.js */
 
 // Escape HTML entities for safe DOM insertion
-function escapeHtml(s) {
+export function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -12,7 +12,7 @@ function escapeHtml(s) {
 }
 
 // Consistent currency formatter used across UI modules
-function formatCurrency(val) {
+export function formatCurrency(val) {
   const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.-]/g, ''));
   return isNaN(num) ? '—' : `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
