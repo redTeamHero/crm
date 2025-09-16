@@ -655,7 +655,10 @@ def r_10(ctx, bureau, data, add):
     acct = data.get("account_number")
     if not acct:
         return
-    seen = ctx.setdefault("_seen_accounts", set())
+    seen = getattr(ctx, "_seen_accounts", None)
+    if seen is None:
+        seen = set()
+        setattr(ctx, "_seen_accounts", seen)
     key = (bureau, acct)
     if key in seen:
         add(make_violation(
@@ -691,6 +694,7 @@ def run_rules_for_tradeline(creditor, per_bureau, rule_profile):
     violations = []
     furnisher_type = detect_furnisher_type(per_bureau)
     ctx = RuleContext(creditor, per_bureau, furnisher_type, rule_profile)
+    setattr(ctx, "_seen_accounts", set())
 
     def add(v):
         violations.append(v)
