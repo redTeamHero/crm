@@ -1,5 +1,5 @@
 // public/letters.js
-import { api } from './common.js';
+import { api, escapeHtml } from './common.js';
 const $ = (s) => document.querySelector(s);
 
 function showErr(msg){

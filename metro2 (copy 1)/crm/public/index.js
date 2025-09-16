@@ -1,7 +1,7 @@
 /* public/index.js */
 
 import { PLAYBOOKS } from './playbooks.js';
-import { authHeader, api } from './common.js';
+import { authHeader, api, escapeHtml, formatCurrency } from './common.js';
 
 const $ = (s) => document.querySelector(s);
 
