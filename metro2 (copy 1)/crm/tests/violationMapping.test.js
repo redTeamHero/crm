@@ -12,8 +12,7 @@ test('filterViolationsBySeverity prioritizes high severity', () => {
   assert.equal(filtered[0].code, 'MISSING_DOFD');
 });
 
-test('mergeBureauViolations merges same violation across bureaus', async () => {
-
+function stubDom(){
   const stubEl = {};
   stubEl.addEventListener = () => {};
   stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };
@@ -36,126 +35,47 @@ test('mergeBureauViolations merges same violation across bureaus', async () => {
   globalThis.MutationObserver = class { observe(){} disconnect(){} };
   globalThis.localStorage = { getItem: () => null, setItem: () => {} };
   globalThis.location = { search: '', pathname: '/' };
+}
 
-  const { mergeBureauViolations } = await import('../public/index.js');
-  const input = [
+async function loadPublicModule(){
+  stubDom();
+  return import('../public/index.js');
+}
+
+test('normalizeViolations preserves order and idx values', async () => {
+  const { normalizeViolations } = await loadPublicModule();
+  const normalized = normalizeViolations([
+    { id: 'A1', category: 'cat', title: 'First', idx: 5, bureaus: ['TransUnion'] },
+    { id: 'A2', category: 'cat', title: 'Second', evidence: { bureau: 'Experian' } }
+  ]);
+  assert.equal(normalized.length, 2);
+  assert.equal(normalized[0].idx, 5);
+  assert.deepEqual(normalized[0].bureaus, ['TransUnion']);
+  assert.equal(normalized[1].idx, 1);
+  assert.deepEqual(normalized[1].bureaus, ['Experian']);
+});
+
+test('normalizeViolations builds unique bureau list', async () => {
+  const { normalizeViolations } = await loadPublicModule();
+  const normalized = normalizeViolations([
     {
       id: 'A1',
       category: 'cat',
-      title: 'Same Title',
-      detail: 'Same Detail',
-      severity: 1,
-      evidence: { bureau: 'TransUnion' }
-    },
-    {
-      id: 'A1',
-      category: 'cat',
-      title: 'Same Title',
-      detail: 'Same Detail',
-      severity: 1,
+      title: 'Duplicate bureaus',
+      bureaus: ['TransUnion'],
+      bureau: 'TransUnion',
       evidence: { bureau: 'Experian' }
     }
-  ];
-  const merged = mergeBureauViolations(input);
-  assert.equal(merged.length, 1);
-  assert.deepEqual(merged[0].bureaus.sort(), ['Experian','TransUnion']);
-});
-
-test('mergeBureauViolations merges bureaus array into single violation', async () => {
-  const stubEl = {};
-  stubEl.addEventListener = () => {};
-  stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };
-  stubEl.querySelector = () => stubEl;
-  stubEl.querySelectorAll = () => [];
-  stubEl.appendChild = () => {};
-  stubEl.innerHTML = '';
-  stubEl.textContent = '';
-  stubEl.style = {};
-  stubEl.dataset = {};
-  globalThis.document = {
-    querySelector: () => stubEl,
-    querySelectorAll: () => [],
-    getElementById: () => stubEl,
-    addEventListener: () => {},
-    createElement: () => stubEl,
-    body: { style: {} }
-  };
-  globalThis.window = {};
-  globalThis.MutationObserver = class { observe(){} disconnect(){} };
-  globalThis.localStorage = { getItem: () => null, setItem: () => {} };
-  globalThis.location = { search: '', pathname: '/' };
-
-  const { mergeBureauViolations } = await import('../public/index.js');
-  const merged = mergeBureauViolations([
-    { id: 'A1', category: 'cat', title: 'Same Title', detail: 'Same Detail', bureaus: ['TransUnion','Experian'] }
   ]);
-  assert.equal(merged.length, 1);
-  assert.deepEqual(merged[0].bureaus.sort(), ['Experian','TransUnion']);
-
+  assert.deepEqual(normalized[0].bureaus.sort(), ['Experian', 'TransUnion']);
 });
 
-test('mergeBureauViolations preserves first violation index', async () => {
-  const stubEl = {};
-  stubEl.addEventListener = () => {};
-  stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };
-  stubEl.querySelector = () => stubEl;
-  stubEl.querySelectorAll = () => [];
-  stubEl.appendChild = () => {};
-  stubEl.innerHTML = '';
-  stubEl.textContent = '';
-  stubEl.style = {};
-  stubEl.dataset = {};
-  globalThis.document = {
-    querySelector: () => stubEl,
-    querySelectorAll: () => [],
-    getElementById: () => stubEl,
-    addEventListener: () => {},
-    createElement: () => stubEl,
-    body: { style: {} }
-  };
-  globalThis.window = {};
-  globalThis.MutationObserver = class { observe(){} disconnect(){} };
-  globalThis.localStorage = { getItem: () => null, setItem: () => {} };
-  globalThis.location = { search: '', pathname: '/' };
-
-  const { mergeBureauViolations } = await import('../public/index.js');
-  const merged = mergeBureauViolations([
-    { id: 'A1', category: 'cat', title: 'Same Title', detail: 'Same Detail', evidence: { bureau: 'TransUnion' } },
-    { id: 'A1', category: 'cat', title: 'Same Title', detail: 'Same Detail', evidence: { bureau: 'Experian' } },
-  ]);
-  assert.equal(merged[0].idx, 0);
-});
-
-test('renderViolations shows violation text when title missing', async () => {
-  const stubEl = {};
-  stubEl.addEventListener = () => {};
-  stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };
-  stubEl.querySelector = () => stubEl;
-  stubEl.querySelectorAll = () => [];
-  stubEl.appendChild = () => {};
-  stubEl.innerHTML = '';
-  stubEl.textContent = '';
-  stubEl.style = {};
-  stubEl.dataset = {};
-  globalThis.document = {
-    querySelector: () => stubEl,
-    querySelectorAll: () => [],
-    getElementById: () => stubEl,
-    addEventListener: () => {},
-    createElement: () => stubEl,
-    body: { style: {} }
-  };
-  globalThis.window = {};
-  globalThis.MutationObserver = class { observe(){} disconnect(){} };
-  globalThis.localStorage = { getItem: () => null, setItem: () => {} };
-  globalThis.location = { search: '', pathname: '/' };
-
-  const { mergeBureauViolations } = await import('../public/index.js');
-  const merged = mergeBureauViolations([
+test('normalizeViolations falls back to violation text when title missing', async () => {
+  const { normalizeViolations } = await loadPublicModule();
+  const normalized = normalizeViolations([
     { category: 'cat', violation: 'Only violation field', severity: 1 }
   ]);
-
-  const html = merged.map(v => `
+  const html = normalized.map(v => `
     <div class="font-medium text-sm wrap-anywhere">${v.category || ''} – ${v.title || v.violation || ''}</div>
   `).join('');
   assert.ok(html.includes('Only violation field'));
