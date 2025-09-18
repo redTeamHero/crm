@@ -10,6 +10,8 @@
 //   const dom = new JSDOM(html);
 //   const { tradelines, inquiries, inquiry_summary } = parseCreditReportHTML(dom.window.document);
 
+const DEFAULT_CREDITOR_NAME = 'Unknown Creditor';
+
 function parseCreditReportHTML(doc) {
   const results = { tradelines: [], inquiries: [], inquiry_summary: {} };
   const NON_CREDITOR_HEADERS = new Set(["risk factors"]);
@@ -51,7 +53,7 @@ function parseCreditReportHTML(doc) {
     if (NON_CREDITOR_HEADERS.has(creditorName.toLowerCase())) {
       continue; // skip non-creditor sections like "Risk Factors"
     }
-    tl.meta.creditor = creditorName || "Unknown";
+    tl.meta.creditor = creditorName || DEFAULT_CREDITOR_NAME;
 
     // ---- B) Bureau order from the header row ----
     const trs = rows(table);
