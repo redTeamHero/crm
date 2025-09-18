@@ -2,6 +2,8 @@ import unittest
 import sys
 from pathlib import Path
 
+from bs4 import BeautifulSoup
+
 # Allow importing metro2_audit_multi from the project directory
 sys.path.append(str(Path(__file__).resolve().parents[1] / "metro2 (copy 1)" / "crm"))
 import metro2_audit_multi as m2
@@ -61,6 +63,45 @@ class TestDuplicateAccount(unittest.TestCase):
             m2.BUREAUS = original_bureaus
 
         self.assertTrue(any(v.get("id") == "10" for v in violations))
+
+
+class TestAccountNumberParsing(unittest.TestCase):
+    def test_account_number_without_colon_included_in_output(self):
+        html = """
+        <html><body>
+            <td class="ng-binding">
+                <div class="sub_header">Colonless Creditor</div>
+                <table class="rpt_content_table rpt_content_header rpt_table4column">
+                    <tr>
+                        <th></th>
+                        <th class="headerTUC">TransUnion</th>
+                        <th class="headerEXP">Experian</th>
+                        <th class="headerEQF">Equifax</th>
+                    </tr>
+                    <tr>
+                        <td class="label">Account #</td>
+                        <td class="info">ACCT-111</td>
+                        <td class="info">ACCT-111</td>
+                        <td class="info">ACCT-111</td>
+                    </tr>
+                </table>
+            </td>
+        </body></html>
+        """
+        soup = BeautifulSoup(html, "html.parser")
+        tradelines = m2.extract_all_tradelines(soup)
+        self.assertEqual(len(tradelines), 1)
+
+        tl = tradelines[0]
+        per_bureau = tl["per_bureau"]
+        self.assertEqual(per_bureau["TransUnion"].get("account_number"), "ACCT-111")
+        self.assertEqual(per_bureau["Experian"].get("account_number"), "ACCT-111")
+        self.assertEqual(per_bureau["Equifax"].get("account_number"), "ACCT-111")
+        self.assertEqual(tl["meta"]["account_numbers"], {
+            "TransUnion": "ACCT-111",
+            "Experian": "ACCT-111",
+            "Equifax": "ACCT-111",
+        })
 
 
 if __name__ == "__main__":
