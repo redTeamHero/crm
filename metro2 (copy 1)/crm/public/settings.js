@@ -8,9 +8,83 @@ document.addEventListener('DOMContentLoaded', () => {
   const gcalTokenEl = document.getElementById('gcalToken');
   const gcalIdEl = document.getElementById('gcalId');
   const stripeEl = document.getElementById('stripeKey');
+  const envListEl = document.getElementById('envList');
+  const addEnvBtn = document.getElementById('addEnvRow');
 
   const saveBtn = document.getElementById('saveSettings');
   const msgEl = document.getElementById('saveMsg');
+
+  function createEnvRow(key = '', value = '') {
+    if (!envListEl) return null;
+    const row = document.createElement('div');
+    row.className = 'env-row flex flex-wrap md:flex-nowrap items-center gap-2';
+
+    const keyInput = document.createElement('input');
+    keyInput.className = 'flex-1 border rounded px-2 py-1 text-xs uppercase tracking-wide';
+    keyInput.placeholder = 'ENV_KEY';
+    keyInput.value = key;
+    keyInput.dataset.field = 'key';
+    keyInput.maxLength = 64;
+    keyInput.autocomplete = 'off';
+    keyInput.spellcheck = false;
+
+    const valueInput = document.createElement('input');
+    valueInput.className = 'flex-1 border rounded px-2 py-1 text-xs';
+    valueInput.placeholder = 'Value / Valor';
+    valueInput.value = value;
+    valueInput.dataset.field = 'value';
+    valueInput.autocomplete = 'off';
+    valueInput.spellcheck = false;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn text-xs px-3';
+    removeBtn.textContent = 'Remove / Quitar';
+    removeBtn.addEventListener('click', () => row.remove());
+
+    row.append(keyInput, valueInput, removeBtn);
+    return row;
+  }
+
+  function renderEnvOverrides(overrides = {}) {
+    if (!envListEl) return;
+    envListEl.innerHTML = '';
+    const entries = Object.entries(overrides || {});
+    if (entries.length === 0) {
+      const blank = createEnvRow();
+      if (blank) envListEl.appendChild(blank);
+      return;
+    }
+    entries.forEach(([key, value]) => {
+      const row = createEnvRow(key, value);
+      if (row) envListEl.appendChild(row);
+    });
+  }
+
+  function collectEnvOverrides() {
+    if (!envListEl) return {};
+    const overrides = {};
+    envListEl.querySelectorAll('.env-row').forEach(row => {
+      const keyEl = row.querySelector('input[data-field="key"]');
+      const valEl = row.querySelector('input[data-field="value"]');
+      let key = (keyEl?.value || '').trim().toUpperCase();
+      key = key.replace(/[^A-Z0-9_]/g, '_');
+      const value = (valEl?.value || '').trim();
+      if (key && value) {
+        overrides[key] = value;
+      }
+    });
+    return overrides;
+  }
+
+  if (addEnvBtn) {
+    addEnvBtn.addEventListener('click', () => {
+      const row = createEnvRow();
+      if (row && envListEl) envListEl.appendChild(row);
+    });
+  }
+
+  renderEnvOverrides();
 
   if (gcalIdEl) {
     const help = document.createElement('div');
@@ -81,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gcalTokenEl) gcalTokenEl.value = data.settings?.googleCalendarToken || '';
       if (gcalIdEl) gcalIdEl.value = data.settings?.googleCalendarId || '';
       if (stripeEl) stripeEl.value = data.settings?.stripeApiKey || '';
+      renderEnvOverrides(data.settings?.envOverrides || {});
 
     } catch (e) {
       console.error('Failed to load settings', e);
@@ -109,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
         googleCalendarToken: gcalTokenEl.value.trim(),
         googleCalendarId: gcalIdEl.value.trim(),
         stripeApiKey: stripeEl.value.trim(),
+        envOverrides: collectEnvOverrides(),
 
       };
       try {

@@ -28,11 +28,51 @@ import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, u
 
 import { fetchFn } from "./fetchUtil.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret";
+const DEFAULT_SETTINGS = {
+  hibpApiKey: "",
+  rssFeedUrl: "https://hnrss.org/frontpage",
+  googleCalendarToken: "",
+  googleCalendarId: "",
+  stripeApiKey: "",
+  envOverrides: {}
+};
+
+function normalizeEnvOverrides(raw){
+  const result = {};
+  if(!raw) return result;
+  const entries = Array.isArray(raw)
+    ? raw
+    : Object.entries(raw).map(([key, value]) => ({ key, value }));
+  for(const entry of entries){
+    if(!entry) continue;
+    const key = (entry.key ?? entry.name ?? "").toString().trim();
+    if(!key || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    const value = (entry.value ?? entry.val ?? "").toString();
+    result[key.toUpperCase()] = value;
+  }
+  return result;
+}
+
+function applyEnvOverrides(overrides = {}){
+  for(const [key, value] of Object.entries(overrides)){
+    process.env[key] = value;
+  }
+}
+
+function normalizeSettings(raw){
+  const base = { ...DEFAULT_SETTINGS, ...(raw || {}) };
+  base.envOverrides = normalizeEnvOverrides((raw && raw.envOverrides) ?? base.envOverrides);
+  return base;
+}
+
+function getJwtSecret(){
+  return process.env.JWT_SECRET || "dev-secret";
+}
+
 const TOKEN_EXPIRES_IN = "1h";
 
 function generateToken(user){
-  return jwt.sign({ id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions || [] }, JWT_SECRET, { expiresIn: TOKEN_EXPIRES_IN });
+  return jwt.sign({ id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions || [] }, getJwtSecret(), { expiresIn: TOKEN_EXPIRES_IN });
 }
 
 
@@ -86,20 +126,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function loadSettings(){
-  const data = await readKey('settings', null);
-  if(data) return data;
-  const def = {
-    hibpApiKey: "",
-    rssFeedUrl: "https://hnrss.org/frontpage",
-    googleCalendarToken: "",
-    googleCalendarId: "",
-    stripeApiKey: "",
-  };
-  await writeKey('settings', def);
-  return def;
+  const raw = await readKey('settings', null);
+  if(raw){
+    const settings = normalizeSettings(raw);
+    applyEnvOverrides(settings.envOverrides);
+    return settings;
+  }
+  const defaults = normalizeSettings(DEFAULT_SETTINGS);
+  await writeKey('settings', defaults);
+  applyEnvOverrides(defaults.envOverrides);
+  return defaults;
 }
 
-async function saveSettings(data){ await writeKey('settings', data); }
+async function saveSettings(data){
+  const current = await readKey('settings', null);
+  const merged = normalizeSettings({ ...(current || {}), ...(data || {}) });
+  await writeKey('settings', merged);
+  applyEnvOverrides(merged.envOverrides);
+  return merged;
+}
+
 
 
 const require = createRequire(import.meta.url);
@@ -156,7 +202,7 @@ async function getAuthUser(req){
   const db = await loadUsersDB();
   if(auth.startsWith("Bearer ")){
     try{
-      const payload = jwt.verify(auth.slice(7), JWT_SECRET);
+      const payload = jwt.verify(auth.slice(7), getJwtSecret());
       const found = db.users.find(u=>u.id===payload.id);
       if(!found) return null;
       return { ...found, permissions: found.permissions || [] };
@@ -350,10 +396,11 @@ app.post("/api/settings", async (req, res) => {
     googleCalendarToken = "",
     googleCalendarId = "",
     stripeApiKey = "",
+    envOverrides = {},
   } = req.body || {};
-  await saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId, stripeApiKey });
+  const settings = await saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId, stripeApiKey, envOverrides });
 
-  res.json({ ok: true });
+  res.json({ ok: true, settings });
 });
 
 app.get("/api/calendar/events", async (_req, res) => {
