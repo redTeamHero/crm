@@ -31,7 +31,9 @@ BUREAUS = ["TransUnion", "Experian", "Equifax"]
 def normalize_field_label(label):
     if not label:
         return ""
-    return re.sub(r":\s*$", "", label.strip())
+    cleaned = label.strip()
+    cleaned = re.sub(r"[:：;,-]+\s*$", "", cleaned)
+    return cleaned.strip()
 
 _FIELD_ALIASES = {
     "Account #": "account_number",

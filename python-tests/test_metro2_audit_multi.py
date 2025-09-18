@@ -103,6 +103,44 @@ class TestAccountNumberParsing(unittest.TestCase):
             "Equifax": "ACCT-111",
         })
 
+    def test_account_number_with_colon_rendered_in_sibling_span(self):
+        html = """
+        <html><body>
+            <td class="ng-binding">
+                <div class="sub_header">Split Colon Creditor</div>
+                <table class="rpt_content_table rpt_content_header rpt_table4column">
+                    <tr>
+                        <th></th>
+                        <th class="headerTUC">TransUnion</th>
+                        <th class="headerEXP">Experian</th>
+                        <th class="headerEQF">Equifax</th>
+                    </tr>
+                    <tr>
+                        <td class="label"><span>Account #</span><span>:</span></td>
+                        <td class="info">SPLIT-222</td>
+                        <td class="info">SPLIT-222</td>
+                        <td class="info">SPLIT-222</td>
+                    </tr>
+                </table>
+            </td>
+        </body></html>
+        """
+
+        soup = BeautifulSoup(html, "html.parser")
+        tradelines = m2.extract_all_tradelines(soup)
+        self.assertEqual(len(tradelines), 1)
+
+        tl = tradelines[0]
+        per_bureau = tl["per_bureau"]
+        self.assertEqual(per_bureau["TransUnion"].get("account_number"), "SPLIT-222")
+        self.assertEqual(per_bureau["Experian"].get("account_number"), "SPLIT-222")
+        self.assertEqual(per_bureau["Equifax"].get("account_number"), "SPLIT-222")
+        self.assertEqual(tl["meta"]["account_numbers"], {
+            "TransUnion": "SPLIT-222",
+            "Experian": "SPLIT-222",
+            "Equifax": "SPLIT-222",
+        })
+
 
 if __name__ == "__main__":
     unittest.main()

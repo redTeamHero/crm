@@ -5,6 +5,7 @@ import pullTradelineData from '../pullTradelineData.js';
 const SAMPLE_HTML = `<html><body><td class="ng-binding"><div class="sub_header">Test Creditor</div><table class="rpt_content_table rpt_content_header rpt_table4column"><tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr><tr><td class="label">Account #:</td><td class="info">1234</td><td class="info">1234</td><td class="info">1234</td></tr></table></td></body></html>`;
 const SAMPLE_HTML_NO_HEADER = `<html><body><td class="ng-binding"><table class="rpt_content_table rpt_content_header rpt_table4column"><tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr><tr><td class="label">Account #:</td><td class="info">5678</td><td class="info">5678</td><td class="info">5678</td></tr></table></td></body></html>`;
 const SAMPLE_HTML_NO_COLON = `<html><body><td class="ng-binding"><div class="sub_header">Test Creditor</div><table class="rpt_content_table rpt_content_header rpt_table4column"><tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr><tr><td class="label">Account #</td><td class="info">ACCT-999</td><td class="info">ACCT-999</td><td class="info">ACCT-999</td></tr></table></td></body></html>`;
+const SAMPLE_HTML_SPLIT_COLON = `<html><body><td class="ng-binding"><div class="sub_header">Split Colon Creditor</div><table class="rpt_content_table rpt_content_header rpt_table4column"><tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr><tr><td class="label"><span>Account #</span><span>:</span></td><td class="info">SPLIT-222</td><td class="info">SPLIT-222</td><td class="info">SPLIT-222</td></tr></table></td></body></html>`;
 
 function makeFakeFetch(html) {
   return async () => ({
@@ -93,4 +94,35 @@ test('pullTradelineData merges Python violations when Account # lacks colon', as
   assert.equal(tl.meta.account_numbers.TransUnion, 'ACCT-999');
   assert.deepEqual(tl.violations, [{ id: 'PY1', title: 'Python Flag' }]);
   assert.deepEqual(tl.violations_grouped, { Python: [{ id: 'PY1', title: 'Python Flag' }] });
+});
+
+test('pullTradelineData merges Python violations when Account # colon rendered separately', async () => {
+  const fakeFetch = makeFakeFetch(SAMPLE_HTML_SPLIT_COLON);
+  const fakeAudit = async () => ({
+    tradelines: [
+      {
+        meta: {
+          creditor: 'Split Colon Creditor',
+          account_numbers: {
+            TransUnion: 'SPLIT-222',
+            Experian: 'SPLIT-222',
+            Equifax: 'SPLIT-222',
+          },
+        },
+        per_bureau: {
+          TransUnion: { account_number: 'SPLIT-222' },
+          Experian: { account_number: 'SPLIT-222' },
+          Equifax: { account_number: 'SPLIT-222' },
+        },
+        violations: [{ id: 'PY2', title: 'Python Flag Split Colon' }],
+        violations_grouped: { Python: [{ id: 'PY2', title: 'Python Flag Split Colon' }] },
+      }
+    ]
+  });
+  const report = await pullTradelineData({ apiUrl: 'http://example.com/split-colon', fetchImpl: fakeFetch, auditImpl: fakeAudit });
+  const tl = report.tradelines[0];
+  assert.equal(tl.per_bureau.TransUnion.account_number, 'SPLIT-222');
+  assert.equal(tl.meta.account_numbers.TransUnion, 'SPLIT-222');
+  assert.deepEqual(tl.violations, [{ id: 'PY2', title: 'Python Flag Split Colon' }]);
+  assert.deepEqual(tl.violations_grouped, { Python: [{ id: 'PY2', title: 'Python Flag Split Colon' }] });
 });
