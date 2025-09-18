@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function init() {
     try {
-      const resp = await fetch('/api/me');
+      const resp = await fetch('/api/me', { headers: authHeader() });
       if (!resp.ok) {
         return;
       }
