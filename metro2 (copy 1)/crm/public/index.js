@@ -501,6 +501,225 @@ const selectionState = {};
 
 function hasWord(s, w){ return (s||"").toLowerCase().includes(w.toLowerCase()); }
 function maybeNum(x){ return typeof x === "number" ? x : null; }
+function isPlainObject(value){
+  return Object.prototype.toString.call(value) === '[object Object]';
+}
+
+function isBlankValue(value){
+  return value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+}
+
+function mergeArraysUnique(a = [], b = []){
+  const merged = [];
+  const seen = new Set();
+  [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])].forEach(item => {
+    if (item === undefined || item === null) return;
+    const key = typeof item === 'object' && item !== null
+      ? JSON.stringify(item)
+      : `primitive:${typeof item === 'string' ? item.trim() : item}`;
+    if (!seen.has(key)){
+      seen.add(key);
+      merged.push(item);
+    }
+  });
+  return merged;
+}
+
+function mergePlainObject(existing = {}, incoming = {}){
+  const merged = { ...existing };
+  Object.keys(incoming || {}).forEach(key => {
+    const incomingVal = incoming[key];
+    if (incomingVal === undefined || incomingVal === null) return;
+    const existingVal = merged[key];
+    if (existingVal === undefined){
+      if (Array.isArray(incomingVal)){
+        merged[key] = [...incomingVal];
+      } else if (isPlainObject(incomingVal)){
+        merged[key] = mergePlainObject({}, incomingVal);
+      } else {
+        merged[key] = incomingVal;
+      }
+      return;
+    }
+    if (isPlainObject(existingVal) && isPlainObject(incomingVal)){
+      merged[key] = mergePlainObject(existingVal, incomingVal);
+      return;
+    }
+    if (Array.isArray(existingVal) && Array.isArray(incomingVal)){
+      merged[key] = mergeArraysUnique(existingVal, incomingVal);
+      return;
+    }
+    if (typeof existingVal === 'string' && typeof incomingVal === 'string'){
+      const trimmedExisting = existingVal.trim();
+      const trimmedIncoming = incomingVal.trim();
+      if (!trimmedExisting && trimmedIncoming){
+        merged[key] = incomingVal;
+      } else if (trimmedIncoming.length > trimmedExisting.length){
+        merged[key] = incomingVal;
+      }
+      return;
+    }
+    if (isBlankValue(existingVal) && !isBlankValue(incomingVal)){
+      merged[key] = incomingVal;
+    }
+  });
+  return merged;
+}
+
+function normalizeAccountNumberValues(val){
+  if (val === undefined || val === null) return [];
+  if (Array.isArray(val)){
+    return val
+      .map(v => typeof v === 'string' ? v.trim() : v)
+      .filter(v => !(typeof v === 'string' && v.length === 0));
+  }
+  if (isPlainObject(val)){
+    return Object.values(val)
+      .map(v => typeof v === 'string' ? v.trim() : v)
+      .filter(v => !(typeof v === 'string' && v.length === 0));
+  }
+  if (typeof val === 'string'){
+    const trimmed = val.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  return [val];
+}
+
+function mergeAccountNumbers(existingValue, incomingValue){
+  const hasExisting = existingValue !== undefined && existingValue !== null;
+  const hasIncoming = incomingValue !== undefined && incomingValue !== null;
+  if (!hasExisting && !hasIncoming) return undefined;
+
+  if (isPlainObject(existingValue) || isPlainObject(incomingValue)){
+    const merged = {
+      ...(isPlainObject(existingValue) ? existingValue : {}),
+      ...(isPlainObject(incomingValue) ? incomingValue : {})
+    };
+    const seen = new Set(
+      Object.values(merged)
+        .map(v => typeof v === 'string' ? v.trim().toUpperCase() : v)
+        .filter(Boolean)
+    );
+    [...normalizeAccountNumberValues(existingValue), ...normalizeAccountNumberValues(incomingValue)].forEach(val => {
+      const keyVal = typeof val === 'string' ? val.trim().toUpperCase() : val;
+      if (!keyVal || seen.has(keyVal)) return;
+      let idx = 1;
+      let candidate = `additional_${idx}`;
+      while (Object.prototype.hasOwnProperty.call(merged, candidate)){
+        idx += 1;
+        candidate = `additional_${idx}`;
+      }
+      merged[candidate] = typeof val === 'string' ? val.trim() : val;
+      seen.add(keyVal);
+    });
+    return merged;
+  }
+
+  if (Array.isArray(existingValue) || Array.isArray(incomingValue)){
+    const combined = [
+      ...(Array.isArray(existingValue) ? existingValue : hasExisting ? [existingValue] : []),
+      ...(Array.isArray(incomingValue) ? incomingValue : hasIncoming ? [incomingValue] : [])
+    ];
+    const seen = new Set();
+    const result = [];
+    combined.forEach(val => {
+      if (val === undefined || val === null) return;
+      const trimmed = typeof val === 'string' ? val.trim() : val;
+      if (typeof trimmed === 'string' && trimmed.length === 0) return;
+      const keyVal = typeof trimmed === 'string' ? trimmed.toUpperCase() : trimmed;
+      if (seen.has(keyVal)) return;
+      seen.add(keyVal);
+      result.push(trimmed);
+    });
+    return result;
+  }
+
+  const values = [...normalizeAccountNumberValues(existingValue), ...normalizeAccountNumberValues(incomingValue)];
+  const seen = new Set();
+  const unique = [];
+  values.forEach(val => {
+    if (val === undefined || val === null) return;
+    const trimmed = typeof val === 'string' ? val.trim() : val;
+    if (typeof trimmed === 'string' && trimmed.length === 0) return;
+    const keyVal = typeof trimmed === 'string' ? trimmed.toUpperCase() : trimmed;
+    if (seen.has(keyVal)) return;
+    seen.add(keyVal);
+    unique.push(trimmed);
+  });
+  if (!unique.length) return undefined;
+  return unique.length === 1 ? unique[0] : unique;
+}
+
+function mergeMeta(existingMeta = {}, incomingMeta = {}){
+  const merged = mergePlainObject(existingMeta || {}, incomingMeta || {});
+  if ((existingMeta && existingMeta.account_numbers !== undefined) || (incomingMeta && incomingMeta.account_numbers !== undefined)){
+    const accountNumbers = mergeAccountNumbers(existingMeta?.account_numbers, incomingMeta?.account_numbers);
+    if (accountNumbers !== undefined){
+      merged.account_numbers = accountNumbers;
+    } else {
+      delete merged.account_numbers;
+    }
+  }
+  return merged;
+}
+
+function mergeViolations(existingViolations, incomingViolations){
+  const existingList = Array.isArray(existingViolations) ? existingViolations : [];
+  const incomingList = Array.isArray(incomingViolations) ? incomingViolations : [];
+  return mergeArraysUnique(existingList, incomingList);
+}
+
+function mergeTradeline(existing, incoming){
+  if (!existing) return incoming;
+  if (!incoming) return existing;
+  const merged = { ...existing };
+
+  merged.per_bureau = mergePlainObject(existing.per_bureau || {}, incoming.per_bureau || {});
+  merged.violations = mergeViolations(existing.violations, incoming.violations);
+  merged.meta = mergeMeta(existing.meta || {}, incoming.meta || {});
+
+  const keys = new Set([...(Object.keys(incoming || {})), ...(Object.keys(existing || {}))]);
+  keys.forEach(key => {
+    if (key === 'per_bureau' || key === 'violations' || key === 'meta') return;
+    const incomingVal = incoming[key];
+    if (incomingVal === undefined || incomingVal === null) return;
+    const existingVal = existing[key];
+    if (existingVal === undefined){
+      if (Array.isArray(incomingVal)){
+        merged[key] = [...incomingVal];
+      } else if (isPlainObject(incomingVal)){
+        merged[key] = mergePlainObject({}, incomingVal);
+      } else {
+        merged[key] = incomingVal;
+      }
+      return;
+    }
+    if (isPlainObject(existingVal) && isPlainObject(incomingVal)){
+      merged[key] = mergePlainObject(existingVal, incomingVal);
+      return;
+    }
+    if (Array.isArray(existingVal) && Array.isArray(incomingVal)){
+      merged[key] = mergeArraysUnique(existingVal, incomingVal);
+      return;
+    }
+    if (typeof existingVal === 'string' && typeof incomingVal === 'string'){
+      const trimmedExisting = existingVal.trim();
+      const trimmedIncoming = incomingVal.trim();
+      if (!trimmedExisting && trimmedIncoming){
+        merged[key] = incomingVal;
+      } else if (trimmedIncoming.length > trimmedExisting.length){
+        merged[key] = incomingVal;
+      }
+      return;
+    }
+    if (isBlankValue(existingVal) && !isBlankValue(incomingVal)){
+      merged[key] = incomingVal;
+    }
+  });
+
+  return merged;
+}
+
 export function dedupeTradelines(lines){
   const seen = new Map();
   const result = [];
@@ -538,9 +757,7 @@ export function dedupeTradelines(lines){
     if (seen.has(key)) {
       const idx = seen.get(key);
       const existing = result[idx];
-      if ((tl.violations || []).length > (existing.violations || []).length) {
-        result[idx] = tl;
-      }
+      result[idx] = mergeTradeline(existing, tl);
     } else {
       seen.set(key, result.length);
       result.push(tl);
