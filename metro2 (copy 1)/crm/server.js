@@ -966,6 +966,9 @@ app.put("/api/users/:id", authenticate, requireRole("admin"), async (req,res)=>{
 });
 
 app.get("/api/me", authenticate, (req,res)=>{
+  if(!req.user){
+    return res.status(401).json({ ok:false, error:"Unauthorized" });
+  }
   res.json({ ok:true, user: { id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role, permissions: req.user.permissions || [] } });
 });
 
