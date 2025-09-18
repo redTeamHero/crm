@@ -13,6 +13,23 @@ import { spawn } from 'node:child_process';
 import os from 'node:os';
 
 const ALL_BUREAUS = ['TransUnion', 'Experian', 'Equifax'];
+const UNKNOWN_CREDITOR_PLACEHOLDER = 'Unknown Creditor';
+
+const PLACEHOLDER_CREDITOR_NAMES = new Set([
+  '',
+  'unknown',
+  'unknown creditor',
+  'unknowncreditor',
+  'n/a',
+  'na',
+  'not available',
+  'not provided',
+  'not reported',
+  'no creditor',
+  'no creditor name provided',
+  'unspecified',
+  'none',
+]);
 
 // Fields we try to fill by copying from another bureau when missing
 const ENRICH_FIELDS = [
@@ -64,12 +81,32 @@ function enrichTradeline(tl, override = {}) {
  * We combine creditor + all known account numbers across bureaus.
  * If nothing exists, we fall back to creditor only (less reliable but better than index matching).
  */
+function canonicalizeCreditorKey(name) {
+  let normalized = (name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!normalized) return 'unknown';
+
+  const stripped = normalized.replace(/\s*creditor$/, '').trim();
+  const candidates = [normalized, stripped];
+  for (const candidate of candidates) {
+    const cleaned = candidate.replace(/[^a-z0-9\s]/g, '').trim();
+    if (PLACEHOLDER_CREDITOR_NAMES.has(cleaned)) {
+      return 'unknown';
+    }
+  }
+
+  return stripped || normalized;
+}
+
 function makeTLKey(tl) {
-  const creditor = (tl?.meta?.creditor || 'Unknown').trim().toLowerCase();
-  const acctNums = ALL_BUREAUS
-    .map((b) => tl?.per_bureau?.[b]?.account_number || '')
-    .filter(Boolean)
-    .map((s) => s.trim().toLowerCase());
+  const creditor = canonicalizeCreditorKey(tl?.meta?.creditor || UNKNOWN_CREDITOR_PLACEHOLDER);
+  const acctNums = Array.from(
+    new Set(
+      ALL_BUREAUS
+        .map((b) => tl?.per_bureau?.[b]?.account_number || '')
+        .filter(Boolean)
+        .map((s) => s.trim().toLowerCase())
+    )
+  );
   return `${creditor}::${acctNums.sort().join('|')}`;
 }
 
