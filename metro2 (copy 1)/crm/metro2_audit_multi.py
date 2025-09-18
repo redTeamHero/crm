@@ -28,8 +28,16 @@ DATE_FORMATS = [
 
 BUREAUS = ["TransUnion", "Experian", "Equifax"]
 
-FIELD_ALIASES = {
+def normalize_field_label(label):
+    if not label:
+        return ""
+    return re.sub(r":\s*$", "", label.strip())
+
+_FIELD_ALIASES = {
+    "Account #": "account_number",
     "Account #:": "account_number",
+    "Acct #": "account_number",
+    "Acct #:": "account_number",
     "Account Type:": "account_type",
     "Account Type - Detail:": "account_type_detail",
     "Bureau Code:": "bureau_code",
@@ -59,6 +67,8 @@ FIELD_ALIASES = {
     "Account Status Date:": "date_status",
     "Current Rating:": "current_rating",
 }
+
+FIELD_ALIASES = {normalize_field_label(k): v for k, v in _FIELD_ALIASES.items()}
 
 # Late-payment CSS classes used in payment history
 HSTRY_LATE_CLASSES = {
@@ -179,7 +189,9 @@ def extract_rows(table):
         if not label_td:
             continue
         label = clean_text(label_td)
-        if label not in FIELD_ALIASES:
+        normalized_label = normalize_field_label(label)
+        field_key = FIELD_ALIASES.get(normalized_label)
+        if not field_key:
             continue
 
         by_bureau = {}
@@ -194,7 +206,7 @@ def extract_rows(table):
             val = clean_text(td)
             by_bureau[bureau] = "" if val == "-" else val
 
-        rows.append((FIELD_ALIASES[label], by_bureau))
+        rows.append((field_key, by_bureau))
     return rows
 
 def normalize_record(rows):

@@ -4,6 +4,7 @@ import pullTradelineData from '../pullTradelineData.js';
 
 const SAMPLE_HTML = `<html><body><td class="ng-binding"><div class="sub_header">Test Creditor</div><table class="rpt_content_table rpt_content_header rpt_table4column"><tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr><tr><td class="label">Account #:</td><td class="info">1234</td><td class="info">1234</td><td class="info">1234</td></tr></table></td></body></html>`;
 const SAMPLE_HTML_NO_HEADER = `<html><body><td class="ng-binding"><table class="rpt_content_table rpt_content_header rpt_table4column"><tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr><tr><td class="label">Account #:</td><td class="info">5678</td><td class="info">5678</td><td class="info">5678</td></tr></table></td></body></html>`;
+const SAMPLE_HTML_NO_COLON = `<html><body><td class="ng-binding"><div class="sub_header">Test Creditor</div><table class="rpt_content_table rpt_content_header rpt_table4column"><tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr><tr><td class="label">Account #</td><td class="info">ACCT-999</td><td class="info">ACCT-999</td><td class="info">ACCT-999</td></tr></table></td></body></html>`;
 
 function makeFakeFetch(html) {
   return async () => ({
@@ -61,4 +62,35 @@ test('pullTradelineData merges Python violations without creditor header', async
   assert.equal(tl.meta.creditor, 'Unknown Creditor');
   assert.deepEqual(tl.violations, [{ id: 'V2', title: 'Missing Creditor Header' }]);
   assert.deepEqual(tl.violations_grouped, { Missing: [{ id: 'V2', title: 'Missing Creditor Header' }] });
+});
+
+test('pullTradelineData merges Python violations when Account # lacks colon', async () => {
+  const fakeFetch = makeFakeFetch(SAMPLE_HTML_NO_COLON);
+  const fakeAudit = async () => ({
+    tradelines: [
+      {
+        meta: {
+          creditor: 'Test Creditor',
+          account_numbers: {
+            TransUnion: 'ACCT-999',
+            Experian: 'ACCT-999',
+            Equifax: 'ACCT-999',
+          },
+        },
+        per_bureau: {
+          TransUnion: { account_number: 'ACCT-999' },
+          Experian: { account_number: 'ACCT-999' },
+          Equifax: { account_number: 'ACCT-999' },
+        },
+        violations: [{ id: 'PY1', title: 'Python Flag' }],
+        violations_grouped: { Python: [{ id: 'PY1', title: 'Python Flag' }] },
+      }
+    ]
+  });
+  const report = await pullTradelineData({ apiUrl: 'http://example.com/colonless', fetchImpl: fakeFetch, auditImpl: fakeAudit });
+  const tl = report.tradelines[0];
+  assert.equal(tl.per_bureau.TransUnion.account_number, 'ACCT-999');
+  assert.equal(tl.meta.account_numbers.TransUnion, 'ACCT-999');
+  assert.deepEqual(tl.violations, [{ id: 'PY1', title: 'Python Flag' }]);
+  assert.deepEqual(tl.violations_grouped, { Python: [{ id: 'PY1', title: 'Python Flag' }] });
 });
