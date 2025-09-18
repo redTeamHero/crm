@@ -28,6 +28,9 @@ import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, u
 
 import { fetchFn } from "./fetchUtil.js";
 
+const MAX_ENV_KEY_LENGTH = 64;
+
+
 const DEFAULT_SETTINGS = {
   hibpApiKey: "",
   rssFeedUrl: "https://hnrss.org/frontpage",
@@ -45,8 +48,15 @@ function normalizeEnvOverrides(raw){
     : Object.entries(raw).map(([key, value]) => ({ key, value }));
   for(const entry of entries){
     if(!entry) continue;
-    const key = (entry.key ?? entry.name ?? "").toString().trim();
-    if(!key || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    let key = (entry.key ?? entry.name ?? "").toString().trim();
+    if(!key) continue;
+    key = key.toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+    if(key && !/^[A-Z_]/.test(key)){
+      key = `VAR_${key}`;
+    }
+    key = key.replace(/^[^A-Z_]+/, "").slice(0, MAX_ENV_KEY_LENGTH);
+    if(!key) continue;
+
     const value = (entry.value ?? entry.val ?? "").toString();
     result[key.toUpperCase()] = value;
   }
@@ -147,6 +157,11 @@ async function saveSettings(data){
 }
 
 
+try {
+  await loadSettings();
+} catch (err) {
+  logError('SETTINGS_INIT_FAILED', 'Failed to hydrate settings on startup', err);
+}
 
 const require = createRequire(import.meta.url);
 let nodemailer = null;
