@@ -511,12 +511,30 @@ export function dedupeTradelines(lines){
     const hasData = ["TransUnion","Experian","Equifax"].some(b => Object.keys(per[b] || {}).length);
     const hasViolations = (tl.violations || []).length > 0;
     if (!hasData && !hasViolations) return;
-    const nums = [
+    const bureauNumbers = [
       per.TransUnion?.account_number,
       per.Experian?.account_number,
       per.Equifax?.account_number
-    ].filter(Boolean).join("|");
-    const key = `${name}|${nums}`;
+    ].filter(n => n !== undefined && n !== null);
+    const metaNumbersRaw = tl.meta?.account_numbers;
+    const metaNumbers = Array.isArray(metaNumbersRaw)
+      ? metaNumbersRaw
+      : metaNumbersRaw && typeof metaNumbersRaw === 'object'
+        ? Object.values(metaNumbersRaw)
+        : metaNumbersRaw
+          ? [metaNumbersRaw]
+          : [];
+    const normalizedNumbers = [...bureauNumbers, ...metaNumbers]
+      .map(n => String(n).trim().toUpperCase())
+      .filter(n => n.length > 0);
+    const uniqueNumbers = Array.from(new Set(normalizedNumbers)).sort();
+
+    if (!uniqueNumbers.length) {
+      result.push(tl);
+      return;
+    }
+
+    const key = `${name}|${uniqueNumbers.join('|')}`;
     if (seen.has(key)) {
       const idx = seen.get(key);
       const existing = result[idx];

@@ -24,3 +24,21 @@ test('dedupeTradelines merges entries with matching account numbers across burea
   const deduped = dedupeTradelines(lines);
   assert.equal(deduped.length, 1);
 });
+
+test('dedupeTradelines keeps creditor-only entries separate when no account numbers exist', () => {
+  const lines = [
+    { meta:{ creditor:'No Numbers Creditor' }, per_bureau:{ TransUnion:{ balance:100 }, Experian:{}, Equifax:{} }, violations:[] },
+    { meta:{ creditor:'No Numbers Creditor' }, per_bureau:{ TransUnion:{ balance:200 }, Experian:{}, Equifax:{} }, violations:[] }
+  ];
+  const deduped = dedupeTradelines(lines);
+  assert.equal(deduped.length, 2);
+});
+
+test('dedupeTradelines merges using meta.account_numbers when bureau numbers are missing', () => {
+  const lines = [
+    { meta:{ creditor:'Meta Number Creditor', account_numbers:{ Experian:' abc123 ' } }, per_bureau:{ TransUnion:{ balance:150 }, Experian:{}, Equifax:{} }, violations:[] },
+    { meta:{ creditor:'Meta Number Creditor', account_numbers:{ TransUnion:'ABC123' } }, per_bureau:{ TransUnion:{}, Experian:{ balance:250 }, Equifax:{} }, violations:[] }
+  ];
+  const deduped = dedupeTradelines(lines);
+  assert.equal(deduped.length, 1);
+});
