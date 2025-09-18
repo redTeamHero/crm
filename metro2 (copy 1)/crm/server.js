@@ -30,6 +30,7 @@ import { fetchFn } from "./fetchUtil.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 
+
 const DEFAULT_SETTINGS = {
   hibpApiKey: "",
   rssFeedUrl: "https://hnrss.org/frontpage",
@@ -55,6 +56,7 @@ function normalizeEnvOverrides(raw){
     }
     key = key.replace(/^[^A-Z_]+/, "").slice(0, MAX_ENV_KEY_LENGTH);
     if(!key) continue;
+
     const value = (entry.value ?? entry.val ?? "").toString();
     result[key.toUpperCase()] = value;
   }
@@ -153,6 +155,7 @@ async function saveSettings(data){
   applyEnvOverrides(merged.envOverrides);
   return merged;
 }
+
 
 try {
   await loadSettings();
@@ -1025,6 +1028,9 @@ app.put("/api/users/:id", authenticate, requireRole("admin"), async (req,res)=>{
 });
 
 app.get("/api/me", authenticate, (req,res)=>{
+  if(!req.user){
+    return res.status(401).json({ ok:false, error:"Unauthorized" });
+  }
   res.json({ ok:true, user: { id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role, permissions: req.user.permissions || [] } });
 });
 

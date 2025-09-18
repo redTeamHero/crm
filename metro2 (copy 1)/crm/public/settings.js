@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return key.slice(0, MAX_ENV_KEY_LEN);
   }
 
+
   function createEnvRow(key = '', value = '') {
     if (!envListEl) return null;
     const row = document.createElement('div');
@@ -35,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     keyInput.className = 'flex-1 border rounded px-2 py-1 text-xs uppercase tracking-wide';
     keyInput.placeholder = 'ENV_KEY';
     keyInput.value = sanitizeEnvKey(key);
+
     keyInput.dataset.field = 'key';
     keyInput.maxLength = 64;
     keyInput.autocomplete = 'off';
@@ -47,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const sanitized = sanitizeEnvKey(keyInput.value);
       if (sanitized !== keyInput.value) keyInput.value = sanitized;
     });
+
 
     const valueInput = document.createElement('input');
     valueInput.className = 'flex-1 border rounded px-2 py-1 text-xs';
@@ -92,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (keyEl && key !== keyEl.value) {
         keyEl.value = key;
       }
+
       if (key && value) {
         overrides[key] = value;
       }
@@ -187,6 +191,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function init() {
     try {
       const resp = await fetch('/api/me');
+      if (!resp.ok) {
+        return;
+      }
       const data = await resp.json();
       if (data.user?.role === 'admin') {
         panelEl?.classList.remove('hidden');
