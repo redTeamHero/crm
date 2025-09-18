@@ -90,6 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function init() {
     try {
       const resp = await fetch('/api/me');
+      if (!resp.ok) {
+        return;
+      }
       const data = await resp.json();
       if (data.user?.role === 'admin') {
         panelEl?.classList.remove('hidden');
