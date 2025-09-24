@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import re
+import sys
 from bs4 import BeautifulSoup
 from datetime import datetime, date
 from collections import defaultdict
@@ -142,12 +143,31 @@ def clean_text(el):
     if el is None: return ""
     return " ".join(el.get_text(separator=" ", strip=True).split())
 
+def _header_matches_bureau(th, bureau):
+    text = clean_text(th).lower()
+    classes = [c.lower() for c in th.get("class", [])]
+    if bureau == "TransUnion":
+        return "headertuc" in classes or "transunion" in text
+    if bureau == "Experian":
+        return "headerexp" in classes or "experian" in text
+    if bureau == "Equifax":
+        return "headereqf" in classes or "equifax" in text
+    return False
+
+
 def is_tradeline_table(tbl):
-    return (
-        tbl.select_one("th.headerTUC") and
-        tbl.select_one("th.headerEXP") and
-        tbl.select_one("th.headerEQF")
-    )
+    header_row = tbl.find("tr")
+    if not header_row:
+        return False
+    ths = header_row.find_all("th", recursive=False)
+    if len(ths) < 3:
+        return False
+    flags = {
+        "TransUnion": any(_header_matches_bureau(th, "TransUnion") for th in ths),
+        "Experian": any(_header_matches_bureau(th, "Experian") for th in ths),
+        "Equifax": any(_header_matches_bureau(th, "Equifax") for th in ths),
+    }
+    return all(flags.values())
 
 def nearest_creditor_header(tbl):
     node = tbl
@@ -178,12 +198,13 @@ def extract_rows(table):
     col_map = {}
     for idx, th in enumerate(header.find_all("th", recursive=False)):
 
-        classes = th.get("class", [])
-        if "headerTUC" in classes:
+        classes = [c.lower() for c in th.get("class", [])]
+        text = clean_text(th).lower()
+        if "headertuc" in classes or "transunion" in text:
             col_map[idx] = "TransUnion"
-        elif "headerEXP" in classes:
+        elif "headerexp" in classes or "experian" in text:
             col_map[idx] = "Experian"
-        elif "headerEQF" in classes:
+        elif "headereqf" in classes or "equifax" in text:
             col_map[idx] = "Equifax"
     for tr in table.find_all("tr", recursive=False)[1:]:
 
@@ -938,7 +959,17 @@ def main():
     inquiries = parse_inquiries(soup)
 
     if not tradelines:
-        print("✖ No tradeline 4-column tables were found. Check that the HTML layout matches the expected structure.")
+        print(
+            "✖ No tradeline 4-column tables were found. Check that the HTML layout matches the expected structure.",
+            file=sys.stderr,
+        )
+        out = {
+            "personal_info": personal_info,
+            "tradelines": [],
+            "inquiries": inquiries,
+        }
+        with open(args.output, "w", encoding="utf-8") as f:
+            json.dump(out, f, indent=2, ensure_ascii=False)
         return
 
     # Run rule engine on each tradeline
