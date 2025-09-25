@@ -53,20 +53,30 @@ test('restrictRoutes redirects unauthorized paths for team', () => {
 
 test('applyRoleNav removes disallowed nav items for team', () => {
   const applyRoleNav = extractFunction('applyRoleNav');
-  const dom = new JSDOM(`<header><div class="flex items-center gap-2">
-    <a href="/dashboard"></a>
-    <a href="/clients"></a>
-    <a href="/leads"></a>
-    <a href="/schedule"></a>
-    <a href="/billing"></a>
-    <a href="/admin"></a>
-    <button id="btnInvite"></button>
-    <button id="btnHelp"></button>
-    <button id="tierBadge"></button>
-  </div></header>`);
+  const dom = new JSDOM(`<header>
+    <div class="nav-shell">
+      <div class="nav-brand-row">
+        <div class="text-xl font-semibold">Metro 2 CRM</div>
+        <button id="navToggle"></button>
+      </div>
+      <nav id="primaryNav">
+        <div id="primaryNavLinks">
+          <a href="/dashboard"></a>
+          <a href="/clients"></a>
+          <a href="/leads"></a>
+          <a href="/schedule"></a>
+          <a href="/billing"></a>
+          <a href="/admin"></a>
+          <button id="btnInvite"></button>
+          <button id="btnHelp"></button>
+          <div id="tierBadge"></div>
+        </div>
+      </nav>
+    </div>
+  </header>`);
   global.document = dom.window.document;
   applyRoleNav('team');
-  const nav = dom.window.document.querySelector('header .flex.items-center.gap-2');
+  const nav = dom.window.document.getElementById('primaryNavLinks');
   const items = [...nav.children].map(el => el.tagName === 'A' ? el.getAttribute('href') : el.id);
   assert.deepEqual(items, ['/dashboard','/clients','/leads','/schedule','/billing']);
   delete global.document;
