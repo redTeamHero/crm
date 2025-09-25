@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tradelines</title>
+  <title>Workflows</title>
   <script src="https://cdn.tailwindcss.com"></script>
-<script>
+  <script>
 (() => {
   const themes = {
     purple:{accent:'#AF52DE',hover:'#9333EA',bg:'#AF52DE',
@@ -30,8 +30,8 @@
     document.documentElement.style.visibility = '';
   });
 })();
-</script>
-<link rel="stylesheet" href="/style.css">
+  </script>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header id="host-nav" class="p-4">
@@ -79,36 +79,16 @@
     </nav>
   </div>
 </header>
-<main class="max-w-7xl mx-auto px-4 py-6">
-  <h1 class="text-4xl font-bold text-center mb-6">📊 Browse Tradelines</h1>
-
-  <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
-    <input type="text" id="search" placeholder="Search by bank..." class="flex-1 min-w-[200px] px-4 py-2 rounded border shadow-sm focus:ring-2 focus:ring-blue-500">
-    <select id="sort" class="flex-1 min-w-[150px] px-4 py-2 rounded border shadow-sm focus:ring-2 focus:ring-blue-500">
-      <option value="">Sort by</option>
-      <option value="price-asc">Price ↑</option>
-      <option value="price-desc">Price ↓</option>
-      <option value="limit-asc">Limit ↑</option>
-      <option value="limit-desc">Limit ↓</option>
-      <option value="age-asc">Age ↑</option>
-      <option value="age-desc">Age ↓</option>
-    </select>
-  </div>
-
-  <div id="bank-list" class="mb-4 text-sm text-gray-600 italic"></div>
-  <div id="tradeline-container" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"></div>
-
-  <div class="flex justify-center mt-6">
-    <button id="prev" class="px-4 py-2 mx-1 bg-gray-300 hover:bg-gray-400 transition rounded">Prev</button>
-    <button id="next" class="px-4 py-2 mx-1 bg-gray-300 hover:bg-gray-400 transition rounded">Next</button>
+<main class="max-w-4xl mx-auto p-4 space-y-4">
+  <h1 class="text-2xl font-bold">Workflows</h1>
+  <div class="glass card p-6 text-sm space-y-4">
+    <p class="text-gray-700">This workspace is ready for your automated Metro-2 workflows. Plug in your process maps, assign owners, and launch dispute automations when you're ready.</p>
+    <p class="text-gray-500">Espacio reservado para futuros flujos de trabajo. Documenta tus pasos, integra automaciones y prepara el siguiente sprint de cumplimiento.</p>
+    <div class="border border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-400">
+      Canvas ready. Upload SOPs, map triggers, or return later when you have a workflow to activate.
+    </div>
   </div>
 </main>
-
-<a href="#" id="mobile-buy" class="fixed bottom-5 right-5 bg-blue-600 text-white text-sm px-4 py-2 rounded-full shadow-lg block md:hidden hidden z-50">Buy Now</a>
-
 <script type="module" src="/common.js"></script>
-<script src="/hotkeys.js"></script>
-<script src="/tradelines.js"></script>
 </body>
 </html>
-
