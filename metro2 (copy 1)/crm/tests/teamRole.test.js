@@ -64,6 +64,7 @@ test('applyRoleNav removes disallowed nav items for team', () => {
           <a href="/dashboard"></a>
           <a href="/clients"></a>
           <a href="/leads"></a>
+          <a href="/marketing"></a>
           <a href="/schedule"></a>
           <a href="/billing"></a>
           <a href="/admin"></a>
@@ -78,6 +79,6 @@ test('applyRoleNav removes disallowed nav items for team', () => {
   applyRoleNav('team');
   const nav = dom.window.document.getElementById('primaryNavLinks');
   const items = [...nav.children].map(el => el.tagName === 'A' ? el.getAttribute('href') : el.id);
-  assert.deepEqual(items, ['/dashboard','/clients','/leads','/schedule','/billing']);
+  assert.deepEqual(items, ['/dashboard','/clients','/leads','/marketing','/schedule','/billing']);
   delete global.document;
 });
