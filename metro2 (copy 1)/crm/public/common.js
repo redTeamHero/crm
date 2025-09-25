@@ -151,7 +151,7 @@ window.userRole = _payload.role || null;
 function restrictRoutes(role){
   const allowed = {
     host: null,
-    team: ['/dashboard','/clients','/leads','/schedule','/billing','/','/index.html','/login.html','/team-member-template.html'],
+    team: ['/dashboard','/clients','/leads','/marketing','/schedule','/billing','/','/index.html','/login.html','/team-member-template.html'],
     client: ['/client-portal','/portal','/login.html','/']
   }[role];
   if(!allowed) return;
@@ -166,6 +166,20 @@ restrictRoutes(window.userRole);
 // append a logout button to the nav if present
 const navContainer = document.getElementById('primaryNavLinks');
 if (navContainer) {
+  if (!navContainer.querySelector('a[href="/marketing"]')) {
+    const marketingLink = document.createElement('a');
+    marketingLink.href = '/marketing';
+    marketingLink.className = 'btn nav-btn';
+    marketingLink.textContent = 'Marketing';
+    const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
+    if (scheduleLink?.parentElement === navContainer) {
+      navContainer.insertBefore(marketingLink, scheduleLink);
+    } else {
+      const leadsLink = navContainer.querySelector('a[href="/leads"]');
+      leadsLink?.insertAdjacentElement('afterend', marketingLink);
+      if (!leadsLink) navContainer.appendChild(marketingLink);
+    }
+  }
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
   btnLogout.className = 'btn nav-btn';
@@ -191,7 +205,7 @@ function applyRoleNav(role){
     return;
   }
   if(role === 'team'){
-    const allowed = new Set(['/dashboard','/clients','/leads','/schedule','/billing']);
+    const allowed = new Set(['/dashboard','/clients','/leads','/marketing','/schedule','/billing']);
     navLinks.querySelectorAll('a[href]').forEach(link => {
       const href = link.getAttribute('href');
       if(href && !allowed.has(href)){
@@ -331,7 +345,7 @@ async function limitNavForMembers(){
     if(!role.includes('member')) return;
     const nav = document.getElementById('primaryNavLinks');
     if(!nav) return;
-    const allowed = new Set(['/dashboard','/schedule','/leads','/billing','/clients']);
+    const allowed = new Set(['/dashboard','/schedule','/leads','/marketing','/billing','/clients']);
     [...nav.children].forEach(el=>{
       if(el.tagName === 'A'){
         const href = el.getAttribute('href');
