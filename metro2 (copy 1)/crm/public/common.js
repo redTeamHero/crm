@@ -27,7 +27,54 @@ function trackEvent(name, props = {}) {
 }
 if (typeof window !== 'undefined') window.trackEvent = trackEvent;
 
+function initResponsiveNav() {
+  const nav = document.getElementById('primaryNav');
+  const toggle = document.getElementById('navToggle');
+  const settings = document.getElementById('navSettings');
+  const settingsToggle = document.getElementById('navSettingsToggle');
+
+  if (!nav || !toggle) return;
+
+  const closeSettings = () => {
+    if (settings) settings.classList.remove('open');
+    settingsToggle?.setAttribute('aria-expanded', 'false');
+  };
+
+  const updateLayout = () => {
+    if (window.innerWidth >= 768) {
+      nav.classList.remove('hidden');
+      toggle.setAttribute('aria-expanded', 'true');
+    } else {
+      const hidden = nav.classList.contains('hidden');
+      toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+    }
+  };
+
+  toggle.addEventListener('click', () => {
+    const nowHidden = nav.classList.toggle('hidden');
+    toggle.setAttribute('aria-expanded', nowHidden ? 'false' : 'true');
+    if (nowHidden) closeSettings();
+  });
+
+  settingsToggle?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = settings?.classList.toggle('open');
+    settingsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!settings) return;
+    if (!settings.contains(e.target)) {
+      closeSettings();
+    }
+  });
+
+  window.addEventListener('resize', updateLayout);
+  updateLayout();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  initResponsiveNav();
   trackEvent('page_view', { path: location.pathname });
   initAbTest();
   const btnInvite = document.getElementById('btnInvite');
@@ -117,11 +164,11 @@ function restrictRoutes(role){
 restrictRoutes(window.userRole);
 
 // append a logout button to the nav if present
-const navContainer = document.querySelector('header .flex.items-center.gap-2');
+const navContainer = document.getElementById('primaryNavLinks');
 if (navContainer) {
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
-  btnLogout.className = 'btn';
+  btnLogout.className = 'btn nav-btn';
   btnLogout.textContent = 'Logout';
   btnLogout.addEventListener('click', () => {
     // clear all locally stored state when logging out to avoid
@@ -134,21 +181,26 @@ if (navContainer) {
 }
 
 function applyRoleNav(role){
-  const nav = document.querySelector('header .flex.items-center.gap-2');
-  if(!nav) return;
+  const nav = document.getElementById('primaryNav');
+  const navLinks = document.getElementById('primaryNavLinks');
+  const toggle = document.getElementById('navToggle');
+  if(!nav || !navLinks) return;
   if(role === 'client'){
     nav.style.display = 'none';
+    if(toggle) toggle.style.display = 'none';
     return;
   }
   if(role === 'team'){
     const allowed = new Set(['/dashboard','/clients','/leads','/schedule','/billing']);
-    [...nav.children].forEach(el=>{
-      if(el.tagName === 'A'){
-        const href = el.getAttribute('href');
-        if(!allowed.has(href)) el.remove();
-      }else if(el.id === 'btnInvite' || el.id === 'btnHelp' || el.id === 'tierBadge'){
-        el.remove();
+    navLinks.querySelectorAll('a[href]').forEach(link => {
+      const href = link.getAttribute('href');
+      if(href && !allowed.has(href)){
+        link.remove();
       }
+    });
+    ['btnInvite','btnHelp','tierBadge'].forEach(id => {
+      const el = navLinks.querySelector(`#${id}`);
+      if(el) el.remove();
     });
   }
 }
@@ -277,7 +329,7 @@ async function limitNavForMembers(){
     const data = await res.json();
     const role = (data.user?.role || '').toLowerCase();
     if(!role.includes('member')) return;
-    const nav = document.querySelector('header .flex.items-center.gap-2');
+    const nav = document.getElementById('primaryNavLinks');
     if(!nav) return;
     const allowed = new Set(['/dashboard','/schedule','/leads','/billing','/clients']);
     [...nav.children].forEach(el=>{
@@ -317,7 +369,7 @@ function getDeletionTier(count){
 
 function ensureTierBadge(){
   if(document.getElementById('tierBadge')) return;
-  const nav = document.querySelector('header .flex.items-center.gap-2');
+  const nav = document.getElementById('primaryNavLinks');
   if(!nav) return;
   const div = document.createElement('div');
   div.id = 'tierBadge';

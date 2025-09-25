@@ -269,6 +269,87 @@ header .group > div.absolute {
   z-index: 100 !important;
 }
 
+/* Responsive navigation shell */
+.nav-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nav-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#navToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+#primaryNav {
+  width: 100%;
+}
+
+#primaryNavLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-dropdown:not(.open) .nav-dropdown-menu {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .nav-shell {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #primaryNav {
+    width: auto;
+  }
+
+  #primaryNavLinks {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .nav-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 767px) {
+  #primaryNav .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  body {
+    background-attachment: scroll;
+  }
+}
+
 pre.debug {
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
