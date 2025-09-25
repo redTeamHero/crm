@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -96,26 +97,26 @@
     <div id="confetti" class="pointer-events-none absolute inset-0"></div>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-3">
-    <div class="glass card">
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-3 md:auto-rows-fr">
+    <div class="glass card h-full flex flex-col">
       <div class="font-medium mb-2">News</div>
-      <div id="newsFeed" class="text-sm space-y-1">Loading...</div>
+      <div id="newsFeed" class="text-sm space-y-1 flex-1">Loading...</div>
     </div>
 
-    <div class="glass card">
+    <div class="glass card h-full flex flex-col">
       <div class="font-medium mb-2">Messages</div>
-      <div id="msgList" class="text-sm space-y-1 min-h-[80px] max-h-48 overflow-y-auto muted">No messages.</div>
+      <div id="msgList" class="text-sm space-y-1 min-h-[80px] max-h-48 overflow-y-auto muted flex-1">No messages.</div>
 
     </div>
 
-    <div class="glass card">
+    <div class="glass card h-full flex flex-col">
       <div class="font-medium mb-2">Upcoming Events</div>
-      <div id="eventList" class="text-sm space-y-1 min-h-[80px] max-h-48 overflow-y-auto muted">No events.</div>
+      <div id="eventList" class="text-sm space-y-1 min-h-[80px] max-h-48 overflow-y-auto muted flex-1">No events.</div>
     </div>
   </div>
 
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="glass card">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:auto-rows-fr">
+    <div class="glass card h-full flex flex-col">
       <div class="flex items-start justify-between">
         <div>
           <div class="text-sm muted">Total Leads</div>
@@ -125,7 +126,7 @@
       </div>
     </div>
 
-    <div class="glass card">
+    <div class="glass card h-full flex flex-col">
       <div class="flex items-start justify-between">
         <div>
           <div class="text-sm muted">Total Clients</div>
@@ -135,7 +136,7 @@
       </div>
     </div>
 
-    <div class="glass card">
+    <div class="glass card h-full flex flex-col">
       <div class="flex items-start justify-between">
         <div>
           <div class="text-sm muted">Sales</div>
@@ -145,7 +146,7 @@
       </div>
     </div>
 
-    <div class="glass card">
+    <div class="glass card h-full flex flex-col">
       <div class="flex items-start justify-between">
         <div>
           <div class="text-sm muted">Payments</div>
@@ -156,8 +157,8 @@
     </div>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-    <div class="glass card lg:col-span-2">
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:auto-rows-fr">
+    <div class="glass card lg:col-span-2 h-full flex flex-col">
       <div class="flex items-center justify-between mb-2">
         <div class="font-medium">Notepad</div>
         <button id="dashSaveNote" class="btn text-sm">Save</button>
@@ -169,22 +170,22 @@
       <div id="noteList" class="mt-2 space-y-1 text-sm"></div>
     </div>
 
-    <div class="glass card">
+    <div class="glass card h-full flex flex-col">
       <div class="font-medium mb-2">Retention Rate</div>
       <div id="dashRetention" class="text-2xl font-semibold">0.0%</div>
     </div>
 
-    <div class="glass card">
+    <div class="glass card h-full flex flex-col">
       <div class="font-medium mb-2">Lead Conversion</div>
       <div id="dashConversion" class="text-2xl font-semibold">0.0%</div>
     </div>
 
-    <div class="glass card">
+    <div class="glass card h-full flex flex-col">
       <div class="font-medium mb-2">Company Deletion Statistics</div>
       <div id="dashDeletion" class="text-sm muted">No data</div>
     </div>
 
-    <div class="glass card md:col-span-2 lg:col-span-3">
+    <div class="glass card md:col-span-2 lg:col-span-3 h-full flex flex-col">
       <div class="font-medium mb-2">Client Locations</div>
       <div id="clientMap" class="w-full h-64 rounded-lg"></div>
     </div>
