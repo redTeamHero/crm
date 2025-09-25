@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Schedule</title>
   <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -34,27 +35,47 @@
 </head>
 <body>
 <header id="host-nav" class="p-4">
-  <div class="max-w-7xl mx-auto glass card flex items-center justify-between">
-    <div class="text-xl font-semibold">Metro 2 CRM</div>
-    <div class="flex items-center gap-2">
-      <a href="/dashboard" class="btn">Dashboard</a>
-      <a href="/clients" class="btn">Clients</a>
-      <a href="/leads" class="btn">Leads</a>
-      <a href="/schedule" class="btn">Schedule</a>
-      <a href="/billing" class="btn">Billing</a>
-      <div class="relative group">
-        <a href="/settings" class="btn">Settings</a>
-        <div class="absolute hidden group-hover:flex flex-col right-0 top-full mt-2 glass card p-2 gap-2 z-10">
-
-          <a id="navCompany" href="/my-company" class="btn text-sm">My Company</a>
-          <a href="/letters" class="btn text-sm">Letter</a>
-          <a href="/library" class="btn text-sm">Library</a>
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <span>Menu</span>
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2" aria-label="Primary">
+      <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+        <a href="/dashboard" class="btn nav-btn">Dashboard</a>
+        <a href="/clients" class="btn nav-btn">Clients</a>
+        <a href="/leads" class="btn nav-btn">Leads</a>
+        <a href="/schedule" class="btn nav-btn">Schedule</a>
+        <a href="/billing" class="btn nav-btn">Billing</a>
+        <div class="nav-dropdown" id="navSettings">
+          <button type="button" id="navSettingsToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
+            <span>Settings</span>
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div id="navSettingsMenu" class="nav-dropdown-menu glass card p-2">
+            <a id="navCompany" href="/my-company" class="btn text-sm">My Company</a>
+            <a href="/letters" class="btn text-sm">Letter</a>
+            <a href="/library" class="btn text-sm">Library</a>
             <button id="btnInvite" class="btn text-sm" style="background: var(--green-bg);">Add Team Member</button>
+          </div>
+        </div>
+        <a href="/tradelines" class="btn nav-btn">Tradelines</a>
+        <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="You've started your journey.">
+          <span class="text-xl">📄</span>
+          <span class="font-semibold text-sm">Rookie</span>
         </div>
       </div>
-      <a href="/tradelines" class="btn">Tradelines</a>
-      <button id="btnHelp" class="btn" data-tip="Help (H)">Help</button>
-    </div>
+    </nav>
   </div>
 </header>
 <main class="max-w-7xl mx-auto p-4">
