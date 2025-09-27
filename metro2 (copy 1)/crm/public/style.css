@@ -168,6 +168,7 @@ body.voice-active #voiceNotes{display:block;}
 
 #team-nav #primaryNavLinks .btn {
   justify-content: center;
+
 }
 
 #tierBadge {
@@ -184,6 +185,7 @@ body.voice-active #voiceNotes{display:block;}
   #team-nav #primaryNavLinks .btn {
     justify-content: center;
   }
+
 
   #tierBadge {
     justify-content: flex-start;
