@@ -26,6 +26,10 @@ body {
 }
 .card { border-radius:18px; padding:16px }
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   background: var(--accent);
   color: var(--btn-text);
   border: none;
@@ -33,6 +37,7 @@ body {
   padding: 6px 12px;
   box-shadow: 0 1px 2px rgba(0,0,0,.05);
   transition: background .2s;
+  text-decoration: none;
 }
 .btn:hover { background: var(--accent-hover); }
 .input { background: rgba(255,255,255,0.8); border: 1px solid var(--glass-brd); border-radius: 10px; padding: 8px; }
@@ -155,6 +160,38 @@ body.voice-active #voiceNotes{display:block;}
 }
 .news-item:last-child {
   border-bottom: none;
+}
+
+#team-nav .nav-brand-row {
+  align-items: center;
+}
+
+#team-nav #primaryNavLinks .btn {
+  justify-content: center;
+}
+
+#tierBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  #team-nav #primaryNavLinks {
+    justify-content: flex-end;
+  }
+
+  #team-nav #primaryNavLinks .btn {
+    justify-content: center;
+  }
+
+  #tierBadge {
+    justify-content: flex-start;
+  }
+}
+
+#portalMain {
+  width: 100%;
 }
 
 .timeline-item {
@@ -294,6 +331,10 @@ header .group > div.absolute {
   width: 100%;
 }
 
+#primaryNav:not(.hidden) {
+  display: flex;
+}
+
 #primaryNavLinks {
   display: flex;
   flex-direction: column;
@@ -315,6 +356,10 @@ header .group > div.absolute {
 }
 
 @media (min-width: 768px) {
+  #primaryNav {
+    display: none !important;
+  }
+
   .nav-shell {
     flex-direction: row;
     align-items: center;
