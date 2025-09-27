@@ -94,10 +94,44 @@ function renderTeamList(){
   }
 }
 
+function initClientPortalNav(){
+  const nav = document.getElementById('primaryNav');
+  const toggle = document.getElementById('navToggle');
+  if (!nav || !toggle) return;
+
+  const updateLayout = () => {
+    if (window.innerWidth >= 768) {
+      nav.classList.remove('hidden');
+      toggle.setAttribute('aria-expanded', 'true');
+    } else {
+      const hidden = nav.classList.contains('hidden');
+      toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+    }
+  };
+
+  toggle.addEventListener('click', () => {
+    const nowHidden = nav.classList.toggle('hidden');
+    toggle.setAttribute('aria-expanded', nowHidden ? 'false' : 'true');
+  });
+
+  nav.querySelectorAll('a[href^="#"]').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth < 768) {
+        nav.classList.add('hidden');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
+
+  window.addEventListener('resize', updateLayout);
+  updateLayout();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
   const consumerId = idMatch ? idMatch[1] : null;
+  initClientPortalNav();
   loadScores();
 
   const dash = document.getElementById('navDashboard');
