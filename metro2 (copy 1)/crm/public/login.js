@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-async function handleAuth(endpoint, body){
+async function handleAuth(endpoint, body, options = {}){
   try{
     const res = await fetch(endpoint,{
       method:'POST',
@@ -48,8 +48,8 @@ async function handleAuth(endpoint, body){
 
       localStorage.setItem('token', data.token);
       // legacy basic auth support for host/client
-      if(body.username){
-        localStorage.setItem('auth', btoa(`${body.username}:${body.password}`));
+      if(options.basicAuth){
+        localStorage.setItem('auth', options.basicAuth);
       }
       try{
         const meRes = await fetch('/api/me', { headers: authHeader() });
@@ -76,22 +76,43 @@ document.getElementById('btnLogin').addEventListener('click', ()=>{
   const role = document.querySelector('input[name="role"]:checked').value;
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
-  if(!username || !password){
-    showError('Username/token and password required');
-    return;
-  }
-  let endpoint, body;
+  let endpoint, body, options = {};
   if(role === 'host'){
+    if(!username || !password){
+      showError('Username and password required');
+      return;
+    }
     endpoint = '/api/login';
     body = { username, password };
+    options.basicAuth = btoa(`${username}:${password}`);
   }else if(role === 'client'){
+    if(!username){
+      showError('Email or portal token required');
+      return;
+    }
     endpoint = '/api/client/login';
-    body = { username, password };
+    if(username.includes('@')){
+      if(!password){
+        showError('Password required for email login');
+        return;
+      }
+      body = { email: username, password };
+      options.basicAuth = btoa(`${username}:${password}`);
+    }else{
+      body = { token: username };
+      if(password){
+        body.password = password;
+      }
+    }
   }else{
+    if(!username || !password){
+      showError('Invite token and password required');
+      return;
+    }
     endpoint = `/api/team/${encodeURIComponent(username)}/login`;
     body = { password };
   }
-  handleAuth(endpoint, body);
+  handleAuth(endpoint, body, options);
 });
 
 document.getElementById('btnRegister').addEventListener('click', ()=>{
@@ -101,7 +122,7 @@ document.getElementById('btnRegister').addEventListener('click', ()=>{
     showError('Username and password required');
     return;
   }
-  handleAuth('/api/register', { username, password });
+  handleAuth('/api/register', { username, password }, { basicAuth: btoa(`${username}:${password}`) });
 });
 
 // simple password reset flow using prompts
