@@ -82,3 +82,39 @@ test('applyRoleNav removes disallowed nav items for team', () => {
   assert.deepEqual(items, ['/dashboard','/clients','/leads','/marketing','/schedule','/billing']);
   delete global.document;
 });
+
+test('applyRoleNav hides navigation for client role while preserving responsive state', () => {
+  const applyRoleNav = extractFunction('applyRoleNav');
+  const dom = new JSDOM(`<header>
+    <div class="nav-shell">
+      <div class="nav-brand-row">
+        <div class="text-xl font-semibold">Metro 2 CRM</div>
+        <button id="navToggle" class="btn"></button>
+      </div>
+      <nav id="primaryNav" class="flex">
+        <div id="primaryNavLinks"></div>
+      </nav>
+    </div>
+  </header>`);
+  global.document = dom.window.document;
+  const nav = dom.window.document.getElementById('primaryNav');
+  const toggle = dom.window.document.getElementById('navToggle');
+
+  applyRoleNav('client');
+  assert.equal(nav.classList.contains('hidden'), true);
+  assert.equal(nav.dataset.roleHidden, 'true');
+  assert.equal(nav.getAttribute('aria-hidden'), 'true');
+  assert.equal(toggle.classList.contains('hidden'), true);
+  assert.equal(toggle.dataset.roleHidden, 'true');
+  assert.equal(toggle.getAttribute('aria-hidden'), 'true');
+
+  applyRoleNav('host');
+  assert.equal(nav.classList.contains('hidden'), false);
+  assert.equal(nav.dataset.roleHidden, undefined);
+  assert.equal(nav.getAttribute('aria-hidden'), null);
+  assert.equal(toggle.classList.contains('hidden'), false);
+  assert.equal(toggle.dataset.roleHidden, undefined);
+  assert.equal(toggle.getAttribute('aria-hidden'), null);
+
+  delete global.document;
+});
