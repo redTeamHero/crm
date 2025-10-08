@@ -93,6 +93,22 @@
     #zoomModal { z-index: 60; }
     #zoomCard { max-height: 85vh; overflow: auto; }
 
+    @media (min-width: 768px) {
+      #navToggle {
+        display: none !important;
+      }
+
+      .mobile-only {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 767.98px) {
+      #navToggle {
+        display: inline-flex;
+        align-items: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -100,8 +116,8 @@
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
       <div class="text-xl font-semibold">Metro 2 CRM</div>
-      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
-        <span class="mr-2">Menu</span>
+      <button id="navToggle" class="btn" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <span class="mr-2 mobile-only">Menu</span>
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="3" y1="6" x2="21" y2="6"></line>
           <line x1="3" y1="12" x2="21" y2="12"></line>
