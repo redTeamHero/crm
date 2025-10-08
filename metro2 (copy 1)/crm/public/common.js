@@ -41,10 +41,32 @@ function initResponsiveNav() {
   };
 
   const updateLayout = () => {
+    const navRoleHidden = nav.dataset.roleHidden === 'true';
+    const toggleRoleHidden = toggle.dataset.roleHidden === 'true';
+
     if (window.innerWidth >= 768) {
-      nav.classList.remove('hidden');
-      toggle.setAttribute('aria-expanded', 'true');
+      if (!navRoleHidden) {
+        nav.classList.remove('hidden');
+        toggle.setAttribute('aria-expanded', 'true');
+      } else {
+        nav.classList.add('hidden');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+
+      if (toggleRoleHidden) {
+        toggle.classList.add('hidden');
+      } else {
+        toggle.classList.remove('hidden');
+      }
     } else {
+      if (toggleRoleHidden) {
+        toggle.classList.add('hidden');
+      } else {
+        toggle.classList.remove('hidden');
+      }
+      if (navRoleHidden) {
+        nav.classList.add('hidden');
+      }
       const hidden = nav.classList.contains('hidden');
       toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
     }
