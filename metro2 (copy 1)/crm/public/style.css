@@ -359,7 +359,7 @@ header .group > div.absolute {
 
 @media (min-width: 768px) {
   #primaryNav {
-    display: none !important;
+    display: flex !important;
   }
 
   .nav-shell {
