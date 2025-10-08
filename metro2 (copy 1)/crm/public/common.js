@@ -199,9 +199,33 @@ function applyRoleNav(role){
   const navLinks = document.getElementById('primaryNavLinks');
   const toggle = document.getElementById('navToggle');
   if(!nav || !navLinks) return;
+  if(nav.dataset.roleHidden === 'true'){
+    nav.classList.remove('hidden');
+  }
+  nav.style.removeProperty('display');
+  nav.removeAttribute('aria-hidden');
+  delete nav.dataset.roleHidden;
+  if(toggle){
+    if(toggle.dataset.roleHidden === 'true'){
+      toggle.classList.remove('hidden');
+    }
+    toggle.style.removeProperty('display');
+    toggle.removeAttribute('aria-hidden');
+    delete toggle.dataset.roleHidden;
+  }
   if(role === 'client'){
-    nav.style.display = 'none';
-    if(toggle) toggle.style.display = 'none';
+    if(!nav.classList.contains('hidden')){
+      nav.dataset.roleHidden = 'true';
+    }
+    nav.classList.add('hidden');
+    nav.setAttribute('aria-hidden','true');
+    if(toggle){
+      if(!toggle.classList.contains('hidden')){
+        toggle.dataset.roleHidden = 'true';
+      }
+      toggle.classList.add('hidden');
+      toggle.setAttribute('aria-hidden','true');
+    }
     return;
   }
   if(role === 'team'){
