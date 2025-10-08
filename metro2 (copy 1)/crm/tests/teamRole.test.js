@@ -13,7 +13,7 @@ const COMMON_JS_PATH = path.join(__dirname, '..', 'public', 'common.js');
 
 function extractFunction(name) {
   const src = fs.readFileSync(COMMON_JS_PATH, 'utf8');
-  const match = src.match(new RegExp(`function ${name}\\(([^)]*)\\)\\{([\\s\\S]*?)\n\\}`));
+  const match = src.match(new RegExp(`function ${name}\\(([^)]*)\\)\\s*\\{([\\s\\S]*?)\n\\}`));
   if (!match) throw new Error(`Function ${name} not found`);
   return new Function(match[1], match[2]);
 }
@@ -116,5 +116,49 @@ test('applyRoleNav hides navigation for client role while preserving responsive 
   assert.equal(toggle.dataset.roleHidden, undefined);
   assert.equal(toggle.getAttribute('aria-hidden'), null);
 
+  delete global.document;
+});
+
+test('initResponsiveNav respects roleHidden flags on resize', () => {
+  const initResponsiveNav = extractFunction('initResponsiveNav');
+  const applyRoleNav = extractFunction('applyRoleNav');
+  const dom = new JSDOM(`<header>
+    <div class="nav-shell">
+      <div class="nav-brand-row">
+        <div class="text-xl font-semibold">Metro 2 CRM</div>
+        <button id="navToggle" class="btn"></button>
+      </div>
+      <nav id="primaryNav" class="hidden flex" aria-label="Primary">
+        <div id="primaryNavLinks"></div>
+      </nav>
+    </div>
+  </header>`, { pretendToBeVisual: true });
+
+  global.window = dom.window;
+  global.document = dom.window.document;
+
+  Object.defineProperty(dom.window, 'innerWidth', { configurable: true, writable: true, value: 1024 });
+
+  initResponsiveNav();
+  applyRoleNav('client');
+
+  const nav = dom.window.document.getElementById('primaryNav');
+  const toggle = dom.window.document.getElementById('navToggle');
+
+  assert.equal(nav.classList.contains('hidden'), true);
+  assert.equal(nav.dataset.roleHidden, 'true');
+  assert.equal(toggle.classList.contains('hidden'), true);
+  assert.equal(toggle.dataset.roleHidden, 'true');
+
+  dom.window.innerWidth = 1200;
+  dom.window.dispatchEvent(new dom.window.Event('resize'));
+
+  assert.equal(nav.classList.contains('hidden'), true);
+  assert.equal(nav.dataset.roleHidden, 'true');
+  assert.equal(toggle.classList.contains('hidden'), true);
+  assert.equal(toggle.dataset.roleHidden, 'true');
+  assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+
+  delete global.window;
   delete global.document;
 });
