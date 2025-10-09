@@ -27,6 +27,7 @@ import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy } from "./googleCalendar.js";
 
 import { fetchFn } from "./fetchUtil.js";
+import marketingRoutes from "./marketingRoutes.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 
@@ -291,31 +292,35 @@ const MAX_RSS_MB = Number(process.env.MAX_RSS_MB || 512);
 const RESOURCE_CHECK_MS = Number(process.env.RESOURCE_CHECK_MS || 60_000);
 
 let lastCpu = process.cpuUsage();
-setInterval(() => {
-  try {
-    const { rss } = process.memoryUsage();
-    if (rss > MAX_RSS_MB * 1024 * 1024) {
-      logWarn("HIGH_MEMORY_USAGE", "Memory usage high", { rss });
-    }
-    const cpu = process.cpuUsage(lastCpu);
-    lastCpu = process.cpuUsage();
-    const cpuMs = (cpu.user + cpu.system) / 1000;
-    if (cpuMs > 1000) {
-      logWarn("HIGH_CPU_USAGE", "CPU usage high", { cpuMs });
+if (process.env.NODE_ENV !== "test") {
+  setInterval(() => {
+    try {
+      const { rss } = process.memoryUsage();
+      if (rss > MAX_RSS_MB * 1024 * 1024) {
+        logWarn("HIGH_MEMORY_USAGE", "Memory usage high", { rss });
+      }
+      const cpu = process.cpuUsage(lastCpu);
+      lastCpu = process.cpuUsage();
+      const cpuMs = (cpu.user + cpu.system) / 1000;
+      if (cpuMs > 1000) {
+        logWarn("HIGH_CPU_USAGE", "CPU usage high", { cpuMs });
 
+      }
+    } catch (e) {
+      logWarn("RESOURCE_MONITOR_FAILED", e.message);
     }
-  } catch (e) {
-    logWarn("RESOURCE_MONITOR_FAILED", e.message);
-  }
-}, RESOURCE_CHECK_MS);
+  }, RESOURCE_CHECK_MS);
+}
 
 
 
 // periodically surface due letter reminders
 processAllReminders().catch(e => console.error("Reminder check failed", e));
-setInterval(() => {
-  processAllReminders().catch(e => console.error("Reminder check failed", e));
-}, 60 * 60 * 1000);
+if (process.env.NODE_ENV !== "test") {
+  setInterval(() => {
+    processAllReminders().catch(e => console.error("Reminder check failed", e));
+  }, 60 * 60 * 1000);
+}
 
 // ---------- Static UI ----------
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -419,6 +424,8 @@ app.post("/api/settings", async (req, res) => {
 
   res.json({ ok: true, settings });
 });
+
+app.use("/api/marketing", authenticate, forbidMember, marketingRoutes);
 
 app.get("/api/calendar/events", async (_req, res) => {
   try {
@@ -613,7 +620,9 @@ async function processTasks(){
 
 // Process tasks immediately on startup so their status is accurate
 processTasks();
-setInterval(processTasks, 60_000);
+if (process.env.NODE_ENV !== "test") {
+  setInterval(processTasks, 60_000);
+}
 
 
 function renderInvoiceHtml(inv, company = {}, consumer = {}) {
@@ -1732,23 +1741,25 @@ function getJobMem(jobId){
   if(Date.now()-j.createdAt > JOB_TTL_MS){ jobs.delete(jobId); return null; }
   return j;
 }
-setInterval(async ()=>{
-  const now = Date.now();
-  for(const [id,j] of jobs){
-    if(now - j.createdAt > JOB_TTL_MS) jobs.delete(id);
-  }
-  const idx = await loadJobsIndex();
-  let changed = false;
-  for(const [id,meta] of Object.entries(idx.jobs || {})){
-    if(now - (meta.createdAt || 0) > JOB_TTL_MS){
-      const dir = path.join(LETTERS_DIR, meta.dir || id);
-      try{ fs.rmSync(dir, { recursive:true, force:true }); }catch{}
-      delete idx.jobs[id];
-      changed = true;
+if (process.env.NODE_ENV !== "test") {
+  setInterval(async ()=>{
+    const now = Date.now();
+    for(const [id,j] of jobs){
+      if(now - j.createdAt > JOB_TTL_MS) jobs.delete(id);
     }
-  }
-  if(changed) await saveJobsIndex(idx);
-}, 5*60*1000);
+    const idx = await loadJobsIndex();
+    let changed = false;
+    for(const [id,meta] of Object.entries(idx.jobs || {})){
+      if(now - (meta.createdAt || 0) > JOB_TTL_MS){
+        const dir = path.join(LETTERS_DIR, meta.dir || id);
+        try{ fs.rmSync(dir, { recursive:true, force:true }); }catch{}
+        delete idx.jobs[id];
+        changed = true;
+      }
+    }
+    if(changed) await saveJobsIndex(idx);
+  }, 5*60*1000);
+}
 
 // disk index helpers stored in SQLite
 async function loadJobsIndex(){

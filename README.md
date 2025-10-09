@@ -67,5 +67,24 @@ npm test
 ./python-tests/run.sh
 ```
 
+
+## Marketing Integration
+
+- Frontend queue + template UI: `public/marketing.html` + `public/marketing.js`.
+- Backend endpoints live under `/api/marketing`; see [`docs/marketing-integration.md`](metro2%20(copy%201)/crm/docs/marketing-integration.md) for wiring Twilio/SendGrid workers.
+- Env hints: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID`, `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME`.
+
+Run the smoke curl to verify auth works before pointing workers at the queue.
+
+````bash
+cd "metro2 (copy 1)/crm"
+TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"ducky","password":"duck"}' | jq -r .token)
+
+curl -X GET http://localhost:3000/api/marketing/tests \
+  -H "Authorization: Bearer $TOKEN"
+````
+
 ## Deploy
 Container-friendly; run `npm start` in production environment.

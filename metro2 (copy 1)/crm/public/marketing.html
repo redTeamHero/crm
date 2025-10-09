@@ -79,16 +79,299 @@
     </nav>
   </div>
 </header>
-<main class="max-w-4xl mx-auto p-4 space-y-4">
-  <h1 class="text-2xl font-bold">Marketing Launchpad</h1>
-  <div class="glass card p-6 text-sm space-y-4">
-    <p class="text-gray-700">Stage your campaigns, track lead magnets, and map premium experiences before you flip the switch. Keep your voice consistent with trust, clarity, and empowerment.</p>
-    <p class="text-gray-500">Espacio reservado para tus campañas bilingües, secuencias de nurturing y activos de conversión. Documenta ideas, audita CTAs y prepárate para probar con seguridad.</p>
-    <div class="border border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-400">
-      Placeholder canvas. Drop funnel diagrams, email cadences, or future marketing automations here cuando estés listo.
+<main class="max-w-6xl mx-auto p-4 space-y-6">
+  <header class="glass card p-6 space-y-3">
+    <div class="flex items-center gap-3">
+      <span class="text-3xl">🚀</span>
+      <div>
+        <h1 class="text-2xl font-bold">Marketing Launchpad</h1>
+        <p class="text-sm text-slate-600">Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, o cualquier otra integración.</p>
+      </div>
     </div>
-  </div>
+    <p class="text-xs text-slate-500">Tip: documenta cada touchpoint bilingüe (EN/ES) to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.</p>
+  </header>
+
+  <!-- SMS Campaign Builder -->
+  <section aria-labelledby="sms-builder-heading" class="glass card p-6 space-y-6">
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">📱</span>
+        <div>
+          <h2 id="sms-builder-heading" class="text-xl font-semibold">SMS Campaign Builder</h2>
+          <p class="text-sm text-slate-600">Craft compliant outreach, personalize with merge fields, and preview the mobile experience antes de lanzar.</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2 text-xs text-slate-500">
+        <span class="chip bg-white/60">Suggested KPI: Reply Rate</span>
+        <span class="chip bg-white/60">Upsell: SMS Concierge Follow-up</span>
+        <span class="chip bg-white/60">A/B Test: CTA «Book Call» vs «Descubre tu plan»</span>
+      </div>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <form class="glass card bg-white/70 shadow-inner space-y-4" id="smsForm">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium" for="smsCampaignName">Campaign Name</label>
+          <input id="smsCampaignName" class="input" type="text" placeholder="Fall Promo Launch" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium" for="smsSegment">Recipient Group</label>
+          <select id="smsSegment" class="input">
+            <option value="leads">All Leads</option>
+            <option value="new-clients">New Clients (≤30 days)</option>
+            <option value="inactive">Inactive Accounts (90+ days)</option>
+            <option value="truckers">Owner-Operators / Truckers</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-sm font-medium" for="smsMessage">Message</label>
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+              <label class="sr-only" for="mergeFieldSelect">Insert Merge Field</label>
+              <select id="mergeFieldSelect" class="input text-xs py-1 px-2">
+                <option value="">+ Personalize</option>
+                <option value="{{first_name}}">{{first_name}}</option>
+                <option value="{{last_name}}">{{last_name}}</option>
+                <option value="{{credit_score}}">{{credit_score}}</option>
+                <option value="{{dispute_stage}}">{{dispute_stage}}</option>
+                <option value="{{account_type}}">{{account_type}}</option>
+              </select>
+            </div>
+          </div>
+          <textarea id="smsMessage" class="input min-h-[140px]" placeholder="Hi {{first_name}}, we spotted a dispute update ready for review. Tap to confirm your next step."></textarea>
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <span>Character Count: <span id="smsCharCount">0/160</span></span>
+            <div class="flex items-center gap-1" aria-label="Quick merge fields">
+              <button type="button" class="chip" data-token="{{first_name}}">{{first_name}}</button>
+              <button type="button" class="chip" data-token="{{dispute_stage}}">{{dispute_stage}}</button>
+              <button type="button" class="chip" data-token="{{cta_link}}">{{cta_link}}</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="smsPreviewBtn" class="btn" type="button">Preview SMS</button>
+          <button id="smsTestBtn" class="btn bg-slate-900" type="button">Send Test</button>
+          <span class="text-xs text-slate-500">Guardrails: opt-out copy auto-appended, rate-limited when live.</span>
+        </div>
+      </form>
+      <aside class="flex justify-center">
+        <div class="relative w-[280px] max-w-full rounded-[30px] border border-slate-900/10 bg-slate-900 text-white shadow-[0_0_0_8px_rgba(255,255,255,0.2)]">
+          <div class="absolute inset-x-12 top-3 h-6 rounded-full bg-black/50"></div>
+          <div class="p-6 pt-14 space-y-4">
+            <div class="text-sm text-slate-300">Preview • Twilio Ready</div>
+            <div class="rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 p-4 text-sm leading-6" id="smsPreviewBubble">
+              Hi Alex 👋🏻
+              Revolv.AI spotted a Metro-2 update for your {{dispute_stage}}.
+              Tap here to review → https://go.revolv.ai/next
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-3 text-[11px] text-slate-200">
+              Personalization sample uses demo data. Final send will use live CRM fields.
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Email Template Builder -->
+  <section aria-labelledby="email-builder-heading" class="glass card p-6 space-y-6">
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">💌</span>
+        <div>
+          <h2 id="email-builder-heading" class="text-xl font-semibold">Email Template Designer</h2>
+          <p class="text-sm text-slate-600">Organize nurture flows, automate bilingual onboarding, and prep branded sends listo para conectar con SendGrid o Postalytics.</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <span class="chip bg-white/60">Metric: Open → Consult %</span>
+        <span class="chip bg-white/60">Automation idea: 7-day roadmap drip</span>
+        <span class="chip bg-white/60">CTA Test: «Schedule Strategy Call» vs «Explora tu plan»</span>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 text-sm">
+          <button class="btn" id="btnAddTemplate" type="button">New Template</button>
+          <button class="btn bg-slate-900" id="btnImportHtml" type="button">Import HTML</button>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <label class="sr-only" for="templateFilter">Segment</label>
+          <select id="templateFilter" class="input text-xs py-1 px-2">
+            <option value="all">All Segments</option>
+            <option value="b2c">B2C Consumers</option>
+            <option value="b2b">B2B / Truckers</option>
+            <option value="attorneys">Attorneys / Referrals</option>
+          </select>
+          <span class="hidden md:inline">Filter to prep tailored automations.</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" id="emailTemplateGrid">
+      <p id="templatesEmpty" class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-4 text-sm text-slate-500">Templates load desde el backend. Usa “New Template” para guardar tu primer diseño.</p>
+    </div>
+  </section>
+
+  <!-- Campaign Analytics Preview -->
+  <section aria-labelledby="campaign-dashboard-heading" class="glass card p-6 space-y-6">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">📊</span>
+      <div>
+        <h2 id="campaign-dashboard-heading" class="text-xl font-semibold">Campaign Dashboard Preview</h2>
+        <p class="text-sm text-slate-600">Visual placeholders ready to display Twilio/SendGrid metrics, pipeline revenue, y alertas de cumplimiento.</p>
+      </div>
+    </div>
+    <div class="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <section class="space-y-4">
+        <header class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold">Recent Campaigns</h3>
+          <button class="btn" type="button">Export CSV</button>
+        </header>
+        <div class="space-y-3" id="campaignList">
+          <article class="glass card bg-white/70 space-y-2" data-status="scheduled">
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-semibold">New Year Credit Boost</span>
+              <span class="chip">Scheduled</span>
+            </div>
+            <p class="text-xs text-slate-500">Next touch: Jan 3 • Segment: Inactive Accounts • KPI target: 18% consult rate.</p>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+              <div class="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" style="width:65%"></div>
+            </div>
+          </article>
+          <article class="glass card bg-white/70 space-y-2" data-status="completed">
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-semibold">Trucker Safety + Credit Webinar</span>
+              <span class="chip">Completed</span>
+            </div>
+            <p class="text-xs text-slate-500">Result: 24 booked consults • Upsell opportunity: Fleet compliance retainer.</p>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+              <div class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" style="width:92%"></div>
+            </div>
+          </article>
+          <article class="glass card bg-white/70 space-y-2" data-status="draft">
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-semibold">Score Drop Alert</span>
+              <span class="chip">Draft</span>
+            </div>
+            <p class="text-xs text-slate-500">Set webhook to Metro-2 anomaly detector • CTA: Schedule dispute strategy.</p>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+              <div class="h-full rounded-full bg-gradient-to-r from-sky-500 to-indigo-500" style="width:40%"></div>
+            </div>
+          </article>
+        </div>
+      </section>
+      <aside class="space-y-4">
+        <div class="glass card bg-white/80 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold">Metrics Placeholder</h3>
+            <span class="text-xs text-slate-500">API ready</span>
+          </div>
+          <div class="h-36 rounded-xl border border-dashed border-slate-300 bg-white/60 flex flex-col items-center justify-center text-xs text-slate-400">
+            <span>Drop chart.js or Recharts here.</span>
+            <span>Map open %, click %, revenue per send.</span>
+          </div>
+          <ul class="space-y-2 text-xs text-slate-500">
+            <li>• Track: Lead → Consult %, Consult → Paid %, Refund %</li>
+            <li>• Alerts: Opt-out spikes, deliverability drops</li>
+            <li>• Next: Slack webhook for at-risk campaigns</li>
+          </ul>
+        </div>
+        <div class="glass card bg-white/80 p-4 space-y-3">
+          <h3 class="text-base font-semibold">Experiments Queue</h3>
+          <ul class="space-y-2 text-xs text-slate-500" id="experimentIdeas">
+            <li>1️⃣ Pricing anchor: «$49 Strategy Session» vs «$0 Discovery»</li>
+            <li>2️⃣ CTA microcopy: «Start audit» vs «Comienza tu auditoría»</li>
+            <li>3️⃣ Social proof position: testimonials vs score visualizer</li>
+          </ul>
+          <button class="btn" id="btnAddExperiment" type="button">Log Hypothesis</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section aria-labelledby="integration-checklist-heading" class="glass card p-6 space-y-6">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🧩</span>
+      <div>
+        <h2 id="integration-checklist-heading" class="text-xl font-semibold">Integration Checklist</h2>
+        <p class="text-sm text-slate-600">Wire this UI to Twilio, SendGrid, y otros servicios sin perder cumplimiento.</p>
+      </div>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      <div class="space-y-4">
+        <h3 class="text-base font-semibold">Steps to Activate</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm text-slate-600" id="integrationSteps">
+          <li>Collect API keys y SIDs; store them en <code>.env</code> o Settings → Integrations.</li>
+          <li>Call <code>PATCH /api/marketing/providers/:id</code> para marcar providers como <span class="font-semibold">ready</span>.</li>
+          <li>Trigger <code>POST /api/marketing/tests</code> desde “Send Test” para validar payloads.</li>
+          <li>Connecta un worker que consuma la queue y dispare Twilio/SendGrid con logs.</li>
+        </ol>
+        <div class="rounded-xl bg-slate-900 text-white p-4 space-y-2 text-xs">
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-semibold">cURL Smoke Test</span>
+            <span class="uppercase tracking-wide text-[10px] text-violet-200">Dev only</span>
+          </div>
+          <pre class="whitespace-pre-wrap break-words text-[11px] leading-5"><code id="curlExample">curl -X POST "$HOST/api/marketing/tests" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"channel":"sms","recipient":"+15125550199","smsPreview":"Hola {{first_name}}, tu auditoría está lista."}'</code></pre>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div class="glass card bg-white/80 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold">Queued Test Sends</h3>
+            <button class="btn text-xs" id="refreshQueueBtn" type="button">Refresh</button>
+          </div>
+          <ul id="testQueueList" class="space-y-2 text-xs text-slate-600">
+            <li class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-3">Run “Send Test” para ver items aquí.</li>
+          </ul>
+        </div>
+        <div class="glass card bg-white/80 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold">Provider Status</h3>
+            <span class="text-[10px] uppercase text-slate-400">Live sync</span>
+          </div>
+          <ul id="providerStatusList" class="space-y-2 text-xs text-slate-600">
+            <li class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-3">Use the API para registrar credenciales Twilio/SendGrid.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
+<div id="testModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
+  <div class="glass card max-w-md w-full space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 id="testModalTitle" class="text-lg font-semibold">Send Test Message</h3>
+        <p class="text-xs text-slate-500">Simulate a Twilio/SendGrid call. No live sends.</p>
+      </div>
+      <button class="btn bg-slate-900" type="button" data-close-test>Close</button>
+    </div>
+    <form class="space-y-3" id="testForm">
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium" for="testChannel">Channel</label>
+        <select id="testChannel" name="testChannel" class="input">
+          <option value="sms">SMS</option>
+          <option value="email">Email</option>
+        </select>
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium" for="testRecipient">Send To</label>
+        <input id="testRecipient" name="testRecipient" class="input" type="text" placeholder="+1 512 555 0199 or demo@revolv.ai" required />
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium" for="testNotes">Notes</label>
+        <textarea id="testNotes" name="testNotes" class="input" rows="3" placeholder="Log what you’re validating: tone, CTA, bilingual render."></textarea>
+      </div>
+      <div class="flex items-center justify-between text-xs text-slate-500">
+        <span>Preview payload is queued via the marketing API para QA.</span>
+        <button class="btn" type="submit">Queue Test</button>
+      </div>
+      <p id="testStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700">Queued via marketing API — list updates below.</p>
+    </form>
+  </div>
+</div>
 <script type="module" src="/common.js"></script>
+<script type="module" src="/marketing.js"></script>
 </body>
 </html>
