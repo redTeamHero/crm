@@ -205,39 +205,7 @@
       </div>
     </div>
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" id="emailTemplateGrid">
-      <article class="template-card glass card bg-gradient-to-br from-violet-100/80 to-white" data-segment="b2c">
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="text-lg font-semibold">Client Welcome Series</h3>
-          <span class="chip text-xs">EN/ES</span>
-        </div>
-        <p class="text-sm text-slate-600">Day 0-7 onboarding with bilingual timeline, dispute checklist, and NEPQ trust-building questions.</p>
-        <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
-          <span>3 emails • Auto</span>
-          <button class="btn" type="button">Edit</button>
-        </div>
-      </article>
-      <article class="template-card glass card bg-gradient-to-br from-emerald-100/70 to-white" data-segment="b2c">
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="text-lg font-semibold">Score Update Alert</h3>
-          <span class="chip text-xs">Dynamic</span>
-        </div>
-        <p class="text-sm text-slate-600">Automated transactional email con {{credit_score}} merge field y call-to-action a revisar su portal.</p>
-        <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
-          <span>Trigger • Portal Event</span>
-          <button class="btn" type="button">Edit</button>
-        </div>
-      </article>
-      <article class="template-card glass card bg-gradient-to-br from-sky-100/70 to-white" data-segment="b2b">
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="text-lg font-semibold">Broker Referral Touch</h3>
-          <span class="chip text-xs">B2B</span>
-        </div>
-        <p class="text-sm text-slate-600">Quarterly update for trucking partners highlighting compliance wins, dispute turnaround dashboards, y un CTA hacia co-marketing.</p>
-        <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
-          <span>Manual • Template</span>
-          <button class="btn" type="button">Edit</button>
-        </div>
-      </article>
+      <p id="templatesEmpty" class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-4 text-sm text-slate-500">Templates load desde el backend. Usa “New Template” para guardar tu primer diseño.</p>
     </div>
   </section>
 
@@ -317,6 +285,58 @@
       </aside>
     </div>
   </section>
+
+  <section aria-labelledby="integration-checklist-heading" class="glass card p-6 space-y-6">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🧩</span>
+      <div>
+        <h2 id="integration-checklist-heading" class="text-xl font-semibold">Integration Checklist</h2>
+        <p class="text-sm text-slate-600">Wire this UI to Twilio, SendGrid, y otros servicios sin perder cumplimiento.</p>
+      </div>
+    </div>
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      <div class="space-y-4">
+        <h3 class="text-base font-semibold">Steps to Activate</h3>
+        <ol class="list-decimal list-inside space-y-2 text-sm text-slate-600" id="integrationSteps">
+          <li>Collect API keys y SIDs; store them en <code>.env</code> o Settings → Integrations.</li>
+          <li>Call <code>PATCH /api/marketing/providers/:id</code> para marcar providers como <span class="font-semibold">ready</span>.</li>
+          <li>Trigger <code>POST /api/marketing/tests</code> desde “Send Test” para validar payloads.</li>
+          <li>Connecta un worker que consuma la queue y dispare Twilio/SendGrid con logs.</li>
+        </ol>
+        <div class="rounded-xl bg-slate-900 text-white p-4 space-y-2 text-xs">
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-semibold">cURL Smoke Test</span>
+            <span class="uppercase tracking-wide text-[10px] text-violet-200">Dev only</span>
+          </div>
+          <pre class="whitespace-pre-wrap break-words text-[11px] leading-5"><code id="curlExample">curl -X POST "$HOST/api/marketing/tests" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"channel":"sms","recipient":"+15125550199","smsPreview":"Hola {{first_name}}, tu auditoría está lista."}'</code></pre>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div class="glass card bg-white/80 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold">Queued Test Sends</h3>
+            <button class="btn text-xs" id="refreshQueueBtn" type="button">Refresh</button>
+          </div>
+          <ul id="testQueueList" class="space-y-2 text-xs text-slate-600">
+            <li class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-3">Run “Send Test” para ver items aquí.</li>
+          </ul>
+        </div>
+        <div class="glass card bg-white/80 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-semibold">Provider Status</h3>
+            <span class="text-[10px] uppercase text-slate-400">Live sync</span>
+          </div>
+          <ul id="providerStatusList" class="space-y-2 text-xs text-slate-600">
+            <li class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-3">Use the API para registrar credenciales Twilio/SendGrid.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 <div id="testModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
   <div class="glass card max-w-md w-full space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
@@ -344,10 +364,10 @@
         <textarea id="testNotes" name="testNotes" class="input" rows="3" placeholder="Log what you’re validating: tone, CTA, bilingual render."></textarea>
       </div>
       <div class="flex items-center justify-between text-xs text-slate-500">
-        <span>Preview payload is stored locally for QA.</span>
+        <span>Preview payload is queued via the marketing API para QA.</span>
         <button class="btn" type="submit">Queue Test</button>
       </div>
-      <p id="testStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700">Ready to hand off to backend queue.</p>
+      <p id="testStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700">Queued via marketing API — list updates below.</p>
     </form>
   </div>
 </div>
