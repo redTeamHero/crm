@@ -428,9 +428,28 @@ if (smsPreviewBtn) {
     if (!smsPreviewBubble) return;
     smsPreviewBubble.classList.add("ring-4", "ring-white", "ring-offset-2", "ring-offset-slate-900");
     window.setTimeout(() => {
+    setTimeout(() => {
       smsPreviewBubble.classList.remove("ring-4", "ring-white", "ring-offset-2", "ring-offset-slate-900");
     }, 600);
   });
+}
+
+const testModal = document.getElementById("testModal");
+const testForm = document.getElementById("testForm");
+const testStatus = document.getElementById("testStatus");
+
+function openTestModal() {
+  if (!testModal) return;
+  testModal.classList.remove("hidden");
+  testModal.classList.add("flex");
+  document.body.classList.add("overflow-hidden");
+}
+
+function closeTestModal() {
+  if (!testModal) return;
+  testModal.classList.add("hidden");
+  testModal.classList.remove("flex");
+  document.body.classList.remove("overflow-hidden");
 }
 
 if (smsTestBtn) {
@@ -513,6 +532,93 @@ if (btnAddTemplate && templateGrid) {
 
 if (templateFilter) {
   templateFilter.addEventListener("change", filterTemplates);
+  testForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(testForm);
+    const payload = {
+      channel: formData.get("testChannel"),
+      recipient: formData.get("testRecipient"),
+      notes: formData.get("testNotes"),
+      smsPreview: smsMessageInput ? applyMergeFields(smsMessageInput.value) : "",
+      emailPreviewId: "template-draft",
+      createdAt: new Date().toISOString(),
+    };
+
+    const queue = JSON.parse(localStorage.getItem("marketing-test-queue") ?? "[]");
+    queue.unshift(payload);
+    queue.splice(10);
+    localStorage.setItem("marketing-test-queue", JSON.stringify(queue));
+
+    if (testStatus) {
+      testStatus.textContent = "Queued locally — ready for backend webhook integration.";
+      testStatus.classList.remove("hidden");
+      testStatus.classList.add("flex", "items-center", "gap-2");
+      setTimeout(() => {
+        testStatus.classList.add("hidden");
+        testStatus.classList.remove("flex", "items-center", "gap-2");
+      }, 4000);
+    }
+
+    testForm.reset();
+    updateSmsPreview();
+    closeTestModal();
+  });
+}
+
+const btnAddTemplate = document.getElementById("btnAddTemplate");
+const templateGrid = document.getElementById("emailTemplateGrid");
+const templateFilter = document.getElementById("templateFilter");
+const btnImportHtml = document.getElementById("btnImportHtml");
+
+function buildTemplateCard({ title, description, segment, badge = "Custom" }) {
+  const article = document.createElement("article");
+  article.className = "template-card glass card bg-gradient-to-br from-amber-100/70 to-white";
+  article.dataset.segment = segment;
+  article.innerHTML = `
+    <div class="flex items-center justify-between gap-2">
+      <h3 class="text-lg font-semibold">${title}</h3>
+      <span class="chip text-xs">${badge}</span>
+    </div>
+    <p class="text-sm text-slate-600">${description}</p>
+    <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
+      <span>Draft • ${new Date().toLocaleDateString()}</span>
+      <button class="btn" type="button">Edit</button>
+    </div>
+  `;
+  return article;
+}
+
+if (btnAddTemplate && templateGrid) {
+  btnAddTemplate.addEventListener("click", () => {
+    const name = prompt("Template name?")?.trim();
+    if (!name) return;
+    const description = prompt("What's the purpose?")?.trim() || "Outline your nurture touchpoints and CTA.";
+    const segment = templateFilter?.value && templateFilter.value !== "all" ? templateFilter.value : "b2c";
+    const card = buildTemplateCard({
+      title: name,
+      description,
+      segment,
+      badge: segment.toUpperCase(),
+    });
+    templateGrid.prepend(card);
+    const filterEvent = new Event("change");
+    templateFilter?.dispatchEvent(filterEvent);
+  });
+}
+
+if (templateFilter && templateGrid) {
+  const filterTemplates = () => {
+    const value = templateFilter.value;
+    templateGrid.querySelectorAll(".template-card").forEach((card) => {
+      if (value === "all" || card.dataset.segment === value) {
+        card.classList.remove("hidden");
+      } else {
+        card.classList.add("hidden");
+      }
+    });
+  };
+  templateFilter.addEventListener("change", filterTemplates);
+  filterTemplates();
 }
 
 if (btnImportHtml) {
@@ -526,6 +632,16 @@ if (btnImportHtml) {
 if (btnAddExperiment && experimentList) {
   btnAddExperiment.addEventListener("click", () => {
     const idea = window.prompt("Log your experiment hypothesis")?.trim();
+    alert("Upload feature coming soon — connect your HTML to inline CSS and store in template library.");
+  });
+}
+
+const btnAddExperiment = document.getElementById("btnAddExperiment");
+const experimentList = document.getElementById("experimentIdeas");
+
+if (btnAddExperiment && experimentList) {
+  btnAddExperiment.addEventListener("click", () => {
+    const idea = prompt("Log your experiment hypothesis")?.trim();
     if (!idea) return;
     const index = experimentList.children.length + 1;
     const li = document.createElement("li");
@@ -536,6 +652,21 @@ if (btnAddExperiment && experimentList) {
 
 if (refreshQueueBtn) {
   refreshQueueBtn.addEventListener("click", () => refreshTestQueue({ silent: false }));
+const campaignList = document.getElementById("campaignList");
+
+if (campaignList) {
+  const statusColors = {
+    scheduled: "bg-gradient-to-r from-violet-500 to-fuchsia-500",
+    completed: "bg-gradient-to-r from-emerald-500 to-teal-500",
+    draft: "bg-gradient-to-r from-sky-500 to-indigo-500",
+  };
+  campaignList.querySelectorAll("[data-status]").forEach((card) => {
+    const status = card.dataset.status;
+    const bar = card.querySelector(".h-full");
+    if (status && bar) {
+      bar.className = `h-full rounded-full ${statusColors[status] ?? "bg-slate-500"}`;
+    }
+  });
 }
 
 window.addEventListener("keydown", (event) => {
