@@ -16,6 +16,8 @@ Data is stored in a local SQLite file `crm.sqlite` in the CRM directory, replaci
 
 On first run, the server seeds an admin user with username `ducky` and password `duck`.
 
+Members created through `/api/register` now receive default permissions for consumers, contacts, tasks, and reports so freshly onboarded teammates can work leads without waiting on an admin to toggle access.
+
 ## Environment
 - `PORT` (optional, defaults to 3000)
 - `METRO2_VIOLATIONS_PATH` (optional; path to `metro2Violations.json`. If unset, the app searches the repo.)
