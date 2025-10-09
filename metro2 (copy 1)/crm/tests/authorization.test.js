@@ -17,7 +17,7 @@ if (consumersDb?.consumers?.length) {
 
 
 const admin = { id: 'a1', username: 'admin', password: bcrypt.hashSync('secret', 10), role: 'admin', permissions: [] };
-const member = { id: 'm1', username: 'member', password: bcrypt.hashSync('secret', 10), role: 'member', permissions: [] };
+const member = { id: 'm1', username: 'member', password: bcrypt.hashSync('secret', 10), role: 'member', permissions: ['letters'] };
 await writeKey('users', { users: [admin, member] });
 
 process.env.NODE_ENV = 'test';

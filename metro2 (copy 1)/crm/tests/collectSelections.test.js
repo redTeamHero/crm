@@ -44,6 +44,7 @@ globalThis.document = {
   querySelectorAll: () => [],
   createElement: () => dummy(),
   addEventListener: () => {},
+  getElementById: () => dummy(),
 };
 globalThis.window = { location:{ href:'' } };
 globalThis.location = { search: '' };

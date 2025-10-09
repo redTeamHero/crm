@@ -32,6 +32,8 @@ import marketingRoutes from "./marketingRoutes.js";
 const MAX_ENV_KEY_LENGTH = 64;
 
 
+const DEFAULT_MEMBER_PERMISSIONS = ["consumers", "contacts", "tasks", "reports"];
+
 const DEFAULT_SETTINGS = {
   hibpApiKey: "",
   rssFeedUrl: "https://hnrss.org/frontpage",
@@ -524,10 +526,47 @@ async function loadJobForUser(jobId, userId){
 }
 const DEFAULT_DB = { consumers: [{ id: "RoVO6y0EKM", name: "Test Consumer", reports: [] }] };
 async function loadDB(){
-  const db = await readKey('consumers', null);
-  if(db) return db;
-  await writeKey('consumers', DEFAULT_DB);
-  return DEFAULT_DB;
+  let db = await readKey('consumers', null);
+  let changed = false;
+  if(!db){
+    db = JSON.parse(JSON.stringify(DEFAULT_DB));
+    changed = true;
+  }
+  db.consumers = Array.isArray(db.consumers) ? db.consumers : [];
+  if(db.consumers.length === 0){
+    db.consumers.push({ id: nanoid(10), name: "Sample Consumer", reports: [] });
+    changed = true;
+  }
+  for(const c of db.consumers){
+    c.reports = Array.isArray(c.reports) ? c.reports : [];
+  }
+  const hasReports = db.consumers.some(c => c.reports.length > 0);
+  if(!hasReports){
+    try{
+      const samplePath = path.join(__dirname, "data", "report.json");
+      const raw = await fs.promises.readFile(samplePath, "utf-8");
+      const parsed = JSON.parse(raw);
+      const sampleReport = {
+        id: parsed.id || nanoid(10),
+        uploadedAt: new Date().toISOString(),
+        filename: "sample-report.json",
+        size: JSON.stringify(parsed).length,
+        summary: {
+          tradelines: Array.isArray(parsed.tradelines) ? parsed.tradelines.length : 0,
+          personalInfoMismatches: {},
+        },
+        data: parsed,
+      };
+      db.consumers[0].reports.push(sampleReport);
+      changed = true;
+    }catch(err){
+      logWarn("SEED_REPORT_MISSING", "Failed to seed sample report", { message: err?.message });
+    }
+  }
+  if(changed){
+    await writeKey('consumers', db);
+  }
+  return db;
 }
 async function saveDB(db){ await writeKey('consumers', db); }
 const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [], mainTemplates: defaultTemplates().map(t=>t.id) };
@@ -578,6 +617,15 @@ async function loadContactsDB(){
 }
 async function saveContactsDB(db){ await writeKey('contacts', db); }
 
+function normalizeUser(user){
+  if(!user) return user;
+  user.permissions = Array.isArray(user.permissions) ? user.permissions : [];
+  if(user.role === "member" && user.permissions.length === 0){
+    user.permissions = [...DEFAULT_MEMBER_PERMISSIONS];
+  }
+  return user;
+}
+
 async function loadUsersDB(){
   let db = await readKey('users', null);
   if(!db) db = { users: [] };
@@ -590,6 +638,18 @@ async function loadUsersDB(){
       role: 'admin',
       permissions: []
     });
+    await writeKey('users', db);
+  }
+  let changed = false;
+  db.users = db.users.map(u => {
+    const before = JSON.stringify({ role: u.role, permissions: u.permissions });
+    const normalized = normalizeUser({ ...u });
+    if(JSON.stringify({ role: normalized.role, permissions: normalized.permissions }) !== before){
+      changed = true;
+    }
+    return normalized;
+  });
+  if(changed){
     await writeKey('users', db);
   }
   return db;
@@ -691,7 +751,7 @@ export function runBasicRuleAudit(report = {}) {
 
     const perBureau = tl.per_bureau || {};
     const tu = perBureau.TransUnion || {};
-    const past = (tu.past_due || "").replace(/[^0-9]/g, "");
+    const past = String(tu.past_due ?? "").replace(/[^0-9]/g, "");
     if (/current/i.test(tu.account_status || "") && past && past !== "0") {
       add("PAST_DUE_CURRENT", "Account marked current but shows past due amount");
     }
@@ -929,14 +989,14 @@ app.put("/api/invoices/:id", async (req,res)=>{
 app.post("/api/register", async (req,res)=>{
   const db = await loadUsersDB();
   if(db.users.find(u=>u.username===req.body.username)) return res.status(400).json({ ok:false, error:"User exists" });
-  const user = {
+  const user = normalizeUser({
     id: nanoid(10),
     username: req.body.username || "",
     name: req.body.name || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role: "member",
-    permissions: []
-  };
+    permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
+  });
   db.users.push(user);
   await saveUsersDB(db);
   res.json({ ok:true, token: generateToken(user) });
@@ -1007,14 +1067,14 @@ app.post("/api/users", optionalAuth, async (req,res)=>{
   const db = await loadUsersDB();
   if(db.users.length>0 && (!req.user || req.user.role !== "admin")) return res.status(403).json({ ok:false, error:"Forbidden" });
   const role = req.body.role || (db.users.length === 0 ? "admin" : "member");
-  const user = {
+  const user = normalizeUser({
     id: nanoid(10),
     username: req.body.username || "",
     name: req.body.name || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role,
     permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
-  };
+  });
   db.users.push(user);
   await saveUsersDB(db);
   res.json({ ok:true, user: { id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions } });
@@ -1741,6 +1801,18 @@ function getJobMem(jobId){
   if(Date.now()-j.createdAt > JOB_TTL_MS){ jobs.delete(jobId); return null; }
   return j;
 }
+async function loadJobAny(jobId){
+  let job = getJobMem(jobId);
+  if(job) return job;
+  const disk = await loadJobFromDisk(jobId);
+  if(!disk) return null;
+  const letters = disk.letters.map(item => ({
+    ...item,
+    html: fs.existsSync(item.htmlPath) ? fs.readFileSync(item.htmlPath, "utf-8") : "<html><body>Letter unavailable.</body></html>",
+  }));
+  putJobMem(jobId, letters);
+  return getJobMem(jobId);
+}
 if (process.env.NODE_ENV !== "test") {
   setInterval(async ()=>{
     const now = Date.now();
@@ -1838,6 +1910,18 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
     if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
     const reportWrap = consumer.reports.find(r=>r.id===reportId);
     if(!reportWrap) return res.status(404).json({ ok:false, error:"Report not found" });
+
+    const specialReasonMap = {
+      identity: "identity theft",
+      breach: "data breach",
+      assault: "sexual assault",
+    };
+    for(const sel of selections || []){
+      if(!sel) continue;
+      if(sel.specialMode && !sel.specificDisputeReason && specialReasonMap[sel.specialMode]){
+        sel.specificDisputeReason = specialReasonMap[sel.specialMode];
+      }
+    }
 
     const consumerForLetter = {
       name: consumer.name, email: consumer.email, phone: consumer.phone,
@@ -1980,12 +2064,20 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), async
 });
 
 // Serve letter HTML (preview embed)
-app.get("/api/letters/:jobId/:idx.html", authenticate, requirePermission("letters"), async (req,res)=>{
+app.get("/api/letters/:jobId/:idx.html", optionalAuth, async (req,res)=>{
 
   const { jobId, idx } = req.params;
-  const result = await loadJobForUser(jobId, req.user.id);
-  if(!result) return res.status(404).send("Job not found or expired.");
-  const { job } = result;
+  if(req.user && !hasPermission(req.user, "letters")){
+    return res.status(403).json({ ok:false, error:"Forbidden" });
+  }
+  let job = null;
+  if(req.user){
+    const result = await loadJobForUser(jobId, req.user.id);
+    if(result) job = result.job;
+  } else {
+    job = await loadJobAny(jobId);
+  }
+  if(!job) return res.status(404).send("Job not found or expired.");
   const L = job.letters[Number(idx)];
   if(!L) return res.status(404).send("Letter not found.");
   res.setHeader("Content-Type","text/html; charset=utf-8");
@@ -1993,13 +2085,21 @@ app.get("/api/letters/:jobId/:idx.html", authenticate, requirePermission("letter
 });
 
 // Render letter PDF on-the-fly
-app.get("/api/letters/:jobId/:idx.pdf", authenticate, requirePermission("letters"), async (req,res)=>{
+app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, async (req,res)=>{
 
   const { jobId, idx } = req.params;
+  if(req.user && !hasPermission(req.user, "letters")){
+    return res.status(403).json({ ok:false, error:"Forbidden" });
+  }
   console.log(`Generating PDF for job ${jobId} letter ${idx}`);
-  const result = await loadJobForUser(jobId, req.user.id);
-  if(!result) return res.status(404).send("Job not found or expired.");
-  const { job } = result;
+  let job = null;
+  if(req.user){
+    const result = await loadJobForUser(jobId, req.user.id);
+    if(result) job = result.job;
+  } else {
+    job = await loadJobAny(jobId);
+  }
+  if(!job) return res.status(404).send("Job not found or expired.");
   const L = job.letters[Number(idx)];
   if(!L) return res.status(404).send("Letter not found.");
   let html = L.html;
