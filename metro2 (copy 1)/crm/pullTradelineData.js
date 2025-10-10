@@ -148,6 +148,11 @@ function mergeViolationLists(existing = [], incoming = []) {
     .forEach((item) => {
       if (!item || typeof item !== 'object') return;
       const key = stableStringify(normalizeViolation(item));
+      const keyParts = [item.id && `id:${item.id}`, item.code && `code:${item.code}`];
+      if (!keyParts.some(Boolean)) {
+        keyParts.push(`hash:${JSON.stringify(item)}`);
+      }
+      const key = keyParts.filter(Boolean).join('|');
       if (seen.has(key)) return;
       seen.add(key);
       merged.push(item);
