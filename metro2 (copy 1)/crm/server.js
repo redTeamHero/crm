@@ -11,7 +11,6 @@ import { htmlToPdfBuffer, launchBrowser } from "./pdfUtils.js";
 import crypto from "crypto";
 import os from "os";
 import archiver from "archiver";
-import * as cheerio from "cheerio";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { PassThrough } from "stream";
@@ -27,6 +26,7 @@ import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy } from "./googleCalendar.js";
 
 import { fetchFn } from "./fetchUtil.js";
+import { scrapeTradelines } from "./tradelineScraper.js";
 import marketingRoutes from "./marketingRoutes.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
@@ -467,7 +467,7 @@ app.delete("/api/calendar/events/:id", async (req, res) => {
 
 app.get("/api/tradelines", async (_req, res) => {
   try {
-    const tradelines = await scrapeTradelines();
+    const tradelines = await scrapeTradelines(fetchFn);
     res.json({ ok: true, tradelines });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -1649,42 +1649,6 @@ async function hibpLookup(email) {
     console.error("HIBP check failed", e);
     return { ok: false, status: 500, error: "HIBP request failed" };
   }
-}
-
-async function scrapeTradelines() {
-  const resp = await fetchFn('https://tradelinesupply.com/pricing/');
-  const html = await resp.text();
-  const $ = cheerio.load(html);
-  const items = [];
-  $('tr').each((_, row) => {
-    const productTd = $(row).find('td.product_data');
-    const priceTd = $(row).find('td.product_price');
-    if (!productTd.length || !priceTd.length) return;
-    const bankName = (productTd.data('bankname') || '').toString().trim();
-    const creditLimitRaw = (productTd.data('creditlimit') || '').toString().replace(/[$,]/g, '');
-    const creditLimit = parseInt(creditLimitRaw, 10) || 0;
-    const dateOpened = (productTd.data('dateopened') || '').toString().trim();
-    const purchaseBy = (productTd.data('purchasebydate') || '').toString().trim();
-    const reportingPeriod = (productTd.data('reportingperiod') || '').toString().trim();
-    const priceText = priceTd.text().trim();
-    const match = /\$\s?(\d+(?:,\d{3})*(?:\.\d{2})?)/.exec(priceText);
-    if (!match) return;
-    const basePrice = parseFloat(match[1].replace(/,/g, ''));
-    let finalPrice;
-    if (basePrice < 500) finalPrice = basePrice + 100;
-    else if (basePrice <= 1000) finalPrice = basePrice + 200;
-    else finalPrice = basePrice + 300;
-    items.push({
-      buy_link: `/buy?bank=${encodeURIComponent(bankName)}&price=${finalPrice}`,
-      bank: bankName,
-      price: Math.round(finalPrice * 100) / 100,
-      limit: creditLimit,
-      age: dateOpened,
-      statement_date: purchaseBy,
-      reporting: reportingPeriod
-    });
-  });
-  return items;
 }
 
 function escapeHtml(str) {
