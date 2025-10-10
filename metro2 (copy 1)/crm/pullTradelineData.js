@@ -144,19 +144,24 @@ function normalizeViolation(item) {
 function mergeViolationLists(existing = [], incoming = []) {
   const merged = [];
   const seen = new Set();
+
   [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]
     .forEach((item) => {
       if (!item || typeof item !== 'object') return;
-      const key = stableStringify(normalizeViolation(item));
+
+      const normKey = stableStringify(normalizeViolation(item)); // renamed
       const keyParts = [item.id && `id:${item.id}`, item.code && `code:${item.code}`];
       if (!keyParts.some(Boolean)) {
         keyParts.push(`hash:${JSON.stringify(item)}`);
       }
-      const key = keyParts.filter(Boolean).join('|');
-      if (seen.has(key)) return;
-      seen.add(key);
+      const uniqueKey = keyParts.filter(Boolean).join('|'); // renamed
+      const finalKey = uniqueKey || normKey; // use uniqueKey if exists, else normKey
+
+      if (seen.has(finalKey)) return;
+      seen.add(finalKey);
       merged.push(item);
     });
+
   return merged;
 }
 
