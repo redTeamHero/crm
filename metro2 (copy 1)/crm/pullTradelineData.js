@@ -115,6 +115,33 @@ function makeTLKey(tl) {
  * Expects the Python JSON to have the same shape you’re already reading:
  * { tradelines: [{ meta:{creditor,...}, per_bureau:{...}, violations, violations_grouped }, ...] }
  */
+function mergeViolationLists(existing = [], incoming = []) {
+  const merged = [];
+  const seen = new Set();
+  [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]
+    .forEach((item) => {
+      if (!item || typeof item !== 'object') return;
+      const keyParts = [item.id && `id:${item.id}`, item.code && `code:${item.code}`];
+      if (!keyParts.some(Boolean)) {
+        keyParts.push(`hash:${JSON.stringify(item)}`);
+      }
+      const key = keyParts.filter(Boolean).join('|');
+      if (seen.has(key)) return;
+      seen.add(key);
+      merged.push(item);
+    });
+  return merged;
+}
+
+function mergeGroupedViolations(existing = {}, incoming = {}) {
+  const result = { ...existing };
+  Object.entries(incoming || {}).forEach(([group, list]) => {
+    const prev = Array.isArray(result[group]) ? result[group] : [];
+    result[group] = mergeViolationLists(prev, list);
+  });
+  return result;
+}
+
 function mapAuditedViolations(report, audit) {
   if (!audit?.tradelines || !report?.tradelines) return;
 
@@ -131,9 +158,11 @@ function mapAuditedViolations(report, audit) {
     const bucket = pyMap.get(key);
     const match = bucket?.length ? bucket.shift() : null;
 
-    // If we found a matching Python tradeline, attach its violations
-    tl.violations = match?.violations || [];
-    tl.violations_grouped = match?.violations_grouped || {};
+    if (!match) continue;
+
+    // If we found a matching Python tradeline, merge its violations with any pre-existing ones
+    tl.violations = mergeViolationLists(tl.violations, match.violations);
+    tl.violations_grouped = mergeGroupedViolations(tl.violations_grouped, match.violations_grouped);
   }
 }
 
@@ -238,7 +267,7 @@ async function pullTradelineData({ apiUrl, fetchImpl = fetch, overrides = {}, au
   return report;
 }
 
-export { enrichTradeline };
+export { enrichTradeline, mergeViolationLists, mergeGroupedViolations, mapAuditedViolations };
 export default pullTradelineData;
 
 /**
