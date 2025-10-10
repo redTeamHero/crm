@@ -115,12 +115,39 @@ function makeTLKey(tl) {
  * Expects the Python JSON to have the same shape you’re already reading:
  * { tradelines: [{ meta:{creditor,...}, per_bureau:{...}, violations, violations_grouped }, ...] }
  */
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value)
+      .filter(([, v]) => v !== undefined)
+      .map(([key, val]) => [key, stableStringify(val)])
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([key, val]) => `${JSON.stringify(key)}:${val}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function normalizeViolation(item) {
+  if (!item || typeof item !== 'object') return item;
+  if (Array.isArray(item)) return item.map((entry) => normalizeViolation(entry));
+
+  const { source, ...rest } = item;
+  const normalized = {};
+  for (const [key, value] of Object.entries(rest)) {
+    normalized[key] = normalizeViolation(value);
+  }
+  return normalized;
+}
+
 function mergeViolationLists(existing = [], incoming = []) {
   const merged = [];
   const seen = new Set();
   [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]
     .forEach((item) => {
       if (!item || typeof item !== 'object') return;
+      const key = stableStringify(normalizeViolation(item));
       const keyParts = [item.id && `id:${item.id}`, item.code && `code:${item.code}`];
       if (!keyParts.some(Boolean)) {
         keyParts.push(`hash:${JSON.stringify(item)}`);
