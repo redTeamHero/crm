@@ -167,6 +167,8 @@ test('mapAuditedViolations preserves JS violations when Python match lacks issue
             },
           ],
         },
+        violations: [{ id: 'CURRENT_BUT_PASTDUE', title: 'JS Rule' }],
+        violations_grouped: { Basic: [{ id: 'CURRENT_BUT_PASTDUE', title: 'JS Rule' }] },
       }
     ]
   };
@@ -190,6 +192,8 @@ test('mapAuditedViolations preserves JS violations when Python match lacks issue
   assert.equal(tl.violations_grouped.Basic.length, 2);
   assert.equal(tl.violations[0].title, 'Balances differ across bureaus');
   assert.equal(tl.violations[1].title, 'Past-due amounts differ across bureaus');
+  assert.deepEqual(tl.violations, [{ id: 'CURRENT_BUT_PASTDUE', title: 'JS Rule' }]);
+  assert.deepEqual(tl.violations_grouped, { Basic: [{ id: 'CURRENT_BUT_PASTDUE', title: 'JS Rule' }] });
 });
 
 test('mapAuditedViolations merges Python violations with existing ones without duplicates', () => {
@@ -218,6 +222,7 @@ test('mapAuditedViolations merges Python violations with existing ones without d
         },
         violations: [
           { id: 'CURRENT_BUT_PASTDUE', title: 'JS Rule' },
+          { id: 'CURRENT_BUT_PASTDUE', title: 'Duplicate from Python' },
           { id: 'PY-NEW', title: 'Python Extra' }
         ],
         violations_grouped: {
