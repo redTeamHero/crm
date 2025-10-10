@@ -781,6 +781,46 @@ def run_rules_for_tradeline(creditor, per_bureau, rule_profile):
 
     return violations, furnisher_type
 
+
+def diagnose_rule_coverage(per_bureau):
+    """Return human-readable notes when data coverage prevents rule checks."""
+    notes = []
+
+    def has_value(data, field):
+        val = data.get(field)
+        return val is not None and val != ""
+
+    for req in RULE_FIELD_REQUIREMENTS:
+        flds = req["fields"]
+        if req["type"] == "cross_bureau":
+            available = {b: per_bureau[b].get(flds[0]) for b in BUREAUS if has_value(per_bureau[b], flds[0])}
+            if len(available) < 2:
+                if available:
+                    present = ", ".join(f"{b}={available[b]}" for b in available)
+                    notes.append(f"{req['description']} Currently only {present} reported.")
+                else:
+                    notes.append(f"{req['description']} No bureaus provided {flds[0]}.")
+        elif req["type"] == "per_bureau_pair":
+            satisfied = []
+            missing = []
+            for b in BUREAUS:
+                data = per_bureau[b]
+                if all(has_value(data, field) for field in flds):
+                    satisfied.append(b)
+                elif any(has_value(data, field) for field in flds):
+                    missing_fields = [field for field in flds if not has_value(data, field)]
+                    missing.append(f"{b} missing {', '.join(missing_fields)}")
+            if not satisfied:
+                if missing:
+                    notes.append(f"{req['description']} ({'; '.join(missing)}).")
+                else:
+                    notes.append(f"{req['description']} None of the bureaus reported {', '.join(flds)} together.")
+        elif req["type"] == "single_field":
+            if not any(has_value(per_bureau[b], flds[0]) for b in BUREAUS):
+                notes.append(f"{req['description']} Field '{flds[0]}' missing across bureaus.")
+
+    return notes
+
 # -----------------------------
 # Personal information parsing
 # -----------------------------
@@ -1027,6 +1067,11 @@ def main():
         vlist = violations_map[idx-1]
         if not vlist:
             print("No obvious violations detected by these rules.")
+            diag_notes = diagnose_rule_coverage(per_bureau)
+            if diag_notes:
+                print("  Rule coverage notes:")
+                for note in diag_notes:
+                    print(f"  - {note}")
         else:
             # sort by severity desc, then category
             vlist_sorted = sorted(vlist, key=lambda v: (-v.get("severity",1), v["category"], v["title"]))
@@ -1062,4 +1107,87 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Diagnostics for missing data coverage per tradeline
+RULE_FIELD_REQUIREMENTS = [
+    {
+        "key": "balance_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["balance"],
+        "description": "Need balances from at least two bureaus to compare amounts or calculate utilization deltas.",
+    },
+    {
+        "key": "past_due_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["past_due"],
+        "description": "Need past-due amounts from at least two bureaus to spot cross-reporting conflicts.",
+    },
+    {
+        "key": "limit_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["credit_limit"],
+        "description": "Need credit limits from at least two bureaus to compare utilization calculations.",
+    },
+    {
+        "key": "status_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["payment_status"],
+        "description": "Need payment status from at least two bureaus to call out inconsistent statuses.",
+    },
+    {
+        "key": "account_status_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["account_status"],
+        "description": "Need account status from at least two bureaus to flag conflicting status narratives.",
+    },
+    {
+        "key": "dofd_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["date_first_delinquency"],
+        "description": "Need DOFD values from at least two bureaus to compare aging and obsolescence windows.",
+    },
+    {
+        "key": "account_number_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["account_number"],
+        "description": "Need account numbers from at least two bureaus to confirm the tradeline is matched correctly.",
+    },
+    {
+        "key": "past_due_vs_status",
+        "type": "per_bureau_pair",
+        "fields": ["past_due", "payment_status"],
+        "description": "Need both past-due and payment status on a bureau to check for 'current but past-due' conflicts.",
+    },
+    {
+        "key": "balance_vs_past_due",
+        "type": "per_bureau_pair",
+        "fields": ["balance", "past_due"],
+        "description": "Need both balance and past-due to catch zero-balance-yet-past-due inconsistencies.",
+    },
+    {
+        "key": "status_vs_dates",
+        "type": "per_bureau_pair",
+        "fields": ["account_status", "date_closed"],
+        "description": "Need status and Date Closed to ensure closed accounts are not marked open/current.",
+    },
+    {
+        "key": "status_vs_last_reported",
+        "type": "per_bureau_pair",
+        "fields": ["account_status", "last_reported"],
+        "description": "Need status and Last Reported to spot stale reporting on active accounts.",
+    },
+    {
+        "key": "dofd_presence",
+        "type": "single_field",
+        "fields": ["date_first_delinquency"],
+        "description": "Need Date of First Delinquency to run obsolescence and charge-off completeness checks.",
+    },
+    {
+        "key": "utilization",
+        "type": "per_bureau_pair",
+        "fields": ["balance", "credit_limit"],
+        "description": "Need both balance and credit limit on the same bureau to compute utilization accurately.",
+    },
+]
+
 
