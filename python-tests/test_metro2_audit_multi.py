@@ -141,6 +141,44 @@ class TestAccountNumberParsing(unittest.TestCase):
             "Equifax": "SPLIT-222",
         })
 
+    def test_account_number_nested_info_element(self):
+        html = """
+        <html><body>
+            <td class="ng-binding">
+                <div class="sub_header">Nested Info Creditor</div>
+                <table class="rpt_content_table rpt_content_header rpt_table4column">
+                    <tr>
+                        <th></th>
+                        <th class="headerTUC">TransUnion</th>
+                        <th class="headerEXP">Experian</th>
+                        <th class="headerEQF">Equifax</th>
+                    </tr>
+                    <tr>
+                        <td class="label">Account #</td>
+                        <td><span class="info"><span>NESTED-333</span></span></td>
+                        <td class="info">NESTED-333</td>
+                        <td><div class="info">NESTED-333</div></td>
+                    </tr>
+                </table>
+            </td>
+        </body></html>
+        """
+
+        soup = BeautifulSoup(html, "html.parser")
+        tradelines = m2.extract_all_tradelines(soup)
+        self.assertEqual(len(tradelines), 1)
+
+        tl = tradelines[0]
+        per_bureau = tl["per_bureau"]
+        self.assertEqual(per_bureau["TransUnion"].get("account_number"), "NESTED-333")
+        self.assertEqual(per_bureau["Experian"].get("account_number"), "NESTED-333")
+        self.assertEqual(per_bureau["Equifax"].get("account_number"), "NESTED-333")
+        self.assertEqual(tl["meta"]["account_numbers"], {
+            "TransUnion": "NESTED-333",
+            "Experian": "NESTED-333",
+            "Equifax": "NESTED-333",
+        })
+
 
 if __name__ == "__main__":
     unittest.main()

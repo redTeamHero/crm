@@ -239,12 +239,17 @@ def extract_rows(table):
         tds = tr.find_all("td", recursive=False)
 
         for idx, td in enumerate(tds):
-            if idx == 0 or "info" not in td.get("class", []):
+            if idx == 0:
+                continue
+
+            classes = [c.lower() for c in (td.get("class", []) or [])]
+            info_node = td if "info" in classes else td.select_one(".info")
+            if not info_node:
                 continue
             bureau = col_map.get(idx)
             if not bureau:
                 continue
-            val = clean_text(td)
+            val = clean_text(info_node)
             by_bureau[bureau] = "" if val == "-" else val
 
         rows.append((field_key, by_bureau))
