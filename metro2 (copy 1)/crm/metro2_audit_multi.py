@@ -35,48 +35,134 @@ def normalize_field_label(label):
     cleaned = label.strip()
     cleaned = re.sub(r"[:：;,-]*\s*$", "", cleaned)
     return cleaned.strip()
-
 _FIELD_ALIASES = {
-    "past due": "past_due",
-    "past due amount": "past_due",
-    "past due balance": "past_due",
-    "past due:": "past_due",
 
-    "credit limit": "credit_limit",
-    "limit": "credit_limit",
-    "credit limit:": "credit_limit",
 
-    "high credit": "high_credit",
-    "high balance": "high_credit",
 
-    "payment status": "payment_status",
-    "status description": "payment_status",
-    "account condition": "payment_status",
-    "payment status:": "payment_status",
+    "Account #": "account_number",
 
-    "date first delinquency": "date_first_delinquency",
-    "date of first delinquency": "date_first_delinquency",
-    "dofd": "date_first_delinquency",
-    "dofd:": "date_first_delinquency",
 
-    "last reported": "last_reported",
-    "reported date": "last_reported",
-    "date reported": "last_reported",
-    "last reported:": "last_reported",
+    "Account #:": "account_number",
 
-    "date closed": "date_closed",
-    "closed date": "date_closed",
-    "date closed:": "date_closed",
 
-    # Optional extras
-    "comments": "comments",
-    "remarks": "comments",
-    "ecoacode": "ecoa",
-    "ecoa code": "ecoa",
-    "compliance condition code": "ccc",
-    "ccc": "ccc"
-})
+    "Acct #": "account_number",
 
+
+    "Acct #:": "account_number",
+
+
+    "Account Type:": "account_type",
+
+
+    "Account Type - Detail:": "account_type_detail",
+
+
+    "Bureau Code:": "bureau_code",
+
+
+    "Account Status:": "account_status",
+
+
+    "Monthly Payment:": "monthly_payment",
+
+
+    "Date Opened:": "date_opened",
+
+
+    "Balance:": "balance",
+
+
+    "No. of Months (terms):": "months_terms",
+
+
+    "High Credit:": "high_credit",
+
+
+    "Credit Limit:": "credit_limit",
+
+
+    "Past Due:": "past_due",
+
+
+    "Payment Status:": "payment_status",
+
+
+    "Last Reported:": "last_reported",
+
+
+    "Comments:": "comments",
+
+
+    "Date Last Active:": "date_last_active",
+
+
+    "Date of Last Payment:": "date_last_payment",
+
+
+    "Date of First Delinquency:": "date_first_delinquency",
+
+
+    "DOFD:": "date_first_delinquency",
+
+
+
+
+
+    # New fields
+
+
+    "Compliance Condition Code:": "ccc",             # e.g., 'XB' when disputed
+
+
+    "ECOA Code:": "ecoa",                            # ownership/responsibility
+
+
+    "Account Designator:": "account_designator",     # Revolving/Installment/Collection...
+
+
+    "Date Closed:": "date_closed",
+
+
+    "Original Creditor:": "original_creditor",
+
+
+    "Creditor Classification:": "creditor_class",    # e.g., Debt Buyer/Bank
+
+
+    "Account Status Date:": "date_status",
+
+
+    "Current Rating:": "current_rating",
+
+
+
+
+
+    # Additional variants observed in recent bureau templates
+
+
+    "Credit Report Date": "last_reported",
+
+
+    "Credit Limit": "credit_limit",
+
+
+    "High Balance": "high_credit",
+
+
+    "Payment History": "payment_history",
+
+
+    "Original Creditor": "original_creditor",
+
+
+    "Past Due Amount": "past_due",
+
+
+    "Account Status": "account_status",
+
+
+}
 FIELD_ALIASES = {normalize_field_label(k): v for k, v in _FIELD_ALIASES.items()}
 
 # Late-payment CSS classes used in payment history
@@ -1187,5 +1273,6 @@ RULE_FIELD_REQUIREMENTS = [
         "description": "Need both balance and credit limit on the same bureau to compute utilization accurately.",
     },
 ]
+
 
 
