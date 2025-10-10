@@ -145,22 +145,24 @@ function mergeViolationLists(existing = [], incoming = []) {
   const merged = [];
   const seen = new Set();
 
-  [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]
-    .forEach((item) => {
-      if (!item || typeof item !== 'object') return;
+  for (const item of [
+    ...(Array.isArray(existing) ? existing : []),
+    ...(Array.isArray(incoming) ? incoming : []),
+  ]) {
+    if (!item || typeof item !== 'object') continue;
 
-      const normKey = stableStringify(normalizeViolation(item)); // renamed
-      const keyParts = [item.id && `id:${item.id}`, item.code && `code:${item.code}`];
-      if (!keyParts.some(Boolean)) {
-        keyParts.push(`hash:${JSON.stringify(item)}`);
-      }
-      const uniqueKey = keyParts.filter(Boolean).join('|'); // renamed
-      const finalKey = uniqueKey || normKey; // use uniqueKey if exists, else normKey
+    const keyParts = [];
+    if (item.id) keyParts.push(`id:${item.id}`);
+    if (item.code) keyParts.push(`code:${item.code}`);
+    if (!keyParts.length) {
+      keyParts.push(`hash:${stableStringify(normalizeViolation(item))}`);
+    }
 
-      if (seen.has(finalKey)) return;
-      seen.add(finalKey);
-      merged.push(item);
-    });
+    const uniqueKey = keyParts.join('|');
+    if (seen.has(uniqueKey)) continue;
+    seen.add(uniqueKey);
+    merged.push(item);
+  }
 
   return merged;
 }
@@ -180,13 +182,13 @@ function mapAuditedViolations(report, audit) {
   // Build a lookup from Python results
   const pyMap = new Map();
   for (const pyTL of audit.tradelines) {
-    const key = makeTLKey(pyTL);
+    const key = makeTLKey(pyTL).toLowerCase();
     if (!pyMap.has(key)) pyMap.set(key, []);
     pyMap.get(key).push(pyTL); // allow duplicates; we’ll shift() as we assign
   }
 
   for (const tl of report.tradelines) {
-    const key = makeTLKey(tl);
+    const key = makeTLKey(tl).toLowerCase();
     const bucket = pyMap.get(key);
     const match = bucket?.length ? bucket.shift() : null;
 

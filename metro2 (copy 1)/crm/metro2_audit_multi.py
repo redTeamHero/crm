@@ -33,7 +33,7 @@ def normalize_field_label(label):
     if not label:
         return ""
     cleaned = label.strip()
-    cleaned = re.sub(r"[:：;,-]+\s*$", "", cleaned)
+    cleaned = re.sub(r"[:：;,-]*\s*$", "", cleaned)
     return cleaned.strip()
 
 _FIELD_ALIASES = {
@@ -69,6 +69,15 @@ _FIELD_ALIASES = {
     "Creditor Classification:": "creditor_class",    # e.g., Debt Buyer/Bank
     "Account Status Date:": "date_status",
     "Current Rating:": "current_rating",
+
+    # Additional variants observed in recent bureau templates
+    "Credit Report Date": "last_reported",
+    "Credit Limit": "credit_limit",
+    "High Balance": "high_credit",
+    "Payment History": "payment_history",
+    "Original Creditor": "original_creditor",
+    "Past Due Amount": "past_due",
+    "Account Status": "account_status",
 }
 
 FIELD_ALIASES = {normalize_field_label(k): v for k, v in _FIELD_ALIASES.items()}
@@ -179,7 +188,9 @@ def nearest_creditor_header(tbl):
     while node and node.previous_sibling is not None:
         node = node.previous_sibling
         if getattr(node, "select_one", None):
-            hdr = node.select_one("div.sub_header")
+            hdr = node.select_one(
+                "div.sub_header, div.subHeader, h3.sub_header, h4.sub_header, h3, h4"
+            )
             if hdr:
                 return clean_text(hdr)
     parent = tbl.parent
@@ -187,7 +198,9 @@ def nearest_creditor_header(tbl):
         sib = parent.previous_sibling
         while sib:
             if getattr(sib, "select_one", None):
-                hdr = sib.select_one("div.sub_header")
+                hdr = sib.select_one(
+                    "div.sub_header, div.subHeader, h3.sub_header, h4.sub_header, h3, h4"
+                )
                 if hdr:
                     return clean_text(hdr)
             sib = sib.previous_sibling
