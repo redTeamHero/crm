@@ -145,13 +145,18 @@ def clean_text(el):
 
 def _header_matches_bureau(th, bureau):
     text = clean_text(th).lower()
-    classes = [c.lower() for c in th.get("class", [])]
+    class_list = th.get("class", []) or []
+    lower_classes = {c.lower() for c in class_list}
+
+    def has_class(*names):
+        return any(name in class_list or name.lower() in lower_classes for name in names)
+
     if bureau == "TransUnion":
-        return "headertuc" in classes or "transunion" in text
+        return has_class("headerTUC", "headertuc") or "transunion" in text
     if bureau == "Experian":
-        return "headerexp" in classes or "experian" in text
+        return has_class("headerEXP", "headerexp") or "experian" in text
     if bureau == "Equifax":
-        return "headereqf" in classes or "equifax" in text
+        return has_class("headerEQF", "headereqf") or "equifax" in text
     return False
 
 
