@@ -17,14 +17,7 @@ from bs4 import BeautifulSoup, Tag
 DEFAULT_CREDITOR_NAME = "Unknown Creditor"
 NON_CREDITOR_HEADERS = {"risk factors"}
 BUREAUS = ["TransUnion", "Experian", "Equifax"]
-MONEY_FIELDS = {
-    "balance",
-    "credit_limit",
-    "high_credit",
-    "past_due",
-    "monthly_payment",
-    "charge_off_amount",
-}
+MONEY_FIELDS = {"balance", "credit_limit", "high_credit", "past_due", "monthly_payment"}
 DATE_FIELDS = {
     "date_opened",
     "last_reported",
@@ -47,7 +40,6 @@ RowRule = Tuple[Union[str, re.Pattern[str]], Sequence[str], str]
 
 ROW_RULES: List[RowRule] = [
     ("Account #", ["account_number"], "single"),
-    (re.compile(r"Original Creditor", re.I), ["original_creditor"], "single"),
     ("Account Type", ["account_type"], "single"),
     ("Account Type - Detail", ["account_type_detail"], "single"),
     ("Bureau Code", ["bureau_code"], "single"),
@@ -57,7 +49,6 @@ ROW_RULES: List[RowRule] = [
     ("Balance", ["balance"], "single"),
     ("Credit Limit", ["credit_limit"], "single"),
     ("High Credit", ["high_credit"], "single"),
-    (re.compile(r"Charge[-\s]?off Amount", re.I), ["charge_off_amount"], "single"),
     ("Past Due", ["past_due"], "single"),
     ("Date Opened", ["date_opened"], "single"),
     ("Last Reported", ["last_reported"], "single"),
