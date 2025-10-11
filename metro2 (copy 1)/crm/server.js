@@ -733,19 +733,184 @@ async function runPythonAnalyzer(htmlContent){
         await fs.promises.access(outPath, fs.constants.R_OK);
         const raw = await fs.promises.readFile(outPath, "utf-8");
         const json = JSON.parse(raw);
-        resolve(json);
+        resolve({ data: json, stdout, stderr });
       }catch(e){ reject(e); }
       finally{ try{ await fs.promises.rm(tmpDir,{recursive:true,force:true}); }catch{} }
     });
   });
 }
 
+function normalizeCreditorName(name = "") {
+  return String(name || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function normalizeAccountNumber(value) {
+  return String(value || "").replace(/[^0-9a-z]/gi, "").toLowerCase();
+}
+
+function collectAccountNumbers(tl = {}) {
+  const numbers = new Set();
+  const metaNums = tl?.meta?.account_numbers || {};
+  Object.values(metaNums || {}).forEach(val => {
+    if (val) numbers.add(String(val));
+  });
+  const perBureau = tl?.per_bureau || {};
+  Object.values(perBureau || {}).forEach(entry => {
+    if (!entry) return;
+    [entry.account_number, entry.account_number_raw, entry.accountNumber]
+      .forEach(val => {
+        if (val) numbers.add(String(val));
+      });
+  });
+  return Array.from(numbers);
+}
+
+function normalizeMoneyValue(value) {
+  if (value === undefined || value === null || value === "") return "";
+  const num = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]/g, ""));
+  if (!Number.isFinite(num)) return "";
+  return num.toFixed(2);
+}
+
+function normalizeDateValue(value) {
+  if (!value) return "";
+  const str = String(value).trim();
+  if (!str) return "";
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+  return str.slice(0, 10);
+}
+
+function buildTradelineKeySet(tl = {}) {
+  const keys = new Set();
+  const creditorNorm = normalizeCreditorName(tl?.meta?.creditor || "") || "unknown";
+  const accountNumbers = collectAccountNumbers(tl)
+    .map(normalizeAccountNumber)
+    .filter(Boolean);
+
+  accountNumbers.forEach(acct => {
+    keys.add(`${creditorNorm}|acct|${acct}`);
+    if (acct.length >= 4) {
+      keys.add(`${creditorNorm}|acct4|${acct.slice(-4)}`);
+    }
+  });
+
+  const perBureau = tl?.per_bureau || {};
+  Object.values(perBureau || {}).forEach(entry => {
+    const summaryParts = [
+      normalizeMoneyValue(entry?.balance ?? entry?.balance_raw),
+      normalizeDateValue(entry?.date_opened ?? entry?.date_opened_raw),
+      normalizeDateValue(entry?.last_reported ?? entry?.last_reported_raw),
+    ].filter(Boolean);
+    if (summaryParts.length) {
+      keys.add(`${creditorNorm}|sig|${summaryParts.join("|")}`);
+    }
+  });
+
+  keys.add(`${creditorNorm}|cred`);
+
+  if (!keys.size) {
+    keys.add(`unknown|${accountNumbers.join("|") || "na"}`);
+  }
+
+  return keys;
+}
+
+function buildTradelineMetadata(tl = {}, index = 0) {
+  return {
+    index,
+    creditorRaw: tl?.meta?.creditor || "",
+    creditorNorm: normalizeCreditorName(tl?.meta?.creditor || "") || "unknown",
+    keys: Array.from(buildTradelineKeySet(tl)),
+    accountNumbers: collectAccountNumbers(tl),
+  };
+}
+
+function matchTradelines(jsTradelines = [], pythonTradelines = []) {
+  const jsMeta = jsTradelines.map((tl, idx) => buildTradelineMetadata(tl, idx));
+  const keyMap = new Map();
+  jsMeta.forEach(meta => {
+    meta.keys.forEach(key => {
+      if (!keyMap.has(key)) keyMap.set(key, []);
+      keyMap.get(key).push(meta);
+    });
+  });
+
+  const usedJs = new Set();
+  const matches = [];
+  const unmatchedQueue = [];
+
+  pythonTradelines.forEach((tl, pyIndex) => {
+    const meta = buildTradelineMetadata(tl, pyIndex);
+    let matched = null;
+    for (const key of meta.keys) {
+      const candidates = keyMap.get(key) || [];
+      const available = candidates.find(c => !usedJs.has(c.index));
+      if (available) {
+        matched = { candidate: available, key };
+        break;
+      }
+    }
+    if (matched) {
+      usedJs.add(matched.candidate.index);
+      matches.push({
+        jsIndex: matched.candidate.index,
+        pyIndex,
+        key: matched.key,
+        strategy: "key",
+        jsCreditor: matched.candidate.creditorRaw,
+        pyCreditor: meta.creditorRaw,
+      });
+    } else {
+      unmatchedQueue.push({ pyIndex, meta });
+    }
+  });
+
+  const stillUnmatchedPy = [];
+  unmatchedQueue.forEach(item => {
+    const candidate = jsMeta.find(meta => !usedJs.has(meta.index));
+    if (candidate) {
+      usedJs.add(candidate.index);
+      matches.push({
+        jsIndex: candidate.index,
+        pyIndex: item.pyIndex,
+        key: "fallback:index",
+        strategy: "fallback",
+        jsCreditor: candidate.creditorRaw,
+        pyCreditor: item.meta.creditorRaw,
+      });
+    } else {
+      stillUnmatchedPy.push({
+        index: item.pyIndex,
+        creditor: item.meta.creditorRaw,
+        accountNumbers: item.meta.accountNumbers,
+        keys: item.meta.keys,
+      });
+    }
+  });
+
+  const unmatchedJs = jsMeta
+    .filter(meta => !usedJs.has(meta.index))
+    .map(meta => ({
+      index: meta.index,
+      creditor: meta.creditorRaw,
+      accountNumbers: meta.accountNumbers,
+      keys: meta.keys,
+    }));
+
+  return { matches, unmatchedJs, unmatchedPy: stillUnmatchedPy };
+}
+
 export function runBasicRuleAudit(report = {}) {
-  for (const tl of report.tradelines || []) {
+  const touched = new Set();
+  (report.tradelines || []).forEach((tl, idx) => {
     tl.violations = tl.violations || [];
     const add = (id, title) => {
       if (!tl.violations.some(v => v.id === id)) {
         tl.violations.push({ id, title });
+        touched.add(idx);
       }
     };
 
@@ -771,7 +936,8 @@ export function runBasicRuleAudit(report = {}) {
     if (balances.length > 1 && new Set(balances).size > 1) {
       add("BALANCE_MISMATCH", "Balances differ across bureaus");
     }
-  }
+  });
+  return touched;
 }
 
 // Attempt to pull credit scores from raw HTML uploads so the client portal
@@ -1366,50 +1532,134 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });
 
   const errors = [];
+  const diagnostics = {
+    jsTradelineCount: 0,
+    pythonViolationCount: 0,
+    matchedTradelineCount: 0,
+    basicRuleViolations: 0,
+  };
   try{
     const htmlText = req.file.buffer.toString("utf-8");
-    let analyzed = {};
+    let analyzed = { tradelines: [] };
 
     try {
       const dom = new JSDOM(htmlText);
-      const jsParsed = parseCreditReportHTML(dom.window.document);
-      analyzed.tradelines = jsParsed.tradelines || [];
-      if (jsParsed.personalInfo) {
-        analyzed.personalInfo = jsParsed.personalInfo;
+      const jsResult = parseCreditReportHTML(dom.window.document);
+      analyzed.tradelines = jsResult.tradelines || [];
+      if (jsResult.personalInfo) {
+        analyzed.personalInfo = jsResult.personalInfo;
       }
+      diagnostics.jsTradelineCount = analyzed.tradelines.length;
     } catch (e) {
       logError("JS_PARSER_FAILED", "JS parser failed", e);
-      errors.push({ step: "js_parse", message: e.message });
+      errors.push({ step: "js_parse", message: e.message, details: e.stack || String(e) });
     }
 
+    const jsTradelinesBefore = analyzed.tradelines?.length || 0;
+    let pythonStdout = "";
+    let pythonStderr = "";
+    let matchSummary = { matches: [], unmatchedJs: [], unmatchedPy: [] };
+    let matchDetails = [];
+    let pythonTradelines = [];
+
     try {
-      const py = await runPythonAnalyzer(htmlText);
-      py?.tradelines?.forEach((tl, idx) => {
-        const base = analyzed.tradelines[idx] || (analyzed.tradelines[idx] = {});
-        base.meta = deepMerge(base.meta, tl.meta);
-        base.per_bureau = deepMerge(base.per_bureau, tl.per_bureau);
-        base.violations = [
-          ...(base.violations || []),
-          ...(tl.violations || []),
-        ];
-        base.violations_grouped = deepMerge(
-          base.violations_grouped || {},
-          tl.violations_grouped || {}
-        );
+      const pyResult = await runPythonAnalyzer(htmlText);
+      pythonStdout = pyResult?.stdout || "";
+      pythonStderr = pyResult?.stderr || "";
+      const py = pyResult?.data || {};
+      pythonTradelines = Array.isArray(py?.tradelines) ? py.tradelines : [];
+      diagnostics.pythonViolationCount = pythonTradelines.reduce((sum, tl) => sum + ((tl?.violations || []).length), 0);
+
+      if (!analyzed.tradelines?.length && pythonTradelines.length) {
+        analyzed.tradelines = pythonTradelines.map(tl => ({ ...tl, source: "python_only" }));
+        matchSummary = {
+          matches: [],
+          unmatchedJs: [],
+          unmatchedPy: pythonTradelines.map((tl, idx) => ({
+            index: idx,
+            creditor: tl?.meta?.creditor || "",
+            accountNumbers: collectAccountNumbers(tl),
+            keys: Array.from(buildTradelineKeySet(tl)),
+          })),
+        };
+      } else if (pythonTradelines.length) {
+        matchSummary = matchTradelines(analyzed.tradelines || [], pythonTradelines);
+        diagnostics.matchedTradelineCount = matchSummary.matches.length;
+        const matchMap = new Map(matchSummary.matches.map(m => [m.pyIndex, m]));
+        matchDetails = [];
+
+        pythonTradelines.forEach((tl, pyIndex) => {
+          const mapping = matchMap.get(pyIndex);
+          if (mapping) {
+            const base = analyzed.tradelines[mapping.jsIndex] || (analyzed.tradelines[mapping.jsIndex] = {});
+            const beforeCount = (base.violations || []).length;
+            base.meta = deepMerge(base.meta, tl.meta);
+            base.per_bureau = deepMerge(base.per_bureau, tl.per_bureau);
+            if (tl.metrics) {
+              base.metrics = deepMerge(base.metrics || {}, tl.metrics);
+            }
+            base.violations = [
+              ...(base.violations || []),
+              ...(tl.violations || []),
+            ];
+            base.violations_grouped = deepMerge(
+              base.violations_grouped || {},
+              tl.violations_grouped || {}
+            );
+            const afterCount = (base.violations || []).length;
+            matchDetails.push({
+              jsIndex: mapping.jsIndex,
+              pyIndex,
+              key: mapping.key,
+              strategy: mapping.strategy,
+              creditor: base?.meta?.creditor || tl?.meta?.creditor || "",
+              addedViolations: Math.max(0, afterCount - beforeCount),
+              totalViolations: afterCount,
+            });
+          } else {
+            const clone = JSON.parse(JSON.stringify(tl));
+            clone.source = "python_only";
+            analyzed.tradelines.push(clone);
+          }
+        });
+      }
+
+      diagnostics.matchedTradelineCount = diagnostics.matchedTradelineCount || 0;
+
+      const addedViolations = matchDetails.reduce((sum, item) => sum + (item.addedViolations || 0), 0);
+      console.log("[Match Statistics]", {
+        consumerId: consumer.id,
+        jsTradelines: jsTradelinesBefore,
+        pythonTradelines: pythonTradelines.length,
+        matched: diagnostics.matchedTradelineCount,
+        unmatchedJs: matchSummary.unmatchedJs.length,
+        unmatchedPython: matchSummary.unmatchedPy.length,
+        addedViolations,
       });
-      if (!analyzed.personalInfo && py?.personalInfo) {
-        analyzed.personalInfo = py.personalInfo;
+      if (matchDetails.length) {
+        console.log("[Match Statistics] Details", matchDetails);
+      }
+      if (matchSummary.unmatchedJs.length) {
+        console.log("[Unmatched Keys] JS sample", matchSummary.unmatchedJs.slice(0, 3));
+      }
+      if (matchSummary.unmatchedPy.length) {
+        console.log("[Unmatched Keys] Python sample", matchSummary.unmatchedPy.slice(0, 3));
+      }
+
+      if (!analyzed.personalInfo && py?.personal_info) {
+        analyzed.personalInfo = py.personal_info;
       }
     } catch (e) {
       logError("PYTHON_ANALYZER_ERROR", "Python analyzer failed", e);
-      errors.push({ step: "python_analyzer", message: e.message });
+      errors.push({ step: "python_analyzer", message: e.message, details: e.stack || String(e) });
     }
 
     try {
-      runBasicRuleAudit(analyzed);
+      const touched = runBasicRuleAudit(analyzed);
+      diagnostics.basicRuleViolations = touched?.size || 0;
     } catch(e){
       logError("RULE_AUDIT_ERROR", "Basic rule audit failed", e);
-      errors.push({ step: "rule_audit", message: e.message });
+      errors.push({ step: "rule_audit", message: e.message, details: e.stack || String(e) });
     }
 
     let scores = {};
@@ -1420,7 +1670,14 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       }
     }catch(e){
       logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
-      errors.push({ step: "score_extract", message: e.message });
+      errors.push({ step: "score_extract", message: e.message, details: e.stack || String(e) });
+    }
+
+    if (pythonStdout.trim()) {
+      console.log("[Python Analyzer stdout]\n" + pythonStdout.trim());
+    }
+    if (pythonStderr.trim()) {
+      console.log("[Python Analyzer stderr]\n" + pythonStderr.trim());
     }
 
     // compare bureau-reported personal info against consumer record
@@ -1477,10 +1734,20 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       filename: req.file.originalname,
       size: req.file.size
     });
-    res.json({ ok:true, reportId: rid, creditScore: consumer.creditScore, errors });
+    const totalViolations = (analyzed.tradelines || []).reduce((sum, tl) => sum + ((tl?.violations || []).length), 0);
+    console.log("[Audit Success]", {
+      consumerId: consumer.id,
+      reportId: rid,
+      tradelines: analyzed.tradelines?.length || 0,
+      totalViolations,
+      pythonViolations: diagnostics.pythonViolationCount,
+      basicRuleTradelines: diagnostics.basicRuleViolations,
+      errors: errors.length,
+    });
+    res.json({ ok:true, reportId: rid, creditScore: consumer.creditScore, errors, diagnostics });
   }catch(e){
     logError("UPLOAD_PROCESSING_FAILED", "Analyzer error", e);
-    res.status(500).json({ ok:false, error: "Failed to process uploaded report", errors });
+    res.status(500).json({ ok:false, error: "Failed to process uploaded report", errors, diagnostics });
   }
 });
 
