@@ -3,6 +3,36 @@ import { validateTradeline, enrich } from './validators.js';
 
 export { fieldMap, validateTradeline, enrich };
 
+export function parseReport(context){
+  const adapter = createDomAdapter(context);
+  if(!adapter){
+    return { tradelines: [], history: emptyHistory(), inquiries: [], inquiry_summary: emptyInquirySummary() };
+  }
+
+  const tradelines = [];
+  const tables = adapter.selectAll('table.rpt_content_table.rpt_content_header.rpt_table4column');
+  for(const table of tables){
+    const rows = adapter.rows(table);
+    if(!rows.length) continue;
+
+    const headerCells = adapter.find(rows[0], 'th');
+    const cells = headerCells.length ? headerCells : adapter.find(rows[0], 'td');
+    const bureaus = cells.slice(1).map(cell => adapter.text(cell));
+
+    const dataRows = rows.slice(1).map(row => ({
+      label: adapter.text(row, 'td.label'),
+      values: adapter.find(row, 'td.info').map(cell => adapter.text(cell))
+    }));
+
+    tradelines.push(buildTradeline(bureaus, dataRows));
+  }
+
+  const history = parseHistory(context);
+  const { list: inquiries, summary: inquirySummary } = parseInquiries(context);
+
+  return { tradelines, history, inquiries, inquiry_summary: inquirySummary };
+}
+
 export function buildTradeline(bureaus, rows){
   const tl = { per_bureau:{}, violations:[] };
   for(const {label, values} of rows){
