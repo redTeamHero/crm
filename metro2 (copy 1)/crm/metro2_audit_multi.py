@@ -36,133 +36,48 @@ def normalize_field_label(label):
     cleaned = re.sub(r"[:：;,-]*\s*$", "", cleaned)
     return cleaned.strip()
 _FIELD_ALIASES = {
-
-
-
+    # Core Metro-2 labels
     "Account #": "account_number",
-
-
     "Account #:": "account_number",
-
-
     "Acct #": "account_number",
-
-
     "Acct #:": "account_number",
-
-
     "Account Type:": "account_type",
-
-
     "Account Type - Detail:": "account_type_detail",
-
-
     "Bureau Code:": "bureau_code",
-
-
     "Account Status:": "account_status",
-
-
     "Monthly Payment:": "monthly_payment",
-
-
     "Date Opened:": "date_opened",
-
-
     "Balance:": "balance",
-
-
     "No. of Months (terms):": "months_terms",
-
-
     "High Credit:": "high_credit",
-
-
     "Credit Limit:": "credit_limit",
-
-
     "Past Due:": "past_due",
-
-
     "Payment Status:": "payment_status",
-
-
     "Last Reported:": "last_reported",
-
-
     "Comments:": "comments",
-
-
     "Date Last Active:": "date_last_active",
-
-
     "Date of Last Payment:": "date_last_payment",
-
-
     "Date of First Delinquency:": "date_first_delinquency",
-
-
     "DOFD:": "date_first_delinquency",
-
-
-
-
-
-    # New fields
-
-
-    "Compliance Condition Code:": "ccc",             # e.g., 'XB' when disputed
-
-
-    "ECOA Code:": "ecoa",                            # ownership/responsibility
-
-
-    "Account Designator:": "account_designator",     # Revolving/Installment/Collection...
-
-
+    # Extended fields frequently present on bureau exports
+    "Compliance Condition Code:": "ccc",  # e.g., 'XB' when disputed
+    "ECOA Code:": "ecoa",  # ownership/responsibility
+    "Account Designator:": "account_designator",  # Revolving/Installment/Collection...
     "Date Closed:": "date_closed",
-
-
     "Original Creditor:": "original_creditor",
-
-
-    "Creditor Classification:": "creditor_class",    # e.g., Debt Buyer/Bank
-
-
+    "Creditor Classification:": "creditor_class",  # e.g., Debt Buyer/Bank
     "Account Status Date:": "date_status",
-
-
     "Current Rating:": "current_rating",
-
-
-
-
-
     # Additional variants observed in recent bureau templates
-
-
     "Credit Report Date": "last_reported",
-
-
     "Credit Limit": "credit_limit",
-
-
     "High Balance": "high_credit",
-
-
     "Payment History": "payment_history",
-
-
     "Original Creditor": "original_creditor",
-
-
     "Past Due Amount": "past_due",
-
-
     "Account Status": "account_status",
-
-
 }
+
 FIELD_ALIASES = {normalize_field_label(k): v for k, v in _FIELD_ALIASES.items()}
 
 # Late-payment CSS classes used in payment history
