@@ -906,11 +906,39 @@ function matchTradelines(jsTradelines = [], pythonTradelines = []) {
 export function runBasicRuleAudit(report = {}) {
   const touched = new Set();
   (report.tradelines || []).forEach((tl, idx) => {
-    tl.violations = tl.violations || [];
+    if (!tl || typeof tl !== "object") return;
+
+    const violations = Array.isArray(tl.violations) ? tl.violations : [];
+    tl.violations = violations;
+
+    const grouped = tl.violations_grouped && typeof tl.violations_grouped === "object"
+      ? tl.violations_grouped
+      : {};
+    tl.violations_grouped = grouped;
+
+    const ensureBasicGroup = () => {
+      if (!Array.isArray(grouped.Basic)) {
+        grouped.Basic = [];
+      }
+      return grouped.Basic;
+    };
+
     const add = (id, title) => {
-      if (!tl.violations.some(v => v.id === id)) {
-        tl.violations.push({ id, title });
+      if (!violations.some(v => v && v.id === id)) {
+        const entry = { id, title, source: "basic_rule_audit" };
+        violations.push(entry);
+        const basicGroup = ensureBasicGroup();
+        if (!basicGroup.some(v => v && v.id === id)) {
+          basicGroup.push(entry);
+        }
         touched.add(idx);
+      } else {
+        const basicGroup = ensureBasicGroup();
+        if (!basicGroup.some(v => v && v.id === id)) {
+          const existing = violations.find(v => v && v.id === id);
+          basicGroup.push(existing);
+          touched.add(idx);
+        }
       }
     };
 
