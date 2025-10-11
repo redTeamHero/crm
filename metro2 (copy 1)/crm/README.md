@@ -6,7 +6,7 @@ Use `metro2Violations.json` as a quick reference for common Metro-2 and FCRA con
 
 **Note:** `metro2Violations.json` in this directory is the canonical source for violation metadata. Both the Python audit engine and the Node letter engine load from this shared file—avoid copying it elsewhere to prevent divergence.
 
-Rules that power per-bureau sanity checks now live in `shared/data/metro2_rules.json`. The Python analyzer and the lightweight Node validators load this file at runtime, so define rule predicates once there to keep the ecosystems consistent.
+The knowledge graph that powers per-bureau sanity checks now lives in `shared/data/metro2_knowledge_graph.json`. The Python analyzer and the lightweight Node validators hydrate an ontology from this file at runtime, so define new relationships there to keep every engine in sync.
 
 ### Sample entry
 

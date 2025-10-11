@@ -55,12 +55,12 @@ test('validateTradeline returns enriched violation objects', () => {
   });
 });
 
-test('validateTradeline loads metro2_rules.json predicates', () => {
+test('validateTradeline loads knowledge graph constraints', () => {
   const violations = validateTradeline({ account_status: 'Pays As Agreed', past_due: '$45.00' });
   assert.ok(violations.some(v => v.code === 'CURRENT_BUT_PASTDUE'));
 });
 
-test('validateTradeline flags missing DOFD for charge-offs via JSON rules', () => {
+test('validateTradeline flags missing DOFD for charge-offs via knowledge graph', () => {
   const violations = validateTradeline({ account_status: 'Charge-Off', date_first_delinquency: '' });
   assert.ok(violations.some(v => v.code === 'MISSING_DOFD'));
 });
