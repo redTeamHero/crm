@@ -1137,14 +1137,15 @@ def main():
 
     # Print human-readable summary
     print(f"\nFound {len(tradelines)} tradeline(s).")
-    for idx, tl in enumerate(tradelines, 1):
+    for idx, tl in enumerate(tradelines):
         cred = tl["meta"]["creditor"]
         acct = tl["meta"].get("account_numbers") or {}
-        ft = furnisher_types[idx-1]
-        print(f"\n=== Tradeline {idx}: {cred} [{ft}] ===")
+        ft = furnisher_types[idx]
+        per_bureau = tl["per_bureau"]
+        print(f"\n=== Tradeline {idx + 1}: {cred} [{ft}] ===")
         if acct:
             print(f"Account #s: {acct}")
-        vlist = violations_map[idx-1]
+        vlist = violations_map.get(idx, [])
         if not vlist:
             print("No obvious violations detected by these rules.")
             diag_notes = diagnose_rule_coverage(per_bureau)
