@@ -21,6 +21,7 @@ Members created through `/api/register` now receive default permissions for cons
 ## Environment
 - `PORT` (optional, defaults to 3000)
 - `METRO2_VIOLATIONS_PATH` (optional; path to `metro2Violations.json`. If unset, the app searches the repo.)
+- `METRO2_RULES_PATH` (optional; path to `metro2_rules.json`. Defaults to the shared data file.)
 
 Copy `.env.sample` to `.env` and adjust values as needed.
 
