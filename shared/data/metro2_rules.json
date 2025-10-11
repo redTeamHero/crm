@@ -1,0 +1,57 @@
+{
+  "rules": {
+    "CURRENT_BUT_PASTDUE": {
+      "scope": "per_bureau",
+      "detail": "Account is marked current yet shows a past-due balance.",
+      "fieldsImpacted": [
+        "Past Due",
+        "Account Status"
+      ],
+      "evidenceFields": [
+        "account_status",
+        "past_due"
+      ],
+      "rule": {
+        "all": [
+          {
+            "field": "account_status",
+            "in": [
+              "Current",
+              "Paid",
+              "Pays as agreed"
+            ],
+            "caseInsensitive": true
+          },
+          {
+            "field": "past_due",
+            "gt": 0
+          }
+        ]
+      }
+    },
+    "MISSING_DOFD": {
+      "scope": "per_bureau",
+      "detail": "Charge-off or collection accounts must include a Date of First Delinquency.",
+      "fieldsImpacted": [
+        "Date of First Delinquency"
+      ],
+      "evidenceFields": [
+        "account_status",
+        "date_first_delinquency"
+      ],
+      "rule": {
+        "all": [
+          {
+            "field": "account_status",
+            "regex": "(charge[- ]?off|collection)",
+            "caseInsensitive": true
+          },
+          {
+            "field": "date_first_delinquency",
+            "exists": false
+          }
+        ]
+      }
+    }
+  }
+}
