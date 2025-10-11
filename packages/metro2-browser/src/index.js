@@ -10,5 +10,7 @@ export function parseReport(doc){
     }));
     tradelines.push(buildTradeline(headers, rows));
   });
-  return { tradelines, history: parseHistory(), inquiries: parseInquiries() };
+  const history = parseHistory(doc);
+  const { list: inquiries, summary: inquirySummary } = parseInquiries(doc);
+  return { tradelines, history, inquiries, inquiry_summary: inquirySummary };
 }

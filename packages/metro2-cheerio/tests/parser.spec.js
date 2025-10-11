@@ -1,20 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { JSDOM } from 'jsdom';
 import { parseReport as parseCheerio } from '../src/index.js';
 import { parseReport as parseDOM } from '../../metro2-browser/src/index.js';
 import { enrich, validateTradeline } from '../../metro2-core/src/index.js';
 
 test('adapters produce identical output and flag past-due inconsistency', () => {
-  const html = fs.readFileSync('tests/fixtures/report.html','utf8');
-  const nodeResult = parseCheerio(html);
+  const fixturePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'report.html');
+  const html = fs.readFileSync(fixturePath,'utf8');
+  const realNow = Date.now;
+  Date.now = () => new Date('2024-02-01T00:00:00Z').valueOf();
+  try {
+    const nodeResult = parseCheerio(html);
 
-  const dom = new JSDOM(html);
-  const browserResult = parseDOM(dom.window.document);
-  assert.deepStrictEqual(browserResult, nodeResult);
-  const v = nodeResult.tradelines[0].violations.find(v => v.code === 'CURRENT_BUT_PASTDUE' && v.bureau === 'TransUnion');
-  assert.ok(v, 'should flag past-due inconsistency for TransUnion');
+    const dom = new JSDOM(html);
+    const browserResult = parseDOM(dom.window.document);
+    assert.deepStrictEqual(browserResult, nodeResult);
+
+    const v = nodeResult.tradelines[0].violations.find(v => v.code === 'CURRENT_BUT_PASTDUE' && v.bureau === 'TransUnion');
+    assert.ok(v, 'should flag past-due inconsistency for TransUnion');
+
+    assert.equal(nodeResult.history.byBureau.TransUnion.length, 3);
+    assert.equal(nodeResult.history.summary.TransUnion.late, 1);
+    assert.equal(nodeResult.history.summary.Experian.unknown, 1);
+
+    assert.equal(nodeResult.inquiries.length, 2);
+    assert.equal(nodeResult.inquiries[0].creditor, 'Capital One');
+    assert.equal(nodeResult.inquiries[1].creditor, 'Amex');
+    assert.deepStrictEqual(nodeResult.inquiry_summary.byBureau, {
+      TransUnion: 1,
+      Experian: 1,
+      Equifax: 0,
+    });
+    assert.equal(nodeResult.inquiry_summary.total, 2);
+    assert.equal(nodeResult.inquiry_summary.last12mo, 2);
+    assert.equal(nodeResult.inquiry_summary.last24mo, 2);
+  } finally {
+    Date.now = realNow;
+  }
 });
 
 test('validateTradeline returns enriched violation objects', () => {
