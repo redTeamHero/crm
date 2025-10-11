@@ -14,6 +14,8 @@ export function parseReport(html){
     const tl = buildTradeline(bureaus, rows);
     tradelines.push(tl);
   });
-  return { tradelines, history: parseHistory(), inquiries: parseInquiries() };
+  const history = parseHistory($);
+  const { list: inquiries, summary: inquirySummary } = parseInquiries($);
+  return { tradelines, history, inquiries, inquiry_summary: inquirySummary };
 }
 

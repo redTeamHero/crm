@@ -1,11 +1,55 @@
 <table class="rpt_content_table rpt_content_header rpt_table4column">
-  <tr><th></th><th>TransUnion</th></tr>
+  <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
   <tr>
     <td class="label">Payment Status</td>
+    <td class="info">Current</td>
+    <td class="info">Late 30</td>
     <td class="info">Current</td>
   </tr>
   <tr>
     <td class="label">Past Due</td>
     <td class="info">$100</td>
+    <td class="info">$0</td>
+    <td class="info">$0</td>
+  </tr>
+</table>
+
+<table class="addr_hsrty">
+  <tr>
+    <td class="info"><span class="lg-view">Jan</span></td>
+    <td class="info"><span class="lg-view">Feb</span></td>
+    <td class="info"><span class="lg-view">Mar</span></td>
+  </tr>
+  <tr>
+    <td class="info">24</td>
+    <td class="info">24</td>
+    <td class="info">24</td>
+  </tr>
+  <tr>
+    <td class="label">TransUnion</td>
+    <td class="info hstry-ok">OK</td>
+    <td class="info hstry-late">30</td>
+    <td class="info hstry-ok">OK</td>
+  </tr>
+  <tr>
+    <td class="label">Experian</td>
+    <td class="info hstry-ok">OK</td>
+    <td class="info hstry-ok">OK</td>
+    <td class="info hstry-unknown">--</td>
+  </tr>
+</table>
+
+<table class="inq_section">
+  <tr ng-repeat="inqPartition in data">
+    <td class="info">Capital One</td>
+    <td class="info">Bank</td>
+    <td class="info">01/05/2024</td>
+    <td class="info">TransUnion</td>
+  </tr>
+  <tr>
+    <td class="info">Amex</td>
+    <td class="info">Finance</td>
+    <td class="info">11/18/2023</td>
+    <td class="info">Experian</td>
   </tr>
 </table>
