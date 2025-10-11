@@ -29,6 +29,88 @@ DATE_FORMATS = [
 
 BUREAUS = ["TransUnion", "Experian", "Equifax"]
 
+# Diagnostics for missing data coverage per tradeline
+RULE_FIELD_REQUIREMENTS = [
+    {
+        "key": "balance_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["balance"],
+        "description": "Need balances from at least two bureaus to compare amounts or calculate utilization deltas.",
+    },
+    {
+        "key": "past_due_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["past_due"],
+        "description": "Need past-due amounts from at least two bureaus to spot cross-reporting conflicts.",
+    },
+    {
+        "key": "limit_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["credit_limit"],
+        "description": "Need credit limits from at least two bureaus to compare utilization calculations.",
+    },
+    {
+        "key": "status_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["payment_status"],
+        "description": "Need payment status from at least two bureaus to call out inconsistent statuses.",
+    },
+    {
+        "key": "account_status_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["account_status"],
+        "description": "Need account status from at least two bureaus to flag conflicting status narratives.",
+    },
+    {
+        "key": "dofd_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["date_first_delinquency"],
+        "description": "Need DOFD values from at least two bureaus to compare aging and obsolescence windows.",
+    },
+    {
+        "key": "account_number_cross_bureau",
+        "type": "cross_bureau",
+        "fields": ["account_number"],
+        "description": "Need account numbers from at least two bureaus to confirm the tradeline is matched correctly.",
+    },
+    {
+        "key": "past_due_vs_status",
+        "type": "per_bureau_pair",
+        "fields": ["past_due", "payment_status"],
+        "description": "Need both past-due and payment status on a bureau to check for 'current but past-due' conflicts.",
+    },
+    {
+        "key": "balance_vs_past_due",
+        "type": "per_bureau_pair",
+        "fields": ["balance", "past_due"],
+        "description": "Need both balance and past-due to catch zero-balance-yet-past-due inconsistencies.",
+    },
+    {
+        "key": "status_vs_dates",
+        "type": "per_bureau_pair",
+        "fields": ["account_status", "date_closed"],
+        "description": "Need status and Date Closed to ensure closed accounts are not marked open/current.",
+    },
+    {
+        "key": "status_vs_last_reported",
+        "type": "per_bureau_pair",
+        "fields": ["account_status", "last_reported"],
+        "description": "Need status and Last Reported to spot stale reporting on active accounts.",
+    },
+    {
+        "key": "dofd_presence",
+        "type": "single_field",
+        "fields": ["date_first_delinquency"],
+        "description": "Need Date of First Delinquency to run obsolescence and charge-off completeness checks.",
+    },
+    {
+        "key": "utilization",
+        "type": "per_bureau_pair",
+        "fields": ["balance", "credit_limit"],
+        "description": "Need both balance and credit limit on the same bureau to compute utilization accurately.",
+    },
+]
+
 def normalize_field_label(label):
     if not label:
         return ""
@@ -1105,89 +1187,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# Diagnostics for missing data coverage per tradeline
-RULE_FIELD_REQUIREMENTS = [
-    {
-        "key": "balance_cross_bureau",
-        "type": "cross_bureau",
-        "fields": ["balance"],
-        "description": "Need balances from at least two bureaus to compare amounts or calculate utilization deltas.",
-    },
-    {
-        "key": "past_due_cross_bureau",
-        "type": "cross_bureau",
-        "fields": ["past_due"],
-        "description": "Need past-due amounts from at least two bureaus to spot cross-reporting conflicts.",
-    },
-    {
-        "key": "limit_cross_bureau",
-        "type": "cross_bureau",
-        "fields": ["credit_limit"],
-        "description": "Need credit limits from at least two bureaus to compare utilization calculations.",
-    },
-    {
-        "key": "status_cross_bureau",
-        "type": "cross_bureau",
-        "fields": ["payment_status"],
-        "description": "Need payment status from at least two bureaus to call out inconsistent statuses.",
-    },
-    {
-        "key": "account_status_cross_bureau",
-        "type": "cross_bureau",
-        "fields": ["account_status"],
-        "description": "Need account status from at least two bureaus to flag conflicting status narratives.",
-    },
-    {
-        "key": "dofd_cross_bureau",
-        "type": "cross_bureau",
-        "fields": ["date_first_delinquency"],
-        "description": "Need DOFD values from at least two bureaus to compare aging and obsolescence windows.",
-    },
-    {
-        "key": "account_number_cross_bureau",
-        "type": "cross_bureau",
-        "fields": ["account_number"],
-        "description": "Need account numbers from at least two bureaus to confirm the tradeline is matched correctly.",
-    },
-    {
-        "key": "past_due_vs_status",
-        "type": "per_bureau_pair",
-        "fields": ["past_due", "payment_status"],
-        "description": "Need both past-due and payment status on a bureau to check for 'current but past-due' conflicts.",
-    },
-    {
-        "key": "balance_vs_past_due",
-        "type": "per_bureau_pair",
-        "fields": ["balance", "past_due"],
-        "description": "Need both balance and past-due to catch zero-balance-yet-past-due inconsistencies.",
-    },
-    {
-        "key": "status_vs_dates",
-        "type": "per_bureau_pair",
-        "fields": ["account_status", "date_closed"],
-        "description": "Need status and Date Closed to ensure closed accounts are not marked open/current.",
-    },
-    {
-        "key": "status_vs_last_reported",
-        "type": "per_bureau_pair",
-        "fields": ["account_status", "last_reported"],
-        "description": "Need status and Last Reported to spot stale reporting on active accounts.",
-    },
-    {
-        "key": "dofd_presence",
-        "type": "single_field",
-        "fields": ["date_first_delinquency"],
-        "description": "Need Date of First Delinquency to run obsolescence and charge-off completeness checks.",
-    },
-    {
-        "key": "utilization",
-        "type": "per_bureau_pair",
-        "fields": ["balance", "credit_limit"],
-        "description": "Need both balance and credit limit on the same bureau to compute utilization accurately.",
-    },
-]
-
-
-
