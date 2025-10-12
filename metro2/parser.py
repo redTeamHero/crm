@@ -8,11 +8,11 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, MutableMapping, Optional, Sequence, Union
 
 from bs4 import BeautifulSoup, Tag
 
-from audit_rules import build_cli_report, run_all_audits
+from .audit_rules import build_cli_report, run_all_audits
 
 
 # ───────────── Helpers ─────────────
@@ -153,6 +153,20 @@ def parse_html_report(source: Union[str, Path, BeautifulSoup, Tag]) -> Dict[str,
     # Treat fallback as raw HTML string
     return parse_credit_report_html(str(source) if source is not None else "")
 
+
+def detect_tradeline_violations(
+    tradelines: Sequence[MutableMapping[str, Any]]
+) -> List[MutableMapping[str, Any]]:
+    """Compatibility wrapper for legacy callers expecting tradeline-only audits."""
+
+    payload: Dict[str, Any] = {
+        "accounts": [dict(tl) for tl in tradelines],
+        "inquiries": [],
+        "personal_information": {},
+    }
+    audited = run_all_audits(payload)
+    return list(audited.get("accounts", []))
+
 # ───────────── Main ─────────────
 def main(argv: Optional[Sequence[str]] = None) -> int:
     if argv is None:
@@ -178,4 +192,9 @@ if __name__ == "__main__":
     sys.exit(main())
 
 
-__all__ = ["parse_html_report", "parse_credit_report_html", "main"]
+__all__ = [
+    "parse_html_report",
+    "parse_credit_report_html",
+    "detect_tradeline_violations",
+    "main",
+]

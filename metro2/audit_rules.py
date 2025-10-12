@@ -28,13 +28,22 @@ def clean_amount(value: Any) -> float:
         return 0.0
 
 
-def group_by_creditor(tradelines: Iterable[Mapping[str, Any]]) -> Dict[str, List[Mapping[str, Any]]]:
-    """Group tradelines by a normalized creditor name."""
+def group_by_creditor(
+    tradelines: Iterable[Mapping[str, Any]]
+) -> Dict[tuple[str, str], List[Mapping[str, Any]]]:
+    """Group tradelines by creditor and account identifier when available."""
 
-    groups: Dict[str, List[Mapping[str, Any]]] = defaultdict(list)
+    groups: Dict[tuple[str, str], List[Mapping[str, Any]]] = defaultdict(list)
     for tl in tradelines:
         name = (tl.get("creditor_name") or "UNKNOWN").strip().upper()
-        groups[name].append(tl)
+        account = _normalized_account_number(tl)
+        if not account:
+            # Fall back to a shared bucket so bureaus without account numbers
+            # still compare against each other rather than being treated as
+            # distinct accounts for the same creditor.
+            account = "__NO_ACCOUNT_NUMBER__"
+        key = (name, account)
+        groups[key].append(tl)
     return groups
 
 
