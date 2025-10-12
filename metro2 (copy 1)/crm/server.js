@@ -488,8 +488,8 @@ app.use("/api/marketing", authenticate, forbidMember, marketingRoutes);
 
 app.get("/api/calendar/events", async (_req, res) => {
   try {
-    const events = await listCalendarEvents();
-    res.json({ ok: true, events });
+    const { events, mode, notice } = await listCalendarEvents();
+    res.json({ ok: true, events, mode, notice });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -497,8 +497,8 @@ app.get("/api/calendar/events", async (_req, res) => {
 
 app.post("/api/calendar/events", async (req, res) => {
   try {
-    const ev = await createCalendarEvent(req.body);
-    res.json({ ok: true, event: ev });
+    const { event, mode, notice } = await createCalendarEvent(req.body);
+    res.json({ ok: true, event, mode, notice });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -506,8 +506,8 @@ app.post("/api/calendar/events", async (req, res) => {
 
 app.put("/api/calendar/events/:id", async (req, res) => {
   try {
-    const ev = await updateCalendarEvent(req.params.id, req.body);
-    res.json({ ok: true, event: ev });
+    const { event, mode, notice } = await updateCalendarEvent(req.params.id, req.body);
+    res.json({ ok: true, event, mode, notice });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -515,8 +515,8 @@ app.put("/api/calendar/events/:id", async (req, res) => {
 
 app.delete("/api/calendar/events/:id", async (req, res) => {
   try {
-    await deleteCalendarEvent(req.params.id);
-    res.json({ ok: true });
+    const { mode, notice } = await deleteCalendarEvent(req.params.id);
+    res.json({ ok: true, mode, notice });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -534,8 +534,8 @@ app.get("/api/tradelines", async (_req, res) => {
 app.post("/api/calendar/freebusy", async (req, res) => {
   try {
     const { timeMin, timeMax } = req.body || {};
-    const fb = await calendarFreeBusy(timeMin, timeMax);
-    res.json({ ok: true, fb });
+    const { fb, mode, notice } = await calendarFreeBusy(timeMin, timeMax);
+    res.json({ ok: true, fb, mode, notice });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
