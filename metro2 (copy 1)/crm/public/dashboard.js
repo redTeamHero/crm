@@ -16,11 +16,54 @@ const chatState = {
   form: null,
   input: null,
   quickButtons: [],
+  categories: null,
+  prompts: null,
   isOpen: false,
   seeded: false
 };
+const CHAT_PROMPT_CATEGORIES = [
+  {
+    id: 'tour',
+    label: 'Program Tour / Recorrido',
+    prompts: [
+      { label: 'Start Program Tour', message: 'Start the guided program tour.' },
+      { label: 'Resume Tour', message: 'Resume the guided tour where I left off.' },
+      { label: 'Tour Talking Points', message: 'Share the NEPQ script to introduce the platform.' }
+    ]
+  },
+  {
+    id: 'onboarding',
+    label: 'Onboarding & Sales / Ventas',
+    prompts: [
+      { label: 'Onboard a Lead', message: 'How do I onboard a lead?' },
+      { label: 'Consult Script', message: 'Give me an NEPQ consult script.' },
+      { label: 'Revenue Tips', message: 'Show me revenue tips' }
+    ]
+  },
+  {
+    id: 'compliance',
+    label: 'Compliance & Metro-2 / Cumplimiento',
+    prompts: [
+      { label: 'Metro-2 Checklist', message: 'Share a Metro-2 compliance checklist.' },
+      { label: 'FCRA/FDCPA Guardrails', message: 'How do we keep FCRA/FDCPA tight?' },
+      { label: 'Spanish Compliance', message: '¿Tienes la guía en español?' }
+    ]
+  },
+  {
+    id: 'automation',
+    label: 'Automation & Ops / Automatización',
+    prompts: [
+      { label: 'Automation Ideas', message: 'Suggest automation workflows.' },
+      { label: 'Certified Mail Upsell', message: 'How do I upsell certified mail?' },
+      { label: 'Analytics KPIs', message: 'Which KPIs should I track weekly?' }
+    ]
+  }
+];
 let pendingChatOpen = false;
 const pendingChatMessages = [];
+let activeChatCategoryId = CHAT_PROMPT_CATEGORIES[0]?.id || null;
+let shepherdCheckPromise = null;
+let tourLoadingMessageShown = false;
 
 function burstConfetti(){
   if(!confettiTarget) return;
@@ -45,6 +88,29 @@ function refreshHelpGuideState(){
   if(storedStep) mode = 'resume';
   else if(completed) mode = 'replay';
   window.setHelpGuideState({ mode, completed });
+}
+
+function waitForShepherd({ attempts = 40, interval = 150 } = {}){
+  if(window.Shepherd) return Promise.resolve(window.Shepherd);
+  if(shepherdCheckPromise) return shepherdCheckPromise;
+  shepherdCheckPromise = new Promise(resolve => {
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries += 1;
+      if(window.Shepherd){
+        clearInterval(timer);
+        shepherdCheckPromise = null;
+        resolve(window.Shepherd);
+        return;
+      }
+      if(tries >= attempts){
+        clearInterval(timer);
+        shepherdCheckPromise = null;
+        resolve(null);
+      }
+    }, interval);
+  });
+  return shepherdCheckPromise;
 }
 
 function createTour(){
@@ -168,14 +234,35 @@ function createTour(){
   return tourInstance;
 }
 
-function startTour({ resume = false } = {}){
+async function startTour({ resume = false } = {}){
+  if(!window.Shepherd && !tourLoadingMessageShown){
+    pendingChatOpen = true;
+    openChatCoach({ focusInput: false });
+    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">Loading tour…</p><p class="text-xs text-slate-600">The guided walkthrough is preparing. / El recorrido guiado está cargando.</p>`, { html: true });
+    tourLoadingMessageShown = true;
+  }
+
+  const shepherd = await waitForShepherd();
+  if(!shepherd){
+    pendingChatOpen = true;
+    openChatCoach({ focusInput: false });
+    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">We couldn’t load the tour.</p><p class="text-xs text-slate-600">Refresh or check your connection, luego inténtalo de nuevo.</p>`, { html: true });
+    return;
+  }
+
   const tour = createTour();
   if(!tour){
     pendingChatOpen = true;
     openChatCoach({ focusInput: false });
-    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">Loading tour…</p><p class="text-xs text-slate-600">The guided walkthrough is still preparing. / El recorrido guiado está cargando.</p>`, { html: true });
+    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">The guided tour is unavailable right now.</p><p class="text-xs text-slate-600">Try again in a moment.</p>`, { html: true });
     return;
   }
+
+  if(tourLoadingMessageShown){
+    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">Tour ready.</p><p class="text-xs text-slate-600">Starting the guided walkthrough now. / Iniciando el recorrido ahora.</p>`, { html: true });
+    tourLoadingMessageShown = false;
+  }
+
   if(typeof tour.isActive === 'function' && tour.isActive()){
     tour.cancel();
   }
@@ -220,6 +307,60 @@ function appendChatMessage(role, content, { html = false } = {}){
   else bubble.textContent = content;
   chatState.messages.appendChild(bubble);
   chatState.messages.scrollTo({ top: chatState.messages.scrollHeight, behavior: 'smooth' });
+}
+
+function renderChatCategories(){
+  if(!chatState.categories) return;
+  chatState.categories.innerHTML = '';
+  CHAT_PROMPT_CATEGORIES.forEach(category => {
+    const isActive = category.id === activeChatCategoryId;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = isActive
+      ? 'btn text-xs bg-[var(--accent)] text-white shadow'
+      : 'btn text-xs bg-slate-100 text-slate-700';
+    btn.textContent = category.label;
+    btn.setAttribute('data-category', category.id);
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    btn.addEventListener('click', () => {
+      if(activeChatCategoryId === category.id) return;
+      activeChatCategoryId = category.id;
+      renderChatCategories();
+      renderChatPrompts();
+    });
+    chatState.categories.appendChild(btn);
+  });
+}
+
+function renderChatPrompts(){
+  if(!chatState.prompts) return;
+  chatState.prompts.innerHTML = '';
+  const activeCategory = CHAT_PROMPT_CATEGORIES.find(cat => cat.id === activeChatCategoryId);
+  if(!activeCategory) return;
+  activeCategory.prompts.forEach(prompt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn text-xs bg-slate-100 text-slate-700';
+    btn.textContent = prompt.label;
+    btn.dataset.chatMessage = prompt.message;
+    chatState.prompts.appendChild(btn);
+  });
+  chatState.quickButtons = Array.from(chatState.prompts.querySelectorAll('[data-chat-message]'));
+  chatState.quickButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      openChatCoach({ focusInput: false });
+      sendChatMessage(btn.dataset.chatMessage || '');
+    });
+  });
+}
+
+function initChatPromptMenu(){
+  if(!chatState.categories || !chatState.prompts) return;
+  if(!activeChatCategoryId){
+    activeChatCategoryId = CHAT_PROMPT_CATEGORIES[0]?.id || null;
+  }
+  renderChatCategories();
+  renderChatPrompts();
 }
 
 function seedChat(){
@@ -289,6 +430,18 @@ function generateAssistantReply(message){
              <p class="mt-2 text-xs text-slate-500">KPI: Track completion of each tour run vs. upgrades. A/B idea: compare a "Book consult" CTA versus "Start audit" during the final step.</p>`
     };
   }
+  if(normalized.includes('certified mail') || normalized.includes('correo certificado')){
+    return {
+      html: true,
+      text: `<p class="font-semibold text-slate-800">Productize certified mail as a premium upsell:</p>
+             <ol class="mt-1 list-decimal list-inside space-y-1 text-sm text-slate-700">
+               <li>Bundle it after each letter generation with a one-click Stripe checkout add-on.</li>
+               <li>Auto-trigger tracking SMS/email updates to prove delivery—no PII in logs.</li>
+               <li>Report monthly on delivery success vs. dispute outcomes for social proof.</li>
+             </ol>
+             <p class="mt-2 text-xs text-slate-500">KPI: Attach Rate & Certified Mail Margin. A/B idea: test "Secure delivery" vs. "Certified compliance mailing" copy on the upsell modal.</p>`
+    };
+  }
   if(normalized.includes('onboard') || normalized.includes('lead')){
     return {
       html: true,
@@ -299,6 +452,54 @@ function generateAssistantReply(message){
                <li>Collect payment with Stripe checkout links tied to the billing widget. / Cobra con Stripe desde Billing.</li>
              </ol>
              <p class="mt-2 text-xs text-slate-500">KPI: Lead→Consult% y Consult→Purchase%. A/B test: try "Secure your audit" vs. "Start Metro-2 review" on the booking CTA.</p>`
+    };
+  }
+  if(normalized.includes('script') || normalized.includes('nepq')){
+    return {
+      html: true,
+      text: `<p class="font-semibold text-slate-800">NEPQ consult script beats pushy sales:</p>
+             <ol class="mt-1 list-decimal list-inside space-y-1 text-sm text-slate-700">
+               <li><strong>Problem:</strong> "Walk me through what triggered you to fix your credit now?"</li>
+               <li><strong>Consequences:</strong> "What happens if we do nothing this quarter?" / "¿Qué pasa si no cambiamos nada?"</li>
+               <li><strong>Vision:</strong> "Imagine trucking contracts approved because Metro-2 data is spotless—how does that change cash flow?"</li>
+             </ol>
+             <p class="mt-2 text-xs text-slate-500">KPI: Consult→Purchase%. A/B idea: test video vs. audio delivery of this script in the Guided Coach.</p>`
+    };
+  }
+  if(normalized.includes('compliance') || normalized.includes('fcra') || normalized.includes('fdcpa') || normalized.includes('checklist') || normalized.includes('metro-2')){
+    return {
+      html: true,
+      text: `<p class="font-semibold text-slate-800">Metro-2 + FCRA compliance guardrails:</p>
+             <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
+               <li>Validate DOFD on every charge-off/collection before letters—no DOFD, no send.</li>
+               <li>Match account status to balance logic (current = $0 past due, installment vs. revolving limits).</li>
+               <li>Redact SSN to last4 in all logs and force TLS + rate limiting on auth endpoints.</li>
+             </ul>
+             <p class="mt-2 text-xs text-slate-500">KPI: Disputes sent with complete Metro-2 data. A/B idea: compare compliance checklist gating vs. inline warnings to reduce rework.</p>`
+    };
+  }
+  if(normalized.includes('automation') || normalized.includes('workflow') || normalized.includes('ops')){
+    return {
+      html: true,
+      text: `<p class="font-semibold text-slate-800">Automation sprint for the week:</p>
+             <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
+               <li>Webhook → Discord alert when Experian updates arrive to prompt follow-up calls.</li>
+               <li>Auto-generate dispute drafts, gate final PDF behind Stripe checkout, luego dispara el mail API.</li>
+               <li>Schedule retention nudges via calendar sync when payments slip past 3 days.</li>
+             </ul>
+             <p class="mt-2 text-xs text-slate-500">KPI: Time-to-Value & Task Completion Rate. A/B idea: test "Automate delivery" vs. "Keep it manual" upsell copy.</p>`
+    };
+  }
+  if(normalized.includes('kpi') || normalized.includes('metrics') || normalized.includes('track weekly')){
+    return {
+      html: true,
+      text: `<p class="font-semibold text-slate-800">Weekly KPI dashboard checklist:</p>
+             <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
+               <li>Lead→Consult% segmented by channel (ads vs. referrals).</li>
+               <li>Consult→Purchase% plus certified mail attach rate.</li>
+               <li>Refund% + Time-to-Value (days to first dispute sent).</li>
+             </ul>
+             <p class="mt-2 text-xs text-slate-500">A/B idea: experiment with CTA "Review my KPIs" vs. "Audit my funnel" in the dashboard hero.</p>`
     };
   }
   if(normalized.includes('revenue') || normalized.includes('ventas') || normalized.includes('upsell')){
@@ -643,7 +844,9 @@ document.addEventListener('DOMContentLoaded', () => {
   chatState.messages = document.getElementById('guideChatMessages');
   chatState.form = document.getElementById('guideChatForm');
   chatState.input = document.getElementById('guideChatInput');
-  chatState.quickButtons = Array.from(document.querySelectorAll('[data-chat-message]'));
+  chatState.categories = document.getElementById('guideChatCategories');
+  chatState.prompts = document.getElementById('guideChatPrompts');
+  initChatPromptMenu();
 
   if(chatState.messages && pendingChatMessages.length){
     const items = pendingChatMessages.splice(0, pendingChatMessages.length);
@@ -662,12 +865,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const value = chatState.input.value.trim();
     chatState.input.value = '';
     if(value) sendChatMessage(value);
-  });
-  chatState.quickButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      openChatCoach({ focusInput: false });
-      sendChatMessage(btn.dataset.chatMessage || '');
-    });
   });
   document.addEventListener('keydown', (event) => {
     if(event.key === 'Escape' && chatState.isOpen){
