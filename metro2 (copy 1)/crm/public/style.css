@@ -71,6 +71,8 @@ body::after {
   border-radius: 24px;
   backdrop-filter: blur(18px) saturate(150%);
   box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
 }
 .card {
   border-radius: 24px;
@@ -1299,6 +1301,23 @@ header .group > div.absolute {
 
 .nav-dropdown:not(.open) .nav-dropdown-menu {
   display: none;
+}
+
+.nav-shell .btn.nav-btn {
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--text-strong);
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.nav-shell .btn.nav-btn:hover {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent);
+  transform: translateY(0);
+  box-shadow: none;
 }
 
 @media (min-width: 768px) {
