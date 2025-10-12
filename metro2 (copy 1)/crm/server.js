@@ -29,6 +29,7 @@ import { fetchFn } from "./fetchUtil.js";
 import { scrapeTradelines } from "./tradelineScraper.js";
 import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "./negativeItems.js";
+import { mapAuditedViolations } from "./pullTradelineData.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 
@@ -814,6 +815,30 @@ async function runPythonAnalyzer(htmlContent){
       finally{ try{ await fs.promises.rm(tmpDir,{recursive:true,force:true}); }catch{} }
     });
   });
+}
+
+function mapPythonPersonalInfo(raw){
+  if (!raw) return null;
+  if (Array.isArray(raw)) {
+    const bureaus = {};
+    raw.forEach(entry => {
+      if (!entry || typeof entry !== "object") return;
+      Object.entries(entry).forEach(([field, values]) => {
+        if (!values || typeof values !== "object") return;
+        Object.entries(values).forEach(([bureau, value]) => {
+          const name = (bureau || "").toString().trim();
+          if (!name) return;
+          if (!bureaus[name]) bureaus[name] = {};
+          bureaus[name][field] = value;
+        });
+      });
+    });
+    return Object.keys(bureaus).length ? bureaus : null;
+  }
+  if (typeof raw === "object") {
+    return raw;
+  }
+  return null;
 }
 
 function normalizeCreditorName(name = "") {
@@ -1751,7 +1776,18 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       pythonStdout = pyResult?.stdout || "";
       pythonStderr = pyResult?.stderr || "";
       const py = pyResult?.data || {};
-      pythonTradelines = Array.isArray(py?.tradelines) ? py.tradelines : [];
+      const pyPersonalInfo = mapPythonPersonalInfo(py?.personal_info || py?.personal_information);
+      let convertedPyTradelines = Array.isArray(py?.tradelines) ? py.tradelines : [];
+      if (!convertedPyTradelines.length && Array.isArray(py?.account_history)) {
+        try {
+          convertedPyTradelines = mapAuditedViolations(py);
+        } catch (err) {
+          logError("PYTHON_TRADELINE_CONVERT_FAILED", "Failed to normalize Python account history", err);
+          convertedPyTradelines = [];
+        }
+      }
+
+      pythonTradelines = convertedPyTradelines;
       diagnostics.pythonViolationCount = pythonTradelines.reduce((sum, tl) => sum + ((tl?.violations || []).length), 0);
 
       if (!analyzed.tradelines?.length && pythonTradelines.length) {
@@ -1830,8 +1866,8 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
         console.log("[Unmatched Keys] Python sample", matchSummary.unmatchedPy.slice(0, 3));
       }
 
-      if (!analyzed.personalInfo && py?.personal_info) {
-        analyzed.personalInfo = py.personal_info;
+      if (!analyzed.personalInfo && pyPersonalInfo) {
+        analyzed.personalInfo = pyPersonalInfo;
       }
     } catch (e) {
       logError("PYTHON_ANALYZER_ERROR", "Python analyzer failed", e);

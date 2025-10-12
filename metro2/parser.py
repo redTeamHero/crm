@@ -12,20 +12,12 @@ from __future__ import annotations
 import json
 import re
 import sys
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from bs4 import BeautifulSoup, Tag
-
-
-FIELD_KEY_ALIASES = {
-    "date_of_last_payment": "date_last_payment",
-    "date_last_payment": "date_last_payment",
-    "date_of_first_delinquency": "date_first_delinquency",
-    "date_first_delinquency": "date_first_delinquency",
-    "dofd": "date_first_delinquency",
-}
 
 
 # ───────────── Helpers ─────────────
@@ -105,13 +97,6 @@ def detect_personal_info_mismatches(personal_info: List[Dict[str, Dict[str, str]
 
 
 # ───────────── Account History ─────────────
-def normalize_field_key(label: str) -> str:
-    normalized = re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
-    if not normalized:
-        return ""
-    return FIELD_KEY_ALIASES.get(normalized, normalized)
-
-
 def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
     tradelines: List[Dict[str, Any]] = []
     for table in soup.find_all("table"):
@@ -135,9 +120,7 @@ def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
         for bureau in ["TransUnion", "Experian", "Equifax"]:
             tl: Dict[str, Any] = {"creditor_name": creditor, "bureau": bureau}
             for field, values in field_map.items():
-                key = normalize_field_key(field)
-                if not key:
-                    continue
+                key = field.lower().replace(" ", "_").replace(":", "")
                 tl[key] = values.get(bureau)
             tradelines.append(tl)
     return tradelines
@@ -208,198 +191,67 @@ def detect_inquiry_no_match(
     return violations
 
 
-def _load_violation_catalog() -> Dict[str, Any]:
-    candidates = [
-        Path(__file__).with_name("metro2Violations.json"),
-        Path(__file__).parent.parent / "data" / "metro2Violations.json",
-        Path(__file__).parent.parent / "public" / "metro2Violations.json",
-    ]
-    for path in candidates:
-        if path.exists():
-            with open(path, encoding="utf-8") as handle:
-                return json.load(handle)
-    return {}
-
-
-_VIOLATION_CATALOG: Optional[Dict[str, Any]] = None
-
-
-def violation_catalog() -> Dict[str, Any]:
-    global _VIOLATION_CATALOG
-    if _VIOLATION_CATALOG is None:
-        _VIOLATION_CATALOG = _load_violation_catalog()
-    return _VIOLATION_CATALOG
-
-
-def _normalize_text(value: Optional[str]) -> str:
-    return re.sub(r"\s+", " ", (value or "").strip()).lower()
-
-
-def _field_exists(value: Optional[str]) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"", "n/a", "na", "null", "none"}:
-            return False
-    return bool(value)
-
-
-def _evaluate_condition(condition: Dict[str, Any], tradeline: Dict[str, Any]) -> bool:
-    field = condition.get("field", "")
-    value = tradeline.get(field)
-
-    if "exists" in condition:
-        exists = _field_exists(value)
-        return exists if condition["exists"] else not exists
-
-    if value is None:
-        value = ""
-
-    text_value = _normalize_text(str(value))
-
-    if "contains_any" in condition:
-        options = [str(opt).lower() for opt in condition["contains_any"]]
-        return any(opt in text_value for opt in options)
-
-    if "eq" in condition:
-        target = _normalize_text(str(condition["eq"]))
-        return text_value == target or target in text_value
-
-    if "neq" in condition:
-        target = _normalize_text(str(condition["neq"]))
-        return text_value != target
-
-    if "contains" in condition:
-        target = _normalize_text(str(condition["contains"]))
-        return target in text_value
-
-    numeric_value = clean_amount(str(value))
-
-    if "eq_numeric" in condition:
-        return numeric_value == float(condition["eq_numeric"])
-
-    if "gt" in condition:
-        return numeric_value > float(condition["gt"])
-
-    if "gte" in condition:
-        return numeric_value >= float(condition["gte"])
-
-    if "lt" in condition:
-        return numeric_value < float(condition["lt"])
-
-    if "lte" in condition:
-        return numeric_value <= float(condition["lte"])
-
-    if "gt_field" in condition:
-        other_value = clean_amount(tradeline.get(condition["gt_field"]))
-        return numeric_value > other_value
-
-    return False
-
-
-def _evaluate_rule(rule: Dict[str, Any], tradeline: Dict[str, Any]) -> bool:
-    if "all" in rule:
-        return all(_evaluate_rule(part, tradeline) for part in rule["all"])
-    if "any" in rule:
-        return any(_evaluate_rule(part, tradeline) for part in rule["any"])
-    if "not" in rule:
-        return not _evaluate_rule(rule["not"], tradeline)
-    return _evaluate_condition(rule, tradeline)
-
-
-def _build_violation(rule_id: str, detail: Optional[str] = None) -> Dict[str, Any]:
-    catalog = violation_catalog()
-    meta = catalog.get(rule_id, {})
-    title = meta.get("violation") or rule_id.replace("_", " ").title()
-    violation: Dict[str, Any] = {
-        "id": rule_id,
-        "title": title,
-    }
-    if detail:
-        violation["detail"] = detail
-    if "severity" in meta:
-        violation["severity"] = meta["severity"]
-    if "fcraSection" in meta:
-        violation["fcraSection"] = meta["fcraSection"]
-    return violation
-
-
-def _apply_catalog_rules(tradeline: Dict[str, Any]) -> List[Dict[str, Any]]:
-    violations: List[Dict[str, Any]] = []
-    for rule_id, meta in violation_catalog().items():
-        rule = meta.get("rule")
-        if not rule:
-            continue
-        if _evaluate_rule(rule, tradeline):
-            violations.append(_build_violation(rule_id))
-    return violations
-
-
-def _group_key(tradeline: Dict[str, Any]) -> str:
-    creditor = (tradeline.get("creditor_name") or "").strip().lower()
-    account = (tradeline.get("account_number") or tradeline.get("accountnumber") or "").strip().lower()
-    return "::".join(filter(None, [creditor, account])) or creditor
-
-
-def _summarize_cross_bureau(
-    group: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    violations: List[Dict[str, Any]] = []
-
-    status_map = {
-        record.get("bureau", "?"): _normalize_text(record.get("account_status"))
-        for record in group
-        if _field_exists(record.get("account_status"))
-    }
-    unique_statuses = {value for value in status_map.values() if value}
-    if len(unique_statuses) > 1:
-        detail = ", ".join(f"{bureau}: {status_map[bureau]}" for bureau in sorted(status_map))
-        violations.append(_build_violation("X_BUREAU_STATUS_MISMATCH", detail=detail))
-
-    balance_map = {
-        record.get("bureau", "?"): clean_amount(record.get("balance"))
-        for record in group
-        if _field_exists(record.get("balance"))
-    }
-    unique_balances = {value for value in balance_map.values()}
-    if len(unique_balances) > 1:
-        detail = ", ".join(
-            f"{bureau}: ${balance_map[bureau]:,.2f}" for bureau in sorted(balance_map)
-        )
-        violations.append(_build_violation("X_BUREAU_BALANCE_MISMATCH", detail=detail))
-
-    return violations
-
-
-def run_metro2_audit(tradelines: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+# ───────────── Metro-2 Audit ─────────────
+def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     groups: Dict[str, List[Dict[str, Any]]] = {}
-    for tradeline in tradelines:
-        key = _group_key(tradeline)
-        groups.setdefault(key, []).append(tradeline)
+    for tl in tradelines:
+        key = (tl.get("creditor_name") or "").strip().lower()
+        groups.setdefault(key, []).append(tl)
 
-    audited: List[Dict[str, Any]] = []
-    cross_bureau_entries: List[Dict[str, Any]] = []
+    for creditor, records in groups.items():
+        balances = {clean_amount(r.get("balance")) for r in records if r.get("balance")}
+        statuses = {
+            (r.get("account_status") or "").lower()
+            for r in records
+            if r.get("account_status")
+        }
 
-    for group in groups.values():
-        for tradeline in group:
-            tradeline["violations"] = _apply_catalog_rules(tradeline)
-            audited.append(tradeline)
+        for tl in records:
+            violations: List[Dict[str, str]] = []
+            status = (tl.get("account_status") or "").lower()
+            balance = clean_amount(tl.get("balance"))
+            past_due = clean_amount(tl.get("past_due"))
+            high_credit = clean_amount(tl.get("high_credit"))
+            limit = clean_amount(tl.get("credit_limit"))
 
-        cross = _summarize_cross_bureau(group)
-        if cross:
-            base = group[0]
-            cross_entry = {
-                "creditor_name": base.get("creditor_name"),
-                "account_number": base.get("account_number") or base.get("accountnumber"),
-                "bureau": "Cross-Bureau",
-                "summary": True,
-                "violations": cross,
-            }
-            cross_bureau_entries.append(cross_entry)
+            if re.search(r"charge|collection", status) and not tl.get("date_of_first_delinquency"):
+                violations.append(
+                    {"id": "MISSING_DOFD", "title": "Charge-off/Collection missing DOFD"}
+                )
 
-    audited.extend(cross_bureau_entries)
-    return audited, cross_bureau_entries
+            if "current" in status and past_due > 0:
+                violations.append(
+                    {"id": "PAST_DUE_CURRENT", "title": "Current account shows past due > 0"}
+                )
+
+            if not tl.get("date_opened"):
+                violations.append({"id": "MISSING_OPEN_DATE", "title": "Missing Date Opened"})
+
+            if len(balances) > 1:
+                violations.append(
+                    {"id": "BALANCE_MISMATCH", "title": "Balance mismatch across bureaus"}
+                )
+
+            if len(statuses) > 1:
+                violations.append(
+                    {"id": "STATUS_MISMATCH", "title": "Status mismatch across bureaus"}
+                )
+
+            if "open" in status and balance == 0:
+                violations.append(
+                    {"id": "ZERO_BALANCE_OPEN", "title": "Open account shows $0 balance"}
+                )
+
+            if limit and high_credit and high_credit > limit:
+                violations.append(
+                    {
+                        "id": "HIGH_BALANCE_GT_LIMIT",
+                        "title": "High Credit exceeds Credit Limit",
+                    }
+                )
+
+            tl["violations"] = violations
+    return tradelines
 
 
 # ───────────── CLI Printer ─────────────
@@ -458,8 +310,7 @@ def parse_credit_report_html(doc: Union[str, BeautifulSoup, Tag]) -> Dict[str, A
         soup = BeautifulSoup(doc or "", "html.parser")
 
     personal = parse_personal_info(soup)
-    tradelines_raw = parse_account_history(soup)
-    tradelines, cross_bureau = run_metro2_audit(tradelines_raw)
+    tradelines = detect_tradeline_violations(parse_account_history(soup))
     inquiries = parse_inquiries(soup)
 
     personal_mismatches = detect_personal_info_mismatches(personal)
@@ -469,11 +320,13 @@ def parse_credit_report_html(doc: Union[str, BeautifulSoup, Tag]) -> Dict[str, A
         "personal_information": personal,
         "personal_mismatches": personal_mismatches,
         "account_history": tradelines,
-        "cross_bureau_violations": cross_bureau,
         "inquiries": inquiries,
         "inquiry_violations": inquiry_violations,
     }
 
+    html_path = argv[0]
+    with open(html_path, encoding="utf-8") as handle:
+        soup = BeautifulSoup(handle.read(), "html.parser")
 
 # ───────────── Main ─────────────
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -504,4 +357,4 @@ if __name__ == "__main__":
     sys.exit(main())
 
 
-__all__ = ["parse_credit_report_html", "run_metro2_audit", "main"]
+__all__ = ["parse_credit_report_html", "main"]

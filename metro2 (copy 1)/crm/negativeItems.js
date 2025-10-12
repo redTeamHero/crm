@@ -5,6 +5,20 @@ function normalizeSeverity(value){
   return Number.isFinite(num) ? num : 0;
 }
 
+function normalizeBureaus(entry = {}, fallback = []){
+  const bureaus = Array.isArray(entry.bureaus) && entry.bureaus.length
+    ? entry.bureaus
+    : entry.bureau
+      ? [entry.bureau]
+      : fallback;
+  return Array.from(new Set(bureaus.filter(Boolean)));
+}
+
+function normalizeTitle(entry = {}){
+  const raw = entry.title || entry.violation || "";
+  return typeof raw === "string" ? raw : String(raw ?? "");
+}
+
 function dedupeViolations(entries = []){
   const seen = new Set();
   const result = [];
@@ -18,14 +32,12 @@ function dedupeViolations(entries = []){
     const key = `${code}|${bureauKey}|${detail}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const bureaus = Array.isArray(entry.bureaus) && entry.bureaus.length
-      ? Array.from(new Set(entry.bureaus))
-      : entry.bureau
-        ? [entry.bureau]
-        : [];
+    const bureaus = normalizeBureaus(entry);
     result.push({
       ...entry,
       code,
+      id: entry.id || code,
+      category: entry.category || entry.group || null,
       bureaus,
       severity: normalizeSeverity(entry.severity ?? entry.weight)
     });
@@ -47,6 +59,40 @@ function collectAccountNumbers(perBureau = {}){
     numbers[bureau] = accountNumber;
   }
   return numbers;
+}
+
+function headlineFromViolations(list = []){
+  if (!Array.isArray(list) || !list.length) return null;
+  for (const entry of list){
+    const title = normalizeTitle(entry).trim();
+    if (!title) continue;
+    const category = entry.category || entry.group || null;
+    const text = [category, title].filter(Boolean).join(" – ");
+    return {
+      id: entry.id || entry.code || null,
+      code: entry.code || null,
+      category,
+      title,
+      detail: entry.detail || "",
+      severity: normalizeSeverity(entry.severity),
+      bureaus: normalizeBureaus(entry),
+      text,
+    };
+  }
+  return null;
+}
+
+function mapViolation(entry = {}){
+  const title = normalizeTitle(entry);
+  return {
+    id: entry.id || entry.code || null,
+    code: entry.code || null,
+    category: entry.category || entry.group || null,
+    title,
+    detail: entry.detail || "",
+    severity: normalizeSeverity(entry.severity),
+    bureaus: normalizeBureaus(entry),
+  };
 }
 
 export function prepareNegativeItems(tradelines = []){
@@ -90,19 +136,16 @@ export function prepareNegativeItems(tradelines = []){
       maxSeverity: deduped.reduce((max, v) => Math.max(max, v.severity ?? 0), 0),
     };
 
+    const headline = headlineFromViolations(deduped);
+
     items.push({
       index: idx,
       creditor: tl.meta?.creditor || "Unknown Creditor",
       account_numbers: collectAccountNumbers(perBureau),
       bureaus: summarizeBureaus(perBureau),
       severity: tl.metrics.maxSeverity,
-      violations: deduped.map(v => ({
-        code: v.code,
-        title: v.title || v.violation || "",
-        detail: v.detail || "",
-        severity: v.severity ?? 0,
-        bureaus: v.bureaus && v.bureaus.length ? v.bureaus : (v.bureau ? [v.bureau] : []),
-      })),
+      headline,
+      violations: deduped.map(mapViolation),
     });
   });
 
