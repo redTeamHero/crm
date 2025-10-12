@@ -870,16 +870,16 @@ function ensureHelpModal(){
   div.id = 'helpModal';
   div.className = 'fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)] z-50';
   div.innerHTML = `
-    <div class="glass card w-[min(720px,92vw)]">
+    <div class="glass card w-[min(760px,94vw)]">
       <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold">Hotkeys & Tips</div>
+        <div class="font-semibold">Hotkeys & Coach</div>
         <button id="helpClose" class="btn">×</button>
       </div>
-      <div class="text-sm space-y-2">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="glass card p-2">
+      <div class="text-sm space-y-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="glass card p-3">
             <div class="font-medium mb-1">Global</div>
-            <ul class="list-disc list-inside">
+            <ul class="list-disc list-inside space-y-1">
               <li><b>N</b> – New consumer</li>
               <li><b>U</b> – Upload HTML</li>
               <li><b>E</b> – Edit consumer</li>
@@ -889,13 +889,27 @@ function ensureHelpModal(){
               <li><b>R</b> – Remove focused tradeline card</li>
             </ul>
           </div>
-          <div class="glass card p-2">
+          <div class="glass card p-3">
             <div class="font-medium mb-1">Modes / Cards</div>
-            <ul class="list-disc list-inside">
+            <ul class="list-disc list-inside space-y-1">
               <li>Modes: <b>I</b>=Identity Theft, <b>D</b>=Data Breach, <b>S</b>=Sexual Assault</li>
               <li>Click a card to zoom; press <b>A</b> to toggle all bureaus on that card.</li>
               <li>Press <b>Esc</b> to exit a mode.</li>
             </ul>
+          </div>
+          <div class="glass card p-3 space-y-2" id="helpTourCard">
+            <div class="font-medium">Guided Walkthrough</div>
+            <p class="text-xs text-slate-600">Follow a 4-step tour that highlights revenue-focused workflows. / Sigue un tour de 4 pasos enfocado en flujos de ingresos.</p>
+            <div class="flex flex-wrap gap-2">
+              <button id="helpTourButton" type="button" class="btn text-xs" data-mode="start">Start Walkthrough / Iniciar recorrido</button>
+              <button id="helpTourReset" type="button" class="btn text-xs bg-slate-100 text-slate-700 hidden">Reset Progress / Reiniciar progreso</button>
+            </div>
+            <p id="helpTourStatus" class="text-[11px] font-medium text-emerald-600 hidden">Tour completed — celebrate your win! / Recorrido completado — ¡celebra tu avance!</p>
+          </div>
+          <div class="glass card p-3 space-y-2">
+            <div class="font-medium">Chat Coach</div>
+            <p class="text-xs text-slate-600">Ask playbook questions or request sales scripts. / Pregunta por playbooks o guiones de ventas.</p>
+            <button id="helpChatButton" type="button" class="btn text-xs">Open Chat Coach / Abrir guía</button>
           </div>
         </div>
       </div>
@@ -922,7 +936,55 @@ function bindHelp(){
   document.getElementById('btnHelp')?.addEventListener('click', openHelp);
   document.getElementById('helpClose')?.addEventListener('click', closeHelp);
   document.getElementById('helpModal')?.addEventListener('click', (e)=>{ if(e.target.id==='helpModal') closeHelp(); });
+  const tourButton = document.getElementById('helpTourButton');
+  if(tourButton && !tourButton.dataset.bound){
+    tourButton.addEventListener('click', ()=>{
+      const mode = tourButton.dataset.mode || 'start';
+      closeHelp();
+      window.dispatchEvent(new CustomEvent('crm:tutorial-request', { detail: { mode } }));
+    });
+    tourButton.dataset.bound = 'true';
+  }
+  const resetButton = document.getElementById('helpTourReset');
+  if(resetButton && !resetButton.dataset.bound){
+    resetButton.addEventListener('click', ()=>{
+      closeHelp();
+      window.dispatchEvent(new CustomEvent('crm:tutorial-reset'));
+    });
+    resetButton.dataset.bound = 'true';
+  }
+  const chatButton = document.getElementById('helpChatButton');
+  if(chatButton && !chatButton.dataset.bound){
+    chatButton.addEventListener('click', ()=>{
+      closeHelp();
+      window.dispatchEvent(new CustomEvent('crm:assistant-request', { detail: { source: 'help' } }));
+    });
+    chatButton.dataset.bound = 'true';
+  }
 }
+
+window.setHelpGuideState = function(state = {}){
+  ensureHelpModal();
+  const tourButton = document.getElementById('helpTourButton');
+  const resetButton = document.getElementById('helpTourReset');
+  const status = document.getElementById('helpTourStatus');
+  const mode = state.mode || 'start';
+  if(tourButton){
+    tourButton.dataset.mode = mode;
+    let label;
+    if(mode === 'resume') label = 'Resume Walkthrough / Reanudar recorrido';
+    else if(mode === 'replay') label = 'Replay Walkthrough / Repetir recorrido';
+    else label = 'Start Walkthrough / Iniciar recorrido';
+    tourButton.textContent = label;
+  }
+  if(resetButton){
+    const showReset = mode === 'resume' || state.completed;
+    resetButton.classList.toggle('hidden', !showReset);
+  }
+  if(status){
+    status.classList.toggle('hidden', !state.completed);
+  }
+};
 
 window.selectedConsumerId = localStorage.getItem('selectedConsumerId') || null;
 

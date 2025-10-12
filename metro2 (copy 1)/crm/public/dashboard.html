@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/css/shepherd.css">
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/js/shepherd.min.js" defer></script>
 <script>
 (() => {
   const themes = {
@@ -117,7 +119,7 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:auto-rows-fr">
+  <div id="tourKpiSection" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:auto-rows-fr">
     <div class="glass card h-full flex flex-col">
       <div class="flex items-start justify-between">
         <div>
@@ -160,7 +162,7 @@
   </div>
 
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:auto-rows-fr">
-    <div class="glass card lg:col-span-2 h-full flex flex-col">
+    <div id="tourNotepadCard" class="glass card lg:col-span-2 h-full flex flex-col">
       <div class="flex items-center justify-between mb-2">
         <div class="font-medium">Notepad</div>
         <button id="dashSaveNote" class="btn text-sm">Save</button>
@@ -187,7 +189,7 @@
       <div id="dashDeletion" class="text-sm muted">No data</div>
     </div>
 
-    <div class="glass card md:col-span-2 lg:col-span-3 h-full flex flex-col">
+    <div id="tourMapCard" class="glass card md:col-span-2 lg:col-span-3 h-full flex flex-col">
       <div class="font-medium mb-2">Client Locations</div>
       <div id="clientMap" class="w-full h-64 rounded-lg"></div>
     </div>
@@ -214,6 +216,35 @@
   </div>
 
   </main>
+  <button id="guideChatToggle" type="button" class="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-white shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]">
+    <span>Need a tour? / ¿Necesitas guía?</span>
+    <span aria-hidden="true">💬</span>
+  </button>
+  <section id="guideChatPanel" class="fixed bottom-4 right-4 z-40 hidden w-[min(360px,92vw)] rounded-2xl bg-white/95 shadow-2xl ring-1 ring-black/5 backdrop-blur">
+    <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <div>
+        <p class="text-sm font-semibold text-slate-800">Guided Coach</p>
+        <p class="text-xs text-slate-500">Onboarding support / Soporte de onboarding</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="guideChatTour" type="button" class="btn text-xs bg-[var(--accent)] text-white px-3 py-1">Start tour</button>
+        <button id="guideChatClose" type="button" class="btn text-xs px-3 py-1">×</button>
+      </div>
+    </div>
+    <div id="guideChatMessages" class="flex max-h-72 flex-col gap-3 overflow-y-auto px-4 py-3 text-sm" role="log" aria-live="polite"></div>
+    <div class="border-t border-slate-200 px-4 py-3">
+      <div class="mb-2 flex flex-wrap gap-2" id="guideChatQuick">
+        <button type="button" class="btn text-xs bg-slate-100 text-slate-700" data-chat-message="How do I onboard a lead?">Onboard a lead</button>
+        <button type="button" class="btn text-xs bg-slate-100 text-slate-700" data-chat-message="Show me revenue tips">Revenue tips</button>
+        <button type="button" class="btn text-xs bg-slate-100 text-slate-700" data-chat-message="¿Tienes la guía en español?">Guía en español</button>
+      </div>
+      <form id="guideChatForm" class="flex items-center gap-2">
+        <label class="sr-only" for="guideChatInput">Ask the coach</label>
+        <input id="guideChatInput" class="flex-1 rounded-full border border-slate-200 px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none" placeholder="Ask the coach / Pregunta al coach" autocomplete="off" />
+        <button type="submit" class="btn bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white">Send</button>
+      </form>
+    </div>
+  </section>
   <script type="module" src="/common.js"></script>
   <script src="/hotkeys.js"></script>
   <script type="module" src="/dashboard.js"></script>
