@@ -32,6 +32,7 @@ const collectorSelection = {};
 let trackerData = {};
 
 let trackerSteps = [];
+let trackerSaveTimer = null;
 
 let consumerFiles = [];
 
@@ -398,6 +399,17 @@ async function saveTracker(){
   }catch(e){
     showErr(e.message || 'Failed to sync tracker');
   }
+}
+
+function toggleTracker(){
+  if(!currentConsumerId) return;
+  if(trackerSaveTimer){
+    clearTimeout(trackerSaveTimer);
+  }
+  trackerSaveTimer = setTimeout(()=>{
+    trackerSaveTimer = null;
+    saveTracker();
+  }, 300);
 }
 async function syncTrackerSteps(){
   try{
