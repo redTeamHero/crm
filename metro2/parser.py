@@ -322,6 +322,9 @@ def parse_credit_report_html(doc: Union[str, BeautifulSoup, Tag]) -> Dict[str, A
         "inquiry_violations": inquiry_violations,
     }
 
+    html_path = argv[0]
+    with open(html_path, encoding="utf-8") as handle:
+        soup = BeautifulSoup(handle.read(), "html.parser")
 
 # ───────────── Main ─────────────
 def main(argv: Optional[Sequence[str]] = None) -> int:
