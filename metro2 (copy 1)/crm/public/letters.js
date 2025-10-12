@@ -22,6 +22,172 @@ const PER_PAGE = 10;
 let lastPreview = null;    // currently previewed letter object
 const TOKEN = localStorage.getItem('token');
 
+const jobListEl = $("#jobList");
+const jobEmptyEl = $("#jobsEmpty");
+const jobErrorEl = $("#jobsError");
+const jobSearchInput = $("#jobSearch");
+const jobTotalEl = $("#jobTotal");
+const jobLettersTotalEl = $("#jobLettersTotal");
+const jobLastRunEl = $("#jobLastRun");
+const jobSummaryNoteEl = $("#jobSummaryNote");
+
+let JOBS = [];
+
+function formatDateTime(date, locale){
+  try {
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  } catch (err) {
+    return date.toLocaleString(locale);
+  }
+}
+
+function updateJobsSummary(list){
+  const total = JOBS.length;
+  if (jobTotalEl) jobTotalEl.textContent = String(list.length);
+  if (jobLettersTotalEl) {
+    const sum = list.reduce((acc, job) => acc + (Number(job.count) || 0), 0);
+    jobLettersTotalEl.textContent = String(sum);
+  }
+  if (jobLastRunEl) {
+    const source = list.length ? list : JOBS;
+    const latest = source[0] ? new Date(source[0].createdAt) : null;
+    jobLastRunEl.textContent = latest ? formatDateTime(latest, 'en-US') : '—';
+  }
+  if (jobSummaryNoteEl) {
+    jobSummaryNoteEl.textContent = `Showing ${list.length} of ${total} jobs • Mostrando ${list.length} de ${total} lotes`;
+  }
+}
+
+function buildJobCard(job){
+  const lettersCount = Number(job.count) || 0;
+  const lettersLabelEn = lettersCount === 1 ? 'letter' : 'letters';
+  const lettersLabelEs = lettersCount === 1 ? 'carta' : 'cartas';
+  const createdDate = job.createdAt ? new Date(job.createdAt) : null;
+  const createdEn = createdDate ? formatDateTime(createdDate, 'en-US') : '—';
+  const createdEs = createdDate ? formatDateTime(createdDate, 'es-ES') : '—';
+  const consumerName = (job.consumerName || '').trim() || job.consumerId || 'Client';
+  const consumerIdLine = job.consumerId ? `ID: ${escapeHtml(job.consumerId)}` : 'ID no disponible';
+  const article = document.createElement('article');
+  article.className = "group relative overflow-hidden rounded-2xl border border-white/40 bg-white/90 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl";
+  article.setAttribute('role', 'link');
+  article.setAttribute('tabindex', '0');
+  article.innerHTML = `
+    <div class="absolute inset-0 bg-gradient-to-br from-sky-500/10 via-indigo-500/5 to-transparent opacity-90 pointer-events-none transition-opacity duration-200 group-hover:opacity-100"></div>
+    <div class="relative flex h-full flex-col gap-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="space-y-1">
+          <p class="text-xs uppercase tracking-wide text-slate-500">Client • Cliente</p>
+          <h3 class="text-lg font-semibold text-slate-900">${escapeHtml(consumerName)}</h3>
+          <p class="text-xs text-slate-500">${consumerIdLine}</p>
+        </div>
+        <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600 shadow-sm">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 8l9 6 9-6"></path>
+            <path d="M3 16l9 6 9-6"></path>
+            <path d="M3 8l9-6 9 6"></path>
+          </svg>
+          ${lettersCount} ${lettersLabelEn} • ${lettersLabelEs}
+        </span>
+      </div>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
+        <span class="inline-flex items-center gap-1 text-slate-500">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <polyline points="12 7 12 12 15 15"></polyline>
+          </svg>
+          ${createdEn}
+        </span>
+        <span class="inline-flex items-center gap-1 text-slate-500">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M2 12h20"></path>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          ${createdEs}
+        </span>
+      </div>
+      <div class="mt-auto flex items-center justify-between gap-3">
+        <div class="flex flex-col text-xs text-slate-500">
+          <span class="font-semibold text-slate-600">Job ID</span>
+          <span class="font-mono text-sm text-slate-700 truncate" title="${escapeHtml(job.jobId)}">${escapeHtml(job.jobId)}</span>
+        </div>
+        <a class="btn text-sm px-4 py-2" href="/letters?job=${encodeURIComponent(job.jobId)}">Open • Abrir</a>
+      </div>
+    </div>
+  `;
+
+  const openJob = () => {
+    location.href = `/letters?job=${encodeURIComponent(job.jobId)}`;
+  };
+
+  article.addEventListener('click', (event)=>{
+    if (event.target.closest('a,button,input')) return;
+    openJob();
+  });
+  article.addEventListener('keydown', (event)=>{
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openJob();
+    }
+  });
+
+  const openBtn = article.querySelector('a');
+  if (openBtn) {
+    openBtn.addEventListener('click', ()=>{
+      if (typeof trackEvent === 'function') {
+        trackEvent('letter_job_open', { jobId: job.jobId, letters: lettersCount });
+      }
+    });
+  }
+
+  return article;
+}
+
+function renderJobList(){
+  if (!jobListEl) return;
+  const query = (jobSearchInput?.value || '').trim().toLowerCase();
+  const base = JOBS.slice();
+  const filtered = query
+    ? base.filter((job) => {
+        const haystack = [job.consumerName, job.consumerId, job.jobId]
+          .filter(Boolean)
+          .map((val) => String(val).toLowerCase());
+        return haystack.some((val) => val.includes(query));
+      })
+    : base;
+
+  updateJobsSummary(filtered);
+  jobErrorEl?.classList.add('hidden');
+
+  if (!filtered.length) {
+    jobListEl.innerHTML = '';
+    jobListEl.classList.add('hidden');
+    jobEmptyEl?.classList.remove('hidden');
+    return;
+  }
+
+  jobEmptyEl?.classList.add('hidden');
+  jobListEl.classList.remove('hidden');
+  jobListEl.innerHTML = '';
+  filtered.forEach((job) => {
+    jobListEl.appendChild(buildJobCard(job));
+  });
+}
+
+function showJobsLoading(){
+  if (!jobListEl) return;
+  jobErrorEl?.classList.add('hidden');
+  jobEmptyEl?.classList.add('hidden');
+  jobListEl.classList.remove('hidden');
+  jobListEl.innerHTML = Array.from({ length: 3 }, () => `
+    <div class="animate-pulse rounded-2xl border border-slate-200/70 bg-white/70 p-5 h-40"></div>
+  `).join('');
+  if (jobTotalEl) jobTotalEl.textContent = '—';
+  if (jobLettersTotalEl) jobLettersTotalEl.textContent = '—';
+  if (jobLastRunEl) jobLastRunEl.textContent = '—';
+  if (jobSummaryNoteEl) jobSummaryNoteEl.textContent = 'Loading jobs… • Cargando lotes…';
+}
+
 function paginate(){
   const total = Math.max(1, Math.ceil(LETTERS.length / PER_PAGE));
   if (page > total) page = total;
@@ -208,26 +374,30 @@ $("#btnEmailAll").addEventListener("click", async ()=>{
 });
 
 async function loadJobs(){
-  const list = $("#jobList");
-  list.innerHTML = "";
+  if (!jobListEl) return;
+  showJobsLoading();
   try {
     const resp = await api('/api/letters');
-    (resp.jobs || []).forEach(j => {
-      const div = document.createElement('div');
-      div.className = 'flex items-center justify-between border rounded px-2 py-1';
-      const date = new Date(j.createdAt).toLocaleString();
-      div.innerHTML = `<div>
-        <div class="font-medium">${escapeHtml(j.consumerName || j.consumerId)}</div>
-        <div class="text-xs">${date} • ${j.count} letter(s)</div>
-      </div>
-      <a class="btn text-xs" href="/letters?job=${encodeURIComponent(j.jobId)}">Open</a>`;
-      list.appendChild(div);
-    });
-    if(!resp.jobs || !resp.jobs.length){
-      list.innerHTML = '<div class="muted text-sm">No letter jobs yet.</div>';
+    JOBS = (resp.jobs || [])
+      .map((job) => ({ ...job }))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    renderJobList();
+    if (typeof trackEvent === 'function') {
+      trackEvent('letter_jobs_loaded', { count: JOBS.length });
     }
   } catch (e) {
-    list.innerHTML = '<div class="text-red-600">Failed to load letter jobs.</div>';
+    JOBS = [];
+    if (jobListEl) {
+      jobListEl.innerHTML = '';
+      jobListEl.classList.add('hidden');
+    }
+    jobEmptyEl?.classList.add('hidden');
+    if (jobErrorEl) {
+      const msg = e?.message || String(e || 'Unknown error');
+      jobErrorEl.textContent = `Failed to load letter jobs. Please refresh or try again. (${msg})`;
+      jobErrorEl.classList.remove('hidden');
+    }
+    updateJobsSummary([]);
   }
 }
 
@@ -257,6 +427,22 @@ if (!JOB_ID) {
   $("#lettersSection").classList.add('hidden');
   $("#jobsSection").classList.remove('hidden');
   loadJobs();
+  if (jobSearchInput){
+    const handleSearch = () => {
+      renderJobList();
+      if (typeof trackEvent === 'function') {
+        trackEvent('letter_jobs_search', { queryLength: jobSearchInput.value.trim().length });
+      }
+    };
+    jobSearchInput.addEventListener('input', handleSearch);
+    jobSearchInput.addEventListener('search', renderJobList);
+    jobSearchInput.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape'){
+        jobSearchInput.value = '';
+        renderJobList();
+      }
+    });
+  }
 } else {
   $("#jobsSection").classList.add('hidden');
   loadLetters(JOB_ID);
