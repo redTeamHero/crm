@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Leads</title>
   <script src="https://cdn.tailwindcss.com"></script>
-<script src="/theme.js"></script>
-<link rel="stylesheet" href="/style.css">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header id="host-nav" class="p-4">
@@ -54,20 +54,108 @@
     </nav>
   </div>
 </header>
-<main class="max-w-3xl mx-auto p-4 space-y-4">
-  <div class="glass card space-y-2">
-    <div class="font-medium">New Lead</div>
-    <input id="leadName" class="w-full border rounded px-2 py-1 text-sm" placeholder="Name" />
-    <input id="leadEmail" class="w-full border rounded px-2 py-1 text-sm" placeholder="Email" />
-    <input id="leadPhone" class="w-full border rounded px-2 py-1 text-sm" placeholder="Phone" />
-    <input id="leadSource" class="w-full border rounded px-2 py-1 text-sm" placeholder="Source" />
-    <textarea id="leadNotes" class="w-full border rounded px-2 py-1 text-sm" placeholder="Notes"></textarea>
-    <button id="saveLead" class="btn text-sm">Save Lead</button>
-  </div>
-  <div class="glass card space-y-2">
-    <div class="font-medium">Leads</div>
-    <div id="leadList" class="space-y-2 text-sm"></div>
-  </div>
+<main class="max-w-7xl mx-auto p-4 space-y-6">
+  <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="glass card space-y-1">
+      <div class="text-sm text-slate-500">Total Leads</div>
+      <div class="text-2xl font-semibold" id="leadTotalCount">0</div>
+      <div class="text-xs text-slate-400">All time • Total histórico</div>
+    </div>
+    <div class="glass card space-y-1">
+      <div class="text-sm text-slate-500">New (7 days)</div>
+      <div class="text-2xl font-semibold" id="leadNewCount">0</div>
+      <div class="text-xs text-slate-400">Fresh conversations • Conversaciones nuevas</div>
+    </div>
+    <div class="glass card space-y-1">
+      <div class="text-sm text-slate-500">Active Pipeline</div>
+      <div class="text-2xl font-semibold" id="leadActiveCount">0</div>
+      <div class="text-xs text-slate-400">In motion • En progreso</div>
+    </div>
+    <div class="glass card space-y-1">
+      <div class="text-sm text-slate-500">Win Rate</div>
+      <div class="text-2xl font-semibold" id="leadWinRate">0%</div>
+      <div class="text-xs text-slate-400">Won / Total • Ganados / Total</div>
+    </div>
+  </section>
+  <section class="flex flex-col xl:flex-row gap-6">
+    <div class="flex-1 space-y-4">
+      <div class="glass card flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-lg font-semibold text-slate-900">Pipeline Overview <span class="text-slate-400 font-normal text-sm">/ Vista general</span></h1>
+          <p class="text-sm text-slate-500 leading-relaxed">Track every conversation, prioritize follow-ups, and drive premium onboarding. / Sigue cada conversación, prioriza seguimientos y activa clientes premium.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <label for="leadSourceFilter" class="text-xs uppercase tracking-wide text-slate-500">Source / Fuente</label>
+          <select id="leadSourceFilter" class="text-sm border border-slate-200 rounded-md bg-white/80 px-3 py-2 shadow-sm">
+            <option value="all">All sources / Todas</option>
+          </select>
+          <button id="leadRefresh" class="btn text-xs h-10 px-4">Refresh</button>
+        </div>
+      </div>
+      <div class="-mx-4 overflow-x-auto pb-4">
+        <div id="pipelineBoard" class="min-w-[1080px] grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"></div>
+      </div>
+    </div>
+    <aside class="w-full xl:w-80 space-y-4">
+      <div class="glass card space-y-3">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900">New Lead Intake <span class="text-slate-400 font-normal">/ Registro rápido</span></h2>
+          <p class="text-xs text-slate-500">Capture channel, drop notes, and keep compliance-first context. / Captura canal, notas y contexto con enfoque en cumplimiento.</p>
+        </div>
+        <form id="leadForm" class="space-y-3">
+          <div class="space-y-1">
+            <label for="leadName" class="text-xs font-medium text-slate-600">Name / Nombre</label>
+            <input id="leadName" name="name" class="input w-full text-sm" placeholder="Jane Founder" />
+          </div>
+          <div class="space-y-1">
+            <label for="leadEmail" class="text-xs font-medium text-slate-600">Email</label>
+            <input id="leadEmail" name="email" type="email" class="input w-full text-sm" placeholder="name@email.com" />
+          </div>
+          <div class="space-y-1">
+            <label for="leadPhone" class="text-xs font-medium text-slate-600">Phone / Teléfono</label>
+            <input id="leadPhone" name="phone" class="input w-full text-sm" placeholder="(555) 123-4567" />
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="space-y-1">
+              <label for="leadSource" class="text-xs font-medium text-slate-600">Source / Fuente</label>
+              <input id="leadSource" name="source" class="input w-full text-sm" placeholder="Webinar, Referral, Ads..." />
+            </div>
+            <div class="space-y-1">
+              <label for="leadStage" class="text-xs font-medium text-slate-600">Stage / Etapa</label>
+              <select id="leadStage" name="status" class="input w-full text-sm">
+                <option value="new">New • Nuevo</option>
+                <option value="working">Working • En progreso</option>
+                <option value="qualified">Qualified • Calificado</option>
+                <option value="nurture">Nurture • Nutrir</option>
+                <option value="won">Won • Ganado</option>
+                <option value="lost">Lost • Cerrado</option>
+              </select>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label for="leadNotes" class="text-xs font-medium text-slate-600">Notes / Notas</label>
+            <textarea id="leadNotes" name="notes" class="input w-full text-sm" rows="3" placeholder="NEPQ cues, compliance flags, promised deliverables..."></textarea>
+          </div>
+          <button type="submit" id="saveLead" class="btn w-full text-sm">Save Lead / Guardar lead</button>
+        </form>
+        <p class="text-[11px] text-slate-400">Tip: Log facts only—no guarantees of credit score increases or timelines.</p>
+      </div>
+      <div class="glass card space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-900">Follow-up Radar / Seguimiento</h2>
+          <span class="text-xs text-slate-500">Auto-prioritized</span>
+        </div>
+        <ul id="leadHighlights" class="space-y-3 text-sm"></ul>
+      </div>
+      <div class="glass card space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-900">Source Mix / Canales</h2>
+          <span class="text-xs text-slate-500">Top</span>
+        </div>
+        <div id="leadSourceBreakdown" class="flex flex-wrap gap-2"></div>
+      </div>
+    </aside>
+  </section>
 </main>
 <script type="module" src="/common.js"></script>
 <script src="/hotkeys.js"></script>
