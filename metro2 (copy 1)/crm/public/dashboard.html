@@ -233,10 +233,9 @@
     </div>
     <div id="guideChatMessages" class="flex max-h-72 flex-col gap-3 overflow-y-auto px-4 py-3 text-sm" role="log" aria-live="polite"></div>
     <div class="border-t border-slate-200 px-4 py-3">
-      <div class="mb-2 flex flex-wrap gap-2" id="guideChatQuick">
-        <button type="button" class="btn text-xs bg-slate-100 text-slate-700" data-chat-message="How do I onboard a lead?">Onboard a lead</button>
-        <button type="button" class="btn text-xs bg-slate-100 text-slate-700" data-chat-message="Show me revenue tips">Revenue tips</button>
-        <button type="button" class="btn text-xs bg-slate-100 text-slate-700" data-chat-message="¿Tienes la guía en español?">Guía en español</button>
+      <div class="mb-2 space-y-2" id="guideChatQuick">
+        <div id="guideChatCategories" class="flex flex-wrap gap-2"></div>
+        <div id="guideChatPrompts" class="flex flex-wrap gap-2"></div>
       </div>
       <form id="guideChatForm" class="flex items-center gap-2">
         <label class="sr-only" for="guideChatInput">Ask the coach</label>
