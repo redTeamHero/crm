@@ -923,11 +923,22 @@ export function runBasicRuleAudit(report = {}) {
       return grouped.Basic;
     };
 
-    const pushIntoBasic = violation => {
-      const basicGroup = ensureBasicGroup();
-      if (!basicGroup.some(v => v && v.id === violation.id)) {
-        basicGroup.push(violation);
+    const add = (id, title) => {
+      if (!violations.some(v => v && v.id === id)) {
+        const entry = { id, title, source: "basic_rule_audit" };
+        violations.push(entry);
+        const basicGroup = ensureBasicGroup();
+        if (!basicGroup.some(v => v && v.id === id)) {
+          basicGroup.push(entry);
+        }
         touched.add(idx);
+      } else {
+        const basicGroup = ensureBasicGroup();
+        if (!basicGroup.some(v => v && v.id === id)) {
+          const existing = violations.find(v => v && v.id === id);
+          basicGroup.push(existing);
+          touched.add(idx);
+        }
       }
     };
 
