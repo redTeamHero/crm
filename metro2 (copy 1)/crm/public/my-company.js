@@ -220,6 +220,7 @@ function copyToClipboard(value, label) {
 }
 
 function initCompanyForm() {
+  const formEl = document.getElementById('companyForm');
   const nameEl = document.getElementById('companyName');
   const phoneEl = document.getElementById('companyPhone');
   const emailEl = document.getElementById('companyEmail');
@@ -232,16 +233,22 @@ function initCompanyForm() {
   if (emailEl) emailEl.value = company.email || '';
   if (addrEl) addrEl.value = company.address || '';
 
+  const handleSave = (event) => {
+    event?.preventDefault();
+    const data = {
+      name: nameEl?.value.trim() || '',
+      phone: phoneEl?.value.trim() || '',
+      email: emailEl?.value.trim() || '',
+      address: addrEl?.value.trim() || ''
+    };
+    localStorage.setItem('companyInfo', JSON.stringify(data));
+  };
+
+  if (formEl) {
+    formEl.addEventListener('submit', handleSave);
+  }
   if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      const data = {
-        name: nameEl?.value.trim() || '',
-        phone: phoneEl?.value.trim() || '',
-        email: emailEl?.value.trim() || '',
-        address: addrEl?.value.trim() || ''
-      };
-      localStorage.setItem('companyInfo', JSON.stringify(data));
-    });
+    saveBtn.addEventListener('click', handleSave);
   }
 }
 

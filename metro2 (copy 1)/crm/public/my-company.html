@@ -105,7 +105,7 @@
         <span class="section-note">Stored securely on this device · Guardado localmente</span>
       </div>
     </div>
-    <form class="company-form" aria-describedby="companyInfoHelper">
+    <form id="companyForm" class="company-form" aria-describedby="companyInfoHelper">
       <label class="form-field">
         <span class="form-label">Company Name / Nombre de la empresa</span>
         <input id="companyName" class="input" placeholder="Revolv Automation" />
@@ -126,11 +126,11 @@
         <textarea id="companyAddress" class="input input-textarea" rows="3" placeholder="123 Trust Lane&#10;Suite 200&#10;Austin, TX 78701"></textarea>
         <span class="helper-text">Match certified mail sender details. / Debe coincidir con remitente de correo certificado.</span>
       </label>
+      <div class="form-actions">
+        <button id="saveCompany" type="submit" class="btn">Save company profile</button>
+        <p id="companyInfoHelper" class="helper-text">Data stays in your browser storage so PII stays private. / Los datos se guardan en tu navegador para mantener la privacidad.</p>
+      </div>
     </form>
-    <div class="form-actions">
-      <button id="saveCompany" type="button" class="btn">Save company profile</button>
-      <p id="companyInfoHelper" class="helper-text">Data stays in your browser storage so PII stays private. / Los datos se guardan en tu navegador para mantener la privacidad.</p>
-    </div>
   </section>
 
   <section class="glass card team-card" aria-labelledby="teamHeading">
