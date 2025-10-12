@@ -923,34 +923,26 @@ export function runBasicRuleAudit(report = {}) {
       return grouped.Basic;
     };
 
-    const add = (id, title) => {
-      if (!violations.some(v => v && v.id === id)) {
-        const entry = { id, title, source: "basic_rule_audit" };
-        violations.push(entry);
-        const basicGroup = ensureBasicGroup();
-        if (!basicGroup.some(v => v && v.id === id)) {
-          basicGroup.push(entry);
-        }
+    const pushIntoBasic = entry => {
+      const basicGroup = ensureBasicGroup();
+      if (!basicGroup.some(v => v && v.id === entry.id)) {
+        basicGroup.push(entry);
         touched.add(idx);
-      } else {
-        const basicGroup = ensureBasicGroup();
-        if (!basicGroup.some(v => v && v.id === id)) {
-          const existing = violations.find(v => v && v.id === id);
-          basicGroup.push(existing);
-          touched.add(idx);
-        }
       }
     };
 
-    const add = (id, title) => {
-      const existing = violations.find(v => v && v.id === id);
-      if (existing) {
-        pushIntoBasic(existing);
-        return;
+    const ensureViolation = (id, title) => {
+      let entry = violations.find(v => v && v.id === id);
+      if (!entry) {
+        entry = { id, title, source: "basic_rule_audit", category: "Basic" };
+        violations.push(entry);
+        touched.add(idx);
       }
+      return entry;
+    };
 
-      const entry = { id, title, source: "basic_rule_audit", category: "Basic" };
-      violations.push(entry);
+    const add = (id, title) => {
+      const entry = ensureViolation(id, title);
       pushIntoBasic(entry);
     };
 
