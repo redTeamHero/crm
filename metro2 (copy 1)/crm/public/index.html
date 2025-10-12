@@ -12,20 +12,29 @@
 </head>
 <body>
 <header id="host-nav" class="p-4">
-  <div class="max-w-7xl mx-auto glass card nav-shell">
+  <div class="max-w-7xl mx-auto glass card nav-shell nav-elevated">
     <div class="nav-brand-row">
-      <div class="text-xl font-semibold">Metro 2 CRM</div>
-      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
-        <span class="mr-2">Menu</span>
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
+      <div class="nav-brand">
+        <div class="brand-mark">M2</div>
+        <div>
+          <div class="text-xl font-semibold">Metro 2 CRM</div>
+          <p class="nav-subtitle">Trust • Clarity • Empowerment</p>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <a href="/billing" class="btn btn-outline upgrade-link">Upgrade to Automation Suite</a>
+        <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+          <span class="mr-2">Menu</span>
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
     </div>
-    <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2" aria-label="Primary">
-      <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+    <nav id="primaryNav" class="hidden nav-inline md:flex" aria-label="Primary">
+      <div id="primaryNavLinks" class="nav-links w-full md:w-auto">
         <a href="/dashboard" class="btn nav-btn">Dashboard</a>
         <a href="/clients" class="btn nav-btn">Clients</a>
         <a href="/leads" class="btn nav-btn">Leads</a>
@@ -48,7 +57,7 @@
         </div>
         <a href="/tradelines" class="btn nav-btn">Tradelines</a>
         <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
-        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="You've started your journey.">
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full shadow-sm" title="You've started your journey.">
           <span class="text-xl">📄</span>
           <span class="font-semibold text-sm">Rookie</span>
         </div>
@@ -57,123 +66,181 @@
   </div>
 </header>
 
-<!-- Client Tracker -->
-<div class="max-w-7xl mx-auto">
-  <div class="glass card">
-    <div class="text-center">
-      <div class="mb-1 flex items-center justify-center gap-2">
-        <div class="font-medium">Client Tracker</div>
-        <div id="stepControls" class="flex items-center gap-2 text-sm">
-          <button id="addStep" class="btn text-[10px]" title="Add step">+</button>
+<main class="workspace px-4 pb-12">
+  <div class="workspace-inner max-w-7xl mx-auto space-y-6">
+    <section class="workspace-hero glass card">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <p class="eyebrow">Client Command Center</p>
+          <h1 class="hero-title">Guide every credit dispute with premium clarity.</h1>
+          <p class="hero-description">Keep advisors, clients, and Metro-2 workflows aligned at every touchpoint. / Mantén a asesores, clientes y flujos Metro-2 alineados en cada paso.</p>
+        </div>
+        <div class="hero-actions">
+          <a href="/marketing.html" class="btn hero-btn">Launch Lead Magnet</a>
+          <div class="hero-support">
+            <span>Need a Metro-2 second opinion?</span>
+            <a href="/schedule" class="btn btn-outline hero-support-link">Book a Clarity Call</a>
+          </div>
         </div>
       </div>
-      <div id="trackerSteps" class="flex flex-wrap justify-center gap-4 text-sm"></div>
-    </div>
-  </div>
-</div>
-
-<main class="max-w-7xl mx-auto p-4 space-y-4">
-  <div id="err" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg"></div>
-
-  <section class="grid md:grid-cols-[320px,1fr] gap-4">
-    <!-- Consumers -->
-    <aside class="glass card space-y-2">
-      <div class="flex items-center justify-between">
-        <div class="font-semibold">Consumers</div>
-        <div class="flex gap-2">
-          <button id="btnCreateClient" class="btn text-sm" data-tip="Create Client (N)">Create Client</button>
-          <button id="btnEditClient" class="btn text-sm" data-tip="Edit Client (E)">Edit Client</button>
+      <div class="hero-metrics-grid">
+        <div class="metric-card">
+          <span class="metric-title">Active Clients</span>
+          <span class="metric-value" id="metricActiveConsumers">0</span>
+          <span class="metric-subtitle">of <span id="metricTotalConsumers">0</span> total</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Paid to Date</span>
+          <span class="metric-value" id="metricRevenue">$0.00</span>
+          <span class="metric-subtitle">Collected across all engagements</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Pipeline Remaining</span>
+          <span class="metric-value" id="metricPipeline">$0.00</span>
+          <span class="metric-subtitle">Open balances + upsells</span>
+        </div>
+        <div class="metric-card metric-progress">
+          <span class="metric-title">Fulfillment Progress</span>
+          <span class="metric-value" id="metricProgress">0%</span>
+          <div class="progress-track">
+            <div class="progress-fill" id="metricProgressBar"></div>
+          </div>
+          <span class="metric-subtitle">Keep letters & calls in sync</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-title">Reports Uploaded</span>
+          <span class="metric-value" id="metricReportsUploaded">0</span>
+          <span class="metric-subtitle">Auto-tracked last 30 days</span>
         </div>
       </div>
-      <input id="consumerSearch" placeholder="Search consumers..." class="w-full border rounded px-2 py-1 text-sm" />
-      <div id="consumerList" class="space-y-2 max-h-96 overflow-y-auto"></div>
-      <div class="flex items-center justify-between pt-2">
-        <button id="consPrev" class="btn text-sm">Prev</button>
-        <div class="text-sm muted">Page <span id="consPage">1</span> / <span id="consPages">1</span></div>
-        <button id="consNext" class="btn text-sm">Next</button>
-      </div>
-    </aside>
-
-    <!-- Right side -->
-    <section class="space-y-4">
-        <div class="glass card">
-        <div class="flex items-center justify-between mb-2">
-          <div class="font-semibold">Messages</div>
-          <button id="btnSendMsg" class="btn text-sm">Send</button>
-        </div>
-        <div id="msgList" class="space-y-2 text-sm max-h-48 overflow-y-auto flex flex-col"></div>
-        <textarea id="msgInput" class="w-full border rounded p-2 text-sm" rows="2" placeholder="Type message..."></textarea>
-      </div>
-      <div class="glass card">
-        <div class="flex items-center justify-between">
+      <div class="hero-tracker">
+        <div class="hero-tracker-header">
           <div>
-            <div class="font-semibold">Selected Consumer: <span id="selConsumer">—</span></div>
-            <div class="text-sm muted">Report: <select id="reportPicker" class="border rounded px-2 py-1 text-sm"></select></div>
+            <div class="hero-tracker-title">Client Journey Tracker</div>
+            <p class="hero-tracker-description">Map the next best action from onboarding to dispute delivery. / Traza el siguiente paso ideal desde el onboarding hasta la entrega.</p>
           </div>
-          <div class="flex gap-2">
-            <button id="btnUpload" class="chip" data-tip="Upload HTML (U)">Upload HTML</button>
-            <button id="btnDataBreach" class="chip" data-tip="Databreach options">Databreach</button>
-            <button id="btnAuditReport" class="chip" data-tip="Run audit on current report">Audit</button>
-            <button id="btnDeleteReport" class="chip" data-tip="Remove current report (click)">Remove Report</button>
-            <input id="fileInput" type="file" accept=".html,.htm,text/html" class="hidden" />
+          <div id="stepControls" class="step-controls">
+            <button id="addStep" class="btn btn-ghost" title="Add step">+</button>
           </div>
         </div>
+        <div id="trackerSteps" class="tracker-steps"></div>
       </div>
-      <div class="glass card">
-        <div class="flex items-center justify-between mb-2">
-          <div class="font-semibold">Files & Activity</div>
-          <div class="flex items-center gap-2">
-            <input id="activityFile" type="file" class="hidden" />
-            <button id="btnAddFile" class="btn" data-tip="Upload file to this consumer">+ Add File</button>
-            <a id="activityPortalLink" class="btn hidden" href="#" target="_blank">Client Portal</a>
+    </section>
+
+    <div id="err" class="alert alert-error hidden"></div>
+
+    <section class="workspace-grid">
+      <aside class="glass panel panel-sidebar space-y-4">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Consumers</div>
+            <p class="panel-subtitle">Organize disputes by status / Ordena por estado</p>
+          </div>
+          <div class="panel-actions">
+            <button id="btnCreateClient" class="btn text-sm" data-tip="Create Client (N)">Create Client</button>
+            <button id="btnEditClient" class="btn text-sm" data-tip="Edit Client (E)">Edit Client</button>
           </div>
         </div>
-        <div id="activityList" class="space-y-2 text-sm max-h-48 overflow-y-auto"></div>
-      </div>
-    
-      <div class="glass card">
-        <div class="text-center">
-          <div class="font-medium mb-2">Quick Actions</div>
-          <div id="modeBar" class="flex gap-2 flex-wrap justify-center"></div>
-          <div class="text-sm muted mt-1">
-            Click a mode, then click negative item cards to tag them. Click the mode again to exit.
-          </div>
+        <input id="consumerSearch" placeholder="Search consumers..." class="input w-full text-sm" />
+        <div id="consumerList" class="consumer-list max-h-96 overflow-y-auto"></div>
+        <div class="panel-footer">
+          <button id="consPrev" class="btn btn-outline text-sm">Prev</button>
+          <div class="panel-pagination text-sm muted">Page <span id="consPage">1</span> / <span id="consPages">1</span></div>
+          <button id="consNext" class="btn btn-outline text-sm">Next</button>
         </div>
-        <div class="font-semibold mb-2 mt-4">Filters</div>
-        <div id="filterBar" class="flex flex-wrap gap-2"></div>
-        <button id="btnClearFilters" class="btn mt-2" data-tip="Clear Filters (C)">Clear Filters</button>
-      </div>
+      </aside>
 
-      <div class="glass card">
-        <div class="flex items-center justify-between">
-          <div class="font-semibold">Negative Items</div>
-          <div class="flex flex-wrap items-center gap-3">
-            <label class="text-sm flex items-center gap-2" title="Generate debt collector letters">
-              <input type="checkbox" id="cbCollectors" /> Collectors
-            </label>
+      <section class="workspace-panels space-y-4">
+        <div class="panel-grid panel-grid-balanced">
+          <article class="glass panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Messages</div>
+                <p class="panel-subtitle">Keep clients updated / Mantén informados a tus clientes.</p>
+              </div>
+              <button id="btnSendMsg" class="btn text-sm">Send</button>
+            </div>
+            <div id="msgList" class="messages-list text-sm"></div>
+            <textarea id="msgInput" class="input input-textarea text-sm" rows="2" placeholder="Type message..."></textarea>
+          </article>
 
-            <label class="text-sm flex items-center gap-2" title="Generate personal information letters">
-              <input type="checkbox" id="cbPersonalInfo" /> Personal Info
-            </label>
-            <label class="text-sm flex items-center gap-2" title="Use AI to reword letters">
-              <input type="checkbox" id="cbUseGpt" /> AI
-            </label>
-            <label class="text-sm flex items-center gap-2" title="Render OCR-resistant PDFs">
-              <input type="checkbox" id="cbUseOcr" /> OCR
-            </label>
-
-            <button id="btnSelectAll" class="btn text-sm" data-tip="Select or deselect all negative items">Select All</button>
-            <button id="btnSelectNegative" class="btn text-sm" data-tip="Select or deselect high-priority negative items">Select Negative Items</button>
-            <button id="btnGenerate" class="btn" data-tip="Generate Letters (G)">Generate Letters</button>
-          </div>
+          <article class="glass panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Selected Consumer: <span id="selConsumer">—</span></div>
+                <p class="panel-subtitle">Report: <select id="reportPicker" class="input input-select text-sm"></select></p>
+              </div>
+              <div class="panel-actions chip-row">
+                <button id="btnUpload" class="chip" data-tip="Upload HTML (U)">Upload HTML</button>
+                <button id="btnDataBreach" class="chip" data-tip="Databreach options">Databreach</button>
+                <button id="btnAuditReport" class="chip" data-tip="Run audit on current report">Audit</button>
+                <button id="btnDeleteReport" class="chip" data-tip="Remove current report (click)">Remove Report</button>
+                <input id="fileInput" type="file" accept=".html,.htm,text/html" class="hidden" />
+              </div>
+            </div>
+          </article>
         </div>
-        <div class="text-xs muted mt-1">Tip: Click any card to zoom for full detail.</div>
-        <div id="tlList" class="grid gap-3 mt-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3"></div>
-        <div id="tlPager" class="flex items-center justify-between mt-3">
-          <button id="tlPrev" class="btn text-sm">Prev</button>
-          <div class="flex items-center gap-2">
-            <div class="text-sm muted">Page <span id="tlPage">1</span> / <span id="tlPages">1</span></div>
-            <select id="tlPageSize" class="border rounded text-sm">
+
+        <article class="glass panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Files & Activity</div>
+              <p class="panel-subtitle">Track deliverables & portal drops / Registra entregables.</p>
+            </div>
+            <div class="panel-actions">
+              <input id="activityFile" type="file" class="hidden" />
+              <button id="btnAddFile" class="btn text-sm" data-tip="Upload file to this consumer">+ Add File</button>
+              <a id="activityPortalLink" class="btn btn-outline text-sm hidden" href="#" target="_blank">Client Portal</a>
+            </div>
+          </div>
+          <div id="activityList" class="activity-list text-sm"></div>
+        </article>
+
+        <article class="glass panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Quick Actions</div>
+              <p class="panel-subtitle">Click a mode to tag tradelines / Haz clic para etiquetar.</p>
+            </div>
+          </div>
+          <div id="modeBar" class="mode-bar"></div>
+          <div class="filters">
+            <div class="filters-header">Filters</div>
+            <div id="filterBar" class="filter-bar"></div>
+            <button id="btnClearFilters" class="btn btn-outline mt-2" data-tip="Clear Filters (C)">Clear Filters</button>
+          </div>
+        </article>
+
+        <article class="glass panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Negative Items</div>
+              <p class="panel-subtitle">Select tradelines to dispute / Selecciona tradelines a disputar.</p>
+            </div>
+            <div class="panel-actions negative-options">
+              <label class="text-sm flex items-center gap-2" title="Generate debt collector letters">
+                <input type="checkbox" id="cbCollectors" /> Collectors
+              </label>
+              <label class="text-sm flex items-center gap-2" title="Generate personal information letters">
+                <input type="checkbox" id="cbPersonalInfo" /> Personal Info
+              </label>
+              <label class="text-sm flex items-center gap-2" title="Use AI to reword letters">
+                <input type="checkbox" id="cbUseGpt" /> AI
+              </label>
+              <label class="text-sm flex items-center gap-2" title="Render OCR-resistant PDFs">
+                <input type="checkbox" id="cbUseOcr" /> OCR
+              </label>
+              <button id="btnSelectAll" class="btn btn-outline text-sm" data-tip="Select or deselect all negative items">Select All</button>
+              <button id="btnSelectNegative" class="btn btn-outline text-sm" data-tip="Select or deselect high-priority negative items">Select Negative Items</button>
+              <button id="btnGenerate" class="btn" data-tip="Generate Letters (G)">Generate Letters</button>
+            </div>
+          </div>
+          <div class="text-xs muted mt-1">Tip: Click any card to zoom for full detail.</div>
+          <div id="tlList" class="tradeline-grid mt-3"></div>
+          <div id="tlPager" class="panel-footer mt-3">
+            <button id="tlPrev" class="btn btn-outline text-sm">Prev</button>
+            <div class="panel-pagination text-sm muted">Page <span id="tlPage">1</span> / <span id="tlPages">1</span></div>
+            <select id="tlPageSize" class="input input-select text-sm w-24">
               <option value="3">3</option>
               <option value="6" selected>6</option>
               <option value="9">9</option>
@@ -181,21 +248,22 @@
               <option value="15">15</option>
               <option value="all">All</option>
             </select>
+            <button id="tlNext" class="btn btn-outline text-sm">Next</button>
           </div>
-          <button id="tlNext" class="btn text-sm">Next</button>
-        </div>
-      </div>
+        </article>
 
-      <div class="glass card">
-        <div class="font-semibold">Debt Collectors</div>
-        <div id="collectorList" class="space-y-2 mt-2"></div>
-      </div>
-
-
-      <!-- Files & Activity -->
-    
+        <article class="glass panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Debt Collectors</div>
+              <p class="panel-subtitle">Generate letters or escalation scripts.</p>
+            </div>
+          </div>
+          <div id="collectorList" class="collector-list"></div>
+        </article>
+      </section>
     </section>
-  </section>
+  </div>
 </main>
 
 <!-- Consumer list item template -->
@@ -227,7 +295,7 @@
       </div>
       <div class="flex items-center gap-2">
         <div class="special-badges flex gap-1"></div>
-        <select class="tl-playbook-select hidden text-sm border rounded"></select>
+        <select class="tl-playbook-select hidden input text-sm"></select>
         <button class="tl-playbook btn" title="Select playbook">Playbook</button>
         <button class="tl-edit btn" title="Edit this card">✎</button>
         <button class="tl-remove btn" title="Hide this card" data-tip="Remove Card (R when focused)">×</button>
@@ -240,7 +308,7 @@
       <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Equifax" /> Equifax</label>
     </div>
 
-    <select class="tl-letter-select text-sm border rounded w-full mt-2"></select>
+    <select class="tl-letter-select input text-sm w-full mt-2"></select>
 
     <div class="tl-tags flex gap-2 mt-2 flex-wrap"></div>
     <div class="mt-3">

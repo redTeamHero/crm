@@ -43,6 +43,46 @@ let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 let trackerData = {};
 
+function updateToplineMetrics() {
+  const metric = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  const totalConsumers = DB.length;
+  const activeConsumers = DB.filter(c => {
+    const status = (c.status || '').toLowerCase();
+    if (!status) return true;
+    return ['active', 'in-progress', 'open', 'pending'].includes(status);
+  }).length;
+
+  const totals = DB.reduce((acc, consumer) => {
+    const sale = Number(consumer.sale) || 0;
+    const paid = Number(consumer.paid) || 0;
+    const reports = Array.isArray(consumer.reports) ? consumer.reports.length : 0;
+    acc.sale += sale;
+    acc.paid += paid;
+    acc.reports += reports;
+    return acc;
+  }, { sale: 0, paid: 0, reports: 0 });
+
+  const pipeline = Math.max(0, totals.sale - totals.paid);
+  const progress = totals.sale > 0 ? Math.round((totals.paid / totals.sale) * 100) : (totals.paid > 0 ? 100 : 0);
+  const boundedProgress = Math.min(Math.max(progress, 0), 100);
+
+  metric('metricActiveConsumers', String(activeConsumers));
+  metric('metricTotalConsumers', String(totalConsumers));
+  metric('metricReportsUploaded', String(totals.reports));
+  metric('metricRevenue', formatCurrency(totals.paid));
+  metric('metricPipeline', formatCurrency(pipeline));
+  metric('metricProgress', `${boundedProgress}%`);
+
+  const progressBar = document.getElementById('metricProgressBar');
+  if (progressBar) {
+    progressBar.style.setProperty('--progress', `${boundedProgress}%`);
+  }
+}
+
 let trackerSteps = [];
 let trackerSaveTimer = null;
 
@@ -237,6 +277,7 @@ async function loadConsumers(restore = true){
     return;
   }
   DB = data.consumers;
+  updateToplineMetrics();
   renderConsumers();
   if (restore) restoreSelectedConsumer();
 }
@@ -250,6 +291,13 @@ function renderConsumers(){
     n.querySelector(".name").textContent = c.name || "(no name)";
     n.querySelector(".email").textContent = c.email || "";
     const card = n.querySelector(".consumer-card");
+    if (c.id === currentConsumerId) {
+      card.classList.add("active");
+      card.setAttribute("aria-current", "true");
+    } else {
+      card.classList.remove("active");
+      card.removeAttribute("aria-current");
+    }
     card.addEventListener("click", ()=> selectConsumer(c.id));
     n.querySelector(".delete").addEventListener("click", async (e)=>{
       e.stopPropagation();
@@ -326,7 +374,8 @@ async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
-   setSelectedConsumerId(id);
+  setSelectedConsumerId(id);
+  renderConsumers();
 
   updatePortalLink();
   await refreshReports();
