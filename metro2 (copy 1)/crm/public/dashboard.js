@@ -1,6 +1,361 @@
 /* public/dashboard.js */
 
-import { escapeHtml } from './common.js';
+import { escapeHtml, api, formatCurrency } from './common.js';
+
+const TOUR_STEP_KEY = 'dashboard.tour.step';
+const TOUR_COMPLETE_KEY = 'dashboard.tour.complete';
+let tourInstance = null;
+let activeTourStepId = null;
+let confettiTarget = null;
+const chatState = {
+  panel: null,
+  toggle: null,
+  close: null,
+  tour: null,
+  messages: null,
+  form: null,
+  input: null,
+  quickButtons: [],
+  isOpen: false,
+  seeded: false
+};
+let pendingChatOpen = false;
+const pendingChatMessages = [];
+
+function burstConfetti(){
+  if(!confettiTarget) return;
+  for(let i=0;i<24;i++){
+    const piece = document.createElement('span');
+    piece.className = 'confetti-piece';
+    const tx = (Math.random()-0.5)*220;
+    const ty = (-Math.random()*160-60);
+    piece.style.setProperty('--tx', `${tx}px`);
+    piece.style.setProperty('--ty', `${ty}px`);
+    piece.style.backgroundColor = `hsl(${Math.random()*360},80%,62%)`;
+    confettiTarget.appendChild(piece);
+    setTimeout(()=>piece.remove(), 1200);
+  }
+}
+
+function refreshHelpGuideState(){
+  if(typeof window.setHelpGuideState !== 'function') return;
+  const storedStep = localStorage.getItem(TOUR_STEP_KEY);
+  const completed = localStorage.getItem(TOUR_COMPLETE_KEY) === 'true';
+  let mode = 'start';
+  if(storedStep) mode = 'resume';
+  else if(completed) mode = 'replay';
+  window.setHelpGuideState({ mode, completed });
+}
+
+function createTour(){
+  if(tourInstance) return tourInstance;
+  if(!window.Shepherd){
+    console.warn('Shepherd.js is not available for the guided walkthrough.');
+    return null;
+  }
+  const Shepherd = window.Shepherd;
+  tourInstance = new Shepherd.Tour({
+    useModalOverlay: true,
+    defaultStepOptions: {
+      cancelIcon: { enabled: true },
+      classes: 'glass card text-sm leading-relaxed shadow-xl max-w-md',
+      scrollTo: { behavior: 'smooth', block: 'center' }
+    }
+  });
+  const tour = tourInstance;
+
+  const makeButtons = (step) => {
+    const buttons = [];
+    if(step !== 'first'){
+      buttons.push({
+        text: 'Back / Atrás',
+        action(){ tour.back(); }
+      });
+    }
+    buttons.push({
+      text: 'Skip / Saltar',
+      action(){ tour.cancel(); },
+      classes: 'shepherd-button-secondary'
+    });
+    if(step === 'last'){
+      buttons.push({
+        text: 'Done / Listo',
+        action(){ tour.complete(); }
+      });
+    } else {
+      buttons.push({
+        text: 'Next / Siguiente',
+        action(){ tour.next(); }
+      });
+    }
+    return buttons;
+  };
+
+  tour.addStep({
+    id: 'nav',
+    title: 'Navigation / Navegación',
+    text: `<p class="font-semibold">Drive clients to the right workflow fast.</p>
+           <p class="mt-1 text-xs text-slate-600">Use Dashboard, Leads, and Billing to monitor Lead→Consult% y pagos en tiempo real.</p>`,
+    attachTo: { element: '#primaryNav', on: 'bottom' },
+    buttons: makeButtons('first')
+  });
+
+  tour.addStep({
+    id: 'kpis',
+    title: 'KPIs / Indicadores',
+    text: `<p class="font-semibold">Watch conversion and retention instantly.</p>
+           <p class="mt-1 text-xs text-slate-600">Anchor your consult pitch with live data. / Usa estos KPIs para respaldar tu oferta.</p>`,
+    attachTo: { element: '#tourKpiSection', on: 'top' },
+    buttons: makeButtons()
+  });
+
+  tour.addStep({
+    id: 'notes',
+    title: 'Playbooks & Notes / Notas',
+    text: `<p class="font-semibold">Capture next steps while you speak.</p>
+           <p class="mt-1 text-xs text-slate-600">Turn every call into tasks & NEPQ follow-ups. / Convierte cada llamada en acciones.</p>`,
+    attachTo: { element: '#tourNotepadCard', on: 'left' },
+    buttons: makeButtons()
+  });
+
+  tour.addStep({
+    id: 'map',
+    title: 'Client Map / Mapa de clientes',
+    text: `<p class="font-semibold">Spot regional wins and partnership gaps.</p>
+           <p class="mt-1 text-xs text-slate-600">Segment your offers por estado y dispara campañas.</p>`,
+    attachTo: { element: '#tourMapCard', on: 'top' },
+    buttons: makeButtons()
+  });
+
+  tour.addStep({
+    id: 'coach',
+    title: 'Guided Coach / Coach asistente',
+    text: `<p class="font-semibold">Need more help?</p>
+           <p class="mt-1 text-xs text-slate-600">Launch the chat coach for scripts, KPIs, and upsell ideas. / Abre el chat para guiones y experimentos.</p>`,
+    attachTo: { element: '#guideChatToggle', on: 'top' },
+    buttons: makeButtons('last')
+  });
+
+  tour.on('show', () => {
+    const current = tour.currentStep;
+    activeTourStepId = current?.id || null;
+    if(activeTourStepId){
+      localStorage.setItem(TOUR_STEP_KEY, activeTourStepId);
+      localStorage.removeItem(TOUR_COMPLETE_KEY);
+    }
+    refreshHelpGuideState();
+  });
+
+  tour.on('complete', () => {
+    activeTourStepId = null;
+    localStorage.removeItem(TOUR_STEP_KEY);
+    localStorage.setItem(TOUR_COMPLETE_KEY, 'true');
+    refreshHelpGuideState();
+    burstConfetti();
+  });
+
+  tour.on('cancel', () => {
+    if(activeTourStepId){
+      localStorage.setItem(TOUR_STEP_KEY, activeTourStepId);
+    }
+    refreshHelpGuideState();
+  });
+
+  tour.on('inactive', () => {
+    activeTourStepId = null;
+  });
+
+  return tourInstance;
+}
+
+function startTour({ resume = false } = {}){
+  const tour = createTour();
+  if(!tour){
+    pendingChatOpen = true;
+    openChatCoach({ focusInput: false });
+    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">Loading tour…</p><p class="text-xs text-slate-600">The guided walkthrough is still preparing. / El recorrido guiado está cargando.</p>`, { html: true });
+    return;
+  }
+  if(typeof tour.isActive === 'function' && tour.isActive()){
+    tour.cancel();
+  }
+  if(resume){
+    const stepId = localStorage.getItem(TOUR_STEP_KEY);
+    localStorage.removeItem(TOUR_COMPLETE_KEY);
+    refreshHelpGuideState();
+    tour.start();
+    if(stepId && tour.getById(stepId)){
+      tour.show(stepId);
+    }
+  } else {
+    activeTourStepId = null;
+    localStorage.removeItem(TOUR_STEP_KEY);
+    localStorage.removeItem(TOUR_COMPLETE_KEY);
+    refreshHelpGuideState();
+    tour.start();
+  }
+}
+
+function handleTutorialReset(){
+  if(tourInstance && typeof tourInstance.cancel === 'function'){
+    tourInstance.cancel();
+  }
+  activeTourStepId = null;
+  localStorage.removeItem(TOUR_STEP_KEY);
+  localStorage.removeItem(TOUR_COMPLETE_KEY);
+  refreshHelpGuideState();
+}
+
+function appendChatMessage(role, content, { html = false } = {}){
+  if(!chatState.messages){
+    pendingChatMessages.push({ role, content, html });
+    return;
+  }
+  const bubble = document.createElement('div');
+  bubble.className = role === 'assistant'
+    ? 'self-start max-w-[85%] rounded-2xl bg-slate-100 px-3 py-2 text-slate-700 shadow'
+    : 'self-end max-w-[85%] rounded-2xl bg-[var(--accent)] px-3 py-2 text-white shadow';
+  bubble.dataset.role = role;
+  if(html) bubble.innerHTML = content;
+  else bubble.textContent = content;
+  chatState.messages.appendChild(bubble);
+  chatState.messages.scrollTo({ top: chatState.messages.scrollHeight, behavior: 'smooth' });
+}
+
+function seedChat(){
+  if(chatState.seeded) return;
+  chatState.seeded = true;
+  appendChatMessage('assistant', `
+    <p class="font-semibold text-slate-800">Hey ducky 👋</p>
+    <p class="mt-1">I can guide tours, share scripts, and flag Metro-2 pitfalls.</p>
+    <ul class="mt-2 list-disc list-inside text-sm text-slate-600 space-y-1">
+      <li>Ask for onboarding flows to boost Lead→Consult%.</li>
+      <li>Request NEPQ prompts to keep compliance tight.</li>
+      <li>Pregúntame en español cuando quieras.</li>
+    </ul>
+    <p class="mt-2 text-xs text-slate-500"><strong>Revenue tip:</strong> Trigger a same-day upsell after each dispute letter delivery. / <strong>Consejo:</strong> Activa un upsell el mismo día que entregas la carta.</p>
+  `, { html: true });
+}
+
+function openChatCoach({ focusInput = true } = {}){
+  if(!chatState.panel){
+    pendingChatOpen = true;
+    return;
+  }
+  if(chatState.isOpen){
+    if(focusInput){
+      chatState.input?.focus();
+    }
+    return;
+  }
+  chatState.panel.classList.remove('hidden');
+  chatState.panel.setAttribute('aria-hidden', 'false');
+  if(chatState.toggle){
+    chatState.toggle.classList.add('hidden');
+    chatState.toggle.setAttribute('aria-expanded', 'true');
+  }
+  chatState.isOpen = true;
+  localStorage.setItem('dashboardChatOpen', '1');
+  seedChat();
+  if(focusInput){
+    chatState.input?.focus();
+  }
+  pendingChatOpen = false;
+}
+
+function closeChatCoach(){
+  if(!chatState.panel) return;
+  chatState.panel.classList.add('hidden');
+  chatState.panel.setAttribute('aria-hidden', 'true');
+  if(chatState.toggle){
+    chatState.toggle.classList.remove('hidden');
+    chatState.toggle.setAttribute('aria-expanded', 'false');
+  }
+  chatState.isOpen = false;
+  localStorage.removeItem('dashboardChatOpen');
+  pendingChatOpen = false;
+}
+
+function generateAssistantReply(message){
+  const normalized = message.toLowerCase();
+  if(normalized.includes('tour') || normalized.includes('walkthrough') || normalized.includes('recorrido')){
+    const resume = normalized.includes('resume') || normalized.includes('continu');
+    const intent = resume ? 'resumeTour' : 'startTour';
+    return {
+      html: true,
+      action: intent,
+      text: `<p class="font-semibold text-slate-800">Launching the guided walkthrough.</p>
+             <p class="mt-1 text-xs text-slate-600">I'll highlight KPIs, notes, and the chat coach. / Te mostraré KPIs, notas y el coach.</p>
+             <p class="mt-2 text-xs text-slate-500">KPI: Track completion of each tour run vs. upgrades. A/B idea: compare a "Book consult" CTA versus "Start audit" during the final step.</p>`
+    };
+  }
+  if(normalized.includes('onboard') || normalized.includes('lead')){
+    return {
+      html: true,
+      text: `<p class="font-semibold text-slate-800">3-step onboarding sprint:</p>
+             <ol class="mt-1 list-decimal list-inside space-y-1 text-sm text-slate-700">
+               <li>Dashboard ➝ Leads ➝ tag warm prospects, then auto-trigger the dispute quiz. / Etiqueta leads cálidos y lanza el quiz.</li>
+               <li>Use the Notes panel to capture NEPQ answers; push them into your letter template variables. / Documenta respuestas NEPQ.</li>
+               <li>Collect payment with Stripe checkout links tied to the billing widget. / Cobra con Stripe desde Billing.</li>
+             </ol>
+             <p class="mt-2 text-xs text-slate-500">KPI: Lead→Consult% y Consult→Purchase%. A/B test: try "Secure your audit" vs. "Start Metro-2 review" on the booking CTA.</p>`
+    };
+  }
+  if(normalized.includes('revenue') || normalized.includes('ventas') || normalized.includes('upsell')){
+    return {
+      html: true,
+      text: `<p class="font-semibold text-slate-800">Revenue levers to pull this week:</p>
+             <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
+               <li>Bundle certified mail as a premium add-on right after letter generation. / Ofrece envío certificado como add-on.</li>
+               <li>Trigger a follow-up SMS using the chat coach script when retention dips below 85%.</li>
+               <li>Launch a bilingual webinar invite for truckers + attorneys with Metro-2 case studies.</li>
+             </ul>
+             <p class="mt-2 text-xs text-slate-500">KPI: Average Order Value & Refund%. A/B ideas: headline emphasizing "Clarity-first dispute plan" vs. "Tailored Metro-2 review"; test trust badge placement near the paywall.</p>`
+    };
+  }
+  if(normalized.includes('español') || normalized.includes('spanish')){
+    return {
+      html: true,
+      text: `<p class="font-semibold text-slate-800">Guía rápida en español:</p>
+             <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
+               <li>Revisa los KPIs de conversión antes de cada llamada.</li>
+               <li>Usa el bloc de notas para guardar objeciones y respuestas NEPQ.</li>
+               <li>Abre el tour guiado cuando un nuevo asesor se una.</li>
+             </ul>
+             <p class="mt-2 text-xs text-slate-500">Métrica clave: Tiempo hasta valor (primer disputa enviada). Idea A/B: CTA "Programa tu revisión" vs. "Inicia tu plan Metro-2".</p>`
+    };
+  }
+  return {
+    html: true,
+    text: `<p class="font-semibold text-slate-800">Here’s how to keep momentum:</p>
+           <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
+             <li>Run the tour to align new reps on the Apple-like experience. / Ejecuta el tour para alinear al equipo.</li>
+             <li>Log every objection in Notes and convert wins into Playbooks.</li>
+             <li>Review the map weekly to target referral partners in hot states.</li>
+           </ul>
+           <p class="mt-2 text-xs text-slate-500">KPI: Consult→Purchase% y LTV. A/B idea: Compare "Book your dispute strategy" vs. "Schedule compliance consult" on the hero CTA.</p>`
+  };
+}
+
+function respondToMessage(message){
+  const reply = generateAssistantReply(message);
+  const delay = reply && typeof reply.delay === 'number' ? reply.delay : 350;
+  setTimeout(() => {
+    appendChatMessage('assistant', reply.text, { html: reply.html });
+    if(reply.action === 'startTour'){
+      startTour({ resume: false });
+    } else if(reply.action === 'resumeTour'){
+      startTour({ resume: true });
+    }
+  }, delay);
+}
+
+function sendChatMessage(message){
+  const value = message.trim();
+  if(!value) return;
+  appendChatMessage('user', value, { html: false });
+  respondToMessage(value);
+}
 
 const stateCenters = {
   AL:[32.806671,-86.79113], AK:[61.370716,-152.404419], AZ:[33.729759,-111.431221], AR:[34.969704,-92.373123],
@@ -28,6 +383,213 @@ const stateNames = {
   WI:"Wisconsin", WY:"Wyoming", DC:"District of Columbia"
 };
 Object.entries(stateNames).forEach(([abbr,name])=>{ stateCenters[name.toUpperCase()] = stateCenters[abbr]; });
+
+const monthFormatter = new Intl.DateTimeFormat(undefined, { month: 'short' });
+const timelineDateFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+
+function parseDateSafe(value){
+  if(!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function resolveItemDate(item){
+  if(!item || typeof item !== 'object') return new Date();
+  const candidates = [
+    item.createdAt,
+    item.updatedAt,
+    item.created,
+    item.updated,
+    item.timestamp,
+    item.date
+  ];
+  for(const val of candidates){
+    const parsed = parseDateSafe(val);
+    if(parsed) return parsed;
+  }
+  return new Date();
+}
+
+function buildMetricDataset({
+  title,
+  subtitle,
+  label,
+  color,
+  items,
+  getValue = () => 1,
+  getDate = resolveItemDate,
+  timelineFormatter = () => ({ title: '', subtitle: '', meta: '', value: '' }),
+  filter,
+  formatValue
+}){
+  const source = Array.isArray(items) ? items.slice() : [];
+  const filtered = typeof filter === 'function' ? source.filter(filter) : source;
+  const now = new Date();
+  const monthAnchors = [];
+  for(let i=5;i>=0;i--){
+    monthAnchors.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+  }
+
+  const labels = monthAnchors.map(anchor => monthFormatter.format(anchor));
+  const data = monthAnchors.map(anchor => {
+    return filtered.reduce((sum, item) => {
+      const date = getDate(item);
+      if(!(date instanceof Date)) return sum;
+      if(date.getFullYear() === anchor.getFullYear() && date.getMonth() === anchor.getMonth()){
+        const raw = getValue(item);
+        const num = typeof raw === 'number' ? raw : Number.parseFloat(raw ?? '0');
+        return sum + (Number.isFinite(num) ? num : 0);
+      }
+      return sum;
+    }, 0);
+  });
+
+  const timeline = filtered
+    .map(item => ({ item, date: getDate(item) }))
+    .filter(entry => entry.date instanceof Date)
+    .sort((a,b) => b.date - a.date)
+    .slice(0, 8)
+    .map(({ item, date }) => timelineFormatter(item, date));
+
+  return {
+    title,
+    subtitle,
+    dataset: { labels, data, label, color, formatValue },
+    timeline
+  };
+}
+
+function createDetailModal(){
+  const modal = document.getElementById('detailModal');
+  const chartCanvas = document.getElementById('detailChart');
+  const titleEl = document.getElementById('detailModalTitle');
+  const subtitleEl = document.getElementById('detailModalSubtitle');
+  const timelineEl = document.getElementById('detailTimeline');
+  const closeBtn = document.getElementById('detailModalClose');
+  const triggers = document.querySelectorAll('.detail-trigger');
+  if(!modal || !chartCanvas || !timelineEl){
+    return { setGenerators: () => {} };
+  }
+  let chartInstance = null;
+  let generators = {};
+
+  function close(){
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  function open(type){
+    const generator = generators[type];
+    if(!generator){
+      console.warn('No generator configured for metric', type);
+      return;
+    }
+    const details = generator();
+    if(!details) return;
+    const { dataset, timeline, title, subtitle } = details;
+    if(titleEl && title) titleEl.textContent = title;
+    if(subtitleEl) subtitleEl.textContent = subtitle || '';
+    if(typeof window.Chart === 'undefined'){
+      console.warn('Chart.js is not available');
+    } else {
+      const ctx = chartCanvas.getContext('2d');
+      if(ctx){
+        if(chartInstance){
+          chartInstance.destroy();
+        }
+        const formatter = dataset.formatValue || (val => Number.isFinite(val) ? val.toLocaleString() : String(val));
+        chartInstance = new window.Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: dataset.labels,
+            datasets: [{
+              label: dataset.label,
+              data: dataset.data,
+              borderColor: dataset.color,
+              backgroundColor: dataset.color,
+              tension: 0.35,
+              fill: false,
+              pointRadius: 4,
+              pointHoverRadius: 5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (value) => formatter(value)
+                }
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${dataset.label}: ${formatter(context.parsed.y)}`
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    if(timeline.length){
+      timelineEl.innerHTML = timeline.map(entry => {
+        const title = escapeHtml(entry.title || '');
+        const subtitle = entry.subtitle ? `<div class="text-xs muted mt-1">${escapeHtml(entry.subtitle)}</div>` : '';
+        const meta = entry.meta ? `<div class="text-xs muted mt-2">${escapeHtml(entry.meta)}</div>` : '';
+        const value = entry.value ? `<div class="text-sm font-semibold">${escapeHtml(entry.value)}</div>` : '';
+        return `<li class="glass card p-3">` +
+          `<div class="flex items-start justify-between gap-3">` +
+            `<div><div class="font-medium">${title}</div>${subtitle}</div>` +
+            `${value}` +
+          `</div>` +
+          `${meta}` +
+        `</li>`;
+      }).join('');
+    } else {
+      timelineEl.innerHTML = '<li class="muted">No recent activity.</li>';
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  modal.addEventListener('click', (evt) => {
+    if(evt.target === modal){
+      close();
+    }
+  });
+  if(closeBtn){
+    closeBtn.addEventListener('click', close);
+  }
+  document.addEventListener('keydown', (evt) => {
+    if(evt.key === 'Escape' && !modal.classList.contains('hidden')){
+      close();
+    }
+  });
+  triggers.forEach(btn => {
+    btn.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      const type = btn.dataset.detail;
+      if(type){
+        open(type);
+      }
+    });
+  });
+
+  return {
+    setGenerators(map){
+      generators = map || {};
+    }
+  };
+}
 function getStateCode(st){
   if(!st) return null;
   st = st.trim().toUpperCase();
@@ -68,6 +630,56 @@ function renderClientMap(consumers){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  confettiTarget = document.getElementById('confetti');
+  const goalBtn = document.getElementById('btnGoal');
+  if(goalBtn){
+    goalBtn.addEventListener('click', burstConfetti);
+  }
+
+  chatState.panel = document.getElementById('guideChatPanel');
+  chatState.toggle = document.getElementById('guideChatToggle');
+  chatState.close = document.getElementById('guideChatClose');
+  chatState.tour = document.getElementById('guideChatTour');
+  chatState.messages = document.getElementById('guideChatMessages');
+  chatState.form = document.getElementById('guideChatForm');
+  chatState.input = document.getElementById('guideChatInput');
+  chatState.quickButtons = Array.from(document.querySelectorAll('[data-chat-message]'));
+
+  if(chatState.messages && pendingChatMessages.length){
+    const items = pendingChatMessages.splice(0, pendingChatMessages.length);
+    items.forEach(msg => appendChatMessage(msg.role, msg.content, { html: msg.html }));
+  }
+
+  chatState.toggle?.addEventListener('click', () => openChatCoach());
+  chatState.close?.addEventListener('click', () => closeChatCoach());
+  chatState.tour?.addEventListener('click', () => {
+    openChatCoach({ focusInput: false });
+    startTour({ resume: false });
+  });
+  chatState.form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if(!chatState.input) return;
+    const value = chatState.input.value.trim();
+    chatState.input.value = '';
+    if(value) sendChatMessage(value);
+  });
+  chatState.quickButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      openChatCoach({ focusInput: false });
+      sendChatMessage(btn.dataset.chatMessage || '');
+    });
+  });
+  document.addEventListener('keydown', (event) => {
+    if(event.key === 'Escape' && chatState.isOpen){
+      closeChatCoach();
+    }
+  });
+
+  if(pendingChatOpen || localStorage.getItem('dashboardChatOpen') === '1'){
+    openChatCoach({ focusInput: false });
+    pendingChatOpen = false;
+  }
+
   const feedEl = document.getElementById('newsFeed');
   if (feedEl) {
     fetch('/api/settings')
@@ -197,53 +809,130 @@ document.addEventListener('DOMContentLoaded', () => {
     titleEl.addEventListener('input', scheduleAutoSave);
   }
 
-  const goalBtn = document.getElementById('btnGoal');
-  if(goalBtn){
-    const confettiEl = document.getElementById('confetti');
-    goalBtn.addEventListener('click', () => {
-      if(!confettiEl) return;
-      for(let i=0;i<20;i++){
-        const s=document.createElement('span');
-        s.className='confetti-piece';
-        const tx=(Math.random()-0.5)*200;
-        const ty=(-Math.random()*150-50);
-        s.style.setProperty('--tx', tx+'px');
-        s.style.setProperty('--ty', ty+'px');
-        s.style.backgroundColor=`hsl(${Math.random()*360},80%,60%)`;
-        confettiEl.appendChild(s);
-        setTimeout(()=>s.remove(),1200);
-      }
-    });
-  }
+  const safeTotal = (items, key) => items.reduce((sum, item) => {
+    const raw = item?.[key];
+    const num = typeof raw === 'number' ? raw : Number.parseFloat(raw || '');
+    return sum + (Number.isFinite(num) ? num : 0);
+  }, 0);
 
-  Promise.all([
-    fetch('/api/consumers').then(r => r.json()),
-    fetch('/api/leads').then(r => r.json())
-  ])
-    .then(([cData, lData]) => {
-      const consumers = cData.consumers || [];
-      const leads = lData.leads || [];
-      const totalSales = consumers.reduce((s,c)=> s + Number(c.sale || 0), 0);
-      const totalPaid = consumers.reduce((s,c)=> s + Number(c.paid || 0), 0);
-      const fmt = (n)=> `$${n.toFixed(2)}`;
-      const set = (id, val)=>{ const el=document.getElementById(id); if(el) el.textContent = val; };
-      set('dashLeads', leads.filter(l=>l.status==='new').length);
-      set('dashClients', consumers.length);
-      set('dashSales', fmt(totalSales));
-      set('dashPayments', fmt(totalPaid));
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
 
-      const completedLeads = leads.filter(l=>l.status==='completed').length;
-      const droppedLeads = leads.filter(l=>l.status==='dropped').length;
-      const completedClients = consumers.filter(c=>c.status==='completed').length;
-      const droppedClients = consumers.filter(c=>c.status==='dropped').length;
-      const retDen = completedLeads + completedClients + droppedLeads + droppedClients;
-      const retention = retDen ? ((completedLeads + completedClients)/retDen*100) : 0;
-      const convDen = leads.length;
-      const conversion = convDen ? (completedLeads/convDen*100) : 0;
-      set('dashRetention', retention.toFixed(1)+"%");
-      const convEl = document.getElementById('dashConversion');
-      if(convEl) convEl.textContent = conversion.toFixed(1)+"%";
+  (async () => {
+    try {
+      const [consumersRes, leadsRes] = await Promise.all([
+        api('/api/consumers'),
+        api('/api/leads')
+      ]);
+
+      const consumers = Array.isArray(consumersRes.consumers) ? consumersRes.consumers : [];
+      const leads = Array.isArray(leadsRes.leads) ? leadsRes.leads : [];
+
+      const totalSales = safeTotal(consumers, 'sale');
+      const totalPaid = safeTotal(consumers, 'paid');
+
+      setText('dashLeads', leads.length.toLocaleString());
+      setText('dashClients', consumers.length.toLocaleString());
+      setText('dashSales', formatCurrency(totalSales));
+      setText('dashPayments', formatCurrency(totalPaid));
+
+      const completedLeads = leads.filter(l => l.status === 'completed').length;
+      const droppedLeads = leads.filter(l => l.status === 'dropped').length;
+      const completedClients = consumers.filter(c => c.status === 'completed').length;
+      const droppedClients = consumers.filter(c => c.status === 'dropped').length;
+      const retentionDen = completedLeads + completedClients + droppedLeads + droppedClients;
+      const retention = retentionDen ? ((completedLeads + completedClients) / retentionDen * 100) : 0;
+      const conversionDen = leads.length;
+      const conversion = conversionDen ? (completedLeads / conversionDen * 100) : 0;
+      setText('dashRetention', retention.toFixed(1) + '%');
+      setText('dashConversion', conversion.toFixed(1) + '%');
+
       renderClientMap(consumers);
-    })
-    .catch(err=> console.error('Failed to load dashboard stats', err));
+      detailModalController.setGenerators({
+        leads: () => buildMetricDataset({
+          title: 'Lead Intake',
+          subtitle: 'Monthly snapshot of new leads captured.',
+          label: 'Leads per month',
+          color: '#a855f7',
+          items: leads,
+          getValue: () => 1,
+          timelineFormatter: (lead, date) => ({
+            title: lead.name || 'Lead',
+            subtitle: lead.status ? `Status: ${lead.status}` : 'Status not set',
+            meta: timelineDateFormatter.format(date),
+            value: lead.source ? `Source: ${lead.source}` : ''
+          })
+        }),
+        clients: () => buildMetricDataset({
+          title: 'Client Growth',
+          subtitle: 'Clients activated in the last six months.',
+          label: 'Clients per month',
+          color: '#38bdf8',
+          items: consumers,
+          getValue: () => 1,
+          timelineFormatter: (client, date) => ({
+            title: client.name || 'Client',
+            subtitle: `Status: ${client.status || 'active'}`,
+            meta: timelineDateFormatter.format(date),
+            value: client.sale ? formatCurrency(client.sale) : ''
+          })
+        }),
+        sales: () => buildMetricDataset({
+          title: 'Sales Revenue',
+          subtitle: 'Signed contract value by month.',
+          label: 'Sales ($)',
+          color: '#22c55e',
+          items: consumers,
+          getValue: (consumer) => Number(consumer.sale) || 0,
+          formatValue: (value) => formatCurrency(value || 0),
+          timelineFormatter: (consumer, date) => ({
+            title: consumer.name || 'Client',
+            subtitle: 'Sale recorded',
+            meta: timelineDateFormatter.format(date),
+            value: formatCurrency(Number(consumer.sale) || 0)
+          }),
+          filter: (consumer) => Number(consumer.sale) > 0
+        }),
+        payments: () => buildMetricDataset({
+          title: 'Payments Collected',
+          subtitle: 'Cash collected from clients.',
+          label: 'Payments ($)',
+          color: '#f97316',
+          items: consumers,
+          getValue: (consumer) => Number(consumer.paid) || 0,
+          formatValue: (value) => formatCurrency(value || 0),
+          timelineFormatter: (consumer, date) => ({
+            title: consumer.name || 'Client',
+            subtitle: 'Latest payment captured',
+            meta: timelineDateFormatter.format(date),
+            value: formatCurrency(Number(consumer.paid) || 0)
+          }),
+          filter: (consumer) => Number(consumer.paid) > 0
+        })
+      });
+    } catch (err) {
+      console.error('Failed to load dashboard stats', err);
+    }
+  })();
 });
+
+window.addEventListener('crm:tutorial-request', (event) => {
+  const mode = event?.detail?.mode || 'start';
+  if(mode === 'resume'){
+    startTour({ resume: true });
+  } else {
+    startTour({ resume: false });
+  }
+});
+
+window.addEventListener('crm:tutorial-reset', () => {
+  handleTutorialReset();
+});
+
+window.addEventListener('crm:assistant-request', () => {
+  openChatCoach();
+});
+
+refreshHelpGuideState();
