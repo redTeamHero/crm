@@ -11,7 +11,8 @@ const DEFAULT_TEMPLATES = [
     description:
       "Day 0-7 onboarding with timeline prompts, dispute checklist, and trust-building NEPQ questions.",
     segment: SEGMENT_DEFAULT,
-    badge: "Premium",
+    badge: "EN/ES",
+    html: "<h1>Bienvenido</h1><p>Start with trust. Share your dispute roadmap and book a consult.</p>",
     createdAt: new Date(2023, 6, 1).toISOString(),
   },
   {
@@ -21,6 +22,7 @@ const DEFAULT_TEMPLATES = [
       "Automated transactional email with {{credit_score}} merge field and CTA to review the secure portal.",
     segment: SEGMENT_DEFAULT,
     badge: "Dynamic",
+    html: "<h1>Score Update</h1><p>Your latest credit score: {{credit_score}}. Log in to review the audit.</p>",
     createdAt: new Date(2023, 11, 15).toISOString(),
   },
   {
@@ -30,6 +32,7 @@ const DEFAULT_TEMPLATES = [
       "Quarterly update for trucking partners highlighting compliance wins and shared marketing assets.",
     segment: "b2b",
     badge: "B2B",
+    html: "<h1>Broker Referral Touch</h1><p>Showcase compliance wins and referral incentives.</p>",
     createdAt: new Date(2024, 2, 10).toISOString(),
   },
 ];
@@ -122,13 +125,18 @@ function normalizeTemplate(raw = {}) {
   const description = String(raw.description || "Outline your nurture touchpoints and CTA.").trim();
   const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
   const badge = String(raw.badge || segment.toUpperCase()).trim() || segment.toUpperCase();
+  const html = typeof raw.html === "string" ? raw.html.trim() : "";
+  const createdAt = raw.createdAt || new Date().toISOString();
+  const updatedAt = raw.updatedAt || createdAt;
   return {
     id: raw.id || nanoid(8),
     title,
     description,
     segment,
     badge,
-    createdAt: raw.createdAt || new Date().toISOString(),
+    html,
+    createdAt,
+    updatedAt,
     createdBy: raw.createdBy || "system",
     gradient: raw.gradient || segmentGradient(segment),
   };
@@ -338,10 +346,36 @@ export async function listTemplates() {
 
 export async function createTemplate(template) {
   const state = await loadMarketingState();
-  const next = normalizeTemplate({ ...template, createdAt: new Date().toISOString() });
+  const now = new Date().toISOString();
+  const next = normalizeTemplate({ ...template, createdAt: now, updatedAt: now });
   state.templates = [next, ...state.templates.filter((tpl) => tpl.id !== next.id)].slice(0, 50);
   await saveMarketingState(state);
   return next;
+}
+
+export async function updateTemplate(id, updates = {}) {
+  if (!id) throw new Error("Template id is required");
+  const state = await loadMarketingState();
+  const index = state.templates.findIndex((tpl) => tpl.id === id);
+  if (index === -1) {
+    throw new Error("Template not found");
+  }
+  const now = new Date().toISOString();
+  const current = state.templates[index];
+  const next = normalizeTemplate({
+    ...current,
+    ...updates,
+    id: current.id,
+    createdAt: current.createdAt || now,
+    updatedAt: now,
+  });
+  state.templates[index] = next;
+  state.templates = [
+    state.templates[index],
+    ...state.templates.filter((tpl, tplIndex) => tplIndex !== index),
+  ].slice(0, 50);
+  await saveMarketingState(state);
+  return state.templates[0];
 }
 
 export async function listSmsTemplates() {

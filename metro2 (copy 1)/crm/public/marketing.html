@@ -341,6 +341,69 @@
     </div>
   </section>
 
+  <div id="templateEditorModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
+    <div class="glass card w-full max-w-3xl space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="templateEditorHeading">
+      <header class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 id="templateEditorHeading" class="text-lg font-semibold" data-i18n="marketing.emailBuilder.editor.title">Email Template Editor</h3>
+          <p class="text-xs text-slate-500" data-i18n="marketing.emailBuilder.editor.subtitle">Edit bilingual journeys, update CTA copy, and sync with automations.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-xs">
+          <button class="btn bg-slate-900" type="button" data-close-template-editor data-i18n="marketing.emailBuilder.editor.close">Close</button>
+        </div>
+      </header>
+      <form id="templateEditorForm" class="space-y-4">
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="templateEditorTitle" data-i18n="marketing.emailBuilder.editor.titleLabel">Template Name / Nombre</label>
+            <input id="templateEditorTitle" name="title" class="input" placeholder="Onboarding Touchpoint" required />
+          </div>
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="templateEditorSegment" data-i18n="marketing.emailBuilder.editor.segmentLabel">Segment</label>
+            <select id="templateEditorSegment" name="segment" class="input">
+              <option value="b2c">B2C • Consumidores</option>
+              <option value="b2b">B2B • Truckers</option>
+              <option value="attorneys">Attorneys / Abogados</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)]">
+          <div class="grid gap-3">
+            <div class="grid gap-2">
+              <label class="text-sm font-medium" for="templateEditorBadge" data-i18n="marketing.emailBuilder.editor.badgeLabel">Badge</label>
+              <input id="templateEditorBadge" name="badge" class="input" placeholder="EN/ES" />
+            </div>
+            <div class="grid gap-2">
+              <label class="text-sm font-medium" for="templateEditorDescription" data-i18n="marketing.emailBuilder.editor.descriptionLabel">Description / Descripción</label>
+              <textarea id="templateEditorDescription" name="description" class="input h-24" placeholder="Outline trust builders, CTA, bilingual promise."></textarea>
+            </div>
+            <div class="grid gap-2">
+              <label class="text-sm font-medium" for="templateEditorHtml" data-i18n="marketing.emailBuilder.editor.htmlLabel">HTML Content</label>
+              <textarea id="templateEditorHtml" name="html" class="input min-h-[200px] font-mono text-xs" placeholder="<h1>Bienvenido</h1>"></textarea>
+            </div>
+          </div>
+          <aside class="flex flex-col gap-2 rounded-xl border border-dashed border-slate-300 bg-white/70 p-4">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span data-i18n="marketing.emailBuilder.editor.previewLabel">Live Preview • Vista previa</span>
+              <span id="templateEditorMeta" class="text-[10px] uppercase"></span>
+            </div>
+            <div id="templateEditorPreview" class="min-h-[240px] overflow-auto rounded-lg bg-white p-3 text-sm text-slate-700 shadow-inner"></div>
+            <p class="text-[11px] text-slate-500" data-i18n="marketing.emailBuilder.editor.previewHint">Merge fields render with sample data. Final send pulls CRM values.</p>
+          </aside>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+          <span data-i18n="marketing.emailBuilder.editor.guardrail">No promises of guaranteed results. Track consult conversion % and Stripe upsell.</span>
+          <div class="flex flex-wrap gap-2">
+            <button class="btn" type="submit" data-i18n="marketing.emailBuilder.editor.save">Save Template / Guardar</button>
+            <button class="btn" type="button" data-close-template-editor data-i18n="marketing.emailBuilder.editor.cancel">Cancel</button>
+          </div>
+        </div>
+        <p id="templateEditorStatus" class="hidden rounded-lg px-3 py-2 text-xs"></p>
+      </form>
+    </div>
+  </div>
+
   <!-- Campaign Analytics Preview -->
   <section aria-labelledby="campaign-dashboard-heading" class="glass card p-6 space-y-6">
     <div class="flex items-center gap-3">
@@ -471,6 +534,7 @@
   </section>
 
 </main>
+
 <div id="testModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
   <div class="glass card max-w-md w-full space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
     <div class="flex items-center justify-between">

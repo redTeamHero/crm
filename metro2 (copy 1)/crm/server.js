@@ -1666,8 +1666,14 @@ function normalizeContract(contract){
 
 app.get("/api/templates", async (_req,res)=>{
   const db = await loadLettersDB();
+  let mutated = false;
   if(!db.templates || db.templates.length === 0){
     db.templates = defaultTemplates();
+    mutated = true;
+  } else {
+    mutated = ensureTemplateDefaults(db);
+  }
+  if(mutated){
     await saveLettersDB(db);
   }
   const contracts = (db.contracts || []).map(normalizeContract).filter(Boolean);
@@ -1683,16 +1689,29 @@ app.get("/api/sample-letters", (_req, res) => {
   res.json({ ok: true, templates: LETTER_TEMPLATES });
 });
 
+function ensureTemplateDefaults(db){
+  if(!Array.isArray(db.templates)){ db.templates = []; }
+  const existingIds = new Set(db.templates.map(t => t.id));
+  let mutated = false;
+  for(const tpl of defaultTemplates()){
+    if(!existingIds.has(tpl.id)){
+      db.templates.push({ ...tpl });
+      mutated = true;
+    }
+  }
+  return mutated;
+}
+
 app.post("/api/templates", async (req,res)=>{
   const db = await loadLettersDB();
-  db.templates = db.templates || [];
+  const seeded = ensureTemplateDefaults(db);
   const { id = nanoid(8), heading = "", intro = "", ask = "", afterIssues = "", evidence = "", requestType = "correct" } = req.body || {};
   const existing = db.templates.find(t => t.id === id);
   const tpl = { id, heading, intro, ask, afterIssues, evidence, requestType };
   if(existing){ Object.assign(existing, tpl); }
   else { db.templates.push(tpl); }
   await saveLettersDB(db);
-  res.json({ ok:true, template: tpl });
+  res.json({ ok:true, template: tpl, seededDefaults: seeded });
 });
 
 app.post("/api/sequences", async (req,res)=>{
