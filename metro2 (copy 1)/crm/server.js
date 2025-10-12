@@ -942,6 +942,18 @@ export function runBasicRuleAudit(report = {}) {
       }
     };
 
+    const add = (id, title) => {
+      const existing = violations.find(v => v && v.id === id);
+      if (existing) {
+        pushIntoBasic(existing);
+        return;
+      }
+
+      const entry = { id, title, source: "basic_rule_audit", category: "Basic" };
+      violations.push(entry);
+      pushIntoBasic(entry);
+    };
+
     const perBureau = tl.per_bureau || {};
     const tu = perBureau.TransUnion || {};
     const past = String(tu.past_due ?? "").replace(/[^0-9]/g, "");
