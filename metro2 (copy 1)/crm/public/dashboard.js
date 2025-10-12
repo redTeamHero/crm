@@ -916,6 +916,21 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Failed to load dashboard stats', err);
     }
   })();
+
+  syncTourWidget();
+});
+
+window.addEventListener('crm:tutorial-request', (event) => {
+  const mode = event?.detail?.mode || 'start';
+  if(mode === 'resume'){
+    startTour({ resume: true });
+  } else {
+    startTour({ resume: false });
+  }
+});
+
+window.addEventListener('crm:tutorial-reset', () => {
+  handleTutorialReset();
 });
 
 window.addEventListener('crm:tutorial-request', (event) => {
