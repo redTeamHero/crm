@@ -6,32 +6,7 @@
   <title>Client Portal - {{name}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-<script>
-(() => {
-  const themes = {
-    purple:{accent:'#AF52DE',hover:'#9333EA',bg:'#AF52DE',
-            glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},
-    blue:{accent:'#007AFF',hover:'#005BB5',bg:'#007AFF',
-          glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},
-    green:{accent:'#34C759',hover:'#248A3D',bg:'#34C759',
-           glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'}
-    // …keep the rest of your themes
-  };
-  const name = localStorage.getItem('theme') || 'purple';
-  const t = themes[name] || themes.purple;
-  const r = document.documentElement.style;
-  r.setProperty('--accent', t.accent);
-  r.setProperty('--accent-hover', t.hover);
-  r.setProperty('--accent-bg', t.bg);
-  r.setProperty('--glass-bg', t.glassBg);
-  r.setProperty('--glass-brd', t.glassBrd);
-  r.setProperty('--btn-text', '#fff');
-  document.documentElement.style.visibility = 'hidden';
-  document.addEventListener('DOMContentLoaded', () => {
-    document.documentElement.style.visibility = '';
-  });
-})();
-</script>
+<script src="/theme.js"></script>
 <link rel="stylesheet" href="/style.css">
     <style>
       @keyframes blob{0%,100%{transform:translate(0,0);}33%{transform:translate(15px,-10px);}66%{transform:translate(-10px,10px);}}

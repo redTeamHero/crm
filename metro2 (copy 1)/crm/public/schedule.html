@@ -5,36 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Schedule</title>
   <script src="https://cdn.tailwindcss.com"></script>
-<script>
-(() => {
-  const themes = {
-    purple:{accent:'#AF52DE',hover:'#9333EA',bg:'#AF52DE',
-            glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},
-    blue:{accent:'#007AFF',hover:'#005BB5',bg:'#007AFF',
-          glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},
-    green:{accent:'#34C759',hover:'#248A3D',bg:'#34C759',
-           glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'}
-    // …keep the rest of your themes
-  };
-  const name = localStorage.getItem('theme') || 'purple';
-  const t = themes[name] || themes.purple;
-  const r = document.documentElement.style;
-  r.setProperty('--accent', t.accent);
-  r.setProperty('--accent-hover', t.hover);
-  r.setProperty('--accent-bg', t.bg);
-  r.setProperty('--glass-bg', t.glassBg);
-  r.setProperty('--glass-brd', t.glassBrd);
-  r.setProperty('--btn-text', '#fff');
-  document.documentElement.style.visibility = 'hidden';
-  document.addEventListener('DOMContentLoaded', () => {
-    document.documentElement.style.visibility = '';
-  });
-})();
-</script>
+<script src="/theme.js"></script>
 <link rel="stylesheet" href="/style.css">
 <style>
   .calendar-shell {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78));
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.75));
+    border: 1px solid var(--border-soft);
   }
   .calendar-grid {
     display: grid;
@@ -46,8 +22,8 @@
     border-radius: 18px;
     padding: 12px;
     min-height: 110px;
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: var(--surface-strong);
+    border: 1px solid var(--border-soft);
     transition: transform .2s ease, box-shadow .2s ease;
     display: flex;
     flex-direction: column;
@@ -60,7 +36,7 @@
   }
   .calendar-cell:hover {
     transform: translateY(-3px);
-    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
   }
   .calendar-cell .event-chip {
     display: flex;
@@ -97,8 +73,8 @@
     gap: 4px;
     padding: 12px;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid var(--border-soft);
+    background: var(--surface);
     min-width: 150px;
   }
   .summary-tile strong {
