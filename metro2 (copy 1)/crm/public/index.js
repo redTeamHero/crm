@@ -123,7 +123,7 @@ function formatEvent(ev){
     title = "Letters generated";
     const inqPart = inquiries ? ` and ${escapeHtml(inquiries)} inquiry${inquiries===1?"":"s"}` : "";
     const colPart = collectors ? ` and ${escapeHtml(collectors)} collector${collectors===1?"":"s"}` : "";
-    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} tradeline${tradelines===1?"":"s"}${inqPart}${colPart}.</div>`;
+    body = `<div class="text-xs mt-1">Generated ${escapeHtml(count)} letter${count===1?"":"s"} (${escapeHtml(requestType||"")}) for ${escapeHtml(tradelines)} negative item${tradelines===1?"":"s"}${inqPart}${colPart}.</div>`;
 
   } else if(ev.type === "audit_generated"){
     const { reportId, file } = ev.payload || {};
@@ -341,7 +341,9 @@ async function refreshReports(){
   (data.reports || []).forEach(r=>{
     const opt = document.createElement("option");
     opt.value = r.id;
-    opt.textContent = `${r.filename} (${r.summary.tradelines} TL) • ${new Date(r.uploadedAt).toLocaleString()}`;
+    const negCount = r.summary?.negative_items ?? r.summary?.tradelines ?? 0;
+    const label = negCount === 1 ? 'Negative Item' : 'Negative Items';
+    opt.textContent = `${r.filename} (${negCount} ${label}) • ${new Date(r.uploadedAt).toLocaleString()}`;
     sel.appendChild(opt);
   });
 
@@ -792,6 +794,10 @@ export function normalizeViolations(vs){
       bureaus,
       idx: v?.idx ?? idx
     };
+  }).sort((a, b) => {
+    const severityDelta = (b.severity ?? 0) - (a.severity ?? 0);
+    if (severityDelta !== 0) return severityDelta;
+    return (a.code || "").localeCompare(b.code || "");
   });
 }
 
@@ -857,7 +863,7 @@ function updateSelectAllButton(){
   if (btnNeg){
     const negatives = cards.filter(c => c.classList.contains("negative"));
     const allNegSelected = negatives.length > 0 && negatives.every(c => c.classList.contains("selected"));
-    btnNeg.textContent = allNegSelected ? "Deselect Negative" : "Select Negative";
+    btnNeg.textContent = allNegSelected ? "Deselect Negative Items" : "Select Negative Items";
   }
 }
 
@@ -1006,7 +1012,7 @@ function renderTradelines(tradelines){
     }
     function renderViolations(){
       if(!vs.length){
-        vWrap.innerHTML = `<div class="text-sm muted">No auto-detected violations for this tradeline.</div>`;
+        vWrap.innerHTML = `<div class="text-sm muted">No auto-detected violations for this negative item.</div>`;
         countEl.textContent = '0 violations';
         prevBtn.classList.add("hidden");
         nextBtn.classList.add("hidden");
@@ -1099,7 +1105,7 @@ function renderTradelines(tradelines){
   });
 
   if (!container.children.length){
-    container.innerHTML = `<div class="muted">No tradelines match the current filters.</div>`;
+    container.innerHTML = `<div class="muted">No negative items match the current filters.</div>`;
   }
 
   updateSelectAllButton();
@@ -1275,7 +1281,7 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     const includePI = $("#cbPersonalInfo").checked;
     const includeCol = $("#cbCollectors").checked;
     const colSelections = includeCol ? collectCollectorSelections() : [];
-    if(!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one tradeline, collector, or select Personal Info.");
+    if(!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one negative item, collector, or select Personal Info.");
     const resp = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type":"application/json", ...authHeader() },
