@@ -852,7 +852,7 @@ body::after {
   gap: 16px;
   padding: 16px;
   width: 240px;
-  z-index: 40;
+  z-index: 120;
   background: linear-gradient(135deg, rgba(15, 23, 42, 0.78) 0%, rgba(30, 64, 175, 0.72) 55%, rgba(76, 29, 149, 0.68) 100%);
   border: 1px solid rgba(99, 102, 241, 0.55);
   border-radius: 20px;
