@@ -84,11 +84,11 @@
     <div class="flex items-center gap-3">
       <span class="text-3xl">🚀</span>
       <div>
-        <h1 class="text-2xl font-bold">Marketing Launchpad</h1>
-        <p class="text-sm text-slate-600">Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, o cualquier otra integración.</p>
+        <h1 class="text-2xl font-bold" data-i18n="marketing.hero.title">Marketing Launchpad</h1>
+        <p class="text-sm text-slate-600" data-i18n="marketing.hero.subtitle">Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, o cualquier otra integración.</p>
       </div>
     </div>
-    <p class="text-xs text-slate-500">Tip: documenta cada touchpoint bilingüe (EN/ES) to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.</p>
+    <p class="text-xs text-slate-500" data-i18n="marketing.hero.tip">Tip: documenta cada touchpoint bilingüe (EN/ES) to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.</p>
   </header>
 
   <!-- SMS Campaign Builder -->
@@ -97,38 +97,38 @@
       <div class="flex items-center gap-3">
         <span class="text-2xl">📱</span>
         <div>
-          <h2 id="sms-builder-heading" class="text-xl font-semibold">SMS Campaign Builder</h2>
-          <p class="text-sm text-slate-600">Craft compliant outreach, personalize with merge fields, and preview the mobile experience antes de lanzar.</p>
+          <h2 id="sms-builder-heading" class="text-xl font-semibold" data-i18n="marketing.smsBuilder.heading">SMS Campaign Builder</h2>
+          <p class="text-sm text-slate-600" data-i18n="marketing.smsBuilder.description">Craft compliant outreach, personalize with merge fields, and preview the mobile experience antes de lanzar.</p>
         </div>
       </div>
       <div class="flex flex-wrap gap-2 text-xs text-slate-500">
-        <span class="chip bg-white/60">Suggested KPI: Reply Rate</span>
-        <span class="chip bg-white/60">Upsell: SMS Concierge Follow-up</span>
-        <span class="chip bg-white/60">A/B Test: CTA «Book Call» vs «Descubre tu plan»</span>
+        <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.kpi">Suggested KPI: Reply Rate</span>
+        <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.upsell">Upsell: SMS Concierge Follow-up</span>
+        <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.experiment">A/B Test: CTA «Book Call» vs «Descubre tu plan»</span>
       </div>
     </div>
     <div class="grid gap-6 lg:grid-cols-2">
       <form class="glass card bg-white/70 shadow-inner space-y-4" id="smsForm">
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" for="smsCampaignName">Campaign Name</label>
-          <input id="smsCampaignName" class="input" type="text" placeholder="Fall Promo Launch" />
+          <label class="text-sm font-medium" for="smsCampaignName" data-i18n="marketing.smsBuilder.campaignName">Campaign Name</label>
+          <input id="smsCampaignName" class="input" type="text" placeholder="Fall Promo Launch" data-i18n-placeholder="marketing.smsBuilder.campaignPlaceholder" />
         </div>
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" for="smsSegment">Recipient Group</label>
+          <label class="text-sm font-medium" for="smsSegment" data-i18n="marketing.smsBuilder.recipientLabel">Recipient Group</label>
           <select id="smsSegment" class="input">
-            <option value="leads">All Leads</option>
-            <option value="new-clients">New Clients (≤30 days)</option>
-            <option value="inactive">Inactive Accounts (90+ days)</option>
-            <option value="truckers">Owner-Operators / Truckers</option>
+            <option value="leads" data-i18n="marketing.smsBuilder.recipients.leads">All Leads</option>
+            <option value="new-clients" data-i18n="marketing.smsBuilder.recipients.newClients">New Clients (≤30 days)</option>
+            <option value="inactive" data-i18n="marketing.smsBuilder.recipients.inactive">Inactive Accounts (90+ days)</option>
+            <option value="truckers" data-i18n="marketing.smsBuilder.recipients.truckers">Owner-Operators / Truckers</option>
           </select>
         </div>
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-between gap-2">
-            <label class="text-sm font-medium" for="smsMessage">Message</label>
+            <label class="text-sm font-medium" for="smsMessage" data-i18n="marketing.smsBuilder.messageLabel">Message</label>
             <div class="flex items-center gap-2 text-xs text-slate-500">
-              <label class="sr-only" for="mergeFieldSelect">Insert Merge Field</label>
+              <label class="sr-only" for="mergeFieldSelect" data-i18n="marketing.smsBuilder.insertMerge">Insert Merge Field</label>
               <select id="mergeFieldSelect" class="input text-xs py-1 px-2">
-                <option value="">+ Personalize</option>
+                <option value="" data-i18n="marketing.smsBuilder.personalize">+ Personalize</option>
                 <option value="{{first_name}}">{{first_name}}</option>
                 <option value="{{last_name}}">{{last_name}}</option>
                 <option value="{{credit_score}}">{{credit_score}}</option>
@@ -137,9 +137,9 @@
               </select>
             </div>
           </div>
-          <textarea id="smsMessage" class="input min-h-[140px]" placeholder="Hi {{first_name}}, we spotted a dispute update ready for review. Tap to confirm your next step."></textarea>
+          <textarea id="smsMessage" class="input min-h-[140px]" placeholder="Hi {{first_name}}, we spotted a dispute update ready for review. Tap to confirm your next step." data-i18n-placeholder="marketing.smsBuilder.messagePlaceholder"></textarea>
           <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <span>Character Count: <span id="smsCharCount">0/160</span></span>
+            <span><span data-i18n="marketing.smsBuilder.characterLabel">Character Count:</span> <span id="smsCharCount">0/160</span></span>
             <div class="flex items-center gap-1" aria-label="Quick merge fields">
               <button type="button" class="chip" data-token="{{first_name}}">{{first_name}}</button>
               <button type="button" class="chip" data-token="{{dispute_stage}}">{{dispute_stage}}</button>
@@ -148,9 +148,9 @@
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-3">
-          <button id="smsPreviewBtn" class="btn" type="button">Preview SMS</button>
-          <button id="smsTestBtn" class="btn bg-slate-900" type="button">Send Test</button>
-          <span class="text-xs text-slate-500">Guardrails: opt-out copy auto-appended, rate-limited when live.</span>
+          <button id="smsPreviewBtn" class="btn" type="button" data-i18n="marketing.smsBuilder.previewButton">Preview SMS</button>
+          <button id="smsTestBtn" class="btn bg-slate-900" type="button" data-i18n="marketing.smsBuilder.sendTestButton">Send Test</button>
+          <span class="text-xs text-slate-500" data-i18n="marketing.smsBuilder.guardrails">Guardrails: opt-out copy auto-appended, rate-limited when live.</span>
         </div>
       </form>
       <aside class="flex justify-center">
