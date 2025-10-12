@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Billing</title>
+  <title data-i18n="billing.meta.title">Billing</title>
   <script src="https://cdn.tailwindcss.com"></script>
 <script>
 (() => {
@@ -80,88 +80,80 @@
   </div>
 </header>
 <main class="max-w-7xl mx-auto p-4 space-y-6">
-  <div id="noClient" class="glass card hidden">Select a client from the Clients page first. Selecciona un cliente en la página de Clientes primero.</div>
+  <div id="noClient" class="glass card hidden" data-i18n="billing.noClient">Select a client from the Clients page first.</div>
 
   <div id="billingContent" class="space-y-6 hidden">
     <section class="glass card p-6 md:p-8 space-y-6">
       <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div class="space-y-4 max-w-2xl">
-          <p class="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">Cashflow clarity · Claridad financiera</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500" data-i18n="billing.hero.eyebrow">Cashflow clarity</p>
           <div>
-            <h1 class="text-3xl font-semibold text-slate-900">Billing &amp; Subscriptions</h1>
-            <h2 class="text-lg text-slate-600">Facturación y suscripciones</h2>
+            <h1 class="text-3xl font-semibold text-slate-900" data-i18n="billing.hero.title">Billing &amp; Subscriptions</h1>
+            <h2 class="text-lg text-slate-600" data-i18n="billing.hero.subtitle">Keep every charge traceable for Metro-2 and FCRA compliance while giving clients premium payment experiences.</h2>
           </div>
-          <p class="text-sm text-slate-700 leading-relaxed">
-            Keep every charge traceable for Metro-2 and FCRA compliance while giving clients premium payment experiences.
-            Mantén cada cargo trazable para el cumplimiento Metro-2 y FCRA mientras ofreces experiencias de pago premium.
-          </p>
+          <p class="text-sm text-slate-700 leading-relaxed" data-i18n="billing.hero.body">Keep every charge traceable for Metro-2 and FCRA compliance while giving clients premium payment experiences.</p>
           <ul class="grid gap-2 text-sm text-slate-600 sm:grid-cols-2">
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span>Send secure payment links within seconds.<br />Envía enlaces de pago seguros en segundos.</span></li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span>Track charge-offs vs. settlements cleanly.<br />Sigue cargos vs. acuerdos con claridad.</span></li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span>Auto-remind clients ahead of due dates.<br />Automatiza recordatorios antes de la fecha límite.</span></li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span>Snapshot KPIs for finance + sales teams.<br />Visibiliza KPIs para finanzas y ventas.</span></li>
+            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span data-i18n="billing.hero.bullets.secureLinks">Send secure payment links within seconds.</span></li>
+            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span data-i18n="billing.hero.bullets.trackChargeoffs">Track charge-offs vs. settlements cleanly.</span></li>
+            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span data-i18n="billing.hero.bullets.remindClients">Auto-remind clients ahead of due dates.</span></li>
+            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span data-i18n="billing.hero.bullets.snapshotKpis">Snapshot KPIs for finance + sales teams.</span></li>
           </ul>
         </div>
         <div class="glass card border border-white/50 bg-white/70 p-5 shadow-xl shadow-slate-900/5 md:max-w-sm space-y-4">
           <div>
-            <div class="text-sm font-semibold text-slate-700">Active invoices · Facturas activas</div>
+            <div class="text-sm font-semibold text-slate-700" data-i18n="billing.hero.card.heading">Active invoices</div>
             <div class="text-3xl font-bold text-slate-900" id="invoiceCount">0</div>
           </div>
           <div class="space-y-1 text-sm text-slate-600">
-            <p>Consult → Purchase target: 42%.</p>
-            <p>Objetivo Consultoría → Compra: 42%.</p>
+            <p data-i18n="billing.hero.card.target">Consult → Purchase target: 42%.</p>
           </div>
-          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold">
-            Send payment link · Enviar enlace de pago
-          </button>
-          <p class="text-xs text-slate-500">Share via SMS or email—no SSN stored, only last4 on file. Comparte por SMS o email; jamás almacenamos el SSN completo.</p>
+          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold" data-i18n="billing.hero.card.button">Send payment link</button>
+          <p class="text-xs text-slate-500" data-i18n="billing.hero.card.footnote">Share via SMS or email—no SSN stored, only last4 on file.</p>
         </div>
       </div>
       <div class="flex flex-wrap gap-3">
-        <button type="button" class="btn px-4 py-2 text-sm font-semibold">Download CSV · Descargar CSV</button>
-        <button type="button" class="btn px-4 py-2 text-sm font-semibold" style="background: var(--green-bg);">
-          Offer one-time payoff · Ofrecer pago único
-        </button>
+        <button type="button" class="btn px-4 py-2 text-sm font-semibold" data-i18n="billing.hero.buttons.downloadCsv">Download CSV</button>
+        <button type="button" class="btn px-4 py-2 text-sm font-semibold" style="background: var(--green-bg);" data-i18n="billing.hero.buttons.offerPayoff">Offer one-time payoff</button>
       </div>
     </section>
 
     <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-slate-500">Plan</p>
-        <p class="text-xl font-semibold text-slate-900">Growth Suite · $297/mo</p>
-        <p class="text-sm text-slate-600">Includes Metro-2 automation, dispute letter engine, and bilingual support.</p>
-        <button type="button" class="btn w-fit px-4 py-2 text-xs font-semibold">View upgrades · Ver mejoras</button>
+        <p class="text-xs uppercase tracking-widest text-slate-500" data-i18n="billing.metrics.planLabel">Plan</p>
+        <p class="text-xl font-semibold text-slate-900" data-i18n="billing.metrics.planValue">Growth Suite · $297/mo</p>
+        <p class="text-sm text-slate-600" data-i18n="billing.metrics.planDescription">Includes Metro-2 automation, dispute letter engine, and bilingual support.</p>
+        <button type="button" class="btn w-fit px-4 py-2 text-xs font-semibold" data-i18n="billing.metrics.planCta">View upgrades</button>
       </article>
       <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-slate-500">Outstanding</p>
+        <p class="text-xs uppercase tracking-widest text-slate-500" data-i18n="billing.metrics.outstandingLabel">Outstanding</p>
         <p id="metricOutstanding" class="text-2xl font-semibold text-slate-900">$0.00</p>
-        <p class="text-sm text-slate-600">Balance awaiting payment. Saldo pendiente de cobro.</p>
+        <p class="text-sm text-slate-600" data-i18n="billing.metrics.outstandingDescription">Balance awaiting payment.</p>
       </article>
       <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-slate-500">Next due · Próximo vencimiento</p>
+        <p class="text-xs uppercase tracking-widest text-slate-500" data-i18n="billing.metrics.nextDueLabel">Next due</p>
         <p id="metricNextDue" class="text-xl font-semibold text-slate-900">—</p>
         <p id="metricNextAmount" class="text-sm font-medium text-emerald-600">—</p>
-        <p id="metricNextDesc" class="text-xs text-slate-500">No open invoices · No hay facturas abiertas.</p>
+        <p id="metricNextDesc" class="text-xs text-slate-500" data-i18n="billing.metrics.nextDescriptionDefault">No open invoices.</p>
       </article>
       <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-slate-500">Collected YTD</p>
+        <p class="text-xs uppercase tracking-widest text-slate-500" data-i18n="billing.metrics.collectedLabel">Collected YTD</p>
         <p id="metricCollected" class="text-2xl font-semibold text-slate-900">$0.00</p>
-        <p class="text-sm text-slate-600">Closed revenue booked this year. Ingresos cerrados este año.</p>
+        <p class="text-sm text-slate-600" data-i18n="billing.metrics.collectedDescription">Closed revenue booked this year.</p>
       </article>
     </section>
 
     <section class="glass card p-6 md:p-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div class="space-y-2">
-        <p class="text-sm font-semibold text-slate-700">Autopay control · Cargo automático</p>
-        <p id="autopayStatus" class="text-lg font-semibold text-slate-900">Autopay off · Cargo automático desactivado</p>
-        <p id="autopayCopy" class="text-sm text-slate-600">Turn this on to draft recurring invoices and stay Metro-2 compliant. Activa esta opción para automatizar facturas recurrentes con cumplimiento Metro-2.</p>
+        <p class="text-sm font-semibold text-slate-700" data-i18n="billing.autopay.heading">Autopay control</p>
+        <p id="autopayStatus" class="text-lg font-semibold text-slate-900">Autopay off</p>
+        <p id="autopayCopy" class="text-sm text-slate-600" data-i18n="billing.autopay.copyOff">Turn this on to draft recurring invoices and stay Metro-2 compliant.</p>
       </div>
       <div class="space-y-2">
         <label class="flex items-center gap-3">
           <input id="autopaySwitch" type="checkbox" class="h-5 w-5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500">
-          <span id="autopaySwitchLabel" class="text-sm font-medium text-slate-700">Enable autopay · Activar cargo automático</span>
+          <span id="autopaySwitchLabel" class="text-sm font-medium text-slate-700" data-i18n="billing.autopay.toggleOn">Enable autopay</span>
         </label>
-        <p class="text-xs text-slate-500">Receipts email instantly. Los recibos se envían por email al instante.</p>
+        <p class="text-xs text-slate-500" data-i18n="billing.autopay.receipts">Receipts email instantly.</p>
       </div>
     </section>
 
@@ -169,76 +161,70 @@
       <section class="glass card p-6 lg:col-span-2 space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 class="text-xl font-semibold text-slate-900">Invoice history</h3>
-            <p class="text-sm text-slate-600">Monitor payments, disputes, and refunds. Supervisa pagos, disputas y reembolsos.</p>
+            <h3 class="text-xl font-semibold text-slate-900" data-i18n="billing.invoices.heading">Invoice history</h3>
+            <p class="text-sm text-slate-600" data-i18n="billing.invoices.subheading">Monitor payments, disputes, and refunds.</p>
           </div>
           <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-            <span class="badge badge-unpaid">Due soon · Vence pronto</span>
-            <span class="badge badge-paid">Paid · Pagado</span>
+            <span class="badge badge-unpaid" data-i18n="billing.invoices.badges.dueSoon">Due soon</span>
+            <span class="badge badge-paid" data-i18n="billing.invoices.badges.paid">Paid</span>
           </div>
         </div>
         <div class="overflow-x-auto rounded-2xl border border-white/40">
           <table id="invoiceTable" class="invoice-table min-w-full divide-y divide-white/40 text-sm">
             <thead class="bg-white/60 text-left text-xs font-semibold uppercase tracking-widest text-slate-500">
               <tr>
-                <th class="px-4 py-3">Description · Descripción</th>
-                <th class="px-4 py-3">Amount · Monto</th>
-                <th class="px-4 py-3">Due · Vence</th>
-                <th class="px-4 py-3">Status · Estado</th>
-                <th class="px-4 py-3">Actions · Acciones</th>
+                <th class="px-4 py-3" data-i18n="billing.invoices.table.description">Description</th>
+                <th class="px-4 py-3" data-i18n="billing.invoices.table.amount">Amount</th>
+                <th class="px-4 py-3" data-i18n="billing.invoices.table.due">Due</th>
+                <th class="px-4 py-3" data-i18n="billing.invoices.table.status">Status</th>
+                <th class="px-4 py-3" data-i18n="billing.invoices.table.actions">Actions</th>
               </tr>
             </thead>
             <tbody id="invoiceBody" class="bg-white/50"></tbody>
           </table>
         </div>
-        <div id="invoiceEmpty" class="hidden rounded-xl border border-dashed border-slate-300/70 bg-white/60 p-6 text-sm text-slate-600">
-          No invoices yet. Create your first invoice to trigger consult → purchase tracking.
-          Aún no hay facturas. Crea la primera factura para activar el seguimiento de consultoría → compra.
-        </div>
-        <p class="text-xs text-slate-500">Compliance note: never promise guaranteed credit outcomes or timelines. Anota expectativas realistas en cada factura.</p>
+        <div id="invoiceEmpty" class="hidden rounded-xl border border-dashed border-slate-300/70 bg-white/60 p-6 text-sm text-slate-600" data-i18n="billing.invoices.empty">No invoices yet. Create your first invoice to trigger consult → purchase tracking.</div>
+        <p class="text-xs text-slate-500" data-i18n="billing.invoices.compliance">Compliance note: never promise guaranteed credit outcomes or timelines. Set realistic expectations on every invoice.</p>
       </section>
 
       <div class="space-y-6">
         <section class="glass card p-6 space-y-4">
           <div class="flex items-center justify-between gap-4">
             <div>
-              <h3 class="text-lg font-semibold text-slate-900">Saved payment method</h3>
-              <p class="text-sm text-slate-600">Visa ending 4242 · Updated Jun 14</p>
+              <h3 class="text-lg font-semibold text-slate-900" data-i18n="billing.paymentMethod.heading">Saved payment method</h3>
+              <p class="text-sm text-slate-600" data-i18n="billing.paymentMethod.summary">Visa ending 4242 · Updated Jun 14</p>
             </div>
-            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Tokenized</span>
+            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700" data-i18n="billing.paymentMethod.badge">Tokenized</span>
           </div>
-          <div class="rounded-xl bg-white/80 p-4 text-sm text-slate-700 shadow-sm">
-            Apple Pay &amp; ACH ready. Use Stripe to refresh authorization.
-            Apple Pay y ACH listos. Usa Stripe para refrescar la autorización.
-          </div>
-          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold">Update card · Actualizar tarjeta</button>
+          <div class="rounded-xl bg-white/80 p-4 text-sm text-slate-700 shadow-sm" data-i18n="billing.paymentMethod.message">Apple Pay &amp; ACH ready. Use Stripe to refresh authorization.</div>
+          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold" data-i18n="billing.paymentMethod.button">Update card</button>
         </section>
 
         <section class="glass card p-6 space-y-4">
-          <h3 class="text-lg font-semibold text-slate-900">Quick add invoice · Crear factura rápida</h3>
+          <h3 class="text-lg font-semibold text-slate-900" data-i18n="billing.quickAdd.heading">Quick add invoice</h3>
           <div class="space-y-3">
             <label class="flex flex-col gap-1 text-sm text-slate-700">
-              <span>Description · Descripción</span>
-              <input id="invDesc" class="input" placeholder="Metro-2 audit retainer" />
+              <span data-i18n="billing.quickAdd.fields.descriptionLabel">Description</span>
+              <input id="invDesc" class="input" placeholder="Metro-2 audit retainer" data-i18n-placeholder="billing.quickAdd.fields.descriptionPlaceholder" />
             </label>
             <label class="flex flex-col gap-1 text-sm text-slate-700">
-              <span>Amount · Monto</span>
-              <input id="invAmount" type="number" step="0.01" class="input" placeholder="297.00" />
+              <span data-i18n="billing.quickAdd.fields.amountLabel">Amount</span>
+              <input id="invAmount" type="number" step="0.01" class="input" placeholder="297.00" data-i18n-placeholder="billing.quickAdd.fields.amountPlaceholder" />
             </label>
             <label class="flex flex-col gap-1 text-sm text-slate-700">
-              <span>Due date · Fecha límite</span>
+              <span data-i18n="billing.quickAdd.fields.dueLabel">Due date</span>
               <input id="invDue" type="date" class="input" />
             </label>
           </div>
-          <button id="invAdd" type="button" class="btn w-full justify-center py-3 text-sm font-semibold">Add invoice · Crear factura</button>
-          <p class="text-xs text-slate-500">We only store last4 + token. Solo almacenamos últimos 4 dígitos y token de pago.</p>
+          <button id="invAdd" type="button" class="btn w-full justify-center py-3 text-sm font-semibold" data-i18n="billing.quickAdd.button">Add invoice</button>
+          <p class="text-xs text-slate-500" data-i18n="billing.quickAdd.footnote">We only store last4 + token.</p>
         </section>
 
         <section class="glass card border border-white/50 bg-white/70 p-6 space-y-4">
-          <h3 class="text-lg font-semibold text-slate-900">Revenue accelerator · Acelerador de ingresos</h3>
-          <p class="text-sm text-slate-600">Bundle a Metro-2 compliance review for $97 and boost AOV. Agrupa una revisión de cumplimiento Metro-2 por $97 y aumenta el ticket promedio.</p>
-          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold">Launch growth review · Lanzar revisión</button>
-          <p class="text-xs text-slate-500">KPI to watch: AOV &amp; Consult → Purchase%. Mide Ticket Promedio y % Consulta → Compra.</p>
+          <h3 class="text-lg font-semibold text-slate-900" data-i18n="billing.revenue.heading">Revenue accelerator</h3>
+          <p class="text-sm text-slate-600" data-i18n="billing.revenue.copy">Bundle a Metro-2 compliance review for $97 and boost AOV.</p>
+          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold" data-i18n="billing.revenue.button">Launch growth review</button>
+          <p class="text-xs text-slate-500" data-i18n="billing.revenue.footnote">KPI to watch: AOV &amp; Consult → Purchase%.</p>
         </section>
       </div>
     </div>
