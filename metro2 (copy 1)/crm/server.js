@@ -650,6 +650,26 @@ async function loadLeadsDB(){
 }
 async function saveLeadsDB(db){ await writeKey('leads', db); }
 
+const VALID_LEAD_STATUSES = new Set([
+  "new",
+  "working",
+  "qualified",
+  "nurture",
+  "won",
+  "lost"
+]);
+
+function normalizeLeadStatus(value){
+  const normalized = (value ?? "").toString().trim().toLowerCase();
+  if(VALID_LEAD_STATUSES.has(normalized)) return normalized;
+  if(normalized === "completed" || normalized === "converted") return "won";
+  if(normalized === "dropped" || normalized === "abandoned" || normalized === "archived") return "lost";
+  if(normalized === "active") return "working";
+  if(normalized === "followup" || normalized === "follow-up") return "nurture";
+  if(normalized === "prospect") return "qualified";
+  return "new";
+}
+
 async function loadInvoicesDB(){
   const db = await readKey('invoices', null);
   if(db) return db;
@@ -1126,7 +1146,7 @@ app.post("/api/leads", async (req,res)=>{
     phone: req.body.phone || "",
     source: req.body.source || "",
     notes: req.body.notes || "",
-    status: "new",
+    status: normalizeLeadStatus(req.body.status),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -1145,7 +1165,7 @@ app.put("/api/leads/:id", async (req,res)=>{
     phone: req.body.phone ?? lead.phone,
     source: req.body.source ?? lead.source,
     notes: req.body.notes ?? lead.notes,
-    status: req.body.status ?? lead.status
+    status: req.body.status !== undefined ? normalizeLeadStatus(req.body.status) : lead.status
   });
   lead.updatedAt = new Date().toISOString();
   await saveLeadsDB(db);
