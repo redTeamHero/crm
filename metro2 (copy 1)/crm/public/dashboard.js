@@ -65,6 +65,18 @@ let activeChatCategoryId = CHAT_PROMPT_CATEGORIES[0]?.id || null;
 let shepherdCheckPromise = null;
 let tourLoadingMessageShown = false;
 
+function resolveCoachAnchor(){
+  const toggleEl = document.getElementById('guideChatToggle');
+  if(toggleEl && !toggleEl.classList.contains('hidden')){
+    return toggleEl;
+  }
+  const panelEl = document.getElementById('guideChatPanel');
+  if(panelEl){
+    return panelEl;
+  }
+  return toggleEl || null;
+}
+
 function burstConfetti(){
   if(!confettiTarget) return;
   for(let i=0;i<24;i++){
@@ -199,6 +211,23 @@ function createTour(){
     text: `<p class="font-semibold">Need more help?</p>
            <p class="mt-1 text-xs text-slate-600">Launch the chat coach for scripts, KPIs, and upsell ideas. / Abre el chat para guiones y experimentos.</p>`,
     attachTo: { element: '#guideChatToggle', on: 'top' },
+    beforeShowPromise(){
+      return new Promise(resolve => {
+        closeChatCoach();
+        requestAnimationFrame(() => {
+          const anchorEl = resolveCoachAnchor();
+          if(anchorEl){
+            const step = tour.getById('coach');
+            if(step && typeof step.updateStepOptions === 'function'){
+              step.updateStepOptions({
+                attachTo: { element: anchorEl, on: 'top' }
+              });
+            }
+          }
+          resolve();
+        });
+      });
+    },
     buttons: makeButtons('last')
   });
 
