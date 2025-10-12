@@ -19,7 +19,7 @@ test('scrapeTradelines parses legacy data-attribute rows', async () => {
             data-bankname="Alpha Bank"
             data-creditlimit="$7,500"
             data-dateopened="3 years"
-            data-purchasebydate="15th"
+            data-statementdate="15th"
             data-reportingperiod="TransUnion, Equifax"></td>
         <td class="product_price">$450</td>
       </tr>
@@ -42,6 +42,28 @@ test('scrapeTradelines parses legacy data-attribute rows', async () => {
   assert.equal(row.statement_date, '15th');
   assert.equal(row.reporting, 'TransUnion, Equifax');
   assert.match(row.buy_link, /Alpha%20Bank/);
+});
+
+test('scrapeTradelines does not treat purchase-by date as statement', async () => {
+  const html = `
+    <table>
+      <tr>
+        <td class="product_data"
+            data-bankname="Delta Bank"
+            data-creditlimit="$5,500"
+            data-dateopened="2 years"
+            data-purchasebydate="12th"
+            data-reportingperiod="TransUnion"></td>
+        <td class="product_price">$400</td>
+      </tr>
+    </table>
+  `;
+
+  const results = await scrapeTradelines(async () => createResponse(html));
+  assert.equal(results.length, 1);
+  const [row] = results;
+  assert.equal(row.statement_date, '');
+  assert.equal(row.reporting, 'TransUnion');
 });
 
 test('scrapeTradelines parses modern table layout with explicit client price', async () => {
@@ -118,6 +140,32 @@ test('scrapeTradelines applies markup when only wholesale price exists', async (
   assert.equal(row.limit, 4000);
   assert.equal(row.age, '9 months');
   assert.match(row.buy_link, /Gamma%20Credit%20Union/);
+});
+
+test('scrapeTradelines drops placeholder statement text in tables', async () => {
+  const html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Card</th>
+          <th>Statement</th>
+          <th>Client Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Epsilon Card</td>
+          <td>TBD</td>
+          <td>$650</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  const results = await scrapeTradelines(async () => createResponse(html));
+  assert.equal(results.length, 1);
+  const [row] = results;
+  assert.equal(row.statement_date, '');
 });
 
 test('scrapeTradelines throws when fetch fails', async () => {
