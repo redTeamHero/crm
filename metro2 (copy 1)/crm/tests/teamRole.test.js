@@ -18,7 +18,7 @@ function extractFunction(name) {
   return new Function(match[1], match[2]);
 }
 
-test('team member login issues team role token', async () => {
+test('team member lifecycle issues team role token and updates roster', async () => {
   const original = await readKey('users', null);
   await writeKey('users', { users: [] });
   process.env.NODE_ENV = 'test';
@@ -30,13 +30,41 @@ test('team member login issues team role token', async () => {
   const created = await request(app)
     .post('/api/team-members')
     .set('Authorization', 'Bearer ' + adminToken)
-    .send({ username: 't1', name: 'T1', password: 'pw1' });
+    .send({ username: 't1@example.com', name: 'T1', password: 'pw1' });
+  assert.equal(created.status, 200);
+  assert.equal(created.body.ok, true);
+  assert.ok(created.body.member.token);
+  assert.equal(created.body.member.email, 't1@example.com');
+  assert.equal(created.body.member.name, 'T1');
+  assert.equal(created.body.member.lastLoginAt, null);
+  assert.ok(created.body.member.createdAt);
   const loginToken = created.body.member.token;
 
   const loginRes = await request(app).post(`/api/team/${loginToken}/login`).send({ password: 'pw1' });
   assert.equal(loginRes.body.ok, true);
   const payload = jwt.decode(loginRes.body.token);
   assert.equal(payload.role, 'team');
+
+  const listRes = await request(app)
+    .get('/api/team-members')
+    .set('Authorization', 'Bearer ' + adminToken);
+  assert.equal(listRes.status, 200);
+  assert.equal(listRes.body.ok, true);
+  assert.equal(listRes.body.members.length, 1);
+  assert.equal(listRes.body.members[0].email, 't1@example.com');
+  assert.equal(listRes.body.members[0].name, 'T1');
+  assert.ok(listRes.body.members[0].lastLoginAt);
+
+  const removeRes = await request(app)
+    .delete(`/api/team-members/${listRes.body.members[0].id}`)
+    .set('Authorization', 'Bearer ' + adminToken);
+  assert.equal(removeRes.status, 200);
+  assert.equal(removeRes.body.ok, true);
+
+  const afterRemove = await request(app)
+    .get('/api/team-members')
+    .set('Authorization', 'Bearer ' + adminToken);
+  assert.equal(afterRemove.body.members.length, 0);
 
   if (original) await writeKey('users', original);
   else await writeKey('users', { users: [] });

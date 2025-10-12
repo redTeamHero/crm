@@ -42,6 +42,20 @@ test('member cannot create team member', async () => {
   assert.equal(res.status, 403);
 });
 
+test('member cannot list team members', async () => {
+  const res = await request(app)
+    .get('/api/team-members')
+    .set('Authorization', `Bearer ${token(member)}`);
+  assert.equal(res.status, 403);
+});
+
+test('member cannot delete team member', async () => {
+  const res = await request(app)
+    .delete('/api/team-members/any')
+    .set('Authorization', `Bearer ${token(member)}`);
+  assert.equal(res.status, 403);
+});
+
 test('member cannot list consumers', async () => {
   const res = await request(app)
     .get('/api/consumers')
