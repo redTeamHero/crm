@@ -4,6 +4,12 @@ import {
   listTestQueue,
   listTemplates,
   createTemplate,
+  listSmsTemplates,
+  createSmsTemplate,
+  listEmailSequences,
+  createEmailSequence,
+  listEmailDispatches,
+  scheduleEmailDispatch,
   listProviders,
   updateProvider,
 } from "./marketingStore.js";
@@ -49,6 +55,76 @@ router.post("/templates", async (req, res) => {
   }
 });
 
+router.get("/sms-templates", async (_req, res) => {
+  const templates = await listSmsTemplates();
+  res.json({ ok: true, templates });
+});
+
+router.post("/sms-templates", async (req, res) => {
+  const { title, body = "", segment = "b2c", badge = "SMS" } = req.body || {};
+  const safeTitle = sanitizeString(title);
+  const safeBody = sanitizeString(body);
+  const safeSegment = sanitizeString(segment || "b2c").toLowerCase().slice(0, 24) || "b2c";
+  const safeBadge = sanitizeString(badge || "SMS").slice(0, 24) || "SMS";
+
+  if (!safeTitle) {
+    return res.status(400).json({ ok: false, error: "Template title is required" });
+  }
+  if (!safeBody) {
+    return res.status(400).json({ ok: false, error: "Template body is required" });
+  }
+
+  try {
+    const template = await createSmsTemplate({
+      title: safeTitle.slice(0, 120),
+      body: safeBody.slice(0, 600),
+      segment: safeSegment,
+      badge: safeBadge,
+      createdBy: req.user?.username || "system",
+    });
+    res.status(201).json({ ok: true, template });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "Failed to save SMS template" });
+  }
+});
+
+router.get("/email/sequences", async (_req, res) => {
+  const sequences = await listEmailSequences();
+  res.json({ ok: true, sequences });
+});
+
+router.post("/email/sequences", async (req, res) => {
+  const { title, description = "", segment = "b2c", frequency = "daily", steps = [] } = req.body || {};
+  const safeTitle = sanitizeString(title);
+  const safeDescription = sanitizeString(description);
+  const safeSegment = sanitizeString(segment || "b2c").toLowerCase().slice(0, 24) || "b2c";
+  const safeFrequency = sanitizeString(frequency || "daily").toLowerCase().slice(0, 24);
+  const rawSteps = Array.isArray(steps) ? steps : [];
+  const sanitizedSteps = rawSteps.slice(0, 20).map((step) => ({
+    subject: sanitizeString(step?.subject ?? ""),
+    delayDays: Number(step?.delayDays),
+    templateId: step?.templateId ? sanitizeString(step.templateId).slice(0, 120) : undefined,
+  }));
+
+  if (!safeTitle) {
+    return res.status(400).json({ ok: false, error: "Sequence title is required" });
+  }
+
+  try {
+    const sequence = await createEmailSequence({
+      title: safeTitle.slice(0, 120),
+      description: safeDescription.slice(0, 400),
+      segment: safeSegment,
+      frequency: safeFrequency,
+      steps: sanitizedSteps,
+      createdBy: req.user?.username || "system",
+    });
+    res.status(201).json({ ok: true, sequence });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "Failed to save email sequence" });
+  }
+});
+
 router.get("/tests", async (req, res) => {
   const limit = parseLimit(req.query.limit, 10);
   const items = await listTestQueue(limit);
@@ -89,6 +165,52 @@ router.post("/tests", async (req, res) => {
     res.status(201).json({ ok: true, item });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "Failed to queue test send" });
+  }
+});
+
+router.get("/email/dispatches", async (req, res) => {
+  const limit = parseLimit(req.query.limit, 10);
+  const items = await listEmailDispatches(limit);
+  res.json({ ok: true, items });
+});
+
+router.post("/email/dispatches", async (req, res) => {
+  const {
+    targetType = "template",
+    targetId,
+    frequency = "immediate",
+    segment = "b2c",
+    scheduledFor,
+    audienceCount,
+    notes = "",
+  } = req.body || {};
+
+  const safeTargetType = sanitizeString(targetType).toLowerCase();
+  const safeTargetId = sanitizeString(targetId);
+  const safeFrequency = sanitizeString(frequency || "immediate").toLowerCase().slice(0, 24);
+  const safeSegment = sanitizeString(segment || "b2c").toLowerCase().slice(0, 24) || "b2c";
+  const safeScheduledFor = scheduledFor && !Number.isNaN(Date.parse(scheduledFor)) ? scheduledFor : undefined;
+  const safeAudienceCount = Number.isFinite(Number(audienceCount)) ? Number(audienceCount) : undefined;
+
+  if (!safeTargetId) {
+    return res.status(400).json({ ok: false, error: "targetId is required" });
+  }
+
+  try {
+    const item = await scheduleEmailDispatch({
+      targetType: safeTargetType === "sequence" ? "sequence" : "template",
+      targetId: safeTargetId,
+      frequency: safeFrequency,
+      segment: safeSegment,
+      scheduledFor: safeScheduledFor,
+      audienceCount: safeAudienceCount,
+      notes: sanitizeString(notes).slice(0, 500),
+      createdBy: req.user?.username || "system",
+    });
+    res.status(201).json({ ok: true, item });
+  } catch (error) {
+    const status = /not found|required/i.test(error.message) ? 400 : 500;
+    res.status(status).json({ ok: false, error: error.message || "Failed to schedule email" });
   }
 });
 

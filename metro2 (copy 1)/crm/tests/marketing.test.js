@@ -58,6 +58,68 @@ test("marketing API queues tests, templates, and providers", async () => {
     assert.equal(templatesRes.status, 200);
     assert.ok(templatesRes.body.templates.some((tpl) => tpl.title === "Follow-up Touch"));
 
+    const smsTemplateRes = await request(app)
+      .post("/api/marketing/sms-templates")
+      .set("Authorization", "Bearer " + token)
+      .send({
+        title: "SMS Reminder",
+        body: "Hola {{first_name}}, confirma tu próxima auditoría.",
+        segment: "leads",
+      });
+    assert.equal(smsTemplateRes.status, 201);
+    assert.equal(smsTemplateRes.body.template.segment, "leads");
+
+    const smsTemplatesRes = await request(app)
+      .get("/api/marketing/sms-templates")
+      .set("Authorization", "Bearer " + token);
+    assert.equal(smsTemplatesRes.status, 200);
+    assert.ok(smsTemplatesRes.body.templates.some((tpl) => tpl.title === "SMS Reminder"));
+
+    const sequenceRes = await request(app)
+      .post("/api/marketing/email/sequences")
+      .set("Authorization", "Bearer " + token)
+      .send({
+        title: "Reactivation Sequence",
+        description: "Win-back emails with compliance tips.",
+        segment: "inactive",
+        frequency: "weekly",
+        steps: [
+          { subject: "Day 0 • Reactivate", delayDays: 0 },
+          { subject: "Day 3 • Schedule consult", delayDays: 3 },
+        ],
+      });
+    assert.equal(sequenceRes.status, 201);
+    assert.equal(sequenceRes.body.sequence.frequency, "weekly");
+
+    const sequencesRes = await request(app)
+      .get("/api/marketing/email/sequences")
+      .set("Authorization", "Bearer " + token);
+    assert.equal(sequencesRes.status, 200);
+    assert.ok(sequencesRes.body.sequences.some((seq) => seq.title === "Reactivation Sequence"));
+
+    const dispatchRes = await request(app)
+      .post("/api/marketing/email/dispatches")
+      .set("Authorization", "Bearer " + token)
+      .send({
+        targetType: "sequence",
+        targetId: sequenceRes.body.sequence.id,
+        frequency: "weekly",
+        segment: "inactive",
+        scheduledFor: new Date().toISOString(),
+        audienceCount: 250,
+        notes: "Weekly win-back push",
+      });
+    assert.equal(dispatchRes.status, 201);
+    assert.equal(dispatchRes.body.item.targetType, "sequence");
+    assert.equal(dispatchRes.body.item.frequency, "weekly");
+
+    const dispatchList = await request(app)
+      .get("/api/marketing/email/dispatches?limit=1")
+      .set("Authorization", "Bearer " + token);
+    assert.equal(dispatchList.status, 200);
+    assert.equal(dispatchList.body.items.length, 1);
+    assert.equal(dispatchList.body.items[0].targetId, sequenceRes.body.sequence.id);
+
     const providerRes = await request(app)
       .patch("/api/marketing/providers/sms_twilio")
       .set("Authorization", "Bearer " + token)
