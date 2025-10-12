@@ -8,7 +8,7 @@
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
-<body>
+<body class="bg-slate-50 text-slate-900">
 <header id="host-nav" class="p-4">
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
@@ -54,16 +54,82 @@
     </nav>
   </div>
 </header>
-<main class="max-w-4xl mx-auto p-4 space-y-4">
-  <h1 class="text-2xl font-bold">Workflows</h1>
-  <div class="glass card p-6 text-sm space-y-4">
-    <p class="text-gray-700">This workspace is ready for your automated Metro-2 workflows. Plug in your process maps, assign owners, and launch dispute automations when you're ready.</p>
-    <p class="text-gray-500">Espacio reservado para futuros flujos de trabajo. Documenta tus pasos, integra automaciones y prepara el siguiente sprint de cumplimiento.</p>
-    <div class="border border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-400">
-      Canvas ready. Upload SOPs, map triggers, or return later when you have a workflow to activate.
+<main class="max-w-6xl mx-auto p-4 space-y-6">
+  <section class="glass card p-6 space-y-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-bold flex items-center gap-2">⚙️ Workflow Launchpad</h1>
+        <p class="text-slate-600 max-w-2xl">
+          Automate disputes, billing, and client follow-up so every lead experiences a concierge credit journey. Keep teams in sync, stay compliant, and scale revenue while the platform does the heavy lifting.
+        </p>
+        <p class="text-slate-500 text-sm">
+          Automatiza disputas, cobros y seguimientos para ofrecer una experiencia premium sin prometer resultados garantizados. Mantén al equipo alineado y cumple con Metro-2 y FCRA en todo momento.
+        </p>
+      </div>
+      <div class="flex flex-col items-stretch gap-2 md:w-48">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Language / Idioma</div>
+        <div class="inline-flex rounded-lg border border-slate-200 overflow-hidden">
+          <button type="button" data-lang="en" class="lang-toggle flex-1 px-3 py-2 text-sm font-semibold bg-white">English</button>
+          <button type="button" data-lang="es" class="lang-toggle flex-1 px-3 py-2 text-sm">Español</button>
+        </div>
+        <div>
+          <label for="segmentFilter" class="block text-xs uppercase tracking-wide text-slate-500 mb-1">Focus</label>
+          <select id="segmentFilter" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="all">All workflows / Todos los flujos</option>
+          </select>
+        </div>
+      </div>
     </div>
-  </div>
+    <div class="grid sm:grid-cols-3 gap-3 text-sm text-slate-600">
+      <div class="rounded-lg bg-slate-100/70 p-3">
+        <p class="font-semibold text-slate-900">🔥 Growth Goal</p>
+        <p>Scale to 7–8 figures with automation-first ops and compliance-safe experiences.</p>
+      </div>
+      <div class="rounded-lg bg-slate-100/70 p-3">
+        <p class="font-semibold text-slate-900">📊 KPIs</p>
+        <p>Lead→Consult%, Time-to-Value, Dispute Resolution %, AOV, Net Promoter.</p>
+      </div>
+      <div class="rounded-lg bg-slate-100/70 p-3">
+        <p class="font-semibold text-slate-900">🤝 Upsell</p>
+        <p>Offer premium white-glove audits, concierge mail handling, and NEPQ-driven consults.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="workflowGrid" class="space-y-6"></section>
+
+  <section class="glass card p-6 space-y-4">
+    <h2 class="text-2xl font-semibold">Analytics &amp; Experiment Backlog</h2>
+    <div class="grid md:grid-cols-2 gap-4 text-sm text-slate-600">
+      <div class="space-y-2">
+        <h3 class="font-semibold text-slate-900">Instrument Today</h3>
+        <ul class="list-disc list-inside space-y-1">
+          <li>Track workflow triggers, time-to-completion, and drop-off per stage.</li>
+          <li>Log Metro-2 violations resolved vs escalated for compliance QA.</li>
+          <li>Capture payment attempts, retries, and recoveries to tighten billing funnels.</li>
+        </ul>
+      </div>
+      <div class="space-y-2">
+        <h3 class="font-semibold text-slate-900">A/B &amp; Revenue Experiments</h3>
+        <ul class="list-disc list-inside space-y-1">
+          <li>Test bilingual CTA copy in onboarding emails vs SMS nudges for consult conversion.</li>
+          <li>Compare dispute-letter previews with vs without Metro-2 callouts for trust lift.</li>
+          <li>Rotate pricing anchors (monthly vs pay-per-delete bundles) on the billing workflow.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="glass card p-6 space-y-4">
+    <h2 class="text-2xl font-semibold">Next Revenue Wins</h2>
+    <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+      <li>Package an “Automation Setup Sprint” upsell for agencies wanting these 10 flows preconfigured.</li>
+      <li>Offer a dispute-monitoring subscription that bundles credit refresh + audit reporting.</li>
+      <li>Embed NEPQ consult booking after every positive score change notification.</li>
+    </ul>
+  </section>
 </main>
 <script type="module" src="/common.js"></script>
+<script type="module" src="/workflows.js"></script>
 </body>
 </html>
