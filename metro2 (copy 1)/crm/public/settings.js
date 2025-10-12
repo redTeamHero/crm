@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const saveHotkeysBtn = document.getElementById('saveHotkeys');
   const hotkeyMsgEl = document.getElementById('hotkeyMsg');
-  const defaultHotkeys = {
+  const defaultHotkeys = window.__crm_hotkeys?.defaults || {
     help: 'h',
     newConsumer: 'n',
     upload: 'u',
@@ -152,10 +152,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   function loadHotkeys() {
-    let stored = {};
-    try { stored = JSON.parse(localStorage.getItem('hotkeys')) || {}; } catch {}
-    const hk = { ...defaultHotkeys, ...stored };
-    for (const k in hotkeyEls) if (hotkeyEls[k]) hotkeyEls[k].value = hk[k] || '';
+    const active = window.__crm_hotkeys?.get?.() || { ...defaultHotkeys };
+    for (const k in hotkeyEls) if (hotkeyEls[k]) hotkeyEls[k].value = active[k] || '';
   }
 
   loadHotkeys();
@@ -163,8 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveHotkeysBtn) {
     saveHotkeysBtn.addEventListener('click', () => {
       const hk = {};
-      for (const k in hotkeyEls) hk[k] = (hotkeyEls[k].value || '').trim().toLowerCase().slice(0,1);
+      for (const k in hotkeyEls) {
+        const value = (hotkeyEls[k].value || '').trim().toLowerCase().slice(0,1);
+        if (value && value !== defaultHotkeys[k]) {
+          hk[k] = value;
+        }
+      }
       localStorage.setItem('hotkeys', JSON.stringify(hk));
+      window.__crm_hotkeys?.refresh?.();
       if (hotkeyMsgEl) {
         hotkeyMsgEl.classList.remove('hidden');
         setTimeout(() => hotkeyMsgEl.classList.add('hidden'), 2000);

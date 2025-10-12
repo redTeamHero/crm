@@ -15,18 +15,40 @@ const defaultHotkeys = {
   modeIdentity: 'i'
 };
 
+function normalizeHotkeys(raw = {}) {
+  const normalized = {};
+  for (const key in raw) {
+    const value = (raw[key] || '').toString().trim().toLowerCase().slice(0, 1);
+    if (value) normalized[key] = value;
+  }
+  return normalized;
+}
+
 function getHotkeys(){
   try {
-    return { ...defaultHotkeys, ...JSON.parse(localStorage.getItem('hotkeys') || '{}') };
+    const stored = JSON.parse(localStorage.getItem('hotkeys') || '{}');
+    return { ...defaultHotkeys, ...normalizeHotkeys(stored) };
   } catch {
     return { ...defaultHotkeys };
   }
 }
 
+function refreshHotkeys() {
+  hotkeys = getHotkeys();
+  return hotkeys;
+}
+
 let hotkeys = getHotkeys();
 window.addEventListener('storage', (e) => {
-  if (e.key === 'hotkeys') hotkeys = getHotkeys();
+  if (e.key === 'hotkeys') refreshHotkeys();
 });
+
+window.__crm_hotkeys = {
+  defaults: { ...defaultHotkeys },
+  get: () => ({ ...hotkeys }),
+  normalize: normalizeHotkeys,
+  refresh: refreshHotkeys
+};
 
 document.addEventListener('keydown', (e) => {
   if (isTyping(document.activeElement)) return;
