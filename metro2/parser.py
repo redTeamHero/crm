@@ -9,10 +9,12 @@ Parses consumer report HTML → Personal Info, Tradelines, Inquiries
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 import json
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 from bs4 import BeautifulSoup, Tag

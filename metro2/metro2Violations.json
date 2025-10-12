@@ -1,0 +1,74 @@
+{
+  "MISSING_DOFD": {
+    "violation": "Charge-off or collection account missing Date of First Delinquency",
+    "severity": 5,
+    "fieldsImpacted": ["Date of First Delinquency", "Account Status"],
+    "fcraSection": "§ 623(a)(5)",
+    "rule": {
+      "all": [
+        { "field": "account_status", "contains_any": ["charge", "collection"] },
+        { "field": "date_first_delinquency", "exists": false }
+      ]
+    }
+  },
+  "CURRENT_BUT_PASTDUE": {
+    "violation": "Current account reports a past-due balance",
+    "severity": 4,
+    "fieldsImpacted": ["Account Status", "Past Due"],
+    "fcraSection": "§ 623(a)(1)",
+    "rule": {
+      "all": [
+        { "field": "account_status", "contains_any": ["current"] },
+        { "field": "past_due", "gt": 0 }
+      ]
+    }
+  },
+  "MISSING_OPEN_DATE": {
+    "violation": "Tradeline missing Date Opened",
+    "severity": 3,
+    "fieldsImpacted": ["Date Opened"],
+    "fcraSection": "§ 623(a)(1)",
+    "rule": {
+      "all": [
+        { "field": "date_opened", "exists": false }
+      ]
+    }
+  },
+  "ZERO_BALANCE_OPEN": {
+    "violation": "Open account is reporting a $0 balance",
+    "severity": 2,
+    "fieldsImpacted": ["Balance", "Account Status"],
+    "fcraSection": "§ 607(b)",
+    "rule": {
+      "all": [
+        { "field": "account_status", "contains_any": ["open"] },
+        { "field": "balance", "eq_numeric": 0 }
+      ]
+    }
+  },
+  "HIGH_BALANCE_GT_LIMIT": {
+    "violation": "High credit exceeds the credit limit",
+    "severity": 3,
+    "fieldsImpacted": ["High Credit", "Credit Limit"],
+    "fcraSection": "§ 623(a)(1)",
+    "rule": {
+      "all": [
+        { "field": "credit_limit", "gt": 0 },
+        { "field": "high_credit", "gt": 0 },
+        { "field": "high_credit", "gt_field": "credit_limit" }
+      ]
+    }
+  },
+  "X_BUREAU_BALANCE_MISMATCH": {
+    "violation": "Balance differs between bureaus",
+    "severity": 3,
+    "fieldsImpacted": ["Balance"],
+    "fcraSection": "§ 623(a)(1)"
+  },
+  "X_BUREAU_STATUS_MISMATCH": {
+    "violation": "Account status differs between bureaus",
+    "severity": 3,
+    "fieldsImpacted": ["Account Status"],
+    "fcraSection": "§ 623(a)(1)"
+  }
+}
