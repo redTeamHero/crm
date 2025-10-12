@@ -34,6 +34,19 @@ def clean_amount(value: Optional[str]) -> float:
         return 0.0
 
 
+def normalize_creditor(value: Optional[str]) -> str:
+    """Normalize creditor name for grouping comparisons."""
+    return (value or "").strip().lower()
+
+
+def normalize_account_number(value: Optional[str]) -> str:
+    """Normalize account number to avoid grouping unrelated accounts."""
+    if not value:
+        return ""
+    cleaned = re.sub(r"[^A-Za-z0-9]", "", value)
+    return cleaned.lower()
+
+
 def parse_date(date_str: Optional[str]) -> Optional[datetime.date]:
     """Try to normalize multiple date formats"""
     if not date_str or not date_str.strip():
@@ -193,12 +206,14 @@ def detect_inquiry_no_match(
 
 # ───────────── Metro-2 Audit ─────────────
 def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    groups: Dict[str, List[Dict[str, Any]]] = {}
+    groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
     for tl in tradelines:
-        key = (tl.get("creditor_name") or "").strip().lower()
+        creditor_key = normalize_creditor(tl.get("creditor_name"))
+        account_key = normalize_account_number(tl.get("account_number"))
+        key = (creditor_key, account_key)
         groups.setdefault(key, []).append(tl)
 
-    for creditor, records in groups.items():
+    for _, records in groups.items():
         balances = {clean_amount(r.get("balance")) for r in records if r.get("balance")}
         statuses = {
             (r.get("account_status") or "").lower()
