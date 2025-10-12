@@ -2,6 +2,7 @@
 
 import { PLAYBOOKS } from './playbooks.js';
 import { authHeader, api, escapeHtml, formatCurrency } from './common.js';
+import { renderClientLocations, clearClientLocationsCache } from './client-map.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -30,6 +31,13 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       });
     }
   });
+}
+
+function showClientMap(containerId, options = {}){
+  if(typeof window === 'undefined') return;
+  window.setTimeout(() => {
+    renderClientLocations(containerId, options).catch(err => console.warn('MAP_RENDER_FAILED', err));
+  }, 150);
 }
 
 let DB = [];
@@ -258,7 +266,7 @@ function currentPageItems(){
   return items.slice(start, start+PAGE_SIZE);
 }
 
-async function loadConsumers(restore = true){
+async function loadConsumers(restore = true, invalidateGeo = false){
   clearErr();
   const data = await api("/api/consumers");
   if (data.status === 401) {
@@ -277,6 +285,9 @@ async function loadConsumers(restore = true){
     return;
   }
   DB = data.consumers;
+  if(invalidateGeo){
+    clearClientLocationsCache();
+  }
   updateToplineMetrics();
   renderConsumers();
   if (restore) restoreSelectedConsumer();
@@ -316,7 +327,7 @@ function renderConsumers(){
         setSelectedConsumerId(null);
 
       }
-      loadConsumers();
+      loadConsumers(true, true);
     });
     wrap.appendChild(n);
   });
@@ -1389,6 +1400,7 @@ $("#btnCreateClient").addEventListener("click", ()=>{
   $("#newForm").reset();
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
+  showClientMap('clientMapNew', { forceRefresh: true });
 });
 $("#newClose").addEventListener("click", ()=> closeNew());
 $("#newCancel").addEventListener("click", ()=> closeNew());
@@ -1406,7 +1418,7 @@ $("#newForm").addEventListener("submit", async (e)=>{
   });
   if(!res?.ok) return showErr(res?.error || "Failed to create consumer.");
   closeNew();
-  await loadConsumers(false);
+  await loadConsumers(false, true);
   await selectConsumer(res.consumer.id);
 });
 
@@ -1432,6 +1444,7 @@ $("#btnEditClient").addEventListener("click", ()=>{
 
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
+  showClientMap('clientMapEdit');
 });
 $("#editClose").addEventListener("click", ()=> closeEdit());
 $("#editCancel").addEventListener("click", ()=> closeEdit());
@@ -1450,7 +1463,7 @@ $("#editForm").addEventListener("submit", async (e)=>{
   });
   if(!res?.ok) return showErr(res?.error || "Failed to save.");
   closeEdit();
-  await loadConsumers(false);
+  await loadConsumers(false, true);
   const c = DB.find(x=>x.id===currentConsumerId);
   $("#selConsumer").textContent = c ? c.name : "—";
 });
@@ -1964,7 +1977,7 @@ const obs = new MutationObserver(()=> attachCardHandlers(tlList));
 obs.observe(tlList, { childList:true, subtree:true });
 
 // ===================== Init =====================
-loadConsumers();
+loadConsumers(true, true);
 loadTracker();
 updatePortalLink();
 

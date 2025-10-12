@@ -1,3 +1,5 @@
+import { renderClientLocations } from './client-map.js';
+
 const PIPELINE_STAGES = [
   {
     id: 'new',
@@ -187,8 +189,16 @@ function normalizeLead(raw){
   const phone = (raw.phone || '').trim();
   const source = (raw.source || '').trim();
   const notes = (raw.notes || '').trim();
+  const addr1 = (raw.addr1 || '').trim();
+  const addr2 = (raw.addr2 || '').trim();
+  const city = (raw.city || '').trim();
+  const state = (raw.state || '').trim();
+  const zip = (raw.zip || '').trim();
   const createdAt = parseDate(raw.createdAt)?.toISOString() ?? new Date().toISOString();
   const updatedAt = parseDate(raw.updatedAt)?.toISOString() ?? createdAt;
+  const locationSummary = [city, state].filter(Boolean).join(', ');
+  const addressLines = [addr1, addr2].filter(Boolean).join(', ');
+  const addressSummary = [addressLines, locationSummary, zip].filter(Boolean).join(' • ');
   return {
     ...raw,
     name,
@@ -198,6 +208,13 @@ function normalizeLead(raw){
     source,
     sourceLabel: source || 'Unknown',
     displayName: name || 'Unnamed Lead',
+    addr1,
+    addr2,
+    city,
+    state,
+    zip,
+    locationSummary,
+    addressSummary,
     status: mapStatus(raw.status),
     createdAt,
     updatedAt
@@ -325,6 +342,7 @@ function createLeadCard(lead){
     <div class="space-y-1 text-xs text-slate-600">
       ${lead.email ? `<div class="flex items-center gap-2"><span class="text-slate-500">Email</span><span>${lead.email}</span></div>` : ''}
       ${lead.phone ? `<div class="flex items-center gap-2"><span class="text-slate-500">Phone</span><span>${lead.phone}</span></div>` : ''}
+      ${lead.locationSummary || lead.zip ? `<div class="flex items-center gap-2"><span class="text-slate-500">Location</span><span>${[lead.locationSummary, lead.zip].filter(Boolean).join(' ')}</span></div>` : ''}
     </div>
     ${lead.notes ? `<div class="text-xs text-slate-600 bg-slate-50/80 border border-slate-200 rounded-md px-3 py-2">${lead.notes}</div>` : ''}
     <div class="text-[11px] text-slate-500 flex items-center justify-between">
@@ -431,7 +449,16 @@ async function convertLead(lead){
   await fetch('/api/consumers', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: lead.name, email: lead.email, phone: lead.phone })
+    body: JSON.stringify({
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      addr1: lead.addr1,
+      addr2: lead.addr2,
+      city: lead.city,
+      state: lead.state,
+      zip: lead.zip
+    })
   });
   await updateLead(lead.id, { status: 'won' });
   window.location.href = '/clients';
@@ -495,6 +522,11 @@ if(leadForm){
       name: (formData.get('name') || '').toString().trim(),
       email: (formData.get('email') || '').toString().trim(),
       phone: (formData.get('phone') || '').toString().trim(),
+      addr1: (formData.get('addr1') || '').toString().trim(),
+      addr2: (formData.get('addr2') || '').toString().trim(),
+      city: (formData.get('city') || '').toString().trim(),
+      state: (formData.get('state') || '').toString().trim(),
+      zip: (formData.get('zip') || '').toString().trim(),
       source: (formData.get('source') || '').toString().trim(),
       notes: (formData.get('notes') || '').toString().trim(),
       status: mapStatus(formData.get('status'))
@@ -554,3 +586,4 @@ if(refreshButton){
 }
 
 refreshLeads();
+renderClientLocations('leadClientMap', { forceRefresh: true }).catch(() => {});

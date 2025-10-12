@@ -202,6 +202,118 @@ try {
 }
 
 const require = createRequire(import.meta.url);
+const zipcodes = require("zipcodes");
+
+function normalizeZip(value){
+  if(value === undefined || value === null) return "";
+  const digits = String(value).match(/\d/g);
+  if(!digits || digits.length === 0) return "";
+  return digits.join("").slice(0, 5);
+}
+
+function addressSignature(entity){
+  if(!entity) return "";
+  const parts = [entity.addr1, entity.addr2, entity.city, entity.state, entity.zip]
+    .map(part => (part ?? "").toString().trim().toLowerCase())
+    .filter(Boolean);
+  return parts.join("|");
+}
+
+function resolveGeoFromZip(zip){
+  if(!zip) return null;
+  try {
+    const record = zipcodes.lookup(zip);
+    if(!record) return null;
+    const lat = Number(record.latitude);
+    const lon = Number(record.longitude);
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return {
+      lat,
+      lon,
+      city: record.city || "",
+      state: record.state || "",
+      precision: "zip",
+      source: "us-zip-centroid",
+    };
+  } catch (err) {
+    logWarn("ZIP_LOOKUP_FAILED", err?.message || String(err));
+    return null;
+  }
+}
+
+function resolveGeoFromCityState(city, state){
+  const c = (city || "").toString().trim();
+  const s = (state || "").toString().trim();
+  if(!c || !s) return null;
+  try {
+    const matches = zipcodes.lookupByName(c, s) || [];
+    const record = matches.find(entry => entry && entry.latitude !== undefined && entry.longitude !== undefined) || matches[0];
+    if(!record) return null;
+    const lat = Number(record.latitude);
+    const lon = Number(record.longitude);
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return {
+      lat,
+      lon,
+      city: record.city || c,
+      state: record.state || s,
+      precision: "city",
+      source: "us-city-centroid",
+    };
+  } catch (err) {
+    logWarn("CITY_LOOKUP_FAILED", err?.message || String(err));
+    return null;
+  }
+}
+
+function calculateConsumerGeo(consumer){
+  if(!consumer) return null;
+  const zip = normalizeZip(consumer.zip);
+  let result = resolveGeoFromZip(zip);
+  if(result) return result;
+  result = resolveGeoFromCityState(consumer.city, consumer.state);
+  if(result) return result;
+  return null;
+}
+
+function applyGeoToConsumer(consumer, { lat, lon, precision, source } = {}){
+  if(!consumer) return false;
+  if(Number.isFinite(lat) && Number.isFinite(lon)){
+    consumer.geo_lat = Number(lat);
+    consumer.geo_lon = Number(lon);
+    consumer.geo_precision = precision || "zip";
+    consumer.geo_source = source || "us-zip-centroid";
+  } else {
+    consumer.geo_lat = null;
+    consumer.geo_lon = null;
+    consumer.geo_precision = null;
+    consumer.geo_source = null;
+  }
+  consumer.geo_country = consumer.geo_country || "US";
+  consumer.geo_updated_at = new Date().toISOString();
+  consumer.geo_signature = addressSignature(consumer);
+  return Number.isFinite(consumer.geo_lat) && Number.isFinite(consumer.geo_lon);
+}
+
+function refreshConsumerGeo(consumer, { force = false } = {}){
+  if(!consumer) return false;
+  const signature = addressSignature(consumer);
+  if(!signature){
+    consumer.geo_signature = "";
+    consumer.geo_lat = null;
+    consumer.geo_lon = null;
+    consumer.geo_precision = null;
+    consumer.geo_source = null;
+    consumer.geo_updated_at = new Date().toISOString();
+    return false;
+  }
+  const hasCurrentGeo = Number.isFinite(Number(consumer.geo_lat)) && Number.isFinite(Number(consumer.geo_lon));
+  if(!force && hasCurrentGeo && consumer.geo_signature === signature){
+    return false;
+  }
+  const geo = calculateConsumerGeo(consumer);
+  return applyGeoToConsumer(consumer, geo || {});
+}
 let nodemailer = null;
 try {
   nodemailer = require("nodemailer");
@@ -1096,6 +1208,44 @@ function extractCreditScores(html){
 app.get("/api/consumers", authenticate, requirePermission("consumers"), async (_req, res) => {
   res.json({ ok: true, consumers: (await loadDB()).consumers });
 });
+
+app.get("/api/analytics/client-locations", authenticate, requirePermission("consumers"), async (_req, res) => {
+  const db = await loadDB();
+  const locations = [];
+  let changed = false;
+  for (const consumer of db.consumers) {
+    if (!consumer) continue;
+    const lat = Number(consumer.geo_lat);
+    const lon = Number(consumer.geo_lon);
+    const signature = addressSignature(consumer);
+    const geoStale = consumer.geo_signature !== signature;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || geoStale) {
+      const updated = refreshConsumerGeo(consumer, { force: true });
+      if (updated || geoStale) {
+        changed = true;
+      }
+    }
+    const resolvedLat = Number(consumer.geo_lat);
+    const resolvedLon = Number(consumer.geo_lon);
+    if (Number.isFinite(resolvedLat) && Number.isFinite(resolvedLon)) {
+      locations.push({
+        id: consumer.id,
+        name: consumer.name || "Unnamed",
+        city: consumer.city || "",
+        state: consumer.state || "",
+        status: consumer.status || "active",
+        lat: resolvedLat,
+        lon: resolvedLon,
+        precision: consumer.geo_precision || "zip",
+        source: consumer.geo_source || "us-zip-centroid",
+      });
+    }
+  }
+  if (changed) {
+    await saveDB(db);
+  }
+  res.json({ ok: true, locations });
+});
 app.post("/api/consumers", authenticate, requirePermission("consumers", { allowGuest: true }), async (req,res)=>{
 
   const db = await loadDB();
@@ -1120,6 +1270,7 @@ app.post("/api/consumers", authenticate, requirePermission("consumers", { allowG
     updatedAt: new Date().toISOString(),
     reports: []
   };
+  refreshConsumerGeo(consumer, { force: true });
   db.consumers.push(consumer);
   await saveDB(db);
   // log event
@@ -1133,6 +1284,7 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
 
   const c = db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const prevSignature = c.geo_signature || addressSignature(c);
   Object.assign(c, {
     name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
     addr1:req.body.addr1??c.addr1, addr2:req.body.addr2??c.addr2, city:req.body.city??c.city,
@@ -1143,6 +1295,11 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
     status: req.body.status ?? c.status ?? "active"
 
   });
+  const newSignature = addressSignature(c);
+  const needsGeoRefresh = prevSignature !== newSignature || !Number.isFinite(Number(c.geo_lat)) || !Number.isFinite(Number(c.geo_lon));
+  if(needsGeoRefresh){
+    refreshConsumerGeo(c, { force: true });
+  }
   c.updatedAt = new Date().toISOString();
   await saveDB(db);
   await addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
@@ -1174,6 +1331,11 @@ app.post("/api/leads", async (req,res)=>{
     name: req.body.name || "",
     email: req.body.email || "",
     phone: req.body.phone || "",
+    addr1: req.body.addr1 || "",
+    addr2: req.body.addr2 || "",
+    city: req.body.city || "",
+    state: req.body.state || "",
+    zip: req.body.zip || "",
     source: req.body.source || "",
     notes: req.body.notes || "",
     status: normalizeLeadStatus(req.body.status),
@@ -1193,6 +1355,11 @@ app.put("/api/leads/:id", async (req,res)=>{
     name: req.body.name ?? lead.name,
     email: req.body.email ?? lead.email,
     phone: req.body.phone ?? lead.phone,
+    addr1: req.body.addr1 ?? lead.addr1,
+    addr2: req.body.addr2 ?? lead.addr2,
+    city: req.body.city ?? lead.city,
+    state: req.body.state ?? lead.state,
+    zip: req.body.zip ?? lead.zip,
     source: req.body.source ?? lead.source,
     notes: req.body.notes ?? lead.notes,
     status: req.body.status !== undefined ? normalizeLeadStatus(req.body.status) : lead.status
