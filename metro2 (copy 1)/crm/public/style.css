@@ -191,62 +191,232 @@ body::before {
 
 .palette {
   position: fixed;
-  top: 50%;
-  right: 16px;
-  transform: translateY(-50%);
+  bottom: clamp(16px, 4vh, 48px);
+  right: clamp(16px, 4vw, 48px);
+  transform: none;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
+  gap: 18px;
+  padding: 20px 20px 24px;
+  width: 280px;
+  max-width: calc(100vw - 32px);
   z-index: 40;
+  background: linear-gradient(140deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.78));
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 22px;
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 30px 50px rgba(15, 23, 42, 0.45);
+  transition:
+    width 0.25s ease,
+    padding 0.25s ease,
+    border-radius 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease,
+    transform 0.25s ease;
+}
+.palette.collapsed {
+  width: auto;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.72);
+  border-radius: 999px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+  gap: 0;
+  align-items: center;
 }
 .palette .toggle {
-  width: 32px;
-  height: 32px;
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.palette .toggle:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+.palette.collapsed .toggle {
+  padding: 10px;
   border-radius: 50%;
+}
+.palette.collapsed .toggle-label {
+  display: none;
+}
+.palette .palette-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  opacity: 1;
+  max-height: 420px;
+  overflow: hidden;
+  transition: opacity 0.2s ease, max-height 0.3s ease;
+}
+.palette.collapsed .palette-controls {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+}
+.palette .palette-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #e2e8f0;
+  text-align: left;
+}
+.palette .palette-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.palette .palette-subtitle {
+  font-size: 12px;
+  color: rgba(226, 232, 240, 0.7);
+  line-height: 1.4;
+}
+.palette.collapsed .palette-header {
+  display: none;
+}
+.palette .palette-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #cbd5f5;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+.palette.collapsed .palette-field {
+  display: none;
+}
+.palette .palette-bubbles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  justify-items: center;
+}
+.palette .bubble {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 3px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 12px 25px rgba(15, 23, 42, 0.32);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.palette .bubble:hover,
+.palette .bubble.active {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.45);
+  border-color: rgba(255, 255, 255, 0.95);
+}
+.palette .bubble:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+.palette .alpha-slider{
+  -webkit-appearance:none;
+  appearance:none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.45);
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.palette .alpha-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  appearance:none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.35);
+}
+.palette .alpha-slider::-moz-range-thumb{
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.35);
+}
+.palette .palette-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(226, 232, 240, 0.75);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.palette.collapsed .palette-footer {
+  display: none;
+}
+.palette .palette-tip {
+  display: block;
+  flex: 1;
+}
+.palette .mic {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   border: none;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.palette .palette-controls {
-  display: none;
-  align-items: center;
-  gap: 8px;
+.palette .mic:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.5);
 }
-.palette:not(.collapsed) .palette-controls { display: flex; }
-.palette .palette-bubbles {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.palette.collapsed .mic{
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.85);
+  height: 0;
+  width: 0;
+  margin: 0;
+  box-shadow: none;
 }
-.palette .bubble {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  cursor: pointer;
+
+@media (max-width: 768px) {
+  .palette {
+    right: 16px;
+    left: 16px;
+    margin: 0 auto;
+    width: min(320px, calc(100vw - 32px));
+    gap: 16px;
+  }
+  .palette.collapsed {
+    left: auto;
+    margin: 0;
+  }
 }
-.palette .alpha-slider{
-  -webkit-appearance:none;
-  width:120px;
-  transform:rotate(-90deg);
-  border:2px solid var(--accent);
-  border-radius:8px;
-  box-shadow:0 0 4px var(--accent);
-  background:#fff;
-  accent-color: var(--accent);
+
+@media (max-width: 520px) {
+  .palette {
+    bottom: clamp(12px, 4vh, 32px);
+    padding: 16px 16px 20px;
+  }
+  .palette .palette-bubbles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
-.palette .mic {
-  width:32px;
-  height:32px;
-  border-radius:50%;
-  border:none;
-  background:var(--accent);
-  color:#fff;
-  cursor:pointer;
-}
-.palette.collapsed .mic{display:none;}
 
 #voiceOverlay{
   position:fixed;

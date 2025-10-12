@@ -702,6 +702,32 @@ const THEMES = {
 
 };
 
+const THEME_LABELS = {
+  blue: 'Trust Blue / Azul confianza',
+  green: 'Momentum Green / Verde impulso',
+  orange: 'Warm Orange / Naranja cálida',
+  red: 'Alert Red / Rojo alerta',
+  purple: 'Royal Purple / Morado real',
+  teal: 'Signal Teal / Verde señal',
+  pink: 'Hero Pink / Rosa heroína',
+  spacegray: 'Space Gray / Gris espacial',
+  metallicgrey: 'Titanium Grey / Gris titanio',
+  glass: 'Glass Neutral / Neutro cristal'
+};
+
+function highlightActiveTheme(name) {
+  const palette = document.getElementById('themePalette');
+  if (!palette) return;
+  const bubbles = palette.querySelectorAll('.bubble');
+  bubbles.forEach(bubble => {
+    const isActive = bubble.dataset.theme === name;
+    bubble.classList.toggle('active', isActive);
+    const baseLabel = bubble.dataset.label || bubble.dataset.theme;
+    bubble.setAttribute('aria-pressed', String(isActive));
+    bubble.setAttribute('aria-label', isActive ? `${baseLabel} (selected)` : baseLabel);
+  });
+}
+
 function applyTheme(name){
   const t = THEMES[name] || THEMES.purple;
   const root = document.documentElement.style;
@@ -713,6 +739,7 @@ function applyTheme(name){
   root.setProperty('--btn-text', t.btnText || '#fff');
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.accent);
   localStorage.setItem('theme', name);
+  highlightActiveTheme(name);
 
   const slider = document.getElementById('glassAlpha');
   const match = t.glassBg.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\)/);
@@ -741,24 +768,63 @@ function initPalette(){
   wrap.id = 'themePalette';
   wrap.className = 'palette collapsed';
   const bubbles = Object.entries(THEMES)
-    .map(([name, t]) => `<div class="bubble" data-theme="${name}" style="background:${t.accent}"></div>`)
+    .map(([name, t]) => {
+      const label = (THEME_LABELS[name] || name.replace(/([A-Z])/g, ' $1').replace(/[-_]/g, ' ')).replace(/^./, c => c.toUpperCase());
+      return `<div class="bubble" role="button" tabindex="0" aria-pressed="false" data-theme="${name}" data-label="${label}" aria-label="${label}" style="background:${t.accent}"></div>`;
+    })
     .join('');
   wrap.innerHTML = `
-    <button class="toggle">◀</button>
-    <div class="palette-controls">
-      <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
+    <button class="toggle" type="button" aria-expanded="false">
+      <span class="toggle-icon" aria-hidden="true">🎨</span>
+      <span class="toggle-label">Theme</span>
+    </button>
+    <div class="palette-controls" aria-hidden="true">
+      <div class="palette-header">
+        <span class="palette-title">Brand vibe</span>
+        <span class="palette-subtitle">Dial in your premium look · Ajusta tu estilo premium</span>
+      </div>
+      <label class="palette-field">
+        <span class="palette-field-label">Glass opacity / Opacidad</span>
+        <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
+      </label>
       <div class="palette-bubbles">${bubbles}</div>
-    </div>
-    <button id="voiceMic" class="mic">🎤</button>`;
+      <div class="palette-footer">
+        <span class="palette-tip">Tip: Pair your palette with bilingual CTAs for trust-building micro-conversions.</span>
+        <button id="voiceMic" class="mic" type="button" aria-label="Toggle voice notes">🎤</button>
+      </div>
+    </div>`;
   document.body.appendChild(wrap);
   const toggle = wrap.querySelector('.toggle');
+  const controls = wrap.querySelector('.palette-controls');
+  const mic = wrap.querySelector('#voiceMic');
+  const icon = toggle.querySelector('.toggle-icon');
+  const label = toggle.querySelector('.toggle-label');
+  const syncState = () => {
+    const isCollapsed = wrap.classList.contains('collapsed');
+    toggle.setAttribute('aria-expanded', String(!isCollapsed));
+    controls?.setAttribute('aria-hidden', String(isCollapsed));
+    if (mic) {
+      mic.setAttribute('aria-hidden', String(isCollapsed));
+      mic.tabIndex = isCollapsed ? -1 : 0;
+    }
+    if (label) label.textContent = isCollapsed ? 'Theme' : 'Hide';
+    if (icon) icon.textContent = isCollapsed ? '🎨' : '✕';
+  };
   toggle.addEventListener('click', ()=>{
     wrap.classList.toggle('collapsed');
-    toggle.textContent = wrap.classList.contains('collapsed') ? '◀' : '▶';
+    syncState();
   });
+  syncState();
   wrap.addEventListener('click', (e)=>{
     const b = e.target.closest('.bubble');
     if(!b) return;
+    applyTheme(b.dataset.theme);
+  });
+  wrap.addEventListener('keydown', (e) => {
+    if (!['Enter', ' '].includes(e.key)) return;
+    const b = e.target.closest('.bubble');
+    if (!b) return;
+    e.preventDefault();
     applyTheme(b.dataset.theme);
   });
   const saved = localStorage.getItem('theme') || 'purple';
