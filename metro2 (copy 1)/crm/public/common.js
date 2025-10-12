@@ -94,6 +94,17 @@ const TRANSLATIONS = {
         guardrails: 'Guardrails: opt-out copy auto-appended, rate-limited when live.',
         previewButton: 'Preview SMS',
         sendTestButton: 'Send Test'
+      },
+      emailBuilder: {
+        prompts: {
+          importSuccess: 'HTML loaded. Review, personalize, and save. • HTML cargado. Revisa, personaliza y guarda.',
+          importError: 'Failed to import HTML: {error} • Error al importar HTML: {error}',
+          importTooLarge: 'Your HTML file is over 200 KB. Minify inline CSS and try again. • Tu archivo HTML supera 200 KB. Minimiza el CSS inline e inténtalo de nuevo.',
+          importEmpty: 'The selected HTML file was empty. Please upload a populated template. • El archivo HTML seleccionado estaba vacío. Sube una plantilla con contenido.',
+          importDescription: 'Imported from uploaded HTML. Review copy before sending. • Importado desde HTML cargado. Revisa el copy antes de enviar.',
+          importDefaultTitle: 'Imported Template • Plantilla importada',
+          importReminder: 'Upload HTML and the builder will preload it here. • Sube el HTML y el editor lo cargará aquí.'
+        }
       }
     },
     tiers: {

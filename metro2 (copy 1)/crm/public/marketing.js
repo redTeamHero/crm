@@ -42,6 +42,10 @@ const templateGrid = document.getElementById("emailTemplateGrid");
 const templatesEmpty = document.getElementById("templatesEmpty");
 const templateFilter = document.getElementById("templateFilter");
 const btnImportHtml = document.getElementById("btnImportHtml");
+const htmlImportInput = document.getElementById("htmlImportInput");
+
+const MAX_IMPORTED_FILE_SIZE = 200 * 1024; // 200 KB
+const MAX_IMPORTED_HTML_LENGTH = 20000;
 
 const templateEditorModal = document.getElementById("templateEditorModal");
 const templateEditorForm = document.getElementById("templateEditorForm");
@@ -112,6 +116,98 @@ function applyMergeFields(content) {
       ? SAMPLE_DATA[key]
       : match;
   });
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      resolve(typeof reader.result === "string" ? reader.result : "");
+    });
+    reader.addEventListener("error", () => {
+      reject(reader.error || new Error("Failed to read file"));
+    });
+    reader.readAsText(file);
+  });
+}
+
+function deriveTemplateTitleFromFile(fileName) {
+  if (!fileName) {
+    return t(
+      "marketing.emailBuilder.prompts.importDefaultTitle",
+      "Imported Template • Plantilla importada"
+    );
+  }
+  return fileName
+    .replace(/\.[^.]+$/u, "")
+    .replace(/[_-]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+async function importHtmlFile(file) {
+  if (!file) return;
+  if (file.size > MAX_IMPORTED_FILE_SIZE) {
+    window.alert(
+      t(
+        "marketing.emailBuilder.prompts.importTooLarge",
+        "Your HTML file is over 200 KB. Minify inline CSS and try again."
+      )
+    );
+    return;
+  }
+
+  try {
+    const rawContent = await readFileAsText(file);
+    const safeContent = (rawContent || "").slice(0, MAX_IMPORTED_HTML_LENGTH);
+    if (!safeContent.trim()) {
+      window.alert(
+        t(
+          "marketing.emailBuilder.prompts.importEmpty",
+          "The selected HTML file was empty. Please upload a populated template."
+        )
+      );
+      return;
+    }
+
+    const segment =
+      templateFilter && templateFilter.value && templateFilter.value !== "all"
+        ? templateFilter.value
+        : "b2c";
+
+    const title =
+      deriveTemplateTitleFromFile(file.name).slice(0, 120) ||
+      t("marketing.emailBuilder.prompts.importDefaultTitle", "Imported Template");
+
+    openTemplateEditor(
+      {
+        title,
+        description: t(
+          "marketing.emailBuilder.prompts.importDescription",
+          "Imported from uploaded HTML. Review copy before sending."
+        ),
+        segment,
+        badge: segment.toUpperCase(),
+        html: safeContent,
+      },
+      { segment }
+    );
+
+    setTemplateEditorStatus(
+      t(
+        "marketing.emailBuilder.prompts.importSuccess",
+        "HTML loaded. Review, personalize, and save."
+      )
+    );
+  } catch (error) {
+    console.error("Failed to import HTML", error);
+    window.alert(
+      t("marketing.emailBuilder.prompts.importError", "Failed to import HTML: {error}").replace(
+        "{error}",
+        error?.message || "Unknown error"
+      )
+    );
+  }
 }
 
 function updateSmsPreview() {
@@ -1172,7 +1268,18 @@ function bindTemplateControls() {
       openTemplateEditor(null, { segment });
     });
   }
-  if (btnImportHtml) {
+  if (btnImportHtml && htmlImportInput) {
+    btnImportHtml.addEventListener("click", () => {
+      htmlImportInput.value = "";
+      htmlImportInput.click();
+    });
+    htmlImportInput.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      await importHtmlFile(file);
+      htmlImportInput.value = "";
+    });
+  } else if (btnImportHtml) {
     btnImportHtml.addEventListener("click", () => {
       window.alert(
         t(
