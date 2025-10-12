@@ -43,33 +43,32 @@ function initResponsiveNav() {
   const updateLayout = () => {
     const navRoleHidden = nav.dataset.roleHidden === 'true';
     const toggleRoleHidden = toggle.dataset.roleHidden === 'true';
+    const isDesktop = window.innerWidth >= 768;
 
-    if (window.innerWidth >= 768) {
-      if (!navRoleHidden) {
-        nav.classList.remove('hidden');
-        toggle.setAttribute('aria-expanded', 'true');
-      } else {
-        nav.classList.add('hidden');
-        toggle.setAttribute('aria-expanded', 'false');
-      }
+    if (isDesktop) {
+      toggle.classList.add('hidden');
 
-      if (toggleRoleHidden) {
-        toggle.classList.add('hidden');
-      } else {
-        toggle.classList.remove('hidden');
-      }
-    } else {
-      if (toggleRoleHidden) {
-        toggle.classList.add('hidden');
-      } else {
-        toggle.classList.remove('hidden');
-      }
       if (navRoleHidden) {
         nav.classList.add('hidden');
+        toggle.setAttribute('aria-expanded', 'false');
+      } else {
+        nav.classList.remove('hidden');
+        toggle.setAttribute('aria-expanded', 'true');
       }
-      const hidden = nav.classList.contains('hidden');
-      toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+
+      return;
     }
+
+    toggle.classList.toggle('hidden', toggleRoleHidden);
+
+    if (navRoleHidden) {
+      nav.classList.add('hidden');
+      toggle.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    const hidden = nav.classList.contains('hidden');
+    toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
   };
 
   toggle.addEventListener('click', () => {
