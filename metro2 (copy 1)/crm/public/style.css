@@ -232,6 +232,10 @@ body::after {
   gap: 18px;
 }
 
+.nav-shell.glass {
+  overflow: visible;
+}
+
 .nav-brand {
   display: flex;
   align-items: center;
@@ -1276,6 +1280,7 @@ header .group > div.absolute {
 }
 
 .nav-dropdown-menu {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1302,6 +1307,21 @@ header .group > div.absolute {
 
 .nav-dropdown:not(.open) .nav-dropdown-menu {
   display: none;
+}
+
+@media (min-width: 768px) {
+  .nav-dropdown {
+    position: relative;
+  }
+
+  .nav-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 200px;
+    padding: 16px;
+    z-index: 40;
+  }
 }
 
 .nav-shell .btn.nav-btn {
