@@ -428,6 +428,33 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function pickHeadline(item){
+    if (!item) return null;
+    const hl = item.headline;
+    if (hl && (hl.text || hl.title)) {
+      const text = hl.text || [hl.category, hl.title].filter(Boolean).join(' – ');
+      return {
+        text,
+        detail: hl.detail || '',
+        severity: hl.severity || 0,
+      };
+    }
+    const violations = Array.isArray(item.violations) ? [...item.violations] : [];
+    violations.sort((a, b) => {
+      const sev = (b.severity || 0) - (a.severity || 0);
+      if (sev !== 0) return sev;
+      return (a.title || '').localeCompare(b.title || '');
+    });
+    const top = violations.find(v => (v.title || '').trim());
+    if (!top) return null;
+    const text = [top.category, top.title].filter(Boolean).join(' – ');
+    return {
+      text,
+      detail: top.detail || '',
+      severity: top.severity || 0,
+    };
+  }
+
   function renderNegativeItems(data){
     if(!negativeItemList) return;
     if(!data.length){
@@ -440,11 +467,12 @@ document.addEventListener('DOMContentLoaded', () => {
         .map(([bureau, number]) => `<span class="text-xs muted inline-block mr-2">${escape(bureau)} • ${escape(number)}</span>`)
         .join('');
       const severity = item.severity || 0;
+      const headline = pickHeadline(item);
       const violationList = (item.violations || []).slice(0, 4).map(v => `
         <li class="flex gap-2 items-start">
           <span class="severity-tag severity-${v.severity || 0}">S${v.severity || 0}</span>
           <div>
-            <div class="font-medium text-sm">${escape(v.title || '')}</div>
+            <div class="font-medium text-sm">${escape([v.category, v.title].filter(Boolean).join(' – ') || '')}</div>
             ${v.detail ? `<div class="text-xs muted">${escape(v.detail)}</div>` : ''}
             ${v.bureaus && v.bureaus.length ? `<div class="text-xs muted">${v.bureaus.map(b => escape(b)).join(', ')}</div>` : ''}
           </div>
@@ -458,6 +486,10 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="font-semibold text-base">${escape(item.creditor || 'Unknown Creditor')}</div>
               <div class="text-xs muted mt-1">${bureaus || '—'}</div>
               ${accounts ? `<div class="mt-1">${accounts}</div>` : ''}
+              ${headline ? `<div class="mt-3 p-2 rounded bg-slate-50 text-sm">
+                <div class="font-medium">${escape(headline.text)}</div>
+                ${headline.detail ? `<div class="text-xs muted mt-1">${escape(headline.detail)}</div>` : ''}
+              </div>` : ''}
             </div>
             <div class="text-right">
               <div class="severity-tag severity-${severity}">S${severity}</div>

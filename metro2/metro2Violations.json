@@ -63,23 +63,12 @@
     "violation": "Balance differs between bureaus",
     "severity": 3,
     "fieldsImpacted": ["Balance"],
-    "fcraSection": "§ 623(a)(1)",
-    "scope": "group",
-    "rule": {
-      "field": "balance",
-      "type": "numeric_mismatch",
-      "tolerance": 1
-    }
+    "fcraSection": "§ 623(a)(1)"
   },
   "X_BUREAU_STATUS_MISMATCH": {
     "violation": "Account status differs between bureaus",
     "severity": 3,
     "fieldsImpacted": ["Account Status"],
-    "fcraSection": "§ 623(a)(1)",
-    "scope": "group",
-    "rule": {
-      "field": "account_status",
-      "type": "text_mismatch"
-    }
+    "fcraSection": "§ 623(a)(1)"
   }
 }
