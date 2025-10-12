@@ -513,6 +513,12 @@ header .group > div.absolute {
   z-index: 100 !important;
 }
 
+/* Allow floating chat coach to remain above sticky navigation */
+#guideChatToggle,
+#guideChatPanel {
+  z-index: 260;
+}
+
 /* Responsive navigation shell */
 .nav-shell {
   display: flex;
