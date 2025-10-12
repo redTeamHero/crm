@@ -652,12 +652,12 @@ function initPalette(){
   const icon = toggle.querySelector('.toggle-icon');
   const label = toggle.querySelector('.toggle-label');
   const slider = wrap.querySelector('#glassAlpha');
-  const bubbles = Array.from(wrap.querySelectorAll('.palette-bubbles .bubble'));
+  const paletteBubbles = Array.from(wrap.querySelectorAll('.palette-bubbles .bubble'));
   const syncState = () => {
     const isCollapsed = wrap.classList.contains('collapsed');
     toggle.setAttribute('aria-expanded', String(!isCollapsed));
     controls?.setAttribute('aria-hidden', String(isCollapsed));
-    bubbles.forEach((bubble) => {
+    paletteBubbles.forEach((bubble) => {
       if (isCollapsed) {
         bubble.setAttribute('tabindex', '-1');
         bubble.setAttribute('aria-hidden', 'true');
