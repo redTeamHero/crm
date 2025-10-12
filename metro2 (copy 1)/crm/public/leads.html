@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Leads</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -132,9 +134,36 @@
               </select>
             </div>
           </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-600">
+              <span>Mailing Address / Dirección Postal</span>
+              <span class="text-[10px] text-slate-400">Feeds territory analytics</span>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="flex flex-col space-y-1 text-xs font-medium text-slate-600">Address 1
+                <input id="leadAddr1" name="addr1" class="input w-full text-sm" placeholder="123 Main St" />
+              </label>
+              <label class="flex flex-col space-y-1 text-xs font-medium text-slate-600">Address 2
+                <input id="leadAddr2" name="addr2" class="input w-full text-sm" placeholder="Suite 200" />
+              </label>
+              <label class="flex flex-col space-y-1 text-xs font-medium text-slate-600">City
+                <input id="leadCity" name="city" class="input w-full text-sm" placeholder="Austin" />
+              </label>
+              <label class="flex flex-col space-y-1 text-xs font-medium text-slate-600">State
+                <input id="leadState" name="state" class="input w-full text-sm" placeholder="TX" />
+              </label>
+              <label class="flex flex-col space-y-1 text-xs font-medium text-slate-600">Zip
+                <input id="leadZip" name="zip" class="input w-full text-sm" placeholder="73301" />
+              </label>
+            </div>
+          </div>
           <div class="space-y-1">
             <label for="leadNotes" class="text-xs font-medium text-slate-600">Notes</label>
             <textarea id="leadNotes" name="notes" class="input w-full text-sm" rows="3" placeholder="NEPQ cues, compliance flags, promised deliverables..."></textarea>
+          </div>
+          <div class="space-y-2">
+            <p class="text-[11px] text-slate-400">Live map shows where current clients are located across the U.S. / El mapa muestra dónde están tus clientes actuales en EE.UU.</p>
+            <div id="leadClientMap" class="relative h-56 rounded-xl border border-slate-200/80 bg-white/70"></div>
           </div>
           <button type="submit" id="saveLead" class="btn w-full text-sm">Save Lead</button>
         </form>
@@ -160,6 +189,6 @@
 </main>
 <script type="module" src="/common.js"></script>
 <script src="/hotkeys.js"></script>
-<script src="/leads.js"></script>
+<script type="module" src="/leads.js"></script>
 </body>
 </html>
