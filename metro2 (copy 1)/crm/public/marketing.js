@@ -644,3 +644,7 @@ hydrateTemplates();
 refreshTestQueue();
 refreshProviders();
 autoRefreshQueue();
+window.addEventListener('crm:language-change', () => {
+  updateSmsPreview();
+});
+

@@ -67,11 +67,10 @@ const TRANSLATIONS = {
       tooltip: "You've started your journey."
     },
     marketing: {
-      meta: { title: 'Marketing' },
       hero: {
         title: 'Marketing Launchpad',
         subtitle: 'Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.',
-        tip: 'Tip: document every bilingual (EN/ES) touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.'
+        tip: 'Tip: Document every bilingual (EN/ES) touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.'
       },
       smsBuilder: {
         heading: 'SMS Campaign Builder',
@@ -95,248 +94,7 @@ const TRANSLATIONS = {
         characterLabel: 'Character Count:',
         guardrails: 'Guardrails: opt-out copy auto-appended, rate-limited when live.',
         previewButton: 'Preview SMS',
-        sendTestButton: 'Send Test',
-        previewBadge: 'Preview • Twilio Ready',
-        previewNote: 'Personalization sample uses demo data. Final send will use live CRM fields.'
-      },
-      emailBuilder: {
-        heading: 'Email Template Designer',
-        description: 'Organize nurture flows, automate bilingual onboarding, and prep branded sends before you connect SendGrid or Postalytics.',
-        metricChip: 'Metric: Open → Consult %',
-        automationChip: 'Automation idea: 7-day roadmap drip',
-        experimentChip: 'CTA Test: “Schedule Strategy Call” vs “Explore your plan”',
-        newTemplate: 'New Template',
-        importHtml: 'Import HTML',
-        filterLabel: 'Segment',
-        filters: {
-          all: 'All Segments',
-          b2c: 'B2C Consumers',
-          b2b: 'B2B / Truckers',
-          attorneys: 'Attorneys / Referrals'
-        },
-        filterHelper: 'Filter to prep tailored automations.',
-        emptyState: 'Templates load from the backend. Use “New Template” to save your first design.',
-        loading: 'Loading templates from API…',
-        errorPrefix: 'API error: ',
-        template: {
-          badgeFallback: 'Custom',
-          draftLabel: 'Draft',
-          editButton: 'Edit',
-          editAlert: 'Hook up your template editor to template {title}. Use /api/marketing/templates to persist changes.'
-        },
-        prompts: {
-          name: 'Template name?',
-          purpose: 'What\'s the purpose?',
-          descriptionFallback: 'Outline your nurture touchpoints and CTA.',
-          error: 'Failed to save template: {error}',
-          importReminder: 'POST your HTML to /api/marketing/templates with { html } once your inline CSS pipeline is ready.'
-        }
-      },
-      campaignDashboard: {
-        heading: 'Campaign Dashboard Preview',
-        description: 'Visual placeholders ready to display Twilio/SendGrid metrics, pipeline revenue, and compliance alerts.',
-        recentCampaigns: 'Recent Campaigns',
-        exportCsv: 'Export CSV',
-        statuses: {
-          scheduled: 'Scheduled',
-          completed: 'Completed',
-          draft: 'Draft'
-        },
-        cards: {
-          newYear: {
-            title: 'New Year Credit Boost',
-            body: 'Next touch: Jan 3 • Segment: Inactive Accounts • KPI target: 18% consult rate.'
-          },
-          trucker: {
-            title: 'Trucker Safety + Credit Webinar',
-            body: 'Result: 24 booked consults • Upsell opportunity: Fleet compliance retainer.'
-          },
-          scoreDrop: {
-            title: 'Score Drop Alert',
-            body: 'Set webhook to Metro-2 anomaly detector • CTA: Schedule dispute strategy.'
-          }
-        },
-        metrics: {
-          heading: 'Metrics Placeholder',
-          badge: 'API ready',
-          placeholder: '<span>Drop chart.js or Recharts here.</span><span>Map open %, click %, revenue per send.</span>',
-          bullets: {
-            track: '• Track: Lead → Consult %, Consult → Paid %, Refund %',
-            alerts: '• Alerts: Opt-out spikes, deliverability drops',
-            next: '• Next: Slack webhook for at-risk campaigns'
-          }
-        },
-        experiments: {
-          heading: 'Experiments Queue',
-          item1: '1️⃣ Pricing anchor: “$49 Strategy Session” vs “$0 Discovery”',
-          item2: '2️⃣ CTA microcopy: “Start audit” vs “Start your audit”',
-          item3: '3️⃣ Social proof position: testimonials vs score visualizer',
-          logButton: 'Log Hypothesis',
-          prompt: 'Log your experiment hypothesis',
-          customPrefix: '{index}️⃣ {idea}'
-        }
-      },
-      integration: {
-        heading: 'Integration Checklist',
-        description: 'Wire this UI to Twilio, SendGrid, and other services without losing compliance.',
-        stepsTitle: 'Steps to Activate',
-        steps: {
-          collect: 'Collect API keys and SIDs; store them in <code>.env</code> or Settings → Integrations.',
-          providers: 'Call <code>PATCH /api/marketing/providers/:id</code> to mark providers as <span class="font-semibold">ready</span>.',
-          tests: 'Trigger <code>POST /api/marketing/tests</code> from “Send Test” to validate payloads.',
-          worker: 'Connect a worker that consumes the queue and triggers Twilio/SendGrid with logs.'
-        },
-        curl: {
-          heading: 'cURL Smoke Test',
-          badge: 'Dev only',
-          command: 'curl -X POST "$HOST/api/marketing/tests" \\\n+  -H "Authorization: Bearer $TOKEN" \\\n+  -H "Content-Type: application/json" \\\n+  -d \'{"channel":"sms","recipient":"+15125550199","smsPreview":"Hi {{first_name}}, your audit is ready."}\''
-        },
-        queue: {
-          heading: 'Queued Test Sends',
-          refresh: 'Refresh',
-          empty: 'Run “Send Test” to see items here.'
-        },
-        providers: {
-          heading: 'Provider Status',
-          badge: 'Live sync',
-          empty: 'Use the API to register Twilio/SendGrid credentials.'
-        }
-      },
-      testModal: {
-        title: 'Send Test Message',
-        subtitle: 'Simulate a Twilio/SendGrid call. No live sends.',
-        close: 'Close',
-        channelLabel: 'Channel',
-        channelOptions: {
-          sms: 'SMS',
-          email: 'Email'
-        },
-        recipientLabel: 'Send To',
-        recipientPlaceholder: '+1 512 555 0199 or demo@revolv.ai',
-        notesLabel: 'Notes',
-        notesPlaceholder: 'Log what you’re validating: tone, CTA, bilingual render.',
-        footerHint: 'Preview payload is queued via the marketing API for QA.',
-        queueButton: 'Queue Test',
-        success: 'Queued via marketing API — list updates below.',
-        errorPrefix: 'Error: {error}'
-      },
-      testQueue: {
-        loading: 'Loading queue…',
-        previewFallback: 'Preview ready for dispatch.',
-        segmentLabel: 'Segment: {value}',
-        charsLabel: '{count} chars',
-        byLabel: 'By {name}',
-        errorPrefix: 'API error: '
-      },
-      providers: {
-        status: {
-          ready: 'Ready',
-          check: 'Check',
-          pending: 'Pending'
-        },
-        noteFallback: 'Document compliance requirements.',
-        envPrefix: 'Env: {value}',
-        updatedPrefix: 'Updated {timestamp}',
-        errorPrefix: 'Provider API error: '
-      }
-    },
-    billing: {
-      meta: { title: 'Billing' },
-      noClient: 'Select a client from the Clients page first.',
-      hero: {
-        eyebrow: 'Cashflow clarity',
-        title: 'Billing & Subscriptions',
-        subtitle: 'Keep every charge traceable for Metro-2 and FCRA compliance while giving clients premium payment experiences.',
-        body: 'Keep every charge traceable for Metro-2 and FCRA compliance while giving clients premium payment experiences.',
-        bullets: {
-          secureLinks: 'Send secure payment links within seconds.',
-          trackChargeoffs: 'Track charge-offs vs. settlements cleanly.',
-          remindClients: 'Auto-remind clients ahead of due dates.',
-          snapshotKpis: 'Snapshot KPIs for finance + sales teams.'
-        },
-        card: {
-          heading: 'Active invoices',
-          target: 'Consult → Purchase target: 42%.',
-          button: 'Send payment link',
-          footnote: 'Share via SMS or email—no SSN stored, only last4 on file.'
-        },
-        buttons: {
-          downloadCsv: 'Download CSV',
-          offerPayoff: 'Offer one-time payoff'
-        }
-      },
-      metrics: {
-        planLabel: 'Plan',
-        planValue: 'Growth Suite · $297/mo',
-        planDescription: 'Includes Metro-2 automation, dispute letter engine, and bilingual support.',
-        planCta: 'View upgrades',
-        outstandingLabel: 'Outstanding',
-        outstandingDescription: 'Balance awaiting payment.',
-        nextDueLabel: 'Next due',
-        nextDescriptionDefault: 'No open invoices.',
-        nextDescriptionTemplate: 'Invoice: {description}',
-        collectedLabel: 'Collected YTD',
-        collectedDescription: 'Closed revenue booked this year.'
-      },
-      autopay: {
-        heading: 'Autopay control',
-        statusOn: 'Autopay on',
-        statusOff: 'Autopay off',
-        copyOn: 'We will process nightly drafts and email receipts automatically.',
-        copyOff: 'Turn this on to draft recurring invoices and stay Metro-2 compliant.',
-        toggleOn: 'Enable autopay',
-        toggleOff: 'Pause autopay',
-        receipts: 'Receipts email instantly.'
-      },
-      invoices: {
-        heading: 'Invoice history',
-        subheading: 'Monitor payments, disputes, and refunds.',
-        badges: {
-          dueSoon: 'Due soon',
-          paid: 'Paid'
-        },
-        table: {
-          description: 'Description',
-          amount: 'Amount',
-          due: 'Due',
-          status: 'Status',
-          actions: 'Actions'
-        },
-        empty: 'No invoices yet. Create your first invoice to trigger consult → purchase tracking.',
-        compliance: 'Compliance note: never promise guaranteed credit outcomes or timelines. Set realistic expectations on every invoice.',
-        status: {
-          paid: 'Paid',
-          unpaid: 'Unpaid'
-        },
-        actions: {
-          pdf: 'PDF',
-          markPaid: 'Mark paid'
-        }
-      },
-      paymentMethod: {
-        heading: 'Saved payment method',
-        summary: 'Visa ending 4242 · Updated Jun 14',
-        badge: 'Tokenized',
-        message: 'Apple Pay & ACH ready. Use Stripe to refresh authorization.',
-        button: 'Update card'
-      },
-      quickAdd: {
-        heading: 'Quick add invoice',
-        fields: {
-          descriptionLabel: 'Description',
-          descriptionPlaceholder: 'Metro-2 audit retainer',
-          amountLabel: 'Amount',
-          amountPlaceholder: '297.00',
-          dueLabel: 'Due date'
-        },
-        button: 'Add invoice',
-        footnote: 'We only store last4 + token.'
-      },
-      revenue: {
-        heading: 'Revenue accelerator',
-        copy: 'Bundle a Metro-2 compliance review for $97 and boost AOV.',
-        button: 'Launch growth review',
-        footnote: 'KPI to watch: AOV & Consult → Purchase%.'
+        sendTestButton: 'Send Test'
       }
     },
     tiers: {
@@ -407,7 +165,6 @@ const TRANSLATIONS = {
       tooltip: 'Has iniciado tu recorrido.'
     },
     marketing: {
-      meta: { title: 'Marketing' },
       hero: {
         title: 'Lanzadera de Marketing',
         subtitle: 'Diseña recorridos premium de recuperación crediticia, nutre prospectos y prepara automatizaciones enfocadas en conversión antes de conectarlas con Twilio, SendGrid u otra integración.',
@@ -433,250 +190,9 @@ const TRANSLATIONS = {
         insertMerge: 'Insertar campo dinámico',
         personalize: '+ Personalizar',
         characterLabel: 'Conteo de caracteres:',
-        guardrails: 'Controles: la copia de opt-out se agrega automáticamente y se limita la tasa cuando esté en producción.',
+        guardrails: 'Controles: copia de opt-out se agrega automáticamente y se limita la tasa cuando esté en producción.',
         previewButton: 'Previsualizar SMS',
-        sendTestButton: 'Enviar prueba',
-        previewBadge: 'Previsualización • Lista para Twilio',
-        previewNote: 'La personalización usa datos demo. El envío final usará campos en vivo del CRM.'
-      },
-      emailBuilder: {
-        heading: 'Diseñador de Plantillas de Email',
-        description: 'Organiza flujos de nutrición, automatiza onboarding bilingüe y prepara envíos con marca antes de conectarlos a SendGrid o Postalytics.',
-        metricChip: 'Métrica: Apertura → Consultas %',
-        automationChip: 'Idea de automatización: goteo de 7 días',
-        experimentChip: 'Prueba CTA: “Agendar sesión estratégica” vs “Explora tu plan”',
-        newTemplate: 'Nueva plantilla',
-        importHtml: 'Importar HTML',
-        filterLabel: 'Segmento',
-        filters: {
-          all: 'Todos los segmentos',
-          b2c: 'Consumidores B2C',
-          b2b: 'B2B / Camioneros',
-          attorneys: 'Abogados / Referidos'
-        },
-        filterHelper: 'Filtra para preparar automatizaciones a medida.',
-        emptyState: 'Las plantillas se cargan desde el backend. Usa “Nueva plantilla” para guardar tu primer diseño.',
-        loading: 'Cargando plantillas desde la API…',
-        errorPrefix: 'Error de API: ',
-        template: {
-          badgeFallback: 'Personalizada',
-          draftLabel: 'Borrador',
-          editButton: 'Editar',
-          editAlert: 'Conecta tu editor de plantillas a {title}. Usa /api/marketing/templates para guardar cambios.'
-        },
-        prompts: {
-          name: '¿Nombre de la plantilla?',
-          purpose: '¿Cuál es el objetivo?',
-          descriptionFallback: 'Define los toques de nutrición y el CTA.',
-          error: 'No se pudo guardar la plantilla: {error}',
-          importReminder: 'Envía tu HTML a /api/marketing/templates con { html } cuando tu pipeline de CSS inline esté listo.'
-        }
-      },
-      campaignDashboard: {
-        heading: 'Vista previa del panel de campañas',
-        description: 'Marcadores listos para mostrar métricas de Twilio/SendGrid, ingresos de pipeline y alertas de cumplimiento.',
-        recentCampaigns: 'Campañas recientes',
-        exportCsv: 'Exportar CSV',
-        statuses: {
-          scheduled: 'Programada',
-          completed: 'Completada',
-          draft: 'Borrador'
-        },
-        cards: {
-          newYear: {
-            title: 'Impulso de Año Nuevo',
-            body: 'Próximo toque: 3 de enero • Segmento: Cuentas inactivas • Objetivo KPI: 18% tasa de consulta.'
-          },
-          trucker: {
-            title: 'Webinar Seguridad + Crédito para Camioneros',
-            body: 'Resultado: 24 consultas agendadas • Upsell: Retainer de cumplimiento para flotas.'
-          },
-          scoreDrop: {
-            title: 'Alerta de baja de puntaje',
-            body: 'Conecta el webhook al detector de anomalías Metro-2 • CTA: Agenda estrategia de disputa.'
-          }
-        },
-        metrics: {
-          heading: 'Marcador de métricas',
-          badge: 'API lista',
-          placeholder: '<span>Coloca chart.js o Recharts aquí.</span><span>Mapea aperturas %, clics %, ingresos por envío.</span>',
-          bullets: {
-            track: '• Rastrea: Apertura → Consulta %, Consulta → Pago %, Reembolsos %',
-            alerts: '• Alertas: picos de opt-out, caídas de entregabilidad',
-            next: '• Próximo: webhook a Slack para campañas en riesgo'
-          }
-        },
-        experiments: {
-          heading: 'Cola de experimentos',
-          item1: '1️⃣ Ancla de precio: “Sesión estratégica $49” vs “Descubrimiento $0”',
-          item2: '2️⃣ Microcopy de CTA: “Inicia auditoría” vs “Comienza tu auditoría”',
-          item3: '3️⃣ Ubicación de prueba social: testimonios vs visualizador de puntajes',
-          logButton: 'Registrar hipótesis',
-          prompt: 'Registra tu hipótesis de experimento',
-          customPrefix: '{index}️⃣ {idea}'
-        }
-      },
-      integration: {
-        heading: 'Lista de integración',
-        description: 'Conecta esta UI a Twilio, SendGrid y otros servicios sin perder cumplimiento.',
-        stepsTitle: 'Pasos para activar',
-        steps: {
-          collect: 'Recopila llaves API y SIDs; guárdalos en <code>.env</code> o en Configuración → Integraciones.',
-          providers: 'Llama a <code>PATCH /api/marketing/providers/:id</code> para marcar proveedores como <span class="font-semibold">listos</span>.',
-          tests: 'Dispara <code>POST /api/marketing/tests</code> desde “Enviar prueba” para validar cargas.',
-          worker: 'Conecta un worker que consuma la cola y dispare Twilio/SendGrid con logs.'
-        },
-        curl: {
-          heading: 'Prueba cURL',
-          badge: 'Solo dev',
-          command: 'curl -X POST "$HOST/api/marketing/tests" \\\n  -H "Authorization: Bearer $TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"channel":"sms","recipient":"+15125550199","smsPreview":"Hola {{first_name}}, tu auditoría está lista."}\''
-        },
-        queue: {
-          heading: 'Pruebas en cola',
-          refresh: 'Actualizar',
-          empty: 'Ejecuta “Enviar prueba” para ver elementos aquí.'
-        },
-        providers: {
-          heading: 'Estado de proveedores',
-          badge: 'Sincronización en vivo',
-          empty: 'Usa la API para registrar credenciales de Twilio/SendGrid.'
-        }
-      },
-      testModal: {
-        title: 'Enviar mensaje de prueba',
-        subtitle: 'Simula una llamada Twilio/SendGrid. Sin envíos reales.',
-        close: 'Cerrar',
-        channelLabel: 'Canal',
-        channelOptions: {
-          sms: 'SMS',
-          email: 'Email'
-        },
-        recipientLabel: 'Enviar a',
-        recipientPlaceholder: '+1 512 555 0199 o demo@revolv.ai',
-        notesLabel: 'Notas',
-        notesPlaceholder: 'Registra lo que validas: tono, CTA, render bilingüe.',
-        footerHint: 'La carga de prueba se envía a la API de marketing para QA.',
-        queueButton: 'Poner en cola',
-        success: 'Encolado vía API de marketing — revisa la lista abajo.',
-        errorPrefix: 'Error: {error}'
-      },
-      testQueue: {
-        loading: 'Cargando cola…',
-        previewFallback: 'Previsualización lista para enviar.',
-        segmentLabel: 'Segmento: {value}',
-        charsLabel: '{count} caracteres',
-        byLabel: 'Por {name}',
-        errorPrefix: 'Error de API: '
-      },
-      providers: {
-        status: {
-          ready: 'Listo',
-          check: 'Revisar',
-          pending: 'Pendiente'
-        },
-        noteFallback: 'Documenta requisitos de cumplimiento.',
-        envPrefix: 'Entorno: {value}',
-        updatedPrefix: 'Actualizado {timestamp}',
-        errorPrefix: 'Error de API de proveedores: '
-      }
-    },
-    billing: {
-      meta: { title: 'Facturación' },
-      noClient: 'Selecciona un cliente en la página de Clientes primero.',
-      hero: {
-        eyebrow: 'Claridad financiera',
-        title: 'Facturación y Suscripciones',
-        subtitle: 'Mantén cada cargo trazable para el cumplimiento Metro-2 y FCRA mientras ofreces experiencias de pago premium.',
-        body: 'Mantén cada cargo trazable para el cumplimiento Metro-2 y FCRA mientras ofreces experiencias de pago premium.',
-        bullets: {
-          secureLinks: 'Envía enlaces de pago seguros en segundos.',
-          trackChargeoffs: 'Sigue cargos vs. acuerdos con claridad.',
-          remindClients: 'Automatiza recordatorios antes de la fecha límite.',
-          snapshotKpis: 'Visibiliza KPIs para finanzas y ventas.'
-        },
-        card: {
-          heading: 'Facturas activas',
-          target: 'Objetivo Consultoría → Compra: 42%.',
-          button: 'Enviar enlace de pago',
-          footnote: 'Comparte por SMS o email; jamás almacenamos el SSN completo.'
-        },
-        buttons: {
-          downloadCsv: 'Descargar CSV',
-          offerPayoff: 'Ofrecer pago único'
-        }
-      },
-      metrics: {
-        planLabel: 'Plan',
-        planValue: 'Growth Suite · $297/mes',
-        planDescription: 'Incluye automatización Metro-2, motor de cartas de disputa y soporte bilingüe.',
-        planCta: 'Ver mejoras',
-        outstandingLabel: 'Pendiente',
-        outstandingDescription: 'Saldo pendiente de cobro.',
-        nextDueLabel: 'Próximo vencimiento',
-        nextDescriptionDefault: 'No hay facturas abiertas.',
-        nextDescriptionTemplate: 'Factura: {description}',
-        collectedLabel: 'Cobrado en el año',
-        collectedDescription: 'Ingresos cerrados este año.'
-      },
-      autopay: {
-        heading: 'Cargo automático',
-        statusOn: 'Cargo automático activado',
-        statusOff: 'Cargo automático desactivado',
-        copyOn: 'Procesaremos cargos nocturnos y enviaremos recibos automáticamente.',
-        copyOff: 'Activa esta opción para automatizar facturas recurrentes con cumplimiento Metro-2.',
-        toggleOn: 'Activar cargo automático',
-        toggleOff: 'Pausar cargo automático',
-        receipts: 'Los recibos se envían por email al instante.'
-      },
-      invoices: {
-        heading: 'Historial de facturas',
-        subheading: 'Supervisa pagos, disputas y reembolsos.',
-        badges: {
-          dueSoon: 'Vence pronto',
-          paid: 'Pagado'
-        },
-        table: {
-          description: 'Descripción',
-          amount: 'Monto',
-          due: 'Vence',
-          status: 'Estado',
-          actions: 'Acciones'
-        },
-        empty: 'Aún no hay facturas. Crea la primera factura para activar el seguimiento de consultoría → compra.',
-        compliance: 'Nota de cumplimiento: nunca prometas resultados crediticios garantizados ni plazos específicos. Establece expectativas realistas en cada factura.',
-        status: {
-          paid: 'Pagado',
-          unpaid: 'Pendiente'
-        },
-        actions: {
-          pdf: 'PDF',
-          markPaid: 'Marcar pagado'
-        }
-      },
-      paymentMethod: {
-        heading: 'Método de pago guardado',
-        summary: 'Visa terminación 4242 · Actualizada 14 Jun',
-        badge: 'Tokenizado',
-        message: 'Apple Pay y ACH listos. Usa Stripe para refrescar la autorización.',
-        button: 'Actualizar tarjeta'
-      },
-      quickAdd: {
-        heading: 'Crear factura rápida',
-        fields: {
-          descriptionLabel: 'Descripción',
-          descriptionPlaceholder: 'Retainer de auditoría Metro-2',
-          amountLabel: 'Monto',
-          amountPlaceholder: '297.00',
-          dueLabel: 'Fecha límite'
-        },
-        button: 'Crear factura',
-        footnote: 'Solo almacenamos últimos 4 dígitos y token de pago.'
-      },
-      revenue: {
-        heading: 'Acelerador de ingresos',
-        copy: 'Agrupa una revisión de cumplimiento Metro-2 por $97 y aumenta el ticket promedio.',
-        button: 'Lanzar revisión de crecimiento',
-        footnote: 'Mide Ticket Promedio y % Consulta → Compra.'
+        sendTestButton: 'Enviar prueba'
       }
     },
     tiers: {
@@ -1354,16 +870,16 @@ function ensureHelpModal(){
   div.id = 'helpModal';
   div.className = 'fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)] z-50';
   div.innerHTML = `
-    <div class="glass card w-[min(720px,92vw)]">
+    <div class="glass card w-[min(760px,94vw)]">
       <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold">Hotkeys & Tips</div>
+        <div class="font-semibold">Hotkeys & Coach</div>
         <button id="helpClose" class="btn">×</button>
       </div>
-      <div class="text-sm space-y-2">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="glass card p-2">
+      <div class="text-sm space-y-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="glass card p-3">
             <div class="font-medium mb-1">Global</div>
-            <ul class="list-disc list-inside">
+            <ul class="list-disc list-inside space-y-1">
               <li><b>N</b> – New consumer</li>
               <li><b>U</b> – Upload HTML</li>
               <li><b>E</b> – Edit consumer</li>
@@ -1373,13 +889,27 @@ function ensureHelpModal(){
               <li><b>R</b> – Remove focused tradeline card</li>
             </ul>
           </div>
-          <div class="glass card p-2">
+          <div class="glass card p-3">
             <div class="font-medium mb-1">Modes / Cards</div>
-            <ul class="list-disc list-inside">
+            <ul class="list-disc list-inside space-y-1">
               <li>Modes: <b>I</b>=Identity Theft, <b>D</b>=Data Breach, <b>S</b>=Sexual Assault</li>
               <li>Click a card to zoom; press <b>A</b> to toggle all bureaus on that card.</li>
               <li>Press <b>Esc</b> to exit a mode.</li>
             </ul>
+          </div>
+          <div class="glass card p-3 space-y-2" id="helpTourCard">
+            <div class="font-medium">Guided Walkthrough</div>
+            <p class="text-xs text-slate-600">Follow a 4-step tour that highlights revenue-focused workflows. / Sigue un tour de 4 pasos enfocado en flujos de ingresos.</p>
+            <div class="flex flex-wrap gap-2">
+              <button id="helpTourButton" type="button" class="btn text-xs" data-mode="start">Start Walkthrough / Iniciar recorrido</button>
+              <button id="helpTourReset" type="button" class="btn text-xs bg-slate-100 text-slate-700 hidden">Reset Progress / Reiniciar progreso</button>
+            </div>
+            <p id="helpTourStatus" class="text-[11px] font-medium text-emerald-600 hidden">Tour completed — celebrate your win! / Recorrido completado — ¡celebra tu avance!</p>
+          </div>
+          <div class="glass card p-3 space-y-2">
+            <div class="font-medium">Chat Coach</div>
+            <p class="text-xs text-slate-600">Ask playbook questions or request sales scripts. / Pregunta por playbooks o guiones de ventas.</p>
+            <button id="helpChatButton" type="button" class="btn text-xs">Open Chat Coach / Abrir guía</button>
           </div>
         </div>
       </div>
@@ -1406,7 +936,55 @@ function bindHelp(){
   document.getElementById('btnHelp')?.addEventListener('click', openHelp);
   document.getElementById('helpClose')?.addEventListener('click', closeHelp);
   document.getElementById('helpModal')?.addEventListener('click', (e)=>{ if(e.target.id==='helpModal') closeHelp(); });
+  const tourButton = document.getElementById('helpTourButton');
+  if(tourButton && !tourButton.dataset.bound){
+    tourButton.addEventListener('click', ()=>{
+      const mode = tourButton.dataset.mode || 'start';
+      closeHelp();
+      window.dispatchEvent(new CustomEvent('crm:tutorial-request', { detail: { mode } }));
+    });
+    tourButton.dataset.bound = 'true';
+  }
+  const resetButton = document.getElementById('helpTourReset');
+  if(resetButton && !resetButton.dataset.bound){
+    resetButton.addEventListener('click', ()=>{
+      closeHelp();
+      window.dispatchEvent(new CustomEvent('crm:tutorial-reset'));
+    });
+    resetButton.dataset.bound = 'true';
+  }
+  const chatButton = document.getElementById('helpChatButton');
+  if(chatButton && !chatButton.dataset.bound){
+    chatButton.addEventListener('click', ()=>{
+      closeHelp();
+      window.dispatchEvent(new CustomEvent('crm:assistant-request', { detail: { source: 'help' } }));
+    });
+    chatButton.dataset.bound = 'true';
+  }
 }
+
+window.setHelpGuideState = function(state = {}){
+  ensureHelpModal();
+  const tourButton = document.getElementById('helpTourButton');
+  const resetButton = document.getElementById('helpTourReset');
+  const status = document.getElementById('helpTourStatus');
+  const mode = state.mode || 'start';
+  if(tourButton){
+    tourButton.dataset.mode = mode;
+    let label;
+    if(mode === 'resume') label = 'Resume Walkthrough / Reanudar recorrido';
+    else if(mode === 'replay') label = 'Replay Walkthrough / Repetir recorrido';
+    else label = 'Start Walkthrough / Iniciar recorrido';
+    tourButton.textContent = label;
+  }
+  if(resetButton){
+    const showReset = mode === 'resume' || state.completed;
+    resetButton.classList.toggle('hidden', !showReset);
+  }
+  if(status){
+    status.classList.toggle('hidden', !state.completed);
+  }
+};
 
 window.selectedConsumerId = localStorage.getItem('selectedConsumerId') || null;
 
