@@ -1325,20 +1325,47 @@ app.get("/api/me", authenticate, (req,res)=>{
   res.json({ ok:true, user: { id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role, permissions: req.user.permissions || [] } });
 });
 
+app.get("/api/team-members", authenticate, requireRole("admin"), async (_req,res)=>{
+  const db = await loadUsersDB();
+  const members = db.users
+    .filter(u => u.role === "team")
+    .map(u => ({
+      id: u.id,
+      name: u.name || u.username || "",
+      email: u.username || "",
+      createdAt: u.createdAt || null,
+      lastLoginAt: u.lastLoginAt || null,
+      permissions: u.permissions || [],
+      tokenIssued: Boolean(u.token)
+    }));
+  res.json({ ok:true, members });
+});
+
 app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res)=>{
   const db = await loadUsersDB();
+  const username = (req.body.username || "").trim();
+  const name = (req.body.name || "").trim();
+  if(!username){
+    return res.status(400).json({ ok:false, error:"Username (email) is required" });
+  }
+  if(db.users.some(u => u.username === username)){
+    return res.status(409).json({ ok:false, error:"Username already exists" });
+  }
   const token = nanoid(12);
   const passwordPlain = req.body.password || nanoid(8);
   const password = bcrypt.hashSync(passwordPlain, 10);
+  const now = new Date().toISOString();
   const member = {
     id: nanoid(10),
-    username: req.body.username || "",
-    name: req.body.name || "",
+    username,
+    name,
     token,
     password,
     role: "team",
     mustReset: true,
-    permissions: []
+    permissions: [],
+    createdAt: now,
+    lastLoginAt: null
   };
   db.users.push(member);
   await saveUsersDB(db);
@@ -1346,7 +1373,21 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
     const html = TEAM_TEMPLATE.replace(/\{\{token\}\}/g, token).replace(/\{\{name\}\}/g, member.name || member.username || "Team Member");
     try{ fs.writeFileSync(path.join(PUBLIC_DIR, `team-${token}.html`), html); }catch{}
   }
-  res.json({ ok:true, member: { id: member.id, username: member.username, token, password: passwordPlain } });
+  res.json({ ok:true, member: { id: member.id, name: member.name || "", email: member.username, token, password: passwordPlain, createdAt: member.createdAt, lastLoginAt: member.lastLoginAt } });
+});
+
+app.delete("/api/team-members/:id", authenticate, requireRole("admin"), async (req,res)=>{
+  const db = await loadUsersDB();
+  const idx = db.users.findIndex(u => u.id === req.params.id && u.role === "team");
+  if(idx === -1){
+    return res.status(404).json({ ok:false, error:"Not found" });
+  }
+  const [member] = db.users.splice(idx, 1);
+  await saveUsersDB(db);
+  if(member?.token){
+    try{ fs.unlinkSync(path.join(PUBLIC_DIR, `team-${member.token}.html`)); }catch{}
+  }
+  res.json({ ok:true });
 });
 
 app.post("/api/team/:token/login", async (req,res)=>{
@@ -1361,6 +1402,8 @@ app.post("/api/team/:token/login", async (req,res)=>{
     logWarn("TEAM_LOGIN_FAIL", "Team member login failed: wrong password", { memberId: member.id });
     return res.status(401).json({ ok:false, error:"Invalid password" });
   }
+  member.lastLoginAt = new Date().toISOString();
+  await saveUsersDB(db);
   logInfo("TEAM_LOGIN_SUCCESS", "Team member login successful", { memberId: member.id });
   res.json({ ok:true, token: generateToken(member), mustReset: member.mustReset });
 });
