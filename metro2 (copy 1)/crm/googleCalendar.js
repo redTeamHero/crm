@@ -29,34 +29,6 @@ async function saveFallbackEvents(events) {
   await writeKey(FALLBACK_KEY, Array.isArray(events) ? events : []);
 }
 
-const fallbackQueue = [];
-let fallbackProcessing = false;
-
-function runNextFallbackJob() {
-  if (fallbackProcessing) return;
-  const job = fallbackQueue.shift();
-  if (!job) return;
-  fallbackProcessing = true;
-  (async () => {
-    try {
-      const result = await job.fn();
-      job.resolve(result);
-    } catch (err) {
-      job.reject(err);
-    } finally {
-      fallbackProcessing = false;
-      runNextFallbackJob();
-    }
-  })();
-}
-
-function withFallbackLock(fn) {
-  return new Promise((resolve, reject) => {
-    fallbackQueue.push({ fn, resolve, reject });
-    runNextFallbackJob();
-  });
-}
-
 function ensureEventShape(event) {
   const id = event?.id || `local_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   const start = event?.start && typeof event.start === 'object' ? event.start : {};
@@ -125,13 +97,11 @@ export async function createEvent(event) {
   const config = await getConfig();
   const notice = buildNotice(config.hasApi);
   if (!config.hasApi) {
-    return withFallbackLock(async () => {
-      const events = await loadFallbackEvents();
-      const shaped = ensureEventShape({ ...event });
-      events.push(shaped);
-      await saveFallbackEvents(events);
-      return { event: shaped, mode: 'local', notice };
-    });
+    const events = await loadFallbackEvents();
+    const shaped = ensureEventShape({ ...event });
+    events.push(shaped);
+    await saveFallbackEvents(events);
+    return { event: shaped, mode: 'local', notice };
   }
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events`;
   const created = await apiRequest(url, { method: 'POST', body: JSON.stringify(event) });
@@ -142,18 +112,16 @@ export async function updateEvent(eventId, event) {
   const config = await getConfig();
   const notice = buildNotice(config.hasApi);
   if (!config.hasApi) {
-    return withFallbackLock(async () => {
-      const events = await loadFallbackEvents();
-      const shaped = ensureEventShape({ ...event, id: eventId });
-      const idx = events.findIndex((ev) => ev.id === eventId);
-      if (idx >= 0) {
-        events[idx] = shaped;
-      } else {
-        events.push(shaped);
-      }
-      await saveFallbackEvents(events);
-      return { event: shaped, mode: 'local', notice };
-    });
+    const events = await loadFallbackEvents();
+    const shaped = ensureEventShape({ ...event, id: eventId });
+    const idx = events.findIndex((ev) => ev.id === eventId);
+    if (idx >= 0) {
+      events[idx] = shaped;
+    } else {
+      events.push(shaped);
+    }
+    await saveFallbackEvents(events);
+    return { event: shaped, mode: 'local', notice };
   }
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events/${encodeURIComponent(eventId)}`;
   const updated = await apiRequest(url, { method: 'PATCH', body: JSON.stringify(event) });
@@ -164,12 +132,10 @@ export async function deleteEvent(eventId) {
   const config = await getConfig();
   const notice = buildNotice(config.hasApi);
   if (!config.hasApi) {
-    return withFallbackLock(async () => {
-      const events = await loadFallbackEvents();
-      const remaining = events.filter((ev) => ev.id !== eventId);
-      await saveFallbackEvents(remaining);
-      return { mode: 'local', notice };
-    });
+    const events = await loadFallbackEvents();
+    const remaining = events.filter((ev) => ev.id !== eventId);
+    await saveFallbackEvents(remaining);
+    return { mode: 'local', notice };
   }
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events/${encodeURIComponent(eventId)}`;
   await apiRequest(url, { method: 'DELETE' });
