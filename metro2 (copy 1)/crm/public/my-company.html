@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>My Company</title>
   <script src="https://cdn.tailwindcss.com"></script>
-<script src="/theme.js"></script>
-<link rel="stylesheet" href="/style.css">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header id="host-nav" class="p-4">
@@ -54,26 +54,111 @@
     </nav>
   </div>
 </header>
-<main class="max-w-3xl mx-auto p-4 space-y-4">
-  <h1 class="text-2xl font-bold">My Company</h1>
-
-  <div class="glass card space-y-2">
-    <div class="font-medium">Company Information</div>
-    <input id="companyName" class="w-full border rounded px-2 py-1 text-sm" placeholder="Company Name" />
-    <input id="companyPhone" class="w-full border rounded px-2 py-1 text-sm" placeholder="Phone" />
-    <input id="companyEmail" class="w-full border rounded px-2 py-1 text-sm" placeholder="Email" />
-    <textarea id="companyAddress" class="w-full border rounded px-2 py-1 text-sm" placeholder="Address"></textarea>
-    <button id="saveCompany" class="btn text-sm">Save</button>
-  </div>
-
-  <section class="glass card space-y-4" aria-labelledby="teamHeading">
-    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+<main class="page-shell">
+  <section class="page-hero glass card" aria-labelledby="pageTitle">
+    <div class="hero-header">
       <div>
-        <h2 id="teamHeading" class="text-lg font-semibold">Team Members</h2>
-        <p class="text-sm muted">Invite analysts and account managers so they can support clients.</p>
-        <p class="text-xs muted">Invite your team so everyone can collaborate in real time.</p>
+        <p class="eyebrow">Operations HQ · Centro de Operaciones</p>
+        <h1 id="pageTitle" class="page-title">My Company</h1>
+        <p class="hero-subtitle">Build trust with a brand system that feels premium while keeping every disclosure bilingual and compliance-friendly. / Construye confianza con una marca premium y divulgaciones claras en inglés y español.</p>
       </div>
-      <button id="btnInviteTeam" data-action="invite-team" class="btn text-sm self-start sm:self-auto">Add Team Member</button>
+      <div class="hero-actions">
+        <button type="button" class="btn" data-action="launch-onboarding">Launch guided onboarding</button>
+        <button type="button" class="btn-outline" data-action="download-checklist">Brand kit checklist</button>
+      </div>
+    </div>
+    <div class="hero-metrics" aria-label="Key metrics">
+      <div class="metric">
+        <div class="metric-label">Lead → Consult</div>
+        <div class="metric-value">32%</div>
+        <div class="metric-context">Demo data · Track Consult conversion (Meta)</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Consult → Purchase</div>
+        <div class="metric-value">58%</div>
+        <div class="metric-context">Focus on clarity + NEPQ follow-up cadence</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Average Order Value</div>
+        <div class="metric-value">$897</div>
+        <div class="metric-context">Bundle audit + concierge automation upsell</div>
+      </div>
+    </div>
+    <div class="hero-upsell">
+      <div>
+        <h2 class="hero-upsell-title">Concierge Ops Upgrade · Actualiza a Concierge</h2>
+        <p class="hero-upsell-copy">Scale faster with bilingual onboarding, certified mail automation, and Metro-2 QA reviews built into every client journey. / Escala con abordaje bilingüe, automatización de correo certificado y auditorías Metro-2 en cada flujo.</p>
+      </div>
+      <a class="btn" href="mailto:sales@revolv.ai?subject=Concierge%20Ops%20Consult">Book strategy consult</a>
+    </div>
+  </section>
+
+  <section class="glass card company-card" aria-labelledby="companyInfoHeading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Brand Profile · Perfil de la marca</p>
+        <h2 id="companyInfoHeading" class="section-title">Company Information</h2>
+        <p class="section-description">Keep your legal entity, contact info, and mailing address aligned across letters, billing, and client portals. / Mantén alineados la entidad legal, datos de contacto y dirección para cartas y portales.</p>
+      </div>
+      <div class="section-side">
+        <span class="badge bg-subtle">Local only</span>
+        <span class="section-note">Stored securely on this device · Guardado localmente</span>
+      </div>
+    </div>
+    <form class="company-form" aria-describedby="companyInfoHelper">
+      <label class="form-field">
+        <span class="form-label">Company Name / Nombre de la empresa</span>
+        <input id="companyName" class="input" placeholder="Revolv Automation" />
+        <span class="helper-text">Appears on dispute letters and invoices. / Aparece en cartas e invoices.</span>
+      </label>
+      <label class="form-field">
+        <span class="form-label">Phone / Teléfono</span>
+        <input id="companyPhone" class="input" placeholder="(555) 123-4567" />
+        <span class="helper-text">Use a recorded line with disclosure. / Usa una línea grabada con aviso.</span>
+      </label>
+      <label class="form-field">
+        <span class="form-label">Email</span>
+        <input id="companyEmail" class="input" type="email" placeholder="team@revolv.ai" />
+        <span class="helper-text">Client-facing inbox with SPF/DKIM set. / Inbox para clientes con SPF/DKIM.</span>
+      </label>
+      <label class="form-field form-field-wide">
+        <span class="form-label">Address / Dirección</span>
+        <textarea id="companyAddress" class="input input-textarea" rows="3" placeholder="123 Trust Lane&#10;Suite 200&#10;Austin, TX 78701"></textarea>
+        <span class="helper-text">Match certified mail sender details. / Debe coincidir con remitente de correo certificado.</span>
+      </label>
+    </form>
+    <div class="form-actions">
+      <button id="saveCompany" type="button" class="btn">Save company profile</button>
+      <p id="companyInfoHelper" class="helper-text">Data stays in your browser storage so PII stays private. / Los datos se guardan en tu navegador para mantener la privacidad.</p>
+    </div>
+  </section>
+
+  <section class="glass card team-card" aria-labelledby="teamHeading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Team Workspace · Equipo</p>
+        <h2 id="teamHeading" class="section-title">Team Members</h2>
+        <p class="section-description">Invite analysts, closers, and attorneys so they can collaborate on Metro-2 workflows. / Invita analistas, closers y abogados para colaborar.</p>
+      </div>
+      <div class="section-side">
+        <button id="btnInviteTeam" data-action="invite-team" class="btn text-sm self-start sm:self-auto">Add Team Member</button>
+        <span class="section-note">Send secure login tokens with automatic password rotation. / Envía accesos seguros.</span>
+      </div>
+    </div>
+
+    <div class="team-insights" role="list">
+      <div class="team-insight" role="listitem">
+        <span class="badge">Analysts</span>
+        <span class="team-insight-value">Focus on Metro-2 QC before letters are generated.</span>
+      </div>
+      <div class="team-insight" role="listitem">
+        <span class="badge">Sales</span>
+        <span class="team-insight-value">Layer NEPQ notes directly into the CRM timeline.</span>
+      </div>
+      <div class="team-insight" role="listitem">
+        <span class="badge">Attorneys</span>
+        <span class="team-insight-value">Audit FCRA/FDCPA escalations with clear audit trails.</span>
+      </div>
     </div>
 
     <p id="teamLoading" class="text-sm muted flex items-center gap-2">
@@ -81,73 +166,85 @@
       Loading team…
     </p>
     <p id="teamError" class="hidden text-sm text-red-600"></p>
-    <p id="teamEmpty" class="hidden text-sm muted">No team members yet. Start by inviting a teammate.</p>
+    <p id="teamEmpty" class="hidden text-sm muted">No team members yet. Start by inviting a teammate. / Aún no hay integrantes. Invita a tu equipo.</p>
 
-    <div id="teamTableWrap" class="hidden overflow-hidden border border-white/40 rounded-xl">
-      <table class="min-w-full text-sm">
-        <thead class="bg-white/50">
-          <tr class="text-left">
-            <th scope="col" class="px-4 py-2 font-medium">Name</th>
-            <th scope="col" class="px-4 py-2 font-medium">Email</th>
-            <th scope="col" class="px-4 py-2 font-medium">Last Login</th>
-            <th scope="col" class="px-4 py-2 font-medium">Invited</th>
-            <th scope="col" class="px-4 py-2 font-medium sr-only">Actions</th>
+    <div id="teamTableWrap" class="hidden table-wrapper">
+      <table class="data-table" aria-describedby="teamHelper">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Email</th>
+            <th scope="col">Last Login</th>
+            <th scope="col">Invited</th>
+            <th scope="col" class="sr-only">Actions</th>
           </tr>
         </thead>
         <tbody id="teamTable" class="divide-y divide-white/40 bg-white/30"></tbody>
       </table>
     </div>
+    <p id="teamHelper" class="helper-text">Roles inherit Metro-2 permissions without exposing client SSNs. / Los roles protegen el NSS del cliente.</p>
+  </section>
+
+  <section class="cta-banner glass card" aria-labelledby="ctaHeading">
+    <div>
+      <p class="eyebrow">Next Revenue Win · Próximo paso</p>
+      <h2 id="ctaHeading" class="section-title">Offer a paid onboarding bundle</h2>
+      <p class="section-description">Package a 30-minute bilingual welcome call + Metro-2 scan for $197 to increase AOV and time-to-value. / Empaqueta una llamada bilingüe + escaneo Metro-2 por $197 para subir el ticket promedio.</p>
+    </div>
+    <div class="cta-actions">
+      <a class="btn" href="/billing">Launch bundle in Billing</a>
+      <a class="btn-outline" href="/marketing">Add to landing page</a>
+    </div>
   </section>
 </main>
 <dialog id="inviteDialog" class="team-dialog">
   <div class="dialog-panel glass card p-6 space-y-5" role="document">
-    <div class="flex items-start justify-between gap-4">
+    <div class="dialog-header">
       <div>
-        <h2 class="text-lg font-semibold">Invite a teammate</h2>
-        <p class="text-sm muted">Send a secure login link and temporary password.</p>
-        <p class="text-xs muted">Share secure access with your teammate.</p>
+        <p class="eyebrow">Secure Invite · Invitación segura</p>
+        <h2 class="section-title">Invite a teammate</h2>
+        <p class="section-description">Send a secure login link and temporary password. / Envía acceso seguro con contraseña temporal.</p>
       </div>
       <button type="button" class="btn-icon" data-close aria-label="Close">✕</button>
     </div>
     <form id="inviteForm" class="space-y-4">
-      <label class="flex flex-col gap-1 text-sm">
-        <span class="font-medium">Teammate Name</span>
+      <label class="form-field">
+        <span class="form-label">Teammate Name / Nombre</span>
         <input id="inviteName" name="name" class="input" placeholder="e.g. Maria Lopez" required />
-        <span class="text-xs muted">Teammate name</span>
+        <span class="helper-text">Used on invites and audit logs. / Se usa en invitaciones y auditoría.</span>
       </label>
-      <label class="flex flex-col gap-1 text-sm">
-        <span class="font-medium">Work Email</span>
+      <label class="form-field">
+        <span class="form-label">Work Email / Correo</span>
         <input id="inviteEmail" name="email" type="email" class="input" placeholder="team@revolv.ai" required />
-        <span class="text-xs muted">Team email</span>
+        <span class="helper-text">We recommend SSO or enforced MFA. / Recomendamos SSO o MFA obligatorio.</span>
       </label>
       <p id="inviteError" class="hidden text-sm text-red-600"></p>
-      <div class="flex justify-end gap-2">
+      <div class="form-actions justify-end">
         <button type="button" class="btn-outline" data-close>Cancel</button>
         <button id="inviteSubmit" type="submit" class="btn text-sm">Send Invite</button>
       </div>
     </form>
     <div id="inviteSuccess" class="hidden space-y-4">
       <div>
-        <p class="text-sm">Share this secure access with your teammate.</p>
-        <p class="text-xs muted">Share this secure access with your teammate.</p>
+        <p class="section-description">Share this secure access with your teammate. / Comparte este acceso seguro.</p>
       </div>
-      <div class="glass card bg-white/70 p-4 space-y-2">
-        <div class="font-medium text-sm">Invite Link Token</div>
-        <div class="flex items-center gap-2 flex-wrap">
+      <div class="token-panel">
+        <div class="token-header">Invite Link Token</div>
+        <div class="token-body">
           <code id="inviteToken" class="token-chip"></code>
           <button type="button" class="btn text-xs" data-copy="token">Copy token</button>
         </div>
-        <p class="text-xs muted">Send along with the temporary password below.</p>
+        <p class="helper-text">Send along with the temporary password below. / Envía junto con la contraseña temporal.</p>
       </div>
-      <div class="glass card bg-white/70 p-4 space-y-2">
-        <div class="font-medium text-sm">Temporary Password</div>
-        <div class="flex items-center gap-2 flex-wrap">
+      <div class="token-panel">
+        <div class="token-header">Temporary Password</div>
+        <div class="token-body">
           <code id="invitePassword" class="token-chip"></code>
           <button type="button" class="btn text-xs" data-copy="password">Copy password</button>
         </div>
-        <p class="text-xs muted">Temporary password — ask them to change it on first login.</p>
+        <p class="helper-text">Ask them to change it after first login. / Pide que la cambien tras el primer acceso.</p>
       </div>
-      <div class="flex justify-end gap-2">
+      <div class="form-actions justify-end">
         <button type="button" class="btn-outline" data-close>Done</button>
         <button type="button" class="btn text-sm" id="inviteAnother">Invite another teammate</button>
       </div>
