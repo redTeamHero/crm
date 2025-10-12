@@ -1,5 +1,5 @@
 // public/billing.js
-import { api, escapeHtml, formatCurrency } from './common.js';
+import { api, escapeHtml, formatCurrency, getTranslation, getCurrentLanguage } from './common.js';
 const $ = (s) => document.querySelector(s);
 
 const consumerId = getSelectedConsumerId();
@@ -18,6 +18,16 @@ const autopayStatusEl = document.getElementById('autopayStatus');
 const autopayCopyEl = document.getElementById('autopayCopy');
 const autopaySwitchLabel = document.getElementById('autopaySwitchLabel');
 const autopayStorageKey = consumerId ? `autopay:${consumerId}` : null;
+let lastInvoices = [];
+
+function translate(key, replacements = {}) {
+  const template = getTranslation(key, getCurrentLanguage());
+  if (!template) return '';
+  return template.replace(/\{(\w+)\}/g, (_, token) => {
+    const replacement = replacements[token];
+    return replacement === undefined ? '' : String(replacement);
+  });
+}
 
 if(consumerId && autopaySwitch && autopayStatusEl){
   const stored = localStorage.getItem(autopayStorageKey);
@@ -34,11 +44,18 @@ if(consumerId && autopaySwitch && autopayStatusEl){
   autopaySwitch.disabled = true;
 }
 
-async function loadInvoices(){
-  const data = await api(`/api/invoices/${consumerId}`);
+async function loadInvoices(options = {}){
+  if(!consumerId) return;
+  if(!options.reRenderOnly){
+    const data = await api(`/api/invoices/${consumerId}`);
+    lastInvoices = data.invoices || [];
+  }
+  renderInvoices(lastInvoices);
+}
+
+function renderInvoices(invoices = []){
   const body = $('#invoiceBody');
   body.innerHTML = '';
-  const invoices = data.invoices || [];
   const outstandingEl = document.getElementById('metricOutstanding');
   const collectedEl = document.getElementById('metricCollected');
   const nextDueEl = document.getElementById('metricNextDue');
@@ -60,8 +77,10 @@ async function loadInvoices(){
     const dueDate = parseDate(inv.due);
     const dueLabel = dueDate ? formatDueDate(dueDate) : '—';
     const dueSoon = Boolean(!inv.paid && dueDate && (dueDate - now) <= 1000*60*60*24*7);
-    const statusBadge = `<span class="badge ${inv.paid ? 'badge-paid' : 'badge-unpaid'}">${inv.paid ? 'Paid · Pagado' : 'Unpaid · Pendiente'}</span>`;
-    const dueBadge = dueSoon ? '<span class="badge badge-unpaid ml-2">Due soon · Vence pronto</span>' : '';
+    const statusText = inv.paid ? translate('billing.invoices.status.paid') : translate('billing.invoices.status.unpaid');
+    const statusBadge = `<span class="badge ${inv.paid ? 'badge-paid' : 'badge-unpaid'}">${escapeHtml(statusText) || ''}</span>`;
+    const dueSoonText = translate('billing.invoices.badges.dueSoon');
+    const dueBadge = dueSoon ? `<span class="badge badge-unpaid ml-2">${escapeHtml(dueSoonText) || ''}</span>` : '';
 
     if(inv.paid) collected += amount; else outstanding += amount;
     if(!inv.paid && dueDate){
@@ -80,8 +99,8 @@ async function loadInvoices(){
       <td class="px-4 py-4">${statusBadge}</td>
       <td class="px-4 py-4">
         <div class="flex flex-wrap gap-2">
-          ${inv.pdf ? `<a class="btn text-sm" target="_blank" href="/api/consumers/${consumerId}/state/files/${inv.pdf}">PDF</a>` : ''}
-          ${inv.paid ? '' : `<button class="btn text-sm mark-paid" data-id="${inv.id}">Mark paid · Marcar pagado</button>`}
+          ${inv.pdf ? `<a class="btn text-sm" target="_blank" href="/api/consumers/${consumerId}/state/files/${inv.pdf}">${escapeHtml(translate('billing.invoices.actions.pdf') || 'PDF')}</a>` : ''}
+          ${inv.paid ? '' : `<button class="btn text-sm mark-paid" data-id="${inv.id}">${escapeHtml(translate('billing.invoices.actions.markPaid'))}</button>`}
         </div>
       </td>`;
     const btn = tr.querySelector('.mark-paid');
@@ -103,12 +122,16 @@ async function loadInvoices(){
     nextDueEl && (nextDueEl.textContent = formatDueDate(nextDue.date));
     nextAmountEl && (nextAmountEl.textContent = formatCurrency(nextDue.amount));
     if(nextDescEl){
-      nextDescEl.textContent = `Invoice: ${nextDue.desc}`;
+      const nextDescText = translate('billing.metrics.nextDescriptionTemplate', { description: nextDue.desc || '' });
+      nextDescEl.textContent = nextDescText || (nextDue.desc ? `Invoice: ${nextDue.desc}` : '');
     }
   } else {
     nextDueEl && (nextDueEl.textContent = '—');
     nextAmountEl && (nextAmountEl.textContent = '—');
-    nextDescEl && (nextDescEl.textContent = 'No open invoices · No hay facturas abiertas.');
+    if(nextDescEl){
+      const emptyText = translate('billing.metrics.nextDescriptionDefault');
+      nextDescEl.textContent = emptyText || 'No open invoices.';
+    }
   }
 
   if(invoiceEmpty){
@@ -132,15 +155,19 @@ document.getElementById('invAdd')?.addEventListener('click', async ()=>{
 
 function setAutopayUI(enabled){
   if(autopayStatusEl){
-    autopayStatusEl.textContent = enabled ? 'Autopay on · Cargo automático activado' : 'Autopay off · Cargo automático desactivado';
+    const status = enabled ? 'billing.autopay.statusOn' : 'billing.autopay.statusOff';
+    const fallback = enabled ? 'Autopay on' : 'Autopay off';
+    autopayStatusEl.textContent = translate(status) || fallback;
   }
   if(autopayCopyEl){
     autopayCopyEl.textContent = enabled
-      ? 'We will process nightly drafts and email receipts automatically. Procesaremos cargos nocturnos y enviaremos recibos automáticos.'
-      : 'Turn this on to draft recurring invoices and stay Metro-2 compliant. Activa esta opción para automatizar facturas recurrentes con cumplimiento Metro-2.';
+      ? (translate('billing.autopay.copyOn') || 'We will process nightly drafts and email receipts automatically.')
+      : (translate('billing.autopay.copyOff') || 'Turn this on to draft recurring invoices and stay Metro-2 compliant.');
   }
   if(autopaySwitchLabel){
-    autopaySwitchLabel.textContent = enabled ? 'Pause autopay · Pausar cargo automático' : 'Enable autopay · Activar cargo automático';
+    autopaySwitchLabel.textContent = enabled
+      ? (translate('billing.autopay.toggleOff') || 'Pause autopay')
+      : (translate('billing.autopay.toggleOn') || 'Enable autopay');
   }
 }
 
@@ -166,3 +193,8 @@ function formatDueDate(date){
   if(!(date instanceof Date) || Number.isNaN(date.getTime())) return '—';
   return dateFormatter.format(date);
 }
+
+window.addEventListener('crm:language-change', () => {
+  setAutopayUI(Boolean(autopaySwitch?.checked));
+  loadInvoices({ reRenderOnly: true });
+});
