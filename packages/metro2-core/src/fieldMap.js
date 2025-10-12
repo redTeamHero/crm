@@ -7,6 +7,10 @@ export default {
   "Date Opened":        { key: "date_opened", normalizer: toMDY },
   "Last Reported":      { key: "last_reported", normalizer: toMDY },
   "Date of First Delinquency": { key: "date_first_delinquency", normalizer: toMDY },
+  "Creditor":           { key: "creditor_name" },
+  "Creditor Name":      { key: "creditor_name" },
+  "Company Name":       { key: "creditor_name" },
+  "Subscriber Name":    { key: "creditor_name" },
 };
 
 function parseMoney(v){ return Number(v.replace(/[^0-9.-]/g,'')) || 0; }

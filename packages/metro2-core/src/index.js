@@ -3,6 +3,19 @@ import { validateTradeline, enrich } from './validators.js';
 
 export { fieldMap, validateTradeline, enrich };
 
+const NORMALIZED_FIELD_MAP = Object.fromEntries(
+  Object.entries(fieldMap).map(([label, config]) => [normalizeFieldLabel(label), config])
+);
+
+const NON_CREDITOR_HEADERS = new Set([
+  'risk factors',
+  'risk factor',
+  'key factors',
+  'score factors',
+]);
+
+const BUREAU_PRIORITY = ['TransUnion', 'Experian', 'Equifax'];
+
 export function parseReport(context){
   const adapter = createDomAdapter(context);
   if(!adapter){
@@ -10,8 +23,12 @@ export function parseReport(context){
   }
 
   const tradelines = [];
+  const seenTradelines = new Set();
   const tables = adapter.selectAll('table.rpt_content_table.rpt_content_header.rpt_table4column');
   for(const table of tables){
+    const { meta, skip } = inferTradelineMeta(adapter, table);
+    if(skip) continue;
+
     const rows = adapter.rows(table);
     if(!rows.length) continue;
 
@@ -24,7 +41,12 @@ export function parseReport(context){
       values: adapter.find(row, 'td.info').map(cell => adapter.text(cell))
     }));
 
-    tradelines.push(buildTradeline(bureaus, dataRows));
+    const tradeline = buildTradeline(bureaus, dataRows, meta);
+    const dedupeKey = buildTradelineKey(tradeline);
+    if(seenTradelines.has(dedupeKey)) continue;
+    seenTradelines.add(dedupeKey);
+
+    tradelines.push(tradeline);
   }
 
   const history = parseHistory(context);
@@ -33,10 +55,16 @@ export function parseReport(context){
   return { tradelines, history, inquiries, inquiry_summary: inquirySummary };
 }
 
-export function buildTradeline(bureaus, rows){
-  const tl = { per_bureau:{}, violations:[] };
+export function buildTradeline(bureaus, rows, meta = {}){
+  const tl = {
+    per_bureau:{},
+    violations:[],
+    meta:{
+      creditor: sanitizeCreditor(meta.creditor) || null,
+    },
+  };
   for(const {label, values} of rows){
-    const rule = fieldMap[label];
+    const rule = lookupFieldRule(label);
     if(!rule) continue;
     values.forEach((raw,i)=>{
       const bureau = bureaus[i];
@@ -45,11 +73,20 @@ export function buildTradeline(bureaus, rows){
       tl.per_bureau[bureau] ??= {};
       tl.per_bureau[bureau][rule.key] = norm;
       tl.per_bureau[bureau][`${rule.key}_raw`] = raw;
+      if(rule.key === 'creditor_name'){
+        const candidate = sanitizeCreditor(norm || raw);
+        if(candidate && !tl.meta.creditor){
+          tl.meta.creditor = candidate;
+        }
+      }
     });
   }
   for(const b of bureaus){
     const v = validateTradeline(tl.per_bureau[b]||{});
     tl.violations.push(...v.map(x=>({ ...x, bureau:b })));
+  }
+  if(!tl.meta.creditor){
+    tl.meta.creditor = inferCreditorFromPerBureau(tl.per_bureau) || 'Unknown Creditor';
   }
   return tl;
 }
@@ -289,6 +326,17 @@ function createDomAdapter(context){
       },
       hasAttr(node, name){
         return $(node).attr(name) !== undefined;
+      },
+      parent(node){
+        const p = $(node).parent();
+        return p.length ? p.get(0) : null;
+      },
+      previous(node){
+        const prev = $(node).prev();
+        return prev.length ? prev.get(0) : null;
+      },
+      matches(node, selector){
+        return $(node).is(selector);
       }
     };
   }
@@ -317,9 +365,94 @@ function createDomAdapter(context){
       },
       hasAttr(node, name){
         return node.hasAttribute ? node.hasAttribute(name) : false;
+      },
+      parent(node){
+        return node.parentElement || null;
+      },
+      previous(node){
+        return node.previousElementSibling || null;
+      },
+      matches(node, selector){
+        return node.matches ? node.matches(selector) : false;
       }
     };
   }
 
   return null;
+}
+
+function inferTradelineMeta(adapter, table){
+  const meta = {};
+  const header = findNearestHeader(adapter, table);
+  if(!header) return { meta };
+  const name = sanitizeCreditor(adapter.text(header));
+  if(!name) return { meta };
+  if(NON_CREDITOR_HEADERS.has(name.toLowerCase())){
+    return { meta, skip: true };
+  }
+  meta.creditor = name;
+  return { meta };
+}
+
+function findNearestHeader(adapter, node){
+  let current = node;
+  while(current){
+    let sibling = adapter.previous(current);
+    while(sibling){
+      if(adapter.matches(sibling, 'div.sub_header')){
+        return sibling;
+      }
+      sibling = adapter.previous(sibling);
+    }
+    current = adapter.parent(current);
+  }
+  return null;
+}
+
+function lookupFieldRule(label){
+  return NORMALIZED_FIELD_MAP[normalizeFieldLabel(label)];
+}
+
+function normalizeFieldLabel(label){
+  return (label || '')
+    .toLowerCase()
+    .replace(/[:]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sanitizeCreditor(value){
+  if(!value) return '';
+  const text = String(value).replace(/\s+/g, ' ').trim();
+  if(!text) return '';
+  return text;
+}
+
+function inferCreditorFromPerBureau(perBureau = {}){
+  for(const bureau of BUREAU_PRIORITY){
+    const data = perBureau[bureau];
+    if(!data || typeof data !== 'object') continue;
+    const candidate = data.creditor_name || data.creditor || data.company_name;
+    const cleaned = sanitizeCreditor(candidate);
+    if(cleaned) return cleaned;
+  }
+  return null;
+}
+
+function buildTradelineKey(tradeline){
+  const creditor = sanitizeCreditor(tradeline.meta?.creditor || '').toLowerCase();
+  const parts = BUREAU_PRIORITY.map(bureau => {
+    const data = tradeline.per_bureau?.[bureau] || {};
+    const fields = [
+      data.account_number || data.accountNumber || '',
+      data.date_opened || '',
+      data.date_last_payment || '',
+      data.last_reported || '',
+      data.date_first_delinquency || '',
+      data.balance ?? data.balance_raw ?? '',
+      data.past_due ?? data.past_due_raw ?? '',
+    ];
+    return `${bureau}:${fields.map(f => sanitizeCreditor(f).toLowerCase()).join('|')}`;
+  });
+  return [creditor, ...parts].join('||');
 }
