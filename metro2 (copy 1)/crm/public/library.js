@@ -45,8 +45,7 @@ function normalizeContractShape(contract){
   if(!contract) return null;
   return {
     ...contract,
-    english: contract.english || contract.body || '',
-    spanish: contract.spanish || ''
+    english: contract.english || contract.body || ''
   };
 }
 
@@ -96,7 +95,7 @@ function renderDefaultPack(){
     selectWrapper.className = 'flex flex-col gap-1';
     const label = document.createElement('label');
     label.className = 'text-[11px] uppercase text-slate-400';
-    label.textContent = 'Swap Template / Cambiar plantilla';
+    label.textContent = 'Swap Template';
     const select = document.createElement('select');
     select.className = 'input text-sm';
     sortedOptions.forEach(option => {
@@ -122,7 +121,7 @@ function renderDefaultPack(){
         }
         defaultPack = data.templates || [];
         renderDefaultPack();
-        showStatus(defaultPackStatus, 'Default pack updated • Pack actualizado');
+        showStatus(defaultPackStatus, 'Default pack updated');
       } catch(err){
         window.alert(err.message || String(err));
         event.target.value = tpl.id;
@@ -170,52 +169,30 @@ function renderContracts(){
     const title = document.createElement('h3');
     title.className = 'text-sm font-semibold text-slate-700';
     title.textContent = contract.name || 'Contract';
-    const badge = document.createElement('span');
-    badge.className = 'chip text-[10px] uppercase tracking-wide';
-    badge.textContent = 'EN / ES';
     header.appendChild(title);
-    header.appendChild(badge);
 
     const english = document.createElement('p');
     english.className = 'text-xs text-slate-600 whitespace-pre-wrap';
     english.textContent = snippet(contract.english, 260) || '—';
 
-    const spanish = document.createElement('p');
-    spanish.className = 'text-xs text-slate-500 whitespace-pre-wrap';
-    spanish.textContent = snippet(contract.spanish, 260) || 'Añade versión en español para cerrar más ventas.';
-
     const actions = document.createElement('div');
     actions.className = 'flex flex-wrap items-center gap-2 text-xs';
-    const copyEn = document.createElement('button');
-    copyEn.type = 'button';
-    copyEn.className = 'btn text-xs';
-    copyEn.textContent = 'Copy EN';
-    copyEn.addEventListener('click', async ()=>{
+    const copyButton = document.createElement('button');
+    copyButton.type = 'button';
+    copyButton.className = 'btn text-xs';
+    copyButton.textContent = 'Copy Contract';
+    copyButton.addEventListener('click', async ()=>{
       try{
         await navigator.clipboard.writeText(contract.english || '');
-        showStatus(contractStatus, 'Copied English contract • Copiado EN');
+        showStatus(contractStatus, 'Copied contract copy');
       } catch(err){
         showStatus(contractStatus, 'Clipboard blocked', 'error');
       }
     });
-    const copyEs = document.createElement('button');
-    copyEs.type = 'button';
-    copyEs.className = 'btn text-xs';
-    copyEs.textContent = 'Copy ES';
-    copyEs.addEventListener('click', async ()=>{
-      try{
-        await navigator.clipboard.writeText(contract.spanish || '');
-        showStatus(contractStatus, 'Copied Spanish contract • Copiado ES');
-      } catch(err){
-        showStatus(contractStatus, 'Clipboard blocked', 'error');
-      }
-    });
-    actions.appendChild(copyEn);
-    actions.appendChild(copyEs);
+    actions.appendChild(copyButton);
 
     li.appendChild(header);
     li.appendChild(english);
-    li.appendChild(spanish);
     li.appendChild(actions);
     contractList.appendChild(li);
   });
@@ -240,11 +217,10 @@ async function handleContractSubmit(event){
   const formData = new FormData(contractForm);
   const payload = {
     name: formData.get('name')?.toString().trim() || '',
-    english: formData.get('english')?.toString().trim() || '',
-    spanish: formData.get('spanish')?.toString().trim() || ''
+    english: formData.get('english')?.toString().trim() || ''
   };
   if(!payload.name || !payload.english){
-    showStatus(contractStatus, 'Name and English body required • Completa nombre y versión EN', 'error');
+    showStatus(contractStatus, 'Name and body required', 'error');
     return;
   }
   try{
@@ -259,7 +235,7 @@ async function handleContractSubmit(event){
     }
     contracts.unshift(data.contract);
     renderContracts();
-    showStatus(contractStatus, 'Contract saved • Contrato guardado');
+    showStatus(contractStatus, 'Contract saved');
     closeContractModal();
   } catch(err){
     showStatus(contractStatus, err.message || 'Failed to save contract', 'error');
@@ -277,7 +253,6 @@ async function loadLibrary(){
     id: t.id,
     heading: t.name,
     intro: t.english,
-    spanish: t.spanish
   }));
   templates = [...templates, ...sampleTemplates];
   const seenIds = new Set();

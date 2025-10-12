@@ -24,7 +24,7 @@ const chatState = {
 const CHAT_PROMPT_CATEGORIES = [
   {
     id: 'tour',
-    label: 'Program Tour / Recorrido',
+    label: 'Program Tour',
     prompts: [
       { label: 'Start Program Tour', message: 'Start the guided program tour.' },
       { label: 'Resume Tour', message: 'Resume the guided tour where I left off.' },
@@ -33,7 +33,7 @@ const CHAT_PROMPT_CATEGORIES = [
   },
   {
     id: 'onboarding',
-    label: 'Onboarding & Sales / Ventas',
+    label: 'Onboarding & Sales',
     prompts: [
       { label: 'Onboard a Lead', message: 'How do I onboard a lead?' },
       { label: 'Consult Script', message: 'Give me an NEPQ consult script.' },
@@ -42,16 +42,16 @@ const CHAT_PROMPT_CATEGORIES = [
   },
   {
     id: 'compliance',
-    label: 'Compliance & Metro-2 / Cumplimiento',
+    label: 'Compliance & Metro-2',
     prompts: [
       { label: 'Metro-2 Checklist', message: 'Share a Metro-2 compliance checklist.' },
       { label: 'FCRA/FDCPA Guardrails', message: 'How do we keep FCRA/FDCPA tight?' },
-      { label: 'Spanish Compliance', message: '¿Tienes la guía en español?' }
+      { label: 'Client Compliance FAQ', message: 'Share a compliance FAQ I can send to clients.' }
     ]
   },
   {
     id: 'automation',
-    label: 'Automation & Ops / Automatización',
+    label: 'Automation & Ops',
     prompts: [
       { label: 'Automation Ideas', message: 'Suggest automation workflows.' },
       { label: 'Certified Mail Upsell', message: 'How do I upsell certified mail?' },
@@ -146,23 +146,23 @@ function createTour(){
     const buttons = [];
     if(step !== 'first'){
       buttons.push({
-        text: 'Back / Atrás',
+        text: 'Back',
         action(){ tour.back(); }
       });
     }
     buttons.push({
-      text: 'Skip / Saltar',
+      text: 'Skip',
       action(){ tour.cancel(); },
       classes: 'shepherd-button-secondary'
     });
     if(step === 'last'){
       buttons.push({
-        text: 'Done / Listo',
+        text: 'Done',
         action(){ tour.complete(); }
       });
     } else {
       buttons.push({
-        text: 'Next / Siguiente',
+        text: 'Next',
         action(){ tour.next(); }
       });
     }
@@ -171,45 +171,45 @@ function createTour(){
 
   tour.addStep({
     id: 'nav',
-    title: 'Navigation / Navegación',
+    title: 'Navigation',
     text: `<p class="font-semibold">Drive clients to the right workflow fast.</p>
-           <p class="mt-1 text-xs text-slate-600">Use Dashboard, Leads, and Billing to monitor Lead→Consult% y pagos en tiempo real.</p>`,
+           <p class="mt-1 text-xs text-slate-600">Use Dashboard, Leads, and Billing to monitor Lead→Consult% and real-time payments.</p>`,
     attachTo: { element: '#primaryNav', on: 'bottom' },
     buttons: makeButtons('first')
   });
 
   tour.addStep({
     id: 'kpis',
-    title: 'KPIs / Indicadores',
+    title: 'KPIs',
     text: `<p class="font-semibold">Watch conversion and retention instantly.</p>
-           <p class="mt-1 text-xs text-slate-600">Anchor your consult pitch with live data. / Usa estos KPIs para respaldar tu oferta.</p>`,
+           <p class="mt-1 text-xs text-slate-600">Anchor your consult pitch with live data and highlight quick wins.</p>`,
     attachTo: { element: '#tourKpiSection', on: 'top' },
     buttons: makeButtons()
   });
 
   tour.addStep({
     id: 'notes',
-    title: 'Playbooks & Notes / Notas',
+    title: 'Playbooks & Notes',
     text: `<p class="font-semibold">Capture next steps while you speak.</p>
-           <p class="mt-1 text-xs text-slate-600">Turn every call into tasks & NEPQ follow-ups. / Convierte cada llamada en acciones.</p>`,
+           <p class="mt-1 text-xs text-slate-600">Turn every call into tasks and NEPQ follow-ups.</p>`,
     attachTo: { element: '#tourNotepadCard', on: 'left' },
     buttons: makeButtons()
   });
 
   tour.addStep({
     id: 'map',
-    title: 'Client Map / Mapa de clientes',
+    title: 'Client Map',
     text: `<p class="font-semibold">Spot regional wins and partnership gaps.</p>
-           <p class="mt-1 text-xs text-slate-600">Segment your offers por estado y dispara campañas.</p>`,
+           <p class="mt-1 text-xs text-slate-600">Segment your offers by state and trigger campaigns.</p>`,
     attachTo: { element: '#tourMapCard', on: 'top' },
     buttons: makeButtons()
   });
 
   tour.addStep({
     id: 'coach',
-    title: 'Guided Coach / Coach asistente',
+    title: 'Guided Coach',
     text: `<p class="font-semibold">Need more help?</p>
-           <p class="mt-1 text-xs text-slate-600">Launch the chat coach for scripts, KPIs, and upsell ideas. / Abre el chat para guiones y experimentos.</p>`,
+           <p class="mt-1 text-xs text-slate-600">Launch the chat coach for scripts, KPIs, and upsell ideas.</p>`,
     attachTo: { element: '#guideChatToggle', on: 'top' },
     beforeShowPromise(){
       return new Promise(resolve => {
@@ -267,7 +267,7 @@ async function startTour({ resume = false } = {}){
   if(!window.Shepherd && !tourLoadingMessageShown){
     pendingChatOpen = true;
     openChatCoach({ focusInput: false });
-    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">Loading tour…</p><p class="text-xs text-slate-600">The guided walkthrough is preparing. / El recorrido guiado está cargando.</p>`, { html: true });
+    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">Loading tour…</p><p class="text-xs text-slate-600">The guided walkthrough is preparing.</p>`, { html: true });
     tourLoadingMessageShown = true;
   }
 
@@ -275,7 +275,7 @@ async function startTour({ resume = false } = {}){
   if(!shepherd){
     pendingChatOpen = true;
     openChatCoach({ focusInput: false });
-    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">We couldn’t load the tour.</p><p class="text-xs text-slate-600">Refresh or check your connection, luego inténtalo de nuevo.</p>`, { html: true });
+    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">We couldn’t load the tour.</p><p class="text-xs text-slate-600">Refresh or check your connection, then try again.</p>`, { html: true });
     return;
   }
 
@@ -288,7 +288,7 @@ async function startTour({ resume = false } = {}){
   }
 
   if(tourLoadingMessageShown){
-    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">Tour ready.</p><p class="text-xs text-slate-600">Starting the guided walkthrough now. / Iniciando el recorrido ahora.</p>`, { html: true });
+    appendChatMessage('assistant', `<p class="font-semibold text-slate-800">Tour ready.</p><p class="text-xs text-slate-600">Starting the guided walkthrough now.</p>`, { html: true });
     tourLoadingMessageShown = false;
   }
 
@@ -401,9 +401,9 @@ function seedChat(){
     <ul class="mt-2 list-disc list-inside text-sm text-slate-600 space-y-1">
       <li>Ask for onboarding flows to boost Lead→Consult%.</li>
       <li>Request NEPQ prompts to keep compliance tight.</li>
-      <li>Pregúntame en español cuando quieras.</li>
+      <li>Ask for follow-up scripts to reinforce conversions.</li>
     </ul>
-    <p class="mt-2 text-xs text-slate-500"><strong>Revenue tip:</strong> Trigger a same-day upsell after each dispute letter delivery. / <strong>Consejo:</strong> Activa un upsell el mismo día que entregas la carta.</p>
+    <p class="mt-2 text-xs text-slate-500"><strong>Revenue tip:</strong> Trigger a same-day upsell after each dispute letter delivery.</p>
   `, { html: true });
 }
 
@@ -448,18 +448,18 @@ function closeChatCoach(){
 
 function generateAssistantReply(message){
   const normalized = message.toLowerCase();
-  if(normalized.includes('tour') || normalized.includes('walkthrough') || normalized.includes('recorrido')){
+  if(normalized.includes('tour') || normalized.includes('walkthrough')){
     const resume = normalized.includes('resume') || normalized.includes('continu');
     const intent = resume ? 'resumeTour' : 'startTour';
     return {
       html: true,
       action: intent,
       text: `<p class="font-semibold text-slate-800">Launching the guided walkthrough.</p>
-             <p class="mt-1 text-xs text-slate-600">I'll highlight KPIs, notes, and the chat coach. / Te mostraré KPIs, notas y el coach.</p>
+             <p class="mt-1 text-xs text-slate-600">I'll highlight KPIs, notes, and the chat coach.</p>
              <p class="mt-2 text-xs text-slate-500">KPI: Track completion of each tour run vs. upgrades. A/B idea: compare a "Book consult" CTA versus "Start audit" during the final step.</p>`
     };
   }
-  if(normalized.includes('certified mail') || normalized.includes('correo certificado')){
+  if(normalized.includes('certified mail')){
     return {
       html: true,
       text: `<p class="font-semibold text-slate-800">Productize certified mail as a premium upsell:</p>
@@ -471,25 +471,25 @@ function generateAssistantReply(message){
              <p class="mt-2 text-xs text-slate-500">KPI: Attach Rate & Certified Mail Margin. A/B idea: test "Secure delivery" vs. "Certified compliance mailing" copy on the upsell modal.</p>`
     };
   }
-  if(normalized.includes('onboard') || normalized.includes('lead')){
-    return {
-      html: true,
-      text: `<p class="font-semibold text-slate-800">3-step onboarding sprint:</p>
-             <ol class="mt-1 list-decimal list-inside space-y-1 text-sm text-slate-700">
-               <li>Dashboard ➝ Leads ➝ tag warm prospects, then auto-trigger the dispute quiz. / Etiqueta leads cálidos y lanza el quiz.</li>
-               <li>Use the Notes panel to capture NEPQ answers; push them into your letter template variables. / Documenta respuestas NEPQ.</li>
-               <li>Collect payment with Stripe checkout links tied to the billing widget. / Cobra con Stripe desde Billing.</li>
-             </ol>
-             <p class="mt-2 text-xs text-slate-500">KPI: Lead→Consult% y Consult→Purchase%. A/B test: try "Secure your audit" vs. "Start Metro-2 review" on the booking CTA.</p>`
-    };
-  }
+    if(normalized.includes('onboard') || normalized.includes('lead')){
+      return {
+        html: true,
+        text: `<p class="font-semibold text-slate-800">3-step onboarding sprint:</p>
+               <ol class="mt-1 list-decimal list-inside space-y-1 text-sm text-slate-700">
+               <li>Dashboard ➝ Leads ➝ tag warm prospects, then auto-trigger the dispute quiz.</li>
+                <li>Use the Notes panel to capture NEPQ answers and sync them into your letter template variables.</li>
+                <li>Collect payment with Stripe checkout links tied to the billing widget.</li>
+               </ol>
+               <p class="mt-2 text-xs text-slate-500">KPI: Lead→Consult% and Consult→Purchase%. A/B test: try "Secure your audit" vs. "Start Metro-2 review" on the booking CTA.</p>`
+      };
+    }
   if(normalized.includes('script') || normalized.includes('nepq')){
     return {
       html: true,
       text: `<p class="font-semibold text-slate-800">NEPQ consult script beats pushy sales:</p>
              <ol class="mt-1 list-decimal list-inside space-y-1 text-sm text-slate-700">
                <li><strong>Problem:</strong> "Walk me through what triggered you to fix your credit now?"</li>
-               <li><strong>Consequences:</strong> "What happens if we do nothing this quarter?" / "¿Qué pasa si no cambiamos nada?"</li>
+              <li><strong>Consequences:</strong> "What happens if we do nothing this quarter?"</li>
                <li><strong>Vision:</strong> "Imagine trucking contracts approved because Metro-2 data is spotless—how does that change cash flow?"</li>
              </ol>
              <p class="mt-2 text-xs text-slate-500">KPI: Consult→Purchase%. A/B idea: test video vs. audio delivery of this script in the Guided Coach.</p>`
@@ -513,7 +513,7 @@ function generateAssistantReply(message){
       text: `<p class="font-semibold text-slate-800">Automation sprint for the week:</p>
              <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
                <li>Webhook → Discord alert when Experian updates arrive to prompt follow-up calls.</li>
-               <li>Auto-generate dispute drafts, gate final PDF behind Stripe checkout, luego dispara el mail API.</li>
+               <li>Auto-generate dispute drafts, gate the final PDF behind Stripe checkout, then trigger the mail API.</li>
                <li>Schedule retention nudges via calendar sync when payments slip past 3 days.</li>
              </ul>
              <p class="mt-2 text-xs text-slate-500">KPI: Time-to-Value & Task Completion Rate. A/B idea: test "Automate delivery" vs. "Keep it manual" upsell copy.</p>`
@@ -531,39 +531,34 @@ function generateAssistantReply(message){
              <p class="mt-2 text-xs text-slate-500">A/B idea: experiment with CTA "Review my KPIs" vs. "Audit my funnel" in the dashboard hero.</p>`
     };
   }
-  if(normalized.includes('revenue') || normalized.includes('ventas') || normalized.includes('upsell')){
+  if(normalized.includes('revenue') || normalized.includes('upsell')){
     return {
       html: true,
       text: `<p class="font-semibold text-slate-800">Revenue levers to pull this week:</p>
              <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
-               <li>Bundle certified mail as a premium add-on right after letter generation. / Ofrece envío certificado como add-on.</li>
+               <li>Bundle certified mail as a premium add-on right after letter generation.</li>
                <li>Trigger a follow-up SMS using the chat coach script when retention dips below 85%.</li>
-               <li>Launch a bilingual webinar invite for truckers + attorneys with Metro-2 case studies.</li>
+               <li>Launch a webinar invite for truckers and attorneys with Metro-2 case studies.</li>
              </ul>
              <p class="mt-2 text-xs text-slate-500">KPI: Average Order Value & Refund%. A/B ideas: headline emphasizing "Clarity-first dispute plan" vs. "Tailored Metro-2 review"; test trust badge placement near the paywall.</p>`
     };
   }
-  if(normalized.includes('español') || normalized.includes('spanish')){
+  if(normalized.includes('spanish')){
     return {
       html: true,
-      text: `<p class="font-semibold text-slate-800">Guía rápida en español:</p>
-             <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
-               <li>Revisa los KPIs de conversión antes de cada llamada.</li>
-               <li>Usa el bloc de notas para guardar objeciones y respuestas NEPQ.</li>
-               <li>Abre el tour guiado cuando un nuevo asesor se una.</li>
-             </ul>
-             <p class="mt-2 text-xs text-slate-500">Métrica clave: Tiempo hasta valor (primer disputa enviada). Idea A/B: CTA "Programa tu revisión" vs. "Inicia tu plan Metro-2".</p>`
+      text: `<p class="font-semibold text-slate-800">We currently provide guidance in English.</p>
+             <p class="mt-1 text-xs text-slate-600">Clone any template you need to localize and collaborate with your team outside the app.</p>`
     };
   }
   return {
     html: true,
     text: `<p class="font-semibold text-slate-800">Here’s how to keep momentum:</p>
            <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
-             <li>Run the tour to align new reps on the Apple-like experience. / Ejecuta el tour para alinear al equipo.</li>
+             <li>Run the tour to align new reps on the Apple-like experience.</li>
              <li>Log every objection in Notes and convert wins into Playbooks.</li>
              <li>Review the map weekly to target referral partners in hot states.</li>
            </ul>
-           <p class="mt-2 text-xs text-slate-500">KPI: Consult→Purchase% y LTV. A/B idea: Compare "Book your dispute strategy" vs. "Schedule compliance consult" on the hero CTA.</p>`
+           <p class="mt-2 text-xs text-slate-500">KPI: Consult→Purchase% and LTV. A/B idea: Compare "Book your dispute strategy" vs. "Schedule compliance consult" on the hero CTA.</p>`
   };
 }
 

@@ -9,9 +9,9 @@ const DEFAULT_TEMPLATES = [
     id: "tpl-welcome-series",
     title: "Client Welcome Series",
     description:
-      "Day 0-7 onboarding with bilingual timeline, dispute checklist, and trust-building NEPQ questions.",
+      "Day 0-7 onboarding with timeline prompts, dispute checklist, and trust-building NEPQ questions.",
     segment: SEGMENT_DEFAULT,
-    badge: "EN/ES",
+    badge: "Premium",
     createdAt: new Date(2023, 6, 1).toISOString(),
   },
   {
@@ -82,7 +82,7 @@ const DEFAULT_PROVIDERS = [
     status: "pending",
     env: ["SENDGRID_API_KEY", "SENDGRID_FROM_EMAIL", "SENDGRID_FROM_NAME"],
     docs: "https://docs.sendgrid.com/ui/account-and-settings/api-keys",
-    notes: "Warm up the sender domain and enforce Spanish/English content toggles in templates.",
+    notes: "Warm up the sender domain and keep templates aligned with your compliance voice guide.",
     lastConfiguredAt: null,
   },
 ];

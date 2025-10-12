@@ -464,7 +464,7 @@ function createSequenceStepRow(initial = {}) {
   const subjectInput = document.createElement("input");
   subjectInput.name = "stepSubject";
   subjectInput.className = "input text-sm";
-  subjectInput.placeholder = "Subject / Asunto";
+  subjectInput.placeholder = "Subject";
   subjectInput.value = initial.subject || "";
 
   const delayInput = document.createElement("input");
@@ -682,40 +682,40 @@ function renderProviders(providers) {
     const controls = document.createElement("div");
     controls.className = "mt-3 flex flex-wrap items-center gap-2 text-xs";
 
-    const statusSelect = document.createElement("select");
-    statusSelect.className = "input text-xs py-1 px-2";
-    [
-      ["ready", "Ready / Listo"],
-      ["pending", "Pending"],
-      ["error", "Check"],
-    ].forEach(([value, label]) => {
-      const option = document.createElement("option");
-      option.value = value;
-      option.textContent = label;
-      statusSelect.appendChild(option);
-    });
-    statusSelect.value = provider.status || "pending";
-    statusSelect.addEventListener("change", async (event) => {
-      try {
-        await updateProviderApi(provider.id, { status: event.target.value });
-        showInlineStatus(providerStatusStatus, "Provider status updated • Proveedor actualizado");
-        refreshProviders();
-      } catch (error) {
-        showInlineStatus(providerStatusStatus, error.message || "Failed to update provider", "error");
-        statusSelect.value = provider.status || "pending";
-      }
-    });
+      const statusSelect = document.createElement("select");
+      statusSelect.className = "input text-xs py-1 px-2";
+      [
+        ["ready", "Ready"],
+        ["pending", "Pending"],
+        ["error", "Check"],
+      ].forEach(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        statusSelect.appendChild(option);
+      });
+      statusSelect.value = provider.status || "pending";
+      statusSelect.addEventListener("change", async (event) => {
+        try {
+          await updateProviderApi(provider.id, { status: event.target.value });
+          showInlineStatus(providerStatusStatus, "Provider status updated");
+          refreshProviders();
+        } catch (error) {
+          showInlineStatus(providerStatusStatus, error.message || "Failed to update provider", "error");
+          statusSelect.value = provider.status || "pending";
+        }
+      });
 
     const notesBtn = document.createElement("button");
     notesBtn.type = "button";
     notesBtn.className = "btn text-xs";
     notesBtn.textContent = "Update Notes";
     notesBtn.addEventListener("click", async () => {
-      const next = window.prompt("Provider notes / Notas", provider.notes || "");
+      const next = window.prompt("Provider notes", provider.notes || "");
       if (next === null) return;
       try {
         await updateProviderApi(provider.id, { notes: next });
-        showInlineStatus(providerStatusStatus, "Notes saved • Notas guardadas");
+        showInlineStatus(providerStatusStatus, "Notes saved");
         refreshProviders();
       } catch (error) {
         showInlineStatus(providerStatusStatus, error.message || "Failed to save notes", "error");
@@ -1029,7 +1029,7 @@ function bindAutomationControls() {
         body: formData.get("body")?.toString().trim() || "",
       };
       if (!payload.title || !payload.body) {
-        showInlineStatus(smsTemplateStatus, "Title and body required • Completa título y mensaje", "error");
+        showInlineStatus(smsTemplateStatus, "Title and body required", "error");
         return;
       }
       try {
@@ -1105,7 +1105,7 @@ function bindAutomationControls() {
         const item = await scheduleEmailDispatchApi(payload);
         dispatchCache = [item, ...dispatchCache];
         renderDispatches();
-        showInlineStatus(dispatchStatus, "Dispatch queued • Envío programado");
+        showInlineStatus(dispatchStatus, "Dispatch queued");
         dispatchForm.reset();
         syncDispatchTargets();
       } catch (error) {

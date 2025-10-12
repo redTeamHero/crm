@@ -25,7 +25,7 @@ test("marketing API queues tests, templates, and providers", async () => {
         channel: "sms",
         recipient: "+15125550199",
         notes: "QA run",
-        smsPreview: "Hola Alex, tu auditoría está lista.",
+        smsPreview: "Hey Alex, your audit is ready.",
         metadata: { campaignName: "QA Drip", segment: "leads" },
       });
     assert.equal(queueRes.status, 201);
@@ -63,7 +63,7 @@ test("marketing API queues tests, templates, and providers", async () => {
       .set("Authorization", "Bearer " + token)
       .send({
         title: "SMS Reminder",
-        body: "Hola {{first_name}}, confirma tu próxima auditoría.",
+        body: "Hey {{first_name}}, confirm your upcoming audit.",
         segment: "leads",
       });
     assert.equal(smsTemplateRes.status, 201);

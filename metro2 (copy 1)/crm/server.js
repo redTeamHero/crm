@@ -1657,11 +1657,9 @@ function normalizeContract(contract){
   const english = typeof contract.english === "string" && contract.english.trim().length
     ? contract.english
     : contract.body || "";
-  const spanish = typeof contract.spanish === "string" ? contract.spanish : "";
   return {
     ...contract,
     english,
-    spanish,
     body: contract.body ?? english
   };
 }
@@ -1713,7 +1711,6 @@ app.post("/api/contracts", async (req,res)=>{
   const db = await loadLettersDB();
   const name = (req.body?.name || "").trim();
   const english = (req.body?.english || req.body?.body || "").trim();
-  const spanish = (req.body?.spanish || "").trim();
   if(!name){
     return res.status(400).json({ ok:false, error:"name required" });
   }
@@ -1723,8 +1720,7 @@ app.post("/api/contracts", async (req,res)=>{
   const ct = normalizeContract({
     id: nanoid(8),
     name,
-    english,
-    spanish,
+    english
   });
   db.contracts = db.contracts || [];
   db.contracts.push(ct);
