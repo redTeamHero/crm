@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from bs4 import BeautifulSoup, Tag
 
-from audit_rules import build_cli_report, run_all_audits
+from .audit_rules import build_cli_report, run_all_audits
 
 
 # ───────────── Helpers ─────────────
