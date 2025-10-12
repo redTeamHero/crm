@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let editingId = null;
   let selectedDate = new Date().toISOString().split('T')[0];
   let calendarError = '';
+  let calendarNotice = '';
 
   const dayMs = 24 * 60 * 60 * 1000;
   const todayMidnight = () => {
@@ -109,13 +110,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const disableScheduling = (message) => {
     calendarError = message;
+    calendarNotice = '';
     saveBtn.disabled = true;
     deleteBtn.disabled = true;
     if (newBtn) newBtn.disabled = true;
   };
 
-  const enableScheduling = () => {
+  const enableScheduling = (notice = '') => {
     calendarError = '';
+    calendarNotice = notice;
     saveBtn.disabled = false;
     deleteBtn.disabled = false;
     if (newBtn) newBtn.disabled = false;
@@ -139,7 +142,11 @@ document.addEventListener('DOMContentLoaded', () => {
         text: ev.summary || '',
         type: ev.description || ''
       }));
-      enableScheduling();
+      const mode = data.mode || 'google';
+      const notice = data.notice || (mode === 'local'
+        ? 'Calendar is operating in local-only mode until you add your Google credentials.'
+        : '');
+      enableScheduling(notice);
       return true;
     } catch (e) {
       console.error('Failed to load events', e);
@@ -245,6 +252,11 @@ document.addEventListener('DOMContentLoaded', () => {
       warn.className = 'rounded-2xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-700';
       warn.textContent = calendarError;
       listEl.appendChild(warn);
+    } else if (calendarNotice) {
+      const info = document.createElement('div');
+      info.className = 'rounded-2xl border border-sky-200 bg-sky-50/80 p-3 text-xs text-sky-700';
+      info.textContent = calendarNotice;
+      listEl.appendChild(info);
     }
 
     if (!upcoming.length) {
@@ -293,6 +305,16 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       return;
     }
+    let summaryContent = '';
+    if (calendarNotice) {
+      summaryContent += `
+        <div class="summary-tile">
+          <span class="text-xs font-semibold uppercase tracking-wide text-sky-600">Local Calendar Active</span>
+          <strong class="text-slate-900">CRM</strong>
+          <span class="text-xs text-slate-500">${calendarNotice}</span>
+        </div>
+      `;
+    }
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const monthEvents = events.filter((ev) => ev.date.startsWith(monthKey));
     const upcoming14 = events.filter((ev) => {
@@ -330,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     ];
 
-    summaryEl.innerHTML = metrics
+    const metricTiles = metrics
       .map(
         (metric) => `
         <div class="summary-tile">
@@ -341,6 +363,8 @@ document.addEventListener('DOMContentLoaded', () => {
       `
       )
       .join('');
+    summaryContent += metricTiles;
+    summaryEl.innerHTML = summaryContent;
   }
 
   function renderFocus(dateStr) {
