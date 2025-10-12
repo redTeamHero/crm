@@ -20,9 +20,6 @@ function parseCreditReportHTML(doc) {
   const tlTables = Array.from(
     doc.querySelectorAll("table.rpt_content_table.rpt_content_header.rpt_table4column")
   );
-  if (!tlTables.length) {
-    throw new Error("No tradeline tables found");
-  }
 
   // Parse each tradeline table block
   for (const table of tlTables) {
