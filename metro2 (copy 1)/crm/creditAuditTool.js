@@ -4,11 +4,10 @@ import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { detectChromium, launchBrowser } from './pdfUtils.js';
 
-
-// ----- Data Source -----
-// Load credit report JSON; if an HTML file is provided, run the Python
-// metro2_audit_multi.py script to convert it into JSON first.
-async function fetchCreditReport(srcPath){
+// ---------------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------------
+async function fetchCreditReport(srcPath) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   let reportPath = srcPath;
 
@@ -18,217 +17,276 @@ async function fetchCreditReport(srcPath){
 
   if (reportPath.toLowerCase().endsWith('.html')) {
     const outPath = path.join(__dirname, 'data', 'report.json');
-    try {
-      await new Promise((resolve, reject) => {
-        const py = spawn('python', [
-          path.join(__dirname, 'metro2_audit_multi.py'),
-          '-i', reportPath,
-          '-o', outPath
-        ], { stdio: 'inherit' });
-        py.on('error', reject);
-        py.on('close', code => {
-          if (code === 0) resolve();
-          else reject(new Error(`metro2_audit_multi.py exited with code ${code}`));
-        });
-      });
-    } catch(err) {
-      console.error(`Failed to convert HTML report: ${err.message}`);
-      return {};
-    }
+    await runPythonAudit(reportPath, outPath);
     reportPath = outPath;
   }
 
-  let raw;
   try {
-    raw = await fs.readFile(reportPath, 'utf-8');
-  } catch(err) {
-    console.error(`Failed to read report: ${err.message}`);
-    return {};
-  }
-
-  try {
+    const raw = await fs.readFile(reportPath, 'utf-8');
     return JSON.parse(raw);
-  } catch(err) {
-    console.error(`Invalid report JSON: ${err.message}`);
+  } catch (err) {
+    console.error(`Unable to read report JSON: ${err.message}`);
     return {};
   }
 }
 
-function statuteRefs(title){
-  const t = String(title || '').toLowerCase();
-  if(t.includes('balance') || t.includes('past due')){
+function runPythonAudit(inputHtml, outputJson) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const script = path.join(__dirname, 'metro2_audit_multi.py');
+
+  return new Promise((resolve, reject) => {
+    const py = spawn('python3', [script, '-i', inputHtml, '-o', outputJson, '--json-only'], {
+      stdio: 'inherit',
+    });
+    py.on('error', reject);
+    py.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`metro2_audit_multi.py exited with code ${code}`));
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Normalization helpers
+// ---------------------------------------------------------------------------
+function statuteRefs(title = '') {
+  const t = String(title).toLowerCase();
+  if (t.includes('balance') || t.includes('past due')) {
     return {
       fcra: '15 U.S.C. §1681s-2(a)(1)(A) - furnishers must report accurate balance information',
-      fdcpa: '15 U.S.C. §1692e(2)(A) - prohibits false representation of the amount owed'
+      fdcpa: '15 U.S.C. §1692e(2)(A) - prohibits false representation of the amount owed',
     };
   }
-  if(t.includes('late') || t.includes('delinquent')){
+  if (t.includes('late') || t.includes('delinquent')) {
     return {
       fcra: '15 U.S.C. §1681e(b) - agencies must ensure maximum possible accuracy of payment history',
-      fdcpa: '15 U.S.C. §1692e(8) - bars communicating false credit information'
+      fdcpa: '15 U.S.C. §1692e(8) - bars communicating false credit information',
     };
   }
   return {
     fcra: '15 U.S.C. §1681s-2 - furnishers must provide accurate information and correct errors',
-    fdcpa: '15 U.S.C. §1692e - prohibits false or misleading representations'
+    fdcpa: '15 U.S.C. §1692e - prohibits false or misleading representations',
   };
 }
 
-function buildIssues(tl, idxs = null){
-  return (tl.violations||[])
-    .filter((_,i)=> !idxs || idxs.includes(i))
-    .map(v=>{
-      const legal = statuteRefs(v.title);
-      return {
-        id: v.id,
-        code: v.id,
-        title: v.title,
-        detail: v.detail,
-        bureau: v.evidence?.bureau || 'All Bureaus',
-        severity: v.severity,
-        fcra: legal.fcra,
-        fdcpa: legal.fdcpa,
-        debug: v.debug
-      };
-    });
-}
+function buildAccountBuckets(accountHistory = []) {
+  const buckets = new Map();
+  const order = [];
+  let fallback = 0;
 
-// Normalize report into array of accounts with balances/statuses/issues
-export function normalizeReport(raw, selections = null){
-  const accounts = [];
-  if(Array.isArray(selections) && selections.length){
-    selections.forEach(sel=>{
-      const tl = raw.tradelines?.[sel.tradelineIndex];
-      if(!tl) return;
-      const bureaus = {};
-      (sel.bureaus||[]).forEach(b=>{
-        if(tl.per_bureau?.[b]) bureaus[b] = tl.per_bureau[b];
+  for (const entry of accountHistory) {
+    if (!entry || typeof entry !== 'object') continue;
+    const creditor = entry.creditor_name || 'Unknown Creditor';
+    const acctNum = entry.account_number || entry.accountnumber || '';
+    const keyParts = [creditor.trim().toLowerCase()];
+    if (acctNum) keyParts.push(String(acctNum).trim().toLowerCase());
+    const key = keyParts.filter(Boolean).join('::') || `${creditor.trim().toLowerCase()}::${fallback++}`;
+
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        creditor,
+        per_bureau: {},
+        issues: [],
       });
-      const idxs = Array.isArray(sel.violationIdxs) && sel.violationIdxs.length ? sel.violationIdxs : null;
-      const issues = buildIssues(tl, idxs);
+      order.push(key);
+    }
 
-      accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
-    });
-  } else {
-    const tradelines = Array.isArray(raw.tradelines) ? raw.tradelines : [];
-    tradelines.forEach(tl=>{
-      const bureaus = {};
-      for(const [bureau, data] of Object.entries(tl.per_bureau||{})){
-        bureaus[bureau] = data;
+    const bucket = buckets.get(key);
+    const bureau = entry.bureau || 'Unknown';
+    const { violations, bureau: _ignored, creditor_name, ...fields } = entry;
+    bucket.per_bureau[bureau] = fields;
+
+    if (Array.isArray(violations)) {
+      for (const violation of violations) {
+        const legal = statuteRefs(violation.title);
+        bucket.issues.push({
+          id: violation.id,
+          code: violation.id,
+          title: violation.title,
+          detail: violation.detail,
+          severity: violation.severity,
+          bureau,
+          fcra: legal.fcra,
+          fdcpa: legal.fdcpa,
+        });
       }
-      const issues = buildIssues(tl);
-
-      accounts.push({ creditor: tl.meta?.creditor, bureaus, issues });
-    });
+    }
   }
-  return { generatedAt: new Date().toISOString(), accounts };
+
+  return order.map((key) => {
+    const bucket = buckets.get(key);
+    return {
+      creditor: bucket.creditor,
+      per_bureau: bucket.per_bureau,
+      bureaus: bucket.per_bureau,
+      issues: bucket.issues,
+    };
+  });
 }
 
-// ----- Consumer friendly translations -----
+function selectBureaus(acc, selection) {
+  if (!selection) return { bureaus: acc.bureaus, issues: acc.issues };
+
+  const wantedBureaus = new Set(selection.bureaus || []);
+  const filteredBureaus = {};
+  if (!wantedBureaus.size) {
+    Object.assign(filteredBureaus, acc.bureaus);
+  } else {
+    for (const bureau of wantedBureaus) {
+      if (acc.bureaus[bureau]) {
+        filteredBureaus[bureau] = acc.bureaus[bureau];
+      }
+    }
+  }
+
+  const wantedViolations = new Set(selection.violationIdxs || []);
+  const issues = !wantedViolations.size
+    ? acc.issues
+    : acc.issues.filter((_, idx) => wantedViolations.has(idx));
+
+  return { bureaus: filteredBureaus, issues };
+}
+
+export function normalizeReport(raw = {}, selections = null) {
+  const accounts = buildAccountBuckets(raw.account_history || []);
+  const personalInformation = raw.personal_information || [];
+  const personalMismatches = raw.personal_mismatches || [];
+  const inquiries = raw.inquiries || [];
+  const inquiryViolations = raw.inquiry_violations || [];
+
+  if (Array.isArray(selections) && selections.length) {
+    const selected = [];
+    selections.forEach((selection) => {
+      const acc = accounts[selection.tradelineIndex];
+      if (!acc) return;
+      const { bureaus, issues } = selectBureaus(acc, selection);
+      selected.push({
+        creditor: acc.creditor,
+        bureaus,
+        issues,
+      });
+    });
+    return {
+      generatedAt: new Date().toISOString(),
+      accounts: selected,
+      personalInformation,
+      personalMismatches,
+      inquiries,
+      inquiryViolations,
+    };
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    accounts,
+    personalInformation,
+    personalMismatches,
+    inquiries,
+    inquiryViolations,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Presentation helpers
+// ---------------------------------------------------------------------------
 const STATUS_MAP = {
   'Collection/Chargeoff': 'Past due and sent to collections',
   'Charge-off': 'Past due, more than 120 days',
   'Derogatory': 'Negative status',
   'Pays as agreed': 'Pays as agreed',
   'Open': 'Open and active',
-  'Closed': 'Closed'
+  'Closed': 'Closed',
 };
 
-function friendlyStatus(status){
+function friendlyStatus(status) {
   return STATUS_MAP[status] || status;
 }
 
-function recommendAction(issueTitle){
+function recommendAction(issueTitle) {
   return `Consider disputing "${issueTitle}" with the credit bureau or contacting the creditor for correction.`;
 }
 
-// Build HTML report mimicking uploaded audit structure with bureau comparison
-export function renderHtml(report, consumerName = "Consumer"){
-  const filtered = (report.accounts || []).filter(acc => Object.keys(acc.bureaus || {}).length);
-  const accountSections = filtered.map(acc => {
-    const bureauData = acc.bureaus || {};
-    const bureaus = Object.keys(bureauData);
-    const fields = [
-      ["account_number_raw", "account_number", "Account #"],
-      ["account_type_raw", "account_type", "Account Type"],
-      ["payment_status_raw", "payment_status", "Account Payment Status"],
-      ["account_status_raw", "account_status", "Account Status"],
-      ["balance_raw", "balance", "Balance"],
-      ["past_due_raw", "past_due", "Past Due"],
-      ["high_credit_raw", "high_credit", "High Credit"],
-      ["credit_limit_raw", "credit_limit", "Credit Limit"],
-      ["monthly_payment_raw", "monthly_payment", "Payment"],
-      ["date_opened_raw", "date_opened", "Date Opened"],
-      ["date_last_active_raw", "date_last_active", "Date Last Active"],
-      ["date_closed_raw", "date_closed", "Date Closed"],
-      ["last_reported_raw", "last_reported", "Last Reported"],
-      ["date_last_payment_raw", "date_last_payment", "Date of Last Payment"],
-      ["comments", "comments", "Comments"],
-    ];
+const FIELDS = [
+  ['account_number', 'Account #'],
+  ['account_type', 'Account Type'],
+  ['payment_status', 'Account Payment Status'],
+  ['account_status', 'Account Status'],
+  ['balance', 'Balance'],
+  ['past_due', 'Past Due'],
+  ['high_credit', 'High Credit'],
+  ['credit_limit', 'Credit Limit'],
+  ['monthly_payment', 'Payment'],
+  ['date_opened', 'Date Opened'],
+  ['date_last_active', 'Date Last Active'],
+  ['date_closed', 'Date Closed'],
+  ['last_reported', 'Last Reported'],
+  ['date_last_payment', 'Date of Last Payment'],
+  ['comments', 'Comments'],
+];
 
-    const rows = fields.map(([fieldRaw, field, label]) => {
-      const rawValues = bureaus.map(b => {
-        const info = acc.bureaus[b] || {};
-        return info[fieldRaw] ?? info[field] ?? "";
-      });
+function buildRowValues(info, field) {
+  const value = info?.[field];
+  if (field === 'comments' && Array.isArray(value)) {
+    return value.join('<br>');
+  }
+  if (['payment_status', 'account_status'].includes(field)) {
+    return friendlyStatus(value);
+  }
+  return value ?? '';
+}
 
-      const displayValues = rawValues.map(v => {
-        if (field === "comments" && Array.isArray(v)) {
-          return v.join("<br>");
-        }
-        return ["payment_status", "account_status"].includes(field) ? friendlyStatus(v) : v;
-      });
+function isNegative(field, value) {
+  const str = String(value || '').toLowerCase();
+  if (field.includes('past') && parseFloat(str.replace(/[^0-9.-]/g, '')) > 0) return true;
+  return ['collection', 'late', 'charge', 'delinquent', 'derog'].some((word) => str.includes(word));
+}
 
-      const diffValues = rawValues.map(v => {
-        if (field === "comments" && Array.isArray(v)) {
-          return v.join("\n");
-        }
-        return ["payment_status", "account_status"].includes(field) ? friendlyStatus(v) : v;
-      });
-
-      const diff = new Set(diffValues.filter(v => v !== "")).size > 1 ? " diff" : "";
-
-      const cells = rawValues.map((v, i) => {
-        const displayVal = displayValues[i];
-        const neg = isNegative(field, v) ? ' class="neg"' : '';
-        const htmlVal = escapeHtml(displayVal).replace(/&lt;br&gt;/g, '<br>');
-        return `<td${neg}>${htmlVal}</td>`;
-      }).join('');
-
-      return `<tr class="row${diff}"><th>${escapeHtml(label)}</th>${cells}</tr>`;
+export function renderHtml(report, consumerName = 'Consumer') {
+  const filtered = (report.accounts || []).filter((acc) => Object.keys(acc.bureaus || {}).length);
+  const accountSections = filtered.map((acc) => {
+    const bureaus = Object.keys(acc.bureaus || {});
+    const rows = FIELDS.map(([field, label]) => {
+      const rawValues = bureaus.map((bureau) => buildRowValues(acc.bureaus[bureau], field));
+      const diffValues = new Set(rawValues.filter((value) => String(value).trim() !== ''));
+      const diffClass = diffValues.size > 1 ? ' diff' : '';
+      const cells = rawValues
+        .map((value, idx) => {
+          const negative = isNegative(field.toLowerCase(), value) ? ' class="neg"' : '';
+          const htmlVal = escapeHtml(value).replace(/&lt;br&gt;/g, '<br>');
+          return `<td${negative}>${htmlVal}</td>`;
+        })
+        .join('');
+      return `<tr class="row${diffClass}"><th>${escapeHtml(label)}</th>${cells}</tr>`;
     }).join('');
 
     const issueItems = (acc.issues || [])
-      .sort((a,b)=> (a.bureau||'').localeCompare(b.bureau||''))
-      .map(i => {
-        if(!i || !i.title) return "";
-        if(i.bureau !== 'All Bureaus'){
-          const info = bureauData[i.bureau];
-          const hasData = info && Object.values(info).some(v => v !== "" && v != null);
-          if(!hasData) return "";
-        }
-        const action = recommendAction(i.title);
-        const code = i.code ? `[${escapeHtml(i.code)}] ` : "";
-        const sev = i.severity ? ` (Severity ${escapeHtml(String(i.severity))})` : "";
-        const debugBlock = i.debug ? `<pre class="debug">${escapeHtml(i.debug)}</pre>` : "";
-        return `<li><strong>${escapeHtml(i.bureau)}</strong>: ${code}${escapeHtml(i.title)}${sev} - This violates Metro 2 standard because ${escapeHtml(i.detail || "")}. It also violates FCRA ${escapeHtml(i.fcra)} and FDCPA ${escapeHtml(i.fdcpa)}. ${escapeHtml(action)}${debugBlock}</li>`;
+      .map((issue) => {
+        if (!issue || !issue.title) return '';
+        const action = recommendAction(issue.title);
+        const code = issue.code ? `[${escapeHtml(issue.code)}] ` : '';
+        const sev = issue.severity ? ` (Severity ${escapeHtml(String(issue.severity))})` : '';
+        const detail = issue.detail ? ` ${escapeHtml(issue.detail)}` : '';
+        return `<li><strong>${escapeHtml(issue.bureau || 'All Bureaus')}</strong>: ${code}${escapeHtml(issue.title)}${sev}${detail}. ${escapeHtml(action)}<br/>FCRA: ${escapeHtml(issue.fcra)}<br/>FDCPA: ${escapeHtml(issue.fdcpa)}</li>`;
+      })
+      .filter(Boolean)
+      .join('');
 
-      }).filter(Boolean).join('');
-    const issueBlock = issueItems ? `<p><strong>Audit Reasons:</strong></p><ul>${issueItems}</ul>` : "";
+    const issueBlock = issueItems ? `<p><strong>Audit Reasons:</strong></p><ul>${issueItems}</ul>` : '';
+
     return `
       <h2>${escapeHtml(acc.creditor)}</h2>
       <h3>Comparison (All Available Bureaus)</h3>
       <table>
-        <thead><tr><th>Field</th>${bureaus.map(b=>`<th class="bureau">${escapeHtml(b)}</th>`).join('')}</tr></thead>
+        <thead><tr><th>Field</th>${bureaus.map((b) => `<th class="bureau">${escapeHtml(b)}</th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody>
       </table>
       ${issueBlock}
     `;
-  }).join("\n");
+  }).join('\n');
 
   const sectionsHtml = accountSections || '<p>No bureau data</p>';
+  const dateStr = new Date(report.generatedAt || Date.now()).toLocaleString();
 
-  const dateStr = new Date(report.generatedAt).toLocaleString();
   return `<!DOCTYPE html>
   <html><head><meta charset="utf-8"/><style>
   body{font-family:Arial, sans-serif;margin:20px;}
@@ -238,7 +296,6 @@ export function renderHtml(report, consumerName = "Consumer"){
   th.bureau{text-align:center;background:#f5f5f5;}
   tr.diff td{background:#fff3cd;}
   .neg{background:#fee2e2;color:#b91c1c;}
-  pre.debug{background:#f3f4f6;border:1px solid #ddd;padding:4px;white-space:pre-wrap;font-size:0.8em;margin-top:4px;}
   footer{margin-top:40px;font-size:0.8em;color:#555;}
   </style></head>
   <body>
@@ -254,27 +311,21 @@ export function renderHtml(report, consumerName = "Consumer"){
   </body></html>`;
 }
 
-// Escape special characters for safe HTML output
-function escapeHtml(s){
-  return String(s || "").replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  }[c]));
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-function isNegative(k,v){
-  const val = String(v||'').toLowerCase();
-  if(k.toLowerCase().includes('past') && parseFloat(val.replace(/[^0-9.-]/g,''))>0) return true;
-  return ['collection','late','charge','delinquent','derog'].some(w=> val.includes(w));
-}
-
-// Save HTML as PDF under public/reports and return shareable link
-export async function savePdf(html){
-  if(!html || !html.trim()){
-    throw new Error("No HTML content provided");
+// ---------------------------------------------------------------------------
+// PDF utilities
+// ---------------------------------------------------------------------------
+export async function savePdf(html) {
+  if (!html || !html.trim()) {
+    throw new Error('No HTML content provided');
   }
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const outDir = path.join(__dirname, 'public', 'reports');
@@ -282,44 +333,42 @@ export async function savePdf(html){
   const filename = `credit-repair-audit-${Date.now()}.pdf`;
   const outPath = path.join(outDir, filename);
   let browser;
-  try{
+  try {
     const execPath = await detectChromium();
-    console.log("Launching Chromium for PDF generation", execPath || "(default)");
     browser = await launchBrowser({
-      args:["--no-sandbox","--disable-setuid-sandbox","--disable-dev-shm-usage"],
-      executablePath: execPath || undefined
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      executablePath: execPath || undefined,
     });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'load' });
-    await page.pdf({ path: outPath, format:'Letter', printBackground:true, margin:{top:'1in',bottom:'1in',left:'1in',right:'1in'} });
-
-    console.log("PDF generated at", outPath);
+    await page.pdf({ path: outPath, format: 'Letter', printBackground: true, margin: { top: '1in', bottom: '1in', left: '1in', right: '1in' } });
     return { path: outPath, url: `/reports/${filename}` };
-  }catch(err){
-    console.error("PDF generation failed, saving HTML instead:", err.message);
+  } catch (err) {
+    console.error('PDF generation failed, saving HTML instead:', err.message);
     const htmlPath = outPath.replace(/\.pdf$/, '.html');
     await fs.writeFile(htmlPath, html, 'utf-8');
-    console.log("HTML fallback saved to", htmlPath);
     return { path: htmlPath, url: `/reports/${path.basename(htmlPath)}`, warning: err.message };
   } finally {
     if (browser) await browser.close();
-
   }
 }
 
+// ---------------------------------------------------------------------------
 // CLI usage
+// ---------------------------------------------------------------------------
 if (fileURLToPath(import.meta.url) === path.resolve(process.argv[1] || '')) {
-  const src = process.argv[2]; // optional path to HTML or JSON credit report
+  const src = process.argv[2];
   const raw = await fetchCreditReport(src);
   const normalized = normalizeReport(raw);
-  const name = raw.personal_info?.name || 'Consumer';
-  const html = renderHtml(normalized, name);
+  const consumerName = raw?.personal_information?.[0]?.Name?.TransUnion || 'Consumer';
+  const html = renderHtml(normalized, consumerName);
   const result = await savePdf(html);
   if (result.warning) {
     console.log('PDF generation failed:', result.warning);
     console.log('HTML saved to', result.path);
   } else {
-    console.log('PDF saved to', result.path);
+    console.log('PDF generated at', result.path);
   }
-  console.log('Shareable link (when served):', result.url);
 }
+
+export { fetchCreditReport };
