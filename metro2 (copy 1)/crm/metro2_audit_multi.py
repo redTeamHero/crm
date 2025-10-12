@@ -424,6 +424,10 @@ def make_violation(category, title, detail, evidence):
 RULES = {}
 SEEN_ACCOUNT_NUMBERS = defaultdict(dict)
 
+DEFAULT_REMOTE_HEADERS = {
+    "User-Agent": "CRM-Metro2-Auditor/1.0 (+https://example.com)"
+}
+
 def rule(name, category, furnisher_types=None, default_enabled=True):
     """
     Decorator to register a rule function.
@@ -449,6 +453,37 @@ def rule(name, category, furnisher_types=None, default_enabled=True):
 def cross_bureau(fn):
     fn._is_cross_bureau = True
     return fn
+
+
+def parse_header_args(header_args):
+    headers = {}
+    for raw in header_args:
+        if "=" not in raw:
+            raise ValueError(f"Invalid header '{raw}'. Use NAME=VALUE format.")
+        name, value = raw.split("=", 1)
+        headers[name.strip()] = value.strip()
+    return headers
+
+
+def load_html_source(input_ref, extra_headers=None):
+    """Return HTML from a local path or remote URL."""
+    if input_ref.lower().startswith(("http://", "https://")):
+        headers = dict(DEFAULT_REMOTE_HEADERS)
+        if extra_headers:
+            headers.update(extra_headers)
+        request = Request(input_ref, headers=headers)
+        with urlopen(request) as response:
+            charset = response.headers.get_content_charset() or "utf-8"
+            payload = response.read()
+            return payload.decode(charset, errors="ignore")
+    with open(input_ref, "r", encoding="utf-8", errors="ignore") as f:
+        return f.read()
+
+
+def append_query_param(base_url, key, value):
+    separator = "&" if "?" in base_url and not base_url.endswith(("?", "&")) else ""
+    joiner = "?" if "?" not in base_url else ""
+    return f"{base_url}{joiner}{separator}{key}={quote_plus(value)}"
 
 def is_rule_enabled(rule_name, furnisher_type, profile):
     """
@@ -1083,9 +1118,25 @@ def enrich_trade_metrics(tl):
 
 def main():
     ap = argparse.ArgumentParser(description="Audit tradelines in an HTML report for Metro 2-style violations (rule engine).")
-    ap.add_argument("-i", "--input", required=True, help="Path to input HTML file (can contain multiple tradelines)")
+    ap.add_argument("-i", "--input", required=True, help="Path to input HTML file or remote URL")
     ap.add_argument("-o", "--output", default="report.json", help="Path to output JSON file")
     ap.add_argument("--rule_profile", help="Optional path to JSON configuring rule enable/disable (global/per furnisher type)")
+    ap.add_argument(
+        "--input-header",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help="HTTP header to include when fetching remote input URLs. Can be specified multiple times.",
+    )
+    ap.add_argument(
+        "--share-link-base",
+        help="Base URL used to build a shareable query-string link that embeds the generated JSON payload.",
+    )
+    ap.add_argument(
+        "--share-link-field",
+        default="report",
+        help="Query parameter name for the share link payload (default: report).",
+    )
     args = ap.parse_args()
 
     rule_profile = None
@@ -1093,8 +1144,12 @@ def main():
         with open(args.rule_profile, "r", encoding="utf-8") as f:
             rule_profile = json.load(f)
 
-    with open(args.input, "r", encoding="utf-8", errors="ignore") as f:
-        html = f.read()
+    try:
+        header_overrides = parse_header_args(args.input_header)
+    except ValueError as exc:
+        ap.error(str(exc))
+
+    html = load_html_source(args.input, header_overrides)
 
     soup = BeautifulSoup(html, "html.parser")
     personal_info = parse_personal_info(soup)
@@ -1117,7 +1172,6 @@ def main():
 
     # Run rule engine on each tradeline
     SEEN_ACCOUNT_NUMBERS.clear()
-    all_results = []
     violations_map = defaultdict(list)
     furnisher_types = []
     for idx, tl in enumerate(tradelines):
@@ -1181,10 +1235,20 @@ def main():
         "tradelines": normalized,
         "inquiries": inquiries,
     }
+
+    share_link = None
+    if args.share_link_base:
+        payload = json.dumps(out, separators=(",", ":"), ensure_ascii=False)
+        field = (args.share_link_field or "report").strip() or "report"
+        share_link = append_query_param(args.share_link_base, field, payload)
+        out["share_link"] = share_link
+
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2, ensure_ascii=False)
 
     print(f"\n✓ JSON report saved to: {args.output}")
+    if share_link:
+        print(f"Share link: {share_link}")
 
 if __name__ == "__main__":
     main()

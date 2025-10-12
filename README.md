@@ -50,6 +50,24 @@ node creditAuditTool.js path/to/report.html
 node creditAuditTool.js data/report.json
 ```
 
+### Python Metro-2 audit CLI
+
+Use the Python engine directly when you need remote pulls or one-click share links for advisors.
+
+```bash
+cd "metro2 (copy 1)/crm"
+python3 metro2_audit_multi.py \
+  --input https://secured-bucket/report.html \
+  --input-header "Authorization=Bearer <token>" \
+  --output report.json \
+  --share-link-base "https://app.yourdomain.com/audit" \
+  --share-link-field informe
+```
+
+- `--input` accepts either a local path or an HTTPS URL. Headers supplied via `--input-header NAME=VALUE` help with authenticated bureaus.
+- `--share-link-base` + `--share-link-field` generate a URL-safe query string containing the JSON payload so sales can hand off the findings instantly. The CLI prints and stores the link in the output file. (Campo bilingüe listo para equipos en español.)
+- Outputs still land in `report.json`, ready for the Node renderer above.
+
 Convert a raw credit report HTML directly into dispute-ready PDF letters:
 ```bash
 cd "metro2 (copy 1)/crm"
