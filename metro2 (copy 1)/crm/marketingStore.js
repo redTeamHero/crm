@@ -34,6 +34,32 @@ const DEFAULT_TEMPLATES = [
   },
 ];
 
+const DEFAULT_SMS_TEMPLATES = [
+  {
+    id: "sms-intro-drip",
+    title: "SMS Intro Touch",
+    body: "Hi {{first_name}}, welcome aboard. Reply with any questions about your dispute roadmap.",
+    segment: SEGMENT_DEFAULT,
+    badge: "SMS",
+    createdAt: new Date(2024, 0, 5).toISOString(),
+  },
+];
+
+const DEFAULT_EMAIL_SEQUENCES = [
+  {
+    id: "seq-onboarding",
+    title: "7-Day Onboarding",
+    description: "Kickoff sequence guiding clients through audits, Metro-2 checks, and booking consults.",
+    segment: SEGMENT_DEFAULT,
+    frequency: "daily",
+    steps: [
+      { subject: "Day 1 • Your dispute audit checklist", delayDays: 0 },
+      { subject: "Day 3 • How to prep Metro-2 evidence", delayDays: 2 },
+    ],
+    createdAt: new Date(2024, 0, 6).toISOString(),
+  },
+];
+
 const DEFAULT_PROVIDERS = [
   {
     id: "sms_twilio",
@@ -63,7 +89,10 @@ const DEFAULT_PROVIDERS = [
 
 const DEFAULT_STATE = {
   templates: DEFAULT_TEMPLATES,
+  smsTemplates: DEFAULT_SMS_TEMPLATES,
+  emailSequences: DEFAULT_EMAIL_SEQUENCES,
   testQueue: [],
+  emailDispatchQueue: [],
   providers: DEFAULT_PROVIDERS,
 };
 
@@ -105,6 +134,107 @@ function normalizeTemplate(raw = {}) {
   };
 }
 
+function normalizeSmsTemplate(raw = {}) {
+  const title = String(raw.title || "SMS Template").trim();
+  const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
+  const badge = String(raw.badge || "SMS").trim() || "SMS";
+  const body = String(raw.body || "").trim();
+  return {
+    id: raw.id || nanoid(8),
+    title,
+    body: body.slice(0, 600),
+    segment,
+    badge,
+    createdAt: raw.createdAt || new Date().toISOString(),
+    createdBy: raw.createdBy || "system",
+    gradient: raw.gradient || segmentGradient(segment),
+  };
+}
+
+const ALLOWED_SEQUENCE_FREQUENCIES = new Set(["immediate", "daily", "weekly", "monthly", "custom"]);
+
+function normalizeSequenceFrequency(value) {
+  const safe = String(value || "daily").toLowerCase();
+  if (ALLOWED_SEQUENCE_FREQUENCIES.has(safe)) return safe;
+  return "custom";
+}
+
+function normalizeSequenceSteps(rawSteps) {
+  const steps = Array.isArray(rawSteps) ? rawSteps.slice(0, 20) : [];
+  if (!steps.length) {
+    return [
+      {
+        subject: "Touchpoint",
+        delayDays: 0,
+        templateId: null,
+      },
+    ];
+  }
+  return steps.map((step, index) => {
+    const subject = String(step?.subject || `Step ${index + 1}`).slice(0, 160);
+    const delayDays = Number.isFinite(Number(step?.delayDays))
+      ? Math.max(0, Math.min(Number(step.delayDays), 365))
+      : 0;
+    const templateId = step?.templateId ? String(step.templateId) : null;
+    return {
+      subject,
+      delayDays,
+      templateId,
+    };
+  });
+}
+
+function normalizeEmailSequence(raw = {}) {
+  const title = String(raw.title || "Email Sequence").trim();
+  const description = String(raw.description || "Outline the journey and CTA.").trim();
+  const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
+  const frequency = normalizeSequenceFrequency(raw.frequency);
+  return {
+    id: raw.id || nanoid(8),
+    title,
+    description,
+    segment,
+    frequency,
+    steps: normalizeSequenceSteps(raw.steps),
+    createdAt: raw.createdAt || new Date().toISOString(),
+    createdBy: raw.createdBy || "system",
+    gradient: raw.gradient || segmentGradient(segment),
+  };
+}
+
+function normalizeEmailDispatch(raw = {}) {
+  const targetType = raw.targetType === "sequence" ? "sequence" : "template";
+  const targetId = String(raw.targetId || "").trim();
+  const frequency = normalizeSequenceFrequency(raw.frequency);
+  const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
+  const status = raw.status === "completed" ? "completed" : "scheduled";
+  const scheduledForDate = raw.scheduledFor ? new Date(raw.scheduledFor) : null;
+  const scheduledFor =
+    scheduledForDate && !Number.isNaN(scheduledForDate.getTime())
+      ? scheduledForDate.toISOString()
+      : new Date().toISOString();
+  const createdAt = raw.createdAt || new Date().toISOString();
+  const createdBy = raw.createdBy || "system";
+  const audienceCount = Number.isFinite(Number(raw.audienceCount))
+    ? Math.max(0, Number(raw.audienceCount))
+    : null;
+  const notes = raw.notes ? String(raw.notes).slice(0, 500) : "";
+
+  return {
+    id: raw.id || nanoid(10),
+    targetType,
+    targetId,
+    frequency,
+    segment,
+    status,
+    scheduledFor,
+    createdAt,
+    createdBy,
+    audienceCount,
+    notes,
+  };
+}
+
 function normalizeProvider(raw = {}) {
   const allowedStatus = new Set(["pending", "ready", "error"]);
   const status = allowedStatus.has(raw.status) ? raw.status : "pending";
@@ -125,7 +255,10 @@ function normalizeState(raw) {
   const base = raw && typeof raw === "object" ? clone(raw) : {};
   const normalized = {
     templates: ensureArray(base.templates),
+    smsTemplates: ensureArray(base.smsTemplates),
+    emailSequences: ensureArray(base.emailSequences),
     testQueue: ensureArray(base.testQueue),
+    emailDispatchQueue: ensureArray(base.emailDispatchQueue),
     providers: ensureArray(base.providers),
   };
 
@@ -135,6 +268,24 @@ function normalizeState(raw) {
     templateMap.set(normalizedTemplate.id, normalizedTemplate);
   }
   normalized.templates = Array.from(templateMap.values()).sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const smsTemplateMap = new Map();
+  for (const tpl of [...DEFAULT_STATE.smsTemplates, ...normalized.smsTemplates]) {
+    const normalizedTemplate = normalizeSmsTemplate(tpl);
+    smsTemplateMap.set(normalizedTemplate.id, normalizedTemplate);
+  }
+  normalized.smsTemplates = Array.from(smsTemplateMap.values()).sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const sequenceMap = new Map();
+  for (const sequence of [...DEFAULT_STATE.emailSequences, ...normalized.emailSequences]) {
+    const normalizedSequence = normalizeEmailSequence(sequence);
+    sequenceMap.set(normalizedSequence.id, normalizedSequence);
+  }
+  normalized.emailSequences = Array.from(sequenceMap.values()).sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -164,6 +315,10 @@ function normalizeState(raw) {
     }))
     .slice(0, 50);
 
+  normalized.emailDispatchQueue = normalized.emailDispatchQueue
+    .map((item) => normalizeEmailDispatch(item))
+    .slice(0, 100);
+
   return normalized;
 }
 
@@ -185,6 +340,35 @@ export async function createTemplate(template) {
   const state = await loadMarketingState();
   const next = normalizeTemplate({ ...template, createdAt: new Date().toISOString() });
   state.templates = [next, ...state.templates.filter((tpl) => tpl.id !== next.id)].slice(0, 50);
+  await saveMarketingState(state);
+  return next;
+}
+
+export async function listSmsTemplates() {
+  const state = await loadMarketingState();
+  return state.smsTemplates;
+}
+
+export async function createSmsTemplate(template) {
+  const state = await loadMarketingState();
+  const next = normalizeSmsTemplate({ ...template, createdAt: new Date().toISOString() });
+  state.smsTemplates = [next, ...state.smsTemplates.filter((tpl) => tpl.id !== next.id)].slice(0, 100);
+  await saveMarketingState(state);
+  return next;
+}
+
+export async function listEmailSequences() {
+  const state = await loadMarketingState();
+  return state.emailSequences;
+}
+
+export async function createEmailSequence(sequence) {
+  const state = await loadMarketingState();
+  const next = normalizeEmailSequence({ ...sequence, createdAt: new Date().toISOString() });
+  state.emailSequences = [
+    next,
+    ...state.emailSequences.filter((seq) => seq.id !== next.id),
+  ].slice(0, 100);
   await saveMarketingState(state);
   return next;
 }
@@ -219,6 +403,43 @@ export async function enqueueTestSend(data) {
 export async function listProviders() {
   const state = await loadMarketingState();
   return state.providers;
+}
+
+export async function listEmailDispatches(limit = 20) {
+  const state = await loadMarketingState();
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 100));
+  return state.emailDispatchQueue.slice(0, safeLimit);
+}
+
+export async function scheduleEmailDispatch(dispatch) {
+  const state = await loadMarketingState();
+  const normalized = normalizeEmailDispatch({
+    ...dispatch,
+    createdAt: new Date().toISOString(),
+    createdBy: dispatch.createdBy || "system",
+  });
+
+  if (!normalized.targetId) {
+    throw new Error("Target id is required");
+  }
+
+  const templateExists =
+    normalized.targetType === "template" && state.templates.some((tpl) => tpl.id === normalized.targetId);
+
+  const sequenceExists =
+    normalized.targetType === "sequence" &&
+    state.emailSequences.some((seq) => seq.id === normalized.targetId);
+
+  if (!templateExists && !sequenceExists) {
+    throw new Error("Target template or sequence not found");
+  }
+
+  state.emailDispatchQueue = [
+    normalized,
+    ...state.emailDispatchQueue.filter((item) => item.id !== normalized.id),
+  ].slice(0, 100);
+  await saveMarketingState(state);
+  return normalized;
 }
 
 export async function updateProvider(id, patch = {}) {

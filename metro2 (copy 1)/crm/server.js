@@ -1015,7 +1015,8 @@ app.post("/api/consumers", authenticate, requirePermission("consumers"), async (
     sale: Number(req.body.sale) || 0,
     paid: Number(req.body.paid) || 0,
     status: req.body.status || "active",
-
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     reports: []
   };
   db.consumers.push(consumer);
@@ -1041,6 +1042,7 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
     status: req.body.status ?? c.status ?? "active"
 
   });
+  c.updatedAt = new Date().toISOString();
   await saveDB(db);
   await addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
   res.json({ ok:true, consumer:c });
@@ -1073,8 +1075,9 @@ app.post("/api/leads", async (req,res)=>{
     phone: req.body.phone || "",
     source: req.body.source || "",
     notes: req.body.notes || "",
-    status: "new"
-
+    status: "new",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
   db.leads.push(lead);
   await saveLeadsDB(db);
@@ -1093,6 +1096,7 @@ app.put("/api/leads/:id", async (req,res)=>{
     notes: req.body.notes ?? lead.notes,
     status: req.body.status ?? lead.status
   });
+  lead.updatedAt = new Date().toISOString();
   await saveLeadsDB(db);
   res.json({ ok:true, lead });
 });

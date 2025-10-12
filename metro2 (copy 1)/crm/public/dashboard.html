@@ -36,6 +36,7 @@
 <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1j7k8fBRT1Q9ir3R8A4bMHt0gXu6p0UmmE8Zy+3E=" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-oEnJPhGf6QjaxzX2LeLYI0m0CMvYZRyGmA4KQ1uYf3s=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-LiXKzCcsMEY0Kx4PAvpc9L8AMBFvH1mpxi2BNfk4ULkpYLkFhYqpKfT/aJQgJWdL" crossorigin="anonymous"></script>
   <style>
     @keyframes blob{0%,100%{transform:translate(0,0);}33%{transform:translate(15px,-10px);}66%{transform:translate(-10px,10px);}}
     .animate-blob{animation:blob 10s ease-in-out infinite;}
@@ -125,7 +126,7 @@
           <div class="text-sm muted">Total Leads</div>
           <div id="dashLeads" class="text-2xl font-semibold">0</div>
         </div>
-        <a href="#" class="btn text-xs">Details</a>
+        <a href="#" class="btn text-xs detail-trigger" data-detail="leads">Details</a>
       </div>
     </div>
 
@@ -135,7 +136,7 @@
           <div class="text-sm muted">Total Clients</div>
           <div id="dashClients" class="text-2xl font-semibold">0</div>
         </div>
-        <a href="#" class="btn text-xs">Details</a>
+        <a href="#" class="btn text-xs detail-trigger" data-detail="clients">Details</a>
       </div>
     </div>
 
@@ -145,7 +146,7 @@
           <div class="text-sm muted">Sales</div>
           <div id="dashSales" class="text-2xl font-semibold">$0.00</div>
         </div>
-        <a href="#" class="btn text-xs">Details</a>
+        <a href="#" class="btn text-xs detail-trigger" data-detail="sales">Details</a>
       </div>
     </div>
 
@@ -155,7 +156,7 @@
           <div class="text-sm muted">Payments</div>
           <div id="dashPayments" class="text-2xl font-semibold">$0.00</div>
         </div>
-        <a href="#" class="btn text-xs">Details</a>
+        <a href="#" class="btn text-xs detail-trigger" data-detail="payments">Details</a>
       </div>
     </div>
   </div>
@@ -194,15 +195,27 @@
     </div>
 
   </div>
+
+  <div id="detailModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/40 backdrop-blur">
+    <div class="glass card w-full max-w-3xl mx-4 relative">
+      <button id="detailModalClose" class="absolute top-3 right-3 btn text-xs" aria-label="Close details">Close</button>
+      <div class="space-y-4">
+        <div>
+          <h3 id="detailModalTitle" class="text-xl font-semibold">Metric Details</h3>
+          <p id="detailModalSubtitle" class="text-sm muted">Last 6 months performance.</p>
+        </div>
+        <div class="w-full">
+          <canvas id="detailChart" class="w-full h-64"></canvas>
+        </div>
+        <div>
+          <h4 class="font-medium">Timeline</h4>
+          <ul id="detailTimeline" class="mt-2 space-y-2 text-sm max-h-52 overflow-y-auto"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
   </main>
-  <button id="guideTourWidget" type="button" class="fixed bottom-24 right-4 z-40 flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-3 text-left shadow-xl ring-2 ring-[var(--accent)] ring-offset-2 backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]">
-    <span aria-hidden="true" class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-xl text-white shadow-inner">🚀</span>
-    <span class="flex flex-col leading-tight">
-      <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Walkthrough / Recorrido</span>
-      <span id="guideTourWidgetLabel" class="text-sm font-semibold text-slate-800">Start tour / Iniciar recorrido</span>
-      <span id="guideTourWidgetStatus" class="text-[11px] text-slate-500">4 steps • Revenue-first / 4 pasos enfocados en ingresos</span>
-    </span>
-  </button>
   <button id="guideChatToggle" type="button" class="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-white shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]">
     <span>Need a tour? / ¿Necesitas guía?</span>
     <span aria-hidden="true">💬</span>
