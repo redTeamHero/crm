@@ -299,8 +299,13 @@ function hasPermission(user, perm){
   return !!(user && (user.role === "admin" || (user.permissions || []).includes(perm)));
 }
 
-function requirePermission(perm){
+function requirePermission(perm, options = {}){
+  const { allowGuest = false } = options;
   return (req, res, next) => {
+    if (!req.user) {
+      if (allowGuest) return next();
+      return res.status(403).json({ ok:false, error:'Forbidden' });
+    }
     if (hasPermission(req.user, perm)) return next();
     res.status(403).json({ ok:false, error:'Forbidden' });
   };
@@ -1091,7 +1096,7 @@ function extractCreditScores(html){
 app.get("/api/consumers", authenticate, requirePermission("consumers"), async (_req, res) => {
   res.json({ ok: true, consumers: (await loadDB()).consumers });
 });
-app.post("/api/consumers", authenticate, requirePermission("consumers"), async (req,res)=>{
+app.post("/api/consumers", authenticate, requirePermission("consumers", { allowGuest: true }), async (req,res)=>{
 
   const db = await loadDB();
 
@@ -2363,7 +2368,7 @@ async function deleteJob(jobId){
 }
 
 // Generate letters (from selections) -> memory + disk
-app.post("/api/generate", authenticate, requirePermission("letters"), async (req,res)=>{
+app.post("/api/generate", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
 
   try{
     const {
@@ -2444,9 +2449,10 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
       console.log(`Saved letter ${L.filename}`);
     }
 
+    const requestUserId = req.user?.id || "guest";
     putJobMem(jobId, letters);
     await persistJobToDisk(jobId, letters);
-    recordLettersJob(req.user.id, consumer.id, jobId, letters);
+    recordLettersJob(requestUserId, consumer.id, jobId, letters);
     console.log(`Letters job ${jobId} recorded with ${letters.length} letters`);
 
     // log state
@@ -2494,27 +2500,31 @@ app.post("/api/generate", authenticate, requirePermission("letters"), async (req
 });
 
 // List stored letter jobs
-app.get("/api/letters", authenticate, requirePermission("letters"), async (req,res)=>{
+app.get("/api/letters", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
 
   const ldb = await loadLettersDB();
   const cdb = await loadDB();
-  const jobs = ldb.jobs.filter(j=>j.userId===req.user.id).map(j => ({
-    jobId: j.jobId,
-    consumerId: j.consumerId,
-    consumerName: cdb.consumers.find(c=>c.id===j.consumerId)?.name || "",
-    createdAt: j.createdAt,
-    count: (j.letters || []).length
-  }));
-  console.log(`Listing ${jobs.length} letter jobs`);
+  const userId = req.user?.id || "guest";
+  const jobs = ldb.jobs
+    .filter(j=>j.userId===userId)
+    .map(j => ({
+      jobId: j.jobId,
+      consumerId: j.consumerId,
+      consumerName: cdb.consumers.find(c=>c.id===j.consumerId)?.name || "",
+      createdAt: j.createdAt,
+      count: (j.letters || []).length
+    }));
+  console.log(`Listing ${jobs.length} letter jobs for ${userId}`);
   res.json({ ok:true, jobs });
 });
 
-app.delete("/api/letters/:jobId", authenticate, requirePermission("letters"), async (req,res)=>{
+app.delete("/api/letters/:jobId", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
   const { jobId } = req.params;
   try{
     deleteJob(jobId);
     const ldb = await loadLettersDB();
-    ldb.jobs = ldb.jobs.filter(j => !(j.jobId === jobId && j.userId === req.user.id));
+    const userId = req.user?.id || "guest";
+    ldb.jobs = ldb.jobs.filter(j => !(j.jobId === jobId && j.userId === userId));
     await saveLettersDB(ldb);
     res.json({ ok:true });
   }catch(e){
@@ -2523,10 +2533,11 @@ app.delete("/api/letters/:jobId", authenticate, requirePermission("letters"), as
 });
 
 // List letters for a job
-app.get("/api/letters/:jobId", authenticate, requirePermission("letters"), async (req,res)=>{
+app.get("/api/letters/:jobId", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
 
   const { jobId } = req.params;
-  const result = await loadJobForUser(jobId, req.user.id);
+  const userId = req.user?.id || "guest";
+  const result = await loadJobForUser(jobId, userId);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job } = result;
   const meta = job.letters.map((L,i)=>({ index:i, filename:L.filename, bureau:L.bureau, creditor:L.creditor, requestType:L.requestType, specificDisputeReason: L.specificDisputeReason }));
@@ -2627,10 +2638,11 @@ app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, async (req,res)=>{
 
 });
 
-app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"), async (req,res)=>{
+app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
 
   const { jobId } = req.params;
-  const result = await loadJobForUser(jobId, req.user.id);
+  const userId = req.user?.id || "guest";
+  const result = await loadJobForUser(jobId, userId);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job, meta } = result;
 
@@ -2672,19 +2684,33 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
   const needsBrowser = job.letters.some(l => !l.useOcr);
   let browserInstance;
   try{
-    if (needsBrowser) browserInstance = await launchBrowser();
+    if (needsBrowser) {
+      try {
+        browserInstance = await launchBrowser();
+      } catch (err) {
+        logWarn('LETTER_ZIP_BROWSER_UNAVAILABLE', err?.message || 'launch failed', { jobId });
+        browserInstance = null;
+      }
+    }
 
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
-      const name = (L.filename||`letter${i}`).replace(/\.html?$/i,"") + '.pdf';
+      const baseName = (L.filename||`letter${i}`).replace(/\.html?$/i,"");
+      const pdfName = `${baseName}.pdf`;
 
       if (L.useOcr) {
         const pdfBuffer = await generateOcrPdf(L.html);
 
-        try{ archive.append(pdfBuffer,{ name }); }catch(err){
-          logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
+        try{ archive.append(pdfBuffer,{ name: pdfName }); }catch(err){
+          logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: pdfName });
           throw err;
         }
+        continue;
+      }
+
+      if (!browserInstance) {
+        const htmlSource = L.html || (L.htmlPath && fs.existsSync(L.htmlPath) ? fs.readFileSync(L.htmlPath, 'utf-8') : '');
+        archive.append(Buffer.from(htmlSource, 'utf-8'), { name: `${baseName}.html` });
         continue;
       }
 
@@ -2698,8 +2724,8 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
       const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
       await page.close();
       const pdfBuffer = ensureBuffer(pdf);
-      try{ archive.append(pdfBuffer,{ name }); }catch(err){
-        logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: name });
+      try{ archive.append(pdfBuffer,{ name: pdfName }); }catch(err){
+        logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: pdfName });
         throw err;
       }
     }
