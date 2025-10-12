@@ -43,6 +43,36 @@ test('adapters produce identical output and flag past-due inconsistency', () => 
   }
 });
 
+test('parseReport derives creditor from surrounding header and skips duplicate tables', () => {
+  const html = `
+    <div>
+      <div class="sub_header">Risk Factors</div>
+      <table class="rpt_content_table rpt_content_header rpt_table4column">
+        <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
+        <tr><td class="label">Account #</td><td class="info">0000</td><td class="info"></td><td class="info"></td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="sub_header">Acme Bank</div>
+      <table class="rpt_content_table rpt_content_header rpt_table4column">
+        <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
+        <tr><td class="label">Account #</td><td class="info">12345</td><td class="info">12345</td><td class="info">12345</td></tr>
+        <tr><td class="label">Creditor</td><td class="info">Acme Bank</td><td class="info">Acme Bank</td><td class="info">Acme Bank</td></tr>
+      </table>
+      <table class="rpt_content_table rpt_content_header rpt_table4column">
+        <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
+        <tr><td class="label">Account #</td><td class="info">12345</td><td class="info">12345</td><td class="info">12345</td></tr>
+      </table>
+    </div>
+  `;
+  const dom = new JSDOM(html);
+  const { tradelines } = parseDOM(dom.window.document);
+  assert.equal(tradelines.length, 1);
+  const tl = tradelines[0];
+  assert.equal(tl.meta.creditor, 'Acme Bank');
+  assert.equal(tl.per_bureau.TransUnion.account_number, '12345');
+});
+
 test('validateTradeline returns enriched violation objects', () => {
   const violations = validateTradeline({ account_status: 'Current', past_due: 100 });
   assert.equal(violations.length, 1);
