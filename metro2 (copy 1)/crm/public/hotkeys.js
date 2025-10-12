@@ -6,6 +6,8 @@ function isTyping(el){
 const defaultHotkeys = {
   help: 'h',
   newConsumer: 'n',
+  newClient: 'n',
+  newLead: 'l',
   upload: 'u',
   editConsumer: 'e',
   generate: 'g',
@@ -43,6 +45,18 @@ window.addEventListener('storage', (e) => {
   if (e.key === 'hotkeys') refreshHotkeys();
 });
 
+function runHotkeyAction(name){
+  try {
+    const fn = window.__crm_hotkeyActions?.[name];
+    if (typeof fn === 'function') {
+      return fn() !== false;
+    }
+  } catch (error) {
+    console.error('[hotkeys] action failed', name, error);
+  }
+  return false;
+}
+
 window.__crm_hotkeys = {
   defaults: { ...defaultHotkeys },
   get: () => ({ ...hotkeys }),
@@ -53,10 +67,39 @@ window.__crm_hotkeys = {
 document.addEventListener('keydown', (e) => {
   if (isTyping(document.activeElement)) return;
   const k = e.key.toLowerCase();
-  const click = (id) => document.getElementById(id)?.click();
+  const click = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    el.click();
+    return true;
+  };
+
+  const newClientKey = hotkeys.newClient || hotkeys.newConsumer;
 
   if (k === hotkeys.help) { e.preventDefault(); window.openHelp?.(); }
-  if (k === hotkeys.newConsumer) { e.preventDefault(); click('btnNewConsumer'); }
+  if (newClientKey && k === newClientKey) {
+    e.preventDefault();
+    if (runHotkeyAction('newClient') || runHotkeyAction('newConsumer')) return;
+    if (click('btnNewConsumer')) return;
+    click('btnCreateClient');
+    return;
+  }
+  if (hotkeys.newLead && k === hotkeys.newLead) {
+    e.preventDefault();
+    if (runHotkeyAction('newLead')) return;
+    const leadForm = document.getElementById('leadForm');
+    if (leadForm) {
+      leadForm.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      const nameInput = leadForm.querySelector('#leadName, [name="name"]');
+      if (nameInput) {
+        nameInput.focus();
+        if (typeof nameInput.select === 'function') {
+          setTimeout(() => nameInput.select(), 0);
+        }
+      }
+    }
+    return;
+  }
   if (k === hotkeys.upload) { e.preventDefault(); click('btnUpload'); }
   if (k === hotkeys.editConsumer) { e.preventDefault(); click('btnEditConsumer'); }
   if (k === hotkeys.generate) { e.preventDefault(); click('btnGenerate'); }

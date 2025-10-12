@@ -5,6 +5,18 @@ import { authHeader, api, escapeHtml, formatCurrency } from './common.js';
 
 const $ = (s) => document.querySelector(s);
 
+if (typeof window !== 'undefined') {
+  window.__crm_hotkeyActions = window.__crm_hotkeyActions || {};
+  if (typeof window.__crm_hotkeyActions.newClient !== 'function') {
+    window.__crm_hotkeyActions.newClient = () => {
+      const button = document.getElementById('btnCreateClient');
+      if (!button) return false;
+      button.click();
+      return true;
+    };
+  }
+}
+
 const role = typeof window !== 'undefined' ? (window.userRole || 'host') : 'host';
 if (typeof window !== 'undefined' && role === 'client') {
   window.location.href = '/client-portal-template.html';
