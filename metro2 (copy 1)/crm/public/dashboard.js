@@ -1,6 +1,6 @@
 /* public/dashboard.js */
 
-import { escapeHtml } from './common.js';
+import { escapeHtml, api, formatCurrency } from './common.js';
 
 const stateCenters = {
   AL:[32.806671,-86.79113], AK:[61.370716,-152.404419], AZ:[33.729759,-111.431221], AR:[34.969704,-92.373123],
@@ -216,34 +216,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  Promise.all([
-    fetch('/api/consumers').then(r => r.json()),
-    fetch('/api/leads').then(r => r.json())
-  ])
-    .then(([cData, lData]) => {
-      const consumers = cData.consumers || [];
-      const leads = lData.leads || [];
-      const totalSales = consumers.reduce((s,c)=> s + Number(c.sale || 0), 0);
-      const totalPaid = consumers.reduce((s,c)=> s + Number(c.paid || 0), 0);
-      const fmt = (n)=> `$${n.toFixed(2)}`;
-      const set = (id, val)=>{ const el=document.getElementById(id); if(el) el.textContent = val; };
-      set('dashLeads', leads.filter(l=>l.status==='new').length);
-      set('dashClients', consumers.length);
-      set('dashSales', fmt(totalSales));
-      set('dashPayments', fmt(totalPaid));
+  const safeTotal = (items, key) => items.reduce((sum, item) => {
+    const raw = item?.[key];
+    const num = typeof raw === 'number' ? raw : Number.parseFloat(raw || '');
+    return sum + (Number.isFinite(num) ? num : 0);
+  }, 0);
 
-      const completedLeads = leads.filter(l=>l.status==='completed').length;
-      const droppedLeads = leads.filter(l=>l.status==='dropped').length;
-      const completedClients = consumers.filter(c=>c.status==='completed').length;
-      const droppedClients = consumers.filter(c=>c.status==='dropped').length;
-      const retDen = completedLeads + completedClients + droppedLeads + droppedClients;
-      const retention = retDen ? ((completedLeads + completedClients)/retDen*100) : 0;
-      const convDen = leads.length;
-      const conversion = convDen ? (completedLeads/convDen*100) : 0;
-      set('dashRetention', retention.toFixed(1)+"%");
-      const convEl = document.getElementById('dashConversion');
-      if(convEl) convEl.textContent = conversion.toFixed(1)+"%";
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  (async () => {
+    try {
+      const [consumersRes, leadsRes] = await Promise.all([
+        api('/api/consumers'),
+        api('/api/leads')
+      ]);
+
+      const consumers = Array.isArray(consumersRes.consumers) ? consumersRes.consumers : [];
+      const leads = Array.isArray(leadsRes.leads) ? leadsRes.leads : [];
+
+      const totalSales = safeTotal(consumers, 'sale');
+      const totalPaid = safeTotal(consumers, 'paid');
+
+      setText('dashLeads', leads.length.toLocaleString());
+      setText('dashClients', consumers.length.toLocaleString());
+      setText('dashSales', formatCurrency(totalSales));
+      setText('dashPayments', formatCurrency(totalPaid));
+
+      const completedLeads = leads.filter(l => l.status === 'completed').length;
+      const droppedLeads = leads.filter(l => l.status === 'dropped').length;
+      const completedClients = consumers.filter(c => c.status === 'completed').length;
+      const droppedClients = consumers.filter(c => c.status === 'dropped').length;
+      const retentionDen = completedLeads + completedClients + droppedLeads + droppedClients;
+      const retention = retentionDen ? ((completedLeads + completedClients) / retentionDen * 100) : 0;
+      const conversionDen = leads.length;
+      const conversion = conversionDen ? (completedLeads / conversionDen * 100) : 0;
+      setText('dashRetention', retention.toFixed(1) + '%');
+      setText('dashConversion', conversion.toFixed(1) + '%');
+
       renderClientMap(consumers);
-    })
-    .catch(err=> console.error('Failed to load dashboard stats', err));
+    } catch (err) {
+      console.error('Failed to load dashboard stats', err);
+    }
+  })();
 });
