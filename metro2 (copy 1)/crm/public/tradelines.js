@@ -55,15 +55,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       el.appendChild(price);
 
-      const stmt = document.createElement('p');
-      stmt.className = 'text-xs text-gray-400';
-      stmt.textContent = `Statement: ${t.statement_date}`;
-      el.appendChild(stmt);
+      if (t.statement_date) {
+        const stmt = document.createElement('p');
+        stmt.className = 'text-xs text-gray-400';
+        stmt.textContent = `Statement: ${t.statement_date}`;
+        el.appendChild(stmt);
+      }
 
-      const rep = document.createElement('p');
-      rep.className = 'text-xs text-gray-400';
-      rep.textContent = `Reports to: ${t.reporting}`;
-      el.appendChild(rep);
+      if (t.reporting) {
+        const rep = document.createElement('p');
+        rep.className = 'text-xs text-gray-400';
+        rep.textContent = `Reports to: ${t.reporting}`;
+        el.appendChild(rep);
+      }
 
       const link = document.createElement('a');
       link.href = t.buy_link;
