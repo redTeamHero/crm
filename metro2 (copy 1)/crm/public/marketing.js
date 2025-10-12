@@ -43,6 +43,18 @@ const templatesEmpty = document.getElementById("templatesEmpty");
 const templateFilter = document.getElementById("templateFilter");
 const btnImportHtml = document.getElementById("btnImportHtml");
 
+const templateEditorModal = document.getElementById("templateEditorModal");
+const templateEditorForm = document.getElementById("templateEditorForm");
+const templateEditorTitleInput = document.getElementById("templateEditorTitle");
+const templateEditorDescriptionInput = document.getElementById("templateEditorDescription");
+const templateEditorSegmentSelect = document.getElementById("templateEditorSegment");
+const templateEditorBadgeInput = document.getElementById("templateEditorBadge");
+const templateEditorHtmlInput = document.getElementById("templateEditorHtml");
+const templateEditorPreview = document.getElementById("templateEditorPreview");
+const templateEditorMeta = document.getElementById("templateEditorMeta");
+const templateEditorStatus = document.getElementById("templateEditorStatus");
+const templateEditorHeading = document.getElementById("templateEditorHeading");
+
 const btnAddExperiment = document.getElementById("btnAddExperiment");
 const experimentList = document.getElementById("experimentIdeas");
 
@@ -70,6 +82,8 @@ let smsTemplateCache = [];
 let emailSequenceCache = [];
 let dispatchCache = [];
 let sequenceStepIndex = 0;
+let activeTemplateId = null;
+let templateEditorLastUpdated = "";
 
 function t(key, fallback = "") {
   return getTranslation(key, getCurrentLanguage()) || fallback;
@@ -154,6 +168,14 @@ async function createTemplateApi(template) {
   return res.template;
 }
 
+async function updateTemplateApi(id, template) {
+  const res = await marketingRequest(`/templates/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(template),
+  });
+  return res.template;
+}
+
 async function fetchSmsTemplatesApi() {
   const res = await marketingRequest("/sms-templates");
   return res.templates || [];
@@ -219,6 +241,133 @@ async function updateProviderApi(id, payload) {
   return res.provider;
 }
 
+function resetTemplateEditor() {
+  if (templateEditorForm) {
+    templateEditorForm.reset();
+  }
+  activeTemplateId = null;
+  templateEditorLastUpdated = "";
+  if (templateEditorStatus) {
+    templateEditorStatus.textContent = "";
+    templateEditorStatus.classList.add("hidden");
+    templateEditorStatus.classList.remove(
+      "bg-emerald-100",
+      "text-emerald-700",
+      "bg-rose-100",
+      "text-rose-700"
+    );
+  }
+  if (templateEditorBadgeInput && templateEditorSegmentSelect) {
+    const segment = templateEditorSegmentSelect.value || "b2c";
+    templateEditorBadgeInput.value = segment.toUpperCase();
+  }
+  if (templateEditorPreview) {
+    templateEditorPreview.innerHTML = `<p class="text-xs text-slate-400">${t(
+      "marketing.emailBuilder.editor.previewEmpty",
+      "Add HTML to render preview."
+    )}</p>`;
+  }
+  if (templateEditorMeta) {
+    templateEditorMeta.textContent = "";
+  }
+}
+
+function setTemplateEditorStatus(message, tone = "success") {
+  if (!templateEditorStatus) return;
+  templateEditorStatus.textContent = message;
+  templateEditorStatus.classList.remove("hidden");
+  templateEditorStatus.classList.remove(
+    "bg-emerald-100",
+    "text-emerald-700",
+    "bg-rose-100",
+    "text-rose-700"
+  );
+  if (tone === "error") {
+    templateEditorStatus.classList.add("bg-rose-100", "text-rose-700");
+  } else {
+    templateEditorStatus.classList.add("bg-emerald-100", "text-emerald-700");
+  }
+}
+
+function updateTemplatePreview() {
+  if (!templateEditorPreview || !templateEditorHtmlInput) return;
+  const raw = templateEditorHtmlInput.value || "";
+  if (raw.trim()) {
+    templateEditorPreview.innerHTML = applyMergeFields(raw);
+  } else {
+    templateEditorPreview.innerHTML = `<p class="text-xs text-slate-400">${t(
+      "marketing.emailBuilder.editor.previewEmpty",
+      "Add HTML to render preview."
+    )}</p>`;
+  }
+  if (templateEditorMeta) {
+    const parts = [];
+    if (templateEditorLastUpdated) {
+      parts.push(
+        t("marketing.emailBuilder.editor.updatedLabel", "Updated {timestamp}").replace(
+          "{timestamp}",
+          templateEditorLastUpdated
+        )
+      );
+    }
+    parts.push(
+      t("marketing.emailBuilder.editor.charCount", "{count} chars").replace(
+        "{count}",
+        raw.length
+      )
+    );
+    templateEditorMeta.textContent = parts.join(" • ");
+  }
+}
+
+function openTemplateEditor(template = null, { segment } = {}) {
+  if (!templateEditorModal || !templateEditorForm) return;
+  resetTemplateEditor();
+  activeTemplateId = template?.id ?? null;
+  templateEditorLastUpdated = template?.updatedAt
+    ? new Date(template.updatedAt).toLocaleString()
+    : template?.createdAt
+    ? new Date(template.createdAt).toLocaleString()
+    : "";
+  if (templateEditorHeading) {
+    templateEditorHeading.textContent = template
+      ? t("marketing.emailBuilder.editor.headingEdit", "Edit Email Template")
+      : t("marketing.emailBuilder.editor.headingNew", "New Email Template");
+  }
+  if (templateEditorTitleInput) {
+    templateEditorTitleInput.value = template?.title || "";
+  }
+  if (templateEditorDescriptionInput) {
+    templateEditorDescriptionInput.value = template?.description || "";
+  }
+  const defaultSegment = template?.segment || segment || "b2c";
+  if (templateEditorSegmentSelect) {
+    templateEditorSegmentSelect.value = defaultSegment;
+  }
+  if (templateEditorBadgeInput) {
+    const badgeValue = template?.badge || defaultSegment.toUpperCase();
+    templateEditorBadgeInput.value = badgeValue;
+  }
+  if (templateEditorHtmlInput) {
+    templateEditorHtmlInput.value = template?.html || "";
+  }
+  updateTemplatePreview();
+  templateEditorModal.classList.remove("hidden");
+  templateEditorModal.classList.add("flex");
+  document.body.classList.add("overflow-hidden");
+  if (templateEditorTitleInput) {
+    templateEditorTitleInput.focus();
+  }
+}
+
+function closeTemplateEditor() {
+  if (!templateEditorModal) return;
+  templateEditorModal.classList.add("hidden");
+  templateEditorModal.classList.remove("flex");
+  document.body.classList.remove("overflow-hidden");
+  resetTemplateEditor();
+}
+
 function buildTemplateCard(template) {
   const article = document.createElement("article");
   article.className = `template-card glass card bg-gradient-to-br ${segmentGradient(template.segment)}`;
@@ -246,22 +395,16 @@ function buildTemplateCard(template) {
   const footer = document.createElement("div");
   footer.className = "mt-3 flex items-center justify-between text-xs text-slate-500";
   const left = document.createElement("span");
-  left.textContent = template.createdAt
-    ? new Date(template.createdAt).toLocaleDateString()
+  const stamp = template.updatedAt || template.createdAt;
+  left.textContent = stamp
+    ? new Date(stamp).toLocaleDateString()
     : t("marketing.emailBuilder.template.draftLabel", "Draft");
   const editButton = document.createElement("button");
   editButton.type = "button";
   editButton.className = "btn";
   editButton.textContent = t("marketing.emailBuilder.template.editButton", "Edit");
   editButton.addEventListener("click", () => {
-    window.dispatchEvent(
-      new CustomEvent("marketing:template-edit", { detail: template })
-    );
-    const messageTemplate = t(
-      "marketing.emailBuilder.template.editAlert",
-      "Hook up your template editor to template {title}. Use /api/marketing/templates to persist changes."
-    );
-    alert(messageTemplate.replace("{title}", template.title));
+    openTemplateEditor(template);
   });
   footer.appendChild(left);
   footer.appendChild(editButton);
@@ -942,35 +1085,91 @@ function bindTestModal() {
   });
 }
 
+function bindTemplateEditor() {
+  document.querySelectorAll("[data-close-template-editor]").forEach((btn) => {
+    btn.addEventListener("click", closeTemplateEditor);
+  });
+  if (templateEditorModal) {
+    templateEditorModal.addEventListener("click", (event) => {
+      if (event.target === templateEditorModal) {
+        closeTemplateEditor();
+      }
+    });
+  }
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && templateEditorModal && !templateEditorModal.classList.contains("hidden")) {
+      closeTemplateEditor();
+    }
+  });
+  if (templateEditorHtmlInput) {
+    templateEditorHtmlInput.addEventListener("input", updateTemplatePreview);
+  }
+  if (templateEditorSegmentSelect) {
+    templateEditorSegmentSelect.addEventListener("change", () => {
+      if (templateEditorBadgeInput && !templateEditorBadgeInput.value.trim()) {
+        templateEditorBadgeInput.value = templateEditorSegmentSelect.value.toUpperCase();
+      }
+    });
+  }
+  if (!templateEditorForm) return;
+  templateEditorForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const title = templateEditorTitleInput?.value?.trim() || "";
+    if (!title) {
+      setTemplateEditorStatus(
+        t("marketing.emailBuilder.editor.titleRequired", "Title required • Título requerido"),
+        "error"
+      );
+      return;
+    }
+    const segment = templateEditorSegmentSelect?.value?.trim() || "b2c";
+    const payload = {
+      title,
+      description: templateEditorDescriptionInput?.value?.trim() || "",
+      segment,
+      badge: templateEditorBadgeInput?.value?.trim() || segment.toUpperCase(),
+      html: templateEditorHtmlInput?.value || "",
+    };
+    try {
+      const template = activeTemplateId
+        ? await updateTemplateApi(activeTemplateId, payload)
+        : await createTemplateApi(payload);
+      templateCache = [template, ...templateCache.filter((tpl) => tpl.id !== template.id)];
+      renderTemplates();
+      refreshStepTemplateOptions();
+      syncDispatchTargets();
+      templateEditorLastUpdated = template.updatedAt
+        ? new Date(template.updatedAt).toLocaleString()
+        : template.createdAt
+        ? new Date(template.createdAt).toLocaleString()
+        : new Date().toLocaleString();
+      updateTemplatePreview();
+      setTemplateEditorStatus(
+        t("marketing.emailBuilder.editor.saveSuccess", "Template saved • Plantilla guardada")
+      );
+      window.setTimeout(() => {
+        closeTemplateEditor();
+      }, 800);
+    } catch (error) {
+      setTemplateEditorStatus(
+        t("marketing.emailBuilder.editor.saveError", "Failed to save template: {error}").replace(
+          "{error}",
+          error.message
+        ),
+        "error"
+      );
+    }
+  });
+}
+
 function bindTemplateControls() {
   if (templateFilter) {
     templateFilter.addEventListener("change", filterTemplates);
   }
   if (btnAddTemplate && templateGrid) {
-    btnAddTemplate.addEventListener("click", async () => {
-      const name = window.prompt(t("marketing.emailBuilder.prompts.name", "Template name?"))?.trim();
-      if (!name) return;
-      const descriptionPrompt = t("marketing.emailBuilder.prompts.purpose", "What's the purpose?");
-      const description =
-        window.prompt(descriptionPrompt)?.trim() ||
-        t("marketing.emailBuilder.prompts.descriptionFallback", "Outline your nurture touchpoints and CTA.");
+    btnAddTemplate.addEventListener("click", () => {
       const segment = templateFilter && templateFilter.value !== "all" ? templateFilter.value : "b2c";
-      try {
-        const template = await createTemplateApi({
-          title: name,
-          description,
-          segment,
-          badge: segment.toUpperCase(),
-        });
-        templateCache = [template, ...templateCache.filter((tpl) => tpl.id !== template.id)];
-        renderTemplates();
-      } catch (error) {
-        const message = t("marketing.emailBuilder.prompts.error", "Failed to save template: {error}").replace(
-          "{error}",
-          error.message
-        );
-        window.alert(message);
-      }
+      openTemplateEditor(null, { segment });
     });
   }
   if (btnImportHtml) {
@@ -1151,6 +1350,7 @@ function initLanguageSync() {
 
 bindSmsPreviewControls();
 bindTestModal();
+bindTemplateEditor();
 bindTemplateControls();
 bindExperimentControls();
 bindRefreshControls();
@@ -1158,6 +1358,7 @@ bindAutomationControls();
 initCampaignStatusStyles();
 initLanguageSync();
 
+resetTemplateEditor();
 hydrateTemplates();
 hydrateSmsTemplates();
 hydrateEmailSequences();

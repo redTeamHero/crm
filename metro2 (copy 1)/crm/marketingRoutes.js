@@ -4,6 +4,7 @@ import {
   listTestQueue,
   listTemplates,
   createTemplate,
+  updateTemplate,
   listSmsTemplates,
   createSmsTemplate,
   listEmailSequences,
@@ -21,6 +22,11 @@ function sanitizeString(value, fallback = "") {
   return value.trim();
 }
 
+function sanitizeHtml(value) {
+  if (typeof value !== "string") return "";
+  return value.slice(0, 20000);
+}
+
 function parseLimit(value, defaultValue = 10) {
   const num = Number.parseInt(value ?? "", 10);
   if (Number.isNaN(num)) return defaultValue;
@@ -33,11 +39,12 @@ router.get("/templates", async (_req, res) => {
 });
 
 router.post("/templates", async (req, res) => {
-  const { title, description = "", segment = "b2c", badge = "Custom" } = req.body || {};
+  const { title, description = "", segment = "b2c", badge = "Custom", html = "" } = req.body || {};
   const safeTitle = sanitizeString(title);
   const safeDescription = sanitizeString(description);
   const safeSegment = sanitizeString(segment || "b2c").toLowerCase().slice(0, 24) || "b2c";
   const safeBadge = sanitizeString(badge || safeSegment.toUpperCase()).slice(0, 24);
+  const safeHtml = sanitizeHtml(html);
   if (!safeTitle) {
     return res.status(400).json({ ok: false, error: "Template title is required" });
   }
@@ -47,11 +54,48 @@ router.post("/templates", async (req, res) => {
       description: safeDescription.slice(0, 400),
       segment: safeSegment,
       badge: safeBadge || safeSegment.toUpperCase(),
+      html: safeHtml,
       createdBy: req.user?.username || "system",
     });
     res.status(201).json({ ok: true, template });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "Failed to save template" });
+  }
+});
+
+router.patch("/templates/:id", async (req, res) => {
+  const { id } = req.params;
+  const { title, description, segment, badge, html } = req.body || {};
+  const patch = {};
+  if (title !== undefined) {
+    const safeTitle = sanitizeString(title).slice(0, 120);
+    if (!safeTitle) {
+      return res.status(400).json({ ok: false, error: "Template title is required" });
+    }
+    patch.title = safeTitle;
+  }
+  if (description !== undefined) {
+    patch.description = sanitizeString(description).slice(0, 400);
+  }
+  if (segment !== undefined) {
+    patch.segment = sanitizeString(segment || "b2c").toLowerCase().slice(0, 24) || "b2c";
+  }
+  if (badge !== undefined) {
+    const safeBadge = sanitizeString(badge).slice(0, 24);
+    patch.badge = safeBadge || (patch.segment ? patch.segment.toUpperCase() : undefined);
+  }
+  if (html !== undefined) {
+    patch.html = sanitizeHtml(html);
+  }
+
+  try {
+    const template = await updateTemplate(id, patch);
+    res.json({ ok: true, template });
+  } catch (error) {
+    if (error.message === "Template not found") {
+      return res.status(404).json({ ok: false, error: "Template not found" });
+    }
+    res.status(500).json({ ok: false, error: error.message || "Failed to update template" });
   }
 });
 
