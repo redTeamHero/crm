@@ -18,15 +18,6 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 from bs4 import BeautifulSoup, Tag
 
 
-FIELD_KEY_ALIASES = {
-    "date_of_last_payment": "date_last_payment",
-    "date_last_payment": "date_last_payment",
-    "date_of_first_delinquency": "date_first_delinquency",
-    "date_first_delinquency": "date_first_delinquency",
-    "dofd": "date_first_delinquency",
-}
-
-
 # ───────────── Helpers ─────────────
 def text(cell: Optional[Any]) -> str:
     return cell.get_text(" ", strip=True) if cell is not None else ""
@@ -104,13 +95,6 @@ def detect_personal_info_mismatches(personal_info: List[Dict[str, Dict[str, str]
 
 
 # ───────────── Account History ─────────────
-def normalize_field_key(label: str) -> str:
-    normalized = re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
-    if not normalized:
-        return ""
-    return FIELD_KEY_ALIASES.get(normalized, normalized)
-
-
 def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
     tradelines: List[Dict[str, Any]] = []
     for table in soup.find_all("table"):
@@ -134,9 +118,7 @@ def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
         for bureau in ["TransUnion", "Experian", "Equifax"]:
             tl: Dict[str, Any] = {"creditor_name": creditor, "bureau": bureau}
             for field, values in field_map.items():
-                key = normalize_field_key(field)
-                if not key:
-                    continue
+                key = field.lower().replace(" ", "_").replace(":", "")
                 tl[key] = values.get(bureau)
             tradelines.append(tl)
     return tradelines
@@ -340,6 +322,9 @@ def parse_credit_report_html(doc: Union[str, BeautifulSoup, Tag]) -> Dict[str, A
         "inquiry_violations": inquiry_violations,
     }
 
+    html_path = argv[0]
+    with open(html_path, encoding="utf-8") as handle:
+        soup = BeautifulSoup(handle.read(), "html.parser")
 
 # ───────────── Main ─────────────
 def main(argv: Optional[Sequence[str]] = None) -> int:
