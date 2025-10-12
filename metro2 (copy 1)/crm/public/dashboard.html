@@ -7,12 +7,21 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/css/shepherd.css">
   <script src="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/js/shepherd.min.js" defer></script>
-<script src="/theme.js"></script>
-<link rel="stylesheet" href="/style.css">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-o9N1j7k8fBRT1Q9ir3R8A4bMHt0gXu6p0UmmE8Zy+3E=" crossorigin="" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-oEnJPhGf6QjaxzX2LeLYI0m0CMvYZRyGmA4KQ1uYf3s=" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-LiXKzCcsMEY0Kx4PAvpc9L8AMBFvH1mpxi2BNfk4ULkpYLkFhYqpKfT/aJQgJWdL" crossorigin="anonymous"></script>
   <style>
+    :root {
+      color-scheme: light;
+    }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(34,197,94,0.12), transparent 45%),
+                  radial-gradient(circle at bottom right, rgba(14,165,233,0.18), transparent 45%),
+                  #f8fafc;
+    }
     @keyframes blob{0%,100%{transform:translate(0,0);}33%{transform:translate(15px,-10px);}66%{transform:translate(-10px,10px);}}
     .animate-blob{animation:blob 10s ease-in-out infinite;}
     @keyframes fadeInUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
@@ -21,11 +30,11 @@
     @keyframes confetti{to{transform:translate(var(--tx),var(--ty)) rotate(720deg);opacity:0;}}
   </style>
 </head>
-<body>
+<body class="text-slate-800">
 <header id="host-nav" class="p-4">
-  <div class="max-w-7xl mx-auto glass card nav-shell">
+  <div class="max-w-7xl mx-auto glass card nav-shell bg-white/80 backdrop-blur">
     <div class="nav-brand-row">
-      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <div class="text-xl font-semibold tracking-tight">Metro 2 CRM</div>
       <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
         <span>Menu</span>
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -67,109 +76,221 @@
     </nav>
   </div>
 </header>
-<main class="max-w-7xl mx-auto p-4 space-y-4">
-  <div class="glass card relative overflow-hidden text-center">
-    <div class="pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 opacity-20 blur-3xl animate-blob"></div>
-    <h2 class="mb-2 text-2xl font-bold">Welcome back!</h2>
-    <p class="text-sm text-gray-600">Let’s knock out today’s tasks.</p>
-    <button id="btnGoal" class="mt-4 rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95">Mark Today’s Goal Done</button>
-    <div id="confetti" class="pointer-events-none absolute inset-0"></div>
-  </div>
-
-  <div class="grid grid-cols-1 gap-4 md:grid-cols-3 md:auto-rows-fr">
-    <div class="glass card h-full flex flex-col">
-      <div class="font-medium mb-2">News</div>
-      <div id="newsFeed" class="text-sm space-y-1 flex-1">Loading...</div>
-    </div>
-
-    <div class="glass card h-full flex flex-col">
-      <div class="font-medium mb-2">Messages</div>
-      <div id="msgList" class="text-sm space-y-1 min-h-[80px] max-h-48 overflow-y-auto muted flex-1">No messages.</div>
-
-    </div>
-
-    <div class="glass card h-full flex flex-col">
-      <div class="font-medium mb-2">Upcoming Events</div>
-      <div id="eventList" class="text-sm space-y-1 min-h-[80px] max-h-48 overflow-y-auto muted flex-1">No events.</div>
-    </div>
-  </div>
-
-  <div id="tourKpiSection" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:auto-rows-fr">
-    <div class="glass card h-full flex flex-col">
-      <div class="flex items-start justify-between">
-        <div>
-          <div class="text-sm muted">Total Leads</div>
-          <div id="dashLeads" class="text-2xl font-semibold">0</div>
+<main class="max-w-7xl mx-auto p-4 space-y-8">
+  <section class="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
+    <div class="glass card relative overflow-hidden p-6 md:p-8 text-left">
+      <div class="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-tr from-emerald-300/50 to-cyan-300/40 blur-3xl animate-blob"></div>
+      <div class="pointer-events-none absolute -bottom-20 -left-12 h-64 w-64 rounded-full bg-gradient-to-tr from-sky-200/60 to-emerald-200/40 blur-3xl"></div>
+      <div class="relative z-10 space-y-6">
+        <div class="space-y-2">
+          <p class="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-500">Daily Command Center</p>
+          <h2 class="text-3xl md:text-4xl font-bold leading-tight text-slate-900">Welcome back! Let’s turn disputes into premium experiences.</h2>
+          <p class="text-sm text-slate-600">Prioritize the next 3 consults, keep promises compliance-safe, and spotlight upsell-ready accounts. / ¡Bienvenido! Activa los próximos 3 pasos sin romper reglas.</p>
         </div>
-        <a href="#" class="btn text-xs detail-trigger" data-detail="leads">Details</a>
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div class="flex flex-wrap gap-3">
+            <button id="btnGoal" class="rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">Mark Today’s Goal Done</button>
+            <a href="/leads" class="rounded-full border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50">Open Lead Playbook</a>
+            <a href="/billing" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Review Revenue</a>
+          </div>
+          <div class="text-xs text-slate-500">Goal KPI: Lead → Consult ≥ 32% · Track bilingual follow-ups.</div>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
+            <p class="text-xs uppercase tracking-widest text-slate-500">Today’s consult slots</p>
+            <p class="mt-1 text-2xl font-semibold text-slate-900">3 of 5 filled</p>
+            <p class="mt-2 text-xs text-slate-500">Hold 2 for Spanish speakers · Offer certified mail upgrade.</p>
+          </div>
+          <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
+            <p class="text-xs uppercase tracking-widest text-slate-500">Automation queue</p>
+            <p class="mt-1 text-2xl font-semibold text-slate-900">5 live flows</p>
+            <p class="mt-2 text-xs text-slate-500">Check dispute letters ↔ certified mail webhook.</p>
+          </div>
+          <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
+            <p class="text-xs uppercase tracking-widest text-slate-500">Upsell spotlight</p>
+            <p class="mt-1 text-2xl font-semibold text-slate-900">$2.4k pipeline</p>
+            <p class="mt-2 text-xs text-slate-500">Anchor “premium audit + Metro-2 monitoring” bundle.</p>
+          </div>
+        </div>
+      </div>
+      <div id="confetti" class="pointer-events-none absolute inset-0"></div>
+    </div>
+    <aside class="glass card h-full p-6 space-y-6">
+      <div>
+        <h3 class="text-lg font-semibold text-slate-900">Daily Focus / Enfoque Diario</h3>
+        <p class="mt-1 text-sm text-slate-600">Keep the team aligned on one revenue move and one compliance promise.</p>
+      </div>
+      <ul class="space-y-4 text-sm text-slate-600">
+        <li class="flex items-start gap-3">
+          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 font-semibold text-emerald-600">1</span>
+          <span>Send bilingual consult recap templates with NEPQ close question. Add Certified Mail upsell CTA.</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 font-semibold text-sky-600">2</span>
+          <span>Audit Metro-2 disputes for DOFD consistency. Flag accounts missing supporting docs before next letter batch.</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 font-semibold text-amber-600">3</span>
+          <span>Run “7-Day Credit Momentum” email nurture. Track Lead → Consult uplift inside Analytics.</span>
+        </li>
+      </ul>
+      <div class="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-700">
+        Next revenue win: bundle report parsing + dispute letter automation at $149 setup. Use Stripe Checkout link in Billing.
+      </div>
+    </aside>
+  </section>
+
+  <section class="space-y-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h3 class="text-lg font-semibold text-slate-900">Pipeline Pulse</h3>
+      <div class="flex flex-wrap gap-2 text-sm">
+        <span class="rounded-full bg-slate-900/90 px-3 py-1 text-white">Lead → Consult% primary KPI</span>
+        <span class="rounded-full bg-slate-200 px-3 py-1 text-slate-600">Track Refund% weekly</span>
       </div>
     </div>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3 md:auto-rows-fr">
+      <div class="glass card h-full flex flex-col border border-white/80 shadow-sm">
+        <div class="font-medium mb-2 text-slate-900">News</div>
+        <div id="newsFeed" class="text-sm space-y-1 flex-1 text-slate-600">Loading...</div>
+      </div>
 
-    <div class="glass card h-full flex flex-col">
-      <div class="flex items-start justify-between">
-        <div>
-          <div class="text-sm muted">Total Clients</div>
-          <div id="dashClients" class="text-2xl font-semibold">0</div>
+      <div class="glass card h-full flex flex-col border border-white/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-medium text-slate-900">Messages</div>
+          <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Respond in &lt;2h</span>
         </div>
-        <a href="#" class="btn text-xs detail-trigger" data-detail="clients">Details</a>
+        <div id="msgList" class="text-sm space-y-1 min-h-[96px] max-h-48 overflow-y-auto muted flex-1">No messages.</div>
+      </div>
+
+      <div class="glass card h-full flex flex-col border border-white/80 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-medium text-slate-900">Upcoming Events</div>
+          <a href="/schedule" class="text-xs font-semibold text-emerald-600 hover:underline">Add consult</a>
+        </div>
+        <div id="eventList" class="text-sm space-y-1 min-h-[96px] max-h-48 overflow-y-auto muted flex-1">No events.</div>
       </div>
     </div>
+  </section>
 
-    <div class="glass card h-full flex flex-col">
-      <div class="flex items-start justify-between">
-        <div>
-          <div class="text-sm muted">Sales</div>
-          <div id="dashSales" class="text-2xl font-semibold">$0.00</div>
+  <section class="space-y-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h3 class="text-lg font-semibold text-slate-900">Key KPIs</h3>
+      <p class="text-sm text-slate-500">Watch consult velocity, revenue collected, and payment health. Highlight green cells during sales calls.</p>
+    </div>
+    <div id="tourKpiSection" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:auto-rows-fr">
+      <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm muted">Total Leads</div>
+            <div id="dashLeads" class="text-3xl font-semibold text-slate-900">0</div>
+          </div>
+          <a href="#" class="btn text-xs detail-trigger" data-detail="leads">Details</a>
         </div>
-        <a href="#" class="btn text-xs detail-trigger" data-detail="sales">Details</a>
+        <p class="mt-4 text-xs text-emerald-600">Weekly target: 35. Trigger quiz automation at 60% completion.</p>
+      </div>
+
+      <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm muted">Total Clients</div>
+            <div id="dashClients" class="text-3xl font-semibold text-slate-900">0</div>
+          </div>
+          <a href="#" class="btn text-xs detail-trigger" data-detail="clients">Details</a>
+        </div>
+        <p class="mt-4 text-xs text-slate-500">Promote dispute concierge for premium onboarding. Track churn monthly.</p>
+      </div>
+
+      <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm muted">Sales</div>
+            <div id="dashSales" class="text-3xl font-semibold text-slate-900">$0.00</div>
+          </div>
+          <a href="#" class="btn text-xs detail-trigger" data-detail="sales">Details</a>
+        </div>
+        <p class="mt-4 text-xs text-slate-500">Layer Stripe Checkout with 1-click certified mail add-on.</p>
+      </div>
+
+      <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm muted">Payments</div>
+            <div id="dashPayments" class="text-3xl font-semibold text-slate-900">$0.00</div>
+          </div>
+          <a href="#" class="btn text-xs detail-trigger" data-detail="payments">Details</a>
+        </div>
+        <p class="mt-4 text-xs text-slate-500">Monitor failed payments. Trigger bilingual reminder + NEPQ reframe.</p>
       </div>
     </div>
+  </section>
 
-    <div class="glass card h-full flex flex-col">
-      <div class="flex items-start justify-between">
-        <div>
-          <div class="text-sm muted">Payments</div>
-          <div id="dashPayments" class="text-2xl font-semibold">$0.00</div>
+  <section class="space-y-4">
+    <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
+      <div id="tourNotepadCard" class="glass card xl:flex-1 h-full flex flex-col border border-slate-100 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+          <div>
+            <div class="font-medium text-slate-900">Notepad</div>
+            <p class="text-xs text-slate-500">Capture next steps + Metro-2 facts during calls.</p>
+          </div>
+          <button id="dashSaveNote" class="btn text-sm">Save</button>
         </div>
-        <a href="#" class="btn text-xs detail-trigger" data-detail="payments">Details</a>
+        <input id="dashNoteTitle" class="w-full border rounded-xl border-slate-200 px-3 py-2 text-sm mb-3 focus:border-emerald-400 focus:outline-none" placeholder="Note title" />
+        <select id="noteSelect" class="w-full border rounded-xl border-slate-200 px-3 py-2 text-sm mb-3 focus:border-emerald-400 focus:outline-none"><option value="">Select saved note...</option></select>
+        <textarea id="dashNote" class="w-full h-40 border rounded-xl border-slate-200 p-3 text-sm focus:border-emerald-400 focus:outline-none" placeholder="Document talking points"></textarea>
+        <div id="noteList" class="mt-3 space-y-2 text-sm"></div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:w-[360px]">
+        <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+          <div class="font-medium mb-1 text-slate-900">Retention Rate</div>
+          <div id="dashRetention" class="text-3xl font-semibold text-slate-900">0.0%</div>
+          <p class="mt-3 text-xs text-slate-500">Aim for 92%+. Schedule check-ins post letter delivery.</p>
+        </div>
+
+        <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+          <div class="font-medium mb-1 text-slate-900">Lead Conversion</div>
+          <div id="dashConversion" class="text-3xl font-semibold text-slate-900">0.0%</div>
+          <p class="mt-3 text-xs text-slate-500">Insert NEPQ close question + Spanish option in consult flow.</p>
+        </div>
+
+        <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm sm:col-span-2">
+          <div class="font-medium mb-1 text-slate-900">Company Deletion Statistics</div>
+          <div id="dashDeletion" class="text-sm muted">No data</div>
+          <p class="mt-3 text-xs text-slate-500">Track removals without guaranteeing outcomes. Highlight disputes resolved per bureau.</p>
+        </div>
+
+        <div class="glass card h-full flex flex-col border border-emerald-100 bg-emerald-50/60 shadow-sm sm:col-span-2">
+          <div class="flex items-center justify-between">
+            <div class="font-medium text-slate-900">Revenue Ladder to 7 Figures</div>
+            <span class="text-xs font-semibold text-emerald-600">Goal: $84k/mo</span>
+          </div>
+          <div class="mt-4 space-y-3 text-sm text-slate-600">
+            <div class="flex items-center justify-between">
+              <span>Monthly Recurring</span>
+              <span class="font-semibold text-slate-900" id="ladderMrr">Sync billing</span>
+            </div>
+            <div class="w-full overflow-hidden rounded-full bg-white/80">
+              <div class="h-2 bg-emerald-500" style="width: 38%;"></div>
+            </div>
+            <p class="text-xs text-emerald-700">Upsell automation bundle at $249/mo + certified mail credits.</p>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 md:auto-rows-fr">
-    <div id="tourNotepadCard" class="glass card lg:col-span-2 h-full flex flex-col">
+  <section class="space-y-4">
+    <div class="glass card md:col-span-2 lg:col-span-3 h-full flex flex-col border border-slate-100 shadow-sm" id="tourMapCard">
       <div class="flex items-center justify-between mb-2">
-        <div class="font-medium">Notepad</div>
-        <button id="dashSaveNote" class="btn text-sm">Save</button>
+        <div>
+          <div class="font-medium text-slate-900">Client Locations</div>
+          <p class="text-xs text-slate-500">Visualize where Metro-2 disputes hit hardest. Combine with carrier-ready upsells.</p>
+        </div>
+        <a href="/workflows" class="text-xs font-semibold text-emerald-600 hover:underline">Build automation</a>
       </div>
-      <input id="dashNoteTitle" class="w-full border rounded px-2 py-1 text-sm mb-2" placeholder="Note title" />
-      <select id="noteSelect" class="w-full border rounded px-2 py-1 text-sm mb-2"><option value="">Select saved note...</option></select>
-
-      <textarea id="dashNote" class="w-full h-40 border rounded p-2 text-sm"></textarea>
-      <div id="noteList" class="mt-2 space-y-1 text-sm"></div>
-    </div>
-
-    <div class="glass card h-full flex flex-col">
-      <div class="font-medium mb-2">Retention Rate</div>
-      <div id="dashRetention" class="text-2xl font-semibold">0.0%</div>
-    </div>
-
-    <div class="glass card h-full flex flex-col">
-      <div class="font-medium mb-2">Lead Conversion</div>
-      <div id="dashConversion" class="text-2xl font-semibold">0.0%</div>
-    </div>
-
-    <div class="glass card h-full flex flex-col">
-      <div class="font-medium mb-2">Company Deletion Statistics</div>
-      <div id="dashDeletion" class="text-sm muted">No data</div>
-    </div>
-
-    <div id="tourMapCard" class="glass card md:col-span-2 lg:col-span-3 h-full flex flex-col">
-      <div class="font-medium mb-2">Client Locations</div>
       <div id="clientMap" class="w-full h-64 rounded-lg"></div>
     </div>
-
-  </div>
+  </section>
 
   <div id="detailModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/40 backdrop-blur">
     <div class="glass card w-full max-w-3xl mx-4 relative">
@@ -189,38 +310,37 @@
       </div>
     </div>
   </div>
-
-  </main>
-  <button id="guideChatToggle" type="button" class="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-white shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]">
-    <span>Need a tour?</span>
-    <span aria-hidden="true">💬</span>
-  </button>
-  <section id="guideChatPanel" class="fixed bottom-4 right-4 z-40 hidden w-[min(360px,92vw)] rounded-2xl bg-white/95 shadow-2xl ring-1 ring-black/5 backdrop-blur">
-    <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-      <div>
-        <p class="text-sm font-semibold text-slate-800">Guided Coach</p>
-        <p class="text-xs text-slate-500">Onboarding support and concierge guidance</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="guideChatTour" type="button" class="btn text-xs bg-[var(--accent)] text-white px-3 py-1">Start tour</button>
-        <button id="guideChatClose" type="button" class="btn text-xs px-3 py-1">×</button>
-      </div>
+</main>
+<button id="guideChatToggle" type="button" class="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-white shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]">
+  <span>Need a tour?</span>
+  <span aria-hidden="true">💬</span>
+</button>
+<section id="guideChatPanel" class="fixed bottom-4 right-4 z-40 hidden w-[min(360px,92vw)] rounded-2xl bg-white/95 shadow-2xl ring-1 ring-black/5 backdrop-blur">
+  <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+    <div>
+      <p class="text-sm font-semibold text-slate-800">Guided Coach</p>
+      <p class="text-xs text-slate-500">Onboarding support and concierge guidance</p>
     </div>
-    <div id="guideChatMessages" class="flex max-h-72 flex-col gap-3 overflow-y-auto px-4 py-3 text-sm" role="log" aria-live="polite"></div>
-    <div class="border-t border-slate-200 px-4 py-3">
-      <div class="mb-2 space-y-2" id="guideChatQuick">
-        <div id="guideChatCategories" class="flex flex-wrap gap-2"></div>
-        <div id="guideChatPrompts" class="flex flex-wrap gap-2"></div>
-      </div>
-      <form id="guideChatForm" class="flex items-center gap-2">
-        <label class="sr-only" for="guideChatInput">Ask the coach</label>
-        <input id="guideChatInput" class="flex-1 rounded-full border border-slate-200 px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none" placeholder="Ask the coach" autocomplete="off" />
-        <button type="submit" class="btn bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white">Send</button>
-      </form>
+    <div class="flex items-center gap-2">
+      <button id="guideChatTour" type="button" class="btn text-xs bg-[var(--accent)] text-white px-3 py-1">Start tour</button>
+      <button id="guideChatClose" type="button" class="btn text-xs px-3 py-1">×</button>
     </div>
-  </section>
-  <script type="module" src="/common.js"></script>
-  <script src="/hotkeys.js"></script>
-  <script type="module" src="/dashboard.js"></script>
+  </div>
+  <div id="guideChatMessages" class="flex max-h-72 flex-col gap-3 overflow-y-auto px-4 py-3 text-sm" role="log" aria-live="polite"></div>
+  <div class="border-t border-slate-200 px-4 py-3">
+    <div class="mb-2 space-y-2" id="guideChatQuick">
+      <div id="guideChatCategories" class="flex flex-wrap gap-2"></div>
+      <div id="guideChatPrompts" class="flex flex-wrap gap-2"></div>
+    </div>
+    <form id="guideChatForm" class="flex items-center gap-2">
+      <label class="sr-only" for="guideChatInput">Ask the coach</label>
+      <input id="guideChatInput" class="flex-1 rounded-full border border-slate-200 px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none" placeholder="Ask the coach" autocomplete="off" />
+      <button type="submit" class="btn bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white">Send</button>
+    </form>
+  </div>
+</section>
+<script type="module" src="/common.js"></script>
+<script src="/hotkeys.js"></script>
+<script type="module" src="/dashboard.js"></script>
 </body>
 </html>
