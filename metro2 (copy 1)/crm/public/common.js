@@ -442,6 +442,11 @@ function initResponsiveNav() {
 
   if (!nav || !toggle) return;
 
+  const syncToggleState = () => {
+    const expanded = nav.classList.contains('hidden') ? 'false' : 'true';
+    toggle.setAttribute('aria-expanded', expanded);
+  };
+
   const closeSettings = () => {
     if (settings) settings.classList.remove('open');
     settingsToggle?.setAttribute('aria-expanded', 'false');
@@ -457,12 +462,11 @@ function initResponsiveNav() {
 
       if (navRoleHidden) {
         nav.classList.add('hidden');
-        toggle.setAttribute('aria-expanded', 'false');
       } else {
         nav.classList.remove('hidden');
-        toggle.setAttribute('aria-expanded', 'true');
       }
 
+      syncToggleState();
       return;
     }
 
@@ -470,7 +474,7 @@ function initResponsiveNav() {
 
     if (navRoleHidden) {
       nav.classList.add('hidden');
-      toggle.setAttribute('aria-expanded', 'false');
+      syncToggleState();
       return;
     }
 
@@ -482,6 +486,7 @@ function initResponsiveNav() {
     const nowHidden = nav.classList.toggle('hidden');
     toggle.setAttribute('aria-expanded', nowHidden ? 'false' : 'true');
     if (nowHidden) closeSettings();
+    syncToggleState();
   });
 
   settingsToggle?.addEventListener('click', (e) => {
@@ -499,6 +504,45 @@ function initResponsiveNav() {
 
   window.addEventListener('resize', updateLayout);
   updateLayout();
+  syncToggleState();
+}
+
+async function fallbackInviteFlow(sourceId){
+  const emailPrompt = getTranslation('prompts.teammateEmail') || 'Teammate email?';
+  const email = prompt(emailPrompt);
+  if (!email) return;
+  const namePrompt = getTranslation('prompts.teammateName') || 'Teammate name?';
+  const name = prompt(namePrompt);
+  if (!name) return;
+  try {
+    const member = await createTeamMember({ name, email });
+    alert(`Token: ${member.token}\nTemp Password: ${member.password}`);
+  } catch (err) {
+    console.error('Failed to invite member', err);
+    alert(getTranslation('prompts.inviteFailed') || 'Failed to invite member');
+  }
+}
+
+function attachInviteHandlers(){
+  const triggers = new Set();
+  const navTrigger = document.getElementById('btnInvite');
+  if(navTrigger) triggers.add(navTrigger);
+  document.querySelectorAll('[data-action="invite-team"]').forEach(btn => triggers.add(btn));
+  triggers.forEach(btn => {
+    if(btn.dataset.inviteBound) return;
+    btn.dataset.inviteBound = 'true';
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const event = new CustomEvent('team-invite:open', {
+        cancelable: true,
+        detail: { source: btn.id || btn.dataset.action || 'unknown' }
+      });
+      const dispatched = document.dispatchEvent(event);
+      if (dispatched) {
+        fallbackInviteFlow(btn.id || btn.dataset.action || 'unknown');
+      }
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -507,35 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAbTest();
   initLanguageToggle();
   applyLanguage(currentLanguage);
-  const btnInvite = document.getElementById('btnInvite');
-  if (btnInvite) {
-    btnInvite.addEventListener('click', async () => {
-      const emailPrompt = getTranslation('prompts.teammateEmail') || 'Teammate email?';
-      const email = prompt(emailPrompt);
-      if (!email) return;
-      const namePrompt = getTranslation('prompts.teammateName') || 'Teammate name?';
-      const name = prompt(namePrompt);
-      if (!name) return;
-      try {
-        const res = await fetch('/api/team-members', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...authHeader()
-          },
-          body: JSON.stringify({ username: email, name })
-        });
-        const data = await res.json();
-        if (!res.ok || !data.member) throw new Error(data.error || 'Request failed');
-        alert(`Token: ${data.member.token}\nTemp Password: ${data.member.password}`);
-        const team = JSON.parse(localStorage.getItem('teamMembers') || '[]');
-        team.push({ name, email, role: 'team' });
-        localStorage.setItem('teamMembers', JSON.stringify(team));
-      } catch (err) {
-        alert(getTranslation('prompts.inviteFailed') || 'Failed to invite member');
-      }
-    });
-  }
+  attachInviteHandlers();
   applyRoleNav(window.userRole);
 });
 
@@ -647,17 +663,14 @@ function applyRoleNav(role){
     delete toggle.dataset.roleHidden;
   }
   if(role === 'client'){
-    if(!nav.classList.contains('hidden')){
-      nav.dataset.roleHidden = 'true';
-    }
+    nav.dataset.roleHidden = 'true';
     nav.classList.add('hidden');
     nav.setAttribute('aria-hidden','true');
     if(toggle){
-      if(!toggle.classList.contains('hidden')){
-        toggle.dataset.roleHidden = 'true';
-      }
+      toggle.dataset.roleHidden = 'true';
       toggle.classList.add('hidden');
       toggle.setAttribute('aria-hidden','true');
+      toggle.setAttribute('aria-expanded','false');
     }
     return;
   }
@@ -789,6 +802,31 @@ export async function api(url, options = {}) {
   } catch (err) {
     return { ok: false, status: 0, error: String(err) };
   }
+}
+
+export async function createTeamMember({ name = '', email = '', password = '' } = {}) {
+  const payload = { username: email, name };
+  if (password) payload.password = password;
+  const res = await api('/api/team-members', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok || !res.member) {
+    throw new Error(res.error || 'Failed to create team member');
+  }
+  const entry = {
+    id: res.member.id,
+    name: res.member.name || name || res.member.email || email,
+    email: res.member.email || email,
+    role: 'team',
+    createdAt: res.member.createdAt || null,
+    lastLoginAt: res.member.lastLoginAt || null
+  };
+  const team = JSON.parse(localStorage.getItem('teamMembers') || '[]')
+    .filter(m => m.id !== entry.id && m.email !== entry.email);
+  team.push(entry);
+  localStorage.setItem('teamMembers', JSON.stringify(team));
+  return res.member;
 }
 
 async function limitNavForMembers(){
