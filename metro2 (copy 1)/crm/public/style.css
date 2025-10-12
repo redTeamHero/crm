@@ -498,6 +498,12 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-tracker-copy {
+  width: 100%;
 }
 
 .hero-tracker-title {
@@ -510,6 +516,8 @@ body::after {
   font-size: 0.9rem;
   color: rgba(15, 23, 42, 0.65);
   max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .step-controls {
@@ -548,6 +556,20 @@ body::after {
   align-items: flex-start;
 }
 
+.panel-header--centered {
+  justify-content: center;
+}
+
+.panel-header--centered .panel-header-text {
+  flex: 1 1 100%;
+  text-align: center;
+}
+
+.panel-header--centered .panel-actions {
+  justify-content: center;
+  width: 100%;
+}
+
 .panel-title {
   font-size: 1.05rem;
   font-weight: 700;
@@ -574,6 +596,10 @@ body::after {
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.text-center {
+  text-align: center;
 }
 
 .panel-pagination {
