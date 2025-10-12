@@ -27,6 +27,699 @@ function trackEvent(name, props = {}) {
 }
 if (typeof window !== 'undefined') window.trackEvent = trackEvent;
 
+
+const LANGUAGE_STORAGE_KEY = 'crm_language';
+const DEFAULT_LANGUAGE = 'en';
+
+const TRANSLATIONS = {
+  en: {
+    language: { name: 'English', code: 'EN', switchTo: 'Switch to {language}' },
+    brand: 'Metro 2 CRM',
+    nav: {
+      dashboard: 'Dashboard',
+      clients: 'Clients',
+      leads: 'Leads',
+      schedule: 'Schedule',
+      billing: 'Billing',
+      marketing: 'Marketing',
+      settings: 'Settings',
+      myCompany: 'My Company',
+      letters: 'Letter',
+      library: 'Library',
+      workflows: 'Workflows',
+      tradelines: 'Tradelines'
+    },
+    buttons: {
+      menu: 'Menu',
+      help: 'Help',
+      helpTip: 'Help (H)',
+      invite: 'Add Team Member',
+      invitePlus: 'Invite +',
+      addTeamMember: 'Add Team Member',
+      logout: 'Logout'
+    },
+    prompts: {
+      teammateEmail: 'Teammate email?',
+      teammateName: 'Teammate name?',
+      inviteFailed: 'Failed to invite member'
+    },
+    badges: {
+      tooltip: "You've started your journey."
+    },
+    marketing: {
+      meta: { title: 'Marketing' },
+      hero: {
+        title: 'Marketing Launchpad',
+        subtitle: 'Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.',
+        tip: 'Tip: document every bilingual (EN/ES) touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.'
+      },
+      smsBuilder: {
+        heading: 'SMS Campaign Builder',
+        description: 'Craft compliant outreach, personalize with merge fields, and preview the mobile experience before launch.',
+        kpi: 'Suggested KPI: Reply Rate',
+        upsell: 'Upsell: SMS Concierge Follow-up',
+        experiment: 'A/B Test: “Book Call” vs “Discover your plan”',
+        campaignName: 'Campaign Name',
+        campaignPlaceholder: 'Fall Promo Launch',
+        recipientLabel: 'Recipient Group',
+        recipients: {
+          leads: 'All Leads',
+          newClients: 'New Clients (≤30 days)',
+          inactive: 'Inactive Accounts (90+ days)',
+          truckers: 'Owner-Operators / Truckers'
+        },
+        messageLabel: 'Message',
+        messagePlaceholder: 'Hi {{first_name}}, we spotted a dispute update ready for review. Tap to confirm your next step.',
+        insertMerge: 'Insert Merge Field',
+        personalize: '+ Personalize',
+        characterLabel: 'Character Count:',
+        guardrails: 'Guardrails: opt-out copy auto-appended, rate-limited when live.',
+        previewButton: 'Preview SMS',
+        sendTestButton: 'Send Test',
+        previewBadge: 'Preview • Twilio Ready',
+        previewNote: 'Personalization sample uses demo data. Final send will use live CRM fields.'
+      },
+      emailBuilder: {
+        heading: 'Email Template Designer',
+        description: 'Organize nurture flows, automate bilingual onboarding, and prep branded sends before you connect SendGrid or Postalytics.',
+        metricChip: 'Metric: Open → Consult %',
+        automationChip: 'Automation idea: 7-day roadmap drip',
+        experimentChip: 'CTA Test: “Schedule Strategy Call” vs “Explore your plan”',
+        newTemplate: 'New Template',
+        importHtml: 'Import HTML',
+        filterLabel: 'Segment',
+        filters: {
+          all: 'All Segments',
+          b2c: 'B2C Consumers',
+          b2b: 'B2B / Truckers',
+          attorneys: 'Attorneys / Referrals'
+        },
+        filterHelper: 'Filter to prep tailored automations.',
+        emptyState: 'Templates load from the backend. Use “New Template” to save your first design.',
+        loading: 'Loading templates from API…',
+        errorPrefix: 'API error: ',
+        template: {
+          badgeFallback: 'Custom',
+          draftLabel: 'Draft',
+          editButton: 'Edit',
+          editAlert: 'Hook up your template editor to template {title}. Use /api/marketing/templates to persist changes.'
+        },
+        prompts: {
+          name: 'Template name?',
+          purpose: 'What\'s the purpose?',
+          descriptionFallback: 'Outline your nurture touchpoints and CTA.',
+          error: 'Failed to save template: {error}',
+          importReminder: 'POST your HTML to /api/marketing/templates with { html } once your inline CSS pipeline is ready.'
+        }
+      },
+      campaignDashboard: {
+        heading: 'Campaign Dashboard Preview',
+        description: 'Visual placeholders ready to display Twilio/SendGrid metrics, pipeline revenue, and compliance alerts.',
+        recentCampaigns: 'Recent Campaigns',
+        exportCsv: 'Export CSV',
+        statuses: {
+          scheduled: 'Scheduled',
+          completed: 'Completed',
+          draft: 'Draft'
+        },
+        cards: {
+          newYear: {
+            title: 'New Year Credit Boost',
+            body: 'Next touch: Jan 3 • Segment: Inactive Accounts • KPI target: 18% consult rate.'
+          },
+          trucker: {
+            title: 'Trucker Safety + Credit Webinar',
+            body: 'Result: 24 booked consults • Upsell opportunity: Fleet compliance retainer.'
+          },
+          scoreDrop: {
+            title: 'Score Drop Alert',
+            body: 'Set webhook to Metro-2 anomaly detector • CTA: Schedule dispute strategy.'
+          }
+        },
+        metrics: {
+          heading: 'Metrics Placeholder',
+          badge: 'API ready',
+          placeholder: '<span>Drop chart.js or Recharts here.</span><span>Map open %, click %, revenue per send.</span>',
+          bullets: {
+            track: '• Track: Lead → Consult %, Consult → Paid %, Refund %',
+            alerts: '• Alerts: Opt-out spikes, deliverability drops',
+            next: '• Next: Slack webhook for at-risk campaigns'
+          }
+        },
+        experiments: {
+          heading: 'Experiments Queue',
+          item1: '1️⃣ Pricing anchor: “$49 Strategy Session” vs “$0 Discovery”',
+          item2: '2️⃣ CTA microcopy: “Start audit” vs “Start your audit”',
+          item3: '3️⃣ Social proof position: testimonials vs score visualizer',
+          logButton: 'Log Hypothesis',
+          prompt: 'Log your experiment hypothesis',
+          customPrefix: '{index}️⃣ {idea}'
+        }
+      },
+      integration: {
+        heading: 'Integration Checklist',
+        description: 'Wire this UI to Twilio, SendGrid, and other services without losing compliance.',
+        stepsTitle: 'Steps to Activate',
+        steps: {
+          collect: 'Collect API keys and SIDs; store them in <code>.env</code> or Settings → Integrations.',
+          providers: 'Call <code>PATCH /api/marketing/providers/:id</code> to mark providers as <span class="font-semibold">ready</span>.',
+          tests: 'Trigger <code>POST /api/marketing/tests</code> from “Send Test” to validate payloads.',
+          worker: 'Connect a worker that consumes the queue and triggers Twilio/SendGrid with logs.'
+        },
+        curl: {
+          heading: 'cURL Smoke Test',
+          badge: 'Dev only',
+          command: 'curl -X POST "$HOST/api/marketing/tests" \\\n+  -H "Authorization: Bearer $TOKEN" \\\n+  -H "Content-Type: application/json" \\\n+  -d \'{"channel":"sms","recipient":"+15125550199","smsPreview":"Hi {{first_name}}, your audit is ready."}\''
+        },
+        queue: {
+          heading: 'Queued Test Sends',
+          refresh: 'Refresh',
+          empty: 'Run “Send Test” to see items here.'
+        },
+        providers: {
+          heading: 'Provider Status',
+          badge: 'Live sync',
+          empty: 'Use the API to register Twilio/SendGrid credentials.'
+        }
+      },
+      testModal: {
+        title: 'Send Test Message',
+        subtitle: 'Simulate a Twilio/SendGrid call. No live sends.',
+        close: 'Close',
+        channelLabel: 'Channel',
+        channelOptions: {
+          sms: 'SMS',
+          email: 'Email'
+        },
+        recipientLabel: 'Send To',
+        recipientPlaceholder: '+1 512 555 0199 or demo@revolv.ai',
+        notesLabel: 'Notes',
+        notesPlaceholder: 'Log what you’re validating: tone, CTA, bilingual render.',
+        footerHint: 'Preview payload is queued via the marketing API for QA.',
+        queueButton: 'Queue Test',
+        success: 'Queued via marketing API — list updates below.',
+        errorPrefix: 'Error: {error}'
+      },
+      testQueue: {
+        loading: 'Loading queue…',
+        previewFallback: 'Preview ready for dispatch.',
+        segmentLabel: 'Segment: {value}',
+        charsLabel: '{count} chars',
+        byLabel: 'By {name}',
+        errorPrefix: 'API error: '
+      },
+      providers: {
+        status: {
+          ready: 'Ready',
+          check: 'Check',
+          pending: 'Pending'
+        },
+        noteFallback: 'Document compliance requirements.',
+        envPrefix: 'Env: {value}',
+        updatedPrefix: 'Updated {timestamp}',
+        errorPrefix: 'Provider API error: '
+      }
+    },
+    tiers: {
+      names: {
+        creditLegend: 'Credit Legend',
+        creditHero: 'Credit Hero',
+        creditChampion: 'Credit Champion',
+        creditWarrior: 'Credit Warrior',
+        creditSurgeon: 'Credit Surgeon',
+        disputeMaster: 'Dispute Master',
+        debtSlayer: 'Debt Slayer',
+        reportScrubber: 'Report Scrubber',
+        scoreShifter: 'Score Shifter',
+        creditCleaner: 'Credit Cleaner',
+        balanceBuster: 'Balance Buster',
+        debtDuster: 'Debt Duster',
+        rookie: 'Rookie'
+      },
+      messages: {
+        creditLegend: 'The ultimate, rare achievement.',
+        creditHero: 'You’re now the hero of your credit story.',
+        creditChampion: 'Championing your credit victory.',
+        creditWarrior: 'Battle-ready credit repair fighter.',
+        creditSurgeon: 'Precision deletions.',
+        disputeMaster: 'Mastering the dispute process.',
+        debtSlayer: 'Slaying negative accounts.',
+        reportScrubber: 'Deep cleaning your credit.',
+        scoreShifter: 'Scores are improving.',
+        creditCleaner: 'Your report is shining.',
+        balanceBuster: 'Breaking negative balances.',
+        debtDuster: 'Cleaning up the dust.',
+        rookie: 'You’ve started your journey.'
+      }
+    }
+  },
+  es: {
+    language: { name: 'Español', code: 'ES', switchTo: 'Cambiar a {language}' },
+    brand: 'Metro 2 CRM',
+    nav: {
+      dashboard: 'Panel',
+      clients: 'Clientes',
+      leads: 'Prospectos',
+      schedule: 'Agenda',
+      billing: 'Facturación',
+      marketing: 'Marketing',
+      settings: 'Configuración',
+      myCompany: 'Mi empresa',
+      letters: 'Cartas',
+      library: 'Biblioteca',
+      workflows: 'Flujos',
+      tradelines: 'Líneas de crédito'
+    },
+    buttons: {
+      menu: 'Menú',
+      help: 'Ayuda',
+      helpTip: 'Ayuda (H)',
+      invite: 'Agregar integrante',
+      invitePlus: 'Invitar +',
+      addTeamMember: 'Agregar integrante',
+      logout: 'Cerrar sesión'
+    },
+    prompts: {
+      teammateEmail: '¿Correo del integrante?',
+      teammateName: '¿Nombre del integrante?',
+      inviteFailed: 'No se pudo invitar al integrante'
+    },
+    badges: {
+      tooltip: 'Has iniciado tu recorrido.'
+    },
+    marketing: {
+      meta: { title: 'Marketing' },
+      hero: {
+        title: 'Lanzadera de Marketing',
+        subtitle: 'Diseña recorridos premium de recuperación crediticia, nutre prospectos y prepara automatizaciones enfocadas en conversión antes de conectarlas con Twilio, SendGrid u otra integración.',
+        tip: 'Tip: documenta cada punto de contacto bilingüe (EN/ES) para mantener el cumplimiento, aumentar la confianza y preparar upsells. Cuando los ganchos del backend estén listos, estas tarjetas podrán enviar cargas directo a tu cola de automatización.'
+      },
+      smsBuilder: {
+        heading: 'Constructor de Campañas SMS',
+        description: 'Diseña alcance conforme a normativas, personaliza con campos dinámicos y visualiza la experiencia móvil antes de lanzar.',
+        kpi: 'KPI sugerido: Tasa de respuesta',
+        upsell: 'Upsell: Seguimiento Concierge por SMS',
+        experiment: 'Prueba A/B: “Agendar llamada” vs “Descubre tu plan”',
+        campaignName: 'Nombre de la campaña',
+        campaignPlaceholder: 'Lanzamiento Promoción Otoño',
+        recipientLabel: 'Grupo de destinatarios',
+        recipients: {
+          leads: 'Todos los leads',
+          newClients: 'Clientes nuevos (≤30 días)',
+          inactive: 'Cuentas inactivas (90+ días)',
+          truckers: 'Propietarios-operadores / Camioneros'
+        },
+        messageLabel: 'Mensaje',
+        messagePlaceholder: 'Hola {{first_name}}, detectamos una actualización de disputa lista para revisión. Toca para confirmar tu próximo paso.',
+        insertMerge: 'Insertar campo dinámico',
+        personalize: '+ Personalizar',
+        characterLabel: 'Conteo de caracteres:',
+        guardrails: 'Controles: la copia de opt-out se agrega automáticamente y se limita la tasa cuando esté en producción.',
+        previewButton: 'Previsualizar SMS',
+        sendTestButton: 'Enviar prueba',
+        previewBadge: 'Previsualización • Lista para Twilio',
+        previewNote: 'La personalización usa datos demo. El envío final usará campos en vivo del CRM.'
+      },
+      emailBuilder: {
+        heading: 'Diseñador de Plantillas de Email',
+        description: 'Organiza flujos de nutrición, automatiza onboarding bilingüe y prepara envíos con marca antes de conectarlos a SendGrid o Postalytics.',
+        metricChip: 'Métrica: Apertura → Consultas %',
+        automationChip: 'Idea de automatización: goteo de 7 días',
+        experimentChip: 'Prueba CTA: “Agendar sesión estratégica” vs “Explora tu plan”',
+        newTemplate: 'Nueva plantilla',
+        importHtml: 'Importar HTML',
+        filterLabel: 'Segmento',
+        filters: {
+          all: 'Todos los segmentos',
+          b2c: 'Consumidores B2C',
+          b2b: 'B2B / Camioneros',
+          attorneys: 'Abogados / Referidos'
+        },
+        filterHelper: 'Filtra para preparar automatizaciones a medida.',
+        emptyState: 'Las plantillas se cargan desde el backend. Usa “Nueva plantilla” para guardar tu primer diseño.',
+        loading: 'Cargando plantillas desde la API…',
+        errorPrefix: 'Error de API: ',
+        template: {
+          badgeFallback: 'Personalizada',
+          draftLabel: 'Borrador',
+          editButton: 'Editar',
+          editAlert: 'Conecta tu editor de plantillas a {title}. Usa /api/marketing/templates para guardar cambios.'
+        },
+        prompts: {
+          name: '¿Nombre de la plantilla?',
+          purpose: '¿Cuál es el objetivo?',
+          descriptionFallback: 'Define los toques de nutrición y el CTA.',
+          error: 'No se pudo guardar la plantilla: {error}',
+          importReminder: 'Envía tu HTML a /api/marketing/templates con { html } cuando tu pipeline de CSS inline esté listo.'
+        }
+      },
+      campaignDashboard: {
+        heading: 'Vista previa del panel de campañas',
+        description: 'Marcadores listos para mostrar métricas de Twilio/SendGrid, ingresos de pipeline y alertas de cumplimiento.',
+        recentCampaigns: 'Campañas recientes',
+        exportCsv: 'Exportar CSV',
+        statuses: {
+          scheduled: 'Programada',
+          completed: 'Completada',
+          draft: 'Borrador'
+        },
+        cards: {
+          newYear: {
+            title: 'Impulso de Año Nuevo',
+            body: 'Próximo toque: 3 de enero • Segmento: Cuentas inactivas • Objetivo KPI: 18% tasa de consulta.'
+          },
+          trucker: {
+            title: 'Webinar Seguridad + Crédito para Camioneros',
+            body: 'Resultado: 24 consultas agendadas • Upsell: Retainer de cumplimiento para flotas.'
+          },
+          scoreDrop: {
+            title: 'Alerta de baja de puntaje',
+            body: 'Conecta el webhook al detector de anomalías Metro-2 • CTA: Agenda estrategia de disputa.'
+          }
+        },
+        metrics: {
+          heading: 'Marcador de métricas',
+          badge: 'API lista',
+          placeholder: '<span>Coloca chart.js o Recharts aquí.</span><span>Mapea aperturas %, clics %, ingresos por envío.</span>',
+          bullets: {
+            track: '• Rastrea: Apertura → Consulta %, Consulta → Pago %, Reembolsos %',
+            alerts: '• Alertas: picos de opt-out, caídas de entregabilidad',
+            next: '• Próximo: webhook a Slack para campañas en riesgo'
+          }
+        },
+        experiments: {
+          heading: 'Cola de experimentos',
+          item1: '1️⃣ Ancla de precio: “Sesión estratégica $49” vs “Descubrimiento $0”',
+          item2: '2️⃣ Microcopy de CTA: “Inicia auditoría” vs “Comienza tu auditoría”',
+          item3: '3️⃣ Ubicación de prueba social: testimonios vs visualizador de puntajes',
+          logButton: 'Registrar hipótesis',
+          prompt: 'Registra tu hipótesis de experimento',
+          customPrefix: '{index}️⃣ {idea}'
+        }
+      },
+      integration: {
+        heading: 'Lista de integración',
+        description: 'Conecta esta UI a Twilio, SendGrid y otros servicios sin perder cumplimiento.',
+        stepsTitle: 'Pasos para activar',
+        steps: {
+          collect: 'Recopila llaves API y SIDs; guárdalos en <code>.env</code> o en Configuración → Integraciones.',
+          providers: 'Llama a <code>PATCH /api/marketing/providers/:id</code> para marcar proveedores como <span class="font-semibold">listos</span>.',
+          tests: 'Dispara <code>POST /api/marketing/tests</code> desde “Enviar prueba” para validar cargas.',
+          worker: 'Conecta un worker que consuma la cola y dispare Twilio/SendGrid con logs.'
+        },
+        curl: {
+          heading: 'Prueba cURL',
+          badge: 'Solo dev',
+          command: 'curl -X POST "$HOST/api/marketing/tests" \\\n  -H "Authorization: Bearer $TOKEN" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"channel":"sms","recipient":"+15125550199","smsPreview":"Hola {{first_name}}, tu auditoría está lista."}\''
+        },
+        queue: {
+          heading: 'Pruebas en cola',
+          refresh: 'Actualizar',
+          empty: 'Ejecuta “Enviar prueba” para ver elementos aquí.'
+        },
+        providers: {
+          heading: 'Estado de proveedores',
+          badge: 'Sincronización en vivo',
+          empty: 'Usa la API para registrar credenciales de Twilio/SendGrid.'
+        }
+      },
+      testModal: {
+        title: 'Enviar mensaje de prueba',
+        subtitle: 'Simula una llamada Twilio/SendGrid. Sin envíos reales.',
+        close: 'Cerrar',
+        channelLabel: 'Canal',
+        channelOptions: {
+          sms: 'SMS',
+          email: 'Email'
+        },
+        recipientLabel: 'Enviar a',
+        recipientPlaceholder: '+1 512 555 0199 o demo@revolv.ai',
+        notesLabel: 'Notas',
+        notesPlaceholder: 'Registra lo que validas: tono, CTA, render bilingüe.',
+        footerHint: 'La carga de prueba se envía a la API de marketing para QA.',
+        queueButton: 'Poner en cola',
+        success: 'Encolado vía API de marketing — revisa la lista abajo.',
+        errorPrefix: 'Error: {error}'
+      },
+      testQueue: {
+        loading: 'Cargando cola…',
+        previewFallback: 'Previsualización lista para enviar.',
+        segmentLabel: 'Segmento: {value}',
+        charsLabel: '{count} caracteres',
+        byLabel: 'Por {name}',
+        errorPrefix: 'Error de API: '
+      },
+      providers: {
+        status: {
+          ready: 'Listo',
+          check: 'Revisar',
+          pending: 'Pendiente'
+        },
+        noteFallback: 'Documenta requisitos de cumplimiento.',
+        envPrefix: 'Entorno: {value}',
+        updatedPrefix: 'Actualizado {timestamp}',
+        errorPrefix: 'Error de API de proveedores: '
+      }
+    },
+    tiers: {
+      names: {
+        creditLegend: 'Leyenda del Crédito',
+        creditHero: 'Héroe del Crédito',
+        creditChampion: 'Campeón del Crédito',
+        creditWarrior: 'Guerrero del Crédito',
+        creditSurgeon: 'Cirujano del Crédito',
+        disputeMaster: 'Maestro de Disputas',
+        debtSlayer: 'Destructor de Deudas',
+        reportScrubber: 'Limpiador del Reporte',
+        scoreShifter: 'Impulsor de Puntajes',
+        creditCleaner: 'Limpiador de Crédito',
+        balanceBuster: 'Rompe Saldos',
+        debtDuster: 'Sacudidor de Deudas',
+        rookie: 'Novato'
+      },
+      messages: {
+        creditLegend: 'El logro más alto y raro.',
+        creditHero: 'Ahora eres el héroe de tu historia crediticia.',
+        creditChampion: 'Celebrando tu victoria crediticia.',
+        creditWarrior: 'Listo para pelear disputas.',
+        creditSurgeon: 'Eliminaciones de precisión.',
+        disputeMaster: 'Dominando el proceso de disputas.',
+        debtSlayer: 'Eliminando cuentas negativas.',
+        reportScrubber: 'Limpiando a fondo tu reporte.',
+        scoreShifter: 'Los puntajes van mejorando.',
+        creditCleaner: 'Tu reporte está brillando.',
+        balanceBuster: 'Rompiendo saldos negativos.',
+        debtDuster: 'Sacudiendo la deuda restante.',
+        rookie: 'Has iniciado tu recorrido.'
+      }
+    }
+  }
+};
+
+function getStoredLanguage() {
+  if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
+  try {
+    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (stored && TRANSLATIONS[stored]) return stored;
+  } catch (err) {
+    console.debug('language storage read failed', err);
+  }
+  return DEFAULT_LANGUAGE;
+}
+
+export function getTranslation(key, lang = currentLanguage) {
+  if (!key) return '';
+  const dictionary = TRANSLATIONS[lang] || TRANSLATIONS[DEFAULT_LANGUAGE];
+  return key.split('.').reduce((acc, part) => (acc && acc[part] !== undefined ? acc[part] : undefined), dictionary) ?? '';
+}
+
+let currentLanguage = typeof window === 'undefined' ? DEFAULT_LANGUAGE : getStoredLanguage();
+if (typeof document !== 'undefined') {
+  document.documentElement?.setAttribute('lang', currentLanguage);
+}
+
+function updateInviteButtonCopy(btn, variant, lang = currentLanguage) {
+  if (!btn) return;
+  const key = variant === 'invite_plus' ? 'buttons.invitePlus' : 'buttons.addTeamMember';
+  const label = getTranslation(key, lang) || getTranslation('buttons.invite', lang);
+  if (label) btn.textContent = label;
+}
+
+
+function applyDataI18n(lang = currentLanguage) {
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    const value = getTranslation(key, lang);
+    if (!value) return;
+    el.textContent = value;
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+    const key = el.dataset.i18nHtml;
+    const value = getTranslation(key, lang);
+    if (!value) return;
+    el.innerHTML = value;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.dataset.i18nPlaceholder;
+    const value = getTranslation(key, lang);
+    if (!value) return;
+    if ('placeholder' in el) {
+      el.placeholder = value;
+    }
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    const key = el.dataset.i18nTitle;
+    const value = getTranslation(key, lang);
+    if (!value) return;
+    el.title = value;
+  });
+  document.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
+    const key = el.dataset.i18nAriaLabel;
+    const value = getTranslation(key, lang);
+    if (!value) return;
+    el.setAttribute('aria-label', value);
+  });
+}
+
+function updateLanguageToggleControl() {
+  if (typeof document === 'undefined') return;
+  const toggle = document.getElementById('languageToggle');
+  if (!toggle) return;
+  const nextLanguage = currentLanguage === 'en' ? 'es' : 'en';
+  const currentConfig = TRANSLATIONS[currentLanguage];
+  const nextConfig = TRANSLATIONS[nextLanguage];
+  if (nextConfig?.language?.code) {
+    toggle.textContent = nextConfig.language.code;
+  }
+  if (currentConfig?.language?.switchTo && nextConfig?.language?.name) {
+    const label = currentConfig.language.switchTo.replace('{language}', nextConfig.language.name);
+    toggle.setAttribute('aria-label', label);
+    toggle.setAttribute('title', label);
+  }
+  toggle.dataset.language = currentLanguage;
+}
+
+export function applyLanguage(lang = currentLanguage) {
+  const target = TRANSLATIONS[lang] ? lang : DEFAULT_LANGUAGE;
+  currentLanguage = target;
+
+  if (typeof document !== 'undefined') {
+    document.documentElement?.setAttribute('lang', target);
+  }
+
+  const mapping = [
+    ['.nav-brand-row .text-xl', 'brand'],
+    ['a[href="/dashboard"]', 'nav.dashboard'],
+    ['a[href="/clients"]', 'nav.clients'],
+    ['a[href="/leads"]', 'nav.leads'],
+    ['a[href="/schedule"]', 'nav.schedule'],
+    ['a[href="/billing"]', 'nav.billing'],
+    ['a[href="/marketing"]', 'nav.marketing'],
+    ['a[href="/tradelines"]', 'nav.tradelines'],
+    ['#navCompany', 'nav.myCompany'],
+    ['#navSettingsMenu a[href="/letters"]', 'nav.letters'],
+    ['#navSettingsMenu a[href="/library"]', 'nav.library'],
+    ['#navSettingsMenu a[href="/workflows"]', 'nav.workflows']
+  ];
+  if (typeof document !== 'undefined') {
+    mapping.forEach(([selector, key]) => {
+      const el = document.querySelector(selector);
+      if (!el) return;
+      const value = getTranslation(key, target);
+      if (value) el.textContent = value;
+    });
+  }
+
+  if (typeof document !== 'undefined') {
+    const navToggle = document.getElementById('navToggle');
+    const menuLabel = getTranslation('buttons.menu', target);
+    if (navToggle && menuLabel) {
+      navToggle.setAttribute('aria-label', menuLabel);
+      const span = navToggle.querySelector('span');
+      if (span) span.textContent = menuLabel;
+    }
+
+    const settingsToggleLabel = document.querySelector('#navSettingsToggle span');
+    const settingsLabel = getTranslation('nav.settings', target);
+    if (settingsToggleLabel && settingsLabel) settingsToggleLabel.textContent = settingsLabel;
+    const settingsToggle = document.getElementById('navSettingsToggle');
+    if (settingsToggle && settingsLabel) settingsToggle.setAttribute('aria-label', settingsLabel);
+
+    const helpButton = document.getElementById('btnHelp');
+    if (helpButton) {
+      const helpLabel = getTranslation('buttons.help', target);
+      if (helpLabel) helpButton.textContent = helpLabel;
+      const tip = getTranslation('buttons.helpTip', target);
+      if (tip) helpButton.setAttribute('data-tip', tip);
+    }
+
+    const inviteButton = document.getElementById('btnInvite');
+    if (inviteButton) {
+      const variant = inviteButton.dataset.ctaVariant || localStorage.getItem('cta_variant') || 'add_team_member';
+      updateInviteButtonCopy(inviteButton, variant, target);
+    }
+
+    const logoutButton = document.getElementById('btnLogout');
+    if (logoutButton) {
+      const logoutLabel = getTranslation('buttons.logout', target);
+      if (logoutLabel) logoutButton.textContent = logoutLabel;
+    }
+
+    const tierBadge = document.getElementById('tierBadge');
+    if (tierBadge) {
+      const tooltip = getTranslation('tiers.messages.rookie', target) || getTranslation('badges.tooltip', target);
+      if (tooltip) tierBadge.title = tooltip;
+    }
+  }
+
+  applyDataI18n(target);
+  updateLanguageToggleControl();
+  if (typeof renderDeletionTier === 'function') {
+    renderDeletionTier();
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('crm:language-change', { detail: { language: target } }));
+  }
+}
+
+export function setLanguage(lang) {
+  const target = TRANSLATIONS[lang] ? lang : DEFAULT_LANGUAGE;
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, target);
+  } catch (err) {
+    console.debug('language storage write failed', err);
+  }
+  applyLanguage(target);
+}
+
+export function getCurrentLanguage() {
+  return currentLanguage;
+}
+
+function initLanguageToggle() {
+  if (typeof document === 'undefined') return;
+  const navRow = document.querySelector('.nav-brand-row');
+  if (!navRow || document.getElementById('languageToggle')) return;
+  const navToggle = document.getElementById('navToggle');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.id = 'languageToggle';
+  button.className = 'btn nav-btn md:ml-2';
+  button.addEventListener('click', () => {
+    const next = currentLanguage === 'en' ? 'es' : 'en';
+    setLanguage(next);
+    trackEvent('language_toggle', { language: next });
+  });
+  if (navToggle) {
+    navRow.insertBefore(button, navToggle);
+  } else {
+    navRow.appendChild(button);
+  }
+  updateLanguageToggleControl();
+}
+
+
 function initResponsiveNav() {
   const nav = document.getElementById('primaryNav');
   const toggle = document.getElementById('navToggle');
@@ -98,12 +791,16 @@ document.addEventListener('DOMContentLoaded', () => {
   initResponsiveNav();
   trackEvent('page_view', { path: location.pathname });
   initAbTest();
+  initLanguageToggle();
+  applyLanguage(currentLanguage);
   const btnInvite = document.getElementById('btnInvite');
   if (btnInvite) {
     btnInvite.addEventListener('click', async () => {
-      const email = prompt('Teammate email?');
+      const emailPrompt = getTranslation('prompts.teammateEmail') || 'Teammate email?';
+      const email = prompt(emailPrompt);
       if (!email) return;
-      const name = prompt('Teammate name?');
+      const namePrompt = getTranslation('prompts.teammateName') || 'Teammate name?';
+      const name = prompt(namePrompt);
       if (!name) return;
       try {
         const res = await fetch('/api/team-members', {
@@ -121,7 +818,7 @@ document.addEventListener('DOMContentLoaded', () => {
         team.push({ name, email, role: 'team' });
         localStorage.setItem('teamMembers', JSON.stringify(team));
       } catch (err) {
-        alert('Failed to invite member');
+        alert(getTranslation('prompts.inviteFailed') || 'Failed to invite member');
       }
     });
   }
@@ -136,7 +833,8 @@ function initAbTest() {
     variant = Math.random() < 0.5 ? 'invite_plus' : 'add_team_member';
     localStorage.setItem('cta_variant', variant);
   }
-  btn.textContent = variant === 'invite_plus' ? 'Invite +' : 'Add Team Member';
+  btn.dataset.ctaVariant = variant;
+  updateInviteButtonCopy(btn, variant);
   trackEvent('ab_exposure', { experiment: 'cta_copy', variant });
 }
 
@@ -191,7 +889,7 @@ if (navContainer) {
     const marketingLink = document.createElement('a');
     marketingLink.href = '/marketing';
     marketingLink.className = 'btn nav-btn';
-    marketingLink.textContent = 'Marketing';
+    marketingLink.textContent = getTranslation('nav.marketing');
     const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
     if (scheduleLink?.parentElement === navContainer) {
       navContainer.insertBefore(marketingLink, scheduleLink);
@@ -204,7 +902,7 @@ if (navContainer) {
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
   btnLogout.className = 'btn nav-btn';
-  btnLogout.textContent = 'Logout';
+  btnLogout.textContent = getTranslation('buttons.logout');
   btnLogout.addEventListener('click', () => {
     // clear all locally stored state when logging out to avoid
     // carrying data between different user sessions
@@ -404,19 +1102,19 @@ async function limitNavForMembers(){
 }
 
 const deletionTiers = [
-  { threshold: 150, name: 'Credit Legend', icon: '👑', class: 'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message: 'The ultimate, rare achievement.' },
-  { threshold: 125, name: 'Credit Hero', icon: '🦸', class: 'bg-red-100 text-red-700', message: 'You’re now the hero of your credit story.' },
-  { threshold: 100, name: 'Credit Champion', icon: '🏆', class: 'bg-yellow-200 text-yellow-800', message: 'Championing your credit victory.' },
-  { threshold: 75, name: 'Credit Warrior', icon: '🛡️', class: 'bg-indigo-100 text-indigo-700', message: 'Battle-ready credit repair fighter.' },
-  { threshold: 60, name: 'Credit Surgeon', icon: '🩺', class: 'bg-cyan-100 text-cyan-700', message: 'Precision deletions.' },
-  { threshold: 50, name: 'Dispute Master', icon: '🥋', class: 'bg-purple-100 text-purple-700', message: 'Mastering the dispute process.' },
-  { threshold: 40, name: 'Debt Slayer', icon: '⚔️', class: 'bg-gray-100 text-gray-700', message: 'Slaying negative accounts.' },
-  { threshold: 30, name: 'Report Scrubber', icon: '🧼', class: 'bg-accent-subtle', message: 'Deep cleaning your credit.' },
-  { threshold: 20, name: 'Score Shifter', icon: '📊', class: 'bg-green-100 text-green-700', message: 'Scores are improving.' },
-  { threshold: 15, name: 'Credit Cleaner', icon: '🧽', class: 'bg-yellow-100 text-yellow-700', message: 'Your report is shining.' },
-  { threshold: 10, name: 'Balance Buster', icon: '💥', class: 'bg-orange-100 text-orange-700', message: 'Breaking negative balances.' },
-  { threshold: 5, name: 'Debt Duster', icon: '🧹', class: 'bg-emerald-100 text-emerald-700', message: 'Cleaning up the dust.' },
-  { threshold: 0, name: 'Rookie', icon: '📄', class: 'bg-emerald-100 text-emerald-700', message: 'You’ve started your journey.' },
+  { threshold: 150, key: 'creditLegend', name: 'Credit Legend', icon: '👑', class: 'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message: 'The ultimate, rare achievement.' },
+  { threshold: 125, key: 'creditHero', name: 'Credit Hero', icon: '🦸', class: 'bg-red-100 text-red-700', message: 'You’re now the hero of your credit story.' },
+  { threshold: 100, key: 'creditChampion', name: 'Credit Champion', icon: '🏆', class: 'bg-yellow-200 text-yellow-800', message: 'Championing your credit victory.' },
+  { threshold: 75, key: 'creditWarrior', name: 'Credit Warrior', icon: '🛡️', class: 'bg-indigo-100 text-indigo-700', message: 'Battle-ready credit repair fighter.' },
+  { threshold: 60, key: 'creditSurgeon', name: 'Credit Surgeon', icon: '🩺', class: 'bg-cyan-100 text-cyan-700', message: 'Precision deletions.' },
+  { threshold: 50, key: 'disputeMaster', name: 'Dispute Master', icon: '🥋', class: 'bg-purple-100 text-purple-700', message: 'Mastering the dispute process.' },
+  { threshold: 40, key: 'debtSlayer', name: 'Debt Slayer', icon: '⚔️', class: 'bg-gray-100 text-gray-700', message: 'Slaying negative accounts.' },
+  { threshold: 30, key: 'reportScrubber', name: 'Report Scrubber', icon: '🧼', class: 'bg-accent-subtle', message: 'Deep cleaning your credit.' },
+  { threshold: 20, key: 'scoreShifter', name: 'Score Shifter', icon: '📊', class: 'bg-green-100 text-green-700', message: 'Scores are improving.' },
+  { threshold: 15, key: 'creditCleaner', name: 'Credit Cleaner', icon: '🧽', class: 'bg-yellow-100 text-yellow-700', message: 'Your report is shining.' },
+  { threshold: 10, key: 'balanceBuster', name: 'Balance Buster', icon: '💥', class: 'bg-orange-100 text-orange-700', message: 'Breaking negative balances.' },
+  { threshold: 5, key: 'debtDuster', name: 'Debt Duster', icon: '🧹', class: 'bg-emerald-100 text-emerald-700', message: 'Cleaning up the dust.' },
+  { threshold: 0, key: 'rookie', name: 'Rookie', icon: '📄', class: 'bg-emerald-100 text-emerald-700', message: 'You’ve started your journey.' },
 ];
 
 function getDeletionTier(count){
@@ -433,8 +1131,10 @@ function ensureTierBadge(){
   const div = document.createElement('div');
   div.id = 'tierBadge';
   div.className = 'hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm animate-fadeInUp';
-  div.title = "You've started your journey.";
-  div.innerHTML = '<span class="text-xl">📄</span><span class="font-semibold text-sm">Rookie</span>';
+  const tooltip = getTranslation('tiers.messages.rookie') || getTranslation('badges.tooltip') || "You've started your journey.";
+  const label = getTranslation('tiers.names.rookie') || 'Rookie';
+  div.title = tooltip;
+  div.innerHTML = `<span class="text-xl">📄</span><span class="font-semibold text-sm">${label}</span>`;
   nav.appendChild(div);
 }
 
@@ -443,9 +1143,11 @@ function renderDeletionTier(){
   if(!el) return;
   const deletions = Number(localStorage.getItem('deletions') || 0);
   const tier = getDeletionTier(deletions);
+  const label = getTranslation(`tiers.names.${tier.key}`) || tier.name;
+  const message = getTranslation(`tiers.messages.${tier.key}`) || tier.message;
   el.className = `hidden sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
-  el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${tier.name}</span>`;
-  el.title = tier.message;
+  el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${label}</span>`;
+  el.title = message;
 }
 
 function ensureHelpModal(){
@@ -582,5 +1284,5 @@ function closeNotes(){
 }
 
 if (typeof window !== 'undefined') {
-  Object.assign(window, { escapeHtml, formatCurrency, trackEvent, authHeader, api });
+  Object.assign(window, { escapeHtml, formatCurrency, trackEvent, authHeader, api, setLanguage, getCurrentLanguage, applyLanguage, getTranslation });
 }
