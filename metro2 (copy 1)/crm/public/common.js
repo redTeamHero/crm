@@ -561,6 +561,32 @@ const THEMES = {
 
 };
 
+const THEME_LABELS = {
+  blue: 'Trust Blue / Azul confianza',
+  green: 'Momentum Green / Verde impulso',
+  orange: 'Warm Orange / Naranja cálida',
+  red: 'Alert Red / Rojo alerta',
+  purple: 'Royal Purple / Morado real',
+  teal: 'Signal Teal / Verde señal',
+  pink: 'Hero Pink / Rosa heroína',
+  spacegray: 'Space Gray / Gris espacial',
+  metallicgrey: 'Titanium Grey / Gris titanio',
+  glass: 'Glass Neutral / Neutro cristal'
+};
+
+function highlightActiveTheme(name) {
+  const palette = document.getElementById('themePalette');
+  if (!palette) return;
+  const bubbles = palette.querySelectorAll('.bubble');
+  bubbles.forEach(bubble => {
+    const isActive = bubble.dataset.theme === name;
+    bubble.classList.toggle('active', isActive);
+    const baseLabel = bubble.dataset.label || bubble.dataset.theme;
+    bubble.setAttribute('aria-pressed', String(isActive));
+    bubble.setAttribute('aria-label', isActive ? `${baseLabel} (selected)` : baseLabel);
+  });
+}
+
 function applyTheme(name){
   const t = THEMES[name] || THEMES.purple;
   const root = document.documentElement.style;
@@ -572,6 +598,7 @@ function applyTheme(name){
   root.setProperty('--btn-text', t.btnText || '#fff');
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', t.accent);
   localStorage.setItem('theme', name);
+  highlightActiveTheme(name);
 
   const slider = document.getElementById('glassAlpha');
   const match = t.glassBg.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\)/);
@@ -600,7 +627,10 @@ function initPalette(){
   wrap.id = 'themePalette';
   wrap.className = 'palette collapsed';
   const bubbles = Object.entries(THEMES)
-    .map(([name, t]) => `<div class="bubble" data-theme="${name}" style="background:${t.accent}"></div>`)
+    .map(([name, t]) => {
+      const label = (THEME_LABELS[name] || name.replace(/([A-Z])/g, ' $1').replace(/[-_]/g, ' ')).replace(/^./, c => c.toUpperCase());
+      return `<div class="bubble" role="button" tabindex="0" aria-pressed="false" data-theme="${name}" data-label="${label}" aria-label="${label}" style="background:${t.accent}"></div>`;
+    })
     .join('');
   wrap.innerHTML = `
     <button class="toggle" type="button" aria-expanded="false">
@@ -640,6 +670,13 @@ function initPalette(){
   wrap.addEventListener('click', (e)=>{
     const b = e.target.closest('.bubble');
     if(!b) return;
+    applyTheme(b.dataset.theme);
+  });
+  wrap.addEventListener('keydown', (e) => {
+    if (!['Enter', ' '].includes(e.key)) return;
+    const b = e.target.closest('.bubble');
+    if (!b) return;
+    e.preventDefault();
     applyTheme(b.dataset.theme);
   });
   const saved = localStorage.getItem('theme') || 'purple';
