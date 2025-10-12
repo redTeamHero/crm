@@ -100,6 +100,21 @@
 </header>
 
 <main class="max-w-5xl mx-auto p-4 space-y-4">
+  <section class="glass card space-y-4" aria-labelledby="default-pack-heading">
+    <div class="flex flex-col gap-1">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 id="default-pack-heading" class="font-medium">Default Dispute Pack • Paquete Disputa Premium</h2>
+          <p class="text-xs text-slate-500">Curate the five “front row” templates your team sells most. Selecciona cartas clave EN/ES para el upsell Apple-grade.</p>
+        </div>
+        <button id="refreshDefaults" class="btn text-sm">Refresh / Actualizar</button>
+      </div>
+      <p id="defaultPackStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+    </div>
+    <div id="defaultPackGrid" class="grid gap-3 md:grid-cols-2"></div>
+    <p id="defaultPackEmpty" class="text-sm text-slate-500">Add templates to curate your premium pack. Agrega plantillas para mostrar tu experiencia.</p>
+  </section>
+
   <div id="templatePanel" class="glass card space-y-4">
     <div class="flex items-center justify-between">
       <div class="font-medium">Letter Templates</div>
@@ -107,6 +122,19 @@
     </div>
     <div id="templateList" class="space-y-1 text-sm max-h-96 overflow-y-auto"></div>
   </div>
+
+  <section class="glass card space-y-4" aria-labelledby="contracts-heading">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 id="contracts-heading" class="font-medium">Compliance Contracts • Contratos EN/ES</h2>
+        <p class="text-xs text-slate-500">Draft bilingual agreements, upsell compliance retainers, and store them via <code>POST /api/contracts</code>.</p>
+      </div>
+      <button id="btnNewContract" class="btn text-sm">New Contract / Nuevo Contrato</button>
+    </div>
+    <p id="contractStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+    <ul id="contractList" class="space-y-3 text-sm"></ul>
+    <p id="contractEmpty" class="text-sm text-slate-500">No saved contracts yet. Offer a compliance upgrade with a bilingual agreement.</p>
+  </section>
 
   <div class="glass card space-y-4">
     <div class="font-medium">Sequences</div>
@@ -146,6 +174,39 @@
       <textarea id="tplEvidence" class="input w-full text-sm" placeholder="Evidence"></textarea>
       <div id="tplPreview" class="input w-full text-sm whitespace-pre-line h-48 overflow-y-auto" title="Drop a template here to load it"></div>
     </div>
+  </div>
+</div>
+<div id="contractModal" class="modal-backdrop">
+  <div class="modal">
+    <header>
+      <div>
+        <div class="font-medium">Bilingual Contract Editor</div>
+        <p class="text-xs text-slate-500">English + Español copy, ready for e-sign or PDF export.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn text-sm" type="button" data-close-contract>Close</button>
+      </div>
+    </header>
+    <form id="contractForm" class="body space-y-3">
+      <input id="contractName" name="name" class="input w-full text-sm" placeholder="Service Agreement Title / Título del servicio" required />
+      <div class="grid gap-3 md:grid-cols-2">
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-500" for="contractEnglish">English Version</label>
+          <textarea id="contractEnglish" name="english" class="input w-full h-48 text-sm" placeholder="Scope, guarantees (compliance-safe), payment schedule, cancellation window." required></textarea>
+        </div>
+        <div class="space-y-2">
+          <label class="text-xs font-semibold text-slate-500" for="contractSpanish">Versión en Español</label>
+          <textarea id="contractSpanish" name="spanish" class="input w-full h-48 text-sm" placeholder="Alcance, garantías (sin promesas irreales), plan de pagos, cancelación."></textarea>
+        </div>
+      </div>
+      <div class="flex items-center justify-between text-xs text-slate-500">
+        <span>Tip: Mention Metro-2 compliance, bilingual support, and optional certified mail concierge.</span>
+        <div class="flex gap-2">
+          <button class="btn text-sm" type="submit">Save / Guardar</button>
+          <button class="btn text-sm" type="button" data-close-contract>Cancel</button>
+        </div>
+      </div>
+    </form>
   </div>
 </div>
 <script type="module" src="/common.js"></script>

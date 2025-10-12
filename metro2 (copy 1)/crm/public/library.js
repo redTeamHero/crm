@@ -3,11 +3,274 @@ let sequences = [];
 let currentTemplateId = null;
 let currentSequenceId = null;
 let currentRequestType = 'correct';
+let defaultPack = [];
+let contracts = [];
+
+const defaultPackGrid = document.getElementById('defaultPackGrid');
+const defaultPackEmpty = document.getElementById('defaultPackEmpty');
+const defaultPackStatus = document.getElementById('defaultPackStatus');
+const refreshDefaultsBtn = document.getElementById('refreshDefaults');
+
+const contractList = document.getElementById('contractList');
+const contractEmpty = document.getElementById('contractEmpty');
+const contractStatus = document.getElementById('contractStatus');
+const contractModal = document.getElementById('contractModal');
+const contractForm = document.getElementById('contractForm');
+const btnNewContract = document.getElementById('btnNewContract');
+
+function templateLabel(t){
+  return t?.heading || t?.name || '(no heading)';
+}
+
+function snippet(text, limit = 180){
+  const value = (text || '').replace(/\s+/g, ' ').trim();
+  if(!value) return '';
+  return value.length > limit ? `${value.slice(0, limit).trim()}…` : value;
+}
+
+function normalizeTemplateShape(t){
+  if(!t) return null;
+  return {
+    id: t.id,
+    heading: t.heading || t.name || '',
+    intro: t.intro || '',
+    ask: t.ask || '',
+    afterIssues: t.afterIssues || '',
+    evidence: t.evidence || '',
+    requestType: t.requestType || 'correct'
+  };
+}
+
+function normalizeContractShape(contract){
+  if(!contract) return null;
+  return {
+    ...contract,
+    english: contract.english || contract.body || '',
+    spanish: contract.spanish || ''
+  };
+}
+
+function showStatus(el, message, tone = 'success'){
+  if(!el) return;
+  el.textContent = message;
+  el.classList.remove('hidden');
+  if(tone === 'error'){
+    el.classList.remove('bg-emerald-100','text-emerald-700');
+    el.classList.add('bg-rose-100','text-rose-700');
+  } else {
+    el.classList.remove('bg-rose-100','text-rose-700');
+    el.classList.add('bg-emerald-100','text-emerald-700');
+  }
+  window.setTimeout(()=>{ el.classList.add('hidden'); }, 4000);
+}
+
+function renderDefaultPack(){
+  if(!defaultPackGrid) return;
+  defaultPackGrid.innerHTML = '';
+  const normalized = defaultPack.map(normalizeTemplateShape).filter(Boolean);
+  if(!normalized.length){
+    if(defaultPackEmpty) defaultPackEmpty.classList.remove('hidden');
+    return;
+  }
+  if(defaultPackEmpty) defaultPackEmpty.classList.add('hidden');
+  const sortedOptions = [...templates.map(normalizeTemplateShape).filter(Boolean)].sort((a,b)=> templateLabel(a).localeCompare(templateLabel(b)));
+  normalized.forEach((tpl, idx)=>{
+    const card = document.createElement('article');
+    card.className = 'glass card space-y-2 bg-white/70 shadow-sm';
+    const header = document.createElement('div');
+    header.className = 'flex items-center justify-between gap-2';
+    const title = document.createElement('h3');
+    title.className = 'text-sm font-semibold text-slate-700';
+    title.textContent = `${idx+1}. ${templateLabel(tpl)}`;
+    const badge = document.createElement('span');
+    badge.className = 'chip text-[10px] uppercase tracking-wide';
+    badge.textContent = tpl.requestType === 'delete' ? 'Delete' : 'Correct';
+    header.appendChild(title);
+    header.appendChild(badge);
+
+    const body = document.createElement('p');
+    body.className = 'text-xs text-slate-500';
+    body.textContent = snippet(tpl.intro || tpl.ask || tpl.afterIssues, 160) || 'Draft ready for copy.';
+
+    const selectWrapper = document.createElement('div');
+    selectWrapper.className = 'flex flex-col gap-1';
+    const label = document.createElement('label');
+    label.className = 'text-[11px] uppercase text-slate-400';
+    label.textContent = 'Swap Template / Cambiar plantilla';
+    const select = document.createElement('select');
+    select.className = 'input text-sm';
+    sortedOptions.forEach(option => {
+      const opt = document.createElement('option');
+      opt.value = option.id;
+      opt.textContent = templateLabel(option);
+      if(option.id === tpl.id) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', async (event)=>{
+      const newId = event.target.value;
+      if(!newId || newId === tpl.id) return;
+      event.target.disabled = true;
+      try{
+        const res = await fetch('/api/templates/defaults', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slotId: tpl.id, templateId: newId })
+        });
+        const data = await res.json().catch(()=>({}));
+        if(!data.ok){
+          throw new Error(data.error || 'Failed to update default pack.');
+        }
+        defaultPack = data.templates || [];
+        renderDefaultPack();
+        showStatus(defaultPackStatus, 'Default pack updated • Pack actualizado');
+      } catch(err){
+        window.alert(err.message || String(err));
+        event.target.value = tpl.id;
+        showStatus(defaultPackStatus, err.message || 'Update failed', 'error');
+      } finally {
+        event.target.disabled = false;
+      }
+    });
+    selectWrapper.appendChild(label);
+    selectWrapper.appendChild(select);
+
+    card.appendChild(header);
+    card.appendChild(body);
+    card.appendChild(selectWrapper);
+    defaultPackGrid.appendChild(card);
+  });
+}
+
+async function loadDefaultPack(){
+  if(!defaultPackGrid) return;
+  try{
+    const res = await fetch('/api/templates/defaults');
+    const data = await res.json().catch(()=>({}));
+    defaultPack = data.templates || [];
+    renderDefaultPack();
+  } catch(err){
+    showStatus(defaultPackStatus, err.message || 'Unable to load default pack', 'error');
+  }
+}
+
+function renderContracts(){
+  if(!contractList) return;
+  contractList.innerHTML = '';
+  const items = contracts.map(normalizeContractShape).filter(Boolean);
+  if(!items.length){
+    if(contractEmpty) contractEmpty.classList.remove('hidden');
+    return;
+  }
+  if(contractEmpty) contractEmpty.classList.add('hidden');
+  items.forEach(contract => {
+    const li = document.createElement('li');
+    li.className = 'glass card space-y-2 bg-white/80 p-4 shadow-sm';
+    const header = document.createElement('div');
+    header.className = 'flex flex-wrap items-center justify-between gap-2';
+    const title = document.createElement('h3');
+    title.className = 'text-sm font-semibold text-slate-700';
+    title.textContent = contract.name || 'Contract';
+    const badge = document.createElement('span');
+    badge.className = 'chip text-[10px] uppercase tracking-wide';
+    badge.textContent = 'EN / ES';
+    header.appendChild(title);
+    header.appendChild(badge);
+
+    const english = document.createElement('p');
+    english.className = 'text-xs text-slate-600 whitespace-pre-wrap';
+    english.textContent = snippet(contract.english, 260) || '—';
+
+    const spanish = document.createElement('p');
+    spanish.className = 'text-xs text-slate-500 whitespace-pre-wrap';
+    spanish.textContent = snippet(contract.spanish, 260) || 'Añade versión en español para cerrar más ventas.';
+
+    const actions = document.createElement('div');
+    actions.className = 'flex flex-wrap items-center gap-2 text-xs';
+    const copyEn = document.createElement('button');
+    copyEn.type = 'button';
+    copyEn.className = 'btn text-xs';
+    copyEn.textContent = 'Copy EN';
+    copyEn.addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(contract.english || '');
+        showStatus(contractStatus, 'Copied English contract • Copiado EN');
+      } catch(err){
+        showStatus(contractStatus, 'Clipboard blocked', 'error');
+      }
+    });
+    const copyEs = document.createElement('button');
+    copyEs.type = 'button';
+    copyEs.className = 'btn text-xs';
+    copyEs.textContent = 'Copy ES';
+    copyEs.addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(contract.spanish || '');
+        showStatus(contractStatus, 'Copied Spanish contract • Copiado ES');
+      } catch(err){
+        showStatus(contractStatus, 'Clipboard blocked', 'error');
+      }
+    });
+    actions.appendChild(copyEn);
+    actions.appendChild(copyEs);
+
+    li.appendChild(header);
+    li.appendChild(english);
+    li.appendChild(spanish);
+    li.appendChild(actions);
+    contractList.appendChild(li);
+  });
+}
+
+function openContractModal(){
+  if(!contractModal) return;
+  contractModal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeContractModal(){
+  if(!contractModal) return;
+  contractModal.style.display = 'none';
+  document.body.style.overflow = '';
+  if(contractForm) contractForm.reset();
+}
+
+async function handleContractSubmit(event){
+  event.preventDefault();
+  if(!contractForm) return;
+  const formData = new FormData(contractForm);
+  const payload = {
+    name: formData.get('name')?.toString().trim() || '',
+    english: formData.get('english')?.toString().trim() || '',
+    spanish: formData.get('spanish')?.toString().trim() || ''
+  };
+  if(!payload.name || !payload.english){
+    showStatus(contractStatus, 'Name and English body required • Completa nombre y versión EN', 'error');
+    return;
+  }
+  try{
+    const res = await fetch('/api/contracts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!data.ok){
+      throw new Error(data.error || 'Failed to save contract');
+    }
+    contracts.unshift(data.contract);
+    renderContracts();
+    showStatus(contractStatus, 'Contract saved • Contrato guardado');
+    closeContractModal();
+  } catch(err){
+    showStatus(contractStatus, err.message || 'Failed to save contract', 'error');
+  }
+}
 
 async function loadLibrary(){
   const res = await fetch('/api/templates');
   const data = await res.json().catch(()=>({}));
   templates = data.templates || [];
+  contracts = data.contracts || [];
   const sampleRes = await fetch('/api/sample-letters');
   const sampleData = await sampleRes.json().catch(()=>({}));
   const sampleTemplates = (sampleData.templates || []).map(t => ({
@@ -26,6 +289,8 @@ async function loadLibrary(){
   sequences = data.sequences || [];
   renderTemplates();
   renderSequences();
+  renderContracts();
+  loadDefaultPack();
 }
 
 function renderList(items, containerId, clickHandler){
@@ -48,6 +313,7 @@ function renderList(items, containerId, clickHandler){
 
 function renderTemplates(){
   renderList(templates, 'templateList', editTemplate);
+  renderDefaultPack();
 }
 
 function showTemplateEditor(){
@@ -66,6 +332,10 @@ function hideTemplateEditor(){
     if(el) el.value = '';
   });
   currentRequestType = 'correct';
+  const typeSelect = document.getElementById('tplType');
+  if(typeSelect){
+    typeSelect.value = currentRequestType;
+  }
   updatePreview();
 }
 
@@ -75,6 +345,10 @@ function editTemplate(id){
   showTemplateEditor();
   document.getElementById('tplHeading').value = tpl.heading || '';
   currentRequestType = tpl.requestType || 'correct';
+  const typeSelect = document.getElementById('tplType');
+  if(typeSelect){
+    typeSelect.value = currentRequestType;
+  }
   document.getElementById('tplIntro').value = tpl.intro || '';
   document.getElementById('tplAsk').value = tpl.ask || '';
   document.getElementById('tplAfter').value = tpl.afterIssues || '';
@@ -90,6 +364,10 @@ function openTemplateEditor(){
     if(el) el.value='';
   });
   currentRequestType = 'correct';
+  const typeSelect = document.getElementById('tplType');
+  if(typeSelect){
+    typeSelect.value = currentRequestType;
+  }
   updatePreview();
 }
 
@@ -216,6 +494,29 @@ if(templateModal){
   templateModal.addEventListener('click', e => {
     if(e.target.id === 'templateModal') hideTemplateEditor();
   });
+}
+
+const tplTypeSelect = document.getElementById('tplType');
+if(tplTypeSelect){
+  tplTypeSelect.addEventListener('change', e => {
+    currentRequestType = e.target.value || 'correct';
+  });
+}
+
+if(btnNewContract){
+  btnNewContract.addEventListener('click', openContractModal);
+}
+if(contractForm){
+  contractForm.addEventListener('submit', handleContractSubmit);
+}
+document.querySelectorAll('[data-close-contract]').forEach(btn => btn.addEventListener('click', closeContractModal));
+if(contractModal){
+  contractModal.addEventListener('click', e => {
+    if(e.target.id === 'contractModal') closeContractModal();
+  });
+}
+if(refreshDefaultsBtn){
+  refreshDefaultsBtn.addEventListener('click', () => loadDefaultPack());
 }
 
 ['tplHeading','tplIntro','tplAsk','tplAfter','tplEvidence'].forEach(id => {

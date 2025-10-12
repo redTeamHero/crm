@@ -1508,17 +1508,32 @@ app.post("/api/templates/defaults", async (req,res)=>{
   const templates = db.mainTemplates.map(id => map[id]).filter(Boolean);
   res.json({ ok:true, templates });
 });
+function normalizeContract(contract){
+  if(!contract) return null;
+  const english = typeof contract.english === "string" && contract.english.trim().length
+    ? contract.english
+    : contract.body || "";
+  const spanish = typeof contract.spanish === "string" ? contract.spanish : "";
+  return {
+    ...contract,
+    english,
+    spanish,
+    body: contract.body ?? english
+  };
+}
+
 app.get("/api/templates", async (_req,res)=>{
   const db = await loadLettersDB();
   if(!db.templates || db.templates.length === 0){
     db.templates = defaultTemplates();
     await saveLettersDB(db);
   }
+  const contracts = (db.contracts || []).map(normalizeContract).filter(Boolean);
   res.json({
     ok: true,
     templates: db.templates,
     sequences: db.sequences || [],
-    contracts: db.contracts || []
+    contracts
   });
 });
 
@@ -1552,7 +1567,21 @@ app.post("/api/sequences", async (req,res)=>{
 
 app.post("/api/contracts", async (req,res)=>{
   const db = await loadLettersDB();
-  const ct = { id: nanoid(8), name: req.body.name || "", body: req.body.body || "" };
+  const name = (req.body?.name || "").trim();
+  const english = (req.body?.english || req.body?.body || "").trim();
+  const spanish = (req.body?.spanish || "").trim();
+  if(!name){
+    return res.status(400).json({ ok:false, error:"name required" });
+  }
+  if(!english){
+    return res.status(400).json({ ok:false, error:"english body required" });
+  }
+  const ct = normalizeContract({
+    id: nanoid(8),
+    name,
+    english,
+    spanish,
+  });
   db.contracts = db.contracts || [];
   db.contracts.push(ct);
   await saveLettersDB(db);

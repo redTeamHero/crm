@@ -18,6 +18,24 @@ const testStatus = document.getElementById("testStatus");
 const refreshQueueBtn = document.getElementById("refreshQueueBtn");
 const testQueueList = document.getElementById("testQueueList");
 const providerStatusList = document.getElementById("providerStatusList");
+const providerStatusStatus = document.getElementById("providerStatusStatus");
+
+const smsTemplateForm = document.getElementById("smsTemplateForm");
+const smsTemplateList = document.getElementById("smsTemplateList");
+const smsTemplateStatus = document.getElementById("smsTemplateStatus");
+
+const emailSequenceForm = document.getElementById("emailSequenceForm");
+const emailSequenceList = document.getElementById("emailSequenceList");
+const emailSequenceStatus = document.getElementById("emailSequenceStatus");
+const addSequenceStepBtn = document.getElementById("addSequenceStep");
+const sequenceStepsContainer = document.getElementById("sequenceSteps");
+
+const dispatchForm = document.getElementById("dispatchForm");
+const dispatchStatus = document.getElementById("dispatchStatus");
+const dispatchList = document.getElementById("dispatchList");
+const dispatchTypeSelect = document.getElementById("dispatchType");
+const dispatchTargetSelect = document.getElementById("dispatchTarget");
+const dispatchFrequencySelect = document.getElementById("dispatchFrequency");
 
 const btnAddTemplate = document.getElementById("btnAddTemplate");
 const templateGrid = document.getElementById("emailTemplateGrid");
@@ -48,6 +66,10 @@ let templateCache = [];
 let lastQueueItems = [];
 let lastProviders = [];
 let queueRefreshTimer = null;
+let smsTemplateCache = [];
+let emailSequenceCache = [];
+let dispatchCache = [];
+let sequenceStepIndex = 0;
 
 function t(key, fallback = "") {
   return getTranslation(key, getCurrentLanguage()) || fallback;
@@ -103,6 +125,22 @@ async function marketingRequest(path, options = {}) {
   return response;
 }
 
+function showInlineStatus(el, message, tone = "success") {
+  if (!el) return;
+  el.textContent = message;
+  el.classList.remove("hidden");
+  if (tone === "error") {
+    el.classList.remove("bg-emerald-100", "text-emerald-700");
+    el.classList.add("bg-rose-100", "text-rose-700");
+  } else {
+    el.classList.remove("bg-rose-100", "text-rose-700");
+    el.classList.add("bg-emerald-100", "text-emerald-700");
+  }
+  window.setTimeout(() => {
+    el.classList.add("hidden");
+  }, 4000);
+}
+
 async function fetchTemplates() {
   const res = await marketingRequest("/templates");
   return res.templates || [];
@@ -114,6 +152,45 @@ async function createTemplateApi(template) {
     body: JSON.stringify(template),
   });
   return res.template;
+}
+
+async function fetchSmsTemplatesApi() {
+  const res = await marketingRequest("/sms-templates");
+  return res.templates || [];
+}
+
+async function createSmsTemplateApi(template) {
+  const res = await marketingRequest("/sms-templates", {
+    method: "POST",
+    body: JSON.stringify(template),
+  });
+  return res.template;
+}
+
+async function fetchEmailSequencesApi() {
+  const res = await marketingRequest("/email/sequences");
+  return res.sequences || [];
+}
+
+async function createEmailSequenceApi(sequence) {
+  const res = await marketingRequest("/email/sequences", {
+    method: "POST",
+    body: JSON.stringify(sequence),
+  });
+  return res.sequence;
+}
+
+async function fetchEmailDispatches(limit = 10) {
+  const res = await marketingRequest(`/email/dispatches?limit=${limit}`);
+  return res.items || [];
+}
+
+async function scheduleEmailDispatchApi(dispatch) {
+  const res = await marketingRequest("/email/dispatches", {
+    method: "POST",
+    body: JSON.stringify(dispatch),
+  });
+  return res.item;
 }
 
 async function fetchTestQueue(limit = DEFAULT_QUEUE_LIMIT) {
@@ -132,6 +209,14 @@ async function queueTestSend(payload) {
 async function fetchProviders() {
   const res = await marketingRequest("/providers");
   return res.providers || [];
+}
+
+async function updateProviderApi(id, payload) {
+  const res = await marketingRequest(`/providers/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.provider;
 }
 
 function buildTemplateCard(template) {
@@ -205,6 +290,246 @@ function renderTemplates() {
     templateGrid.appendChild(buildTemplateCard(tpl));
   }
   filterTemplates();
+  refreshStepTemplateOptions();
+  syncDispatchTargets();
+}
+
+function renderSmsTemplates() {
+  if (!smsTemplateList) return;
+  smsTemplateList.innerHTML = "";
+  if (!smsTemplateCache.length) {
+    const li = document.createElement("li");
+    li.className = "rounded-lg border border-dashed border-slate-300 bg-white/60 p-3 text-xs text-slate-500";
+    li.textContent = "Save your first SMS template to unlock automations.";
+    smsTemplateList.appendChild(li);
+    return;
+  }
+  smsTemplateCache.forEach((tpl) => {
+    const li = document.createElement("li");
+    li.className = "rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm";
+    const header = document.createElement("div");
+    header.className = "flex items-center justify-between text-sm font-semibold text-slate-700";
+    header.textContent = tpl.title;
+    const badge = document.createElement("span");
+    badge.className = "chip text-xs";
+    badge.textContent = (tpl.segment || "b2c").toUpperCase();
+    header.appendChild(badge);
+
+    const body = document.createElement("p");
+    body.className = "mt-2 text-xs text-slate-600 whitespace-pre-wrap";
+    body.textContent = tpl.body;
+
+    const footer = document.createElement("div");
+    footer.className = "mt-3 flex items-center justify-between text-[10px] uppercase text-slate-400";
+    const timestamp = document.createElement("span");
+    timestamp.textContent = tpl.createdAt ? new Date(tpl.createdAt).toLocaleString() : "Draft";
+    const copyBtn = document.createElement("button");
+    copyBtn.type = "button";
+    copyBtn.className = "btn text-xs";
+    copyBtn.textContent = "Copy";
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(tpl.body || "");
+        showInlineStatus(smsTemplateStatus, "SMS template copied • Plantilla copiada");
+      } catch (error) {
+        showInlineStatus(smsTemplateStatus, error.message || "Clipboard blocked", "error");
+      }
+    });
+    footer.appendChild(timestamp);
+    footer.appendChild(copyBtn);
+
+    li.appendChild(header);
+    li.appendChild(body);
+    li.appendChild(footer);
+    smsTemplateList.appendChild(li);
+  });
+}
+
+function renderEmailSequences() {
+  if (!emailSequenceList) return;
+  emailSequenceList.innerHTML = "";
+  if (!emailSequenceCache.length) {
+    const li = document.createElement("li");
+    li.className = "rounded-lg border border-dashed border-slate-300 bg-white/60 p-3 text-xs text-slate-500";
+    li.textContent = "Map your first nurture flow to start monetizing follow-ups.";
+    emailSequenceList.appendChild(li);
+    return;
+  }
+  emailSequenceCache.forEach((sequence) => {
+    const li = document.createElement("li");
+    li.className = "rounded-lg border border-slate-200 bg-white/80 p-4 shadow-sm space-y-2";
+    const header = document.createElement("div");
+    header.className = "flex items-center justify-between text-sm font-semibold text-slate-700";
+    header.textContent = sequence.title || "Sequence";
+    const badge = document.createElement("span");
+    badge.className = "chip text-xs";
+    badge.textContent = (sequence.segment || "b2c").toUpperCase();
+    header.appendChild(badge);
+
+    const description = document.createElement("p");
+    description.className = "text-xs text-slate-500";
+    description.textContent = sequence.description || "Outline compliance touchpoints and CTAs.";
+
+    const stepsList = document.createElement("ol");
+    stepsList.className = "list-decimal list-inside space-y-1 text-xs text-slate-600";
+    (sequence.steps || []).forEach((step, index) => {
+      const item = document.createElement("li");
+      const subject = step.subject || `Step ${index + 1}`;
+      const delay = Number.isFinite(step.delayDays) ? `${step.delayDays}d` : "0d";
+      const tpl = step.templateId ? ` • Template: ${step.templateId}` : "";
+      item.textContent = `${subject} (${delay})${tpl}`;
+      stepsList.appendChild(item);
+    });
+
+    li.appendChild(header);
+    li.appendChild(description);
+    if (stepsList.childElementCount) li.appendChild(stepsList);
+    emailSequenceList.appendChild(li);
+  });
+}
+
+function renderDispatches() {
+  if (!dispatchList) return;
+  dispatchList.innerHTML = "";
+  if (!dispatchCache.length) {
+    const li = document.createElement("li");
+    li.className = "rounded-lg border border-dashed border-slate-300 bg-white/60 p-3 text-xs text-slate-500";
+    li.textContent = "No dispatches scheduled yet. Program your first drop.";
+    dispatchList.appendChild(li);
+    return;
+  }
+  dispatchCache.forEach((item) => {
+    const li = document.createElement("li");
+    li.className = "rounded-lg border border-slate-200 bg-white/80 p-4 shadow-sm space-y-2";
+    const header = document.createElement("div");
+    header.className = "flex items-center justify-between text-sm font-semibold text-slate-700";
+    header.textContent = `${item.targetType?.toUpperCase() || "TEMPLATE"} → ${item.targetId}`;
+    const badge = document.createElement("span");
+    badge.className = "chip text-xs";
+    badge.textContent = (item.segment || "b2c").toUpperCase();
+    header.appendChild(badge);
+
+    const meta = document.createElement("p");
+    meta.className = "text-xs text-slate-500";
+    const scheduled = item.scheduledFor ? new Date(item.scheduledFor).toLocaleString() : "Immediate";
+    meta.textContent = `Frequency: ${item.frequency || "immediate"} • Scheduled: ${scheduled}`;
+
+    if (item.notes) {
+      const notes = document.createElement("p");
+      notes.className = "text-xs text-slate-500";
+      notes.textContent = item.notes;
+      li.appendChild(notes);
+    }
+
+    li.appendChild(header);
+    li.appendChild(meta);
+    dispatchList.appendChild(li);
+  });
+}
+
+function populateStepTemplateOptions(select, selectedValue = "") {
+  if (!select) return;
+  const previous = selectedValue || select.value || "";
+  select.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "-- Select email template --";
+  select.appendChild(placeholder);
+  templateCache.forEach((tpl) => {
+    const option = document.createElement("option");
+    option.value = tpl.id;
+    option.textContent = tpl.title || tpl.name || tpl.id;
+    select.appendChild(option);
+  });
+  if (previous) {
+    select.value = previous;
+  }
+}
+
+function refreshStepTemplateOptions() {
+  if (!sequenceStepsContainer) return;
+  sequenceStepsContainer
+    .querySelectorAll("select[name='stepTemplate']")
+    .forEach((select) => populateStepTemplateOptions(select));
+}
+
+function createSequenceStepRow(initial = {}) {
+  if (!sequenceStepsContainer) return;
+  sequenceStepIndex += 1;
+  const row = document.createElement("div");
+  row.className =
+    "sequence-step grid gap-2 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto] items-end";
+  row.dataset.stepId = `step-${sequenceStepIndex}`;
+
+  const subjectInput = document.createElement("input");
+  subjectInput.name = "stepSubject";
+  subjectInput.className = "input text-sm";
+  subjectInput.placeholder = "Subject / Asunto";
+  subjectInput.value = initial.subject || "";
+
+  const delayInput = document.createElement("input");
+  delayInput.name = "stepDelay";
+  delayInput.type = "number";
+  delayInput.min = "0";
+  delayInput.className = "input text-sm";
+  delayInput.value = Number.isFinite(initial.delayDays) ? String(initial.delayDays) : "0";
+
+  const templateSelect = document.createElement("select");
+  templateSelect.name = "stepTemplate";
+  templateSelect.className = "input text-sm";
+  populateStepTemplateOptions(templateSelect, initial.templateId || "");
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "btn text-xs";
+  removeBtn.textContent = "✕";
+  removeBtn.addEventListener("click", () => {
+    row.remove();
+  });
+
+  row.appendChild(subjectInput);
+  row.appendChild(delayInput);
+  row.appendChild(templateSelect);
+  row.appendChild(removeBtn);
+  sequenceStepsContainer.appendChild(row);
+}
+
+function gatherSequenceSteps() {
+  if (!sequenceStepsContainer) return [];
+  return Array.from(sequenceStepsContainer.querySelectorAll(".sequence-step")).map((row) => {
+    const subject = row.querySelector("input[name='stepSubject']")?.value?.trim() || "";
+    const delayDays = Number(row.querySelector("input[name='stepDelay']")?.value || 0);
+    const templateId = row.querySelector("select[name='stepTemplate']")?.value || "";
+    const payload = { subject, delayDays };
+    if (templateId) payload.templateId = templateId;
+    return payload;
+  });
+}
+
+function syncDispatchTargets() {
+  if (!dispatchTargetSelect) return;
+  const type = dispatchTypeSelect?.value === "sequence" ? "sequence" : "template";
+  const source = type === "sequence" ? emailSequenceCache : templateCache;
+  dispatchTargetSelect.innerHTML = "";
+  if (!source.length) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = type === "sequence" ? "Add sequences first" : "Add templates first";
+    dispatchTargetSelect.appendChild(opt);
+    dispatchTargetSelect.disabled = true;
+    return;
+  }
+  dispatchTargetSelect.disabled = false;
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Select asset";
+  dispatchTargetSelect.appendChild(placeholder);
+  source.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = item.title || item.heading || item.name || item.id;
+    dispatchTargetSelect.appendChild(option);
+  });
 }
 
 function filterTemplates() {
@@ -298,6 +623,7 @@ function renderProviders(providers) {
   if (!providerStatusList) return;
   lastProviders = providers;
   providerStatusList.innerHTML = "";
+  if (providerStatusStatus) providerStatusStatus.classList.add("hidden");
   if (!providers.length) {
     const li = document.createElement("li");
     li.className = "rounded-lg border border-dashed border-slate-300 bg-white/50 p-3";
@@ -352,6 +678,53 @@ function renderProviders(providers) {
       );
       li.appendChild(stamp);
     }
+
+    const controls = document.createElement("div");
+    controls.className = "mt-3 flex flex-wrap items-center gap-2 text-xs";
+
+    const statusSelect = document.createElement("select");
+    statusSelect.className = "input text-xs py-1 px-2";
+    [
+      ["ready", "Ready / Listo"],
+      ["pending", "Pending"],
+      ["error", "Check"],
+    ].forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      statusSelect.appendChild(option);
+    });
+    statusSelect.value = provider.status || "pending";
+    statusSelect.addEventListener("change", async (event) => {
+      try {
+        await updateProviderApi(provider.id, { status: event.target.value });
+        showInlineStatus(providerStatusStatus, "Provider status updated • Proveedor actualizado");
+        refreshProviders();
+      } catch (error) {
+        showInlineStatus(providerStatusStatus, error.message || "Failed to update provider", "error");
+        statusSelect.value = provider.status || "pending";
+      }
+    });
+
+    const notesBtn = document.createElement("button");
+    notesBtn.type = "button";
+    notesBtn.className = "btn text-xs";
+    notesBtn.textContent = "Update Notes";
+    notesBtn.addEventListener("click", async () => {
+      const next = window.prompt("Provider notes / Notas", provider.notes || "");
+      if (next === null) return;
+      try {
+        await updateProviderApi(provider.id, { notes: next });
+        showInlineStatus(providerStatusStatus, "Notes saved • Notas guardadas");
+        refreshProviders();
+      } catch (error) {
+        showInlineStatus(providerStatusStatus, error.message || "Failed to save notes", "error");
+      }
+    });
+
+    controls.appendChild(statusSelect);
+    controls.appendChild(notesBtn);
+    li.appendChild(controls);
     providerStatusList.appendChild(li);
   });
 }
@@ -407,6 +780,37 @@ async function hydrateTemplates() {
   }
 }
 
+async function hydrateSmsTemplates() {
+  if (!smsTemplateList) return;
+  try {
+    smsTemplateCache = await fetchSmsTemplatesApi();
+    renderSmsTemplates();
+  } catch (error) {
+    showInlineStatus(smsTemplateStatus, error.message || "Failed to load SMS templates", "error");
+  }
+}
+
+async function hydrateEmailSequences() {
+  if (!emailSequenceList) return;
+  try {
+    emailSequenceCache = await fetchEmailSequencesApi();
+    renderEmailSequences();
+    syncDispatchTargets();
+  } catch (error) {
+    showInlineStatus(emailSequenceStatus, error.message || "Failed to load sequences", "error");
+  }
+}
+
+async function hydrateDispatches() {
+  if (!dispatchList) return;
+  try {
+    dispatchCache = await fetchEmailDispatches();
+    renderDispatches();
+  } catch (error) {
+    showInlineStatus(dispatchStatus, error.message || "Failed to load dispatches", "error");
+  }
+}
+
 async function refreshTestQueue({ silent = false } = {}) {
   if (!testQueueList) return;
   if (!silent) {
@@ -434,6 +838,7 @@ async function refreshProviders() {
     li.className = "rounded-lg border border-rose-200 bg-rose-50 p-3 text-rose-600";
     li.textContent = `${t("marketing.providers.errorPrefix", "Provider API error: ")}${error.message}`;
     providerStatusList.appendChild(li);
+    showInlineStatus(providerStatusStatus, error.message || "Provider API error", "error");
   }
 }
 
@@ -606,6 +1011,115 @@ function bindRefreshControls() {
   }
 }
 
+function bindAutomationControls() {
+  if (addSequenceStepBtn && sequenceStepsContainer) {
+    addSequenceStepBtn.addEventListener("click", () => createSequenceStepRow());
+  }
+  if (sequenceStepsContainer && !sequenceStepsContainer.childElementCount) {
+    createSequenceStepRow();
+  }
+
+  if (smsTemplateForm) {
+    smsTemplateForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(smsTemplateForm);
+      const payload = {
+        title: formData.get("title")?.toString().trim() || "",
+        segment: formData.get("segment")?.toString().trim() || "b2c",
+        body: formData.get("body")?.toString().trim() || "",
+      };
+      if (!payload.title || !payload.body) {
+        showInlineStatus(smsTemplateStatus, "Title and body required • Completa título y mensaje", "error");
+        return;
+      }
+      try {
+        const template = await createSmsTemplateApi(payload);
+        smsTemplateCache = [template, ...smsTemplateCache];
+        renderSmsTemplates();
+        showInlineStatus(smsTemplateStatus, "SMS template saved • Plantilla guardada");
+        smsTemplateForm.reset();
+      } catch (error) {
+        showInlineStatus(smsTemplateStatus, error.message || "Failed to save SMS template", "error");
+      }
+    });
+  }
+
+  if (emailSequenceForm) {
+    emailSequenceForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(emailSequenceForm);
+      const steps = gatherSequenceSteps().filter((step) => step.subject || step.templateId);
+      if (!steps.length) {
+        showInlineStatus(emailSequenceStatus, "Add at least one step • Agrega un paso", "error");
+        return;
+      }
+      const payload = {
+        title: formData.get("title")?.toString().trim() || "",
+        description: formData.get("description")?.toString().trim() || "",
+        segment: formData.get("segment")?.toString().trim() || "b2c",
+        frequency: formData.get("frequency")?.toString().trim() || "daily",
+        steps,
+      };
+      if (!payload.title) {
+        showInlineStatus(emailSequenceStatus, "Name required • Nombre requerido", "error");
+        return;
+      }
+      try {
+        const sequence = await createEmailSequenceApi(payload);
+        emailSequenceCache = [sequence, ...emailSequenceCache.filter((s) => s.id !== sequence.id)];
+        renderEmailSequences();
+        syncDispatchTargets();
+        showInlineStatus(emailSequenceStatus, "Sequence saved • Secuencia guardada");
+        emailSequenceForm.reset();
+        if (sequenceStepsContainer) {
+          sequenceStepsContainer.innerHTML = "";
+          createSequenceStepRow();
+        }
+      } catch (error) {
+        showInlineStatus(emailSequenceStatus, error.message || "Failed to save sequence", "error");
+      }
+    });
+  }
+
+  if (dispatchForm) {
+    dispatchForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(dispatchForm);
+      const targetId = formData.get("targetId")?.toString().trim() || "";
+      if (!targetId) {
+        showInlineStatus(dispatchStatus, "Select template or sequence • Selecciona un asset", "error");
+        return;
+      }
+      const scheduledForRaw = formData.get("scheduledFor")?.toString().trim();
+      const scheduledFor = scheduledForRaw ? new Date(scheduledForRaw) : null;
+      const payload = {
+        targetType: formData.get("targetType")?.toString().trim() || "template",
+        targetId,
+        frequency: formData.get("frequency")?.toString().trim() || "immediate",
+        segment: formData.get("segment")?.toString().trim() || "b2c",
+        scheduledFor: scheduledFor && !Number.isNaN(scheduledFor.valueOf()) ? scheduledFor.toISOString() : undefined,
+        audienceCount: formData.get("audienceCount") ? Number(formData.get("audienceCount")) : undefined,
+        notes: formData.get("notes")?.toString().trim() || "",
+      };
+      try {
+        const item = await scheduleEmailDispatchApi(payload);
+        dispatchCache = [item, ...dispatchCache];
+        renderDispatches();
+        showInlineStatus(dispatchStatus, "Dispatch queued • Envío programado");
+        dispatchForm.reset();
+        syncDispatchTargets();
+      } catch (error) {
+        showInlineStatus(dispatchStatus, error.message || "Failed to schedule", "error");
+      }
+    });
+  }
+
+  if (dispatchTypeSelect) {
+    dispatchTypeSelect.addEventListener("change", () => syncDispatchTargets());
+  }
+  syncDispatchTargets();
+}
+
 function initCampaignStatusStyles() {
   const campaignList = document.getElementById("campaignList");
   if (!campaignList) return;
@@ -628,6 +1142,9 @@ function initLanguageSync() {
     renderTemplates();
     renderTestQueue(lastQueueItems);
     renderProviders(lastProviders);
+    renderSmsTemplates();
+    renderEmailSequences();
+    renderDispatches();
     updateSmsPreview();
   });
 }
@@ -637,10 +1154,14 @@ bindTestModal();
 bindTemplateControls();
 bindExperimentControls();
 bindRefreshControls();
+bindAutomationControls();
 initCampaignStatusStyles();
 initLanguageSync();
 
 hydrateTemplates();
+hydrateSmsTemplates();
+hydrateEmailSequences();
+hydrateDispatches();
 refreshTestQueue();
 refreshProviders();
 autoRefreshQueue();
