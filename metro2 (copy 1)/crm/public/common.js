@@ -744,18 +744,40 @@ function initPalette(){
     .map(([name, t]) => `<div class="bubble" data-theme="${name}" style="background:${t.accent}"></div>`)
     .join('');
   wrap.innerHTML = `
-    <button class="toggle">◀</button>
-    <div class="palette-controls">
-      <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
+    <button class="toggle" type="button" aria-expanded="false">
+      <span class="toggle-icon" aria-hidden="true">🎨</span>
+      <span class="toggle-label">Theme</span>
+    </button>
+    <div class="palette-controls" aria-hidden="true">
+      <label class="palette-field">
+        <span class="palette-field-label">Glass opacity / Opacidad</span>
+        <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
+      </label>
       <div class="palette-bubbles">${bubbles}</div>
     </div>
-    <button id="voiceMic" class="mic">🎤</button>`;
+    <button id="voiceMic" class="mic" type="button" aria-label="Toggle voice notes">🎤</button>`;
   document.body.appendChild(wrap);
   const toggle = wrap.querySelector('.toggle');
+  const controls = wrap.querySelector('.palette-controls');
+  const mic = wrap.querySelector('#voiceMic');
+  const icon = toggle.querySelector('.toggle-icon');
+  const label = toggle.querySelector('.toggle-label');
+  const syncState = () => {
+    const isCollapsed = wrap.classList.contains('collapsed');
+    toggle.setAttribute('aria-expanded', String(!isCollapsed));
+    controls?.setAttribute('aria-hidden', String(isCollapsed));
+    if (mic) {
+      mic.setAttribute('aria-hidden', String(isCollapsed));
+      mic.tabIndex = isCollapsed ? -1 : 0;
+    }
+    if (label) label.textContent = isCollapsed ? 'Theme' : 'Hide';
+    if (icon) icon.textContent = isCollapsed ? '🎨' : '✕';
+  };
   toggle.addEventListener('click', ()=>{
     wrap.classList.toggle('collapsed');
-    toggle.textContent = wrap.classList.contains('collapsed') ? '◀' : '▶';
+    syncState();
   });
+  syncState();
   wrap.addEventListener('click', (e)=>{
     const b = e.target.closest('.bubble');
     if(!b) return;
