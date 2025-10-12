@@ -126,13 +126,13 @@ TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
 curl -X POST http://localhost:3000/api/marketing/tests \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"channel":"sms","recipient":"+15125550199","smsPreview":"Hola {{first_name}}, tu auditoría está lista."}'
+  -d '{"channel":"sms","recipient":"+15125550199","smsPreview":"Hey {{first_name}}, your audit is ready."}'
 ```
 
 ## Metrics / AB Ideas
 - Track SMS reply %, Email open→consult %, Average Consult Value — surface in dashboard once Twilio/SendGrid webhooks flow in.
 - A/B ideas:
-  1. CTA copy “Book Strategy Call” vs “Comienza tu auditoría” inside SMS templates.
+1. CTA copy “Book Strategy Call” vs “Start your audit” inside SMS templates.
   2. Email hero variant: testimonial card vs. dispute checklist bullet list.
   3. Queue confirmation UX: inline toast vs. Slack webhook for Ops.
 

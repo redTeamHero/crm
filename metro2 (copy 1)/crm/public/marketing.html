@@ -60,10 +60,10 @@
       <span class="text-3xl">🚀</span>
       <div>
         <h1 class="text-2xl font-bold" data-i18n="marketing.hero.title">Marketing Launchpad</h1>
-        <p class="text-sm text-slate-600" data-i18n="marketing.hero.subtitle">Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, o cualquier otra integración.</p>
+        <p class="text-sm text-slate-600" data-i18n="marketing.hero.subtitle">Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.</p>
       </div>
     </div>
-    <p class="text-xs text-slate-500" data-i18n="marketing.hero.tip">Tip: documenta cada touchpoint bilingüe (EN/ES) to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.</p>
+    <p class="text-xs text-slate-500" data-i18n="marketing.hero.tip">Tip: document every touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.</p>
   </header>
 
   <!-- SMS Campaign Builder -->
@@ -73,13 +73,13 @@
         <span class="text-2xl">📱</span>
         <div>
           <h2 id="sms-builder-heading" class="text-xl font-semibold" data-i18n="marketing.smsBuilder.heading">SMS Campaign Builder</h2>
-          <p class="text-sm text-slate-600" data-i18n="marketing.smsBuilder.description">Craft compliant outreach, personalize with merge fields, and preview the mobile experience antes de lanzar.</p>
+          <p class="text-sm text-slate-600" data-i18n="marketing.smsBuilder.description">Craft compliant outreach, personalize with merge fields, and preview the mobile experience before launch.</p>
         </div>
       </div>
       <div class="flex flex-wrap gap-2 text-xs text-slate-500">
         <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.kpi">Suggested KPI: Reply Rate</span>
         <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.upsell">Upsell: SMS Concierge Follow-up</span>
-        <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.experiment">A/B Test: CTA «Book Call» vs «Descubre tu plan»</span>
+        <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.experiment">A/B Test: CTA “Book Call” vs “Explore your plan”</span>
       </div>
     </div>
     <div class="grid gap-6 lg:grid-cols-2">
@@ -94,7 +94,7 @@
             <option value="leads" data-i18n="marketing.smsBuilder.recipients.leads">All Leads</option>
             <option value="new-clients" data-i18n="marketing.smsBuilder.recipients.newClients">New Clients (≤30 days)</option>
             <option value="inactive" data-i18n="marketing.smsBuilder.recipients.inactive">Inactive Accounts (90+ days)</option>
-            <option value="truckers" data-i18n="marketing.smsBuilder.recipients.truckers">Owner-Operators / Truckers</option>
+            <option value="truckers" data-i18n="marketing.smsBuilder.recipients.truckers">Owner-Operators and Truckers</option>
           </select>
         </div>
         <div class="flex flex-col gap-2">
@@ -154,7 +154,7 @@
         <span class="text-2xl">💌</span>
         <div>
           <h2 id="email-builder-heading" class="text-xl font-semibold" data-i18n="marketing.emailBuilder.heading">Email Template Designer</h2>
-          <p class="text-sm text-slate-600" data-i18n="marketing.emailBuilder.description">Organize nurture flows, automate bilingual onboarding, and prep branded sends before you connect SendGrid or Postalytics.</p>
+          <p class="text-sm text-slate-600" data-i18n="marketing.emailBuilder.description">Organize nurture flows, automate onboarding, and prep branded sends before you connect SendGrid or Postalytics.</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -172,8 +172,8 @@
           <select id="templateFilter" class="input text-xs py-1 px-2">
             <option value="all" data-i18n="marketing.emailBuilder.filters.all">All Segments</option>
             <option value="b2c" data-i18n="marketing.emailBuilder.filters.b2c">B2C Consumers</option>
-            <option value="b2b" data-i18n="marketing.emailBuilder.filters.b2b">B2B / Truckers</option>
-            <option value="attorneys" data-i18n="marketing.emailBuilder.filters.attorneys">Attorneys / Referrals</option>
+            <option value="b2b" data-i18n="marketing.emailBuilder.filters.b2b">B2B and Truckers</option>
+            <option value="attorneys" data-i18n="marketing.emailBuilder.filters.attorneys">Attorneys and Referrals</option>
           </select>
           <span class="hidden md:inline" data-i18n="marketing.emailBuilder.filterHelper">Filter to prep tailored automations.</span>
         </div>
@@ -190,7 +190,7 @@
       <span class="text-2xl">🤖</span>
       <div>
         <h2 id="automation-center-heading" class="text-xl font-semibold">Automation Control Center</h2>
-        <p class="text-sm text-slate-600">Wire SMS templates, email sequences, and dispatch schedules to monetize automated follow-ups. Automatiza campañas bilingües y marca proveedores como listos.</p>
+        <p class="text-sm text-slate-600">Wire SMS templates, email sequences, and dispatch schedules to monetize automated follow-ups. Automate campaigns and flag vendors as ready.</p>
       </div>
     </div>
 
@@ -202,26 +202,26 @@
         </header>
         <form id="smsTemplateForm" class="glass card bg-white/80 p-4 space-y-3">
           <div class="grid gap-2">
-            <label class="text-sm font-medium" for="smsTemplateTitle">Template Title / Nombre</label>
+          <label class="text-sm font-medium" for="smsTemplateTitle">Template Title</label>
             <input id="smsTemplateTitle" name="title" class="input" placeholder="Re-activation Nurture" required />
           </div>
           <div class="grid gap-2">
             <label class="text-sm font-medium" for="smsTemplateSegment">Segment</label>
             <select id="smsTemplateSegment" name="segment" class="input">
-              <option value="b2c">B2C • Consumidores</option>
-              <option value="b2b">B2B • Truckers</option>
-              <option value="attorneys">Attorneys / Abogados</option>
+              <option value="b2c">B2C Consumers</option>
+              <option value="b2b">B2B Truckers</option>
+              <option value="attorneys">Attorneys and Referrals</option>
               <option value="inactive">Inactive</option>
             </select>
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium" for="smsTemplateBody">Message Body / Mensaje</label>
-            <textarea id="smsTemplateBody" name="body" class="input h-32" placeholder="Hola {{first_name}}, tu auditoría Metro-2 está lista. Programa tu consulta aquí → {{cta_link}}" required></textarea>
+            <label class="text-sm font-medium" for="smsTemplateBody">Message Body</label>
+            <textarea id="smsTemplateBody" name="body" class="input h-32" placeholder="Hey {{first_name}}, your Metro-2 audit is ready. Schedule your consult here → {{cta_link}}" required></textarea>
           </div>
-          <div class="flex items-center justify-between text-xs text-slate-500">
-            <span>Include opt-out language. Añade «Reply STOP» cuando salga a producción.</span>
-            <button class="btn" type="submit">Save Template / Guardar</button>
-          </div>
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Include opt-out language. Add “Reply STOP” when this goes live.</span>
+              <button class="btn" type="submit">Save Template</button>
+            </div>
           <p id="smsTemplateStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
         </form>
         <ul id="smsTemplateList" class="space-y-3 text-sm text-slate-600"></ul>
@@ -229,16 +229,16 @@
       <div class="space-y-4">
         <header class="flex flex-col gap-1">
           <h3 class="text-lg font-semibold">Email Sequence Builder</h3>
-          <p class="text-xs text-slate-500">Log nurture flows and push to <code>POST /api/marketing/email/sequences</code>. Document bilingual value ladders.</p>
+          <p class="text-xs text-slate-500">Log nurture flows and push to <code>POST /api/marketing/email/sequences</code>. Document your value ladders.</p>
         </header>
         <form id="emailSequenceForm" class="glass card bg-white/80 p-4 space-y-3">
+            <div class="grid gap-2">
+              <label class="text-sm font-medium" for="sequenceTitle">Sequence Name</label>
+              <input id="sequenceTitle" name="title" class="input" placeholder="7-Day Dispute Warm-Up" required />
+            </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium" for="sequenceTitle">Sequence Name / Nombre</label>
-            <input id="sequenceTitle" name="title" class="input" placeholder="7-Day Dispute Warm-Up" required />
-          </div>
-          <div class="grid gap-2">
-            <label class="text-sm font-medium" for="sequenceDescription">Description / Descripción</label>
-            <textarea id="sequenceDescription" name="description" class="input h-20" placeholder="Outline EN/ES journey, compliance reminders, NEPQ prompts."></textarea>
+            <label class="text-sm font-medium" for="sequenceDescription">Description</label>
+            <textarea id="sequenceDescription" name="description" class="input h-20" placeholder="Outline journey, compliance reminders, NEPQ prompts."></textarea>
           </div>
           <div class="grid gap-2 md:grid-cols-2">
             <div class="flex flex-col gap-2">
@@ -258,18 +258,18 @@
               </select>
             </div>
           </div>
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-sm font-medium">Steps / Pasos</span>
-              <button id="addSequenceStep" class="btn text-xs" type="button">Add Step / Agregar paso</button>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">Steps</span>
+                <button id="addSequenceStep" class="btn text-xs" type="button">Add Step</button>
+              </div>
+              <div id="sequenceSteps" class="space-y-3"></div>
+              <p class="text-xs text-slate-500">Tip: tie at least one step to Stripe checkout or compliance doc delivery.</p>
             </div>
-            <div id="sequenceSteps" class="space-y-3"></div>
-            <p class="text-xs text-slate-500">Tip: tie at least one step to Stripe checkout or compliance doc delivery.</p>
-          </div>
-          <div class="flex items-center justify-between text-xs text-slate-500">
-            <span>Preview before live send. Previsualiza antes de enviar.</span>
-            <button class="btn" type="submit">Save Sequence / Guardar</button>
-          </div>
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Preview before live send.</span>
+              <button class="btn" type="submit">Save Sequence</button>
+            </div>
           <p id="emailSequenceStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
         </form>
         <ul id="emailSequenceList" class="space-y-3 text-sm text-slate-600"></ul>
@@ -321,25 +321,88 @@
             </div>
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium" for="dispatchNotes">Notes / Notas</label>
-            <textarea id="dispatchNotes" name="notes" class="input h-20" placeholder="Record CTA, compliance disclaimers, bilingual promise."></textarea>
+              <label class="text-sm font-medium" for="dispatchNotes">Notes</label>
+            <textarea id="dispatchNotes" name="notes" class="input h-20" placeholder="Record CTA, compliance disclaimers, premium promise."></textarea>
           </div>
-          <div class="flex items-center justify-between text-xs text-slate-500">
-            <span>Track consult set % and refunds to iterate.</span>
-            <button class="btn" type="submit">Schedule / Programar</button>
-          </div>
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span>Track consult set % and refunds to iterate.</span>
+              <button class="btn" type="submit">Schedule</button>
+            </div>
           <p id="dispatchStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
         </form>
       </div>
       <div class="space-y-4">
-        <header class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold">Upcoming Dispatches / En cola</h3>
-          <span class="text-[10px] uppercase text-slate-400">Auto-refresh ready</span>
-        </header>
+          <header class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold">Upcoming Dispatches</h3>
+            <span class="text-[10px] uppercase text-slate-400">Auto-refresh ready</span>
+          </header>
         <ul id="dispatchList" class="space-y-3 text-sm text-slate-600"></ul>
       </div>
     </div>
   </section>
+
+  <div id="templateEditorModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
+    <div class="glass card w-full max-w-3xl space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="templateEditorHeading">
+      <header class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 id="templateEditorHeading" class="text-lg font-semibold" data-i18n="marketing.emailBuilder.editor.title">Email Template Editor</h3>
+          <p class="text-xs text-slate-500" data-i18n="marketing.emailBuilder.editor.subtitle">Edit bilingual journeys, update CTA copy, and sync with automations.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-xs">
+          <button class="btn bg-slate-900" type="button" data-close-template-editor data-i18n="marketing.emailBuilder.editor.close">Close</button>
+        </div>
+      </header>
+      <form id="templateEditorForm" class="space-y-4">
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="templateEditorTitle" data-i18n="marketing.emailBuilder.editor.titleLabel">Template Name / Nombre</label>
+            <input id="templateEditorTitle" name="title" class="input" placeholder="Onboarding Touchpoint" required />
+          </div>
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="templateEditorSegment" data-i18n="marketing.emailBuilder.editor.segmentLabel">Segment</label>
+            <select id="templateEditorSegment" name="segment" class="input">
+              <option value="b2c">B2C • Consumidores</option>
+              <option value="b2b">B2B • Truckers</option>
+              <option value="attorneys">Attorneys / Abogados</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,0.7fr)]">
+          <div class="grid gap-3">
+            <div class="grid gap-2">
+              <label class="text-sm font-medium" for="templateEditorBadge" data-i18n="marketing.emailBuilder.editor.badgeLabel">Badge</label>
+              <input id="templateEditorBadge" name="badge" class="input" placeholder="EN/ES" />
+            </div>
+            <div class="grid gap-2">
+              <label class="text-sm font-medium" for="templateEditorDescription" data-i18n="marketing.emailBuilder.editor.descriptionLabel">Description / Descripción</label>
+              <textarea id="templateEditorDescription" name="description" class="input h-24" placeholder="Outline trust builders, CTA, bilingual promise."></textarea>
+            </div>
+            <div class="grid gap-2">
+              <label class="text-sm font-medium" for="templateEditorHtml" data-i18n="marketing.emailBuilder.editor.htmlLabel">HTML Content</label>
+              <textarea id="templateEditorHtml" name="html" class="input min-h-[200px] font-mono text-xs" placeholder="<h1>Bienvenido</h1>"></textarea>
+            </div>
+          </div>
+          <aside class="flex flex-col gap-2 rounded-xl border border-dashed border-slate-300 bg-white/70 p-4">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+              <span data-i18n="marketing.emailBuilder.editor.previewLabel">Live Preview • Vista previa</span>
+              <span id="templateEditorMeta" class="text-[10px] uppercase"></span>
+            </div>
+            <div id="templateEditorPreview" class="min-h-[240px] overflow-auto rounded-lg bg-white p-3 text-sm text-slate-700 shadow-inner"></div>
+            <p class="text-[11px] text-slate-500" data-i18n="marketing.emailBuilder.editor.previewHint">Merge fields render with sample data. Final send pulls CRM values.</p>
+          </aside>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+          <span data-i18n="marketing.emailBuilder.editor.guardrail">No promises of guaranteed results. Track consult conversion % and Stripe upsell.</span>
+          <div class="flex flex-wrap gap-2">
+            <button class="btn" type="submit" data-i18n="marketing.emailBuilder.editor.save">Save Template / Guardar</button>
+            <button class="btn" type="button" data-close-template-editor data-i18n="marketing.emailBuilder.editor.cancel">Cancel</button>
+          </div>
+        </div>
+        <p id="templateEditorStatus" class="hidden rounded-lg px-3 py-2 text-xs"></p>
+      </form>
+    </div>
+  </div>
 
   <!-- Campaign Analytics Preview -->
   <section aria-labelledby="campaign-dashboard-heading" class="glass card p-6 space-y-6">
@@ -471,6 +534,7 @@
   </section>
 
 </main>
+
 <div id="testModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
   <div class="glass card max-w-md w-full space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
     <div class="flex items-center justify-between">
@@ -494,7 +558,7 @@
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium" for="testNotes" data-i18n="marketing.testModal.notesLabel">Notes</label>
-        <textarea id="testNotes" name="testNotes" class="input" rows="3" placeholder="Log what you’re validating: tone, CTA, bilingual render." data-i18n-placeholder="marketing.testModal.notesPlaceholder"></textarea>
+        <textarea id="testNotes" name="testNotes" class="input" rows="3" placeholder="Log what you’re validating: tone, CTA, render checks." data-i18n-placeholder="marketing.testModal.notesPlaceholder"></textarea>
       </div>
       <div class="flex items-center justify-between text-xs text-slate-500">
         <span data-i18n="marketing.testModal.footerHint">Preview payload is queued via the marketing API for QA.</span>
