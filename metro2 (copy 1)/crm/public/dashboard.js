@@ -383,6 +383,213 @@ const stateNames = {
   WI:"Wisconsin", WY:"Wyoming", DC:"District of Columbia"
 };
 Object.entries(stateNames).forEach(([abbr,name])=>{ stateCenters[name.toUpperCase()] = stateCenters[abbr]; });
+
+const monthFormatter = new Intl.DateTimeFormat(undefined, { month: 'short' });
+const timelineDateFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+
+function parseDateSafe(value){
+  if(!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function resolveItemDate(item){
+  if(!item || typeof item !== 'object') return new Date();
+  const candidates = [
+    item.createdAt,
+    item.updatedAt,
+    item.created,
+    item.updated,
+    item.timestamp,
+    item.date
+  ];
+  for(const val of candidates){
+    const parsed = parseDateSafe(val);
+    if(parsed) return parsed;
+  }
+  return new Date();
+}
+
+function buildMetricDataset({
+  title,
+  subtitle,
+  label,
+  color,
+  items,
+  getValue = () => 1,
+  getDate = resolveItemDate,
+  timelineFormatter = () => ({ title: '', subtitle: '', meta: '', value: '' }),
+  filter,
+  formatValue
+}){
+  const source = Array.isArray(items) ? items.slice() : [];
+  const filtered = typeof filter === 'function' ? source.filter(filter) : source;
+  const now = new Date();
+  const monthAnchors = [];
+  for(let i=5;i>=0;i--){
+    monthAnchors.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+  }
+
+  const labels = monthAnchors.map(anchor => monthFormatter.format(anchor));
+  const data = monthAnchors.map(anchor => {
+    return filtered.reduce((sum, item) => {
+      const date = getDate(item);
+      if(!(date instanceof Date)) return sum;
+      if(date.getFullYear() === anchor.getFullYear() && date.getMonth() === anchor.getMonth()){
+        const raw = getValue(item);
+        const num = typeof raw === 'number' ? raw : Number.parseFloat(raw ?? '0');
+        return sum + (Number.isFinite(num) ? num : 0);
+      }
+      return sum;
+    }, 0);
+  });
+
+  const timeline = filtered
+    .map(item => ({ item, date: getDate(item) }))
+    .filter(entry => entry.date instanceof Date)
+    .sort((a,b) => b.date - a.date)
+    .slice(0, 8)
+    .map(({ item, date }) => timelineFormatter(item, date));
+
+  return {
+    title,
+    subtitle,
+    dataset: { labels, data, label, color, formatValue },
+    timeline
+  };
+}
+
+function createDetailModal(){
+  const modal = document.getElementById('detailModal');
+  const chartCanvas = document.getElementById('detailChart');
+  const titleEl = document.getElementById('detailModalTitle');
+  const subtitleEl = document.getElementById('detailModalSubtitle');
+  const timelineEl = document.getElementById('detailTimeline');
+  const closeBtn = document.getElementById('detailModalClose');
+  const triggers = document.querySelectorAll('.detail-trigger');
+  if(!modal || !chartCanvas || !timelineEl){
+    return { setGenerators: () => {} };
+  }
+  let chartInstance = null;
+  let generators = {};
+
+  function close(){
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  function open(type){
+    const generator = generators[type];
+    if(!generator){
+      console.warn('No generator configured for metric', type);
+      return;
+    }
+    const details = generator();
+    if(!details) return;
+    const { dataset, timeline, title, subtitle } = details;
+    if(titleEl && title) titleEl.textContent = title;
+    if(subtitleEl) subtitleEl.textContent = subtitle || '';
+    if(typeof window.Chart === 'undefined'){
+      console.warn('Chart.js is not available');
+    } else {
+      const ctx = chartCanvas.getContext('2d');
+      if(ctx){
+        if(chartInstance){
+          chartInstance.destroy();
+        }
+        const formatter = dataset.formatValue || (val => Number.isFinite(val) ? val.toLocaleString() : String(val));
+        chartInstance = new window.Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: dataset.labels,
+            datasets: [{
+              label: dataset.label,
+              data: dataset.data,
+              borderColor: dataset.color,
+              backgroundColor: dataset.color,
+              tension: 0.35,
+              fill: false,
+              pointRadius: 4,
+              pointHoverRadius: 5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: (value) => formatter(value)
+                }
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${dataset.label}: ${formatter(context.parsed.y)}`
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    if(timeline.length){
+      timelineEl.innerHTML = timeline.map(entry => {
+        const title = escapeHtml(entry.title || '');
+        const subtitle = entry.subtitle ? `<div class="text-xs muted mt-1">${escapeHtml(entry.subtitle)}</div>` : '';
+        const meta = entry.meta ? `<div class="text-xs muted mt-2">${escapeHtml(entry.meta)}</div>` : '';
+        const value = entry.value ? `<div class="text-sm font-semibold">${escapeHtml(entry.value)}</div>` : '';
+        return `<li class="glass card p-3">` +
+          `<div class="flex items-start justify-between gap-3">` +
+            `<div><div class="font-medium">${title}</div>${subtitle}</div>` +
+            `${value}` +
+          `</div>` +
+          `${meta}` +
+        `</li>`;
+      }).join('');
+    } else {
+      timelineEl.innerHTML = '<li class="muted">No recent activity.</li>';
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  modal.addEventListener('click', (evt) => {
+    if(evt.target === modal){
+      close();
+    }
+  });
+  if(closeBtn){
+    closeBtn.addEventListener('click', close);
+  }
+  document.addEventListener('keydown', (evt) => {
+    if(evt.key === 'Escape' && !modal.classList.contains('hidden')){
+      close();
+    }
+  });
+  triggers.forEach(btn => {
+    btn.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      const type = btn.dataset.detail;
+      if(type){
+        open(type);
+      }
+    });
+  });
+
+  return {
+    setGenerators(map){
+      generators = map || {};
+    }
+  };
+}
 function getStateCode(st){
   if(!st) return null;
   st = st.trim().toUpperCase();
@@ -643,6 +850,68 @@ document.addEventListener('DOMContentLoaded', () => {
       setText('dashConversion', conversion.toFixed(1) + '%');
 
       renderClientMap(consumers);
+      detailModalController.setGenerators({
+        leads: () => buildMetricDataset({
+          title: 'Lead Intake',
+          subtitle: 'Monthly snapshot of new leads captured.',
+          label: 'Leads per month',
+          color: '#a855f7',
+          items: leads,
+          getValue: () => 1,
+          timelineFormatter: (lead, date) => ({
+            title: lead.name || 'Lead',
+            subtitle: lead.status ? `Status: ${lead.status}` : 'Status not set',
+            meta: timelineDateFormatter.format(date),
+            value: lead.source ? `Source: ${lead.source}` : ''
+          })
+        }),
+        clients: () => buildMetricDataset({
+          title: 'Client Growth',
+          subtitle: 'Clients activated in the last six months.',
+          label: 'Clients per month',
+          color: '#38bdf8',
+          items: consumers,
+          getValue: () => 1,
+          timelineFormatter: (client, date) => ({
+            title: client.name || 'Client',
+            subtitle: `Status: ${client.status || 'active'}`,
+            meta: timelineDateFormatter.format(date),
+            value: client.sale ? formatCurrency(client.sale) : ''
+          })
+        }),
+        sales: () => buildMetricDataset({
+          title: 'Sales Revenue',
+          subtitle: 'Signed contract value by month.',
+          label: 'Sales ($)',
+          color: '#22c55e',
+          items: consumers,
+          getValue: (consumer) => Number(consumer.sale) || 0,
+          formatValue: (value) => formatCurrency(value || 0),
+          timelineFormatter: (consumer, date) => ({
+            title: consumer.name || 'Client',
+            subtitle: 'Sale recorded',
+            meta: timelineDateFormatter.format(date),
+            value: formatCurrency(Number(consumer.sale) || 0)
+          }),
+          filter: (consumer) => Number(consumer.sale) > 0
+        }),
+        payments: () => buildMetricDataset({
+          title: 'Payments Collected',
+          subtitle: 'Cash collected from clients.',
+          label: 'Payments ($)',
+          color: '#f97316',
+          items: consumers,
+          getValue: (consumer) => Number(consumer.paid) || 0,
+          formatValue: (value) => formatCurrency(value || 0),
+          timelineFormatter: (consumer, date) => ({
+            title: consumer.name || 'Client',
+            subtitle: 'Latest payment captured',
+            meta: timelineDateFormatter.format(date),
+            value: formatCurrency(Number(consumer.paid) || 0)
+          }),
+          filter: (consumer) => Number(consumer.paid) > 0
+        })
+      });
     } catch (err) {
       console.error('Failed to load dashboard stats', err);
     }
