@@ -651,10 +651,26 @@ function initPalette(){
   const mic = wrap.querySelector('#voiceMic');
   const icon = toggle.querySelector('.toggle-icon');
   const label = toggle.querySelector('.toggle-label');
+  const slider = wrap.querySelector('#glassAlpha');
+  const bubbles = Array.from(wrap.querySelectorAll('.palette-bubbles .bubble'));
   const syncState = () => {
     const isCollapsed = wrap.classList.contains('collapsed');
     toggle.setAttribute('aria-expanded', String(!isCollapsed));
     controls?.setAttribute('aria-hidden', String(isCollapsed));
+    bubbles.forEach((bubble) => {
+      if (isCollapsed) {
+        bubble.setAttribute('tabindex', '-1');
+        bubble.setAttribute('aria-hidden', 'true');
+      } else {
+        bubble.setAttribute('tabindex', '0');
+        bubble.setAttribute('aria-hidden', 'false');
+      }
+    });
+    if (slider) {
+      slider.setAttribute('tabindex', isCollapsed ? '-1' : '0');
+      slider.setAttribute('aria-hidden', String(isCollapsed));
+      slider.disabled = isCollapsed;
+    }
     if (mic) {
       mic.setAttribute('aria-hidden', String(isCollapsed));
       mic.tabIndex = isCollapsed ? -1 : 0;
@@ -681,7 +697,6 @@ function initPalette(){
   });
   const saved = localStorage.getItem('theme') || 'purple';
   applyTheme(saved);
-  const slider = wrap.querySelector('#glassAlpha');
   if(slider){
     slider.addEventListener('input', e=>{
       const v = parseFloat(e.target.value);
