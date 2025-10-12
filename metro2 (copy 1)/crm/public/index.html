@@ -221,7 +221,7 @@
           <div class="font-medium mb-2">Quick Actions</div>
           <div id="modeBar" class="flex gap-2 flex-wrap justify-center"></div>
           <div class="text-sm muted mt-1">
-            Click a mode, then click tradeline cards to tag them. Click the mode again to exit.
+            Click a mode, then click negative item cards to tag them. Click the mode again to exit.
           </div>
         </div>
         <div class="font-semibold mb-2 mt-4">Filters</div>
@@ -231,7 +231,7 @@
 
       <div class="glass card">
         <div class="flex items-center justify-between">
-          <div class="font-semibold">Tradelines</div>
+          <div class="font-semibold">Negative Items</div>
           <div class="flex flex-wrap items-center gap-3">
             <label class="text-sm flex items-center gap-2" title="Generate debt collector letters">
               <input type="checkbox" id="cbCollectors" /> Collectors
@@ -247,8 +247,8 @@
               <input type="checkbox" id="cbUseOcr" /> OCR
             </label>
 
-            <button id="btnSelectAll" class="btn text-sm" data-tip="Select or deselect all tradelines">Select All</button>
-            <button id="btnSelectNegative" class="btn text-sm" data-tip="Select or deselect negative tradelines">Select Negative</button>
+            <button id="btnSelectAll" class="btn text-sm" data-tip="Select or deselect all negative items">Select All</button>
+            <button id="btnSelectNegative" class="btn text-sm" data-tip="Select or deselect high-priority negative items">Select Negative Items</button>
             <button id="btnGenerate" class="btn" data-tip="Generate Letters (G)">Generate Letters</button>
           </div>
         </div>
@@ -296,7 +296,7 @@
   </div>
 </template>
 
-<!-- Tradeline card template -->
+<!-- Negative item card template -->
 <template id="tlTemplate">
   <div class="glass card tl-card" data-index="">
     <div class="tl-head flex items-start justify-between gap-2">
@@ -428,22 +428,22 @@
   </form>
 </div>
 
-<!-- Zoom Modal (tradeline details) -->
+<!-- Zoom Modal (negative item details) -->
 <div id="zoomModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.55)]">
   <div id="zoomCard" class="glass card w-[min(900px,95vw)]">
     <div class="flex items-center justify-between mb-2">
-      <div class="font-semibold">Tradeline Details</div>
+      <div class="font-semibold">Negative Item Details</div>
       <button id="zoomClose" class="btn">×</button>
     </div>
     <div id="zoomBody" class="text-sm"></div>
   </div>
 </div>
 
-<!-- Edit Tradeline Modal -->
+<!-- Edit Negative Item Modal -->
 <div id="tlEditModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.45)] z-[999]">
   <form id="tlEditForm" class="glass card w-[min(900px,95vw)] space-y-3">
     <div class="flex items-center justify-between">
-      <div class="font-semibold">Edit Tradeline</div>
+      <div class="font-semibold">Edit Negative Item</div>
       <div class="flex gap-2">
         <button type="button" id="tlEditCancel" class="btn">Cancel</button>
         <button type="submit" class="btn">Save</button>
@@ -504,7 +504,7 @@
             <li><b>G</b> – Generate letters</li>
             <li><b>C</b> – Clear (context-aware)</li>
             <li><b>H</b> – Help overlay</li>
-            <li><b>R</b> – Remove focused tradeline card</li>
+            <li><b>R</b> – Remove focused negative item card</li>
           </ul>
         </div>
         <div class="glass card p-2">

@@ -28,6 +28,7 @@ import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, u
 import { fetchFn } from "./fetchUtil.js";
 import { scrapeTradelines } from "./tradelineScraper.js";
 import marketingRoutes from "./marketingRoutes.js";
+import { prepareNegativeItems } from "./negativeItems.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 
@@ -374,6 +375,23 @@ app.get("/portal/:id", async (req, res) => {
     const script = `\n<script>localStorage.setItem('creditScore', ${scoreJson});</script>`;
     html = html.replace('</body>', `${script}\n</body>`);
   }
+  const latestReport = consumer.reports?.[0];
+  let negativeItems = [];
+  if (latestReport?.data) {
+    if (Array.isArray(latestReport.data.negative_items)) {
+      negativeItems = latestReport.data.negative_items;
+    } else if (Array.isArray(latestReport.data.tradelines)) {
+      try {
+        const { items } = prepareNegativeItems(latestReport.data.tradelines);
+        negativeItems = items;
+      } catch (e) {
+        logError("NEGATIVE_ITEM_ERROR", "Failed to prepare portal negative items", e, { consumerId: consumer.id, reportId: latestReport.id });
+      }
+    }
+  }
+  const serializedNegativeItems = JSON.stringify(negativeItems || []).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+  const negativeScript = `\n<script>window.__NEGATIVE_ITEMS__ = ${serializedNegativeItems}; try { localStorage.setItem('negativeItems', JSON.stringify(window.__NEGATIVE_ITEMS__)); } catch (err) { console.warn('Failed to persist negative items', err); }</script>`;
+  html = html.replace('</body>', `${negativeScript}\n</body>`);
   res.send(html);
 });
 
@@ -1698,6 +1716,14 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       errors.push({ step: "rule_audit", message: e.message, details: e.stack || String(e) });
     }
 
+    try {
+      const { items } = prepareNegativeItems(analyzed.tradelines || []);
+      analyzed.negative_items = items;
+    } catch (e) {
+      logError("NEGATIVE_ITEM_ERROR", "Failed to prepare negative items", e);
+      errors.push({ step: "negative_items", message: e.message, details: e.stack || String(e) });
+    }
+
     let scores = {};
     try{
       scores = extractCreditScores(htmlText);
@@ -1761,7 +1787,11 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       uploadedAt: new Date().toISOString(),
       filename: req.file.originalname,
       size: req.file.size,
-      summary: { tradelines: analyzed?.tradelines?.length || 0, personalInfoMismatches: mismatches },
+      summary: {
+        tradelines: analyzed?.tradelines?.length || 0,
+        negative_items: analyzed?.negative_items?.length || analyzed?.tradelines?.length || 0,
+        personalInfoMismatches: mismatches
+      },
       data: analyzed
     });
     await saveDB(db);
@@ -1800,6 +1830,14 @@ app.get("/api/consumers/:id/report/:rid", async (req,res)=>{
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   const r=c.reports.find(x=>x.id===req.params.rid);
   if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+  if (!Array.isArray(r.data?.negative_items) && Array.isArray(r.data?.tradelines)) {
+    try {
+      const { items } = prepareNegativeItems(r.data.tradelines);
+      r.data.negative_items = items;
+    } catch (e) {
+      logError("NEGATIVE_ITEM_ERROR", "Failed to backfill negative items on fetch", e, { consumerId: c.id, reportId: r.id });
+    }
+  }
   res.json({ ok:true, report:r.data, consumer:{
     id:c.id,name:c.name,email:c.email,phone:c.phone,addr1:c.addr1,addr2:c.addr2,city:c.city,state:c.state,zip:c.zip,ssn_last4:c.ssn_last4,dob:c.dob
   }});
@@ -1847,6 +1885,12 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
     });
   }
   runBasicRuleAudit(r.data);
+  try {
+    const { items } = prepareNegativeItems(r.data.tradelines || []);
+    r.data.negative_items = items;
+  } catch (e) {
+    logError("NEGATIVE_ITEM_ERROR", "Failed to refresh negative items after edit", e, { consumerId: c.id, reportId: r.id });
+  }
   await saveDB(db);
   res.json({ ok:true, tradeline: tl });
 });

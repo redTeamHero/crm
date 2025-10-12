@@ -281,11 +281,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const mailMailed = document.getElementById('mailMailed');
   const mailTabWaiting = document.getElementById('mailTabWaiting');
   const mailTabMailed = document.getElementById('mailTabMailed');
-  const tradelinesSection = document.getElementById('tradelinesSection');
-  const tradelineList = document.getElementById('tradelineList');
-  const tradelineSearch = document.getElementById('tradelineSearch');
-  const tradelineSort = document.getElementById('tradelineSort');
-  let allTradelines = [];
+  const negativeItemsSection = document.getElementById('negativeItemsSection');
+  const negativeItemList = document.getElementById('negativeItemList');
+  const negativeItemSearch = document.getElementById('negativeItemSearch');
+  const negativeItemSort = document.getElementById('negativeItemSort');
+  const escape = window.escapeHtml || ((s) => String(s || ''));
+  let negativeItems = [];
+  try {
+    if (Array.isArray(window.__NEGATIVE_ITEMS__)) {
+      negativeItems = window.__NEGATIVE_ITEMS__;
+    } else {
+      negativeItems = JSON.parse(localStorage.getItem('negativeItems') || '[]');
+    }
+  } catch {
+    negativeItems = [];
+  }
   function loadDocs(){
     if (!(docEl && consumerId)) return;
     fetch(`/api/consumers/${consumerId}/state`)
@@ -299,6 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   loadDocs();
   loadMessages();
+  initNegativeItems();
 
   function loadMail(){
     if (!(mailWaiting && mailMailed && consumerId)) return;
@@ -375,53 +386,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderTradelines(data){
-    if(!tradelineList) return;
+  function renderNegativeItems(data){
+    if(!negativeItemList) return;
     if(!data.length){
-      tradelineList.innerHTML = '<div class="muted text-sm">No tradelines found.</div>';
+      negativeItemList.innerHTML = '<div class="muted text-sm">No negative items detected yet.</div>';
       return;
     }
-    tradelineList.innerHTML = data.map(t=>`
-      <div class="tradeline-item flex items-center justify-between p-2">
-
-        <div>
-          <div class="font-medium">${t.bank}</div>
-          <div class="text-xs muted">${t.age} | $${t.limit} limit</div>
+    negativeItemList.innerHTML = data.map(item => {
+      const bureaus = (item.bureaus || []).map(b => `<span class="badge badge-bureau">${escape(b)}</span>`).join(' ');
+      const accounts = Object.entries(item.account_numbers || {})
+        .map(([bureau, number]) => `<span class="text-xs muted inline-block mr-2">${escape(bureau)} • ${escape(number)}</span>`)
+        .join('');
+      const severity = item.severity || 0;
+      const violationList = (item.violations || []).slice(0, 4).map(v => `
+        <li class="flex gap-2 items-start">
+          <span class="severity-tag severity-${v.severity || 0}">S${v.severity || 0}</span>
+          <div>
+            <div class="font-medium text-sm">${escape(v.title || '')}</div>
+            ${v.detail ? `<div class="text-xs muted">${escape(v.detail)}</div>` : ''}
+            ${v.bureaus && v.bureaus.length ? `<div class="text-xs muted">${v.bureaus.map(b => escape(b)).join(', ')}</div>` : ''}
+          </div>
+        </li>
+      `).join('');
+      const remaining = Math.max(0, (item.violations || []).length - 4);
+      return `
+        <div class="glass card p-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="font-semibold text-base">${escape(item.creditor || 'Unknown Creditor')}</div>
+              <div class="text-xs muted mt-1">${bureaus || '—'}</div>
+              ${accounts ? `<div class="mt-1">${accounts}</div>` : ''}
+            </div>
+            <div class="text-right">
+              <div class="severity-tag severity-${severity}">S${severity}</div>
+              <div class="text-xs muted mt-1">${(item.violations || []).length} violation${(item.violations || []).length === 1 ? '' : 's'}</div>
+            </div>
+          </div>
+          <ul class="mt-3 space-y-2">${violationList || '<li class="text-sm muted">No Metro 2 violations detected.</li>'}</ul>
+          ${remaining ? `<div class="text-xs muted mt-2">+${remaining} more violation${remaining === 1 ? '' : 's'} in this item.</div>` : ''}
         </div>
-        <div class="text-right">
-          <div class="font-semibold">$${t.price}</div>
-          <a href="${t.buy_link}" class="btn text-xs px-2 py-1">Buy</a>
-        </div>
-      </div>`).join('');
+      `;
+    }).join('');
   }
 
-  function filterTradelines(){
-    let data = allTradelines.filter(t=>t.bank.toLowerCase().includes((tradelineSearch?.value||'').toLowerCase()));
-    const sort = tradelineSort?.value;
-    if(sort==='price-asc') data.sort((a,b)=>a.price-b.price);
-    if(sort==='price-desc') data.sort((a,b)=>b.price-a.price);
-    if(sort==='limit-asc') data.sort((a,b)=>a.limit-b.limit);
-    if(sort==='limit-desc') data.sort((a,b)=>b.limit-a.limit);
-    if(sort==='age-asc') data.sort((a,b)=>(a.age||'').localeCompare(b.age||''));
-    if(sort==='age-desc') data.sort((a,b)=>(b.age||'').localeCompare(a.age||''));
-    renderTradelines(data);
-  }
-
-  async function loadTradelines(){
-    if(!tradelineList) return;
-    if(allTradelines.length){ filterTradelines(); return; }
-    try{
-      const resp = await fetch('/api/tradelines');
-      const data = await resp.json();
-      allTradelines = data.tradelines || [];
-      filterTradelines();
-    }catch(e){
-      tradelineList.innerHTML = '<div class="muted text-sm">Failed to load tradelines.</div>';
+  function filterNegativeItems(){
+    if(!negativeItemList) return;
+    let data = Array.isArray(negativeItems) ? [...negativeItems] : [];
+    const query = (negativeItemSearch?.value || '').toLowerCase();
+    if(query){
+      data = data.filter(item => {
+        const creditor = (item.creditor || '').toLowerCase();
+        const bureauMatch = (item.bureaus || []).some(b => (b || '').toLowerCase().includes(query));
+        const violationMatch = (item.violations || []).some(v => (v.title || '').toLowerCase().includes(query));
+        return creditor.includes(query) || bureauMatch || violationMatch;
+      });
     }
+    const sort = negativeItemSort?.value || 'severity-desc';
+    if(sort === 'severity-asc'){
+      data.sort((a,b)=> (a.severity || 0) - (b.severity || 0) || (a.creditor || '').localeCompare(b.creditor || ''));
+    } else if(sort === 'creditor-asc'){
+      data.sort((a,b)=> (a.creditor || '').localeCompare(b.creditor || ''));
+    } else if(sort === 'creditor-desc'){
+      data.sort((a,b)=> (b.creditor || '').localeCompare(a.creditor || ''));
+    } else {
+      data.sort((a,b)=> (b.severity || 0) - (a.severity || 0) || (a.creditor || '').localeCompare(b.creditor || ''));
+    }
+    renderNegativeItems(data);
   }
 
-  if(tradelineSearch) tradelineSearch.addEventListener('input', filterTradelines);
-  if(tradelineSort) tradelineSort.addEventListener('change', filterTradelines);
+  function initNegativeItems(){
+    if(!negativeItemList) return;
+    filterNegativeItems();
+  }
+
+  if(negativeItemSearch) negativeItemSearch.addEventListener('input', filterNegativeItems);
+  if(negativeItemSort) negativeItemSort.addEventListener('change', filterNegativeItems);
 
   const goalBtn = document.getElementById('btnGoal');
   if(goalBtn){
@@ -539,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (educationSection) educationSection.classList.add('hidden');
     if (documentSection) documentSection.classList.add('hidden');
     if (mailSection) mailSection.classList.add('hidden');
-    if (tradelinesSection) tradelinesSection.classList.add('hidden');
+    if (negativeItemsSection) negativeItemsSection.classList.add('hidden');
 
     if (hash === '#uploads' && uploadSection) {
       uploadSection.classList.remove('hidden');
@@ -554,9 +593,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (hash === '#mailSection' && mailSection) {
       mailSection.classList.remove('hidden');
       loadMail();
-    } else if (hash === '#tradelines' && tradelinesSection) {
-      tradelinesSection.classList.remove('hidden');
-      loadTradelines();
+    } else if (hash === '#negative-items' && negativeItemsSection) {
+      negativeItemsSection.classList.remove('hidden');
+      initNegativeItems();
     } else if (portalMain) {
       portalMain.classList.remove('hidden');
     }
