@@ -38,7 +38,7 @@ function renderProductTier(score){
   }
   const tier = getProductTier(deletions, scoreVal);
 
-  el.className = `order-3 sm:order-2 hidden w-full sm:w-auto sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
+  el.className = `order-3 sm:order-2 flex w-full sm:w-auto items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
   el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${tier.name}</span>`;
   el.title = tier.message;
 }
@@ -101,8 +101,8 @@ function initClientPortalNav(){
 
   const updateLayout = () => {
     if (window.innerWidth >= 768) {
-      nav.classList.add('hidden');
-      toggle.setAttribute('aria-expanded', 'false');
+      nav.classList.remove('hidden');
+      toggle.setAttribute('aria-expanded', 'true');
     } else {
       const hidden = nav.classList.contains('hidden');
       toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
@@ -130,7 +130,18 @@ function initClientPortalNav(){
 document.addEventListener('DOMContentLoaded', () => {
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
-  const consumerId = idMatch ? idMatch[1] : null;
+  const consumerId = idMatch ? decodeURIComponent(idMatch[1]) : null;
+  if(!consumerId){
+    const storedId = localStorage.getItem('clientId');
+    if(storedId){
+      location.replace(`/portal/${encodeURIComponent(storedId)}`);
+      return;
+    }
+  } else {
+    try {
+      localStorage.setItem('clientId', consumerId);
+    } catch {}
+  }
   initClientPortalNav();
   loadScores();
 
@@ -176,8 +187,16 @@ document.addEventListener('DOMContentLoaded', () => {
       fetch(`/api/consumers/${consumerId}/tracker`)
         .then(r => r.json())
         .then(({ steps = [], completed = {} }) => {
+          if (!Array.isArray(steps) || !steps.length) {
+            stepEl.textContent = 'No steps assigned yet.';
+            return;
+          }
           const idx = steps.findIndex(s => !completed[s]);
-          stepEl.textContent = idx === -1 ? 'Completed' : steps[idx];
+          if (idx === -1) {
+            stepEl.textContent = `Completed • ${steps.length} step${steps.length === 1 ? '' : 's'}`;
+          } else {
+            stepEl.textContent = `Step ${idx + 1} of ${steps.length}: ${steps[idx]}`;
+          }
         })
         .catch(() => { stepEl.textContent = 'Unknown'; });
     };
@@ -222,11 +241,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (key === 'teamMembers') renderTeamList();
   };
 
+  const escape = window.escapeHtml || ((value) => String(value ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[c] || c)));
 
   const items = JSON.parse(localStorage.getItem('itemsInDispute') || localStorage.getItem('disputeTimeline') || '[]');
   const itemsEl = document.getElementById('itemsInDispute');
+  let negativeItems = [];
+  try {
+    if (Array.isArray(window.__NEGATIVE_ITEMS__)) {
+      negativeItems = window.__NEGATIVE_ITEMS__;
+    } else {
+      negativeItems = JSON.parse(localStorage.getItem('negativeItems') || '[]');
+    }
+  } catch {
+    negativeItems = [];
+  }
+  const disputeList = items.length ? items : negativeItems.map(item => ({
+    account: item?.creditor || 'Negative Item',
+    stage: `${(item?.violations || []).length} issue${(item?.violations || []).length === 1 ? '' : 's'} • S${item?.severity || 0}`,
+  }));
   if (itemsEl) {
-    if (!items.length) {
+    if (!disputeList.length) {
       const empty = document.getElementById('itemsInDisputeEmpty');
       if (empty && window.lottie) {
         lottie.loadAnimation({
@@ -242,16 +282,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tt) tt.remove();
       const te = document.getElementById('itemsInDisputeEmpty');
       if (te) te.remove();
-      itemsEl.innerHTML = items.map(t => `<div class="timeline-item"><span class="font-medium">${t.account}</span> - ${t.stage}</div>`).join('');
+      itemsEl.innerHTML = disputeList.map(t => `<div class="timeline-item"><span class="font-medium">${escape(t.account)}</span> - ${escape(t.stage)}</div>`).join('');
     }
   }
 
   const summaryEl = document.getElementById('itemsSummary');
   if(summaryEl){
     const perRound = 10;
-    if(items.length){
-      const rounds = Math.ceil(items.length / perRound);
-      summaryEl.textContent = `${items.length} items across ${rounds} round${rounds===1?'':'s'} (${perRound} per round)`;
+    const sourceLength = disputeList.length;
+    if(sourceLength){
+      const rounds = Math.ceil(sourceLength / perRound);
+      summaryEl.textContent = `${sourceLength} item${sourceLength === 1 ? '' : 's'} across ${rounds} round${rounds===1?'':'s'} (${perRound} per round)`;
     } else {
       summaryEl.textContent = 'No items in dispute.';
     }
@@ -260,8 +301,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const snapEl = document.getElementById('reportSnapshot');
   if (snapEl) {
     const snap = JSON.parse(localStorage.getItem('creditSnapshot') || '{}');
-    const negative = (snap.negative || []).map(a => `<div class="text-red-600">❌ ${a}</div>`).join('');
-    snapEl.innerHTML = negative || 'No negative items.';
+    const summary = Array.isArray(snap.summary) ? snap.summary : [];
+    const totalIssues = Number.isFinite(snap.totalIssues) ? snap.totalIssues : 0;
+    if(summary.length){
+      const total = totalIssues || summary.reduce((sum, item) => sum + (item.issues || 0), 0);
+      const headline = `<div class="text-xs muted">Tracking ${total} issue${total === 1 ? '' : 's'}</div>`;
+      const list = summary.map(item => {
+        const bureauText = (item.bureaus || []).length ? item.bureaus.join(', ') : 'Bureaus pending';
+        const issues = item.issues || 0;
+        return `<div class="news-item"><div class="font-medium">${escape(item.creditor)}</div><div class="text-xs muted">S${item.severity || 0} • ${issues} issue${issues === 1 ? '' : 's'} • ${escape(bureauText)}</div></div>`;
+      }).join('');
+      snapEl.innerHTML = headline + list;
+    } else {
+      snapEl.innerHTML = 'No negative items detected.';
+    }
   }
 
   const eduEl = document.getElementById('education');
@@ -285,17 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const negativeItemList = document.getElementById('negativeItemList');
   const negativeItemSearch = document.getElementById('negativeItemSearch');
   const negativeItemSort = document.getElementById('negativeItemSort');
-  const escape = window.escapeHtml || ((s) => String(s || ''));
-  let negativeItems = [];
-  try {
-    if (Array.isArray(window.__NEGATIVE_ITEMS__)) {
-      negativeItems = window.__NEGATIVE_ITEMS__;
-    } else {
-      negativeItems = JSON.parse(localStorage.getItem('negativeItems') || '[]');
-    }
-  } catch {
-    negativeItems = [];
-  }
   function loadDocs(){
     if (!(docEl && consumerId)) return;
     fetch(`/api/consumers/${consumerId}/state`)

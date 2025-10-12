@@ -89,6 +89,39 @@ function generateToken(user){
   return jwt.sign({ id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions || [] }, getJwtSecret(), { expiresIn: TOKEN_EXPIRES_IN });
 }
 
+function buildPortalSnapshot(items = []){
+  if(!Array.isArray(items) || !items.length){
+    return { totalIssues: 0, summary: [] };
+  }
+  const summary = items
+    .map(item => ({
+      creditor: item?.creditor || "Unknown Creditor",
+      severity: Number.isFinite(item?.severity) ? item.severity : 0,
+      bureaus: Array.isArray(item?.bureaus) ? item.bureaus : [],
+      issues: Array.isArray(item?.violations) ? item.violations.length : 0,
+    }))
+    .sort((a,b)=>{
+      const severityDelta = (b.severity || 0) - (a.severity || 0);
+      if(severityDelta !== 0) return severityDelta;
+      return (a.creditor || "").localeCompare(b.creditor || "");
+    })
+    .slice(0,5);
+  const totalIssues = items.reduce((sum, item)=>{
+    const count = Array.isArray(item?.violations) ? item.violations.length : 0;
+    return sum + count;
+  }, 0);
+  return { totalIssues, summary };
+}
+
+function toInlineJson(data){
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
 
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters, modeCopy } from "./letterEngine.js";
@@ -370,11 +403,6 @@ app.get("/portal/:id", async (req, res) => {
   if (!consumer) return res.status(404).send("Portal not found");
   const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
   let html = tmpl.replace(/{{name}}/g, consumer.name);
-  if (consumer.creditScore) {
-    const scoreJson = JSON.stringify(consumer.creditScore);
-    const script = `\n<script>localStorage.setItem('creditScore', ${scoreJson});</script>`;
-    html = html.replace('</body>', `${script}\n</body>`);
-  }
   const latestReport = consumer.reports?.[0];
   let negativeItems = [];
   if (latestReport?.data) {
@@ -389,9 +417,14 @@ app.get("/portal/:id", async (req, res) => {
       }
     }
   }
-  const serializedNegativeItems = JSON.stringify(negativeItems || []).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
-  const negativeScript = `\n<script>window.__NEGATIVE_ITEMS__ = ${serializedNegativeItems}; try { localStorage.setItem('negativeItems', JSON.stringify(window.__NEGATIVE_ITEMS__)); } catch (err) { console.warn('Failed to persist negative items', err); }</script>`;
-  html = html.replace('</body>', `${negativeScript}\n</body>`);
+  const bootstrap = {
+    creditScore: consumer.creditScore || null,
+    negativeItems,
+    snapshot: buildPortalSnapshot(negativeItems),
+  };
+  const serializedBootstrap = toInlineJson(bootstrap);
+  const bootstrapScript = `\n<script>\n  try {\n    const data = ${serializedBootstrap};\n    window.__PORTAL_BOOTSTRAP__ = data;\n    window.__NEGATIVE_ITEMS__ = Array.isArray(data.negativeItems) ? data.negativeItems : [];\n    if (data.creditScore) {\n      localStorage.setItem('creditScore', JSON.stringify(data.creditScore));\n    } else {\n      localStorage.removeItem('creditScore');\n    }\n    localStorage.setItem('negativeItems', JSON.stringify(window.__NEGATIVE_ITEMS__));\n    localStorage.setItem('creditSnapshot', JSON.stringify(data.snapshot || {}));\n  } catch (err) {\n    console.warn('Failed to bootstrap portal data', err);\n  }\n</script>`;
+  html = html.replace('<script src="/client-portal.js"></script>', `${bootstrapScript}\n<script src="/client-portal.js"></script>`);
   res.send(html);
 });
 

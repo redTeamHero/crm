@@ -4,12 +4,22 @@ function redirectByRole(user){
   const role = user?.role;
   const perms = user?.permissions || [];
   if(role === 'client'){
-    location.href = '/client-portal-template.html';
+    const clientId = user?.id || localStorage.getItem('clientId');
+    if(clientId){
+      try { localStorage.setItem('clientId', clientId); } catch {}
+      location.href = `/portal/${encodeURIComponent(clientId)}`;
+    } else {
+      location.href = '/client-portal-template.html';
+    }
+    return;
   }else if(role === 'team'){
+    try { localStorage.removeItem('clientId'); } catch {}
     location.href = '/team-member-template.html';
   }else if(role === 'admin' || (role === 'member' && perms.includes('consumers'))){
+    try { localStorage.removeItem('clientId'); } catch {}
     location.href = '/clients';
   }else{
+    try { localStorage.removeItem('clientId'); } catch {}
     location.href = '/clients';
   }
 }
