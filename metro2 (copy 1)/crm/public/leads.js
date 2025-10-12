@@ -86,6 +86,27 @@ const state = {
 const pipelineBoard = document.getElementById('pipelineBoard');
 const columnRefs = new Map();
 
+function setLeadFormDirtyState(form, value){
+  if(!form) return;
+  form.dataset.dirty = value ? 'true' : 'false';
+}
+
+function isLeadFormDirty(form){
+  return form?.dataset?.dirty === 'true';
+}
+
+function highlightLeadForm(form){
+  if(!form) return;
+  form.classList.add('ring-2', 'ring-offset-2', 'ring-emerald-400');
+  if(form.__hotkeyHighlightTimer){
+    clearTimeout(form.__hotkeyHighlightTimer);
+  }
+  form.__hotkeyHighlightTimer = setTimeout(() => {
+    form.classList.remove('ring-2', 'ring-offset-2', 'ring-emerald-400');
+    form.__hotkeyHighlightTimer = undefined;
+  }, 1500);
+}
+
 function initPipelineBoard(){
   if(!pipelineBoard) return;
   pipelineBoard.innerHTML = '';
@@ -425,7 +446,48 @@ function renderAll(){
 }
 
 const leadForm = document.getElementById('leadForm');
+const leadNameInput = document.getElementById('leadName');
 if(leadForm){
+  setLeadFormDirtyState(leadForm, false);
+
+  const focusLeadName = () => {
+    if(!leadNameInput) return;
+    leadNameInput.focus();
+    if(typeof leadNameInput.select === 'function'){
+      leadNameInput.select();
+    }
+  };
+
+  const startNewLeadEntry = () => {
+    if(isLeadFormDirty(leadForm)){
+      const proceed = window.confirm('Clear the current lead form and start a new lead?');
+      if(!proceed) return false;
+    }
+    leadForm.reset();
+    const stageSelect = leadForm.querySelector('#leadStage, [name="status"]');
+    if(stageSelect) stageSelect.value = 'new';
+    setLeadFormDirtyState(leadForm, false);
+    highlightLeadForm(leadForm);
+    if(typeof leadForm.scrollIntoView === 'function'){
+      leadForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    if(typeof window?.requestAnimationFrame === 'function'){
+      window.requestAnimationFrame(focusLeadName);
+    } else {
+      setTimeout(focusLeadName, 0);
+    }
+    return true;
+  };
+
+  window.__crm_hotkeyActions = window.__crm_hotkeyActions || {};
+  window.__crm_hotkeyActions.newLead = startNewLeadEntry;
+
+  const markLeadFormDirty = () => {
+    setLeadFormDirtyState(leadForm, true);
+  };
+  leadForm.addEventListener('input', markLeadFormDirty, { capture: true });
+  leadForm.addEventListener('change', markLeadFormDirty, { capture: true });
+
   leadForm.addEventListener('submit', async event => {
     event.preventDefault();
     const formData = new FormData(leadForm);
@@ -458,6 +520,13 @@ if(leadForm){
       leadForm.reset();
       const stageSelect = document.getElementById('leadStage');
       if(stageSelect) stageSelect.value = payload.status;
+      setLeadFormDirtyState(leadForm, false);
+      highlightLeadForm(leadForm);
+      if(typeof window?.requestAnimationFrame === 'function'){
+        window.requestAnimationFrame(focusLeadName);
+      } else {
+        setTimeout(focusLeadName, 0);
+      }
       await refreshLeads();
     } catch (error){
       console.error('Unable to save lead', error);
