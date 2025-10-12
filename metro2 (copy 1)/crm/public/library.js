@@ -76,29 +76,29 @@ function renderDefaultPack(){
   const sortedOptions = [...templates.map(normalizeTemplateShape).filter(Boolean)].sort((a,b)=> templateLabel(a).localeCompare(templateLabel(b)));
   normalized.forEach((tpl, idx)=>{
     const card = document.createElement('article');
-    card.className = 'glass card space-y-2 bg-white/70 shadow-sm';
+    card.className = 'library-pack-card';
     const header = document.createElement('div');
-    header.className = 'flex items-center justify-between gap-2';
+    header.className = 'library-pack-card__header';
     const title = document.createElement('h3');
-    title.className = 'text-sm font-semibold text-slate-700';
+    title.className = 'library-pack-card__title';
     title.textContent = `${idx+1}. ${templateLabel(tpl)}`;
     const badge = document.createElement('span');
-    badge.className = 'chip text-[10px] uppercase tracking-wide';
+    badge.className = 'library-tag';
     badge.textContent = tpl.requestType === 'delete' ? 'Delete' : 'Correct';
     header.appendChild(title);
     header.appendChild(badge);
 
     const body = document.createElement('p');
-    body.className = 'text-xs text-slate-500';
+    body.className = 'library-pack-card__body';
     body.textContent = snippet(tpl.intro || tpl.ask || tpl.afterIssues, 160) || 'Draft ready for copy.';
 
     const selectWrapper = document.createElement('div');
-    selectWrapper.className = 'flex flex-col gap-1';
+    selectWrapper.className = 'library-pack-card__control';
     const label = document.createElement('label');
-    label.className = 'text-[11px] uppercase text-slate-400';
+    label.className = 'library-pack-card__label';
     label.textContent = 'Swap Template / Cambiar plantilla';
     const select = document.createElement('select');
-    select.className = 'input text-sm';
+    select.className = 'input text-sm library-select';
     sortedOptions.forEach(option => {
       const opt = document.createElement('option');
       opt.value = option.id;
@@ -164,28 +164,28 @@ function renderContracts(){
   if(contractEmpty) contractEmpty.classList.add('hidden');
   items.forEach(contract => {
     const li = document.createElement('li');
-    li.className = 'glass card space-y-2 bg-white/80 p-4 shadow-sm';
+    li.className = 'library-contract-card';
     const header = document.createElement('div');
-    header.className = 'flex flex-wrap items-center justify-between gap-2';
+    header.className = 'library-contract-card__header';
     const title = document.createElement('h3');
     title.className = 'text-sm font-semibold text-slate-700';
     title.textContent = contract.name || 'Contract';
     const badge = document.createElement('span');
-    badge.className = 'chip text-[10px] uppercase tracking-wide';
+    badge.className = 'library-tag library-tag--neutral';
     badge.textContent = 'EN / ES';
     header.appendChild(title);
     header.appendChild(badge);
 
     const english = document.createElement('p');
-    english.className = 'text-xs text-slate-600 whitespace-pre-wrap';
+    english.className = 'library-contract-card__copy text-slate-600 whitespace-pre-wrap';
     english.textContent = snippet(contract.english, 260) || '—';
 
     const spanish = document.createElement('p');
-    spanish.className = 'text-xs text-slate-500 whitespace-pre-wrap';
+    spanish.className = 'library-contract-card__copy is-spanish whitespace-pre-wrap';
     spanish.textContent = snippet(contract.spanish, 260) || 'Añade versión en español para cerrar más ventas.';
 
     const actions = document.createElement('div');
-    actions.className = 'flex flex-wrap items-center gap-2 text-xs';
+    actions.className = 'library-contract-card__actions';
     const copyEn = document.createElement('button');
     copyEn.type = 'button';
     copyEn.className = 'btn text-xs';
@@ -301,7 +301,7 @@ function renderList(items, containerId, clickHandler){
   sorted.forEach(t => {
     const div = document.createElement('div');
     div.textContent = t.heading || '(no heading)';
-    div.className = 'chip';
+    div.className = 'library-pill';
     div.draggable = true;
     div.addEventListener('dragstart', e => {
       e.dataTransfer.setData('text/plain', t.id);
@@ -424,7 +424,7 @@ function renderSequences(){
   sequences.forEach(s => {
     const div = document.createElement('div');
     div.textContent = s.name || '(no name)';
-    div.className = 'chip';
+    div.className = 'library-pill library-pill--ghost';
     div.onclick = () => editSequence(s.id);
     list.appendChild(div);
   });
@@ -435,7 +435,7 @@ function renderSeqTemplateOptions(selected){
   container.innerHTML = '';
   templates.forEach(t => {
     const label = document.createElement('label');
-    label.className = 'flex items-center gap-2 text-xs p-1 rounded hover:bg-white/60';
+    label.className = 'library-seq-option';
     const cb = document.createElement('input');
     cb.type = 'checkbox';
     cb.value = t.id;
