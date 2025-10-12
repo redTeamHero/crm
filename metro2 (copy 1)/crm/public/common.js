@@ -33,7 +33,6 @@ const DEFAULT_LANGUAGE = 'en';
 
 const TRANSLATIONS = {
   en: {
-    language: { name: 'English', code: 'EN', switchTo: 'Switch to {language}' },
     brand: 'Metro 2 CRM',
     nav: {
       dashboard: 'Dashboard',
@@ -70,7 +69,7 @@ const TRANSLATIONS = {
       hero: {
         title: 'Marketing Launchpad',
         subtitle: 'Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.',
-        tip: 'Tip: Document every bilingual (EN/ES) touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.'
+        tip: 'Tip: Document every touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.'
       },
       smsBuilder: {
         heading: 'SMS Campaign Builder',
@@ -85,7 +84,7 @@ const TRANSLATIONS = {
           leads: 'All Leads',
           newClients: 'New Clients (≤30 days)',
           inactive: 'Inactive Accounts (90+ days)',
-          truckers: 'Owner-Operators / Truckers'
+          truckers: 'Owner-Operators and Truckers'
         },
         messageLabel: 'Message',
         messagePlaceholder: 'Hi {{first_name}}, we spotted a dispute update ready for review. Tap to confirm your next step.',
@@ -127,104 +126,6 @@ const TRANSLATIONS = {
         balanceBuster: 'Breaking negative balances.',
         debtDuster: 'Cleaning up the dust.',
         rookie: 'You’ve started your journey.'
-      }
-    }
-  },
-  es: {
-    language: { name: 'Español', code: 'ES', switchTo: 'Cambiar a {language}' },
-    brand: 'Metro 2 CRM',
-    nav: {
-      dashboard: 'Panel',
-      clients: 'Clientes',
-      leads: 'Prospectos',
-      schedule: 'Agenda',
-      billing: 'Facturación',
-      marketing: 'Marketing',
-      settings: 'Configuración',
-      myCompany: 'Mi empresa',
-      letters: 'Cartas',
-      library: 'Biblioteca',
-      workflows: 'Flujos',
-      tradelines: 'Líneas de crédito'
-    },
-    buttons: {
-      menu: 'Menú',
-      help: 'Ayuda',
-      helpTip: 'Ayuda (H)',
-      invite: 'Agregar integrante',
-      invitePlus: 'Invitar +',
-      addTeamMember: 'Agregar integrante',
-      logout: 'Cerrar sesión'
-    },
-    prompts: {
-      teammateEmail: '¿Correo del integrante?',
-      teammateName: '¿Nombre del integrante?',
-      inviteFailed: 'No se pudo invitar al integrante'
-    },
-    badges: {
-      tooltip: 'Has iniciado tu recorrido.'
-    },
-    marketing: {
-      hero: {
-        title: 'Lanzadera de Marketing',
-        subtitle: 'Diseña recorridos premium de recuperación crediticia, nutre prospectos y prepara automatizaciones enfocadas en conversión antes de conectarlas con Twilio, SendGrid u otra integración.',
-        tip: 'Tip: documenta cada punto de contacto bilingüe (EN/ES) para mantener el cumplimiento, aumentar la confianza y preparar upsells. Cuando los ganchos del backend estén listos, estas tarjetas podrán enviar cargas directo a tu cola de automatización.'
-      },
-      smsBuilder: {
-        heading: 'Constructor de Campañas SMS',
-        description: 'Diseña alcance conforme a normativas, personaliza con campos dinámicos y visualiza la experiencia móvil antes de lanzar.',
-        kpi: 'KPI sugerido: Tasa de respuesta',
-        upsell: 'Upsell: Seguimiento Concierge por SMS',
-        experiment: 'Prueba A/B: “Agendar llamada” vs “Descubre tu plan”',
-        campaignName: 'Nombre de la campaña',
-        campaignPlaceholder: 'Lanzamiento Promoción Otoño',
-        recipientLabel: 'Grupo de destinatarios',
-        recipients: {
-          leads: 'Todos los leads',
-          newClients: 'Clientes nuevos (≤30 días)',
-          inactive: 'Cuentas inactivas (90+ días)',
-          truckers: 'Propietarios-operadores / Camioneros'
-        },
-        messageLabel: 'Mensaje',
-        messagePlaceholder: 'Hola {{first_name}}, detectamos una actualización de disputa lista para revisión. Toca para confirmar tu próximo paso.',
-        insertMerge: 'Insertar campo dinámico',
-        personalize: '+ Personalizar',
-        characterLabel: 'Conteo de caracteres:',
-        guardrails: 'Controles: copia de opt-out se agrega automáticamente y se limita la tasa cuando esté en producción.',
-        previewButton: 'Previsualizar SMS',
-        sendTestButton: 'Enviar prueba'
-      }
-    },
-    tiers: {
-      names: {
-        creditLegend: 'Leyenda del Crédito',
-        creditHero: 'Héroe del Crédito',
-        creditChampion: 'Campeón del Crédito',
-        creditWarrior: 'Guerrero del Crédito',
-        creditSurgeon: 'Cirujano del Crédito',
-        disputeMaster: 'Maestro de Disputas',
-        debtSlayer: 'Destructor de Deudas',
-        reportScrubber: 'Limpiador del Reporte',
-        scoreShifter: 'Impulsor de Puntajes',
-        creditCleaner: 'Limpiador de Crédito',
-        balanceBuster: 'Rompe Saldos',
-        debtDuster: 'Sacudidor de Deudas',
-        rookie: 'Novato'
-      },
-      messages: {
-        creditLegend: 'El logro más alto y raro.',
-        creditHero: 'Ahora eres el héroe de tu historia crediticia.',
-        creditChampion: 'Celebrando tu victoria crediticia.',
-        creditWarrior: 'Listo para pelear disputas.',
-        creditSurgeon: 'Eliminaciones de precisión.',
-        disputeMaster: 'Dominando el proceso de disputas.',
-        debtSlayer: 'Eliminando cuentas negativas.',
-        reportScrubber: 'Limpiando a fondo tu reporte.',
-        scoreShifter: 'Los puntajes van mejorando.',
-        creditCleaner: 'Tu reporte está brillando.',
-        balanceBuster: 'Rompiendo saldos negativos.',
-        debtDuster: 'Sacudiendo la deuda restante.',
-        rookie: 'Has iniciado tu recorrido.'
       }
     }
   }
@@ -294,24 +195,6 @@ function applyDataI18n(lang = currentLanguage) {
     if (!value) return;
     el.setAttribute('aria-label', value);
   });
-}
-
-function updateLanguageToggleControl() {
-  if (typeof document === 'undefined') return;
-  const toggle = document.getElementById('languageToggle');
-  if (!toggle) return;
-  const nextLanguage = currentLanguage === 'en' ? 'es' : 'en';
-  const currentConfig = TRANSLATIONS[currentLanguage];
-  const nextConfig = TRANSLATIONS[nextLanguage];
-  if (nextConfig?.language?.code) {
-    toggle.textContent = nextConfig.language.code;
-  }
-  if (currentConfig?.language?.switchTo && nextConfig?.language?.name) {
-    const label = currentConfig.language.switchTo.replace('{language}', nextConfig.language.name);
-    toggle.setAttribute('aria-label', label);
-    toggle.setAttribute('title', label);
-  }
-  toggle.dataset.language = currentLanguage;
 }
 
 export function applyLanguage(lang = currentLanguage) {
@@ -388,7 +271,6 @@ export function applyLanguage(lang = currentLanguage) {
   }
 
   applyDataI18n(target);
-  updateLanguageToggleControl();
   if (typeof renderDeletionTier === 'function') {
     renderDeletionTier();
   }
@@ -409,28 +291,6 @@ export function setLanguage(lang) {
 
 export function getCurrentLanguage() {
   return currentLanguage;
-}
-
-function initLanguageToggle() {
-  if (typeof document === 'undefined') return;
-  const navRow = document.querySelector('.nav-brand-row');
-  if (!navRow || document.getElementById('languageToggle')) return;
-  const navToggle = document.getElementById('navToggle');
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.id = 'languageToggle';
-  button.className = 'btn nav-btn md:ml-2';
-  button.addEventListener('click', () => {
-    const next = currentLanguage === 'en' ? 'es' : 'en';
-    setLanguage(next);
-    trackEvent('language_toggle', { language: next });
-  });
-  if (navToggle) {
-    navRow.insertBefore(button, navToggle);
-  } else {
-    navRow.appendChild(button);
-  }
-  updateLanguageToggleControl();
 }
 
 
@@ -549,7 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initResponsiveNav();
   trackEvent('page_view', { path: location.pathname });
   initAbTest();
-  initLanguageToggle();
   applyLanguage(currentLanguage);
   attachInviteHandlers();
   applyRoleNav(window.userRole);
@@ -950,7 +809,7 @@ function ensureHelpModal(){
             </ul>
           </div>
           <div class="glass card p-3">
-            <div class="font-medium mb-1">Modes / Cards</div>
+            <div class="font-medium mb-1">Modes and Cards</div>
             <ul class="list-disc list-inside space-y-1">
               <li>Modes: <b>I</b>=Identity Theft, <b>D</b>=Data Breach, <b>S</b>=Sexual Assault</li>
               <li>Click a card to zoom; press <b>A</b> to toggle all bureaus on that card.</li>
@@ -959,17 +818,17 @@ function ensureHelpModal(){
           </div>
           <div class="glass card p-3 space-y-2" id="helpTourCard">
             <div class="font-medium">Guided Walkthrough</div>
-            <p class="text-xs text-slate-600">Follow a 4-step tour that highlights revenue-focused workflows. / Sigue un tour de 4 pasos enfocado en flujos de ingresos.</p>
+            <p class="text-xs text-slate-600">Follow a 4-step tour that highlights revenue-focused workflows.</p>
             <div class="flex flex-wrap gap-2">
-              <button id="helpTourButton" type="button" class="btn text-xs" data-mode="start">Start Walkthrough / Iniciar recorrido</button>
-              <button id="helpTourReset" type="button" class="btn text-xs bg-slate-100 text-slate-700 hidden">Reset Progress / Reiniciar progreso</button>
+              <button id="helpTourButton" type="button" class="btn text-xs" data-mode="start">Start Walkthrough</button>
+              <button id="helpTourReset" type="button" class="btn text-xs bg-slate-100 text-slate-700 hidden">Reset Progress</button>
             </div>
-            <p id="helpTourStatus" class="text-[11px] font-medium text-emerald-600 hidden">Tour completed — celebrate your win! / Recorrido completado — ¡celebra tu avance!</p>
+            <p id="helpTourStatus" class="text-[11px] font-medium text-emerald-600 hidden">Tour completed — celebrate your win!</p>
           </div>
           <div class="glass card p-3 space-y-2">
             <div class="font-medium">Chat Coach</div>
-            <p class="text-xs text-slate-600">Ask playbook questions or request sales scripts. / Pregunta por playbooks o guiones de ventas.</p>
-            <button id="helpChatButton" type="button" class="btn text-xs">Open Chat Coach / Abrir guía</button>
+            <p class="text-xs text-slate-600">Ask playbook questions or request sales scripts.</p>
+            <button id="helpChatButton" type="button" class="btn text-xs">Open Chat Coach</button>
           </div>
         </div>
       </div>
@@ -1032,9 +891,9 @@ window.setHelpGuideState = function(state = {}){
   if(tourButton){
     tourButton.dataset.mode = mode;
     let label;
-    if(mode === 'resume') label = 'Resume Walkthrough / Reanudar recorrido';
-    else if(mode === 'replay') label = 'Replay Walkthrough / Repetir recorrido';
-    else label = 'Start Walkthrough / Iniciar recorrido';
+    if(mode === 'resume') label = 'Resume Walkthrough';
+    else if(mode === 'replay') label = 'Replay Walkthrough';
+    else label = 'Start Walkthrough';
     tourButton.textContent = label;
   }
   if(resetButton){

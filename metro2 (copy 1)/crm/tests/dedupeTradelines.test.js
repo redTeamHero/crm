@@ -54,7 +54,7 @@ test('dedupeTradelines merges bureau data, violations, and metadata without losi
       meta:{
         creditor:'Merge Creditor',
         account_numbers:{ TransUnion:'12345TU' },
-        manual_reason:'Detailed bilingual rationale / Razón detallada'
+        manual_reason:'Detailed rationale note'
       },
       per_bureau:{
         TransUnion:{ account_number:'12345TU', balance:200, payment_status:'Late' },
@@ -94,7 +94,7 @@ test('dedupeTradelines merges bureau data, violations, and metadata without losi
   assert.equal(merged.violations.length, 2);
   assert.deepEqual(new Set(merged.violations.map(v => v.title)), new Set(['TU mismatch', 'Experian notice missing']));
 
-  assert.equal(merged.meta.manual_reason, 'Detailed bilingual rationale / Razón detallada');
+  assert.equal(merged.meta.manual_reason, 'Detailed rationale note');
   assert.equal(merged.meta.account_numbers.TransUnion, '12345TU');
   assert.equal(merged.meta.account_numbers.Experian, '12345TU');
 });

@@ -232,7 +232,7 @@ function renderSourceFilter(){
   if(!select) return;
   const sources = Array.from(new Set(state.leads.map(lead => lead.sourceLabel))).filter(Boolean).sort((a,b)=>a.localeCompare(b));
   const previous = state.filterSource;
-  select.innerHTML = '<option value="all">All sources / Todas</option>' + sources.map(src => `<option value="${src}">${src}</option>`).join('');
+  select.innerHTML = '<option value="all">All sources</option>' + sources.map(src => `<option value="${src}">${src}</option>`).join('');
   if(previous !== 'all' && !sources.includes(previous)){
     state.filterSource = 'all';
   }
@@ -247,7 +247,7 @@ function renderSourceBreakdown(){
   if(leadsForBreakdown.length === 0){
     const span = document.createElement('span');
     span.className = 'text-xs text-slate-500';
-    span.textContent = 'No leads yet. / Aún sin leads.';
+    span.textContent = 'No leads yet.';
     container.appendChild(span);
     return;
   }
@@ -534,7 +534,7 @@ if(leadForm){
     } finally {
       if(submitButton){
         submitButton.disabled = false;
-        submitButton.textContent = originalLabel || 'Save Lead / Guardar lead';
+        submitButton.textContent = originalLabel || 'Save Lead';
       }
     }
   });

@@ -116,12 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const help = document.createElement('div');
     help.className = 'text-xs text-gray-600';
     help.innerHTML = `
-      <p>Google Calendar setup / Configuración:</p>
+      <p>Google Calendar setup:</p>
       <ol class="list-decimal list-inside">
-        <li><a href="https://console.cloud.google.com/" class="underline" target="_blank" rel="noopener">Google Cloud Console</a>: create project & enable Calendar API / crea un proyecto y habilita la API de Calendar.</li>
-        <li>Generate an OAuth token or service account and share it with your calendar / Genera un token OAuth o una cuenta de servicio y compártelo con tu calendario.</li>
-        <li>From Google Calendar settings &gt; Integrate calendar, copy the <em>Calendar ID</em> / En Configuración &gt; Integrar calendario, copia el <em>ID del calendario</em>.</li>
-        <li>Paste the token & ID above and save / Pega el token y el ID arriba y guarda.</li>
+        <li><a href="https://console.cloud.google.com/" class="underline" target="_blank" rel="noopener">Google Cloud Console</a>: create a project and enable the Calendar API.</li>
+        <li>Generate an OAuth token or service account and share it with your calendar.</li>
+        <li>From Google Calendar settings &gt; Integrate calendar, copy the <em>Calendar ID</em>.</li>
+        <li>Paste the token & ID above and save.</li>
       </ol>`;
     gcalIdEl.insertAdjacentElement('afterend', help);
   }

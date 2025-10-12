@@ -45,8 +45,7 @@ function normalizeContractShape(contract){
   if(!contract) return null;
   return {
     ...contract,
-    english: contract.english || contract.body || '',
-    spanish: contract.spanish || ''
+    english: contract.english || contract.body || ''
   };
 }
 
@@ -122,7 +121,7 @@ function renderDefaultPack(){
         }
         defaultPack = data.templates || [];
         renderDefaultPack();
-        showStatus(defaultPackStatus, 'Default pack updated • Pack actualizado');
+        showStatus(defaultPackStatus, 'Default pack updated');
       } catch(err){
         window.alert(err.message || String(err));
         event.target.value = tpl.id;
@@ -174,7 +173,6 @@ function renderContracts(){
     badge.className = 'library-tag library-tag--neutral';
     badge.textContent = 'EN / ES';
     header.appendChild(title);
-    header.appendChild(badge);
 
     const english = document.createElement('p');
     english.className = 'library-contract-card__copy text-slate-600 whitespace-pre-wrap';
@@ -193,29 +191,15 @@ function renderContracts(){
     copyEn.addEventListener('click', async ()=>{
       try{
         await navigator.clipboard.writeText(contract.english || '');
-        showStatus(contractStatus, 'Copied English contract • Copiado EN');
+        showStatus(contractStatus, 'Copied contract copy');
       } catch(err){
         showStatus(contractStatus, 'Clipboard blocked', 'error');
       }
     });
-    const copyEs = document.createElement('button');
-    copyEs.type = 'button';
-    copyEs.className = 'btn text-xs';
-    copyEs.textContent = 'Copy ES';
-    copyEs.addEventListener('click', async ()=>{
-      try{
-        await navigator.clipboard.writeText(contract.spanish || '');
-        showStatus(contractStatus, 'Copied Spanish contract • Copiado ES');
-      } catch(err){
-        showStatus(contractStatus, 'Clipboard blocked', 'error');
-      }
-    });
-    actions.appendChild(copyEn);
-    actions.appendChild(copyEs);
+    actions.appendChild(copyButton);
 
     li.appendChild(header);
     li.appendChild(english);
-    li.appendChild(spanish);
     li.appendChild(actions);
     contractList.appendChild(li);
   });
@@ -240,11 +224,10 @@ async function handleContractSubmit(event){
   const formData = new FormData(contractForm);
   const payload = {
     name: formData.get('name')?.toString().trim() || '',
-    english: formData.get('english')?.toString().trim() || '',
-    spanish: formData.get('spanish')?.toString().trim() || ''
+    english: formData.get('english')?.toString().trim() || ''
   };
   if(!payload.name || !payload.english){
-    showStatus(contractStatus, 'Name and English body required • Completa nombre y versión EN', 'error');
+    showStatus(contractStatus, 'Name and body required', 'error');
     return;
   }
   try{
@@ -259,7 +242,7 @@ async function handleContractSubmit(event){
     }
     contracts.unshift(data.contract);
     renderContracts();
-    showStatus(contractStatus, 'Contract saved • Contrato guardado');
+    showStatus(contractStatus, 'Contract saved');
     closeContractModal();
   } catch(err){
     showStatus(contractStatus, err.message || 'Failed to save contract', 'error');
@@ -277,7 +260,6 @@ async function loadLibrary(){
     id: t.id,
     heading: t.name,
     intro: t.english,
-    spanish: t.spanish
   }));
   templates = [...templates, ...sampleTemplates];
   const seenIds = new Set();
