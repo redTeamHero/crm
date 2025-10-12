@@ -55,6 +55,16 @@ test('validateTradeline returns enriched violation objects', () => {
   });
 });
 
+test('validateTradeline infers account_status from payment_status strings', () => {
+  const violations = validateTradeline({ payment_status: 'Current', past_due: '$250.00' });
+  assert.ok(violations.some(v => v.code === 'CURRENT_BUT_PASTDUE'));
+});
+
+test('validateTradeline infers negative status from payment_status when DOFD missing', () => {
+  const violations = validateTradeline({ payment_status: 'Charge-Off', date_first_delinquency: '' });
+  assert.ok(violations.some(v => v.code === 'MISSING_DOFD'));
+});
+
 test('validateTradeline loads knowledge graph constraints', () => {
   const violations = validateTradeline({ account_status: 'Pays As Agreed', past_due: '$45.00' });
   assert.ok(violations.some(v => v.code === 'CURRENT_BUT_PASTDUE'));
