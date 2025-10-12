@@ -876,6 +876,7 @@ body::after {
   opacity: 0;
   max-height: 0;
   margin: 0;
+  pointer-events: none;
 }
 .palette .palette-field {
   display: flex;
