@@ -46,7 +46,8 @@ const TRANSLATIONS = {
       letters: 'Letter',
       library: 'Library',
       workflows: 'Workflows',
-      tradelines: 'Tradelines'
+      tradelines: 'Tradelines',
+      apis: 'APIs'
     },
     buttons: {
       menu: 'Menu',
