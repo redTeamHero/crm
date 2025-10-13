@@ -149,6 +149,7 @@ import {
   setTrackerSteps,
   markTrackerStep,
   getTrackerSteps,
+  setCreditScore,
 
 } from "./state.js";
 function injectStyle(html, css){
@@ -1264,6 +1265,41 @@ function extractCreditScores(html){
   return scores;
 }
 
+function normalizeScoreValue(value){
+  if(value === undefined || value === null) return null;
+  if(typeof value === "number" && Number.isFinite(value)){
+    return Math.round(value);
+  }
+  const match = String(value).match(/\d{2,3}/);
+  if(!match) return null;
+  const num = Number(match[0]);
+  return Number.isFinite(num) ? Math.round(num) : null;
+}
+
+function mergeCreditScores(existing, incoming){
+  const normalized = {};
+  for(const [key, value] of Object.entries(incoming || {})){
+    const normalizedValue = normalizeScoreValue(value);
+    if(normalizedValue) normalized[key] = normalizedValue;
+  }
+  if(!Object.keys(normalized).length){
+    return existing || null;
+  }
+  const merged = { ...(existing || {}) };
+  for(const [key, value] of Object.entries(normalized)){
+    merged[key] = value;
+  }
+  const bureaus = [merged.transunion, merged.experian, merged.equifax]
+    .map(v => Number(v))
+    .filter(v => Number.isFinite(v) && v > 0);
+  if(bureaus.length){
+    merged.current = Math.round(bureaus.reduce((sum, val) => sum + val, 0) / bureaus.length);
+  }
+  merged.updatedAt = new Date().toISOString();
+  merged.source = "report_upload";
+  return merged;
+}
+
 // =================== Consumers ===================
 app.get("/api/consumers", authenticate, requirePermission("consumers"), async (_req, res) => {
   res.json({ ok: true, consumers: (await loadDB()).consumers });
@@ -2140,11 +2176,11 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       errors.push({ step: "negative_items", message: e.message, details: e.stack || String(e) });
     }
 
-    let scores = {};
     try{
-      scores = extractCreditScores(htmlText);
-      if (Object.keys(scores).length) {
-        consumer.creditScore = { ...consumer.creditScore, ...scores };
+      const extractedScores = extractCreditScores(htmlText);
+      if (Object.keys(extractedScores).length) {
+        consumer.creditScore = mergeCreditScores(consumer.creditScore, extractedScores);
+        await setCreditScore(consumer.id, consumer.creditScore);
       }
     }catch(e){
       logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
@@ -3243,7 +3279,15 @@ app.post("/api/consumers/:id/tracker", async (req, res) => {
 
 app.get("/api/consumers/:id/state", async (req,res)=>{
   const cstate = await listConsumerState(req.params.id);
-  res.json({ ok:true, state: cstate });
+  const state = { ...cstate };
+  if(state.creditScore == null){
+    const db = await loadDB();
+    const consumer = db.consumers.find(c=>c.id===req.params.id);
+    if(consumer?.creditScore){
+      state.creditScore = consumer.creditScore;
+    }
+  }
+  res.json({ ok:true, state });
 });
 
 // Upload an attachment (photo/proof/etc.)

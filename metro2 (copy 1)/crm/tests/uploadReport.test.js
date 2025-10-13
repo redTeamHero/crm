@@ -61,6 +61,34 @@ test('uploading two reports stores both with violations', async () => {
   assert.equal(has2, true);
 });
 
+test('extracting credit scores syncs them to portal state', async () => {
+  const html = `<!DOCTYPE html><html><body>
+    <div>TransUnion FICO® Score 731</div>
+    <div>Experian Latest Score 715</div>
+    <div>Equifax Snapshot 704</div>
+  </body></html>`;
+  const create = await request(app).post('/api/consumers').send({ name: 'Score Sync' });
+  assert.equal(create.status, 200);
+  const id = create.body.consumer.id;
+
+  const upload = await request(app)
+    .post(`/api/consumers/${id}/upload`)
+    .attach('file', Buffer.from(html, 'utf-8'), 'score.html');
+
+  assert.equal(upload.status, 200);
+  assert.equal(upload.body.ok, true);
+  assert.equal(upload.body.creditScore.transunion, 731);
+  assert.equal(upload.body.creditScore.experian, 715);
+  assert.equal(upload.body.creditScore.equifax, 704);
+  assert.ok(upload.body.creditScore.updatedAt);
+
+  const stateRes = await request(app).get(`/api/consumers/${id}/state`);
+  assert.equal(stateRes.status, 200);
+  assert.equal(stateRes.body.state.creditScore.transunion, 731);
+  assert.equal(stateRes.body.state.creditScore.experian, 715);
+  assert.equal(stateRes.body.state.creditScore.equifax, 704);
+});
+
 // Ensure filters don't hide violations from a new upload
 
 async function simulateFilterUpload(reportHtml) {

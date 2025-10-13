@@ -14,6 +14,55 @@ const productTiers = [
   { deletions:0, score:0, name:'Secured Start', icon:'🔒', class:'bg-emerald-100 text-emerald-700', message:'You’ve planted the seed — secured cards are your first step to building credit.' },
 ];
 
+function safeParseScore(value){
+  if(!value) return null;
+  try { return JSON.parse(value); } catch { return null; }
+}
+
+function hasScoreData(score){
+  if(!score || typeof score !== 'object') return false;
+  const keys = ['transunion', 'tu', 'experian', 'exp', 'equifax', 'eq', 'current'];
+  return keys.some(key => {
+    const val = Number(score[key]);
+    return Number.isFinite(val) && val > 0;
+  });
+}
+
+function getBootstrapScore(){
+  const bootstrap = window.__PORTAL_BOOTSTRAP__;
+  if(bootstrap && typeof bootstrap === 'object' && bootstrap.creditScore){
+    return bootstrap.creditScore;
+  }
+  return null;
+}
+
+function getLocalScore(){
+  return safeParseScore(localStorage.getItem('creditScore'));
+}
+
+function formatScoreValue(value){
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? Math.round(num) : '—';
+}
+
+function applyCreditScore(score, { persist = true } = {}){
+  if(!hasScoreData(score)) return;
+  if(!window.__PORTAL_BOOTSTRAP__) window.__PORTAL_BOOTSTRAP__ = {};
+  window.__PORTAL_BOOTSTRAP__.creditScore = score;
+  if(persist){
+    try {
+      const serialized = JSON.stringify(score);
+      if(localStorage.getItem('creditScore') !== serialized){
+        localStorage.setItem('creditScore', serialized);
+        return; // loadScores will re-render
+      }
+    } catch {
+      // fall through to direct render
+    }
+  }
+  renderScore(score);
+}
+
 function getProductTier(deletions, score){
   for(const tier of productTiers){
     if(deletions >= tier.deletions && (!tier.score || score >= tier.score)) return tier;
@@ -28,13 +77,14 @@ function renderProductTier(score){
   let scoreVal;
   if(score !== undefined){
     if(typeof score === 'object'){
-      scoreVal = Number(score.current || score.transunion || score.tu || 0);
+      const source = score || {};
+      scoreVal = Number(source.current ?? source.transunion ?? source.tu ?? 0);
     } else {
       scoreVal = Number(score);
     }
   } else {
-    const scoreData = JSON.parse(localStorage.getItem('creditScore') || '{"current":0}');
-    scoreVal = Number(scoreData.current || scoreData.transunion || scoreData.tu || 0);
+    const scoreData = getBootstrapScore() || getLocalScore() || {};
+    scoreVal = Number(scoreData.current ?? scoreData.transunion ?? scoreData.tu ?? 0);
   }
   const tier = getProductTier(deletions, scoreVal);
 
@@ -50,14 +100,16 @@ function renderScore(score){
   const exEl = widget.querySelector('.ex');
   const eqEl = widget.querySelector('.eq');
   const scoreConfetti = document.getElementById('scoreConfetti');
-  const data = score || JSON.parse(localStorage.getItem('creditScore') || '{}');
-  const tu = Number(data.transunion || data.tu || data.current || 0);
-  const ex = Number(data.experian || data.exp || 0);
-  const eq = Number(data.equifax || data.eq || 0);
-  if (tuEl) tuEl.textContent = tu;
-  if (exEl) exEl.textContent = ex;
-  if (eqEl) eqEl.textContent = eq;
-  const scores = [tu, ex, eq].filter(n => n > 0);
+  const data = (score && typeof score === 'object')
+    ? score
+    : (score !== undefined ? { current: score } : (getBootstrapScore() || getLocalScore() || {}));
+  const tu = Number(data.transunion ?? data.tu ?? data.current ?? 0);
+  const ex = Number(data.experian ?? data.exp ?? 0);
+  const eq = Number(data.equifax ?? data.eq ?? 0);
+  if (tuEl) tuEl.textContent = formatScoreValue(tu);
+  if (exEl) exEl.textContent = formatScoreValue(ex);
+  if (eqEl) eqEl.textContent = formatScoreValue(eq);
+  const scores = [tu, ex, eq].filter(n => Number.isFinite(n) && n > 0);
   const avg = scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0;
   const start = Number(data.start || 0);
   if (avg > start && scoreConfetti && window.lottie) {
@@ -72,12 +124,38 @@ function renderScore(score){
     const ms = document.getElementById('milestones');
     if (ms) ms.innerHTML = `<div class="news-item">🎉 Score increased by ${Math.round(avg - start)} points!</div>`;
   }
+  const updatedAtEl = document.getElementById('creditScoreUpdated');
+  if (updatedAtEl) {
+    const stamp = data.updatedAt;
+    if (stamp) {
+      const date = new Date(stamp);
+      if (!Number.isNaN(date.getTime())) {
+        updatedAtEl.textContent = `Updated • Actualizado: ${date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`;
+        updatedAtEl.classList.remove('hidden');
+      } else {
+        updatedAtEl.classList.add('hidden');
+        updatedAtEl.textContent = '';
+      }
+    } else {
+      updatedAtEl.classList.add('hidden');
+      updatedAtEl.textContent = '';
+    }
+  }
   renderProductTier(data);
 }
 
 function loadScores(){
-  const score = JSON.parse(localStorage.getItem('creditScore') || '{}');
-  renderScore(score);
+  const bootstrapScore = getBootstrapScore();
+  if (hasScoreData(bootstrapScore)) {
+    renderScore(bootstrapScore);
+    return;
+  }
+  const stored = getLocalScore();
+  if (hasScoreData(stored)) {
+    renderScore(stored);
+  } else {
+    renderScore({});
+  }
 }
 
 function renderTeamList(){
@@ -231,13 +309,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('storage', e => {
-    if (e.key === 'creditScore') loadScores();
+    if (e.key === 'creditScore') {
+      if (e.newValue) {
+        const parsed = safeParseScore(e.newValue);
+        if (parsed) {
+          if (!window.__PORTAL_BOOTSTRAP__) window.__PORTAL_BOOTSTRAP__ = {};
+          window.__PORTAL_BOOTSTRAP__.creditScore = parsed;
+        }
+      }
+      loadScores();
+    }
     if (e.key === 'teamMembers') renderTeamList();
   });
   const _setItem = localStorage.setItem;
   localStorage.setItem = function(key, value) {
     _setItem.apply(this, arguments);
-    if (key === 'creditScore') loadScores();
+    if (key === 'creditScore') {
+      const parsed = safeParseScore(value);
+      if (parsed) {
+        if (!window.__PORTAL_BOOTSTRAP__) window.__PORTAL_BOOTSTRAP__ = {};
+        window.__PORTAL_BOOTSTRAP__.creditScore = parsed;
+      }
+      loadScores();
+    }
     if (key === 'teamMembers') renderTeamList();
   };
 
@@ -473,6 +567,9 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(r => r.json())
       .then(data => {
         const docs = data.state?.files || [];
+        if (data.state?.creditScore) {
+          applyCreditScore(data.state.creditScore);
+        }
         if (!docs.length) docEl.textContent = 'No documents uploaded.';
         else docEl.innerHTML = docs.map(d => `<div class="news-item"><a href="/api/consumers/${consumerId}/state/files/${d.storedName}" target="_blank">${d.originalName}</a></div>`).join('');
       })
