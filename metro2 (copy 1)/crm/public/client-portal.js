@@ -518,41 +518,55 @@ document.addEventListener('DOMContentLoaded', () => {
   function attachPayHandlers(){
     if(!paymentList) return;
     paymentList.querySelectorAll('.pay-invoice').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const link = btn.getAttribute('data-pay-link');
         const provider = (btn.getAttribute('data-provider') || '').toLowerCase();
         const invoiceId = btn.getAttribute('data-id');
         const originalText = btn.dataset.label || btn.textContent;
-        if(provider === 'stripe'){
+        const shouldTryStripe = provider === 'stripe' || (typeof link === 'string' && link.includes('/pay/'));
+
+        if(shouldTryStripe){
           btn.disabled = true;
           btn.textContent = 'Redirecting…';
-          fetch(`/api/invoices/${encodeURIComponent(invoiceId)}/checkout`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ consumerId }),
-          })
-            .then(async resp => {
-              const data = await resp.json().catch(() => ({}));
-              if(!resp.ok || !data?.url){
-                throw new Error(data?.error || 'Checkout failed');
-              }
+          let stripeOk = false;
+          try {
+            const resp = await fetch(`/api/invoices/${encodeURIComponent(invoiceId)}/checkout`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ consumerId }),
+            });
+            const data = await resp.json().catch(() => ({}));
+            if(resp.ok && data?.url){
+              stripeOk = true;
               window.location.href = data.url;
-            })
-            .catch(err => {
-              console.error('Stripe checkout failed', err);
+              return;
+            }
+            if(!link){
+              alert(data?.error || 'Unable to start Stripe checkout. Please contact support.');
+            } else {
+              console.warn('Stripe checkout fallback triggered', data?.error || resp.statusText);
+            }
+          } catch (err) {
+            console.error('Stripe checkout failed', err);
+            if(!link){
               alert('Unable to start Stripe checkout. Please contact support.');
-            })
-            .finally(() => {
+            }
+          } finally {
+            if(!stripeOk){
               btn.disabled = false;
               btn.textContent = originalText;
-            });
+            }
+          }
+          if(stripeOk){
+            return;
+          }
+        }
+
+        if(link){
+          navigateTo(link);
           return;
         }
-        if(!link){
-          alert('Payment link unavailable. Please contact support.');
-          return;
-        }
-        navigateTo(link);
+        alert('Payment link unavailable. Please contact support.');
       });
     });
   }

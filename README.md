@@ -39,6 +39,7 @@ npm start
 - Set `STRIPE_SECRET_KEY` (and optional redirect env vars) to let the CRM create Stripe Checkout sessions for invoices.
 - When you add a new invoice without a manual pay link, the server now auto-generates a Stripe session and stores the checkout URL for the client portal.
 - Clients clicking **Pay now / Pagar ahora** inside the portal will request a fresh Stripe Checkout session so expired links are never shown.
+- Every invoice also exposes a hosted pay link at `/pay/{invoiceId}` on your CRM domain. Share that URL (English or Spanish copy) and we will spin up a new Stripe Checkout page on demand—mirroring the tradeline purchase flow.
 
 Smoke-test a checkout session for a specific invoice (replace `INV123` and `CONSUMER123` with real IDs):
 
