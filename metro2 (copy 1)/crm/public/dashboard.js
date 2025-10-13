@@ -100,6 +100,126 @@ const clientLocationElements = {
 const focusDateFormatterEn = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 const focusDateFormatterEs = new Intl.DateTimeFormat('es-MX', { month: 'short', day: 'numeric' });
 
+const DEFAULT_DASHBOARD_GOALS = Object.freeze({
+  leadToConsultTarget: 32,
+  retentionTarget: 92,
+  monthlyRecurringTarget: 84000,
+});
+
+const DEFAULT_LADDER_CONFIG = Object.freeze({
+  title: 'Revenue Ladder to 7 Figures',
+  subtitle: 'Premium dispute services roadmap. No guaranteed timelines or deletions.',
+  goalLabel: 'Goal / Meta',
+  goalAmountLabel: '$84k mo',
+  goalCaption: 'Objetivo mensual',
+  mrrCaption: 'Keep churn < 5% and auto-schedule retention consults.',
+  pipelineValue: 'Load CRM',
+  pipelineCaption: 'Daily KPI: Consult → Purchase 35%.',
+  aovValue: 'Link Stripe',
+  aovCaption: 'Bundle certified mail credits for premium feel.',
+  milestone: 'Next milestone: $25k/mo unlocks concierge onboarding.',
+  milestoneCaption: 'Próximo objetivo intermedio',
+  progressBaselineLabel: '$0',
+  progressGoalLabel: 'Meta $84k',
+  upsellHeading: 'Upsell idea:',
+  upsellBody: 'Automation bundle at $249/mo with certified mail credits + NEPQ scripts.',
+  playbookLabel: 'View Playbook',
+  playbookUrl: '#',
+  spanishSummaryLabel: 'Ver resumen en español',
+  spanishSummaryUrl: '#',
+});
+
+let currentDashboardGoals = { ...DEFAULT_DASHBOARD_GOALS };
+let currentLadderConfig = { ...DEFAULT_LADDER_CONFIG };
+let currentMonthlyRecurringRevenue = null;
+let currentSummarySnapshot = null;
+
+function mergeConfig(base = {}, override = {}) {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(override || {})) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      result[key] = mergeConfig(result[key] && typeof result[key] === 'object' ? result[key] : {}, value);
+    } else if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+function sanitizeLink(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim();
+}
+
+function applyLadderConfig(ladder, goals) {
+  if (typeof document === 'undefined') return;
+  const mergedGoals = { ...DEFAULT_DASHBOARD_GOALS, ...(goals && typeof goals === 'object' ? goals : {}) };
+  const mergedLadder = mergeConfig(DEFAULT_LADDER_CONFIG, ladder && typeof ladder === 'object' ? ladder : {});
+
+  currentDashboardGoals = mergedGoals;
+  currentLadderConfig = mergedLadder;
+
+  setTextContent('ladderTitle', mergedLadder.title);
+  setTextContent('ladderSubtitle', mergedLadder.subtitle);
+  setTextContent('ladderGoalLabel', mergedLadder.goalLabel);
+  const amountLabel = mergedLadder.goalAmountLabel || (
+    Number.isFinite(mergedGoals.monthlyRecurringTarget)
+      ? `${formatCurrency(mergedGoals.monthlyRecurringTarget)} / mo`
+      : DEFAULT_LADDER_CONFIG.goalAmountLabel
+  );
+  setTextContent('ladderGoalAmount', amountLabel);
+  setTextContent('ladderGoalCaption', mergedLadder.goalCaption);
+  setTextContent('ladderMrrCaption', mergedLadder.mrrCaption);
+  setTextContent('ladderPipeline', mergedLadder.pipelineValue);
+  setTextContent('ladderPipelineCaption', mergedLadder.pipelineCaption);
+  setTextContent('ladderAov', mergedLadder.aovValue);
+  setTextContent('ladderAovCaption', mergedLadder.aovCaption);
+  setTextContent('ladderMilestone', mergedLadder.milestone);
+  setTextContent('ladderMilestoneCaption', mergedLadder.milestoneCaption);
+  setTextContent('ladderProgressBaseline', mergedLadder.progressBaselineLabel);
+  setTextContent('ladderProgressGoal', mergedLadder.progressGoalLabel);
+
+  const upsellEl = document.getElementById('ladderUpsellCopy');
+  if (upsellEl) {
+    upsellEl.innerHTML = `<span class="font-semibold text-slate-900">${escapeHtml(mergedLadder.upsellHeading)}</span> ${escapeHtml(mergedLadder.upsellBody)}`;
+  }
+
+  const playbookBtn = document.getElementById('ladderPlaybookButton');
+  if (playbookBtn) {
+    playbookBtn.textContent = mergedLadder.playbookLabel || DEFAULT_LADDER_CONFIG.playbookLabel;
+    const playbookUrl = sanitizeLink(mergedLadder.playbookUrl);
+    playbookBtn.href = playbookUrl || '#';
+    if (/^https?:/i.test(playbookUrl)) {
+      playbookBtn.target = '_blank';
+      playbookBtn.rel = 'noopener';
+    } else {
+      playbookBtn.removeAttribute('target');
+      playbookBtn.removeAttribute('rel');
+    }
+  }
+
+  const spanishLink = document.getElementById('ladderSpanishLink');
+  if (spanishLink) {
+    const spanishLabel = mergedLadder.spanishSummaryLabel || DEFAULT_LADDER_CONFIG.spanishSummaryLabel;
+    const spanishUrl = sanitizeLink(mergedLadder.spanishSummaryUrl);
+    spanishLink.textContent = spanishLabel;
+    if (spanishUrl) {
+      spanishLink.href = spanishUrl;
+      if (/^https?:/i.test(spanishUrl)) {
+        spanishLink.target = '_blank';
+        spanishLink.rel = 'noopener';
+      } else {
+        spanishLink.removeAttribute('target');
+        spanishLink.removeAttribute('rel');
+      }
+      spanishLink.classList.remove('hidden');
+    } else {
+      spanishLink.href = '#';
+      spanishLink.classList.add('hidden');
+    }
+  }
+}
+
 function setTextContent(id, value) {
   if (typeof document === 'undefined') return;
   const el = document.getElementById(id);
@@ -1239,6 +1359,206 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const detailModalController = createDetailModal();
 
+  applyLadderConfig(currentLadderConfig, currentDashboardGoals);
+
+  const ladderEditor = document.getElementById('ladderEditor');
+  const ladderEditorForm = document.getElementById('ladderEditorForm');
+  const ladderEditButton = document.getElementById('ladderEditButton');
+  const ladderEditorClose = document.getElementById('ladderEditorClose');
+  const ladderEditorCancel = document.getElementById('ladderEditorCancel');
+  const ladderEditorStatus = document.getElementById('ladderEditorStatus');
+  const ladderEditorSubmit = document.getElementById('ladderEditorSubmit');
+  let ladderEditorOpen = false;
+
+  function populateLadderEditorForm() {
+    if (!ladderEditorForm) return;
+    const values = {
+      title: currentLadderConfig.title,
+      subtitle: currentLadderConfig.subtitle,
+      goalLabel: currentLadderConfig.goalLabel,
+      goalAmountLabel: currentLadderConfig.goalAmountLabel,
+      goalCaption: currentLadderConfig.goalCaption,
+      monthlyRecurringTarget: Number.isFinite(currentDashboardGoals.monthlyRecurringTarget)
+        ? currentDashboardGoals.monthlyRecurringTarget
+        : '',
+      mrrCaption: currentLadderConfig.mrrCaption,
+      pipelineValue: currentLadderConfig.pipelineValue,
+      pipelineCaption: currentLadderConfig.pipelineCaption,
+      aovValue: currentLadderConfig.aovValue,
+      aovCaption: currentLadderConfig.aovCaption,
+      milestone: currentLadderConfig.milestone,
+      milestoneCaption: currentLadderConfig.milestoneCaption,
+      progressBaselineLabel: currentLadderConfig.progressBaselineLabel,
+      progressGoalLabel: currentLadderConfig.progressGoalLabel,
+      upsellHeading: currentLadderConfig.upsellHeading,
+      upsellBody: currentLadderConfig.upsellBody,
+      playbookLabel: currentLadderConfig.playbookLabel,
+      playbookUrl: currentLadderConfig.playbookUrl,
+      spanishSummaryLabel: currentLadderConfig.spanishSummaryLabel,
+      spanishSummaryUrl: currentLadderConfig.spanishSummaryUrl,
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      const field = ladderEditorForm.elements.namedItem(name);
+      if (field) {
+        field.value = value == null ? '' : value;
+      }
+    });
+    if (ladderEditorStatus) {
+      ladderEditorStatus.textContent = '';
+      ladderEditorStatus.classList.remove('text-red-600');
+      ladderEditorStatus.classList.add('text-emerald-600');
+    }
+  }
+
+  function openLadderEditor() {
+    if (!ladderEditor) return;
+    populateLadderEditorForm();
+    ladderEditor.classList.remove('hidden');
+    ladderEditor.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+    ladderEditorOpen = true;
+    const firstField = ladderEditorForm?.elements.namedItem('title');
+    if (firstField && typeof firstField.focus === 'function') {
+      firstField.focus();
+    }
+  }
+
+  function closeLadderEditor() {
+    if (!ladderEditor) return;
+    ladderEditor.classList.add('hidden');
+    ladderEditor.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+    ladderEditorOpen = false;
+  }
+
+  if (ladderEditButton) {
+    ladderEditButton.addEventListener('click', () => openLadderEditor());
+  }
+  if (ladderEditorClose) {
+    ladderEditorClose.addEventListener('click', () => closeLadderEditor());
+  }
+  if (ladderEditorCancel) {
+    ladderEditorCancel.addEventListener('click', () => closeLadderEditor());
+  }
+  if (ladderEditor) {
+    ladderEditor.addEventListener('click', (event) => {
+      if (event.target === ladderEditor) {
+        closeLadderEditor();
+      }
+    });
+  }
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && ladderEditorOpen) {
+      closeLadderEditor();
+    }
+  });
+
+  if (ladderEditorForm) {
+    ladderEditorForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!ladderEditorSubmit) return;
+
+      if (ladderEditorStatus) {
+        ladderEditorStatus.textContent = 'Saving… / Guardando…';
+        ladderEditorStatus.classList.remove('text-red-600');
+        ladderEditorStatus.classList.add('text-emerald-600');
+      }
+
+      ladderEditorSubmit.disabled = true;
+      ladderEditorSubmit.textContent = 'Saving…';
+
+      try {
+        const formData = new FormData(ladderEditorForm);
+        const ladderPayload = {};
+        const ladderFields = [
+          'title',
+          'subtitle',
+          'goalLabel',
+          'goalAmountLabel',
+          'goalCaption',
+          'mrrCaption',
+          'pipelineValue',
+          'pipelineCaption',
+          'aovValue',
+          'aovCaption',
+          'milestone',
+          'milestoneCaption',
+          'progressBaselineLabel',
+          'progressGoalLabel',
+          'upsellHeading',
+          'upsellBody',
+          'playbookLabel',
+          'playbookUrl',
+          'spanishSummaryLabel',
+          'spanishSummaryUrl',
+        ];
+
+        for (const field of ladderFields) {
+          const raw = formData.get(field);
+          ladderPayload[field] = typeof raw === 'string' ? raw.trim() : '';
+        }
+
+        const monthlyTargetRaw = formData.get('monthlyRecurringTarget');
+        const monthlyTarget = typeof monthlyTargetRaw === 'string'
+          ? Number.parseFloat(monthlyTargetRaw)
+          : Number.isFinite(monthlyTargetRaw) ? Number(monthlyTargetRaw) : NaN;
+
+        const payload = { ladder: ladderPayload };
+        if (Number.isFinite(monthlyTarget) && monthlyTarget >= 0) {
+          payload.goals = { monthlyRecurringTarget: monthlyTarget };
+        }
+
+        const resp = await fetch('/api/dashboard/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        let body = {};
+        try {
+          body = await resp.json();
+        } catch {
+          body = {};
+        }
+
+        if (!resp.ok || body.ok === false) {
+          const message = body.error || `Request failed (${resp.status})`;
+          throw new Error(message);
+        }
+
+        const config = body.config || {};
+        currentSummarySnapshot = currentSummarySnapshot
+          ? { ...currentSummarySnapshot, goals: config.goals || currentSummarySnapshot.goals, ladder: config.ladder || currentSummarySnapshot.ladder }
+          : { goals: config.goals || {}, ladder: config.ladder || {} };
+        applyLadderConfig(config.ladder, config.goals);
+        updateRevenueLadder(currentMonthlyRecurringRevenue, currentDashboardGoals.monthlyRecurringTarget);
+        if (currentSummarySnapshot) {
+          updateGoalKpiLabel(currentSummarySnapshot);
+        }
+
+        if (ladderEditorStatus) {
+          ladderEditorStatus.textContent = 'Saved • Guardado';
+          ladderEditorStatus.classList.remove('text-red-600');
+          ladderEditorStatus.classList.add('text-emerald-600');
+        }
+
+        setTimeout(() => {
+          closeLadderEditor();
+        }, 800);
+      } catch (err) {
+        console.error('Failed to save ladder config', err);
+        if (ladderEditorStatus) {
+          ladderEditorStatus.textContent = `Save failed • Error: ${err?.message || 'Unknown error'}`;
+          ladderEditorStatus.classList.remove('text-emerald-600');
+          ladderEditorStatus.classList.add('text-red-600');
+        }
+      } finally {
+        ladderEditorSubmit.disabled = false;
+        ladderEditorSubmit.textContent = 'Save changes';
+      }
+    });
+  }
+
   chatState.panel = document.getElementById('guideChatPanel');
   chatState.toggle = document.getElementById('guideChatToggle');
   chatState.close = document.getElementById('guideChatClose');
@@ -1460,12 +1780,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (summary) {
-        updateRevenueLadder(summary.revenue?.monthlyRecurringRevenue, summary.goals?.monthlyRecurringTarget);
+        currentSummarySnapshot = summary;
+        currentMonthlyRecurringRevenue = Number.isFinite(summary.revenue?.monthlyRecurringRevenue)
+          ? summary.revenue.monthlyRecurringRevenue
+          : null;
+        applyLadderConfig(summary.ladder, summary.goals);
+        updateRevenueLadder(currentMonthlyRecurringRevenue, summary.goals?.monthlyRecurringTarget);
         updateGoalKpiLabel(summary);
         updateNextRevenueWin(summary.focus?.nextRevenueMove);
         renderFocusList(summary);
         updateHeroCards(summary);
       } else {
+        currentSummarySnapshot = null;
+        currentMonthlyRecurringRevenue = null;
+        applyLadderConfig(null, null);
         updateRevenueLadder(null, null);
         updateGoalKpiLabel(null);
         updateNextRevenueWin(null);
