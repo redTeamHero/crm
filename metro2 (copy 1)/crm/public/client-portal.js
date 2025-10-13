@@ -338,6 +338,135 @@ document.addEventListener('DOMContentLoaded', () => {
   const negativeItemList = document.getElementById('negativeItemList');
   const negativeItemSearch = document.getElementById('negativeItemSearch');
   const negativeItemSort = document.getElementById('negativeItemSort');
+  const paymentSection = document.getElementById('paymentSection');
+  const paymentList = document.getElementById('paymentList');
+  const paymentEmpty = document.getElementById('paymentEmpty');
+  const paymentTotal = document.getElementById('paymentTotal');
+  const paymentError = document.getElementById('paymentError');
+  let invoiceCache = [];
+  let invoicesLoaded = false;
+  let invoiceLoading = false;
+  let invoiceRefreshTimer = null;
+  function formatCurrency(amount){
+    const value = Number(amount) || 0;
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value);
+    } catch {
+      return `$${value.toFixed(2)}`;
+    }
+  }
+  function formatDue(due){
+    if(!due) return 'Due on receipt / Pago al recibir';
+    const date = new Date(due);
+    if(Number.isNaN(date.getTime())) return 'Due on receipt / Pago al recibir';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function isDueSoon(inv){
+    if(inv.paid || !inv?.due) return false;
+    const date = new Date(inv.due);
+    if(Number.isNaN(date.getTime())) return false;
+    const diff = date.getTime() - Date.now();
+    return diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000;
+  }
+  function isOverdue(inv){
+    if(inv.paid || !inv?.due) return false;
+    const date = new Date(inv.due);
+    if(Number.isNaN(date.getTime())) return false;
+    return date.getTime() < Date.now();
+  }
+  function attachPayHandlers(){
+    if(!paymentList) return;
+    paymentList.querySelectorAll('.pay-invoice').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const link = btn.getAttribute('data-pay-link');
+        if(!link){
+          alert('Payment link unavailable. Please contact support.');
+          return;
+        }
+        window.open(link, '_blank', 'noopener');
+      });
+    });
+  }
+  function renderInvoices(invoices = []){
+    invoiceCache = Array.isArray(invoices) ? invoices : [];
+    invoicesLoaded = true;
+    if(paymentTotal){
+      const total = invoiceCache.filter(inv => !inv.paid).reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+      paymentTotal.textContent = formatCurrency(total);
+    }
+    if(!paymentList) return;
+    if(!invoiceCache.length){
+      paymentList.innerHTML = '';
+      if(paymentEmpty) paymentEmpty.classList.remove('hidden');
+      if(paymentError) paymentError.classList.add('hidden');
+      return;
+    }
+    if(paymentEmpty) paymentEmpty.classList.add('hidden');
+    const cards = invoiceCache.map(inv => {
+      const amountText = formatCurrency(inv.amount);
+      const dueText = formatDue(inv.due);
+      const overdue = isOverdue(inv);
+      const dueSoon = isDueSoon(inv);
+      const badges = [
+        inv.paid ? '<span class="badge badge-paid">Paid / Pagado</span>' : '<span class="badge badge-unpaid">Open / Abierto</span>',
+        overdue ? '<span class="badge badge-unpaid">Overdue / Vencido</span>' : (dueSoon ? '<span class="badge badge-unpaid">Due soon / Próximo</span>' : '')
+      ].filter(Boolean).join(' ');
+      const payButton = inv.paid ? '' : (inv.payLink
+        ? `<button type="button" class="btn text-sm pay-invoice" data-pay-link="${escape(inv.payLink)}" data-id="${escape(inv.id)}">Pay now / Pagar ahora</button>`
+        : '<span class="text-xs muted">Contact support to add a payment link.</span>');
+      const pdfUrl = inv.pdf ? `/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(inv.pdf)}` : '';
+      const pdfButton = inv.pdf ? `<a class="btn text-xs" target="_blank" rel="noopener" href="${pdfUrl}">Invoice PDF</a>` : '';
+      return `
+        <div class="glass card p-4 flex flex-col gap-3">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div class="font-semibold text-base">${escape(inv.desc || 'Invoice')}</div>
+              <div class="text-xs muted">${escape(dueText)}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-semibold">${amountText}</div>
+              <div class="flex flex-wrap gap-2 justify-end mt-1">${badges}</div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            ${payButton}
+            ${pdfButton}
+          </div>
+        </div>
+      `;
+    }).join('');
+    paymentList.innerHTML = cards;
+    if(paymentError) paymentError.classList.add('hidden');
+    attachPayHandlers();
+  }
+  function showInvoiceError(message){
+    if(paymentList) paymentList.innerHTML = '';
+    if(paymentEmpty) paymentEmpty.classList.add('hidden');
+    if(paymentError){
+      paymentError.textContent = message || 'Failed to load invoices. Please retry.';
+      paymentError.classList.remove('hidden');
+    }
+  }
+  function loadInvoices(options = {}){
+    if(!(consumerId && paymentSection)) return;
+    if(invoicesLoaded && !options.force){
+      renderInvoices(invoiceCache);
+      return;
+    }
+    if(invoiceLoading) return;
+    invoiceLoading = true;
+    fetch(`/api/invoices/${consumerId}`)
+      .then(r => r.json())
+      .then(data => {
+        renderInvoices(Array.isArray(data.invoices) ? data.invoices : []);
+      })
+      .catch(() => {
+        showInvoiceError('Could not load invoices. Refresh or contact support.');
+      })
+      .finally(() => {
+        invoiceLoading = false;
+      });
+  }
   function loadDocs(){
     if (!(docEl && consumerId)) return;
     fetch(`/api/consumers/${consumerId}/state`)
@@ -352,6 +481,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDocs();
   loadMessages();
   initNegativeItems();
+  if (consumerId && paymentSection) {
+    loadInvoices();
+  }
 
   function loadMail(){
     if (!(mailWaiting && mailMailed && consumerId)) return;
@@ -697,6 +829,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (documentSection) documentSection.classList.add('hidden');
     if (mailSection) mailSection.classList.add('hidden');
     if (negativeItemsSection) negativeItemsSection.classList.add('hidden');
+    if (paymentSection) paymentSection.classList.add('hidden');
+    if (invoiceRefreshTimer) {
+      clearInterval(invoiceRefreshTimer);
+      invoiceRefreshTimer = null;
+    }
 
     if (hash === '#uploads' && uploadSection) {
       uploadSection.classList.remove('hidden');
@@ -711,6 +848,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (hash === '#mailSection' && mailSection) {
       mailSection.classList.remove('hidden');
       loadMail();
+    } else if (hash === '#payments' && paymentSection) {
+      paymentSection.classList.remove('hidden');
+      loadInvoices({ force: true });
+      invoiceRefreshTimer = setInterval(() => loadInvoices({ force: true }), 60000);
     } else if (hash === '#negative-items' && negativeItemsSection) {
       negativeItemsSection.classList.remove('hidden');
       initNegativeItems();
@@ -720,6 +861,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   showSection(location.hash);
   window.addEventListener('hashchange', () => showSection(location.hash));
+  window.addEventListener('beforeunload', () => {
+    if (invoiceRefreshTimer) {
+      clearInterval(invoiceRefreshTimer);
+      invoiceRefreshTimer = null;
+    }
+  });
 
   const uploadForm = document.getElementById('uploadForm');
   if (uploadForm && consumerId) {

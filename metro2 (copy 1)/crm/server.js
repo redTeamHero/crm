@@ -1455,6 +1455,7 @@ app.post("/api/invoices", async (req,res)=>{
     due: req.body.due || null,
     paid: !!req.body.paid,
     pdf: null,
+    payLink: null,
   };
 
   let result;
@@ -1491,10 +1492,12 @@ app.post("/api/invoices", async (req,res)=>{
     console.error("Failed to generate invoice PDF", err);
   }
 
-  const payLink = req.body.payLink || `https://pay.example.com/${inv.id}`;
+  const fallbackPayBase = (process.env.PORTAL_PAYMENT_BASE || "https://pay.example.com").replace(/\/$/, "");
+  const payLink = req.body.payLink || req.body.payUrl || `${fallbackPayBase}/${inv.id}`;
+  inv.payLink = payLink;
   await addEvent(inv.consumerId, "message", {
     from: "system",
-    text: `Payment due for ${inv.desc} ($${inv.amount.toFixed(2)}). Pay here: ${payLink}`,
+    text: `Payment due for ${inv.desc} ($${inv.amount.toFixed(2)}). Pay inside your client portal (Pay / Pagos tab) or at ${payLink}`,
   });
 
 
@@ -1511,6 +1514,11 @@ app.put("/api/invoices/:id", async (req,res)=>{
   if(req.body.amount !== undefined) inv.amount = Number(req.body.amount) || 0;
   if(req.body.due !== undefined) inv.due = req.body.due;
   if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
+  if(req.body.payLink !== undefined || req.body.payUrl !== undefined){
+    const base = (process.env.PORTAL_PAYMENT_BASE || "https://pay.example.com").replace(/\/$/, "");
+    const updatedLink = req.body.payLink || req.body.payUrl || `${base}/${inv.id}`;
+    inv.payLink = updatedLink;
+  }
   await saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
 });
