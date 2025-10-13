@@ -92,7 +92,13 @@ test('applyRoleNav removes disallowed nav items for team', () => {
           <a href="/dashboard"></a>
           <a href="/clients"></a>
           <a href="/leads"></a>
-          <a href="/marketing"></a>
+          <div id="navMarketing" class="nav-dropdown">
+            <button id="navMarketingToggle"></button>
+            <div id="navMarketingMenu">
+              <a href="/marketing/sms"></a>
+              <a href="/marketing/email"></a>
+            </div>
+          </div>
           <a href="/schedule"></a>
           <a href="/billing"></a>
           <a href="/admin"></a>
@@ -106,8 +112,11 @@ test('applyRoleNav removes disallowed nav items for team', () => {
   global.document = dom.window.document;
   applyRoleNav('team');
   const nav = dom.window.document.getElementById('primaryNavLinks');
-  const items = [...nav.children].map(el => el.tagName === 'A' ? el.getAttribute('href') : el.id);
-  assert.deepEqual(items, ['/dashboard','/clients','/leads','/marketing','/schedule','/billing']);
+  const links = [...nav.querySelectorAll('a[href]')].map(el => el.getAttribute('href'));
+  assert.deepEqual(links, ['/dashboard','/clients','/leads','/marketing/sms','/marketing/email','/schedule','/billing']);
+  const marketingMenu = nav.querySelector('#navMarketingMenu');
+  assert.ok(marketingMenu);
+  assert.equal(marketingMenu.querySelectorAll('a[href]').length, 2);
   delete global.document;
 });
 
