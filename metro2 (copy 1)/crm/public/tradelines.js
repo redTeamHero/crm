@@ -22,6 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const resultsSubheading = document.getElementById('results-subheading');
   const rangeKpi = document.getElementById('range-kpi');
   const mobileBuy = document.getElementById('mobile-buy');
+  const overviewHeading = document.getElementById('overview-heading');
+  const overviewDescription = document.getElementById('overview-description');
+  const howHeading = document.getElementById('how-heading');
+  const howList = document.getElementById('how-list');
+  const expectHeading = document.getElementById('expect-heading');
+  const expectList = document.getElementById('expect-list');
+  const complianceNote = document.getElementById('compliance-note');
 
   const CLIENT_PAGE_SIZE = 9;
 
@@ -61,6 +68,24 @@ document.addEventListener('DOMContentLoaded', () => {
       rangesError: 'Unable to load ranges.',
       rangesEmpty: 'No ranges available.',
       loadError: 'Unable to load tradelines. Try again.',
+      overviewHeading: 'How tradelines support your plan',
+      overviewDescription:
+        'Use authorized-user tradelines to add positive history for qualified clients while reinforcing education and budgeting habits.',
+      howHeading: 'How they work',
+      howItems: [
+        'Clients are added as authorized users to seasoned revolving accounts with on-time history.',
+        'Banks report the new authorized user during the next statement cycle shared with all three bureaus.',
+        'Access is rental-based: after the term ends we remove the authorized user while your team reviews the impact.',
+      ],
+      expectHeading: 'What to expect',
+      expectItems: [
+        'Identity verification is required before we request a bank to add the authorized user.',
+        'Seat confirmations generally take one statement cycle; exact timing depends on bank cut-off dates.',
+        'Encourage clients to monitor all three bureaus and capture screenshots once the tradeline appears.',
+        'We never promise score boosts—use tradelines with education, budgeting, and dispute strategies.',
+      ],
+      complianceNote:
+        'Keep records of consent and educate buyers that results vary by bureau, data furnisher, and existing credit profile.',
     },
     es: {
       title: '📊 Explora tradelines',
@@ -97,6 +122,24 @@ document.addEventListener('DOMContentLoaded', () => {
       rangesError: 'No fue posible cargar los rangos.',
       rangesEmpty: 'No hay rangos disponibles.',
       loadError: 'No se pudieron cargar los tradelines. Intenta de nuevo.',
+      overviewHeading: 'Cómo los tradelines apoyan tu plan',
+      overviewDescription:
+        'Agrega historial positivo para clientes calificados con tradelines de usuario autorizado y refuerza la educación y el presupuesto.',
+      howHeading: 'Cómo funcionan',
+      howItems: [
+        'Inscribimos al cliente como usuario autorizado en cuentas revolventes maduras con historial al día.',
+        'El banco reporta el nuevo usuario autorizado en el próximo ciclo de estado a las tres agencias.',
+        'El acceso es por renta: al terminar el plazo retiramos al usuario autorizado mientras tu equipo evalúa el impacto.',
+      ],
+      expectHeading: 'Qué esperar',
+      expectItems: [
+        'Se requiere verificación de identidad antes de solicitar al banco que agregue al usuario autorizado.',
+        'Las confirmaciones suelen tomar un ciclo de estado; el tiempo exacto depende de las fechas de corte del banco.',
+        'Pide a los clientes monitorear las tres agencias y guardar capturas cuando aparezca el tradeline.',
+        'Nunca prometemos aumentos de puntaje: combina los tradelines con educación, presupuesto y estrategias de disputa.',
+      ],
+      complianceNote:
+        'Guarda evidencia de consentimiento e informa que los resultados varían según la agencia, el informante y el perfil crediticio actual.',
     },
   };
 
@@ -137,6 +180,13 @@ document.addEventListener('DOMContentLoaded', () => {
     nextBtn.textContent = copy.next;
     mobileBuy.textContent = copy.mobileBuy;
     resetRangeBtn.textContent = copy.resetRange;
+    overviewHeading.textContent = copy.overviewHeading;
+    overviewDescription.textContent = copy.overviewDescription;
+    howHeading.textContent = copy.howHeading;
+    howList.innerHTML = copy.howItems.map((text) => `<li>${text}</li>`).join('');
+    expectHeading.textContent = copy.expectHeading;
+    expectList.innerHTML = copy.expectItems.map((text) => `<li>${text}</li>`).join('');
+    complianceNote.textContent = copy.complianceNote;
     renderRanges();
     renderBanks();
     renderTradelines();
