@@ -5,6 +5,25 @@ function normalizeSeverity(value){
   return Number.isFinite(num) ? num : 0;
 }
 
+function formatCurrency(value){
+  const num = Number(value);
+  if(!Number.isFinite(num)) return "";
+  const sign = num < 0 ? "-" : "";
+  const abs = Math.abs(num);
+  const [whole, decimals] = abs.toFixed(2).split(".");
+  const withCommas = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${sign}$${withCommas}.${decimals}`;
+}
+
+function maskAccountNumber(value){
+  if(value === undefined || value === null) return "";
+  const raw = String(value).trim();
+  if(!raw) return "";
+  const clean = raw.replace(/[^0-9a-z]/gi, "");
+  if(clean.length <= 4) return clean;
+  return `•••• ${clean.slice(-4)}`;
+}
+
 function normalizeBureaus(entry = {}, fallback = []){
   const bureaus = Array.isArray(entry.bureaus) && entry.bureaus.length
     ? entry.bureaus
@@ -56,7 +75,7 @@ function collectAccountNumbers(perBureau = {}){
   for (const [bureau, data] of Object.entries(perBureau)){
     const accountNumber = data?.account_number || data?.accountNumber;
     if (!accountNumber) continue;
-    numbers[bureau] = accountNumber;
+    numbers[bureau] = maskAccountNumber(accountNumber);
   }
   return numbers;
 }
@@ -93,6 +112,64 @@ function mapViolation(entry = {}){
     severity: normalizeSeverity(entry.severity),
     bureaus: normalizeBureaus(entry),
   };
+}
+
+function pickField(entry = {}, key, { type = "text" } = {}){
+  if(!entry || typeof entry !== "object") return "";
+  const rawKey = `${key}_raw`;
+  const rawValue = entry[rawKey];
+  if(typeof rawValue === "string" && rawValue.trim()){
+    return rawValue.trim();
+  }
+  const value = entry[key];
+  if(value === undefined || value === null || value === "") return "";
+  if(type === "money"){
+    const formatted = formatCurrency(value);
+    return formatted || String(value);
+  }
+  if(type === "date"){
+    const str = String(value).trim();
+    if(!str) return "";
+    return str.slice(0, 10);
+  }
+  return String(value);
+}
+
+const BUREAU_FIELDS = [
+  { key: "account_number", type: "account" },
+  { key: "payment_status" },
+  { key: "account_status" },
+  { key: "past_due", type: "money" },
+  { key: "balance", type: "money" },
+  { key: "credit_limit", type: "money" },
+  { key: "high_credit", type: "money" },
+  { key: "date_opened", type: "date" },
+  { key: "last_reported", type: "date" },
+  { key: "date_last_payment", type: "date" },
+  { key: "date_first_delinquency", type: "date" },
+];
+
+function buildBureauDetails(perBureau = {}){
+  const details = {};
+  for (const [bureau, data] of Object.entries(perBureau)){
+    if(!data || typeof data !== "object") continue;
+    const entry = {};
+    for (const { key, type } of BUREAU_FIELDS){
+      if(key === "account_number"){
+        const value = data.account_number || data.accountNumber || data.account_number_raw || "";
+        const masked = maskAccountNumber(value);
+        if(masked) entry[key] = masked;
+        continue;
+      }
+      const fieldType = type === "money" ? "money" : type === "date" ? "date" : "text";
+      const display = pickField(data, key, { type: fieldType });
+      if(display) entry[key] = display;
+    }
+    if(Object.keys(entry).length){
+      details[bureau] = entry;
+    }
+  }
+  return details;
 }
 
 export function prepareNegativeItems(tradelines = []){
@@ -146,6 +223,7 @@ export function prepareNegativeItems(tradelines = []){
       severity: tl.metrics.maxSeverity,
       headline,
       violations: deduped.map(mapViolation),
+      bureau_details: buildBureauDetails(perBureau),
     });
   });
 

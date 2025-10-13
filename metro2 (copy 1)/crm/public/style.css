@@ -765,6 +765,54 @@ body::after {
   transform: rotate(180deg);
 }
 
+.negative-bureau-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.negative-bureau-card {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.negative-bureau-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+  color: #1e293b;
+}
+
+.negative-bureau-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.75rem;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
+}
+
+.negative-bureau-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.negative-bureau-label {
+  color: rgba(100, 116, 139, 0.9);
+  flex: 1 1 55%;
+}
+
+.negative-bureau-value {
+  flex: 1 1 45%;
+  text-align: right;
+  font-weight: 600;
+  color: #0f172a;
+}
+
 .tradeline-grid {
   display: grid;
   gap: 18px;

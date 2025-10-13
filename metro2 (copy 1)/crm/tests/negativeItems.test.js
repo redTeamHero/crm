@@ -41,3 +41,44 @@ test('prepareNegativeItems keeps categories and selects highest severity headlin
   assert.equal(item.headline.text, 'Balances & Amounts – Past due reported as current');
 });
 
+test('prepareNegativeItems builds masked bureau details with formatted values', () => {
+  const tradelines = [
+    {
+      meta: { creditor: 'Another Creditor' },
+      per_bureau: {
+        TransUnion: {
+          account_number: '1234567890',
+          payment_status: 'Late 30',
+          balance: 1234.5,
+          past_due_raw: '$75',
+          credit_limit: 4000,
+          date_opened: '2021-05-17T00:00:00Z',
+          last_reported_raw: '05/2023',
+          date_first_delinquency: '2022-02-01',
+        },
+        Experian: {
+          accountNumber: 'ABCD6789',
+          payment_status: 'Current',
+          balance: 0,
+        },
+      },
+    },
+  ];
+
+  const { items } = prepareNegativeItems(tradelines);
+  assert.equal(items.length, 1);
+  const item = items[0];
+  assert.ok(item.account_numbers.TransUnion.includes('67890') === false);
+  assert.equal(item.account_numbers.TransUnion, '•••• 7890');
+  assert.ok(item.bureau_details);
+  assert.equal(item.bureau_details.TransUnion.payment_status, 'Late 30');
+  assert.equal(item.bureau_details.TransUnion.balance, '$1,234.50');
+  assert.equal(item.bureau_details.TransUnion.past_due, '$75');
+  assert.equal(item.bureau_details.TransUnion.credit_limit, '$4,000.00');
+  assert.equal(item.bureau_details.TransUnion.date_opened, '2021-05-17');
+  assert.equal(item.bureau_details.TransUnion.last_reported, '05/2023');
+  assert.equal(item.bureau_details.TransUnion.date_first_delinquency, '2022-02-01');
+  assert.equal(item.bureau_details.Experian.account_number, '•••• 6789');
+  assert.equal(item.bureau_details.Experian.balance, '$0.00');
+});
+
