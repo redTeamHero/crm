@@ -33,6 +33,19 @@ Members created through `/api/register` now receive default permissions for cons
 
 Copy `.env.sample` to `.env` and adjust values as needed.
 
+## Tenant quotas & throttling
+
+- Every `/api` request is scoped to a tenant. The server resolves the tenant from the authenticated user or the `X-Tenant-Id` header (falling back to `default`).
+- Baseline limits (per tenant):
+  - `requests:minute` → 240 requests/minute (`TENANT_REQUESTS_PER_MINUTE`, `TENANT_REQUEST_WINDOW_MS`).
+  - `letters:generate` → 60 jobs/hour (`TENANT_LETTER_JOBS_PER_HOUR`, `TENANT_LETTER_JOBS_WINDOW_MS`).
+  - `letters:pdf` → 200 PDFs/hour (`TENANT_LETTER_PDFS_PER_HOUR`, `TENANT_LETTER_PDFS_WINDOW_MS`).
+  - `letters:zip` → 40 archives/hour (`TENANT_LETTER_ZIPS_PER_HOUR`, `TENANT_LETTER_ZIPS_WINDOW_MS`).
+  - `reports:audit` → 40 audits/hour (`TENANT_AUDITS_PER_HOUR`, `TENANT_AUDITS_WINDOW_MS`).
+  - `breach:lookup` → 50 HIBP lookups/hour (`TENANT_BREACH_LOOKUPS_PER_HOUR`, `TENANT_BREACH_LOOKUPS_WINDOW_MS`).
+- Provide a JSON blob via `TENANT_LIMITS` or `TENANT_LIMIT_OVERRIDES` to override specific tenants/operations, e.g. `{ "acme": { "requests:minute": { "limit": 600 } } }`.
+- Setting a limit to `0` blocks the operation for that tenant; negative values disable the quota for that operation.
+
 ## Run
 ```bash
 npm start
