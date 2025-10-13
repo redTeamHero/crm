@@ -80,6 +80,17 @@ function sanitizeSettingString(value = "") {
 
 const MAX_TRADLINE_PAGE_SIZE = 500;
 
+const INTEGRATION_SETTING_TO_ENV = {
+  hibpApiKey: "HIBP_API_KEY",
+  marketingApiBaseUrl: "MARKETING_API_BASE_URL",
+  marketingApiKey: "MARKETING_API_KEY",
+  sendCertifiedMailApiKey: "SCM_API_KEY",
+  gmailClientId: "GMAIL_CLIENT_ID",
+  gmailClientSecret: "GMAIL_CLIENT_SECRET",
+  gmailRefreshToken: "GMAIL_REFRESH_TOKEN",
+  stripeApiKey: "STRIPE_API_KEY",
+};
+
 function normalizeEnvOverrides(raw){
   const result = {};
   if(!raw) return result;
@@ -109,6 +120,19 @@ function applyEnvOverrides(overrides = {}){
   }
 }
 
+function applyEnvFallbacks(settings = {}){
+  const result = { ...settings };
+  for (const [settingKey, envKey] of Object.entries(INTEGRATION_SETTING_TO_ENV)) {
+    const current = sanitizeSettingString(result[settingKey]);
+    if (current) continue;
+    const envValue = sanitizeSettingString(process.env[envKey]);
+    if (envValue) {
+      result[settingKey] = envValue;
+    }
+  }
+  return result;
+}
+
 function normalizeSettings(raw){
   const base = { ...DEFAULT_SETTINGS, ...(raw || {}) };
   base.envOverrides = normalizeEnvOverrides((raw && raw.envOverrides) ?? base.envOverrides);
@@ -119,16 +143,11 @@ function normalizeSettings(raw){
 }
 
 function applyIntegrationSettings(settings = {}) {
-  const mapping = {
-    MARKETING_API_BASE_URL: settings.marketingApiBaseUrl,
-    MARKETING_API_KEY: settings.marketingApiKey,
-    SCM_API_KEY: settings.sendCertifiedMailApiKey,
-    GMAIL_CLIENT_ID: settings.gmailClientId,
-    GMAIL_CLIENT_SECRET: settings.gmailClientSecret,
-    GMAIL_REFRESH_TOKEN: settings.gmailRefreshToken,
-  };
-  for (const [envKey, rawValue] of Object.entries(mapping)) {
-    process.env[envKey] = sanitizeSettingString(rawValue);
+  for (const [settingKey, envKey] of Object.entries(INTEGRATION_SETTING_TO_ENV)) {
+    if (!(settingKey in settings)) continue;
+    const value = sanitizeSettingString(settings[settingKey]);
+    if (!value) continue;
+    process.env[envKey] = value;
   }
 }
 
@@ -226,18 +245,23 @@ async function generateOcrPdf(html){
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function buildDefaultSettings(){
+  const withEnv = applyEnvFallbacks({ ...DEFAULT_SETTINGS });
+  return normalizeSettings(withEnv);
+}
+
 async function loadSettings(){
   const raw = await readKey('settings', null);
   if(raw){
     const settings = normalizeSettings(raw);
-    applyEnvOverrides(settings.envOverrides);
     applyIntegrationSettings(settings);
+    applyEnvOverrides(settings.envOverrides);
     return settings;
   }
-  const defaults = normalizeSettings(DEFAULT_SETTINGS);
+  const defaults = buildDefaultSettings();
   await writeKey('settings', defaults);
-  applyEnvOverrides(defaults.envOverrides);
   applyIntegrationSettings(defaults);
+  applyEnvOverrides(defaults.envOverrides);
   return defaults;
 }
 
@@ -245,8 +269,8 @@ async function saveSettings(data){
   const current = await readKey('settings', null);
   const merged = normalizeSettings({ ...(current || {}), ...(data || {}) });
   await writeKey('settings', merged);
-  applyEnvOverrides(merged.envOverrides);
   applyIntegrationSettings(merged);
+  applyEnvOverrides(merged.envOverrides);
   return merged;
 }
 
