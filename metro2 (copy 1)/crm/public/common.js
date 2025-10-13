@@ -455,6 +455,7 @@ function initResponsiveNav() {
     const isDesktop = window.innerWidth >= 768;
 
     if (isDesktop) {
+      closeDropdowns();
       toggle.classList.add('hidden');
 
       if (navRoleHidden) {
@@ -1022,12 +1023,20 @@ async function limitNavForMembers(){
     if(!role.includes('member')) return;
     const nav = document.getElementById('primaryNavLinks');
     if(!nav) return;
-    const allowed = new Set(['/dashboard','/schedule','/leads','/marketing','/billing','/clients']);
+    const allowed = new Set(['/dashboard','/schedule','/leads','/marketing','/marketing/sms','/marketing/email','/billing','/clients']);
     [...nav.children].forEach(el=>{
       if(el.tagName === 'A'){
         const href = el.getAttribute('href');
         if(allowed.has(href)) return;
         el.remove();
+      } else if (el.id === 'navMarketing') {
+        el.querySelectorAll('a[href]').forEach(link => {
+          const href = link.getAttribute('href');
+          if (!allowed.has(href)) link.remove();
+        });
+        if (!el.querySelectorAll('a[href]').length) {
+          el.remove();
+        }
       } else if(el.id === 'btnHelp' || el.id === 'btnInvite' || el.id === 'tierBadge'){
         el.remove();
       }
