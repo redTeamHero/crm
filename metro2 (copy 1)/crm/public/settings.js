@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const panelEl = document.getElementById('adminPanel');
   const userMgrEl = document.getElementById('userManager');
   const userListEl = document.getElementById('userList');
+  const clientPortalDetails = document.getElementById('clientPortalDetails');
   const hibpEl = document.getElementById('hibpKey');
   const rssEl = document.getElementById('rssFeedUrl');
   const gcalTokenEl = document.getElementById('gcalToken');
