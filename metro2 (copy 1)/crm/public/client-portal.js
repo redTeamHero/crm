@@ -14,9 +14,141 @@ const productTiers = [
   { deletions:0, score:0, name:'Secured Start', icon:'🔒', class:'bg-emerald-100 text-emerald-700', message:'You’ve planted the seed — secured cards are your first step to building credit.' },
 ];
 
+const DEFAULT_PORTAL_BACKGROUND = 'radial-gradient(circle at top left, rgba(16,185,129,0.08), rgba(59,130,246,0.08))';
+
+const DEFAULT_PORTAL_THEME = Object.freeze({
+  backgroundColor: '',
+  logoUrl: '',
+  taglinePrimary: 'Track disputes, uploads, and approvals in one place.',
+  taglineSecondary: 'Sigue tus disputas, cargas y aprobaciones en un solo lugar.',
+});
+
+const PORTAL_MODULE_CONFIG = Object.freeze({
+  creditScore: { sections: ['#creditScoreWidget'] },
+  negativeItems: { nav: '#navNegativeItems', sections: ['#negativeItemsCard', '#negativeItemsSection'] },
+  reportSnapshot: { sections: ['#reportSnapshotCard'] },
+  milestones: { sections: ['#milestonesCard'] },
+  team: { sections: ['#teamCard'] },
+  news: { sections: ['#newsCard'] },
+  debtCalc: { sections: ['#debtCalculatorCard'] },
+  messages: { nav: '#navMessages', sections: ['#messageSection'] },
+  education: { nav: '#navEducation', sections: ['#educationSection'] },
+  documents: { nav: '#navDocuments', sections: ['#documentSection'] },
+  mail: { nav: '#navMail', sections: ['#mailSection'] },
+  payments: { nav: '#navPayments', sections: ['#paymentSection'] },
+  uploads: { nav: '#navUploads', sections: ['#uploadSection'] },
+});
+
+const HASH_TO_PORTAL_MODULE = Object.freeze({
+  '#uploads': 'uploads',
+  '#messages': 'messages',
+  '#educationSection': 'education',
+  '#documentSection': 'documents',
+  '#mailSection': 'mail',
+  '#payments': 'payments',
+  '#negative-items': 'negativeItems',
+});
+
 function safeParseScore(value){
   if(!value) return null;
   try { return JSON.parse(value); } catch { return null; }
+}
+
+function getPortalSettings(){
+  const bootstrap = window.__PORTAL_BOOTSTRAP__;
+  if (bootstrap && typeof bootstrap === 'object' && bootstrap.portalSettings) {
+    return bootstrap.portalSettings;
+  }
+  return {};
+}
+
+function applyPortalTheme(theme = {}){
+  const config = { ...DEFAULT_PORTAL_THEME, ...(theme || {}) };
+  const root = document.documentElement;
+  if (root) {
+    const background = config.backgroundColor || DEFAULT_PORTAL_BACKGROUND;
+    root.style.setProperty('--portal-background', background);
+  }
+  if (document.body) {
+    document.body.style.background = config.backgroundColor ? config.backgroundColor : '';
+  }
+
+  const taglinePrimaryEl = document.getElementById('companyTaglinePrimary');
+  if (taglinePrimaryEl) {
+    taglinePrimaryEl.textContent = config.taglinePrimary || DEFAULT_PORTAL_THEME.taglinePrimary;
+  }
+  const taglineSecondaryEl = document.getElementById('companyTaglineSecondary');
+  if (taglineSecondaryEl) {
+    if (config.taglineSecondary) {
+      taglineSecondaryEl.textContent = config.taglineSecondary;
+      taglineSecondaryEl.classList.remove('hidden');
+    } else {
+      taglineSecondaryEl.textContent = '';
+      taglineSecondaryEl.classList.add('hidden');
+    }
+  }
+
+  const mascotEl = document.getElementById('mascot');
+  if (mascotEl) {
+    if (config.logoUrl) {
+      mascotEl.innerHTML = '';
+      mascotEl.dataset.customLogo = '1';
+      mascotEl.classList.add('bg-white/80', 'rounded-xl', 'p-1', 'shadow');
+      const img = document.createElement('img');
+      img.src = config.logoUrl;
+      img.alt = 'Company logo';
+      img.className = 'h-12 w-12 object-contain';
+      mascotEl.appendChild(img);
+    } else {
+      mascotEl.dataset.customLogo = '';
+      mascotEl.classList.remove('bg-white/80', 'rounded-xl', 'p-1', 'shadow');
+      mascotEl.innerHTML = '';
+    }
+  }
+}
+
+function applyPortalModules(modules = {}){
+  for (const [key, config] of Object.entries(PORTAL_MODULE_CONFIG)) {
+    const enabled = Object.prototype.hasOwnProperty.call(modules, key) ? modules[key] !== false : true;
+    if (config.nav) {
+      document.querySelectorAll(config.nav).forEach(el => {
+        if (!enabled) {
+          el.classList.add('hidden');
+          el.setAttribute('aria-hidden', 'true');
+          el.tabIndex = -1;
+        } else {
+          el.classList.remove('hidden');
+          el.removeAttribute('aria-hidden');
+          el.tabIndex = 0;
+        }
+      });
+    }
+    (config.sections || []).forEach(selector => {
+      document.querySelectorAll(selector).forEach(section => {
+        if (!section.dataset.portalInitialHidden) {
+          section.dataset.portalInitialHidden = section.classList.contains('hidden') ? '1' : '0';
+        }
+        if (!enabled) {
+          section.classList.add('hidden');
+          section.setAttribute('aria-hidden', 'true');
+        } else {
+          if (section.dataset.portalInitialHidden === '1') {
+            section.classList.add('hidden');
+          } else {
+            section.classList.remove('hidden');
+          }
+          section.removeAttribute('aria-hidden');
+        }
+      });
+    });
+  }
+}
+
+function isPortalModuleEnabled(modules = {}, key){
+  if (!key) return true;
+  if (!modules || typeof modules !== 'object') return true;
+  if (!Object.prototype.hasOwnProperty.call(modules, key)) return true;
+  return modules[key] !== false;
 }
 
 function hasScoreData(score){
@@ -206,6 +338,9 @@ function initClientPortalNav(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const portalSettings = getPortalSettings();
+  applyPortalTheme(portalSettings.theme);
+
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
   const consumerId = idMatch ? decodeURIComponent(idMatch[1]) : null;
@@ -221,13 +356,14 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {}
   }
   initClientPortalNav();
+  applyPortalModules(portalSettings.modules || {});
   loadScores();
 
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
 
   const mascotEl = document.getElementById('mascot');
-  if (mascotEl && window.lottie) {
+  if (mascotEl && window.lottie && !mascotEl.dataset.customLogo) {
     lottie.loadAnimation({
       container: mascotEl,
       renderer: 'svg',
@@ -1051,6 +1187,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (invoiceRefreshTimer) {
       clearInterval(invoiceRefreshTimer);
       invoiceRefreshTimer = null;
+    }
+
+    const moduleKey = HASH_TO_PORTAL_MODULE[hash];
+    if (!isPortalModuleEnabled(portalSettings.modules, moduleKey)) {
+      if (portalMain) portalMain.classList.remove('hidden');
+      return;
     }
 
     if (hash === '#uploads' && uploadSection) {
