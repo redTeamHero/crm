@@ -1,4 +1,3 @@
-import { renderClientLocations } from './client-map.js';
 
 const PIPELINE_STAGES = [
   {
@@ -586,4 +585,3 @@ if(refreshButton){
 }
 
 refreshLeads();
-renderClientLocations('leadClientMap', { forceRefresh: true }).catch(() => {});
