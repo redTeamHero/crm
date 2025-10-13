@@ -495,8 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const provider = (btn.getAttribute('data-provider') || '').toLowerCase();
         const invoiceId = btn.getAttribute('data-id');
         const originalText = btn.dataset.label || btn.textContent;
-        const wantsStripe = provider === 'stripe' || isStripeCheckoutLink(link);
-        if(wantsStripe){
+        if(provider === 'stripe'){
           btn.disabled = true;
           btn.textContent = 'Redirecting… / Redirigiendo…';
           fetch(`/api/invoices/${encodeURIComponent(invoiceId)}/checkout`, {
@@ -509,14 +508,10 @@ document.addEventListener('DOMContentLoaded', () => {
               if(!resp.ok || !data?.url){
                 throw new Error(data?.error || 'Checkout failed');
               }
-              navigateTo(data.url);
+              window.location.href = data.url;
             })
             .catch(err => {
               console.error('Stripe checkout failed', err);
-              if(link){
-                navigateTo(link);
-                return;
-              }
               alert('Unable to start Stripe checkout. Please contact support.');
             })
             .finally(() => {
@@ -557,10 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
         inv.paid ? '<span class="badge badge-paid">Paid / Pagado</span>' : '<span class="badge badge-unpaid">Open / Abierto</span>',
         overdue ? '<span class="badge badge-unpaid">Overdue / Vencido</span>' : (dueSoon ? '<span class="badge badge-unpaid">Due soon / Próximo</span>' : '')
       ].filter(Boolean).join(' ');
-      const normalizedProvider = (inv.paymentProvider || '').toString().toLowerCase();
-      const effectiveProvider = normalizedProvider || (isStripeCheckoutLink(inv.payLink) ? 'stripe' : '');
-      const canCheckout = !inv.paid && (inv.payLink || effectiveProvider === 'stripe');
-      const providerAttr = effectiveProvider ? ` data-provider="${esc(effectiveProvider)}"` : '';
+      const canCheckout = !inv.paid && (inv.payLink || (inv.paymentProvider || '').toLowerCase() === 'stripe');
+      const providerAttr = inv.paymentProvider ? ` data-provider="${esc(inv.paymentProvider)}"` : '';
       const linkAttr = inv.payLink ? ` data-pay-link="${esc(inv.payLink)}"` : '';
       const buttonLabel = 'Pay now / Pagar ahora';
       const payButton = inv.paid ? '' : (canCheckout
