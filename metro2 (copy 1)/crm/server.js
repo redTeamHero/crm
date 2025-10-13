@@ -49,8 +49,34 @@ const DEFAULT_SETTINGS = {
   googleCalendarToken: "",
   googleCalendarId: "",
   stripeApiKey: "",
+  marketingApiBaseUrl: "",
+  marketingApiKey: "",
+  sendCertifiedMailApiKey: "",
+  gmailClientId: "",
+  gmailClientSecret: "",
+  gmailRefreshToken: "",
   envOverrides: {}
 };
+
+const STRING_SETTING_KEYS = [
+  "hibpApiKey",
+  "rssFeedUrl",
+  "googleCalendarToken",
+  "googleCalendarId",
+  "stripeApiKey",
+  "marketingApiBaseUrl",
+  "marketingApiKey",
+  "sendCertifiedMailApiKey",
+  "gmailClientId",
+  "gmailClientSecret",
+  "gmailRefreshToken"
+];
+
+function sanitizeSettingString(value = "") {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value.trim();
+  return String(value).trim();
+}
 
 const MAX_TRADLINE_PAGE_SIZE = 500;
 
@@ -86,7 +112,24 @@ function applyEnvOverrides(overrides = {}){
 function normalizeSettings(raw){
   const base = { ...DEFAULT_SETTINGS, ...(raw || {}) };
   base.envOverrides = normalizeEnvOverrides((raw && raw.envOverrides) ?? base.envOverrides);
+  for (const key of STRING_SETTING_KEYS) {
+    base[key] = sanitizeSettingString(base[key]);
+  }
   return base;
+}
+
+function applyIntegrationSettings(settings = {}) {
+  const mapping = {
+    MARKETING_API_BASE_URL: settings.marketingApiBaseUrl,
+    MARKETING_API_KEY: settings.marketingApiKey,
+    SCM_API_KEY: settings.sendCertifiedMailApiKey,
+    GMAIL_CLIENT_ID: settings.gmailClientId,
+    GMAIL_CLIENT_SECRET: settings.gmailClientSecret,
+    GMAIL_REFRESH_TOKEN: settings.gmailRefreshToken,
+  };
+  for (const [envKey, rawValue] of Object.entries(mapping)) {
+    process.env[envKey] = sanitizeSettingString(rawValue);
+  }
 }
 
 function getJwtSecret(){
@@ -188,11 +231,13 @@ async function loadSettings(){
   if(raw){
     const settings = normalizeSettings(raw);
     applyEnvOverrides(settings.envOverrides);
+    applyIntegrationSettings(settings);
     return settings;
   }
   const defaults = normalizeSettings(DEFAULT_SETTINGS);
   await writeKey('settings', defaults);
   applyEnvOverrides(defaults.envOverrides);
+  applyIntegrationSettings(defaults);
   return defaults;
 }
 
@@ -201,6 +246,7 @@ async function saveSettings(data){
   const merged = normalizeSettings({ ...(current || {}), ...(data || {}) });
   await writeKey('settings', merged);
   applyEnvOverrides(merged.envOverrides);
+  applyIntegrationSettings(merged);
   return merged;
 }
 
@@ -715,10 +761,29 @@ app.post("/api/settings", async (req, res) => {
     googleCalendarToken = "",
     googleCalendarId = "",
     stripeApiKey = "",
+    marketingApiBaseUrl = "",
+    marketingApiKey = "",
+    sendCertifiedMailApiKey = "",
+    gmailClientId = "",
+    gmailClientSecret = "",
+    gmailRefreshToken = "",
     envOverrides = {},
   } = req.body || {};
   const previousSettings = await loadSettings();
-  const settings = await saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId, stripeApiKey, envOverrides });
+  const settings = await saveSettings({
+    hibpApiKey,
+    rssFeedUrl,
+    googleCalendarToken,
+    googleCalendarId,
+    stripeApiKey,
+    marketingApiBaseUrl,
+    marketingApiKey,
+    sendCertifiedMailApiKey,
+    gmailClientId,
+    gmailClientSecret,
+    gmailRefreshToken,
+    envOverrides,
+  });
 
   if (
     previousSettings.googleCalendarToken !== settings.googleCalendarToken ||
