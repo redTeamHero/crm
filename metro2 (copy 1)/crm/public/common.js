@@ -536,6 +536,7 @@ function injectClientsDropdown(){
 
   const clientsLink = navLinks.querySelector('a[href="/clients"]');
   const leadsLink = navLinks.querySelector('a[href="/leads"]');
+  const billingLink = navLinks.querySelector('a[href="/billing"]');
   if (!clientsLink || !leadsLink) return;
 
   const dropdown = document.createElement('div');
@@ -577,9 +578,11 @@ function injectClientsDropdown(){
 
   clientsLink.className = 'btn text-sm';
   leadsLink.className = 'btn text-sm';
+  if (billingLink) billingLink.className = 'btn text-sm';
 
   menu.appendChild(clientsLink);
   menu.appendChild(leadsLink);
+  if (billingLink) menu.appendChild(billingLink);
 
   menu.addEventListener('click', () => {
     dropdown.classList.remove('open');
