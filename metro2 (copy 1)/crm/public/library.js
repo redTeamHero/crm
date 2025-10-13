@@ -95,7 +95,7 @@ function renderDefaultPack(){
     selectWrapper.className = 'library-pack-card__control';
     const label = document.createElement('label');
     label.className = 'library-pack-card__label';
-    label.textContent = 'Swap Template / Cambiar plantilla';
+    label.textContent = 'Swap Template';
     const select = document.createElement('select');
     select.className = 'input text-sm library-select';
     sortedOptions.forEach(option => {
@@ -171,16 +171,13 @@ function renderContracts(){
     title.textContent = contract.name || 'Contract';
     const badge = document.createElement('span');
     badge.className = 'library-tag library-tag--neutral';
-    badge.textContent = 'EN / ES';
+    badge.textContent = 'EN';
     header.appendChild(title);
+    header.appendChild(badge);
 
     const english = document.createElement('p');
     english.className = 'library-contract-card__copy text-slate-600 whitespace-pre-wrap';
     english.textContent = snippet(contract.english, 260) || '—';
-
-    const spanish = document.createElement('p');
-    spanish.className = 'library-contract-card__copy is-spanish whitespace-pre-wrap';
-    spanish.textContent = snippet(contract.spanish, 260) || 'Añade versión en español para cerrar más ventas.';
 
     const actions = document.createElement('div');
     actions.className = 'library-contract-card__actions';
@@ -196,7 +193,7 @@ function renderContracts(){
         showStatus(contractStatus, 'Clipboard blocked', 'error');
       }
     });
-    actions.appendChild(copyButton);
+    actions.appendChild(copyEn);
 
     li.appendChild(header);
     li.appendChild(english);
