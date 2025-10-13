@@ -596,6 +596,11 @@ function highlightActiveTheme(name) {
     bubble.setAttribute('aria-pressed', String(isActive));
     bubble.setAttribute('aria-label', isActive ? `${baseLabel} (selected)` : baseLabel);
   });
+  const activeLabel = palette.querySelector('.toggle-active');
+  if (activeLabel) {
+    const label = (THEME_LABELS[name] || name || '').replace(/([A-Z])/g, ' $1').trim();
+    activeLabel.textContent = label ? label.replace(/^./, c => c.toUpperCase()) : '';
+  }
 }
 
 function applyTheme(name){
@@ -634,29 +639,51 @@ function setGlassAlpha(alpha){
 
 function initPalette(){
   if(document.getElementById('themePalette')) return;
+  const navRow = document.querySelector('#host-nav .nav-brand-row');
+  if(!navRow) return;
+
   const wrap = document.createElement('div');
   wrap.id = 'themePalette';
   wrap.className = 'palette collapsed';
+
   const bubbles = Object.entries(THEMES)
     .map(([name, t]) => {
       const label = (THEME_LABELS[name] || name.replace(/([A-Z])/g, ' $1').replace(/[-_]/g, ' ')).replace(/^./, c => c.toUpperCase());
       return `<div class="bubble" role="button" tabindex="0" aria-pressed="false" data-theme="${name}" data-label="${label}" aria-label="${label}" style="background:${t.accent}"></div>`;
     })
     .join('');
+
+  const savedTheme = localStorage.getItem('theme') || 'purple';
+  const savedLabel = (THEME_LABELS[savedTheme] || savedTheme.replace(/([A-Z])/g, ' $1').replace(/[-_]/g, ' ')).replace(/^./, c => c.toUpperCase());
+
   wrap.innerHTML = `
     <button class="toggle" type="button" aria-expanded="false">
       <span class="toggle-icon" aria-hidden="true">🎨</span>
       <span class="toggle-label">Theme</span>
+      <span class="toggle-active">${savedLabel}</span>
     </button>
     <div class="palette-controls" aria-hidden="true">
+      <div class="palette-header">
+        <div>
+          <p class="palette-title">Brand palette</p>
+          <p class="palette-subtitle">Match your client-facing experience.</p>
+        </div>
+        <button id="voiceMic" class="mic" type="button" aria-label="Toggle voice notes">🎤</button>
+      </div>
       <label class="palette-field">
         <span class="palette-field-label">Glass opacity</span>
         <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
       </label>
       <div class="palette-bubbles">${bubbles}</div>
-    </div>
-    <button id="voiceMic" class="mic" type="button" aria-label="Toggle voice notes">🎤</button>`;
-  document.body.appendChild(wrap);
+    </div>`;
+
+  const navToggle = document.getElementById('navToggle');
+  if(navToggle && navToggle.parentElement){
+    navToggle.parentElement.insertBefore(wrap, navToggle);
+  } else {
+    navRow.appendChild(wrap);
+  }
+
   const toggle = wrap.querySelector('.toggle');
   const controls = wrap.querySelector('.palette-controls');
   const mic = wrap.querySelector('#voiceMic');
@@ -664,18 +691,14 @@ function initPalette(){
   const label = toggle.querySelector('.toggle-label');
   const slider = wrap.querySelector('#glassAlpha');
   const paletteBubbles = Array.from(wrap.querySelectorAll('.palette-bubbles .bubble'));
+
   const syncState = () => {
     const isCollapsed = wrap.classList.contains('collapsed');
     toggle.setAttribute('aria-expanded', String(!isCollapsed));
     controls?.setAttribute('aria-hidden', String(isCollapsed));
     paletteBubbles.forEach((bubble) => {
-      if (isCollapsed) {
-        bubble.setAttribute('tabindex', '-1');
-        bubble.setAttribute('aria-hidden', 'true');
-      } else {
-        bubble.setAttribute('tabindex', '0');
-        bubble.setAttribute('aria-hidden', 'false');
-      }
+      bubble.setAttribute('tabindex', isCollapsed ? '-1' : '0');
+      bubble.setAttribute('aria-hidden', String(isCollapsed));
     });
     if (slider) {
       slider.setAttribute('tabindex', isCollapsed ? '-1' : '0');
@@ -688,17 +711,41 @@ function initPalette(){
     }
     if (label) label.textContent = isCollapsed ? 'Theme' : 'Hide';
     if (icon) icon.textContent = isCollapsed ? '🎨' : '✕';
+    wrap.classList.toggle('expanded', !isCollapsed);
   };
-  toggle.addEventListener('click', ()=>{
+
+  toggle.addEventListener('click', (event)=>{
+    event.stopPropagation();
     wrap.classList.toggle('collapsed');
     syncState();
+    if (!wrap.classList.contains('collapsed')) {
+      slider?.focus();
+    }
   });
+
+  document.addEventListener('click', (event) => {
+    if (wrap.classList.contains('collapsed')) return;
+    if (wrap.contains(event.target)) return;
+    wrap.classList.add('collapsed');
+    syncState();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (wrap.classList.contains('collapsed')) return;
+    wrap.classList.add('collapsed');
+    syncState();
+    toggle.focus();
+  });
+
   syncState();
+
   wrap.addEventListener('click', (e)=>{
     const b = e.target.closest('.bubble');
     if(!b) return;
     applyTheme(b.dataset.theme);
   });
+
   wrap.addEventListener('keydown', (e) => {
     if (!['Enter', ' '].includes(e.key)) return;
     const b = e.target.closest('.bubble');
@@ -706,11 +753,19 @@ function initPalette(){
     e.preventDefault();
     applyTheme(b.dataset.theme);
   });
-  const saved = localStorage.getItem('theme') || 'purple';
+
+  const saved = savedTheme;
   applyTheme(saved);
+
   if(slider){
+    const storedAlpha = parseFloat(localStorage.getItem('glassAlpha'));
+    if (!Number.isNaN(storedAlpha)) {
+      slider.value = storedAlpha;
+      setGlassAlpha(storedAlpha);
+    }
     slider.addEventListener('input', e=>{
       const v = parseFloat(e.target.value);
+      if(Number.isNaN(v)) return;
       setGlassAlpha(v);
       localStorage.setItem('glassAlpha', v);
     });
