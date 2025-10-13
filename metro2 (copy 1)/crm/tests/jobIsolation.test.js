@@ -5,6 +5,8 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readKey, writeKey } from '../kvdb.js';
 
+process.env.NODE_ENV = 'test';
+
 const PORT = 4103;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -12,7 +14,7 @@ async function startServer(){
   return new Promise(resolve => {
     const proc = spawn('node', ['server.js'], {
       cwd: root,
-      env: { ...process.env, PORT: String(PORT) }
+      env: { ...process.env, PORT: String(PORT), START_SERVER_IN_TEST: 'true' }
     });
     proc.stdout.on('data', d => {
       if (d.toString().includes('CRM ready')) resolve(proc);

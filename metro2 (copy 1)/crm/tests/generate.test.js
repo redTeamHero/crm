@@ -7,6 +7,8 @@ import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { readKey } from '../kvdb.js';
 
+process.env.NODE_ENV = 'test';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
@@ -41,7 +43,7 @@ async function startServer(){
   return new Promise((resolve, reject) => {
     const proc = spawn('node', ['server.js'], {
       cwd: root,
-      env: { ...process.env, PORT: String(port) }
+      env: { ...process.env, PORT: String(port), START_SERVER_IN_TEST: 'true' }
     });
 
     let buffer = '';

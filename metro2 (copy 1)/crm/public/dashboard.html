@@ -272,20 +272,69 @@
           <p class="mt-3 text-xs text-slate-500">Track removals without guaranteeing outcomes. Highlight disputes resolved per bureau.</p>
         </div>
 
-        <div class="glass card h-full flex flex-col border border-emerald-100 bg-emerald-50/60 shadow-sm sm:col-span-2">
-          <div class="flex items-center justify-between">
-            <div class="font-medium text-slate-900">Revenue Ladder to 7 Figures</div>
-            <span class="text-xs font-semibold text-emerald-600">Goal: $84k/mo</span>
-          </div>
-          <div class="mt-4 space-y-3 text-sm text-slate-600">
-            <div class="flex items-center justify-between">
-              <span>Monthly Recurring</span>
-              <span class="font-semibold text-slate-900" id="ladderMrr">Sync billing</span>
+        <div class="glass card relative overflow-hidden border border-emerald-100 bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/70 text-slate-900 shadow-lg sm:col-span-2">
+          <div class="pointer-events-none absolute -top-10 -right-20 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl"></div>
+          <div class="relative z-10 flex flex-col gap-3">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600">Growth Navigator</p>
+                <h3 class="text-lg font-semibold">Revenue Ladder to 7 Figures</h3>
+                <p class="text-[11px] text-slate-500">Premium dispute services roadmap. No guaranteed timelines or deletions.</p>
+              </div>
+              <div class="text-right text-xs">
+                <span class="font-semibold text-emerald-600">Goal / Meta</span>
+                <div class="text-sm font-bold text-slate-900">$84k&nbsp;mo</div>
+                <div class="text-[10px] text-slate-500">Objetivo mensual</div>
+              </div>
             </div>
-            <div class="w-full overflow-hidden rounded-full bg-white/80">
-              <div id="ladderProgressBar" class="h-2 bg-emerald-500 transition-all duration-700" style="width: 38%;"></div>
+
+            <div class="grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
+              <div class="rounded-lg border border-emerald-100 bg-white/80 p-3 shadow-inner">
+                <div class="flex items-center justify-between text-xs">
+                  <span>Monthly Recurring</span>
+                  <span class="font-semibold text-slate-900" id="ladderMrr">Sync billing</span>
+                </div>
+                <p class="mt-2 text-[11px] text-slate-500">Keep churn &lt; 5% and auto-schedule retention consults.</p>
+              </div>
+              <div class="rounded-lg border border-emerald-100 bg-white/70 p-3">
+                <div class="flex items-center justify-between text-xs">
+                  <span>Pipeline Forecast</span>
+                  <span class="font-semibold text-slate-900" id="ladderPipeline">Load CRM</span>
+                </div>
+                <p class="mt-2 text-[11px] text-slate-500">Daily KPI: Consult → Purchase 35%.</p>
+              </div>
+              <div class="rounded-lg border border-emerald-100 bg-white/70 p-3">
+                <div class="flex items-center justify-between text-xs">
+                  <span>Average Order Value</span>
+                  <span class="font-semibold text-slate-900" id="ladderAov">Link Stripe</span>
+                </div>
+                <p class="mt-2 text-[11px] text-slate-500">Bundle certified mail credits for premium feel.</p>
+              </div>
+
+              <div class="sm:col-span-3">
+                <div class="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
+                  <span>$0</span>
+                  <span>Meta $84k</span>
+                </div>
+                <div class="mt-2 h-3 w-full overflow-hidden rounded-full bg-white/70 shadow-inner">
+                  <div id="ladderProgressBar" class="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 transition-all duration-700" style="width: 38%;"></div>
+                </div>
+                <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                  <span>Next milestone: $25k/mo unlocks concierge onboarding.</span>
+                  <span>Próximo objetivo intermedio</span>
+                </div>
+              </div>
+
+              <div class="sm:col-span-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-white/80 p-3 text-xs">
+                <div class="max-w-xs text-slate-600">
+                  <span class="font-semibold text-slate-900">Upsell idea:</span> Automation bundle at $249/mo with certified mail credits + NEPQ scripts.
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                  <button type="button" class="btn bg-emerald-500 px-4 py-2 text-white shadow-sm">View Playbook</button>
+                  <a href="#" class="font-semibold text-emerald-600 hover:underline">Ver resumen en español</a>
+                </div>
+              </div>
             </div>
-            <p class="text-xs text-emerald-700">Upsell automation bundle at $249/mo + certified mail credits.</p>
           </div>
         </div>
       </div>
@@ -293,33 +342,82 @@
   </section>
 
   <section class="space-y-4">
-    <div class="glass card md:col-span-2 lg:col-span-3 h-full flex flex-col border border-slate-100 shadow-sm" id="tourMapCard">
-      <div class="flex items-center justify-between gap-4 mb-3">
-        <div>
-          <div class="font-medium text-slate-900">Client Locations</div>
-          <p class="text-xs text-slate-500">Spot coverage gaps and launch geo-targeted upsells. Switch between state heat and top cities.</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-          <button id="clientLocationModeState" type="button" class="btn px-3 py-1 bg-emerald-500 text-white shadow-sm">State Mix</button>
-          <button id="clientLocationModeCity" type="button" class="btn px-3 py-1 border border-slate-200 text-slate-600">Top Cities</button>
-          <a href="/workflows" class="text-xs font-semibold text-emerald-600 hover:underline">Build automation</a>
-        </div>
-      </div>
-      <div class="grid gap-4 lg:grid-cols-2">
-        <div class="relative min-h-[18rem] overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-          <div id="clientMap" class="absolute inset-0"></div>
-          <div class="client-map-overlay pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-white/80 text-center text-[11px] text-slate-500">
-            Loading client map… Sync client addresses to visualize coverage.
-          </div>
-        </div>
-        <div class="flex flex-col">
-          <div class="relative flex-1">
-            <canvas id="clientLocationChart" class="w-full h-64"></canvas>
-            <div id="clientLocationEmpty" class="client-map-overlay pointer-events-none absolute inset-0 hidden items-center justify-center rounded-lg border border-dashed border-slate-200 bg-white/80 text-center text-[11px] text-slate-500">
-              Log client addresses to unlock territory insights.
+    <div class="glass card relative overflow-hidden border border-emerald-100/70 bg-gradient-to-br from-white/95 via-emerald-50/80 to-white shadow-xl ring-1 ring-emerald-100/40" id="tourMapCard">
+      <div class="pointer-events-none absolute -top-32 -right-24 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-36 -left-20 h-80 w-80 rounded-full bg-sky-200/40 blur-3xl"></div>
+      <div class="relative z-10 flex flex-col gap-6">
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div class="max-w-xl space-y-2">
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-500">
+              <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Coverage Intelligence</span>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div class="text-lg font-semibold text-slate-900">Client Locations</div>
+              <p class="text-sm text-slate-600">Spot coverage gaps, launch geo-targeted upsells, and brief team leads before outreach. Toggle between a state heat mix and your top city clusters.</p>
             </div>
           </div>
-          <dl id="clientLocationLegend" class="mt-4 grid grid-cols-1 gap-2 text-xs text-slate-600 sm:grid-cols-2"></dl>
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <button id="clientLocationModeState" type="button" class="rounded-full bg-emerald-500 px-4 py-1.5 font-semibold text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">State Mix</button>
+            <button id="clientLocationModeCity" type="button" class="rounded-full border border-emerald-200/60 bg-white/70 px-4 py-1.5 font-semibold text-emerald-600 shadow-sm transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Top Cities</button>
+            <a href="/workflows" class="rounded-full border border-transparent bg-emerald-600/10 px-4 py-1.5 font-semibold text-emerald-700 transition hover:bg-emerald-600/20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Build automation</a>
+          </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+          <div class="rounded-3xl border border-white/80 bg-white/70 p-4 shadow-inner backdrop-blur">
+            <div class="relative h-[20rem] w-full overflow-hidden rounded-2xl border border-emerald-100/70 bg-gradient-to-br from-emerald-100/50 via-white to-slate-100">
+              <div id="clientMap" class="h-full w-full"></div>
+              <div class="client-map-overlay pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-white/80 text-center text-[11px] text-slate-500">
+                Loading client map… Sync client addresses to visualize coverage.
+              </div>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-3 text-[11px] text-slate-500 sm:grid-cols-3">
+              <div class="flex items-center gap-2">
+                <span class="h-2.5 w-2.5 rounded-full bg-indigo-500"></span>
+                <span>Active</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                <span>Completed</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="h-2.5 w-2.5 rounded-full bg-sky-500"></span>
+                <span>Won</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                <span>Dropped</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="h-2.5 w-2.5 rounded-full bg-rose-500"></span>
+                <span>Lost</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="h-2.5 w-2.5 rounded-full border border-dashed border-slate-300"></span>
+                <span>Needs review</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-4">
+            <div class="rounded-3xl border border-white/80 bg-white/70 p-4 shadow-inner backdrop-blur">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Geo mix snapshot</p>
+                  <p class="text-sm text-slate-600">Overlay consult-ready clusters and coordinate concierge outreach bilingual when needed.</p>
+                </div>
+                <span class="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold text-emerald-700">Sync weekly</span>
+              </div>
+              <div class="relative mt-4">
+                <canvas id="clientLocationChart" class="h-64 w-full"></canvas>
+                <div id="clientLocationEmpty" class="client-map-overlay pointer-events-none absolute inset-0 hidden items-center justify-center rounded-2xl border border-dashed border-emerald-200 bg-white/85 text-center text-[11px] text-slate-500">
+                  Log client addresses to unlock territory insights.
+                </div>
+              </div>
+            </div>
+            <dl id="clientLocationLegend" class="grid grid-cols-1 gap-3 rounded-3xl border border-white/80 bg-white/70 p-4 text-xs text-slate-600 shadow-inner backdrop-blur sm:grid-cols-2"></dl>
+          </div>
         </div>
       </div>
     </div>

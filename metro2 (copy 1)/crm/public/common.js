@@ -68,6 +68,61 @@ const TRANSLATIONS = {
     badges: {
       tooltip: "You've started your journey."
     },
+    billing: {
+      plans: {
+        heading: 'Custom billing plans • Planes personalizados',
+        subheading: 'Package recurring services and automate reminders for every client. • Empaqueta servicios recurrentes y automatiza recordatorios para cada cliente.',
+        newButton: 'New plan • Nuevo plan',
+        empty: 'No plans yet. Create a plan to automate billing cadence. • Aún no hay planes. Crea uno para automatizar la facturación.',
+        summary: {
+          nextBill: 'Next bill • Próximo cobro'
+        },
+        form: {
+          titleNew: 'New plan • Nuevo plan',
+          titleEdit: 'Editing {name} • Editando {name}',
+          nameLabel: 'Plan name / Nombre del plan',
+          namePlaceholder: 'Premium credit concierge / Concierge de crédito premium',
+          amountLabel: 'Amount / Monto',
+          amountPlaceholder: '297.00',
+          startLabel: 'Start date / Fecha de inicio',
+          nextLabel: 'Next bill date / Próximo cobro',
+          frequencyLabel: 'Frequency / Frecuencia',
+          frequencyMonthly: 'Monthly • Mensual',
+          frequencyBiweekly: 'Biweekly • Cada 2 semanas',
+          frequencyWeekly: 'Weekly • Semanal',
+          frequencyCustom: 'Custom days • Días personalizados',
+          intervalLabel: 'Interval (days) / Intervalo (días)',
+          reminderLeadLabel: 'Reminder lead (days) / Aviso previo (días)',
+          notesLabel: 'Notes / Notas',
+          notesPlaceholder: 'Outline deliverables / Describe los entregables',
+          activeLabel: 'Plan active / Plan activo',
+          saveButton: 'Save plan • Guardar plan',
+          sendButton: 'Send next invoice • Enviar próxima factura',
+          validationName: 'Add a plan name before saving. • Agrega un nombre al plan antes de guardar.',
+          validationAmount: 'Enter a positive amount. • Ingresa un monto mayor a cero.'
+        },
+        list: {
+          activeBadge: 'Active • Activo',
+          inactiveBadge: 'Paused • Pausado',
+          sendCta: 'Send invoice • Enviar factura',
+          editCta: 'Edit • Editar',
+          nextBill: 'Next bill • Próximo cobro',
+          reminderSameDay: 'Reminder day-of • Recordatorio el mismo día',
+          reminderDays: 'Reminder {days} day before • Recordatorio {days} día antes',
+          reminderDaysPlural: 'Reminder {days} days before • Recordatorio {days} días antes',
+          lastSent: 'Last sent {date} • Último envío {date}',
+          cyclesCompleted: '{count} cycles completed • {count} ciclos completados',
+          unscheduled: 'Unscheduled • Sin programar'
+        },
+        toast: {
+          saveError: 'Unable to save plan. • No se pudo guardar el plan.',
+          sendError: 'Unable to send plan invoice. • No se pudo enviar la factura del plan.'
+        }
+      },
+      summary: {
+        nextBill: 'Next bill • Próximo cobro'
+      }
+    },
     marketing: {
       meta: {
         title: 'Marketing',
@@ -276,6 +331,12 @@ export function applyLanguage(lang = currentLanguage) {
     const settingsToggle = document.getElementById('navSettingsToggle');
     if (settingsToggle && settingsLabel) settingsToggle.setAttribute('aria-label', settingsLabel);
 
+    const clientsToggleLabel = document.querySelector('#navClientsToggle span');
+    const clientsLabel = getTranslation('nav.clients', target);
+    if (clientsToggleLabel && clientsLabel) clientsToggleLabel.textContent = clientsLabel;
+    const clientsToggle = document.getElementById('navClientsToggle');
+    if (clientsToggle && clientsLabel) clientsToggle.setAttribute('aria-label', clientsLabel);
+
     const helpButton = document.getElementById('btnHelp');
     if (helpButton) {
       const helpLabel = getTranslation('buttons.help', target);
@@ -290,11 +351,11 @@ export function applyLanguage(lang = currentLanguage) {
       updateInviteButtonCopy(inviteButton, variant, target);
     }
 
-    const marketingToggleLabel = document.querySelector('#navMarketingToggle span');
-    const marketingLabel = getTranslation('nav.marketing', target);
-    if (marketingToggleLabel && marketingLabel) marketingToggleLabel.textContent = marketingLabel;
-    const marketingToggle = document.getElementById('navMarketingToggle');
-    if (marketingToggle && marketingLabel) marketingToggle.setAttribute('aria-label', marketingLabel);
+    const marketingGroup = document.getElementById('navMarketingChannels');
+    if (marketingGroup) {
+      const marketingLabel = getTranslation('nav.marketing', target);
+      if (marketingLabel) marketingGroup.setAttribute('aria-label', marketingLabel);
+    }
 
     const logoutButton = document.getElementById('btnLogout');
     if (logoutButton) {
@@ -336,31 +397,56 @@ export function getCurrentLanguage() {
 function initResponsiveNav() {
   const nav = document.getElementById('primaryNav');
   const toggle = document.getElementById('navToggle');
-  const settings = document.getElementById('navSettings');
-  const settingsToggle = document.getElementById('navSettingsToggle');
-  const marketing = document.getElementById('navMarketing');
-  const marketingToggle = document.getElementById('navMarketingToggle');
 
   if (!nav || !toggle) return;
+
+  const dropdowns = Array.from(document.querySelectorAll('.nav-dropdown'))
+    .map((dropdown) => {
+      const control = dropdown.querySelector('button');
+      if (!control) return null;
+      control.setAttribute('aria-expanded', 'false');
+      return { dropdown, control };
+    })
+    .filter(Boolean);
+
+  const closeDropdowns = (except) => {
+    dropdowns.forEach((entry) => {
+      if (!entry) return;
+      if (except && entry === except) return;
+      entry.dropdown.classList.remove('open');
+      entry.control.setAttribute('aria-expanded', 'false');
+    });
+  };
+
+  dropdowns.forEach((entry) => {
+    const menu = entry.dropdown.querySelector('.nav-dropdown-menu');
+    entry.control.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const willOpen = !entry.dropdown.classList.contains('open');
+      if (willOpen) {
+        closeDropdowns(entry);
+        entry.dropdown.classList.add('open');
+      } else {
+        entry.dropdown.classList.remove('open');
+      }
+      entry.control.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+    menu?.addEventListener('click', () => closeDropdowns());
+  });
+
+  document.addEventListener('click', (event) => {
+    dropdowns.forEach((entry) => {
+      if (!entry) return;
+      if (!entry.dropdown.contains(event.target)) {
+        entry.dropdown.classList.remove('open');
+        entry.control.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
 
   const syncToggleState = () => {
     const expanded = nav.classList.contains('hidden') ? 'false' : 'true';
     toggle.setAttribute('aria-expanded', expanded);
-  };
-
-  const closeSettings = () => {
-    if (settings) settings.classList.remove('open');
-    settingsToggle?.setAttribute('aria-expanded', 'false');
-  };
-
-  const closeMarketing = () => {
-    if (marketing) marketing.classList.remove('open');
-    marketingToggle?.setAttribute('aria-expanded', 'false');
-  };
-
-  const closeDropdowns = () => {
-    closeSettings();
-    closeMarketing();
   };
 
   const updateLayout = () => {
@@ -399,29 +485,6 @@ function initResponsiveNav() {
     toggle.setAttribute('aria-expanded', nowHidden ? 'false' : 'true');
     if (nowHidden) closeDropdowns();
     syncToggleState();
-  });
-
-  settingsToggle?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const open = settings?.classList.toggle('open');
-    settingsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) closeMarketing();
-  });
-
-  marketingToggle?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const open = marketing?.classList.toggle('open');
-    marketingToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) closeSettings();
-  });
-
-  document.addEventListener('click', (e) => {
-    if (settings && !settings.contains(e.target)) {
-      closeSettings();
-    }
-    if (marketing && !marketing.contains(e.target)) {
-      closeMarketing();
-    }
   });
 
   window.addEventListener('resize', updateLayout);
@@ -467,7 +530,69 @@ function attachInviteHandlers(){
   });
 }
 
+function injectClientsDropdown(){
+  const navLinks = document.getElementById('primaryNavLinks');
+  if (!navLinks) return;
+  if (document.getElementById('navClients')) return;
+
+  const clientsLink = navLinks.querySelector('a[href="/clients"]');
+  const leadsLink = navLinks.querySelector('a[href="/leads"]');
+  const billingLink = navLinks.querySelector('a[href="/billing"]');
+  if (!clientsLink || !leadsLink) return;
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'nav-dropdown';
+  dropdown.id = 'navClients';
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.id = 'navClientsToggle';
+  toggle.className = 'btn nav-btn flex items-center justify-between md:justify-center gap-2';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-haspopup', 'true');
+
+  const label = document.createElement('span');
+  label.textContent = clientsLink.textContent?.trim() || 'Clients';
+  toggle.appendChild(label);
+
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('class', 'h-4 w-4');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('stroke', 'currentColor');
+  icon.setAttribute('stroke-width', '2');
+  icon.setAttribute('stroke-linecap', 'round');
+  icon.setAttribute('stroke-linejoin', 'round');
+  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  polyline.setAttribute('points', '6 9 12 15 18 9');
+  icon.appendChild(polyline);
+  toggle.appendChild(icon);
+
+  const menu = document.createElement('div');
+  menu.id = 'navClientsMenu';
+  menu.className = 'nav-dropdown-menu glass card p-2';
+
+  dropdown.appendChild(toggle);
+  dropdown.appendChild(menu);
+
+  navLinks.insertBefore(dropdown, clientsLink);
+
+  clientsLink.className = 'btn text-sm';
+  leadsLink.className = 'btn text-sm';
+  if (billingLink) billingLink.className = 'btn text-sm';
+
+  menu.appendChild(clientsLink);
+  menu.appendChild(leadsLink);
+  if (billingLink) menu.appendChild(billingLink);
+
+  menu.addEventListener('click', () => {
+    dropdown.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  injectClientsDropdown();
   initResponsiveNav();
   trackEvent('page_view', { path: location.pathname });
   initAbTest();
@@ -536,112 +661,24 @@ restrictRoutes(window.userRole);
 // append a logout button to the nav if present
 const navContainer = document.getElementById('primaryNavLinks');
 if (navContainer) {
-  const ensureGroupPlacement = (group) => {
-    const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
-    const settingsDropdown = navContainer.querySelector('#navSettings');
-    const billingLink = navContainer.querySelector('a[href="/billing"]');
-    const insertionTarget = scheduleLink || settingsDropdown || billingLink;
-    if (insertionTarget) {
-      navContainer.insertBefore(group, insertionTarget);
+  const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
+  const insertNavLink = (link) => {
+    if (scheduleLink?.parentElement === navContainer) {
+      navContainer.insertBefore(link, scheduleLink);
     } else {
-      navContainer.appendChild(group);
+      navContainer.appendChild(link);
     }
   };
-
-  const ensureMarketingDropdown = () => {
-    let dropdown = navContainer.querySelector('#navMarketing');
-    if (!dropdown) {
-      dropdown = document.createElement('div');
-      dropdown.id = 'navMarketing';
-      dropdown.className = 'nav-dropdown';
-      dropdown.innerHTML = `
-        <button type="button" id="navMarketingToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
-          <span data-i18n="nav.marketing">${getTranslation('nav.marketing') || 'Marketing'}</span>
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-        <div id="navMarketingMenu" class="nav-dropdown-menu glass card p-2"></div>
-      `;
-    } else {
-      dropdown.classList.add('nav-dropdown');
-      let toggle = dropdown.querySelector('#navMarketingToggle');
-      if (!toggle) {
-        toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.id = 'navMarketingToggle';
-        toggle.className = 'btn nav-btn flex items-center justify-between md:justify-center gap-2';
-        toggle.setAttribute('aria-expanded', 'false');
-        toggle.setAttribute('aria-haspopup', 'true');
-        const span = document.createElement('span');
-        span.dataset.i18n = 'nav.marketing';
-        span.textContent = getTranslation('nav.marketing') || 'Marketing';
-        toggle.appendChild(span);
-        toggle.insertAdjacentHTML('beforeend', `
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        `);
-        dropdown.insertBefore(toggle, dropdown.firstChild);
-      } else {
-        toggle.id = 'navMarketingToggle';
-        toggle.type = 'button';
-        toggle.classList.add('btn', 'nav-btn', 'flex', 'items-center', 'justify-between', 'md:justify-center', 'gap-2');
-        toggle.setAttribute('aria-haspopup', 'true');
-        if (!toggle.hasAttribute('aria-expanded')) toggle.setAttribute('aria-expanded', 'false');
-        const span = toggle.querySelector('span');
-        if (span) {
-          span.dataset.i18n = span.dataset.i18n || 'nav.marketing';
-        }
-        if (!toggle.querySelector('svg')) {
-          toggle.insertAdjacentHTML('beforeend', `
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          `);
-        }
-      }
-
-      let menu = dropdown.querySelector('#navMarketingMenu');
-      if (!menu) {
-        menu = document.createElement('div');
-        menu.id = 'navMarketingMenu';
-        menu.className = 'nav-dropdown-menu glass card p-2';
-        dropdown.appendChild(menu);
-      } else {
-        menu.id = 'navMarketingMenu';
-        menu.classList.add('nav-dropdown-menu');
-        menu.classList.add('glass');
-        menu.classList.add('card');
-        if (!menu.classList.contains('p-2')) menu.classList.add('p-2');
-      }
-    }
-
-    ensureGroupPlacement(dropdown);
-
-    const menu = dropdown.querySelector('#navMarketingMenu');
-    const ensureMarketingLink = (href, translationKey) => {
-      let link = menu.querySelector(`a[href="${href}"]`);
-      if (!link) {
-        link = document.createElement('a');
-        link.href = href;
-        link.className = 'btn text-sm';
-        link.dataset.i18n = translationKey;
-        link.textContent = getTranslation(translationKey) || getTranslation('nav.marketing');
-        menu.appendChild(link);
-      } else {
-        link.dataset.i18n = translationKey;
-        if (!link.classList.contains('btn')) link.classList.add('btn');
-        if (!link.classList.contains('text-sm')) link.classList.add('text-sm');
-      }
-    };
-
-    ensureMarketingLink('/marketing/sms', 'nav.marketingSms');
-    ensureMarketingLink('/marketing/email', 'nav.marketingEmail');
-    return dropdown;
+  const ensureMarketingLink = (href, translationKey) => {
+    if (navContainer.querySelector(`a[href="${href}"]`)) return;
+    const link = document.createElement('a');
+    link.href = href;
+    link.className = 'btn nav-btn';
+    link.textContent = getTranslation(translationKey) || getTranslation('nav.marketing');
+    insertNavLink(link);
   };
-
-  ensureMarketingDropdown();
+  ensureMarketingLink('/marketing/sms', 'nav.marketingSms');
+  ensureMarketingLink('/marketing/email', 'nav.marketingEmail');
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
   btnLogout.className = 'btn nav-btn';
@@ -695,12 +732,9 @@ function applyRoleNav(role){
         link.remove();
       }
     });
-    const marketingDropdown = navLinks.querySelector('#navMarketing');
-    if (marketingDropdown) {
-      const links = marketingDropdown.querySelectorAll('a[href]');
-      if (links.length === 0) {
-        marketingDropdown.remove();
-      }
+    const marketingGroup = navLinks.querySelector('#navMarketingChannels');
+    if (marketingGroup && marketingGroup.querySelectorAll('a').length === 0) {
+      marketingGroup.remove();
     }
     ['btnInvite','btnHelp','tierBadge'].forEach(id => {
       const el = navLinks.querySelector(`#${id}`);
@@ -1252,6 +1286,48 @@ function closeNotes(){
   mic.addEventListener('click', openNotes);
   closeBtn.addEventListener('click', ()=>{ closeNotes(); });
   startRec();
+}
+
+function initBackToTop(){
+  if (typeof document === 'undefined') return;
+  if (document.querySelector('.back-to-top')) return;
+  const nav = document.getElementById('host-nav') || document.getElementById('team-nav');
+  if (!nav) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'back-to-top';
+  btn.setAttribute('aria-label', 'Back to top • Volver arriba');
+  btn.title = 'Back to top • Volver arriba';
+  btn.textContent = '⬆️';
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  document.body.appendChild(btn);
+
+  if (typeof IntersectionObserver === 'undefined') {
+    btn.classList.add('show');
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (!entry) return;
+    if (entry.isIntersecting) {
+      btn.classList.remove('show');
+    } else {
+      btn.classList.add('show');
+    }
+  });
+
+  observer.observe(nav);
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBackToTop, { once: true });
+  } else {
+    initBackToTop();
+  }
 }
 
 if (typeof window !== 'undefined') {
