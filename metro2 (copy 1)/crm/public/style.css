@@ -720,6 +720,51 @@ body::after {
   flex-wrap: wrap;
 }
 
+.negative-item-card {
+  padding: 0;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+
+.negative-item-card.open {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+}
+
+.negative-item-header {
+  display: block;
+  cursor: pointer;
+  outline: none;
+}
+
+.negative-item-header:focus-visible {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+  border-radius: 24px;
+}
+
+.negative-item-card.open .negative-item-header {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.negative-item-details {
+  display: none;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  padding-top: 16px;
+}
+
+.negative-item-card.open .negative-item-details {
+  display: block;
+}
+
+.negative-item-chevron {
+  font-size: 0.75rem;
+  color: rgba(100, 116, 139, 0.9);
+  transition: transform .2s ease;
+}
+
+.negative-item-card.open .negative-item-chevron {
+  transform: rotate(180deg);
+}
+
 .tradeline-grid {
   display: grid;
   gap: 18px;

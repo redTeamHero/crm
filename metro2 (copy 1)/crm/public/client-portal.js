@@ -479,28 +479,57 @@ document.addEventListener('DOMContentLoaded', () => {
         </li>
       `).join('');
       const remaining = Math.max(0, (item.violations || []).length - 4);
+      const violationContent = violationList
+        ? `<ul class="mt-3 space-y-2">${violationList}</ul>`
+        : '<div class="text-sm muted mt-3">No Metro 2 violations detected.</div>';
+      const accountMarkup = accounts ? `<div class="mt-2 flex flex-wrap gap-2">${accounts}</div>` : '';
+      const headlineMarkup = headline ? `
+        <div class="mt-3 p-2 rounded bg-slate-50 text-sm">
+          <div class="font-medium">${escape(headline.text)}</div>
+          ${headline.detail ? `<div class="text-xs muted mt-1">${escape(headline.detail)}</div>` : ''}
+        </div>
+      ` : '';
+      const remainderMarkup = remaining
+        ? `<div class="text-xs muted mt-2">+${remaining} more violation${remaining === 1 ? '' : 's'} in this item.</div>`
+        : '';
+      const violationCount = (item.violations || []).length;
       return `
-        <div class="glass card p-3">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="font-semibold text-base">${escape(item.creditor || 'Unknown Creditor')}</div>
-              <div class="text-xs muted mt-1">${bureaus || '—'}</div>
-              ${accounts ? `<div class="mt-1">${accounts}</div>` : ''}
-              ${headline ? `<div class="mt-3 p-2 rounded bg-slate-50 text-sm">
-                <div class="font-medium">${escape(headline.text)}</div>
-                ${headline.detail ? `<div class="text-xs muted mt-1">${escape(headline.detail)}</div>` : ''}
-              </div>` : ''}
-            </div>
-            <div class="text-right">
-              <div class="severity-tag severity-${severity}">S${severity}</div>
-              <div class="text-xs muted mt-1">${(item.violations || []).length} violation${(item.violations || []).length === 1 ? '' : 's'}</div>
+        <div class="glass card negative-item-card">
+          <div class="negative-item-header p-3" role="button" tabindex="0" aria-expanded="false">
+            <div class="flex items-start justify-between gap-3 w-full">
+              <div>
+                <div class="font-semibold text-base">${escape(item.creditor || 'Unknown Creditor')}</div>
+                <div class="text-xs muted mt-1">${bureaus || '—'}</div>
+              </div>
+              <div class="flex flex-col items-end gap-1 text-right">
+                <div class="severity-tag severity-${severity}">S${severity}</div>
+                <div class="text-xs muted">${violationCount} violation${violationCount === 1 ? '' : 's'}</div>
+                <span class="negative-item-chevron" aria-hidden="true">⌄</span>
+              </div>
             </div>
           </div>
-          <ul class="mt-3 space-y-2">${violationList || '<li class="text-sm muted">No Metro 2 violations detected.</li>'}</ul>
-          ${remaining ? `<div class="text-xs muted mt-2">+${remaining} more violation${remaining === 1 ? '' : 's'} in this item.</div>` : ''}
+          <div class="negative-item-details px-3 pb-3" aria-hidden="true">
+            ${accountMarkup}
+            ${headlineMarkup}
+            ${violationContent}
+            ${remainderMarkup}
+          </div>
         </div>
       `;
     }).join('');
+  }
+
+  function toggleNegativeItemCard(header, force){
+    if(!(header && negativeItemList)) return;
+    const card = header.closest('.negative-item-card');
+    if(!card) return;
+    const details = card.querySelector('.negative-item-details');
+    const shouldOpen = force !== undefined ? !!force : !card.classList.contains('open');
+    card.classList.toggle('open', shouldOpen);
+    header.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    if(details){
+      details.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+    }
   }
 
   function filterNegativeItems(){
@@ -535,6 +564,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if(negativeItemSearch) negativeItemSearch.addEventListener('input', filterNegativeItems);
   if(negativeItemSort) negativeItemSort.addEventListener('change', filterNegativeItems);
+  if(negativeItemList){
+    negativeItemList.addEventListener('click', e => {
+      const header = e.target.closest('.negative-item-header');
+      if(!header || !negativeItemList.contains(header)) return;
+      e.preventDefault();
+      toggleNegativeItemCard(header);
+    });
+    negativeItemList.addEventListener('keydown', e => {
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      const header = e.target.closest('.negative-item-header');
+      if(!header || !negativeItemList.contains(header)) return;
+      e.preventDefault();
+      toggleNegativeItemCard(header);
+    });
+  }
 
   const goalBtn = document.getElementById('btnGoal');
   if(goalBtn){
