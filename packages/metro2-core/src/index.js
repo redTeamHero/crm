@@ -16,6 +16,46 @@ const NON_CREDITOR_HEADERS = new Set([
 
 const BUREAU_PRIORITY = ['TransUnion', 'Experian', 'Equifax'];
 
+const PERSONAL_INFO_FIELD_DEFINITIONS = {
+  'credit report date': 'credit_report_date',
+  'report date': 'credit_report_date',
+  'name': 'name',
+  'full name': 'name',
+  'consumer name': 'name',
+  'also known as': 'also_known_as',
+  'aka': 'also_known_as',
+  'former': 'former',
+  'former name': 'former',
+  'former names': 'former',
+  'date of birth': 'date_of_birth',
+  'dob': 'date_of_birth',
+  'current address(es)': 'current_addresses',
+  'current address': 'current_addresses',
+  'current residence': 'current_addresses',
+  'previous address(es)': 'previous_addresses',
+  'previous address': 'previous_addresses',
+  'prior address': 'previous_addresses',
+  'former address': 'previous_addresses',
+  'employer': 'employers',
+  'employers': 'employers',
+  'current employer': 'employers',
+  'previous employer': 'employers',
+  'former employer': 'employers',
+  'employment': 'employers',
+};
+
+const PERSONAL_MULTI_VALUE_FIELDS = new Set([
+  'also_known_as',
+  'former',
+  'current_addresses',
+  'previous_addresses',
+  'employers',
+]);
+
+const PERSONAL_INFO_FIELD_MAP = Object.fromEntries(
+  Object.entries(PERSONAL_INFO_FIELD_DEFINITIONS).map(([label, key]) => [normalizeGenericLabel(label), key])
+);
+
 export function parseReport(context){
   const adapter = createDomAdapter(context);
   if(!adapter){
@@ -42,6 +82,8 @@ export function parseReport(context){
     }));
 
     const tradeline = buildTradeline(bureaus, dataRows, meta);
+    if(!hasTradelineData(tradeline, bureaus)) continue;
+
     const dedupeKey = buildTradelineKey(tradeline);
     if(seenTradelines.has(dedupeKey)) continue;
     seenTradelines.add(dedupeKey);
@@ -52,7 +94,23 @@ export function parseReport(context){
   const history = parseHistory(context);
   const { list: inquiries, summary: inquirySummary } = parseInquiries(context);
 
-  return { tradelines, history, inquiries, inquiry_summary: inquirySummary };
+  const personalInformation = parsePersonalInformation(context);
+  const creditScores = parseCreditScores(context);
+  const accountHistory = buildAccountHistoryRecords(tradelines);
+  const inquiryDetails = buildInquiryDetails(inquiries);
+  const creditorContacts = parseCreditorContacts(context);
+
+  return {
+    tradelines,
+    history,
+    inquiries,
+    inquiry_summary: inquirySummary,
+    personal_information: personalInformation,
+    credit_scores: creditScores,
+    account_history: accountHistory,
+    inquiry_details: inquiryDetails,
+    creditor_contacts: creditorContacts,
+  };
 }
 
 export function buildTradeline(bureaus, rows, meta = {}){
@@ -80,6 +138,18 @@ export function buildTradeline(bureaus, rows, meta = {}){
         }
       }
     });
+  }
+  for(const bureau of bureaus){
+    const data = tl.per_bureau[bureau];
+    if(!data) continue;
+    const paymentStatus = getFieldValue(data, 'payment_status');
+    const hasAccountStatus = Object.prototype.hasOwnProperty.call(data, 'account_status');
+    if((!hasAccountStatus || !data.account_status) && paymentStatus){
+      data.account_status = paymentStatus;
+      if(Object.prototype.hasOwnProperty.call(data, 'payment_status_raw')){
+        data.account_status_raw = data.payment_status_raw;
+      }
+    }
   }
   for(const b of bureaus){
     const v = validateTradeline(tl.per_bureau[b]||{});
@@ -207,6 +277,284 @@ export function parseInquiries(context){
   return { list, summary };
 }
 
+export function parsePersonalInformation(context){
+  const adapter = createDomAdapter(context);
+  if(!adapter) return {};
+
+  const info = {};
+  const tables = adapter.selectAll('table');
+  for(const table of tables){
+    const header = findNearestHeader(adapter, table);
+    if(!header) continue;
+    const headerText = adapter.text(header) || '';
+    if(!/personal information/i.test(headerText)) continue;
+
+    const rows = adapter.rows(table);
+    for(const row of rows){
+      const cells = adapter.find(row, 'td');
+      if(cells.length < 2) continue;
+      const label = adapter.text(cells[0]);
+      const key = mapPersonalInfoKey(label);
+      if(!key) continue;
+      const rawValue = adapter.text(cells[1]);
+      if(!rawValue) continue;
+
+      if(PERSONAL_MULTI_VALUE_FIELDS.has(key)){
+        const values = extractValuesFromCell(adapter, cells[1], rawValue);
+        if(!values.length) continue;
+        const existing = new Set(info[key] || []);
+        for(const value of values){
+          if(value) existing.add(value);
+        }
+        info[key] = Array.from(existing);
+      } else if(!info[key]){
+        info[key] = rawValue;
+      }
+    }
+  }
+
+  return info;
+}
+
+export function parseCreditScores(context){
+  const adapter = createDomAdapter(context);
+  if(!adapter) return {};
+
+  const scores = {};
+  const tables = adapter.selectAll('table');
+  for(const table of tables){
+    const header = findNearestHeader(adapter, table);
+    if(!header) continue;
+    const headerText = adapter.text(header) || '';
+    if(!/credit score/i.test(headerText)) continue;
+
+    const rows = adapter.rows(table);
+    if(!rows.length) continue;
+
+    const headerCells = adapter.find(rows[0], 'th');
+    const bureaus = headerCells.length > 1
+      ? headerCells.slice(1).map(cell => normalizeScoreBureau(adapter.text(cell))).filter(Boolean)
+      : [];
+
+    for(const row of rows){
+      const label = adapter.text(row, 'td.label') || adapter.text(row, 'th.label') || getCellText(adapter, row, 0);
+      if(!/credit score/i.test(label)) continue;
+
+      if(bureaus.length){
+        const valueCells = adapter.find(row, 'td.info');
+        bureaus.forEach((bureau, idx) => {
+          if(!bureau) return;
+          const value = adapter.text(valueCells[idx]);
+          if(value) scores[bureau] = value;
+        });
+      } else {
+        const cells = adapter.find(row, 'td');
+        const value = cells.length > 1 ? adapter.text(cells[1]) : adapter.text(row);
+        if(value) scores.overall = value;
+      }
+    }
+  }
+
+  return scores;
+}
+
+export function buildAccountHistoryRecords(tradelines = []){
+  const records = [];
+  for(const tradeline of tradelines){
+    const creditorName = sanitizeCreditor(tradeline?.meta?.creditor || '');
+    const perBureau = tradeline?.per_bureau || {};
+    for(const [bureau, data] of Object.entries(perBureau)){
+      if(!data || typeof data !== 'object') continue;
+      const explicitCreditor = sanitizeCreditor(getFieldValue(data, 'creditor_name')) || sanitizeCreditor(getFieldValue(data, 'company_name'));
+      const record = {
+        bureau,
+        name_of_account: explicitCreditor || creditorName,
+        account_number: getFieldValue(data, 'account_number'),
+        account_type: getFieldValue(data, 'account_type'),
+        account_type_detail: getFieldValue(data, 'account_type_detail'),
+        bureau_code: getFieldValue(data, 'bureau_code'),
+        account_status: getFieldValue(data, 'account_status'),
+        monthly_payment: getFieldValue(data, 'monthly_payment'),
+        date_opened: getFieldValue(data, 'date_opened'),
+        balance: getFieldValue(data, 'balance'),
+        no_of_months_terms: getFieldValue(data, 'months_terms'),
+        high_credit: getFieldValue(data, 'high_credit'),
+        credit_limit: getFieldValue(data, 'credit_limit'),
+        past_due: getFieldValue(data, 'past_due'),
+        payment_status: getFieldValue(data, 'payment_status') || getFieldValue(data, 'account_status'),
+        last_reported: getFieldValue(data, 'last_reported'),
+        date_last_active: getFieldValue(data, 'date_last_active'),
+        comments: getFieldValue(data, 'comments'),
+        date_of_last_payment: getFieldValue(data, 'date_last_payment'),
+        two_year_payment_history: getFieldValue(data, 'two_year_payment_history'),
+      };
+      if(!record.name_of_account && creditorName){
+        record.name_of_account = creditorName;
+      }
+
+      const hasContent = Object.entries(record).some(([key, value]) => {
+        if(key === 'bureau') return false;
+        if(value == null) return false;
+        if(typeof value === 'string') return value.trim() !== '';
+        return true;
+      });
+      if(hasContent){
+        record.name_of_account = record.name_of_account || '';
+        records.push(record);
+      }
+    }
+  }
+  return records;
+}
+
+function buildInquiryDetails(inquiries = []){
+  return inquiries.map(inquiry => ({
+    creditor_name: inquiry.creditor || '',
+    type_of_business: inquiry.industry || '',
+    date_of_inquiry: inquiry.date || '',
+    credit_bureau: inquiry.bureau || '',
+  }));
+}
+
+export function parseCreditorContacts(context){
+  const adapter = createDomAdapter(context);
+  if(!adapter) return [];
+
+  const contacts = [];
+  const tables = adapter.selectAll('table');
+  for(const table of tables){
+    const header = findNearestHeader(adapter, table);
+    if(!header) continue;
+    const headerText = adapter.text(header) || '';
+    if(!/creditor contact/i.test(headerText) && !/creditor information/i.test(headerText)) continue;
+
+    const rows = adapter.rows(table);
+    for(const row of rows){
+      if(adapter.find(row, 'th').length) continue;
+      const cells = adapter.find(row, 'td');
+      if(!cells.length) continue;
+      const values = cells.map(cell => adapter.text(cell));
+      if(values.every(v => !v)) continue;
+      const [name, address, phoneCandidate] = [values[0] || '', values[1] || '', values[2] || ''];
+      const phone = looksLikePhone(phoneCandidate)
+        ? phoneCandidate
+        : (values.find(v => looksLikePhone(v)) || '');
+      contacts.push({
+        creditor_name: name,
+        address,
+        phone,
+      });
+    }
+  }
+
+  return dedupeContacts(contacts);
+}
+
+function mapPersonalInfoKey(label){
+  const normalized = normalizeGenericLabel(label);
+  return PERSONAL_INFO_FIELD_MAP[normalized] || null;
+}
+
+function normalizeGenericLabel(label){
+  return (label || '')
+    .toLowerCase()
+    .replace(/&amp;/g, '&')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractValuesFromCell(adapter, cell, fallback){
+  const items = adapter.find(cell, 'li').map(li => adapter.text(li)).filter(Boolean);
+  if(items.length) return items.map(value => value.trim()).filter(Boolean);
+
+  const html = adapter.html ? adapter.html(cell) : '';
+  if(html){
+    const sanitized = decodeEntities(html)
+      .replace(/<br\s*\/?\s*>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ');
+    const parts = sanitized
+      .split(/\n+/)
+      .map(part => part.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    if(parts.length) return parts;
+  }
+
+  const text = (adapter.text(cell) || fallback || '').trim();
+  return text ? [text] : [];
+}
+
+function decodeEntities(value){
+  return (value || '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"');
+}
+
+function getCellText(adapter, row, index){
+  const cells = adapter.find(row, 'td');
+  if(index >= cells.length) return '';
+  return adapter.text(cells[index]);
+}
+
+function normalizeScoreBureau(value){
+  return normalizeBureau(value) || sanitizeCreditor(value);
+}
+
+function getFieldValue(data, key){
+  if(!data || typeof data !== 'object') return '';
+  const rawKey = `${key}_raw`;
+  if(Object.prototype.hasOwnProperty.call(data, rawKey)){
+    const rawValue = data[rawKey];
+    if(rawValue != null && `${rawValue}`.trim() !== ''){
+      return typeof rawValue === 'number' ? String(rawValue) : `${rawValue}`.trim();
+    }
+  }
+  if(Object.prototype.hasOwnProperty.call(data, key)){
+    const value = data[key];
+    if(value == null) return '';
+    if(typeof value === 'number' && Number.isFinite(value)) return String(value);
+    const str = `${value}`.trim();
+    return str;
+  }
+  return '';
+}
+
+function dedupeContacts(entries){
+  const seen = new Set();
+  const results = [];
+  for(const entry of entries){
+    const key = ['creditor_name', 'address', 'phone']
+      .map(prop => sanitizeCreditor(entry[prop] || '').toLowerCase())
+      .join('|');
+    if(seen.has(key)) continue;
+    seen.add(key);
+    results.push(entry);
+  }
+  return results;
+}
+
+function hasTradelineData(tradeline, bureaus){
+  if(!tradeline || !bureaus || !bureaus.length) return false;
+  for(const bureau of bureaus){
+    const data = tradeline.per_bureau?.[bureau];
+    if(!data || typeof data !== 'object') continue;
+    const keys = Object.keys(data).filter(key => !key.endsWith('_raw'));
+    if(keys.length) return true;
+  }
+  return false;
+}
+
+function looksLikePhone(value){
+  if(!value) return false;
+  const trimmed = value.trim();
+  if(!/\d{3}/.test(trimmed)) return false;
+  const normalized = trimmed.replace(/ext\.?\s*\d*/gi, '').trim();
+  if(!normalized) return false;
+  return /^[+()0-9\s.-]+$/.test(normalized);
+}
+
 function emptyHistory(){
   return { byBureau: {}, summary: {} };
 }
@@ -321,6 +669,10 @@ function createDomAdapter(context){
         }
         return textFromCheerio(node);
       },
+      html(node){
+        if(!node) return '';
+        return $(node).html() || '';
+      },
       attr(node, name){
         return $(node).attr(name) || '';
       },
@@ -360,6 +712,10 @@ function createDomAdapter(context){
         if(!target) return '';
         return (target.textContent || '').replace(/\s+/g, ' ').trim();
       },
+      html(node){
+        if(!node || typeof node.innerHTML !== 'string') return '';
+        return node.innerHTML;
+      },
       attr(node, name){
         return node.getAttribute ? (node.getAttribute(name) || '') : '';
       },
@@ -396,10 +752,11 @@ function inferTradelineMeta(adapter, table){
 
 function findNearestHeader(adapter, node){
   let current = node;
+  const headerSelector = 'div.sub_header, div.section_header, div.section-title, div.section_header_title, h2, h3, h4';
   while(current){
     let sibling = adapter.previous(current);
     while(sibling){
-      if(adapter.matches(sibling, 'div.sub_header')){
+      if(adapter.matches(sibling, headerSelector)){
         return sibling;
       }
       sibling = adapter.previous(sibling);
