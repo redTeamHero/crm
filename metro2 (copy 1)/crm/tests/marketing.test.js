@@ -33,12 +33,36 @@ test("marketing API queues tests, templates, and providers", async () => {
     assert.equal(queueRes.body.item.channel, "sms");
     assert.equal(queueRes.body.item.metadata.segment, "leads");
 
+    const patchSending = await request(app)
+      .patch(`/api/marketing/tests/${queueRes.body.item.id}`)
+      .set("Authorization", "Bearer " + token)
+      .send({ status: "sending" });
+    assert.equal(patchSending.status, 200);
+    assert.equal(patchSending.body.item.status, "sending");
+
+    const deliveredAt = new Date().toISOString();
+    const patchSent = await request(app)
+      .patch(`/api/marketing/tests/${queueRes.body.item.id}`)
+      .set("Authorization", "Bearer " + token)
+      .send({ status: "sent", deliveredAt, providerResponse: { sid: "SM123", status: "sent" } });
+    assert.equal(patchSent.status, 200);
+    assert.equal(patchSent.body.item.status, "sent");
+    assert.equal(patchSent.body.item.deliveredAt, deliveredAt);
+    assert.equal(patchSent.body.item.providerResponse.sid, "SM123");
+
+    const badStatus = await request(app)
+      .patch(`/api/marketing/tests/${queueRes.body.item.id}`)
+      .set("Authorization", "Bearer " + token)
+      .send({ status: "invalid" });
+    assert.equal(badStatus.status, 400);
+
     const listRes = await request(app)
       .get("/api/marketing/tests?limit=1")
       .set("Authorization", "Bearer " + token);
     assert.equal(listRes.status, 200);
     assert.equal(listRes.body.items.length, 1);
     assert.equal(listRes.body.items[0].recipient, "+15125550199");
+    assert.equal(listRes.body.items[0].status, "sent");
 
     const templateRes = await request(app)
       .post("/api/marketing/templates")

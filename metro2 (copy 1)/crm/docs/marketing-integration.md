@@ -15,6 +15,7 @@
   └─ /api/marketing (marketingRoutes.js)
         ├─ POST /tests      → enqueueTestSend()
         ├─ GET  /tests      → listTestQueue()
+        ├─ PATCH/tests/:id  → updateTestQueueItem()
         ├─ POST /templates  → createTemplate()
         ├─ GET  /templates  → listTemplates()
         └─ PATCH/providers  → updateProvider()
@@ -24,6 +25,9 @@
         ├─ templates (defaults + user-created)
         ├─ testQueue (50-item FIFO for workers)
         └─ providers (Twilio, SendGrid, etc.)
+                ▼
+[scripts/marketingTwilioWorker.js]
+  └─ Polls /tests, PATCHes status, and relays SMS via Twilio
 ```
 **Decisions**
 - Use kvdb/SQLite instead of ad-hoc localStorage so queue + templates survive restarts.
@@ -66,6 +70,16 @@ router.post("/tests", async (req, res) => {
   });
   res.status(201).json({ ok: true, item });
 });
+
+router.patch("/tests/:id", async (req, res) => {
+  try {
+    const item = await updateTestQueueItem(req.params.id, req.body || {});
+    res.json({ ok: true, item });
+  } catch (error) {
+    const status = /not found/i.test(error.message) ? 404 : 400;
+    res.status(status).json({ ok: false, error: error.message || "Failed to update test" });
+  }
+});
 ```
 ### Frontend queue call
 ```js
@@ -83,32 +97,18 @@ const res = await api("/api/marketing/tests", {
   }),
 });
 ```
-### Worker stub (drop-in)
-```js
-// pseudo-code for a worker consuming marketing queue
-import fetch from "node-fetch";
-import twilio from "twilio";
-
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-
-async function pollQueue() {
-  const res = await fetch(`${process.env.CRM_URL}/api/marketing/tests?limit=1`, {
-    headers: { Authorization: `Bearer ${process.env.CRM_TOKEN}` },
-  });
-  const { items } = await res.json();
-  if (!items?.length) return;
-  const [item] = items;
-  if (item.channel === "sms") {
-    await twilioClient.messages.create({
-      messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID,
-      to: item.recipient,
-      body: item.smsPreview,
-    });
-  }
-  // TODO: POST back status via PATCH /api/marketing/providers/:id or future /tests/:id
-}
-setInterval(pollQueue, 15_000);
+### Worker (Twilio handoff)
+```bash
+# hydrate environment (MARKETING_API_KEY, TWILIO_* vars, etc.)
+cd "metro2 (copy 1)/crm"
+npm run marketing:twilio-worker
 ```
+The worker:
+- Polls `/api/marketing/tests?limit=5` with either the Marketing API key (`X-Marketing-Key`) or a CRM bearer token.
+- Immediately `PATCH /api/marketing/tests/:id` to mark the item `sending`, preventing double-delivery.
+- Sends the SMS via Twilio Messaging Services (or a fallback `TWILIO_FROM_NUMBER`).
+- `PATCH`es the queue item to `sent` or `failed`, storing the Twilio SID + error context.
+- Flips the `sms_twilio` provider status to `ready`/`error` so the UI reflects live health.
 
 ## How to Run (commands)
 ```bash
@@ -118,6 +118,9 @@ npm install
 
 # start dev server
 npm start
+
+# run the Twilio worker (in a second terminal)
+npm run marketing:twilio-worker
 
 # queue a test via curl
 TOKEN=$(curl -s -X POST http://localhost:3000/api/login \

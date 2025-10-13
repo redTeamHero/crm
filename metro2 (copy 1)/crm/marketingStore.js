@@ -99,6 +99,8 @@ const DEFAULT_STATE = {
   providers: DEFAULT_PROVIDERS,
 };
 
+const ALLOWED_TEST_STATUSES = new Set(["queued", "sending", "sent", "failed"]);
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -305,22 +307,40 @@ function normalizeState(raw) {
   normalized.providers = Array.from(providerMap.values());
 
   normalized.testQueue = normalized.testQueue
-    .map((item) => ({
-      id: item.id || nanoid(10),
-      channel: item.channel || "sms",
-      recipient: String(item.recipient || "").slice(0, 140),
-      notes: item.notes || "",
-      smsPreview: item.smsPreview || "",
-      emailPreviewId: item.emailPreviewId || null,
-      metadata: item.metadata && typeof item.metadata === "object" ? item.metadata : {},
-      source: item.source || "marketing-ui",
-      createdAt: item.createdAt || new Date().toISOString(),
-      createdBy: item.createdBy || "system",
-      status: item.status || "queued",
-      messageLength: typeof item.messageLength === "number"
-        ? item.messageLength
-        : (item.smsPreview || "").length,
-    }))
+    .map((item) => {
+      const status = String(item.status || "queued").toLowerCase();
+      const safeStatus = ALLOWED_TEST_STATUSES.has(status) ? status : "queued";
+      let deliveredAt = null;
+      if (item.deliveredAt) {
+        const parsed = new Date(item.deliveredAt);
+        if (!Number.isNaN(parsed.getTime())) {
+          deliveredAt = parsed.toISOString();
+        }
+      }
+      const error = item.error ? String(item.error).slice(0, 400) : null;
+      const providerResponse =
+        item.providerResponse && typeof item.providerResponse === "object"
+          ? clone(item.providerResponse)
+          : null;
+      return {
+        id: item.id || nanoid(10),
+        channel: item.channel || "sms",
+        recipient: String(item.recipient || "").slice(0, 140),
+        notes: item.notes || "",
+        smsPreview: item.smsPreview || "",
+        emailPreviewId: item.emailPreviewId || null,
+        metadata: item.metadata && typeof item.metadata === "object" ? item.metadata : {},
+        source: item.source || "marketing-ui",
+        createdAt: item.createdAt || new Date().toISOString(),
+        createdBy: item.createdBy || "system",
+        status: safeStatus,
+        deliveredAt,
+        error,
+        providerResponse,
+        messageLength:
+          typeof item.messageLength === "number" ? item.messageLength : (item.smsPreview || "").length,
+      };
+    })
     .slice(0, 50);
 
   normalized.emailDispatchQueue = normalized.emailDispatchQueue
@@ -427,11 +447,65 @@ export async function enqueueTestSend(data) {
     createdAt: new Date().toISOString(),
     createdBy: data.createdBy || "system",
     status: "queued",
+    deliveredAt: null,
+    error: null,
+    providerResponse: null,
     messageLength: (data.smsPreview || "").length,
   };
   state.testQueue = [item, ...state.testQueue].slice(0, 50);
   await saveMarketingState(state);
   return item;
+}
+
+export async function updateTestQueueItem(id, patch = {}) {
+  if (!id) throw new Error("Test item id is required");
+  const state = await loadMarketingState();
+  const index = state.testQueue.findIndex((item) => item.id === id);
+  if (index === -1) {
+    throw new Error("Test item not found");
+  }
+
+  const current = state.testQueue[index];
+  const next = { ...current };
+
+  if (patch.status !== undefined) {
+    const requestedStatus = String(patch.status || "").toLowerCase();
+    if (!ALLOWED_TEST_STATUSES.has(requestedStatus)) {
+      throw new Error("Invalid status");
+    }
+    next.status = requestedStatus;
+    if (requestedStatus === "sent" && !patch.deliveredAt && !current.deliveredAt) {
+      next.deliveredAt = new Date().toISOString();
+    }
+  }
+
+  if (patch.deliveredAt !== undefined) {
+    if (!patch.deliveredAt) {
+      next.deliveredAt = null;
+    } else {
+      const deliveredAt = new Date(patch.deliveredAt);
+      if (Number.isNaN(deliveredAt.getTime())) {
+        throw new Error("Invalid deliveredAt timestamp");
+      }
+      next.deliveredAt = deliveredAt.toISOString();
+    }
+  }
+
+  if (patch.error !== undefined) {
+    next.error = patch.error ? String(patch.error).slice(0, 400) : null;
+  }
+
+  if (patch.providerResponse !== undefined) {
+    if (patch.providerResponse && typeof patch.providerResponse === "object") {
+      next.providerResponse = clone(patch.providerResponse);
+    } else {
+      next.providerResponse = null;
+    }
+  }
+
+  state.testQueue[index] = next;
+  await saveMarketingState(state);
+  return state.testQueue[index];
 }
 
 export async function listProviders() {

@@ -608,6 +608,32 @@ async function getAuthUser(req){
   return null;
 }
 
+function marketingKeyAuth(req, _res, next) {
+  if (req.__authResolved) {
+    return next();
+  }
+  const configuredKey = sanitizeSettingString(process.env.MARKETING_API_KEY || "");
+  if (!configuredKey) {
+    return next();
+  }
+  const providedKey = sanitizeSettingString(
+    req.headers["x-marketing-key"] || req.headers["x-api-key"] || ""
+  );
+  if (providedKey && providedKey === configuredKey) {
+    const tenantHeader = sanitizeSettingString(req.headers["x-tenant-id"] || "");
+    req.user = {
+      id: "marketing-worker",
+      username: "marketing-worker",
+      name: "Marketing Worker",
+      role: "admin",
+      permissions: ["admin"],
+      tenantId: sanitizeTenantId(tenantHeader || DEFAULT_TENANT_ID),
+    };
+    req.__authResolved = true;
+  }
+  next();
+}
+
 async function authenticate(req, res, next){
   if (req.__authResolved) {
     if (req.user === undefined) req.user = null;
@@ -856,7 +882,7 @@ app.post("/api/settings", async (req, res) => {
   res.json({ ok: true, settings });
 });
 
-app.use("/api/marketing", authenticate, forbidMember, marketingRoutes);
+app.use("/api/marketing", marketingKeyAuth, authenticate, forbidMember, marketingRoutes);
 
 app.get("/api/calendar/events", async (_req, res) => {
   try {

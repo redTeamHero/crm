@@ -28,6 +28,9 @@ Members created through `/api/register` now receive default permissions for cons
 - `STRIPE_CANCEL_URL` (optional; override the cancel redirect with the same tokens.)
 - `MARKETING_API_BASE_URL` (optional; workers can reuse this base URL when mirroring `/api/marketing` queues.)
 - `MARKETING_API_KEY` (optional; shared secret for third-party marketing workers.)
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID` (required for the bundled SMS worker; set `TWILIO_FROM_NUMBER` if you prefer direct from numbers.)
+- `CRM_URL`, `CRM_TOKEN` (optional; worker-auth fallback when you do not expose a marketing API key.)
+- `MARKETING_TENANT_ID`, `MARKETING_POLL_INTERVAL_MS`, `MARKETING_TEST_FETCH_LIMIT`, `TWILIO_STATUS_CALLBACK_URL` (optional; tune the SMS worker runtime.)
 - `SCM_API_KEY` (optional; SimpleCertifiedMail key for USPS certified mail automation.)
 - `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (optional; Gmail API OAuth credentials for transactional sends.)
 
@@ -50,6 +53,30 @@ Copy `.env.sample` to `.env` and adjust values as needed.
 ```bash
 npm start
 ```
+
+## Marketing SMS worker
+
+Wire Twilio to the marketing test queue after setting the env vars above (or saving the Marketing API Key in **Settings → Integrations**):
+
+```bash
+cd "metro2 (copy 1)/crm"
+npm run marketing:twilio-worker
+```
+
+Queue a bilingual smoke test (replace the phone number with your verified destination):
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"ducky","password":"duck"}' | jq -r .token)
+
+curl -X POST http://localhost:3000/api/marketing/tests \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"channel":"sms","recipient":"+15125550199","smsPreview":"Hola {{first_name}} — your dispute roadmap is ready / Tu plan de disputa está listo."}'
+```
+
+The worker will mark the Twilio provider **ready**, log the SID, and update the queue with `Sent • Enviado` or `Failed • Falló` status for fast QA loops.
 
 ## Dashboard summary API
 
