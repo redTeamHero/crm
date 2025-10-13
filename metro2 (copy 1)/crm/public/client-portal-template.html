@@ -4,221 +4,299 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Client Portal - {{name}}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-<script src="/theme.js"></script>
-<link rel="stylesheet" href="/style.css">
-    <style>
-      @keyframes blob{0%,100%{transform:translate(0,0);}33%{transform:translate(15px,-10px);}66%{transform:translate(-10px,10px);}}
-      .animate-blob{animation:blob 10s ease-in-out infinite;}
-      .confetti-piece{position:absolute;width:6px;height:6px;border-radius:1px;animation:confetti 1.2s ease-out forwards;}
-      @keyframes confetti{to{transform:translate(var(--tx),var(--ty)) rotate(720deg);opacity:0;}}
-    @keyframes fadeInUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-    .animate-fadeInUp{animation:fadeInUp .6s ease-out both;}
-    .btn{position:relative;overflow:hidden;}
-    .btn span.ripple{position:absolute;border-radius:50%;transform:scale(0);animation:ripple 700ms ease-out;background:rgba(255,255,255,0.6);}
-    @keyframes ripple{to{transform:scale(3);opacity:0;}}
-    .btn:hover::after{content:'✨';position:absolute;right:4px;top:2px;pointer-events:none;}
-    .wiggle-arrow{display:inline-block;transition:transform .2s;}
-    .wiggle-arrow:hover{transform:translateX(2px);}
-
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header id="team-nav" class="p-4">
-  <div class="max-w-6xl mx-auto glass card nav-shell">
-    <div class="nav-brand-row">
-      <div class="flex items-center gap-3">
-        <div id="mascot" class="w-12 h-12"></div>
-        <div class="flex flex-col">
-          <div id="companyName" class="text-xl font-semibold">Client Portal</div>
-          <div class="text-xs text-slate-600/80 hidden sm:block">Track disputes, uploads, and approvals in one place.</div>
+  <header id="team-nav" class="p-4 md:pt-8">
+    <div class="max-w-7xl mx-auto nav-shell glass nav-elevated">
+      <div class="nav-brand-row">
+        <div class="flex items-center gap-4">
+          <div id="mascot" class="brand-orb"></div>
+          <div class="flex flex-col">
+            <div id="companyName" class="text-2xl font-semibold tracking-tight">Client Portal</div>
+            <div class="text-[11px] uppercase tracking-[0.3em] text-slate-500/80">Trust • Clarity • Empowerment</div>
+          </div>
+        </div>
+        <div class="hidden md:flex nav-actions">
+          <button id="languageToggle" class="btn-ghost text-xs uppercase tracking-widest">EN / ES</button>
+          <a href="#payments" class="btn-outline">View Plan</a>
+          <a id="bookCall" href="#payments" class="btn">Book Strategy Call</a>
+        </div>
+        <button id="navToggle" class="btn nav-toggle md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+          <span class="sr-only">Toggle navigation</span>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <nav id="primaryNav" class="hidden flex-col gap-3 md:flex md:flex-row md:items-center md:justify-between" aria-label="Client navigation">
+        <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+          <a id="navDashboard" href="#" class="btn nav-btn w-full md:w-auto">Dashboard</a>
+          <a href="#messages" class="btn nav-btn w-full md:w-auto">Messages</a>
+          <a href="#educationSection" class="btn nav-btn w-full md:w-auto">Education</a>
+          <a href="#documentSection" class="btn nav-btn w-full md:w-auto">Docs</a>
+          <a href="#mailSection" class="btn nav-btn w-full md:w-auto">Mail</a>
+          <a href="#payments" class="btn nav-btn w-full md:w-auto">Payments</a>
+          <a href="#negative-items" class="btn nav-btn w-full md:w-auto">Negative Items</a>
+          <a href="#uploads" class="btn nav-btn w-full md:w-auto">Uploads</a>
+        </div>
+        <div class="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
+          <div id="tierBadge" class="tier-pill hidden"></div>
+          <div class="flex md:hidden gap-2">
+            <button class="btn-ghost flex-1" id="mobileLanguageToggle">EN / ES</button>
+            <a href="#payments" class="btn-outline flex-1">Plan</a>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+  <div id="messageBanner" class="message-banner hidden max-w-7xl mx-auto"></div>
+  <main id="portalMain" class="portal-grid max-w-7xl mx-auto px-4 pb-16">
+    <section class="portal-primary space-y-4">
+      <article class="glass card hero-card">
+        <div class="hero-aura"></div>
+        <div class="flex flex-col gap-6 xl:flex-row xl:items-start">
+          <div class="flex-1 space-y-4">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">Today’s Focus</p>
+              <h2 class="text-3xl font-semibold text-slate-900">Welcome back, {{name}}</h2>
+              <p class="text-sm text-slate-600 max-w-2xl">Review your dispute momentum, upload documents securely, and stay aligned with the compliance-first plan crafted for you.</p>
+            </div>
+            <div class="hero-checklist">
+              <div class="hero-checklist-item">
+                <span class="hero-checklist-icon">📍</span>
+                <div>
+                  <div class="text-[13px] uppercase tracking-[0.2em] text-slate-400">Current Step</div>
+                  <div id="currentStep" class="text-lg font-semibold text-slate-900">Loading...</div>
+                </div>
+              </div>
+              <div class="hero-checklist-item">
+                <span class="hero-checklist-icon">📝</span>
+                <div>
+                  <div class="text-[13px] uppercase tracking-[0.2em] text-slate-400">Next Action</div>
+                  <div class="text-sm text-slate-600">Upload proof, approve letters, or schedule a Metro-2 audit review.</div>
+                </div>
+              </div>
+              <div class="hero-checklist-item">
+                <span class="hero-checklist-icon">🤝</span>
+                <div>
+                  <div class="text-[13px] uppercase tracking-[0.2em] text-slate-400">Team Support</div>
+                  <div class="text-sm text-slate-600">Your credit strategist will recap updates in the message center.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hero-cta space-y-3">
+            <button id="btnGoal" class="btn w-full">Mark Today’s Goal Done</button>
+            <a href="#messages" class="btn-outline w-full text-center">Message Your Strategist</a>
+            <div class="confidence-note text-xs text-slate-500 text-center">Secure uploads • TLS protected • Never promise timelines</div>
+          </div>
+        </div>
+        <div id="confetti" class="pointer-events-none absolute inset-0"></div>
+        <div id="goalBurst" class="pointer-events-none absolute inset-0"></div>
+      </article>
+      <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <section id="creditScoreWidget" class="glass card stat-card xl:col-span-1">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="panel-kicker">Credit Health</div>
+              <h3 class="panel-title">Score Overview</h3>
+            </div>
+            <span class="badge-pill">Private</span>
+          </div>
+          <div class="score-grid">
+            <div class="score-dial">
+              <div class="score-dial-inner">
+                <span class="score-value tu">0</span>
+                <span class="score-label">TransUnion</span>
+              </div>
+            </div>
+            <div class="score-dial">
+              <div class="score-dial-inner">
+                <span class="score-value ex">0</span>
+                <span class="score-label">Experian</span>
+              </div>
+            </div>
+            <div class="score-dial">
+              <div class="score-dial-inner">
+                <span class="score-value eq">0</span>
+                <span class="score-label">Equifax</span>
+              </div>
+            </div>
+          </div>
+          <div id="creditScoreUpdated" class="text-xs text-slate-500 mt-3 hidden">Updated • Actualizado</div>
+          <div id="scoreConfetti" class="pointer-events-none absolute inset-0"></div>
+        </section>
+        <section class="glass card stat-card xl:col-span-1">
+          <div class="panel-kicker">Dispute Tracker</div>
+          <h3 class="panel-title">Items in Dispute</h3>
+          <div id="itemsInDispute" class="items-pod">
+            <div id="itemsInDisputeEmpty" class="w-32 h-32"></div>
+            <div id="itemsInDisputeText" class="items-empty">No items in dispute.</div>
+          </div>
+          <div id="itemsSummary" class="text-xs text-slate-500 mt-3"></div>
+        </section>
+        <section class="glass card stat-card xl:col-span-1">
+          <div class="panel-kicker">Snapshot</div>
+          <h3 class="panel-title">Credit Report Signals</h3>
+          <div id="reportSnapshot" class="snapshot-list">No data.</div>
+        </section>
+      </div>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <section class="glass card">
+          <div class="panel-kicker">Milestones</div>
+          <h3 class="panel-title">Wins + Upcoming</h3>
+          <div id="milestones" class="timeline-list">No milestones yet.</div>
+        </section>
+        <section class="glass card">
+          <div class="panel-kicker">Uploads &amp; Approvals</div>
+          <h3 class="panel-title">Document Center</h3>
+          <p class="text-xs text-slate-500 mb-2">Share government ID, proof of address, and statements for compliance checks.</p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <a href="#uploads" class="chip">Upload Docs</a>
+            <a href="#documentSection" class="chip">View Letters</a>
+            <a href="#mailSection" class="chip">Certified Mail</a>
+          </div>
+          <div id="docListPreview" class="doc-grid text-sm">No documents uploaded.</div>
+        </section>
+      </div>
+    </section>
+    <aside class="portal-secondary space-y-4">
+      <section class="glass card">
+        <div class="panel-kicker">Your Crew</div>
+        <h3 class="panel-title">Credit Team</h3>
+        <div id="teamList" class="text-sm space-y-2">Loading...</div>
+      </section>
+      <section class="glass card">
+        <div class="panel-kicker">Education</div>
+        <h3 class="panel-title">Playbooks &amp; Wins</h3>
+        <div id="newsFeed" class="text-sm space-y-2">Loading...</div>
+        <a href="#educationSection" class="btn-outline mt-4 w-full text-center">View Learning Library</a>
+      </section>
+      <section class="glass card">
+        <div class="panel-kicker">Payment Planner</div>
+        <h3 class="panel-title">Debt Payoff Calculator</h3>
+        <form id="debtForm" class="space-y-2">
+          <input type="number" id="debtAmount" class="input w-full" placeholder="Debt Amount" required />
+          <input type="number" id="debtRate" class="input w-full" placeholder="APR %" required />
+          <input type="number" id="debtMonths" class="input w-full" placeholder="Months to Payoff" required />
+          <button type="submit" class="btn w-full">Calculate</button>
+        </form>
+        <div id="debtResult" class="text-xs text-slate-500 mt-3"></div>
+      </section>
+    </aside>
+  </main>
+  <section id="uploadSection" class="detail-section hidden">
+    <div class="section-shell">
+      <h2 class="section-title">Upload Documents</h2>
+      <p class="section-subtitle">TLS protected. Only share what’s required to validate identity and Metro-2 facts.</p>
+      <form id="uploadForm" class="detail-card">
+        <div class="grid gap-3 md:grid-cols-2">
+          <label class="form-label" for="uploadType">Document Type</label>
+          <select id="uploadType" class="input w-full">
+            <option value="id">Government ID</option>
+            <option value="residency">Proof of Residency</option>
+            <option value="statement">Latest Statement</option>
+          </select>
+        </div>
+        <div class="grid gap-3">
+          <label class="form-label" for="uploadFile">Select File</label>
+          <input type="file" id="uploadFile" class="input w-full" required />
+        </div>
+        <button type="submit" class="btn w-full md:w-auto">Upload Securely</button>
+        <div id="uploadStatus" class="text-xs text-slate-500"></div>
+      </form>
+    </div>
+  </section>
+  <section id="messageSection" class="detail-section hidden">
+    <div class="section-shell">
+      <h2 class="section-title">Messages</h2>
+      <p class="section-subtitle">Ask questions, approve drafts, and capture call recaps in one place.</p>
+      <div class="detail-card space-y-3">
+        <div id="messageList" class="space-y-2 text-sm flex flex-col"></div>
+        <form id="messageForm" class="flex flex-col sm:flex-row gap-2">
+          <input id="messageInput" class="input flex-1" placeholder="Type message..." />
+          <button class="btn sm:w-auto" type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  </section>
+  <section id="educationSection" class="detail-section hidden">
+    <div class="section-shell">
+      <div class="glass card">
+        <div class="panel-kicker">Education</div>
+        <h2 class="section-title">Knowledge Base</h2>
+        <div id="education" class="text-sm space-y-2">No educational items.</div>
+      </div>
+    </div>
+  </section>
+  <section id="documentSection" class="detail-section hidden">
+    <div class="section-shell">
+      <div class="glass card">
+        <div class="panel-kicker">Document Center</div>
+        <h2 class="section-title">Letters &amp; Evidence</h2>
+        <div id="docList" class="text-sm space-y-2">No documents uploaded.</div>
+      </div>
+    </div>
+  </section>
+  <section id="mailSection" class="detail-section hidden">
+    <div class="section-shell">
+      <h2 class="section-title">Mail</h2>
+      <p class="section-subtitle">Track certified mailings and internal follow-ups. Entries include DOFD + bureau audit trails.</p>
+      <div class="detail-card">
+        <div class="flex gap-2 mb-4">
+          <button id="mailTabWaiting" class="btn chip active">Waiting</button>
+          <button id="mailTabMailed" class="btn chip">Mailed</button>
+        </div>
+        <div id="mailWaiting" class="space-y-2"></div>
+        <div id="mailMailed" class="space-y-2 hidden"></div>
+      </div>
+    </div>
+  </section>
+  <section id="paymentSection" class="detail-section hidden">
+    <div class="section-shell">
+      <div class="glass card">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div class="text-xs uppercase tracking-wide text-slate-500">Outstanding Balance</div>
+            <div id="paymentTotal" class="text-4xl font-bold text-slate-900">$0.00</div>
+          </div>
+          <div class="text-xs text-slate-500 max-w-sm">
+            Pay securely inside your portal. We focus on investigations and Metro-2 compliance — never guaranteed outcomes or timelines.
+          </div>
         </div>
       </div>
-      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
-        <span>Menu</span>
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
+      <div id="paymentError" class="hidden mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"></div>
+      <div id="paymentEmpty" class="mt-4 rounded-xl border border-dashed border-slate-300/70 bg-white/80 p-6 text-sm text-slate-600 text-center">
+        No invoices yet. We’ll notify you when a balance posts.
+      </div>
+      <div id="paymentList" class="mt-4 space-y-3"></div>
+      <p class="mt-6 text-xs text-slate-500">
+        Questions? Email <a href="mailto:support@example.com" class="underline">support@example.com</a>. Payments cover investigation &amp; dispute work only.
+      </p>
     </div>
-    <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2" aria-label="Client navigation">
-      <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
-        <a id="navDashboard" href="#" class="btn nav-btn w-full md:w-auto">Dashboard</a>
-        <a href="#messages" class="btn nav-btn w-full md:w-auto">Messages</a>
-        <a href="#educationSection" class="btn nav-btn w-full md:w-auto">Education</a>
-        <a href="#documentSection" class="btn nav-btn w-full md:w-auto">Docs</a>
-        <a href="#mailSection" class="btn nav-btn w-full md:w-auto">Mail</a>
-        <a href="#payments" class="btn nav-btn w-full md:w-auto">Pay</a>
-        <a href="#negative-items" class="btn nav-btn w-full md:w-auto">Negative Items</a>
-        <a href="#uploads" class="btn nav-btn w-full md:w-auto">Uploads</a>
-      </div>
-      <div id="tierBadge" class="order-3 sm:order-2 hidden w-full sm:w-auto sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm animate-fadeInUp" title="You’ve planted the seed — secured cards are your first step to building credit.">
-        <span class="text-xl">🔒</span>
-        <span class="font-semibold text-sm">Secured Start</span>
-      </div>
-
-    </nav>
-  </div>
-</header>
-<div id="messageBanner" class="max-w-6xl mx-auto p-2 text-center bg-yellow-100 text-yellow-800 hidden"></div>
-<main id="portalMain" class="max-w-6xl mx-auto grid gap-4 p-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-  <div class="glass card relative overflow-hidden md:col-span-2 xl:col-span-3">
-    <div class="pointer-events-none absolute -top-16 -right-16 h-56 w-56 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 opacity-20 blur-3xl animate-blob"></div>
-    <div class="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-gradient-to-tr from-cyan-400 to-emerald-400 opacity-20 blur-3xl animate-blob"></div>
-    <h2 class="mb-2 text-2xl font-bold flex items-center gap-2">Welcome, {{name}}</h2>
-    <p class="text-sm text-gray-600">Let’s knock out today’s tasks.</p>
-    <button id="btnGoal" class="mt-4 rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95">Mark Today’s Goal Done</button>
-    <div id="confetti" class="pointer-events-none absolute inset-0"></div>
-    <div id="goalBurst" class="pointer-events-none absolute inset-0"></div>
-
-  </div>
-
-  <div id="creditScoreWidget" class="glass card md:col-span-2 xl:col-span-1">
-    <div class="font-medium mb-2">Credit Score</div>
-    <div class="relative grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-      <div>
-        <div class="text-xs text-gray-500">TransUnion</div>
-        <div class="tu text-2xl font-bold">0</div>
-      </div>
-      <div>
-        <div class="text-xs text-gray-500">Experian</div>
-        <div class="ex text-2xl font-bold">0</div>
-      </div>
-      <div>
-        <div class="text-xs text-gray-500">Equifax</div>
-        <div class="eq text-2xl font-bold">0</div>
-      </div>
-      <div id="scoreConfetti" class="pointer-events-none absolute inset-0"></div>
-    </div>
-    <div id="creditScoreUpdated" class="text-xs text-gray-500 mt-3 hidden">Updated • Actualizado</div>
-  </div>
-
-  <div class="glass card">
-    <div class="font-medium mb-2">Current Step</div>
-    <div id="currentStep" class="text-lg">Loading...</div>
-  </div>
-
-  <div class="glass card">
-    <div class="font-medium mb-2">Items in Dispute</div>
-    <div id="itemsInDispute" class="text-sm space-y-1 flex flex-col items-center justify-center sm:items-start">
-      <div id="itemsInDisputeEmpty" class="w-32 h-32"></div>
-      <div id="itemsInDisputeText" class="mt-2">No items in dispute.</div>
-    </div>
-    <div id="itemsSummary" class="text-sm mt-2"></div>
-  </div>
-
-  <div class="glass card">
-    <div class="font-medium mb-2">Credit Report Snapshot</div>
-    <div id="reportSnapshot" class="text-sm space-y-1">No data.</div>
-  </div>
-
-  <div class="glass card">
-    <div class="font-medium mb-2">Milestones</div>
-    <div id="milestones" class="text-sm space-y-1">No milestones yet.</div>
-  </div>
-
-  <div class="glass card">
-
-    <div class="font-medium mb-2">Your Team Members</div>
-    <div id="teamList" class="space-y-2 text-sm">Loading...</div>
-  </div>
-
-  <div class="glass card md:col-span-2 xl:col-span-1">
-    <div class="font-medium mb-2">News</div>
-    <div id="newsFeed" class="text-sm space-y-1">Loading...</div>
-  </div>
-
-  <div class="glass card md:col-span-2 xl:col-span-1">
-    <div class="font-medium mb-2">Debt Payoff Calculator</div>
-    <form id="debtForm" class="space-y-2">
-      <input type="number" id="debtAmount" class="input w-full" placeholder="Debt Amount" required />
-      <input type="number" id="debtRate" class="input w-full" placeholder="APR %" required />
-      <input type="number" id="debtMonths" class="input w-full" placeholder="Months to Payoff" required />
-      <button type="submit" class="btn">Calculate</button>
-    </form>
-    <div id="debtResult" class="text-sm mt-2"></div>
-  </div>
-
-</main>
-<div id="uploadSection" class="max-w-6xl mx-auto p-4 hidden">
-  <h2 class="text-xl font-bold mb-2">Upload Documents</h2>
-  <form id="uploadForm" class="space-y-2">
-    <select id="uploadType" class="input w-full">
-      <option value="id">Government ID</option>
-      <option value="residency">Proof of Residency</option>
-    </select>
-
-    <input type="file" id="uploadFile" class="input w-full" required />
-    <button type="submit" class="btn">Upload</button>
-  </form>
-  <div id="uploadStatus" class="text-sm mt-2"></div>
-</div>
-<div id="messageSection" class="max-w-3xl mx-auto p-4 hidden">
-  <h2 class="text-xl font-bold mb-2">Messages</h2>
-  <div id="messageList" class="space-y-2 mb-2 text-sm flex flex-col"></div>
-  <form id="messageForm" class="flex gap-2">
-    <input id="messageInput" class="input flex-1" placeholder="Type message..." />
-    <button class="btn" type="submit">Send</button>
-  </form>
-</div>
-<div id="educationSection" class="max-w-3xl mx-auto p-4 hidden">
-  <div class="glass card">
-    <div class="font-medium mb-2">Education</div>
-    <div id="education" class="text-sm space-y-1">No educational items.</div>
-  </div>
-</div>
-<div id="documentSection" class="max-w-3xl mx-auto p-4 hidden">
-  <div class="glass card">
-    <div class="font-medium mb-2">Document Center</div>
-    <div id="docList" class="text-sm space-y-1">No documents uploaded.</div>
-  </div>
-</div>
-<div id="mailSection" class="max-w-3xl mx-auto p-4 hidden">
-  <h2 class="text-xl font-bold mb-2">Mail</h2>
-  <div class="flex gap-2 mb-2">
-    <button id="mailTabWaiting" class="btn chip active">Waiting</button>
-    <button id="mailTabMailed" class="btn chip">Mailed</button>
-  </div>
-  <div id="mailWaiting" class="space-y-2"></div>
-  <div id="mailMailed" class="space-y-2 hidden"></div>
-</div>
-<div id="paymentSection" class="max-w-3xl mx-auto p-4 hidden">
-  <div class="glass card p-4">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <div class="text-xs uppercase tracking-wide text-slate-500">Outstanding Balance</div>
-        <div id="paymentTotal" class="text-3xl font-bold text-slate-900">$0.00</div>
-      </div>
-      <div class="text-xs text-slate-500 max-w-xs">
-        Pay securely inside your portal. We’ll never promise guaranteed results or timelines.
+  </section>
+  <section id="negativeItemsSection" class="detail-section hidden">
+    <div class="section-shell">
+      <h2 class="section-title">Negative Items</h2>
+      <p class="section-subtitle">Metro-2 violations sorted by severity (S5 is highest). Tap an account to confirm statuses, past-due amounts, and DOFD alignment.</p>
+      <div class="detail-card space-y-3">
+        <input id="negativeItemSearch" type="text" class="input w-full" placeholder="Search creditor or bureau" />
+        <select id="negativeItemSort" class="input w-full">
+          <option value="severity-desc">Severity ↓</option>
+          <option value="severity-asc">Severity ↑</option>
+          <option value="creditor-asc">Creditor A–Z</option>
+          <option value="creditor-desc">Creditor Z–A</option>
+        </select>
+        <div id="negativeItemList" class="space-y-3 max-h-96 overflow-y-auto"></div>
       </div>
     </div>
-  </div>
-  <div id="paymentError" class="hidden mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"></div>
-  <div id="paymentEmpty" class="mt-4 rounded-xl border border-dashed border-slate-300/70 bg-white/80 p-6 text-sm text-slate-600 text-center">
-    No invoices yet. We’ll notify you when a balance posts.
-  </div>
-  <div id="paymentList" class="mt-4 space-y-3"></div>
-  <p class="mt-6 text-xs text-slate-500">
-    Questions? Email <a href="mailto:support@example.com" class="underline">support@example.com</a>. Payments cover investigation &amp; dispute work only.
-  </p>
-</div>
-<div id="negativeItemsSection" class="max-w-3xl mx-auto p-4 hidden">
-  <h2 class="text-xl font-bold mb-2">Negative Items</h2>
-  <p class="text-sm muted mb-3">Metro 2 violations are sorted by severity (S5 is highest). Use this list to preview what we’re disputing.</p>
-  <p class="text-xs muted mb-4">Tap any account to see bureau-by-bureau balances, statuses, and key dates.</p>
-  <input id="negativeItemSearch" type="text" class="input w-full mb-2" placeholder="Search creditor or bureau" />
-  <select id="negativeItemSort" class="input w-full mb-2">
-    <option value="severity-desc">Severity ↓</option>
-    <option value="severity-asc">Severity ↑</option>
-    <option value="creditor-asc">Creditor A–Z</option>
-    <option value="creditor-desc">Creditor Z–A</option>
-  </select>
-  <div id="negativeItemList" class="space-y-3 max-h-96 overflow-y-auto"></div>
-</div>
-<script src="/client-portal.js"></script>
+  </section>
+  <script src="/client-portal.js"></script>
 </body>
 </html>
