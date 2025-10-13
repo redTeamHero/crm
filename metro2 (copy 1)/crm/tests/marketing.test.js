@@ -45,7 +45,7 @@ test("marketing API queues tests, templates, and providers", async () => {
       .set("Authorization", "Bearer " + token)
       .send({
         title: "Follow-up Touch",
-        description: "Bilingual consult reminder.",
+        description: "Consult reminder.",
         segment: "inactive",
       });
     assert.equal(templateRes.status, 201);
