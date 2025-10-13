@@ -2,7 +2,7 @@
 
 import { PLAYBOOKS } from './playbooks.js';
 import { authHeader, api, escapeHtml, formatCurrency } from './common.js';
-import { renderClientLocations, clearClientLocationsCache } from './client-map.js';
+import { clearClientLocationsCache } from './client-map.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -31,13 +31,6 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
       });
     }
   });
-}
-
-function showClientMap(containerId, options = {}){
-  if(typeof window === 'undefined') return;
-  window.setTimeout(() => {
-    renderClientLocations(containerId, options).catch(err => console.warn('MAP_RENDER_FAILED', err));
-  }, 150);
 }
 
 let DB = [];
@@ -1400,7 +1393,6 @@ $("#btnCreateClient").addEventListener("click", ()=>{
   $("#newForm").reset();
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
-  showClientMap('clientMapNew', { forceRefresh: true });
 });
 $("#newClose").addEventListener("click", ()=> closeNew());
 $("#newCancel").addEventListener("click", ()=> closeNew());
@@ -1444,7 +1436,6 @@ $("#btnEditClient").addEventListener("click", ()=>{
 
   m.classList.remove("hidden");
   document.body.style.overflow = "hidden";
-  showClientMap('clientMapEdit');
 });
 $("#editClose").addEventListener("click", ()=> closeEdit());
 $("#editCancel").addEventListener("click", ()=> closeEdit());
