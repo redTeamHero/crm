@@ -42,15 +42,39 @@
           <div id="companyTaglinePrimary" class="text-xs text-slate-600/80">Track disputes, uploads, and approvals in one place.</div>
           <div id="companyTaglineSecondary" class="text-[11px] text-slate-500 hidden sm:block">Sigue tus disputas, cargas y aprobaciones en un solo lugar.</div>
         </div>
+        <div class="hidden md:flex nav-actions">
+          <button id="languageToggle" class="btn-ghost text-xs uppercase tracking-widest">EN / ES</button>
+          <a href="#payments" class="btn-outline">View Plan</a>
+          <a id="bookCall" href="#payments" class="btn">Book Strategy Call</a>
+        </div>
+        <button id="navToggle" class="btn nav-toggle md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+          <span class="sr-only">Toggle navigation</span>
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
       </div>
-      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
-        <span>Menu</span>
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
+      <nav id="primaryNav" class="hidden flex-col gap-3 md:flex md:flex-row md:items-center md:justify-between" aria-label="Client navigation">
+        <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+          <a id="navDashboard" href="#" class="btn nav-btn w-full md:w-auto">Dashboard</a>
+          <a href="#messages" class="btn nav-btn w-full md:w-auto">Messages</a>
+          <a href="#educationSection" class="btn nav-btn w-full md:w-auto">Education</a>
+          <a href="#documentSection" class="btn nav-btn w-full md:w-auto">Docs</a>
+          <a href="#mailSection" class="btn nav-btn w-full md:w-auto">Mail</a>
+          <a href="#payments" class="btn nav-btn w-full md:w-auto">Payments</a>
+          <a href="#negative-items" class="btn nav-btn w-full md:w-auto">Negative Items</a>
+          <a href="#uploads" class="btn nav-btn w-full md:w-auto">Uploads</a>
+        </div>
+        <div class="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
+          <div id="tierBadge" class="tier-pill hidden"></div>
+          <div class="flex md:hidden gap-2">
+            <button class="btn-ghost flex-1" id="mobileLanguageToggle">EN / ES</button>
+            <a href="#payments" class="btn-outline flex-1">Plan</a>
+          </div>
+        </div>
+      </nav>
     </div>
     <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2" aria-label="Client navigation">
       <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
@@ -63,9 +87,23 @@
         <a id="navNegativeItems" href="#negative-items" class="btn nav-btn w-full md:w-auto">Negative Items</a>
         <a id="navUploads" href="#uploads" class="btn nav-btn w-full md:w-auto">Uploads</a>
       </div>
-      <div id="tierBadge" class="order-3 sm:order-2 hidden w-full sm:w-auto sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm animate-fadeInUp" title="You’ve planted the seed — secured cards are your first step to building credit.">
-        <span class="text-xl">🔒</span>
-        <span class="font-semibold text-sm">Secured Start</span>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <section class="glass card">
+          <div class="panel-kicker">Milestones</div>
+          <h3 class="panel-title">Wins + Upcoming</h3>
+          <div id="milestones" class="timeline-list">No milestones yet.</div>
+        </section>
+        <section class="glass card">
+          <div class="panel-kicker">Uploads &amp; Approvals</div>
+          <h3 class="panel-title">Document Center</h3>
+          <p class="text-xs text-slate-500 mb-2">Share government ID, proof of address, and statements for compliance checks.</p>
+          <div class="flex flex-wrap gap-2 mb-4">
+            <a href="#uploads" class="chip">Upload Docs</a>
+            <a href="#documentSection" class="chip">View Letters</a>
+            <a href="#mailSection" class="chip">Certified Mail</a>
+          </div>
+          <div id="docListPreview" class="doc-grid text-sm">No documents uploaded.</div>
+        </section>
       </div>
 
     </nav>
@@ -91,15 +129,24 @@
         <div class="text-xs text-gray-500">TransUnion</div>
         <div class="tu text-2xl font-bold">0</div>
       </div>
-      <div>
-        <div class="text-xs text-gray-500">Experian</div>
-        <div class="ex text-2xl font-bold">0</div>
+    </div>
+  </section>
+  <section id="educationSection" class="detail-section hidden">
+    <div class="section-shell">
+      <div class="glass card">
+        <div class="panel-kicker">Education</div>
+        <h2 class="section-title">Knowledge Base</h2>
+        <div id="education" class="text-sm space-y-2">No educational items.</div>
       </div>
-      <div>
-        <div class="text-xs text-gray-500">Equifax</div>
-        <div class="eq text-2xl font-bold">0</div>
+    </div>
+  </section>
+  <section id="documentSection" class="detail-section hidden">
+    <div class="section-shell">
+      <div class="glass card">
+        <div class="panel-kicker">Document Center</div>
+        <h2 class="section-title">Letters &amp; Evidence</h2>
+        <div id="docList" class="text-sm space-y-2">No documents uploaded.</div>
       </div>
-      <div id="scoreConfetti" class="pointer-events-none absolute inset-0"></div>
     </div>
     <div id="creditScoreUpdated" class="text-xs text-gray-500 mt-3 hidden">Updated • Actualizado</div>
   </div>
@@ -200,33 +247,28 @@
         <div class="text-xs uppercase tracking-wide text-slate-500">Outstanding Balance</div>
         <div id="paymentTotal" class="text-3xl font-bold text-slate-900">$0.00</div>
       </div>
-      <div class="text-xs text-slate-500 max-w-xs">
-        Pay securely inside your portal. We’ll never promise guaranteed results or timelines.
+      <div id="paymentList" class="mt-4 space-y-3"></div>
+      <p class="mt-6 text-xs text-slate-500">
+        Questions? Email <a href="mailto:support@example.com" class="underline">support@example.com</a>. Payments cover investigation &amp; dispute work only.
+      </p>
+    </div>
+  </section>
+  <section id="negativeItemsSection" class="detail-section hidden">
+    <div class="section-shell">
+      <h2 class="section-title">Negative Items</h2>
+      <p class="section-subtitle">Metro-2 violations sorted by severity (S5 is highest). Tap an account to confirm statuses, past-due amounts, and DOFD alignment.</p>
+      <div class="detail-card space-y-3">
+        <input id="negativeItemSearch" type="text" class="input w-full" placeholder="Search creditor or bureau" />
+        <select id="negativeItemSort" class="input w-full">
+          <option value="severity-desc">Severity ↓</option>
+          <option value="severity-asc">Severity ↑</option>
+          <option value="creditor-asc">Creditor A–Z</option>
+          <option value="creditor-desc">Creditor Z–A</option>
+        </select>
+        <div id="negativeItemList" class="space-y-3 max-h-96 overflow-y-auto"></div>
       </div>
     </div>
-  </div>
-  <div id="paymentError" class="hidden mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"></div>
-  <div id="paymentEmpty" class="mt-4 rounded-xl border border-dashed border-slate-300/70 bg-white/80 p-6 text-sm text-slate-600 text-center">
-    No invoices yet. We’ll notify you when a balance posts.
-  </div>
-  <div id="paymentList" class="mt-4 space-y-3"></div>
-  <p class="mt-6 text-xs text-slate-500">
-    Questions? Email <a href="mailto:support@example.com" class="underline">support@example.com</a>. Payments cover investigation &amp; dispute work only.
-  </p>
-</div>
-<div id="negativeItemsSection" class="max-w-3xl mx-auto p-4 hidden">
-  <h2 class="text-xl font-bold mb-2">Negative Items</h2>
-  <p class="text-sm muted mb-3">Metro 2 violations are sorted by severity (S5 is highest). Use this list to preview what we’re disputing.</p>
-  <p class="text-xs muted mb-4">Tap any account to see bureau-by-bureau balances, statuses, and key dates.</p>
-  <input id="negativeItemSearch" type="text" class="input w-full mb-2" placeholder="Search creditor or bureau" />
-  <select id="negativeItemSort" class="input w-full mb-2">
-    <option value="severity-desc">Severity ↓</option>
-    <option value="severity-asc">Severity ↑</option>
-    <option value="creditor-asc">Creditor A–Z</option>
-    <option value="creditor-desc">Creditor Z–A</option>
-  </select>
-  <div id="negativeItemList" class="space-y-3 max-h-96 overflow-y-auto"></div>
-</div>
-<script src="/client-portal.js"></script>
+  </section>
+  <script src="/client-portal.js"></script>
 </body>
 </html>
