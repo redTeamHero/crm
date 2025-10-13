@@ -402,6 +402,13 @@ function resolveStripeRedirectUrls(invoice, req){
   };
 }
 
+function buildInvoicePayUrl(invoice, req){
+  if(!invoice) return "";
+  const base = resolvePortalBase(req);
+  const safeId = encodeURIComponent(invoice.id || "");
+  return `${base}/pay/${safeId}`;
+}
+
 async function createStripeCheckoutSession({ invoice, consumer = {}, company = {}, req, stripeClient = null } = {}){
   if(!invoice) return null;
   const stripe = stripeClient || await getStripeClient();
@@ -1644,16 +1651,19 @@ app.post("/api/invoices", async (req,res)=>{
   let paymentProvider = req.body.paymentProvider || null;
   let stripeSessionId = null;
   if(!payLink){
-    const checkout = await createStripeCheckoutSession({ invoice: inv, consumer, company, req, stripeClient });
-    if(checkout?.url){
-      payLink = checkout.url;
-      paymentProvider = "stripe";
-      stripeSessionId = checkout.sessionId;
+    const amountCents = Math.round((Number(inv.amount) || 0) * 100);
+    if(stripeClient && amountCents > 0){
+      const checkout = await createStripeCheckoutSession({ invoice: inv, consumer, company, req, stripeClient });
+      if(checkout?.sessionId){
+        paymentProvider = "stripe";
+        stripeSessionId = checkout.sessionId;
+      }
+      payLink = buildInvoicePayUrl(inv, req);
     }
   }
   if(!payLink){
-    const fallbackPayBase = (process.env.PORTAL_PAYMENT_BASE || "https://pay.example.com").replace(/\/$/, "");
-    payLink = `${fallbackPayBase}/${inv.id}`;
+    const fallbackBase = (process.env.PORTAL_PAYMENT_BASE || resolvePortalBase(req) || "https://pay.example.com").replace(/\/$/, "");
+    payLink = stripeClient ? buildInvoicePayUrl(inv, req) : `${fallbackBase}/${inv.id}`;
   }
   inv.payLink = payLink;
   inv.paymentProvider = paymentProvider;
@@ -1694,11 +1704,35 @@ app.post("/api/invoices/:id/checkout", async (req, res) => {
   if(!checkout?.url){
     return res.status(502).json({ ok:false, error: "Unable to start checkout" });
   }
-  inv.payLink = checkout.url;
+  inv.payLink = buildInvoicePayUrl(inv, req);
   inv.paymentProvider = "stripe";
   inv.stripeSessionId = checkout.sessionId;
   await saveInvoicesDB(db);
   res.json({ ok:true, url: checkout.url, sessionId: checkout.sessionId });
+});
+
+app.get("/pay/:id", async (req, res) => {
+  const stripeClient = await getStripeClient();
+  if(!stripeClient){
+    return res.status(503).send("Stripe checkout is not configured. Please contact support.");
+  }
+  const db = await loadInvoicesDB();
+  const inv = db.invoices.find(i => i.id === req.params.id);
+  if(!inv) return res.status(404).send("Invoice not found.");
+  if(inv.paid){
+    return res.status(410).send("This invoice is already marked as paid.");
+  }
+  const mainDb = await loadDB();
+  const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
+  const checkout = await createStripeCheckoutSession({ invoice: inv, consumer, req, stripeClient });
+  if(!checkout?.url){
+    return res.status(502).send("Unable to start Stripe checkout. Please contact support.");
+  }
+  inv.payLink = buildInvoicePayUrl(inv, req);
+  inv.paymentProvider = "stripe";
+  inv.stripeSessionId = checkout.sessionId;
+  await saveInvoicesDB(db);
+  res.redirect(303, checkout.url);
 });
 
 app.put("/api/invoices/:id", async (req,res)=>{
@@ -1710,8 +1744,10 @@ app.put("/api/invoices/:id", async (req,res)=>{
   if(req.body.due !== undefined) inv.due = req.body.due;
   if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
   if(req.body.payLink !== undefined || req.body.payUrl !== undefined){
-    const base = (process.env.PORTAL_PAYMENT_BASE || "https://pay.example.com").replace(/\/$/, "");
-    const updatedLink = req.body.payLink || req.body.payUrl || `${base}/${inv.id}`;
+    const stripeClient = await getStripeClient();
+    const prefersStripe = (req.body.paymentProvider || inv.paymentProvider) === "stripe";
+    const base = (process.env.PORTAL_PAYMENT_BASE || resolvePortalBase(req) || "https://pay.example.com").replace(/\/$/, "");
+    const updatedLink = req.body.payLink || req.body.payUrl || (prefersStripe && stripeClient ? buildInvoicePayUrl(inv, req) : `${base}/${inv.id}`);
     inv.payLink = updatedLink;
   }
   if(req.body.paymentProvider !== undefined){
