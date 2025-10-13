@@ -45,6 +45,7 @@ const TRANSLATIONS = {
       marketing: 'Marketing',
       settings: 'Settings',
       myCompany: 'My Company',
+      clientPortal: 'Client Portal • Portal del Cliente',
       letters: 'Letter',
       library: 'Library',
       workflows: 'Workflows',
@@ -303,8 +304,10 @@ export function applyLanguage(lang = currentLanguage) {
     ['a[href="/marketing"]', 'nav.marketing'],
     ['a[href="/tradelines"]', 'nav.tradelines'],
     ['#navCompany', 'nav.myCompany'],
+    ['#navSettingsMenu a[href="/settings#client-portal"]', 'nav.clientPortal'],
     ['#navSettingsMenu a[href="/letters"]', 'nav.letters'],
     ['#navSettingsMenu a[href="/library"]', 'nav.library'],
+    ['#navSettingsMenu a[href="/settings#api-integrations"]', 'nav.apis'],
     ['#navSettingsMenu a[href="/workflows"]', 'nav.workflows']
   ];
   if (typeof document !== 'undefined') {
@@ -677,8 +680,27 @@ if (navContainer) {
     link.textContent = getTranslation(translationKey) || getTranslation('nav.marketing');
     insertNavLink(link);
   };
+  const ensureSettingsLink = (href, translationKey, fallbackText, afterSelector) => {
+    const menu = document.getElementById('navSettingsMenu');
+    if (!menu || menu.querySelector(`a[href="${href}"]`)) return;
+    const link = document.createElement('a');
+    link.href = href;
+    link.className = 'btn text-sm';
+    const label = (translationKey && getTranslation(translationKey)) || fallbackText || href;
+    link.textContent = label;
+    if (translationKey) link.dataset.i18n = translationKey;
+    if (afterSelector) {
+      const anchor = menu.querySelector(afterSelector);
+      if (anchor && anchor.parentElement === menu) {
+        menu.insertBefore(link, anchor.nextSibling);
+        return;
+      }
+    }
+    menu.appendChild(link);
+  };
   ensureMarketingLink('/marketing/sms', 'nav.marketingSms');
   ensureMarketingLink('/marketing/email', 'nav.marketingEmail');
+  ensureSettingsLink('/settings#client-portal', 'nav.clientPortal', 'Client Portal • Portal del Cliente', '#navCompany');
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
   btnLogout.className = 'btn nav-btn';
