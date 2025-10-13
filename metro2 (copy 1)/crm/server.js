@@ -253,6 +253,7 @@ import {
   addFileMeta,
   consumerUploadsDir,
   addReminder,
+  removeReminder,
   processAllReminders,
   listTracker,
   setTrackerSteps,
@@ -1272,6 +1273,128 @@ function roundCurrency(value){
   return Math.round(value * 100) / 100;
 }
 
+const MAX_PLAN_REMINDER_LEAD_DAYS = 60;
+const MAX_PLAN_INTERVAL_DAYS = 365;
+
+function startOfDay(value){
+  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  if(Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function parsePlanDate(value){
+  if(!value) return null;
+  if(value instanceof Date && !Number.isNaN(value.getTime())) return startOfDay(value);
+  if(typeof value === "number" && Number.isFinite(value)) return startOfDay(new Date(value));
+  if(typeof value === "string"){
+    const trimmed = value.trim();
+    if(!trimmed) return null;
+    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(isoMatch){
+      const [year, month, day] = isoMatch.slice(1).map(Number);
+      const dt = new Date(year, month - 1, day);
+      if(!Number.isNaN(dt.getTime())) return startOfDay(dt);
+    }
+    const parsed = new Date(trimmed);
+    if(!Number.isNaN(parsed.getTime())) return startOfDay(parsed);
+  }
+  return null;
+}
+
+function formatIsoDate(date){
+  if(!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(date, days){
+  const base = new Date(date.getTime());
+  base.setDate(base.getDate() + days);
+  return base;
+}
+
+function subtractDays(date, days){
+  return addDays(date, -Math.abs(days));
+}
+
+function normalizePlanFrequency(value){
+  const normalized = (value ?? "monthly").toString().trim().toLowerCase();
+  if(normalized === "weekly" || normalized === "biweekly" || normalized === "custom" || normalized === "monthly") return normalized;
+  return "monthly";
+}
+
+function resolvePlanIntervalDays(frequency, intervalDays){
+  if(frequency === "weekly") return 7;
+  if(frequency === "biweekly") return 14;
+  if(frequency === "custom"){
+    const parsed = Number.parseInt(intervalDays, 10);
+    const safe = Number.isFinite(parsed) ? parsed : 30;
+    return Math.min(MAX_PLAN_INTERVAL_DAYS, Math.max(1, safe));
+  }
+  return null;
+}
+
+function advancePlanDate(date, plan){
+  const base = startOfDay(date);
+  if(!base) return null;
+  const frequency = normalizePlanFrequency(plan?.frequency);
+  if(frequency === "weekly") return addDays(base, 7);
+  if(frequency === "biweekly") return addDays(base, 14);
+  if(frequency === "custom"){
+    const interval = resolvePlanIntervalDays("custom", plan?.intervalDays);
+    return addDays(base, interval || 30);
+  }
+  const next = new Date(base.getTime());
+  next.setMonth(next.getMonth() + 1);
+  return next;
+}
+
+function ensureNextBillDate(plan, requestedNextDate = null){
+  const today = startOfDay(new Date());
+  const start = parsePlanDate(plan?.startDate) || today;
+  let next = requestedNextDate || parsePlanDate(plan?.nextBillDate) || start;
+  if(next < start) next = start;
+  let guard = 0;
+  while(next < today && guard < 120){
+    const advanced = advancePlanDate(next, plan);
+    if(!advanced || advanced.getTime() === next.getTime()) break;
+    next = advanced;
+    guard++;
+  }
+  return formatIsoDate(next);
+}
+
+function normalizePlanRecord(raw){
+  if(!raw || typeof raw !== "object") return null;
+  raw.id = raw.id || nanoid(10);
+  raw.consumerId = raw.consumerId || "";
+  raw.name = (raw.name || "Custom plan").toString().trim() || "Custom plan";
+  raw.amount = roundCurrency(coerceAmount(raw.amount));
+  raw.frequency = normalizePlanFrequency(raw.frequency);
+  raw.intervalDays = resolvePlanIntervalDays(raw.frequency, raw.intervalDays);
+  raw.reminderLeadDays = Math.max(0, Math.min(MAX_PLAN_REMINDER_LEAD_DAYS, Number.parseInt(raw.reminderLeadDays, 10) || 0));
+  raw.notes = (raw.notes || "").toString().trim();
+  raw.active = raw.active !== false;
+  raw.createdAt = raw.createdAt || new Date().toISOString();
+  raw.updatedAt = raw.updatedAt || raw.createdAt;
+  raw.lastSentAt = raw.lastSentAt || null;
+  raw.lastInvoiceId = raw.lastInvoiceId || null;
+  raw.cyclesCompleted = Number.isFinite(Number(raw.cyclesCompleted)) ? Number(raw.cyclesCompleted) : 0;
+  raw.reminderId = raw.reminderId || null;
+  const start = parsePlanDate(raw.startDate) || parsePlanDate(raw.createdAt) || startOfDay(new Date());
+  raw.startDate = formatIsoDate(start);
+  raw.nextBillDate = ensureNextBillDate(raw, parsePlanDate(raw.nextBillDate));
+  return raw;
+}
+
+function clonePlan(plan){
+  if(!plan) return null;
+  return JSON.parse(JSON.stringify(plan));
+}
+
 function safeDate(value){
   if(!value) return null;
   const ts = Date.parse(value);
@@ -1298,6 +1421,33 @@ async function loadInvoicesDB(){
   return def;
 }
 async function saveInvoicesDB(db){ await writeKey('invoices', db); }
+
+async function loadBillingPlansDB(){
+  const raw = await readKey('billing_plans', null);
+  const base = raw && typeof raw === "object" ? raw : { plans: [] };
+  const plans = Array.isArray(base.plans) ? base.plans.slice() : [];
+  const normalized = [];
+  for(const plan of plans){
+    const result = normalizePlanRecord(plan);
+    if(result) normalized.push(result);
+  }
+  return { plans: normalized };
+}
+
+async function saveBillingPlansDB(db){
+  if(!db || typeof db !== "object"){
+    await writeKey('billing_plans', { plans: [] });
+    return;
+  }
+  const plans = Array.isArray(db.plans) ? db.plans : [];
+  const normalized = [];
+  for(const plan of plans){
+    const result = normalizePlanRecord(plan);
+    if(result) normalized.push(result);
+  }
+  db.plans = normalized;
+  await writeKey('billing_plans', { plans: normalized });
+}
 
 async function loadContactsDB(){
   const db = await readKey('contacts', null);
@@ -1394,6 +1544,261 @@ function renderInvoiceHtml(inv, company = {}, consumer = {}) {
     <tbody><tr><td>${inv.desc}</td><td>$${Number(inv.amount).toFixed(2)}</td><td>${inv.due || ''}</td></tr></tbody>
   </table>
   </body></html>`;
+}
+
+
+async function createInvoice({
+  consumerId,
+  desc = "",
+  amount = 0,
+  due = null,
+  paid = false,
+  company = {},
+  payLink = null,
+  paymentProvider = null,
+  stripeSessionId = null,
+  message = null,
+  planId = null,
+  consumer = null,
+  req,
+} = {}){
+  if(!consumerId){
+    throw Object.assign(new Error("consumerId required"), { code: "INVOICE_CONSUMER_REQUIRED" });
+  }
+  const db = await loadInvoicesDB();
+  const nowIso = new Date().toISOString();
+  const inv = {
+    id: nanoid(10),
+    consumerId,
+    desc: (desc || "").toString().trim(),
+    amount: roundCurrency(coerceAmount(amount)),
+    due: due || null,
+    paid: !!paid,
+    pdf: null,
+    payLink: null,
+    paymentProvider: null,
+    stripeSessionId: null,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    planId: planId || null,
+  };
+  const companySafe = company && typeof company === "object" ? company : {};
+  let resolvedConsumer = consumer;
+  if(!resolvedConsumer){
+    const mainDb = await loadDB();
+    resolvedConsumer = mainDb.consumers.find(c => c.id === consumerId);
+  }
+  if(!resolvedConsumer){
+    throw Object.assign(new Error("Consumer not found"), { code: "CONSUMER_NOT_FOUND" });
+  }
+
+  let pdfResult = null;
+  try {
+    const html = renderInvoiceHtml(inv, companySafe, resolvedConsumer);
+    pdfResult = await savePdf(html);
+    let ext = path.extname(pdfResult.path);
+    if (pdfResult.warning || ext !== ".pdf") {
+      console.error("Invoice PDF generation warning", pdfResult.warning);
+      ext = ".html";
+    }
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+
+    const uploadsDir = consumerUploadsDir(inv.consumerId);
+    const fid = nanoid(10);
+    const storedName = `${fid}${ext}`;
+    const dest = path.join(uploadsDir, storedName);
+    await fs.promises.copyFile(pdfResult.path, dest);
+    const stat = await fs.promises.stat(dest);
+    await addFileMeta(inv.consumerId, {
+      id: fid,
+      originalName: `invoice_${inv.id}${ext}`,
+      storedName,
+      type: "invoice",
+      size: stat.size,
+      mimetype: mime,
+      uploadedAt: new Date().toISOString(),
+    });
+    inv.pdf = storedName;
+  } catch (err) {
+    console.error("Failed to generate invoice PDF", err);
+  }
+
+  const stripeClient = await getStripeClient();
+  let payLinkValue = payLink || null;
+  let paymentProviderValue = paymentProvider || null;
+  let stripeSessionValue = stripeSessionId || null;
+  const amountCents = Math.round((Number(inv.amount) || 0) * 100);
+  if(!payLinkValue){
+    if(stripeClient && amountCents > 0){
+      const checkout = await createStripeCheckoutSession({ invoice: inv, consumer: resolvedConsumer, company: companySafe, req, stripeClient });
+      if(checkout?.sessionId){
+        paymentProviderValue = "stripe";
+        stripeSessionValue = checkout.sessionId;
+      }
+      if(checkout?.sessionId || checkout?.url){
+        payLinkValue = buildInvoicePayUrl(inv, req);
+      }
+    }
+  }
+  if(!payLinkValue){
+    const fallbackBase = (process.env.PORTAL_PAYMENT_BASE || resolvePortalBase(req) || "https://pay.example.com").replace(/\/$/, "");
+    payLinkValue = stripeClient ? buildInvoicePayUrl(inv, req) : `${fallbackBase}/${inv.id}`;
+  }
+  inv.payLink = payLinkValue;
+  inv.paymentProvider = paymentProviderValue;
+  inv.stripeSessionId = stripeSessionValue;
+
+  const bilingualMessage = message || `Payment due for ${inv.desc || "invoice"} (${formatUsd(inv.amount)}). Pay inside your client portal (Pay / Pagos tab) or at ${payLinkValue}. • Pago pendiente por ${inv.desc || "factura"} (${formatUsd(inv.amount)}). Paga en tu portal del cliente (Pestaña Pagos) o en ${payLinkValue}.`;
+  await addEvent(inv.consumerId, "message", { from: "system", text: bilingualMessage });
+
+  db.invoices.push(inv);
+  await saveInvoicesDB(db);
+  return { invoice: inv, warning: pdfResult?.warning || null };
+}
+
+function buildPlanFromPayload(payload = {}){
+  const nowIso = new Date().toISOString();
+  const frequency = normalizePlanFrequency(payload.frequency);
+  const plan = {
+    id: nanoid(10),
+    consumerId: payload.consumerId,
+    name: (payload.name || "Custom plan").toString().trim() || "Custom plan",
+    amount: roundCurrency(coerceAmount(payload.amount)),
+    frequency,
+    intervalDays: resolvePlanIntervalDays(frequency, payload.intervalDays),
+    reminderLeadDays: Math.max(0, Math.min(MAX_PLAN_REMINDER_LEAD_DAYS, Number.parseInt(payload.reminderLeadDays, 10) || 0)),
+    notes: (payload.notes || "").toString().trim(),
+    active: payload.active !== false,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    lastSentAt: null,
+    lastInvoiceId: null,
+    cyclesCompleted: 0,
+    reminderId: null,
+  };
+  const start = parsePlanDate(payload.startDate) || startOfDay(new Date());
+  plan.startDate = formatIsoDate(start);
+  const requestedNext = parsePlanDate(payload.nextBillDate) || start;
+  plan.nextBillDate = ensureNextBillDate(plan, requestedNext);
+  return plan;
+}
+
+function applyPlanUpdates(plan, payload = {}){
+  if(!plan) return plan;
+  if(payload.name !== undefined){
+    const trimmed = (payload.name || "").toString().trim();
+    if(trimmed) plan.name = trimmed; else if(payload.name === "") plan.name = "Custom plan";
+  }
+  if(payload.amount !== undefined){
+    plan.amount = roundCurrency(coerceAmount(payload.amount));
+  }
+  if(payload.frequency !== undefined){
+    plan.frequency = normalizePlanFrequency(payload.frequency);
+    plan.intervalDays = resolvePlanIntervalDays(plan.frequency, payload.intervalDays ?? plan.intervalDays);
+  } else if(payload.intervalDays !== undefined && plan.frequency === "custom"){
+    plan.intervalDays = resolvePlanIntervalDays("custom", payload.intervalDays);
+  } else if(plan.frequency !== "custom"){
+    plan.intervalDays = resolvePlanIntervalDays(plan.frequency, plan.intervalDays);
+  }
+  if(payload.reminderLeadDays !== undefined){
+    const lead = Number.parseInt(payload.reminderLeadDays, 10);
+    plan.reminderLeadDays = Math.max(0, Math.min(MAX_PLAN_REMINDER_LEAD_DAYS, Number.isFinite(lead) ? lead : 0));
+  }
+  if(payload.notes !== undefined){
+    plan.notes = (payload.notes || "").toString().trim();
+  }
+  if(payload.active !== undefined){
+    plan.active = !!payload.active;
+  }
+  if(payload.startDate !== undefined){
+    const start = parsePlanDate(payload.startDate);
+    if(start) plan.startDate = formatIsoDate(start);
+  }
+  let requestedNext = null;
+  if(payload.nextBillDate !== undefined){
+    const next = parsePlanDate(payload.nextBillDate);
+    if(next) requestedNext = next;
+  }
+  plan.nextBillDate = ensureNextBillDate(plan, requestedNext);
+  plan.updatedAt = new Date().toISOString();
+  return plan;
+}
+
+async function refreshPlanReminder(plan){
+  if(!plan) return plan;
+  if(plan.reminderId){
+    await removeReminder(plan.consumerId, plan.reminderId);
+    plan.reminderId = null;
+  }
+  if(!plan.active) return plan;
+  const nextDate = parsePlanDate(plan.nextBillDate);
+  if(!nextDate) return plan;
+  let reminderDate = subtractDays(nextDate, Math.max(0, Number(plan.reminderLeadDays) || 0));
+  const today = startOfDay(new Date());
+  if(!reminderDate) reminderDate = nextDate;
+  if(today && reminderDate < today){
+    reminderDate = today;
+  }
+  const reminderId = `plan_${plan.id}_${formatIsoDate(reminderDate)}`;
+  await addReminder(plan.consumerId, {
+    id: reminderId,
+    due: reminderDate.toISOString(),
+    payload: {
+      type: "billing_plan_reminder",
+      planId: plan.id,
+      amount: plan.amount,
+      name: plan.name,
+      nextBillDate: plan.nextBillDate,
+      frequency: plan.frequency,
+    },
+    notes: plan.notes || "",
+  });
+  plan.reminderId = reminderId;
+  return plan;
+}
+
+async function sendPlanInvoice({ plan, plansDb, req, company = {}, consumer = null } = {}){
+  if(!plan){
+    throw Object.assign(new Error("Plan not found"), { code: "PLAN_NOT_FOUND" });
+  }
+  if(!plan.active){
+    throw Object.assign(new Error("Plan is paused"), { code: "PLAN_INACTIVE" });
+  }
+  if(!plan.nextBillDate){
+    throw Object.assign(new Error("Plan has no upcoming bill date"), { code: "PLAN_NO_SCHEDULE" });
+  }
+  await removeReminder(plan.consumerId, plan.reminderId);
+  plan.reminderId = null;
+  const companySafe = company && typeof company === "object" ? company : {};
+  const dueIso = plan.nextBillDate;
+  const dueDate = parsePlanDate(dueIso) || startOfDay(new Date());
+  const { invoice, warning } = await createInvoice({
+    consumerId: plan.consumerId,
+    desc: `${plan.name} plan`,
+    amount: plan.amount,
+    due: dueIso,
+    company: companySafe,
+    planId: plan.id,
+    consumer,
+    req,
+  });
+  plan.lastInvoiceId = invoice?.id || null;
+  plan.lastSentAt = new Date().toISOString();
+  plan.cyclesCompleted = Number.isFinite(plan.cyclesCompleted) ? plan.cyclesCompleted + 1 : 1;
+  const nextDate = advancePlanDate(dueDate, plan) || advancePlanDate(startOfDay(new Date()), plan) || dueDate;
+  const nextIso = formatIsoDate(nextDate);
+  if(nextIso) plan.nextBillDate = nextIso;
+  plan.updatedAt = new Date().toISOString();
+  await refreshPlanReminder(plan);
+  await saveBillingPlansDB(plansDb);
+  await addEvent(plan.consumerId, "billing_plan_cycle_processed", {
+    planId: plan.id,
+    invoiceId: invoice?.id || null,
+    amount: plan.amount,
+    previousDue: dueIso,
+    nextDue: plan.nextBillDate,
+  });
+  return { plan, invoice, warning };
 }
 
 
@@ -2195,88 +2600,149 @@ app.get("/api/invoices/:consumerId", async (req,res)=>{
 });
 
 app.post("/api/invoices", async (req,res)=>{
-  const db = await loadInvoicesDB();
-  const nowIso = new Date().toISOString();
-  const inv = {
-    id: nanoid(10),
-    consumerId: req.body.consumerId,
-    desc: req.body.desc || "",
-    amount: Number(req.body.amount) || 0,
-    due: req.body.due || null,
-    paid: !!req.body.paid,
-    pdf: null,
-    payLink: null,
-    paymentProvider: null,
-    stripeSessionId: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
-  };
-
-  const mainDb = await loadDB();
-  const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
-  const company = req.body.company || {};
-  let result;
   try {
-    const html = renderInvoiceHtml(inv, company, consumer);
-    result = await savePdf(html);
-    let ext = path.extname(result.path);
-    if (result.warning || ext !== ".pdf") {
-      console.error("Invoice PDF generation failed", result.warning);
-      ext = ".html";
+    const consumerId = req.body?.consumerId;
+    if(!consumerId){
+      return res.status(400).json({ ok:false, error: "Missing consumerId" });
     }
-    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
-
-    const uploadsDir = consumerUploadsDir(inv.consumerId);
-    const fid = nanoid(10);
-    const storedName = `${fid}${ext}`;
-    const dest = path.join(uploadsDir, storedName);
-    await fs.promises.copyFile(result.path, dest);
-    const stat = await fs.promises.stat(dest);
-    await addFileMeta(inv.consumerId, {
-      id: fid,
-      originalName: `invoice_${inv.id}${ext}`,
-      storedName,
-      type: "invoice",
-      size: stat.size,
-      mimetype: mime,
-      uploadedAt: new Date().toISOString(),
+    const mainDb = await loadDB();
+    const consumer = mainDb.consumers.find(c => c.id === consumerId);
+    if(!consumer){
+      return res.status(404).json({ ok:false, error: "Consumer not found" });
+    }
+    const result = await createInvoice({
+      consumerId,
+      desc: req.body?.desc || "",
+      amount: req.body?.amount,
+      due: req.body?.due || null,
+      paid: req.body?.paid,
+      company: req.body?.company || {},
+      payLink: req.body?.payLink || req.body?.payUrl || null,
+      paymentProvider: req.body?.paymentProvider || null,
+      stripeSessionId: req.body?.stripeSessionId || null,
+      message: req.body?.message || null,
+      planId: req.body?.planId || null,
+      consumer,
+      req,
     });
-    inv.pdf = storedName;
+    res.json({ ok:true, invoice: result.invoice, warning: result.warning });
   } catch (err) {
-    console.error("Failed to generate invoice PDF", err);
-  }
-
-  const stripeClient = await getStripeClient();
-  let payLink = req.body.payLink || req.body.payUrl || null;
-  let paymentProvider = req.body.paymentProvider || null;
-  let stripeSessionId = null;
-  if(!payLink){
-    const amountCents = Math.round((Number(inv.amount) || 0) * 100);
-    if(stripeClient && amountCents > 0){
-      const checkout = await createStripeCheckoutSession({ invoice: inv, consumer, company, req, stripeClient });
-      if(checkout?.sessionId){
-        paymentProvider = "stripe";
-        stripeSessionId = checkout.sessionId;
-      }
-      payLink = buildInvoicePayUrl(inv, req);
+    console.error("Failed to create invoice", err);
+    if(err?.code === "CONSUMER_NOT_FOUND"){
+      return res.status(404).json({ ok:false, error: "Consumer not found" });
     }
+    res.status(500).json({ ok:false, error: "Failed to create invoice" });
   }
-  if(!payLink){
-    const fallbackBase = (process.env.PORTAL_PAYMENT_BASE || resolvePortalBase(req) || "https://pay.example.com").replace(/\/$/, "");
-    payLink = stripeClient ? buildInvoicePayUrl(inv, req) : `${fallbackBase}/${inv.id}`;
+});
+
+// =================== Billing Plans ===================
+app.get("/api/billing/plans/:consumerId", async (req,res)=>{
+  const plansDb = await loadBillingPlansDB();
+  const plans = plansDb.plans.filter(plan => plan.consumerId === req.params.consumerId);
+  res.json({ ok:true, plans: plans.map(clonePlan) });
+});
+
+app.post("/api/billing/plans", async (req,res)=>{
+  try {
+    const payload = req.body || {};
+    if(!payload.consumerId){
+      return res.status(400).json({ ok:false, error: "Missing consumerId" });
+    }
+    const mainDb = await loadDB();
+    const consumer = mainDb.consumers.find(c => c.id === payload.consumerId);
+    if(!consumer){
+      return res.status(404).json({ ok:false, error: "Consumer not found" });
+    }
+    const plansDb = await loadBillingPlansDB();
+    const plan = buildPlanFromPayload(payload);
+    plansDb.plans.push(plan);
+    await refreshPlanReminder(plan);
+    await saveBillingPlansDB(plansDb);
+    let savedPlan = plansDb.plans.find(p => p.id === plan.id) || plan;
+    await addEvent(plan.consumerId, "billing_plan_created", {
+      planId: plan.id,
+      name: plan.name,
+      amount: plan.amount,
+      nextBillDate: plan.nextBillDate,
+    });
+    let invoice = null;
+    let warning = null;
+    if(payload.sendNow){
+      try {
+        const sendResult = await sendPlanInvoice({
+          plan: savedPlan,
+          plansDb,
+          req,
+          company: payload.company || {},
+          consumer,
+        });
+        savedPlan = sendResult.plan;
+        invoice = sendResult.invoice;
+        warning = sendResult.warning || null;
+      } catch (err) {
+        console.error("Failed to send plan invoice", err);
+        return res.status(500).json({ ok:false, error: "Plan saved but invoice failed" });
+      }
+    }
+    res.json({ ok:true, plan: clonePlan(savedPlan), ...(invoice ? { invoice, warning } : {}) });
+  } catch (err) {
+    console.error("Failed to create billing plan", err);
+    res.status(500).json({ ok:false, error: "Failed to create billing plan" });
   }
-  inv.payLink = payLink;
-  inv.paymentProvider = paymentProvider;
-  inv.stripeSessionId = stripeSessionId;
-  await addEvent(inv.consumerId, "message", {
-    from: "system",
-    text: `Payment due for ${inv.desc} ($${inv.amount.toFixed(2)}). Pay inside your client portal (Pay / Pagos tab) or at ${payLink}`,
-  });
+});
 
+app.put("/api/billing/plans/:id", async (req,res)=>{
+  try {
+    const plansDb = await loadBillingPlansDB();
+    const plan = plansDb.plans.find(p => p.id === req.params.id);
+    if(!plan){
+      return res.status(404).json({ ok:false, error: "Plan not found" });
+    }
+    applyPlanUpdates(plan, req.body || {});
+    await refreshPlanReminder(plan);
+    await saveBillingPlansDB(plansDb);
+    await addEvent(plan.consumerId, "billing_plan_updated", {
+      planId: plan.id,
+      nextBillDate: plan.nextBillDate,
+      active: plan.active,
+    });
+    res.json({ ok:true, plan: clonePlan(plan) });
+  } catch (err) {
+    console.error("Failed to update billing plan", err);
+    res.status(500).json({ ok:false, error: "Failed to update billing plan" });
+  }
+});
 
-  db.invoices.push(inv);
-  await saveInvoicesDB(db);
-  res.json({ ok:true, invoice: inv, warning: result?.warning });
+app.post("/api/billing/plans/:id/send", async (req,res)=>{
+  try {
+    const plansDb = await loadBillingPlansDB();
+    const plan = plansDb.plans.find(p => p.id === req.params.id);
+    if(!plan){
+      return res.status(404).json({ ok:false, error: "Plan not found" });
+    }
+    const mainDb = await loadDB();
+    const consumer = mainDb.consumers.find(c => c.id === plan.consumerId);
+    if(!consumer){
+      return res.status(404).json({ ok:false, error: "Consumer not found" });
+    }
+    const sendResult = await sendPlanInvoice({
+      plan,
+      plansDb,
+      req,
+      company: req.body?.company || {},
+      consumer,
+    });
+    res.json({ ok:true, plan: clonePlan(sendResult.plan), invoice: sendResult.invoice, warning: sendResult.warning || null });
+  } catch (err) {
+    console.error("Failed to send billing plan invoice", err);
+    if(err?.code === "PLAN_INACTIVE"){
+      return res.status(400).json({ ok:false, error: "Plan is paused" });
+    }
+    if(err?.code === "PLAN_NO_SCHEDULE"){
+      return res.status(400).json({ ok:false, error: "Plan has no upcoming bill date" });
+    }
+    res.status(500).json({ ok:false, error: "Failed to send plan invoice" });
+  }
 });
 
 app.post("/api/invoices/:id/checkout", async (req, res) => {

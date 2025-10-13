@@ -68,6 +68,61 @@ const TRANSLATIONS = {
     badges: {
       tooltip: "You've started your journey."
     },
+    billing: {
+      plans: {
+        heading: 'Custom billing plans • Planes personalizados',
+        subheading: 'Package recurring services and automate reminders for every client. • Empaqueta servicios recurrentes y automatiza recordatorios para cada cliente.',
+        newButton: 'New plan • Nuevo plan',
+        empty: 'No plans yet. Create a plan to automate billing cadence. • Aún no hay planes. Crea uno para automatizar la facturación.',
+        summary: {
+          nextBill: 'Next bill • Próximo cobro'
+        },
+        form: {
+          titleNew: 'New plan • Nuevo plan',
+          titleEdit: 'Editing {name} • Editando {name}',
+          nameLabel: 'Plan name / Nombre del plan',
+          namePlaceholder: 'Premium credit concierge / Concierge de crédito premium',
+          amountLabel: 'Amount / Monto',
+          amountPlaceholder: '297.00',
+          startLabel: 'Start date / Fecha de inicio',
+          nextLabel: 'Next bill date / Próximo cobro',
+          frequencyLabel: 'Frequency / Frecuencia',
+          frequencyMonthly: 'Monthly • Mensual',
+          frequencyBiweekly: 'Biweekly • Cada 2 semanas',
+          frequencyWeekly: 'Weekly • Semanal',
+          frequencyCustom: 'Custom days • Días personalizados',
+          intervalLabel: 'Interval (days) / Intervalo (días)',
+          reminderLeadLabel: 'Reminder lead (days) / Aviso previo (días)',
+          notesLabel: 'Notes / Notas',
+          notesPlaceholder: 'Outline deliverables / Describe los entregables',
+          activeLabel: 'Plan active / Plan activo',
+          saveButton: 'Save plan • Guardar plan',
+          sendButton: 'Send next invoice • Enviar próxima factura',
+          validationName: 'Add a plan name before saving. • Agrega un nombre al plan antes de guardar.',
+          validationAmount: 'Enter a positive amount. • Ingresa un monto mayor a cero.'
+        },
+        list: {
+          activeBadge: 'Active • Activo',
+          inactiveBadge: 'Paused • Pausado',
+          sendCta: 'Send invoice • Enviar factura',
+          editCta: 'Edit • Editar',
+          nextBill: 'Next bill • Próximo cobro',
+          reminderSameDay: 'Reminder day-of • Recordatorio el mismo día',
+          reminderDays: 'Reminder {days} day before • Recordatorio {days} día antes',
+          reminderDaysPlural: 'Reminder {days} days before • Recordatorio {days} días antes',
+          lastSent: 'Last sent {date} • Último envío {date}',
+          cyclesCompleted: '{count} cycles completed • {count} ciclos completados',
+          unscheduled: 'Unscheduled • Sin programar'
+        },
+        toast: {
+          saveError: 'Unable to save plan. • No se pudo guardar el plan.',
+          sendError: 'Unable to send plan invoice. • No se pudo enviar la factura del plan.'
+        }
+      },
+      summary: {
+        nextBill: 'Next bill • Próximo cobro'
+      }
+    },
     marketing: {
       meta: {
         title: 'Marketing',

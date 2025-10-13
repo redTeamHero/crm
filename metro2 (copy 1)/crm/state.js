@@ -148,6 +148,17 @@ export async function addReminder(consumerId, reminder) {
   await saveState(st);
 }
 
+export async function removeReminder(consumerId, reminderId) {
+  if (!consumerId || !reminderId) return;
+  const st = await loadState();
+  const c = ensureConsumer(st, consumerId);
+  if (!Array.isArray(c.reminders) || !c.reminders.length) return;
+  const next = c.reminders.filter((reminder) => reminder?.id !== reminderId);
+  if (next.length === c.reminders.length) return;
+  c.reminders = next;
+  await saveState(st);
+}
+
 export async function setCreditScore(consumerId, score) {
   const st = await loadState();
   const c = ensureConsumer(st, consumerId);
