@@ -26,6 +26,13 @@
 - **Observability**: Centralized metrics (Prometheus/Grafana) and tracing (OpenTelemetry) for API latency, queue depth, integration retries.
 - **Resilience**: Active-active deployment across regions with automated failover, health checks, and rolling deploys.
 
+### Observability & Monitoring Guardrails
+- **Metrics pipeline**: Scrape CPU, memory, request throughput, error rates, queue depth, and Stripe/Twilio success ratios with Prometheus. Mirror business KPIs (Lead→Consult%, Consult→Purchase%, AOV) into Grafana for unified ops + revenue dashboards.
+- **Structured logging**: Emit JSON logs enriched with tenant ID, correlation IDs, request IDs, and redacted PII flags. Forward to CloudWatch or Datadog with retention tuned for Metro-2 dispute audits.
+- **Distributed tracing**: Instrument API, workers, and external calls using OpenTelemetry (OTLP exporter). Propagate trace context across service boundaries (CRM API ↔ marketing worker ↔ certified mail API) to isolate latency spikes and compliance exceptions fast.
+- **Dashboards & alerts**: Publish Grafana boards (English/Spanish labels) for SLA/SLO burn rates, dispute automation throughput, and premium tier add-on upsell performance. Configure alert rules for p95 latency, queue saturation, failed mail jobs, and anomaly detection on refund% or chargeback trends.
+- **Health checks**: Expose `/healthz` (liveness) and `/readyz` (readiness) endpoints plus worker heartbeat channels. Integrate with Kubernetes/Render probes and third-party uptime monitors to trigger automated failover before tenants feel friction.
+
 ## Scaffold / Files (Suggested Tree)
 ```
 /infra
