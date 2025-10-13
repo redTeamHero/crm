@@ -66,6 +66,263 @@ let activeChatCategoryId = CHAT_PROMPT_CATEGORIES[0]?.id || null;
 let shepherdCheckPromise = null;
 let tourLoadingMessageShown = false;
 
+const LOCATION_COLORS = ['#0ea5e9', '#6366f1', '#22c55e', '#f97316', '#a855f7', '#ec4899', '#14b8a6', '#facc15'];
+const STATE_NAME_BY_CODE = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut',
+  DE: 'Delaware', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa',
+  KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan',
+  MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire',
+  NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
+  OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee',
+  TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+  DC: 'District of Columbia', PR: 'Puerto Rico'
+};
+const STATE_CODE_BY_NAME = Object.entries(STATE_NAME_BY_CODE).reduce((acc, [code, name]) => {
+  acc[name.toUpperCase()] = code;
+  return acc;
+}, {});
+
+const locationChartState = {
+  chart: null,
+  mode: 'state',
+  total: 0,
+  data: { state: [], city: [] }
+};
+
+const clientLocationElements = {
+  initialized: false,
+  chart: null,
+  empty: null,
+  legend: null,
+  buttons: { state: null, city: null }
+};
+
+function toTitleCase(value){
+  if(!value) return '';
+  return String(value)
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (match, chr) => chr.toUpperCase());
+}
+
+function resolveStateInfo(raw){
+  if(raw === null || raw === undefined) return { code: null, name: null };
+  const trimmed = String(raw).trim();
+  if(!trimmed) return { code: null, name: null };
+  const upper = trimmed.toUpperCase();
+  if(STATE_NAME_BY_CODE[upper]){
+    return { code: upper, name: STATE_NAME_BY_CODE[upper] };
+  }
+  if(STATE_CODE_BY_NAME[upper]){
+    const code = STATE_CODE_BY_NAME[upper];
+    return { code, name: STATE_NAME_BY_CODE[code] };
+  }
+  return { code: null, name: toTitleCase(trimmed) };
+}
+
+function initClientLocationElements(){
+  if(clientLocationElements.initialized){
+    return;
+  }
+  clientLocationElements.chart = document.getElementById('clientLocationChart');
+  clientLocationElements.empty = document.getElementById('clientLocationEmpty');
+  clientLocationElements.legend = document.getElementById('clientLocationLegend');
+  clientLocationElements.buttons.state = document.getElementById('clientLocationModeState');
+  clientLocationElements.buttons.city = document.getElementById('clientLocationModeCity');
+  clientLocationElements.initialized = true;
+
+  Object.entries(clientLocationElements.buttons).forEach(([mode, btn]) => {
+    if(!btn) return;
+    btn.addEventListener('click', () => updateClientLocationMode(mode));
+  });
+}
+
+function setClientLocationButtonState(button, isActive){
+  if(!button) return;
+  const activeClasses = ['bg-emerald-500', 'text-white', 'shadow-sm', 'border', 'border-emerald-400'];
+  const inactiveClasses = ['bg-white', 'border', 'border-slate-200', 'text-slate-600'];
+  if(isActive){
+    button.classList.add(...activeClasses);
+    button.classList.remove(...inactiveClasses);
+  } else {
+    button.classList.remove(...activeClasses);
+    button.classList.add(...inactiveClasses);
+  }
+}
+
+function refreshClientLocationButtons(){
+  const { state, city } = clientLocationElements.buttons;
+  setClientLocationButtonState(state, locationChartState.mode === 'state');
+  setClientLocationButtonState(city, locationChartState.mode === 'city');
+}
+
+function buildLocationEntries(map, { limit = 6, otherLabel = 'Other Territories' } = {}){
+  const entries = Array.from(map.entries()).filter(([, count]) => Number.isFinite(count) && count > 0);
+  entries.sort((a, b) => b[1] - a[1]);
+  if(!entries.length){
+    return [];
+  }
+  const top = entries.slice(0, limit);
+  const remainder = entries.slice(limit);
+  const otherTotal = remainder.reduce((sum, [, count]) => sum + count, 0);
+  if(otherTotal > 0){
+    top.push([otherLabel, otherTotal]);
+  }
+  return top.map(([label, count]) => ({ label, count }));
+}
+
+function prepareClientLocationBreakdown(consumers){
+  initClientLocationElements();
+  const clients = Array.isArray(consumers) ? consumers : [];
+  const stateCounts = new Map();
+  const cityCounts = new Map();
+  let unknownStates = 0;
+
+  for(const consumer of clients){
+    const info = resolveStateInfo(consumer?.state);
+    if(info.name){
+      stateCounts.set(info.name, (stateCounts.get(info.name) || 0) + 1);
+    } else if(consumer?.state){
+      unknownStates += 1;
+    }
+
+    const cityRaw = typeof consumer?.city === 'string' ? consumer.city.trim() : '';
+    if(cityRaw){
+      const cityName = toTitleCase(cityRaw);
+      const suffix = info.code || info.name;
+      const label = suffix ? `${cityName}, ${suffix}` : cityName;
+      cityCounts.set(label, (cityCounts.get(label) || 0) + 1);
+    }
+  }
+
+  if(unknownStates > 0){
+    stateCounts.set('Unknown', (stateCounts.get('Unknown') || 0) + unknownStates);
+  }
+
+  locationChartState.total = clients.length;
+  locationChartState.data.state = buildLocationEntries(stateCounts, { limit: 6, otherLabel: 'Other States' });
+  locationChartState.data.city = buildLocationEntries(cityCounts, { limit: 6, otherLabel: 'Other Cities' });
+  updateClientLocationMode(locationChartState.mode, { force: true });
+}
+
+function updateClientLocationMode(mode, { force = false } = {}){
+  initClientLocationElements();
+  const normalizedMode = mode === 'city' ? 'city' : 'state';
+  if(!force && locationChartState.mode === normalizedMode){
+    renderClientLocationChart(locationChartState.data[normalizedMode]);
+    return;
+  }
+  locationChartState.mode = normalizedMode;
+  refreshClientLocationButtons();
+  renderClientLocationChart(locationChartState.data[normalizedMode]);
+}
+
+function renderClientLocationLegend(entries, colors){
+  const legendEl = clientLocationElements.legend;
+  if(!legendEl) return;
+  const total = locationChartState.total || 0;
+  if(!Array.isArray(entries) || !entries.length){
+    legendEl.innerHTML = `<div class="rounded-lg border border-dashed border-slate-200 bg-white/70 px-3 py-2 text-[11px] text-slate-500">Add client city/state data to see the ${locationChartState.mode === 'state' ? 'state mix' : 'top cities'}.</div>`;
+    return;
+  }
+
+  const items = entries.map((entry, idx) => {
+    const percent = total ? (entry.count / total * 100) : 0;
+    const color = colors[idx % colors.length];
+    return `<div class="flex items-center gap-2 rounded-lg border border-slate-100 bg-white/70 px-3 py-2">
+      <span class="inline-flex h-2.5 w-2.5 rounded-full" style="background:${color};"></span>
+      <span class="flex-1 font-medium text-slate-700">${escapeHtml(entry.label)}</span>
+      <span class="font-semibold text-slate-900">${percent.toFixed(1)}%</span>
+      <span class="text-[11px] text-slate-400">${entry.count}</span>
+    </div>`;
+  });
+  legendEl.innerHTML = items.join('');
+}
+
+function renderClientLocationChart(entries){
+  initClientLocationElements();
+  const chartEl = clientLocationElements.chart;
+  const emptyEl = clientLocationElements.empty;
+  if(!chartEl) return;
+
+  if(!Array.isArray(entries) || !entries.length){
+    if(locationChartState.chart){
+      locationChartState.chart.destroy();
+      locationChartState.chart = null;
+    }
+    if(emptyEl){
+      emptyEl.classList.remove('hidden');
+      emptyEl.classList.add('flex');
+    }
+    renderClientLocationLegend([], []);
+    return;
+  }
+
+  if(emptyEl){
+    emptyEl.classList.add('hidden');
+    emptyEl.classList.remove('flex');
+  }
+
+  const labels = entries.map(entry => entry.label);
+  const data = entries.map(entry => entry.count);
+  const colors = entries.map((_, idx) => LOCATION_COLORS[idx % LOCATION_COLORS.length]);
+
+  if(locationChartState.chart){
+    locationChartState.chart.destroy();
+    locationChartState.chart = null;
+  }
+
+  if(typeof window.Chart === 'undefined'){
+    console.warn('Chart.js is not available for the client location breakdown.');
+    renderClientLocationLegend(entries, colors);
+    return;
+  }
+
+  const ctx = chartEl.getContext('2d');
+  if(!ctx){
+    console.warn('Unable to access drawing context for the client location chart.');
+    renderClientLocationLegend(entries, colors);
+    return;
+  }
+
+  locationChartState.chart = new window.Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: colors,
+          borderColor: '#ffffff',
+          borderWidth: 1,
+          hoverOffset: 8
+        }
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      responsive: true,
+      cutout: '58%',
+      layout: { padding: 8 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(context){
+              const label = context.label || '';
+              const value = Number(context.raw) || 0;
+              const total = locationChartState.total || 0;
+              const percent = total ? (value / total * 100) : 0;
+              return `${label}: ${value} (${percent.toFixed(1)}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  renderClientLocationLegend(entries, colors);
+}
+
 function resolveCoachAnchor(){
   const toggleEl = document.getElementById('guideChatToggle');
   if(toggleEl && !toggleEl.classList.contains('hidden')){
@@ -557,7 +814,7 @@ function generateAssistantReply(message){
            <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
              <li>Run the tour to align new reps on the Apple-like experience.</li>
              <li>Log every objection in Notes and convert wins into Playbooks.</li>
-             <li>Review the map weekly to target referral partners in hot states.</li>
+             <li>Review the location breakdown weekly to target referral partners in hot markets.</li>
            </ul>
            <p class="mt-2 text-xs text-slate-500">KPI: Consult→Purchase% and LTV. A/B idea: Compare "Book your dispute strategy" vs. "Schedule compliance consult" on the hero CTA.</p>`
   };
@@ -1072,6 +1329,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (err) {
       console.error('Failed to load dashboard stats', err);
+      renderClientLocationChart([]);
     }
   })();
 
