@@ -8,6 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const gcalTokenEl = document.getElementById('gcalToken');
   const gcalIdEl = document.getElementById('gcalId');
   const stripeEl = document.getElementById('stripeKey');
+  const marketingBaseEl = document.getElementById('marketingApiBaseUrl');
+  const marketingKeyEl = document.getElementById('marketingApiKey');
+  const sendCertifiedMailEl = document.getElementById('sendCertifiedMailKey');
+  const gmailClientIdEl = document.getElementById('gmailClientId');
+  const gmailClientSecretEl = document.getElementById('gmailClientSecret');
+  const gmailRefreshTokenEl = document.getElementById('gmailRefreshToken');
   const envListEl = document.getElementById('envList');
   const addEnvBtn = document.getElementById('addEnvRow');
 
@@ -185,6 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gcalTokenEl) gcalTokenEl.value = data.settings?.googleCalendarToken || '';
       if (gcalIdEl) gcalIdEl.value = data.settings?.googleCalendarId || '';
       if (stripeEl) stripeEl.value = data.settings?.stripeApiKey || '';
+      if (marketingBaseEl) marketingBaseEl.value = data.settings?.marketingApiBaseUrl || '';
+      if (marketingKeyEl) marketingKeyEl.value = data.settings?.marketingApiKey || '';
+      if (sendCertifiedMailEl) sendCertifiedMailEl.value = data.settings?.sendCertifiedMailApiKey || '';
+      if (gmailClientIdEl) gmailClientIdEl.value = data.settings?.gmailClientId || '';
+      if (gmailClientSecretEl) gmailClientSecretEl.value = data.settings?.gmailClientSecret || '';
+      if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = data.settings?.gmailRefreshToken || '';
       renderEnvOverrides(data.settings?.envOverrides || {});
 
     } catch (e) {
@@ -217,6 +229,12 @@ document.addEventListener('DOMContentLoaded', () => {
         googleCalendarToken: gcalTokenEl.value.trim(),
         googleCalendarId: gcalIdEl.value.trim(),
         stripeApiKey: stripeEl.value.trim(),
+        marketingApiBaseUrl: marketingBaseEl?.value.trim() || '',
+        marketingApiKey: marketingKeyEl?.value.trim() || '',
+        sendCertifiedMailApiKey: sendCertifiedMailEl?.value.trim() || '',
+        gmailClientId: gmailClientIdEl?.value.trim() || '',
+        gmailClientSecret: gmailClientSecretEl?.value.trim() || '',
+        gmailRefreshToken: gmailRefreshTokenEl?.value.trim() || '',
         envOverrides: collectEnvOverrides(),
 
       };
@@ -238,6 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gcalTokenEl) gcalTokenEl.value = result.settings?.googleCalendarToken || '';
         if (gcalIdEl) gcalIdEl.value = result.settings?.googleCalendarId || '';
         if (stripeEl) stripeEl.value = result.settings?.stripeApiKey || '';
+        if (marketingBaseEl) marketingBaseEl.value = result.settings?.marketingApiBaseUrl || '';
+        if (marketingKeyEl) marketingKeyEl.value = result.settings?.marketingApiKey || '';
+        if (sendCertifiedMailEl) sendCertifiedMailEl.value = result.settings?.sendCertifiedMailApiKey || '';
+        if (gmailClientIdEl) gmailClientIdEl.value = result.settings?.gmailClientId || '';
+        if (gmailClientSecretEl) gmailClientSecretEl.value = result.settings?.gmailClientSecret || '';
+        if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = result.settings?.gmailRefreshToken || '';
         renderEnvOverrides(result.settings?.envOverrides || {});
         if (msgEl) {
           msgEl.textContent = 'Saved!';

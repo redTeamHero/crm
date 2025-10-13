@@ -29,6 +29,7 @@
 - Use kvdb/SQLite instead of ad-hoc localStorage so queue + templates survive restarts.
 - REST-first endpoints with Bearer auth (same token as rest of CRM) so workers/bots can reuse credentials.
 - Provider registry tracks env vars + docs to make onboarding Ops faster and enforce compliance guardrails.
+- Surfacing Marketing, SimpleCertifiedMail, and Gmail API credentials inside **Settings → API Integrations** lets ops rotate keys without touching the filesystem.
 
 ## Scaffold / Files (tree)
 ```

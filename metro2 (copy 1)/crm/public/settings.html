@@ -69,6 +69,27 @@
     <input id="gcalId" class="w-full border rounded px-2 py-1 text-sm" placeholder="Google Calendar ID" />
     <input id="stripeKey" class="w-full border rounded px-2 py-1 text-sm" placeholder="Stripe API Key" />
 
+    <div class="space-y-2 pt-2 border-t border-white/10">
+      <div class="font-medium">Marketing API</div>
+      <p class="text-xs text-gray-600">Expose these values to workers processing <code class="font-mono text-[10px]">/api/marketing</code> queues.</p>
+      <input id="marketingApiBaseUrl" class="w-full border rounded px-2 py-1 text-sm" placeholder="Marketing API Base URL" />
+      <input id="marketingApiKey" class="w-full border rounded px-2 py-1 text-sm" placeholder="Marketing API Key / Token" />
+    </div>
+
+    <div class="space-y-2 pt-2 border-t border-white/10">
+      <div class="font-medium">Certified Mail</div>
+      <p class="text-xs text-gray-600">SimpleCertifiedMail key for dispute letters mailed via USPS.</p>
+      <input id="sendCertifiedMailKey" class="w-full border rounded px-2 py-1 text-sm" placeholder="SimpleCertifiedMail API Key" />
+    </div>
+
+    <div class="space-y-2 pt-2 border-t border-white/10">
+      <div class="font-medium">Gmail API</div>
+      <p class="text-xs text-gray-600">Use OAuth credentials to pipe support replies and transactional sends through Gmail.</p>
+      <input id="gmailClientId" class="w-full border rounded px-2 py-1 text-sm" placeholder="Gmail Client ID" />
+      <input id="gmailClientSecret" class="w-full border rounded px-2 py-1 text-sm" placeholder="Gmail Client Secret" />
+      <input id="gmailRefreshToken" class="w-full border rounded px-2 py-1 text-sm" placeholder="Gmail Refresh Token" />
+    </div>
+
     <div class="border-t border-white/10 pt-3 space-y-2">
       <div class="font-medium">Environment Overrides</div>
       <p class="text-xs text-gray-600">Store API keys & tokens for integrations. Values are saved in the local CRM database and synced with the active server.</p>

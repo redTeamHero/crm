@@ -26,6 +26,10 @@ Members created through `/api/register` now receive default permissions for cons
 - `STRIPE_SECRET_KEY` (optional; enables Stripe Checkout sessions for invoice payments.)
 - `STRIPE_SUCCESS_URL` (optional; override the success redirect. Supports `{CHECKOUT_SESSION_ID}`, `{INVOICE_ID}`, `{CONSUMER_ID}` tokens.)
 - `STRIPE_CANCEL_URL` (optional; override the cancel redirect with the same tokens.)
+- `MARKETING_API_BASE_URL` (optional; workers can reuse this base URL when mirroring `/api/marketing` queues.)
+- `MARKETING_API_KEY` (optional; shared secret for third-party marketing workers.)
+- `SCM_API_KEY` (optional; SimpleCertifiedMail key for USPS certified mail automation.)
+- `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (optional; Gmail API OAuth credentials for transactional sends.)
 
 Copy `.env.sample` to `.env` and adjust values as needed.
 
