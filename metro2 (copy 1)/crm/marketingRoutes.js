@@ -1,6 +1,7 @@
 import express from "express";
 import {
   enqueueTestSend,
+  updateTestQueueItem,
   listTestQueue,
   listTemplates,
   createTemplate,
@@ -209,6 +210,16 @@ router.post("/tests", async (req, res) => {
     res.status(201).json({ ok: true, item });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "Failed to queue test send" });
+  }
+});
+
+router.patch("/tests/:id", async (req, res) => {
+  try {
+    const item = await updateTestQueueItem(req.params.id, req.body || {});
+    res.json({ ok: true, item });
+  } catch (error) {
+    const status = /not found/i.test(error.message) ? 404 : 400;
+    res.status(status).json({ ok: false, error: error.message || "Failed to update test" });
   }
 });
 

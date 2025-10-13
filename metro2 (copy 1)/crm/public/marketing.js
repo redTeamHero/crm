@@ -814,14 +814,41 @@ function renderTestQueue(items) {
     li.className = "rounded-lg border border-slate-200 bg-white/80 p-3 shadow-sm";
 
     const header = document.createElement("div");
-    header.className = "flex items-center justify-between text-xs font-semibold text-slate-600";
+    header.className = "flex items-start justify-between gap-2 text-xs font-semibold text-slate-600";
     const channel = document.createElement("span");
     channel.textContent = `${item.channel?.toUpperCase() || "SMS"} • ${item.recipient}`;
+    const meta = document.createElement("div");
+    meta.className = "flex flex-col items-end gap-1 text-right";
     const timestamp = document.createElement("span");
     timestamp.className = "text-[10px] uppercase text-slate-400";
     timestamp.textContent = new Date(item.createdAt).toLocaleString();
+    meta.appendChild(timestamp);
+
+    if (item.status) {
+      const status = String(item.status).toLowerCase();
+      const fallbackMap = {
+        queued: "Queued • En cola",
+        sending: "Sending • Enviando",
+        sent: "Sent • Enviado",
+        failed: "Failed • Falló",
+      };
+      const statusLabel = t(`marketing.testQueue.status.${status}`, fallbackMap[status] || fallbackMap.queued);
+      const statusClasses = {
+        queued: "bg-amber-100 text-amber-700",
+        sending: "bg-sky-100 text-sky-700",
+        sent: "bg-emerald-100 text-emerald-700",
+        failed: "bg-rose-100 text-rose-700",
+      };
+      const badge = document.createElement("span");
+      badge.className = `inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+        statusClasses[status] || statusClasses.queued
+      }`;
+      badge.textContent = statusLabel;
+      meta.appendChild(badge);
+    }
+
     header.appendChild(channel);
-    header.appendChild(timestamp);
+    header.appendChild(meta);
 
     const body = document.createElement("p");
     body.className = "mt-1 text-xs text-slate-500";
@@ -830,7 +857,7 @@ function renderTestQueue(items) {
       campaign || item.notes || t("marketing.testQueue.previewFallback", "Preview ready for dispatch.");
 
     const footer = document.createElement("div");
-    footer.className = "mt-2 text-[10px] uppercase text-slate-400 flex flex-wrap gap-2";
+    footer.className = "mt-2 flex flex-wrap gap-2 text-[10px] uppercase text-slate-400";
     const segment = item.metadata?.segment;
     if (segment) {
       const tag = document.createElement("span");
@@ -848,11 +875,28 @@ function renderTestQueue(items) {
       tag.textContent = t("marketing.testQueue.byLabel", "By {name}").replace("{name}", createdBy);
       footer.appendChild(tag);
     }
+    if (item.deliveredAt) {
+      const delivered = document.createElement("span");
+      delivered.textContent = t(
+        "marketing.testQueue.deliveredLabel",
+        "Delivered {value} • Entregado {value}"
+      ).replace("{value}", new Date(item.deliveredAt).toLocaleString());
+      footer.appendChild(delivered);
+    }
 
     li.appendChild(header);
     li.appendChild(body);
     if (footer.childElementCount) {
       li.appendChild(footer);
+    }
+    if (item.error) {
+      const error = document.createElement("p");
+      error.className = "mt-2 text-[11px] text-rose-600";
+      error.textContent = t("marketing.testQueue.errorLabel", "Error: {error} • Error: {error}").replace(
+        "{error}",
+        item.error
+      );
+      li.appendChild(error);
     }
     testQueueList.appendChild(li);
   }

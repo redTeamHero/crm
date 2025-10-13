@@ -106,6 +106,16 @@ const TRANSLATIONS = {
           importDefaultTitle: 'Imported Template',
           importReminder: 'Upload HTML and the builder will preload it here.'
         }
+      },
+      testQueue: {
+        status: {
+          queued: 'Queued • En cola',
+          sending: 'Sending • Enviando',
+          sent: 'Sent • Enviado',
+          failed: 'Failed • Falló'
+        },
+        deliveredLabel: 'Delivered {value} • Entregado {value}',
+        errorLabel: 'Error: {error} • Error: {error}'
       }
     },
     tiers: {
