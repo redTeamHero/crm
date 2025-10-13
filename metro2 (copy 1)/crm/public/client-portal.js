@@ -433,17 +433,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const negativeItemSearch = document.getElementById('negativeItemSearch');
   const negativeItemSort = document.getElementById('negativeItemSort');
   const NEGATIVE_BUREAU_LABELS = {
-    account_number: 'Account # / Cuenta',
-    payment_status: 'Payment status / Estado de pago',
-    account_status: 'Account status / Estado de la cuenta',
-    past_due: 'Past due / Saldo vencido',
+    account_number: 'Account #',
+    payment_status: 'Payment status',
+    account_status: 'Account status',
+    past_due: 'Past due',
     balance: 'Balance',
-    credit_limit: 'Credit limit / Límite de crédito',
-    high_credit: 'High credit / Crédito máximo',
-    date_opened: 'Opened / Apertura',
-    last_reported: 'Last reported / Último reporte',
-    date_last_payment: 'Last payment / Último pago',
-    date_first_delinquency: 'First delinquency / Primera morosidad',
+    credit_limit: 'Credit limit',
+    high_credit: 'High credit',
+    date_opened: 'Opened',
+    last_reported: 'Last reported',
+    date_last_payment: 'Last payment',
+    date_first_delinquency: 'First delinquency',
   };
 
   function maskAccountDisplay(value){
@@ -474,9 +474,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   function formatDue(due){
-    if(!due) return 'Due on receipt / Pago al recibir';
+    if(!due) return 'Due on receipt';
     const date = new Date(due);
-    if(Number.isNaN(date.getTime())) return 'Due on receipt / Pago al recibir';
+    if(Number.isNaN(date.getTime())) return 'Due on receipt';
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
   function isDueSoon(inv){
@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const originalText = btn.dataset.label || btn.textContent;
         if(provider === 'stripe'){
           btn.disabled = true;
-          btn.textContent = 'Redirecting… / Redirigiendo…';
+          btn.textContent = 'Redirecting…';
           fetch(`/api/invoices/${encodeURIComponent(invoiceId)}/checkout`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -577,13 +577,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const overdue = isOverdue(inv);
       const dueSoon = isDueSoon(inv);
       const badges = [
-        inv.paid ? '<span class="badge badge-paid">Paid / Pagado</span>' : '<span class="badge badge-unpaid">Open / Abierto</span>',
-        overdue ? '<span class="badge badge-unpaid">Overdue / Vencido</span>' : (dueSoon ? '<span class="badge badge-unpaid">Due soon / Próximo</span>' : '')
+        inv.paid ? '<span class="badge badge-paid">Paid</span>' : '<span class="badge badge-unpaid">Open</span>',
+        overdue ? '<span class="badge badge-unpaid">Overdue</span>' : (dueSoon ? '<span class="badge badge-unpaid">Due soon</span>' : '')
       ].filter(Boolean).join(' ');
       const canCheckout = !inv.paid && (inv.payLink || (inv.paymentProvider || '').toLowerCase() === 'stripe');
       const providerAttr = inv.paymentProvider ? ` data-provider="${esc(inv.paymentProvider)}"` : '';
       const linkAttr = inv.payLink ? ` data-pay-link="${esc(inv.payLink)}"` : '';
-      const buttonLabel = 'Pay now / Pagar ahora';
+      const buttonLabel = 'Pay now';
       const payButton = inv.paid ? '' : (canCheckout
         ? `<button type="button" class="btn text-sm pay-invoice" data-id="${esc(inv.id)}" data-label="${esc(buttonLabel)}"${linkAttr}${providerAttr}>${buttonLabel}</button>`
         : '<span class="text-xs muted">Contact support to add a payment link.</span>');

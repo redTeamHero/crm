@@ -149,7 +149,7 @@ const workflows = [
     kpis: ['Reactivation rate', 'Consult bookings from drip', 'Offer acceptance rate'],
     automations: [
       'Segment leads by inactivity in CRM',
-      'Send bilingual drip via Twilio/SendGrid',
+      'Send compliance drip via Twilio/SendGrid',
       'Webhook to create NEPQ task when a reply lands'
     ],
     upsell: 'Bundle a “Credit Readiness Audit” for reactivated leads at a special price.',
