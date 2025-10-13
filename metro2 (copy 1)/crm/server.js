@@ -38,6 +38,14 @@ import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "./negativeItems.js";
 import { mapAuditedViolations } from "./pullTradelineData.js";
 import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID } from "./tenantLimits.js";
+import {
+  initWorkflowEngine,
+  validateWorkflowOperation,
+  getWorkflowConfig,
+  updateWorkflowConfig,
+  summarizeWorkflowConfig,
+  canonicalBureauName,
+} from "./workflowEngine.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 
@@ -79,7 +87,38 @@ function sanitizeSettingString(value = "") {
   return String(value).trim();
 }
 
+initWorkflowEngine().catch((err) => {
+  logWarn("WORKFLOW_INIT_FAILED", err?.message || "Workflow engine init failed");
+});
+
 const MAX_TRADLINE_PAGE_SIZE = 500;
+
+const ALL_BUREAUS = Object.freeze(["TransUnion", "Experian", "Equifax"]);
+
+function collectRequestedBureaus({ selections = [], personalInfo = [], inquiries = [] }) {
+  const set = new Set();
+  for (const sel of selections) {
+    if (!sel) continue;
+    if (Array.isArray(sel.bureaus)) {
+      for (const bureau of sel.bureaus) {
+        const canonical = canonicalBureauName(bureau);
+        if (canonical) set.add(canonical);
+      }
+    }
+  }
+  if (Array.isArray(personalInfo) && personalInfo.length) {
+    for (const bureau of ALL_BUREAUS) {
+      set.add(bureau);
+    }
+  }
+  if (Array.isArray(inquiries)) {
+    for (const inq of inquiries) {
+      const canonical = canonicalBureauName(inq?.bureau);
+      if (canonical) set.add(canonical);
+    }
+  }
+  return Array.from(set);
+}
 
 const INTEGRATION_SETTING_TO_ENV = {
   hibpApiKey: "HIBP_API_KEY",
@@ -1025,6 +1064,53 @@ async function loadJobForUser(jobId, userId){
   return { meta, job };
 }
 const DEFAULT_DB = { consumers: [{ id: "RoVO6y0EKM", name: "Test Consumer", reports: [] }] };
+function reportHasTradelines(report) {
+  if (!report || !report.data) return false;
+  const tradelines = report.data.tradelines;
+  return Array.isArray(tradelines) && tradelines.length > 0;
+}
+
+let cachedSampleReport = null;
+
+async function loadSampleReportTemplate() {
+  if (cachedSampleReport) return cachedSampleReport;
+  try {
+    const samplePath = path.join(__dirname, "data", "report.json");
+    const raw = await fs.promises.readFile(samplePath, "utf-8");
+    const parsed = JSON.parse(raw);
+    cachedSampleReport = {
+      raw,
+      parsed,
+      size: Buffer.byteLength(raw, "utf-8"),
+    };
+  } catch (err) {
+    logWarn("SEED_REPORT_MISSING", "Failed to load sample report", { message: err?.message });
+    cachedSampleReport = { raw: "{}", parsed: {}, size: 2 };
+  }
+  return cachedSampleReport;
+}
+
+async function buildSeedReport(existing) {
+  const template = await loadSampleReportTemplate();
+  const parsedClone = JSON.parse(JSON.stringify(template.parsed || {}));
+  const summary = {
+    tradelines: Array.isArray(parsedClone.tradelines) ? parsedClone.tradelines.length : 0,
+    negative_items: Array.isArray(parsedClone.negative_items) ? parsedClone.negative_items.length : 0,
+    personalInfoMismatches: parsedClone.personalInfoMismatches || {},
+  };
+  if (!summary.negative_items && summary.negative_items !== 0) {
+    delete summary.negative_items;
+  }
+  return {
+    id: existing?.id || template.parsed?.id || nanoid(10),
+    uploadedAt: existing?.uploadedAt || new Date().toISOString(),
+    filename: existing?.filename || "sample-report.json",
+    size: existing?.size || template.size,
+    summary,
+    data: parsedClone,
+  };
+}
+
 async function loadDB(){
   let db = await readKey('consumers', null);
   let changed = false;
@@ -1037,31 +1123,30 @@ async function loadDB(){
     db.consumers.push({ id: nanoid(10), name: "Sample Consumer", reports: [] });
     changed = true;
   }
+  let seededSample = false;
   for(const c of db.consumers){
     c.reports = Array.isArray(c.reports) ? c.reports : [];
+    if (!seededSample) {
+      const firstReport = c.reports[0];
+      if (!reportHasTradelines(firstReport)) {
+        const seeded = await buildSeedReport(firstReport);
+        if (firstReport) {
+          c.reports[0] = { ...firstReport, ...seeded };
+        } else {
+          c.reports.push(seeded);
+        }
+        seededSample = reportHasTradelines(c.reports[0]);
+        changed = true;
+      } else {
+        seededSample = true;
+      }
+    }
   }
   const hasReports = db.consumers.some(c => c.reports.length > 0);
-  if(!hasReports){
-    try{
-      const samplePath = path.join(__dirname, "data", "report.json");
-      const raw = await fs.promises.readFile(samplePath, "utf-8");
-      const parsed = JSON.parse(raw);
-      const sampleReport = {
-        id: parsed.id || nanoid(10),
-        uploadedAt: new Date().toISOString(),
-        filename: "sample-report.json",
-        size: JSON.stringify(parsed).length,
-        summary: {
-          tradelines: Array.isArray(parsed.tradelines) ? parsed.tradelines.length : 0,
-          personalInfoMismatches: {},
-        },
-        data: parsed,
-      };
-      db.consumers[0].reports.push(sampleReport);
-      changed = true;
-    }catch(err){
-      logWarn("SEED_REPORT_MISSING", "Failed to seed sample report", { message: err?.message });
-    }
+  if(!hasReports && db.consumers.length){
+    const seeded = await buildSeedReport();
+    db.consumers[0].reports.push(seeded);
+    changed = true;
   }
   if(changed){
     await writeKey('consumers', db);
@@ -2615,6 +2700,40 @@ app.post("/api/consumers/:consumerId/events", async (req,res)=>{
   res.json({ ok:true });
 });
 
+app.get("/api/workflows/config", authenticate, requirePermission("consumers"), async (_req, res) => {
+  try {
+    const config = await getWorkflowConfig();
+    const summary = summarizeWorkflowConfig(config);
+    res.json({ ok: true, config, summary });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message || "Failed to load workflow config" });
+  }
+});
+
+app.put("/api/workflows/config", authenticate, requirePermission("consumers"), async (req, res) => {
+  try {
+    const input = req.body?.config ?? req.body ?? {};
+    const config = await updateWorkflowConfig(input);
+    const summary = summarizeWorkflowConfig(config);
+    res.json({ ok: true, config, summary });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: err?.message || "Failed to update workflow config" });
+  }
+});
+
+app.post("/api/workflows/validate", authenticate, requirePermission("consumers"), async (req, res) => {
+  try {
+    const { operation, context } = req.body || {};
+    if (!operation) {
+      return res.status(400).json({ ok: false, error: "operation required" });
+    }
+    const result = await validateWorkflowOperation(operation, context || {});
+    res.json({ ok: true, result });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message || "Workflow validation failed" });
+  }
+});
+
 // =================== Templates / Sequences / Contracts ===================
 function defaultTemplates(){
   return [
@@ -3432,6 +3551,33 @@ app.post("/api/generate", authenticate, requirePermission("letters", { allowGues
       }
     }
 
+    const requestedBureaus = collectRequestedBureaus({ selections, personalInfo, inquiries });
+    const workflowForceEnforce =
+      req.body?.workflow?.forceEnforce === undefined
+        ? undefined
+        : !!req.body.workflow.forceEnforce;
+    const validation = await validateWorkflowOperation("letters.generate", {
+      consumerId: consumer.id,
+      requestType,
+      bureaus: requestedBureaus,
+      now: new Date().toISOString(),
+      userId: req.user?.id || null,
+      forceEnforce: workflowForceEnforce,
+    });
+    if (!validation.ok) {
+      return res.status(409).json({
+        ok: false,
+        error: "Workflow rules blocked this dispute batch.",
+        validation,
+      });
+    }
+    if (validation.results?.some((r) => !r.ok && r.level === "warn")) {
+      logWarn("WORKFLOW_RULE_WARNING", "Workflow validation returned warnings", {
+        consumerId: consumer.id,
+        rules: validation.results.filter((r) => !r.ok).map((r) => r.ruleId),
+      });
+    }
+
     const lettersDb = await loadLettersDB();
     const playbooks = await loadPlaybooks();
     const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType, templates: lettersDb.templates || [], playbooks });
@@ -3485,7 +3631,8 @@ app.post("/api/generate", authenticate, requirePermission("letters", { allowGues
       jobId, requestType: jobRequestType, count: letters.length,
       tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length,
       inquiries: Array.isArray(inquiries) ? inquiries.length : 0,
-      collectors: Array.isArray(collectors) ? collectors.length : 0
+      collectors: Array.isArray(collectors) ? collectors.length : 0,
+      bureaus: requestedBureaus
 
     });
 
@@ -3511,7 +3658,7 @@ app.post("/api/generate", authenticate, requirePermission("letters", { allowGues
       }
     }
 
-    res.json({ ok:true, redirect: `/letters?job=${jobId}` });
+    res.json({ ok:true, redirect: `/letters?job=${jobId}`, validation });
   }catch(e){
     console.error(e);
     res.status(500).json({ ok:false, error:String(e) });
@@ -4058,7 +4205,9 @@ app.get("/api/consumers/:id/state/files/:stored", (req,res)=>{
 });
 
 const PORT = process.env.PORT || 3000;
-if (process.env.NODE_ENV !== "test") {
+const shouldStartServer =
+  process.env.NODE_ENV !== "test" || process.env.START_SERVER_IN_TEST === "true";
+if (shouldStartServer) {
   app.listen(PORT, () => {
     console.log(`CRM ready    http://localhost:${PORT}`);
     console.log(`DB file      ${DB_FILE}`);

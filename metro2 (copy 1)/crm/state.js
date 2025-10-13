@@ -39,6 +39,39 @@ async function loadState() {
 async function saveState(st) {
   await writeKey("consumer_state", st);
 }
+
+const stateEventListeners = new Set();
+
+function registerStateEventListener(listener) {
+  if (typeof listener !== "function") {
+    return () => {};
+  }
+  stateEventListeners.add(listener);
+  return () => {
+    stateEventListeners.delete(listener);
+  };
+}
+
+async function emitStateEvent(consumerId, event) {
+  if (!stateEventListeners.size) return;
+  const payload = { consumerId, event };
+  const tasks = [];
+  for (const listener of stateEventListeners) {
+    try {
+      const result = listener(payload);
+      if (result && typeof result.then === "function") {
+        tasks.push(result.catch((err) => {
+          console.warn("State event listener failed", err?.message || err);
+        }));
+      }
+    } catch (err) {
+      console.warn("State event listener threw", err?.message || err);
+    }
+  }
+  if (tasks.length) {
+    await Promise.allSettled(tasks);
+  }
+}
 function ensureConsumer(st, consumerId) {
   st.consumers[consumerId] ??= { events: [], files: [], reminders: [], tracker: {} };
   // normalize older records missing reminders
@@ -95,6 +128,7 @@ export async function addEvent(consumerId, type, payload = {}) {
   };
   c.events.unshift(ev);
   await saveState(st);
+  await emitStateEvent(consumerId, ev);
   if (payload?.calendar) {
     createCalendarEvent(payload.calendar).catch(() => {});
   }
@@ -211,6 +245,8 @@ export async function listAllConsumerStates({ includeEvents = true } = {}) {
     overdueCount: entry.reminders.filter((r) => r.status === "overdue").length,
   }));
 }
+
+export { registerStateEventListener };
 
 // Paths for storing/serving files for a consumer
 export function consumerUploadsDir(consumerId) {
