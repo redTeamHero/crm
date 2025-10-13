@@ -33,7 +33,7 @@ const PORTAL_MODULE_CONFIG = Object.freeze({
   debtCalc: { sections: ['#debtCalculatorCard'] },
   messages: { nav: '#navMessages', sections: ['#messageSection'] },
   education: { nav: '#navEducation', sections: ['#educationSection'] },
-  documents: { nav: '#navDocuments', sections: ['#documentSection'] },
+  documents: { nav: '#navDocuments', sections: ['#documentsCard', '#documentSection'] },
   mail: { nav: '#navMail', sections: ['#mailSection'] },
   payments: { nav: '#navPayments', sections: ['#paymentSection'] },
   uploads: { nav: '#navUploads', sections: ['#uploadSection'] },
