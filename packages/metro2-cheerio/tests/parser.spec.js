@@ -43,6 +43,106 @@ test('adapters produce identical output and flag past-due inconsistency', () => 
   }
 });
 
+test('parseReport extracts structured personal info, scores, accounts, inquiries, and contacts', () => {
+  const html = `
+    <div>
+      <div class="sub_header">Personal Information</div>
+      <table>
+        <tr><td>Name</td><td>Jane Doe</td></tr>
+        <tr><td>Also Known As</td><td><ul><li>J. Doe</li><li>Janet Doe</li></ul></td></tr>
+        <tr><td>Credit Report Date</td><td>01/15/2024</td></tr>
+        <tr><td>Current Address(es)</td><td>123 Main St<br/>Unit 5</td></tr>
+        <tr><td>Employers</td><td>Acme Corp</td></tr>
+      </table>
+      <div class="sub_header">Credit Score</div>
+      <table class="rpt_content_table rpt_content_header rpt_table4column">
+        <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
+        <tr>
+          <td class="label">Credit Score</td>
+          <td class="info">710</td>
+          <td class="info">720</td>
+          <td class="info">730</td>
+        </tr>
+      </table>
+      <div class="sub_header">Account History</div>
+      <table class="rpt_content_table rpt_content_header rpt_table4column">
+        <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
+        <tr><td class="label">Creditor</td><td class="info">Acme Card</td><td class="info">Acme Card</td><td class="info">Acme Card</td></tr>
+        <tr><td class="label">Account #</td><td class="info">1111</td><td class="info">2222</td><td class="info">3333</td></tr>
+        <tr><td class="label">Account Type</td><td class="info">Revolving</td><td class="info">Revolving</td><td class="info">Revolving</td></tr>
+        <tr><td class="label">Account Type - Detail</td><td class="info">Credit Card</td><td class="info">Credit Card</td><td class="info">Credit Card</td></tr>
+        <tr><td class="label">Bureau Code</td><td class="info">R1</td><td class="info">R1</td><td class="info">R1</td></tr>
+        <tr><td class="label">Monthly Payment</td><td class="info">$75</td><td class="info">$75</td><td class="info">$75</td></tr>
+        <tr><td class="label">Balance</td><td class="info">$500</td><td class="info">$400</td><td class="info">$300</td></tr>
+        <tr><td class="label">No. of Months (terms)</td><td class="info">36</td><td class="info">36</td><td class="info">36</td></tr>
+        <tr><td class="label">High Credit</td><td class="info">$1,000</td><td class="info">$1,000</td><td class="info">$1,000</td></tr>
+        <tr><td class="label">Credit Limit</td><td class="info">$1,200</td><td class="info">$1,200</td><td class="info">$1,200</td></tr>
+        <tr><td class="label">Past Due</td><td class="info">$0</td><td class="info">$0</td><td class="info">$0</td></tr>
+        <tr><td class="label">Account Status</td><td class="info">Open</td><td class="info">Open</td><td class="info">Open</td></tr>
+        <tr><td class="label">Payment Status</td><td class="info">Pays As Agreed</td><td class="info">Pays As Agreed</td><td class="info">Pays As Agreed</td></tr>
+        <tr><td class="label">Date Opened</td><td class="info">01/01/2020</td><td class="info">01/01/2020</td><td class="info">01/01/2020</td></tr>
+        <tr><td class="label">Last Reported</td><td class="info">01/01/2024</td><td class="info">01/01/2024</td><td class="info">01/01/2024</td></tr>
+        <tr><td class="label">Date Last Active</td><td class="info">12/15/2023</td><td class="info">12/15/2023</td><td class="info">12/15/2023</td></tr>
+        <tr><td class="label">Comments</td><td class="info">On-time payer</td><td class="info">On-time payer</td><td class="info">On-time payer</td></tr>
+        <tr><td class="label">Date of Last Payment</td><td class="info">12/01/2023</td><td class="info">12/01/2023</td><td class="info">12/01/2023</td></tr>
+        <tr><td class="label">Two-Year Payment History</td><td class="info">OK OK</td><td class="info">OK OK</td><td class="info">OK OK</td></tr>
+      </table>
+      <div class="sub_header">Inquiries</div>
+      <table>
+        <tr><th>Creditor Name</th><th>Type of Business</th><th>Date of Inquiry</th><th>Credit Bureau</th></tr>
+        <tr><td class="info">Capital One</td><td class="info">Bank</td><td class="info">01/05/2024</td><td class="info">TransUnion</td></tr>
+      </table>
+      <div class="sub_header">Creditor Contacts</div>
+      <table>
+        <tr><th>Creditor</th><th>Address</th><th>Phone</th></tr>
+        <tr><td>Acme Bank</td><td>123 Finance Way, NY</td><td>800-555-1212</td></tr>
+      </table>
+    </div>
+  `;
+
+  const result = parseCheerio(html);
+
+  assert.deepStrictEqual(result.personal_information, {
+    name: 'Jane Doe',
+    also_known_as: ['J. Doe', 'Janet Doe'],
+    credit_report_date: '01/15/2024',
+    current_addresses: ['123 Main St', 'Unit 5'],
+    employers: ['Acme Corp'],
+  });
+
+  assert.deepStrictEqual(result.credit_scores, {
+    TransUnion: '710',
+    Experian: '720',
+    Equifax: '730',
+  });
+
+  const tuAccount = result.account_history.find(entry => entry.bureau === 'TransUnion');
+  assert.ok(tuAccount);
+  assert.equal(tuAccount.name_of_account, 'Acme Card');
+  assert.equal(tuAccount.account_number, '1111');
+  assert.equal(tuAccount.account_type_detail, 'Credit Card');
+  assert.equal(tuAccount.payment_status, 'Pays As Agreed');
+  assert.equal(tuAccount.last_reported, '01/01/2024');
+  assert.equal(tuAccount.two_year_payment_history, 'OK OK');
+
+  assert.deepStrictEqual(result.inquiry_details, [
+    {
+      creditor_name: 'Capital One',
+      type_of_business: 'Bank',
+      date_of_inquiry: '01/05/2024',
+      credit_bureau: 'TransUnion',
+    }
+  ]);
+
+  assert.deepStrictEqual(result.creditor_contacts, [
+    {
+      creditor_name: 'Acme Bank',
+      address: '123 Finance Way, NY',
+      phone: '800-555-1212',
+    }
+  ]);
+});
+
 test('parseReport derives creditor from surrounding header and skips duplicate tables', () => {
   const html = `
     <div>
