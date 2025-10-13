@@ -337,6 +337,115 @@ try {
   console.warn("Stripe not installed");
 }
 
+let stripeClientCache = { key: null, client: null };
+
+async function getStripeClient(){
+  if(!StripeLib) return null;
+  let apiKey = (process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || process.env.STRIPE_PRIVATE_KEY || "").trim();
+  if(!apiKey){
+    try {
+      const settings = await loadSettings();
+      apiKey = (settings?.stripeApiKey || "").trim();
+    } catch (err) {
+      logError("STRIPE_SETTINGS_LOAD_FAILED", "Unable to read settings for Stripe", err);
+    }
+  }
+  if(!apiKey) return null;
+  if(stripeClientCache.client && stripeClientCache.key === apiKey){
+    return stripeClientCache.client;
+  }
+  try {
+    const client = new StripeLib(apiKey, { apiVersion: "2023-10-16" });
+    stripeClientCache = { key: apiKey, client };
+    return client;
+  } catch (err) {
+    logError("STRIPE_CLIENT_INIT_FAILED", "Failed to initialise Stripe client", err);
+    stripeClientCache = { key: null, client: null };
+    return null;
+  }
+}
+
+function resolvePortalBase(req){
+  const configured = (process.env.CLIENT_PORTAL_BASE_URL || process.env.PORTAL_BASE_URL || process.env.PORTAL_PAYMENT_BASE || process.env.PUBLIC_BASE_URL || "").trim();
+  if(configured) return configured.replace(/\/$/, "");
+  try {
+    const origin = req?.get?.("origin");
+    if(origin) return origin.replace(/\/$/, "");
+  } catch {}
+  try {
+    const host = req?.get?.("host");
+    if(host){
+      const protocol = req?.protocol || "https";
+      return `${protocol}://${host}`.replace(/\/$/, "");
+    }
+  } catch {}
+  return "https://pay.example.com";
+}
+
+function formatStripeUrl(template, invoice){
+  if(!template) return template;
+  return template
+    .replace(/\{CHECKOUT_SESSION_ID\}/g, "{CHECKOUT_SESSION_ID}")
+    .replace(/\{INVOICE_ID\}/g, encodeURIComponent(invoice?.id || ""))
+    .replace(/\{CONSUMER_ID\}/g, encodeURIComponent(invoice?.consumerId || ""));
+}
+
+function resolveStripeRedirectUrls(invoice, req){
+  const successTemplate = (process.env.STRIPE_SUCCESS_URL || "").trim();
+  const cancelTemplate = (process.env.STRIPE_CANCEL_URL || "").trim();
+  const base = resolvePortalBase(req);
+  const successFallback = `${base}/portal/${encodeURIComponent(invoice.consumerId)}?paid=1&invoice=${encodeURIComponent(invoice.id)}&session_id={CHECKOUT_SESSION_ID}`;
+  const cancelFallback = `${base}/portal/${encodeURIComponent(invoice.consumerId)}?invoice=${encodeURIComponent(invoice.id)}&canceled=1`;
+  return {
+    success: formatStripeUrl(successTemplate || successFallback, invoice) || successFallback,
+    cancel: formatStripeUrl(cancelTemplate || cancelFallback, invoice) || cancelFallback,
+  };
+}
+
+async function createStripeCheckoutSession({ invoice, consumer = {}, company = {}, req, stripeClient = null } = {}){
+  if(!invoice) return null;
+  const stripe = stripeClient || await getStripeClient();
+  if(!stripe) return null;
+  const amount = Number(invoice.amount) || 0;
+  const amountCents = Math.round(amount * 100);
+  if(!Number.isFinite(amountCents) || amountCents <= 0) return null;
+  const { success, cancel } = resolveStripeRedirectUrls(invoice, req);
+  const descriptor = (invoice.desc || `Invoice ${invoice.id || ""}`).toString().slice(0, 120) || "Invoice";
+  const metadata = {
+    invoiceId: invoice.id,
+    consumerId: invoice.consumerId,
+  };
+  if(company?.name){
+    metadata.companyName = company.name.toString().slice(0, 120);
+  }
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      success_url: success,
+      cancel_url: cancel,
+      customer_email: consumer?.email || undefined,
+      metadata,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: amountCents,
+            product_data: {
+              name: descriptor,
+            },
+          },
+        },
+      ],
+    });
+    return { url: session.url, sessionId: session.id };
+  } catch (err) {
+    logError("STRIPE_CHECKOUT_CREATE_FAILED", "Failed to create Stripe checkout session", err, { invoiceId: invoice.id });
+    return null;
+  }
+}
+
 const app = express();
 app.use(express.json({ limit: "10mb" }));
 let mailer = null;
@@ -1492,13 +1601,15 @@ app.post("/api/invoices", async (req,res)=>{
     paid: !!req.body.paid,
     pdf: null,
     payLink: null,
+    paymentProvider: null,
+    stripeSessionId: null,
   };
 
+  const mainDb = await loadDB();
+  const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
+  const company = req.body.company || {};
   let result;
   try {
-    const company = req.body.company || {};
-    const mainDb = await loadDB();
-    const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
     const html = renderInvoiceHtml(inv, company, consumer);
     result = await savePdf(html);
     let ext = path.extname(result.path);
@@ -1528,9 +1639,25 @@ app.post("/api/invoices", async (req,res)=>{
     console.error("Failed to generate invoice PDF", err);
   }
 
-  const fallbackPayBase = (process.env.PORTAL_PAYMENT_BASE || "https://pay.example.com").replace(/\/$/, "");
-  const payLink = req.body.payLink || req.body.payUrl || `${fallbackPayBase}/${inv.id}`;
+  const stripeClient = await getStripeClient();
+  let payLink = req.body.payLink || req.body.payUrl || null;
+  let paymentProvider = req.body.paymentProvider || null;
+  let stripeSessionId = null;
+  if(!payLink){
+    const checkout = await createStripeCheckoutSession({ invoice: inv, consumer, company, req, stripeClient });
+    if(checkout?.url){
+      payLink = checkout.url;
+      paymentProvider = "stripe";
+      stripeSessionId = checkout.sessionId;
+    }
+  }
+  if(!payLink){
+    const fallbackPayBase = (process.env.PORTAL_PAYMENT_BASE || "https://pay.example.com").replace(/\/$/, "");
+    payLink = `${fallbackPayBase}/${inv.id}`;
+  }
   inv.payLink = payLink;
+  inv.paymentProvider = paymentProvider;
+  inv.stripeSessionId = stripeSessionId;
   await addEvent(inv.consumerId, "message", {
     from: "system",
     text: `Payment due for ${inv.desc} ($${inv.amount.toFixed(2)}). Pay inside your client portal (Pay / Pagos tab) or at ${payLink}`,
@@ -1540,6 +1667,38 @@ app.post("/api/invoices", async (req,res)=>{
   db.invoices.push(inv);
   await saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv, warning: result?.warning });
+});
+
+app.post("/api/invoices/:id/checkout", async (req, res) => {
+  const stripeClient = await getStripeClient();
+  if(!stripeClient){
+    return res.status(400).json({ ok:false, error: "Stripe is not configured" });
+  }
+  const db = await loadInvoicesDB();
+  const inv = db.invoices.find(i => i.id === req.params.id);
+  if(!inv) return res.status(404).json({ ok:false, error: "Not found" });
+  if(req.body?.consumerId && req.body.consumerId !== inv.consumerId){
+    return res.status(403).json({ ok:false, error: "Invoice mismatch" });
+  }
+  if(inv.paid){
+    return res.status(400).json({ ok:false, error: "Invoice already marked paid" });
+  }
+  const amountCents = Math.round((Number(inv.amount) || 0) * 100);
+  if(!Number.isFinite(amountCents) || amountCents <= 0){
+    return res.status(400).json({ ok:false, error: "Invoice has no outstanding balance" });
+  }
+  const mainDb = await loadDB();
+  const consumer = mainDb.consumers.find(c => c.id === inv.consumerId) || {};
+  const company = req.body?.company || {};
+  const checkout = await createStripeCheckoutSession({ invoice: inv, consumer, company, req, stripeClient });
+  if(!checkout?.url){
+    return res.status(502).json({ ok:false, error: "Unable to start checkout" });
+  }
+  inv.payLink = checkout.url;
+  inv.paymentProvider = "stripe";
+  inv.stripeSessionId = checkout.sessionId;
+  await saveInvoicesDB(db);
+  res.json({ ok:true, url: checkout.url, sessionId: checkout.sessionId });
 });
 
 app.put("/api/invoices/:id", async (req,res)=>{
@@ -1554,6 +1713,12 @@ app.put("/api/invoices/:id", async (req,res)=>{
     const base = (process.env.PORTAL_PAYMENT_BASE || "https://pay.example.com").replace(/\/$/, "");
     const updatedLink = req.body.payLink || req.body.payUrl || `${base}/${inv.id}`;
     inv.payLink = updatedLink;
+  }
+  if(req.body.paymentProvider !== undefined){
+    inv.paymentProvider = req.body.paymentProvider ? String(req.body.paymentProvider) : null;
+  }
+  if(req.body.stripeSessionId !== undefined){
+    inv.stripeSessionId = req.body.stripeSessionId ? String(req.body.stripeSessionId) : null;
   }
   await saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });

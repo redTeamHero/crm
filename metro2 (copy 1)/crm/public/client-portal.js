@@ -468,16 +468,68 @@ document.addEventListener('DOMContentLoaded', () => {
     if(Number.isNaN(date.getTime())) return false;
     return date.getTime() < Date.now();
   }
+  function isStripeCheckoutLink(link){
+    if(!link) return false;
+    try {
+      const url = new URL(link, window.location.origin);
+      return /stripe\.com$/i.test(url.hostname) && url.pathname.includes('/checkout');
+    } catch {
+      return false;
+    }
+  }
+
+  function navigateTo(link){
+    if(!link) return;
+    try {
+      window.location.assign(link);
+    } catch {
+      window.location.href = link;
+    }
+  }
+
   function attachPayHandlers(){
     if(!paymentList) return;
     paymentList.querySelectorAll('.pay-invoice').forEach(btn => {
       btn.addEventListener('click', () => {
         const link = btn.getAttribute('data-pay-link');
+        const provider = (btn.getAttribute('data-provider') || '').toLowerCase();
+        const invoiceId = btn.getAttribute('data-id');
+        const originalText = btn.dataset.label || btn.textContent;
+        const wantsStripe = provider === 'stripe' || isStripeCheckoutLink(link);
+        if(wantsStripe){
+          btn.disabled = true;
+          btn.textContent = 'Redirecting… / Redirigiendo…';
+          fetch(`/api/invoices/${encodeURIComponent(invoiceId)}/checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ consumerId }),
+          })
+            .then(async resp => {
+              const data = await resp.json().catch(() => ({}));
+              if(!resp.ok || !data?.url){
+                throw new Error(data?.error || 'Checkout failed');
+              }
+              navigateTo(data.url);
+            })
+            .catch(err => {
+              console.error('Stripe checkout failed', err);
+              if(link){
+                navigateTo(link);
+                return;
+              }
+              alert('Unable to start Stripe checkout. Please contact support.');
+            })
+            .finally(() => {
+              btn.disabled = false;
+              btn.textContent = originalText;
+            });
+          return;
+        }
         if(!link){
           alert('Payment link unavailable. Please contact support.');
           return;
         }
-        window.open(link, '_blank', 'noopener');
+        navigateTo(link);
       });
     });
   }
@@ -505,8 +557,14 @@ document.addEventListener('DOMContentLoaded', () => {
         inv.paid ? '<span class="badge badge-paid">Paid / Pagado</span>' : '<span class="badge badge-unpaid">Open / Abierto</span>',
         overdue ? '<span class="badge badge-unpaid">Overdue / Vencido</span>' : (dueSoon ? '<span class="badge badge-unpaid">Due soon / Próximo</span>' : '')
       ].filter(Boolean).join(' ');
-      const payButton = inv.paid ? '' : (inv.payLink
-        ? `<button type="button" class="btn text-sm pay-invoice" data-pay-link="${escape(inv.payLink)}" data-id="${escape(inv.id)}">Pay now / Pagar ahora</button>`
+      const normalizedProvider = (inv.paymentProvider || '').toString().toLowerCase();
+      const effectiveProvider = normalizedProvider || (isStripeCheckoutLink(inv.payLink) ? 'stripe' : '');
+      const canCheckout = !inv.paid && (inv.payLink || effectiveProvider === 'stripe');
+      const providerAttr = effectiveProvider ? ` data-provider="${esc(effectiveProvider)}"` : '';
+      const linkAttr = inv.payLink ? ` data-pay-link="${esc(inv.payLink)}"` : '';
+      const buttonLabel = 'Pay now / Pagar ahora';
+      const payButton = inv.paid ? '' : (canCheckout
+        ? `<button type="button" class="btn text-sm pay-invoice" data-id="${esc(inv.id)}" data-label="${esc(buttonLabel)}"${linkAttr}${providerAttr}>${buttonLabel}</button>`
         : '<span class="text-xs muted">Contact support to add a payment link.</span>');
       const pdfUrl = inv.pdf ? `/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(inv.pdf)}` : '';
       const pdfButton = inv.pdf ? `<a class="btn text-xs" target="_blank" rel="noopener" href="${pdfUrl}">Invoice PDF</a>` : '';
