@@ -103,3 +103,38 @@ npm test
 The test suite includes assertions that a non-admin token receives `403 Forbidden` when accessing admin-only routes like `/api/users` and `/api/team-members`.
 
 
+## Workflow engine
+
+Keep disputes compliant without hard-coded logic. The workflow engine persists its configuration in SQLite and enforces rules whenever you generate letters or record dispute lifecycle events.
+
+- **Cadence guardrail** — default `letters.generate` rules block new disputes for the same bureau within 35 days.
+- **Validation freshness** — warns advisors if the latest `validation_completed` event is older than seven days.
+- **Automatic follow-up** — when a `dispute_resolved` event lands, the engine schedules a bilingual reminder and logs a notification so you can upsell progress reviews without promising deletions or timelines.
+
+Manage the configuration through the new API endpoints (requires a bearer token with `consumers` permission):
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"ducky","password":"duck"}' | jq -r .token)
+
+# Review the current workflow rules
+curl -s http://localhost:3000/api/workflows/config \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# Loosen the cadence rule to 30 days and apply immediately
+curl -X PUT http://localhost:3000/api/workflows/config \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"operations":{"letters.generate":{"rules":[{"id":"letters-min-interval","type":"minInterval","intervalDays":30}]}}}'
+
+# Dry-run a custom context to verify a workflow will pass before generating letters
+curl -X POST http://localhost:3000/api/workflows/validate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"operation":"letters.generate","context":{"consumerId":"CONSUMER123","bureaus":["TransUnion"]}}'
+```
+
+Settings updates return both the stored configuration and a summarized snapshot so front-end dashboards can highlight active rules and automation triggers.
+
+

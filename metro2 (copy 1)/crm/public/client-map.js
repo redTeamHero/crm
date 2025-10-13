@@ -74,12 +74,13 @@ async function fetchClientLocations(forceRefresh = false){
 
 function ensureOverlay(el){
   if(!el) return null;
-  let overlay = el.querySelector('.client-map-overlay');
+  const parent = el.parentElement;
+  let overlay = el.querySelector('.client-map-overlay') || parent?.querySelector('.client-map-overlay');
   if(!overlay){
     overlay = document.createElement('div');
-    overlay.className = 'client-map-overlay pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-slate-500 bg-white/70';
+    overlay.className = 'client-map-overlay pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-white/80 text-center text-[11px] text-slate-500';
     overlay.style.display = 'none';
-    el.appendChild(overlay);
+    (parent || el).appendChild(overlay);
   }
   return overlay;
 }

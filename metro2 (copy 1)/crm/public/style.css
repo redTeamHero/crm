@@ -230,6 +230,9 @@ body::after {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow: visible;
+  position: relative;
+  z-index: 30;
 }
 
 .nav-shell.glass {
@@ -1301,16 +1304,47 @@ body.voice-active #voiceNotes{display:block;}
 
 #host-nav,
 #team-nav {
-  position: sticky;
-  left: 0;
-  right: 0;
+  position: static;
 }
 
-#host-nav { top: 0; z-index: 60; }
-#team-nav { top: 0; z-index: 50; }
-#host-nav + #team-nav { top: 68px; }
-
 body { padding-top: 0; }
+
+.back-to-top {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+  color: #fff;
+  font-size: 1.5rem;
+  box-shadow: 0 18px 38px rgba(79, 70, 229, 0.28);
+  border: none;
+  cursor: pointer;
+  z-index: 80;
+  transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.back-to-top:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 44px rgba(79, 70, 229, 0.32);
+}
+
+.back-to-top:active {
+  transform: translateY(0);
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.24);
+}
+
+.back-to-top.show {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 
 /* Violation severity styling */
@@ -1456,6 +1490,7 @@ header .group > div.absolute {
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.32);
   box-shadow: 0 18px 32px rgba(15, 23, 42, 0.14);
+  z-index: 40;
 }
 
 .nav-dropdown-menu .btn {

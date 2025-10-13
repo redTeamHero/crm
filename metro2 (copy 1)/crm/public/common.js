@@ -276,6 +276,12 @@ export function applyLanguage(lang = currentLanguage) {
     const settingsToggle = document.getElementById('navSettingsToggle');
     if (settingsToggle && settingsLabel) settingsToggle.setAttribute('aria-label', settingsLabel);
 
+    const clientsToggleLabel = document.querySelector('#navClientsToggle span');
+    const clientsLabel = getTranslation('nav.clients', target);
+    if (clientsToggleLabel && clientsLabel) clientsToggleLabel.textContent = clientsLabel;
+    const clientsToggle = document.getElementById('navClientsToggle');
+    if (clientsToggle && clientsLabel) clientsToggle.setAttribute('aria-label', clientsLabel);
+
     const helpButton = document.getElementById('btnHelp');
     if (helpButton) {
       const helpLabel = getTranslation('buttons.help', target);
@@ -336,19 +342,56 @@ export function getCurrentLanguage() {
 function initResponsiveNav() {
   const nav = document.getElementById('primaryNav');
   const toggle = document.getElementById('navToggle');
-  const settings = document.getElementById('navSettings');
-  const settingsToggle = document.getElementById('navSettingsToggle');
 
   if (!nav || !toggle) return;
+
+  const dropdowns = Array.from(document.querySelectorAll('.nav-dropdown'))
+    .map((dropdown) => {
+      const control = dropdown.querySelector('button');
+      if (!control) return null;
+      control.setAttribute('aria-expanded', 'false');
+      return { dropdown, control };
+    })
+    .filter(Boolean);
+
+  const closeDropdowns = (except) => {
+    dropdowns.forEach((entry) => {
+      if (!entry) return;
+      if (except && entry === except) return;
+      entry.dropdown.classList.remove('open');
+      entry.control.setAttribute('aria-expanded', 'false');
+    });
+  };
+
+  dropdowns.forEach((entry) => {
+    const menu = entry.dropdown.querySelector('.nav-dropdown-menu');
+    entry.control.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const willOpen = !entry.dropdown.classList.contains('open');
+      if (willOpen) {
+        closeDropdowns(entry);
+        entry.dropdown.classList.add('open');
+      } else {
+        entry.dropdown.classList.remove('open');
+      }
+      entry.control.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+    menu?.addEventListener('click', () => closeDropdowns());
+  });
+
+  document.addEventListener('click', (event) => {
+    dropdowns.forEach((entry) => {
+      if (!entry) return;
+      if (!entry.dropdown.contains(event.target)) {
+        entry.dropdown.classList.remove('open');
+        entry.control.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
 
   const syncToggleState = () => {
     const expanded = nav.classList.contains('hidden') ? 'false' : 'true';
     toggle.setAttribute('aria-expanded', expanded);
-  };
-
-  const closeSettings = () => {
-    if (settings) settings.classList.remove('open');
-    settingsToggle?.setAttribute('aria-expanded', 'false');
   };
 
   const updateLayout = () => {
@@ -384,21 +427,8 @@ function initResponsiveNav() {
   toggle.addEventListener('click', () => {
     const nowHidden = nav.classList.toggle('hidden');
     toggle.setAttribute('aria-expanded', nowHidden ? 'false' : 'true');
-    if (nowHidden) closeSettings();
+    if (nowHidden) closeDropdowns();
     syncToggleState();
-  });
-
-  settingsToggle?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const open = settings?.classList.toggle('open');
-    settingsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!settings) return;
-    if (!settings.contains(e.target)) {
-      closeSettings();
-    }
   });
 
   window.addEventListener('resize', updateLayout);
@@ -444,7 +474,66 @@ function attachInviteHandlers(){
   });
 }
 
+function injectClientsDropdown(){
+  const navLinks = document.getElementById('primaryNavLinks');
+  if (!navLinks) return;
+  if (document.getElementById('navClients')) return;
+
+  const clientsLink = navLinks.querySelector('a[href="/clients"]');
+  const leadsLink = navLinks.querySelector('a[href="/leads"]');
+  if (!clientsLink || !leadsLink) return;
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'nav-dropdown';
+  dropdown.id = 'navClients';
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.id = 'navClientsToggle';
+  toggle.className = 'btn nav-btn flex items-center justify-between md:justify-center gap-2';
+  toggle.setAttribute('aria-expanded', 'false');
+  toggle.setAttribute('aria-haspopup', 'true');
+
+  const label = document.createElement('span');
+  label.textContent = clientsLink.textContent?.trim() || 'Clients';
+  toggle.appendChild(label);
+
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('class', 'h-4 w-4');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('stroke', 'currentColor');
+  icon.setAttribute('stroke-width', '2');
+  icon.setAttribute('stroke-linecap', 'round');
+  icon.setAttribute('stroke-linejoin', 'round');
+  const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  polyline.setAttribute('points', '6 9 12 15 18 9');
+  icon.appendChild(polyline);
+  toggle.appendChild(icon);
+
+  const menu = document.createElement('div');
+  menu.id = 'navClientsMenu';
+  menu.className = 'nav-dropdown-menu glass card p-2';
+
+  dropdown.appendChild(toggle);
+  dropdown.appendChild(menu);
+
+  navLinks.insertBefore(dropdown, clientsLink);
+
+  clientsLink.className = 'btn text-sm';
+  leadsLink.className = 'btn text-sm';
+
+  menu.appendChild(clientsLink);
+  menu.appendChild(leadsLink);
+
+  menu.addEventListener('click', () => {
+    dropdown.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  injectClientsDropdown();
   initResponsiveNav();
   trackEvent('page_view', { path: location.pathname });
   initAbTest();
@@ -514,50 +603,21 @@ restrictRoutes(window.userRole);
 const navContainer = document.getElementById('primaryNavLinks');
 if (navContainer) {
   const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
-  const settingsDropdown = navContainer.querySelector('#navSettings');
-  const marketingDropdown = navContainer.querySelector('#navMarketing');
-  if (marketingDropdown) {
-    marketingDropdown.remove();
-  }
-
-  const ensureGroupPlacement = (group) => {
-    const insertionTarget = scheduleLink || settingsDropdown || navContainer.querySelector('a[href="/billing"]');
-    if (insertionTarget) {
-      navContainer.insertBefore(group, insertionTarget);
+  const insertNavLink = (link) => {
+    if (scheduleLink?.parentElement === navContainer) {
+      navContainer.insertBefore(link, scheduleLink);
     } else {
-      navContainer.appendChild(group);
+      navContainer.appendChild(link);
     }
   };
-
-  const ensureMarketingGroup = () => {
-    let group = navContainer.querySelector('#navMarketingChannels');
-    if (!group) {
-      group = document.createElement('div');
-      group.id = 'navMarketingChannels';
-      group.className = 'flex flex-col md:flex-row gap-2 w-full md:w-auto nav-marketing-group';
-      group.setAttribute('role', 'group');
-      ensureGroupPlacement(group);
-    } else if (!group.parentElement || group.parentElement !== navContainer) {
-      ensureGroupPlacement(group);
-    }
-    const label = getTranslation('nav.marketing') || 'Marketing';
-    group.setAttribute('aria-label', label);
-    group.dataset.group = 'marketing';
-    return group;
-  };
-
-  const marketingGroup = ensureMarketingGroup();
-
   const ensureMarketingLink = (href, translationKey) => {
-    if (marketingGroup.querySelector(`a[href="${href}"]`)) return;
+    if (navContainer.querySelector(`a[href="${href}"]`)) return;
     const link = document.createElement('a');
     link.href = href;
     link.className = 'btn nav-btn';
-    link.dataset.i18n = translationKey;
     link.textContent = getTranslation(translationKey) || getTranslation('nav.marketing');
-    marketingGroup.appendChild(link);
+    insertNavLink(link);
   };
-
   ensureMarketingLink('/marketing/sms', 'nav.marketingSms');
   ensureMarketingLink('/marketing/email', 'nav.marketingEmail');
   const btnLogout = document.createElement('button');
@@ -1159,6 +1219,48 @@ function closeNotes(){
   mic.addEventListener('click', openNotes);
   closeBtn.addEventListener('click', ()=>{ closeNotes(); });
   startRec();
+}
+
+function initBackToTop(){
+  if (typeof document === 'undefined') return;
+  if (document.querySelector('.back-to-top')) return;
+  const nav = document.getElementById('host-nav') || document.getElementById('team-nav');
+  if (!nav) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'back-to-top';
+  btn.setAttribute('aria-label', 'Back to top • Volver arriba');
+  btn.title = 'Back to top • Volver arriba';
+  btn.textContent = '⬆️';
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  document.body.appendChild(btn);
+
+  if (typeof IntersectionObserver === 'undefined') {
+    btn.classList.add('show');
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (!entry) return;
+    if (entry.isIntersecting) {
+      btn.classList.remove('show');
+    } else {
+      btn.classList.add('show');
+    }
+  });
+
+  observer.observe(nav);
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBackToTop, { once: true });
+  } else {
+    initBackToTop();
+  }
 }
 
 if (typeof window !== 'undefined') {
