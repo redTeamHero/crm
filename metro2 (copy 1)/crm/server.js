@@ -37,6 +37,7 @@ import {
 import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "./negativeItems.js";
 import { mapAuditedViolations } from "./pullTradelineData.js";
+import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID } from "./tenantLimits.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 
@@ -158,7 +159,14 @@ function getJwtSecret(){
 const TOKEN_EXPIRES_IN = "1h";
 
 function generateToken(user){
-  return jwt.sign({ id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions || [] }, getJwtSecret(), { expiresIn: TOKEN_EXPIRES_IN });
+  return jwt.sign({
+    id: user.id,
+    username: user.username,
+    name: user.name,
+    role: user.role,
+    tenantId: user.tenantId || DEFAULT_TENANT_ID,
+    permissions: user.permissions || [],
+  }, getJwtSecret(), { expiresIn: TOKEN_EXPIRES_IN });
 }
 
 function buildPortalSnapshot(items = []){
@@ -545,6 +553,24 @@ app.use((req, res, next) => {
   next();
 });
 
+const apiRequestLimiter = enforceTenantQuota("requests:minute", {
+  limit: Number.isFinite(Number(process.env.TENANT_REQUESTS_PER_MINUTE)) ? Number(process.env.TENANT_REQUESTS_PER_MINUTE) : undefined,
+  windowMs: Number.isFinite(Number(process.env.TENANT_REQUEST_WINDOW_MS)) ? Number(process.env.TENANT_REQUEST_WINDOW_MS) : undefined,
+});
+
+app.use("/api", async (req, res, next) => {
+  try {
+    if (!req.__authResolved) {
+      const user = await getAuthUser(req);
+      req.user = user || null;
+      req.__authResolved = true;
+    }
+    return apiRequestLimiter(req, res, next);
+  } catch (err) {
+    return next(err);
+  }
+});
+
 process.on("unhandledRejection", err => {
   logError("UNHANDLED_REJECTION", "Unhandled promise rejection", err);
 });
@@ -582,14 +608,24 @@ async function getAuthUser(req){
 }
 
 async function authenticate(req, res, next){
+  if (req.__authResolved) {
+    if (req.user === undefined) req.user = null;
+    return next();
+  }
   const u = await getAuthUser(req);
   req.user = u || null;
+  req.__authResolved = true;
   next();
 }
 
 async function optionalAuth(req,res,next){
+  if (req.__authResolved) {
+    return next();
+  }
   const u = await getAuthUser(req);
   if(u) req.user = u;
+  else if (req.user === undefined) req.user = null;
+  req.__authResolved = true;
   next();
 }
 
@@ -1104,6 +1140,7 @@ async function saveContactsDB(db){ await writeKey('contacts', db); }
 
 function normalizeUser(user){
   if(!user) return user;
+  user.tenantId = sanitizeTenantId(user.tenantId || DEFAULT_TENANT_ID);
   user.permissions = Array.isArray(user.permissions) ? user.permissions : [];
   if(user.role === "member" && user.permissions.length === 0){
     user.permissions = [...DEFAULT_MEMBER_PERMISSIONS];
@@ -1121,6 +1158,7 @@ async function loadUsersDB(){
       name: 'ducky',
       password: bcrypt.hashSync('duck', 10),
       role: 'admin',
+      tenantId: DEFAULT_TENANT_ID,
       permissions: []
     });
     await writeKey('users', db);
@@ -1889,6 +1927,7 @@ app.post("/api/register", async (req,res)=>{
     name: req.body.name || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role: "member",
+    tenantId: req.body.tenantId || DEFAULT_TENANT_ID,
     permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
   });
   db.users.push(user);
@@ -1932,7 +1971,8 @@ app.post("/api/client/login", async (req,res)=>{
     logWarn("CLIENT_LOGIN_FAIL", "Client login failed: not found", { email: req.body.email, tokenPrefix: req.body.token && req.body.token.slice(0,4) });
     return res.status(401).json({ ok:false, error:"Invalid credentials" });
   }
-  const u = { id: client.id, username: client.email || client.name || "client", role: "client", permissions: [] };
+  const clientTenant = sanitizeTenantId(client?.tenantId || client?.ownerTenantId || DEFAULT_TENANT_ID);
+  const u = { id: client.id, username: client.email || client.name || "client", role: "client", tenantId: clientTenant, permissions: [] };
   logInfo("CLIENT_LOGIN_SUCCESS", "Client login successful", { clientId: client.id });
   res.json({ ok:true, token: generateToken(u) });
 });
@@ -1967,17 +2007,18 @@ app.post("/api/users", optionalAuth, async (req,res)=>{
     name: req.body.name || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role,
+    tenantId: req.body.tenantId || (req.user?.tenantId || DEFAULT_TENANT_ID),
     permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
   });
   db.users.push(user);
   await saveUsersDB(db);
-  res.json({ ok:true, user: { id: user.id, username: user.username, name: user.name, role: user.role, permissions: user.permissions } });
+  res.json({ ok:true, user: { id: user.id, username: user.username, name: user.name, role: user.role, tenantId: user.tenantId, permissions: user.permissions } });
 
 });
 
 app.get("/api/users", authenticate, requireRole("admin"), async (_req,res)=>{
   const db = await loadUsersDB();
-  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, name:u.name, role:u.role, permissions: u.permissions || [] })) });
+  res.json({ ok:true, users: db.users.map(u=>({ id:u.id, username:u.username, name:u.name, role:u.role, tenantId: u.tenantId || DEFAULT_TENANT_ID, permissions: u.permissions || [] })) });
 });
 
 app.put("/api/users/:id", authenticate, requireRole("admin"), async (req,res)=>{
@@ -1987,16 +2028,19 @@ app.put("/api/users/:id", authenticate, requireRole("admin"), async (req,res)=>{
   if(typeof req.body.name === "string") user.name = req.body.name;
   if(typeof req.body.username === "string") user.username = req.body.username;
   if(req.body.password) user.password = bcrypt.hashSync(req.body.password,10);
+  if(req.body.tenantId !== undefined){
+    user.tenantId = sanitizeTenantId(req.body.tenantId || DEFAULT_TENANT_ID);
+  }
   if(Array.isArray(req.body.permissions)) user.permissions = req.body.permissions;
   await saveUsersDB(db);
-  res.json({ ok:true, user: { id:user.id, username:user.username, name:user.name, role:user.role, permissions:user.permissions || [] } });
+  res.json({ ok:true, user: { id:user.id, username:user.username, name:user.name, role:user.role, tenantId: user.tenantId || DEFAULT_TENANT_ID, permissions:user.permissions || [] } });
 });
 
 app.get("/api/me", authenticate, (req,res)=>{
   if(!req.user){
     return res.status(401).json({ ok:false, error:"Unauthorized" });
   }
-  res.json({ ok:true, user: { id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role, permissions: req.user.permissions || [] } });
+  res.json({ ok:true, user: { id: req.user.id, username: req.user.username, name: req.user.name, role: req.user.role, tenantId: req.user.tenantId || DEFAULT_TENANT_ID, permissions: req.user.permissions || [] } });
 });
 
 app.get("/api/team-members", authenticate, requireRole("admin"), async (_req,res)=>{
@@ -2010,6 +2054,7 @@ app.get("/api/team-members", authenticate, requireRole("admin"), async (_req,res
       createdAt: u.createdAt || null,
       lastLoginAt: u.lastLoginAt || null,
       permissions: u.permissions || [],
+      tenantId: u.tenantId || DEFAULT_TENANT_ID,
       tokenIssued: Boolean(u.token)
     }));
   res.json({ ok:true, members });
@@ -2039,7 +2084,8 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
     mustReset: true,
     permissions: [],
     createdAt: now,
-    lastLoginAt: null
+    lastLoginAt: null,
+    tenantId: sanitizeTenantId(req.body.tenantId || req.user?.tenantId || DEFAULT_TENANT_ID)
   };
   db.users.push(member);
   await saveUsersDB(db);
@@ -2047,7 +2093,7 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
     const html = TEAM_TEMPLATE.replace(/\{\{token\}\}/g, token).replace(/\{\{name\}\}/g, member.name || member.username || "Team Member");
     try{ fs.writeFileSync(path.join(PUBLIC_DIR, `team-${token}.html`), html); }catch{}
   }
-  res.json({ ok:true, member: { id: member.id, name: member.name || "", email: member.username, token, password: passwordPlain, createdAt: member.createdAt, lastLoginAt: member.lastLoginAt } });
+  res.json({ ok:true, member: { id: member.id, name: member.name || "", email: member.username, tenantId: member.tenantId, token, password: passwordPlain, createdAt: member.createdAt, lastLoginAt: member.lastLoginAt } });
 });
 
 app.delete("/api/team-members/:id", authenticate, requireRole("admin"), async (req,res)=>{
@@ -2667,7 +2713,7 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
   res.json({ ok:true, tradeline: tl });
 });
 
-app.post("/api/consumers/:id/report/:rid/audit", async (req,res)=>{
+app.post("/api/consumers/:id/report/:rid/audit", enforceTenantQuota("reports:audit"), async (req,res)=>{
   const db=await loadDB();
   const c=db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
@@ -2850,7 +2896,7 @@ async function handleConsumerBreachAudit(req, res) {
   }
 }
 
-app.post("/api/databreach", async (req, res) => {
+app.post("/api/databreach", enforceTenantQuota("breach:lookup"), async (req, res) => {
   const email = String(req.body.email || "").trim();
   const consumerId = String(req.body.consumerId || "").trim();
   if (!email) return res.status(400).json({ ok: false, error: "Email required" });
@@ -2865,7 +2911,7 @@ app.get("/api/databreach", async (req, res) => {
 });
 
 
-app.post("/api/consumers/:id/databreach/audit", handleConsumerBreachAudit);
+app.post("/api/consumers/:id/databreach/audit", enforceTenantQuota("breach:lookup"), handleConsumerBreachAudit);
 
 
 
@@ -2974,7 +3020,7 @@ async function deleteJob(jobId){
 }
 
 // Generate letters (from selections) -> memory + disk
-app.post("/api/generate", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
+app.post("/api/generate", authenticate, requirePermission("letters", { allowGuest: true }), enforceTenantQuota("letters:generate"), async (req,res)=>{
 
   try{
     const {
@@ -3182,7 +3228,7 @@ app.get("/api/letters/:jobId/:idx.html", optionalAuth, async (req,res)=>{
 });
 
 // Render letter PDF on-the-fly
-app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, async (req,res)=>{
+app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, enforceTenantQuota("letters:pdf"), async (req,res)=>{
 
   const { jobId, idx } = req.params;
   if(req.user && !hasPermission(req.user, "letters")){
@@ -3252,7 +3298,7 @@ app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, async (req,res)=>{
 
 });
 
-app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
+app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters", { allowGuest: true }), enforceTenantQuota("letters:zip"), async (req,res)=>{
 
   const { jobId } = req.params;
   const userId = req.user?.id || "guest";
