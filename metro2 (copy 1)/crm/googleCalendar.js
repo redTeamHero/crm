@@ -1,8 +1,11 @@
 import nodeFetch from 'node-fetch';
 import { readKey, writeKey } from './kvdb.js';
 
-const fetchFn = globalThis.fetch || nodeFetch;
 const FALLBACK_KEY = 'calendar_events';
+const EVENT_CACHE_KEY = 'calendar_cache_events';
+const FREEBUSY_CACHE_KEY = 'calendar_cache_freebusy';
+const EVENT_CACHE_TTL_MS = 60 * 1000; // 1 minute
+const FREEBUSY_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 function normalizeString(value = '') {
   return typeof value === 'string' ? value.trim() : '';
@@ -27,6 +30,81 @@ async function loadFallbackEvents() {
 
 async function saveFallbackEvents(events) {
   await writeKey(FALLBACK_KEY, Array.isArray(events) ? events : []);
+}
+
+function toEventCacheKey(maxResults) {
+  return String(Number.isFinite(maxResults) ? maxResults : 10);
+}
+
+function toFreeBusyCacheKey(timeMin, timeMax) {
+  return `${timeMin || 'null'}::${timeMax || 'null'}`;
+}
+
+function pruneCacheMap(cacheMap, ttlMs) {
+  if (!cacheMap || typeof cacheMap !== 'object') return {};
+  const now = Date.now();
+  return Object.fromEntries(
+    Object.entries(cacheMap).filter(([, value]) => {
+      if (!value || typeof value !== 'object') return false;
+      const storedAt = value.cachedAt || 0;
+      return now - storedAt <= ttlMs;
+    }),
+  );
+}
+
+function buildCacheEnvelope(value) {
+  return { value, cachedAt: Date.now() };
+}
+
+function cacheIsFresh(entry, ttlMs) {
+  if (!entry || typeof entry !== 'object') return false;
+  const storedAt = entry.cachedAt || 0;
+  return Date.now() - storedAt <= ttlMs;
+}
+
+function appendNotice(base, addition) {
+  if (!addition) return base;
+  return base ? `${base} ${addition}` : addition;
+}
+
+async function readEventCache(maxResults) {
+  const key = toEventCacheKey(maxResults);
+  const cached = await readKey(EVENT_CACHE_KEY, {});
+  return cached?.[key] || null;
+}
+
+async function writeEventCache(maxResults, events) {
+  const key = toEventCacheKey(maxResults);
+  const cacheMap = await readKey(EVENT_CACHE_KEY, {});
+  const trimmed = pruneCacheMap(cacheMap, EVENT_CACHE_TTL_MS);
+  trimmed[key] = buildCacheEnvelope(events);
+  await writeKey(EVENT_CACHE_KEY, trimmed);
+}
+
+async function clearEventCache() {
+  await writeKey(EVENT_CACHE_KEY, {});
+}
+
+async function readFreeBusyCache(timeMin, timeMax) {
+  const key = toFreeBusyCacheKey(timeMin, timeMax);
+  const cached = await readKey(FREEBUSY_CACHE_KEY, {});
+  return cached?.[key] || null;
+}
+
+async function writeFreeBusyCache(timeMin, timeMax, fb) {
+  const key = toFreeBusyCacheKey(timeMin, timeMax);
+  const cacheMap = await readKey(FREEBUSY_CACHE_KEY, {});
+  const trimmed = pruneCacheMap(cacheMap, FREEBUSY_CACHE_TTL_MS);
+  trimmed[key] = buildCacheEnvelope(fb);
+  await writeKey(FREEBUSY_CACHE_KEY, trimmed);
+}
+
+async function clearFreeBusyCache() {
+  await writeKey(FREEBUSY_CACHE_KEY, {});
+}
+
+async function invalidateCalendarCaches() {
+  await Promise.all([clearEventCache(), clearFreeBusyCache()]);
 }
 
 function ensureEventShape(event) {
@@ -64,7 +142,8 @@ async function apiRequest(url, options = {}) {
     ...(options.headers || {}),
     Authorization: `Bearer ${token}`
   };
-  const resp = await fetchFn(url, { ...options, headers });
+  const fetchImpl = getFetch();
+  const resp = await fetchImpl(url, { ...options, headers });
   if (!resp.ok) {
     const text = await resp.text();
     throw new Error(`Calendar API error ${resp.status}: ${text}`);
@@ -75,7 +154,7 @@ async function apiRequest(url, options = {}) {
 
 export async function listEvents(maxResults = 10) {
   const config = await getConfig();
-  const notice = buildNotice(config.hasApi);
+  let notice = buildNotice(config.hasApi);
   if (!config.hasApi) {
     const nowIso = new Date().toISOString();
     const events = (await loadFallbackEvents())
@@ -88,9 +167,36 @@ export async function listEvents(maxResults = 10) {
       .slice(0, maxResults);
     return { events, mode: 'local', notice };
   }
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events?singleEvents=true&orderBy=startTime&timeMin=${encodeURIComponent(new Date().toISOString())}&maxResults=${maxResults}`;
-  const data = await apiRequest(url, { method: 'GET' });
-  return { events: data.items || [], mode: 'google', notice };
+
+  const cached = await readEventCache(maxResults);
+  if (cacheIsFresh(cached, EVENT_CACHE_TTL_MS)) {
+    return { events: cached.value, mode: 'google', notice };
+  }
+
+  const params = new URLSearchParams({
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    timeMin: new Date().toISOString(),
+    maxResults: String(maxResults),
+    fields:
+      'items(id,summary,description,location,start,end,hangoutLink,htmlLink,status,updated,organizer(displayName,email),attendees(email,responseStatus))',
+  });
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events?${params.toString()}`;
+  try {
+    const data = await apiRequest(url, { method: 'GET' });
+    const events = data.items || [];
+    await writeEventCache(maxResults, events);
+    return { events, mode: 'google', notice };
+  } catch (error) {
+    if (cached) {
+      notice = appendNotice(
+        notice,
+        'Calendar API unreachable — showing the last cached events.',
+      );
+      return { events: cached.value || [], mode: 'google', notice };
+    }
+    throw error;
+  }
 }
 
 export async function createEvent(event) {
@@ -105,6 +211,7 @@ export async function createEvent(event) {
   }
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events`;
   const created = await apiRequest(url, { method: 'POST', body: JSON.stringify(event) });
+  await invalidateCalendarCaches();
   return { event: created, mode: 'google', notice };
 }
 
@@ -125,6 +232,7 @@ export async function updateEvent(eventId, event) {
   }
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events/${encodeURIComponent(eventId)}`;
   const updated = await apiRequest(url, { method: 'PATCH', body: JSON.stringify(event) });
+  await invalidateCalendarCaches();
   return { event: updated, mode: 'google', notice };
 }
 
@@ -139,6 +247,7 @@ export async function deleteEvent(eventId) {
   }
   const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(config.calendarId)}/events/${encodeURIComponent(eventId)}`;
   await apiRequest(url, { method: 'DELETE' });
+  await invalidateCalendarCaches();
   return { mode: 'google', notice };
 }
 
@@ -174,7 +283,7 @@ function overlaps(slot, timeMin, timeMax) {
 
 export async function freeBusy(timeMin, timeMax) {
   const config = await getConfig();
-  const notice = buildNotice(config.hasApi);
+  let notice = buildNotice(config.hasApi);
   if (!config.hasApi) {
     const events = await loadFallbackEvents();
     const busy = events
@@ -193,13 +302,38 @@ export async function freeBusy(timeMin, timeMax) {
       notice
     };
   }
+  const cached = await readFreeBusyCache(timeMin, timeMax);
+  if (cacheIsFresh(cached, FREEBUSY_CACHE_TTL_MS)) {
+    return { fb: cached.value, mode: 'google', notice };
+  }
+
   const url = 'https://www.googleapis.com/calendar/v3/freeBusy';
   const body = {
     timeMin,
     timeMax,
     items: [{ id: config.calendarId }]
   };
-  const fb = await apiRequest(url, { method: 'POST', body: JSON.stringify(body) });
-  return { fb, mode: 'google', notice };
+  try {
+    const fb = await apiRequest(`${url}?fields=calendars`, { method: 'POST', body: JSON.stringify(body) });
+    await writeFreeBusyCache(timeMin, timeMax, fb);
+    return { fb, mode: 'google', notice };
+  } catch (error) {
+    if (cached) {
+      notice = appendNotice(
+        notice,
+        'Calendar API unreachable — showing the last cached availability.',
+      );
+      return { fb: cached.value, mode: 'google', notice };
+    }
+    throw error;
+  }
+}
+
+export async function clearCalendarCache() {
+  await invalidateCalendarCaches();
+}
+
+function getFetch() {
+  return typeof globalThis.fetch === 'function' ? globalThis.fetch : nodeFetch;
 }
 

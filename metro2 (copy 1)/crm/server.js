@@ -23,7 +23,7 @@ import { logInfo, logError, logWarn } from "./logger.js";
 import { ensureBuffer } from "./utils.js";
 import { readKey, writeKey, DB_FILE } from "./kvdb.js";
 import { sendCertifiedMail } from "./simpleCertifiedMail.js";
-import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy } from "./googleCalendar.js";
+import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy, clearCalendarCache } from "./googleCalendar.js";
 
 import { fetchFn } from "./fetchUtil.js";
 import { scrapeTradelines } from "./tradelineScraper.js";
@@ -600,7 +600,15 @@ app.post("/api/settings", async (req, res) => {
     stripeApiKey = "",
     envOverrides = {},
   } = req.body || {};
+  const previousSettings = await loadSettings();
   const settings = await saveSettings({ hibpApiKey, rssFeedUrl, googleCalendarToken, googleCalendarId, stripeApiKey, envOverrides });
+
+  if (
+    previousSettings.googleCalendarToken !== settings.googleCalendarToken ||
+    previousSettings.googleCalendarId !== settings.googleCalendarId
+  ) {
+    await clearCalendarCache();
+  }
 
   res.json({ ok: true, settings });
 });
@@ -2619,7 +2627,15 @@ app.post("/api/generate", authenticate, requirePermission("letters", { allowGues
     const db = await loadDB();
     const consumer = db.consumers.find(c=>c.id===consumerId);
     if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
-    const reportWrap = consumer.reports.find(r=>r.id===reportId);
+    let reportWrap = consumer.reports.find(r=>r.id===reportId);
+    if(!reportWrap){
+      const sharedReport = db.consumers
+        .flatMap((c) => (Array.isArray(c.reports) ? c.reports : []))
+        .find((r) => r.id === reportId);
+      if(sharedReport){
+        reportWrap = sharedReport;
+      }
+    }
     if(!reportWrap) return res.status(404).json({ ok:false, error:"Report not found" });
 
     const specialReasonMap = {
