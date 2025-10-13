@@ -709,6 +709,7 @@ body::after {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: center;
 }
 
 .chip-row {
