@@ -3307,6 +3307,22 @@ app.post("/api/sequences", async (req,res)=>{
   res.json({ ok:true, sequence: seq });
 });
 
+app.delete("/api/sequences/:id", async (req,res)=>{
+  const id = (req.params?.id || "").trim();
+  if(!id){
+    return res.status(400).json({ ok:false, error:"id required" });
+  }
+  const db = await loadLettersDB();
+  db.sequences = db.sequences || [];
+  const before = db.sequences.length;
+  db.sequences = db.sequences.filter(s => s.id !== id);
+  if(db.sequences.length === before){
+    return res.status(404).json({ ok:false, error:"sequence not found" });
+  }
+  await saveLettersDB(db);
+  res.json({ ok:true });
+});
+
 app.post("/api/contracts", async (req,res)=>{
   const db = await loadLettersDB();
   const name = (req.body?.name || "").trim();
