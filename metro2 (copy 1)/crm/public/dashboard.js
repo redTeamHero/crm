@@ -796,6 +796,8 @@ document.addEventListener('DOMContentLoaded', () => {
     goalBtn.addEventListener('click', burstConfetti);
   }
 
+  const detailModalController = createDetailModal();
+
   chatState.panel = document.getElementById('guideChatPanel');
   chatState.toggle = document.getElementById('guideChatToggle');
   chatState.close = document.getElementById('guideChatClose');
