@@ -7,6 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .channel-hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
 <header id="host-nav" class="p-4">
@@ -62,13 +67,14 @@
       <div>
         <h1 class="text-2xl font-bold" data-i18n="marketing.hero.title">Marketing Launchpad</h1>
         <p class="text-sm text-slate-600" data-i18n="marketing.hero.subtitle">Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.</p>
+        <span id="marketingChannelBadge" class="chip hidden text-xs font-semibold uppercase tracking-wide"></span>
       </div>
     </div>
     <p class="text-xs text-slate-500" data-i18n="marketing.hero.tip">Tip: document every touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.</p>
   </header>
 
   <!-- SMS Campaign Builder -->
-  <section aria-labelledby="sms-builder-heading" class="glass card p-6 space-y-6">
+  <section aria-labelledby="sms-builder-heading" class="glass card p-6 space-y-6" data-channel="sms">
     <div class="flex flex-col gap-2">
       <div class="flex items-center gap-3">
         <span class="text-2xl">📱</span>
@@ -149,7 +155,7 @@
   </section>
 
   <!-- Email Template Builder -->
-  <section aria-labelledby="email-builder-heading" class="glass card p-6 space-y-6">
+  <section aria-labelledby="email-builder-heading" class="glass card p-6 space-y-6" data-channel="email">
     <div class="flex flex-col gap-2">
       <div class="flex items-center gap-3">
         <span class="text-2xl">💌</span>
@@ -197,7 +203,7 @@
     </div>
 
     <div class="grid gap-6 lg:grid-cols-2">
-      <div class="space-y-4">
+      <div class="space-y-4" data-channel="sms">
         <header class="flex flex-col gap-1">
           <h3 class="text-lg font-semibold">SMS Template Manager</h3>
           <p class="text-xs text-slate-500">Draft compliant copy, store via <code>POST /api/marketing/sms-templates</code>, upsell concierge follow-ups.</p>
@@ -228,7 +234,7 @@
         </form>
         <ul id="smsTemplateList" class="space-y-3 text-sm text-slate-600"></ul>
       </div>
-      <div class="space-y-4">
+      <div class="space-y-4" data-channel="email">
         <header class="flex flex-col gap-1">
           <h3 class="text-lg font-semibold">Email Sequence Builder</h3>
           <p class="text-xs text-slate-500">Log nurture flows and push to <code>POST /api/marketing/email/sequences</code>. Document your value ladders.</p>
@@ -278,7 +284,7 @@
       </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]" data-channel="email">
       <div class="space-y-4">
         <header class="flex flex-col gap-1">
           <h3 class="text-lg font-semibold">Dispatch Scheduler</h3>
@@ -343,7 +349,7 @@
     </div>
   </section>
 
-  <div id="templateEditorModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
+  <div id="templateEditorModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4" data-channel="email">
     <div class="glass card w-full max-w-3xl space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="templateEditorHeading">
       <header class="flex flex-wrap items-center justify-between gap-3">
         <div>

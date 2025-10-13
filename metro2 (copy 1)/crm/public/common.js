@@ -40,6 +40,8 @@ const TRANSLATIONS = {
       leads: 'Leads',
       schedule: 'Schedule',
       billing: 'Billing',
+      marketingSms: 'Marketing • SMS / Mensajes',
+      marketingEmail: 'Marketing • Email / Correo',
       marketing: 'Marketing',
       settings: 'Settings',
       myCompany: 'My Company',
@@ -67,6 +69,15 @@ const TRANSLATIONS = {
       tooltip: "You've started your journey."
     },
     marketing: {
+      meta: {
+        title: 'Marketing',
+        smsTitle: 'Marketing • SMS / Mensajes',
+        emailTitle: 'Marketing • Email / Correo'
+      },
+      channelBadges: {
+        sms: 'SMS Focus • Enfoque SMS',
+        email: 'Email Focus • Enfoque Email'
+      },
       hero: {
         title: 'Marketing Launchpad',
         subtitle: 'Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.',
@@ -570,7 +581,7 @@ window.userRole = _payload.role || null;
 function restrictRoutes(role){
   const allowed = {
     host: null,
-    team: ['/dashboard','/clients','/leads','/marketing','/schedule','/billing','/','/index.html','/login.html','/team-member-template.html'],
+    team: ['/dashboard','/clients','/leads','/marketing','/marketing/sms','/marketing/email','/schedule','/billing','/','/index.html','/login.html','/team-member-template.html'],
     client: ['/client-portal','/portal','/login.html','/']
   }[role];
   if(!allowed) return;
@@ -585,20 +596,24 @@ restrictRoutes(window.userRole);
 // append a logout button to the nav if present
 const navContainer = document.getElementById('primaryNavLinks');
 if (navContainer) {
-  if (!navContainer.querySelector('a[href="/marketing"]')) {
-    const marketingLink = document.createElement('a');
-    marketingLink.href = '/marketing';
-    marketingLink.className = 'btn nav-btn';
-    marketingLink.textContent = getTranslation('nav.marketing');
-    const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
+  const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
+  const insertNavLink = (link) => {
     if (scheduleLink?.parentElement === navContainer) {
-      navContainer.insertBefore(marketingLink, scheduleLink);
+      navContainer.insertBefore(link, scheduleLink);
     } else {
-      const leadsLink = navContainer.querySelector('a[href="/leads"]');
-      leadsLink?.insertAdjacentElement('afterend', marketingLink);
-      if (!leadsLink) navContainer.appendChild(marketingLink);
+      navContainer.appendChild(link);
     }
-  }
+  };
+  const ensureMarketingLink = (href, translationKey) => {
+    if (navContainer.querySelector(`a[href="${href}"]`)) return;
+    const link = document.createElement('a');
+    link.href = href;
+    link.className = 'btn nav-btn';
+    link.textContent = getTranslation(translationKey) || getTranslation('nav.marketing');
+    insertNavLink(link);
+  };
+  ensureMarketingLink('/marketing/sms', 'nav.marketingSms');
+  ensureMarketingLink('/marketing/email', 'nav.marketingEmail');
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
   btnLogout.className = 'btn nav-btn';
@@ -645,7 +660,7 @@ function applyRoleNav(role){
     return;
   }
   if(role === 'team'){
-    const allowed = new Set(['/dashboard','/clients','/leads','/marketing','/schedule','/billing']);
+    const allowed = new Set(['/dashboard','/clients','/leads','/marketing','/marketing/sms','/marketing/email','/schedule','/billing']);
     navLinks.querySelectorAll('a[href]').forEach(link => {
       const href = link.getAttribute('href');
       if(href && !allowed.has(href)){

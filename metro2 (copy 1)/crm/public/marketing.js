@@ -61,6 +61,8 @@ const templateEditorHeading = document.getElementById("templateEditorHeading");
 
 const btnAddExperiment = document.getElementById("btnAddExperiment");
 const experimentList = document.getElementById("experimentIdeas");
+const testChannelSelect = document.getElementById("testChannel");
+const channelBadge = document.getElementById("marketingChannelBadge");
 
 const SEGMENT_GRADIENTS = {
   b2c: "from-violet-100/80 to-white",
@@ -78,6 +80,12 @@ const SAMPLE_DATA = {
   cta_link: "https://go.revolv.ai/next",
 };
 
+const activeChannel = detectActiveChannel(
+  typeof window !== "undefined" ? window.location.pathname : ""
+);
+const shouldLoadSmsFeatures = !activeChannel || activeChannel === "sms";
+const shouldLoadEmailFeatures = !activeChannel || activeChannel === "email";
+
 let templateCache = [];
 let lastQueueItems = [];
 let lastProviders = [];
@@ -92,6 +100,121 @@ let templateEditorLastUpdated = "";
 function t(key, fallback = "") {
   return getTranslation(key, getCurrentLanguage()) || fallback;
 }
+
+function normalizePathname(pathname = "") {
+  return String(pathname || "")
+    .replace(/\/+$/u, "")
+    .toLowerCase();
+}
+
+function detectActiveChannel(pathname = "") {
+  const normalized = normalizePathname(pathname);
+  if (!normalized) return null;
+  if (normalized.endsWith("/marketing/sms")) return "sms";
+  if (normalized.endsWith("/marketing/email")) return "email";
+  return null;
+}
+
+function applyChannelVisibility(channel) {
+  if (typeof document === "undefined") return;
+  if (document.body) {
+    if (channel) document.body.dataset.marketingChannel = channel;
+    else delete document.body.dataset.marketingChannel;
+  }
+  if (!channel) {
+    document
+      .querySelectorAll("[data-channel]")
+      .forEach((el) => {
+        el.classList.remove("channel-hidden");
+        if (el.getAttribute("aria-hidden") === "true") {
+          el.removeAttribute("aria-hidden");
+        }
+      });
+    return;
+  }
+  document.querySelectorAll("[data-channel]").forEach((el) => {
+    const raw = el.dataset.channel || "";
+    const channels = raw
+      .split(/[\s,]+/u)
+      .map((token) => token.trim().toLowerCase())
+      .filter(Boolean);
+    const isVisible = channels.includes(channel);
+    el.classList.toggle("channel-hidden", !isVisible);
+    if (!isVisible) {
+      el.setAttribute("aria-hidden", "true");
+    } else if (el.getAttribute("aria-hidden") === "true") {
+      el.removeAttribute("aria-hidden");
+    }
+  });
+}
+
+function configureChannelBadge(channel) {
+  if (!channelBadge) return;
+  if (!channel) {
+    channelBadge.classList.add("hidden");
+    channelBadge.textContent = "";
+    return;
+  }
+  const key =
+    channel === "sms" ? "marketing.channelBadges.sms" : "marketing.channelBadges.email";
+  channelBadge.textContent = t(
+    key,
+    channel === "sms" ? "SMS Focus • Enfoque SMS" : "Email Focus • Enfoque Email"
+  );
+  channelBadge.classList.remove("hidden");
+}
+
+function highlightActiveNavLink(channel) {
+  if (typeof document === "undefined" || !channel) return;
+  const targetSuffix = `/marketing/${channel}`;
+  document
+    .querySelectorAll('#primaryNavLinks a[href^="/marketing"]')
+    .forEach((link) => {
+      const href = normalizePathname(link.getAttribute("href") || "");
+      const isActive = href.endsWith(targetSuffix);
+      if (isActive) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+}
+
+function configureTestModalChannel(channel) {
+  if (!testChannelSelect) return;
+  const options = Array.from(testChannelSelect.options || []);
+  if (!channel) {
+    options.forEach((option) => {
+      option.hidden = false;
+    });
+    return;
+  }
+  let matched = false;
+  options.forEach((option) => {
+    const value = (option.value || "").toLowerCase();
+    const shouldShow = value === channel;
+    option.hidden = !shouldShow;
+    if (shouldShow) {
+      option.selected = true;
+      matched = true;
+    }
+  });
+  if (!matched) {
+    testChannelSelect.value = channel;
+  }
+}
+
+function updateDocumentTitleForChannel(channel) {
+  if (typeof document === "undefined" || !channel) return;
+  const key = channel === "sms" ? "marketing.meta.smsTitle" : "marketing.meta.emailTitle";
+  const fallback =
+    channel === "sms" ? "Marketing • SMS / Mensajes" : "Marketing • Email / Correo";
+  const title = t(key, fallback);
+  if (title) document.title = title;
+}
+
+applyChannelVisibility(activeChannel);
+configureChannelBadge(activeChannel);
+highlightActiveNavLink(activeChannel);
+configureTestModalChannel(activeChannel);
+updateDocumentTitleForChannel(activeChannel);
 
 function segmentGradient(segment = "b2c") {
   return SEGMENT_GRADIENTS[segment] || SEGMENT_GRADIENTS.b2c;
@@ -512,7 +635,7 @@ function buildTemplateCard(template) {
 }
 
 function renderTemplates() {
-  if (!templateGrid) return;
+  if (!shouldLoadEmailFeatures || !templateGrid) return;
   templateGrid.innerHTML = "";
   if (!templateCache.length) {
     if (templatesEmpty) {
@@ -534,7 +657,7 @@ function renderTemplates() {
 }
 
 function renderSmsTemplates() {
-  if (!smsTemplateList) return;
+  if (!shouldLoadSmsFeatures || !smsTemplateList) return;
   smsTemplateList.innerHTML = "";
   if (!smsTemplateCache.length) {
     const li = document.createElement("li");
@@ -585,7 +708,7 @@ function renderSmsTemplates() {
 }
 
 function renderEmailSequences() {
-  if (!emailSequenceList) return;
+  if (!shouldLoadEmailFeatures || !emailSequenceList) return;
   emailSequenceList.innerHTML = "";
   if (!emailSequenceCache.length) {
     const li = document.createElement("li");
@@ -628,7 +751,7 @@ function renderEmailSequences() {
 }
 
 function renderDispatches() {
-  if (!dispatchList) return;
+  if (!shouldLoadEmailFeatures || !dispatchList) return;
   dispatchList.innerHTML = "";
   if (!dispatchCache.length) {
     const li = document.createElement("li");
@@ -746,7 +869,7 @@ function gatherSequenceSteps() {
 }
 
 function syncDispatchTargets() {
-  if (!dispatchTargetSelect) return;
+  if (!shouldLoadEmailFeatures || !dispatchTargetSelect) return;
   const type = dispatchTypeSelect?.value === "sequence" ? "sequence" : "template";
   const source = type === "sequence" ? emailSequenceCache : templateCache;
   dispatchTargetSelect.innerHTML = "";
@@ -772,7 +895,7 @@ function syncDispatchTargets() {
 }
 
 function filterTemplates() {
-  if (!templateFilter || !templateGrid) return;
+  if (!shouldLoadEmailFeatures || !templateFilter || !templateGrid) return;
   const value = templateFilter.value;
   templateGrid.querySelectorAll(".template-card").forEach((card) => {
     if (value === "all" || card.dataset.segment === value) {
@@ -1046,7 +1169,7 @@ function closeTestModal() {
 }
 
 async function hydrateTemplates() {
-  if (!templateGrid) return;
+  if (!shouldLoadEmailFeatures || !templateGrid) return;
   if (templatesEmpty) {
     templatesEmpty.textContent = t("marketing.emailBuilder.loading", "Loading templates from API…");
     templatesEmpty.classList.remove("text-rose-600");
@@ -1064,7 +1187,7 @@ async function hydrateTemplates() {
 }
 
 async function hydrateSmsTemplates() {
-  if (!smsTemplateList) return;
+  if (!shouldLoadSmsFeatures || !smsTemplateList) return;
   try {
     smsTemplateCache = await fetchSmsTemplatesApi();
     renderSmsTemplates();
@@ -1074,7 +1197,7 @@ async function hydrateSmsTemplates() {
 }
 
 async function hydrateEmailSequences() {
-  if (!emailSequenceList) return;
+  if (!shouldLoadEmailFeatures || !emailSequenceList) return;
   try {
     emailSequenceCache = await fetchEmailSequencesApi();
     renderEmailSequences();
@@ -1085,7 +1208,7 @@ async function hydrateEmailSequences() {
 }
 
 async function hydrateDispatches() {
-  if (!dispatchList) return;
+  if (!shouldLoadEmailFeatures || !dispatchList) return;
   try {
     dispatchCache = await fetchEmailDispatches();
     renderDispatches();
@@ -1362,14 +1485,18 @@ function bindRefreshControls() {
 }
 
 function bindAutomationControls() {
-  if (addSequenceStepBtn && sequenceStepsContainer) {
+  if (shouldLoadEmailFeatures && addSequenceStepBtn && sequenceStepsContainer) {
     addSequenceStepBtn.addEventListener("click", () => createSequenceStepRow());
   }
-  if (sequenceStepsContainer && !sequenceStepsContainer.childElementCount) {
+  if (
+    shouldLoadEmailFeatures &&
+    sequenceStepsContainer &&
+    !sequenceStepsContainer.childElementCount
+  ) {
     createSequenceStepRow();
   }
 
-  if (smsTemplateForm) {
+  if (shouldLoadSmsFeatures && smsTemplateForm) {
     smsTemplateForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const formData = new FormData(smsTemplateForm);
@@ -1394,7 +1521,7 @@ function bindAutomationControls() {
     });
   }
 
-  if (emailSequenceForm) {
+  if (shouldLoadEmailFeatures && emailSequenceForm) {
     emailSequenceForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const formData = new FormData(emailSequenceForm);
@@ -1431,7 +1558,7 @@ function bindAutomationControls() {
     });
   }
 
-  if (dispatchForm) {
+  if (shouldLoadEmailFeatures && dispatchForm) {
     dispatchForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       const formData = new FormData(dispatchForm);
@@ -1464,7 +1591,7 @@ function bindAutomationControls() {
     });
   }
 
-  if (dispatchTypeSelect) {
+  if (shouldLoadEmailFeatures && dispatchTypeSelect) {
     dispatchTypeSelect.addEventListener("change", () => syncDispatchTargets());
   }
   syncDispatchTargets();
@@ -1496,24 +1623,37 @@ function initLanguageSync() {
     renderEmailSequences();
     renderDispatches();
     updateSmsPreview();
+    configureChannelBadge(activeChannel);
+    updateDocumentTitleForChannel(activeChannel);
+    highlightActiveNavLink(activeChannel);
   });
 }
 
-bindSmsPreviewControls();
+if (shouldLoadSmsFeatures) {
+  bindSmsPreviewControls();
+}
 bindTestModal();
-bindTemplateEditor();
-bindTemplateControls();
+if (shouldLoadEmailFeatures) {
+  bindTemplateEditor();
+  bindTemplateControls();
+}
 bindExperimentControls();
 bindRefreshControls();
 bindAutomationControls();
 initCampaignStatusStyles();
 initLanguageSync();
 
-resetTemplateEditor();
-hydrateTemplates();
-hydrateSmsTemplates();
-hydrateEmailSequences();
-hydrateDispatches();
+if (shouldLoadEmailFeatures) {
+  resetTemplateEditor();
+  hydrateTemplates();
+  hydrateEmailSequences();
+  hydrateDispatches();
+} else {
+  resetTemplateEditor();
+}
+if (shouldLoadSmsFeatures) {
+  hydrateSmsTemplates();
+}
 refreshTestQueue();
 refreshProviders();
 autoRefreshQueue();
