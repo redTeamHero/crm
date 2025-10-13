@@ -41,6 +41,8 @@ The `/schedule` page hooks into Google Calendar. Click any date to add a booking
 3. In Google Calendar, open **Settings → Integrate calendar** to copy the calendar's **Calendar ID**.
 4. Paste the token and Calendar ID into the Settings page under **Google Calendar Token** and **Google Calendar ID**, then save.
 
+The API gateway now memoizes `/api/calendar/events` responses for 60 seconds and `/api/calendar/freebusy` windows for two minutes. This keeps the dashboard snappy even when Google throttles or the network blips. Updating the calendar token or ID automatically purges the cache so new credentials sync immediately.
+
 Generate a shareable audit (converts a credit report HTML to JSON and renders it):
 ```bash
 cd "metro2 (copy 1)/crm"
