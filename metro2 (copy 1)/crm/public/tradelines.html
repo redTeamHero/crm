@@ -55,27 +55,78 @@
   </div>
 </header>
 <main class="max-w-7xl mx-auto px-4 py-6">
-  <h1 class="text-4xl font-bold text-center mb-6">📊 Browse Tradelines</h1>
-
-  <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
-    <input type="text" id="search" placeholder="Search by bank..." class="flex-1 min-w-[200px] px-4 py-2 rounded border shadow-sm focus:ring-2 focus:ring-blue-500">
-    <select id="sort" class="flex-1 min-w-[150px] px-4 py-2 rounded border shadow-sm focus:ring-2 focus:ring-blue-500">
-      <option value="">Sort by</option>
-      <option value="price-asc">Price ↑</option>
-      <option value="price-desc">Price ↓</option>
-      <option value="limit-asc">Limit ↑</option>
-      <option value="limit-desc">Limit ↓</option>
-      <option value="age-asc">Age ↑</option>
-      <option value="age-desc">Age ↓</option>
-    </select>
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <h1 id="title" class="text-4xl font-bold">📊 Browse Tradelines</h1>
+    <div class="flex items-center gap-2 justify-end">
+      <span id="lang-label" class="text-sm text-gray-500">English / Español</span>
+      <button id="lang-toggle" class="px-3 py-1 rounded-full bg-slate-900 text-white text-xs uppercase tracking-widest">ES</button>
+    </div>
   </div>
 
-  <div id="bank-list" class="mb-4 text-sm text-gray-600 italic"></div>
-  <div id="tradeline-container" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"></div>
+  <div class="grid gap-6">
+    <section class="glass card p-5" aria-labelledby="range-heading">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 id="range-heading" class="text-2xl font-semibold">1. Select a price range</h2>
+          <p id="range-subheading" class="text-sm text-gray-600">Filter by retail price to match your client’s budget.</p>
+        </div>
+        <span id="range-kpi" class="text-xs uppercase tracking-wide bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">Conversion KPI: Range-to-Bank CTR</span>
+      </div>
+      <div id="price-range-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
+    </section>
 
-  <div class="flex justify-center mt-6">
-    <button id="prev" class="px-4 py-2 mx-1 bg-gray-300 hover:bg-gray-400 transition rounded">Prev</button>
-    <button id="next" class="px-4 py-2 mx-1 bg-gray-300 hover:bg-gray-400 transition rounded">Next</button>
+    <section class="glass card p-5" aria-labelledby="bank-heading">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 id="bank-heading" class="text-2xl font-semibold">2. Choose a bank</h2>
+          <p id="bank-subheading" class="text-sm text-gray-600">Highlight banks your buyer already trusts.</p>
+        </div>
+        <button id="reset-range" class="hidden text-sm text-blue-600 hover:underline">Change price range</button>
+      </div>
+      <div class="grid gap-6 lg:grid-cols-2">
+        <div>
+          <div id="bank-hint" class="text-sm text-gray-500 mb-3"></div>
+          <div id="bank-grid" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 id="statement-heading" class="text-lg font-semibold">Statement windows</h3>
+            <button id="clear-statement" class="hidden text-xs text-blue-600 hover:underline">Clear</button>
+          </div>
+          <p id="statement-subheading" class="text-xs text-gray-500 mb-3">Time your posting windows to match funding goals.</p>
+          <div id="statement-hint" class="text-xs text-gray-500 mb-2"></div>
+          <div id="statement-grid" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass card p-5" aria-labelledby="results-heading">
+      <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
+        <div>
+          <h2 id="results-heading" class="text-2xl font-semibold">3. Review tradelines</h2>
+          <p id="results-subheading" class="text-sm text-gray-600">Preview retail price, credit limit, and reporting cadence.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="text" id="search" placeholder="Search within results" class="px-3 py-2 rounded border shadow-sm focus:ring-2 focus:ring-blue-500">
+          <select id="sort" class="px-3 py-2 rounded border shadow-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">Sort</option>
+            <option value="price-asc">Price ↑</option>
+            <option value="price-desc">Price ↓</option>
+            <option value="limit-asc">Limit ↑</option>
+            <option value="limit-desc">Limit ↓</option>
+            <option value="age-asc">Age ↑</option>
+            <option value="age-desc">Age ↓</option>
+          </select>
+        </div>
+      </div>
+      <div id="results-meta" class="text-xs text-gray-500 mb-2"></div>
+      <div id="tradeline-container" class="grid gap-6 md:grid-cols-2 xl:grid-cols-3"></div>
+      <div class="flex justify-between items-center mt-6">
+        <button id="prev" class="px-4 py-2 mx-1 bg-gray-200 hover:bg-gray-300 transition rounded disabled:opacity-40" disabled>Prev</button>
+        <div id="page-indicator" class="text-sm text-gray-600"></div>
+        <button id="next" class="px-4 py-2 mx-1 bg-gray-200 hover:bg-gray-300 transition rounded disabled:opacity-40" disabled>Next</button>
+      </div>
+    </section>
   </div>
 </main>
 
