@@ -1245,6 +1245,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const consumers = Array.isArray(consumersRes.consumers) ? consumersRes.consumers : [];
       const leads = Array.isArray(leadsRes.leads) ? leadsRes.leads : [];
 
+      prepareClientLocationBreakdown(consumers);
+
       const totalSales = safeTotal(consumers, 'sale');
       const totalPaid = safeTotal(consumers, 'paid');
 
