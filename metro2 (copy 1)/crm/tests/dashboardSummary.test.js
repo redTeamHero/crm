@@ -3,13 +3,15 @@ import assert from 'node:assert/strict';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
-import { readKey, writeKey } from '../kvdb.js';
+import { readKey, writeKey, deleteKey } from '../kvdb.js';
+import { DASHBOARD_CONFIG_KEY, DEFAULT_DASHBOARD_CONFIG } from '../dashboardConfig.js';
 
 const originalUsers = await readKey('users', null);
 const originalConsumers = await readKey('consumers', null);
 const originalLeads = await readKey('leads', null);
 const originalInvoices = await readKey('invoices', null);
 const originalState = await readKey('consumer_state', null);
+const originalDashboardConfig = await readKey(DASHBOARD_CONFIG_KEY, null);
 
 const adminUser = {
   id: 'dash-admin',
@@ -184,7 +186,39 @@ test('GET /api/dashboard/summary returns aggregated metrics', async () => {
   assert.equal(summary.leads.consultsLast7d, 1);
   assert.equal(summary.kpis.leadToConsultRate, 50);
   assert.equal(summary.goals.leadToConsultTarget, 32);
+  assert.equal(summary.goals.monthlyRecurringTarget, DEFAULT_DASHBOARD_CONFIG.goals.monthlyRecurringTarget);
+  assert.equal(summary.ladder.title, DEFAULT_DASHBOARD_CONFIG.ladder.title);
   assert(summary.focus.nextRevenueMove.includes('Luis'));
+});
+
+test('PUT /api/dashboard/config updates ladder settings', async () => {
+  const res = await request(app)
+    .put('/api/dashboard/config')
+    .set('Authorization', `Bearer ${tokenFor(adminUser)}`)
+    .send({
+      goals: { monthlyRecurringTarget: 55555 },
+      ladder: {
+        title: 'New Revenue Plan',
+        pipelineValue: 'Synced',
+        playbookUrl: 'https://example.com/playbook'
+      }
+    });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.ok, true);
+  assert.equal(res.body.config.goals.monthlyRecurringTarget, 55555);
+  assert.equal(res.body.config.ladder.title, 'New Revenue Plan');
+  assert.equal(res.body.config.ladder.pipelineValue, 'Synced');
+  assert.equal(res.body.config.ladder.playbookUrl, 'https://example.com/playbook');
+
+  const summaryRes = await request(app)
+    .get('/api/dashboard/summary')
+    .set('Authorization', `Bearer ${tokenFor(adminUser)}`);
+
+  assert.equal(summaryRes.status, 200);
+  assert.equal(summaryRes.body.summary.goals.monthlyRecurringTarget, 55555);
+  assert.equal(summaryRes.body.summary.ladder.title, 'New Revenue Plan');
+  assert.equal(summaryRes.body.summary.ladder.pipelineValue, 'Synced');
 });
 
 test.after(async () => {
@@ -193,4 +227,5 @@ test.after(async () => {
   if (originalLeads) await writeKey('leads', originalLeads); else await writeKey('leads', { leads: [] });
   if (originalInvoices) await writeKey('invoices', originalInvoices); else await writeKey('invoices', { invoices: [] });
   if (originalState) await writeKey('consumer_state', originalState); else await writeKey('consumer_state', { consumers: {}, trackerSteps: [] });
+  if (originalDashboardConfig) await writeKey(DASHBOARD_CONFIG_KEY, originalDashboardConfig); else await deleteKey(DASHBOARD_CONFIG_KEY);
 });

@@ -1,10 +1,10 @@
 let templates = [];
 let sequences = [];
 let currentTemplateId = null;
-let currentSequenceId = null;
 let currentRequestType = 'correct';
 let defaultPack = [];
 let contracts = [];
+let sequenceEditorState = { id: null, name: '', templates: [] };
 
 const defaultPackGrid = document.getElementById('defaultPackGrid');
 const defaultPackEmpty = document.getElementById('defaultPackEmpty');
@@ -17,6 +17,19 @@ const contractStatus = document.getElementById('contractStatus');
 const contractModal = document.getElementById('contractModal');
 const contractForm = document.getElementById('contractForm');
 const btnNewContract = document.getElementById('btnNewContract');
+
+const sequenceList = document.getElementById('sequenceList');
+const sequenceEmpty = document.getElementById('sequenceEmpty');
+const sequenceModal = document.getElementById('sequenceModal');
+const sequenceStatus = document.getElementById('sequenceStatus');
+const sequenceListStatus = document.getElementById('sequenceListStatus');
+const seqNameInput = document.getElementById('seqName');
+const seqTemplatePicker = document.getElementById('seqTemplatePicker');
+const seqSelectedList = document.getElementById('seqSelectedList');
+const addSeqTemplateBtn = document.getElementById('addSeqTemplate');
+const closeSequenceBtn = document.getElementById('closeSequence');
+const saveSequenceBtn = document.getElementById('saveSequence');
+const newSequenceBtn = document.getElementById('newSequence');
 
 function templateLabel(t){
   return t?.heading || t?.name || '(no heading)';
@@ -268,6 +281,8 @@ async function loadLibrary(){
   sequences = data.sequences || [];
   renderTemplates();
   renderSequences();
+  renderSequenceTemplatePicker();
+  renderSequenceSteps();
   renderContracts();
   loadDefaultPack();
 }
@@ -362,8 +377,9 @@ async function upsertTemplate(payload){
     if(existing){ Object.assign(existing, data.template); }
     else { templates.push(data.template); }
     renderTemplates();
-    const selected = Array.from(document.querySelectorAll('#seqTemplates input[type="checkbox"]:checked')).map(cb => cb.value);
-    renderSeqTemplateOptions(selected);
+    renderSequenceTemplatePicker();
+    renderSequenceSteps();
+    renderSequences();
     return data.template.id;
   }
 }
@@ -398,66 +414,288 @@ function updatePreview(){
 }
 
 function renderSequences(){
-  const list = document.getElementById('sequenceList');
-  list.innerHTML = '';
-  sequences.forEach(s => {
-    const div = document.createElement('div');
-    div.textContent = s.name || '(no name)';
-    div.className = 'library-pill library-pill--ghost';
-    div.onclick = () => editSequence(s.id);
-    list.appendChild(div);
+  if(!sequenceList) return;
+  sequenceList.innerHTML = '';
+  const items = sequences.slice().sort((a,b)=> (a.name||'').localeCompare(b.name||''));
+  if(!items.length){
+    if(sequenceEmpty) sequenceEmpty.classList.remove('hidden');
+    return;
+  }
+  if(sequenceEmpty) sequenceEmpty.classList.add('hidden');
+
+  items.forEach(seq => {
+    const card = document.createElement('article');
+    card.className = 'library-sequence-card';
+
+    const header = document.createElement('div');
+    header.className = 'library-sequence-card__header';
+
+    const info = document.createElement('div');
+    const title = document.createElement('h3');
+    title.className = 'library-sequence-card__title';
+    title.textContent = seq.name || 'Untitled playbook';
+    const meta = document.createElement('p');
+    meta.className = 'library-sequence-card__meta';
+    const count = Array.isArray(seq.templates) ? seq.templates.length : 0;
+    meta.textContent = count === 1 ? '1 step' : `${count} steps`;
+    info.appendChild(title);
+    info.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'library-sequence-card__actions';
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn text-xs';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', ()=> openSequenceEditor(seq));
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'btn text-xs';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', ()=> handleSequenceDelete(seq.id));
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+
+    header.appendChild(info);
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    const stepList = document.createElement('ul');
+    stepList.className = 'text-xs text-slate-600 space-y-1';
+    const labels = (seq.templates || []).map((id, idx) => {
+      const tpl = templates.find(t => t.id === id);
+      return `${idx + 1}. ${templateLabel(tpl)}`;
+    }).filter(Boolean);
+    if(labels.length){
+      labels.slice(0, 4).forEach(label => {
+        const li = document.createElement('li');
+        li.textContent = label;
+        stepList.appendChild(li);
+      });
+      if(labels.length > 4){
+        const li = document.createElement('li');
+        li.textContent = `+${labels.length - 4} more steps`;
+        stepList.appendChild(li);
+      }
+    } else {
+      const empty = document.createElement('li');
+      empty.textContent = 'No steps selected yet.';
+      stepList.appendChild(empty);
+    }
+    card.appendChild(stepList);
+
+    sequenceList.appendChild(card);
   });
 }
 
-function renderSeqTemplateOptions(selected){
-  const container = document.getElementById('seqTemplates');
-  container.innerHTML = '';
-  templates.forEach(t => {
-    const label = document.createElement('label');
-    label.className = 'library-seq-option';
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.value = t.id;
-    cb.checked = selected.includes(t.id);
-    label.appendChild(cb);
-    label.append(t.heading || '(no heading)');
-    container.appendChild(label);
-  });
+function resetSequenceEditor(){
+  sequenceEditorState = { id: null, name: '', templates: [] };
+  if(seqNameInput) seqNameInput.value = '';
 }
 
-function editSequence(id){
-  const seq = sequences.find(s => s.id === id) || {};
-  currentSequenceId = id;
-  document.getElementById('seqName').value = seq.name || '';
-  renderSeqTemplateOptions(seq.templates || []);
-}
-
-function newSequence(){
-  currentSequenceId = null;
-  document.getElementById('seqName').value = '';
-  renderSeqTemplateOptions([]);
-}
-
-async function saveSequence(){
-  const selected = Array.from(document.querySelectorAll('#seqTemplates input[type="checkbox"]:checked')).map(cb => cb.value);
-  const payload = {
-    name: document.getElementById('seqName').value,
-    templates: selected
+function openSequenceEditor(seq){
+  const source = seq && typeof seq === 'object' ? seq : sequences.find(s => s.id === seq);
+  sequenceEditorState = {
+    id: source?.id || null,
+    name: source?.name || '',
+    templates: Array.isArray(source?.templates) ? [...source.templates] : []
   };
-  if (currentSequenceId != null) payload.id = currentSequenceId;
+  if(seqNameInput){
+    seqNameInput.value = sequenceEditorState.name;
+  }
+  renderSequenceTemplatePicker();
+  renderSequenceSteps();
+  if(sequenceStatus) sequenceStatus.classList.add('hidden');
+  if(sequenceModal){
+    sequenceModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+}
 
-  const res = await fetch('/api/sequences', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+function closeSequenceEditor(){
+  if(sequenceModal){
+    sequenceModal.style.display = 'none';
+  }
+  document.body.style.overflow = '';
+  if(sequenceStatus){
+    sequenceStatus.classList.add('hidden');
+  }
+  resetSequenceEditor();
+}
+
+function renderSequenceTemplatePicker(){
+  if(!seqTemplatePicker) return;
+  const sorted = templates.map(normalizeTemplateShape).filter(Boolean).sort((a,b)=> templateLabel(a).localeCompare(templateLabel(b)));
+  seqTemplatePicker.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Select template';
+  seqTemplatePicker.appendChild(placeholder);
+  sorted.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = templateLabel(t);
+    if(sequenceEditorState.templates.includes(t.id)){
+      opt.disabled = true;
+      opt.textContent += ' • Added';
+    }
+    seqTemplatePicker.appendChild(opt);
   });
-  const data = await res.json().catch(()=>({}));
-  if(data.sequence){
+}
+
+function renderSequenceSteps(){
+  if(!seqSelectedList) return;
+  seqSelectedList.innerHTML = '';
+  const selected = sequenceEditorState.templates || [];
+  if(!selected.length){
+    const li = document.createElement('li');
+    li.className = 'text-xs text-slate-500';
+    li.textContent = 'No steps yet. Add a template to start the playbook.';
+    seqSelectedList.appendChild(li);
+    return;
+  }
+  selected.forEach((id, idx) => {
+    const tpl = templates.find(t => t.id === id);
+    const li = document.createElement('li');
+    li.className = 'library-seq-step';
+    const label = document.createElement('span');
+    const badge = document.createElement('span');
+    badge.className = 'font-semibold text-emerald-700';
+    badge.textContent = `${idx + 1}.`;
+    label.appendChild(badge);
+    label.appendChild(document.createTextNode(` ${templateLabel(tpl)}`));
+    const actions = document.createElement('div');
+    actions.className = 'library-seq-step__actions';
+
+    const upBtn = document.createElement('button');
+    upBtn.type = 'button';
+    upBtn.className = 'btn text-xs';
+    upBtn.textContent = 'Up';
+    upBtn.disabled = idx === 0;
+    upBtn.addEventListener('click', ()=> moveSequenceStep(idx, -1));
+
+    const downBtn = document.createElement('button');
+    downBtn.type = 'button';
+    downBtn.className = 'btn text-xs';
+    downBtn.textContent = 'Down';
+    downBtn.disabled = idx === selected.length - 1;
+    downBtn.addEventListener('click', ()=> moveSequenceStep(idx, 1));
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn text-xs';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', ()=> removeSequenceStep(idx));
+
+    actions.appendChild(upBtn);
+    actions.appendChild(downBtn);
+    actions.appendChild(removeBtn);
+
+    li.appendChild(label);
+    li.appendChild(actions);
+    seqSelectedList.appendChild(li);
+  });
+}
+
+function moveSequenceStep(index, delta){
+  const steps = sequenceEditorState.templates || [];
+  const next = index + delta;
+  if(next < 0 || next >= steps.length) return;
+  [steps[index], steps[next]] = [steps[next], steps[index]];
+  renderSequenceSteps();
+  renderSequenceTemplatePicker();
+}
+
+function removeSequenceStep(index){
+  const steps = sequenceEditorState.templates || [];
+  steps.splice(index, 1);
+  renderSequenceSteps();
+  renderSequenceTemplatePicker();
+}
+
+function handleAddSequenceStep(){
+  if(!seqTemplatePicker) return;
+  const value = seqTemplatePicker.value;
+  if(!value) return;
+  if(!sequenceEditorState.templates.includes(value)){
+    sequenceEditorState.templates.push(value);
+    renderSequenceSteps();
+    renderSequenceTemplatePicker();
+  }
+  seqTemplatePicker.value = '';
+}
+
+async function handleSequenceSave(){
+  if(!saveSequenceBtn) return;
+  const name = (seqNameInput?.value || '').trim();
+  if(!name){
+    showStatus(sequenceStatus, 'Name required', 'error');
+    return;
+  }
+  if(!sequenceEditorState.templates.length){
+    showStatus(sequenceStatus, 'Add at least one step', 'error');
+    return;
+  }
+  const payload = {
+    name,
+    templates: [...sequenceEditorState.templates]
+  };
+  if(sequenceEditorState.id){
+    payload.id = sequenceEditorState.id;
+  }
+
+  saveSequenceBtn.disabled = true;
+  try {
+    const res = await fetch('/api/sequences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!data.ok || !data.sequence){
+      throw new Error(data.error || 'Failed to save playbook');
+    }
+    sequenceEditorState = {
+      id: data.sequence.id,
+      name: data.sequence.name || name,
+      templates: Array.isArray(data.sequence.templates) ? [...data.sequence.templates] : [...sequenceEditorState.templates]
+    };
+    if(seqNameInput){
+      seqNameInput.value = sequenceEditorState.name;
+    }
     const existing = sequences.find(s => s.id === data.sequence.id);
     if(existing){ Object.assign(existing, data.sequence); }
     else { sequences.push(data.sequence); }
     renderSequences();
-    editSequence(data.sequence.id);
+    renderSequenceTemplatePicker();
+    renderSequenceSteps();
+    showStatus(sequenceStatus, 'Playbook saved');
+  } catch(err){
+    showStatus(sequenceStatus, err.message || 'Failed to save playbook', 'error');
+  } finally {
+    saveSequenceBtn.disabled = false;
+  }
+}
+
+async function handleSequenceDelete(id){
+  if(!id) return;
+  const seq = sequences.find(s => s.id === id);
+  if(!seq) return;
+  if(!window.confirm(`Delete playbook "${seq.name || 'Untitled'}"?`)) return;
+  try {
+    const res = await fetch(`/api/sequences/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await res.json().catch(()=>({}));
+    if(!data.ok){
+      throw new Error(data.error || 'Failed to delete playbook');
+    }
+    sequences = sequences.filter(s => s.id !== id);
+    renderSequences();
+    showStatus(sequenceListStatus, 'Playbook deleted');
+    if(sequenceEditorState.id === id){
+      closeSequenceEditor();
+    }
+  } catch(err){
+    showStatus(sequenceListStatus, err.message || 'Failed to delete playbook', 'error');
   }
 }
 
@@ -465,8 +703,20 @@ document.getElementById('saveTemplate').onclick = saveTemplate;
 document.getElementById('saveTemplateCopy').onclick = saveTemplateAsNew;
 document.getElementById('newTemplate').onclick = openTemplateEditor;
 document.getElementById('cancelTemplate').onclick = hideTemplateEditor;
-document.getElementById('saveSequence').onclick = saveSequence;
-document.getElementById('newSequence').onclick = newSequence;
+if(saveSequenceBtn){ saveSequenceBtn.addEventListener('click', handleSequenceSave); }
+if(newSequenceBtn){ newSequenceBtn.addEventListener('click', () => openSequenceEditor(null)); }
+if(addSeqTemplateBtn){ addSeqTemplateBtn.addEventListener('click', handleAddSequenceStep); }
+if(closeSequenceBtn){ closeSequenceBtn.addEventListener('click', closeSequenceEditor); }
+if(sequenceModal){
+  sequenceModal.addEventListener('click', e => {
+    if(e.target.id === 'sequenceModal') closeSequenceEditor();
+  });
+}
+if(seqNameInput){
+  seqNameInput.addEventListener('input', e => {
+    sequenceEditorState.name = e.target.value;
+  });
+}
 
 const templateModal = document.getElementById('templateModal');
 if(templateModal){

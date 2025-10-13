@@ -852,7 +852,6 @@ function initPalette(){
           <p class="palette-title">Brand palette</p>
           <p class="palette-subtitle">Match your client-facing experience.</p>
         </div>
-        <button id="voiceMic" class="mic" type="button" aria-label="Toggle voice notes">🎤</button>
       </div>
       <label class="palette-field">
         <span class="palette-field-label">Glass opacity</span>
@@ -870,7 +869,6 @@ function initPalette(){
 
   const toggle = wrap.querySelector('.toggle');
   const controls = wrap.querySelector('.palette-controls');
-  const mic = wrap.querySelector('#voiceMic');
   const icon = toggle.querySelector('.toggle-icon');
   const label = toggle.querySelector('.toggle-label');
   const slider = wrap.querySelector('#glassAlpha');
@@ -888,10 +886,6 @@ function initPalette(){
       slider.setAttribute('tabindex', isCollapsed ? '-1' : '0');
       slider.setAttribute('aria-hidden', String(isCollapsed));
       slider.disabled = isCollapsed;
-    }
-    if (mic) {
-      mic.setAttribute('aria-hidden', String(isCollapsed));
-      mic.tabIndex = isCollapsed ? -1 : 0;
     }
     if (label) label.textContent = isCollapsed ? 'Theme' : 'Hide';
     if (icon) icon.textContent = isCollapsed ? '🎨' : '✕';
@@ -1221,7 +1215,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   ensureHelpModal();
   bindHelp();
   initPalette();
-  initVoiceNotes();
   ensureTierBadge();
   renderDeletionTier();
   // limitNavForMembers(); // disabled during host/team nav debugging
@@ -1238,55 +1231,6 @@ window.setSelectedConsumerId = function(id){
   else localStorage.removeItem('selectedConsumerId');
 };
 
-
-function initVoiceNotes(){
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRecognition) return;
-  if(document.getElementById('voiceOverlay')) return;
-  const mic = document.getElementById('voiceMic');
-  if(!mic) return;
-  const overlay = document.createElement('div');
-  overlay.id = 'voiceOverlay';
-  document.body.appendChild(overlay);
-  const notes = document.createElement('div');
-  notes.id = 'voiceNotes';
-  notes.className = 'glass card relative';
-  notes.innerHTML = '<button class="close btn">×</button><textarea class="w-full h-full p-2"></textarea>';
-  document.body.appendChild(notes);
-  const textarea = notes.querySelector('textarea');
-  const closeBtn = notes.querySelector('.close');
-  let active = false;
-  const keyword = (localStorage.getItem('voiceKeyword') || 'open notes').toLowerCase();
-  const rec = new SpeechRecognition();
-  rec.continuous = true;
-  rec.interimResults = true;
-  function startRec(){
-    try { rec.start(); } catch {}
-  }
-  function openNotes(){
-    active = true;
-    textarea.value = '';
-    document.body.classList.add('voice-active');
-    startRec();
-  }
-function closeNotes(){
-    active = false;
-    document.body.classList.remove('voice-active');
-    try{ rec.stop(); }catch{}
-  }
-  rec.onresult = (e)=>{
-    const txt = Array.from(e.results).map(r=>r[0].transcript).join('');
-    if(!active){
-      if(txt.toLowerCase().includes(keyword)) openNotes();
-    } else {
-      textarea.value = txt;
-    }
-  };
-  rec.onend = startRec;
-  mic.addEventListener('click', openNotes);
-  closeBtn.addEventListener('click', ()=>{ closeNotes(); });
-  startRec();
-}
 
 function initBackToTop(){
   if (typeof document === 'undefined') return;

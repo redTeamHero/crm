@@ -18,7 +18,6 @@ const DEFAULT_PORTAL_BACKGROUND = 'radial-gradient(circle at top left, rgba(16,1
 
 const DEFAULT_PORTAL_THEME = Object.freeze({
   backgroundColor: '',
-  backgroundImageUrl: '',
   logoUrl: '',
   taglinePrimary: 'Track disputes, uploads, and approvals in one place.',
   taglineSecondary: 'Sigue tus disputas, cargas y aprobaciones en un solo lugar.',
@@ -69,17 +68,9 @@ function applyPortalTheme(theme = {}){
   if (root) {
     const background = config.backgroundColor || DEFAULT_PORTAL_BACKGROUND;
     root.style.setProperty('--portal-background', background);
-    root.style.setProperty('--portal-background-color', config.backgroundColor || '');
-    if (config.backgroundImageUrl) {
-      root.style.setProperty('--portal-background-image', `url(${JSON.stringify(config.backgroundImageUrl)})`);
-    } else {
-      root.style.setProperty('--portal-background-image', 'none');
-    }
   }
   if (document.body) {
-    document.body.style.background = '';
-    document.body.style.backgroundColor = '';
-    document.body.style.backgroundImage = '';
+    document.body.style.background = config.backgroundColor ? config.backgroundColor : '';
   }
 
   const taglinePrimaryEl = document.getElementById('companyTaglinePrimary');
@@ -371,6 +362,47 @@ document.addEventListener('DOMContentLoaded', () => {
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
 
+  const languageToggle = document.getElementById('languageToggle');
+  const mobileLanguageToggle = document.getElementById('mobileLanguageToggle');
+  const htmlRoot = document.documentElement;
+
+  const updateLanguageButtons = (lang) => {
+    const label = lang === 'es' ? 'Español • English' : 'English • Español';
+    if (languageToggle) languageToggle.textContent = label;
+    if (mobileLanguageToggle) mobileLanguageToggle.textContent = label;
+  };
+
+  const applyLanguagePreference = (lang) => {
+    const normalized = lang === 'es' ? 'es' : 'en';
+    htmlRoot.setAttribute('lang', normalized);
+    try {
+      localStorage.setItem('portalLang', normalized);
+    } catch {}
+    updateLanguageButtons(normalized);
+  };
+
+  const cycleLanguage = () => {
+    const current = htmlRoot.getAttribute('lang') === 'es' ? 'es' : 'en';
+    applyLanguagePreference(current === 'es' ? 'en' : 'es');
+  };
+
+  [languageToggle, mobileLanguageToggle].forEach(btn => {
+    if (!btn) return;
+    btn.addEventListener('click', (event) => {
+      event.preventDefault();
+      cycleLanguage();
+    });
+  });
+
+  const storedLang = (() => {
+    try {
+      return localStorage.getItem('portalLang');
+    } catch {
+      return null;
+    }
+  })();
+  applyLanguagePreference(storedLang || htmlRoot.getAttribute('lang') || 'en');
+
   const mascotEl = document.getElementById('mascot');
   if (mascotEl && window.lottie && !mascotEl.dataset.customLogo) {
     lottie.loadAnimation({
@@ -564,6 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const docEl = document.getElementById('docList');
+  const docPreviewEl = document.getElementById('docListPreview');
   const messageBanner = document.getElementById('messageBanner');
   const messageSection = document.getElementById('messageSection');
   const messageList = document.getElementById('messageList');
@@ -800,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
   function loadDocs(){
-    if (!(docEl && consumerId)) return;
+    if (!(consumerId && (docEl || docPreviewEl))) return;
     fetch(`/api/consumers/${consumerId}/state`)
       .then(r => r.json())
       .then(data => {
@@ -808,10 +841,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.state?.creditScore) {
           applyCreditScore(data.state.creditScore);
         }
-        if (!docs.length) docEl.textContent = 'No documents uploaded.';
-        else docEl.innerHTML = docs.map(d => `<div class="news-item"><a href="/api/consumers/${consumerId}/state/files/${d.storedName}" target="_blank">${d.originalName}</a></div>`).join('');
+        const docMarkup = docs.map(d => `<div class="news-item"><a href="/api/consumers/${consumerId}/state/files/${d.storedName}" target="_blank">${d.originalName}</a></div>`).join('');
+        if (docEl) {
+          if (!docs.length) docEl.textContent = 'No documents uploaded.';
+          else docEl.innerHTML = docMarkup;
+        }
+        if (docPreviewEl) {
+          if (!docs.length) {
+            docPreviewEl.textContent = 'No documents uploaded.';
+          } else {
+            const previewDocs = docs.slice(0, 3).map(d => {
+              const created = d.createdAt ? new Date(d.createdAt) : null;
+              const timestamp = created && !Number.isNaN(created.getTime())
+                ? created.toLocaleDateString()
+                : 'Ready to view';
+              return `<div class="news-item preview-item"><div class="font-medium">${d.originalName}</div><div class="text-xs muted">${timestamp}</div></div>`;
+            }).join('');
+            const overflow = docs.length > 3 ? `<div class="text-xs muted">+${docs.length - 3} more in your library</div>` : '';
+            docPreviewEl.innerHTML = previewDocs + overflow;
+          }
+        }
       })
-      .catch(() => { docEl.textContent = 'Failed to load documents.'; });
+      .catch(() => {
+        if (docEl) docEl.textContent = 'Failed to load documents.';
+        if (docPreviewEl) docPreviewEl.textContent = 'Failed to load documents.';
+      });
   }
   loadDocs();
   loadMessages();

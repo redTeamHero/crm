@@ -133,6 +133,78 @@
       padding-right: 0.25rem;
     }
 
+    .library-sequence-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 14px;
+      padding: 0.9rem;
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .library-sequence-card__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .library-sequence-card__title {
+      font-weight: 600;
+      color: #0f172a;
+      font-size: 0.95rem;
+    }
+
+    .library-sequence-card__meta {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    .library-sequence-card__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .library-seq-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: clamp(12rem, 32vh, 18rem);
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .library-seq-step {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 12px;
+      background: rgba(236, 253, 245, 0.9);
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      color: #047857;
+      font-size: 0.8rem;
+    }
+
+    .library-seq-step__actions {
+      display: inline-flex;
+      gap: 0.25rem;
+    }
+
+    .library-seq-step__actions button {
+      font-size: 0.65rem;
+      padding: 0.35rem 0.5rem;
+    }
+
+    .library-seq-step__drag-hint {
+      font-size: 0.65rem;
+      color: rgba(4, 120, 87, 0.75);
+    }
+
     .library-pack-grid {
       display: grid;
       gap: 1rem;
@@ -425,21 +497,16 @@
       </section>
 
       <section class="glass card space-y-4" aria-labelledby="sequence-heading">
-        <div class="space-y-1">
-          <h2 id="sequence-heading" class="text-lg font-semibold text-slate-800">Sequences</h2>
-          <p class="text-sm text-slate-500">Drag templates into drip campaigns, marry NEPQ-style follow ups, and keep your fulfillment tight.</p>
-        </div>
-        <div class="flex flex-col gap-4 lg:flex-row">
-          <div class="lg:w-1/3 space-y-3">
-            <button id="newSequence" class="btn w-full">New Sequence</button>
-            <div id="sequenceList" class="library-template-list"></div>
+        <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+          <div class="space-y-1">
+            <h2 id="sequence-heading" class="text-lg font-semibold text-slate-800">Playbooks</h2>
+            <p class="text-sm text-slate-500">Package Metro-2 dispute steps into premium playbooks your reps can follow step by step.</p>
           </div>
-          <div class="flex-1 space-y-3">
-            <input id="seqName" class="input w-full text-sm" placeholder="Sequence Name" />
-            <div id="seqTemplates" class="checkbox-list w-full text-sm space-y-1 max-h-60 overflow-y-auto"></div>
-            <button id="saveSequence" class="btn text-sm self-start">Save Sequence</button>
-          </div>
+          <button id="newSequence" class="btn text-sm self-start">New Playbook</button>
         </div>
+        <p id="sequenceListStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+        <div id="sequenceList" class="space-y-3"></div>
+        <p id="sequenceEmpty" class="library-empty">No playbooks yet. Convert your best dispute flows into a reusable sequence.</p>
       </section>
     </div>
 
@@ -479,6 +546,39 @@
       <textarea id="tplAfter" class="input w-full text-sm" placeholder="After Issues"></textarea>
       <textarea id="tplEvidence" class="input w-full text-sm" placeholder="Evidence"></textarea>
       <div id="tplPreview" class="input w-full text-sm whitespace-pre-line h-48 overflow-y-auto" title="Drop a template here to load it"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Playbook Editor Modal -->
+<div id="sequenceModal" class="modal-backdrop">
+  <div class="modal">
+    <header>
+      <div class="font-medium">Playbook Editor</div>
+      <div class="flex gap-2">
+        <button id="saveSequence" class="btn text-sm">Save Playbook</button>
+        <button id="closeSequence" class="btn text-sm">Close</button>
+      </div>
+    </header>
+    <div class="body space-y-4">
+      <p id="sequenceStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+      <div class="space-y-2">
+        <label for="seqName" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Playbook Name</label>
+        <input id="seqName" class="input w-full text-sm" placeholder="Metro 2 compliance sequence" />
+      </div>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label for="seqTemplatePicker" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Steps</label>
+          <div class="flex items-center gap-2">
+            <select id="seqTemplatePicker" class="input text-sm">
+              <option value="">Select template</option>
+            </select>
+            <button id="addSeqTemplate" class="btn text-xs" type="button">Add Step</button>
+          </div>
+        </div>
+        <ul id="seqSelectedList" class="library-seq-steps" aria-live="polite"></ul>
+        <p class="text-[11px] text-slate-500">Order matters. We update filenames automatically for each step (e.g. <span class="font-semibold text-slate-700">step 1</span>, <span class="font-semibold text-slate-700">step 2</span>).</p>
+      </div>
     </div>
   </div>
 </div>

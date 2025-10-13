@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const addEnvBtn = document.getElementById('addEnvRow');
 
   const portalBackgroundEl = document.getElementById('portalBackgroundColor');
-  const portalBackgroundImageEl = document.getElementById('portalBackgroundImageUrl');
   const portalLogoEl = document.getElementById('portalLogoUrl');
   const portalTaglinePrimaryEl = document.getElementById('portalTaglinePrimary');
   const portalTaglineSecondaryEl = document.getElementById('portalTaglineSecondary');
@@ -28,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const PORTAL_THEME_DEFAULTS = Object.freeze({
     backgroundColor: '',
-    backgroundImageUrl: '',
     logoUrl: '',
     taglinePrimary: 'Track disputes, uploads, and approvals in one place.',
     taglineSecondary: 'Sigue tus disputas, cargas y aprobaciones en un solo lugar.',
@@ -46,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyPortalSettingsForm(portal = {}) {
     const theme = portal.theme || {};
     if (portalBackgroundEl) portalBackgroundEl.value = theme.backgroundColor || '';
-    if (portalBackgroundImageEl) portalBackgroundImageEl.value = theme.backgroundImageUrl || '';
     if (portalLogoEl) portalLogoEl.value = theme.logoUrl || '';
     if (portalTaglinePrimaryEl) {
       portalTaglinePrimaryEl.value = typeof theme.taglinePrimary === 'string'
@@ -88,22 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
-
-  function ensureClientPortalPanelOpen() {
-    if (clientPortalDetails && !clientPortalDetails.open) {
-      clientPortalDetails.open = true;
-    }
-  }
-
-  if (location.hash === '#client-portal') {
-    ensureClientPortalPanelOpen();
-  }
-
-  window.addEventListener('hashchange', () => {
-    if (location.hash === '#client-portal') {
-      ensureClientPortalPanelOpen();
-    }
-  });
 
   const saveBtn = document.getElementById('saveSettings');
   const msgEl = document.getElementById('saveMsg');
@@ -328,7 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
         clientPortal: {
           theme: {
             backgroundColor: portalBackgroundEl?.value.trim() || '',
-            backgroundImageUrl: portalBackgroundImageEl?.value.trim() || '',
             logoUrl: portalLogoEl?.value.trim() || '',
             taglinePrimary: portalTaglinePrimaryEl?.value.trim() || '',
             taglineSecondary: portalTaglineSecondaryEl?.value.trim() || '',
