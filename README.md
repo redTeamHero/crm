@@ -38,6 +38,21 @@ Copy `.env.sample` to `.env` and adjust values as needed.
 npm start
 ```
 
+## Dashboard summary API
+
+Fetch a consolidated dashboard snapshot (leads, revenue, reminders, and KPIs) with your admin token:
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"ducky","password":"duck"}' | jq -r .token)
+
+curl -s http://localhost:3000/api/dashboard/summary \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+The payload reports conversion rates, outstanding invoices, monthly recurring progress toward the $84k/mo goal, top reminders, and the next bilingual revenue move for your team.
+
 ## Stripe invoice checkout
 
 - Set `STRIPE_SECRET_KEY` (and optional redirect env vars) to let the CRM create Stripe Checkout sessions for invoices.

@@ -158,6 +158,60 @@ export async function markTrackerStep(consumerId, step, done = true) {
   await saveState(st);
 }
 
+export async function listAllConsumerStates({ includeEvents = true } = {}) {
+  const st = await loadState();
+  const now = Date.now();
+  const entries = [];
+  for (const [consumerId] of Object.entries(st.consumers || {})) {
+    const consumer = ensureConsumer(st, consumerId);
+    const reminders = Array.isArray(consumer.reminders)
+      ? consumer.reminders.map((reminder) => {
+          const dueRaw = reminder?.due || reminder?.payload?.due || null;
+          const dueTs = dueRaw ? Date.parse(dueRaw) : NaN;
+          const status = Number.isFinite(dueTs)
+            ? (dueTs < now ? "overdue" : "upcoming")
+            : "unscheduled";
+          return {
+            id: reminder.id || `${consumerId}_${Math.random().toString(16).slice(2)}`,
+            due: dueRaw,
+            status,
+            payload: reminder.payload ? { ...reminder.payload } : {},
+            notes: reminder.notes || "",
+            dueTs: Number.isFinite(dueTs) ? dueTs : null,
+          };
+        })
+      : [];
+    entries.push({
+      id: consumerId,
+      creditScore: consumer.creditScore ?? null,
+      reminders,
+      events: [],
+    });
+  }
+
+  processReminders(st);
+  await saveState(st);
+
+  if (includeEvents) {
+    for (const entry of entries) {
+      const consumer = ensureConsumer(st, entry.id);
+      entry.events = Array.isArray(consumer.events)
+        ? consumer.events.slice(0, 50).map((event) => ({
+            id: event.id || `${entry.id}_${Math.random().toString(16).slice(2)}`,
+            type: event.type || "event",
+            at: event.at || null,
+            payload: event.payload ? { ...event.payload } : {},
+          }))
+        : [];
+    }
+  }
+
+  return entries.map((entry) => ({
+    ...entry,
+    overdueCount: entry.reminders.filter((r) => r.status === "overdue").length,
+  }));
+}
+
 // Paths for storing/serving files for a consumer
 export function consumerUploadsDir(consumerId) {
   const dir = path.join(DATA_DIR, "consumers", consumerId, "uploads");

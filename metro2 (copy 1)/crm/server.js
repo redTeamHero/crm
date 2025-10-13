@@ -193,6 +193,7 @@ import {
   markTrackerStep,
   getTrackerSteps,
   setCreditScore,
+  listAllConsumerStates,
 
 } from "./state.js";
 function injectStyle(html, css){
@@ -230,14 +231,14 @@ async function loadSettings(){
   const raw = await readKey('settings', null);
   if(raw){
     const settings = normalizeSettings(raw);
-    applyEnvOverrides(settings.envOverrides);
     applyIntegrationSettings(settings);
+    applyEnvOverrides(settings.envOverrides);
     return settings;
   }
   const defaults = normalizeSettings(DEFAULT_SETTINGS);
   await writeKey('settings', defaults);
-  applyEnvOverrides(defaults.envOverrides);
   applyIntegrationSettings(defaults);
+  applyEnvOverrides(defaults.envOverrides);
   return defaults;
 }
 
@@ -245,8 +246,8 @@ async function saveSettings(data){
   const current = await readKey('settings', null);
   const merged = normalizeSettings({ ...(current || {}), ...(data || {}) });
   await writeKey('settings', merged);
-  applyEnvOverrides(merged.envOverrides);
   applyIntegrationSettings(merged);
+  applyEnvOverrides(merged.envOverrides);
   return merged;
 }
 
@@ -1060,6 +1061,62 @@ function normalizeLeadStatus(value){
   return "new";
 }
 
+function normalizeConsumerStatus(value){
+  const normalized = (value ?? "").toString().trim().toLowerCase();
+  if(!normalized) return "active";
+  if(["cancelled", "canceled", "lost", "inactive", "churned"].includes(normalized)) return "lost";
+  if(["paused", "on hold", "hold", "snoozed"].includes(normalized)) return "paused";
+  if(["complete", "completed", "finished", "success"].includes(normalized)) return "completed";
+  if(["prospect", "lead"].includes(normalized)) return "prospect";
+  return normalized;
+}
+
+const DASHBOARD_GOALS = Object.freeze({
+  leadToConsultTarget: 32,
+  retentionTarget: 92,
+  monthlyRecurringTarget: 84000,
+});
+
+function toPercent(part, total){
+  if(!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) return null;
+  return (part / total) * 100;
+}
+
+function roundNumber(value, decimals = 1){
+  if(!Number.isFinite(value)) return null;
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function coerceAmount(value){
+  if(typeof value === "number" && Number.isFinite(value)) return value;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function roundCurrency(value){
+  if(!Number.isFinite(value)) return 0;
+  return Math.round(value * 100) / 100;
+}
+
+function safeDate(value){
+  if(!value) return null;
+  const ts = Date.parse(value);
+  return Number.isFinite(ts) ? new Date(ts) : null;
+}
+
+const USD_FORMATTER = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+
+function formatUsd(value){
+  const amount = roundCurrency(coerceAmount(value));
+  return USD_FORMATTER.format(amount);
+}
+
 async function loadInvoicesDB(){
   const db = await readKey('invoices', null);
   if(db) return db;
@@ -1553,6 +1610,276 @@ app.get("/api/analytics/client-locations", authenticate, requirePermission("cons
   }
   res.json({ ok: true, locations });
 });
+
+app.get("/api/dashboard/summary", authenticate, requirePermission("reports"), async (_req, res) => {
+  try {
+    const [db, leadsDb, invoicesDb, stateEntries] = await Promise.all([
+      loadDB(),
+      loadLeadsDB(),
+      loadInvoicesDB(),
+      listAllConsumerStates(),
+    ]);
+
+    const consumers = Array.isArray(db.consumers) ? db.consumers : [];
+    const consumerMap = new Map();
+    const consumerStatusCounts = {};
+    let reportsLast30d = 0;
+    const creditScores = [];
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+    for (const consumer of consumers) {
+      if (!consumer) continue;
+      consumerMap.set(consumer.id, consumer);
+      const status = normalizeConsumerStatus(consumer.status);
+      consumerStatusCounts[status] = (consumerStatusCounts[status] || 0) + 1;
+      const reports = Array.isArray(consumer.reports) ? consumer.reports : [];
+      for (const report of reports) {
+        const uploaded = safeDate(report?.uploadedAt || report?.createdAt);
+        if (uploaded && uploaded.getTime() >= thirtyDaysAgo) {
+          reportsLast30d += 1;
+        }
+      }
+    }
+
+    for (const entry of stateEntries) {
+      if (entry?.creditScore) {
+        const scores = [
+          entry.creditScore.current,
+          entry.creditScore.transunion,
+          entry.creditScore.experian,
+          entry.creditScore.equifax,
+        ]
+          .map((value) => (Number.isFinite(value) ? value : Number.parseFloat(value)))
+          .filter((value) => Number.isFinite(value));
+        creditScores.push(...scores);
+      }
+    }
+
+    const averageCreditScore = creditScores.length
+      ? Math.round(creditScores.reduce((sum, value) => sum + value, 0) / creditScores.length)
+      : null;
+
+    const leads = Array.isArray(leadsDb.leads)
+      ? leadsDb.leads.map((lead) => ({
+          ...lead,
+          status: normalizeLeadStatus(lead.status),
+        }))
+      : [];
+    const leadStatusCounts = {};
+    for (const lead of leads) {
+      leadStatusCounts[lead.status] = (leadStatusCounts[lead.status] || 0) + 1;
+    }
+    const consultStatuses = new Set(["qualified", "won"]);
+    const consultCount = leads.filter((lead) => consultStatuses.has(lead.status)).length;
+    const closeCount = leads.filter((lead) => lead.status === "won").length;
+    const leadToConsultRate = roundNumber(toPercent(consultCount, leads.length) ?? 0, 1);
+    const leadToCloseRate = roundNumber(toPercent(closeCount, leads.length) ?? 0, 1);
+    const leadsNewLast7d = leads.filter((lead) => {
+      const created = safeDate(lead.createdAt);
+      return created && created.getTime() >= sevenDaysAgo;
+    }).length;
+    const consultsLast7d = leads.filter((lead) => {
+      if (!consultStatuses.has(lead.status)) return false;
+      const stamp = safeDate(lead.updatedAt || lead.createdAt);
+      return stamp && stamp.getTime() >= sevenDaysAgo;
+    }).length;
+
+    const invoices = Array.isArray(invoicesDb.invoices)
+      ? invoicesDb.invoices.map((invoice) => ({
+          ...invoice,
+          amount: roundCurrency(coerceAmount(invoice.amount)),
+        }))
+      : [];
+    const totalBilled = roundCurrency(invoices.reduce((sum, invoice) => sum + invoice.amount, 0));
+    const totalCollected = roundCurrency(
+      invoices.filter((invoice) => invoice.paid).reduce((sum, invoice) => sum + invoice.amount, 0),
+    );
+    const outstanding = Math.max(0, roundCurrency(totalBilled - totalCollected));
+    const invoiceCount = invoices.length;
+    const averageInvoice = invoiceCount ? roundCurrency(totalBilled / invoiceCount) : null;
+    const invoicesLast30d = roundCurrency(
+      invoices
+        .filter((invoice) => {
+          const created = safeDate(invoice.createdAt || invoice.updatedAt);
+          return created && created.getTime() >= thirtyDaysAgo;
+        })
+        .reduce((sum, invoice) => sum + invoice.amount, 0),
+    );
+
+    const nowDate = new Date(now);
+    const monthStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1).getTime();
+    const monthEnd = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 1).getTime();
+    const monthlyRecurringRevenue = roundCurrency(
+      invoices
+        .filter((invoice) => {
+          if (invoice.paid) return false;
+          const due = safeDate(invoice.due);
+          if (!due) return false;
+          const dueTs = due.getTime();
+          return dueTs >= monthStart && dueTs < monthEnd;
+        })
+        .reduce((sum, invoice) => sum + invoice.amount, 0),
+    );
+
+    const outstandingInvoices = invoices
+      .filter((invoice) => !invoice.paid)
+      .map((invoice) => ({
+        id: invoice.id,
+        consumerId: invoice.consumerId,
+        amount: invoice.amount,
+        due: invoice.due ? safeDate(invoice.due)?.toISOString() ?? null : null,
+        consumerName: consumerMap.get(invoice.consumerId)?.name || "Client",
+      }))
+      .sort((a, b) => b.amount - a.amount);
+    const topOutstanding = outstandingInvoices.length ? outstandingInvoices[0] : null;
+
+    const reminders = [];
+    let overdueCount = 0;
+    for (const entry of stateEntries) {
+      if (!entry) continue;
+      const entryOverdue = Number(entry.overdueCount);
+      if (Number.isFinite(entryOverdue) && entryOverdue > 0) {
+        overdueCount += entryOverdue;
+      }
+      if (Array.isArray(entry.events)) {
+        for (const event of entry.events) {
+          if ((event?.type || '').toLowerCase() !== 'letter_reminder') continue;
+          const dueRaw = event.payload?.due || event.payload?.dueDate || event.payload?.due_at;
+          const due = safeDate(dueRaw);
+          if (due && due.getTime() <= now) {
+            overdueCount += 1;
+          }
+        }
+      }
+      for (const reminder of entry.reminders || []) {
+        if (reminder.status === "overdue") {
+          continue;
+        }
+        if (!Number.isFinite(reminder.dueTs)) continue;
+        reminders.push({
+          id: reminder.id,
+          consumerId: entry.id,
+          consumerName: consumerMap.get(entry.id)?.name || "Client",
+          due: new Date(reminder.dueTs).toISOString(),
+          title:
+            reminder.payload?.title ||
+            reminder.payload?.subject ||
+            reminder.notes ||
+            "Reminder",
+          description:
+            reminder.payload?.description ||
+            reminder.payload?.notes ||
+            reminder.payload?.text ||
+            "",
+        });
+      }
+    }
+    reminders.sort((a, b) => Date.parse(a.due) - Date.parse(b.due));
+    const upcomingReminders = reminders.slice(0, 5);
+
+    const recentEvents = [];
+    for (const entry of stateEntries) {
+      for (const event of entry.events || []) {
+        const at = safeDate(event.at);
+        recentEvents.push({
+          id: event.id,
+          consumerId: entry.id,
+          consumerName: consumerMap.get(entry.id)?.name || "Client",
+          type: event.type || "event",
+          at: at ? at.toISOString() : null,
+          summary:
+            (event.payload?.text || event.payload?.title || event.payload?.subject || "").slice(0, 160) ||
+            event.type ||
+            "event",
+        });
+      }
+    }
+    recentEvents.sort((a, b) => {
+      const aTs = a.at ? Date.parse(a.at) : 0;
+      const bTs = b.at ? Date.parse(b.at) : 0;
+      return bTs - aTs;
+    });
+
+    const collectionRate = roundNumber(toPercent(totalCollected, totalBilled) ?? 0, 1);
+    const retentionDenominator =
+      (consumerStatusCounts.active || 0) +
+      (consumerStatusCounts.completed || 0) +
+      (consumerStatusCounts.lost || 0);
+    const retentionRate = roundNumber(
+      toPercent(
+        (consumerStatusCounts.active || 0) + (consumerStatusCounts.completed || 0),
+        retentionDenominator,
+      ) ?? 0,
+      1,
+    );
+
+    let nextRevenueMove =
+      "Bundle the automation + monitoring offer at $249/mo for warm leads. / Ofrece el paquete de automatización + monitoreo a $249/mes para leads calientes.";
+    if (topOutstanding) {
+      const dueLabel = topOutstanding.due ? new Date(topOutstanding.due) : null;
+      const dueText = dueLabel
+        ? `${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(dueLabel)} / ${new Intl.DateTimeFormat("es-MX", { month: "short", day: "numeric" }).format(dueLabel)}`
+        : "soon / pronto";
+      const amountText = formatUsd(topOutstanding.amount);
+      nextRevenueMove = `Check-in with ${topOutstanding.consumerName} about the ${amountText} balance due ${dueText}. Offer certified mail tracking as the premium add-on. / Llama a ${topOutstanding.consumerName} sobre el saldo de ${amountText} que vence ${dueText}. Ofrece seguimiento por correo certificado como extra premium.`;
+    } else if (outstanding > 0) {
+      const amountText = formatUsd(outstanding);
+      nextRevenueMove = `Close out the ${amountText} outstanding pipeline with a concierge call-to-action. Bundle certified mail credits. / Cierra los ${amountText} pendientes con una llamada estilo concierge. Incluye créditos de correo certificado.`;
+    }
+
+    res.json({
+      ok: true,
+      summary: {
+        totals: {
+          consumers: consumers.length,
+          leads: leads.length,
+        },
+        consumers: {
+          byStatus: consumerStatusCounts,
+          reportsLast30d,
+          averageCreditScore,
+        },
+        leads: {
+          byStatus: leadStatusCounts,
+          newLast7d: leadsNewLast7d,
+          consultsLast7d,
+        },
+        revenue: {
+          totalBilled,
+          totalCollected,
+          outstanding,
+          averageInvoice,
+          invoicesLast30d,
+          monthlyRecurringRevenue,
+          collectionRate,
+          topOutstanding,
+        },
+        reminders: {
+          upcoming: upcomingReminders,
+          overdueCount,
+        },
+        activities: {
+          recent: recentEvents.slice(0, 8),
+        },
+        kpis: {
+          leadToConsultRate,
+          leadToCloseRate,
+          retentionRate,
+          revenueCollectionRate: collectionRate,
+        },
+        goals: DASHBOARD_GOALS,
+        focus: {
+          nextRevenueMove,
+        },
+      },
+    });
+  } catch (err) {
+    logError("DASHBOARD_SUMMARY_FAIL", "Failed to build dashboard summary", { message: err?.message });
+    res.status(500).json({ ok: false, error: "Failed to build dashboard summary" });
+  }
+});
 app.post("/api/consumers", authenticate, requirePermission("consumers", { allowGuest: true }), async (req,res)=>{
 
   const db = await loadDB();
@@ -1694,6 +2021,7 @@ app.get("/api/invoices/:consumerId", async (req,res)=>{
 
 app.post("/api/invoices", async (req,res)=>{
   const db = await loadInvoicesDB();
+  const nowIso = new Date().toISOString();
   const inv = {
     id: nanoid(10),
     consumerId: req.body.consumerId,
@@ -1705,6 +2033,8 @@ app.post("/api/invoices", async (req,res)=>{
     payLink: null,
     paymentProvider: null,
     stripeSessionId: null,
+    createdAt: nowIso,
+    updatedAt: nowIso,
   };
 
   const mainDb = await loadDB();
@@ -1851,6 +2181,7 @@ app.put("/api/invoices/:id", async (req,res)=>{
   if(req.body.stripeSessionId !== undefined){
     inv.stripeSessionId = req.body.stripeSessionId ? String(req.body.stripeSessionId) : null;
   }
+  inv.updatedAt = new Date().toISOString();
   await saveInvoicesDB(db);
   res.json({ ok:true, invoice: inv });
 });
