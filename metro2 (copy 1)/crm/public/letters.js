@@ -94,6 +94,7 @@ function buildJobCard(job){
             <polyline points="12 7 12 12 15 15"></polyline>
           </svg>
           ${createdAt}
+        </span>
       </div>
       <div class="mt-auto flex items-center justify-between gap-3">
         <div class="flex flex-col text-xs text-slate-500">
