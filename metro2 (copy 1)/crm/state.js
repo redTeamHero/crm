@@ -47,6 +47,9 @@ function ensureConsumer(st, consumerId) {
   c.files ??= [];
   c.reminders ??= [];
   c.tracker ??= {};
+  if (c.creditScore === undefined) {
+    c.creditScore = null;
+  }
   return c;
 }
 
@@ -108,6 +111,17 @@ export async function addReminder(consumerId, reminder) {
   const st = await loadState();
   const c = ensureConsumer(st, consumerId);
   c.reminders.push(reminder);
+  await saveState(st);
+}
+
+export async function setCreditScore(consumerId, score) {
+  const st = await loadState();
+  const c = ensureConsumer(st, consumerId);
+  if (score && typeof score === "object" && Object.keys(score).length) {
+    c.creditScore = score;
+  } else {
+    c.creditScore = null;
+  }
   await saveState(st);
 }
 
