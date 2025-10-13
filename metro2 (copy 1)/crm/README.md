@@ -35,6 +35,10 @@ console.log(violations.MISSING_DOFD.severity); // 5
 2. Keep descriptions factual and align each rule with FCRA accuracy requirements—avoid implying guaranteed deletions or timeframes.
 3. Run `npm test` to validate changes and maintain compliance.
 
+## Architecture overview
+
+For a guided, revenue-focused breakdown of how the CRM splits into API, application services, domain logic, integrations, and UI, read [`docs/layered_architecture.md`](docs/layered_architecture.md). Use that playbook when adding features so we keep Metro-2 rules pure, infrastructure swappable, and the client experience premium.
+
 ## Chromium dependencies
 
 Puppeteer needs system libraries (`libnss3`, `libnspr4`) to render PDFs. On Debian/Ubuntu run:
