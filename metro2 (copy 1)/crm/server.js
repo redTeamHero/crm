@@ -916,24 +916,54 @@ async function loadDB(){
 }
 async function saveDB(db){ await writeKey('consumers', db); }
 const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [], mainTemplates: defaultTemplates().map(t=>t.id) };
-async function loadLettersDB(){
-  const db = await readKey('letters', null);
-  if(db){
-    if(!Array.isArray(db.mainTemplates) || db.mainTemplates.length === 0){
-      db.mainTemplates = defaultTemplates().map(t=>t.id);
-      await saveLettersDB(db);
-    }
-    console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
-    return db;
+function normalizeLettersDB(db){
+  if(!db || typeof db !== 'object'){
+    return { db: { ...LETTERS_DEFAULT }, mutated: true };
   }
-  console.warn("Letters DB missing, initializing with defaults");
-  await writeKey('letters', LETTERS_DEFAULT);
-  return LETTERS_DEFAULT;
+  const normalized = { ...db };
+  let mutated = false;
+  if(!Array.isArray(normalized.jobs)){
+    normalized.jobs = [];
+    mutated = true;
+  }
+  if(!Array.isArray(normalized.templates)){
+    normalized.templates = [];
+    mutated = true;
+  }
+  if(!Array.isArray(normalized.sequences)){
+    normalized.sequences = [];
+    mutated = true;
+  }
+  if(!Array.isArray(normalized.contracts)){
+    normalized.contracts = [];
+    mutated = true;
+  }
+  if(!Array.isArray(normalized.mainTemplates) || normalized.mainTemplates.length === 0){
+    normalized.mainTemplates = defaultTemplates().map(t=>t.id);
+    mutated = true;
+  }
+  return { db: normalized, mutated };
+}
+
+async function loadLettersDB(){
+  const raw = await readKey('letters', null);
+  if(!raw){
+    console.warn("Letters DB missing, initializing with defaults");
+    await writeKey('letters', LETTERS_DEFAULT);
+    return { ...LETTERS_DEFAULT };
+  }
+  const { db, mutated } = normalizeLettersDB(raw);
+  if(mutated){
+    await writeKey('letters', db);
+  }
+  console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
+  return db;
 }
 
 async function saveLettersDB(db){
-  await writeKey('letters', db);
-  console.log(`Saved letters DB with ${db.jobs.length} jobs`);
+  const { db: normalized } = normalizeLettersDB(db);
+  await writeKey('letters', normalized);
+  console.log(`Saved letters DB with ${normalized.jobs.length} jobs`);
 }
 
 async function loadLeadsDB(){
