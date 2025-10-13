@@ -52,6 +52,43 @@ const MAX_ENV_KEY_LENGTH = 64;
 
 const DEFAULT_MEMBER_PERMISSIONS = ["consumers", "contacts", "tasks", "reports"];
 
+const CLIENT_PORTAL_MODULE_KEYS = Object.freeze([
+  "creditScore",
+  "negativeItems",
+  "reportSnapshot",
+  "milestones",
+  "team",
+  "news",
+  "debtCalc",
+  "messages",
+  "education",
+  "documents",
+  "mail",
+  "payments",
+  "uploads",
+]);
+
+const DEFAULT_CLIENT_PORTAL_THEME = Object.freeze({
+  backgroundColor: "",
+  logoUrl: "",
+  taglinePrimary: "Track disputes, uploads, and approvals in one place.",
+  taglineSecondary: "Sigue tus disputas, cargas y aprobaciones en un solo lugar.",
+});
+
+const DEFAULT_CLIENT_PORTAL_MODULES = Object.freeze(
+  CLIENT_PORTAL_MODULE_KEYS.reduce((acc, key) => {
+    acc[key] = true;
+    return acc;
+  }, {})
+);
+
+function cloneDefaultClientPortalSettings() {
+  return {
+    theme: { ...DEFAULT_CLIENT_PORTAL_THEME },
+    modules: { ...DEFAULT_CLIENT_PORTAL_MODULES },
+  };
+}
+
 const DEFAULT_SETTINGS = {
   hibpApiKey: "",
   rssFeedUrl: "https://hnrss.org/frontpage",
@@ -64,7 +101,8 @@ const DEFAULT_SETTINGS = {
   gmailClientId: "",
   gmailClientSecret: "",
   gmailRefreshToken: "",
-  envOverrides: {}
+  envOverrides: {},
+  clientPortal: cloneDefaultClientPortalSettings(),
 };
 
 const STRING_SETTING_KEYS = [
@@ -154,6 +192,58 @@ function normalizeEnvOverrides(raw){
   return result;
 }
 
+function sanitizePortalBackground(value = "") {
+  const cleaned = sanitizeSettingString(value).toLowerCase();
+  if (!cleaned) return "";
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(cleaned)) return cleaned;
+  if (/^[a-z]{2,32}$/i.test(cleaned)) return cleaned;
+  return "";
+}
+
+function sanitizePortalUrl(value = "") {
+  const cleaned = sanitizeSettingString(value);
+  if (!cleaned) return "";
+  if (cleaned.startsWith("/")) return cleaned;
+  if (/^https?:\/\//i.test(cleaned)) return cleaned;
+  return "";
+}
+
+function sanitizePortalTagline(value = "") {
+  return sanitizeSettingString(value).slice(0, 160);
+}
+
+function normalizeClientPortalSettings(raw = {}) {
+  const defaults = cloneDefaultClientPortalSettings();
+  const themeSource = raw && typeof raw.theme === "object" ? raw.theme : raw;
+  defaults.theme.backgroundColor = sanitizePortalBackground(
+    themeSource?.backgroundColor ?? themeSource?.bgColor ?? defaults.theme.backgroundColor
+  );
+  defaults.theme.logoUrl = sanitizePortalUrl(themeSource?.logoUrl ?? defaults.theme.logoUrl);
+  defaults.theme.taglinePrimary = sanitizePortalTagline(
+    themeSource?.taglinePrimary ?? themeSource?.tagline ?? defaults.theme.taglinePrimary
+  );
+  defaults.theme.taglineSecondary = sanitizePortalTagline(
+    themeSource?.taglineSecondary ?? defaults.theme.taglineSecondary
+  );
+
+  const moduleSource = raw && typeof raw.modules === "object" ? raw.modules : raw;
+  for (const key of CLIENT_PORTAL_MODULE_KEYS) {
+    if (moduleSource && Object.prototype.hasOwnProperty.call(moduleSource, key)) {
+      defaults.modules[key] = Boolean(moduleSource[key]);
+    }
+  }
+
+  return defaults;
+}
+
+function exportClientPortalSettings(settings = {}) {
+  const normalized = normalizeClientPortalSettings(settings);
+  return {
+    theme: { ...normalized.theme },
+    modules: { ...normalized.modules },
+  };
+}
+
 function applyEnvOverrides(overrides = {}){
   for(const [key, value] of Object.entries(overrides)){
     process.env[key] = value;
@@ -176,6 +266,7 @@ function applyEnvFallbacks(settings = {}){
 function normalizeSettings(raw){
   const base = { ...DEFAULT_SETTINGS, ...(raw || {}) };
   base.envOverrides = normalizeEnvOverrides((raw && raw.envOverrides) ?? base.envOverrides);
+  base.clientPortal = normalizeClientPortalSettings((raw && raw.clientPortal) ?? base.clientPortal ?? {});
   for (const key of STRING_SETTING_KEYS) {
     base[key] = sanitizeSettingString(base[key]);
   }
@@ -836,10 +927,12 @@ app.get("/portal/:id", async (req, res) => {
       }
     }
   }
+  const settings = await loadSettings();
   const bootstrap = {
     creditScore: consumer.creditScore || null,
     negativeItems,
     snapshot: buildPortalSnapshot(negativeItems),
+    portalSettings: exportClientPortalSettings(settings?.clientPortal),
   };
   const serializedBootstrap = toInlineJson(bootstrap);
   const bootstrapScript = `\n<script>\n  try {\n    const data = ${serializedBootstrap};\n    window.__PORTAL_BOOTSTRAP__ = data;\n    window.__NEGATIVE_ITEMS__ = Array.isArray(data.negativeItems) ? data.negativeItems : [];\n    if (data.creditScore) {\n      localStorage.setItem('creditScore', JSON.stringify(data.creditScore));\n    } else {\n      localStorage.removeItem('creditScore');\n    }\n    localStorage.setItem('negativeItems', JSON.stringify(window.__NEGATIVE_ITEMS__));\n    localStorage.setItem('creditSnapshot', JSON.stringify(data.snapshot || {}));\n  } catch (err) {\n    console.warn('Failed to bootstrap portal data', err);\n  }\n</script>`;
@@ -897,6 +990,7 @@ app.post("/api/settings", async (req, res) => {
     gmailClientSecret = "",
     gmailRefreshToken = "",
     envOverrides = {},
+    clientPortal = {},
   } = req.body || {};
   const previousSettings = await loadSettings();
   const settings = await saveSettings({
@@ -912,6 +1006,7 @@ app.post("/api/settings", async (req, res) => {
     gmailClientSecret,
     gmailRefreshToken,
     envOverrides,
+    clientPortal,
   });
 
   if (

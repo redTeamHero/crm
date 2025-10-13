@@ -17,6 +17,74 @@ document.addEventListener('DOMContentLoaded', () => {
   const envListEl = document.getElementById('envList');
   const addEnvBtn = document.getElementById('addEnvRow');
 
+  const portalBackgroundEl = document.getElementById('portalBackgroundColor');
+  const portalLogoEl = document.getElementById('portalLogoUrl');
+  const portalTaglinePrimaryEl = document.getElementById('portalTaglinePrimary');
+  const portalTaglineSecondaryEl = document.getElementById('portalTaglineSecondary');
+  const portalResetBtn = document.getElementById('portalThemeReset');
+  const portalModuleInputs = Array.from(document.querySelectorAll('input[data-portal-module]'));
+
+  const PORTAL_THEME_DEFAULTS = Object.freeze({
+    backgroundColor: '',
+    logoUrl: '',
+    taglinePrimary: 'Track disputes, uploads, and approvals in one place.',
+    taglineSecondary: 'Sigue tus disputas, cargas y aprobaciones en un solo lugar.',
+  });
+
+  const PORTAL_MODULE_DEFAULTS = Object.freeze(
+    portalModuleInputs.reduce((acc, input) => {
+      const key = input.dataset.portalModule;
+      if (!key) return acc;
+      acc[key] = true;
+      return acc;
+    }, {})
+  );
+
+  function applyPortalSettingsForm(portal = {}) {
+    const theme = portal.theme || {};
+    if (portalBackgroundEl) portalBackgroundEl.value = theme.backgroundColor || '';
+    if (portalLogoEl) portalLogoEl.value = theme.logoUrl || '';
+    if (portalTaglinePrimaryEl) {
+      portalTaglinePrimaryEl.value = typeof theme.taglinePrimary === 'string'
+        ? theme.taglinePrimary
+        : PORTAL_THEME_DEFAULTS.taglinePrimary;
+    }
+    if (portalTaglineSecondaryEl) {
+      portalTaglineSecondaryEl.value = typeof theme.taglineSecondary === 'string'
+        ? theme.taglineSecondary
+        : PORTAL_THEME_DEFAULTS.taglineSecondary;
+    }
+
+    const modules = portal.modules || {};
+    portalModuleInputs.forEach(input => {
+      const key = input.dataset.portalModule;
+      if (!key) return;
+      const enabled = Object.prototype.hasOwnProperty.call(modules, key)
+        ? modules[key] !== false
+        : PORTAL_MODULE_DEFAULTS[key] !== false;
+      input.checked = enabled;
+    });
+  }
+
+  function collectPortalModules() {
+    const modules = {};
+    portalModuleInputs.forEach(input => {
+      const key = input.dataset.portalModule;
+      if (!key) return;
+      modules[key] = !!input.checked;
+    });
+    return modules;
+  }
+
+  if (portalResetBtn) {
+    portalResetBtn.addEventListener('click', () => {
+      applyPortalSettingsForm({
+        theme: { ...PORTAL_THEME_DEFAULTS },
+        modules: { ...PORTAL_MODULE_DEFAULTS },
+      });
+    });
+  }
+
   const saveBtn = document.getElementById('saveSettings');
   const msgEl = document.getElementById('saveMsg');
 
@@ -198,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gmailClientSecretEl) gmailClientSecretEl.value = data.settings?.gmailClientSecret || '';
       if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = data.settings?.gmailRefreshToken || '';
       renderEnvOverrides(data.settings?.envOverrides || {});
+      applyPortalSettingsForm(data.settings?.clientPortal || {});
 
     } catch (e) {
       console.error('Failed to load settings', e);
@@ -236,6 +305,15 @@ document.addEventListener('DOMContentLoaded', () => {
         gmailClientSecret: gmailClientSecretEl?.value.trim() || '',
         gmailRefreshToken: gmailRefreshTokenEl?.value.trim() || '',
         envOverrides: collectEnvOverrides(),
+        clientPortal: {
+          theme: {
+            backgroundColor: portalBackgroundEl?.value.trim() || '',
+            logoUrl: portalLogoEl?.value.trim() || '',
+            taglinePrimary: portalTaglinePrimaryEl?.value.trim() || '',
+            taglineSecondary: portalTaglineSecondaryEl?.value.trim() || '',
+          },
+          modules: collectPortalModules(),
+        },
 
       };
       const originalLabel = saveBtn.textContent;
@@ -263,6 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gmailClientSecretEl) gmailClientSecretEl.value = result.settings?.gmailClientSecret || '';
         if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = result.settings?.gmailRefreshToken || '';
         renderEnvOverrides(result.settings?.envOverrides || {});
+        applyPortalSettingsForm(result.settings?.clientPortal || {});
         if (msgEl) {
           msgEl.textContent = 'Saved!';
           msgEl.classList.remove('hidden');
