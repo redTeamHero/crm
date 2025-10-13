@@ -22,6 +22,7 @@ Members created through `/api/register` now receive default permissions for cons
 - `PORT` (optional, defaults to 3000)
 - `METRO2_VIOLATIONS_PATH` (optional; path to `metro2Violations.json`. If unset, the app searches the repo.)
 - `METRO2_KNOWLEDGE_GRAPH_PATH` (optional; path to `metro2_knowledge_graph.json`. Defaults to the shared data file.)
+- `PORTAL_PAYMENT_BASE` (optional; fallback base URL for invoice pay links rendered in the client portal.)
 
 Copy `.env.sample` to `.env` and adjust values as needed.
 
