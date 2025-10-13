@@ -23,6 +23,9 @@ Members created through `/api/register` now receive default permissions for cons
 - `METRO2_VIOLATIONS_PATH` (optional; path to `metro2Violations.json`. If unset, the app searches the repo.)
 - `METRO2_KNOWLEDGE_GRAPH_PATH` (optional; path to `metro2_knowledge_graph.json`. Defaults to the shared data file.)
 - `PORTAL_PAYMENT_BASE` (optional; fallback base URL for invoice pay links rendered in the client portal.)
+- `STRIPE_SECRET_KEY` (optional; enables Stripe Checkout sessions for invoice payments.)
+- `STRIPE_SUCCESS_URL` (optional; override the success redirect. Supports `{CHECKOUT_SESSION_ID}`, `{INVOICE_ID}`, `{CONSUMER_ID}` tokens.)
+- `STRIPE_CANCEL_URL` (optional; override the cancel redirect with the same tokens.)
 
 Copy `.env.sample` to `.env` and adjust values as needed.
 
@@ -30,6 +33,22 @@ Copy `.env.sample` to `.env` and adjust values as needed.
 ```bash
 npm start
 ```
+
+## Stripe invoice checkout
+
+- Set `STRIPE_SECRET_KEY` (and optional redirect env vars) to let the CRM create Stripe Checkout sessions for invoices.
+- When you add a new invoice without a manual pay link, the server now auto-generates a Stripe session and stores the checkout URL for the client portal.
+- Clients clicking **Pay now / Pagar ahora** inside the portal will request a fresh Stripe Checkout session so expired links are never shown.
+
+Smoke-test a checkout session for a specific invoice (replace `INV123` and `CONSUMER123` with real IDs):
+
+```bash
+curl -X POST http://localhost:3000/api/invoices/INV123/checkout \
+  -H 'Content-Type: application/json' \
+  -d '{"consumerId":"CONSUMER123"}'
+```
+
+The response includes `url` (Stripe-hosted payment page) and `sessionId` you can use for post-payment reconciliation webhooks.
 
 ## Schedule
 
