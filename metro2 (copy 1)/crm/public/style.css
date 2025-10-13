@@ -1101,31 +1101,6 @@ body::after {
   border: 2px solid rgba(255,255,255,0.85);
   box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.35);
 }
-.palette .mic {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.12);
-  color: #f8fafc;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.32);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-.palette .mic:hover,
-.palette .mic:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.4);
-  background: rgba(255, 255, 255, 0.2);
-  outline: none;
-}
-.palette.collapsed .mic {
-  display: none;
-}
-
 @media (max-width: 768px) {
   .palette .toggle-label {
     display: none;
@@ -1145,28 +1120,6 @@ body::after {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
-
-#voiceOverlay{
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  box-shadow:0 0 0 4px var(--accent) inset;
-  z-index:40;
-  display:none;
-}
-body.voice-active #voiceOverlay{display:block;}
-#voiceNotes{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  width:min(320px,90vw);
-  height:160px;
-  z-index:50;
-  display:none;
-}
-#voiceNotes textarea{width:100%;height:100%;}
-#voiceNotes .close{position:absolute;top:4px;right:4px;}
-body.voice-active #voiceNotes{display:block;}
 
 .remove-step{
   background: transparent;
