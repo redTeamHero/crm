@@ -38,6 +38,7 @@ import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "./negativeItems.js";
 import { mapAuditedViolations } from "./pullTradelineData.js";
 import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID } from "./tenantLimits.js";
+import { getDashboardConfig, updateDashboardConfig } from "./dashboardConfig.js";
 import {
   initWorkflowEngine,
   validateWorkflowOperation,
@@ -1245,12 +1246,6 @@ function normalizeConsumerStatus(value){
   return normalized;
 }
 
-const DASHBOARD_GOALS = Object.freeze({
-  leadToConsultTarget: 32,
-  retentionTarget: 92,
-  monthlyRecurringTarget: 84000,
-});
-
 function toPercent(part, total){
   if(!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) return null;
   return (part / total) * 100;
@@ -2193,12 +2188,16 @@ app.get("/api/analytics/client-locations", authenticate, requirePermission("cons
 
 app.get("/api/dashboard/summary", authenticate, requirePermission("reports"), async (_req, res) => {
   try {
-    const [db, leadsDb, invoicesDb, stateEntries] = await Promise.all([
+    const [db, leadsDb, invoicesDb, stateEntries, dashboardConfig] = await Promise.all([
       loadDB(),
       loadLeadsDB(),
       loadInvoicesDB(),
       listAllConsumerStates(),
+      getDashboardConfig(),
     ]);
+
+    const goalsConfig = dashboardConfig.goals || {};
+    const ladderConfig = dashboardConfig.ladder || {};
 
     const consumers = Array.isArray(db.consumers) ? db.consumers : [];
     const consumerMap = new Map();
@@ -2449,7 +2448,8 @@ app.get("/api/dashboard/summary", authenticate, requirePermission("reports"), as
           retentionRate,
           revenueCollectionRate: collectionRate,
         },
-        goals: DASHBOARD_GOALS,
+        goals: goalsConfig,
+        ladder: ladderConfig,
         focus: {
           nextRevenueMove,
         },
@@ -2458,6 +2458,27 @@ app.get("/api/dashboard/summary", authenticate, requirePermission("reports"), as
   } catch (err) {
     logError("DASHBOARD_SUMMARY_FAIL", "Failed to build dashboard summary", { message: err?.message });
     res.status(500).json({ ok: false, error: "Failed to build dashboard summary" });
+  }
+});
+
+app.get("/api/dashboard/config", authenticate, requirePermission("reports"), async (_req, res) => {
+  try {
+    const config = await getDashboardConfig();
+    res.json({ ok: true, config });
+  } catch (err) {
+    logError("DASHBOARD_CONFIG_LOAD_FAILED", "Failed to load dashboard config", { message: err?.message });
+    res.status(500).json({ ok: false, error: "Failed to load dashboard config" });
+  }
+});
+
+app.put("/api/dashboard/config", authenticate, requirePermission("admin"), async (req, res) => {
+  try {
+    const patch = (req.body && typeof req.body === "object") ? req.body : {};
+    const config = await updateDashboardConfig(patch);
+    res.json({ ok: true, config });
+  } catch (err) {
+    logError("DASHBOARD_CONFIG_SAVE_FAILED", "Failed to update dashboard config", { message: err?.message });
+    res.status(400).json({ ok: false, error: err?.message || "Unable to update dashboard config" });
   }
 });
 app.post("/api/consumers", authenticate, requirePermission("consumers", { allowGuest: true }), async (req,res)=>{
