@@ -64,97 +64,18 @@ export function listBanks(items = []) {
     .sort((a, b) => a.bank.localeCompare(b.bank));
 }
 
-const MONTH_INDEX = new Map([
-  ['january', 1],
-  ['jan', 1],
-  ['february', 2],
-  ['feb', 2],
-  ['march', 3],
-  ['mar', 3],
-  ['april', 4],
-  ['apr', 4],
-  ['may', 5],
-  ['june', 6],
-  ['jun', 6],
-  ['july', 7],
-  ['jul', 7],
-  ['august', 8],
-  ['aug', 8],
-  ['september', 9],
-  ['sep', 9],
-  ['sept', 9],
-  ['october', 10],
-  ['oct', 10],
-  ['november', 11],
-  ['nov', 11],
-  ['december', 12],
-  ['dec', 12],
-]);
-
-const STATEMENT_KEYWORDS = [
-  { test: /weekly|daily|rolling|24\/7|anytime/i, weight: 1 },
-  { test: /biweekly|twice/i, weight: 2 },
-];
-
-function buildStatementSortKey(label) {
-  const text = (label || '').toString().trim();
-  if (!text) {
-    return { weight: 10, month: 13, day: 32, label: '' };
+export function paginate(items = [], page = 1, perPage = 20, options = {}) {
+  const resolvedMax = options?.maxPerPage;
+  let maxPerPage;
+  if (resolvedMax === undefined) {
+    maxPerPage = 100;
+  } else if (!Number.isFinite(resolvedMax)) {
+    maxPerPage = Number.POSITIVE_INFINITY;
+  } else {
+    maxPerPage = Math.max(1, resolvedMax);
   }
-
-  const keyword = STATEMENT_KEYWORDS.find((entry) => entry.test.test(text));
-  if (keyword) {
-    return { weight: keyword.weight, month: 13, day: 32, label: text.toLowerCase() };
-  }
-
-  const monthMatch = /(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)/i.exec(
-    text
-  );
-  const month = monthMatch ? MONTH_INDEX.get(monthMatch[1].toLowerCase()) ?? 13 : 13;
-
-  const dayMatch = /(\d{1,2})(?:st|nd|rd|th)?/i.exec(text);
-  const day = dayMatch ? Number.parseInt(dayMatch[1], 10) : 32;
-
-  return {
-    weight: month <= 12 ? 0 : 5,
-    month,
-    day,
-    label: text.toLowerCase(),
-  };
-}
-
-export function listStatementWindows(items = []) {
-  const counts = new Map();
-  for (const item of items) {
-    const raw = (item?.statement_date || '').toString().trim();
-    if (!raw) continue;
-    const label = raw.replace(/\s+/g, ' ');
-    counts.set(label, (counts.get(label) || 0) + 1);
-  }
-
-  return Array.from(counts.entries())
-    .map(([label, count]) => ({
-      label,
-      count,
-      sortKey: buildStatementSortKey(label),
-    }))
-    .sort((a, b) => {
-      if (a.sortKey.weight !== b.sortKey.weight) {
-        return a.sortKey.weight - b.sortKey.weight;
-      }
-      if (a.sortKey.month !== b.sortKey.month) {
-        return a.sortKey.month - b.sortKey.month;
-      }
-      if (a.sortKey.day !== b.sortKey.day) {
-        return a.sortKey.day - b.sortKey.day;
-      }
-      return a.sortKey.label.localeCompare(b.sortKey.label);
-    })
-    .map(({ label, count }) => ({ label, count }));
-}
-
-export function paginate(items = [], page = 1, perPage = 20) {
-  const safePerPage = Math.max(1, Math.min(Number.isFinite(perPage) ? perPage : 20, 100));
+  const basePerPage = Number.isFinite(perPage) ? perPage : 20;
+  const safePerPage = Math.max(1, Math.min(basePerPage, maxPerPage));
   const totalItems = items.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / safePerPage));
   const currentPage = Math.min(Math.max(Number.isFinite(page) ? page : 1, 1), totalPages);

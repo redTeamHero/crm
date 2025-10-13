@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const valueInput = document.createElement('input');
     valueInput.className = 'flex-1 border rounded px-2 py-1 text-xs';
-    valueInput.placeholder = 'Value / Valor';
+    valueInput.placeholder = 'Value';
     valueInput.value = value;
     valueInput.dataset.field = 'value';
     valueInput.autocomplete = 'off';
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'btn text-xs px-3';
-    removeBtn.textContent = 'Remove / Quitar';
+    removeBtn.textContent = 'Remove';
     removeBtn.addEventListener('click', () => row.remove());
 
     row.append(keyInput, valueInput, removeBtn);

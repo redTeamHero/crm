@@ -6,7 +6,6 @@ import {
   groupTradelinesByPrice,
   buildRangeSummary,
   listBanks,
-  listStatementWindows,
   paginate,
 } from '../tradelineBuckets.js';
 
@@ -63,25 +62,6 @@ test('listBanks returns alphabetized bank counts', () => {
   ]);
 });
 
-test('listStatementWindows groups and sorts statement cycles', () => {
-  const windows = listStatementWindows([
-    { statement_date: 'Nov 10th – Nov 17th' },
-    { statement_date: 'Rolling 24/7' },
-    { statement_date: 'Nov 10th – Nov 17th' },
-    { statement_date: 'Oct 1st - Oct 5th' },
-    { statement_date: 'Weekly' },
-    { statement_date: 'Sept 15th' },
-  ]);
-
-  assert.deepEqual(windows, [
-    { label: 'Sept 15th', count: 1 },
-    { label: 'Oct 1st - Oct 5th', count: 1 },
-    { label: 'Nov 10th – Nov 17th', count: 2 },
-    { label: 'Rolling 24/7', count: 1 },
-    { label: 'Weekly', count: 1 },
-  ]);
-});
-
 test('paginate constrains page boundaries', () => {
   const items = Array.from({ length: 25 }, (_, idx) => ({ id: idx }));
   const { items: pageItems, page, totalPages, totalItems } = paginate(items, 3, 10);
@@ -89,4 +69,12 @@ test('paginate constrains page boundaries', () => {
   assert.equal(page, 3);
   assert.equal(totalPages, 3);
   assert.equal(totalItems, 25);
+});
+
+test('paginate allows higher caps when configured', () => {
+  const items = Array.from({ length: 150 }, (_, idx) => ({ id: idx }));
+  const { items: pageItems, totalPages, perPage } = paginate(items, 1, 200, { maxPerPage: 250 });
+  assert.equal(pageItems.length, 150);
+  assert.equal(totalPages, 1);
+  assert.equal(perPage, 200);
 });

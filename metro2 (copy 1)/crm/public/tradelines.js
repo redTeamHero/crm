@@ -22,11 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const resultsSubheading = document.getElementById('results-subheading');
   const rangeKpi = document.getElementById('range-kpi');
   const mobileBuy = document.getElementById('mobile-buy');
-  const statementGrid = document.getElementById('statement-grid');
-  const statementHint = document.getElementById('statement-hint');
-  const statementHeading = document.getElementById('statement-heading');
-  const statementSubheading = document.getElementById('statement-subheading');
-  const clearStatementBtn = document.getElementById('clear-statement');
 
   const CLIENT_PAGE_SIZE = 9;
 
@@ -46,25 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `Range selected: ${rangeLabel}. ${count} offers ready.`
           : 'Pick a price range to load banks.',
       resetRange: 'Change price range',
-      statementHeading: 'Statement windows',
-      statementSubheading: 'Time your posting windows to match funding goals.',
-      statementAll: 'All windows',
-      statementHint: (loaded) =>
-        loaded
-          ? `${loaded} statement windows scraped for this price range.`
-          : 'Statement windows appear after selecting a range.',
-      statementEmpty: 'No statement dates scraped for this range yet.',
-      clearStatement: 'Clear',
       resultsHeading: '3. Review tradelines',
       resultsSubheading: 'Preview retail price, credit limit, and reporting cadence.',
       searchPlaceholder: 'Search within results',
       sortLabel: 'Sort',
       emptyState: 'Select a range and bank to preview tradelines.',
       emptyAfterFilter: '🔍 No tradelines found. Refine your filters or try another bank.',
-      metaSummary: (count, bank, statement) => {
+      metaSummary: (count, bank) => {
         if (!count) return 'No tradelines loaded yet.';
         if (bank) return `${count} tradelines loaded for ${bank}.`;
-        if (statement) return `${count} tradelines in statement window ${statement}.`;
         return `${count} tradelines loaded in this price range.`;
       },
       prev: 'Prev',
@@ -92,25 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `Rango seleccionado: ${rangeLabel}. ${count} opciones listas.`
           : 'Selecciona un rango de precio para cargar bancos.',
       resetRange: 'Cambiar rango de precio',
-      statementHeading: 'Ventanas de estado de cuenta',
-      statementSubheading: 'Sincroniza la fecha de corte con tus objetivos de financiamiento.',
-      statementAll: 'Todas las ventanas',
-      statementHint: (loaded) =>
-        loaded
-          ? `${loaded} ventanas de estado de cuenta detectadas para este rango.`
-          : 'Verás las ventanas de estado de cuenta al seleccionar un rango.',
-      statementEmpty: 'Aún no hay fechas de estado de cuenta para este rango.',
-      clearStatement: 'Limpiar',
       resultsHeading: '3. Revisa tradelines',
       resultsSubheading: 'Consulta precio final, límite y ritmo de reporte.',
       searchPlaceholder: 'Buscar dentro de los resultados',
       sortLabel: 'Ordenar',
       emptyState: 'Selecciona un rango y un banco para ver tradelines.',
       emptyAfterFilter: '🔍 No encontramos tradelines. Ajusta filtros o intenta otro banco.',
-      metaSummary: (count, bank, statement) => {
+      metaSummary: (count, bank) => {
         if (!count) return 'Aún no hay tradelines cargados.';
         if (bank) return `${count} tradelines listados para ${bank}.`;
-        if (statement) return `${count} tradelines dentro de la ventana ${statement}.`;
         return `${count} tradelines listados en este rango de precio.`;
       },
       prev: 'Anterior',
@@ -132,8 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedRangeMeta: null,
     banks: [],
     selectedBank: null,
-    statementWindows: [],
-    selectedStatement: null,
     allItems: [],
     filteredItems: [],
     page: 1,
@@ -160,16 +133,12 @@ document.addEventListener('DOMContentLoaded', () => {
     rangeKpi.textContent = copy.kpi;
     searchInput.placeholder = copy.searchPlaceholder;
     sortSelect.options[0].textContent = copy.sortLabel;
-    statementHeading.textContent = copy.statementHeading;
-    statementSubheading.textContent = copy.statementSubheading;
-    clearStatementBtn.textContent = copy.clearStatement;
     prevBtn.textContent = copy.prev;
     nextBtn.textContent = copy.next;
     mobileBuy.textContent = copy.mobileBuy;
     resetRangeBtn.textContent = copy.resetRange;
     renderRanges();
     renderBanks();
-    renderStatements();
     renderTradelines();
   }
 
@@ -204,28 +173,35 @@ document.addEventListener('DOMContentLoaded', () => {
       state.selectedRangeMeta = data.range || null;
       state.banks = data.banks || [];
       state.selectedBank = bank || null;
-      state.statementWindows = data.statementWindows || [];
-      if (isNewRange) {
-        state.selectedStatement = null;
-      } else if (
-        state.selectedStatement &&
-        !state.statementWindows.some((window) => window.label === state.selectedStatement)
-      ) {
-        state.selectedStatement = null;
+      const aggregatedItems = Array.isArray(data.tradelines) ? [...data.tradelines] : [];
+      const totalPagesRaw = Number.parseInt(data.totalPages, 10);
+      const totalPages = Number.isFinite(totalPagesRaw) ? totalPagesRaw : 1;
+      if (totalPages > 1) {
+        const perPageValue = data.perPage || params.get('perPage') || '400';
+        for (let nextPage = 2; nextPage <= totalPages; nextPage += 1) {
+          const extraParams = new URLSearchParams({ range: rangeId, page: String(nextPage), perPage: String(perPageValue) });
+          if (bank) extraParams.set('bank', bank);
+          try {
+            const pageData = await fetchJson(`/api/tradelines?${extraParams.toString()}`);
+            if (Array.isArray(pageData.tradelines)) {
+              aggregatedItems.push(...pageData.tradelines);
+            }
+          } catch (pageError) {
+            console.error('Failed to load tradelines page', pageError);
+          }
+        }
       }
-      state.allItems = data.tradelines || [];
+      state.allItems = aggregatedItems;
       if (isNewRange) {
         searchInput.value = '';
         sortSelect.value = '';
       }
       filterAndSortItems(true);
       renderBanks();
-      renderStatements();
       renderTradelines();
     } catch (err) {
       console.error('Failed to load tradelines', err);
       bankHint.textContent = STRINGS[state.language].loadError;
-      statementHint.textContent = STRINGS[state.language].loadError;
     }
   }
 
@@ -298,73 +274,10 @@ document.addEventListener('DOMContentLoaded', () => {
     bankGrid.appendChild(note);
   }
 
-  function renderStatements() {
-    const copy = STRINGS[state.language];
-    statementGrid.innerHTML = '';
-
-    if (!state.selectedRange) {
-      statementHint.textContent = copy.statementHint(0);
-      clearStatementBtn.classList.add('hidden');
-      return;
-    }
-
-    const totalWindows = state.statementWindows.length;
-    statementHint.textContent = copy.statementHint(totalWindows);
-
-    if (!totalWindows) {
-      statementGrid.innerHTML = `<div class="text-xs text-gray-400">${copy.statementEmpty}</div>`;
-      clearStatementBtn.classList.add('hidden');
-      return;
-    }
-
-    const createButton = (label, isActive, display) => {
-      const btn = document.createElement('button');
-      btn.className = `px-3 py-2 rounded-full border transition text-sm ${
-        isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-200 hover:shadow'
-      }`;
-      btn.textContent = display;
-      return btn;
-    };
-
-    const allActive = !state.selectedStatement;
-    const allButton = createButton(copy.statementAll, allActive, copy.statementAll);
-    allButton.addEventListener('click', () => {
-      if (!state.selectedStatement) return;
-      state.selectedStatement = null;
-      filterAndSortItems(true);
-      renderStatements();
-      renderTradelines();
-    });
-    statementGrid.appendChild(allButton);
-
-    state.statementWindows.forEach(({ label, count }) => {
-      const isActive = state.selectedStatement === label;
-      const btn = createButton(label, isActive, `${label} (${count})`);
-      btn.addEventListener('click', () => {
-        if (state.selectedStatement === label) return;
-        state.selectedStatement = label;
-        filterAndSortItems(true);
-        renderStatements();
-        renderTradelines();
-      });
-      statementGrid.appendChild(btn);
-    });
-
-    clearStatementBtn.classList.toggle('hidden', !state.selectedStatement);
-  }
-
   function filterAndSortItems(resetPage = false) {
     const query = searchInput.value.trim().toLowerCase();
     const sort = sortSelect.value;
     let items = [...state.allItems];
-
-    if (state.selectedStatement) {
-      const matchValue = state.selectedStatement;
-      items = items.filter((item) => {
-        const value = (item.statement_date || '').toString().trim().replace(/\s+/g, ' ');
-        return value === matchValue;
-      });
-    }
 
     if (query) {
       items = items.filter((item) => {
@@ -407,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tradelineContainer.innerHTML = '';
 
     if (!state.selectedRange) {
-      resultsMeta.textContent = copy.metaSummary(0, null, null);
+      resultsMeta.textContent = copy.metaSummary(0, null);
       tradelineContainer.innerHTML = `<div class="text-sm text-gray-500">${copy.emptyState}</div>`;
       prevBtn.disabled = true;
       nextBtn.disabled = true;
@@ -418,11 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     filterAndSortItems(false);
     const { filteredItems } = state;
-    resultsMeta.textContent = copy.metaSummary(
-      filteredItems.length,
-      state.selectedBank,
-      state.selectedStatement
-    );
+    resultsMeta.textContent = copy.metaSummary(filteredItems.length, state.selectedBank);
 
     if (!filteredItems.length) {
       tradelineContainer.innerHTML = `<div class="col-span-full text-center text-gray-500 text-lg py-10">${copy.emptyAfterFilter}</div>`;
@@ -516,25 +425,14 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTradelines();
   });
 
-  clearStatementBtn.addEventListener('click', () => {
-    if (!state.selectedStatement) return;
-    state.selectedStatement = null;
-    filterAndSortItems(true);
-    renderStatements();
-    renderTradelines();
-  });
-
   resetRangeBtn.addEventListener('click', () => {
     state.selectedRange = null;
     state.selectedRangeMeta = null;
     state.selectedBank = null;
-    state.statementWindows = [];
-    state.selectedStatement = null;
     state.allItems = [];
     state.filteredItems = [];
     state.page = 1;
     renderBanks();
-    renderStatements();
     renderTradelines();
   });
 

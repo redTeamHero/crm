@@ -97,13 +97,13 @@ const TRANSLATIONS = {
       },
       emailBuilder: {
         prompts: {
-          importSuccess: 'HTML loaded. Review, personalize, and save. • HTML cargado. Revisa, personaliza y guarda.',
-          importError: 'Failed to import HTML: {error} • Error al importar HTML: {error}',
-          importTooLarge: 'Your HTML file is over 200 KB. Minify inline CSS and try again. • Tu archivo HTML supera 200 KB. Minimiza el CSS inline e inténtalo de nuevo.',
-          importEmpty: 'The selected HTML file was empty. Please upload a populated template. • El archivo HTML seleccionado estaba vacío. Sube una plantilla con contenido.',
-          importDescription: 'Imported from uploaded HTML. Review copy before sending. • Importado desde HTML cargado. Revisa el copy antes de enviar.',
-          importDefaultTitle: 'Imported Template • Plantilla importada',
-          importReminder: 'Upload HTML and the builder will preload it here. • Sube el HTML y el editor lo cargará aquí.'
+          importSuccess: 'HTML loaded. Review, personalize, and save.',
+          importError: 'Failed to import HTML: {error}',
+          importTooLarge: 'Your HTML file is over 200 KB. Minify inline CSS and try again.',
+          importEmpty: 'The selected HTML file was empty. Please upload a populated template.',
+          importDescription: 'Imported from uploaded HTML. Review copy before sending.',
+          importDefaultTitle: 'Imported Template',
+          importReminder: 'Upload HTML and the builder will preload it here.'
         }
       }
     },
@@ -573,16 +573,16 @@ const THEMES = {
 };
 
 const THEME_LABELS = {
-  blue: 'Trust Blue / Azul confianza',
-  green: 'Momentum Green / Verde impulso',
-  orange: 'Warm Orange / Naranja cálida',
-  red: 'Alert Red / Rojo alerta',
-  purple: 'Royal Purple / Morado real',
-  teal: 'Signal Teal / Verde señal',
-  pink: 'Hero Pink / Rosa heroína',
-  spacegray: 'Space Gray / Gris espacial',
-  metallicgrey: 'Titanium Grey / Gris titanio',
-  glass: 'Glass Neutral / Neutro cristal'
+  blue: 'Trust Blue',
+  green: 'Momentum Green',
+  orange: 'Warm Orange',
+  red: 'Alert Red',
+  purple: 'Royal Purple',
+  teal: 'Signal Teal',
+  pink: 'Hero Pink',
+  spacegray: 'Space Gray',
+  metallicgrey: 'Titanium Grey',
+  glass: 'Glass Neutral'
 };
 
 function highlightActiveTheme(name) {
@@ -650,7 +650,7 @@ function initPalette(){
     </button>
     <div class="palette-controls" aria-hidden="true">
       <label class="palette-field">
-        <span class="palette-field-label">Glass opacity / Opacidad</span>
+        <span class="palette-field-label">Glass opacity</span>
         <input id="glassAlpha" class="alpha-slider" type="range" min="0" max="0.5" step="0.05" />
       </label>
       <div class="palette-bubbles">${bubbles}</div>

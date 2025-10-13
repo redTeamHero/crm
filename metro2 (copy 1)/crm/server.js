@@ -31,7 +31,6 @@ import {
   groupTradelinesByPrice,
   buildRangeSummary,
   listBanks,
-  listStatementWindows,
   getBucketMeta,
   paginate,
 } from "./tradelineBuckets.js";
@@ -52,6 +51,8 @@ const DEFAULT_SETTINGS = {
   stripeApiKey: "",
   envOverrides: {}
 };
+
+const MAX_TRADLINE_PAGE_SIZE = 500;
 
 function normalizeEnvOverrides(raw){
   const result = {};
@@ -653,16 +654,7 @@ app.get("/api/tradelines", async (req, res) => {
     const selectedRange = getBucketMeta(rangeId);
 
     if (!rangeId) {
-      return res.json({
-        ok: true,
-        ranges,
-        tradelines: [],
-        banks: [],
-        statementWindows: [],
-        range: null,
-        page: 1,
-        totalPages: 1,
-      });
+      return res.json({ ok: true, ranges, tradelines: [], banks: [], range: null, page: 1, totalPages: 1 });
     }
 
     if (!selectedRange) {
@@ -676,14 +668,14 @@ app.get("/api/tradelines", async (req, res) => {
     }
 
     const banks = listBanks(grouped[selectedRange.id]);
-    const statementWindows = listStatementWindows(grouped[selectedRange.id]);
 
     const pageNumber = Number.parseInt(page, 10);
     const perPageNumber = Number.parseInt(perPage, 10);
-    const { items: paginatedItems, totalPages, totalItems, page: currentPage } = paginate(
+    const { items: paginatedItems, totalPages, totalItems, page: currentPage, perPage: safePerPage } = paginate(
       items,
       Number.isFinite(pageNumber) ? pageNumber : 1,
       Number.isFinite(perPageNumber) ? perPageNumber : 20,
+      { maxPerPage: MAX_TRADLINE_PAGE_SIZE },
     );
 
     res.json({
@@ -693,11 +685,10 @@ app.get("/api/tradelines", async (req, res) => {
       banks,
       tradelines: paginatedItems,
       page: currentPage,
-      perPage: perPageNumber || 20,
+      perPage: safePerPage,
       totalPages,
       totalItems,
       selectedBank: normalizedBank || null,
-      statementWindows,
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

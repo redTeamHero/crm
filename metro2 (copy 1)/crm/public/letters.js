@@ -54,19 +54,17 @@ function updateJobsSummary(list){
     jobLastRunEl.textContent = latest ? formatDateTime(latest, 'en-US') : '—';
   }
   if (jobSummaryNoteEl) {
-    jobSummaryNoteEl.textContent = `Showing ${list.length} of ${total} jobs • Mostrando ${list.length} de ${total} lotes`;
+    jobSummaryNoteEl.textContent = `Showing ${list.length} of ${total} jobs`;
   }
 }
 
 function buildJobCard(job){
   const lettersCount = Number(job.count) || 0;
-  const lettersLabelEn = lettersCount === 1 ? 'letter' : 'letters';
-  const lettersLabelEs = lettersCount === 1 ? 'carta' : 'cartas';
+  const lettersLabel = lettersCount === 1 ? 'letter' : 'letters';
   const createdDate = job.createdAt ? new Date(job.createdAt) : null;
-  const createdEn = createdDate ? formatDateTime(createdDate, 'en-US') : '—';
-  const createdEs = createdDate ? formatDateTime(createdDate, 'es-ES') : '—';
+  const createdAt = createdDate ? formatDateTime(createdDate, 'en-US') : '—';
   const consumerName = (job.consumerName || '').trim() || job.consumerId || 'Client';
-  const consumerIdLine = job.consumerId ? `ID: ${escapeHtml(job.consumerId)}` : 'ID no disponible';
+  const consumerIdLine = job.consumerId ? `ID: ${escapeHtml(job.consumerId)}` : 'ID unavailable';
   const article = document.createElement('article');
   article.className = "group relative overflow-hidden rounded-2xl border border-white/40 bg-white/90 p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl";
   article.setAttribute('role', 'link');
@@ -76,7 +74,7 @@ function buildJobCard(job){
     <div class="relative flex h-full flex-col gap-4">
       <div class="flex items-start justify-between gap-3">
         <div class="space-y-1">
-          <p class="text-xs uppercase tracking-wide text-slate-500">Client • Cliente</p>
+          <p class="text-xs uppercase tracking-wide text-slate-500">Client</p>
           <h3 class="text-lg font-semibold text-slate-900">${escapeHtml(consumerName)}</h3>
           <p class="text-xs text-slate-500">${consumerIdLine}</p>
         </div>
@@ -86,7 +84,7 @@ function buildJobCard(job){
             <path d="M3 16l9 6 9-6"></path>
             <path d="M3 8l9-6 9 6"></path>
           </svg>
-          ${lettersCount} ${lettersLabelEn} • ${lettersLabelEs}
+          ${lettersCount} ${lettersLabel}
         </span>
       </div>
       <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
@@ -95,15 +93,7 @@ function buildJobCard(job){
             <circle cx="12" cy="12" r="9"></circle>
             <polyline points="12 7 12 12 15 15"></polyline>
           </svg>
-          ${createdEn}
-        </span>
-        <span class="inline-flex items-center gap-1 text-slate-500">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M2 12h20"></path>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-          </svg>
-          ${createdEs}
+          ${createdAt}
         </span>
       </div>
       <div class="mt-auto flex items-center justify-between gap-3">
@@ -111,7 +101,7 @@ function buildJobCard(job){
           <span class="font-semibold text-slate-600">Job ID</span>
           <span class="font-mono text-sm text-slate-700 truncate" title="${escapeHtml(job.jobId)}">${escapeHtml(job.jobId)}</span>
         </div>
-        <a class="btn text-sm px-4 py-2" href="/letters?job=${encodeURIComponent(job.jobId)}">Open • Abrir</a>
+        <a class="btn text-sm px-4 py-2" href="/letters?job=${encodeURIComponent(job.jobId)}">Open</a>
       </div>
     </div>
   `;
@@ -185,7 +175,7 @@ function showJobsLoading(){
   if (jobTotalEl) jobTotalEl.textContent = '—';
   if (jobLettersTotalEl) jobLettersTotalEl.textContent = '—';
   if (jobLastRunEl) jobLastRunEl.textContent = '—';
-  if (jobSummaryNoteEl) jobSummaryNoteEl.textContent = 'Loading jobs… • Cargando lotes…';
+  if (jobSummaryNoteEl) jobSummaryNoteEl.textContent = 'Loading jobs…';
 }
 
 function paginate(){
