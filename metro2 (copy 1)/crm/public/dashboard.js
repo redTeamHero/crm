@@ -97,6 +97,190 @@ const clientLocationElements = {
   buttons: { state: null, city: null }
 };
 
+const focusDateFormatterEn = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const focusDateFormatterEs = new Intl.DateTimeFormat('es-MX', { month: 'short', day: 'numeric' });
+
+function setTextContent(id, value) {
+  if (typeof document === 'undefined') return;
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+function formatPercent(value, fallback = '0.0%') {
+  if (!Number.isFinite(value)) return fallback;
+  return `${value.toFixed(1)}%`;
+}
+
+function formatFocusDate(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return 'soon / pronto';
+  return `${focusDateFormatterEn.format(date)} / ${focusDateFormatterEs.format(date)}`;
+}
+
+function updateRevenueLadder(value, goal) {
+  const labelEl = document.getElementById('ladderMrr');
+  const barEl = document.getElementById('ladderProgressBar');
+  if (labelEl) {
+    if (Number.isFinite(value)) {
+      const base = formatCurrency(value);
+      const goalLabel = Number.isFinite(goal) ? ` / Meta ${formatCurrency(goal)}` : '';
+      labelEl.textContent = `${base}${goalLabel}`;
+    } else {
+      labelEl.textContent = 'Sync billing';
+    }
+  }
+  if (barEl) {
+    if (Number.isFinite(goal) && goal > 0 && Number.isFinite(value)) {
+      const pct = clamp((value / goal) * 100, 0, 100);
+      barEl.style.width = `${pct}%`;
+    } else if (Number.isFinite(value)) {
+      barEl.style.width = `${clamp(value, 0, 100)}%`;
+    } else {
+      barEl.style.width = '0%';
+    }
+  }
+}
+
+function updateGoalKpiLabel(summary) {
+  const el = document.getElementById('goalKpiLabel');
+  if (!el) return;
+  const target = summary?.goals?.leadToConsultTarget;
+  const current = summary?.kpis?.leadToConsultRate;
+  if (Number.isFinite(target) && Number.isFinite(current)) {
+    el.textContent = `Goal KPI: Lead → Consult ≥ ${target.toFixed(0)}% · Current ${current.toFixed(1)}% / Seguimiento Lead→Consulta.`;
+  } else if (Number.isFinite(target)) {
+    el.textContent = `Goal KPI: Lead → Consult ≥ ${target.toFixed(0)}% · Track consult follow-ups.`;
+  } else {
+    el.textContent = 'Goal KPI: Lead → Consult ≥ 32% · Track consult follow-ups.';
+  }
+}
+
+function updateNextRevenueWin(copy) {
+  const el = document.getElementById('nextRevenueWin');
+  if (!el) return;
+  if (copy) {
+    el.textContent = copy;
+  } else {
+    el.textContent = 'Next revenue win: bundle report parsing + dispute letter automation at $149 setup. Use Stripe Checkout link in Billing.';
+  }
+}
+
+function renderFocusList(summary) {
+  const container = document.getElementById('focusList');
+  if (!container) return;
+  const items = [];
+  const upcoming = Array.isArray(summary?.reminders?.upcoming) ? summary.reminders.upcoming : [];
+  if (upcoming.length) {
+    const first = upcoming[0];
+    const name = escapeHtml(first.consumerName || 'Client');
+    const due = escapeHtml(formatFocusDate(first.due));
+    items.push({
+      badge: 'bg-emerald-100 text-emerald-600',
+      text: `Prep ${name} consult by ${due}. Confirm docs before letters. / Prepara la consulta de ${name} antes de ${due}.`
+    });
+  }
+
+  const leadRate = summary?.kpis?.leadToConsultRate;
+  const leadTarget = summary?.goals?.leadToConsultTarget;
+  if (Number.isFinite(leadRate) && Number.isFinite(leadTarget)) {
+    const rateText = escapeHtml(formatPercent(leadRate));
+    const targetText = escapeHtml(`${leadTarget.toFixed(0)}%`);
+    items.push({
+      badge: 'bg-sky-100 text-sky-600',
+      text: `Lead → Consult at ${rateText} vs goal ${targetText}. Drop NEPQ close in nurture drip. / Lead → Consulta en ${rateText} vs meta ${targetText}. Añade cierre NEPQ.`
+    });
+  }
+
+  const outstanding = summary?.revenue?.outstanding;
+  if (Number.isFinite(outstanding) && outstanding > 0) {
+    const invoice = summary?.revenue?.topOutstanding;
+    if (invoice) {
+      const amount = escapeHtml(formatCurrency(invoice.amount));
+      const name = escapeHtml(invoice.consumerName || 'client');
+      const due = escapeHtml(formatFocusDate(invoice.due));
+      items.push({
+        badge: 'bg-amber-100 text-amber-600',
+        text: `Check-in with ${name} about ${amount} due ${due}. Bundle certified mail tracking. / Contacta a ${name} sobre ${amount} vence ${due}. Incluye seguimiento por correo certificado.`
+      });
+    } else {
+      const amount = escapeHtml(formatCurrency(outstanding));
+      items.push({
+        badge: 'bg-amber-100 text-amber-600',
+        text: `Collect ${amount} outstanding with concierge CTA. Offer certified mail credits. / Cobra ${amount} pendiente con CTA concierge. Ofrece créditos de correo certificado.`
+      });
+    }
+  }
+
+  if (!items.length) {
+    items.push({
+      badge: 'bg-emerald-100 text-emerald-600',
+      text: 'Document the next consult follow-up and sync reminders. / Documenta el siguiente seguimiento y sincroniza recordatorios.'
+    });
+  }
+
+  const filler = [
+    {
+      badge: 'bg-emerald-100 text-emerald-600',
+      text: 'Launch the 7-Day Credit Momentum email sequence. / Lanza la secuencia Momentum de 7 días.'
+    },
+    {
+      badge: 'bg-sky-100 text-sky-600',
+      text: 'Review Metro-2 evidence before your next letter batch. / Revisa evidencias Metro-2 antes del siguiente envío.'
+    },
+    {
+      badge: 'bg-amber-100 text-amber-600',
+      text: 'Promote the automation bundle during consult recap. / Promueve el paquete de automatización en el recap.'
+    }
+  ];
+
+  while (items.length < 3) {
+    items.push(filler[items.length % filler.length]);
+  }
+
+  container.innerHTML = items.slice(0, 3).map((item, index) => `
+    <li class="flex items-start gap-3">
+      <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full ${item.badge} font-semibold">${index + 1}</span>
+      <span>${item.text}</span>
+    </li>
+  `).join('');
+}
+
+function updateHeroCards(summary) {
+  const consults = Number(summary?.leads?.consultsLast7d ?? 0);
+  setTextContent('heroConsultMetric', `${consults} consults this week`);
+  const consultTarget = 5;
+  const consultGap = Math.max(consultTarget - consults, 0);
+  setTextContent('heroConsultCaption', consultGap > 0
+    ? `Book ${consultGap} more to hit weekly pacing.`
+    : 'Great pace—route extra slots to concierge upsells.');
+
+  const followUps = Number(summary?.reminders?.upcoming?.length ?? 0);
+  setTextContent('heroAutomationMetric', `${followUps} follow-ups queued`);
+  const overdue = Number(summary?.reminders?.overdueCount ?? 0);
+  setTextContent('heroAutomationCaption', overdue > 0
+    ? `${overdue} overdue—sync automations or reassign.`
+    : 'Automations are on pace. Keep certified mail trigger warm.');
+
+  const outstanding = Number(summary?.revenue?.outstanding ?? 0);
+  const collected = Number(summary?.revenue?.totalCollected ?? 0);
+  if (outstanding > 0) {
+    setTextContent('heroUpsellMetric', `${formatCurrency(outstanding)} pending`);
+  } else {
+    setTextContent('heroUpsellMetric', `${formatCurrency(collected)} collected`);
+  }
+  const topOutstanding = summary?.revenue?.topOutstanding;
+  if (topOutstanding?.consumerName) {
+    setTextContent('heroUpsellCaption', `Focus on ${topOutstanding.consumerName} for premium follow-up.`);
+  } else {
+    setTextContent('heroUpsellCaption', 'Pitch monitoring + automation bundle on today’s calls.');
+  }
+}
+
 function toTitleCase(value){
   if(!value) return '';
   return String(value)
@@ -1230,18 +1414,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return sum + (Number.isFinite(num) ? num : 0);
   }, 0);
 
-  const setText = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
-
   (async () => {
     try {
-      const [consumersRes, leadsRes] = await Promise.all([
+      const [summaryRes, consumersRes, leadsRes] = await Promise.all([
+        api('/api/dashboard/summary'),
         api('/api/consumers'),
         api('/api/leads')
       ]);
 
+      const summary = summaryRes?.ok ? (summaryRes.summary || null) : null;
       const consumers = Array.isArray(consumersRes.consumers) ? consumersRes.consumers : [];
       const leads = Array.isArray(leadsRes.leads) ? leadsRes.leads : [];
 
@@ -1250,10 +1431,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const totalSales = safeTotal(consumers, 'sale');
       const totalPaid = safeTotal(consumers, 'paid');
 
-      setText('dashLeads', leads.length.toLocaleString());
-      setText('dashClients', consumers.length.toLocaleString());
-      setText('dashSales', formatCurrency(totalSales));
-      setText('dashPayments', formatCurrency(totalPaid));
+      const totalLeads = Number.isFinite(summary?.totals?.leads) ? summary.totals.leads : leads.length;
+      const totalConsumers = Number.isFinite(summary?.totals?.consumers) ? summary.totals.consumers : consumers.length;
+
+      setTextContent('dashLeads', totalLeads.toLocaleString());
+      setTextContent('dashClients', totalConsumers.toLocaleString());
+      setTextContent('dashSales', formatCurrency(Number.isFinite(summary?.revenue?.totalBilled) ? summary.revenue.totalBilled : totalSales));
+      setTextContent('dashPayments', formatCurrency(Number.isFinite(summary?.revenue?.totalCollected) ? summary.revenue.totalCollected : totalPaid));
 
       const completedLeads = leads.filter(l => l.status === 'completed').length;
       const droppedLeads = leads.filter(l => l.status === 'dropped').length;
@@ -1263,8 +1447,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const retention = retentionDen ? ((completedLeads + completedClients) / retentionDen * 100) : 0;
       const conversionDen = leads.length;
       const conversion = conversionDen ? (completedLeads / conversionDen * 100) : 0;
-      setText('dashRetention', retention.toFixed(1) + '%');
-      setText('dashConversion', conversion.toFixed(1) + '%');
+
+      if (Number.isFinite(summary?.kpis?.retentionRate)) {
+        setTextContent('dashRetention', formatPercent(summary.kpis.retentionRate));
+      } else {
+        setTextContent('dashRetention', `${retention.toFixed(1)}%`);
+      }
+      if (Number.isFinite(summary?.kpis?.leadToConsultRate)) {
+        setTextContent('dashConversion', formatPercent(summary.kpis.leadToConsultRate));
+      } else {
+        setTextContent('dashConversion', `${conversion.toFixed(1)}%`);
+      }
+
+      if (summary) {
+        updateRevenueLadder(summary.revenue?.monthlyRecurringRevenue, summary.goals?.monthlyRecurringTarget);
+        updateGoalKpiLabel(summary);
+        updateNextRevenueWin(summary.focus?.nextRevenueMove);
+        renderFocusList(summary);
+        updateHeroCards(summary);
+      } else {
+        updateRevenueLadder(null, null);
+        updateGoalKpiLabel(null);
+        updateNextRevenueWin(null);
+        renderFocusList({});
+        updateHeroCards({});
+      }
 
       renderClientLocations('clientMap', { forceRefresh: true });
       detailModalController.setGenerators({

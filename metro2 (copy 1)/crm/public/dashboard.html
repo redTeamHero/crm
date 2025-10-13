@@ -87,28 +87,28 @@
           <p class="text-sm text-slate-600">Prioritize the next 3 consults, keep promises compliance-safe, and spotlight upsell-ready accounts.</p>
         </div>
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div class="flex flex-wrap gap-3">
-            <button id="btnGoal" class="rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">Mark Today’s Goal Done</button>
-            <a href="/leads" class="rounded-full border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50">Open Lead Playbook</a>
-            <a href="/billing" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Review Revenue</a>
-          </div>
-          <div class="text-xs text-slate-500">Goal KPI: Lead → Consult ≥ 32% · Track consult follow-ups.</div>
+        <div class="flex flex-wrap gap-3">
+          <button id="btnGoal" class="rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">Mark Today’s Goal Done</button>
+          <a href="/leads" class="rounded-full border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50">Open Lead Playbook</a>
+          <a href="/billing" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Review Revenue</a>
+        </div>
+        <div id="goalKpiLabel" class="text-xs text-slate-500">Goal KPI: Lead → Consult ≥ 32% · Track consult follow-ups.</div>
         </div>
         <div class="grid gap-4 sm:grid-cols-3">
           <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
             <p class="text-xs uppercase tracking-widest text-slate-500">Today’s consult slots</p>
-            <p class="mt-1 text-2xl font-semibold text-slate-900">3 of 5 filled</p>
-            <p class="mt-2 text-xs text-slate-500">Hold 2 for concierge support · Offer certified mail upgrade.</p>
+            <p id="heroConsultMetric" class="mt-1 text-2xl font-semibold text-slate-900">3 of 5 filled</p>
+            <p id="heroConsultCaption" class="mt-2 text-xs text-slate-500">Hold 2 for concierge support · Offer certified mail upgrade.</p>
           </div>
           <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
             <p class="text-xs uppercase tracking-widest text-slate-500">Automation queue</p>
-            <p class="mt-1 text-2xl font-semibold text-slate-900">5 live flows</p>
-            <p class="mt-2 text-xs text-slate-500">Check dispute letters ↔ certified mail webhook.</p>
+            <p id="heroAutomationMetric" class="mt-1 text-2xl font-semibold text-slate-900">5 live flows</p>
+            <p id="heroAutomationCaption" class="mt-2 text-xs text-slate-500">Check dispute letters ↔ certified mail webhook.</p>
           </div>
           <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
             <p class="text-xs uppercase tracking-widest text-slate-500">Upsell spotlight</p>
-            <p class="mt-1 text-2xl font-semibold text-slate-900">$2.4k pipeline</p>
-            <p class="mt-2 text-xs text-slate-500">Anchor “premium audit + Metro-2 monitoring” bundle.</p>
+            <p id="heroUpsellMetric" class="mt-1 text-2xl font-semibold text-slate-900">$2.4k pipeline</p>
+            <p id="heroUpsellCaption" class="mt-2 text-xs text-slate-500">Anchor “premium audit + Metro-2 monitoring” bundle.</p>
           </div>
         </div>
       </div>
@@ -119,21 +119,21 @@
         <h3 class="text-lg font-semibold text-slate-900">Daily Focus</h3>
         <p class="mt-1 text-sm text-slate-600">Keep the team aligned on one revenue move and one compliance promise.</p>
       </div>
-      <ul class="space-y-4 text-sm text-slate-600">
+      <ul id="focusList" class="space-y-4 text-sm text-slate-600">
         <li class="flex items-start gap-3">
           <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 font-semibold text-emerald-600">1</span>
-          <span>Send consult recap templates with NEPQ close question. Add Certified Mail upsell CTA.</span>
+          <span>Loading focus priorities… / Cargando prioridades…</span>
         </li>
         <li class="flex items-start gap-3">
           <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 font-semibold text-sky-600">2</span>
-          <span>Audit Metro-2 disputes for DOFD consistency. Flag accounts missing supporting docs before next letter batch.</span>
+          <span>Check reminders and consult follow-ups once metrics load.</span>
         </li>
         <li class="flex items-start gap-3">
           <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 font-semibold text-amber-600">3</span>
-          <span>Run “7-Day Credit Momentum” email nurture. Track Lead → Consult uplift inside Analytics.</span>
+          <span>Revisit upsell opportunities after the dashboard syncs.</span>
         </li>
       </ul>
-      <div class="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-700">
+      <div id="nextRevenueWin" class="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-700">
         Next revenue win: bundle report parsing + dispute letter automation at $149 setup. Use Stripe Checkout link in Billing.
       </div>
     </aside>
@@ -269,7 +269,7 @@
               <span class="font-semibold text-slate-900" id="ladderMrr">Sync billing</span>
             </div>
             <div class="w-full overflow-hidden rounded-full bg-white/80">
-              <div class="h-2 bg-emerald-500" style="width: 38%;"></div>
+              <div id="ladderProgressBar" class="h-2 bg-emerald-500 transition-all duration-700" style="width: 38%;"></div>
             </div>
             <p class="text-xs text-emerald-700">Upsell automation bundle at $249/mo + certified mail credits.</p>
           </div>
