@@ -763,7 +763,9 @@ app.get(["/letters", "/letters/:jobId"], optionalAuth, forbidMember, (_req, res)
 );
 app.get("/library", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
 app.get("/workflows", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "workflows.html")));
-app.get("/marketing", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "marketing.html")));
+app.get(["/marketing", "/marketing/sms", "/marketing/email"], optionalAuth, forbidMember, (_req, res) =>
+  res.sendFile(path.join(PUBLIC_DIR, "marketing.html"))
+);
 app.get("/tradelines", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
 app.get("/quiz", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
 app.get("/settings", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));

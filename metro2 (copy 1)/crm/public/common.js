@@ -40,6 +40,8 @@ const TRANSLATIONS = {
       leads: 'Leads',
       schedule: 'Schedule',
       billing: 'Billing',
+      marketingSms: 'Marketing • SMS / Mensajes',
+      marketingEmail: 'Marketing • Email / Correo',
       marketing: 'Marketing',
       settings: 'Settings',
       myCompany: 'My Company',
@@ -67,6 +69,15 @@ const TRANSLATIONS = {
       tooltip: "You've started your journey."
     },
     marketing: {
+      meta: {
+        title: 'Marketing',
+        smsTitle: 'Marketing • SMS / Mensajes',
+        emailTitle: 'Marketing • Email / Correo'
+      },
+      channelBadges: {
+        sms: 'SMS Focus • Enfoque SMS',
+        email: 'Email Focus • Enfoque Email'
+      },
       hero: {
         title: 'Marketing Launchpad',
         subtitle: 'Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.',
@@ -279,6 +290,12 @@ export function applyLanguage(lang = currentLanguage) {
       updateInviteButtonCopy(inviteButton, variant, target);
     }
 
+    const marketingGroup = document.getElementById('navMarketingChannels');
+    if (marketingGroup) {
+      const marketingLabel = getTranslation('nav.marketing', target);
+      if (marketingLabel) marketingGroup.setAttribute('aria-label', marketingLabel);
+    }
+
     const logoutButton = document.getElementById('btnLogout');
     if (logoutButton) {
       const logoutLabel = getTranslation('buttons.logout', target);
@@ -481,7 +498,7 @@ window.userRole = _payload.role || null;
 function restrictRoutes(role){
   const allowed = {
     host: null,
-    team: ['/dashboard','/clients','/leads','/marketing','/schedule','/billing','/','/index.html','/login.html','/team-member-template.html'],
+    team: ['/dashboard','/clients','/leads','/marketing','/marketing/sms','/marketing/email','/schedule','/billing','/','/index.html','/login.html','/team-member-template.html'],
     client: ['/client-portal','/portal','/login.html','/']
   }[role];
   if(!allowed) return;
@@ -496,20 +513,53 @@ restrictRoutes(window.userRole);
 // append a logout button to the nav if present
 const navContainer = document.getElementById('primaryNavLinks');
 if (navContainer) {
-  if (!navContainer.querySelector('a[href="/marketing"]')) {
-    const marketingLink = document.createElement('a');
-    marketingLink.href = '/marketing';
-    marketingLink.className = 'btn nav-btn';
-    marketingLink.textContent = getTranslation('nav.marketing');
-    const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
-    if (scheduleLink?.parentElement === navContainer) {
-      navContainer.insertBefore(marketingLink, scheduleLink);
-    } else {
-      const leadsLink = navContainer.querySelector('a[href="/leads"]');
-      leadsLink?.insertAdjacentElement('afterend', marketingLink);
-      if (!leadsLink) navContainer.appendChild(marketingLink);
-    }
+  const scheduleLink = navContainer.querySelector('a[href="/schedule"]');
+  const settingsDropdown = navContainer.querySelector('#navSettings');
+  const marketingDropdown = navContainer.querySelector('#navMarketing');
+  if (marketingDropdown) {
+    marketingDropdown.remove();
   }
+
+  const ensureGroupPlacement = (group) => {
+    const insertionTarget = scheduleLink || settingsDropdown || navContainer.querySelector('a[href="/billing"]');
+    if (insertionTarget) {
+      navContainer.insertBefore(group, insertionTarget);
+    } else {
+      navContainer.appendChild(group);
+    }
+  };
+
+  const ensureMarketingGroup = () => {
+    let group = navContainer.querySelector('#navMarketingChannels');
+    if (!group) {
+      group = document.createElement('div');
+      group.id = 'navMarketingChannels';
+      group.className = 'flex flex-col md:flex-row gap-2 w-full md:w-auto nav-marketing-group';
+      group.setAttribute('role', 'group');
+      ensureGroupPlacement(group);
+    } else if (!group.parentElement || group.parentElement !== navContainer) {
+      ensureGroupPlacement(group);
+    }
+    const label = getTranslation('nav.marketing') || 'Marketing';
+    group.setAttribute('aria-label', label);
+    group.dataset.group = 'marketing';
+    return group;
+  };
+
+  const marketingGroup = ensureMarketingGroup();
+
+  const ensureMarketingLink = (href, translationKey) => {
+    if (marketingGroup.querySelector(`a[href="${href}"]`)) return;
+    const link = document.createElement('a');
+    link.href = href;
+    link.className = 'btn nav-btn';
+    link.dataset.i18n = translationKey;
+    link.textContent = getTranslation(translationKey) || getTranslation('nav.marketing');
+    marketingGroup.appendChild(link);
+  };
+
+  ensureMarketingLink('/marketing/sms', 'nav.marketingSms');
+  ensureMarketingLink('/marketing/email', 'nav.marketingEmail');
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
   btnLogout.className = 'btn nav-btn';
@@ -556,13 +606,17 @@ function applyRoleNav(role){
     return;
   }
   if(role === 'team'){
-    const allowed = new Set(['/dashboard','/clients','/leads','/marketing','/schedule','/billing']);
+    const allowed = new Set(['/dashboard','/clients','/leads','/marketing','/marketing/sms','/marketing/email','/schedule','/billing']);
     navLinks.querySelectorAll('a[href]').forEach(link => {
       const href = link.getAttribute('href');
       if(href && !allowed.has(href)){
         link.remove();
       }
     });
+    const marketingGroup = navLinks.querySelector('#navMarketingChannels');
+    if (marketingGroup && marketingGroup.querySelectorAll('a').length === 0) {
+      marketingGroup.remove();
+    }
     ['btnInvite','btnHelp','tierBadge'].forEach(id => {
       const el = navLinks.querySelector(`#${id}`);
       if(el) el.remove();

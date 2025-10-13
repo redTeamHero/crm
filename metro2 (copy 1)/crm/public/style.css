@@ -236,6 +236,21 @@ body::after {
   overflow: visible;
 }
 
+.nav-shell #navMarketingChannels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .nav-shell #navMarketingChannels {
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+  }
+}
+
 .nav-brand {
   display: flex;
   align-items: center;
