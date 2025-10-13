@@ -472,7 +472,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!link) return false;
     try {
       const url = new URL(link, window.location.origin);
-      return /stripe\.com$/i.test(url.hostname) && url.pathname.includes('/checkout');
+      const hostname = url.hostname.toLowerCase();
+      const path = url.pathname.toLowerCase();
+      const isStripeDomain = hostname === 'checkout.stripe.com' || hostname.endsWith('.stripe.com');
+      if(!isStripeDomain) return false;
+      return path.includes('/checkout') || path.includes('/pay/');
     } catch {
       return false;
     }
