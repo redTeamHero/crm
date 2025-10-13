@@ -320,6 +320,65 @@ function renderWorkflows() {
   grid.appendChild(fragment);
 }
 
+async function bootstrapWorkflowEngineSummary() {
+  try {
+    const res = await fetch('/api/workflows/config', { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data?.summary) return;
+
+    const summary = data.summary;
+    const lettersRuleSet = (summary.operations || []).find((op) => op.operation === 'letters.generate');
+    const cadenceRule = lettersRuleSet?.rules?.find((rule) => rule.type === 'minInterval');
+    const validationRule = lettersRuleSet?.rules?.find((rule) => rule.type === 'requireRecentEvent');
+    const resolvedEvent = (summary.events || []).find((evt) => evt.eventType === 'dispute_resolved');
+
+    const steps = [];
+    if (cadenceRule) {
+      steps.push(`Blocks disputes if a bureau was hit within ${cadenceRule.intervalDays} day(s).`);
+    }
+    if (validationRule) {
+      const mode = validationRule.enforcement === 'warn' ? 'warns' : 'requires';
+      steps.push(`${mode.charAt(0).toUpperCase()}${mode.slice(1)} validation within ${validationRule.maxAgeDays} day(s).`);
+    }
+    if (resolvedEvent?.actions?.length) {
+      steps.push('Auto-schedules bilingual follow-up reminders when disputes resolve.');
+    }
+    if (!steps.length) {
+      steps.push('Configure cadence, validation, and follow-up triggers inside the workflow engine.');
+    }
+
+    const engineWorkflow = {
+      id: 'workflow-engine',
+      icon: '🧠',
+      segments: ['Automation', 'Compliance'],
+      title: 'Workflow Engine Rules',
+      purpose: 'Configurable rules enforce dispute spacing, validation freshness, and follow-up automation.',
+      trigger: `Trigger: ${lettersRuleSet ? 'Letters.generate + dispute events' : 'Workflow events'}`,
+      steps,
+      outcome: 'Keep dispute rounds compliant and revenue-focused without manual spreadsheet policing.',
+      kpis: ['Avg days between disputes', 'Validation recency %', 'Follow-up completion rate'],
+      automations: [
+        'API: GET/PUT /api/workflows/config to edit rules',
+        'API: POST /api/workflows/validate for pre-flight checks',
+        'Auto reminders + notifications when disputes resolve (English/Spanish copy)'
+      ],
+      upsell: 'Offer “Managed Workflow Governance” for partner agencies needing compliance audits.',
+      abTest: 'Test advisor messaging (gentle warning vs hard stop) to maximize throughput without risking compliance.',
+    };
+
+    const existing = workflows.findIndex((wf) => wf.id === 'workflow-engine');
+    if (existing !== -1) {
+      workflows.splice(existing, 1);
+    }
+    workflows.unshift(engineWorkflow);
+    renderFilters();
+    renderWorkflows();
+  } catch (err) {
+    console.warn('Failed to load workflow engine summary', err);
+  }
+}
+
 segmentSelect.addEventListener('change', (event) => {
   state.segment = event.target.value;
   renderWorkflows();
@@ -327,3 +386,4 @@ segmentSelect.addEventListener('change', (event) => {
 
 renderFilters();
 renderWorkflows();
+bootstrapWorkflowEngineSummary();
