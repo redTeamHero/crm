@@ -104,13 +104,14 @@ export async function renderClientLocations(containerId, { forceRefresh = false 
   if(!map) return;
   const layer = map.__markerLayer;
   if(layer) layer.clearLayers();
-  setOverlay(el, null);
+  setOverlay(el, 'Loading client locations…');
   const locations = await fetchClientLocations(forceRefresh);
   if(!locations.length){
     map.setView([37.8, -96], 4);
     setOverlay(el, 'No client locations yet. Add addresses to map coverage.');
     return;
   }
+  setOverlay(el, null);
   const bounds = [];
   const statusColors = {
     active: '#6366f1',
