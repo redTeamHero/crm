@@ -135,7 +135,7 @@ function deriveTemplateTitleFromFile(fileName) {
   if (!fileName) {
     return t(
       "marketing.emailBuilder.prompts.importDefaultTitle",
-      "Imported Template • Plantilla importada"
+      "Imported Template"
     );
   }
   return fileName
@@ -569,7 +569,7 @@ function renderSmsTemplates() {
     copyBtn.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(tpl.body || "");
-        showInlineStatus(smsTemplateStatus, "SMS template copied • Plantilla copiada");
+        showInlineStatus(smsTemplateStatus, "SMS template copied");
       } catch (error) {
         showInlineStatus(smsTemplateStatus, error.message || "Clipboard blocked", "error");
       }
@@ -1213,7 +1213,7 @@ function bindTemplateEditor() {
     const title = templateEditorTitleInput?.value?.trim() || "";
     if (!title) {
       setTemplateEditorStatus(
-        t("marketing.emailBuilder.editor.titleRequired", "Title required • Título requerido"),
+        t("marketing.emailBuilder.editor.titleRequired", "Title required"),
         "error"
       );
       return;
@@ -1241,7 +1241,7 @@ function bindTemplateEditor() {
         : new Date().toLocaleString();
       updateTemplatePreview();
       setTemplateEditorStatus(
-        t("marketing.emailBuilder.editor.saveSuccess", "Template saved • Plantilla guardada")
+        t("marketing.emailBuilder.editor.saveSuccess", "Template saved")
       );
       window.setTimeout(() => {
         closeTemplateEditor();
@@ -1342,7 +1342,7 @@ function bindAutomationControls() {
         const template = await createSmsTemplateApi(payload);
         smsTemplateCache = [template, ...smsTemplateCache];
         renderSmsTemplates();
-        showInlineStatus(smsTemplateStatus, "SMS template saved • Plantilla guardada");
+        showInlineStatus(smsTemplateStatus, "SMS template saved");
         smsTemplateForm.reset();
       } catch (error) {
         showInlineStatus(smsTemplateStatus, error.message || "Failed to save SMS template", "error");
@@ -1356,7 +1356,7 @@ function bindAutomationControls() {
       const formData = new FormData(emailSequenceForm);
       const steps = gatherSequenceSteps().filter((step) => step.subject || step.templateId);
       if (!steps.length) {
-        showInlineStatus(emailSequenceStatus, "Add at least one step • Agrega un paso", "error");
+        showInlineStatus(emailSequenceStatus, "Add at least one step", "error");
         return;
       }
       const payload = {
@@ -1367,7 +1367,7 @@ function bindAutomationControls() {
         steps,
       };
       if (!payload.title) {
-        showInlineStatus(emailSequenceStatus, "Name required • Nombre requerido", "error");
+        showInlineStatus(emailSequenceStatus, "Name required", "error");
         return;
       }
       try {
@@ -1375,7 +1375,7 @@ function bindAutomationControls() {
         emailSequenceCache = [sequence, ...emailSequenceCache.filter((s) => s.id !== sequence.id)];
         renderEmailSequences();
         syncDispatchTargets();
-        showInlineStatus(emailSequenceStatus, "Sequence saved • Secuencia guardada");
+        showInlineStatus(emailSequenceStatus, "Sequence saved");
         emailSequenceForm.reset();
         if (sequenceStepsContainer) {
           sequenceStepsContainer.innerHTML = "";
@@ -1393,7 +1393,7 @@ function bindAutomationControls() {
       const formData = new FormData(dispatchForm);
       const targetId = formData.get("targetId")?.toString().trim() || "";
       if (!targetId) {
-        showInlineStatus(dispatchStatus, "Select template or sequence • Selecciona un asset", "error");
+        showInlineStatus(dispatchStatus, "Select template or sequence", "error");
         return;
       }
       const scheduledForRaw = formData.get("scheduledFor")?.toString().trim();

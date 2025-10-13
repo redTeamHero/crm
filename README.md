@@ -65,7 +65,7 @@ python3 metro2_audit_multi.py \
 ```
 
 - `--input` accepts either a local path or an HTTPS URL. Headers supplied via `--input-header NAME=VALUE` help with authenticated bureaus.
-- `--share-link-base` + `--share-link-field` generate a URL-safe query string containing the JSON payload so sales can hand off the findings instantly. The CLI prints and stores the link in the output file. (Campo bilingüe listo para equipos en español.)
+- `--share-link-base` + `--share-link-field` generate a URL-safe query string containing the JSON payload so sales can hand off the findings instantly. The CLI prints and stores the link in the output file.
 - Outputs still land in `report.json`, ready for the Node renderer above.
 
 Convert a raw credit report HTML directly into dispute-ready PDF letters:
