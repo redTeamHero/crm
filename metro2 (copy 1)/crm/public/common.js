@@ -1196,6 +1196,48 @@ function closeNotes(){
   startRec();
 }
 
+function initBackToTop(){
+  if (typeof document === 'undefined') return;
+  if (document.querySelector('.back-to-top')) return;
+  const nav = document.getElementById('host-nav') || document.getElementById('team-nav');
+  if (!nav) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'back-to-top';
+  btn.setAttribute('aria-label', 'Back to top • Volver arriba');
+  btn.title = 'Back to top • Volver arriba';
+  btn.textContent = '⬆️';
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  document.body.appendChild(btn);
+
+  if (typeof IntersectionObserver === 'undefined') {
+    btn.classList.add('show');
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    if (!entry) return;
+    if (entry.isIntersecting) {
+      btn.classList.remove('show');
+    } else {
+      btn.classList.add('show');
+    }
+  });
+
+  observer.observe(nav);
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBackToTop, { once: true });
+  } else {
+    initBackToTop();
+  }
+}
+
 if (typeof window !== 'undefined') {
   Object.assign(window, { escapeHtml, formatCurrency, trackEvent, authHeader, api, setLanguage, getCurrentLanguage, applyLanguage, getTranslation });
 }
