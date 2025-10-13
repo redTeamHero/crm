@@ -47,8 +47,8 @@ test('GET /api/tradelines scenarios', async (t) => {
     assert.equal(invalidRes.body.ok, false);
   });
 
-  await t.test('can return full buckets beyond 100 items', async () => {
-    const largeSample = Array.from({ length: 150 }, (_, idx) => ({
+  await t.test('reports capped perPage and pagination metadata when request exceeds limit', async () => {
+    const largeSample = Array.from({ length: 550 }, (_, idx) => ({
       bank: `Bank ${idx % 3}`,
       price: 520 + idx,
       limit: 10000,
@@ -59,10 +59,11 @@ test('GET /api/tradelines scenarios', async (t) => {
 
     app.set('scrapeTradelinesOverride', async () => largeSample);
 
-    const res = await agent.get('/api/tradelines').query({ range: '501+', perPage: 400 });
+    const res = await agent.get('/api/tradelines').query({ range: '501+', perPage: 9999 });
     assert.equal(res.status, 200);
-    assert.equal(res.body.totalItems, 150);
-    assert.equal(res.body.totalPages, 1);
-    assert.equal(res.body.tradelines.length, 150);
+    assert.equal(res.body.totalItems, 550);
+    assert.equal(res.body.perPage, 500);
+    assert.equal(res.body.totalPages, 2);
+    assert.equal(res.body.tradelines.length, 500);
   });
 });

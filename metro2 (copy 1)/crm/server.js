@@ -671,7 +671,7 @@ app.get("/api/tradelines", async (req, res) => {
 
     const pageNumber = Number.parseInt(page, 10);
     const perPageNumber = Number.parseInt(perPage, 10);
-    const { items: paginatedItems, totalPages, totalItems, page: currentPage, perPage: safePerPage } = paginate(
+    const pagination = paginate(
       items,
       Number.isFinite(pageNumber) ? pageNumber : 1,
       Number.isFinite(perPageNumber) ? perPageNumber : 20,
@@ -683,11 +683,11 @@ app.get("/api/tradelines", async (req, res) => {
       range: selectedRange,
       ranges,
       banks,
-      tradelines: paginatedItems,
-      page: currentPage,
-      perPage: safePerPage,
-      totalPages,
-      totalItems,
+      tradelines: pagination.items,
+      page: pagination.page,
+      perPage: pagination.perPage,
+      totalPages: pagination.totalPages,
+      totalItems: pagination.totalItems,
       selectedBank: normalizedBank || null,
     });
   } catch (e) {
