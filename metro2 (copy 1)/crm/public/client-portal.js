@@ -468,6 +468,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if(Number.isNaN(date.getTime())) return false;
     return date.getTime() < Date.now();
   }
+  function isStripeCheckoutLink(link){
+    if(!link) return false;
+    try {
+      const url = new URL(link, window.location.origin);
+      return /stripe\.com$/i.test(url.hostname) && url.pathname.includes('/checkout');
+    } catch {
+      return false;
+    }
+  }
+
+  function navigateTo(link){
+    if(!link) return;
+    try {
+      window.location.assign(link);
+    } catch {
+      window.location.href = link;
+    }
+  }
+
   function attachPayHandlers(){
     if(!paymentList) return;
     paymentList.querySelectorAll('.pay-invoice').forEach(btn => {
@@ -505,7 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
           alert('Payment link unavailable. Please contact support.');
           return;
         }
-        window.open(link, '_blank', 'noopener');
+        navigateTo(link);
       });
     });
   }
