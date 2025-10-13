@@ -1,6 +1,7 @@
 /* public/dashboard.js */
 
 import { escapeHtml, api, formatCurrency } from './common.js';
+import { renderClientLocations } from './client-map.js';
 
 const TOUR_STEP_KEY = 'dashboard.tour.step';
 const TOUR_COMPLETE_KEY = 'dashboard.tour.complete';
@@ -1052,8 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
     goalBtn.addEventListener('click', burstConfetti);
   }
 
-  initClientLocationElements();
-  refreshClientLocationButtons();
+  const detailModalController = createDetailModal();
 
   chatState.panel = document.getElementById('guideChatPanel');
   chatState.toggle = document.getElementById('guideChatToggle');
@@ -1264,7 +1264,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setText('dashRetention', retention.toFixed(1) + '%');
       setText('dashConversion', conversion.toFixed(1) + '%');
 
-      prepareClientLocationBreakdown(consumers);
+      renderClientLocations('clientMap', { forceRefresh: true });
       detailModalController.setGenerators({
         leads: () => buildMetricDataset({
           title: 'Lead Intake',
