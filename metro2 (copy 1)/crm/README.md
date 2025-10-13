@@ -79,7 +79,7 @@ Without them, letter generation will fail with errors like `libnspr4.so: cannot 
   1. Select a price bucket (`0–150`, `151–300`, `301–500`, `501+`).
   2. Choose a bank with live inventory counts.
   3. Review curated cards with price, limit, reporting cadence, and a Stripe Checkout CTA.
-- Toggle English/Spanish copy with the **ES/EN** button to keep bilingual reps in sync.
+- All copy now renders in English so every advisor shares the same messaging.
 - API endpoints:
   - `GET /api/tradelines` → returns price bucket summary for hero metrics.
   - `GET /api/tradelines?range=151-300&bank=Alpha%20Bank` → filtered inventory, pagination metadata, and bank counts for CRM automations.
