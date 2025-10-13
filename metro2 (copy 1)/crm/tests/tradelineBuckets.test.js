@@ -70,3 +70,11 @@ test('paginate constrains page boundaries', () => {
   assert.equal(totalPages, 3);
   assert.equal(totalItems, 25);
 });
+
+test('paginate allows higher caps when configured', () => {
+  const items = Array.from({ length: 150 }, (_, idx) => ({ id: idx }));
+  const { items: pageItems, totalPages, perPage } = paginate(items, 1, 200, { maxPerPage: 250 });
+  assert.equal(pageItems.length, 150);
+  assert.equal(totalPages, 1);
+  assert.equal(perPage, 200);
+});

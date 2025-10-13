@@ -173,7 +173,25 @@ document.addEventListener('DOMContentLoaded', () => {
       state.selectedRangeMeta = data.range || null;
       state.banks = data.banks || [];
       state.selectedBank = bank || null;
-      state.allItems = data.tradelines || [];
+      const aggregatedItems = Array.isArray(data.tradelines) ? [...data.tradelines] : [];
+      const totalPagesRaw = Number.parseInt(data.totalPages, 10);
+      const totalPages = Number.isFinite(totalPagesRaw) ? totalPagesRaw : 1;
+      if (totalPages > 1) {
+        const perPageValue = data.perPage || params.get('perPage') || '400';
+        for (let nextPage = 2; nextPage <= totalPages; nextPage += 1) {
+          const extraParams = new URLSearchParams({ range: rangeId, page: String(nextPage), perPage: String(perPageValue) });
+          if (bank) extraParams.set('bank', bank);
+          try {
+            const pageData = await fetchJson(`/api/tradelines?${extraParams.toString()}`);
+            if (Array.isArray(pageData.tradelines)) {
+              aggregatedItems.push(...pageData.tradelines);
+            }
+          } catch (pageError) {
+            console.error('Failed to load tradelines page', pageError);
+          }
+        }
+      }
+      state.allItems = aggregatedItems;
       if (isNewRange) {
         searchInput.value = '';
         sortSelect.value = '';

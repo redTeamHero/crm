@@ -52,6 +52,8 @@ const DEFAULT_SETTINGS = {
   envOverrides: {}
 };
 
+const MAX_TRADLINE_PAGE_SIZE = 500;
+
 function normalizeEnvOverrides(raw){
   const result = {};
   if(!raw) return result;
@@ -669,10 +671,11 @@ app.get("/api/tradelines", async (req, res) => {
 
     const pageNumber = Number.parseInt(page, 10);
     const perPageNumber = Number.parseInt(perPage, 10);
-    const { items: paginatedItems, totalPages, totalItems, page: currentPage } = paginate(
+    const { items: paginatedItems, totalPages, totalItems, page: currentPage, perPage: safePerPage } = paginate(
       items,
       Number.isFinite(pageNumber) ? pageNumber : 1,
       Number.isFinite(perPageNumber) ? perPageNumber : 20,
+      { maxPerPage: MAX_TRADLINE_PAGE_SIZE },
     );
 
     res.json({
@@ -682,7 +685,7 @@ app.get("/api/tradelines", async (req, res) => {
       banks,
       tradelines: paginatedItems,
       page: currentPage,
-      perPage: perPageNumber || 20,
+      perPage: safePerPage,
       totalPages,
       totalItems,
       selectedBank: normalizedBank || null,
