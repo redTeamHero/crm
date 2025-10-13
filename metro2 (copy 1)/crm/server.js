@@ -27,6 +27,13 @@ import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, u
 
 import { fetchFn } from "./fetchUtil.js";
 import { scrapeTradelines } from "./tradelineScraper.js";
+import {
+  groupTradelinesByPrice,
+  buildRangeSummary,
+  listBanks,
+  getBucketMeta,
+  paginate,
+} from "./tradelineBuckets.js";
 import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "./negativeItems.js";
 import { mapAuditedViolations } from "./pullTradelineData.js";
@@ -634,10 +641,52 @@ app.delete("/api/calendar/events/:id", async (req, res) => {
   }
 });
 
-app.get("/api/tradelines", async (_req, res) => {
+app.get("/api/tradelines", async (req, res) => {
   try {
-    const tradelines = await scrapeTradelines(fetchFn);
-    res.json({ ok: true, tradelines });
+    const scrapeImpl = req.app.get("scrapeTradelinesOverride") || scrapeTradelines;
+    const tradelines = await scrapeImpl(fetchFn);
+    const grouped = groupTradelinesByPrice(tradelines);
+    const ranges = buildRangeSummary(grouped);
+
+    const { range: rangeId = "", bank = "", page = "1", perPage = "20" } = req.query || {};
+    const selectedRange = getBucketMeta(rangeId);
+
+    if (!rangeId) {
+      return res.json({ ok: true, ranges, tradelines: [], banks: [], range: null, page: 1, totalPages: 1 });
+    }
+
+    if (!selectedRange) {
+      return res.status(400).json({ ok: false, error: "Invalid price range" });
+    }
+
+    let items = grouped[selectedRange.id] || [];
+    const normalizedBank = bank.trim();
+    if (normalizedBank) {
+      items = items.filter((item) => item.bank === normalizedBank);
+    }
+
+    const banks = listBanks(grouped[selectedRange.id]);
+
+    const pageNumber = Number.parseInt(page, 10);
+    const perPageNumber = Number.parseInt(perPage, 10);
+    const { items: paginatedItems, totalPages, totalItems, page: currentPage } = paginate(
+      items,
+      Number.isFinite(pageNumber) ? pageNumber : 1,
+      Number.isFinite(perPageNumber) ? perPageNumber : 20,
+    );
+
+    res.json({
+      ok: true,
+      range: selectedRange,
+      ranges,
+      banks,
+      tradelines: paginatedItems,
+      page: currentPage,
+      perPage: perPageNumber || 20,
+      totalPages,
+      totalItems,
+      selectedBank: normalizedBank || null,
+    });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

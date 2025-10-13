@@ -73,6 +73,18 @@ Without them, letter generation will fail with errors like `libnspr4.so: cannot 
    - `data/tradelineCards.json` – normalized accounts with issues for the client portal
    - `letter.html` – demo letter for the first tradeline and violation
 
+## Tradeline storefront flow
+
+- Navigate to `/tradelines` to walk prospects through a conversion-ready funnel:
+  1. Select a price bucket (`0–150`, `151–300`, `301–500`, `501+`).
+  2. Choose a bank with live inventory counts.
+  3. Review curated cards with price, limit, reporting cadence, and a Stripe Checkout CTA.
+- Toggle English/Spanish copy with the **ES/EN** button to keep bilingual reps in sync.
+- API endpoints:
+  - `GET /api/tradelines` → returns price bucket summary for hero metrics.
+  - `GET /api/tradelines?range=151-300&bank=Alpha%20Bank` → filtered inventory, pagination metadata, and bank counts for CRM automations.
+- Track funnel KPIs with the embedded note (`range_selected`, `bank_selected`, `tradeline_checkout`) or wire into your analytics stack.
+
 ## Tests
 
 Install dependencies and run the test suite:

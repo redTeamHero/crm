@@ -1,119 +1,429 @@
 /* public/tradelines.js */
-document.addEventListener('DOMContentLoaded', async () => {
-  const container = document.getElementById('tradeline-container');
+document.addEventListener('DOMContentLoaded', () => {
+  const priceRangeGrid = document.getElementById('price-range-grid');
+  const bankGrid = document.getElementById('bank-grid');
+  const bankHint = document.getElementById('bank-hint');
+  const resetRangeBtn = document.getElementById('reset-range');
+  const tradelineContainer = document.getElementById('tradeline-container');
   const searchInput = document.getElementById('search');
   const sortSelect = document.getElementById('sort');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const pageIndicator = document.getElementById('page-indicator');
+  const resultsMeta = document.getElementById('results-meta');
+  const langToggle = document.getElementById('lang-toggle');
+  const titleEl = document.getElementById('title');
+  const langLabel = document.getElementById('lang-label');
+  const rangeHeading = document.getElementById('range-heading');
+  const rangeSubheading = document.getElementById('range-subheading');
+  const bankHeading = document.getElementById('bank-heading');
+  const bankSubheading = document.getElementById('bank-subheading');
+  const resultsHeading = document.getElementById('results-heading');
+  const resultsSubheading = document.getElementById('results-subheading');
+  const rangeKpi = document.getElementById('range-kpi');
   const mobileBuy = document.getElementById('mobile-buy');
-  const bankList = document.getElementById('bank-list');
 
-  let tradelines = [];
-  try {
-    const resp = await fetch('/api/tradelines');
-    const data = await resp.json();
-    tradelines = data.tradelines || [];
-  } catch (e) {
-    console.error('Failed to load tradelines', e);
+  const CLIENT_PAGE_SIZE = 9;
+
+  const STRINGS = {
+    en: {
+      title: '📊 Browse Tradelines',
+      langLabel: 'English / Español',
+      rangeHeading: '1. Select a price range',
+      rangeSubheading: 'Filter by retail price to match your client\'s budget.',
+      rangeCta: 'View offers',
+      rangeCount: (count) => `${count} offers`,
+      bankHeading: '2. Choose a bank',
+      bankSubheading: 'Highlight banks your buyer already trusts.',
+      bankAll: 'All banks',
+      bankHint: (rangeLabel, count) =>
+        rangeLabel
+          ? `Range selected: ${rangeLabel}. ${count} offers ready.`
+          : 'Pick a price range to load banks.',
+      resetRange: 'Change price range',
+      resultsHeading: '3. Review tradelines',
+      resultsSubheading: 'Preview retail price, credit limit, and reporting cadence.',
+      searchPlaceholder: 'Search within results',
+      sortLabel: 'Sort',
+      emptyState: 'Select a range and bank to preview tradelines.',
+      emptyAfterFilter: '🔍 No tradelines found. Refine your filters or try another bank.',
+      metaSummary: (count, bank) => {
+        if (!count) return 'No tradelines loaded yet.';
+        if (bank) return `${count} tradelines loaded for ${bank}.`;
+        return `${count} tradelines loaded in this price range.`;
+      },
+      prev: 'Prev',
+      next: 'Next',
+      kpi: 'Conversion KPI: Range-to-Bank CTR',
+      mobileBuy: 'Buy Now',
+      analyticsNote: 'Track: range_selected, bank_selected, tradeline_checkout',
+      rangesLoading: 'Loading ranges...',
+      rangesError: 'Unable to load ranges.',
+      rangesEmpty: 'No ranges available.',
+      loadError: 'Unable to load tradelines. Try again.',
+    },
+    es: {
+      title: '📊 Explora tradelines',
+      langLabel: 'Inglés / Español',
+      rangeHeading: '1. Selecciona un rango de precio',
+      rangeSubheading: 'Filtra por precio final para ajustarte al presupuesto del cliente.',
+      rangeCta: 'Ver opciones',
+      rangeCount: (count) => `${count} opciones`,
+      bankHeading: '2. Elige un banco',
+      bankSubheading: 'Destaca bancos que ya generen confianza.',
+      bankAll: 'Todos los bancos',
+      bankHint: (rangeLabel, count) =>
+        rangeLabel
+          ? `Rango seleccionado: ${rangeLabel}. ${count} opciones listas.`
+          : 'Selecciona un rango de precio para cargar bancos.',
+      resetRange: 'Cambiar rango de precio',
+      resultsHeading: '3. Revisa tradelines',
+      resultsSubheading: 'Consulta precio final, límite y ritmo de reporte.',
+      searchPlaceholder: 'Buscar dentro de los resultados',
+      sortLabel: 'Ordenar',
+      emptyState: 'Selecciona un rango y un banco para ver tradelines.',
+      emptyAfterFilter: '🔍 No encontramos tradelines. Ajusta filtros o intenta otro banco.',
+      metaSummary: (count, bank) => {
+        if (!count) return 'Aún no hay tradelines cargados.';
+        if (bank) return `${count} tradelines listados para ${bank}.`;
+        return `${count} tradelines listados en este rango de precio.`;
+      },
+      prev: 'Anterior',
+      next: 'Siguiente',
+      kpi: 'KPI: CTR de Rango a Banco',
+      mobileBuy: 'Comprar ahora',
+      analyticsNote: 'Eventos: range_selected, bank_selected, tradeline_checkout',
+      rangesLoading: 'Cargando rangos...',
+      rangesError: 'No fue posible cargar los rangos.',
+      rangesEmpty: 'No hay rangos disponibles.',
+      loadError: 'No se pudieron cargar los tradelines. Intenta de nuevo.',
+    },
+  };
+
+  const state = {
+    language: 'en',
+    ranges: [],
+    selectedRange: null,
+    selectedRangeMeta: null,
+    banks: [],
+    selectedBank: null,
+    allItems: [],
+    filteredItems: [],
+    page: 1,
+  };
+
+  async function fetchJson(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Request failed');
+    return data;
   }
 
-  let currentPage = 1;
-  const perPage = 10;
-  let filteredData = tradelines;
-
-  function renderBankList(data) {
-    const banks = [...new Set(data.map(t => t.bank))].sort();
-    bankList.textContent = banks.length ? `Available Banks: ${banks.join(', ')}` : '';
+  function translate() {
+    const copy = STRINGS[state.language];
+    titleEl.textContent = copy.title;
+    langLabel.textContent = copy.langLabel;
+    rangeHeading.textContent = copy.rangeHeading;
+    rangeSubheading.textContent = copy.rangeSubheading;
+    bankHeading.textContent = copy.bankHeading;
+    bankSubheading.textContent = copy.bankSubheading;
+    resultsHeading.textContent = copy.resultsHeading;
+    resultsSubheading.textContent = copy.resultsSubheading;
+    rangeKpi.textContent = copy.kpi;
+    searchInput.placeholder = copy.searchPlaceholder;
+    sortSelect.options[0].textContent = copy.sortLabel;
+    prevBtn.textContent = copy.prev;
+    nextBtn.textContent = copy.next;
+    mobileBuy.textContent = copy.mobileBuy;
+    resetRangeBtn.textContent = copy.resetRange;
+    renderRanges();
+    renderBanks();
+    renderTradelines();
   }
 
-  function renderTradelines(data) {
-    container.innerHTML = '';
-    const paginated = data.slice((currentPage - 1) * perPage, currentPage * perPage);
+  function setLanguage(lang) {
+    state.language = lang;
+    langToggle.textContent = lang === 'en' ? 'ES' : 'EN';
+    translate();
+  }
 
-    if (paginated.length === 0) {
-      container.innerHTML = `<div class="col-span-full text-center text-gray-500 text-lg py-10">🔍 No tradelines found. Try a different search or filter.</div>`;
+  async function loadRanges() {
+    const copy = STRINGS[state.language];
+    priceRangeGrid.innerHTML = `<div class="text-sm text-gray-500">${copy.rangesLoading}</div>`;
+    try {
+      const data = await fetchJson('/api/tradelines');
+      state.ranges = data.ranges || [];
+      renderRanges();
+    } catch (err) {
+      console.error('Failed to load tradeline ranges', err);
+      priceRangeGrid.innerHTML = `<div class="text-sm text-red-500">${STRINGS[state.language].rangesError}</div>`;
+    }
+  }
+
+  async function loadRangeData(rangeId, bank = '') {
+    if (!rangeId) return;
+    const params = new URLSearchParams({ range: rangeId, perPage: '400' });
+    if (bank) params.set('bank', bank);
+    const url = `/api/tradelines?${params.toString()}`;
+    try {
+      const data = await fetchJson(url);
+      const isNewRange = state.selectedRange !== rangeId;
+      state.selectedRange = rangeId;
+      state.selectedRangeMeta = data.range || null;
+      state.banks = data.banks || [];
+      state.selectedBank = bank || null;
+      state.allItems = data.tradelines || [];
+      if (isNewRange) {
+        searchInput.value = '';
+        sortSelect.value = '';
+      }
+      filterAndSortItems(true);
+      renderBanks();
+      renderTradelines();
+    } catch (err) {
+      console.error('Failed to load tradelines', err);
+      bankHint.textContent = STRINGS[state.language].loadError;
+    }
+  }
+
+  function renderRanges() {
+    const copy = STRINGS[state.language];
+    priceRangeGrid.innerHTML = '';
+    if (!state.ranges.length) {
+      priceRangeGrid.innerHTML = `<div class="text-sm text-gray-500">${STRINGS[state.language].rangesEmpty}</div>`;
+      return;
+    }
+    state.ranges.forEach((range) => {
+      const isActive = state.selectedRange === range.id;
+      const button = document.createElement('button');
+      button.className = `p-4 rounded-xl border text-left transition shadow-sm hover:shadow-md focus:ring-2 focus:ring-blue-500 ${
+        isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-200'
+      }`;
+      button.dataset.rangeId = range.id;
+      button.innerHTML = `
+        <div class="text-sm uppercase tracking-wide mb-1">${copy.rangeHeading.split('.')[0]}</div>
+        <div class="text-2xl font-semibold">${range.label}</div>
+        <div class="text-sm mt-2 opacity-80">${copy.rangeCount(range.count || 0)}</div>
+        <div class="mt-3 inline-flex items-center gap-2 text-sm font-semibold">
+          ${copy.rangeCta}
+          <span aria-hidden="true">➜</span>
+        </div>
+      `;
+      button.addEventListener('click', () => {
+        if (state.selectedRange === range.id) return;
+        loadRangeData(range.id);
+      });
+      priceRangeGrid.appendChild(button);
+    });
+  }
+
+  function renderBanks() {
+    const copy = STRINGS[state.language];
+    bankGrid.innerHTML = '';
+    const rangeLabel = state.selectedRangeMeta?.label || '';
+    const totalInRange = state.ranges.find((r) => r.id === state.selectedRange)?.count || 0;
+    bankHint.textContent = copy.bankHint(rangeLabel, totalInRange);
+
+    if (!state.selectedRange) {
+      resetRangeBtn.classList.add('hidden');
+      return;
+    }
+    resetRangeBtn.classList.remove('hidden');
+
+    const allButton = document.createElement('button');
+    allButton.className = `px-4 py-2 rounded-full border transition ${
+      !state.selectedBank ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-200'
+    }`;
+    allButton.textContent = copy.bankAll;
+    allButton.addEventListener('click', () => loadRangeData(state.selectedRange));
+    bankGrid.appendChild(allButton);
+
+    state.banks.forEach(({ bank, count }) => {
+      const btn = document.createElement('button');
+      const isActive = state.selectedBank === bank;
+      btn.className = `px-4 py-2 rounded-full border transition hover:shadow ${
+        isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-200'
+      }`;
+      btn.textContent = `${bank} (${count})`;
+      btn.addEventListener('click', () => loadRangeData(state.selectedRange, bank));
+      bankGrid.appendChild(btn);
+    });
+
+    const note = document.createElement('div');
+    note.className = 'mt-4 text-xs text-gray-400';
+    note.textContent = STRINGS[state.language].analyticsNote;
+    bankGrid.appendChild(note);
+  }
+
+  function filterAndSortItems(resetPage = false) {
+    const query = searchInput.value.trim().toLowerCase();
+    const sort = sortSelect.value;
+    let items = [...state.allItems];
+
+    if (query) {
+      items = items.filter((item) => {
+        return [item.bank, item.age, item.reporting]
+          .filter(Boolean)
+          .some((field) => field.toLowerCase().includes(query));
+      });
+    }
+
+    const compare = {
+      'price-asc': (a, b) => (a.price ?? 0) - (b.price ?? 0),
+      'price-desc': (a, b) => (b.price ?? 0) - (a.price ?? 0),
+      'limit-asc': (a, b) => (a.limit ?? 0) - (b.limit ?? 0),
+      'limit-desc': (a, b) => (b.limit ?? 0) - (a.limit ?? 0),
+      'age-asc': (a, b) => (a.age || '').localeCompare(b.age || ''),
+      'age-desc': (a, b) => (b.age || '').localeCompare(a.age || ''),
+    };
+
+    if (compare[sort]) {
+      items.sort(compare[sort]);
+    }
+
+    state.filteredItems = items;
+    if (resetPage) {
+      state.page = 1;
+    }
+  }
+
+  function formatCurrency(value) {
+    if (!Number.isFinite(value)) return '';
+    return new Intl.NumberFormat(state.language === 'es' ? 'es-US' : 'en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(value);
+  }
+
+  function renderTradelines() {
+    const copy = STRINGS[state.language];
+    tradelineContainer.innerHTML = '';
+
+    if (!state.selectedRange) {
+      resultsMeta.textContent = copy.metaSummary(0, null);
+      tradelineContainer.innerHTML = `<div class="text-sm text-gray-500">${copy.emptyState}</div>`;
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      pageIndicator.textContent = '';
       mobileBuy.classList.add('hidden');
       return;
     }
 
-    paginated.forEach(t => {
-      const el = document.createElement('div');
-      el.className = 'bg-white shadow-md rounded-xl p-4 hover:shadow-lg transition transform hover:scale-[1.01] duration-200';
+    filterAndSortItems(false);
+    const { filteredItems } = state;
+    resultsMeta.textContent = copy.metaSummary(filteredItems.length, state.selectedBank);
 
-      const bank = document.createElement('h2');
-      bank.className = 'text-xl font-semibold';
-      bank.textContent = t.bank;
-      el.appendChild(bank);
+    if (!filteredItems.length) {
+      tradelineContainer.innerHTML = `<div class="col-span-full text-center text-gray-500 text-lg py-10">${copy.emptyAfterFilter}</div>`;
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      pageIndicator.textContent = '';
+      mobileBuy.classList.add('hidden');
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(filteredItems.length / CLIENT_PAGE_SIZE));
+    state.page = Math.min(state.page, totalPages);
+    const start = (state.page - 1) * CLIENT_PAGE_SIZE;
+    const paginated = filteredItems.slice(start, start + CLIENT_PAGE_SIZE);
+
+    paginated.forEach((item) => {
+      const card = document.createElement('article');
+      card.className = 'bg-white shadow-md rounded-xl p-4 hover:shadow-lg transition transform hover:scale-[1.01] duration-200 flex flex-col gap-2';
+
+      const bankTitle = document.createElement('h3');
+      bankTitle.className = 'text-xl font-semibold';
+      bankTitle.textContent = item.bank || 'Unknown Bank';
+      card.appendChild(bankTitle);
 
       const meta = document.createElement('p');
-      meta.className = 'text-sm text-gray-600 mb-2';
-      meta.textContent = `${t.age} | ${formatCurrency(t.limit)} limit`;
-
-      el.appendChild(meta);
+      meta.className = 'text-sm text-gray-600';
+      const limit = Number.isFinite(item.limit) ? formatCurrency(item.limit) : '';
+      meta.textContent = `${item.age || 'Seasoning N/A'}${limit ? ` • ${limit} limit` : ''}`;
+      card.appendChild(meta);
 
       const price = document.createElement('p');
       price.className = 'text-lg font-bold text-green-600';
-      price.textContent = formatCurrency(t.price);
+      price.textContent = formatCurrency(item.price);
+      card.appendChild(price);
 
-      el.appendChild(price);
-
-      if (t.statement_date) {
+      if (item.statement_date) {
         const stmt = document.createElement('p');
-        stmt.className = 'text-xs text-gray-400';
-        stmt.textContent = `Statement: ${t.statement_date}`;
-        el.appendChild(stmt);
+        stmt.className = 'text-xs text-gray-500';
+        stmt.textContent = `Statement: ${item.statement_date}`;
+        card.appendChild(stmt);
       }
 
-      if (t.reporting) {
+      if (item.reporting) {
         const rep = document.createElement('p');
-        rep.className = 'text-xs text-gray-400';
-        rep.textContent = `Reports to: ${t.reporting}`;
-        el.appendChild(rep);
+        rep.className = 'text-xs text-gray-500';
+        rep.textContent = `Reports to: ${item.reporting}`;
+        card.appendChild(rep);
       }
 
-      const link = document.createElement('a');
-      link.href = t.buy_link;
-      link.className = 'inline-block mt-3 bg-blue-500 text-white text-sm px-4 py-2 rounded hover:bg-blue-600 transition';
-      link.textContent = 'Buy Now';
-      el.appendChild(link);
+      const cta = document.createElement('a');
+      cta.href = item.buy_link || '#';
+      cta.className = 'inline-flex items-center justify-center gap-2 mt-3 bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 transition';
+      cta.textContent = copy.mobileBuy;
+      cta.target = '_blank';
+      card.appendChild(cta);
 
-      container.appendChild(el);
+      tradelineContainer.appendChild(card);
     });
 
-    mobileBuy.href = paginated[0].buy_link || '#';
-    mobileBuy.classList.remove('hidden');
+    prevBtn.disabled = state.page <= 1;
+    nextBtn.disabled = state.page >= totalPages;
+    pageIndicator.textContent = `${state.page}/${totalPages}`;
+    mobileBuy.href = paginated[0]?.buy_link || '#';
+    if (paginated[0]?.buy_link) {
+      mobileBuy.classList.remove('hidden');
+    } else {
+      mobileBuy.classList.add('hidden');
+    }
   }
 
-  function filterAndSort() {
-    filteredData = tradelines.filter(t => t.bank.toLowerCase().includes(searchInput.value.toLowerCase()));
-    const sortBy = sortSelect.value;
-
-    if (sortBy === 'price-asc') filteredData.sort((a, b) => a.price - b.price);
-    if (sortBy === 'price-desc') filteredData.sort((a, b) => b.price - a.price);
-    if (sortBy === 'limit-asc') filteredData.sort((a, b) => a.limit - b.limit);
-    if (sortBy === 'limit-desc') filteredData.sort((a, b) => b.limit - a.limit);
-    if (sortBy === 'age-asc') filteredData.sort((a, b) => (a.age || '').localeCompare(b.age || ''));
-    if (sortBy === 'age-desc') filteredData.sort((a, b) => (b.age || '').localeCompare(a.age || ''));
-
-    renderBankList(filteredData);
-    renderTradelines(filteredData);
-  }
-
-  document.getElementById('prev').addEventListener('click', () => {
-    if (currentPage > 1) {
-      currentPage--;
-      renderTradelines(filteredData);
-    }
+  prevBtn.addEventListener('click', () => {
+    if (state.page <= 1) return;
+    state.page -= 1;
+    renderTradelines();
   });
 
-  document.getElementById('next').addEventListener('click', () => {
-    if ((currentPage * perPage) < filteredData.length) {
-      currentPage++;
-      renderTradelines(filteredData);
-    }
+  nextBtn.addEventListener('click', () => {
+    const totalPages = Math.max(1, Math.ceil(state.filteredItems.length / CLIENT_PAGE_SIZE));
+    if (state.page >= totalPages) return;
+    state.page += 1;
+    renderTradelines();
   });
 
-  searchInput.addEventListener('input', () => { currentPage = 1; filterAndSort(); });
-  sortSelect.addEventListener('change', () => { currentPage = 1; filterAndSort(); });
+  searchInput.addEventListener('input', () => {
+    filterAndSortItems(true);
+    renderTradelines();
+  });
 
-  filterAndSort();
+  sortSelect.addEventListener('change', () => {
+    filterAndSortItems(true);
+    renderTradelines();
+  });
+
+  resetRangeBtn.addEventListener('click', () => {
+    state.selectedRange = null;
+    state.selectedRangeMeta = null;
+    state.selectedBank = null;
+    state.allItems = [];
+    state.filteredItems = [];
+    state.page = 1;
+    renderBanks();
+    renderTradelines();
+  });
+
+  langToggle.addEventListener('click', () => {
+    const nextLang = state.language === 'en' ? 'es' : 'en';
+    setLanguage(nextLang);
+  });
+
+  setLanguage('en');
+  loadRanges();
 });
 
