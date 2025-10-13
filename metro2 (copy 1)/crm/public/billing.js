@@ -9,6 +9,7 @@ if(!consumerId){
 } else {
   document.getElementById('billingContent').classList.remove('hidden');
   loadInvoices();
+  loadPlans();
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -18,6 +19,28 @@ const autopayStatusEl = document.getElementById('autopayStatus');
 const autopayCopyEl = document.getElementById('autopayCopy');
 const autopaySwitchLabel = document.getElementById('autopaySwitchLabel');
 const autopayStorageKey = consumerId ? `autopay:${consumerId}` : null;
+
+const planState = { editingId: null, plans: [] };
+const planNameInput = $('#planName');
+const planAmountInput = $('#planAmount');
+const planStartInput = $('#planStart');
+const planNextInput = $('#planNext');
+const planFrequencySelect = $('#planFrequency');
+const planIntervalInput = $('#planInterval');
+const planIntervalWrap = document.getElementById('planIntervalWrap');
+const planReminderInput = $('#planReminderLead');
+const planNotesInput = $('#planNotes');
+const planActiveInput = document.getElementById('planActive');
+const planFormTitle = document.getElementById('planFormTitle');
+const planEmptyState = document.getElementById('planEmpty');
+const plansList = document.getElementById('plansList');
+const planSaveBtn = document.getElementById('planSave');
+const planSendBtn = document.getElementById('planSend');
+const planNewBtn = document.getElementById('planNew');
+const planSummaryValueEl = document.getElementById('planSummaryValue');
+const planSummaryDescriptionEl = document.getElementById('planSummaryDescription');
+const planSummaryCta = document.getElementById('planSummaryCta');
+
 let lastInvoices = [];
 
 function translate(key, replacements = {}) {
@@ -43,6 +66,28 @@ if(consumerId && autopaySwitch && autopayStatusEl){
 } else if(autopaySwitch) {
   autopaySwitch.disabled = true;
 }
+
+if(planNameInput){
+  resetPlanForm();
+}
+if(planFrequencySelect){
+  planFrequencySelect.addEventListener('change', handlePlanFrequencyChange);
+  handlePlanFrequencyChange();
+}
+planSaveBtn?.addEventListener('click', handlePlanSave);
+planSendBtn?.addEventListener('click', handlePlanSend);
+planNewBtn?.addEventListener('click', ()=>{
+  planState.editingId = null;
+  resetPlanForm();
+});
+planSummaryCta?.addEventListener('click', ()=>{
+  const planId = planSummaryCta?.dataset?.planId;
+  if(planId){
+    handlePlanTriggerSend(planId);
+  } else {
+    handlePlanSend();
+  }
+});
 
 async function loadInvoices(options = {}){
   if(!consumerId) return;
@@ -194,7 +239,303 @@ function formatDueDate(date){
   return dateFormatter.format(date);
 }
 
+async function loadPlans(){
+  if(!consumerId) return;
+  const res = await api(`/api/billing/plans/${consumerId}`);
+  if(!res.ok){
+    console.error('Failed to load plans', res.error || res.data);
+    planState.plans = [];
+  } else {
+    planState.plans = Array.isArray(res.plans) ? res.plans : [];
+  }
+  renderPlansList();
+}
+
+function collectPlanPayload(){
+  if(!consumerId) return null;
+  const payload = {
+    consumerId,
+    name: planNameInput?.value?.trim() || '',
+    amount: Number.parseFloat(planAmountInput?.value || '0') || 0,
+    startDate: planStartInput?.value || null,
+    nextBillDate: planNextInput?.value || null,
+    frequency: planFrequencySelect?.value || 'monthly',
+    reminderLeadDays: Number.parseInt(planReminderInput?.value || '0', 10) || 0,
+    notes: planNotesInput?.value?.trim() || '',
+    active: planActiveInput ? !!planActiveInput.checked : true,
+  };
+  if(payload.frequency === 'custom'){
+    payload.intervalDays = Number.parseInt(planIntervalInput?.value || '30', 10) || 30;
+  }
+  payload.reminderLeadDays = Math.max(0, Math.min(60, Number(payload.reminderLeadDays) || 0));
+  if(payload.frequency === 'custom'){
+    payload.intervalDays = Math.max(1, Math.min(365, Number(payload.intervalDays) || 30));
+  }
+  return payload;
+}
+
+function resetPlanForm(plan = null){
+  if(!planNameInput) return;
+  const todayIso = new Date().toISOString().slice(0, 10);
+  planNameInput.value = plan?.name || '';
+  planAmountInput && (planAmountInput.value = plan ? Number(plan.amount || 0) : '');
+  planStartInput && (planStartInput.value = plan?.startDate || todayIso);
+  planNextInput && (planNextInput.value = plan?.nextBillDate || todayIso);
+  if(planFrequencySelect){
+    planFrequencySelect.value = plan?.frequency || 'monthly';
+  }
+  if(planReminderInput){
+    const lead = plan?.reminderLeadDays;
+    planReminderInput.value = lead === 0 ? '0' : (lead || 3);
+  }
+  if(planNotesInput){
+    planNotesInput.value = plan?.notes || '';
+  }
+  if(planActiveInput){
+    planActiveInput.checked = plan ? plan.active !== false : true;
+  }
+  if(planIntervalInput){
+    planIntervalInput.value = plan?.intervalDays || '';
+  }
+  handlePlanFrequencyChange();
+  if(planFormTitle){
+    if(plan){
+      planFormTitle.textContent = translate('billing.plans.form.titleEdit', { name: plan.name || '' }) || `Editing ${plan.name || 'plan'}`;
+    } else {
+      planFormTitle.textContent = translate('billing.plans.form.titleNew') || 'New plan';
+    }
+  }
+}
+
+function populatePlanForm(plan){
+  planState.editingId = plan?.id || null;
+  resetPlanForm(plan || null);
+  if(plan && planIntervalInput && plan.frequency === 'custom'){
+    planIntervalInput.value = plan.intervalDays || 30;
+  }
+  if(planSendBtn){
+    planSendBtn.disabled = !planState.editingId && !consumerId;
+  }
+}
+
+function handlePlanFrequencyChange(){
+  if(!planFrequencySelect || !planIntervalWrap) return;
+  const show = (planFrequencySelect.value || 'monthly') === 'custom';
+  planIntervalWrap.classList.toggle('hidden', !show);
+  if(show && planIntervalInput && (!planIntervalInput.value || Number(planIntervalInput.value) <= 0)){
+    planIntervalInput.value = 30;
+  }
+}
+
+async function handlePlanSave(){
+  if(!consumerId) return;
+  const payload = collectPlanPayload();
+  if(!payload) return;
+  if(!payload.name){
+    alert(translate('billing.plans.form.validationName') || 'Plan name required');
+    return;
+  }
+  if(!Number.isFinite(payload.amount) || payload.amount <= 0){
+    alert(translate('billing.plans.form.validationAmount') || 'Amount must be greater than 0');
+    return;
+  }
+  if(planState.editingId){
+    const res = await api(`/api/billing/plans/${planState.editingId}`, { method: 'PUT', body: JSON.stringify(payload) });
+    if(!res.ok){
+      alert(res.error || translate('billing.plans.toast.saveError') || 'Unable to save plan');
+      return;
+    }
+    planState.plans = planState.plans.map(plan => plan.id === res.plan.id ? res.plan : plan);
+    populatePlanForm(res.plan);
+    renderPlansList();
+    updatePlanSummary(planState.plans);
+    trackEvent('billing_plan_saved', { planId: res.plan.id, consumerId });
+  } else {
+    const res = await api('/api/billing/plans', { method: 'POST', body: JSON.stringify(payload) });
+    if(!res.ok){
+      alert(res.error || translate('billing.plans.toast.saveError') || 'Unable to save plan');
+      return;
+    }
+    planState.editingId = res.plan.id;
+    planState.plans.push(res.plan);
+    populatePlanForm(res.plan);
+    renderPlansList();
+    updatePlanSummary(planState.plans);
+    if(res.invoice){
+      loadInvoices();
+    }
+    trackEvent('billing_plan_created', { planId: res.plan.id, consumerId });
+  }
+}
+
+async function handlePlanSend(){
+  if(!consumerId) return;
+  const company = JSON.parse(localStorage.getItem('companyInfo') || '{}');
+  if(planState.editingId){
+    await handlePlanTriggerSend(planState.editingId, { company });
+    return;
+  }
+  const payload = collectPlanPayload();
+  if(!payload) return;
+  if(!payload.name){
+    alert(translate('billing.plans.form.validationName') || 'Plan name required');
+    return;
+  }
+  if(!Number.isFinite(payload.amount) || payload.amount <= 0){
+    alert(translate('billing.plans.form.validationAmount') || 'Amount must be greater than 0');
+    return;
+  }
+  payload.sendNow = true;
+  payload.company = company;
+  const res = await api('/api/billing/plans', { method: 'POST', body: JSON.stringify(payload) });
+  if(!res.ok){
+    alert(res.error || translate('billing.plans.toast.sendError') || 'Unable to send plan invoice');
+    return;
+  }
+  planState.editingId = res.plan.id;
+  planState.plans.push(res.plan);
+  populatePlanForm(res.plan);
+  renderPlansList();
+  updatePlanSummary(planState.plans);
+  loadInvoices();
+  trackEvent('billing_plan_sent', { planId: res.plan.id, consumerId, amount: res.invoice?.amount });
+}
+
+async function handlePlanTriggerSend(planId, options = {}){
+  const company = options.company || JSON.parse(localStorage.getItem('companyInfo') || '{}');
+  const res = await api(`/api/billing/plans/${planId}/send`, { method: 'POST', body: JSON.stringify({ company }) });
+  if(!res.ok){
+    alert(res.error || translate('billing.plans.toast.sendError') || 'Unable to send plan invoice');
+    return;
+  }
+  planState.plans = planState.plans.map(plan => plan.id === res.plan.id ? res.plan : plan);
+  if(planState.editingId === res.plan.id){
+    populatePlanForm(res.plan);
+  }
+  renderPlansList();
+  updatePlanSummary(planState.plans);
+  loadInvoices();
+  trackEvent('billing_plan_sent', { planId: res.plan.id, consumerId, amount: res.invoice?.amount });
+}
+
+function renderPlansList(){
+  if(!plansList) return;
+  plansList.innerHTML = '';
+  const plans = Array.isArray(planState.plans) ? [...planState.plans] : [];
+  const empty = plans.length === 0;
+  if(planEmptyState){
+    planEmptyState.classList.toggle('hidden', !empty);
+  }
+  if(empty){
+    updatePlanSummary([]);
+    return;
+  }
+  const sorted = plans.sort((a, b) => {
+    if(a.active && !b.active) return -1;
+    if(!a.active && b.active) return 1;
+    return (a.nextBillDate || '').localeCompare(b.nextBillDate || '');
+  });
+  sorted.forEach(plan => {
+    const card = document.createElement('div');
+    card.className = 'rounded-xl border border-white/60 bg-white/70 p-4 shadow-sm space-y-3';
+    const freqLabel = formatPlanFrequencyLabel(plan);
+    const nextLabel = plan.nextBillDate ? formatDueDate(parseDate(plan.nextBillDate)) : (translate('billing.plans.list.unscheduled') || 'Unscheduled');
+    const reminderCopy = formatReminderLead(plan.reminderLeadDays);
+    const statusBadge = plan.active
+      ? `<span class="rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700">${escapeHtml(translate('billing.plans.list.activeBadge') || 'Active')}</span>`
+      : `<span class="rounded-full bg-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600">${escapeHtml(translate('billing.plans.list.inactiveBadge') || 'Paused')}</span>`;
+    const lastSent = plan.lastSentAt ? formatPlanTimestamp(plan.lastSentAt) : '';
+    const cycles = Number(plan.cyclesCompleted) || 0;
+    const cyclesCopy = cycles > 0 ? (translate('billing.plans.list.cyclesCompleted', { count: cycles }) || `${cycles} cycles completed`) : '';
+    card.innerHTML = `
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <h4 class="text-base font-semibold text-slate-900">${escapeHtml(plan.name || 'Custom plan')}</h4>
+            ${statusBadge}
+          </div>
+          <p class="text-sm text-slate-600">${formatCurrency(plan.amount)} • ${escapeHtml(freqLabel)}</p>
+          <p class="text-xs text-slate-500">${escapeHtml(translate('billing.plans.list.nextBill') || 'Next bill')}: ${escapeHtml(nextLabel)}</p>
+          <p class="text-xs text-slate-500">${escapeHtml(reminderCopy)}</p>
+          ${lastSent ? `<p class="text-xs text-slate-500">${escapeHtml(translate('billing.plans.list.lastSent', { date: lastSent }) || `Last sent ${lastSent}`)}</p>` : ''}
+          ${cyclesCopy ? `<p class="text-xs text-slate-500">${escapeHtml(cyclesCopy)}</p>` : ''}
+        </div>
+        <div class="flex flex-col gap-2">
+          <button type="button" class="btn text-xs font-semibold plan-edit" data-id="${plan.id}">${escapeHtml(translate('billing.plans.list.editCta') || 'Edit')}</button>
+          <button type="button" class="btn text-xs font-semibold plan-send" data-id="${plan.id}" ${plan.active ? '' : 'disabled'}>${escapeHtml(translate('billing.plans.list.sendCta') || 'Send invoice')}</button>
+        </div>
+      </div>
+    `;
+    card.querySelector('.plan-edit')?.addEventListener('click', ()=>populatePlanForm(plan));
+    card.querySelector('.plan-send')?.addEventListener('click', ()=>handlePlanTriggerSend(plan.id));
+    plansList.appendChild(card);
+  });
+  updatePlanSummary(planState.plans);
+}
+
+function updatePlanSummary(plans = []){
+  if(!planSummaryValueEl || !planSummaryDescriptionEl || !planSummaryCta) return;
+  if(!plans.length){
+    planSummaryValueEl.textContent = translate('billing.metrics.planValue') || 'Growth Suite · $297/mo';
+    planSummaryDescriptionEl.textContent = translate('billing.metrics.planDescription') || 'Includes Metro-2 automation, dispute letter engine, and concierge support.';
+    planSummaryCta.textContent = translate('billing.metrics.planCta') || 'View upgrades';
+    planSummaryCta.dataset.planId = '';
+    planSummaryCta.disabled = false;
+    return;
+  }
+  const activeSorted = [...plans].sort((a, b) => {
+    if(a.active && !b.active) return -1;
+    if(!a.active && b.active) return 1;
+    return (a.nextBillDate || '').localeCompare(b.nextBillDate || '');
+  });
+  const plan = activeSorted[0];
+  const freqLabel = formatPlanFrequencyLabel(plan);
+  const freqShort = freqLabel.split('•')[0].trim();
+  planSummaryValueEl.textContent = `${plan.name || 'Custom plan'} · ${formatCurrency(plan.amount)} / ${freqShort}`;
+  const nextLabel = plan.nextBillDate ? formatDueDate(parseDate(plan.nextBillDate)) : (translate('billing.plans.list.unscheduled') || 'Unscheduled');
+  const reminderCopy = formatReminderLead(plan.reminderLeadDays);
+  planSummaryDescriptionEl.textContent = `${translate('billing.plans.summary.nextBill') || 'Next bill'}: ${nextLabel} · ${reminderCopy}`;
+  planSummaryCta.textContent = translate('billing.plans.list.sendCta') || 'Send invoice';
+  planSummaryCta.dataset.planId = plan.id || '';
+  planSummaryCta.disabled = !plan.active;
+}
+
+function formatPlanFrequencyLabel(plan = {}){
+  const freq = (plan.frequency || 'monthly').toLowerCase();
+  const labels = {
+    monthly: translate('billing.plans.form.frequencyMonthly') || 'Monthly • Mensual',
+    biweekly: translate('billing.plans.form.frequencyBiweekly') || 'Biweekly • Cada 2 semanas',
+    weekly: translate('billing.plans.form.frequencyWeekly') || 'Weekly • Semanal',
+    custom: translate('billing.plans.form.frequencyCustom') || 'Custom days • Días personalizados',
+  };
+  if(freq === 'custom'){
+    const days = Number(plan.intervalDays) || 30;
+    return `${labels.custom} (${days}d)`;
+  }
+  return labels[freq] || freq;
+}
+
+function formatReminderLead(days){
+  const value = Math.max(0, Number(days) || 0);
+  if(value === 0){
+    return translate('billing.plans.list.reminderSameDay') || 'Reminder day-of';
+  }
+  if(value === 1){
+    return translate('billing.plans.list.reminderDays', { days: 1 }) || 'Reminder 1 day before';
+  }
+  return translate('billing.plans.list.reminderDaysPlural', { days: value }) || `Reminder ${value} days before`;
+}
+
+function formatPlanTimestamp(iso){
+  const date = parseDate(iso);
+  if(!date) return '';
+  const dateText = formatDueDate(date);
+  const timeText = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return `${dateText} · ${timeText}`;
+}
+
 window.addEventListener('crm:language-change', () => {
   setAutopayUI(Boolean(autopaySwitch?.checked));
   loadInvoices({ reRenderOnly: true });
+  renderPlansList();
 });
