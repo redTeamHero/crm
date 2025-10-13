@@ -432,6 +432,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const negativeItemList = document.getElementById('negativeItemList');
   const negativeItemSearch = document.getElementById('negativeItemSearch');
   const negativeItemSort = document.getElementById('negativeItemSort');
+  const NEGATIVE_BUREAU_LABELS = {
+    account_number: 'Account # / Cuenta',
+    payment_status: 'Payment status / Estado de pago',
+    account_status: 'Account status / Estado de la cuenta',
+    past_due: 'Past due / Saldo vencido',
+    balance: 'Balance',
+    credit_limit: 'Credit limit / Límite de crédito',
+    high_credit: 'High credit / Crédito máximo',
+    date_opened: 'Opened / Apertura',
+    last_reported: 'Last reported / Último reporte',
+    date_last_payment: 'Last payment / Último pago',
+    date_first_delinquency: 'First delinquency / Primera morosidad',
+  };
+
+  function maskAccountDisplay(value){
+    if(value === undefined || value === null) return '';
+    const str = String(value).trim();
+    if(!str) return '';
+    if(str.startsWith('••••')) return str;
+    const clean = str.replace(/[^0-9a-z]/gi, '');
+    if(clean.length <= 4) return clean;
+    return `•••• ${clean.slice(-4)}`;
+  }
+
   const paymentSection = document.getElementById('paymentSection');
   const paymentList = document.getElementById('paymentList');
   const paymentEmpty = document.getElementById('paymentEmpty');
@@ -744,7 +768,10 @@ document.addEventListener('DOMContentLoaded', () => {
     negativeItemList.innerHTML = data.map(item => {
       const bureaus = (item.bureaus || []).map(b => `<span class="badge badge-bureau">${escape(b)}</span>`).join(' ');
       const accounts = Object.entries(item.account_numbers || {})
-        .map(([bureau, number]) => `<span class="text-xs muted inline-block mr-2">${escape(bureau)} • ${escape(number)}</span>`)
+        .map(([bureau, number]) => {
+          const masked = maskAccountDisplay(number);
+          return `<span class="text-xs muted inline-block mr-2">${escape(bureau)} • ${escape(masked)}</span>`;
+        })
         .join('');
       const severity = item.severity || 0;
       const headline = pickHeadline(item);
@@ -769,6 +796,30 @@ document.addEventListener('DOMContentLoaded', () => {
           ${headline.detail ? `<div class="text-xs muted mt-1">${escape(headline.detail)}</div>` : ''}
         </div>
       ` : '';
+      const bureauDetails = item.bureau_details && typeof item.bureau_details === 'object'
+        ? Object.entries(item.bureau_details)
+          .map(([bureau, info]) => {
+            if(!info || typeof info !== 'object') return '';
+            const rows = Object.entries(NEGATIVE_BUREAU_LABELS)
+              .map(([key, label]) => {
+                let value = info[key];
+                if(!value) return '';
+                if(key === 'account_number'){
+                  value = maskAccountDisplay(value);
+                }
+                return `<div class="negative-bureau-row"><span class="negative-bureau-label">${escape(label)}</span><span class="negative-bureau-value">${escape(value)}</span></div>`;
+              })
+              .filter(Boolean)
+              .join('');
+            if(!rows) return '';
+            return `<div class="negative-bureau-card"><div class="negative-bureau-title">${escape(bureau)}</div>${rows}</div>`;
+          })
+          .filter(Boolean)
+          .join('')
+        : '';
+      const bureauSection = bureauDetails
+        ? `<div class="negative-bureau-grid" aria-label="Bureau breakdown">${bureauDetails}</div>`
+        : '';
       const remainderMarkup = remaining
         ? `<div class="text-xs muted mt-2">+${remaining} more violation${remaining === 1 ? '' : 's'} in this item.</div>`
         : '';
@@ -791,6 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="negative-item-details px-3 pb-3" aria-hidden="true">
             ${accountMarkup}
             ${headlineMarkup}
+            ${bureauSection}
             ${violationContent}
             ${remainderMarkup}
           </div>
