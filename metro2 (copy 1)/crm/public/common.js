@@ -296,6 +296,12 @@ export function applyLanguage(lang = currentLanguage) {
       updateInviteButtonCopy(inviteButton, variant, target);
     }
 
+    const marketingGroup = document.getElementById('navMarketingChannels');
+    if (marketingGroup) {
+      const marketingLabel = getTranslation('nav.marketing', target);
+      if (marketingLabel) marketingGroup.setAttribute('aria-label', marketingLabel);
+    }
+
     const logoutButton = document.getElementById('btnLogout');
     if (logoutButton) {
       const logoutLabel = getTranslation('buttons.logout', target);
@@ -667,6 +673,10 @@ function applyRoleNav(role){
         link.remove();
       }
     });
+    const marketingGroup = navLinks.querySelector('#navMarketingChannels');
+    if (marketingGroup && marketingGroup.querySelectorAll('a').length === 0) {
+      marketingGroup.remove();
+    }
     ['btnInvite','btnHelp','tierBadge'].forEach(id => {
       const el = navLinks.querySelector(`#${id}`);
       if(el) el.remove();
