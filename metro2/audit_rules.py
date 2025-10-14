@@ -28,7 +28,16 @@ def clean_amount(value: Any) -> float:
         return 0.0
 
 
-DATE_FORMATS = ("%m/%d/%Y", "%Y-%m-%d", "%m-%d-%Y", "%Y%m%d")
+DATE_FORMATS = (
+    "%m/%d/%Y",
+    "%Y-%m-%d",
+    "%m-%d-%Y",
+    "%Y%m%d",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S.%f",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M:%S.%f",
+)
 
 
 def parse_date(value: Any) -> date | None:
@@ -45,9 +54,34 @@ def parse_date(value: Any) -> date | None:
     if not text:
         return None
 
+    # Normalize ISO8601 timezone shorthand (trailing Z or offsets without colon).
+    normalized = text.replace("Z", "+00:00")
+    if len(normalized) > 5 and normalized[-5] in {"+", "-"} and normalized[-3] != ":":
+        normalized = f"{normalized[:-2]}:{normalized[-2:]}"
+
+    try:
+        return datetime.fromisoformat(normalized).date()
+    except ValueError:
+        pass
+
+    # Attempt to parse datetime strings that include time portions using strptime fallbacks.
     for fmt in DATE_FORMATS:
         try:
-            return datetime.strptime(text, fmt).date()
+            return datetime.strptime(normalized, fmt).date()
+        except Exception:
+            continue
+
+    # As a last resort, strip time information and retry on the date component only.
+    if "T" in normalized:
+        date_part = normalized.split("T", 1)[0]
+    elif " " in normalized:
+        date_part = normalized.split(" ", 1)[0]
+    else:
+        date_part = normalized
+
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%Y%m%d"):
+        try:
+            return datetime.strptime(date_part, fmt).date()
         except Exception:
             continue
     return None
