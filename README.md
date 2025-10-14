@@ -299,12 +299,16 @@ sudo cp scripts/webhook/gitpull.sh /home/admin/webhook/gitpull.sh
 sudo cp scripts/webhook/server.py /home/admin/webhook/server.py
 sudo chmod +x /home/admin/webhook/gitpull.sh
 
+# 1b) Point the pull script at your deployed repo (adjust path as needed)
+export CRM_REPO_DIR="/home/admin/crm"
+
 # 2) Install Flask runtime (Ubuntu/Debian)
 sudo apt update && sudo apt install -y python3-flask
 
 # 3) Export secrets and launch the webhook listener
 export GITHUB_WEBHOOK_SECRET="your_webhook_secret"
 export GIT_PULL_SCRIPT="/home/admin/webhook/gitpull.sh"
+export CRM_REPO_DIR="/home/admin/crm"
 export WEBHOOK_PORT=5005
 python3 /home/admin/webhook/server.py
 
@@ -319,6 +323,7 @@ Type=simple
 User=admin
 Environment="GITHUB_WEBHOOK_SECRET=your_webhook_secret"
 Environment="GIT_PULL_SCRIPT=/home/admin/webhook/gitpull.sh"
+Environment="CRM_REPO_DIR=/home/admin/crm"
 Environment="WEBHOOK_PORT=5005"
 ExecStart=/usr/bin/python3 /home/admin/webhook/server.py
 Restart=on-failure

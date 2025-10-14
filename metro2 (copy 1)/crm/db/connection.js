@@ -122,6 +122,17 @@ export async function runMigrations() {
   return migrationPromise;
 }
 
+export async function closeDatabase() {
+  if (knexInstance) {
+    try {
+      await knexInstance.destroy();
+    } finally {
+      knexInstance = null;
+      migrationPromise = null;
+    }
+  }
+}
+
 export function getTenantStrategy() {
   const strategy = (process.env.DB_TENANT_STRATEGY || "partitioned").trim().toLowerCase();
   if (["schema", "partitioned", "shared"].includes(strategy)) {
