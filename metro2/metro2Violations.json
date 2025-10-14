@@ -70,5 +70,179 @@
     "severity": 3,
     "fieldsImpacted": ["Account Status"],
     "fcraSection": "§ 623(a)(1)"
+  },
+  "PAYMENT_REPORTED_AFTER_CLOSURE": {
+    "violation": "Payment date is reported after the account was closed",
+    "severity": 4,
+    "fieldsImpacted": ["Date Closed", "Date of Last Payment"],
+    "fcraSection": "§ 623(a)(2) / § 607(b)"
+  },
+  "LAST_PAYMENT_MISMATCH_BETWEEN_BU": {
+    "violation": "Last payment date differs across bureaus for the same account",
+    "severity": 4,
+    "fieldsImpacted": ["Date of Last Payment"],
+    "fcraSection": "§ 623(a)(5)"
+  },
+  "LAST_PAYMENT_AFTER_CHARGEOFF_DATE": {
+    "violation": "Payment activity shows after the reported charge-off date",
+    "severity": 4,
+    "fieldsImpacted": ["Date of Last Payment", "Charge-Off Date"],
+    "fcraSection": "§ 623(a)(5) / § 607(b)"
+  },
+  "MISSING_LAST_PAYMENT_DATE_FOR_PAID": {
+    "violation": "Closed or paid account missing last payment date",
+    "severity": 3,
+    "fieldsImpacted": ["Account Status", "Date of Last Payment"],
+    "fcraSection": "§ 623(a)(2)"
+  },
+  "INCONSISTENT_PAYMENT_RATING_ON_CLOSE": {
+    "violation": "Closed account still shows delinquent payment rating",
+    "severity": 4,
+    "fieldsImpacted": ["Payment Rating", "Account Status"],
+    "fcraSection": "§ 623(a)(2) / § 607(b)"
+  },
+  "LAST_PAYMENT_BEFORE_DOFD": {
+    "violation": "Last payment predates the Date of First Delinquency",
+    "severity": 4,
+    "fieldsImpacted": ["Date of Last Payment", "Date of First Delinquency"],
+    "fcraSection": "§ 623(a)(5)"
+  },
+  "NO_ACTIVITY_TOO_LONG_ACTIVE": {
+    "violation": "Active account has no payment activity for 36+ months",
+    "severity": 3,
+    "fieldsImpacted": ["Account Status", "Date of Last Payment"],
+    "fcraSection": "§ 623(a)(2)"
+  },
+  "PAYMENT_AFTER_PAYOFF_DATE": {
+    "violation": "Payment reported after the payoff milestone",
+    "severity": 3,
+    "fieldsImpacted": ["Payoff Date", "Date of Last Payment"],
+    "fcraSection": "§ 607(b)"
+  },
+  "MISMATCH_BALANCE_ON_CLOSED": {
+    "violation": "Closed account shows non-zero balance or past-due amount",
+    "severity": 4,
+    "fieldsImpacted": ["Balance", "Past Due", "Account Status"],
+    "fcraSection": "§ 623(a)(1) / § 607(b)"
+  },
+  "INCONSISTENT_ACCOUNT_STATUS_ON_CLOSED": {
+    "violation": "Account lists closure date but status still open/current",
+    "severity": 4,
+    "fieldsImpacted": ["Account Status", "Date Closed"],
+    "fcraSection": "§ 623(a)(1) / § 623(a)(2)"
+  },
+  "DISPUTE_FLAG_NOT_CLEARED_AFTER_RESOLUTION": {
+    "violation": "Dispute flag remains even after account is resolved",
+    "severity": 4,
+    "fieldsImpacted": ["Dispute Flag", "Account Status"],
+    "fcraSection": "§ 623(a)(3)"
+  },
+  "COMPLIANCE_CONDITION_CODE_MISSING_ON_DISPUTE": {
+    "violation": "Dispute reported without a Metro-2 compliance condition code",
+    "severity": 4,
+    "fieldsImpacted": ["Dispute Flag", "Compliance Code"],
+    "fcraSection": "§ 623(a)(3)"
+  },
+  "INCONSISTENT_SPECIAL_COMMENT_ON_SETTLEMENT": {
+    "violation": "Settled account missing settlement-specific comment",
+    "severity": 3,
+    "fieldsImpacted": ["Account Status", "Comments"],
+    "fcraSection": "§ 623(a)(2)"
+  },
+  "INCORRECT_ECOA_CODE_FOR_AUTHORIZED_USER": {
+    "violation": "Authorized user account coded as primary/individual",
+    "severity": 4,
+    "fieldsImpacted": ["ECOA Code", "Ownership"],
+    "fcraSection": "§ 623(a)(1)"
+  },
+  "MISMATCH_LAST_REPORTED_BEFORE_ACTIVITY": {
+    "violation": "Last reported date precedes recent activity",
+    "severity": 3,
+    "fieldsImpacted": ["Last Reported", "Activity Dates"],
+    "fcraSection": "§ 623(a)(2)"
+  },
+  "INCORRECT_PAYMENT_HISTORY_AFTER_CLOSURE": {
+    "violation": "Payment history shows activity after closure",
+    "severity": 4,
+    "fieldsImpacted": ["Payment History", "Date Closed"],
+    "fcraSection": "§ 607(b) / § 623(a)(1)"
+  },
+  "REAGING_WITHOUT_PROOF": {
+    "violation": "Possible re-aging without documentation",
+    "severity": 4,
+    "fieldsImpacted": ["Date of First Delinquency"],
+    "fcraSection": "§ 623(a)(5)"
+  },
+  "EXTENDED_DELINQUENCY_BEYOND_MAX": {
+    "violation": "Delinquency exceeds 180 days while still tracked monthly",
+    "severity": 4,
+    "fieldsImpacted": ["Payment Rating", "Delinquency"],
+    "fcraSection": "§ 623(a)(1)"
+  },
+  "MISMATCH_PORTFOLIO_TYPE_VS_ACCOUNT_TYPE": {
+    "violation": "Portfolio type conflicts with account type",
+    "severity": 3,
+    "fieldsImpacted": ["Portfolio Type", "Account Type"],
+    "fcraSection": "§ 623(a)(1)"
+  },
+  "MISMATCH_COLLATERAL_INDICATOR": {
+    "violation": "Collateral indicator conflicts with collateral details",
+    "severity": 3,
+    "fieldsImpacted": ["Collateral", "Secured Indicator"],
+    "fcraSection": "§ 607(b) / § 623(a)(1)"
+  },
+  "LATE_DATE_BUT_STATUS_CURRENT": {
+    "violation": "Past-due balance reported while status is Current",
+    "severity": 4,
+    "fieldsImpacted": ["Account Status", "Past Due"],
+    "fcraSection": "§ 623(a)(1)"
+  },
+  "FIRST_DELINQUENCY_DATE_NOT_FROZEN": {
+    "violation": "Date of First Delinquency differs across bureaus",
+    "severity": 4,
+    "fieldsImpacted": ["Date of First Delinquency"],
+    "fcraSection": "§ 623(a)(5)"
+  },
+  "NON_ZERO_BALANCE_WITH_ZERO_HI_CREDIT": {
+    "violation": "Balance reported but high credit/limit is zero",
+    "severity": 3,
+    "fieldsImpacted": ["Balance", "High Credit", "Credit Limit"],
+    "fcraSection": "§ 623(a)(1)"
+  },
+  "REPORT_DATE_MISSING_OR_INVALID": {
+    "violation": "Last reported date missing or in the future",
+    "severity": 3,
+    "fieldsImpacted": ["Last Reported"],
+    "fcraSection": "§ 623(a)(2)"
+  },
+  "DATE_OPENED_AFTER_CHARGEOFF": {
+    "violation": "Date opened occurs after reported charge-off date",
+    "severity": 4,
+    "fieldsImpacted": ["Date Opened", "Charge-Off Date"],
+    "fcraSection": "§ 607(b)"
+  },
+  "CLOSURE_DATE_EQUALS_DOFD": {
+    "violation": "Closure date equals the Date of First Delinquency",
+    "severity": 3,
+    "fieldsImpacted": ["Date Closed", "Date of First Delinquency"],
+    "fcraSection": "§ 607(b)"
+  },
+  "REOPENED_ACCOUNT_NO_NEW_OPEN_DATE": {
+    "violation": "Reopened account missing a refreshed open date",
+    "severity": 3,
+    "fieldsImpacted": ["Account Status", "Date Opened"],
+    "fcraSection": "§ 623(a)(1)"
+  },
+  "PAST_DUE_AFTER_CLOSURE_DATE": {
+    "violation": "Past-due timestamp extends beyond closure date",
+    "severity": 4,
+    "fieldsImpacted": ["Past Due", "Date Closed"],
+    "fcraSection": "§ 607(b)"
+  },
+  "DOFD_AFTER_LAST_PAYMENT": {
+    "violation": "Date of First Delinquency occurs after last payment",
+    "severity": 4,
+    "fieldsImpacted": ["Date of Last Payment", "Date of First Delinquency"],
+    "fcraSection": "§ 623(a)(5)"
   }
 }

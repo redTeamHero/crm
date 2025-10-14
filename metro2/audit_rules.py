@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date, datetime
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping
+from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Sequence
 
 
 # ---------------------------------------------------------------------------
@@ -28,7 +28,16 @@ def clean_amount(value: Any) -> float:
         return 0.0
 
 
-DATE_FORMATS = ("%m/%d/%Y", "%Y-%m-%d", "%m-%d-%Y", "%Y%m%d")
+DATE_FORMATS = (
+    "%m/%d/%Y",
+    "%Y-%m-%d",
+    "%m-%d-%Y",
+    "%Y%m%d",
+    "%Y-%m-%dT%H:%M:%S",
+    "%Y-%m-%dT%H:%M:%S.%f",
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M:%S.%f",
+)
 
 
 def parse_date(value: Any) -> date | None:
@@ -45,9 +54,34 @@ def parse_date(value: Any) -> date | None:
     if not text:
         return None
 
+    # Normalize ISO8601 timezone shorthand (trailing Z or offsets without colon).
+    normalized = text.replace("Z", "+00:00")
+    if len(normalized) > 5 and normalized[-5] in {"+", "-"} and normalized[-3] != ":":
+        normalized = f"{normalized[:-2]}:{normalized[-2:]}"
+
+    try:
+        return datetime.fromisoformat(normalized).date()
+    except ValueError:
+        pass
+
+    # Attempt to parse datetime strings that include time portions using strptime fallbacks.
     for fmt in DATE_FORMATS:
         try:
-            return datetime.strptime(text, fmt).date()
+            return datetime.strptime(normalized, fmt).date()
+        except Exception:
+            continue
+
+    # As a last resort, strip time information and retry on the date component only.
+    if "T" in normalized:
+        date_part = normalized.split("T", 1)[0]
+    elif " " in normalized:
+        date_part = normalized.split(" ", 1)[0]
+    else:
+        date_part = normalized
+
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%Y%m%d"):
+        try:
+            return datetime.strptime(date_part, fmt).date()
         except Exception:
             continue
     return None
@@ -63,6 +97,97 @@ def days_since(dt: date) -> int:
 
 def is_stale(dt: date, years: int = 2) -> bool:
     return days_since(dt) > years * 365
+
+
+LAST_PAYMENT_FIELDS: Sequence[str] = (
+    "date_of_last_payment",
+    "date_last_payment",
+    "last_payment_date",
+    "last_payment",
+)
+
+CHARGEOFF_FIELDS: Sequence[str] = (
+    "charge_off_date",
+    "chargeoff_date",
+    "date_of_chargeoff",
+)
+
+PAYOFF_FIELDS: Sequence[str] = (
+    "payoff_date",
+    "date_paid",
+    "date_balance_zero",
+)
+
+DOFD_FIELDS: Sequence[str] = (
+    "date_first_delinquency",
+    "date_of_first_delinquency",
+    "dofd",
+)
+
+PAST_DUE_DATE_FIELDS: Sequence[str] = (
+    "past_due_date",
+    "date_past_due",
+)
+
+COMPLIANCE_CODES = {"XB", "XC", "XD", "XH", "XR", "XS"}
+
+
+def _first_value(record: Mapping[str, Any], keys: Sequence[str]) -> Any:
+    for key in keys:
+        value = record.get(key)
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _get_last_payment_date(record: Mapping[str, Any]) -> date | None:
+    return parse_date(_first_value(record, LAST_PAYMENT_FIELDS))
+
+
+def _get_chargeoff_date(record: Mapping[str, Any]) -> date | None:
+    return parse_date(_first_value(record, CHARGEOFF_FIELDS))
+
+
+def _get_payoff_date(record: Mapping[str, Any]) -> date | None:
+    return parse_date(_first_value(record, PAYOFF_FIELDS))
+
+
+def _get_dofd(record: Mapping[str, Any]) -> date | None:
+    return parse_date(_first_value(record, DOFD_FIELDS))
+
+
+def _get_past_due_date(record: Mapping[str, Any]) -> date | None:
+    return parse_date(_first_value(record, PAST_DUE_DATE_FIELDS))
+
+
+def _normalize_status(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def _boolish(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return text in {"1", "true", "yes", "y", "open", "active", "dispute"}
+
+
+def _payment_history_entries(record: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    history = record.get("payment_history")
+    if not history:
+        return []
+    if isinstance(history, Mapping):
+        return [
+            {"date": key, "status": value}
+            for key, value in history.items()
+            if value not in (None, "")
+        ]
+    if isinstance(history, Sequence) and not isinstance(history, (str, bytes)):
+        entries: List[Mapping[str, Any]] = []
+        for item in history:
+            if isinstance(item, Mapping):
+                entries.append(item)
+        return entries
+    return []
 
 
 def group_by_creditor(
@@ -104,7 +229,6 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "INCOMPLETE_BUREAU_REPORTING": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
     "STALE_DATA": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
     "DUPLICATE_ACCOUNT": {"severity": "major", "fcra_section": "FCRA §607(b)"},
-    "REAGING_SUSPECTED": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
     "ACCOUNT_TYPE_MISMATCH": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "HIGH_UTILIZATION": {"severity": "minor", "fcra_section": "FCRA §607(b)"},
     "DISPUTE_PENDING_TOO_LONG": {"severity": "major", "fcra_section": "FCRA §623(a)(3)"},
@@ -125,6 +249,35 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "INQUIRY_NO_MATCH": {"severity": "moderate", "fcra_section": "FCRA §604(a)(3)(F)"},
     "NAME_MISMATCH": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "ADDRESS_MISMATCH": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "PAYMENT_REPORTED_AFTER_CLOSURE": {"severity": "major", "fcra_section": "FCRA §623(a)(2) / §607(b)"},
+    "LAST_PAYMENT_MISMATCH_BETWEEN_BU": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
+    "LAST_PAYMENT_AFTER_CHARGEOFF_DATE": {"severity": "major", "fcra_section": "FCRA §623(a)(5) / §607(b)"},
+    "MISSING_LAST_PAYMENT_DATE_FOR_PAID": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
+    "INCONSISTENT_PAYMENT_RATING_ON_CLOSE": {"severity": "major", "fcra_section": "FCRA §623(a)(2) / §607(b)"},
+    "LAST_PAYMENT_BEFORE_DOFD": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
+    "NO_ACTIVITY_TOO_LONG_ACTIVE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
+    "PAYMENT_AFTER_PAYOFF_DATE": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "MISMATCH_BALANCE_ON_CLOSED": {"severity": "major", "fcra_section": "FCRA §623(a)(1) / §607(b)"},
+    "INCONSISTENT_ACCOUNT_STATUS_ON_CLOSED": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "DISPUTE_FLAG_NOT_CLEARED_AFTER_RESOLUTION": {"severity": "major", "fcra_section": "FCRA §623(a)(3)"},
+    "COMPLIANCE_CONDITION_CODE_MISSING_ON_DISPUTE": {"severity": "major", "fcra_section": "FCRA §623(a)(3)"},
+    "INCONSISTENT_SPECIAL_COMMENT_ON_SETTLEMENT": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
+    "INCORRECT_ECOA_CODE_FOR_AUTHORIZED_USER": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "MISMATCH_LAST_REPORTED_BEFORE_ACTIVITY": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
+    "INCORRECT_PAYMENT_HISTORY_AFTER_CLOSURE": {"severity": "major", "fcra_section": "FCRA §607(b) / §623(a)(1)"},
+    "REAGING_WITHOUT_PROOF": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
+    "EXTENDED_DELINQUENCY_BEYOND_MAX": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "MISMATCH_PORTFOLIO_TYPE_VS_ACCOUNT_TYPE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "MISMATCH_COLLATERAL_INDICATOR": {"severity": "moderate", "fcra_section": "FCRA §607(b) / §623(a)(1)"},
+    "LATE_DATE_BUT_STATUS_CURRENT": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "FIRST_DELINQUENCY_DATE_NOT_FROZEN": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
+    "NON_ZERO_BALANCE_WITH_ZERO_HI_CREDIT": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "REPORT_DATE_MISSING_OR_INVALID": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
+    "DATE_OPENED_AFTER_CHARGEOFF": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "CLOSURE_DATE_EQUALS_DOFD": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "REOPENED_ACCOUNT_NO_NEW_OPEN_DATE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "PAST_DUE_AFTER_CLOSURE_DATE": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "DOFD_AFTER_LAST_PAYMENT": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
 }
 
 
@@ -167,6 +320,8 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
         balances = {clean_amount(r.get("balance")) for r in records if r.get("balance")}
         statuses = {str(r.get("account_status") or "").strip().lower() for r in records if r.get("account_status")}
         open_dates = {str(r.get("date_opened") or "").strip() for r in records if r.get("date_opened")}
+        last_payments = {dt for r in records if (dt := _get_last_payment_date(r))}
+        dofds = {dt for r in records if (dt := _get_dofd(r))}
 
         if len(balances) > 1:
             for r in records:
@@ -179,6 +334,22 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
         if len(open_dates) > 1:
             for r in records:
                 _attach_violation(r, "OPEN_DATE_MISMATCH", "Date Opened differs across bureaus")
+
+        if len(last_payments) > 1:
+            for r in records:
+                _attach_violation(
+                    r,
+                    "LAST_PAYMENT_MISMATCH_BETWEEN_BU",
+                    "Last payment date differs across bureaus",
+                )
+
+        if len(dofds) > 1:
+            for r in records:
+                _attach_violation(
+                    r,
+                    "FIRST_DELINQUENCY_DATE_NOT_FROZEN",
+                    "Date of First Delinquency inconsistent across bureaus",
+                )
 
 
 def audit_payment_history_mismatch(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
@@ -260,7 +431,7 @@ def audit_reaged_accounts(tradelines: Iterable[MutableMapping[str, Any]]) -> Non
         if (datetime.now() - dt).days < 180:
             _attach_violation(
                 record,
-                "REAGING_SUSPECTED",
+                "REAGING_WITHOUT_PROOF",
                 "DOFD is less than 6 months ago — possible re-aging",
             )
 
@@ -303,34 +474,18 @@ def audit_stale_disputes(tradelines: Iterable[MutableMapping[str, Any]]) -> None
 
 def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
     for record in tradelines:
-        payment_status = str(record.get("payment_status") or "").lower()
-        status = str(record.get("account_status") or "").lower()
+        payment_status = _normalize_status(record.get("payment_status"))
+        status = _normalize_status(record.get("account_status"))
 
-        last_payment_raw = (
-            record.get("date_of_last_payment")
-            or record.get("date_last_payment")
-            or record.get("last_payment_date")
-        )
-        last_payment = parse_date(last_payment_raw)
+        last_payment = _get_last_payment_date(record)
 
         date_opened = parse_date(record.get("date_opened"))
         date_closed = parse_date(record.get("date_closed") or record.get("date_of_closing"))
-        chargeoff_date = parse_date(
-            record.get("charge_off_date")
-            or record.get("chargeoff_date")
-            or record.get("date_of_chargeoff")
-        )
-        dofd = parse_date(
-            record.get("date_first_delinquency")
-            or record.get("date_of_first_delinquency")
-            or record.get("dofd")
-        )
-        payoff_date = parse_date(
-            record.get("payoff_date")
-            or record.get("date_paid")
-            or record.get("date_balance_zero")
-        )
+        chargeoff_date = _get_chargeoff_date(record)
+        dofd = _get_dofd(record)
+        payoff_date = _get_payoff_date(record)
         last_reported = parse_date(record.get("last_reported") or record.get("date_last_reported"))
+        past_due_date = _get_past_due_date(record)
 
         balance = clean_amount(record.get("balance"))
         past_due = clean_amount(record.get("past_due") or record.get("amount_past_due"))
@@ -341,6 +496,27 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
                 record,
                 "MISSING_LAST_PAYMENT_DATE",
                 "Charged-off account missing last payment date",
+            )
+
+        # Baseline reporting integrity for Last Reported date.
+        last_reported_raw = record.get("last_reported") or record.get("date_last_reported")
+        if not last_reported_raw:
+            _attach_violation(
+                record,
+                "REPORT_DATE_MISSING_OR_INVALID",
+                "Missing Last Reported date",
+            )
+        elif last_reported and last_reported > today():
+            _attach_violation(
+                record,
+                "REPORT_DATE_MISSING_OR_INVALID",
+                "Last Reported date cannot be in the future",
+            )
+        elif last_reported_raw and not last_reported:
+            _attach_violation(
+                record,
+                "REPORT_DATE_MISSING_OR_INVALID",
+                "Last Reported date is invalid",
             )
 
         # A. Payment cannot precede the account being opened.
@@ -355,7 +531,7 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
         if last_payment and date_closed and last_payment > date_closed:
             _attach_violation(
                 record,
-                "DATE_CLOSED_INCONSISTENT_WITH_STATUS",
+                "PAYMENT_REPORTED_AFTER_CLOSURE",
                 "Payment reported after the account was closed",
             )
 
@@ -372,7 +548,7 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
             if last_payment > chargeoff_date:
                 _attach_violation(
                     record,
-                    "POST_CHARGEOFF_PAYMENT_REPORTED",
+                    "LAST_PAYMENT_AFTER_CHARGEOFF_DATE",
                     "Payment activity reported after charge-off date",
                 )
 
@@ -389,7 +565,7 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
             if not _has_violation(record, "MISSING_LAST_PAYMENT_DATE"):
                 _attach_violation(
                     record,
-                    "MISSING_LAST_PAYMENT_DATE",
+                    "MISSING_LAST_PAYMENT_DATE_FOR_PAID",
                     "Closed/paid account missing last payment date",
                 )
 
@@ -413,7 +589,7 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
         if balance == 0 and payoff_date and last_payment and last_payment > payoff_date:
             _attach_violation(
                 record,
-                "PAYMENT_AFTER_PAYOFF",
+                "PAYMENT_AFTER_PAYOFF_DATE",
                 "Payment reported after payoff date",
             )
 
@@ -427,20 +603,47 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
                 )
 
         # K. Last payment should not post after the Last Reported date.
-        if last_payment and last_reported and last_payment > last_reported:
+        if last_payment and last_reported and last_payment > last_reported and not _has_violation(
+            record, "MISMATCH_LAST_REPORTED_BEFORE_ACTIVITY"
+        ):
             _attach_violation(
                 record,
-                "LAST_PAYMENT_AFTER_LAST_REPORTED",
+                "MISMATCH_LAST_REPORTED_BEFORE_ACTIVITY",
                 "Payment reported after Last Reported date",
+            )
+
+        if date_closed and last_reported and date_closed > last_reported and not _has_violation(
+            record, "MISMATCH_LAST_REPORTED_BEFORE_ACTIVITY"
+        ):
+            _attach_violation(
+                record,
+                "MISMATCH_LAST_REPORTED_BEFORE_ACTIVITY",
+                "Closure date reported after last update",
+            )
+
+        if chargeoff_date and last_reported and chargeoff_date > last_reported and not _has_violation(
+            record, "MISMATCH_LAST_REPORTED_BEFORE_ACTIVITY"
+        ):
+            _attach_violation(
+                record,
+                "MISMATCH_LAST_REPORTED_BEFORE_ACTIVITY",
+                "Charge-off date occurs after last reported timestamp",
             )
 
         # L. If payment predates DOFD, it implies the delinquency should have cured.
         if last_payment and dofd and last_payment < dofd:
             _attach_violation(
                 record,
-                "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE",
+                "LAST_PAYMENT_BEFORE_DOFD",
                 "Last payment predates DOFD but delinquency persists",
             )
+
+            if (dofd - last_payment).days > 30:
+                _attach_violation(
+                    record,
+                    "DOFD_AFTER_LAST_PAYMENT",
+                    "DOFD updated after last payment date",
+                )
 
         # M. No payment activity for 5+ years but status still active.
         if last_payment and any(keyword in status for keyword in ("current", "late")):
@@ -459,7 +662,255 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
                 "Current account with stale last payment date",
             )
 
+        if last_payment and any(keyword in status for keyword in ("open", "current", "active")):
+            if is_stale(last_payment, years=3):
+                _attach_violation(
+                    record,
+                    "NO_ACTIVITY_TOO_LONG_ACTIVE",
+                    "Active account shows no payment activity for 36+ months",
+                )
 
+        if past_due_date and date_closed and past_due_date > date_closed:
+            _attach_violation(
+                record,
+                "PAST_DUE_AFTER_CLOSURE_DATE",
+                "Past-due timestamp extends beyond closure",
+            )
+
+        if chargeoff_date and date_opened and date_opened > chargeoff_date:
+            _attach_violation(
+                record,
+                "DATE_OPENED_AFTER_CHARGEOFF",
+                "Date Opened occurs after charge-off date",
+            )
+
+        if date_closed and dofd and date_closed == dofd:
+            _attach_violation(
+                record,
+                "CLOSURE_DATE_EQUALS_DOFD",
+                "Closure date matches DOFD, which is illogical",
+            )
+
+        if dofd and last_payment and dofd > last_payment and not _has_violation(record, "DOFD_AFTER_LAST_PAYMENT"):
+            _attach_violation(
+                record,
+                "DOFD_AFTER_LAST_PAYMENT",
+                "DOFD occurs after the last payment date",
+            )
+
+        if payoff_date and last_payment and last_payment > payoff_date and not _has_violation(
+            record, "PAYMENT_AFTER_PAYOFF_DATE"
+        ):
+            _attach_violation(
+                record,
+                "PAYMENT_AFTER_PAYOFF_DATE",
+                "Payment reported after payoff milestone",
+            )
+
+        if past_due > 0 and "current" in status:
+            _attach_violation(
+                record,
+                "LATE_DATE_BUT_STATUS_CURRENT",
+                "Past-due balance conflicts with Current status",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Closed account integrity & metadata alignment
+# ---------------------------------------------------------------------------
+
+
+def audit_closed_account_integrity(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        balance = clean_amount(record.get("balance"))
+        past_due = clean_amount(record.get("past_due") or record.get("amount_past_due"))
+        date_closed = parse_date(record.get("date_closed") or record.get("date_of_closing"))
+        payment_rating_raw = record.get("payment_rating") or record.get("worst_payment_status") or record.get("worst_payment_rating")
+        payment_rating_text = _normalize_status(payment_rating_raw)
+        comment = _normalize_status(record.get("special_comment") or record.get("comments"))
+
+        closed_keywords = {"closed", "paid", "settled", "paid in full", "charge-off", "collection"}
+        is_closed = any(keyword in status for keyword in closed_keywords)
+
+        if "reopen" in status and not (
+            record.get("new_open_date")
+            or record.get("date_reopened")
+            or record.get("reopen_date")
+        ):
+            _attach_violation(
+                record,
+                "REOPENED_ACCOUNT_NO_NEW_OPEN_DATE",
+                "Reopened account missing refreshed open date",
+            )
+
+        if date_closed and any(keyword in status for keyword in ("open", "current", "active")):
+            _attach_violation(
+                record,
+                "INCONSISTENT_ACCOUNT_STATUS_ON_CLOSED",
+                "Account lists a closure date but status still shows open/current",
+            )
+
+        if is_closed or (date_closed and balance == 0):
+            if balance > 0 or past_due > 0:
+                _attach_violation(
+                    record,
+                    "MISMATCH_BALANCE_ON_CLOSED",
+                    "Closed or paid account should report zero balance and past due",
+                )
+
+            rating_value = None
+            if payment_rating_raw is not None:
+                try:
+                    rating_value = int(str(payment_rating_raw).strip())
+                except Exception:
+                    rating_value = None
+
+            if (rating_value is not None and rating_value > 0) or any(
+                keyword in payment_rating_text for keyword in ("late", "delin", "charge", "repos")
+            ):
+                _attach_violation(
+                    record,
+                    "INCONSISTENT_PAYMENT_RATING_ON_CLOSE",
+                    "Closed account still shows delinquent payment rating",
+                )
+
+            if "settled" in status and not any(
+                keyword in comment for keyword in ("settled", "partial", "less than full", "acuerdo")
+            ):
+                _attach_violation(
+                    record,
+                    "INCONSISTENT_SPECIAL_COMMENT_ON_SETTLEMENT",
+                    "Settled account missing settlement-specific comment",
+                )
+
+            for entry in _payment_history_entries(record):
+                hist_date = parse_date(entry.get("date"))
+                if date_closed and hist_date and hist_date > date_closed:
+                    _attach_violation(
+                        record,
+                        "INCORRECT_PAYMENT_HISTORY_AFTER_CLOSURE",
+                        "Payment history shows activity after closure",
+                    )
+                    break
+
+        delinquency_days_raw = record.get("days_past_due") or record.get("max_delinquency_days")
+        try:
+            delinquency_days = int(float(str(delinquency_days_raw))) if delinquency_days_raw not in (None, "") else 0
+        except Exception:
+            delinquency_days = 0
+        if delinquency_days > 180:
+            _attach_violation(
+                record,
+                "EXTENDED_DELINQUENCY_BEYOND_MAX",
+                "Delinquency exceeds 180 days but still reported as incremental late codes",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Dispute flag hygiene
+# ---------------------------------------------------------------------------
+
+
+def audit_dispute_compliance(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        dispute_flag = record.get("dispute_flag") or record.get("dispute_status") or record.get("account_in_dispute")
+        compliance_code = str(record.get("compliance_condition_code") or record.get("compliance_code") or "").strip().upper()
+        status = _normalize_status(record.get("account_status"))
+        comment = _normalize_status(record.get("comments") or record.get("special_comment"))
+
+        if not _boolish(dispute_flag):
+            continue
+
+        if compliance_code not in COMPLIANCE_CODES:
+            _attach_violation(
+                record,
+                "COMPLIANCE_CONDITION_CODE_MISSING_ON_DISPUTE",
+                "Dispute flagged without Metro-2 compliance condition code",
+            )
+
+        if any(keyword in status for keyword in ("paid", "resolved", "closed", "settled")) or "resolved" in comment:
+            _attach_violation(
+                record,
+                "DISPUTE_FLAG_NOT_CLEARED_AFTER_RESOLUTION",
+                "Dispute flag remains even though the account reflects a resolution",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Portfolio, ownership & collateral checks
+# ---------------------------------------------------------------------------
+
+
+def audit_portfolio_alignment(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        portfolio = _normalize_status(record.get("portfolio_type"))
+        account_type = _normalize_status(record.get("account_type"))
+        ownership = _normalize_status(
+            record.get("ownership_code") or record.get("ecoa_code") or record.get("ecoa_designator")
+        )
+        relationship = _normalize_status(
+            record.get("account_designator") or record.get("responsibility") or record.get("relationship")
+        )
+        secured_indicator = _normalize_status(record.get("secured_indicator") or record.get("collateral_indicator"))
+        collateral = _normalize_status(record.get("collateral") or record.get("collateral_description"))
+        balance = clean_amount(record.get("balance"))
+        high_credit = clean_amount(record.get("high_credit"))
+        credit_limit = clean_amount(record.get("credit_limit"))
+
+        if ("authorized" in relationship or "authorized" in ownership) and any(
+            keyword in ownership for keyword in ("individual", "primary", "joint")
+        ):
+            _attach_violation(
+                record,
+                "INCORRECT_ECOA_CODE_FOR_AUTHORIZED_USER",
+                "Authorized user account coded as primary/individual",
+            )
+
+        portfolio_key = None
+        if "revol" in portfolio:
+            portfolio_key = "revolving"
+        elif "install" in portfolio:
+            portfolio_key = "installment"
+        elif "open" in portfolio:
+            portfolio_key = "open"
+
+        account_key = None
+        if "revol" in account_type:
+            account_key = "revolving"
+        elif "install" in account_type:
+            account_key = "installment"
+        elif "open" in account_type:
+            account_key = "open"
+
+        if portfolio_key and account_key and portfolio_key != account_key:
+            _attach_violation(
+                record,
+                "MISMATCH_PORTFOLIO_TYPE_VS_ACCOUNT_TYPE",
+                "Portfolio type conflicts with account type coding",
+            )
+
+        if secured_indicator in {"y", "yes", "secured", "true"} and not collateral:
+            _attach_violation(
+                record,
+                "MISMATCH_COLLATERAL_INDICATOR",
+                "Secured flag present without collateral details",
+            )
+        if collateral and secured_indicator in {"n", "no", "unsecured", "false"}:
+            _attach_violation(
+                record,
+                "MISMATCH_COLLATERAL_INDICATOR",
+                "Collateral listed but account flagged unsecured",
+            )
+
+        revolving_like = {"revolving", "open"}
+        high_credit_value = max(high_credit, credit_limit)
+        if balance > 0 and high_credit_value == 0 and (portfolio_key in revolving_like or account_key in revolving_like):
+            _attach_violation(
+                record,
+                "NON_ZERO_BALANCE_WITH_ZERO_HI_CREDIT",
+                "Revolving/open account shows balance but zero limit/high credit",
+            )
 # ---------------------------------------------------------------------------
 # Inquiry & personal info rules
 # ---------------------------------------------------------------------------
@@ -545,6 +996,9 @@ AUDIT_FUNCTIONS = [
     audit_high_utilization,
     audit_stale_disputes,
     audit_missing_payment_date,
+    audit_closed_account_integrity,
+    audit_dispute_compliance,
+    audit_portfolio_alignment,
 ]
 
 

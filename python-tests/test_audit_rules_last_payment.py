@@ -84,6 +84,29 @@ class TestLastPaymentAuditSuite(unittest.TestCase):
             "Payment after DOFD should be flagged for charge-offs",
         )
 
+    def test_iso_timestamp_payment_after_closure(self):
+        record = {
+            "date_of_last_payment": "2023-05-15T00:00:00Z",
+            "date_closed": "2023-05-01",
+        }
+        self._run(record)
+        self.assertTrue(
+            _find_violation(record, "PAYMENT_REPORTED_AFTER_CLOSURE"),
+            "ISO timestamp should parse so closure timing rule fires",
+        )
+
+    def test_offset_timestamp_payment_after_payoff(self):
+        record = {
+            "date_last_payment": "2023-06-10T00:00:00-0400",
+            "payoff_date": "2023-06-01",
+            "balance": "0",
+        }
+        self._run(record)
+        self.assertTrue(
+            _find_violation(record, "PAYMENT_AFTER_PAYOFF_DATE"),
+            "Timezone offset format should still trigger payoff rule",
+        )
+
     def test_current_status_with_stale_payment(self):
         record = {
             "account_status": "Current",
@@ -101,8 +124,14 @@ class TestLastPaymentAuditSuite(unittest.TestCase):
             "account_status": "Paid",
         }
         self._run(record)
-        violations = [v for v in record.get("violations", []) if v.get("id") == "MISSING_LAST_PAYMENT_DATE"]
-        self.assertEqual(len(violations), 1, "Closed account should yield one missing payment violation")
+        self.assertFalse(
+            _find_violation(record, "MISSING_LAST_PAYMENT_DATE"),
+            "Generic missing last payment should not trigger for paid accounts",
+        )
+        self.assertTrue(
+            _find_violation(record, "MISSING_LAST_PAYMENT_DATE_FOR_PAID"),
+            "Paid account missing payment date should trigger the specialized rule",
+        )
 
 
 if __name__ == "__main__":
