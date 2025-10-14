@@ -1215,18 +1215,8 @@ def parse_inquiries(soup: BeautifulSoup) -> List[Dict[str, str]]:
 RuleFunc = Callable[[Dict[str, Any], List[Dict[str, Any]], List[Dict[str, Any]]], List[Dict[str, Any]]]
 
 
-def _violation(rule_id: str, title: Optional[str] = None, **extra: Any) -> Dict[str, Any]:
-    metadata = RULEBOOK.get(rule_id, {})
-    payload: Dict[str, Any] = {"id": rule_id}
-    if metadata:
-        if "id" in metadata:
-            payload["catalog_id"] = metadata["id"]
-        for key, value in metadata.items():
-            if key != "id":
-                payload[key] = value
-    resolved_title = title or metadata.get("violation") if metadata else title
-    if resolved_title:
-        payload["title"] = resolved_title
+def _violation(rule_id: str, title: str, **extra: Any) -> Dict[str, Any]:
+    payload = {"id": rule_id, "title": title}
     if extra:
         payload.update(extra)
     return payload
@@ -1257,7 +1247,7 @@ def r_cross_bureau_field_mismatch(
             readable = field.replace("_", " ").title()
             violations.append(
                 _violation(
-                    "X_BUREAU_FIELD_MISMATCH",
+                    "CROSS_BUREAU_FIELD_MISMATCH",
                     f"{readable} differs across bureaus",
                     field=field,
                 )
@@ -1294,7 +1284,7 @@ def r_cross_bureau_utilization_disparity(
         return []
     return [
         _violation(
-            "X_BUREAU_UTIL_DISPARITY",
+            "CROSS_BUREAU_UTILIZATION_GAP",
             "Utilization differs sharply between bureaus",
             utilization=round(my_util * 100, 1),
             utilization_spread=round(spread * 100, 1),
@@ -1315,7 +1305,7 @@ def r_duplicate_account(
         return []
     return [
         _violation(
-            "DUPLICATE_ACCOUNT",
+            "DUPLICATE_ACCOUNT_ENTRY",
             f"{bureau} lists account {acct} more than once",
             bureau=bureau,
             account_number=acct,
@@ -1332,7 +1322,7 @@ def r_current_but_pastdue(
     if past_due <= 0:
         return []
     if any(keyword in status for keyword in ("current", "pays as agreed", "paid as agreed", "ok")):
-        return [_violation("CURRENT_BUT_PASTDUE", "Account marked current while reporting past due balance")]
+        return [_violation("CURRENT_STATUS_WITH_PAST_DUE", "Account marked current while reporting past due balance")]
     return []
 
 
@@ -1343,7 +1333,7 @@ def r_zero_balance_but_pastdue(
     balance = clean_amount(tradeline.get("balance"))
     past_due = clean_amount(tradeline.get("past_due"))
     if balance <= 1 and past_due > 0:
-        return [_violation("ZERO_BALANCE_BUT_PASTDUE", "Balance is zero but past due amount reported")]
+        return [_violation("ZERO_BALANCE_WITH_PAST_DUE", "Balance is zero but past due amount reported")]
     return []
 
 
@@ -1357,7 +1347,7 @@ def r_late_status_no_pastdue(
         return []
     late_keywords = ("late", "delinquent", "past due", "charge", "collection", "derog", "30", "60", "90")
     if _has_keywords(status, late_keywords):
-        return [_violation("LATE_STATUS_NO_PASTDUE", "Delinquent status without supporting past due amount")]
+        return [_violation("LATE_STATUS_NO_PAST_DUE", "Delinquent status without supporting past due amount")]
     return []
 
 
@@ -1387,7 +1377,7 @@ def r_open_zero_cl_with_hc_comment(
     if limit == 0 and high_credit > 0 and "high credit" in comments:
         return [
             _violation(
-                "OPEN_ZERO_CL_WITH_HC_COMMENT",
+                "REVOLVING_ZERO_LIMIT_COMMENT",
                 "Open revolving account has $0 limit while comments cite high credit as proxy",
             )
         ]
@@ -1463,7 +1453,7 @@ def r_revolving_missing_cl_hc(
     if limit <= 0 and high_credit <= 0:
         return [
             _violation(
-                "REVOLVING_NO_CL_OR_HC",
+                "REVOLVING_MISSING_LIMIT",
                 "Open revolving tradeline missing both Credit Limit and High Credit",
             )
         ]
@@ -1480,7 +1470,7 @@ def r_installment_with_cl(
     if limit > 0:
         return [
             _violation(
-                "INSTALLMENT_WITH_CL",
+                "INSTALLMENT_HAS_LIMIT",
                 "Installment account should not report a revolving-style credit limit",
                 credit_limit=limit,
             )
@@ -1499,7 +1489,7 @@ def r_co_collection_pastdue(
     if any(keyword in status for keyword in ("charge", "collection", "chargeoff")):
         return [
             _violation(
-                "CO_OR_COLLECTION_PASTDUE",
+                "CO_COLLECTION_PAST_DUE",
                 "Charge-off/Collection should report $0 past due",
                 past_due=past_due,
             )
@@ -1577,7 +1567,7 @@ def r_closed_but_monthly_payment(
     if payment > 0:
         return [
             _violation(
-                "CLOSED_BUT_MONTHLY_PAYMENT",
+                "CLOSED_ACCOUNT_MONTHLY_PAYMENT",
                 "Closed account still reporting a monthly payment",
                 monthly_payment=payment,
             )
@@ -1635,7 +1625,7 @@ def r_3(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_trad
     if closed_date and any(keyword in status for keyword in ("open", "current", "pays as agreed", "ok")):
         return [
             _violation(
-                "3",
+                "METRO2_CODE_3_CONFLICT",
                 "Tradeline shows Date Closed but status still reads open/current",
                 date_closed=tradeline.get("date_closed"),
             )
@@ -1650,7 +1640,7 @@ def r_8(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_trad
         return []
     if tradeline.get("date_of_first_delinquency"):
         return []
-    return [_violation("8", "Charge-off missing Date of First Delinquency")]
+    return [_violation("METRO2_CODE_8_MISSING_DOFD", "Charge-off missing Date of First Delinquency")]
 
 
 def r_9(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -1660,7 +1650,7 @@ def r_9(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_trad
         return []
     if tradeline.get("original_creditor"):
         return []
-    return [_violation("9", "Collection account missing Original Creditor")]
+    return [_violation("METRO2_CODE_9_MISSING_OC", "Collection account missing Original Creditor")]
 
 
 def r_10(
@@ -1675,7 +1665,7 @@ def r_10(
         return []
     return [
         _violation(
-            "10",
+            "METRO2_CODE_10_DUPLICATE",
             "Duplicate account number detected within same bureau feed",
             bureau=bureau,
             account_number=acct,
@@ -1698,7 +1688,7 @@ def r_sl_no_lates_during_deferment(
     if any(token in history for token in ("30", "60", "90", "120", "late")):
         return [
             _violation(
-                "SL_NO_LATES_DURING_DEFERMENT",
+                "SL_DEFERMENT_HAS_LATES",
                 "Student loan in deferment/forbearance shows late history",
             )
         ]
