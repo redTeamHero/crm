@@ -10,7 +10,7 @@ information blocks, and also knows how to render a color-coded CLI summary.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping
 
 
@@ -26,6 +26,43 @@ def clean_amount(value: Any) -> float:
         return float(str(value).replace("$", "").replace(",", "").strip() or 0.0)
     except Exception:
         return 0.0
+
+
+DATE_FORMATS = ("%m/%d/%Y", "%Y-%m-%d", "%m-%d-%Y", "%Y%m%d")
+
+
+def parse_date(value: Any) -> date | None:
+    """Parse common Metro-2 date formats into :class:`datetime.date`."""
+
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    for fmt in DATE_FORMATS:
+        try:
+            return datetime.strptime(text, fmt).date()
+        except Exception:
+            continue
+    return None
+
+
+def today() -> date:
+    return datetime.now().date()
+
+
+def days_since(dt: date) -> int:
+    return (today() - dt).days
+
+
+def is_stale(dt: date, years: int = 2) -> bool:
+    return days_since(dt) > years * 365
 
 
 def group_by_creditor(
@@ -72,6 +109,19 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "HIGH_UTILIZATION": {"severity": "minor", "fcra_section": "FCRA §607(b)"},
     "DISPUTE_PENDING_TOO_LONG": {"severity": "major", "fcra_section": "FCRA §623(a)(3)"},
     "MISSING_LAST_PAYMENT_DATE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "ACCOUNT_OPENED_AFTER_LAST_PAYMENT_DATE": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "DATE_CLOSED_INCONSISTENT_WITH_STATUS": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "INACCURATE_LAST_PAYMENT_DATE": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "POST_CHARGEOFF_PAYMENT_REPORTED": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "CURRENT_NO_LAST_PAYMENT_DATE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "STALE_ACTIVE_REPORTING": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
+    "PASTDUE_NO_LAST_PAYMENT_DATE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "PAYMENT_AFTER_PAYOFF": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "LAST_PAYMENT_AFTER_DOFD": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
+    "LAST_PAYMENT_AFTER_LAST_REPORTED": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "STAGNANT_ACCOUNT_NOT_UPDATED": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
+    "PAYMENT_STALENESS_INCONSISTENT_WITH_STATUS": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "INQUIRY_NO_MATCH": {"severity": "moderate", "fcra_section": "FCRA §604(a)(3)(F)"},
     "NAME_MISMATCH": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "ADDRESS_MISMATCH": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
@@ -91,6 +141,10 @@ def _attach_violation(
     if extra:
         violation.update(extra)
     record.setdefault("violations", []).append(violation)
+
+
+def _has_violation(record: Mapping[str, Any], rule_id: str) -> bool:
+    return any(v.get("id") == rule_id for v in record.get("violations", []) or [])
 
 
 # ---------------------------------------------------------------------------
@@ -250,12 +304,159 @@ def audit_stale_disputes(tradelines: Iterable[MutableMapping[str, Any]]) -> None
 def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
     for record in tradelines:
         payment_status = str(record.get("payment_status") or "").lower()
-        last_payment = record.get("date_of_last_payment") or record.get("date_last_payment")
+        status = str(record.get("account_status") or "").lower()
+
+        last_payment_raw = (
+            record.get("date_of_last_payment")
+            or record.get("date_last_payment")
+            or record.get("last_payment_date")
+        )
+        last_payment = parse_date(last_payment_raw)
+
+        date_opened = parse_date(record.get("date_opened"))
+        date_closed = parse_date(record.get("date_closed") or record.get("date_of_closing"))
+        chargeoff_date = parse_date(
+            record.get("charge_off_date")
+            or record.get("chargeoff_date")
+            or record.get("date_of_chargeoff")
+        )
+        dofd = parse_date(
+            record.get("date_first_delinquency")
+            or record.get("date_of_first_delinquency")
+            or record.get("dofd")
+        )
+        payoff_date = parse_date(
+            record.get("payoff_date")
+            or record.get("date_paid")
+            or record.get("date_balance_zero")
+        )
+        last_reported = parse_date(record.get("last_reported") or record.get("date_last_reported"))
+
+        balance = clean_amount(record.get("balance"))
+        past_due = clean_amount(record.get("past_due") or record.get("amount_past_due"))
+
+        # Existing guard: Charged-off accounts should carry a payment date to validate charge-off timing.
         if "charge" in payment_status and not last_payment:
             _attach_violation(
                 record,
                 "MISSING_LAST_PAYMENT_DATE",
                 "Charged-off account missing last payment date",
+            )
+
+        # A. Payment cannot precede the account being opened.
+        if last_payment and date_opened and last_payment < date_opened:
+            _attach_violation(
+                record,
+                "ACCOUNT_OPENED_AFTER_LAST_PAYMENT_DATE",
+                "Last payment predates Date Opened",
+            )
+
+        # B. Payment cannot occur after closure (unless supported by re-open data).
+        if last_payment and date_closed and last_payment > date_closed:
+            _attach_violation(
+                record,
+                "DATE_CLOSED_INCONSISTENT_WITH_STATUS",
+                "Payment reported after the account was closed",
+            )
+
+        # C. Payment date cannot be in the future.
+        if last_payment and last_payment > today():
+            _attach_violation(
+                record,
+                "INACCURATE_LAST_PAYMENT_DATE",
+                "Last payment date is in the future",
+            )
+
+        # D. Charged-off or collection accounts should not have new payments after charge-off.
+        if last_payment and chargeoff_date and ("charge" in status or "collection" in status):
+            if last_payment > chargeoff_date:
+                _attach_violation(
+                    record,
+                    "POST_CHARGEOFF_PAYMENT_REPORTED",
+                    "Payment activity reported after charge-off date",
+                )
+
+        # E. Accounts reported as "Current" but have no last payment date at all.
+        if "current" in status and not last_payment:
+            _attach_violation(
+                record,
+                "CURRENT_NO_LAST_PAYMENT_DATE",
+                "Current status lacks a Date of Last Payment",
+            )
+
+        # F. Accounts marked "Paid/Closed/Settled" should include a final payment date.
+        if not last_payment and any(keyword in status for keyword in ("paid", "closed", "settled")):
+            if not _has_violation(record, "MISSING_LAST_PAYMENT_DATE"):
+                _attach_violation(
+                    record,
+                    "MISSING_LAST_PAYMENT_DATE",
+                    "Closed/paid account missing last payment date",
+                )
+
+        # G. Non-zero balance but ancient or missing last payment.
+        if balance > 0 and (not last_payment or (last_payment and is_stale(last_payment, years=3))):
+            _attach_violation(
+                record,
+                "STALE_ACTIVE_REPORTING",
+                "Active balance without recent payment activity",
+            )
+
+        # H. Past-due amount exists but last payment date missing.
+        if past_due > 0 and not last_payment:
+            _attach_violation(
+                record,
+                "PASTDUE_NO_LAST_PAYMENT_DATE",
+                "Past-due balance reported without a last payment date",
+            )
+
+        # I. Payment after balance already zeroed (requires payoff date signal).
+        if balance == 0 and payoff_date and last_payment and last_payment > payoff_date:
+            _attach_violation(
+                record,
+                "PAYMENT_AFTER_PAYOFF",
+                "Payment reported after payoff date",
+            )
+
+        # J. Last payment cannot be after DOFD on charge-offs.
+        if last_payment and dofd and ("charge" in status or "collection" in status):
+            if last_payment > dofd:
+                _attach_violation(
+                    record,
+                    "LAST_PAYMENT_AFTER_DOFD",
+                    "Last payment date conflicts with DOFD",
+                )
+
+        # K. Last payment should not post after the Last Reported date.
+        if last_payment and last_reported and last_payment > last_reported:
+            _attach_violation(
+                record,
+                "LAST_PAYMENT_AFTER_LAST_REPORTED",
+                "Payment reported after Last Reported date",
+            )
+
+        # L. If payment predates DOFD, it implies the delinquency should have cured.
+        if last_payment and dofd and last_payment < dofd:
+            _attach_violation(
+                record,
+                "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE",
+                "Last payment predates DOFD but delinquency persists",
+            )
+
+        # M. No payment activity for 5+ years but status still active.
+        if last_payment and any(keyword in status for keyword in ("current", "late")):
+            if is_stale(last_payment, years=5):
+                _attach_violation(
+                    record,
+                    "STAGNANT_ACCOUNT_NOT_UPDATED",
+                    "Account active with no payment for 5+ years",
+                )
+
+        # N. Current status but last payment older than 120 days.
+        if last_payment and "current" in status and days_since(last_payment) > 120:
+            _attach_violation(
+                record,
+                "PAYMENT_STALENESS_INCONSISTENT_WITH_STATUS",
+                "Current account with stale last payment date",
             )
 
 
