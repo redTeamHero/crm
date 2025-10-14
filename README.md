@@ -171,6 +171,17 @@ node htmlToDisputePdf.js path/to/report.html output/dir
 
 ## Test
 
+- **Node test runner:**
+  ```bash
+  npm test
+  ```
+  This executes the API integration suite in `tests/*.test.js`, covering auth, Metro-2 violation lookups, and dispute letter generation paths.
+- **CLI audit regression:**
+  ```bash
+  npm run audit -- tests/fixtures/sample-report.html
+  ```
+  Useful for making sure the HTML → JSON pipeline still tags Metro-2 issues after editing the parsers or knowledge graph.
+
 ### Node tests
 ```bash
 cd "metro2 (copy 1)/crm"
