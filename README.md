@@ -1,143 +1,153 @@
 # CRM Metro-2
 
-Minimal CRM for generating Metro-2 dispute letters.
+Minimal CRM for generating Metro-2 dispute letters that feel premium, bilingual, and revenue-ready from day one.
+
+## Goal & Why (business impact)
+- Spin up an internal ops hub that keeps Metro-2 compliance tight while unlocking upsells like certified mail automation and bilingual client portals.
+- Ship faster playbooks for onboarding advisors so you can convert more leads without waiting on engineering.
+- Provide predictable audit + dispute generation so you can scale toward the 7–8 figure revenue target with confidence.
+
+## Architecture (text diagram + decisions)
+```
+[Next.js-style portal (public/)] ──> [Express API (server/)] ──> [SQLite (crm.sqlite)]
+                                   │
+                                   ├─> [Stripe Checkout] for bilingual pay links
+                                   ├─> [Twilio SMS worker] via npm scripts
+                                   └─> [Python Metro-2 audit CLI] for remote pulls
+```
+- **Node 18 Express** API serves REST routes, portal assets, and marketing queues.
+- **SQLite** keeps tenant data local; migrations handled during boot.
+- **Python helpers** (in `python-tests` & CLI scripts) reuse the audit engine for HTML → JSON/PDF conversions.
+- **Workers** (Twilio, marketing sync) reuse the same `.env` secrets for consistent rate limiting and branding.
+
+## Table of contents
+1. [Prerequisites](#prerequisites)
+2. [Project scaffold](#project-scaffold)
+3. [Environment variables](#environment-variables)
+4. [Install & bootstrap](#install--bootstrap)
+5. [Usage walkthrough](#usage-walkthrough)
+6. [Testing & QA](#testing--qa)
+7. [Debugging tips](#debugging-tips)
+8. [Marketing + comms add-ons](#marketing--comms-add-ons)
+9. [Deploy notes](#deploy-notes)
 
 ## Prerequisites
-- Node.js 18+
-- Python 3 (for postinstall)
+- Node.js **18+** (ships with native fetch & Intl for bilingual copy)
+- npm **9+** (bundled with Node 18)
+- Python **3.10+** (for audit CLI + optional regression runner)
+- SQLite **3.35+** (bundled on macOS/Linux; Windows users can install via [sqlite.org](https://sqlite.org/download.html))
+- `jq` CLI (optional but handy for curl smoke tests)
 
-## Setup
+## Project scaffold
+```
+metro2 (copy 1)/crm/
+├── public/                 # Portal + marketing assets (English/Spanish)
+├── server/                 # Express routes, middleware, workers
+├── shared/metro2-data/     # Violations + knowledge graph JSON
+├── scripts/                # Node + Python helper scripts
+├── tests/                  # Integration specs (Jest)
+├── python-tests/           # pytest-style regression harness
+├── creditAuditTool.js      # HTML → JSON converter
+├── htmlToDisputePdf.js     # Letter generator
+├── metro2_audit_multi.py   # Python CLI for remote audits
+└── crm.sqlite              # Auto-created on first boot
+```
+
+## Environment variables
+Copy `.env.sample` to `.env` and tweak for your tenant:
+
+| Key | Purpose |
+| --- | --- |
+| `PORT` | Dev server port (default **3000**). |
+| `METRO2_VIOLATIONS_PATH`, `METRO2_KNOWLEDGE_GRAPH_PATH` | Override shared JSON assets if you maintain forks per brand. |
+| `PORTAL_PAYMENT_BASE` | Custom domain for hosted pay links. |
+| `STRIPE_SECRET_KEY`, `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL` | Enables bilingual Stripe Checkout sessions and redirects. |
+| `MARKETING_API_BASE_URL`, `MARKETING_API_KEY`, `CRM_URL`, `CRM_TOKEN` | Lets remote workers mirror `/api/marketing` queues with tenant auth. |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID`, `TWILIO_FROM_NUMBER`, `TWILIO_STATUS_CALLBACK_URL` | Required for SMS worker smoke tests. |
+| `MARKETING_TENANT_ID`, `MARKETING_POLL_INTERVAL_MS`, `MARKETING_TEST_FETCH_LIMIT` | Rate tuning knobs for the marketing worker. |
+| `SCM_API_KEY` | SimpleCertifiedMail integration for certified mail upsells. |
+| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | Google OAuth for transactional email syncs. |
+
+### Tenant quotas & throttling
+- Requests scoped per tenant (auth token or `X-Tenant-Id`, default `default`).
+- Baseline limits (override via `TENANT_LIMITS` JSON):
+  - `requests:minute` → 240/minute
+  - `letters:generate` → 60/hour
+  - `letters:pdf` → 200/hour
+  - `letters:zip` → 40/hour
+  - `reports:audit` → 40/hour
+  - `breach:lookup` → 50/hour
+- Set limit `0` to block. Negative disables the quota for that operation.
+
+## Install & bootstrap
 ```bash
 cd "metro2 (copy 1)/crm"
 npm install
 ```
 
-Data is stored in a local SQLite file `crm.sqlite` in the CRM directory, replacing the old JSON-based storage.
+- First boot seeds an admin: **username** `ducky`, **password** `duck`.
+- Data persists in `crm.sqlite`; delete the file to reset.
+- Members created through `/api/register` inherit consumer/contact/task/report permissions immediately so new advisors can work leads.
 
-On first run, the server seeds an admin user with username `ducky` and password `duck`.
-
-Members created through `/api/register` now receive default permissions for consumers, contacts, tasks, and reports so freshly onboarded teammates can work leads without waiting on an admin to toggle access.
-
-## Environment
-- `PORT` (optional, defaults to 3000)
-- `METRO2_VIOLATIONS_PATH` (optional; path to `metro2Violations.json`. If unset, the app searches the repo.)
-- `METRO2_KNOWLEDGE_GRAPH_PATH` (optional; path to `metro2_knowledge_graph.json`. Defaults to the shared data file.)
-- `PORTAL_PAYMENT_BASE` (optional; fallback base URL for invoice pay links rendered in the client portal.)
-- `STRIPE_SECRET_KEY` (optional; enables Stripe Checkout sessions for invoice payments.)
-- `STRIPE_SUCCESS_URL` (optional; override the success redirect. Supports `{CHECKOUT_SESSION_ID}`, `{INVOICE_ID}`, `{CONSUMER_ID}` tokens.)
-- `STRIPE_CANCEL_URL` (optional; override the cancel redirect with the same tokens.)
-- `MARKETING_API_BASE_URL` (optional; workers can reuse this base URL when mirroring `/api/marketing` queues.)
-- `MARKETING_API_KEY` (optional; shared secret for third-party marketing workers.)
-- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID` (required for the bundled SMS worker; set `TWILIO_FROM_NUMBER` if you prefer direct from numbers.)
-- `CRM_URL`, `CRM_TOKEN` (optional; worker-auth fallback when you do not expose a marketing API key.)
-- `MARKETING_TENANT_ID`, `MARKETING_POLL_INTERVAL_MS`, `MARKETING_TEST_FETCH_LIMIT`, `TWILIO_STATUS_CALLBACK_URL` (optional; tune the SMS worker runtime.)
-- `SCM_API_KEY` (optional; SimpleCertifiedMail key for USPS certified mail automation.)
-- `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (optional; Gmail API OAuth credentials for transactional sends.)
-
-Copy `.env.sample` to `.env` and adjust values as needed.
-
-## Tenant quotas & throttling
-
-- Every `/api` request is scoped to a tenant. The server resolves the tenant from the authenticated user or the `X-Tenant-Id` header (falling back to `default`).
-- Baseline limits (per tenant):
-  - `requests:minute` → 240 requests/minute (`TENANT_REQUESTS_PER_MINUTE`, `TENANT_REQUEST_WINDOW_MS`).
-  - `letters:generate` → 60 jobs/hour (`TENANT_LETTER_JOBS_PER_HOUR`, `TENANT_LETTER_JOBS_WINDOW_MS`).
-  - `letters:pdf` → 200 PDFs/hour (`TENANT_LETTER_PDFS_PER_HOUR`, `TENANT_LETTER_PDFS_WINDOW_MS`).
-  - `letters:zip` → 40 archives/hour (`TENANT_LETTER_ZIPS_PER_HOUR`, `TENANT_LETTER_ZIPS_WINDOW_MS`).
-  - `reports:audit` → 40 audits/hour (`TENANT_AUDITS_PER_HOUR`, `TENANT_AUDITS_WINDOW_MS`).
-  - `breach:lookup` → 50 HIBP lookups/hour (`TENANT_BREACH_LOOKUPS_PER_HOUR`, `TENANT_BREACH_LOOKUPS_WINDOW_MS`).
-- Provide a JSON blob via `TENANT_LIMITS` or `TENANT_LIMIT_OVERRIDES` to override specific tenants/operations, e.g. `{ "acme": { "requests:minute": { "limit": 600 } } }`.
-- Setting a limit to `0` blocks the operation for that tenant; negative values disable the quota for that operation.
-
-## Run
+### Start the stack
 ```bash
 npm start
 ```
+- Keeps Express + worker scheduler running with Metro-2 JSON hot reloads.
+- Visit `http://localhost:3000` for the portal (English/Spanish toggle in footer).
 
-## Marketing SMS worker
+## Usage walkthrough
+1. **Authenticate**
+   ```bash
+   TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
+     -H 'Content-Type: application/json' \
+     -d '{"username":"ducky","password":"duck"}' | jq -r .token)
+   ```
+2. **Verify dashboard KPIs**
+   ```bash
+   curl -s http://localhost:3000/api/dashboard/summary \
+     -H "Authorization: Bearer $TOKEN" | jq
+   ```
+   - Expect lead counts, invoice totals, bilingual CTA copy, and “next revenue move” guidance.
+3. **Generate Metro-2 audits**
+   ```bash
+   node creditAuditTool.js path/to/report.html
+   ```
+   - Produces `report.json` that highlights Metro-2 violations with DOFD/date sanity checks.
+4. **Create dispute PDFs**
+   ```bash
+   node htmlToDisputePdf.js path/to/report.html output/dir
+   ```
+   - Generates OCR-resistant PDF packets ready for certified mail.
+5. **Stripe checkout smoke** (replace IDs with real ones)
+   ```bash
+   curl -X POST http://localhost:3000/api/invoices/INV123/checkout \
+     -H 'Content-Type: application/json' \
+     -d '{"consumerId":"CONSUMER123"}'
+   ```
+6. **Marketing SMS worker**
+   ```bash
+   npm run marketing:twilio-worker
+   ```
+   - Queue a bilingual preview:
+     ```bash
+     curl -X POST http://localhost:3000/api/marketing/tests \
+       -H "Authorization: Bearer $TOKEN" \
+       -H 'Content-Type: application/json' \
+       -d '{"channel":"sms","recipient":"+15125550199","smsPreview":"Hola {{first_name}} — your dispute roadmap is ready / Tu plan de disputa está listo."}'
+     ```
 
-Wire Twilio to the marketing test queue after setting the env vars above (or saving the Marketing API Key in **Settings → Integrations**):
+### Calendar & availability
+- `/schedule` integrates with Google Calendar free/busy APIs.
+- Steps:
+  1. Create Google Cloud project, enable Calendar API.
+  2. Generate OAuth token or service account.
+  3. Grab calendar ID (Settings → Integrate calendar).
+  4. Store in portal **Settings** → Google Calendar fields.
+- Cache: `events` memoized 60s, `freebusy` 120s; updating credentials flushes caches automatically.
 
+### Python Metro-2 audit CLI (remote workflows)
 ```bash
-cd "metro2 (copy 1)/crm"
-npm run marketing:twilio-worker
-```
-
-Queue a bilingual smoke test (replace the phone number with your verified destination):
-
-```bash
-TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"ducky","password":"duck"}' | jq -r .token)
-
-curl -X POST http://localhost:3000/api/marketing/tests \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"channel":"sms","recipient":"+15125550199","smsPreview":"Hola {{first_name}} — your dispute roadmap is ready / Tu plan de disputa está listo."}'
-```
-
-The worker will mark the Twilio provider **ready**, log the SID, and update the queue with `Sent • Enviado` or `Failed • Falló` status for fast QA loops.
-
-## Dashboard summary API
-
-Fetch a consolidated dashboard snapshot (leads, revenue, reminders, and KPIs) with your admin token:
-
-```bash
-TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"ducky","password":"duck"}' | jq -r .token)
-
-curl -s http://localhost:3000/api/dashboard/summary \
-  -H "Authorization: Bearer $TOKEN" | jq
-```
-
-The payload reports conversion rates, outstanding invoices, monthly recurring progress toward the $84k/mo goal, top reminders, and the next bilingual revenue move for your team.
-
-## Stripe invoice checkout
-
-- Set `STRIPE_SECRET_KEY` (and optional redirect env vars) to let the CRM create Stripe Checkout sessions for invoices.
-- When you add a new invoice without a manual pay link, the server now auto-generates a Stripe session and stores the checkout URL for the client portal.
-- Clients clicking **Pay now / Pagar ahora** inside the portal will request a fresh Stripe Checkout session so expired links are never shown.
-- Every invoice also exposes a hosted pay link at `/pay/{invoiceId}` on your CRM domain. Share that URL (English or Spanish copy) and we will spin up a new Stripe Checkout page on demand—mirroring the tradeline purchase flow.
-
-Smoke-test a checkout session for a specific invoice (replace `INV123` and `CONSUMER123` with real IDs):
-
-```bash
-curl -X POST http://localhost:3000/api/invoices/INV123/checkout \
-  -H 'Content-Type: application/json' \
-  -d '{"consumerId":"CONSUMER123"}'
-```
-
-The response includes `url` (Stripe-hosted payment page) and `sessionId` you can use for post-payment reconciliation webhooks.
-
-## Schedule
-
-The `/schedule` page hooks into Google Calendar. Click any date to add a booking, meeting, phone call, or availability note. The page checks Google Calendar's free/busy API to prevent double‑booking.
-
-### Google Calendar setup
-
-1. Visit the [Google Cloud Console](https://console.cloud.google.com/) and create a project.
-2. Enable the **Google Calendar API** for the project and generate an OAuth access token or service account.
-3. In Google Calendar, open **Settings → Integrate calendar** to copy the calendar's **Calendar ID**.
-4. Paste the token and Calendar ID into the Settings page under **Google Calendar Token** and **Google Calendar ID**, then save.
-
-The API gateway now memoizes `/api/calendar/events` responses for 60 seconds and `/api/calendar/freebusy` windows for two minutes. This keeps the dashboard snappy even when Google throttles or the network blips. Updating the calendar token or ID automatically purges the cache so new credentials sync immediately.
-
-Generate a shareable audit (converts a credit report HTML to JSON and renders it):
-```bash
-cd "metro2 (copy 1)/crm"
-# From an HTML report
-node creditAuditTool.js path/to/report.html
-# Or from an existing JSON report
-node creditAuditTool.js data/report.json
-```
-
-### Python Metro-2 audit CLI
-
-Use the Python engine directly when you need remote pulls or one-click share links for advisors.
-
-```bash
-cd "metro2 (copy 1)/crm"
 python3 metro2_audit_multi.py \
   --input https://secured-bucket/report.html \
   --input-header "Authorization=Bearer <token>" \
@@ -145,49 +155,49 @@ python3 metro2_audit_multi.py \
   --share-link-base "https://app.yourdomain.com/audit" \
   --share-link-field informe
 ```
+- `--input` accepts local paths or HTTPS URLs (repeat `--input-header` for auth headers).
+- `--share-link-*` options emit a ready-to-share bilingual summary link for sales follow-up.
 
-- `--input` accepts either a local path or an HTTPS URL. Headers supplied via `--input-header NAME=VALUE` help with authenticated bureaus.
-- `--share-link-base` + `--share-link-field` generate a URL-safe query string containing the JSON payload so sales can hand off the findings instantly. The CLI prints and stores the link in the output file.
-- Outputs still land in `report.json`, ready for the Node renderer above.
+## Testing & QA
+- **Node integration suite**
+  ```bash
+  npm test
+  ```
+  - Validates auth, Metro-2 violation lookups, dispute generation, and tenant throttles.
+- **CLI audit regression**
+  ```bash
+  npm run audit -- tests/fixtures/sample-report.html
+  ```
+  - Protects the HTML → JSON pipeline after knowledge graph edits.
+- **Python regression pack**
+  ```bash
+  ./python-tests/run.sh
+  ```
+  - Exercises Metro-2 edge cases and bilingual copy fallbacks.
+- **Manual smoke loop**
+  - Login, hit `/api/dashboard/summary`, trigger a Stripe checkout, queue an SMS, and generate a PDF in under 5 minutes to ensure the ops flow still converts.
 
-Convert a raw credit report HTML directly into dispute-ready PDF letters:
-```bash
-cd "metro2 (copy 1)/crm"
-node htmlToDisputePdf.js path/to/report.html output/dir
-```
+## Debugging tips
+- **Port already in use?** `lsof -i :3000` → kill rogue Node processes before restarting.
+- **SQLite locked errors?** Stop other Node instances, then remove stale journal files (`rm -f crm.sqlite-journal`).
+- **Metro-2 JSON edits not reflecting?** Restart the relevant worker or touch the JSON file—Express watchers hot-reload on boot but not mid-request.
+- **Stripe 401 or missing Checkout URL?** Confirm `STRIPE_SECRET_KEY` exists and the invoice has a balance; re-run the curl checkout command to regenerate sessions.
+- **Twilio SMS stuck in queued?** Verify the worker log output for status callbacks and ensure `TWILIO_STATUS_CALLBACK_URL` points to a reachable HTTPS endpoint.
+- **Calendar sync failures?** Refresh OAuth tokens and confirm the calendar is shared with the service account; the server logs will show `googleCalendar` warnings with the underlying error code.
+- **Python CLI SSL errors?** Add `pip install -r python-tests/requirements.txt` to ensure `requests` and TLS extras are present.
 
-
-## Test
-
-### Node tests
-```bash
-cd "metro2 (copy 1)/crm"
-npm test
-```
-
-### Python tests
-```bash
-./python-tests/run.sh
-```
-
-
-## Marketing Integration
-
+## Marketing + comms add-ons
 - Frontend queue + template UI: `public/marketing.html` + `public/marketing.js`.
-- Backend endpoints live under `/api/marketing`; see [`docs/marketing-integration.md`](metro2%20(copy%201)/crm/docs/marketing-integration.md) for wiring Twilio/SendGrid workers.
-- Env hints: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID`, `SENDGRID_API_KEY`, `SENDGRID_FROM_EMAIL`, `SENDGRID_FROM_NAME`.
+- Backend endpoints live under `/api/marketing`; see [`docs/marketing-integration.md`](metro2%20(copy%201)/crm/docs/marketing-integration.md).
+- Suggested smoke before going live:
+  ```bash
+  curl -X GET http://localhost:3000/api/marketing/tests \
+    -H "Authorization: Bearer $TOKEN"
+  ```
+- KPIs to watch: SMS opt-in rate, appointment conversion, and invoice collection velocity from Stripe webhooks.
 
-Run the smoke curl to verify auth works before pointing workers at the queue.
-
-````bash
-cd "metro2 (copy 1)/crm"
-TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"ducky","password":"duck"}' | jq -r .token)
-
-curl -X GET http://localhost:3000/api/marketing/tests \
-  -H "Authorization: Bearer $TOKEN"
-````
-
-## Deploy
-Container-friendly; run `npm start` in production environment.
+## Deploy notes
+- Container-friendly: `npm start` inside your orchestrator.
+- Mount a persistent volume for `crm.sqlite` + `/shared` JSON to keep tenant data and Metro-2 rules in sync.
+- Configure environment variables via your platform (Render, AWS, etc.) and rotate secrets quarterly.
+- Set up health checks against `/api/health` (responds once the DB + Stripe webhooks are ready).
