@@ -78,6 +78,15 @@ export function spawnPythonProcess(args = [], options = {}) {
         return;
       }
       const command = candidates.shift();
+
+      if ((command.includes(path.sep) || command.includes("/")) && !isExecutable(command)) {
+        if (candidates.length) {
+          tryNext();
+          return;
+        }
+        reject(new Error("Unable to locate a Python interpreter. Set CRM_PYTHON_BIN to the desired executable."));
+        return;
+      }
       let child;
       try {
         child = spawn(command, args, options);
