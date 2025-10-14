@@ -39,7 +39,7 @@ test('scrapeTradelines parses legacy data-attribute rows', async () => {
   assert.equal(row.price, 550);
   assert.equal(row.limit, 7500);
   assert.equal(row.age, '3 years');
-  assert.equal(row.statement_date, '15th');
+  assert.equal(row.statement_date, '');
   assert.equal(row.reporting, 'TransUnion, Equifax');
   assert.match(row.buy_link, /Alpha%20Bank/);
 });
@@ -104,7 +104,7 @@ test('scrapeTradelines parses modern table layout with explicit client price', a
   assert.equal(row.price, 799);
   assert.equal(row.limit, 12000);
   assert.equal(row.age, '1 year');
-  assert.equal(row.statement_date, '10th');
+  assert.equal(row.statement_date, '');
   assert.equal(row.reporting, 'All Bureaus');
   assert.equal(row.buy_link, 'https://checkout.example.com/beta');
 });

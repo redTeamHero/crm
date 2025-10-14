@@ -34,15 +34,6 @@ function tidyText(str) {
     .trim();
 }
 
-function sanitizeDateField(value) {
-  const cleaned = tidyText(value);
-  if (!cleaned) return '';
-  if (/^(?:n\/?a|none|tbd|to be determined|on hold)$/i.test(cleaned)) {
-    return '';
-  }
-  return cleaned;
-}
-
 function buildRecord(base) {
   return {
     buy_link: base.buy_link || null,
@@ -85,9 +76,6 @@ function parseDataAttributeRows($) {
     const bankName = tidyText(productTd.data('bankname'));
     const creditLimit = parseCurrency(productTd.data('creditlimit')) || 0;
     const dateOpened = tidyText(productTd.data('dateopened'));
-    const statementDate = sanitizeDateField(
-      productTd.data('statementdate') ?? productTd.data('statementday') ?? ''
-    );
     const reportingPeriod = tidyText(productTd.data('reportingperiod'));
 
     const match = /\$\s?(\d+(?:,\d{3})*(?:\.\d{2})?)/.exec(priceTd.text());
@@ -103,7 +91,6 @@ function parseDataAttributeRows($) {
       price: Math.round(finalPrice * 100) / 100,
       limit: creditLimit,
       age: dateOpened,
-      statement_date: statementDate,
       reporting: reportingPeriod,
     });
   });
@@ -160,13 +147,6 @@ function parseTableLayouts($) {
         if (header.includes('client') || header.includes('price') || header.includes('investment')) {
           const value = parseCurrency(text);
           if (value != null) explicitClientPrice = value;
-          return;
-        }
-        if (header.includes('statement') && !header.includes('purchase')) {
-          const sanitized = sanitizeDateField(text);
-          if (sanitized) {
-            record.statement_date = sanitized;
-          }
           return;
         }
         if (header.includes('report')) {
