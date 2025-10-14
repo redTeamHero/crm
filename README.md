@@ -54,6 +54,24 @@ Copy `.env.sample` to `.env` and adjust values as needed.
 npm start
 ```
 
+Keep the terminal open while iterating—the API, portal, and workers all hot-reload their Metro-2 JSON lookups on every boot so you can edit the shared data files without restarting.
+
+## Smoke test
+
+1. Boot the API as above.
+2. Log in with the seeded admin to capture a bearer token:
+   ```bash
+   TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
+     -H 'Content-Type: application/json' \
+     -d '{"username":"ducky","password":"duck"}' | jq -r .token)
+   ```
+3. Confirm the tenant wiring, permission defaults, and Stripe webhooks by hitting the dashboard snapshot:
+   ```bash
+   curl -s http://localhost:3000/api/dashboard/summary \
+     -H "Authorization: Bearer $TOKEN" | jq
+   ```
+4. Expected result: a JSON payload with lead counts, invoice totals, bilingual CTA copy, and the next revenue move, proving the CRM can hydrate KPIs before you invite a teammate.
+
 ## Marketing SMS worker
 
 Wire Twilio to the marketing test queue after setting the env vars above (or saving the Marketing API Key in **Settings → Integrations**):
@@ -158,6 +176,17 @@ node htmlToDisputePdf.js path/to/report.html output/dir
 
 
 ## Test
+
+- **Node test runner:**
+  ```bash
+  npm test
+  ```
+  This executes the API integration suite in `tests/*.test.js`, covering auth, Metro-2 violation lookups, and dispute letter generation paths.
+- **CLI audit regression:**
+  ```bash
+  npm run audit -- tests/fixtures/sample-report.html
+  ```
+  Useful for making sure the HTML → JSON pipeline still tags Metro-2 issues after editing the parsers or knowledge graph.
 
 ### Node tests
 ```bash
