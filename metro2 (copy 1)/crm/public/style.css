@@ -1613,16 +1613,53 @@ body { padding-top: 0; }
 
 
 .severity-tag {
-  margin-left: 4px;
-  padding: 0 4px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 500;
+  --severity-bg: rgba(229, 231, 235, 0.65);
+  --severity-fg: #1f2937;
+  --severity-emoji: "";
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--severity-bg);
+  color: var(--severity-fg);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  line-height: 1.2;
 }
-.severity-tag.severity-5 { background: #991B1B; color: #fff; }
-.severity-tag.severity-4 { background: #B45309; color: #fff; }
-.severity-tag.severity-3 { background: #F59E0B; color: #fff; }
-.severity-tag.severity-2 { background: #3B82F6; color: #fff; }
+.severity-tag::before {
+  content: var(--severity-emoji, "");
+  font-size: 12px;
+  line-height: 1;
+}
+.severity-tag.severity-5 {
+  --severity-bg: #fee2e2;
+  --severity-fg: #7f1d1d;
+  --severity-emoji: "🛑";
+}
+.severity-tag.severity-4 {
+  --severity-bg: #fef3c7;
+  --severity-fg: #92400e;
+  --severity-emoji: "⚠️";
+}
+.severity-tag.severity-3 {
+  --severity-bg: #fffbeb;
+  --severity-fg: #92400e;
+  --severity-emoji: "❗";
+}
+.severity-tag.severity-2 {
+  --severity-bg: #dbeafe;
+  --severity-fg: #1e3a8a;
+  --severity-emoji: "ℹ️";
+}
+.severity-tag.severity-1 {
+  --severity-bg: #e0f2fe;
+  --severity-fg: #0c4a6e;
+  --severity-emoji: "✅";
+}
 
 
 /* Tradeline card severity borders */
