@@ -72,6 +72,7 @@ npm start
 7. [Debugging tips](#debugging-tips)
 8. [Marketing + comms add-ons](#marketing--comms-add-ons)
 9. [Deploy notes](#deploy-notes)
+10. [GitHub auto-pull webhook](#github-auto-pull-webhook)
 
 ### Database & multi-tenant notes
 
@@ -260,3 +261,79 @@ npm test
 - Mount a persistent volume for `crm.sqlite` + `/shared` JSON to keep tenant data and Metro-2 rules in sync.
 - Configure environment variables via your platform (Render, AWS, etc.) and rotate secrets quarterly.
 - Set up health checks against `/api/health` (responds once the DB + Stripe webhooks are ready).
+## GitHub auto-pull webhook
+
+Lock in zero-touch deployments so every push to GitHub refreshes your production workspace instantly. This webhook keeps the repo in sync and logs successful pulls for quick audits.
+
+### Goal & Why
+- Keep the credit-repair portal current without engineers SSH-ing in after every release.
+- Reduce "stale build" risks that could impact dispute workflows or upsell funnels.
+
+### Architecture
+```
+GitHub (push) → Webhook (Flask) → Bash pull script → Updated repo + log entry
+```
+
+### Scaffold / Files
+```
+scripts/webhook/
+├── gitpull.sh       # Hard reset to origin/main + log
+└── server.py        # Flask webhook listener with HMAC verification
+```
+
+### Code
+- `scripts/webhook/gitpull.sh` keeps the repo aligned with `origin/main` and appends a timestamped success line to `/var/log/gitpull.log`.
+- `scripts/webhook/server.py` exposes `/github-webhook`, verifies the `X-Hub-Signature-256` header (when `GITHUB_WEBHOOK_SECRET` is set), and executes the Bash script.
+
+### How to Run
+```bash
+# 1) Copy scripts into /home/admin/webhook on the server
+sudo install -d /home/admin/webhook
+sudo cp scripts/webhook/gitpull.sh /home/admin/webhook/gitpull.sh
+sudo cp scripts/webhook/server.py /home/admin/webhook/server.py
+sudo chmod +x /home/admin/webhook/gitpull.sh
+
+# 2) Install Flask runtime (Ubuntu/Debian)
+sudo apt update && sudo apt install -y python3-flask
+
+# 3) Export secrets and launch the webhook listener
+export GITHUB_WEBHOOK_SECRET="your_webhook_secret"
+export GIT_PULL_SCRIPT="/home/admin/webhook/gitpull.sh"
+export WEBHOOK_PORT=5005
+python3 /home/admin/webhook/server.py
+
+# Optional: run under systemd (sample unit)
+sudo tee /etc/systemd/system/github-webhook.service <<'EOF'
+[Unit]
+Description=GitHub Auto Pull Webhook
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+Environment="GITHUB_WEBHOOK_SECRET=your_webhook_secret"
+Environment="GIT_PULL_SCRIPT=/home/admin/webhook/gitpull.sh"
+Environment="WEBHOOK_PORT=5005"
+ExecStart=/usr/bin/python3 /home/admin/webhook/server.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now github-webhook.service
+
+# 4) Add GitHub webhook (repo → Settings → Webhooks)
+#    Payload URL: http://your-server-ip:5005/github-webhook
+#    Content type: application/json
+#    Secret: your_webhook_secret
+#    Events: Just the push event
+```
+
+### Metrics / AB ideas
+- Track `gitpull.success` vs `gitpull.failure` counts (use the log as the source of truth) and alert if failures exceed 1/hour.
+- Measure deploy latency: push timestamp vs log timestamp to ensure <60s updates.
+
+### Next Revenue Wins
+- Layer Stripe deploy-webhook notifications in Slack so growth + ops see when upsell flows ship.
+- Add an audit dashboard that surfaces the last pull time beside CRM KPIs to reassure enterprise clients.
