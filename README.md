@@ -79,6 +79,12 @@ npm start
 - Every HTTP request runs inside a tenant context resolved from the authenticated user or `X-Tenant-Id` header. Shared-table mode keeps data isolated by `tenant_id`; schema mode provisions `tenant_{id}` schemas on demand and writes tenant data there.
 - Use `DB_PARTITIONS` to tune hash partitions for high-cardinality datasets, and monitor the `tenant_registry` table to audit onboarded tenants.
 
+### Database & multi-tenant notes
+
+- `npm run migrate` runs Knex migrations that create a tenant-aware key/value store with JSON storage, composite indexes, and hash partitions. PostgreSQL deployments can opt into per-tenant schemas by setting `DB_TENANT_STRATEGY=schema`.
+- Every HTTP request runs inside a tenant context resolved from the authenticated user or `X-Tenant-Id` header. Shared-table mode keeps data isolated by `tenant_id`; schema mode provisions `tenant_{id}` schemas on demand and writes tenant data there.
+- Use `DB_PARTITIONS` to tune hash partitions for high-cardinality datasets, and monitor the `tenant_registry` table to audit onboarded tenants.
+
 ## Marketing SMS worker
 
 Wire Twilio to the marketing test queue after setting the env vars above (or saving the Marketing API Key in **Settings → Integrations**):

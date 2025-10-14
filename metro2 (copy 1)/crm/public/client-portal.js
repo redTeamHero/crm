@@ -49,6 +49,55 @@ const HASH_TO_PORTAL_MODULE = Object.freeze({
   '#negative-items': 'negativeItems',
 });
 
+const DATA_REGION_EXPERIMENT_KEY = 'portal-data-region';
+let dataRegionVariant = 'control';
+let dataRegionConversionLocked = false;
+
+function applyDataRegionBanner(variant){
+  const banner = document.getElementById('dataRegionBanner');
+  if(!banner) return;
+  if(variant === 'dedicated'){
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+async function bootstrapDataRegionExperiment(consumerId){
+  const params = new URLSearchParams();
+  if(consumerId) params.set('consumerId', consumerId);
+  const query = params.toString();
+  try {
+    const resp = await fetch(`/api/experiments/${DATA_REGION_EXPERIMENT_KEY}${query ? `?${query}` : ''}`);
+    if(!resp.ok) throw new Error('Experiment assignment failed');
+    const payload = await resp.json();
+    dataRegionVariant = payload?.variant || 'control';
+    applyDataRegionBanner(dataRegionVariant);
+    if(window.trackEvent){
+      trackEvent('portal_data_region_variant', { variant: dataRegionVariant });
+    }
+  } catch (err) {
+    console.warn('Experiment fetch failed', err);
+    dataRegionVariant = 'control';
+    applyDataRegionBanner(dataRegionVariant);
+  }
+}
+
+function recordDataRegionConversion(consumerId, action = 'cta_click'){
+  if(dataRegionVariant !== 'dedicated' || dataRegionConversionLocked) return;
+  dataRegionConversionLocked = true;
+  const body = { action };
+  if(consumerId) body.consumerId = consumerId;
+  fetch(`/api/experiments/${DATA_REGION_EXPERIMENT_KEY}/convert`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch(() => {});
+  if(window.trackEvent){
+    trackEvent('portal_data_region_conversion', { action });
+  }
+}
+
 function safeParseScore(value){
   if(!value) return null;
   try { return JSON.parse(value); } catch { return null; }
@@ -358,12 +407,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initClientPortalNav();
   applyPortalModules(portalSettings.modules || {});
   loadScores();
+  applyDataRegionBanner(dataRegionVariant);
+  bootstrapDataRegionExperiment(consumerId);
 
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
 
   const languageToggle = document.getElementById('languageToggle');
   const mobileLanguageToggle = document.getElementById('mobileLanguageToggle');
+  const bookCallButton = document.getElementById('bookCall');
   const htmlRoot = document.documentElement;
 
   const updateLanguageButtons = (lang) => {
@@ -385,6 +437,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const current = htmlRoot.getAttribute('lang') === 'es' ? 'es' : 'en';
     applyLanguagePreference(current === 'es' ? 'en' : 'es');
   };
+
+  if (bookCallButton) {
+    bookCallButton.addEventListener('click', () => {
+      recordDataRegionConversion(consumerId, 'book_call');
+    });
+  }
 
   [languageToggle, mobileLanguageToggle].forEach(btn => {
     if (!btn) return;

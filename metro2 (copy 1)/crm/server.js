@@ -50,6 +50,7 @@ import {
 import { withTenantContext } from "./tenantContext.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
+const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
 
 
 const DEFAULT_MEMBER_PERMISSIONS = ["consumers", "contacts", "tasks", "reports"];
@@ -646,7 +647,28 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
   if(!stripe) return null;
   const amount = Number(invoice.amount) || 0;
   const amountCents = Math.round(amount * 100);
-  if(!Number.isFinite(amountCents) || amountCents <= 0) return null;
+  if(!stripe){
+    await recordCheckoutStage({
+      tenantId,
+      invoiceId: invoice.id,
+      stage: "client_missing",
+      success: false,
+      amountCents,
+      metadata: { reason: "stripe_unconfigured" },
+    });
+    return null;
+  }
+  if(!Number.isFinite(amountCents) || amountCents <= 0) {
+    await recordCheckoutStage({
+      tenantId,
+      invoiceId: invoice.id,
+      stage: "non_billable",
+      success: false,
+      amountCents,
+      metadata: { reason: "zero_amount" },
+    });
+    return null;
+  }
   const { success, cancel } = resolveStripeRedirectUrls(invoice, req);
   const descriptor = (invoice.desc || `Invoice ${invoice.id || ""}`).toString().slice(0, 120) || "Invoice";
   const metadata = {
@@ -656,6 +678,18 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
   if(company?.name){
     metadata.companyName = company.name.toString().slice(0, 120);
   }
+  const stripeMeta = stripeClientMeta.get(stripe) || { tenantId, cacheHit: !!stripeClient };
+  await recordCheckoutStage({
+    tenantId,
+    invoiceId: invoice.id,
+    stage: "session_requested",
+    success: true,
+    amountCents,
+    metadata: {
+      cacheHit: !!stripeMeta.cacheHit,
+      reusedClient: !!stripeClient,
+    },
+  });
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -677,9 +711,31 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
         },
       ],
     });
+    await recordCheckoutStage({
+      tenantId,
+      invoiceId: invoice.id,
+      stage: "session_created",
+      success: true,
+      sessionId: session.id,
+      amountCents,
+      metadata: {
+        cacheHit: !!stripeMeta.cacheHit,
+      },
+    });
     return { url: session.url, sessionId: session.id };
   } catch (err) {
     logError("STRIPE_CHECKOUT_CREATE_FAILED", "Failed to create Stripe checkout session", err, { invoiceId: invoice.id });
+    await recordCheckoutStage({
+      tenantId,
+      invoiceId: invoice.id,
+      stage: "session_failed",
+      success: false,
+      amountCents,
+      metadata: {
+        cacheHit: !!stripeMeta.cacheHit,
+        errorCode: err?.code || null,
+      },
+    });
     return null;
   }
 }
@@ -1011,6 +1067,52 @@ app.get("/buy", async (req, res) => {
 
 app.get("/api/settings", async (_req, res) => {
   res.json({ ok: true, settings: await loadSettings() });
+});
+
+app.get("/api/experiments/portal-data-region", optionalAuth, async (req, res) => {
+  try {
+    const tenantId = resolveRequestTenant(req, DEFAULT_TENANT_ID);
+    const visitorId = (req.query?.visitorId || req.query?.consumerId || req.user?.id || "").toString().slice(0, 128);
+    const controlWeight = Math.max(1, Number.parseInt(process.env.PORTAL_DATA_REGION_CONTROL_WEIGHT || "1", 10) || 1);
+    const dedicatedWeight = Math.max(1, Number.parseInt(process.env.PORTAL_DATA_REGION_WEIGHT || "1", 10) || 1);
+    const assignment = await assignExperimentVariant({
+      tenantId,
+      testKey: DATA_REGION_EXPERIMENT_KEY,
+      visitorId,
+      context: "portal",
+      variants: [
+        { name: "control", weight: controlWeight },
+        { name: "dedicated", weight: dedicatedWeight },
+      ],
+      metadata: {
+        userAgent: req.headers["user-agent"] ? String(req.headers["user-agent"]).slice(0, 255) : null,
+      },
+    });
+    res.json({ ok: true, variant: assignment.variant });
+  } catch (err) {
+    logWarn("PORTAL_EXPERIMENT_ASSIGN_FAILED", err?.message || String(err));
+    res.json({ ok: true, variant: "control" });
+  }
+});
+
+app.post("/api/experiments/portal-data-region/convert", optionalAuth, async (req, res) => {
+  try {
+    const tenantId = resolveRequestTenant(req, DEFAULT_TENANT_ID);
+    const visitorId = (req.body?.visitorId || req.body?.consumerId || req.user?.id || "").toString().slice(0, 128);
+    await recordExperimentConversion({
+      tenantId,
+      testKey: DATA_REGION_EXPERIMENT_KEY,
+      visitorId,
+      context: "portal",
+      metadata: {
+        action: req.body?.action || "cta_click",
+      },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    logWarn("PORTAL_EXPERIMENT_CONVERT_FAILED", err?.message || String(err));
+    res.status(200).json({ ok: false });
+  }
 });
 
 app.post("/api/settings", async (req, res) => {
@@ -2960,6 +3062,8 @@ app.put("/api/invoices/:id", async (req,res)=>{
   const db = await loadInvoicesDB();
   const inv = db.invoices.find(i=>i.id===req.params.id);
   if(!inv) return res.status(404).json({ ok:false, error:"Not found" });
+  const tenantInfo = tenantScope(req || DEFAULT_TENANT_ID);
+  const wasPaid = !!inv.paid;
   if(req.body.desc !== undefined) inv.desc = req.body.desc;
   if(req.body.amount !== undefined) inv.amount = Number(req.body.amount) || 0;
   if(req.body.due !== undefined) inv.due = req.body.due;
@@ -2979,6 +3083,20 @@ app.put("/api/invoices/:id", async (req,res)=>{
   }
   inv.updatedAt = new Date().toISOString();
   await saveInvoicesDB(db);
+  if(!wasPaid && inv.paid){
+    const amountCents = Math.round((Number(inv.amount) || 0) * 100);
+    await recordCheckoutStage({
+      tenantId: tenantInfo.tenantId,
+      invoiceId: inv.id,
+      stage: "invoice_marked_paid",
+      success: true,
+      sessionId: inv.stripeSessionId || null,
+      amountCents,
+      metadata: {
+        paymentProvider: inv.paymentProvider || null,
+      },
+    });
+  }
   res.json({ ok:true, invoice: inv });
 });
 
