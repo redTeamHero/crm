@@ -6,7 +6,6 @@ import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import multer from "multer";
 import { nanoid } from "nanoid";
-import { spawn } from "child_process";
 import { htmlToPdfBuffer, launchBrowser } from "./pdfUtils.js";
 import crypto from "crypto";
 import os from "os";
@@ -47,7 +46,8 @@ import {
   summarizeWorkflowConfig,
   canonicalBureauName,
 } from "./workflowEngine.js";
-import { withTenantContext } from "./tenantContext.js";
+import { withTenantContext, getCurrentTenantId } from "./tenantContext.js";
+import { spawnPythonProcess } from "./pythonEnv.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
@@ -136,6 +136,15 @@ function tenantScope(input, fallback = DEFAULT_TENANT_ID) {
     return { tenantId: sanitizeTenantId(input.tenantId, fallback) };
   }
   return { tenantId: resolveRequestTenant(input, fallback) };
+}
+
+function resolveTenantContextInput(context) {
+  if (context === undefined || context === null) {
+    const current = getCurrentTenantId();
+    if (current) return current;
+    return DEFAULT_TENANT_ID;
+  }
+  return context;
 }
 
 function sanitizeSettingString(value = "") {
@@ -409,8 +418,8 @@ function buildDefaultSettings(){
   return normalizeSettings(withEnv);
 }
 
-async function loadSettings(context = DEFAULT_TENANT_ID){
-  const scope = tenantScope(context);
+async function loadSettings(context){
+  const scope = tenantScope(resolveTenantContextInput(context));
   const raw = await readKey('settings', null, scope);
   if(raw){
     const settings = normalizeSettings(raw);
@@ -425,8 +434,8 @@ async function loadSettings(context = DEFAULT_TENANT_ID){
   return defaults;
 }
 
-async function saveSettings(data, context = DEFAULT_TENANT_ID){
-  const scope = tenantScope(context);
+async function saveSettings(data, context){
+  const scope = tenantScope(resolveTenantContextInput(context));
   const current = await readKey('settings', null, scope);
   const merged = normalizeSettings({ ...(current || {}), ...(data || {}) });
   await writeKey('settings', merged, scope);
@@ -570,8 +579,8 @@ try {
 
 let stripeClientCache = { key: null, tenantId: null, client: null };
 
-async function getStripeClient(context = DEFAULT_TENANT_ID){
-  const tenantId = tenantScope(context).tenantId;
+async function getStripeClient(context){
+  const tenantId = tenantScope(resolveTenantContextInput(context)).tenantId;
   if(!StripeLib) return null;
   let apiKey = (process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || process.env.STRIPE_PRIVATE_KEY || "").trim();
   if(!apiKey){
@@ -1346,8 +1355,8 @@ async function buildSeedReport(existing) {
   };
 }
 
-async function loadDB(context = DEFAULT_TENANT_ID){
-  const scope = tenantScope(context);
+async function loadDB(context){
+  const scope = tenantScope(resolveTenantContextInput(context));
   let db = await readKey('consumers', null, scope);
   let changed = false;
   if(!db){
@@ -1389,8 +1398,8 @@ async function loadDB(context = DEFAULT_TENANT_ID){
   }
   return db;
 }
-async function saveDB(db, context = DEFAULT_TENANT_ID){
-  await writeKey('consumers', db, tenantScope(context));
+async function saveDB(db, context){
+  await writeKey('consumers', db, tenantScope(resolveTenantContextInput(context)));
 }
 const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [], mainTemplates: defaultTemplates().map(t=>t.id) };
 function normalizeLettersDB(db){
@@ -2046,13 +2055,16 @@ async function runPythonAnalyzer(htmlContent){
   const outPath  = path.join(tmpDir,"report.json");
   await fs.promises.writeFile(htmlPath, htmlContent, "utf-8");
 
-  const py = spawn("python3", [scriptPath,"-i",htmlPath,"-o",outPath], { stdio:["ignore","pipe","pipe"] });
+  const { child: py } = await spawnPythonProcess(
+    [scriptPath,"-i",htmlPath,"-o",outPath],
+    { stdio:["ignore","pipe","pipe"] }
+  );
   let stdout="", stderr="";
   py.stdout.on("data",d=>stdout+=d.toString());
   py.stderr.on("data",d=>stderr+=d.toString());
 
   return new Promise((resolve,reject)=>{
-    py.on("error", async(err) => {
+    py.once("error", async(err) => {
       try { await fs.promises.rm(tmpDir,{recursive:true,force:true}); }catch{}
       reject(err);
     });

@@ -1636,11 +1636,16 @@ def r_3(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_trad
 def r_8(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
     status = _safe_lower(tradeline.get("account_status"))
-    if not _has_keywords(status, ("charge", "chargeoff")):
+    if not _has_keywords(status, ("charge", "chargeoff", "collection")):
         return []
     if tradeline.get("date_of_first_delinquency"):
         return []
-    return [_violation("METRO2_CODE_8_MISSING_DOFD", "Charge-off missing Date of First Delinquency")]
+    return [
+        _violation(
+            "METRO2_CODE_8_MISSING_DOFD",
+            "Charge-off or collection missing Date of First Delinquency",
+        )
+    ]
 
 
 def r_9(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

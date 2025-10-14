@@ -1,8 +1,8 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
 import { detectChromium, launchBrowser } from './pdfUtils.js';
+import { spawnPythonProcess } from './pythonEnv.js';
 
 // ---------------------------------------------------------------------------
 // Data loading
@@ -30,15 +30,17 @@ async function fetchCreditReport(srcPath) {
   }
 }
 
-function runPythonAudit(inputHtml, outputJson) {
+async function runPythonAudit(inputHtml, outputJson) {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const script = path.join(__dirname, 'metro2_audit_multi.py');
 
+  const { child: py } = await spawnPythonProcess(
+    [script, '-i', inputHtml, '-o', outputJson, '--json-only'],
+    { stdio: 'inherit' }
+  );
+
   return new Promise((resolve, reject) => {
-    const py = spawn('python3', [script, '-i', inputHtml, '-o', outputJson, '--json-only'], {
-      stdio: 'inherit',
-    });
-    py.on('error', reject);
+    py.once('error', reject);
     py.on('close', (code) => {
       if (code === 0) resolve();
       else reject(new Error(`metro2_audit_multi.py exited with code ${code}`));

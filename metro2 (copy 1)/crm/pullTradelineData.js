@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { getPythonCandidates } from './pythonEnv.js';
 
 const ALL_BUREAUS = ['TransUnion', 'Experian', 'Equifax'];
 
@@ -133,7 +134,7 @@ async function runMetro2Audit(html, { timeoutMs = 60_000 } = {}) {
   await fs.writeFile(tmpHtml, html, 'utf-8');
 
   await new Promise((resolve, reject) => {
-    const pythonCandidates = process.platform === 'win32' ? ['python', 'python3'] : ['python3', 'python'];
+    const pythonCandidates = getPythonCandidates();
     let selected = null;
 
     const tryNext = () => {
