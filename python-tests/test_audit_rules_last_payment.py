@@ -84,6 +84,30 @@ class TestLastPaymentAuditSuite(unittest.TestCase):
             "Payment after DOFD should be flagged for charge-offs",
         )
 
+    def test_payment_after_dofd_flags_cure_rule(self):
+        record = {
+            "account_status": "120 Days Late",
+            "date_of_last_payment": "03/15/2023",
+            "date_first_delinquency": "02/01/2023",
+        }
+        self._run(record)
+        self.assertTrue(
+            _find_violation(record, "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE"),
+            "Payments after DOFD should signal the delinquency was cured",
+        )
+
+    def test_payment_before_dofd_no_cure_violation(self):
+        record = {
+            "account_status": "90 Days Late",
+            "date_of_last_payment": "01/01/2023",
+            "date_first_delinquency": "02/15/2023",
+        }
+        self._run(record)
+        self.assertFalse(
+            _find_violation(record, "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE"),
+            "Legitimate delinquencies should not trigger cure rule",
+        )
+
     def test_iso_timestamp_payment_after_closure(self):
         record = {
             "date_of_last_payment": "2023-05-15T00:00:00Z",
