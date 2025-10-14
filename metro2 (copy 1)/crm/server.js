@@ -21,7 +21,7 @@ import parseCreditReportHTML from "./parser.js";
 import { logInfo, logError, logWarn } from "./logger.js";
 
 import { ensureBuffer } from "./utils.js";
-import { readKey, writeKey, DB_FILE } from "./kvdb.js";
+import { readKey, writeKey } from "./kvdb.js";
 import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy, clearCalendarCache } from "./googleCalendar.js";
 
@@ -37,7 +37,7 @@ import {
 import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "./negativeItems.js";
 import { mapAuditedViolations } from "./pullTradelineData.js";
-import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID } from "./tenantLimits.js";
+import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID, resolveTenantId } from "./tenantLimits.js";
 import { getDashboardConfig, updateDashboardConfig } from "./dashboardConfig.js";
 import {
   initWorkflowEngine,
@@ -47,8 +47,11 @@ import {
   summarizeWorkflowConfig,
   canonicalBureauName,
 } from "./workflowEngine.js";
+import { withTenantContext } from "./tenantContext.js";
+import { recordCheckoutStage, assignExperimentVariant, recordExperimentConversion } from "./analytics/metrics.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
+const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
 
 
 const DEFAULT_MEMBER_PERMISSIONS = ["consumers", "contacts", "tasks", "reports"];
@@ -119,6 +122,22 @@ const STRING_SETTING_KEYS = [
   "gmailClientSecret",
   "gmailRefreshToken"
 ];
+
+function resolveRequestTenant(req, fallback = DEFAULT_TENANT_ID) {
+  if (!req) return fallback;
+  return resolveTenantId(req, fallback);
+}
+
+function tenantScope(input, fallback = DEFAULT_TENANT_ID) {
+  if (!input) return { tenantId: fallback };
+  if (typeof input === "string") {
+    return { tenantId: sanitizeTenantId(input, fallback) };
+  }
+  if (input?.tenantId) {
+    return { tenantId: sanitizeTenantId(input.tenantId, fallback) };
+  }
+  return { tenantId: resolveRequestTenant(input, fallback) };
+}
 
 function sanitizeSettingString(value = "") {
   if (value === null || value === undefined) return "";
@@ -391,8 +410,9 @@ function buildDefaultSettings(){
   return normalizeSettings(withEnv);
 }
 
-async function loadSettings(){
-  const raw = await readKey('settings', null);
+async function loadSettings(context = DEFAULT_TENANT_ID){
+  const scope = tenantScope(context);
+  const raw = await readKey('settings', null, scope);
   if(raw){
     const settings = normalizeSettings(raw);
     applyIntegrationSettings(settings);
@@ -400,16 +420,17 @@ async function loadSettings(){
     return settings;
   }
   const defaults = buildDefaultSettings();
-  await writeKey('settings', defaults);
+  await writeKey('settings', defaults, scope);
   applyIntegrationSettings(defaults);
   applyEnvOverrides(defaults.envOverrides);
   return defaults;
 }
 
-async function saveSettings(data){
-  const current = await readKey('settings', null);
+async function saveSettings(data, context = DEFAULT_TENANT_ID){
+  const scope = tenantScope(context);
+  const current = await readKey('settings', null, scope);
   const merged = normalizeSettings({ ...(current || {}), ...(data || {}) });
-  await writeKey('settings', merged);
+  await writeKey('settings', merged, scope);
   applyIntegrationSettings(merged);
   applyEnvOverrides(merged.envOverrides);
   return merged;
@@ -417,7 +438,7 @@ async function saveSettings(data){
 
 
 try {
-  await loadSettings();
+  await loadSettings(DEFAULT_TENANT_ID);
 } catch (err) {
   logError('SETTINGS_INIT_FAILED', 'Failed to hydrate settings on startup', err);
 }
@@ -548,30 +569,34 @@ try {
   console.warn("Stripe not installed");
 }
 
-let stripeClientCache = { key: null, client: null };
+let stripeClientCache = { key: null, tenantId: null, client: null };
+const stripeClientMeta = new WeakMap();
 
-async function getStripeClient(){
+async function getStripeClient(context = DEFAULT_TENANT_ID){
+  const tenantId = tenantScope(context).tenantId;
   if(!StripeLib) return null;
   let apiKey = (process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_KEY || process.env.STRIPE_PRIVATE_KEY || "").trim();
   if(!apiKey){
     try {
-      const settings = await loadSettings();
+      const settings = await loadSettings(tenantId);
       apiKey = (settings?.stripeApiKey || "").trim();
     } catch (err) {
       logError("STRIPE_SETTINGS_LOAD_FAILED", "Unable to read settings for Stripe", err);
     }
   }
   if(!apiKey) return null;
-  if(stripeClientCache.client && stripeClientCache.key === apiKey){
+  if(stripeClientCache.client && stripeClientCache.key === apiKey && stripeClientCache.tenantId === tenantId){
+    stripeClientMeta.set(stripeClientCache.client, { tenantId, cacheHit: true, fetchedAt: Date.now() });
     return stripeClientCache.client;
   }
   try {
     const client = new StripeLib(apiKey, { apiVersion: "2023-10-16" });
-    stripeClientCache = { key: apiKey, client };
+    stripeClientCache = { key: apiKey, tenantId, client };
+    stripeClientMeta.set(client, { tenantId, cacheHit: false, fetchedAt: Date.now() });
     return client;
   } catch (err) {
     logError("STRIPE_CLIENT_INIT_FAILED", "Failed to initialise Stripe client", err);
-    stripeClientCache = { key: null, client: null };
+    stripeClientCache = { key: null, tenantId: null, client: null };
     return null;
   }
 }
@@ -622,11 +647,33 @@ function buildInvoicePayUrl(invoice, req){
 
 async function createStripeCheckoutSession({ invoice, consumer = {}, company = {}, req, stripeClient = null } = {}){
   if(!invoice) return null;
-  const stripe = stripeClient || await getStripeClient();
-  if(!stripe) return null;
+  const scope = tenantScope(req || DEFAULT_TENANT_ID);
+  const tenantId = scope.tenantId;
+  const stripe = stripeClient || await getStripeClient(req);
   const amount = Number(invoice.amount) || 0;
   const amountCents = Math.round(amount * 100);
-  if(!Number.isFinite(amountCents) || amountCents <= 0) return null;
+  if(!stripe){
+    await recordCheckoutStage({
+      tenantId,
+      invoiceId: invoice.id,
+      stage: "client_missing",
+      success: false,
+      amountCents,
+      metadata: { reason: "stripe_unconfigured" },
+    });
+    return null;
+  }
+  if(!Number.isFinite(amountCents) || amountCents <= 0) {
+    await recordCheckoutStage({
+      tenantId,
+      invoiceId: invoice.id,
+      stage: "non_billable",
+      success: false,
+      amountCents,
+      metadata: { reason: "zero_amount" },
+    });
+    return null;
+  }
   const { success, cancel } = resolveStripeRedirectUrls(invoice, req);
   const descriptor = (invoice.desc || `Invoice ${invoice.id || ""}`).toString().slice(0, 120) || "Invoice";
   const metadata = {
@@ -636,6 +683,18 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
   if(company?.name){
     metadata.companyName = company.name.toString().slice(0, 120);
   }
+  const stripeMeta = stripeClientMeta.get(stripe) || { tenantId, cacheHit: !!stripeClient };
+  await recordCheckoutStage({
+    tenantId,
+    invoiceId: invoice.id,
+    stage: "session_requested",
+    success: true,
+    amountCents,
+    metadata: {
+      cacheHit: !!stripeMeta.cacheHit,
+      reusedClient: !!stripeClient,
+    },
+  });
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -657,9 +716,31 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
         },
       ],
     });
+    await recordCheckoutStage({
+      tenantId,
+      invoiceId: invoice.id,
+      stage: "session_created",
+      success: true,
+      sessionId: session.id,
+      amountCents,
+      metadata: {
+        cacheHit: !!stripeMeta.cacheHit,
+      },
+    });
     return { url: session.url, sessionId: session.id };
   } catch (err) {
     logError("STRIPE_CHECKOUT_CREATE_FAILED", "Failed to create Stripe checkout session", err, { invoiceId: invoice.id });
+    await recordCheckoutStage({
+      tenantId,
+      invoiceId: invoice.id,
+      stage: "session_failed",
+      success: false,
+      amountCents,
+      metadata: {
+        cacheHit: !!stripeMeta.cacheHit,
+        errorCode: err?.code || null,
+      },
+    });
     return null;
   }
 }
@@ -686,6 +767,11 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, _res, next) => {
+  const tenantId = resolveRequestTenant(req, DEFAULT_TENANT_ID);
+  withTenantContext(tenantId, next);
+});
+
 const apiRequestLimiter = enforceTenantQuota("requests:minute", {
   limit: Number.isFinite(Number(process.env.TENANT_REQUESTS_PER_MINUTE)) ? Number(process.env.TENANT_REQUESTS_PER_MINUTE) : undefined,
   windowMs: Number.isFinite(Number(process.env.TENANT_REQUEST_WINDOW_MS)) ? Number(process.env.TENANT_REQUEST_WINDOW_MS) : undefined,
@@ -697,6 +783,10 @@ app.use("/api", async (req, res, next) => {
       const user = await getAuthUser(req);
       req.user = user || null;
       req.__authResolved = true;
+      if (req.user?.tenantId) {
+        const tenantId = sanitizeTenantId(req.user.tenantId, DEFAULT_TENANT_ID);
+        return withTenantContext(tenantId, () => apiRequestLimiter(req, res, next));
+      }
     }
     return apiRequestLimiter(req, res, next);
   } catch (err) {
@@ -762,6 +852,7 @@ function marketingKeyAuth(req, _res, next) {
       tenantId: sanitizeTenantId(tenantHeader || DEFAULT_TENANT_ID),
     };
     req.__authResolved = true;
+    return withTenantContext(req.user.tenantId, next);
   }
   next();
 }
@@ -774,6 +865,9 @@ async function authenticate(req, res, next){
   const u = await getAuthUser(req);
   req.user = u || null;
   req.__authResolved = true;
+  if (req.user?.tenantId) {
+    return withTenantContext(sanitizeTenantId(req.user.tenantId, DEFAULT_TENANT_ID), next);
+  }
   next();
 }
 
@@ -785,6 +879,9 @@ async function optionalAuth(req,res,next){
   if(u) req.user = u;
   else if (req.user === undefined) req.user = null;
   req.__authResolved = true;
+  if (req.user?.tenantId) {
+    return withTenantContext(sanitizeTenantId(req.user.tenantId, DEFAULT_TENANT_ID), next);
+  }
   next();
 }
 
@@ -975,6 +1072,52 @@ app.get("/buy", async (req, res) => {
 
 app.get("/api/settings", async (_req, res) => {
   res.json({ ok: true, settings: await loadSettings() });
+});
+
+app.get("/api/experiments/portal-data-region", optionalAuth, async (req, res) => {
+  try {
+    const tenantId = resolveRequestTenant(req, DEFAULT_TENANT_ID);
+    const visitorId = (req.query?.visitorId || req.query?.consumerId || req.user?.id || "").toString().slice(0, 128);
+    const controlWeight = Math.max(1, Number.parseInt(process.env.PORTAL_DATA_REGION_CONTROL_WEIGHT || "1", 10) || 1);
+    const dedicatedWeight = Math.max(1, Number.parseInt(process.env.PORTAL_DATA_REGION_WEIGHT || "1", 10) || 1);
+    const assignment = await assignExperimentVariant({
+      tenantId,
+      testKey: DATA_REGION_EXPERIMENT_KEY,
+      visitorId,
+      context: "portal",
+      variants: [
+        { name: "control", weight: controlWeight },
+        { name: "dedicated", weight: dedicatedWeight },
+      ],
+      metadata: {
+        userAgent: req.headers["user-agent"] ? String(req.headers["user-agent"]).slice(0, 255) : null,
+      },
+    });
+    res.json({ ok: true, variant: assignment.variant });
+  } catch (err) {
+    logWarn("PORTAL_EXPERIMENT_ASSIGN_FAILED", err?.message || String(err));
+    res.json({ ok: true, variant: "control" });
+  }
+});
+
+app.post("/api/experiments/portal-data-region/convert", optionalAuth, async (req, res) => {
+  try {
+    const tenantId = resolveRequestTenant(req, DEFAULT_TENANT_ID);
+    const visitorId = (req.body?.visitorId || req.body?.consumerId || req.user?.id || "").toString().slice(0, 128);
+    await recordExperimentConversion({
+      tenantId,
+      testKey: DATA_REGION_EXPERIMENT_KEY,
+      visitorId,
+      context: "portal",
+      metadata: {
+        action: req.body?.action || "cta_click",
+      },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    logWarn("PORTAL_EXPERIMENT_CONVERT_FAILED", err?.message || String(err));
+    res.status(200).json({ ok: false });
+  }
 });
 
 app.post("/api/settings", async (req, res) => {
@@ -1208,8 +1351,9 @@ async function buildSeedReport(existing) {
   };
 }
 
-async function loadDB(){
-  let db = await readKey('consumers', null);
+async function loadDB(context = DEFAULT_TENANT_ID){
+  const scope = tenantScope(context);
+  let db = await readKey('consumers', null, scope);
   let changed = false;
   if(!db){
     db = JSON.parse(JSON.stringify(DEFAULT_DB));
@@ -1246,11 +1390,13 @@ async function loadDB(){
     changed = true;
   }
   if(changed){
-    await writeKey('consumers', db);
+    await writeKey('consumers', db, scope);
   }
   return db;
 }
-async function saveDB(db){ await writeKey('consumers', db); }
+async function saveDB(db, context = DEFAULT_TENANT_ID){
+  await writeKey('consumers', db, tenantScope(context));
+}
 const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [], mainTemplates: defaultTemplates().map(t=>t.id) };
 function normalizeLettersDB(db){
   if(!db || typeof db !== 'object'){
@@ -1713,7 +1859,7 @@ async function createInvoice({
     console.error("Failed to generate invoice PDF", err);
   }
 
-  const stripeClient = await getStripeClient();
+  const stripeClient = await getStripeClient(req);
   let payLinkValue = payLink || null;
   let paymentProviderValue = paymentProvider || null;
   let stripeSessionValue = stripeSessionId || null;
@@ -2862,7 +3008,7 @@ app.post("/api/billing/plans/:id/send", async (req,res)=>{
 });
 
 app.post("/api/invoices/:id/checkout", async (req, res) => {
-  const stripeClient = await getStripeClient();
+  const stripeClient = await getStripeClient(req);
   if(!stripeClient){
     return res.status(400).json({ ok:false, error: "Stripe is not configured" });
   }
@@ -2894,7 +3040,7 @@ app.post("/api/invoices/:id/checkout", async (req, res) => {
 });
 
 app.get("/pay/:id", async (req, res) => {
-  const stripeClient = await getStripeClient();
+  const stripeClient = await getStripeClient(req);
   if(!stripeClient){
     return res.status(503).send("Stripe checkout is not configured. Please contact support.");
   }
@@ -2921,12 +3067,14 @@ app.put("/api/invoices/:id", async (req,res)=>{
   const db = await loadInvoicesDB();
   const inv = db.invoices.find(i=>i.id===req.params.id);
   if(!inv) return res.status(404).json({ ok:false, error:"Not found" });
+  const tenantInfo = tenantScope(req || DEFAULT_TENANT_ID);
+  const wasPaid = !!inv.paid;
   if(req.body.desc !== undefined) inv.desc = req.body.desc;
   if(req.body.amount !== undefined) inv.amount = Number(req.body.amount) || 0;
   if(req.body.due !== undefined) inv.due = req.body.due;
   if(req.body.paid !== undefined) inv.paid = !!req.body.paid;
   if(req.body.payLink !== undefined || req.body.payUrl !== undefined){
-    const stripeClient = await getStripeClient();
+    const stripeClient = await getStripeClient(req);
     const prefersStripe = (req.body.paymentProvider || inv.paymentProvider) === "stripe";
     const base = (process.env.PORTAL_PAYMENT_BASE || resolvePortalBase(req) || "https://pay.example.com").replace(/\/$/, "");
     const updatedLink = req.body.payLink || req.body.payUrl || (prefersStripe && stripeClient ? buildInvoicePayUrl(inv, req) : `${base}/${inv.id}`);
@@ -2940,6 +3088,20 @@ app.put("/api/invoices/:id", async (req,res)=>{
   }
   inv.updatedAt = new Date().toISOString();
   await saveInvoicesDB(db);
+  if(!wasPaid && inv.paid){
+    const amountCents = Math.round((Number(inv.amount) || 0) * 100);
+    await recordCheckoutStage({
+      tenantId: tenantInfo.tenantId,
+      invoiceId: inv.id,
+      stage: "invoice_marked_paid",
+      success: true,
+      sessionId: inv.stripeSessionId || null,
+      amountCents,
+      metadata: {
+        paymentProvider: inv.paymentProvider || null,
+      },
+    });
+  }
   res.json({ ok:true, invoice: inv });
 });
 
@@ -4808,7 +4970,9 @@ const shouldStartServer =
 if (shouldStartServer) {
   app.listen(PORT, () => {
     console.log(`CRM ready    http://localhost:${PORT}`);
-    console.log(`DB file      ${DB_FILE}`);
+    const dbClient = (process.env.DATABASE_CLIENT || (process.env.NODE_ENV === "production" ? "pg" : "sqlite3")).toString();
+    console.log(`DB client    ${dbClient}`);
+    console.log(`Tenant mode  ${(process.env.DB_TENANT_STRATEGY || "partitioned").toString()}`);
     console.log(`Letters dir  ${LETTERS_DIR}`);
   });
 }

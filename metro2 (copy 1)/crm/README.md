@@ -77,6 +77,47 @@ Without them, letter generation will fail with errors like `libnspr4.so: cannot 
    - `data/tradelineCards.json` – normalized accounts with issues for the client portal
    - `letter.html` – demo letter for the first tradeline and violation
 
+## Metrics & Experiments
+
+- `npm run migrate` now also provisions analytics tables: `tenant_migration_events`, `checkout_conversion_events`, and `ab_test_assignments`. Query them to monitor onboarding health and invoice conversion, for example:
+
+  ```sql
+  select tenant_id,
+         sum(case when success then 1 else 0 end) as successful_runs,
+         sum(case when success then 0 else 1 end) as failed_runs,
+         avg(duration_ms) as avg_duration_ms
+  from tenant_migration_events
+  group by tenant_id
+  order by avg_duration_ms desc;
+  ```
+
+- Set `PORTAL_DATA_REGION_WEIGHT` (and optional `PORTAL_DATA_REGION_CONTROL_WEIGHT`) to bias the bilingual “Dedicated secured data region” banner experiment. Portal clicks are recorded via `ab_test_assignments.converted_at` for revenue-focused reporting.
+- Analyze invoice funnel drop-off with a simple checkout stage report:
+
+  ```sql
+  select stage,
+         count(*) as events,
+         sum(case when success then 1 else 0 end) as successes,
+         sum(case when success then 0 else 1 end) as failures
+    from checkout_conversion_events
+   where tenant_id = 'your-tenant'
+group by stage
+order by stage;
+  ```
+
+- Monitor A/B engagement lift for the portal banner:
+
+  ```sql
+  select variant,
+         count(*) as assignments,
+         sum(case when converted then 1 else 0 end) as conversions,
+         round(avg(case when converted then 1.0 else 0.0 end), 4) as conversion_rate
+    from ab_test_assignments
+   where tenant_id = 'your-tenant'
+group by variant
+order by conversion_rate desc;
+  ```
+
 ## Tradeline storefront flow
 
 - Navigate to `/tradelines` to walk prospects through a conversion-ready funnel:
