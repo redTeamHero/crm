@@ -9,11 +9,53 @@ Minimal CRM for generating Metro-2 dispute letters that feel premium, bilingual,
 
 ## Architecture (text diagram + decisions)
 ```
-[Next.js-style portal (public/)] ──> [Express API (server/)] ──> [SQLite (crm.sqlite)]
-                                   │
-                                   ├─> [Stripe Checkout] for bilingual pay links
-                                   ├─> [Twilio SMS worker] via npm scripts
-                                   └─> [Python Metro-2 audit CLI] for remote pulls
+
+The CRM now targets PostgreSQL or MySQL for production data. Development falls back to a local SQLite file unless you provide `DATABASE_URL` + `DATABASE_CLIENT`.
+
+On first run, the server seeds an admin user with username `ducky` and password `duck`.
+
+Members created through `/api/register` now receive default permissions for consumers, contacts, tasks, and reports so freshly onboarded teammates can work leads without waiting on an admin to toggle access.
+
+## Environment
+- `PORT` (optional, defaults to 3000)
+- `DATABASE_URL` (PostgreSQL/MySQL connection string; required in production)
+- `DATABASE_CLIENT` (`pg`, `mysql2`, or `sqlite3` for local development)
+- `DB_TENANT_STRATEGY` (`partitioned` for shared table with hash partitions, `schema` to isolate tenants in dedicated PostgreSQL schemas)
+- `DB_PARTITIONS` (optional; number of hash partitions for shared tables, defaults to 8)
+- `DB_TENANT_SCHEMA_PREFIX` (optional; prefix for dynamically created PostgreSQL schemas when using schema isolation)
+- `METRO2_VIOLATIONS_PATH` (optional; path to `metro2Violations.json`. If unset, the app searches the repo.)
+- `METRO2_KNOWLEDGE_GRAPH_PATH` (optional; path to `metro2_knowledge_graph.json`. Defaults to the shared data file.)
+- `PORTAL_PAYMENT_BASE` (optional; fallback base URL for invoice pay links rendered in the client portal.)
+- `STRIPE_SECRET_KEY` (optional; enables Stripe Checkout sessions for invoice payments.)
+- `STRIPE_SUCCESS_URL` (optional; override the success redirect. Supports `{CHECKOUT_SESSION_ID}`, `{INVOICE_ID}`, `{CONSUMER_ID}` tokens.)
+- `STRIPE_CANCEL_URL` (optional; override the cancel redirect with the same tokens.)
+- `MARKETING_API_BASE_URL` (optional; workers can reuse this base URL when mirroring `/api/marketing` queues.)
+- `MARKETING_API_KEY` (optional; shared secret for third-party marketing workers.)
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID` (required for the bundled SMS worker; set `TWILIO_FROM_NUMBER` if you prefer direct from numbers.)
+- `CRM_URL`, `CRM_TOKEN` (optional; worker-auth fallback when you do not expose a marketing API key.)
+- `MARKETING_TENANT_ID`, `MARKETING_POLL_INTERVAL_MS`, `MARKETING_TEST_FETCH_LIMIT`, `TWILIO_STATUS_CALLBACK_URL` (optional; tune the SMS worker runtime.)
+- `SCM_API_KEY` (optional; SimpleCertifiedMail key for USPS certified mail automation.)
+- `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (optional; Gmail API OAuth credentials for transactional sends.)
+
+Copy `.env.sample` to `.env` and adjust values as needed.
+
+## Tenant quotas & throttling
+
+- Every `/api` request is scoped to a tenant. The server resolves the tenant from the authenticated user or the `X-Tenant-Id` header (falling back to `default`).
+- Baseline limits (per tenant):
+  - `requests:minute` → 240 requests/minute (`TENANT_REQUESTS_PER_MINUTE`, `TENANT_REQUEST_WINDOW_MS`).
+  - `letters:generate` → 60 jobs/hour (`TENANT_LETTER_JOBS_PER_HOUR`, `TENANT_LETTER_JOBS_WINDOW_MS`).
+  - `letters:pdf` → 200 PDFs/hour (`TENANT_LETTER_PDFS_PER_HOUR`, `TENANT_LETTER_PDFS_WINDOW_MS`).
+  - `letters:zip` → 40 archives/hour (`TENANT_LETTER_ZIPS_PER_HOUR`, `TENANT_LETTER_ZIPS_WINDOW_MS`).
+  - `reports:audit` → 40 audits/hour (`TENANT_AUDITS_PER_HOUR`, `TENANT_AUDITS_WINDOW_MS`).
+  - `breach:lookup` → 50 HIBP lookups/hour (`TENANT_BREACH_LOOKUPS_PER_HOUR`, `TENANT_BREACH_LOOKUPS_WINDOW_MS`).
+- Provide a JSON blob via `TENANT_LIMITS` or `TENANT_LIMIT_OVERRIDES` to override specific tenants/operations, e.g. `{ "acme": { "requests:minute": { "limit": 600 } } }`.
+- Setting a limit to `0` blocks the operation for that tenant; negative values disable the quota for that operation.
+
+## Run
+```bash
+npm run migrate   # applies versioned schema migrations
+npm start
 ```
 - **Node 18 Express** API serves REST routes, portal assets, and marketing queues.
 - **SQLite** keeps tenant data local; migrations handled during boot.
@@ -31,12 +73,22 @@ Minimal CRM for generating Metro-2 dispute letters that feel premium, bilingual,
 8. [Marketing + comms add-ons](#marketing--comms-add-ons)
 9. [Deploy notes](#deploy-notes)
 
-## Prerequisites
-- Node.js **18+** (ships with native fetch & Intl for bilingual copy)
-- npm **9+** (bundled with Node 18)
-- Python **3.10+** (for audit CLI + optional regression runner)
-- SQLite **3.35+** (bundled on macOS/Linux; Windows users can install via [sqlite.org](https://sqlite.org/download.html))
-- `jq` CLI (optional but handy for curl smoke tests)
+### Database & multi-tenant notes
+
+- `npm run migrate` runs Knex migrations that create a tenant-aware key/value store with JSON storage, composite indexes, and hash partitions. PostgreSQL deployments can opt into per-tenant schemas by setting `DB_TENANT_STRATEGY=schema`.
+- Every HTTP request runs inside a tenant context resolved from the authenticated user or `X-Tenant-Id` header. Shared-table mode keeps data isolated by `tenant_id`; schema mode provisions `tenant_{id}` schemas on demand and writes tenant data there.
+- Use `DB_PARTITIONS` to tune hash partitions for high-cardinality datasets, and monitor the `tenant_registry` table to audit onboarded tenants.
+
+## Marketing SMS worker
+
+Wire Twilio to the marketing test queue after setting the env vars above (or saving the Marketing API Key in **Settings → Integrations**):
+
+```bash
+cd "metro2 (copy 1)/crm"
+npm run marketing:twilio-worker
+```
+
+Queue a bilingual smoke test (replace the phone number with your verified destination):
 
 ## Project scaffold
 ```
@@ -155,38 +207,45 @@ python3 metro2_audit_multi.py \
   --share-link-base "https://app.yourdomain.com/audit" \
   --share-link-field informe
 ```
-- `--input` accepts local paths or HTTPS URLs (repeat `--input-header` for auth headers).
-- `--share-link-*` options emit a ready-to-share bilingual summary link for sales follow-up.
 
-## Testing & QA
-- **Node integration suite**
+- `--input` accepts either a local path or an HTTPS URL. Headers supplied via `--input-header NAME=VALUE` help with authenticated bureaus.
+- `--share-link-base` + `--share-link-field` generate a URL-safe query string containing the JSON payload so sales can hand off the findings instantly. The CLI prints and stores the link in the output file.
+- Outputs still land in `report.json`, ready for the Node renderer above.
+
+Convert a raw credit report HTML directly into dispute-ready PDF letters:
+```bash
+cd "metro2 (copy 1)/crm"
+node htmlToDisputePdf.js path/to/report.html output/dir
+```
+
+
+## Test
+
+- **Node test runner:**
   ```bash
   npm test
   ```
-  - Validates auth, Metro-2 violation lookups, dispute generation, and tenant throttles.
-- **CLI audit regression**
+  This executes the API integration suite in `tests/*.test.js`, covering auth, Metro-2 violation lookups, and dispute letter generation paths.
+- **CLI audit regression:**
   ```bash
   npm run audit -- tests/fixtures/sample-report.html
   ```
-  - Protects the HTML → JSON pipeline after knowledge graph edits.
-- **Python regression pack**
-  ```bash
-  ./python-tests/run.sh
-  ```
-  - Exercises Metro-2 edge cases and bilingual copy fallbacks.
-- **Manual smoke loop**
-  - Login, hit `/api/dashboard/summary`, trigger a Stripe checkout, queue an SMS, and generate a PDF in under 5 minutes to ensure the ops flow still converts.
+  Useful for making sure the HTML → JSON pipeline still tags Metro-2 issues after editing the parsers or knowledge graph.
 
-## Debugging tips
-- **Port already in use?** `lsof -i :3000` → kill rogue Node processes before restarting.
-- **SQLite locked errors?** Stop other Node instances, then remove stale journal files (`rm -f crm.sqlite-journal`).
-- **Metro-2 JSON edits not reflecting?** Restart the relevant worker or touch the JSON file—Express watchers hot-reload on boot but not mid-request.
-- **Stripe 401 or missing Checkout URL?** Confirm `STRIPE_SECRET_KEY` exists and the invoice has a balance; re-run the curl checkout command to regenerate sessions.
-- **Twilio SMS stuck in queued?** Verify the worker log output for status callbacks and ensure `TWILIO_STATUS_CALLBACK_URL` points to a reachable HTTPS endpoint.
-- **Calendar sync failures?** Refresh OAuth tokens and confirm the calendar is shared with the service account; the server logs will show `googleCalendar` warnings with the underlying error code.
-- **Python CLI SSL errors?** Add `pip install -r python-tests/requirements.txt` to ensure `requests` and TLS extras are present.
+### Node tests
+```bash
+cd "metro2 (copy 1)/crm"
+npm test
+```
 
-## Marketing + comms add-ons
+### Python tests
+```bash
+./python-tests/run.sh
+```
+
+
+## Marketing Integration
+
 - Frontend queue + template UI: `public/marketing.html` + `public/marketing.js`.
 - Backend endpoints live under `/api/marketing`; see [`docs/marketing-integration.md`](metro2%20(copy%201)/crm/docs/marketing-integration.md).
 - Suggested smoke before going live:
