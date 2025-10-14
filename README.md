@@ -12,7 +12,7 @@ cd "metro2 (copy 1)/crm"
 npm install
 ```
 
-Data is stored in a local SQLite file `crm.sqlite` in the CRM directory, replacing the old JSON-based storage.
+The CRM now targets PostgreSQL or MySQL for production data. Development falls back to a local SQLite file unless you provide `DATABASE_URL` + `DATABASE_CLIENT`.
 
 On first run, the server seeds an admin user with username `ducky` and password `duck`.
 
@@ -20,6 +20,11 @@ Members created through `/api/register` now receive default permissions for cons
 
 ## Environment
 - `PORT` (optional, defaults to 3000)
+- `DATABASE_URL` (PostgreSQL/MySQL connection string; required in production)
+- `DATABASE_CLIENT` (`pg`, `mysql2`, or `sqlite3` for local development)
+- `DB_TENANT_STRATEGY` (`partitioned` for shared table with hash partitions, `schema` to isolate tenants in dedicated PostgreSQL schemas)
+- `DB_PARTITIONS` (optional; number of hash partitions for shared tables, defaults to 8)
+- `DB_TENANT_SCHEMA_PREFIX` (optional; prefix for dynamically created PostgreSQL schemas when using schema isolation)
 - `METRO2_VIOLATIONS_PATH` (optional; path to `metro2Violations.json`. If unset, the app searches the repo.)
 - `METRO2_KNOWLEDGE_GRAPH_PATH` (optional; path to `metro2_knowledge_graph.json`. Defaults to the shared data file.)
 - `PORTAL_PAYMENT_BASE` (optional; fallback base URL for invoice pay links rendered in the client portal.)
@@ -51,26 +56,15 @@ Copy `.env.sample` to `.env` and adjust values as needed.
 
 ## Run
 ```bash
+npm run migrate   # applies versioned schema migrations
 npm start
 ```
 
-Keep the terminal open while iterating—the API, portal, and workers all hot-reload their Metro-2 JSON lookups on every boot so you can edit the shared data files without restarting.
+### Database & multi-tenant notes
 
-## Smoke test
-
-1. Boot the API as above.
-2. Log in with the seeded admin to capture a bearer token:
-   ```bash
-   TOKEN=$(curl -s -X POST http://localhost:3000/api/login \
-     -H 'Content-Type: application/json' \
-     -d '{"username":"ducky","password":"duck"}' | jq -r .token)
-   ```
-3. Confirm the tenant wiring, permission defaults, and Stripe webhooks by hitting the dashboard snapshot:
-   ```bash
-   curl -s http://localhost:3000/api/dashboard/summary \
-     -H "Authorization: Bearer $TOKEN" | jq
-   ```
-4. Expected result: a JSON payload with lead counts, invoice totals, bilingual CTA copy, and the next revenue move, proving the CRM can hydrate KPIs before you invite a teammate.
+- `npm run migrate` runs Knex migrations that create a tenant-aware key/value store with JSON storage, composite indexes, and hash partitions. PostgreSQL deployments can opt into per-tenant schemas by setting `DB_TENANT_STRATEGY=schema`.
+- Every HTTP request runs inside a tenant context resolved from the authenticated user or `X-Tenant-Id` header. Shared-table mode keeps data isolated by `tenant_id`; schema mode provisions `tenant_{id}` schemas on demand and writes tenant data there.
+- Use `DB_PARTITIONS` to tune hash partitions for high-cardinality datasets, and monitor the `tenant_registry` table to audit onboarded tenants.
 
 ## Marketing SMS worker
 
