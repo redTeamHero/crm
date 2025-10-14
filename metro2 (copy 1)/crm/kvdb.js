@@ -1,5 +1,4 @@
 import { getDatabase, runMigrations, getTenantStrategy, getSchemaPrefix } from "./db/connection.js";
-import { recordTenantMigrationMetric } from "./analytics/metrics.js";
 import { DEFAULT_TENANT_ID, sanitizeTenantId } from "./tenantLimits.js";
 import { getCurrentTenantId } from "./tenantContext.js";
 
@@ -84,104 +83,51 @@ async function ensureSharedStructures() {
   sharedTableInitialized = true;
 }
 
-async function ensureTenantRegistryEntry(db, tenantId, contextLabel = "shared_bootstrap") {
-  await ensureInitialized();
-  const start = Date.now();
-  try {
-    const existing = await db("tenant_registry").where({ tenant_id: tenantId }).first();
-    if (existing) {
-      return existing;
-    }
-    await db("tenant_registry").insert({ tenant_id: tenantId, created_at: db.fn.now(), updated_at: db.fn.now() });
-    await recordTenantMigrationMetric({
-      tenantId,
-      durationMs: Date.now() - start,
-      success: true,
-      context: contextLabel,
-      metadata: { strategy: contextLabel },
-    });
-    return null;
-  } catch (err) {
-    await recordTenantMigrationMetric({
-      tenantId,
-      durationMs: Date.now() - start,
-      success: false,
-      context: contextLabel,
-      errorMessage: err?.message || String(err),
-      metadata: { strategy: contextLabel },
-    });
-    throw err;
-  }
-}
-
 async function ensureTenantSchema(db, tenantId) {
   const schemaName = schemaNameForTenant(tenantId);
   if (schemaCache.has(schemaName)) return schemaName;
 
   await ensureInitialized();
-  const start = Date.now();
-  let bootstrapped = false;
-  try {
-    await db.transaction(async (trx) => {
-      const existing = await trx("tenant_registry").where({ tenant_id: tenantId }).first();
-      if (existing && existing.schema_name) {
-        schemaCache.add(existing.schema_name);
-        return;
-      }
-
-      bootstrapped = true;
-      await trx.raw(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
-
-      const tableExists = await trx
-        .select(1)
-        .from("information_schema.tables")
-        .where({ table_schema: schemaName, table_name: "kv_store" })
-        .first();
-
-      if (!tableExists) {
-        await trx.raw(`
-          CREATE TABLE IF NOT EXISTS "${schemaName}"."kv_store" (
-            key text PRIMARY KEY,
-            value jsonb NOT NULL,
-            updated_at timestamptz NOT NULL DEFAULT now()
-          );
-        `);
-        await trx.raw(`CREATE INDEX IF NOT EXISTS kv_store_updated_at_idx ON "${schemaName}"."kv_store" (updated_at);`);
-      }
-
-      if (!existing) {
-        await trx("tenant_registry")
-          .insert({ tenant_id: tenantId, schema_name: schemaName })
-          .onConflict("tenant_id")
-          .merge({ schema_name: schemaName, updated_at: trx.fn.now() });
-      } else if (!existing.schema_name) {
-        await trx("tenant_registry")
-          .where({ tenant_id: tenantId })
-          .update({ schema_name: schemaName, updated_at: trx.fn.now() });
-      }
-    });
-    schemaCache.add(schemaName);
-    if (bootstrapped) {
-      await recordTenantMigrationMetric({
-        tenantId,
-        durationMs: Date.now() - start,
-        success: true,
-        context: "schema_bootstrap",
-        metadata: { schema: schemaName },
-      });
+  await db.transaction(async (trx) => {
+    const existing = await trx("tenant_registry").where({ tenant_id: tenantId }).first();
+    if (existing && existing.schema_name) {
+      schemaCache.add(existing.schema_name);
+      return;
     }
-    return schemaName;
-  } catch (err) {
-    await recordTenantMigrationMetric({
-      tenantId,
-      durationMs: Date.now() - start,
-      success: false,
-      context: "schema_bootstrap",
-      errorMessage: err?.message || String(err),
-      metadata: { schema: schemaName },
-    });
-    throw err;
-  }
+
+    await trx.raw(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+
+    const tableExists = await trx
+      .select(1)
+      .from("information_schema.tables")
+      .where({ table_schema: schemaName, table_name: "kv_store" })
+      .first();
+
+    if (!tableExists) {
+      await trx.raw(`
+        CREATE TABLE IF NOT EXISTS "${schemaName}"."kv_store" (
+          key text PRIMARY KEY,
+          value jsonb NOT NULL,
+          updated_at timestamptz NOT NULL DEFAULT now()
+        );
+      `);
+      await trx.raw(`CREATE INDEX IF NOT EXISTS kv_store_updated_at_idx ON "${schemaName}"."kv_store" (updated_at);`);
+    }
+
+    if (!existing) {
+      await trx("tenant_registry")
+        .insert({ tenant_id: tenantId, schema_name: schemaName })
+        .onConflict("tenant_id")
+        .merge({ schema_name: schemaName, updated_at: trx.fn.now() });
+    } else if (!existing.schema_name) {
+      await trx("tenant_registry")
+        .where({ tenant_id: tenantId })
+        .update({ schema_name: schemaName, updated_at: trx.fn.now() });
+    }
+  });
+
+  schemaCache.add(schemaName);
+  return schemaName;
 }
 
 async function getTenantContext(options) {
@@ -192,7 +138,6 @@ async function getTenantContext(options) {
     const schemaName = await ensureTenantSchema(db, tenantId);
     return { db, tenantId, strategy: "schema", schemaName };
   }
-  await ensureTenantRegistryEntry(db, tenantId);
   await ensureSharedStructures();
   return { db, tenantId, strategy: "shared" };
 }

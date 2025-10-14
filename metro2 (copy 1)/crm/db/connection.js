@@ -133,11 +133,3 @@ export function getTenantStrategy() {
 export function getSchemaPrefix() {
   return process.env.DB_TENANT_SCHEMA_PREFIX || "tenant_";
 }
-
-export async function closeDatabase() {
-  if (knexInstance) {
-    await knexInstance.destroy();
-    knexInstance = null;
-  }
-  migrationPromise = null;
-}

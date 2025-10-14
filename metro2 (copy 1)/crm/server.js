@@ -48,7 +48,6 @@ import {
   canonicalBureauName,
 } from "./workflowEngine.js";
 import { withTenantContext } from "./tenantContext.js";
-import { recordCheckoutStage, assignExperimentVariant, recordExperimentConversion } from "./analytics/metrics.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
@@ -570,7 +569,6 @@ try {
 }
 
 let stripeClientCache = { key: null, tenantId: null, client: null };
-const stripeClientMeta = new WeakMap();
 
 async function getStripeClient(context = DEFAULT_TENANT_ID){
   const tenantId = tenantScope(context).tenantId;
@@ -586,13 +584,11 @@ async function getStripeClient(context = DEFAULT_TENANT_ID){
   }
   if(!apiKey) return null;
   if(stripeClientCache.client && stripeClientCache.key === apiKey && stripeClientCache.tenantId === tenantId){
-    stripeClientMeta.set(stripeClientCache.client, { tenantId, cacheHit: true, fetchedAt: Date.now() });
     return stripeClientCache.client;
   }
   try {
     const client = new StripeLib(apiKey, { apiVersion: "2023-10-16" });
     stripeClientCache = { key: apiKey, tenantId, client };
-    stripeClientMeta.set(client, { tenantId, cacheHit: false, fetchedAt: Date.now() });
     return client;
   } catch (err) {
     logError("STRIPE_CLIENT_INIT_FAILED", "Failed to initialise Stripe client", err);
@@ -647,9 +643,8 @@ function buildInvoicePayUrl(invoice, req){
 
 async function createStripeCheckoutSession({ invoice, consumer = {}, company = {}, req, stripeClient = null } = {}){
   if(!invoice) return null;
-  const scope = tenantScope(req || DEFAULT_TENANT_ID);
-  const tenantId = scope.tenantId;
   const stripe = stripeClient || await getStripeClient(req);
+  if(!stripe) return null;
   const amount = Number(invoice.amount) || 0;
   const amountCents = Math.round(amount * 100);
   if(!stripe){
