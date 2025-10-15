@@ -848,6 +848,13 @@ function initPalette(){
   const navRow = document.querySelector('#host-nav .nav-brand-row');
   if(!navRow) return;
 
+  let navActions = navRow.querySelector('.nav-actions');
+  if (!navActions) {
+    navActions = document.createElement('div');
+    navActions.className = 'nav-actions';
+    navRow.appendChild(navActions);
+  }
+
   const wrap = document.createElement('div');
   wrap.id = 'themePalette';
   wrap.className = 'palette collapsed';
@@ -883,10 +890,13 @@ function initPalette(){
     </div>`;
 
   const navToggle = document.getElementById('navToggle');
-  if(navToggle && navToggle.parentElement){
-    navToggle.parentElement.insertBefore(wrap, navToggle);
+  if (navToggle) {
+    if (navToggle.parentElement !== navActions) {
+      navActions.appendChild(navToggle);
+    }
+    navActions.insertBefore(wrap, navToggle);
   } else {
-    navRow.appendChild(wrap);
+    navActions.appendChild(wrap);
   }
 
   const toggle = wrap.querySelector('.toggle');
