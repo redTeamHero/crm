@@ -168,6 +168,41 @@ test('scrapeTradelines drops placeholder statement text in tables', async () => 
   assert.equal(row.statement_date, '');
 });
 
+test('scrapeTradelines retains duplicate-looking rows without statement dates', async () => {
+  const html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Bank</th>
+          <th>Limit</th>
+          <th>Age</th>
+          <th>Client Price</th>
+          <th>Reporting</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Zeta Financial</td>
+          <td>$10,000</td>
+          <td>5 years</td>
+          <td>$899</td>
+          <td>Experian</td>
+        </tr>
+        <tr>
+          <td>Zeta Financial</td>
+          <td>$10,000</td>
+          <td>5 years</td>
+          <td>$899</td>
+          <td>Experian</td>
+        </tr>
+      </tbody>
+    </table>
+  `;
+
+  const results = await scrapeTradelines(async () => createResponse(html));
+  assert.equal(results.length, 2);
+});
+
 test('scrapeTradelines throws when fetch fails', async () => {
   const fetchStub = async () => createResponse('nope', false, 500);
   await assert.rejects(() => scrapeTradelines(fetchStub), /Failed to fetch tradelines/);

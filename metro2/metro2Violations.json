@@ -101,9 +101,9 @@
     "fieldsImpacted": ["Payment Rating", "Account Status"],
     "fcraSection": "§ 623(a)(2) / § 607(b)"
   },
-  "LAST_PAYMENT_BEFORE_DOFD": {
-    "violation": "Last payment predates the Date of First Delinquency",
-    "severity": 4,
+  "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE": {
+    "violation": "Payment posted after the Date of First Delinquency but account remains delinquent",
+    "severity": 3,
     "fieldsImpacted": ["Date of Last Payment", "Date of First Delinquency"],
     "fcraSection": "§ 623(a)(5)"
   },

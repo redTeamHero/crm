@@ -49,16 +49,18 @@ function buildRecord(base) {
 function dedupe(records) {
   const seen = new Set();
   const result = [];
-  for (const rec of records) {
+  for (const [index, rec] of records.entries()) {
     if (!rec.bank || rec.price == null) continue;
-    const key = [
-      rec.bank.toLowerCase(),
-      rec.limit ?? '',
-      rec.age ?? '',
-      rec.statement_date ?? '',
-      rec.reporting ?? '',
-      rec.price ?? '',
-    ].join('|');
+    const bank = rec.bank.toLowerCase();
+    const limit = rec.limit ?? '';
+    const age = rec.age ?? '';
+    const reporting = rec.reporting ?? '';
+    const price = rec.price ?? '';
+    const statementToken = typeof rec.statement_date === 'string' && rec.statement_date.trim()
+      ? rec.statement_date.trim().toLowerCase()
+      : null;
+    const uniquenessToken = statementToken ?? `idx:${index}`;
+    const key = [bank, limit, age, reporting, price, uniquenessToken].join('|');
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(buildRecord(rec));

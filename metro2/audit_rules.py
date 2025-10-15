@@ -254,7 +254,6 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "LAST_PAYMENT_AFTER_CHARGEOFF_DATE": {"severity": "major", "fcra_section": "FCRA §623(a)(5) / §607(b)"},
     "MISSING_LAST_PAYMENT_DATE_FOR_PAID": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
     "INCONSISTENT_PAYMENT_RATING_ON_CLOSE": {"severity": "major", "fcra_section": "FCRA §623(a)(2) / §607(b)"},
-    "LAST_PAYMENT_BEFORE_DOFD": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
     "NO_ACTIVITY_TOO_LONG_ACTIVE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
     "PAYMENT_AFTER_PAYOFF_DATE": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "MISMATCH_BALANCE_ON_CLOSED": {"severity": "major", "fcra_section": "FCRA §623(a)(1) / §607(b)"},
@@ -630,20 +629,18 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
                 "Charge-off date occurs after last reported timestamp",
             )
 
-        # L. If payment predates DOFD, it implies the delinquency should have cured.
-        if last_payment and dofd and last_payment < dofd:
+        # L. If payment posts after DOFD, the account should have cured the delinquency.
+        if (
+            last_payment
+            and dofd
+            and last_payment > dofd
+            and not _has_violation(record, "LAST_PAYMENT_AFTER_DOFD")
+        ):
             _attach_violation(
                 record,
-                "LAST_PAYMENT_BEFORE_DOFD",
-                "Last payment predates DOFD but delinquency persists",
+                "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE",
+                "Last payment posted after DOFD but delinquency persists",
             )
-
-            if (dofd - last_payment).days > 30:
-                _attach_violation(
-                    record,
-                    "DOFD_AFTER_LAST_PAYMENT",
-                    "DOFD updated after last payment date",
-                )
 
         # M. No payment activity for 5+ years but status still active.
         if last_payment and any(keyword in status for keyword in ("current", "late")):
