@@ -69,6 +69,10 @@ body::after {
   white-space: nowrap;
   border: 0;
 }
+
+.hidden {
+  display: none !important;
+}
 .glass {
   background: var(--glass-bg);
   border: 1px solid var(--glass-brd);
@@ -289,6 +293,7 @@ body::after {
   justify-content: flex-end;
   gap: 12px;
   flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .nav-inline {
@@ -962,34 +967,35 @@ body::after {
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 10px;
 }
 .palette .toggle {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(255, 255, 255, 0.42);
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: rgba(255, 255, 255, 0.32);
   color: #1e1b4b;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.15);
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: none;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 .palette .toggle:hover,
 .palette .toggle:focus-visible {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.55);
   border-color: rgba(99, 102, 241, 0.45);
-  box-shadow: 0 12px 26px rgba(79, 70, 229, 0.2);
+  transform: translateY(-1px);
   outline: none;
 }
 .palette .toggle-icon {
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 .palette .toggle-active {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -999,7 +1005,7 @@ body::after {
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
-  width: min(280px, calc(100vw - 32px));
+  width: min(260px, calc(100vw - 32px));
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1018,6 +1024,9 @@ body::after {
   opacity: 0;
   transform: translateY(-8px);
   pointer-events: none;
+}
+.palette.collapsed .toggle-active {
+  opacity: 0.7;
 }
 .palette .palette-header {
   display: flex;
@@ -1763,6 +1772,10 @@ header .group > div.absolute {
   width: 100%;
 }
 
+#primaryNav.hidden {
+  display: none !important;
+}
+
 #primaryNav:not(.hidden) {
   display: flex;
 }
@@ -1820,6 +1833,10 @@ header .group > div.absolute {
     min-width: 200px;
     padding: 16px;
     z-index: 40;
+  }
+
+  #navToggle {
+    display: none !important;
   }
 }
 

@@ -71,12 +71,69 @@ function statuteRefs(title = '') {
   };
 }
 
-function buildAccountBuckets(accountHistory = []) {
+function normalizePerBureauFields(fields = {}) {
+  const result = { ...fields };
+  FIELDS.forEach(([field]) => {
+    const rawKey = `${field}_raw`;
+    if (Object.prototype.hasOwnProperty.call(fields, rawKey) && fields[rawKey] !== null && fields[rawKey] !== undefined && fields[rawKey] !== '') {
+      result[field] = fields[rawKey];
+    }
+  });
+  if (Array.isArray(fields.comments)) {
+    result.comments = fields.comments;
+  }
+  return result;
+}
+
+function convertTradelinesToAccountHistory(tradelines = []) {
+  const entries = [];
+  tradelines.forEach((tl, tradelineIndex) => {
+    if (!tl || typeof tl !== 'object') return;
+    const creditor = tl.meta?.creditor || tl.creditor || 'Unknown Creditor';
+    const bureaus = tl.per_bureau || {};
+    const accountNumbers = tl.meta?.account_numbers || {};
+    const violationList = Array.isArray(tl.violations)
+      ? tl.violations.map((v, idx) => ({ ...v, originalIndex: idx }))
+      : [];
+    const bureauKeys = Object.keys(bureaus);
+
+    bureauKeys.forEach((bureau) => {
+      const fields = normalizePerBureauFields(bureaus[bureau] || {});
+      const targetedViolations = violationList
+        .filter((v) => {
+          const target = v?.evidence?.bureau || v?.bureau;
+          return !target || target === bureau;
+        })
+        .map((v) => ({ ...v, bureau }));
+
+      const violations = targetedViolations.length
+        ? targetedViolations
+        : violationList.map((v) => ({ ...v, bureau }));
+
+      entries.push({
+        creditor_name: creditor,
+        account_number: accountNumbers[bureau] || fields.account_number || '',
+        bureau,
+        ...fields,
+        violations,
+        __meta: { tradelineIndex },
+      });
+    });
+  });
+
+  return entries;
+}
+
+function buildAccountBuckets(accountHistory = [], fallbackTradelines = []) {
+  const entries = Array.isArray(accountHistory) && accountHistory.length
+    ? accountHistory
+    : convertTradelinesToAccountHistory(fallbackTradelines);
+
   const buckets = new Map();
   const order = [];
   let fallback = 0;
 
-  for (const entry of accountHistory) {
+  for (const entry of entries) {
     if (!entry || typeof entry !== 'object') continue;
     const creditor = entry.creditor_name || 'Unknown Creditor';
     const acctNum = entry.account_number || entry.accountnumber || '';
@@ -89,27 +146,34 @@ function buildAccountBuckets(accountHistory = []) {
         creditor,
         per_bureau: {},
         issues: [],
+        issueKeys: new Set(),
       });
       order.push(key);
     }
 
     const bucket = buckets.get(key);
     const bureau = entry.bureau || 'Unknown';
-    const { violations, bureau: _ignored, creditor_name, ...fields } = entry;
+    const { violations, bureau: _ignored, creditor_name, __meta, ...fields } = entry;
     bucket.per_bureau[bureau] = fields;
 
     if (Array.isArray(violations)) {
       for (const violation of violations) {
         const legal = statuteRefs(violation.title);
+        const issueKey = violation.originalIndex != null
+          ? `idx:${violation.originalIndex}`
+          : `${violation.id || violation.code || ''}::${violation.title || ''}::${violation.bureau || ''}`;
+        if (bucket.issueKeys.has(issueKey)) continue;
+        bucket.issueKeys.add(issueKey);
         bucket.issues.push({
           id: violation.id,
           code: violation.id,
           title: violation.title,
           detail: violation.detail,
           severity: violation.severity,
-          bureau,
+          bureau: violation.bureau || bureau,
           fcra: legal.fcra,
           fdcpa: legal.fdcpa,
+          originalIndex: violation.originalIndex,
         });
       }
     }
@@ -117,6 +181,9 @@ function buildAccountBuckets(accountHistory = []) {
 
   return order.map((key) => {
     const bucket = buckets.get(key);
+    if (bucket?.issueKeys) {
+      delete bucket.issueKeys;
+    }
     return {
       creditor: bucket.creditor,
       per_bureau: bucket.per_bureau,
@@ -144,13 +211,16 @@ function selectBureaus(acc, selection) {
   const wantedViolations = new Set(selection.violationIdxs || []);
   const issues = !wantedViolations.size
     ? acc.issues
-    : acc.issues.filter((_, idx) => wantedViolations.has(idx));
+    : acc.issues.filter((issue, idx) => {
+        const key = issue?.originalIndex != null ? issue.originalIndex : idx;
+        return wantedViolations.has(key);
+      });
 
   return { bureaus: filteredBureaus, issues };
 }
 
 export function normalizeReport(raw = {}, selections = null) {
-  const accounts = buildAccountBuckets(raw.account_history || []);
+  const accounts = buildAccountBuckets(raw.account_history || [], raw.tradelines || []);
   const personalInformation = raw.personal_information || [];
   const personalMismatches = raw.personal_mismatches || [];
   const inquiries = raw.inquiries || [];
