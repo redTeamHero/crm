@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from collections import defaultdict
@@ -86,10 +87,17 @@ def _resolve_rulebook_path() -> Path:
     """Locate the Metro-2 rulebook JSON shared across runtimes."""
 
     here = Path(__file__).resolve().parent
+    env_path = os.getenv("METRO2_RULEBOOK_PATH")
+    if env_path:
+        candidate = Path(env_path).expanduser().resolve()
+        if candidate.exists():
+            return candidate
     candidates = [
         here / "data" / "metro2Violations.json",
         here / "public" / "metro2Violations.json",
+        here.parent / "metro2Violations.json",
         here.parent / "metro2" / "metro2Violations.json",
+        here.parent.parent / "metro2" / "metro2Violations.json",
     ]
     for candidate in candidates:
         if candidate.exists():
