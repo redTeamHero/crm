@@ -172,7 +172,7 @@ await test('server rejects and accepts selections appropriately', async () => {
     assert.equal(json.letters[0].bureau, 'TransUnion');
     assert.equal(json.letters[0].specificDisputeReason, 'identity theft');
 
-    const pdfRes = await fetch(url(`/api/letters/${jobId}/0.pdf`));
+    const pdfRes = await fetch(url(`/api/letters/${jobId}/0.pdf`), { headers: auth });
     if (pdfRes.status === 200) {
       const buf = Buffer.from(await pdfRes.arrayBuffer());
       assert.ok(buf.length > 0);
@@ -205,7 +205,7 @@ await test('letters include manual creditor and account numbers', async () => {
     const jobId = json.jobId;
     await waitForJob(jobId);
     await fetchJson(url(`/api/letters/${jobId}`));
-    const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`));
+    const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`), { headers: auth });
     const html = await htmlRes.text();
     assert.ok(html.includes('Manual Creditor'));
     assert.ok(html.includes('123456789'));
@@ -235,7 +235,7 @@ await test('letters include manual dispute reason', async () => {
     await waitForJob(jobId);
     const { json: letters } = await fetchJson(url(`/api/letters/${jobId}`));
     assert.equal(letters.letters[0].specificDisputeReason, 'Manual reason');
-    const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`));
+    const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`), { headers: auth });
     const html = await htmlRes.text();
     assert.ok(html.includes('Manual reason'));
   } finally {
@@ -302,7 +302,7 @@ await test('custom template selection applies template content', async () => {
     assert.equal(res.status, 202);
     const jobId = json.jobId;
     await waitForJob(jobId);
-    const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`));
+    const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`), { headers: auth });
     const html = await htmlRes.text();
     assert.ok(html.includes('Custom Heading'));
   } finally {

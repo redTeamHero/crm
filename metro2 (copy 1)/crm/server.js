@@ -4355,6 +4355,20 @@ function sanitizeJobForResponse(record) {
   return rest;
 }
 
+function isAdminUser(user) {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  const perms = Array.isArray(user.permissions) ? user.permissions : [];
+  return perms.includes("admin");
+}
+
+function canAccessJob(user, jobRecord) {
+  if (!user || !jobRecord) return false;
+  if (jobRecord.userId && jobRecord.userId === user.id) return true;
+  if (isAdminUser(user)) return true;
+  return false;
+}
+
 async function getJobRecord(tenantId, jobId) {
   return readKey(makeJobStorageKey(jobId), null, tenantScope(tenantId));
 }
@@ -4979,7 +4993,7 @@ registerJobProcessor(JOB_TYPES.REPORTS_AUDIT, async (data) => {
   }
 });
 
-app.get("/api/jobs/:jobId", optionalAuth, async (req, res) => {
+app.get("/api/jobs/:jobId", authenticate, async (req, res) => {
   try {
     const tenantId = resolveRequestTenant(req);
     const jobId = String(req.params.jobId || "").trim();
@@ -4990,6 +5004,10 @@ app.get("/api/jobs/:jobId", optionalAuth, async (req, res) => {
     if (!jobRecord) {
       return res.status(404).json({ ok: false, error: "Job not found" });
     }
+    if (!canAccessJob(req.user, jobRecord)) {
+      const status = req.user ? 403 : 401;
+      return res.status(status).json({ ok: false, error: status === 403 ? "Forbidden" : "Unauthorized" });
+    }
     res.json({ ok: true, job: sanitizeJobForResponse(jobRecord) });
   } catch (err) {
     logError("JOB_STATUS_ERROR", "Failed to load job status", err, { jobId: req.params.jobId });
@@ -4997,7 +5015,7 @@ app.get("/api/jobs/:jobId", optionalAuth, async (req, res) => {
   }
 });
 
-app.get("/api/jobs/:jobId/artifact", optionalAuth, async (req, res) => {
+app.get("/api/jobs/:jobId/artifact", authenticate, async (req, res) => {
   try {
     const tenantId = resolveRequestTenant(req);
     const jobId = String(req.params.jobId || "").trim();
@@ -5007,6 +5025,10 @@ app.get("/api/jobs/:jobId/artifact", optionalAuth, async (req, res) => {
     const jobRecord = await getJobRecord(tenantId, jobId);
     if (!jobRecord || jobRecord.status !== "completed") {
       return res.status(404).json({ ok: false, error: "Artifact unavailable" });
+    }
+    if (!canAccessJob(req.user, jobRecord)) {
+      const status = req.user ? 403 : 401;
+      return res.status(status).json({ ok: false, error: status === 403 ? "Forbidden" : "Unauthorized" });
     }
     const zipPath = jobRecord.result?.zipPath;
     if (!zipPath) {

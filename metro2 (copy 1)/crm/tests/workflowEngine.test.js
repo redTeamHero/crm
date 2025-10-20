@@ -26,10 +26,10 @@ function buildIdempotencyKey(prefix = 'wf') {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-async function waitForJob(appInstance, jobId, timeoutMs = 60000) {
+async function waitForJob(appInstance, jobId, headers = {}, timeoutMs = 60000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    const res = await request(appInstance).get(`/api/jobs/${jobId}`);
+    const res = await request(appInstance).get(`/api/jobs/${jobId}`).set(headers);
     if (res.status === 404) {
       throw new Error('Job not found');
     }
@@ -86,7 +86,7 @@ await test('workflow engine enforces dispute cadence and supports config overrid
       workflow: { forceEnforce: true },
     });
   assert.equal(res.status, 202);
-  await waitForJob(app, res.body.jobId);
+  await waitForJob(app, res.body.jobId, headers);
 
   res = await request(app)
     .post('/api/generate')
@@ -131,7 +131,7 @@ await test('workflow engine enforces dispute cadence and supports config overrid
       workflow: { forceEnforce: true },
     });
   assert.equal(res.status, 202, 'cadence override should allow immediate rerun');
-  await waitForJob(app, res.body.jobId);
+  await waitForJob(app, res.body.jobId, headers);
 });
 
 test.after(async () => {
