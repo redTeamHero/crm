@@ -77,6 +77,18 @@ Without them, letter generation will fail with errors like `libnspr4.so: cannot 
    - `data/tradelineCards.json` – normalized accounts with issues for the client portal
    - `letter.html` – demo letter for the first tradeline and violation
 
+## Background jobs & idempotency
+
+- Heavy tasks such as dispute batch generation, batch PDF rendering, and report audits now run through BullMQ queues. When Redis
+  connection details (`REDIS_URL` or `REDIS_HOST`/`REDIS_PORT`) are not provided the app falls back to the in-process scheduler
+  used in tests and local demos.
+- Every asynchronous endpoint expects an `x-idempotency-key` header. Use a unique value per request (for example, `letters-<uuid>`)
+  so retries return the same job record instead of duplicating work against tenant quotas.
+- Track progress by polling `/api/jobs/:id`. A completed job response includes `result` metadata plus, where applicable, a
+  downloadable artifact (`/api/jobs/:id/artifact` for batch PDFs).
+- Existing synchronous endpoints continue to work; front-end flows now poll the job status endpoint before fetching final assets
+  to keep UX responsive while heavy jobs finish off the request thread.
+
 ## Metrics & Experiments
 
 - `npm run migrate` now also provisions analytics tables: `tenant_migration_events`, `checkout_conversion_events`, and `ab_test_assignments`. Query them to monitor onboarding health and invoice conversion, for example:

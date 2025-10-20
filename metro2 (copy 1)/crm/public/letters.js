@@ -391,11 +391,32 @@ async function loadJobs(){
   }
 }
 
+async function waitForJobCompletion(jobId, { timeoutMs = 120000, intervalMs = 1500 } = {}) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const statusResp = await api(`/api/jobs/${encodeURIComponent(jobId)}`);
+    const status = statusResp?.job?.status;
+    if (status === 'completed') {
+      return statusResp.job;
+    }
+    if (status === 'failed') {
+      const message = statusResp.job?.error?.message || 'Job failed';
+      throw new Error(message);
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error('Job timed out before completion.');
+}
+
 async function loadLetters(jobId){
   clearErr();
   $("#jobId").textContent = jobId || "—";
   try {
     const resp = await api(`/api/letters/${encodeURIComponent(jobId)}`);
+    if (resp?.status === 202) {
+      await waitForJobCompletion(jobId);
+      return loadLetters(jobId);
+    }
     if (!resp?.ok) throw new Error(resp?.error || "Failed to load letters for this job.");
     const tokenParam = TOKEN ? `?token=${encodeURIComponent(TOKEN)}` : '';
     LETTERS = (resp.letters || []).map((x) => ({

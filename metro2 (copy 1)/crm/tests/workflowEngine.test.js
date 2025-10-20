@@ -22,6 +22,29 @@ function authHeaders(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
+function buildIdempotencyKey(prefix = 'wf') {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function waitForJob(appInstance, jobId, headers = {}, timeoutMs = 60000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const res = await request(appInstance).get(`/api/jobs/${jobId}`).set(headers);
+    if (res.status === 404) {
+      throw new Error('Job not found');
+    }
+    const status = res.body?.job?.status;
+    if (status === 'completed') {
+      return res.body.job;
+    }
+    if (status === 'failed') {
+      throw new Error(res.body?.job?.error?.message || 'Job failed');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  throw new Error('Timed out waiting for job completion');
+}
+
 await test('workflow engine enforces dispute cadence and supports config overrides', async () => {
   const token = await login();
   const headers = authHeaders(token);
@@ -54,6 +77,7 @@ await test('workflow engine enforces dispute cadence and supports config overrid
   let res = await request(app)
     .post('/api/generate')
     .set(headers)
+    .set('x-idempotency-key', buildIdempotencyKey('wf-initial'))
     .send({
       consumerId: consumer.id,
       reportId: report.id,
@@ -61,11 +85,13 @@ await test('workflow engine enforces dispute cadence and supports config overrid
       requestType: 'correct',
       workflow: { forceEnforce: true },
     });
-  assert.equal(res.status, 200);
+  assert.equal(res.status, 202);
+  await waitForJob(app, res.body.jobId, headers);
 
   res = await request(app)
     .post('/api/generate')
     .set(headers)
+    .set('x-idempotency-key', buildIdempotencyKey('wf-blocked'))
     .send({
       consumerId: consumer.id,
       reportId: report.id,
@@ -96,6 +122,7 @@ await test('workflow engine enforces dispute cadence and supports config overrid
   res = await request(app)
     .post('/api/generate')
     .set(headers)
+    .set('x-idempotency-key', buildIdempotencyKey('wf-override'))
     .send({
       consumerId: consumer.id,
       reportId: report.id,
@@ -103,7 +130,8 @@ await test('workflow engine enforces dispute cadence and supports config overrid
       requestType: 'correct',
       workflow: { forceEnforce: true },
     });
-  assert.equal(res.status, 200, 'cadence override should allow immediate rerun');
+  assert.equal(res.status, 202, 'cadence override should allow immediate rerun');
+  await waitForJob(app, res.body.jobId, headers);
 });
 
 test.after(async () => {
