@@ -48,6 +48,7 @@ import {
 } from "./workflowEngine.js";
 import { withTenantContext, getCurrentTenantId } from "./tenantContext.js";
 import { spawnPythonProcess } from "./pythonEnv.js";
+import { enqueueJob, registerJobProcessor, isQueueEnabled } from "./jobQueue.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
@@ -158,6 +159,13 @@ initWorkflowEngine().catch((err) => {
 });
 
 const MAX_TRADLINE_PAGE_SIZE = 500;
+const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
+
+const JOB_TYPES = Object.freeze({
+  LETTERS_GENERATE: "letters:generate",
+  LETTERS_PDF: "letters:pdf",
+  REPORTS_AUDIT: "reports:audit",
+});
 
 const ALL_BUREAUS = Object.freeze(["TransUnion", "Experian", "Equifax"]);
 
@@ -3958,74 +3966,87 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
   res.json({ ok:true, tradeline: tl });
 });
 
-app.post("/api/consumers/:id/report/:rid/audit", enforceTenantQuota("reports:audit"), async (req,res)=>{
-  const db=await loadDB();
-  const c=db.consumers.find(x=>x.id===req.params.id);
-  if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
-  const r=c.reports.find(x=>x.id===req.params.rid);
-  if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
-
-  const selections = Array.isArray(req.body?.selections) && req.body.selections.length
-    ? req.body.selections
-    : null;
-
-  try{
-    const normalized = normalizeReport(r.data, selections);
-
-    let html;
+app.post(
+  "/api/consumers/:id/report/:rid/audit",
+  enforceTenantQuota("reports:audit"),
+  async (req, res) => {
     try {
-      html = renderHtml(normalized, c.name);
-    } catch (err) {
-      logError("HTML_RENDER_ERROR", "Failed to render audit HTML", err, { consumerId: c.id, reportId: r.id });
-      return res.status(500).json({ ok:false, error: "Failed to render audit HTML" });
-    }
+      let idempotencyKey;
+      try {
+        idempotencyKey = sanitizeIdempotencyKey(req.get("x-idempotency-key"));
+      } catch (err) {
+        return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (!idempotencyKey) {
+        return res.status(400).json({ ok: false, error: "x-idempotency-key header required" });
+      }
 
-    let result;
-    try {
-      result = await savePdf(html);
-    } catch (err) {
-      logError("PDF_GENERATION_ERROR", "Failed to generate audit PDF", err, { consumerId: c.id, reportId: r.id });
-      return res.status(500).json({ ok:false, error: "Failed to generate audit document" });
-    }
+      const tenantId = resolveRequestTenant(req);
+      const consumerId = String(req.params.id || "").trim();
+      const reportId = String(req.params.rid || "").trim();
+      if (!consumerId || !reportId) {
+        return res.status(400).json({ ok: false, error: "consumerId and reportId required" });
+      }
 
-    let ext = path.extname(result.path);
-    if (result.warning || ext !== ".pdf") {
-      console.error("Audit PDF generation failed", result.warning);
-      ext = ".html";
-    }
-    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+      const compositeKey = `${consumerId}:${reportId}:${idempotencyKey}`;
+      const existing = await readIdempotencyRecord(tenantId, JOB_TYPES.REPORTS_AUDIT, compositeKey);
+      if (existing?.jobId) {
+        const jobRecord = await getJobRecord(tenantId, existing.jobId);
+        if (jobRecord) {
+          return res.status(200).json({
+            ok: true,
+            jobId: jobRecord.id,
+            status: jobRecord.status,
+            type: jobRecord.type,
+            job: sanitizeJobForResponse(jobRecord),
+          });
+        }
+      }
 
-    // copy report into consumer uploads and register metadata
-    try {
-      const uploadsDir = consumerUploadsDir(c.id);
-      const id = nanoid(10);
-      const storedName = `${id}${ext}`;
-      const safe = (c.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
-      const date = new Date().toISOString().slice(0,10);
-      const originalName = `${safe}_${date}_audit${ext}`;
-      const dest = path.join(uploadsDir, storedName);
-      await fs.promises.copyFile(result.path, dest);
-      const stat = await fs.promises.stat(dest);
-      await addFileMeta(c.id, {
-        id,
-        originalName,
-        storedName,
-        type: "audit",
-        size: stat.size,
-        mimetype: mime,
-        uploadedAt: new Date().toISOString(),
+      const preflight = await preflightAuditJob({ consumerId, reportId }, { tenantId });
+      if (!preflight.ok) {
+        return res.status(preflight.status || 400).json({ ok: false, error: preflight.error || "Unable to queue audit" });
+      }
+
+      const jobId = crypto.randomBytes(8).toString("hex");
+      const metadata = { consumerId, reportId };
+      await createJobRecord({
+        tenantId,
+        jobId,
+        type: JOB_TYPES.REPORTS_AUDIT,
+        userId: req.user?.id || null,
+        metadata,
+        idempotencyKey: compositeKey,
       });
-    } catch(err) {
-      logError("AUDIT_STORE_FAILED", "Failed to store audit file", err, { consumerId: c.id, reportId: r.id });
-    }
+      await writeIdempotencyRecord(tenantId, JOB_TYPES.REPORTS_AUDIT, compositeKey, { jobId });
 
-    await addEvent(c.id, "audit_generated", { reportId: r.id, file: result.url });
-    res.json({ ok:true, url: result.url, warning: result.warning });
-  }catch(e){
-    logError("AUDIT_PIPELINE_ERROR", "Audit generation failed", e, { consumerId: c.id, reportId: r.id });
-    res.status(500).json({ ok:false, error: "Audit generation failed" });
-  }
-});
+      const payload = {
+        consumerId,
+        reportId,
+        selections: Array.isArray(req.body?.selections) ? req.body.selections : null,
+      };
+
+      await enqueueJob(JOB_TYPES.REPORTS_AUDIT, {
+        jobId,
+        tenantId,
+        userId: req.user?.id || null,
+        payload,
+      });
+
+      const jobRecord = await getJobRecord(tenantId, jobId);
+      res.status(202).json({
+        ok: true,
+        jobId,
+        status: jobRecord?.status || "queued",
+        type: JOB_TYPES.REPORTS_AUDIT,
+        job: sanitizeJobForResponse(jobRecord),
+      });
+    } catch (err) {
+      logError("AUDIT_JOB_QUEUE_ERROR", "Failed to queue audit job", err, { consumerId: req.params.id, reportId: req.params.rid });
+      res.status(500).json({ ok: false, error: "Failed to queue audit job" });
+    }
+  },
+);
 
 // Check consumer email against Have I Been Pwned
 // Use POST so email isn't logged in query string
@@ -4264,96 +4285,268 @@ async function deleteJob(jobId){
   }
 }
 
-// Generate letters (from selections) -> memory + disk
-app.post("/api/generate", authenticate, requirePermission("letters", { allowGuest: true }), enforceTenantQuota("letters:generate"), async (req,res)=>{
+function makeJobStorageKey(jobId) {
+  return `job:${jobId}`;
+}
 
-  try{
+function makeIdempotencyStorageKey(operation, rawKey) {
+  const hash = crypto.createHash("sha256").update(String(rawKey)).digest("hex");
+  return `idempotency:${operation}:${hash}`;
+}
+
+function sanitizeIdempotencyKey(raw) {
+  if (raw === undefined || raw === null) return null;
+  const key = String(raw).trim();
+  if (!key) return null;
+  if (key.length > MAX_IDEMPOTENCY_KEY_LENGTH) {
+    throw new Error(`x-idempotency-key must be <= ${MAX_IDEMPOTENCY_KEY_LENGTH} characters`);
+  }
+  return key;
+}
+
+async function readIdempotencyRecord(tenantId, operation, key) {
+  if (!key) return null;
+  const storageKey = makeIdempotencyStorageKey(operation, key);
+  return readKey(storageKey, null, tenantScope(tenantId));
+}
+
+async function writeIdempotencyRecord(tenantId, operation, key, value) {
+  if (!key) return;
+  const storageKey = makeIdempotencyStorageKey(operation, key);
+  await writeKey(storageKey, value, tenantScope(tenantId));
+}
+
+async function createJobRecord({ tenantId, jobId, type, userId, metadata = {}, idempotencyKey = null }) {
+  const now = new Date().toISOString();
+  const record = {
+    id: jobId,
+    type,
+    status: "queued",
+    createdAt: now,
+    updatedAt: now,
+    userId: userId || null,
+    metadata,
+    idempotencyKey,
+    queueEnabled: isQueueEnabled(),
+  };
+  await writeKey(makeJobStorageKey(jobId), record, tenantScope(tenantId));
+  return record;
+}
+
+async function updateJobRecord(tenantId, jobId, updates) {
+  const scope = tenantScope(tenantId);
+  const existing = (await readKey(makeJobStorageKey(jobId), null, scope)) || { id: jobId };
+  const record = {
+    ...existing,
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeKey(makeJobStorageKey(jobId), record, scope);
+  return record;
+}
+
+async function markJobStatus(tenantId, jobId, status, updates = {}) {
+  return updateJobRecord(tenantId, jobId, { status, ...updates });
+}
+
+function sanitizeJobForResponse(record) {
+  if (!record) return null;
+  const { idempotencyKey, ...rest } = record;
+  return rest;
+}
+
+async function getJobRecord(tenantId, jobId) {
+  return readKey(makeJobStorageKey(jobId), null, tenantScope(tenantId));
+}
+
+async function preflightLettersJob(payload, { tenantId, userId }) {
+  const {
+    consumerId,
+    reportId,
+    selections = [],
+    requestType = "correct",
+    personalInfo,
+    inquiries,
+    collectors,
+    workflow = {},
+  } = payload || {};
+
+  const db = await loadDB();
+  const consumer = db.consumers.find((c) => c.id === consumerId);
+  if (!consumer) {
+    return { ok: false, status: 404, error: "Consumer not found" };
+  }
+  let reportWrap = consumer.reports.find((r) => r.id === reportId);
+  if (!reportWrap) {
+    const sharedReport = db.consumers
+      .flatMap((c) => (Array.isArray(c.reports) ? c.reports : []))
+      .find((r) => r.id === reportId);
+    if (sharedReport) {
+      reportWrap = sharedReport;
+    }
+  }
+  if (!reportWrap) {
+    return { ok: false, status: 404, error: "Report not found" };
+  }
+
+  for (const sel of selections || []) {
+    if (!sel) continue;
+    if (!Array.isArray(sel.bureaus) || sel.bureaus.length === 0) {
+      logWarn("MISSING_BUREAUS", "Rejecting selection without bureaus", sel);
+      return { ok: false, status: 400, error: "Selection missing bureaus" };
+    }
+  }
+
+  const requestedBureaus = collectRequestedBureaus({ selections, personalInfo, inquiries });
+  const workflowForceEnforce = workflow?.forceEnforce === undefined ? undefined : !!workflow.forceEnforce;
+  const validation = await validateWorkflowOperation("letters.generate", {
+    consumerId: consumer.id,
+    requestType,
+    bureaus: requestedBureaus,
+    now: new Date().toISOString(),
+    userId: userId || null,
+    forceEnforce: workflowForceEnforce,
+  });
+  if (!validation.ok) {
+    return {
+      ok: false,
+      status: 409,
+      error: "Workflow rules blocked this dispute batch.",
+      validation,
+    };
+  }
+  if (validation.results?.some((r) => !r.ok && r.level === "warn")) {
+    logWarn("WORKFLOW_RULE_WARNING", "Workflow validation returned warnings", {
+      consumerId: consumer.id,
+      rules: validation.results.filter((r) => !r.ok).map((r) => r.ruleId),
+    });
+  }
+
+  return {
+    ok: true,
+    context: {
+      consumerId: consumer.id,
+      reportId: reportWrap.id,
+      requestedBureaus,
+      workflowForceEnforce,
+      validation,
+      selectionCount: Array.isArray(selections) ? selections.length : 0,
+      personalInfoCount: Array.isArray(personalInfo) ? personalInfo.length : 0,
+      inquiryCount: Array.isArray(inquiries) ? inquiries.length : 0,
+      collectorCount: Array.isArray(collectors) ? collectors.length : 0,
+    },
+  };
+}
+
+async function executeLettersGenerationJob({ jobId, tenantId, userId, payload }) {
+  return withTenantContext(tenantId, async () => {
     const {
       consumerId,
       reportId,
-      selections,
-      requestType = 'correct',
+      selections = [],
+      requestType = "correct",
       personalInfo,
       inquiries,
       collectors,
       useOcr,
-    } = req.body;
+      workflow = {},
+    } = payload || {};
 
     const db = await loadDB();
-    const consumer = db.consumers.find(c=>c.id===consumerId);
-    if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
-    let reportWrap = consumer.reports.find(r=>r.id===reportId);
-    if(!reportWrap){
+    const consumer = db.consumers.find((c) => c.id === consumerId);
+    if (!consumer) {
+      const err = new Error("Consumer not found");
+      err.status = 404;
+      throw err;
+    }
+    let reportWrap = consumer.reports.find((r) => r.id === reportId);
+    if (!reportWrap) {
       const sharedReport = db.consumers
         .flatMap((c) => (Array.isArray(c.reports) ? c.reports : []))
         .find((r) => r.id === reportId);
-      if(sharedReport){
+      if (sharedReport) {
         reportWrap = sharedReport;
       }
     }
-    if(!reportWrap) return res.status(404).json({ ok:false, error:"Report not found" });
+    if (!reportWrap) {
+      const err = new Error("Report not found");
+      err.status = 404;
+      throw err;
+    }
 
     const specialReasonMap = {
       identity: "identity theft",
       breach: "data breach",
       assault: "sexual assault",
     };
-    for(const sel of selections || []){
-      if(!sel) continue;
-      if(sel.specialMode && !sel.specificDisputeReason && specialReasonMap[sel.specialMode]){
+
+    const normalizedSelections = Array.isArray(selections)
+      ? selections.map((sel) => ({ ...(sel || {}) }))
+      : [];
+    for (const sel of normalizedSelections) {
+      if (!sel) continue;
+      if (sel.specialMode && !sel.specificDisputeReason && specialReasonMap[sel.specialMode]) {
         sel.specificDisputeReason = specialReasonMap[sel.specialMode];
+      }
+      if (!Array.isArray(sel.bureaus) || sel.bureaus.length === 0) {
+        const err = new Error("Selection missing bureaus");
+        err.status = 400;
+        throw err;
       }
     }
 
     const consumerForLetter = {
-      name: consumer.name, email: consumer.email, phone: consumer.phone,
-      addr1: consumer.addr1, addr2: consumer.addr2, city: consumer.city, state: consumer.state, zip: consumer.zip,
-      ssn_last4: consumer.ssn_last4, dob: consumer.dob,
-      breaches: consumer.breaches || []
+      name: consumer.name,
+      email: consumer.email,
+      phone: consumer.phone,
+      addr1: consumer.addr1,
+      addr2: consumer.addr2,
+      city: consumer.city,
+      state: consumer.state,
+      zip: consumer.zip,
+      ssn_last4: consumer.ssn_last4,
+      dob: consumer.dob,
+      breaches: consumer.breaches || [],
     };
-    for (const sel of selections || []) {
-      if (!Array.isArray(sel.bureaus) || sel.bureaus.length === 0) {
-        logWarn("MISSING_BUREAUS", "Rejecting selection without bureaus", sel);
-        return res.status(400).json({ ok:false, error:"Selection missing bureaus" });
-      }
-    }
 
-    const requestedBureaus = collectRequestedBureaus({ selections, personalInfo, inquiries });
-    const workflowForceEnforce =
-      req.body?.workflow?.forceEnforce === undefined
-        ? undefined
-        : !!req.body.workflow.forceEnforce;
+    const requestedBureaus = collectRequestedBureaus({
+      selections: normalizedSelections,
+      personalInfo,
+      inquiries,
+    });
+
+    const workflowForceEnforce = workflow?.forceEnforce === undefined ? undefined : !!workflow.forceEnforce;
     const validation = await validateWorkflowOperation("letters.generate", {
       consumerId: consumer.id,
       requestType,
       bureaus: requestedBureaus,
       now: new Date().toISOString(),
-      userId: req.user?.id || null,
+      userId: userId || null,
       forceEnforce: workflowForceEnforce,
     });
     if (!validation.ok) {
-      return res.status(409).json({
-        ok: false,
-        error: "Workflow rules blocked this dispute batch.",
-        validation,
-      });
-    }
-    if (validation.results?.some((r) => !r.ok && r.level === "warn")) {
-      logWarn("WORKFLOW_RULE_WARNING", "Workflow validation returned warnings", {
-        consumerId: consumer.id,
-        rules: validation.results.filter((r) => !r.ok).map((r) => r.ruleId),
-      });
+      const err = new Error("Workflow rules blocked this dispute batch.");
+      err.status = 409;
+      err.validation = validation;
+      throw err;
     }
 
     const lettersDb = await loadLettersDB();
     const playbooks = await loadPlaybooks();
-    const letters = generateLetters({ report: reportWrap.data, selections, consumer: consumerForLetter, requestType, templates: lettersDb.templates || [], playbooks });
+    const letters = generateLetters({
+      report: reportWrap.data,
+      selections: normalizedSelections,
+      consumer: consumerForLetter,
+      requestType,
+      templates: lettersDb.templates || [],
+      playbooks,
+    });
     if (Array.isArray(personalInfo) && personalInfo.length) {
       letters.push(
         ...generatePersonalInfoLetters({
           consumer: consumerForLetter,
           mismatchedFields: personalInfo,
-        })
+        }),
       );
     }
     if (Array.isArray(inquiries) && inquiries.length) {
@@ -4367,51 +4560,45 @@ app.post("/api/generate", authenticate, requirePermission("letters", { allowGues
       L.useOcr = !!useOcr;
     }
     for (const L of letters) {
-      const sel = (selections || []).find(s => s.tradelineIndex === L.tradelineIndex);
+      const sel = normalizedSelections.find((s) => s.tradelineIndex === L.tradelineIndex);
       if (sel && sel.useOcr !== undefined) L.useOcr = !!sel.useOcr;
     }
 
-    console.log(`Generated ${letters.length} letters for consumer ${consumer.id}`);
-    const jobId = crypto.randomBytes(8).toString("hex");
-
     const jobDir = path.join(LETTERS_DIR, jobId);
     fs.mkdirSync(jobDir, { recursive: true });
-    for(const L of letters){
+    for (const L of letters) {
       fs.writeFileSync(path.join(jobDir, L.filename), L.html, "utf-8");
-      console.log(`Saved letter ${L.filename}`);
     }
 
-    const requestUserId = req.user?.id || "guest";
+    const requestUserId = userId || "guest";
     putJobMem(jobId, letters);
     await persistJobToDisk(jobId, letters);
-    recordLettersJob(requestUserId, consumer.id, jobId, letters);
-    console.log(`Letters job ${jobId} recorded with ${letters.length} letters`);
+    await recordLettersJob(requestUserId, consumer.id, jobId, letters);
 
-    // log state
     let jobRequestType = requestType;
-    if (selections && selections.length) {
-      const firstSel = selections[0];
-      const tpl = firstSel.templateId && (lettersDb.templates || []).find(t => t.id === firstSel.templateId);
+    if (normalizedSelections.length) {
+      const firstSel = normalizedSelections[0];
+      const tpl = firstSel.templateId && (lettersDb.templates || []).find((t) => t.id === firstSel.templateId);
       jobRequestType = firstSel.requestType || tpl?.requestType || requestType;
     }
+
     await addEvent(consumer.id, "letters_generated", {
-      jobId, requestType: jobRequestType, count: letters.length,
-      tradelines: Array.from(new Set((selections||[]).map(s=>s.tradelineIndex))).length,
+      jobId,
+      requestType: jobRequestType,
+      count: letters.length,
+      tradelines: Array.from(new Set(normalizedSelections.map((s) => s.tradelineIndex))).length,
       inquiries: Array.isArray(inquiries) ? inquiries.length : 0,
       collectors: Array.isArray(collectors) ? collectors.length : 0,
-      bureaus: requestedBureaus
-
+      bureaus: requestedBureaus,
     });
 
-    for (const sel of selections || []) {
+    for (const sel of normalizedSelections) {
       const play = sel.playbook && playbooks[sel.playbook];
       if (!play) continue;
-
-      const followUps = play.letters.slice(1); // skip the first letter
+      const followUps = play.letters.slice(1);
       for (const [idx, title] of followUps.entries()) {
         const due = new Date();
         due.setDate(due.getDate() + (idx + 1) * 30);
-
         await addReminder(consumer.id, {
           id: `rem_${Date.now()}_${Math.random().toString(16).slice(2)}`,
           due: due.toISOString(),
@@ -4425,12 +4612,714 @@ app.post("/api/generate", authenticate, requirePermission("letters", { allowGues
       }
     }
 
-    res.json({ ok:true, redirect: `/letters?job=${jobId}`, validation });
-  }catch(e){
-    console.error(e);
-    res.status(500).json({ ok:false, error:String(e) });
+    return {
+      redirect: `/letters?job=${jobId}`,
+      validation,
+      lettersCount: letters.length,
+      requestType: jobRequestType,
+      requestedBureaus,
+      consumerId: consumer.id,
+    };
+  });
+}
+
+async function preflightAuditJob(payload, { tenantId }) {
+  const consumerId = String(payload?.consumerId || payload?.id || "").trim();
+  const reportId = String(payload?.reportId || payload?.rid || "").trim();
+  if (!consumerId || !reportId) {
+    return { ok: false, status: 400, error: "consumerId and reportId are required" };
+  }
+
+  const db = await withTenantContext(tenantId, () => loadDB());
+  const consumer = db.consumers.find((c) => c.id === consumerId);
+  if (!consumer) {
+    return { ok: false, status: 404, error: "Consumer not found" };
+  }
+  const report = consumer.reports.find((r) => r.id === reportId);
+  if (!report) {
+    return { ok: false, status: 404, error: "Report not found" };
+  }
+
+  return {
+    ok: true,
+    context: {
+      consumerId,
+      reportId,
+    },
+  };
+}
+
+registerJobProcessor(JOB_TYPES.LETTERS_GENERATE, async (data) => {
+  const { jobId, tenantId, userId, payload } = data || {};
+  if (!jobId || !tenantId) {
+    logWarn("LETTER_JOB_SKIPPED", "Missing identifiers for letters.generate job", data);
+    return;
+  }
+  await markJobStatus(tenantId, jobId, "processing");
+  try {
+    const result = await executeLettersGenerationJob({ jobId, tenantId, userId, payload });
+    await markJobStatus(tenantId, jobId, "completed", { result });
+  } catch (err) {
+    const errorPayload = {
+      error: {
+        message: err?.message || "Letter generation failed",
+        status: err?.status || 500,
+      },
+    };
+    if (err?.validation) {
+      errorPayload.validation = err.validation;
+    }
+    await markJobStatus(tenantId, jobId, "failed", errorPayload);
+    throw err;
   }
 });
+
+async function executeLettersPdfJob({ jobId, tenantId, userId, payload }) {
+  return withTenantContext(tenantId, async () => {
+    const sourceJobId = String(payload?.sourceJobId || "").trim();
+    if (!sourceJobId) {
+      const err = new Error("sourceJobId required");
+      err.status = 400;
+      throw err;
+    }
+
+    const requesterId = userId || "guest";
+    const letterJob = await loadJobForUser(sourceJobId, requesterId);
+    if (!letterJob) {
+      const err = new Error("Letters job not found or expired");
+      err.status = 404;
+      throw err;
+    }
+
+    const { job: letterData, meta } = letterJob;
+    if (!letterData || !Array.isArray(letterData.letters) || letterData.letters.length === 0) {
+      const err = new Error("Letters job has no letters");
+      err.status = 404;
+      throw err;
+    }
+
+    const pdfDir = path.join(LETTERS_DIR, sourceJobId, "pdf");
+    fs.mkdirSync(pdfDir, { recursive: true });
+    const zipPath = path.join(pdfDir, `${jobId}.zip`);
+
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    const output = fs.createWriteStream(zipPath);
+    archive.on("error", (err) => {
+      throw err;
+    });
+    archive.pipe(output);
+
+    const needsBrowser = letterData.letters.some((l) => !l.useOcr);
+    let browserInstance = null;
+    try {
+      if (needsBrowser) {
+        try {
+          browserInstance = await launchBrowser();
+        } catch (err) {
+          logWarn("LETTER_PDF_BROWSER_UNAVAILABLE", err?.message || "Browser launch failed", { jobId: sourceJobId });
+          browserInstance = null;
+        }
+      }
+
+      for (let i = 0; i < letterData.letters.length; i += 1) {
+        const L = letterData.letters[i];
+        const baseName = (L.filename || `letter${i}`).replace(/\.html?$/i, "");
+        const pdfName = `${baseName}.pdf`;
+        try {
+          if (L.useOcr) {
+            const pdfBuffer = await generateOcrPdf(L.html);
+            archive.append(pdfBuffer, { name: pdfName });
+            continue;
+          }
+
+          if (browserInstance) {
+            const page = await browserInstance.newPage();
+            const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
+            await page.goto(dataUrl, { waitUntil: "load", timeout: 60000 });
+            await page.emulateMediaType("screen");
+            try {
+              await page.waitForFunction(() => document.readyState === "complete", { timeout: 60000 });
+            } catch {}
+            try {
+              await page.evaluate(() => (document.fonts && document.fonts.ready) || Promise.resolve());
+            } catch {}
+            await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 80)));
+            const pdf = await page.pdf({
+              format: "Letter",
+              printBackground: true,
+              margin: { top: "1in", right: "1in", bottom: "1in", left: "1in" },
+            });
+            await page.close();
+            const pdfBuffer = ensureBuffer(pdf);
+            if (!pdfBuffer || pdfBuffer.length === 0) {
+              throw new Error("Empty PDF buffer");
+            }
+            archive.append(pdfBuffer, { name: pdfName });
+            continue;
+          }
+
+          const htmlSource = L.html || (L.htmlPath && fs.existsSync(L.htmlPath) ? fs.readFileSync(L.htmlPath, "utf-8") : "");
+          archive.append(Buffer.from(htmlSource, "utf-8"), { name: `${baseName}.html` });
+        } catch (err) {
+          logError("LETTER_PDF_APPEND_FAILED", "Failed to append letter to archive", err, {
+            jobId: sourceJobId,
+            letter: pdfName,
+          });
+          throw err;
+        }
+      }
+
+      await archive.finalize();
+      await new Promise((resolve, reject) => {
+        output.on("close", resolve);
+        output.on("error", reject);
+      });
+    } finally {
+      try {
+        await browserInstance?.close();
+      } catch {}
+    }
+
+    let storedFile = null;
+    if (meta?.consumerId) {
+      try {
+        const db = await loadDB();
+        const consumer = db.consumers.find((c) => c.id === meta.consumerId);
+        if (consumer) {
+          const uploadsDir = consumerUploadsDir(consumer.id);
+          const id = nanoid(10);
+          const storedName = `${id}.zip`;
+          const safe = (consumer.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+          const date = new Date().toISOString().slice(0, 10);
+          const originalName = `${safe}_${date}_letters.zip`;
+          const dest = path.join(uploadsDir, storedName);
+          await fs.promises.copyFile(zipPath, dest);
+          const stat = await fs.promises.stat(dest);
+          await addFileMeta(consumer.id, {
+            id,
+            originalName,
+            storedName,
+            type: "letters_zip",
+            size: stat.size,
+            mimetype: "application/zip",
+            uploadedAt: new Date().toISOString(),
+          });
+          await addEvent(consumer.id, "letters_zip_ready", {
+            jobId: sourceJobId,
+            file: `/api/consumers/${consumer.id}/state/files/${storedName}`,
+          });
+          storedFile = {
+            consumerId: consumer.id,
+            storedName,
+            originalName,
+            url: `/api/consumers/${consumer.id}/state/files/${storedName}`,
+          };
+        }
+      } catch (err) {
+        logWarn("LETTER_PDF_STORE_FAILED", err?.message || "Failed to store zip", { jobId: sourceJobId });
+      }
+    }
+
+    return {
+      sourceJobId,
+      zipPath,
+      lettersCount: letterData.letters.length,
+      storedFile,
+    };
+  });
+}
+
+registerJobProcessor(JOB_TYPES.LETTERS_PDF, async (data) => {
+  const { jobId, tenantId, userId, payload } = data || {};
+  if (!jobId || !tenantId) {
+    logWarn("LETTER_PDF_JOB_SKIPPED", "Missing identifiers for letters.pdf job", data);
+    return;
+  }
+  await markJobStatus(tenantId, jobId, "processing");
+  try {
+    const result = await executeLettersPdfJob({ jobId, tenantId, userId, payload });
+    await markJobStatus(tenantId, jobId, "completed", {
+      result: {
+        ...result,
+        downloadUrl: `/api/jobs/${jobId}/artifact`,
+      },
+    });
+  } catch (err) {
+    await markJobStatus(tenantId, jobId, "failed", {
+      error: {
+        message: err?.message || "Letter PDF build failed",
+        status: err?.status || 500,
+      },
+    });
+    throw err;
+  }
+});
+
+async function executeAuditJob({ jobId, tenantId, userId, payload }) {
+  return withTenantContext(tenantId, async () => {
+    const consumerId = String(payload?.consumerId || payload?.id || "").trim();
+    const reportId = String(payload?.reportId || payload?.rid || "").trim();
+    const selections = Array.isArray(payload?.selections) && payload.selections.length ? payload.selections : null;
+
+    const db = await loadDB();
+    const consumer = db.consumers.find((c) => c.id === consumerId);
+    if (!consumer) {
+      const err = new Error("Consumer not found");
+      err.status = 404;
+      throw err;
+    }
+    const report = consumer.reports.find((r) => r.id === reportId);
+    if (!report) {
+      const err = new Error("Report not found");
+      err.status = 404;
+      throw err;
+    }
+
+    let normalized;
+    try {
+      normalized = normalizeReport(report.data, selections);
+    } catch (err) {
+      err.status = 500;
+      logError("AUDIT_NORMALIZE_FAILED", "Failed to normalize report", err, { consumerId, reportId });
+      throw err;
+    }
+
+    let html;
+    try {
+      html = renderHtml(normalized, consumer.name);
+    } catch (err) {
+      const error = new Error("Failed to render audit HTML");
+      error.status = 500;
+      logError("AUDIT_HTML_RENDER_FAILED", "Failed to render audit HTML", err, { consumerId, reportId });
+      throw error;
+    }
+
+    let pdfResult;
+    try {
+      pdfResult = await savePdf(html);
+    } catch (err) {
+      const error = new Error("Failed to generate audit document");
+      error.status = 500;
+      logError("AUDIT_PDF_FAILED", "Failed to generate audit PDF", err, { consumerId, reportId });
+      throw error;
+    }
+
+    let ext = path.extname(pdfResult.path);
+    if (pdfResult.warning || ext !== ".pdf") {
+      ext = ".html";
+    }
+    const mime = ext === ".pdf" ? "application/pdf" : "text/html";
+
+    let storedRecord = null;
+    try {
+      const uploadsDir = consumerUploadsDir(consumer.id);
+      const id = nanoid(10);
+      const storedName = `${id}${ext}`;
+      const safe = (consumer.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
+      const date = new Date().toISOString().slice(0, 10);
+      const originalName = `${safe}_${date}_audit${ext}`;
+      const dest = path.join(uploadsDir, storedName);
+      await fs.promises.copyFile(pdfResult.path, dest);
+      const stat = await fs.promises.stat(dest);
+      await addFileMeta(consumer.id, {
+        id,
+        originalName,
+        storedName,
+        type: "audit",
+        size: stat.size,
+        mimetype: mime,
+        uploadedAt: new Date().toISOString(),
+      });
+      storedRecord = {
+        storedName,
+        originalName,
+        url: `/api/consumers/${consumer.id}/state/files/${storedName}`,
+        size: stat.size,
+        mimetype: mime,
+      };
+    } catch (err) {
+      logError("AUDIT_STORE_FAILED", "Failed to store audit file", err, { consumerId, reportId });
+    }
+
+    await addEvent(consumer.id, "audit_generated", {
+      reportId,
+      file: storedRecord?.url || pdfResult.url,
+      jobId,
+    });
+
+    return {
+      consumerId,
+      reportId,
+      url: pdfResult.url,
+      warning: pdfResult.warning,
+      storedFile: storedRecord,
+      mime,
+    };
+  });
+}
+
+registerJobProcessor(JOB_TYPES.REPORTS_AUDIT, async (data) => {
+  const { jobId, tenantId, userId, payload } = data || {};
+  if (!jobId || !tenantId) {
+    logWarn("AUDIT_JOB_SKIPPED", "Missing identifiers for reports:audit job", data);
+    return;
+  }
+  await markJobStatus(tenantId, jobId, "processing");
+  try {
+    const result = await executeAuditJob({ jobId, tenantId, userId, payload });
+    await markJobStatus(tenantId, jobId, "completed", { result });
+  } catch (err) {
+    await markJobStatus(tenantId, jobId, "failed", {
+      error: {
+        message: err?.message || "Audit generation failed",
+        status: err?.status || 500,
+      },
+    });
+    throw err;
+  }
+});
+
+app.get("/api/jobs/:jobId", optionalAuth, async (req, res) => {
+  try {
+    const tenantId = resolveRequestTenant(req);
+    const jobId = String(req.params.jobId || "").trim();
+    if (!jobId) {
+      return res.status(400).json({ ok: false, error: "Job ID required" });
+    }
+    const jobRecord = await getJobRecord(tenantId, jobId);
+    if (!jobRecord) {
+      return res.status(404).json({ ok: false, error: "Job not found" });
+    }
+    res.json({ ok: true, job: sanitizeJobForResponse(jobRecord) });
+  } catch (err) {
+    logError("JOB_STATUS_ERROR", "Failed to load job status", err, { jobId: req.params.jobId });
+    res.status(500).json({ ok: false, error: "Failed to load job status" });
+  }
+});
+
+app.get("/api/jobs/:jobId/artifact", optionalAuth, async (req, res) => {
+  try {
+    const tenantId = resolveRequestTenant(req);
+    const jobId = String(req.params.jobId || "").trim();
+    if (!jobId) {
+      return res.status(400).json({ ok: false, error: "Job ID required" });
+    }
+    const jobRecord = await getJobRecord(tenantId, jobId);
+    if (!jobRecord || jobRecord.status !== "completed") {
+      return res.status(404).json({ ok: false, error: "Artifact unavailable" });
+    }
+    const zipPath = jobRecord.result?.zipPath;
+    if (!zipPath) {
+      return res.status(404).json({ ok: false, error: "Artifact not found" });
+    }
+    const absolutePath = path.resolve(zipPath);
+    if (!absolutePath.startsWith(path.resolve(LETTERS_DIR))) {
+      return res.status(400).json({ ok: false, error: "Invalid artifact path" });
+    }
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ ok: false, error: "Artifact missing" });
+    }
+    res.download(absolutePath, path.basename(absolutePath));
+  } catch (err) {
+    logError("JOB_ARTIFACT_ERROR", "Failed to serve job artifact", err, { jobId: req.params.jobId });
+    res.status(500).json({ ok: false, error: "Failed to load artifact" });
+  }
+});
+
+app.post(
+  "/api/letters/:jobId/pdf",
+  authenticate,
+  requirePermission("letters", { allowGuest: true }),
+  enforceTenantQuota("letters:pdf"),
+  async (req, res) => {
+    try {
+      let idempotencyKey;
+      try {
+        idempotencyKey = sanitizeIdempotencyKey(req.get("x-idempotency-key"));
+      } catch (err) {
+        return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (!idempotencyKey) {
+        return res.status(400).json({ ok: false, error: "x-idempotency-key header required" });
+      }
+
+      const tenantId = resolveRequestTenant(req);
+      const sourceJobId = String(req.params.jobId || "").trim();
+      if (!sourceJobId) {
+        return res.status(400).json({ ok: false, error: "Letters job ID required" });
+      }
+
+      const compositeKey = `${sourceJobId}:${idempotencyKey}`;
+      const existing = await readIdempotencyRecord(tenantId, JOB_TYPES.LETTERS_PDF, compositeKey);
+      if (existing?.jobId) {
+        const jobRecord = await getJobRecord(tenantId, existing.jobId);
+        if (jobRecord) {
+          return res.status(200).json({
+            ok: true,
+            jobId: jobRecord.id,
+            status: jobRecord.status,
+            type: jobRecord.type,
+            job: sanitizeJobForResponse(jobRecord),
+          });
+        }
+      }
+
+      const letterJobRecord = await getJobRecord(tenantId, sourceJobId);
+      if (!letterJobRecord || letterJobRecord.type !== JOB_TYPES.LETTERS_GENERATE) {
+        return res.status(404).json({ ok: false, error: "Letters job not found" });
+      }
+      if (letterJobRecord.status !== "completed") {
+        return res.status(409).json({ ok: false, error: "Letters job still processing", status: letterJobRecord.status });
+      }
+
+      const userId = req.user?.id || "guest";
+      const letterJob = await loadJobForUser(sourceJobId, userId);
+      if (!letterJob) {
+        return res.status(404).json({ ok: false, error: "Letters job not found or expired" });
+      }
+
+      const jobId = crypto.randomBytes(8).toString("hex");
+      const metadata = {
+        sourceJobId,
+        lettersCount: Array.isArray(letterJob.job?.letters) ? letterJob.job.letters.length : 0,
+      };
+      await createJobRecord({
+        tenantId,
+        jobId,
+        type: JOB_TYPES.LETTERS_PDF,
+        userId,
+        metadata,
+        idempotencyKey: compositeKey,
+      });
+      await writeIdempotencyRecord(tenantId, JOB_TYPES.LETTERS_PDF, compositeKey, { jobId });
+
+      await enqueueJob(JOB_TYPES.LETTERS_PDF, {
+        jobId,
+        tenantId,
+        userId,
+        payload: { sourceJobId },
+      });
+
+      const jobRecord = await getJobRecord(tenantId, jobId);
+      res.status(202).json({
+        ok: true,
+        jobId,
+        status: jobRecord?.status || "queued",
+        type: JOB_TYPES.LETTERS_PDF,
+        job: sanitizeJobForResponse(jobRecord),
+      });
+    } catch (err) {
+      logError("LETTER_PDF_JOB_ERROR", "Failed to queue PDF job", err, { jobId: req.params.jobId });
+      res.status(500).json({ ok: false, error: "Failed to queue PDF job" });
+    }
+  },
+);
+
+app.get("/api/jobs/:jobId/artifact", optionalAuth, async (req, res) => {
+  try {
+    const tenantId = resolveRequestTenant(req);
+    const jobId = String(req.params.jobId || "").trim();
+    if (!jobId) {
+      return res.status(400).json({ ok: false, error: "Job ID required" });
+    }
+    const jobRecord = await getJobRecord(tenantId, jobId);
+    if (!jobRecord || jobRecord.status !== "completed") {
+      return res.status(404).json({ ok: false, error: "Artifact unavailable" });
+    }
+    const zipPath = jobRecord.result?.zipPath;
+    if (!zipPath) {
+      return res.status(404).json({ ok: false, error: "Artifact not found" });
+    }
+    const absolutePath = path.resolve(zipPath);
+    if (!absolutePath.startsWith(path.resolve(LETTERS_DIR))) {
+      return res.status(400).json({ ok: false, error: "Invalid artifact path" });
+    }
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ ok: false, error: "Artifact missing" });
+    }
+    res.download(absolutePath, path.basename(absolutePath));
+  } catch (err) {
+    logError("JOB_ARTIFACT_ERROR", "Failed to serve job artifact", err, { jobId: req.params.jobId });
+    res.status(500).json({ ok: false, error: "Failed to load artifact" });
+  }
+});
+
+app.post(
+  "/api/letters/:jobId/pdf",
+  authenticate,
+  requirePermission("letters", { allowGuest: true }),
+  enforceTenantQuota("letters:pdf"),
+  async (req, res) => {
+    try {
+      let idempotencyKey;
+      try {
+        idempotencyKey = sanitizeIdempotencyKey(req.get("x-idempotency-key"));
+      } catch (err) {
+        return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (!idempotencyKey) {
+        return res.status(400).json({ ok: false, error: "x-idempotency-key header required" });
+      }
+
+      const tenantId = resolveRequestTenant(req);
+      const sourceJobId = String(req.params.jobId || "").trim();
+      if (!sourceJobId) {
+        return res.status(400).json({ ok: false, error: "Letters job ID required" });
+      }
+
+      const compositeKey = `${sourceJobId}:${idempotencyKey}`;
+      const existing = await readIdempotencyRecord(tenantId, JOB_TYPES.LETTERS_PDF, compositeKey);
+      if (existing?.jobId) {
+        const jobRecord = await getJobRecord(tenantId, existing.jobId);
+        if (jobRecord) {
+          return res.status(200).json({
+            ok: true,
+            jobId: jobRecord.id,
+            status: jobRecord.status,
+            type: jobRecord.type,
+            job: sanitizeJobForResponse(jobRecord),
+          });
+        }
+      }
+
+      const letterJobRecord = await getJobRecord(tenantId, sourceJobId);
+      if (!letterJobRecord || letterJobRecord.type !== JOB_TYPES.LETTERS_GENERATE) {
+        return res.status(404).json({ ok: false, error: "Letters job not found" });
+      }
+      if (letterJobRecord.status !== "completed") {
+        return res.status(409).json({ ok: false, error: "Letters job still processing", status: letterJobRecord.status });
+      }
+
+      const userId = req.user?.id || "guest";
+      const letterJob = await loadJobForUser(sourceJobId, userId);
+      if (!letterJob) {
+        return res.status(404).json({ ok: false, error: "Letters job not found or expired" });
+      }
+
+      const jobId = crypto.randomBytes(8).toString("hex");
+      const metadata = {
+        sourceJobId,
+        lettersCount: Array.isArray(letterJob.job?.letters) ? letterJob.job.letters.length : 0,
+      };
+      await createJobRecord({
+        tenantId,
+        jobId,
+        type: JOB_TYPES.LETTERS_PDF,
+        userId,
+        metadata,
+        idempotencyKey: compositeKey,
+      });
+      await writeIdempotencyRecord(tenantId, JOB_TYPES.LETTERS_PDF, compositeKey, { jobId });
+
+      await enqueueJob(JOB_TYPES.LETTERS_PDF, {
+        jobId,
+        tenantId,
+        userId,
+        payload: { sourceJobId },
+      });
+
+      const jobRecord = await getJobRecord(tenantId, jobId);
+      res.status(202).json({
+        ok: true,
+        jobId,
+        status: jobRecord?.status || "queued",
+        type: JOB_TYPES.LETTERS_PDF,
+        job: sanitizeJobForResponse(jobRecord),
+      });
+    } catch (err) {
+      logError("LETTER_PDF_JOB_ERROR", "Failed to queue PDF job", err, { jobId: req.params.jobId });
+      res.status(500).json({ ok: false, error: "Failed to queue PDF job" });
+    }
+  },
+);
+
+
+// Generate letters (from selections) -> background job
+app.post(
+  "/api/generate",
+  authenticate,
+  requirePermission("letters", { allowGuest: true }),
+  enforceTenantQuota("letters:generate"),
+  async (req, res) => {
+    try {
+      let idempotencyKey;
+      try {
+        idempotencyKey = sanitizeIdempotencyKey(req.get("x-idempotency-key"));
+      } catch (err) {
+        return res.status(400).json({ ok: false, error: err.message });
+      }
+      if (!idempotencyKey) {
+        return res.status(400).json({ ok: false, error: "x-idempotency-key header required" });
+      }
+
+      const tenantId = resolveRequestTenant(req);
+      const existing = await readIdempotencyRecord(tenantId, JOB_TYPES.LETTERS_GENERATE, idempotencyKey);
+      if (existing?.jobId) {
+        const jobRecord = await getJobRecord(tenantId, existing.jobId);
+        if (jobRecord) {
+          return res.status(200).json({
+            ok: true,
+            jobId: jobRecord.id,
+            status: jobRecord.status,
+            type: jobRecord.type,
+            job: sanitizeJobForResponse(jobRecord),
+          });
+        }
+      }
+
+      const payload = req.body || {};
+      const preflight = await preflightLettersJob(payload, {
+        tenantId,
+        userId: req.user?.id || null,
+      });
+      if (!preflight.ok) {
+        const response = { ok: false, error: preflight.error || "Unable to queue letters" };
+        if (preflight.validation) {
+          response.validation = preflight.validation;
+        }
+        return res.status(preflight.status || 400).json(response);
+      }
+
+      const jobId = crypto.randomBytes(8).toString("hex");
+      const metadata = {
+        consumerId: preflight.context.consumerId,
+        reportId: preflight.context.reportId,
+        requestedBureaus: preflight.context.requestedBureaus,
+        selectionCount: preflight.context.selectionCount,
+      };
+      await createJobRecord({
+        tenantId,
+        jobId,
+        type: JOB_TYPES.LETTERS_GENERATE,
+        userId: req.user?.id || null,
+        metadata,
+        idempotencyKey,
+      });
+      await writeIdempotencyRecord(tenantId, JOB_TYPES.LETTERS_GENERATE, idempotencyKey, { jobId });
+
+      await enqueueJob(JOB_TYPES.LETTERS_GENERATE, {
+        jobId,
+        tenantId,
+        userId: req.user?.id || null,
+        payload,
+      });
+
+      const jobRecord = await getJobRecord(tenantId, jobId);
+      const redirect = `/letters?job=${jobId}`;
+      res.status(202).json({
+        ok: true,
+        jobId,
+        status: jobRecord?.status || "queued",
+        type: JOB_TYPES.LETTERS_GENERATE,
+        redirect,
+        job: sanitizeJobForResponse(jobRecord),
+      });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ ok: false, error: String(e) });
+    }
+  },
+ );
 
 // List stored letter jobs
 app.get("/api/letters", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
@@ -4470,6 +5359,15 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters", { allo
 
   const { jobId } = req.params;
   const userId = req.user?.id || "guest";
+  const tenantId = resolveRequestTenant(req);
+  const jobRecord = await getJobRecord(tenantId, jobId);
+  if (jobRecord && jobRecord.status !== "completed") {
+    return res.status(202).json({
+      ok: false,
+      status: jobRecord.status,
+      job: sanitizeJobForResponse(jobRecord),
+    });
+  }
   const result = await loadJobForUser(jobId, userId);
   if(!result) return res.status(404).json({ ok:false, error:"Job not found or expired" });
   const { job } = result;
@@ -4485,6 +5383,11 @@ app.get("/api/letters/:jobId/:idx.html", optionalAuth, async (req,res)=>{
   const { jobId, idx } = req.params;
   if(req.user && !hasPermission(req.user, "letters")){
     return res.status(403).json({ ok:false, error:"Forbidden" });
+  }
+  const tenantId = resolveRequestTenant(req);
+  const jobRecord = await getJobRecord(tenantId, jobId);
+  if (jobRecord && jobRecord.status !== "completed") {
+    return res.status(202).json({ ok:false, status: jobRecord.status });
   }
   let job = null;
   if(req.user){
@@ -4508,6 +5411,11 @@ app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, enforceTenantQuota("letter
     return res.status(403).json({ ok:false, error:"Forbidden" });
   }
   console.log(`Generating PDF for job ${jobId} letter ${idx}`);
+  const tenantId = resolveRequestTenant(req);
+  const jobRecord = await getJobRecord(tenantId, jobId);
+  if (jobRecord && jobRecord.status !== "completed") {
+    return res.status(202).json({ ok:false, status: jobRecord.status });
+  }
   let job = null;
   if(req.user){
     const result = await loadJobForUser(jobId, req.user.id);

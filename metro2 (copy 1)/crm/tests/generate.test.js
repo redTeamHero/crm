@@ -108,6 +108,25 @@ function url(pathname = ''){
   return `http://localhost:${currentPort}${pathname}`;
 }
 
+function buildIdempotencyKey(suffix = 'job'){ return `test-${suffix}-${Date.now()}-${Math.random().toString(16).slice(2)}`; }
+
+async function waitForJob(jobId, timeoutMs = 60000){
+  const start = Date.now();
+  while(Date.now() - start < timeoutMs){
+    const { res, json } = await fetchJson(url(`/api/jobs/${jobId}`));
+    if (res.status === 404) {
+      throw new Error('Job not found');
+    }
+    const status = json?.job?.status;
+    if(status === 'completed') return json.job;
+    if(status === 'failed'){
+      throw new Error(json.job?.error?.message || 'Job failed');
+    }
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  throw new Error('Timed out waiting for job completion');
+}
+
 async function stopServer(proc){
   if (!proc) {
     currentPort = 0;
@@ -135,18 +154,19 @@ await test('server rejects and accepts selections appropriately', async () => {
     // missing bureaus should fail
     let res, json;
     ({ res } = await fetchJson(url('/api/generate'), {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-idempotency-key': buildIdempotencyKey('missing-bureaus')},
       body: JSON.stringify({ consumerId, reportId, selections:[{ tradelineIndex:0, specialMode:'identity' }], requestType:'correct' })
     }));
     assert.equal(res.status, 400);
 
     // valid selection
     ({ res, json } = await fetchJson(url('/api/generate'), {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json','x-idempotency-key': buildIdempotencyKey('valid')},
       body: JSON.stringify({ consumerId, reportId, selections:[{ tradelineIndex:0, specialMode:'identity', bureaus:['TransUnion'] }], requestType:'correct' })
     }));
-    assert.equal(res.status, 200);
-    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    assert.equal(res.status, 202);
+    const jobId = json.jobId;
+    await waitForJob(jobId);
 
     ({ json } = await fetchJson(url(`/api/letters/${jobId}`)));
     assert.equal(json.letters[0].bureau, 'TransUnion');
@@ -178,11 +198,12 @@ await test('letters include manual creditor and account numbers', async () => {
     };
     const { res, json } = await fetchJson(url('/api/generate'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('manual-creditor') },
       body: JSON.stringify({ consumerId, reportId, selections: [selection], requestType: 'correct' })
     });
-    assert.equal(res.status, 200);
-    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    assert.equal(res.status, 202);
+    const jobId = json.jobId;
+    await waitForJob(jobId);
     await fetchJson(url(`/api/letters/${jobId}`));
     const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`));
     const html = await htmlRes.text();
@@ -206,11 +227,12 @@ await test('letters include manual dispute reason', async () => {
     };
     const { res, json } = await fetchJson(url('/api/generate'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('manual-reason') },
       body: JSON.stringify({ consumerId, reportId, selections: [selection], requestType: 'correct' })
     });
-    assert.equal(res.status, 200);
-    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    assert.equal(res.status, 202);
+    const jobId = json.jobId;
+    await waitForJob(jobId);
     const { json: letters } = await fetchJson(url(`/api/letters/${jobId}`));
     assert.equal(letters.letters[0].specificDisputeReason, 'Manual reason');
     const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`));
@@ -239,11 +261,12 @@ await test('useOcr flag applies to all generated letters', async () => {
     };
     const { res, json } = await fetchJson(url('/api/generate'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('use-ocr') },
       body: JSON.stringify(payload),
     });
-    assert.equal(res.status, 200);
-    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    assert.equal(res.status, 202);
+    const jobId = json.jobId;
+    await waitForJob(jobId);
     const idx = await readKey('letter_jobs_idx', { jobs: {} });
     const job = idx.jobs[jobId];
     assert.ok(job);
@@ -273,11 +296,12 @@ await test('custom template selection applies template content', async () => {
     };
     const { res, json } = await fetchJson(url('/api/generate'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('custom-template') },
       body: JSON.stringify(payload)
     });
-    assert.equal(res.status, 200);
-    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    assert.equal(res.status, 202);
+    const jobId = json.jobId;
+    await waitForJob(jobId);
     const htmlRes = await fetch(url(`/api/letters/${jobId}/0.html`));
     const html = await htmlRes.text();
     assert.ok(html.includes('Custom Heading'));
@@ -323,11 +347,12 @@ await test('template requestType defaults selection type', async () => {
     };
     const { res, json } = await fetchJson(url('/api/generate'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('template-request-type') },
       body: JSON.stringify(payload)
     });
-    assert.equal(res.status, 200);
-    const jobId = new URLSearchParams(json.redirect.split('?')[1]).get('job');
+    assert.equal(res.status, 202);
+    const jobId = json.jobId;
+    await waitForJob(jobId);
     const { json: meta } = await fetchJson(url(`/api/letters/${jobId}`));
     assert.equal(meta.letters[0].requestType, 'delete');
   } finally {

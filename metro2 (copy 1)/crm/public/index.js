@@ -44,6 +44,27 @@ let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 let trackerData = {};
 
+function buildIdempotencyKey(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+async function waitForJobCompletion(jobId, { timeoutMs = 120000, intervalMs = 1500 } = {}) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const jobResp = await api(`/api/jobs/${encodeURIComponent(jobId)}`);
+    const status = jobResp?.job?.status;
+    if (status === 'completed') {
+      return jobResp.job;
+    }
+    if (status === 'failed') {
+      const message = jobResp.job?.error?.message || 'Background job failed.';
+      throw new Error(message);
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error('Background job timed out.');
+}
+
 function updateToplineMetrics() {
   const metric = (id, value) => {
     const el = document.getElementById(id);
@@ -1361,7 +1382,7 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     if(!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one negative item, collector, or select Personal Info.");
     const resp = await fetch("/api/generate", {
       method: "POST",
-      headers: { "Content-Type":"application/json", ...authHeader() },
+      headers: { "Content-Type":"application/json", "x-idempotency-key": buildIdempotencyKey('letters-generate'), ...authHeader() },
       body: JSON.stringify({
         consumerId: currentConsumerId,
         reportId: currentReportId,
@@ -1704,14 +1725,22 @@ $("#btnAuditReport").addEventListener("click", async ()=>{
   btn.textContent = "Auditing...";
   try{
     const payload = selections.length ? { selections } : {};
-    const res = await fetch(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, {
+    const response = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}/audit`, {
       method:"POST",
-      headers:{ "Content-Type":"application/json" },
+      headers:{ "Content-Type":"application/json", "x-idempotency-key": buildIdempotencyKey('audit-report') },
       body: JSON.stringify(payload)
-    }).then(r=>r.json());
-    if(!res?.ok) return showErr(res?.error || "Failed to run audit.");
-    if(res.url) window.open(res.url, "_blank");
-    if(res.warning) showErr(res.warning);
+    });
+    if(response.status === 202 && response.jobId){
+      const job = await waitForJobCompletion(response.jobId);
+      const target = job?.result?.storedFile?.url || job?.result?.url;
+      if(target) window.open(target, "_blank");
+      if(job?.result?.warning) showErr(job.result.warning);
+      await loadConsumerState();
+      return;
+    }
+    if(!response?.ok) return showErr(response?.error || "Failed to run audit.");
+    if(response.url) window.open(response.url, "_blank");
+    if(response.warning) showErr(response.warning);
   }catch(err){
     showErr(String(err));
   }finally{
