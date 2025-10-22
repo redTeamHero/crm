@@ -100,6 +100,14 @@ SEVERITY: Dict[str, int] = {
     "General": 3,
 }
 
+# Modern audit engine expresses severity as human-readable buckets.  Legacy
+# consumers expect an integer scale, so we keep a small translation table.
+MODERN_SEVERITY_TO_LEGACY: Dict[str, int] = {
+    "minor": 3,
+    "moderate": 4,
+    "major": 5,
+}
+
 # When a legacy rule is executing it toggles this global with the active rule
 # identifier.  We honour it so make_violation can enrich the payload with
 # metadata from the shared metro2Violations.json file.
@@ -1032,6 +1040,52 @@ def r_missing_dofd(
     emit(violation)
 
 
+def _section_from_rule(rule_id: str) -> str:
+    """Best-effort mapping of rule identifiers to legacy UI sections."""
+
+    upper = rule_id.upper()
+    if any(keyword in upper for keyword in ("DATE", "DOFD", "REPORTED", "REPORT")):
+        return "Dates"
+    if any(keyword in upper for keyword in ("BALANCE", "PAYMENT", "LIMIT", "UTILIZATION", "STATUS", "PAST_DUE", "ACCOUNT")):
+        return "Account"
+    return "General"
+
+
+def _translate_modern_violation(
+    violation: Dict[str, Any], bureau: Optional[str], account_display: Optional[str]
+) -> Dict[str, Any]:
+    """Convert new-engine violations into the legacy make_violation payload."""
+
+    rule_id = str(violation.get("id") or "").strip() or "METRO2"
+    section = violation.get("section") or _section_from_rule(rule_id)
+    title = violation.get("title") or re.sub(r"[_\s]+", " ", rule_id).title()
+    detail = violation.get("detail") or violation.get("message") or title
+
+    meta: Dict[str, Any] = {
+        key: value
+        for key, value in violation.items()
+        if key
+        not in {"id", "title", "severity", "fcra_section", "fcraSection", "message", "detail", "section"}
+    }
+    meta["rule_id"] = rule_id
+    if bureau:
+        meta["bureau"] = bureau
+    if account_display and "account_number" not in meta:
+        meta["account_number"] = account_display
+
+    fcra_value = violation.get("fcra_section") or violation.get("fcraSection")
+    if fcra_value:
+        meta.setdefault("fcraSection", fcra_value)
+
+    severity_label = violation.get("severity")
+    if isinstance(severity_label, str):
+        level = MODERN_SEVERITY_TO_LEGACY.get(severity_label.lower())
+        if level is not None:
+            meta.setdefault("severity", level)
+
+    return make_violation(section, title, detail, meta)
+
+
 def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for record in tradelines:
         record["violations"] = []
@@ -1117,9 +1171,21 @@ def run_rules_for_tradeline(
         bureau = record.get("bureau")
         account_display = record.get("account_number") or meta["account_numbers"].get(bureau)
         for violation in record.get("violations", []):
-            rule_id = violation.get("id") or "METRO2"
+            rule_id = str(violation.get("id") or "METRO2")
+
+            # Honour legacy disable switches by either rule name or Metro2 code.
+            if rule_id in disabled:
+                continue
+            code_hint = violation.get("code")
+            if code_hint and str(code_hint) in disabled:
+                continue
+            if rule_id.startswith("METRO2_CODE_"):
+                numeric = rule_id.rsplit("_", 1)[-1]
+                if numeric and numeric in disabled:
+                    continue
+
             if rule_id == "METRO2_CODE_10_DUPLICATE":
-                if "10" in disabled:
+                if "10" in disabled or rule_id in disabled:
                     continue
                 results.append(
                     make_violation(
@@ -1134,6 +1200,9 @@ def run_rules_for_tradeline(
                         },
                     )
                 )
+                continue
+
+            results.append(_translate_modern_violation(violation, bureau, account_display))
 
     return results, meta
 
