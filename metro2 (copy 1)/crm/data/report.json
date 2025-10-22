@@ -14,13 +14,13 @@
         "TransUnion": {
           "account_number": "1111",
           "payment_status": "Current",
-          "past_due": 100.0,
+          "past_due": 100,
           "past_due_raw": "$100",
           "date_first_delinquency": null,
           "date_first_delinquency_raw": "",
-          "balance": 100.0,
+          "balance": 100,
           "balance_raw": "$1,000",
-          "credit_limit": 500.0,
+          "credit_limit": 500,
           "credit_limit_raw": "$500",
           "date_opened": "2020-01-01",
           "date_opened_raw": "01/01/2020",
@@ -30,13 +30,13 @@
         "Experian": {
           "account_number": "1111",
           "payment_status": "Current",
-          "past_due": 0.0,
+          "past_due": 0,
           "past_due_raw": "$0",
           "date_first_delinquency": null,
           "date_first_delinquency_raw": "",
-          "balance": 100.0,
+          "balance": 100,
           "balance_raw": "$1,000",
-          "credit_limit": 500.0,
+          "credit_limit": 500,
           "credit_limit_raw": "$500",
           "date_opened": "2020-01-01",
           "date_opened_raw": "01/01/2020",
@@ -46,13 +46,13 @@
         "Equifax": {
           "account_number": "1111",
           "payment_status": "Current",
-          "past_due": 0.0,
+          "past_due": 0,
           "past_due_raw": "$0",
           "date_first_delinquency": null,
           "date_first_delinquency_raw": "",
-          "balance": 120.0,
+          "balance": 120,
           "balance_raw": "$1,200",
-          "credit_limit": 500.0,
+          "credit_limit": 500,
           "credit_limit_raw": "$500",
           "date_opened": "2020-01-01",
           "date_opened_raw": "01/01/2020",
@@ -70,9 +70,9 @@
           "detail": "Inconsistent balance across bureaus.",
           "evidence": {
             "balance_by_bureau": {
-              "TransUnion": 100.0,
-              "Experian": 100.0,
-              "Equifax": 120.0
+              "TransUnion": 100,
+              "Experian": 100,
+              "Equifax": 120
             }
           },
           "id": "X_BUREAU_FIELD_MISMATCH",
@@ -84,9 +84,9 @@
           "detail": "Inconsistent past due across bureaus.",
           "evidence": {
             "past_due_by_bureau": {
-              "TransUnion": 100.0,
-              "Experian": 0.0,
-              "Equifax": 0.0
+              "TransUnion": 100,
+              "Experian": 0,
+              "Equifax": 0
             }
           },
           "id": "X_BUREAU_FIELD_MISMATCH",
@@ -122,7 +122,7 @@
           "detail": "Past-due > 0 conflicts with 'Current' status.",
           "evidence": {
             "bureau": "TransUnion",
-            "past_due": 100.0,
+            "past_due": 100,
             "payment_status": "Current"
           },
           "id": "CURRENT_BUT_PASTDUE",
@@ -169,9 +169,9 @@
             "detail": "Inconsistent balance across bureaus.",
             "evidence": {
               "balance_by_bureau": {
-                "TransUnion": 100.0,
-                "Experian": 100.0,
-                "Equifax": 120.0
+                "TransUnion": 100,
+                "Experian": 100,
+                "Equifax": 120
               }
             },
             "id": "X_BUREAU_FIELD_MISMATCH",
@@ -183,9 +183,9 @@
             "detail": "Inconsistent past due across bureaus.",
             "evidence": {
               "past_due_by_bureau": {
-                "TransUnion": 100.0,
-                "Experian": 0.0,
-                "Equifax": 0.0
+                "TransUnion": 100,
+                "Experian": 0,
+                "Equifax": 0
               }
             },
             "id": "X_BUREAU_FIELD_MISMATCH",
@@ -257,7 +257,7 @@
             "detail": "Past-due > 0 conflicts with 'Current' status.",
             "evidence": {
               "bureau": "TransUnion",
-              "past_due": 100.0,
+              "past_due": 100,
               "payment_status": "Current"
             },
             "id": "CURRENT_BUT_PASTDUE",
@@ -265,7 +265,87 @@
           }
         ]
       }
+    },
+    {
+      "meta": {
+        "creditor": "Rule Debug – Account Current yet Past Due > 0",
+        "rule_code": "CURRENT_BUT_PASTDUE",
+        "description": "Account Current yet Past Due > 0",
+        "tags": [
+          "rule-debug-auto"
+        ],
+        "account_numbers": {
+          "TransUnion": "RULE-001"
+        }
+      },
+      "per_bureau": {
+        "TransUnion": {
+          "account_number": "RULE-001",
+          "account_status": "Current",
+          "past_due": 150,
+          "past_due_raw": "$150.00",
+          "payment_status": "Current",
+          "balance": 1200,
+          "balance_raw": "$1200.00",
+          "credit_limit": 5000,
+          "credit_limit_raw": "$5000.00",
+          "high_credit": 5200,
+          "high_credit_raw": "$5200.00",
+          "date_opened": "2019-01-01",
+          "date_opened_raw": "2019-01-01",
+          "last_reported": "2024-01-15",
+          "last_reported_raw": "2024-01-15",
+          "date_last_payment": "2023-12-01",
+          "date_last_payment_raw": "2023-12-01",
+          "Status": "Provided",
+          "PastDue": "Provided"
+        }
+      },
+      "metrics": {
+        "avg_utilization": 24
+      }
+    },
+    {
+      "meta": {
+        "creditor": "Rule Debug – Missing or invalid Date of First Delinquency",
+        "rule_code": "MISSING_DOFD",
+        "description": "Missing or invalid Date of First Delinquency",
+        "tags": [
+          "rule-debug-auto"
+        ],
+        "account_numbers": {
+          "TransUnion": "RULE-002"
+        }
+      },
+      "per_bureau": {
+        "TransUnion": {
+          "account_number": "RULE-002",
+          "account_status": "Charge-off",
+          "date_first_delinquency": "",
+          "date_first_delinquency_raw": "",
+          "payment_status": "Charge-off",
+          "balance": 1450,
+          "balance_raw": "$1450.00",
+          "credit_limit": 5000,
+          "credit_limit_raw": "$5000.00",
+          "high_credit": 5200,
+          "high_credit_raw": "$5200.00",
+          "past_due": 0,
+          "past_due_raw": "$0.00",
+          "date_opened": "2019-01-01",
+          "date_opened_raw": "2019-01-01",
+          "last_reported": "2024-01-15",
+          "last_reported_raw": "2024-01-15",
+          "date_last_payment": "2023-12-01",
+          "date_last_payment_raw": "2023-12-01",
+          "DateOfFirstDelinquency": "Provided"
+        }
+      },
+      "metrics": {
+        "avg_utilization": 29
+      }
     }
   ],
-  "inquiries": []
+  "inquiries": [],
+  "generated_at": "2025-10-22T13:30:04.296Z"
 }

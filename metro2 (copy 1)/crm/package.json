@@ -12,7 +12,8 @@
     "test": "node --test tests/*.test.js",
     "marketing:twilio-worker": "node scripts/marketingTwilioWorker.js",
     "setup:chrome": "bash install-chrome-deps.sh",
-    "migrate": "node scripts/runMigrations.js"
+    "migrate": "node scripts/runMigrations.js",
+    "generate:rule-report": "node scripts/generateRuleTestReport.js"
   },
   "dependencies": {
     "archiver": "^6.0.2",
