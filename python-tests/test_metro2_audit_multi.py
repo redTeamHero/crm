@@ -88,6 +88,38 @@ class TestModernAuditBridge(unittest.TestCase):
             self.assertEqual(violation.get("message"), "Missing Date Opened field")
 
 
+class TestDisableConfig(unittest.TestCase):
+    def _chargeoff_tradeline(self):
+        per_bureau = {b: {} for b in m2.BUREAUS}
+        for bureau in m2.BUREAUS:
+            per_bureau[bureau].update(
+                {
+                    "account_status": "Charge-off",
+                    "balance": "2500",
+                }
+            )
+        return per_bureau
+
+    def test_bridge_returns_metro2_code_findings(self):
+        m2.SEEN_ACCOUNT_NUMBERS.clear()
+        per_bureau = self._chargeoff_tradeline()
+        violations, _ = m2.run_rules_for_tradeline("CredMetro", per_bureau, None)
+
+        ids = [v.get("id") for v in violations]
+        self.assertIn("METRO2_CODE_8_MISSING_DOFD", ids)
+
+    def test_numeric_disable_targets_leading_code_digits(self):
+        m2.SEEN_ACCOUNT_NUMBERS.clear()
+        per_bureau = self._chargeoff_tradeline()
+        config = {"global": {"disabled": ["8"]}}
+
+        violations, _ = m2.run_rules_for_tradeline("CredDisabled", per_bureau, config)
+
+        ids = {v.get("id") for v in violations}
+        self.assertNotIn("METRO2_CODE_8_MISSING_DOFD", ids)
+        self.assertIn("MISSING_OPEN_DATE", ids)
+
+
 class TestAccountNumberParsing(unittest.TestCase):
     def test_account_number_without_colon_included_in_output(self):
         html = """

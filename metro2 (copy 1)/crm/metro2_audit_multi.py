@@ -1123,6 +1123,18 @@ def detect_inquiry_no_match(inquiries: List[Dict[str, str]], tradelines: List[Di
     return violations
 
 
+def _extract_numeric_code(rule_id: str) -> Optional[str]:
+    """Return the first numeric token embedded in a Metro-2 rule identifier."""
+
+    match = re.search(r"METRO2_CODE_(\d+)", rule_id)
+    if match:
+        return match.group(1)
+    match = re.search(r"(\d+)", rule_id)
+    if match:
+        return match.group(1)
+    return None
+
+
 def run_rules_for_tradeline(
     creditor_name: str,
     per_bureau: Dict[str, Dict[str, Any]],
@@ -1179,10 +1191,9 @@ def run_rules_for_tradeline(
             code_hint = violation.get("code")
             if code_hint and str(code_hint) in disabled:
                 continue
-            if rule_id.startswith("METRO2_CODE_"):
-                numeric = rule_id.rsplit("_", 1)[-1]
-                if numeric and numeric in disabled:
-                    continue
+            numeric = _extract_numeric_code(rule_id)
+            if numeric and numeric in disabled:
+                continue
 
             if rule_id == "METRO2_CODE_10_DUPLICATE":
                 if "10" in disabled or rule_id in disabled:
