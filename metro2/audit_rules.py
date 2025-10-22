@@ -286,16 +286,25 @@ def normalize_tradeline(record: MutableMapping[str, Any]) -> None:
         record.update(staged_updates)
 
     for canonical, aliases in FIELD_SYNONYMS.items():
-        if canonical in record and record[canonical] not in (None, ""):
+        canonical_value = record.get(canonical)
+        if canonical_value not in (None, ""):
             continue
         for alias in aliases:
-            alias_key = alias
-            alias_normalized = _normalize_key_name(alias) if isinstance(alias, str) else alias
-            if alias_key in record and record[alias_key] not in (None, ""):
-                record.setdefault(canonical, record[alias_key])
-                break
-            if alias_normalized in record and record[alias_normalized] not in (None, ""):
-                record.setdefault(canonical, record[alias_normalized])
+            candidate_keys = []
+            if isinstance(alias, str):
+                candidate_keys.append(alias)
+                normalized = _normalize_key_name(alias)
+                if normalized and normalized != alias:
+                    candidate_keys.append(normalized)
+            else:
+                candidate_keys.append(alias)
+
+            for candidate_key in candidate_keys:
+                if candidate_key in record and record[candidate_key] not in (None, ""):
+                    record[canonical] = record[candidate_key]
+                    canonical_value = record[canonical]
+                    break
+            if canonical_value not in (None, ""):
                 break
 
     if "bureau" in record and isinstance(record["bureau"], str):
