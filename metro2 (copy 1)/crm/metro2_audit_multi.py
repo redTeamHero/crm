@@ -370,14 +370,30 @@ def _looks_like_creditor_header(tag: Tag) -> bool:
 
 def _iter_header_candidates(table: Tag):
     current: Optional[Tag] = table
+    seen: set[int] = set()
+
     while isinstance(current, Tag):
-        if _looks_like_creditor_header(current) and current is not table:
-            yield current
+        if current is not table and _looks_like_creditor_header(current):
+            if id(current) not in seen:
+                seen.add(id(current))
+                yield current
+
         sibling = current.previous_sibling
         while sibling is not None:
-            if isinstance(sibling, Tag) and _looks_like_creditor_header(sibling):
-                yield sibling
+            if isinstance(sibling, Tag) and id(sibling) not in seen:
+                seen.add(id(sibling))
+                if _looks_like_creditor_header(sibling):
+                    yield sibling
             sibling = sibling.previous_sibling
+
+        sibling = current.next_sibling
+        while sibling is not None:
+            if isinstance(sibling, Tag) and id(sibling) not in seen:
+                seen.add(id(sibling))
+                if _looks_like_creditor_header(sibling):
+                    yield sibling
+            sibling = sibling.next_sibling
+
         current = current.parent if isinstance(current, Tag) else None
 
 
@@ -392,6 +408,17 @@ def extract_creditor_name(table: Any) -> Optional[str]:
         if candidate_name.lower() in NON_CREDITOR_HEADERS:
             continue
         return candidate_name
+
+    container = table.find_parent(class_="ng-binding")
+    if not isinstance(container, Tag):
+        container = table.parent if isinstance(table.parent, Tag) else None
+
+    if isinstance(container, Tag):
+        fallback_header = container.find("div", class_=HEADER_CLASS_RE)
+        if isinstance(fallback_header, Tag):
+            fallback = _clean_creditor_name(fallback_header.get_text(" ", strip=True))
+            if fallback and fallback.lower() not in NON_CREDITOR_HEADERS:
+                return fallback
 
     text_block = table.get_text(" ", strip=True)
     match = re.match(r"([A-Z0-9\s&.\-]+)\s+TransUnion", text_block)
