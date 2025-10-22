@@ -21,7 +21,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from bs4 import BeautifulSoup
 
@@ -79,6 +79,31 @@ FIELD_ALIASES: Dict[str, str] = {
 }
 
 BUREAUS: Sequence[str] = ("TransUnion", "Experian", "Equifax")
+
+
+# ---------------------------------------------------------------------------
+# Backwards-compatible globals expected by legacy tooling/tests
+# ---------------------------------------------------------------------------
+
+# Older automation relies on a global registry of seen account numbers to
+# detect duplicates as each tradeline is processed.  The modern rule engine
+# keeps everything functional-style, so we maintain this helper structure to
+# bridge both worlds.
+SEEN_ACCOUNT_NUMBERS: defaultdict[str, set[str]] = defaultdict(set)
+
+# Legacy clients reference a simple severity lookup keyed by UI section.  The
+# comprehensive rulebook still provides severities when known, but we keep a
+# small default mapping so compatibility shims can fall back gracefully.
+SEVERITY: Dict[str, int] = {
+    "Dates": 5,
+    "Account": 4,
+    "General": 3,
+}
+
+# When a legacy rule is executing it toggles this global with the active rule
+# identifier.  We honour it so make_violation can enrich the payload with
+# metadata from the shared metro2Violations.json file.
+_CURRENT_RULE_ID: Optional[str] = None
 
 
 
@@ -320,6 +345,69 @@ def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
     return tradelines
 
 
+def extract_all_tradelines(soup: BeautifulSoup) -> List[Dict[str, Any]]:
+    """Aggregate tradeline details across bureaus for compatibility helpers."""
+
+    tradelines: List[Dict[str, Any]] = []
+    for container in soup.select("td.ng-binding"):
+        creditor_el = container.find("div", class_="sub_header")
+        table = container.find("table")
+        if not table:
+            continue
+
+        rows = table.find_all("tr")
+        if len(rows) < 2:
+            continue
+
+        header_cells = rows[0].find_all(["th", "td"])
+        bureau_order: List[Optional[str]] = []
+        for cell in header_cells[1:]:
+            header_text = _strip_text(cell)
+            matched = None
+            for bureau in BUREAUS:
+                if bureau.lower() in header_text.lower():
+                    matched = bureau
+                    break
+            bureau_order.append(matched)
+
+        per_bureau: Dict[str, Dict[str, str]] = {bureau: {} for bureau in BUREAUS}
+        for row in rows[1:]:
+            cells = row.find_all("td")
+            if len(cells) < 2:
+                continue
+            label = _strip_text(cells[0])
+            label = re.sub(r"[:：]\s*$", "", label)
+            key = _normalize_field(label)
+            for idx, cell in enumerate(cells[1:]):
+                if idx >= len(bureau_order):
+                    break
+                bureau = bureau_order[idx]
+                if not bureau:
+                    continue
+                value = _strip_text(cell)
+                if value:
+                    per_bureau[bureau][key] = value
+
+        if not any(per_bureau.values()):
+            continue
+
+        creditor_name = creditor_el.get_text(strip=True) if creditor_el else "Unknown Creditor"
+        meta = {"account_numbers": {}}
+        for bureau in BUREAUS:
+            if "account_number" in per_bureau[bureau]:
+                meta["account_numbers"][bureau] = per_bureau[bureau]["account_number"]
+
+        tradelines.append(
+            {
+                "creditor_name": creditor_name,
+                "per_bureau": per_bureau,
+                "meta": meta,
+            }
+        )
+
+    return tradelines
+
+
 # ---------------------------------------------------------------------------
 # Inquiry parsing
 # ---------------------------------------------------------------------------
@@ -363,6 +451,38 @@ def _violation(rule_id: str, title: str, **extra: Any) -> Dict[str, Any]:
     if extra:
         payload.update(extra)
     return payload
+
+
+def make_violation(section: str, title: str, description: str, meta: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Legacy helper that enriches violations using the shared rulebook."""
+
+    meta = dict(meta or {})
+    rule_id = meta.pop("rule_id", None) or _CURRENT_RULE_ID
+    violation: Dict[str, Any] = {
+        "section": section,
+        "title": title,
+        "message": description,
+        **meta,
+    }
+
+    if rule_id and rule_id in RULEBOOK:
+        rule_data = RULEBOOK[rule_id]
+        violation.setdefault("id", rule_data.get("id", rule_id))
+        if isinstance(rule_data.get("severity"), int):
+            violation.setdefault("severity", rule_data["severity"])
+        if rule_data.get("fcraSection"):
+            violation.setdefault("fcraSection", rule_data["fcraSection"])
+    else:
+        # Default identifier/severity fallbacks keep legacy consumers functional
+        if rule_id and "id" not in violation:
+            violation["id"] = rule_id
+        if section in SEVERITY:
+            violation.setdefault("severity", SEVERITY[section])
+
+    if "id" not in violation:
+        violation["id"] = re.sub(r"\s+", "_", title).upper()
+
+    return violation
 
 
 def r_cross_bureau_field_mismatch(
@@ -872,6 +992,46 @@ RULES: Sequence[RuleFunc] = (
 )
 
 
+def r_missing_dofd(
+    config: Optional[Dict[str, Any]],
+    bureau: str,
+    tradeline: Dict[str, Any],
+    emit: Callable[[Dict[str, Any]], None],
+) -> None:
+    """Compatibility shim for legacy Metro-2 rule runners.
+
+    Older flows executed rules with side-effect callbacks.  The modern rule
+    engine is pure/functional, so we replicate the minimum behaviour expected
+    by the tests: emit a violation when a tradeline lacking DOFD data looks
+    substantive enough to audit.
+    """
+
+    del config  # Legacy signature included configuration we no longer need.
+
+    if not tradeline or not emit:
+        return
+
+    dofd = tradeline.get("date_of_first_delinquency") or tradeline.get("date_first_delinquency")
+    if dofd:
+        return
+
+    has_signal = any(tradeline.get(field) for field in ("account_number", "balance", "account_status"))
+    if not has_signal:
+        return
+
+    violation = make_violation(
+        "Dates",
+        "Missing Date of First Delinquency",
+        "Reported account is missing required Date of First Delinquency data",
+        {
+            "bureau": bureau,
+            "account_number": tradeline.get("account_number"),
+            "rule_id": "MISSING_DOFD",
+        },
+    )
+    emit(violation)
+
+
 def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for record in tradelines:
         record["violations"] = []
@@ -907,6 +1067,75 @@ def detect_inquiry_no_match(inquiries: List[Dict[str, str]], tradelines: List[Di
                 }
             )
     return violations
+
+
+def run_rules_for_tradeline(
+    creditor_name: str,
+    per_bureau: Dict[str, Dict[str, Any]],
+    config: Optional[Dict[str, Any]] = None,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Legacy rule-runner facade that feeds the modern audit engine."""
+
+    config = config or {}
+    disabled = {str(item) for item in config.get("global", {}).get("disabled", [])}
+
+    results: List[Dict[str, Any]] = []
+    meta = {"account_numbers": {}}
+    tradelines: List[Dict[str, Any]] = []
+
+    for bureau in BUREAUS:
+        record = dict(per_bureau.get(bureau, {}))
+        record["creditor_name"] = creditor_name
+        record["bureau"] = bureau
+        tradelines.append(record)
+
+        raw_account = record.get("account_number") or record.get("account #") or record.get("number")
+        if raw_account is not None:
+            meta["account_numbers"][bureau] = raw_account
+            normalized = _account_number_for(record)
+            if normalized:
+                seen = SEEN_ACCOUNT_NUMBERS[bureau]
+                if normalized in seen and "DUPLICATE_ACCOUNT" not in disabled:
+                    results.append(
+                        make_violation(
+                            "Account",
+                            "Duplicate account number reported",
+                            f"{bureau} already reported account {raw_account}",
+                            {
+                                "id": "DUPLICATE_ACCOUNT",
+                                "bureau": bureau,
+                                "account_number": raw_account,
+                                "rule_id": "DUPLICATE_ACCOUNT",
+                            },
+                        )
+                    )
+                else:
+                    seen.add(normalized)
+
+    audited = detect_tradeline_violations(tradelines)
+    for record in audited:
+        bureau = record.get("bureau")
+        account_display = record.get("account_number") or meta["account_numbers"].get(bureau)
+        for violation in record.get("violations", []):
+            rule_id = violation.get("id") or "METRO2"
+            if rule_id == "METRO2_CODE_10_DUPLICATE":
+                if "10" in disabled:
+                    continue
+                results.append(
+                    make_violation(
+                        "Metro2 Codes",
+                        "Duplicate account number detected",
+                        violation.get("title", ""),
+                        {
+                            "id": "10",
+                            "rule_id": rule_id,
+                            "bureau": bureau,
+                            "account_number": violation.get("account_number") or account_display,
+                        },
+                    )
+                )
+
+    return results, meta
 
 
 # ---------------------------------------------------------------------------
