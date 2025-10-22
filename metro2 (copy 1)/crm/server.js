@@ -991,9 +991,13 @@ app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboa
 app.get("/clients", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 app.get("/leads", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "leads.html")));
 app.get("/schedule", async (_req, res) => {
-  const settings = await loadSettings();
-  if (!settings.googleCalendarToken || !settings.googleCalendarId) {
-    return res.status(400).send("Google Calendar token or ID missing. Add them in Settings before using the schedule.");
+  try {
+    const settings = await loadSettings();
+    if (!settings.googleCalendarToken || !settings.googleCalendarId) {
+      res.set("X-Calendar-Mode", "local");
+    }
+  } catch (err) {
+    logWarn("SCHEDULE_SETTINGS_LOAD_FAILED", err?.message || "Failed to load settings for schedule page");
   }
   res.sendFile(path.join(PUBLIC_DIR, "schedule.html"));
 });
