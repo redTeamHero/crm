@@ -39,9 +39,41 @@ test('scrapeTradelines parses legacy data-attribute rows', async () => {
   assert.equal(row.price, 550);
   assert.equal(row.limit, 7500);
   assert.equal(row.age, '3 years');
-  assert.equal(row.statement_date, '');
+  assert.equal(row.statement_date, '15th');
   assert.equal(row.reporting, 'TransUnion, Equifax');
   assert.match(row.buy_link, /Alpha%20Bank/);
+});
+
+test('scrapeTradelines extracts bank names from nested markup with statement ranges', async () => {
+  const html = `
+    <table>
+      <tr>
+        <td class="product_data"
+            data-bankname="Nov 7th - Nov 14th"
+            data-creditlimit="$7,500"
+            data-seasoning="18 months"
+            data-statementdate="Nov 7th - Nov 14th"
+            data-reportingperiod="TransUnion, Equifax">
+          <div class="tradeline-card">
+            <strong class="bank-name">Discover</strong>
+            <div class="dates">Nov 7th - Nov 14th</div>
+          </div>
+        </td>
+        <td class="product_price">$480</td>
+      </tr>
+    </table>
+  `;
+
+  const results = await scrapeTradelines(async () => createResponse(html));
+  assert.equal(results.length, 1);
+  const [row] = results;
+  assert.equal(row.bank, 'Discover');
+  assert.equal(row.statement_date, 'Nov 7th - Nov 14th');
+  // $480 + $100 markup
+  assert.equal(row.price, 580);
+  assert.equal(row.limit, 7500);
+  assert.equal(row.age, '18 months');
+  assert.equal(row.reporting, 'TransUnion, Equifax');
 });
 
 test('scrapeTradelines does not treat purchase-by date as statement', async () => {
@@ -104,7 +136,7 @@ test('scrapeTradelines parses modern table layout with explicit client price', a
   assert.equal(row.price, 799);
   assert.equal(row.limit, 12000);
   assert.equal(row.age, '1 year');
-  assert.equal(row.statement_date, '');
+  assert.equal(row.statement_date, '10th');
   assert.equal(row.reporting, 'All Bureaus');
   assert.equal(row.buy_link, 'https://checkout.example.com/beta');
 });
