@@ -2,6 +2,7 @@
 
 import { escapeHtml, api, formatCurrency } from './common.js';
 import { renderClientLocations } from './client-map.js';
+import { resolveStateInfo, toTitleCase } from './state-utils.js';
 
 const TOUR_STEP_KEY = 'dashboard.tour.step';
 const TOUR_COMPLETE_KEY = 'dashboard.tour.complete';
@@ -67,21 +68,6 @@ let shepherdCheckPromise = null;
 let tourLoadingMessageShown = false;
 
 const LOCATION_COLORS = ['#0ea5e9', '#6366f1', '#22c55e', '#f97316', '#a855f7', '#ec4899', '#14b8a6', '#facc15'];
-const STATE_NAME_BY_CODE = {
-  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut',
-  DE: 'Delaware', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa',
-  KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan',
-  MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire',
-  NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
-  OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee',
-  TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
-  DC: 'District of Columbia', PR: 'Puerto Rico'
-};
-const STATE_CODE_BY_NAME = Object.entries(STATE_NAME_BY_CODE).reduce((acc, [code, name]) => {
-  acc[name.toUpperCase()] = code;
-  return acc;
-}, {});
-
 const locationChartState = {
   chart: null,
   mode: 'state',
@@ -399,28 +385,6 @@ function updateHeroCards(summary) {
   } else {
     setTextContent('heroUpsellCaption', 'Pitch monitoring + automation bundle on today’s calls.');
   }
-}
-
-function toTitleCase(value){
-  if(!value) return '';
-  return String(value)
-    .toLowerCase()
-    .replace(/\b([a-z])/g, (match, chr) => chr.toUpperCase());
-}
-
-function resolveStateInfo(raw){
-  if(raw === null || raw === undefined) return { code: null, name: null };
-  const trimmed = String(raw).trim();
-  if(!trimmed) return { code: null, name: null };
-  const upper = trimmed.toUpperCase();
-  if(STATE_NAME_BY_CODE[upper]){
-    return { code: upper, name: STATE_NAME_BY_CODE[upper] };
-  }
-  if(STATE_CODE_BY_NAME[upper]){
-    const code = STATE_CODE_BY_NAME[upper];
-    return { code, name: STATE_NAME_BY_CODE[code] };
-  }
-  return { code: null, name: toTitleCase(trimmed) };
 }
 
 function initClientLocationElements(){
