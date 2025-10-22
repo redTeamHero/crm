@@ -234,6 +234,45 @@ class TestAccountNumberParsing(unittest.TestCase):
             "Equifax": "NESTED-333",
         })
 
+    def test_creditor_name_detected_from_header_without_sub_header_class(self):
+        html = """
+        <html><body>
+            <div class="section_header_title">Account History</div>
+            <table>
+                <tr>
+                    <td class="ng-binding">
+                        <h3>Acme Installment</h3>
+                        <table class="rpt_content_table rpt_content_header rpt_table4column">
+                            <tr>
+                                <th></th>
+                                <th class="headerTUC">TransUnion</th>
+                                <th class="headerEXP">Experian</th>
+                                <th class="headerEQF">Equifax</th>
+                            </tr>
+                            <tr>
+                                <td class="label">Account #</td>
+                                <td class="info">ACME-444</td>
+                                <td class="info">ACME-444</td>
+                                <td class="info">ACME-444</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body></html>
+        """
+
+        soup = BeautifulSoup(html, "html.parser")
+        tradelines = m2.extract_all_tradelines(soup)
+        self.assertEqual(len(tradelines), 1)
+        self.assertEqual(tradelines[0]["creditor_name"], "Acme Installment")
+
+        history = m2.parse_account_history(soup)
+        self.assertTrue(history)
+        creditor_names = {tl.get("creditor_name") for tl in history}
+        self.assertIn("Acme Installment", creditor_names)
+        self.assertNotIn("Unknown Creditor", creditor_names)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -23,7 +23,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -76,6 +76,18 @@ FIELD_ALIASES: Dict[str, str] = {
     "last reported:": "last_reported",
     "balance": "balance",
     "balance:": "balance",
+}
+
+HEADER_CLASS_RE = re.compile(r"(sub[_-]?header|section[_-]?header(?:_title)?|section-title)", re.I)
+NON_CREDITOR_HEADERS = {
+    "account history",
+    "personal information",
+    "inquiries",
+    "risk factors",
+    "risk factor",
+    "key factors",
+    "score factors",
+    "credit score",
 }
 
 BUREAUS: Sequence[str] = ("TransUnion", "Experian", "Equifax")
@@ -320,10 +332,74 @@ def _normalize_field(label: str) -> str:
     return cleaned.strip("_")
 
 
+def _clean_creditor_name(value: str) -> str:
+    if not value:
+        return ""
+    text = re.sub(r"\s+", " ", value).strip()
+    if not text:
+        return ""
+
+    text = re.sub(r"^(account\s+name|creditor|subscriber name)\s*[:\-]\s*", "", text, flags=re.I)
+
+    earliest_index: Optional[int] = None
+    for bureau in ("TransUnion", "Experian", "Equifax"):
+        match = re.search(rf"\b{bureau}\b", text, flags=re.I)
+        if match:
+            if earliest_index is None or match.start() < earliest_index:
+                earliest_index = match.start()
+    if earliest_index is not None:
+        text = text[:earliest_index].strip()
+
+    text = text.strip("-|:•·")
+    return text
+
+
+def _looks_like_creditor_header(tag: Tag) -> bool:
+    if not isinstance(tag, Tag):
+        return False
+    if tag.name in {"h2", "h3", "h4"}:
+        return True
+    class_string = " ".join(tag.get("class", []))
+    if class_string and HEADER_CLASS_RE.search(class_string):
+        return True
+    if tag.name in {"table", "tbody", "thead", "tr", "td"}:
+        return False
+    text = tag.get_text(" ", strip=True)
+    return bool(text) and len(text) <= 120
+
+
+def _iter_header_candidates(table: Tag):
+    current: Optional[Tag] = table
+    while isinstance(current, Tag):
+        if _looks_like_creditor_header(current) and current is not table:
+            yield current
+        sibling = current.previous_sibling
+        while sibling is not None:
+            if isinstance(sibling, Tag) and _looks_like_creditor_header(sibling):
+                yield sibling
+            sibling = sibling.previous_sibling
+        current = current.parent if isinstance(current, Tag) else None
+
+
 def extract_creditor_name(table: Any) -> Optional[str]:
+    if not isinstance(table, Tag):
+        return None
+
+    for candidate in _iter_header_candidates(table):
+        candidate_name = _clean_creditor_name(candidate.get_text(" ", strip=True))
+        if not candidate_name:
+            continue
+        if candidate_name.lower() in NON_CREDITOR_HEADERS:
+            continue
+        return candidate_name
+
     text_block = table.get_text(" ", strip=True)
     match = re.match(r"([A-Z0-9\s&.\-]+)\s+TransUnion", text_block)
-    return match.group(1).strip() if match else None
+    if match:
+        fallback = _clean_creditor_name(match.group(1))
+        if fallback and fallback.lower() not in NON_CREDITOR_HEADERS:
+            return fallback
+    return None
 
 
 def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
@@ -358,7 +434,6 @@ def extract_all_tradelines(soup: BeautifulSoup) -> List[Dict[str, Any]]:
 
     tradelines: List[Dict[str, Any]] = []
     for container in soup.select("td.ng-binding"):
-        creditor_el = container.find("div", class_="sub_header")
         table = container.find("table")
         if not table:
             continue
@@ -399,7 +474,7 @@ def extract_all_tradelines(soup: BeautifulSoup) -> List[Dict[str, Any]]:
         if not any(per_bureau.values()):
             continue
 
-        creditor_name = creditor_el.get_text(strip=True) if creditor_el else "Unknown Creditor"
+        creditor_name = extract_creditor_name(table) or "Unknown Creditor"
         meta = {"account_numbers": {}}
         for bureau in BUREAUS:
             if "account_number" in per_bureau[bureau]:
