@@ -77,6 +77,14 @@ Without them, letter generation will fail with errors like `libnspr4.so: cannot 
    - `data/tradelineCards.json` – normalized accounts with issues for the client portal
    - `letter.html` – demo letter for the first tradeline and violation
 
+5. **Regenerate rule-debug tradelines** – ensure the default test client surfaces a card for every knowledge graph rule.
+
+   ```bash
+   npm run generate:rule-report
+   ```
+
+   This rewrites `data/report.json` with auto-generated tradelines tagged `rule-debug-auto` so you can verify each Metro-2 rule fires inside the portal.
+
 ## Background jobs & idempotency
 
 - Heavy tasks such as dispute batch generation, batch PDF rendering, and report audits now run through BullMQ queues. When Redis
