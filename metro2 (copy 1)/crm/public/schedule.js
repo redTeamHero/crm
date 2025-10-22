@@ -273,20 +273,37 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'w-full text-left rounded-2xl border border-white/40 bg-white/70 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]';
-      card.innerHTML = `
-        <div class="flex items-start justify-between gap-4">
-          <div class="space-y-1">
-            <p class="text-sm font-semibold text-slate-800">${ev.text || 'Untitled event'}</p>
-            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase ${theme.badge}">
-                ${theme.label}
-              </span>
-              <span>${formatDateLabel(ev.date)}</span>
-            </div>
-          </div>
-          <span class="text-xs font-semibold ${cls}">${label}</span>
-        </div>
-      `;
+
+      const layout = document.createElement('div');
+      layout.className = 'flex items-start justify-between gap-4';
+
+      const details = document.createElement('div');
+      details.className = 'space-y-1';
+
+      const title = document.createElement('p');
+      title.className = 'text-sm font-semibold text-slate-800';
+      title.textContent = ev.text || 'Untitled event';
+
+      const meta = document.createElement('div');
+      meta.className = 'flex flex-wrap items-center gap-2 text-xs text-slate-500';
+
+      const badge = document.createElement('span');
+      badge.className = `inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase ${theme.badge}`;
+      badge.textContent = theme.label;
+
+      const date = document.createElement('span');
+      date.textContent = formatDateLabel(ev.date);
+
+      meta.append(badge, date);
+      details.append(title, meta);
+
+      const due = document.createElement('span');
+      due.className = `text-xs font-semibold ${cls}`;
+      due.textContent = label;
+
+      layout.append(details, due);
+      card.appendChild(layout);
+
       card.addEventListener('click', () => openModal(ev.date, ev));
       listEl.appendChild(card);
     });
