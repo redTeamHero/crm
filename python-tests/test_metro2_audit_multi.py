@@ -41,7 +41,9 @@ class TestDuplicateAccount(unittest.TestCase):
         per_bureau1 = {b: {} for b in m2.BUREAUS}
         per_bureau1["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
         v1, _ = m2.run_rules_for_tradeline("CredA", per_bureau1, {"global": {"disabled": ["10"]}})
-        self.assertEqual(len(v1), 0)
+        v1_ids = {v.get("id") for v in v1}
+        self.assertNotIn("10", v1_ids)
+        self.assertNotIn("METRO2_CODE_10_DUPLICATE", v1_ids)
 
         per_bureau2 = {b: {} for b in m2.BUREAUS}
         per_bureau2["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
@@ -63,6 +65,27 @@ class TestDuplicateAccount(unittest.TestCase):
             m2.BUREAUS = original_bureaus
 
         self.assertTrue(any(v.get("id") == "10" for v in violations))
+
+
+class TestModernAuditBridge(unittest.TestCase):
+    def test_non_duplicate_findings_forwarded(self):
+        m2.SEEN_ACCOUNT_NUMBERS.clear()
+        per_bureau = {
+            bureau: {"account_number": "ACC-100", "last_reported": "01/01/2024"}
+            for bureau in m2.BUREAUS
+        }
+
+        violations, meta = m2.run_rules_for_tradeline("CredModern", per_bureau, None)
+
+        self.assertTrue(meta["account_numbers"])
+        rule_ids = [v.get("id") for v in violations]
+        self.assertIn("MISSING_OPEN_DATE", rule_ids)
+
+        forwarded = [v for v in violations if v.get("id") == "MISSING_OPEN_DATE"]
+        self.assertTrue(forwarded)
+        for violation in forwarded:
+            self.assertIsInstance(violation.get("severity"), int)
+            self.assertEqual(violation.get("message"), "Missing Date Opened field")
 
 
 class TestAccountNumberParsing(unittest.TestCase):
