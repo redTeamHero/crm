@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date, datetime
+import re
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Sequence
 
 
@@ -26,6 +27,15 @@ def clean_amount(value: Any) -> float:
         return float(str(value).replace("$", "").replace(",", "").strip() or 0.0)
     except Exception:
         return 0.0
+
+
+SANITIZE_KEY_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _normalize_key_name(name: str) -> str:
+    normalized = SANITIZE_KEY_RE.sub("_", name.strip().lower())
+    normalized = re.sub(r"_+", "_", normalized).strip("_")
+    return normalized
 
 
 DATE_FORMATS = (
@@ -129,6 +139,16 @@ PAST_DUE_DATE_FIELDS: Sequence[str] = (
     "date_past_due",
 )
 
+SCHEDULED_PAYMENT_FIELDS: Sequence[str] = (
+    "scheduled_payment_amount",
+    "scheduled_monthly_payment",
+    "monthly_payment",
+    "scheduled_payment",
+    "scheduled_payments",
+    "payment_amount",
+    "regular_payment_amount",
+)
+
 COMPLIANCE_CODES = {"XB", "XC", "XD", "XH", "XR", "XS"}
 
 
@@ -158,6 +178,10 @@ def _get_dofd(record: Mapping[str, Any]) -> date | None:
 
 def _get_past_due_date(record: Mapping[str, Any]) -> date | None:
     return parse_date(_first_value(record, PAST_DUE_DATE_FIELDS))
+
+
+def _get_scheduled_payment_amount(record: Mapping[str, Any]) -> float:
+    return clean_amount(_first_value(record, SCHEDULED_PAYMENT_FIELDS))
 
 
 def _normalize_status(value: Any) -> str:
@@ -214,6 +238,70 @@ def _normalized_account_number(tradeline: Mapping[str, Any]) -> str:
     return "".join(ch for ch in str(value) if ch.isalnum()).upper()
 
 
+FIELD_SYNONYMS: Dict[str, Sequence[str]] = {
+    "account_number": ("account_#", "acct#", "acct_no", "account no", "account"),
+    "account_status": ("status", "acct_status"),
+    "payment_status": ("pay_status", "payment history status"),
+    "balance": ("balance_amount", "current_balance", "current balance"),
+    "past_due": ("past_due_amount", "amount_past_due", "past due amount"),
+    "credit_limit": ("limit", "credit_limit_amount", "credit limit"),
+    "high_credit": ("high_balance", "highest_balance", "high credit"),
+    "last_reported": ("date_last_reported", "last reported", "last update"),
+    "date_opened": ("opened_date", "open_date", "date opened"),
+    "date_closed": ("closed_date", "closure_date", "date of closing"),
+    "date_of_last_payment": ("date_last_payment", "last_payment_date", "last payment"),
+    "date_of_first_delinquency": ("date_first_delinquency", "dofd"),
+    "scheduled_payment_amount": (
+        "scheduled_payment",
+        "scheduled_monthly_payment",
+        "monthly_payment",
+        "payment_amount",
+        "regular_payment_amount",
+    ),
+    "bureau": ("credit_bureau",),
+}
+
+
+def normalize_tradeline(record: MutableMapping[str, Any]) -> None:
+    """Normalize keys and whitespace so audit rules see consistent fields."""
+
+    if not isinstance(record, MutableMapping):
+        return
+
+    staged_updates: Dict[str, Any] = {}
+    for key, value in list(record.items()):
+        # Clean stray whitespace / non-breaking spaces on string values.
+        if isinstance(value, str):
+            cleaned = value.replace("\xa0", " ").replace("\u200b", "").strip()
+            if cleaned != value:
+                record[key] = cleaned
+                value = cleaned
+
+        if isinstance(key, str):
+            normalized_key = _normalize_key_name(key)
+            if normalized_key and normalized_key != key and normalized_key not in record:
+                staged_updates[normalized_key] = value
+
+    if staged_updates:
+        record.update(staged_updates)
+
+    for canonical, aliases in FIELD_SYNONYMS.items():
+        if canonical in record and record[canonical] not in (None, ""):
+            continue
+        for alias in aliases:
+            alias_key = alias
+            alias_normalized = _normalize_key_name(alias) if isinstance(alias, str) else alias
+            if alias_key in record and record[alias_key] not in (None, ""):
+                record.setdefault(canonical, record[alias_key])
+                break
+            if alias_normalized in record and record[alias_normalized] not in (None, ""):
+                record.setdefault(canonical, record[alias_normalized])
+                break
+
+    if "bureau" in record and isinstance(record["bureau"], str):
+        record["bureau"] = record["bureau"].strip().title()
+
+
 # ---------------------------------------------------------------------------
 # Rule metadata helpers
 # ---------------------------------------------------------------------------
@@ -250,6 +338,7 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "NAME_MISMATCH": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "ADDRESS_MISMATCH": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "PAYMENT_REPORTED_AFTER_CLOSURE": {"severity": "major", "fcra_section": "FCRA §623(a)(2) / §607(b)"},
+    "CLOSED_ACCOUNT_STILL_REPORTING_PAYMENT": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "LAST_PAYMENT_MISMATCH_BETWEEN_BU": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
     "LAST_PAYMENT_AFTER_CHARGEOFF_DATE": {"severity": "major", "fcra_section": "FCRA §623(a)(5) / §607(b)"},
     "MISSING_LAST_PAYMENT_DATE_FOR_PAID": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
@@ -277,6 +366,8 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "REOPENED_ACCOUNT_NO_NEW_OPEN_DATE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
     "PAST_DUE_AFTER_CLOSURE_DATE": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "DOFD_AFTER_LAST_PAYMENT": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
+    "LAST_REPORTED_MISMATCH": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "HIGH_CREDIT_EXCEEDS_LIMIT": {"severity": "major", "fcra_section": "FCRA §607(b)"},
 }
 
 
@@ -321,6 +412,18 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
         open_dates = {str(r.get("date_opened") or "").strip() for r in records if r.get("date_opened")}
         last_payments = {dt for r in records if (dt := _get_last_payment_date(r))}
         dofds = {dt for r in records if (dt := _get_dofd(r))}
+        last_reported_values = []
+        for r in records:
+            raw_value = str(r.get("last_reported") or r.get("date_last_reported") or "").strip()
+            if not raw_value:
+                last_reported_values.append("__missing__")
+                continue
+            parsed = parse_date(raw_value)
+            if parsed:
+                last_reported_values.append(parsed.isoformat())
+            else:
+                last_reported_values.append(raw_value.lower())
+        distinct_last_reported = {value for value in last_reported_values if value}
 
         if len(balances) > 1:
             for r in records:
@@ -348,6 +451,15 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
                     r,
                     "FIRST_DELINQUENCY_DATE_NOT_FROZEN",
                     "Date of First Delinquency inconsistent across bureaus",
+                )
+
+        if len(distinct_last_reported) > 1:
+            pretty = ", ".join(sorted({r.get("last_reported") or r.get("date_last_reported") or "Missing" for r in records}))
+            for r in records:
+                _attach_violation(
+                    r,
+                    "LAST_REPORTED_MISMATCH",
+                    f"Last Reported differs across bureaus ({pretty})",
                 )
 
 
@@ -726,6 +838,8 @@ def audit_closed_account_integrity(tradelines: Iterable[MutableMapping[str, Any]
         payment_rating_raw = record.get("payment_rating") or record.get("worst_payment_status") or record.get("worst_payment_rating")
         payment_rating_text = _normalize_status(payment_rating_raw)
         comment = _normalize_status(record.get("special_comment") or record.get("comments"))
+        payment_status_text = _normalize_status(record.get("payment_status"))
+        scheduled_payment = _get_scheduled_payment_amount(record)
 
         closed_keywords = {"closed", "paid", "settled", "paid in full", "charge-off", "collection"}
         is_closed = any(keyword in status for keyword in closed_keywords)
@@ -754,6 +868,29 @@ def audit_closed_account_integrity(tradelines: Iterable[MutableMapping[str, Any]
                     record,
                     "MISMATCH_BALANCE_ON_CLOSED",
                     "Closed or paid account should report zero balance and past due",
+                )
+
+            payment_markers = {"late", "delin", "past due", "charge", "repos", "30", "60", "90", "120"}
+            payment_flag = False
+            if payment_status_text and any(marker in payment_status_text for marker in payment_markers):
+                payment_flag = True
+            if scheduled_payment > 0:
+                payment_flag = True
+
+            if payment_flag:
+                extra: Dict[str, Any] | None = None
+                extra_payload: Dict[str, Any] = {}
+                if scheduled_payment > 0:
+                    extra_payload["scheduled_payment_amount"] = scheduled_payment
+                if record.get("payment_status"):
+                    extra_payload["reported_payment_status"] = record.get("payment_status")
+                if extra_payload:
+                    extra = extra_payload
+                _attach_violation(
+                    record,
+                    "CLOSED_ACCOUNT_STILL_REPORTING_PAYMENT",
+                    "Closed account continues to report payment obligation or delinquency",
+                    extra,
                 )
 
             rating_value = None
@@ -900,6 +1037,13 @@ def audit_portfolio_alignment(tradelines: Iterable[MutableMapping[str, Any]]) ->
                 "Collateral listed but account flagged unsecured",
             )
 
+        if credit_limit > 0 and high_credit > credit_limit + 0.01:
+            _attach_violation(
+                record,
+                "HIGH_CREDIT_EXCEEDS_LIMIT",
+                "High Credit exceeds the reported Credit Limit",
+            )
+
         revolving_like = {"revolving", "open"}
         high_credit_value = max(high_credit, credit_limit)
         if balance > 0 and high_credit_value == 0 and (portfolio_key in revolving_like or account_key in revolving_like):
@@ -1003,6 +1147,9 @@ def run_all_audits(parsed_data: MutableMapping[str, Any]) -> MutableMapping[str,
     tradelines = parsed_data.get("accounts", [])
     inquiries = parsed_data.get("inquiries", [])
     personal_info = parsed_data.get("personal_information", {})
+
+    for record in tradelines:
+        normalize_tradeline(record)
 
     for fn in AUDIT_FUNCTIONS:
         fn(tradelines)
