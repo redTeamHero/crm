@@ -234,6 +234,37 @@ class TestAccountNumberParsing(unittest.TestCase):
             "Equifax": "NESTED-333",
         })
 
+    def test_creditor_header_after_table_in_wrapper(self):
+        html = """
+        <html><body>
+            <td class="ng-binding">
+                <table class="rpt_content_table rpt_table4column">
+                    <tr>
+                        <th></th>
+                        <th class="headerTUC">TransUnion</th>
+                        <th class="headerEXP">Experian</th>
+                        <th class="headerEQF">Equifax</th>
+                    </tr>
+                    <tr>
+                        <td class="label">Account #</td>
+                        <td class="info">WRAP-444</td>
+                        <td class="info">WRAP-444</td>
+                        <td class="info">WRAP-444</td>
+                    </tr>
+                </table>
+                <div class="wrapper">
+                    <div class="sub_header">Wrapper Creditor</div>
+                </div>
+            </td>
+        </body></html>
+        """
+
+        soup = BeautifulSoup(html, "html.parser")
+        tradelines = m2.extract_all_tradelines(soup)
+
+        self.assertEqual(len(tradelines), 1)
+        self.assertEqual(tradelines[0]["creditor_name"], "Wrapper Creditor")
+
     def test_creditor_name_detected_from_header_without_sub_header_class(self):
         html = """
         <html><body>
