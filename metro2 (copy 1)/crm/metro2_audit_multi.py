@@ -1124,12 +1124,12 @@ def detect_inquiry_no_match(inquiries: List[Dict[str, str]], tradelines: List[Di
 
 
 def _extract_numeric_code(rule_id: str) -> Optional[str]:
-    """Return the first numeric token embedded in a Metro-2 rule identifier."""
+    """Return the Metro-2 numeric code when the identifier uses the standard prefix."""
+
+    if not rule_id.startswith("METRO2_CODE_"):
+        return None
 
     match = re.search(r"METRO2_CODE_(\d+)", rule_id)
-    if match:
-        return match.group(1)
-    match = re.search(r"(\d+)", rule_id)
     if match:
         return match.group(1)
     return None
