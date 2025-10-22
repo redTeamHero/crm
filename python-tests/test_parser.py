@@ -90,6 +90,29 @@ class DetectTradelineViolationsGroupingTest(unittest.TestCase):
             self.assertIn("STATUS_MISMATCH", violation_ids)
             self.assertIn("BALANCE_MISMATCH", violation_ids)
 
+    def test_account_number_aliases_are_grouped(self):
+        tradelines = [
+            {
+                "creditor_name": "Alias Bank",
+                "AccountNumber": "5555-9999",
+                "account_status": "Open",
+                "balance": "$200",
+                "bureau": "TransUnion",
+            },
+            {
+                "creditor_name": "Alias Bank",
+                "AccountNumber": "5555-9999",
+                "account_status": "Closed",
+                "balance": "$0",
+                "bureau": "Experian",
+            },
+        ]
+
+        audited = detect_tradeline_violations(tradelines)
+        violation_ids = {v["id"] for tl in audited for v in tl.get("violations", [])}
+        self.assertIn("STATUS_MISMATCH", violation_ids)
+        self.assertIn("BALANCE_MISMATCH", violation_ids)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -233,13 +233,42 @@ def group_by_creditor(
     return groups
 
 
+ACCOUNT_NUMBER_KEYS: Sequence[str] = (
+    "account_number",
+    "account_#",
+    "number",
+    "acct_number",
+    "accountnumber",
+    "account_num",
+    "accountnum",
+    "acctnumber",
+    "acct_num",
+    "acctnum",
+)
+
+
 def _normalized_account_number(tradeline: Mapping[str, Any]) -> str:
-    value = tradeline.get("account_number") or tradeline.get("account_#") or ""
-    return "".join(ch for ch in str(value) if ch.isalnum()).upper()
+    for key in ACCOUNT_NUMBER_KEYS:
+        value = tradeline.get(key)
+        if value not in (None, ""):
+            return "".join(ch for ch in str(value) if ch.isalnum()).upper()
+    return ""
 
 
 FIELD_SYNONYMS: Dict[str, Sequence[str]] = {
-    "account_number": ("account_#", "acct#", "acct_no", "account no", "account"),
+    "account_number": (
+        "account_#",
+        "acct#",
+        "acct_no",
+        "account no",
+        "account",
+        "accountnumber",
+        "account_num",
+        "accountnum",
+        "acctnumber",
+        "acct_num",
+        "acctnum",
+    ),
     "account_status": ("status", "acct_status"),
     "payment_status": ("pay_status", "payment history status"),
     "balance": ("balance_amount", "current_balance", "current balance"),
