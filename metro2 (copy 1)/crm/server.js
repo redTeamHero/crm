@@ -19,7 +19,6 @@ import parseCreditReportHTML from "./parser.js";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
-import { ensureBuffer } from "./utils.js";
 import { readKey, writeKey } from "./kvdb.js";
 import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy, clearCalendarCache } from "./googleCalendar.js";
@@ -4758,34 +4757,12 @@ async function executeLettersPdfJob({ jobId, tenantId, userId, payload }) {
             continue;
           }
 
-          if (browserInstance) {
-            const page = await browserInstance.newPage();
-            const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
-            await page.goto(dataUrl, { waitUntil: "load", timeout: 60000 });
-            await page.emulateMediaType("screen");
-            try {
-              await page.waitForFunction(() => document.readyState === "complete", { timeout: 60000 });
-            } catch {}
-            try {
-              await page.evaluate(() => (document.fonts && document.fonts.ready) || Promise.resolve());
-            } catch {}
-            await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 80)));
-            const pdf = await page.pdf({
-              format: "Letter",
-              printBackground: true,
-              margin: { top: "1in", right: "1in", bottom: "1in", left: "1in" },
-            });
-            await page.close();
-            const pdfBuffer = ensureBuffer(pdf);
-            if (!pdfBuffer || pdfBuffer.length === 0) {
-              throw new Error("Empty PDF buffer");
-            }
-            archive.append(pdfBuffer, { name: pdfName });
-            continue;
-          }
-
-          const htmlSource = L.html || (L.htmlPath && fs.existsSync(L.htmlPath) ? fs.readFileSync(L.htmlPath, "utf-8") : "");
-          archive.append(Buffer.from(htmlSource, "utf-8"), { name: `${baseName}.html` });
+          const pdfBuffer = await htmlToPdfBuffer(L.html, {
+            browser: browserInstance || undefined,
+            allowBrowserLaunch: false,
+            title: `${L.bureau || "Dispute"} Letter`,
+          });
+          archive.append(pdfBuffer, { name: pdfName });
         } catch (err) {
           logError("LETTER_PDF_APPEND_FAILED", "Failed to append letter to archive", err, {
             jobId: sourceJobId,
@@ -5483,25 +5460,8 @@ app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, enforceTenantQuota("letter
     }
   }
 
-  let browserInstance;
-
   try{
-    browserInstance = await launchBrowser();
-    const page = await browserInstance.newPage();
-    const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
-    await page.goto(dataUrl, { waitUntil:"load", timeout:60000 });
-    await page.emulateMediaType("screen");
-    try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
-    try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-    await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-    const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
-    await page.close();
-    const pdfBuffer = ensureBuffer(pdf);
-    if(!pdfBuffer || pdfBuffer.length === 0){
-      throw new Error("Generated PDF is empty");
-    }
-
-
+    const pdfBuffer = await htmlToPdfBuffer(html, { title: `${L.bureau || "Dispute"} Letter` });
     res.setHeader("Content-Type","application/pdf");
     res.setHeader("Content-Disposition",`attachment; filename="${filenameBase}.pdf"`);
     console.log(`Generated PDF for ${filenameBase} (${pdfBuffer.length} bytes)`);
@@ -5509,7 +5469,7 @@ app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, enforceTenantQuota("letter
   }catch(e){
     console.error("PDF error:", e);
     res.status(500).json({ ok:false, error:'Failed to render PDF.' });
-  }finally{ try{ await browserInstance?.close(); }catch{} }
+  }
 
 });
 
@@ -5583,23 +5543,20 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
         continue;
       }
 
-      if (!browserInstance) {
-        const htmlSource = L.html || (L.htmlPath && fs.existsSync(L.htmlPath) ? fs.readFileSync(L.htmlPath, 'utf-8') : '');
-        archive.append(Buffer.from(htmlSource, 'utf-8'), { name: `${baseName}.html` });
-        continue;
+      const htmlSource = L.html || (L.htmlPath && fs.existsSync(L.htmlPath) ? fs.readFileSync(L.htmlPath, 'utf-8') : '');
+      if(!htmlSource){
+        logError('ZIP_APPEND_FAILED', 'Letter HTML missing for archive', null, { jobId, letter: pdfName });
+        throw new Error('Letter HTML missing');
       }
 
-      const page = await browserInstance.newPage();
-      const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(L.html);
-      await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
-      await page.emulateMediaType("screen");
-      try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
-      try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-      await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-      const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
-      await page.close();
-      const pdfBuffer = ensureBuffer(pdf);
-      try{ archive.append(pdfBuffer,{ name: pdfName }); }catch(err){
+      try{
+        const pdfBuffer = await htmlToPdfBuffer(htmlSource, {
+          browser: browserInstance || undefined,
+          allowBrowserLaunch: false,
+          title: `${L.bureau || 'Dispute'} Letter`,
+        });
+        archive.append(pdfBuffer,{ name: pdfName });
+      }catch(err){
         logError('ZIP_APPEND_FAILED', 'Failed to append PDF to archive', err, { jobId, letter: pdfName });
         throw err;
       }
@@ -5701,16 +5658,11 @@ app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters")
         pdfBuffer = await generateOcrPdf(html);
 
       } else {
-        const page = await browserInstance.newPage();
-        const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
-        await page.goto(dataUrl,{ waitUntil:"load", timeout:60000 });
-        await page.emulateMediaType("screen");
-        try{ await page.waitForFunction(()=>document.readyState==="complete",{timeout:60000}); }catch{}
-        try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-        await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-        const pdf = await page.pdf({ format:"Letter", printBackground:true, margin:{top:"1in",right:"1in",bottom:"1in",left:"1in"} });
-        await page.close();
-        pdfBuffer = ensureBuffer(pdf);
+        pdfBuffer = await htmlToPdfBuffer(html, {
+          browser: browserInstance || undefined,
+          allowBrowserLaunch: false,
+          title: `${L.bureau || 'Dispute'} Letter`,
+        });
       }
 
       const name = (L.filename || `letter${i}`).replace(/\.html?$/i,"") + '.pdf';
@@ -5777,16 +5729,11 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
       if (L.useOcr) {
         pdfBuffer = await generateOcrPdf(html);
       } else {
-        const page = await browserInstance.newPage();
-        const dataUrl = "data:text/html;charset=utf-8," + encodeURIComponent(html);
-        await page.goto(dataUrl,{ waitUntil:'load', timeout:60000 });
-        await page.emulateMediaType('screen');
-        try{ await page.waitForFunction(()=>document.readyState==='complete',{timeout:60000}); }catch{}
-        try{ await page.evaluate(()=> (document.fonts && document.fonts.ready) || Promise.resolve()); }catch{}
-        await page.evaluate(()=> new Promise(r=>setTimeout(r,80)));
-        const pdf = await page.pdf({ format:'Letter', printBackground:true, margin:{top:'1in',right:'1in',bottom:'1in',left:'1in'} });
-        await page.close();
-        pdfBuffer = ensureBuffer(pdf);
+        pdfBuffer = await htmlToPdfBuffer(html, {
+          browser: browserInstance || undefined,
+          allowBrowserLaunch: false,
+          title: `${L.bureau || 'Dispute'} Letter`,
+        });
       }
 
       const id = nanoid(10);
