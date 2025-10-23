@@ -37,6 +37,11 @@ import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "./negativeItems.js";
 import { mapAuditedViolations } from "./pullTradelineData.js";
 import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID, resolveTenantId } from "./tenantLimits.js";
+import {
+  listTeamRoles,
+  getTeamRolePreset,
+  DEFAULT_TEAM_ROLE_ID,
+} from "./teamRoles.js";
 import { getDashboardConfig, updateDashboardConfig } from "./dashboardConfig.js";
 import {
   initWorkflowEngine,
@@ -1722,6 +1727,12 @@ function normalizeUser(user){
   if(!user) return user;
   user.tenantId = sanitizeTenantId(user.tenantId || DEFAULT_TENANT_ID);
   user.permissions = Array.isArray(user.permissions) ? user.permissions : [];
+  if(user.role === "team"){
+    const preset = getTeamRolePreset(user.teamRole);
+    user.teamRole = preset.id;
+    const merged = new Set([...(preset.permissions || []), ...user.permissions]);
+    user.permissions = [...merged];
+  }
   if(user.role === "member" && user.permissions.length === 0){
     user.permissions = [...DEFAULT_MEMBER_PERMISSIONS];
   }
@@ -1756,6 +1767,25 @@ async function loadUsersDB(){
     await writeKey('users', db);
   }
   return db;
+}
+
+function buildTeamMemberResponse(user){
+  if(!user) return null;
+  const preset = getTeamRolePreset(user.teamRole);
+  return {
+    id: user.id,
+    name: user.name || user.username || "",
+    email: user.username || "",
+    createdAt: user.createdAt || null,
+    lastLoginAt: user.lastLoginAt || null,
+    permissions: Array.isArray(user.permissions) ? user.permissions : [],
+    tenantId: user.tenantId || DEFAULT_TENANT_ID,
+    tokenIssued: Boolean(user.token),
+    teamRole: preset.id,
+    roleLabel: preset.label,
+    roleDescription: preset.description,
+    roleDescriptionEs: preset.descriptionEs,
+  };
 }
 async function saveUsersDB(db){ await writeKey('users', db); }
 
@@ -3262,16 +3292,8 @@ app.get("/api/team-members", authenticate, requireRole("admin"), async (_req,res
   const db = await loadUsersDB();
   const members = db.users
     .filter(u => u.role === "team")
-    .map(u => ({
-      id: u.id,
-      name: u.name || u.username || "",
-      email: u.username || "",
-      createdAt: u.createdAt || null,
-      lastLoginAt: u.lastLoginAt || null,
-      permissions: u.permissions || [],
-      tenantId: u.tenantId || DEFAULT_TENANT_ID,
-      tokenIssued: Boolean(u.token)
-    }));
+    .map(buildTeamMemberResponse)
+    .filter(Boolean);
   res.json({ ok:true, members });
 });
 
@@ -3289,6 +3311,7 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
   const passwordPlain = req.body.password || nanoid(8);
   const password = bcrypt.hashSync(passwordPlain, 10);
   const now = new Date().toISOString();
+  const preset = getTeamRolePreset(req.body.teamRole || DEFAULT_TEAM_ROLE_ID);
   const member = {
     id: nanoid(10),
     username,
@@ -3297,7 +3320,8 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
     password,
     role: "team",
     mustReset: true,
-    permissions: [],
+    permissions: Array.from(new Set(preset.permissions || [])),
+    teamRole: preset.id,
     createdAt: now,
     lastLoginAt: null,
     tenantId: sanitizeTenantId(req.body.tenantId || req.user?.tenantId || DEFAULT_TENANT_ID)
@@ -3308,7 +3332,8 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
     const html = TEAM_TEMPLATE.replace(/\{\{token\}\}/g, token).replace(/\{\{name\}\}/g, member.name || member.username || "Team Member");
     try{ fs.writeFileSync(path.join(PUBLIC_DIR, `team-${token}.html`), html); }catch{}
   }
-  res.json({ ok:true, member: { id: member.id, name: member.name || "", email: member.username, tenantId: member.tenantId, token, password: passwordPlain, createdAt: member.createdAt, lastLoginAt: member.lastLoginAt } });
+  const response = buildTeamMemberResponse(member);
+  res.json({ ok:true, member: { ...response, token, password: passwordPlain } });
 });
 
 app.delete("/api/team-members/:id", authenticate, requireRole("admin"), async (req,res)=>{
@@ -3323,6 +3348,46 @@ app.delete("/api/team-members/:id", authenticate, requireRole("admin"), async (r
     try{ fs.unlinkSync(path.join(PUBLIC_DIR, `team-${member.token}.html`)); }catch{}
   }
   res.json({ ok:true });
+});
+
+app.patch("/api/team-members/:id", authenticate, requireRole("admin"), async (req,res)=>{
+  const db = await loadUsersDB();
+  const member = db.users.find(u => u.id === req.params.id && u.role === "team");
+  if(!member){
+    return res.status(404).json({ ok:false, error:"Not found" });
+  }
+  let dirty = false;
+  if(typeof req.body.name === "string"){
+    const trimmed = req.body.name.trim();
+    if(trimmed && trimmed !== member.name){
+      member.name = trimmed;
+      dirty = true;
+    }
+  }
+  if(typeof req.body.teamRole === "string"){
+    const preset = getTeamRolePreset(req.body.teamRole);
+    if(preset.id !== member.teamRole){
+      member.teamRole = preset.id;
+      member.permissions = Array.from(new Set(preset.permissions || []));
+      dirty = true;
+    }
+  }
+  if(Array.isArray(req.body.permissions)){
+    const incoming = Array.from(new Set(req.body.permissions.map(String)));
+    if(JSON.stringify(incoming) !== JSON.stringify(member.permissions || [])){
+      member.permissions = incoming;
+      dirty = true;
+    }
+  }
+  if(dirty){
+    await saveUsersDB(db);
+  }
+  const response = buildTeamMemberResponse(member);
+  res.json({ ok:true, member: response });
+});
+
+app.get("/api/team-roles", authenticate, requireRole("admin"), (_req,res)=>{
+  res.json({ ok:true, roles: listTeamRoles() });
 });
 
 app.post("/api/team/:token/login", async (req,res)=>{
