@@ -1035,13 +1035,17 @@ function autoSelectBestViolation(card){
   const vs = normalizeViolations(tl.violations || []);
   if (!vs.length) return;
   const targetIdx = resolveBestViolationIdx(vs);
-  if (targetIdx === null) return;
+  if (targetIdx === null || targetIdx === undefined) return;
+  const targetNum = Number(targetIdx);
+  const hasNumericTarget = Number.isFinite(targetNum);
+  const targetStr = String(targetIdx);
   card.querySelectorAll('.violation').forEach(cb => {
     const raw = cb.value;
     const numVal = Number(raw);
-    const matches = Number.isNaN(numVal)
-      ? String(raw) === String(targetIdx)
-      : numVal === targetIdx;
+    const isNumericValue = !Number.isNaN(numVal);
+    const matches = hasNumericTarget && isNumericValue
+      ? numVal === targetNum
+      : String(raw) === targetStr;
     cb.checked = matches;
   });
   updateSelectionStateFromCard(card);
