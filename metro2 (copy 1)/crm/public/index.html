@@ -299,45 +299,60 @@
 <!-- Negative item card template -->
 <template id="tlTemplate">
   <div class="glass card tl-card" data-index="">
-    <div class="tl-head flex items-start justify-between gap-2">
-      <div class="wrap-anywhere">
-        <div class="font-semibold tl-creditor"></div>
-        <div class="text-xs muted">Index <span class="tl-idx"></span></div>
-        <div class="text-xs muted mt-1">
-          TU: <span class="tl-tu-acct"></span> •
-          EXP: <span class="tl-exp-acct"></span> •
-          EQF: <span class="tl-eqf-acct"></span>
+    <div class="tl-card-content">
+      <div class="tl-head">
+        <div class="tl-title-block wrap-anywhere">
+          <div class="tl-creditor"></div>
+          <div class="tl-card-meta">
+            <span class="tl-card-meta-item">Index <span class="tl-idx"></span></span>
+            <span class="tl-card-meta-item">TransUnion <span class="tl-tu-acct"></span></span>
+            <span class="tl-card-meta-item">Experian <span class="tl-exp-acct"></span></span>
+            <span class="tl-card-meta-item">Equifax <span class="tl-eqf-acct"></span></span>
+          </div>
+          <div class="tl-manual-reason"></div>
         </div>
-        <div class="text-xs text-purple-700 tl-manual-reason"></div>
-      </div>
-      <div class="flex items-center gap-2">
-        <div class="special-badges flex gap-1"></div>
-        <select class="tl-playbook-select hidden input text-sm"></select>
-        <button class="tl-playbook btn" title="Select playbook">Playbook</button>
-        <button class="tl-edit btn" title="Edit this card">✎</button>
-        <button class="tl-remove btn" title="Hide this card" data-tip="Remove Card (R when focused)">×</button>
-      </div>
-    </div>
-
-    <div class="mt-3 grid grid-cols-3 gap-2 text-sm">
-      <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="TransUnion" /> TransUnion</label>
-      <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Experian" /> Experian</label>
-      <label class="flex items-center gap-2"><input type="checkbox" class="bureau" value="Equifax" /> Equifax</label>
-    </div>
-
-    <select class="tl-letter-select input text-sm w-full mt-2"></select>
-
-    <div class="tl-tags flex gap-2 mt-2 flex-wrap"></div>
-    <div class="mt-3">
-      <div class="space-y-1 tl-violations text-sm"></div>
-      <div class="flex justify-end gap-2 mt-1 text-xs">
-        <button class="tl-reason-prev btn text-xs hidden">Prev</button>
-        <button class="tl-reason-next btn text-xs hidden">Next</button>
+        <div class="tl-card-actions">
+          <div class="special-badges"></div>
+          <select class="tl-playbook-select hidden"></select>
+          <button class="tl-playbook btn" title="Select playbook">Playbook</button>
+          <button class="tl-edit tl-card-icon" title="Edit this card">✎</button>
+          <button class="tl-remove tl-card-icon" title="Hide this card" data-tip="Remove Card (R when focused)">×</button>
+        </div>
       </div>
 
+      <div class="tl-card-body">
+        <div class="tl-bureaus">
+          <label class="tl-bureau-option">
+            <input type="checkbox" class="bureau" value="TransUnion" />
+            <span>TransUnion</span>
+          </label>
+          <label class="tl-bureau-option">
+            <input type="checkbox" class="bureau" value="Experian" />
+            <span>Experian</span>
+          </label>
+          <label class="tl-bureau-option">
+            <input type="checkbox" class="bureau" value="Equifax" />
+            <span>Equifax</span>
+          </label>
+        </div>
 
+        <div class="tl-letter-row">
+          <label class="sr-only">
+            Letter Template
+            <select class="tl-letter-select"></select>
+          </label>
+        </div>
 
+        <div class="tl-tags"></div>
 
+        <div class="tl-violations-panel">
+          <div class="tl-violations"></div>
+          <div class="tl-violations-footer">
+            <button class="tl-reason-prev btn-soft hidden">Prev</button>
+            <button class="tl-reason-next btn-soft hidden">Next</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

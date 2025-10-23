@@ -1166,13 +1166,15 @@ function renderTradelines(tradelines){
     let countEl = node.querySelector('.tl-violations-count');
     if(!countEl){
       countEl = document.createElement('div');
-      countEl.className = 'text-xs muted mt-1';
+      countEl.className = 'tl-violations-count';
+      countEl.setAttribute('aria-live','polite');
+      countEl.setAttribute('aria-atomic','true');
       vWrap.parentNode.insertBefore(countEl, vWrap);
     }
     function renderViolations(){
       if(!vs.length){
-        vWrap.innerHTML = `<div class="text-sm muted">No auto-detected violations for this negative item.</div>`;
-        countEl.textContent = '0 violations';
+        vWrap.innerHTML = `<div class="text-sm muted">No auto-detected validations for this negative item.</div>`;
+        countEl.textContent = '0 validations';
         prevBtn.classList.add("hidden");
         nextBtn.classList.add("hidden");
         return;
@@ -1196,7 +1198,7 @@ function renderTradelines(tradelines){
         if (saved.includes(val)) cb.checked = true;
         cb.addEventListener('change', () => updateSelectionStateFromCard(card));
       });
-      countEl.textContent = `Showing ${vStart + 1}-${end} of ${vs.length} violation${vs.length===1?"":"s"}`;
+      countEl.textContent = `Showing ${vStart + 1}-${end} of ${vs.length} validation${vs.length===1?"":"s"}`;
       if(vs.length > pageSize){
         prevBtn.classList.remove('hidden');
         nextBtn.classList.remove('hidden');
