@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#AF52DE" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/css/shepherd.css">
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/js/shepherd.min.js" defer></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script defer data-domain="example.com" src="https://plausible.io/js/script.js"></script>
@@ -98,7 +100,7 @@
           </div>
         </div>
       </div>
-      <div class="hero-metrics-grid">
+      <div id="clientsMetrics" class="hero-metrics-grid">
         <div class="metric-card">
           <span class="metric-title">Active Clients</span>
           <span class="metric-value" id="metricActiveConsumers">0</span>
@@ -128,7 +130,7 @@
           <span class="metric-subtitle">Auto-tracked last 30 days</span>
         </div>
       </div>
-      <div class="hero-tracker">
+      <div id="clientsJourneyTracker" class="hero-tracker">
         <div class="hero-tracker-header">
           <div class="hero-tracker-copy">
             <div class="hero-tracker-title">Client Journey Tracker</div>
@@ -145,7 +147,7 @@
     <div id="err" class="alert alert-error hidden"></div>
 
     <section class="workspace-grid">
-      <aside class="glass panel panel-sidebar space-y-4">
+      <aside id="clientsSidebar" class="glass panel panel-sidebar space-y-4">
         <div class="panel-header">
           <div>
             <div class="panel-title">Consumers</div>
@@ -196,7 +198,7 @@
           </article>
         </div>
 
-        <article class="glass panel">
+        <article id="clientsNegativePanel" class="glass panel">
           <div class="panel-header">
             <div>
               <div class="panel-title">Files & Activity</div>

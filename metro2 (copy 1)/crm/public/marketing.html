@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title data-i18n="marketing.meta.title">Marketing</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/css/shepherd.css">
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/js/shepherd.min.js" defer></script>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
   <style>
@@ -86,7 +88,7 @@
   </header>
 
   <!-- SMS Campaign Builder -->
-  <section aria-labelledby="sms-builder-heading" class="glass card p-6 space-y-6" data-channel="sms">
+  <section id="marketingSmsBuilder" aria-labelledby="sms-builder-heading" class="glass card p-6 space-y-6" data-channel="sms">
     <div class="flex flex-col gap-2">
       <div class="flex items-center gap-3">
         <span class="text-2xl">📱</span>
@@ -167,7 +169,7 @@
   </section>
 
   <!-- Email Template Builder -->
-  <section aria-labelledby="email-builder-heading" class="glass card p-6 space-y-6" data-channel="email">
+  <section id="marketingEmailBuilder" aria-labelledby="email-builder-heading" class="glass card p-6 space-y-6" data-channel="email">
     <div class="flex flex-col gap-2">
       <div class="flex items-center gap-3">
         <span class="text-2xl">💌</span>
@@ -205,7 +207,7 @@
   </section>
 
   <!-- Automation Control Center -->
-  <section aria-labelledby="automation-center-heading" class="glass card p-6 space-y-6">
+  <section id="marketingAutomation" aria-labelledby="automation-center-heading" class="glass card p-6 space-y-6">
     <div class="flex items-center gap-3">
       <span class="text-2xl">🤖</span>
       <div>
@@ -501,7 +503,7 @@
     </div>
   </section>
 
-  <section aria-labelledby="integration-checklist-heading" class="glass card p-6 space-y-6">
+  <section id="marketingIntegration" aria-labelledby="integration-checklist-heading" class="glass card p-6 space-y-6">
     <div class="flex items-center gap-3">
       <span class="text-2xl">🧩</span>
       <div>

@@ -5,6 +5,8 @@
   <title>Library</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/css/shepherd.css">
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/js/shepherd.min.js" defer></script>
 <script src="/theme.js"></script>
 <link rel="stylesheet" href="/style.css">
   <style>
@@ -455,7 +457,7 @@
 </header>
 
 <main class="library-shell max-w-6xl mx-auto px-4">
-  <section class="library-hero glass card" aria-labelledby="library-hero-heading">
+  <section id="libraryHero" class="library-hero glass card" aria-labelledby="library-hero-heading">
     <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between library-hero__content">
       <div class="space-y-4 max-w-xl">
         <span class="library-eyebrow">Template Library</span>
@@ -483,7 +485,7 @@
 
   <div class="library-grid">
     <div class="library-flow">
-      <section class="glass card space-y-4" aria-labelledby="contracts-heading">
+      <section id="libraryContracts" class="glass card space-y-4" aria-labelledby="contracts-heading">
         <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
           <div class="space-y-1">
             <h2 id="contracts-heading" class="text-lg font-semibold text-slate-800">Compliance Contracts</h2>
@@ -496,7 +498,7 @@
         <p id="contractEmpty" class="library-empty">No saved contracts yet. Offer a compliance upgrade with a premium agreement.</p>
       </section>
 
-      <section class="glass card space-y-4" aria-labelledby="sequence-heading">
+      <section id="libraryPlaybooks" class="glass card space-y-4" aria-labelledby="sequence-heading">
         <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
           <div class="space-y-1">
             <h2 id="sequence-heading" class="text-lg font-semibold text-slate-800">Playbooks</h2>

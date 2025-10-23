@@ -1,4 +1,5 @@
 import { api, getTranslation, getCurrentLanguage } from "./common.js";
+import { setupPageTour } from "./tour-guide.js";
 
 const API_BASE = "/api/marketing";
 const DEFAULT_QUEUE_LIMIT = 6;
@@ -85,6 +86,126 @@ const activeChannel = detectActiveChannel(
 );
 const shouldLoadSmsFeatures = !activeChannel || activeChannel === "sms";
 const shouldLoadEmailFeatures = !activeChannel || activeChannel === "email";
+
+const marketingTourSteps = (() => {
+  if (activeChannel === "sms") {
+    return [
+      {
+        id: "marketing-nav",
+        title: "Navigate growth tabs",
+        text: `<p class="font-semibold">Stay close to Dashboard, Leads, and Billing.</p>
+               <p class="mt-1 text-xs text-slate-600">Swap between revenue views as you launch SMS campaigns.</p>`,
+        attachTo: { element: "#primaryNav", on: "bottom" }
+      },
+      {
+        id: "marketing-sms-builder",
+        title: "Build premium SMS", 
+        text: `<p class="font-semibold">Draft compliant outreach that feels concierge.</p>
+               <p class="mt-1 text-xs text-slate-600">Personalize copy, set KPIs, and prep upsells before you wire Twilio.</p>`,
+        attachTo: { element: "#marketingSmsBuilder", on: "top" }
+      },
+      {
+        id: "marketing-sms-templates",
+        title: "Template manager",
+        text: `<p class="font-semibold">Store go-to scripts for every segment.</p>
+               <p class="mt-1 text-xs text-slate-600">Save compliant messaging so closers stay on-brand.</p>`,
+        attachTo: { element: "#smsTemplateForm", on: "left" }
+      },
+      {
+        id: "marketing-test-queue",
+        title: "Test queue",
+        text: `<p class="font-semibold">Validate payloads before they go live.</p>
+               <p class="mt-1 text-xs text-slate-600">Track test sends, CTA performance, and vendor readiness.</p>`,
+        attachTo: { element: "#testQueueList", on: "top" }
+      },
+      {
+        id: "marketing-providers",
+        title: "Provider status",
+        text: `<p class="font-semibold">Keep Twilio and SendGrid greenlit.</p>
+               <p class="mt-1 text-xs text-slate-600">Document keys and mark integrations ready for automations.</p>`,
+        attachTo: { element: "#providerStatusList", on: "top" }
+      }
+    ];
+  }
+  if (activeChannel === "email") {
+    return [
+      {
+        id: "marketing-nav",
+        title: "Navigate growth tabs",
+        text: `<p class="font-semibold">Stay close to Dashboard, Leads, and Billing.</p>
+               <p class="mt-1 text-xs text-slate-600">Flip between revenue views while you plan email flows.</p>`,
+        attachTo: { element: "#primaryNav", on: "bottom" }
+      },
+      {
+        id: "marketing-email-builder",
+        title: "Design email assets",
+        text: `<p class="font-semibold">Craft premium templates with bilingual copy.</p>
+               <p class="mt-1 text-xs text-slate-600">Preview the journey and prep HTML before connecting SendGrid.</p>`,
+        attachTo: { element: "#marketingEmailBuilder", on: "top" }
+      },
+      {
+        id: "marketing-email-sequence",
+        title: "Sequence builder",
+        text: `<p class="font-semibold">Map nurture flows that convert.</p>
+               <p class="mt-1 text-xs text-slate-600">Stack steps, merge in templates, and bundle upsells into every drip.</p>`,
+        attachTo: { element: "#emailSequenceForm", on: "left" }
+      },
+      {
+        id: "marketing-dispatch",
+        title: "Dispatch scheduler",
+        text: `<p class="font-semibold">Schedule sends and track cadence.</p>
+               <p class="mt-1 text-xs text-slate-600">Log segments, targets, and KPIs before pushing to workers.</p>`,
+        attachTo: { element: "#dispatchForm", on: "left" }
+      },
+      {
+        id: "marketing-integration",
+        title: "Integration checklist",
+        text: `<p class="font-semibold">Wire API credentials without guesswork.</p>
+               <p class="mt-1 text-xs text-slate-600">Document keys, curl tests, and provider readiness for dev handoff.</p>`,
+        attachTo: { element: "#marketingIntegration", on: "top" }
+      }
+    ];
+  }
+  return [
+    {
+      id: "marketing-nav",
+      title: "Navigate growth tabs",
+      text: `<p class="font-semibold">Jump between Dashboard, Leads, Billing, and Marketing.</p>
+             <p class="mt-1 text-xs text-slate-600">Use each to improve Lead→Consult%, Consult→Purchase%, and AOV.</p>`,
+      attachTo: { element: "#primaryNav", on: "bottom" }
+    },
+    {
+      id: "marketing-sms-builder",
+      title: "SMS campaign builder",
+      text: `<p class="font-semibold">Prototype compliant SMS before automating.</p>
+             <p class="mt-1 text-xs text-slate-600">Document KPIs and upsells so revenue teams stay aligned.</p>`,
+      attachTo: { element: "#marketingSmsBuilder", on: "top" }
+    },
+    {
+      id: "marketing-email-builder",
+      title: "Email template designer",
+      text: `<p class="font-semibold">Draft bilingual, conversion-first email assets.</p>
+             <p class="mt-1 text-xs text-slate-600">Prep HTML and segmentation tags before wiring to providers.</p>`,
+      attachTo: { element: "#marketingEmailBuilder", on: "top" }
+    },
+    {
+      id: "marketing-automation",
+      title: "Automation control center",
+      text: `<p class="font-semibold">Manage templates, sequences, and dispatch queues.</p>
+             <p class="mt-1 text-xs text-slate-600">Plan how each asset flows into your automation workers.</p>`,
+      attachTo: { element: "#marketingAutomation", on: "top" }
+    },
+    {
+      id: "marketing-integration",
+      title: "Integration checklist",
+      text: `<p class="font-semibold">Hand devs a clear activation plan.</p>
+             <p class="mt-1 text-xs text-slate-600">Store keys, provider status, and curl tests so nothing stalls.</p>`,
+      attachTo: { element: "#marketingIntegration", on: "top" }
+    }
+  ];
+})();
+
+setupPageTour('marketing', { steps: marketingTourSteps });
 
 let templateCache = [];
 let lastQueueItems = [];

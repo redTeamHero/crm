@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tradelines</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/css/shepherd.css">
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/js/shepherd.min.js" defer></script>
 <script src="/theme.js"></script>
 <link rel="stylesheet" href="/style.css">
 </head>
@@ -74,7 +76,7 @@
   </div>
 
   <div class="grid gap-6">
-    <section class="glass card p-5 space-y-5" aria-labelledby="overview-heading">
+    <section id="tradelinesOverview" class="glass card p-5 space-y-5" aria-labelledby="overview-heading">
       <div class="space-y-2">
         <h2 id="overview-heading" class="text-2xl font-semibold">How tradelines support your plan</h2>
         <p id="overview-description" class="text-sm text-gray-600 leading-relaxed">
@@ -105,7 +107,7 @@
       </p>
     </section>
 
-    <section class="glass card p-5" aria-labelledby="range-heading">
+    <section id="tradelinesRangeSection" class="glass card p-5" aria-labelledby="range-heading">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 id="range-heading" class="text-2xl font-semibold">1. Select a price range</h2>
@@ -116,7 +118,7 @@
       <div id="price-range-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
     </section>
 
-    <section class="glass card p-5" aria-labelledby="bank-heading">
+    <section id="tradelinesBankSection" class="glass card p-5" aria-labelledby="bank-heading">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 id="bank-heading" class="text-2xl font-semibold">2. Choose a bank</h2>
@@ -128,7 +130,7 @@
       <div id="bank-grid" class="flex flex-wrap gap-2"></div>
     </section>
 
-    <section class="glass card p-5" aria-labelledby="results-heading">
+    <section id="tradelinesResultsSection" class="glass card p-5" aria-labelledby="results-heading">
       <div class="flex flex-wrap justify-between items-center gap-4 mb-4">
         <div>
           <h2 id="results-heading" class="text-2xl font-semibold">3. Review tradelines</h2>

@@ -1,4 +1,75 @@
 /* public/settings.js */
+import { setupPageTour } from './tour-guide.js';
+
+function restoreSettingsTour(context) {
+  if (!context || context.restored) return;
+  const adminPanel = document.getElementById('adminPanel');
+  const userManager = document.getElementById('userManager');
+  if (context.showAdmin && adminPanel) {
+    adminPanel.classList.add('hidden');
+  }
+  if (context.showUsers && userManager) {
+    userManager.classList.add('hidden');
+  }
+  context.restored = true;
+}
+
+setupPageTour('settings-core', {
+  onBeforeStart: () => {
+    const adminPanel = document.getElementById('adminPanel');
+    const userManager = document.getElementById('userManager');
+    const state = { showAdmin: false, showUsers: false };
+    if (adminPanel && adminPanel.classList.contains('hidden')) {
+      adminPanel.classList.remove('hidden');
+      state.showAdmin = true;
+    }
+    if (userManager && userManager.classList.contains('hidden')) {
+      userManager.classList.remove('hidden');
+      state.showUsers = true;
+    }
+    return state;
+  },
+  onAfterComplete: ({ context }) => restoreSettingsTour(context),
+  onAfterCancel: ({ context }) => restoreSettingsTour(context),
+  steps: [
+    {
+      id: 'settings-nav',
+      title: 'Navigation',
+      text: `<p class="font-semibold">Access My Company, Letters, Library, and Workflows.</p>
+             <p class="mt-1 text-xs text-slate-600">Keep configuration and content synced with the rest of the CRM.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'settings-admin',
+      title: 'API integrations',
+      text: `<p class="font-semibold">Centralize Stripe, calendar, and marketing keys.</p>
+             <p class="mt-1 text-xs text-slate-600">Document credentials before wiring automations.</p>`,
+      attachTo: { element: '#adminPanel', on: 'top' }
+    },
+    {
+      id: 'settings-env',
+      title: 'Environment overrides',
+      text: `<p class="font-semibold">Store worker variables securely.</p>
+             <p class="mt-1 text-xs text-slate-600">Use uppercase keys and keep sensitive data off public repos.</p>`,
+      attachTo: { element: '#envList', on: 'top' }
+    },
+    {
+      id: 'settings-users',
+      title: 'User permissions',
+      text: `<p class="font-semibold">Manage team roles and login activity.</p>
+             <p class="mt-1 text-xs text-slate-600">Rotate invites and keep Metro-2 access tight.</p>`,
+      attachTo: { element: '#userManager', on: 'top' }
+    },
+    {
+      id: 'settings-hotkeys',
+      title: 'Keyboard shortcuts',
+      text: `<p class="font-semibold">Customize hotkeys for your ops team.</p>
+             <p class="mt-1 text-xs text-slate-600">Speed up dispute prep without sacrificing compliance.</p>`,
+      attachTo: { element: '#hotkeyPanel', on: 'top' }
+    }
+  ]
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   const panelEl = document.getElementById('adminPanel');
   const userMgrEl = document.getElementById('userManager');

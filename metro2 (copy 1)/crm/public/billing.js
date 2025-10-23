@@ -1,5 +1,82 @@
 // public/billing.js
 import { api, escapeHtml, formatCurrency, getTranslation, getCurrentLanguage } from './common.js';
+import { setupPageTour } from './tour-guide.js';
+
+function restoreBillingTour(context) {
+  if (!context || context.restored) return;
+  const contentEl = document.getElementById('billingContent');
+  const noClientEl = document.getElementById('noClient');
+  if (context.showContent && contentEl) {
+    contentEl.classList.add('hidden');
+  }
+  if (context.hideNoClient && noClientEl) {
+    noClientEl.classList.remove('hidden');
+  }
+  context.restored = true;
+}
+
+setupPageTour('billing', {
+  onBeforeStart: () => {
+    const contentEl = document.getElementById('billingContent');
+    const noClientEl = document.getElementById('noClient');
+    const state = { showContent: false, hideNoClient: false };
+    if (contentEl && contentEl.classList.contains('hidden')) {
+      contentEl.classList.remove('hidden');
+      state.showContent = true;
+    }
+    if (noClientEl && !noClientEl.classList.contains('hidden')) {
+      noClientEl.classList.add('hidden');
+      state.hideNoClient = true;
+    }
+    return state;
+  },
+  onAfterComplete: ({ context }) => restoreBillingTour(context),
+  onAfterCancel: ({ context }) => restoreBillingTour(context),
+  steps: [
+    {
+      id: 'billing-nav',
+      title: 'Navigate revenue ops',
+      text: `<p class="font-semibold">Use the nav to jump from fulfillment to cashflow.</p>
+             <p class="mt-1 text-xs text-slate-600">Check Dashboard KPIs, revisit Clients, then collect payment links here.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'billing-hero',
+      title: 'Position the billing story',
+      text: `<p class="font-semibold">Frame subscriptions and offers with premium copy.</p>
+             <p class="mt-1 text-xs text-slate-600">Use this hero to remind teams about concierge payment experiences.</p>`,
+      attachTo: { element: '#billingHero', on: 'top' }
+    },
+    {
+      id: 'billing-metrics',
+      title: 'Watch the money metrics',
+      text: `<p class="font-semibold">Track outstanding balances, next due, and collected revenue.</p>
+             <p class="mt-1 text-xs text-slate-600">Review these before every weekly finance sync.</p>`,
+      attachTo: { element: '#billingMetrics', on: 'top' }
+    },
+    {
+      id: 'billing-invoices',
+      title: 'Invoice history',
+      text: `<p class="font-semibold">Log every charge, refund, and PDF in one place.</p>
+             <p class="mt-1 text-xs text-slate-600">Mark payments as collected and trigger portal uploads instantly.</p>`,
+      attachTo: { element: '#invoiceTable', on: 'top' }
+    },
+    {
+      id: 'billing-plans',
+      title: 'Automate recurring plans',
+      text: `<p class="font-semibold">Bundle services into productized offers.</p>
+             <p class="mt-1 text-xs text-slate-600">Track reminders, notes, and upsell concierge upgrades inside the plan builder.</p>`,
+      attachTo: { element: '#planBuilder', on: 'left' }
+    },
+    {
+      id: 'billing-autopay',
+      title: 'Control autopay',
+      text: `<p class="font-semibold">Flip autopay on when clients are ready.</p>
+             <p class="mt-1 text-xs text-slate-600">Keep receipts synced and ensure Metro-2 compliance on every draft.</p>`,
+      attachTo: { element: '#billingAutopayCard', on: 'top' }
+    }
+  ]
+});
 const $ = (s) => document.querySelector(s);
 
 const consumerId = getSelectedConsumerId();

@@ -1,3 +1,45 @@
+import { setupPageTour } from './tour-guide.js';
+
+setupPageTour('schedule', {
+  steps: [
+    {
+      id: 'schedule-nav',
+      title: 'Navigation',
+      text: `<p class="font-semibold">Jump between fulfillment, marketing, and billing.</p>
+             <p class="mt-1 text-xs text-slate-600">Keep the schedule aligned with KPIs across the rest of the platform.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'schedule-hero',
+      title: 'Set the tone',
+      text: `<p class="font-semibold">Use the hero to frame pipeline ops.</p>
+             <p class="mt-1 text-xs text-slate-600">Remind the team this calendar backs premium consults.</p>`,
+      attachTo: { element: '#scheduleHero', on: 'top' }
+    },
+    {
+      id: 'schedule-summary',
+      title: 'Daily summary',
+      text: `<p class="font-semibold">Track slots, consults, and commitments here.</p>
+             <p class="mt-1 text-xs text-slate-600">Update the summary before morning stand-up.</p>`,
+      attachTo: { element: '#calendarSummary', on: 'left' }
+    },
+    {
+      id: 'schedule-calendar',
+      title: 'Calendar grid',
+      text: `<p class="font-semibold">Drag and click to manage every touchpoint.</p>
+             <p class="mt-1 text-xs text-slate-600">Keep consults, dispute work, and billing nudges on one timeline.</p>`,
+      attachTo: { element: '#scheduleCalendar', on: 'top' }
+    },
+    {
+      id: 'schedule-new-event',
+      title: 'Book new events',
+      text: `<p class="font-semibold">Use quick slots to reserve premium time.</p>
+             <p class="mt-1 text-xs text-slate-600">Capture consult type, details, and reminders without leaving the CRM.</p>`,
+      attachTo: { element: '#newEvent', on: 'left' }
+    }
+  ]
+});
+
 /* public/schedule.js */
 document.addEventListener('DOMContentLoaded', () => {
   const calEl = document.getElementById('calendar');
