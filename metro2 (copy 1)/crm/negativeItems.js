@@ -1,5 +1,7 @@
 import { validateTradeline } from "../../packages/metro2-core/src/validators.js";
 
+const ALL_BUREAUS = ["TransUnion", "Experian", "Equifax"];
+
 function normalizeSeverity(value){
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
@@ -172,7 +174,352 @@ function buildBureauDetails(perBureau = {}){
   return details;
 }
 
-export function prepareNegativeItems(tradelines = []){
+function normalizePersonalField(label = ""){
+  return String(label)
+    .toLowerCase()
+    .replace(/&amp;/g, "&")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function normalizeBureauName(value = ""){
+  const t = String(value).toLowerCase();
+  if (!t) return null;
+  if (/transunion|\btu\b|\btuc\b/.test(t)) return "TransUnion";
+  if (/experian|\bexp\b/.test(t)) return "Experian";
+  if (/equifax|\beqf\b|\beqx\b/.test(t)) return "Equifax";
+  return null;
+}
+
+function formatPersonalInfoValue(value){
+  if (value == null) return "";
+  if (Array.isArray(value)){
+    return value.map(v => String(v ?? "").trim()).filter(Boolean).join(", ");
+  }
+  if (typeof value === "object"){
+    if (Object.prototype.hasOwnProperty.call(value, "raw")){
+      return String(value.raw ?? "").trim();
+    }
+    return Object.values(value)
+      .map(v => String(v ?? "").trim())
+      .filter(Boolean)
+      .join(", ");
+  }
+  return String(value).trim();
+}
+
+function buildAddressObject(value){
+  if (!value) return {};
+  if (typeof value === "object" && !Array.isArray(value)){
+    const copy = { ...value };
+    if (!copy.raw){
+      const parts = [copy.addr1, copy.addr2, copy.city, copy.state, copy.zip].filter(Boolean);
+      if (parts.length) copy.raw = parts.join(", ");
+    }
+    return copy;
+  }
+  const lines = Array.isArray(value)
+    ? value
+    : String(value)
+        .split(/\n|,/)
+        .map(part => part.trim())
+        .filter(Boolean);
+  const parts = lines.map(part => String(part ?? "").trim()).filter(Boolean);
+  if (!parts.length) return {};
+  const address = { raw: parts.join(", ") };
+  if (parts[0]) address.addr1 = parts[0];
+  if (parts[1]) address.addr2 = parts[1];
+  const last = parts[parts.length - 1];
+  const match = last.match(/([A-Za-z\.\s]+),\s*([A-Z]{2})\s*(\d{5}(?:-\d{4})?)/);
+  if (match){
+    const city = match[1].replace(/,$/, "").trim();
+    if (city) address.city = city;
+    address.state = match[2];
+    address.zip = match[3];
+  } else if (parts.length >= 3 && !address.city){
+    const cityCandidate = parts[parts.length - 2];
+    if (cityCandidate && !/[0-9]/.test(cityCandidate)){
+      address.city = cityCandidate.replace(/,$/, "").trim();
+    }
+  }
+  return address;
+}
+
+function normalizePersonalInfoEntry(data = {}){
+  const entry = {};
+  Object.entries(data || {}).forEach(([key, rawValue]) => {
+    if (rawValue == null) return;
+    if (key === "address" && typeof rawValue === "object" && !Array.isArray(rawValue)){
+      entry.address = { ...rawValue };
+      return;
+    }
+    if (Array.isArray(rawValue)){
+      const formatted = rawValue.map(v => String(v ?? "").trim()).filter(Boolean);
+      if (!formatted.length) return;
+      entry[key] = formatted.join(", ");
+      if (!entry.address && key.includes("address")){
+        entry.address = buildAddressObject(formatted);
+      }
+      if (!entry.name && key.includes("name")) entry.name = formatted[0];
+      if (!entry.dob && (key === "dob" || key.includes("birth"))) entry.dob = formatted[0];
+      return;
+    }
+    if (typeof rawValue === "object"){
+      const formatted = formatPersonalInfoValue(rawValue);
+      if (!formatted) return;
+      entry[key] = formatted;
+      if (!entry.address && key.includes("address")){
+        entry.address = buildAddressObject(rawValue);
+      }
+      if (!entry.name && key.includes("name")) entry.name = formatted;
+      if (!entry.dob && (key === "dob" || key.includes("birth"))) entry.dob = formatted;
+      return;
+    }
+    const str = String(rawValue).trim();
+    if (!str) return;
+    entry[key] = str;
+    if (!entry.name && key.includes("name")) entry.name = str;
+    if (!entry.dob && (key === "dob" || key.includes("birth"))) entry.dob = str;
+    if (!entry.address && key.includes("address")){
+      entry.address = buildAddressObject(str);
+    }
+  });
+  if (entry.address && typeof entry.address === "string"){
+    entry.address = buildAddressObject(entry.address);
+  }
+  if (entry.address && entry.address.raw == null){
+    entry.address.raw = formatPersonalInfoValue(entry.address);
+  }
+  return entry;
+}
+
+function normalizePersonalInfoExtras(personalInfo){
+  if (!personalInfo) return null;
+  const draft = {};
+  const push = (bureau, field, value) => {
+    if (!bureau) return;
+    const key = normalizePersonalField(field);
+    if (!key) return;
+    draft[bureau] = draft[bureau] || {};
+    draft[bureau][key] = value;
+  };
+
+  if (Array.isArray(personalInfo)){
+    personalInfo.forEach(entry => {
+      if (!entry || typeof entry !== "object") return;
+      Object.entries(entry).forEach(([field, values]) => {
+        if (!values || typeof values !== "object") return;
+        Object.entries(values).forEach(([bureauKey, value]) => {
+          push(normalizeBureauName(bureauKey), field, value);
+        });
+      });
+    });
+  } else if (typeof personalInfo === "object"){
+    const entries = Object.entries(personalInfo);
+    let hasExplicitBureaus = false;
+    entries.forEach(([key, value]) => {
+      const bureau = normalizeBureauName(key);
+      if (bureau){
+        hasExplicitBureaus = true;
+        if (value && typeof value === "object" && !Array.isArray(value)){
+          Object.entries(value).forEach(([field, val]) => push(bureau, field, val));
+        } else {
+          push(bureau, key, value);
+        }
+      }
+    });
+    if (!hasExplicitBureaus){
+      entries.forEach(([field, value]) => {
+        ALL_BUREAUS.forEach(bureau => push(bureau, field, value));
+      });
+    }
+  } else {
+    const formatted = formatPersonalInfoValue(personalInfo);
+    if (formatted){
+      ALL_BUREAUS.forEach(bureau => push(bureau, "raw", formatted));
+    }
+  }
+
+  const normalized = {};
+  Object.entries(draft).forEach(([bureau, data]) => {
+    const entry = normalizePersonalInfoEntry(data);
+    if (Object.keys(entry).length){
+      normalized[bureau] = entry;
+    }
+  });
+  return Object.keys(normalized).length ? normalized : null;
+}
+
+function formatPersonalFieldLabel(key){
+  return String(key || "")
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b([a-z])/g, (_, ch) => ch.toUpperCase()) || "Field";
+}
+
+function normalizeInquiriesExtras(inquiries){
+  if (!Array.isArray(inquiries)) return [];
+  return inquiries
+    .map(item => ({
+      creditor: formatPersonalInfoValue(item?.creditor || item?.creditor_name),
+      industry: formatPersonalInfoValue(item?.industry || item?.type_of_business),
+      date: formatPersonalInfoValue(item?.date || item?.date_of_inquiry),
+      bureau: normalizeBureauName(item?.bureau || item?.credit_bureau) || (item?.bureau || item?.credit_bureau || ""),
+    }))
+    .filter(inquiry => inquiry.creditor || inquiry.bureau || inquiry.date);
+}
+
+function buildInquiryItem(inquiries = [], summary = {}){
+  if (!Array.isArray(inquiries) || !inquiries.length) return null;
+  const bureaus = Array.from(new Set(inquiries.map(inq => inq.bureau).filter(Boolean)));
+  let last12 = typeof summary?.last12mo === "number" ? summary.last12mo : null;
+  let last24 = typeof summary?.last24mo === "number" ? summary.last24mo : null;
+  if (last12 == null || last24 == null){
+    const now = Date.now();
+    const MS_12 = 365 * 24 * 60 * 60 * 1000;
+    const MS_24 = 2 * MS_12;
+    let twelve = 0;
+    let twentyFour = 0;
+    inquiries.forEach(inq => {
+      const d = new Date(inq.date || inq.raw?.date);
+      if (Number.isNaN(+d)) return;
+      const delta = now - +d;
+      if (delta <= MS_12) twelve += 1;
+      if (delta <= MS_24) twentyFour += 1;
+    });
+    if (last12 == null) last12 = twelve;
+    if (last24 == null) last24 = twentyFour;
+  }
+  const severity = last12 >= 6 ? 4 : last12 >= 4 ? 3 : last12 >= 2 ? 2 : 1;
+  const headline = {
+    id: "INQUIRIES_REVIEW",
+    code: "INQUIRIES_REVIEW",
+    category: "Inquiries",
+    title: `${inquiries.length} inquiry${inquiries.length === 1 ? "" : "ies"} reported`,
+    detail: `Last 12mo: ${last12 ?? 0} • Last 24mo: ${last24 ?? inquiries.length}`,
+    severity,
+    bureaus: bureaus.length ? bureaus : [...ALL_BUREAUS],
+  };
+  const violations = inquiries.map((inq, index) => {
+    const detailParts = [];
+    if (inq.industry) detailParts.push(`Type: ${inq.industry}`);
+    if (inq.date) detailParts.push(`Date: ${inq.date}`);
+    if (inq.bureau) detailParts.push(`Bureau: ${inq.bureau}`);
+    return {
+      id: `INQUIRY_${index}_${(inq.bureau || "ALL").toUpperCase()}`,
+      code: "INQUIRY_ENTRY",
+      category: "Inquiries",
+      title: inq.creditor || "Unknown Creditor",
+      detail: detailParts.join(" • ") || "Recent inquiry",
+      severity: Math.max(1, severity - 1),
+      bureaus: inq.bureau ? [inq.bureau] : (bureaus.length ? bureaus : [...ALL_BUREAUS]),
+    };
+  });
+  return {
+    index: "inquiries",
+    type: "inquiries",
+    creditor: "Recent Inquiries",
+    account_numbers: {},
+    bureaus: bureaus.length ? bureaus : [...ALL_BUREAUS],
+    severity,
+    headline,
+    violations: dedupeViolations(violations),
+    bureau_details: {},
+  };
+}
+
+function buildPersonalInfoItem(personalInfo, mismatches){
+  if (!personalInfo || typeof personalInfo !== "object") return null;
+  const bureaus = Object.keys(personalInfo).filter(b => personalInfo[b] && Object.keys(personalInfo[b]).length);
+  if (!bureaus.length) return null;
+  const mismatchMap = normalizePersonalInfoExtras(mismatches) || {};
+  const mismatchCount = Object.values(mismatchMap).reduce((sum, info) => sum + Object.keys(info || {}).length, 0);
+  const severity = mismatchCount >= 2 ? 3 : mismatchCount === 1 ? 2 : 1;
+  const headline = {
+    id: "PERSONAL_INFO_REVIEW",
+    code: "PERSONAL_INFO_REVIEW",
+    category: "Personal Information",
+    title: "Personal information review",
+    detail: mismatchCount
+      ? `${mismatchCount} mismatch${mismatchCount === 1 ? "" : "es"} flagged across ${Object.keys(mismatchMap).length || 1} bureau${Object.keys(mismatchMap).length === 1 ? "" : "s"}.`
+      : "Verify reported names, dates of birth, and addresses across bureaus.",
+    severity,
+    bureaus,
+  };
+  const violations = [];
+  bureaus.forEach(bureau => {
+    const data = personalInfo[bureau] || {};
+    const mismatch = mismatchMap[bureau] || {};
+    const mismatchKeys = Object.keys(mismatch || {});
+    if (mismatchKeys.length){
+      mismatchKeys.forEach(key => {
+        const value = mismatch[key];
+        const detail = typeof value === "object" && value !== null
+          ? formatPersonalInfoValue(value)
+          : String(value ?? "").trim();
+        if (!detail) return;
+        violations.push({
+          id: `PERSONAL_INFO_${bureau}_${key}`.toUpperCase(),
+          code: `PERSONAL_INFO_${key}`.toUpperCase(),
+          category: "Personal Information",
+          title: `${bureau}: ${formatPersonalFieldLabel(key)} mismatch`,
+          detail,
+          severity: Math.max(3, severity),
+          bureaus: [bureau],
+        });
+      });
+      return;
+    }
+    const previewFields = [
+      ["name", "Name"],
+      ["dob", "Date of Birth"],
+      ["date_of_birth", "Date of Birth"],
+      ["address", "Address"],
+    ];
+    previewFields.forEach(([key, label]) => {
+      const value = data[key];
+      if (!value) return;
+      const detail = typeof value === "object" && value !== null
+        ? value.raw || formatPersonalInfoValue(value)
+        : String(value ?? "").trim();
+      if (!detail) return;
+      violations.push({
+        id: `PERSONAL_INFO_${bureau}_${key}`.toUpperCase(),
+        code: `PERSONAL_INFO_${key}`.toUpperCase(),
+        category: "Personal Information",
+        title: `${bureau}: ${label}`,
+        detail,
+        severity: 1,
+        bureaus: [bureau],
+      });
+    });
+  });
+  if (!violations.length){
+    violations.push({
+      id: "PERSONAL_INFO_OVERVIEW",
+      code: "PERSONAL_INFO_OVERVIEW",
+      category: "Personal Information",
+      title: "Review reported personal information",
+      detail: "Confirm each bureau's name, date of birth, and address entries.",
+      severity,
+      bureaus,
+    });
+  }
+  return {
+    index: "personal_information",
+    type: "personal_info",
+    creditor: "Personal Information",
+    account_numbers: {},
+    bureaus,
+    severity,
+    headline,
+    violations: dedupeViolations(violations),
+    bureau_details: {},
+  };
+}
+
+export function prepareNegativeItems(tradelines = [], extras = {}){
   if (!Array.isArray(tradelines)) return { tradelines: [], items: [] };
   const items = [];
   tradelines.forEach((tl, idx) => {
@@ -226,6 +573,18 @@ export function prepareNegativeItems(tradelines = []){
       bureau_details: buildBureauDetails(perBureau),
     });
   });
+
+  const personalInfo = normalizePersonalInfoExtras(
+    extras?.personalInfo || extras?.personal_information || extras?.personal_info
+  );
+  const personalInfoMismatches = normalizePersonalInfoExtras(extras?.personalInfoMismatches || extras?.personal_info_mismatches) || {};
+  const inquiries = normalizeInquiriesExtras(extras?.inquiries);
+  const inquirySummary = extras?.inquirySummary || extras?.inquiry_summary || {};
+
+  const personalInfoItem = buildPersonalInfoItem(personalInfo, personalInfoMismatches);
+  if (personalInfoItem) items.push(personalInfoItem);
+  const inquiryItem = buildInquiryItem(inquiries, inquirySummary);
+  if (inquiryItem) items.push(inquiryItem);
 
   return { tradelines, items };
 }

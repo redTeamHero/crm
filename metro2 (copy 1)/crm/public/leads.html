@@ -134,6 +134,118 @@
     </article>
   </section>
 
+  <section class="glass card lead-intake-card lead-intake-card--full">
+    <div class="lead-intake-card__header">
+      <div>
+        <p class="lead-intake-card__eyebrow">New Lead Intake • Ingreso de Prospectos</p>
+        <h2 class="lead-intake-card__title">Capture trust before the consult.</h2>
+        <p class="lead-intake-card__subtitle">
+          Document source, compliance flags, and next promise so your team can follow through sin confusión.
+        </p>
+      </div>
+      <div class="lead-intake-card__stat">
+        <span class="lead-intake-card__stat-label">Win Rate</span>
+        <span class="lead-intake-card__stat-value" id="leadWinRateBadgeSecondary">0%</span>
+        <span class="lead-intake-card__stat-hint">Share in standups.</span>
+      </div>
+    </div>
+    <div class="lead-intake-steps">
+      <div class="lead-intake-step is-active">
+        <span class="lead-intake-step__dot">1</span>
+        <span>Capture channel + consent</span>
+      </div>
+      <div class="lead-intake-step">
+        <span class="lead-intake-step__dot">2</span>
+        <span>Log NEPQ pain + goals</span>
+      </div>
+      <div class="lead-intake-step">
+        <span class="lead-intake-step__dot">3</span>
+        <span>Offer premium onboarding</span>
+      </div>
+    </div>
+    <form id="leadForm" class="lead-form">
+      <div class="lead-form__section">
+        <h3 class="lead-form__section-title">Contact</h3>
+        <div class="lead-form__grid">
+          <label class="lead-form__field">
+            <span>Name / Nombre</span>
+            <input id="leadName" name="name" class="input" placeholder="Jane Founder" />
+          </label>
+          <label class="lead-form__field">
+            <span>Email</span>
+            <input id="leadEmail" name="email" type="email" class="input" placeholder="name@email.com" />
+          </label>
+          <label class="lead-form__field">
+            <span>Phone / Teléfono</span>
+            <input id="leadPhone" name="phone" class="input" placeholder="(555) 123-4567" />
+          </label>
+        </div>
+      </div>
+      <div class="lead-form__section">
+        <h3 class="lead-form__section-title">Pipeline Snapshot</h3>
+        <div class="lead-form__grid lead-form__grid--compact">
+          <label class="lead-form__field">
+            <span>Source</span>
+            <input id="leadSource" name="source" class="input" placeholder="Webinar, Referral, Ads..." />
+          </label>
+          <label class="lead-form__field">
+            <span>Stage</span>
+            <select id="leadStage" name="status" class="input">
+              <option value="new">New</option>
+              <option value="working">Working</option>
+              <option value="qualified">Qualified</option>
+              <option value="nurture">Nurture</option>
+              <option value="won">Won</option>
+              <option value="lost">Lost</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="lead-form__section">
+        <div class="lead-form__section-heading">
+          <h3 class="lead-form__section-title">Mailing Address</h3>
+          <span class="lead-form__section-hint">Feeds coverage analytics</span>
+        </div>
+        <div class="lead-form__grid">
+          <label class="lead-form__field">
+            <span>Address 1</span>
+            <input id="leadAddr1" name="addr1" class="input" placeholder="123 Main St" />
+          </label>
+          <label class="lead-form__field">
+            <span>Address 2</span>
+            <input id="leadAddr2" name="addr2" class="input" placeholder="Suite 200" />
+          </label>
+          <label class="lead-form__field">
+            <span>City</span>
+            <input id="leadCity" name="city" class="input" placeholder="Austin" />
+          </label>
+          <label class="lead-form__field">
+            <span>State</span>
+            <input id="leadState" name="state" class="input" placeholder="TX" />
+          </label>
+          <label class="lead-form__field">
+            <span>Zip</span>
+            <input id="leadZip" name="zip" class="input" placeholder="73301" />
+          </label>
+        </div>
+      </div>
+      <div class="lead-form__section">
+        <h3 class="lead-form__section-title">Notes / Notas</h3>
+        <textarea id="leadNotes" name="notes" class="input lead-form__textarea" rows="3" placeholder="NEPQ cues, compliance flags, promised deliverables..."></textarea>
+      </div>
+      <div class="lead-form__footer">
+        <p class="lead-form__compliance">
+          Reminder: Log facts only—no guarantees of score changes or timelines. Recuerda: sin prometer resultados.
+        </p>
+        <button type="submit" id="saveLead" class="btn w-full text-sm">Save Lead</button>
+        <div class="lead-form__shortcut">
+          <span>Shortcut: Press <strong>L</strong> to clear and focus for the next lead.</span>
+          <a href="/library" class="lead-form__link">Download NEPQ script</a>
+        </div>
+      </div>
+    </form>
+  </section>
+
   <section class="lead-layout">
     <div class="lead-layout__primary">
       <div class="glass card lead-panel">
@@ -163,117 +275,6 @@
       </div>
     </div>
     <aside class="lead-layout__aside">
-      <div class="glass card lead-intake-card">
-        <div class="lead-intake-card__header">
-          <div>
-            <p class="lead-intake-card__eyebrow">New Lead Intake</p>
-            <h2 class="lead-intake-card__title">Capture trust before the consult.</h2>
-            <p class="lead-intake-card__subtitle">
-              Document source, compliance flags, and the next promise so your team can follow through without gaps.
-            </p>
-          </div>
-          <div class="lead-intake-card__stat">
-            <span class="lead-intake-card__stat-label">Win Rate</span>
-            <span class="lead-intake-card__stat-value" id="leadWinRateBadgeSecondary">0%</span>
-            <span class="lead-intake-card__stat-hint">Share in standups.</span>
-          </div>
-        </div>
-        <div class="lead-intake-steps">
-          <div class="lead-intake-step is-active">
-            <span class="lead-intake-step__dot">1</span>
-            <span>Capture channel + consent</span>
-          </div>
-          <div class="lead-intake-step">
-            <span class="lead-intake-step__dot">2</span>
-            <span>Log NEPQ pain + goals</span>
-          </div>
-          <div class="lead-intake-step">
-            <span class="lead-intake-step__dot">3</span>
-            <span>Offer premium onboarding</span>
-          </div>
-        </div>
-        <form id="leadForm" class="lead-form">
-          <div class="lead-form__section">
-            <h3 class="lead-form__section-title">Contact</h3>
-            <div class="lead-form__grid">
-              <label class="lead-form__field">
-                <span>Name</span>
-                <input id="leadName" name="name" class="input" placeholder="Jane Founder" />
-              </label>
-              <label class="lead-form__field">
-                <span>Email</span>
-                <input id="leadEmail" name="email" type="email" class="input" placeholder="name@email.com" />
-              </label>
-              <label class="lead-form__field">
-                <span>Phone</span>
-                <input id="leadPhone" name="phone" class="input" placeholder="(555) 123-4567" />
-              </label>
-            </div>
-          </div>
-          <div class="lead-form__section">
-            <h3 class="lead-form__section-title">Pipeline Snapshot</h3>
-            <div class="lead-form__grid lead-form__grid--compact">
-              <label class="lead-form__field">
-                <span>Source</span>
-                <input id="leadSource" name="source" class="input" placeholder="Webinar, Referral, Ads..." />
-              </label>
-              <label class="lead-form__field">
-                <span>Stage</span>
-                <select id="leadStage" name="status" class="input">
-                  <option value="new">New</option>
-                  <option value="working">Working</option>
-                  <option value="qualified">Qualified</option>
-                  <option value="nurture">Nurture</option>
-                  <option value="won">Won</option>
-                  <option value="lost">Lost</option>
-                </select>
-              </label>
-            </div>
-          </div>
-          <div class="lead-form__section">
-            <div class="lead-form__section-heading">
-              <h3 class="lead-form__section-title">Mailing Address</h3>
-              <span class="lead-form__section-hint">Feeds coverage analytics</span>
-            </div>
-            <div class="lead-form__grid">
-              <label class="lead-form__field">
-                <span>Address 1</span>
-                <input id="leadAddr1" name="addr1" class="input" placeholder="123 Main St" />
-              </label>
-              <label class="lead-form__field">
-                <span>Address 2</span>
-                <input id="leadAddr2" name="addr2" class="input" placeholder="Suite 200" />
-              </label>
-              <label class="lead-form__field">
-                <span>City</span>
-                <input id="leadCity" name="city" class="input" placeholder="Austin" />
-              </label>
-              <label class="lead-form__field">
-                <span>State</span>
-                <input id="leadState" name="state" class="input" placeholder="TX" />
-              </label>
-              <label class="lead-form__field">
-                <span>Zip</span>
-                <input id="leadZip" name="zip" class="input" placeholder="73301" />
-              </label>
-            </div>
-          </div>
-          <div class="lead-form__section">
-            <h3 class="lead-form__section-title">Notes / Notas</h3>
-            <textarea id="leadNotes" name="notes" class="input lead-form__textarea" rows="3" placeholder="NEPQ cues, compliance flags, promised deliverables..."></textarea>
-          </div>
-          <div class="lead-form__footer">
-            <p class="lead-form__compliance">
-              Reminder: Log facts only—no guarantees of score changes or timelines. Recuerda: sin prometer resultados.
-            </p>
-            <button type="submit" id="saveLead" class="btn w-full text-sm">Save Lead</button>
-            <div class="lead-form__shortcut">
-              <span>Shortcut: Press <strong>L</strong> to clear and focus for the next lead.</span>
-              <a href="/library" class="lead-form__link">Download NEPQ script</a>
-            </div>
-          </div>
-        </form>
-      </div>
       <div id="leadFollowupCard" class="glass card lead-followup-card">
         <div class="lead-followup-card__header">
           <div>

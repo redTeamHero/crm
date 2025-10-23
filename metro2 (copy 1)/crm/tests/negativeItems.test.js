@@ -82,3 +82,54 @@ test('prepareNegativeItems builds masked bureau details with formatted values', 
   assert.equal(item.bureau_details.Experian.balance, '$0.00');
 });
 
+test('prepareNegativeItems appends inquiry summary when inquiries provided', () => {
+  const { items } = prepareNegativeItems([], {
+    inquiries: [
+      { creditor: 'Capital One', industry: 'Bank', date: '01/05/2024', bureau: 'TransUnion' },
+      { creditor: 'Amex', industry: 'Finance', date: '02/10/2024', bureau: 'Experian' },
+    ],
+    inquirySummary: { last12mo: 2, last24mo: 2 },
+  });
+  const inquiryItem = items.find(item => item.type === 'inquiries');
+  assert.ok(inquiryItem, 'expected inquiry card');
+  assert.equal(inquiryItem.violations.length, 2);
+  assert.equal(inquiryItem.headline.severity, 2);
+});
+
+test('prepareNegativeItems appends personal info card with mismatches', () => {
+  const extras = {
+    personalInfo: {
+      TransUnion: {
+        name: 'Jane Doe',
+        dob: '01/01/1990',
+        address: { addr1: '123 Main St', city: 'Miami', state: 'FL', zip: '33101', raw: '123 Main St, Miami, FL 33101' },
+      },
+      Experian: { name: 'Jane Doe', dob: '01/01/1990' },
+    },
+    personalInfoMismatches: {
+      TransUnion: { name: 'Jane Doe', address: { addr1: '123 Main St' } },
+    },
+  };
+  const { items } = prepareNegativeItems([], extras);
+  const personalItem = items.find(item => item.type === 'personal_info');
+  assert.ok(personalItem, 'expected personal info card');
+  assert.equal(personalItem.severity, 3);
+  assert.ok(personalItem.violations.some(v => /mismatch/i.test(v.title)));
+});
+
+test('prepareNegativeItems accepts snake_case personal_info extras', () => {
+  const extras = {
+    personal_info: {
+      name: 'Jane Doe',
+      date_of_birth: '01/01/1990',
+      current_addresses: '123 Main St, Miami, FL 33101',
+    },
+  };
+  const { items } = prepareNegativeItems([], extras);
+  const personalItem = items.find(item => item.type === 'personal_info');
+  assert.ok(personalItem, 'expected personal info card from personal_info extras');
+  assert.equal(personalItem.severity, 1);
+  assert.ok(Array.isArray(personalItem.violations) && personalItem.violations.length >= 3);
+  assert.ok(personalItem.violations.every(v => v.bureaus && v.bureaus.length));
+});
+
