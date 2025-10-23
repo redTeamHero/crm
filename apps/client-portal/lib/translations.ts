@@ -1,0 +1,54 @@
+const english = {
+  languageLabel: 'English',
+  toggleLabel: 'Ver en Español',
+  welcome: (name: string) => `Welcome back, ${name}`,
+  subheading: 'Review your milestones, upload docs, and take the next step to unlock funding.',
+  kpiHeadline: 'Key Metrics',
+  creditScore: 'Credit Score',
+  disputes: 'Items in dispute',
+  tracker: 'Milestones',
+  documents: 'Documents',
+  payments: 'Payments',
+  messages: 'Messages',
+  reminders: 'Reminders',
+  invoicesCta: 'Upgrade for certified mail automation',
+  timeline: 'Timeline',
+  nextStep: 'Next steps',
+  empty: 'No data yet.',
+  payNow: 'Pay now',
+  planCta: 'Upgrade to Premium Review',
+  planCopy: 'Add a white-glove Metro-2 review session + certified mail batching.',
+  educationCta: 'Book strategy call',
+  analyticsTip: 'Track CTA clicks vs. doc uploads to monitor Lead→Consult%.',
+};
+
+const spanish = {
+  languageLabel: 'Español',
+  toggleLabel: 'View in English',
+  welcome: (name: string) => `Hola ${name}`,
+  subheading: 'Revisa tus hitos, sube documentos y sigue tu plan para desbloquear financiamiento.',
+  kpiHeadline: 'Métricas clave',
+  creditScore: 'Puntaje de crédito',
+  disputes: 'Ítems en disputa',
+  tracker: 'Hitos',
+  documents: 'Documentos',
+  payments: 'Pagos',
+  messages: 'Mensajes',
+  reminders: 'Recordatorios',
+  invoicesCta: 'Actualiza para envío certificado automático',
+  timeline: 'Cronología',
+  nextStep: 'Próximos pasos',
+  empty: 'Aún no hay datos.',
+  payNow: 'Pagar ahora',
+  planCta: 'Mejorar a Revisión Premium',
+  planCopy: 'Incluye sesión guiada y automatización de cartas certificadas.',
+  educationCta: 'Agenda llamada estratégica',
+  analyticsTip: 'Compara clics en CTA vs. cargas para monitorear Lead→Consult%.',
+};
+
+export const translations = {
+  en: english,
+  es: spanish,
+};
+
+export type LanguageKey = keyof typeof translations;

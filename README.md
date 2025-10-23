@@ -27,6 +27,13 @@ npm start
 - SQLite (`crm.sqlite`) is used locally. Set `DATABASE_URL` + `DATABASE_CLIENT` (`pg`, `mysql2`, `sqlite3`) for production.
 - Keep `.env` secrets scoped per tenant; never commit real PII.
 
+## Client Portal Frontend (Next.js)
+1. `cd apps/client-portal`
+2. `npm install`
+3. `PORTAL_API_BASE_URL=http://localhost:3000 npm run dev`
+- Visit `http://localhost:3000/api/portal/{consumerId}` to confirm data, then open `http://localhost:3001/portal/{consumerId}` to see the bilingual UI (Next.js will choose the next available port).
+- `npm run lint` and `npm run typecheck` keep the portal production ready; track CTA clicks for conversion experiments.
+
 ## How to Scale
 1. **Choose tenant strategy:**
    - `DB_TENANT_STRATEGY=partitioned` (default) – shared tables keyed by `tenant_id` with hash partitions tuned by `DB_PARTITIONS` (default 8).
@@ -103,7 +110,11 @@ Python Utilities (python-tests/, scripts/) → HTML → PDF letters, regression 
     -H 'Content-Type: application/json' \
     -d '{"username":"ducky","password":"duck"}'
   ```
-- **Analytics idea:** capture `audit_completed` and `checkout_succeeded` events to monitor Lead→Consult% and Consult→Purchase%.
+- **Portal payload:**
+  ```bash
+  curl http://localhost:3000/api/portal/{consumerId}
+  ```
+  - **Analytics idea:** capture `audit_completed` and `checkout_succeeded` events to monitor Lead→Consult% and Consult→Purchase%.
 
 ## Debugging Tips
 - Delete `crm.sqlite` to reset local data quickly.

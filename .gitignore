@@ -3,3 +3,9 @@
 **/public/team-*.html
 !**/public/team-member-template.html
 **/*.sqlite
+**/.next/
+**/.env
+**/.env.*
+**/.DS_Store
+**/.vercel
+**/tsconfig.tsbuildinfo
