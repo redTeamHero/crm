@@ -987,57 +987,148 @@ if (process.env.NODE_ENV !== "test") {
 
 // ---------- Static UI ----------
 const PUBLIC_DIR = path.join(__dirname, "public");
-const TEAM_TEMPLATE = (()=>{
-  try{
-    return fs.readFileSync(path.join(PUBLIC_DIR, "team-member-template.html"), "utf-8");
-  }catch{return "";}
-})();
-  // Disable default index to avoid auto-serving the app without auth
-  app.use(express.static(PUBLIC_DIR, { index: false }));
-  // Serve login by default so users aren't dropped straight into the app
-  app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "login.html")));
-app.get("/dashboard", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "dashboard.html")));
-app.get("/clients", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
-app.get("/leads", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "leads.html")));
-app.get("/schedule", async (_req, res) => {
-  try {
-    const settings = await loadSettings();
-    if (!settings.googleCalendarToken || !settings.googleCalendarId) {
-      res.set("X-Calendar-Mode", "local");
-    }
-  } catch (err) {
-    logWarn("SCHEDULE_SETTINGS_LOAD_FAILED", err?.message || "Failed to load settings for schedule page");
+const STATIC_FILE_CACHE = new Map();
+
+function resolvePublicFilePath(fileName) {
+  const fullPath = path.join(PUBLIC_DIR, fileName);
+  const cached = STATIC_FILE_CACHE.get(fullPath);
+  if (cached?.exists) {
+    return fullPath;
   }
-  res.sendFile(path.join(PUBLIC_DIR, "schedule.html"));
+  const exists = fs.existsSync(fullPath);
+  if (!exists && (!cached || !cached.warned)) {
+    logWarn("PUBLIC_FILE_MISSING", "Missing static asset", { fileName, fullPath });
+  }
+  STATIC_FILE_CACHE.set(fullPath, { exists, warned: !exists });
+  return exists ? fullPath : null;
+}
+
+function registerStaticPage({ paths, file, middlewares = [], beforeSend }) {
+  const routePaths = Array.isArray(paths) ? paths : [paths];
+  for (const routePath of routePaths) {
+    app.get(routePath, ...middlewares, async (req, res, next) => {
+      try {
+        if (beforeSend) {
+          await beforeSend(req, res);
+          if (res.headersSent) return;
+        }
+        const resolved = resolvePublicFilePath(file);
+        if (!resolved) {
+          return res.status(404).send("Not found");
+        }
+        res.sendFile(resolved);
+      } catch (err) {
+        next(err);
+      }
+    });
+  }
+}
+
+const TEAM_TEMPLATE = (() => {
+  try {
+    return fs.readFileSync(path.join(PUBLIC_DIR, "team-member-template.html"), "utf-8");
+  } catch {
+    return "";
+  }
+})();
+
+// Disable default index to avoid auto-serving the app without auth
+app.use(express.static(PUBLIC_DIR, { index: false }));
+
+// Serve login by default so users aren't dropped straight into the app
+registerStaticPage({ paths: ["/", "/login"], file: "login.html" });
+registerStaticPage({ paths: "/dashboard", file: "dashboard.html" });
+registerStaticPage({ paths: "/clients", file: "index.html" });
+registerStaticPage({ paths: "/leads", file: "leads.html" });
+registerStaticPage({
+  paths: "/schedule",
+  file: "schedule.html",
+  beforeSend: async (_req, res) => {
+    try {
+      const settings = await loadSettings();
+      if (!settings.googleCalendarToken || !settings.googleCalendarId) {
+        res.set("X-Calendar-Mode", "local");
+      }
+    } catch (err) {
+      logWarn(
+        "SCHEDULE_SETTINGS_LOAD_FAILED",
+        err?.message || "Failed to load settings for schedule page"
+      );
+    }
+  },
 });
-app.get("/my-company", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "my-company.html")));
-app.get("/billing", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "billing.html")));
-app.get(["/letters", "/letters/:jobId"], optionalAuth, forbidMember, (_req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, "letters.html"))
-);
-app.get("/library", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "library.html")));
-app.get("/workflows", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "workflows.html")));
-app.get(["/marketing", "/marketing/sms", "/marketing/email"], optionalAuth, forbidMember, (_req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, "marketing.html"))
-);
-app.get("/tradelines", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
-app.get("/quiz", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
-app.get("/settings/client-portal", optionalAuth, forbidMember, (_req, res) =>
-  res.sendFile(path.join(PUBLIC_DIR, "client-portal-settings.html"))
-);
-app.get("/settings", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
-app.get("/client-portal.html", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "client-portal-template.html")));
-app.get("/team/:token", (req,res)=>{
+registerStaticPage({
+  paths: "/my-company",
+  file: "my-company.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({ paths: "/billing", file: "billing.html" });
+registerStaticPage({
+  paths: ["/letters", "/letters/:jobId"],
+  file: "letters.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: "/library",
+  file: "library.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: "/workflows",
+  file: "workflows.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: ["/marketing", "/marketing/sms", "/marketing/email"],
+  file: "marketing.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: "/tradelines",
+  file: "tradelines.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: "/quiz",
+  file: "quiz.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: "/settings/client-portal",
+  file: "client-portal-settings.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: "/settings",
+  file: "settings.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: ["/client-portal", "/client-portal.html"],
+  file: "client-portal-template.html",
+});
+app.get("/team/:token", (req, res) => {
   const token = path.basename(req.params.token);
-  const file = path.join(PUBLIC_DIR, `team-${token}.html`);
-  if(!fs.existsSync(file)) return res.status(404).send("Not found");
+  const file = resolvePublicFilePath(`team-${token}.html`);
+  if (!file) return res.status(404).send("Not found");
   res.sendFile(file);
 });
 app.get("/portal/:id", async (req, res) => {
   const db = await loadDB();
   const consumer = db.consumers.find(c => c.id === req.params.id);
   if (!consumer) return res.status(404).send("Portal not found");
-  const tmpl = fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
+  const templatePath = resolvePublicFilePath("client-portal-template.html");
+  if (!templatePath) {
+    logError("PORTAL_TEMPLATE_MISSING", "Client portal template not found");
+    return res.status(500).send("Portal unavailable");
+  }
+  let tmpl = "";
+  try {
+    tmpl = fs.readFileSync(templatePath, "utf-8");
+  } catch (err) {
+    logError("PORTAL_TEMPLATE_READ_FAILED", "Failed to read client portal template", err);
+    return res.status(500).send("Portal unavailable");
+  }
   let html = tmpl.replace(/{{name}}/g, consumer.name);
   const latestReport = consumer.reports?.[0];
   let negativeItems = [];
