@@ -99,24 +99,24 @@ const DEFAULT_DASHBOARD_GOALS = Object.freeze({
 const DEFAULT_LADDER_CONFIG = Object.freeze({
   title: 'Revenue Ladder to 7 Figures',
   subtitle: 'Premium dispute services roadmap. No guaranteed timelines or deletions.',
-  goalLabel: 'Goal / Meta',
+  goalLabel: 'Goal',
   goalAmountLabel: '$84k mo',
-  goalCaption: 'Objetivo mensual',
+  goalCaption: 'Monthly objective',
   mrrCaption: 'Keep churn < 5% and auto-schedule retention consults.',
   pipelineValue: 'Load CRM',
   pipelineCaption: 'Daily KPI: Consult → Purchase 35%.',
   aovValue: 'Link Stripe',
   aovCaption: 'Bundle certified mail credits for premium feel.',
   milestone: 'Next milestone: $25k/mo unlocks concierge onboarding.',
-  milestoneCaption: 'Próximo objetivo intermedio',
+  milestoneCaption: 'Next milestone target',
   progressBaselineLabel: '$0',
-  progressGoalLabel: 'Meta $84k',
+  progressGoalLabel: 'Goal $84k',
   upsellHeading: 'Upsell idea:',
   upsellBody: 'Automation bundle at $249/mo with certified mail credits + NEPQ scripts.',
   playbookLabel: 'View Playbook',
   playbookUrl: '#',
-  spanishSummaryLabel: 'Ver resumen en español',
-  spanishSummaryUrl: '#',
+  summaryLinkLabel: 'View summary details',
+  summaryLinkUrl: '#',
 });
 
 let currentDashboardGoals = { ...DEFAULT_DASHBOARD_GOALS };
@@ -188,24 +188,24 @@ function applyLadderConfig(ladder, goals) {
     }
   }
 
-  const spanishLink = document.getElementById('ladderSpanishLink');
-  if (spanishLink) {
-    const spanishLabel = mergedLadder.spanishSummaryLabel || DEFAULT_LADDER_CONFIG.spanishSummaryLabel;
-    const spanishUrl = sanitizeLink(mergedLadder.spanishSummaryUrl);
-    spanishLink.textContent = spanishLabel;
-    if (spanishUrl) {
-      spanishLink.href = spanishUrl;
-      if (/^https?:/i.test(spanishUrl)) {
-        spanishLink.target = '_blank';
-        spanishLink.rel = 'noopener';
+  const summaryLink = document.getElementById('ladderSummaryLink');
+  if (summaryLink) {
+    const summaryLabel = mergedLadder.summaryLinkLabel || DEFAULT_LADDER_CONFIG.summaryLinkLabel;
+    const summaryUrl = sanitizeLink(mergedLadder.summaryLinkUrl);
+    summaryLink.textContent = summaryLabel;
+    if (summaryUrl) {
+      summaryLink.href = summaryUrl;
+      if (/^https?:/i.test(summaryUrl)) {
+        summaryLink.target = '_blank';
+        summaryLink.rel = 'noopener';
       } else {
-        spanishLink.removeAttribute('target');
-        spanishLink.removeAttribute('rel');
+        summaryLink.removeAttribute('target');
+        summaryLink.removeAttribute('rel');
       }
-      spanishLink.classList.remove('hidden');
+      summaryLink.classList.remove('hidden');
     } else {
-      spanishLink.href = '#';
-      spanishLink.classList.add('hidden');
+      summaryLink.href = '#';
+      summaryLink.classList.add('hidden');
     }
   }
 }
@@ -1362,8 +1362,8 @@ document.addEventListener('DOMContentLoaded', () => {
       upsellBody: currentLadderConfig.upsellBody,
       playbookLabel: currentLadderConfig.playbookLabel,
       playbookUrl: currentLadderConfig.playbookUrl,
-      spanishSummaryLabel: currentLadderConfig.spanishSummaryLabel,
-      spanishSummaryUrl: currentLadderConfig.spanishSummaryUrl,
+      summaryLinkLabel: currentLadderConfig.summaryLinkLabel,
+      summaryLinkUrl: currentLadderConfig.summaryLinkUrl,
     };
     Object.entries(values).forEach(([name, value]) => {
       const field = ladderEditorForm.elements.namedItem(name);
@@ -1457,8 +1457,8 @@ document.addEventListener('DOMContentLoaded', () => {
           'upsellBody',
           'playbookLabel',
           'playbookUrl',
-          'spanishSummaryLabel',
-          'spanishSummaryUrl',
+          'summaryLinkLabel',
+          'summaryLinkUrl',
         ];
 
         for (const field of ladderFields) {
