@@ -913,12 +913,17 @@ function hasPermission(user, perm){
 
 function requirePermission(perm, options = {}){
   const { allowGuest = false } = options;
+  const required = Array.isArray(perm) ? perm : [perm];
+  const normalized = required
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean);
   return (req, res, next) => {
     if (!req.user) {
       if (allowGuest) return next();
       return res.status(403).json({ ok:false, error:'Forbidden' });
     }
-    if (hasPermission(req.user, perm)) return next();
+    if (!normalized.length) return next();
+    if (normalized.some((permission) => hasPermission(req.user, permission))) return next();
     res.status(403).json({ ok:false, error:'Forbidden' });
   };
 }
@@ -2734,7 +2739,7 @@ app.get("/api/dashboard/config", authenticate, requirePermission("reports"), asy
   }
 });
 
-app.put("/api/dashboard/config", authenticate, requirePermission("admin"), async (req, res) => {
+app.put("/api/dashboard/config", authenticate, requirePermission(["admin", "reports"]), async (req, res) => {
   try {
     const patch = (req.body && typeof req.body === "object") ? req.body : {};
     const config = await updateDashboardConfig(patch);
