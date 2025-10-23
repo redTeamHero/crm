@@ -45,6 +45,22 @@ const templateFilter = document.getElementById("templateFilter");
 const btnImportHtml = document.getElementById("btnImportHtml");
 const htmlImportInput = document.getElementById("htmlImportInput");
 
+const campaignListEl = document.getElementById("campaignList");
+const campaignEmptyState = document.getElementById("campaignEmpty");
+const btnAddCampaign = document.getElementById("btnAddCampaign");
+const btnExportCampaigns = document.getElementById("btnExportCampaigns");
+const campaignModal = document.getElementById("campaignModal");
+const campaignForm = document.getElementById("campaignForm");
+const campaignStatusMessage = document.getElementById("campaignStatus");
+const campaignNameInput = document.getElementById("campaignName");
+const campaignSegmentSelect = document.getElementById("campaignSegment");
+const campaignStatusSelect = document.getElementById("campaignStatusSelect");
+const campaignNextTouchInput = document.getElementById("campaignNextTouch");
+const campaignKpiTargetInput = document.getElementById("campaignKpiTarget");
+const campaignSummaryInput = document.getElementById("campaignSummary");
+const campaignProgressInput = document.getElementById("campaignProgress");
+const campaignProgressValue = document.getElementById("campaignProgressValue");
+
 const MAX_IMPORTED_FILE_SIZE = 200 * 1024; // 200 KB
 const MAX_IMPORTED_HTML_LENGTH = 20000;
 
@@ -70,6 +86,21 @@ const SEGMENT_GRADIENTS = {
   b2b: "from-sky-100/70 to-white",
   attorneys: "from-amber-100/70 to-white",
   inactive: "from-rose-100/70 to-white",
+};
+
+const SEGMENT_LABELS = {
+  b2c: "B2C • Consumidores",
+  b2b: "B2B • Negocios",
+  attorneys: "Attorneys • Abogados",
+  inactive: "Inactive • Inactivos",
+};
+
+const CAMPAIGN_STATUS_COLORS = {
+  draft: "bg-gradient-to-r from-slate-400 to-slate-600",
+  scheduled: "bg-gradient-to-r from-violet-500 to-fuchsia-500",
+  running: "bg-gradient-to-r from-sky-500 to-indigo-500",
+  paused: "bg-gradient-to-r from-amber-500 to-orange-500",
+  completed: "bg-gradient-to-r from-emerald-500 to-teal-500",
 };
 
 const SAMPLE_DATA = {
@@ -214,9 +245,11 @@ let queueRefreshTimer = null;
 let smsTemplateCache = [];
 let emailSequenceCache = [];
 let dispatchCache = [];
+let campaignCache = [];
 let sequenceStepIndex = 0;
 let activeTemplateId = null;
 let templateEditorLastUpdated = "";
+let activeCampaignId = null;
 
 function t(key, fallback = "") {
   return getTranslation(key, getCurrentLanguage()) || fallback;
@@ -234,6 +267,79 @@ function detectActiveChannel(pathname = "") {
   if (normalized.endsWith("/marketing/sms")) return "sms";
   if (normalized.endsWith("/marketing/email")) return "email";
   return null;
+}
+
+function getCampaignStatusLabel(status) {
+  const key = String(status || "draft").toLowerCase();
+  const fallback = {
+    draft: "Draft • Borrador",
+    scheduled: "Scheduled • Programada",
+    running: "Running • En curso",
+    paused: "Paused • En pausa",
+    completed: "Completed • Completada",
+  }[key] || key;
+  return t(`marketing.campaigns.status.${key}`, fallback);
+}
+
+function getSegmentLabel(segment) {
+  const key = String(segment || "b2c").toLowerCase();
+  const fallback = SEGMENT_LABELS[key] || key.toUpperCase();
+  return t(`marketing.campaigns.segment.${key}`, fallback);
+}
+
+function getCampaignStatusGradient(status) {
+  const key = String(status || "draft").toLowerCase();
+  return CAMPAIGN_STATUS_COLORS[key] || CAMPAIGN_STATUS_COLORS.draft;
+}
+
+function formatCampaignDate(iso) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.valueOf())) return "";
+  return date.toLocaleString(undefined, { month: "short", day: "numeric" });
+}
+
+function isoToLocalInputValue(iso) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.valueOf())) return "";
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function localInputValueToIso(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return null;
+  return date.toISOString();
+}
+
+function formatCampaignSubtitle(campaign) {
+  const parts = [];
+  if (campaign.nextTouchAt) {
+    parts.push(
+      t("marketing.campaigns.meta.nextTouch", "Next touch: {date}").replace(
+        "{date}",
+        formatCampaignDate(campaign.nextTouchAt)
+      )
+    );
+  }
+  parts.push(
+    t("marketing.campaigns.meta.segment", "Segment: {segment}").replace(
+      "{segment}",
+      getSegmentLabel(campaign.segment)
+    )
+  );
+  if (campaign.kpiTarget) {
+    parts.push(
+      t("marketing.campaigns.meta.kpi", "KPI: {kpi}").replace(
+        "{kpi}",
+        campaign.kpiTarget
+      )
+    );
+  }
+  return parts.join(" • ");
 }
 
 function applyChannelVisibility(channel) {
@@ -514,6 +620,27 @@ async function updateTemplateApi(id, template) {
     body: JSON.stringify(template),
   });
   return res.template;
+}
+
+async function fetchCampaignsApi() {
+  const res = await marketingRequest("/campaigns");
+  return res.campaigns || [];
+}
+
+async function createCampaignApi(payload) {
+  const res = await marketingRequest("/campaigns", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.campaign;
+}
+
+async function updateCampaignApi(id, payload) {
+  const res = await marketingRequest(`/campaigns/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return res.campaign;
 }
 
 async function fetchSmsTemplatesApi() {
@@ -908,6 +1035,215 @@ function renderDispatches() {
     li.appendChild(meta);
     dispatchList.appendChild(li);
   });
+}
+
+function updateCampaignProgressDisplay(value) {
+  if (!campaignProgressValue) return;
+  const num = Math.max(0, Math.min(Number(value) || 0, 100));
+  campaignProgressValue.textContent = `${num}%`;
+}
+
+function resetCampaignModal() {
+  if (campaignForm) {
+    campaignForm.reset();
+  }
+  activeCampaignId = null;
+  updateCampaignProgressDisplay(0);
+  if (campaignStatusMessage) {
+    campaignStatusMessage.textContent = "";
+    campaignStatusMessage.classList.add("hidden");
+    campaignStatusMessage.classList.remove(
+      "bg-emerald-100",
+      "text-emerald-700",
+      "bg-rose-100",
+      "text-rose-700"
+    );
+  }
+}
+
+function closeCampaignModal() {
+  if (!campaignModal) return;
+  campaignModal.classList.add("hidden");
+  campaignModal.classList.remove("flex");
+  document.body?.classList.remove("overflow-hidden");
+  resetCampaignModal();
+}
+
+function openCampaignModal(campaign = null) {
+  if (!campaignModal) return;
+  resetCampaignModal();
+  activeCampaignId = campaign?.id || null;
+  if (campaignNameInput) campaignNameInput.value = campaign?.name || "";
+  if (campaignSegmentSelect) campaignSegmentSelect.value = campaign?.segment || "b2c";
+  if (campaignStatusSelect) campaignStatusSelect.value = campaign?.status || "draft";
+  if (campaignProgressInput) {
+    const progress = Math.max(0, Math.min(Number(campaign?.progress) || 0, 100));
+    campaignProgressInput.value = String(progress);
+    updateCampaignProgressDisplay(progress);
+  }
+  if (campaignNextTouchInput) {
+    campaignNextTouchInput.value = isoToLocalInputValue(campaign?.nextTouchAt);
+  }
+  if (campaignKpiTargetInput) campaignKpiTargetInput.value = campaign?.kpiTarget || "";
+  if (campaignSummaryInput) campaignSummaryInput.value = campaign?.summary || "";
+
+  campaignModal.classList.remove("hidden");
+  campaignModal.classList.add("flex");
+  document.body?.classList.add("overflow-hidden");
+  if (campaignNameInput) campaignNameInput.focus();
+}
+
+function createCampaignCard(campaign) {
+  const article = document.createElement("article");
+  article.className = "glass card bg-white/70 space-y-3 p-4";
+  article.dataset.status = campaign.status || "draft";
+  article.dataset.campaignId = campaign.id;
+
+  const header = document.createElement("div");
+  header.className = "flex items-start justify-between gap-3 text-sm";
+
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "flex flex-col gap-1";
+  const title = document.createElement("span");
+  title.className = "font-semibold text-slate-800";
+  title.textContent = campaign.name || t("marketing.campaigns.untitled", "Untitled campaign");
+  titleWrap.appendChild(title);
+
+  const subtitle = document.createElement("span");
+  subtitle.className = "text-xs text-slate-500";
+  subtitle.textContent = formatCampaignSubtitle(campaign);
+  titleWrap.appendChild(subtitle);
+
+  const actionWrap = document.createElement("div");
+  actionWrap.className = "flex flex-col items-end gap-2";
+
+  const statusChip = document.createElement("span");
+  statusChip.className = "chip capitalize";
+  statusChip.textContent = getCampaignStatusLabel(campaign.status);
+  actionWrap.appendChild(statusChip);
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "btn text-xs";
+  editBtn.textContent = t("marketing.campaigns.actions.edit", "Edit • Editar");
+  editBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    openCampaignModal(campaign);
+  });
+  actionWrap.appendChild(editBtn);
+
+  header.appendChild(titleWrap);
+  header.appendChild(actionWrap);
+  article.appendChild(header);
+
+  if (campaign.summary) {
+    const summary = document.createElement("p");
+    summary.className = "text-xs text-slate-600";
+    summary.textContent = campaign.summary;
+    article.appendChild(summary);
+  }
+
+  const progressWrapper = document.createElement("div");
+  progressWrapper.className = "h-2 w-full overflow-hidden rounded-full bg-slate-200";
+  const progressInner = document.createElement("div");
+  progressInner.className = `h-full rounded-full ${getCampaignStatusGradient(campaign.status)}`;
+  const progressValue = Math.max(0, Math.min(Number(campaign.progress) || 0, 100));
+  progressInner.style.width = `${progressValue}%`;
+  progressWrapper.appendChild(progressInner);
+  article.appendChild(progressWrapper);
+
+  const meta = document.createElement("p");
+  meta.className = "text-[11px] uppercase tracking-wide text-slate-400";
+  const updated = campaign.updatedAt || campaign.createdAt;
+  const updatedText = updated ? new Date(updated).toLocaleString() : new Date().toLocaleString();
+  meta.textContent = t("marketing.campaigns.meta.updated", "Updated {timestamp}").replace(
+    "{timestamp}",
+    updatedText
+  );
+  article.appendChild(meta);
+
+  article.addEventListener("click", () => {
+    openCampaignModal(campaign);
+  });
+
+  return article;
+}
+
+function renderCampaigns() {
+  if (!campaignListEl) return;
+  campaignListEl.innerHTML = "";
+  const sorted = campaignCache
+    .slice()
+    .sort(
+      (a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
+    );
+  if (!sorted.length) {
+    if (campaignEmptyState) campaignEmptyState.classList.remove("hidden");
+    return;
+  }
+  if (campaignEmptyState) campaignEmptyState.classList.add("hidden");
+  sorted.forEach((campaign) => {
+    campaignListEl.appendChild(createCampaignCard(campaign));
+  });
+}
+
+async function hydrateCampaigns() {
+  if (!campaignListEl) return;
+  try {
+    campaignCache = await fetchCampaignsApi();
+  } catch (error) {
+    console.error("Failed to load campaigns", error);
+    campaignCache = [];
+  }
+  renderCampaigns();
+}
+
+function exportCampaignsToCsv() {
+  if (!campaignCache.length) {
+    window.alert(
+      t("marketing.campaigns.export.empty", "Add a campaign before exporting. • Agrega una campaña antes de exportar.")
+    );
+    return;
+  }
+  const headers = [
+    "Name",
+    "Status",
+    "Segment",
+    "Progress",
+    "Next Touch",
+    "KPI Target",
+    "Summary",
+    "Updated At",
+  ];
+  const rows = campaignCache.map((campaign) => [
+    campaign.name || "",
+    getCampaignStatusLabel(campaign.status),
+    getSegmentLabel(campaign.segment),
+    Math.max(0, Math.min(Number(campaign.progress) || 0, 100)),
+    campaign.nextTouchAt ? new Date(campaign.nextTouchAt).toISOString() : "",
+    campaign.kpiTarget || "",
+    campaign.summary || "",
+    campaign.updatedAt || campaign.createdAt || "",
+  ]);
+  const csv = [headers, ...rows]
+    .map((row) =>
+      row
+        .map((value) => {
+          const str = value === null || value === undefined ? "" : String(value);
+          return `"${str.replace(/"/g, '""')}"`;
+        })
+        .join(",")
+    )
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `campaigns-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 function populateStepTemplateOptions(select, selectedValue = "") {
@@ -1546,6 +1882,82 @@ function bindTemplateEditor() {
   });
 }
 
+function bindCampaignControls() {
+  if (btnAddCampaign) {
+    btnAddCampaign.addEventListener("click", () => {
+      openCampaignModal();
+    });
+  }
+  if (btnExportCampaigns) {
+    btnExportCampaigns.addEventListener("click", exportCampaignsToCsv);
+  }
+  if (campaignModal) {
+    campaignModal.addEventListener("click", (event) => {
+      if (event.target === campaignModal) {
+        closeCampaignModal();
+      }
+    });
+  }
+  document.querySelectorAll("[data-close-campaign]").forEach((btn) => {
+    btn.addEventListener("click", closeCampaignModal);
+  });
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && campaignModal && !campaignModal.classList.contains("hidden")) {
+      closeCampaignModal();
+    }
+  });
+  if (campaignProgressInput) {
+    campaignProgressInput.addEventListener("input", (event) => {
+      updateCampaignProgressDisplay(event.target.value);
+    });
+  }
+  if (!campaignForm) return;
+  campaignForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const name = campaignNameInput?.value?.trim() || "";
+    if (!name) {
+      showInlineStatus(
+        campaignStatusMessage,
+        t("marketing.campaigns.form.nameRequired", "Name required • Nombre requerido"),
+        "error"
+      );
+      return;
+    }
+    const nextTouchIso = localInputValueToIso(campaignNextTouchInput?.value?.trim() || "");
+    const payload = {
+      name,
+      segment: campaignSegmentSelect?.value?.trim() || "b2c",
+      status: campaignStatusSelect?.value?.trim() || "draft",
+      progress: Math.max(0, Math.min(Number(campaignProgressInput?.value || 0), 100)),
+      nextTouchAt: nextTouchIso,
+      kpiTarget: campaignKpiTargetInput?.value?.trim() || "",
+      summary: campaignSummaryInput?.value?.trim() || "",
+    };
+    try {
+      const campaign = activeCampaignId
+        ? await updateCampaignApi(activeCampaignId, payload)
+        : await createCampaignApi(payload);
+      campaignCache = [campaign, ...campaignCache.filter((item) => item.id !== campaign.id)];
+      renderCampaigns();
+      showInlineStatus(
+        campaignStatusMessage,
+        activeCampaignId
+          ? t("marketing.campaigns.form.updated", "Campaign updated • Campaña actualizada")
+          : t("marketing.campaigns.form.saved", "Campaign saved • Campaña guardada")
+      );
+      window.setTimeout(() => {
+        closeCampaignModal();
+      }, 600);
+    } catch (error) {
+      showInlineStatus(
+        campaignStatusMessage,
+        error.message || t("marketing.campaigns.form.error", "Failed to save campaign • Error al guardar"),
+        "error"
+      );
+    }
+  });
+}
+
 function bindTemplateControls() {
   if (templateFilter) {
     templateFilter.addEventListener("change", filterTemplates);
@@ -1719,20 +2131,7 @@ function bindAutomationControls() {
 }
 
 function initCampaignStatusStyles() {
-  const campaignList = document.getElementById("campaignList");
-  if (!campaignList) return;
-  const statusColors = {
-    scheduled: "bg-gradient-to-r from-violet-500 to-fuchsia-500",
-    completed: "bg-gradient-to-r from-emerald-500 to-teal-500",
-    draft: "bg-gradient-to-r from-sky-500 to-indigo-500",
-  };
-  campaignList.querySelectorAll("[data-status]").forEach((card) => {
-    const status = card.dataset.status;
-    const bar = card.querySelector(".h-full");
-    if (status && bar) {
-      bar.className = `h-full rounded-full ${statusColors[status] ?? "bg-slate-500"}`;
-    }
-  });
+  renderCampaigns();
 }
 
 function initLanguageSync() {
@@ -1743,6 +2142,7 @@ function initLanguageSync() {
     renderSmsTemplates();
     renderEmailSequences();
     renderDispatches();
+    renderCampaigns();
     updateSmsPreview();
     configureChannelBadge(activeChannel);
     updateDocumentTitleForChannel(activeChannel);
@@ -1761,6 +2161,7 @@ if (shouldLoadEmailFeatures) {
 bindExperimentControls();
 bindRefreshControls();
 bindAutomationControls();
+bindCampaignControls();
 initCampaignStatusStyles();
 initLanguageSync();
 
@@ -1775,6 +2176,7 @@ if (shouldLoadEmailFeatures) {
 if (shouldLoadSmsFeatures) {
   hydrateSmsTemplates();
 }
+hydrateCampaigns();
 refreshTestQueue();
 refreshProviders();
 autoRefreshQueue();

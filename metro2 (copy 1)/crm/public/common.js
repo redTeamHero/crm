@@ -183,6 +183,40 @@ const TRANSLATIONS = {
         },
         deliveredLabel: 'Delivered {value} • Entregado {value}',
         errorLabel: 'Error: {error} • Error: {error}'
+      },
+      campaigns: {
+        untitled: 'Untitled campaign • Campaña sin título',
+        status: {
+          draft: 'Draft • Borrador',
+          scheduled: 'Scheduled • Programada',
+          running: 'Running • En curso',
+          paused: 'Paused • En pausa',
+          completed: 'Completed • Completada'
+        },
+        segment: {
+          b2c: 'B2C • Consumidores',
+          b2b: 'B2B • Negocios',
+          attorneys: 'Attorneys • Abogados',
+          inactive: 'Inactive • Inactivos'
+        },
+        meta: {
+          nextTouch: 'Next touch: {date} • Próximo contacto: {date}',
+          segment: 'Segment: {segment} • Segmento: {segment}',
+          kpi: 'KPI: {kpi} • KPI: {kpi}',
+          updated: 'Updated {timestamp} • Actualizado {timestamp}'
+        },
+        actions: {
+          edit: 'Edit • Editar'
+        },
+        form: {
+          nameRequired: 'Name required • Nombre requerido',
+          saved: 'Campaign saved • Campaña guardada',
+          updated: 'Campaign updated • Campaña actualizada',
+          error: 'Failed to save campaign • Error al guardar la campaña'
+        },
+        export: {
+          empty: 'Add a campaign before exporting. • Agrega una campaña antes de exportar.'
+        }
       }
     },
     tiers: {

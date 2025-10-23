@@ -26,6 +26,18 @@ function waitForShepherd({ attempts = DEFAULT_WAIT_ATTEMPTS, interval = DEFAULT_
   return shepherdWaitPromise;
 }
 
+function getStorage() {
+  if (typeof window === 'undefined') return null;
+  const { localStorage } = window;
+  if (!localStorage) return null;
+  try {
+    localStorage.getItem('__tour_storage_check__');
+  } catch (err) {
+    return null;
+  }
+  return localStorage;
+}
+
 function createDefaultButtons(tour, index, totalSteps) {
   const buttons = [];
   if (index > 0) {
@@ -86,8 +98,9 @@ export function setupPageTour(pageKey, {
 
   function refreshHelpState() {
     if (typeof window === 'undefined' || typeof window.setHelpGuideState !== 'function') return;
-    const storedStep = window.localStorage.getItem(STEP_KEY);
-    const completed = window.localStorage.getItem(COMPLETE_KEY) === 'true';
+    const storage = getStorage();
+    const storedStep = storage ? storage.getItem(STEP_KEY) : null;
+    const completed = storage ? storage.getItem(COMPLETE_KEY) === 'true' : false;
     let mode = 'start';
     if (storedStep) mode = 'resume';
     else if (completed) mode = 'replay';
@@ -119,16 +132,22 @@ export function setupPageTour(pageKey, {
       const current = tour.currentStep;
       activeStepId = current?.id || null;
       if (activeStepId) {
-        window.localStorage.setItem(STEP_KEY, activeStepId);
-        window.localStorage.removeItem(COMPLETE_KEY);
+        const storage = getStorage();
+        if (storage) {
+          storage.setItem(STEP_KEY, activeStepId);
+          storage.removeItem(COMPLETE_KEY);
+        }
       }
       refreshHelpState();
     });
 
     tour.on('complete', () => {
       activeStepId = null;
-      window.localStorage.removeItem(STEP_KEY);
-      window.localStorage.setItem(COMPLETE_KEY, 'true');
+      const storage = getStorage();
+      if (storage) {
+        storage.removeItem(STEP_KEY);
+        storage.setItem(COMPLETE_KEY, 'true');
+      }
       refreshHelpState();
       if (typeof window.trackEvent === 'function') {
         window.trackEvent('tour_complete', { page: pageKey });
@@ -145,7 +164,10 @@ export function setupPageTour(pageKey, {
 
     tour.on('cancel', () => {
       if (activeStepId) {
-        window.localStorage.setItem(STEP_KEY, activeStepId);
+        const storage = getStorage();
+        if (storage) {
+          storage.setItem(STEP_KEY, activeStepId);
+        }
       }
       refreshHelpState();
       if (typeof onAfterCancel === 'function') {
@@ -213,8 +235,11 @@ export function setupPageTour(pageKey, {
     }
 
     if (resume) {
-      const stepId = window.localStorage.getItem(STEP_KEY);
-      window.localStorage.removeItem(COMPLETE_KEY);
+      const storage = getStorage();
+      const stepId = storage ? storage.getItem(STEP_KEY) : null;
+      if (storage) {
+        storage.removeItem(COMPLETE_KEY);
+      }
       refreshHelpState();
       tour.start();
       if (stepId && tour.getById(stepId)) {
@@ -222,8 +247,11 @@ export function setupPageTour(pageKey, {
       }
     } else {
       activeStepId = null;
-      window.localStorage.removeItem(STEP_KEY);
-      window.localStorage.removeItem(COMPLETE_KEY);
+      const storage = getStorage();
+      if (storage) {
+        storage.removeItem(STEP_KEY);
+        storage.removeItem(COMPLETE_KEY);
+      }
       refreshHelpState();
       tour.start();
     }
@@ -236,8 +264,11 @@ export function setupPageTour(pageKey, {
       tourInstance.cancel();
     }
     activeStepId = null;
-    window.localStorage.removeItem(STEP_KEY);
-    window.localStorage.removeItem(COMPLETE_KEY);
+    const storage = getStorage();
+    if (storage) {
+      storage.removeItem(STEP_KEY);
+      storage.removeItem(COMPLETE_KEY);
+    }
     refreshHelpState();
     if (typeof onAfterCancel === 'function') {
       try {
@@ -259,7 +290,7 @@ export function setupPageTour(pageKey, {
     resetTour();
   };
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
     window.addEventListener('crm:tutorial-request', handleTutorialRequest);
     window.addEventListener('crm:tutorial-reset', handleTutorialReset);
   }
