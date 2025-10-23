@@ -42,7 +42,8 @@ setupPageTour('settings-company', {
 });
 
 const state = {
-  members: []
+  members: [],
+  credentials: {}
 };
 
 let inviteDialog;
@@ -55,13 +56,21 @@ let inviteEmail;
 let inviteToken;
 let invitePassword;
 let inviteAnother;
+let inviteHeading;
+let inviteDescription;
+let inviteSuccessDescription;
 let teamLoading;
 let teamError;
 let teamEmpty;
 let teamTable;
 let teamTableWrap;
+let lastInviteCredentials = null;
+let inviteHeadingDefault = '';
+let inviteDescriptionDefault = '';
+let inviteSuccessDescriptionDefault = '';
 
 const INVITE_BUTTON_LABEL = 'Send Invite';
+const INVITE_CREDENTIAL_STORAGE_KEY = 'teamMemberInviteCredentials';
 
 function escapeHtml(str = '') {
   return str
@@ -77,6 +86,118 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function normalizeMemberEmail(member = {}) {
+  return (member.email || member.username || '').trim();
+}
+
+function loadStoredInviteCredentials() {
+  try {
+    const raw = localStorage.getItem(INVITE_CREDENTIAL_STORAGE_KEY);
+    if (!raw) {
+      state.credentials = {};
+      return;
+    }
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      state.credentials = parsed;
+    } else {
+      state.credentials = {};
+    }
+  } catch (err) {
+    console.error('Failed to load stored invite credentials', err);
+    state.credentials = {};
+  }
+}
+
+function persistInviteCredentials() {
+  try {
+    localStorage.setItem(INVITE_CREDENTIAL_STORAGE_KEY, JSON.stringify(state.credentials));
+  } catch (err) {
+    console.error('Failed to persist invite credentials', err);
+  }
+}
+
+function createCredentialRecord(member, token, password) {
+  return {
+    token: token || '',
+    password: password || '',
+    memberId: member?.id ?? null,
+    email: normalizeMemberEmail(member),
+    name: member?.name || normalizeMemberEmail(member) || 'Team member',
+    savedAt: new Date().toISOString()
+  };
+}
+
+function storeInviteCredentials(member, token, password) {
+  if (!member || (!token && !password)) return;
+  const record = createCredentialRecord(member, token, password);
+  const keys = new Set();
+  if (record.memberId !== null && record.memberId !== undefined) {
+    keys.add(`id:${record.memberId}`);
+  }
+  if (record.email) {
+    keys.add(`email:${record.email}`);
+  }
+  if (!keys.size) return;
+  Object.entries(state.credentials).forEach(([key, value]) => {
+    if (!value) return;
+    if ((record.memberId !== null && String(value.memberId) === String(record.memberId)) || (record.email && value.email === record.email)) {
+      delete state.credentials[key];
+    }
+  });
+  keys.forEach(key => {
+    state.credentials[key] = record;
+  });
+  persistInviteCredentials();
+}
+
+function findStoredCredentials(member) {
+  if (!member) return null;
+  const candidates = [];
+  if (member.id !== undefined && member.id !== null) {
+    candidates.push(`id:${member.id}`);
+  }
+  const email = normalizeMemberEmail(member);
+  if (email) {
+    candidates.push(`email:${email}`);
+  }
+  for (const key of candidates) {
+    const record = state.credentials[key];
+    if (record && (record.token || record.password)) {
+      return record;
+    }
+  }
+  return null;
+}
+
+function findStoredCredentialsById(memberId) {
+  if (memberId === undefined || memberId === null) return null;
+  const directKey = `id:${memberId}`;
+  if (state.credentials[directKey] && (state.credentials[directKey].token || state.credentials[directKey].password)) {
+    return state.credentials[directKey];
+  }
+  const match = Object.values(state.credentials).find(entry => entry && entry.memberId !== null && String(entry.memberId) === String(memberId) && (entry.token || entry.password));
+  return match || null;
+}
+
+function removeStoredCredentials(member) {
+  if (!member) return;
+  const email = normalizeMemberEmail(member);
+  let changed = false;
+  Object.entries(state.credentials).forEach(([key, value]) => {
+    if (!value) return;
+    const sameId = member.id !== undefined && member.id !== null && value.memberId !== null && String(value.memberId) === String(member.id);
+    const sameEmail = email && value.email === email;
+    if (sameId || sameEmail) {
+      delete state.credentials[key];
+      changed = true;
+    }
+  });
+  if (changed) {
+    persistInviteCredentials();
+  }
 }
 
 function syncTeamToLocalStorage() {
@@ -105,11 +226,25 @@ function renderTeamMembers() {
     const lastLogin = formatDate(member.lastLoginAt) || 'Pending';
     const invited = formatDate(member.createdAt) || '—';
     const status = member.lastLoginAt ? 'Active' : 'Awaiting first login';
+    const storedCredentials = findStoredCredentials(member);
+    const credentialKey = member.id !== undefined && member.id !== null
+      ? String(member.id)
+      : normalizeMemberEmail(member);
+    const credentialType = member.id !== undefined && member.id !== null ? 'id' : 'email';
+    const credentialButton = storedCredentials && credentialKey
+      ? `<button type="button" class="text-xs text-accent underline mt-1" data-credentials="${escapeHtml(credentialKey)}" data-credential-type="${credentialType}" data-member-name="${name}">View invite credentials</button>`
+      : '';
+    const credentialSavedAt = storedCredentials?.savedAt ? formatDate(storedCredentials.savedAt) : null;
+    const credentialMeta = credentialSavedAt
+      ? `<div class="text-[11px] muted">Saved ${escapeHtml(credentialSavedAt)}</div>`
+      : '';
     return `
       <tr class="align-top">
         <td class="px-4 py-3">
           <div class="font-medium">${name}</div>
           <div class="text-xs muted">Team workspace access</div>
+          ${credentialButton}
+          ${credentialMeta}
         </td>
         <td class="px-4 py-3">
           <div><a class="text-accent underline" href="mailto:${email}">${email}</a></div>
@@ -159,10 +294,27 @@ function resetInviteView() {
   inviteForm?.classList.remove('hidden');
   inviteSuccess?.classList.add('hidden');
   inviteError?.classList.add('hidden');
+  if (inviteHeading && inviteHeadingDefault) {
+    inviteHeading.textContent = inviteHeadingDefault;
+  }
+  if (inviteDescription && inviteDescriptionDefault) {
+    inviteDescription.textContent = inviteDescriptionDefault;
+  }
+  if (inviteSuccessDescription && inviteSuccessDescriptionDefault) {
+    inviteSuccessDescription.textContent = inviteSuccessDescriptionDefault;
+  }
+  if (inviteDialog) {
+    inviteDialog.dataset.mode = 'invite';
+  }
   if (inviteName) inviteName.value = '';
   if (inviteEmail) inviteEmail.value = '';
-  if (inviteToken) inviteToken.textContent = '';
-  if (invitePassword) invitePassword.textContent = '';
+  lastInviteCredentials = null;
+  if (inviteToken) {
+    inviteToken.textContent = '';
+  }
+  if (invitePassword) {
+    invitePassword.textContent = '';
+  }
   if (inviteSubmit) {
     inviteSubmit.disabled = false;
     inviteSubmit.textContent = INVITE_BUTTON_LABEL;
@@ -172,7 +324,6 @@ function resetInviteView() {
 function closeInviteDialog() {
   if (!inviteDialog) return;
   inviteDialog.close();
-  resetInviteView();
 }
 
 function openInviteDialog() {
@@ -186,10 +337,72 @@ function showInviteSuccess(member) {
   if (!inviteSuccess || !inviteToken || !invitePassword) return;
   inviteForm?.classList.add('hidden');
   inviteSuccess.classList.remove('hidden');
-  inviteToken.textContent = member.token;
-  inviteToken.dataset.value = member.token;
-  invitePassword.textContent = member.password;
-  invitePassword.dataset.value = member.password;
+  if (inviteDialog) {
+    inviteDialog.dataset.mode = 'invite';
+  }
+  if (inviteSuccessDescription && inviteSuccessDescriptionDefault) {
+    inviteSuccessDescription.textContent = inviteSuccessDescriptionDefault;
+  }
+  const token = member?.token || '';
+  const password = member?.password || '';
+  lastInviteCredentials = { token, password };
+  inviteToken.textContent = token;
+  invitePassword.textContent = password;
+  if (member) {
+    storeInviteCredentials(member, token, password);
+  }
+}
+
+function showStoredCredentials({ key, type, fallbackName }) {
+  if (!key) return;
+  const normalizedType = type === 'email' ? 'email' : 'id';
+  const lookup = normalizedType === 'email'
+    ? (member) => normalizeMemberEmail(member) === key
+    : (member) => String(member.id) === String(key);
+  const member = state.members.find(lookup);
+  let credentials = member ? findStoredCredentials(member) : null;
+  if (!credentials) {
+    credentials = normalizedType === 'email'
+      ? state.credentials[`email:${key}`] || null
+      : findStoredCredentialsById(key);
+  }
+  if (!credentials || (!credentials.token && !credentials.password)) {
+    alert('We could not find stored invite credentials. Send a fresh invite to regenerate them.');
+    return;
+  }
+  const displayName = member?.name || member?.email || credentials.name || fallbackName || 'Team member';
+  resetInviteView();
+  if (inviteHeading) {
+    inviteHeading.textContent = `Invite credentials for ${displayName}`;
+  }
+  if (inviteDescription) {
+    inviteDescription.textContent = 'Share or copy the saved invite token and temporary password.';
+  }
+  if (inviteSuccessDescription) {
+    inviteSuccessDescription.textContent = 'Stored locally so you can resend via a secure channel (encrypted email, SMS, etc.).';
+  }
+  lastInviteCredentials = {
+    token: credentials.token || '',
+    password: credentials.password || ''
+  };
+  if (inviteToken) {
+    inviteToken.textContent = lastInviteCredentials.token;
+  }
+  if (invitePassword) {
+    invitePassword.textContent = lastInviteCredentials.password;
+  }
+  inviteForm?.classList.add('hidden');
+  inviteSuccess?.classList.remove('hidden');
+  if (inviteDialog) {
+    inviteDialog.dataset.mode = 'credentials';
+    try {
+      if (!inviteDialog.open) {
+        inviteDialog.showModal();
+      }
+    } catch (err) {
+      console.error('Failed to open invite dialog for stored credentials', err);
+    }
+  }
 }
 
 async function handleInviteSubmit(event) {
@@ -226,18 +439,28 @@ async function handleInviteSubmit(event) {
 }
 
 async function handleTeamTableClick(event) {
+  const credentialTrigger = event.target.closest('[data-credentials]');
+  if (credentialTrigger) {
+    const key = credentialTrigger.getAttribute('data-credentials');
+    const type = credentialTrigger.getAttribute('data-credential-type') || 'id';
+    const fallbackName = credentialTrigger.getAttribute('data-member-name') || 'Team member';
+    showStoredCredentials({ key, type, fallbackName });
+    return;
+  }
   const target = event.target.closest('[data-remove]');
   if (!target) return;
   const memberId = target.dataset.remove;
   const memberName = target.dataset.name || 'this teammate';
   if (!memberId) return;
+  const member = state.members.find(entry => String(entry.id) === String(memberId)) || null;
   const confirmed = confirm(`Remove ${memberName} from your workspace?`);
   if (!confirmed) return;
   target.disabled = true;
   try {
     const res = await api(`/api/team-members/${memberId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(res.error || 'Failed to remove');
-    state.members = state.members.filter(member => member.id !== memberId);
+    state.members = state.members.filter(entry => String(entry.id) !== String(memberId));
+    removeStoredCredentials(member || { id: memberId });
     syncTeamToLocalStorage();
     renderTeamMembers();
   } catch (err) {
@@ -304,11 +527,20 @@ function initTeamSection() {
   inviteToken = document.getElementById('inviteToken');
   invitePassword = document.getElementById('invitePassword');
   inviteAnother = document.getElementById('inviteAnother');
+  inviteHeading = inviteDialog?.querySelector('.dialog-header .section-title') || null;
+  inviteDescription = inviteDialog?.querySelector('.dialog-header .section-description') || null;
+  inviteSuccessDescription = inviteSuccess?.querySelector('.section-description') || null;
   teamLoading = document.getElementById('teamLoading');
   teamError = document.getElementById('teamError');
   teamEmpty = document.getElementById('teamEmpty');
   teamTable = document.getElementById('teamTable');
   teamTableWrap = document.getElementById('teamTableWrap');
+
+  inviteHeadingDefault = inviteHeading?.textContent || inviteHeadingDefault;
+  inviteDescriptionDefault = inviteDescription?.textContent || inviteDescriptionDefault;
+  inviteSuccessDescriptionDefault = inviteSuccessDescription?.textContent || inviteSuccessDescriptionDefault;
+
+  loadStoredInviteCredentials();
 
   if (inviteForm) {
     inviteForm.addEventListener('submit', handleInviteSubmit);
@@ -325,6 +557,7 @@ function initTeamSection() {
         closeInviteDialog();
       }
     });
+    inviteDialog.addEventListener('close', resetInviteView);
   }
   document.querySelectorAll('[data-close]').forEach(btn => {
     btn.addEventListener('click', closeInviteDialog);
@@ -332,11 +565,12 @@ function initTeamSection() {
   inviteSuccess?.querySelectorAll('[data-copy]').forEach(btn => {
     btn.addEventListener('click', () => {
       const type = btn.getAttribute('data-copy');
-      if (type === 'token') {
-        copyToClipboard(inviteToken?.dataset.value || inviteToken?.textContent || '', 'Token');
-      } else if (type === 'password') {
-        copyToClipboard(invitePassword?.dataset.value || invitePassword?.textContent || '', 'Password');
-      }
+      const value = type === 'token'
+        ? (lastInviteCredentials?.token || inviteToken?.textContent || '')
+        : (lastInviteCredentials?.password || invitePassword?.textContent || '');
+      if (!value) return;
+      const label = type === 'token' ? 'Token' : 'Password';
+      copyToClipboard(value, label);
     });
   });
   teamTable?.addEventListener('click', handleTeamTableClick);

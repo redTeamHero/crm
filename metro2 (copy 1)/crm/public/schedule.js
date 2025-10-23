@@ -60,6 +60,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const customSlotLabelInput = document.getElementById('customSlotLabel');
   const saveCustomSlotBtn = document.getElementById('saveCustomSlot');
   const customSlotNotice = document.getElementById('customSlotNotice');
+  const slotPresetToggle = document.getElementById('toggleSlotPresetEditor');
+  const slotPresetEditor = document.getElementById('slotPresetEditor');
+  const slotPresetList = document.getElementById('slotPresetList');
+  const slotPresetSaveBtn = document.getElementById('saveSlotPresets');
+  const slotPresetAddBtn = document.getElementById('addSlotPreset');
+  const slotPresetResetBtn = document.getElementById('resetSlotPresets');
+  const slotPresetNotice = document.getElementById('slotPresetNotice');
   const typeInput = document.getElementById('eventType');
   const textInput = document.getElementById('eventText');
   const saveBtn = document.getElementById('saveEvent');
@@ -75,9 +82,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let calendarNotice = '';
   let slotButtonRefs = [];
   let customSlots = [];
+  let slotPresets = [];
+  let slotPresetDrafts = [];
   let customSlotNoticeTimeout = null;
+  let slotPresetNoticeTimeout = null;
 
   const customSlotStorageKey = 'schedule.customSlots';
+  const slotPresetStorageKey = 'schedule.slotPresets';
   const localStorageAvailable = (() => {
     try {
       const probe = '__schedule_custom_slot__';
@@ -89,11 +100,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
   let defaultCustomSlotNotice = customSlotNotice ? customSlotNotice.textContent || '' : '';
+  let defaultSlotPresetNotice = slotPresetNotice ? slotPresetNotice.textContent || '' : '';
 
   if (!localStorageAvailable && customSlotNotice) {
     const fallback = 'Custom slots stay active for this session only. / Los horarios personalizados solo viven en esta sesión.';
     customSlotNotice.textContent = fallback;
     defaultCustomSlotNotice = fallback;
+  }
+
+  if (!localStorageAvailable && slotPresetNotice) {
+    const fallback = 'Quick slots reset after this session. Type keywords still control colors. / Los horarios rápidos se reinician después de esta sesión. Las palabras clave del tipo siguen controlando los colores.';
+    slotPresetNotice.textContent = fallback;
+    defaultSlotPresetNotice = fallback;
   }
 
   const setCustomSlotNotice = (message, revert = true) => {
@@ -110,6 +128,40 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 4000);
     }
   };
+
+  const setSlotPresetNotice = (message, revert = true) => {
+    if (!slotPresetNotice) return;
+    if (slotPresetNoticeTimeout) {
+      clearTimeout(slotPresetNoticeTimeout);
+      slotPresetNoticeTimeout = null;
+    }
+    slotPresetNotice.textContent = message;
+    if (revert) {
+      slotPresetNoticeTimeout = window.setTimeout(() => {
+        slotPresetNotice.textContent = defaultSlotPresetNotice;
+        slotPresetNoticeTimeout = null;
+      }, 4000);
+    }
+  };
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const defaultDurationMinutes = 45;
+
+  const defaultSlotPresets = [
+    { id: 'preset-0', start: '09:00', duration: 60, title: 'Strategy Consult', type: 'Consult' },
+    { id: 'preset-1', start: '11:30', duration: 30, title: 'Follow-up Touchpoint', type: 'Follow-up' },
+    { id: 'preset-2', start: '14:00', duration: 45, title: 'Dispute Update', type: 'Dispute Work' },
+    { id: 'preset-3', start: '16:30', duration: 30, title: 'Billing Review', type: 'Billing' }
+  ];
+
+  const cloneDefaultSlotPresets = () =>
+    defaultSlotPresets.map((slot, index) => ({
+      id: slot.id || `preset-${index}`,
+      start: slot.start,
+      duration: Number.isFinite(slot.duration) && slot.duration > 0 ? slot.duration : defaultDurationMinutes,
+      title: slot.title || '',
+      type: slot.type || ''
+    }));
 
   const loadStoredCustomSlots = () => {
     if (!localStorageAvailable) {
@@ -148,6 +200,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const loadStoredSlotPresets = () => {
+    if (!localStorageAvailable) {
+      return cloneDefaultSlotPresets();
+    }
+    try {
+      const raw = window.localStorage.getItem(slotPresetStorageKey);
+      if (!raw) return cloneDefaultSlotPresets();
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return cloneDefaultSlotPresets();
+      const normalized = parsed
+        .map((slot) => {
+          if (!slot || typeof slot !== 'object') return null;
+          const start = typeof slot.start === 'string' ? slot.start : '';
+          if (!/^\d{2}:\d{2}$/.test(start)) return null;
+          const duration = Number.parseInt(slot.duration, 10);
+          const title = typeof slot.title === 'string' ? slot.title : '';
+          const type = typeof slot.type === 'string' ? slot.type : '';
+          const id = typeof slot.id === 'string' && slot.id
+            ? slot.id
+            : `preset-${start}-${Math.max(15, Number.isFinite(duration) ? duration : defaultDurationMinutes)}-${Math.random()
+                .toString(36)
+                .slice(2, 7)}`;
+          return {
+            id,
+            start,
+            duration: Number.isFinite(duration) && duration > 0 ? duration : defaultDurationMinutes,
+            title,
+            type
+          };
+        })
+        .filter(Boolean);
+      if (!normalized.length) {
+        return cloneDefaultSlotPresets();
+      }
+      return normalized;
+    } catch (e) {
+      console.warn('Failed to parse slot presets', e);
+      return cloneDefaultSlotPresets();
+    }
+  };
+
   const persistCustomSlotsState = () => {
     if (!localStorageAvailable) return;
     try {
@@ -156,6 +249,17 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       console.warn('Failed to persist custom slots', e);
       setCustomSlotNotice('We could not save this slot to storage. / No pudimos guardar este horario.', false);
+    }
+  };
+
+  const persistSlotPresetsState = () => {
+    if (!localStorageAvailable) return;
+    try {
+      const payload = slotPresets.map(({ id, start, duration, title, type }) => ({ id, start, duration, title, type }));
+      window.localStorage.setItem(slotPresetStorageKey, JSON.stringify(payload));
+    } catch (e) {
+      console.warn('Failed to persist slot presets', e);
+      setSlotPresetNotice('We could not save these quick slots to storage. / No pudimos guardar estos horarios rápidos.', false);
     }
   };
 
@@ -169,15 +273,159 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   };
 
-  const dayMs = 24 * 60 * 60 * 1000;
-  const defaultDurationMinutes = 45;
-  const slotPresets = [
-    { start: '09:00', duration: 60, title: 'Strategy Consult', type: 'Consult' },
-    { start: '11:30', duration: 30, title: 'Follow-up Touchpoint', type: 'Follow-up' },
-    { start: '14:00', duration: 45, title: 'Dispute Update', type: 'Dispute Work' },
-    { start: '16:30', duration: 30, title: 'Billing Review', type: 'Billing' }
-  ];
+  const resetSlotPresetsToDefault = () => {
+    slotPresets = cloneDefaultSlotPresets();
+    if (!localStorageAvailable) return;
+    try {
+      window.localStorage.removeItem(slotPresetStorageKey);
+    } catch (e) {
+      console.warn('Failed to reset slot presets', e);
+    }
+  };
+
+  slotPresets = loadStoredSlotPresets();
+  slotPresetDrafts = slotPresets.map((slot) => ({ ...slot }));
   customSlots = loadStoredCustomSlots();
+
+  const ensureSlotPresetDrafts = () => {
+    slotPresetDrafts = slotPresets.map((slot) => ({ ...slot }));
+  };
+
+  const updateSlotPresetDraft = (index, field, value) => {
+    if (!slotPresetDrafts[index]) return;
+    const next = { ...slotPresetDrafts[index] };
+    if (field === 'duration') {
+      const parsed = Number.parseInt(value, 10);
+      next[field] = Number.isFinite(parsed) ? parsed : value;
+    } else {
+      next[field] = value;
+    }
+    slotPresetDrafts[index] = next;
+  };
+
+  const renderSlotPresetEditor = () => {
+    if (!slotPresetList) return;
+    slotPresetList.innerHTML = '';
+    if (!slotPresetDrafts.length) {
+      const empty = document.createElement('p');
+      empty.className = 'rounded-2xl border border-dashed border-violet-200 bg-white/70 p-3 text-xs text-slate-500';
+      empty.textContent = 'No quick slots yet. Add one to keep curated options ready. / Aún no hay horarios rápidos. Agrega uno para tener opciones curadas listas.';
+      slotPresetList.appendChild(empty);
+      return;
+    }
+    slotPresetDrafts.forEach((slot, index) => {
+      const row = document.createElement('div');
+      row.className = 'flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white/70 p-3';
+
+      const makeField = (labelText, input) => {
+        const wrapper = document.createElement('label');
+        wrapper.className = 'flex flex-col text-xs font-semibold text-slate-500';
+        const label = document.createElement('span');
+        label.className = 'mb-1';
+        label.textContent = labelText;
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
+        return wrapper;
+      };
+
+      const startInput = document.createElement('input');
+      startInput.type = 'time';
+      startInput.step = '300';
+      startInput.value = typeof slot.start === 'string' ? slot.start : '';
+      startInput.className = 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60';
+      startInput.addEventListener('change', (event) => updateSlotPresetDraft(index, 'start', event.target.value));
+      startInput.addEventListener('input', (event) => updateSlotPresetDraft(index, 'start', event.target.value));
+
+      const durationInput = document.createElement('input');
+      durationInput.type = 'number';
+      durationInput.min = '5';
+      durationInput.step = '5';
+      const durationValue = Number.isFinite(slot.duration)
+        ? slot.duration
+        : (() => {
+            const parsed = Number.parseInt(slot.duration, 10);
+            return Number.isFinite(parsed) ? parsed : defaultDurationMinutes;
+          })();
+      durationInput.value = durationValue;
+      durationInput.className = 'w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60';
+      durationInput.addEventListener('input', (event) => updateSlotPresetDraft(index, 'duration', event.target.value));
+
+      const titleInput = document.createElement('input');
+      titleInput.type = 'text';
+      titleInput.value = typeof slot.title === 'string' ? slot.title : '';
+      titleInput.placeholder = 'Strategy Consult';
+      titleInput.className = 'flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60';
+      titleInput.style.minWidth = '140px';
+      titleInput.addEventListener('input', (event) => updateSlotPresetDraft(index, 'title', event.target.value));
+
+      const typeInputEl = document.createElement('input');
+      typeInputEl.type = 'text';
+      typeInputEl.value = typeof slot.type === 'string' ? slot.type : '';
+      typeInputEl.placeholder = 'Consult / Follow-up';
+      typeInputEl.className = 'flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60';
+      typeInputEl.style.minWidth = '140px';
+      typeInputEl.addEventListener('input', (event) => updateSlotPresetDraft(index, 'type', event.target.value));
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-destructive px-3 py-2 text-xs font-semibold';
+      removeBtn.textContent = 'Remove / Quitar';
+      removeBtn.addEventListener('click', () => {
+        slotPresetDrafts.splice(index, 1);
+        renderSlotPresetEditor();
+      });
+
+      row.append(
+        makeField('Start / Inicio', startInput),
+        makeField('Duration (min) / Duración (min)', durationInput),
+        makeField('Label / Etiqueta', titleInput),
+        makeField('Type / Tipo', typeInputEl),
+        removeBtn
+      );
+
+      slotPresetList.appendChild(row);
+    });
+  };
+
+  const updateSlotPresetToggleLabel = (expanded) => {
+    if (!slotPresetToggle) return;
+    slotPresetToggle.textContent = expanded
+      ? 'Close quick slot editor / Cerrar editor'
+      : 'Customize quick slots / Personaliza horarios rápidos';
+    slotPresetToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  };
+
+  const normalizeSlotPresetDrafts = () => {
+    const normalized = [];
+    for (let i = 0; i < slotPresetDrafts.length; i += 1) {
+      const draft = slotPresetDrafts[i] || {};
+      const start = typeof draft.start === 'string' ? draft.start.trim() : '';
+      if (!/^\d{2}:\d{2}$/.test(start)) {
+        return {
+          error: 'Enter a valid start time for every quick slot. / Ingresa una hora de inicio válida para cada horario rápido.'
+        };
+      }
+      let duration = Number.parseInt(draft.duration, 10);
+      if (!Number.isFinite(duration) || duration <= 0) {
+        return {
+          error: 'Duration must be at least 5 minutes. / La duración debe ser de al menos 5 minutos.'
+        };
+      }
+      duration = Math.max(5, Math.min(duration, 8 * 60));
+      const title = typeof draft.title === 'string' ? draft.title.trim() : '';
+      const type = typeof draft.type === 'string' ? draft.type.trim() : '';
+      const id = typeof draft.id === 'string' && draft.id
+        ? draft.id
+        : `preset-${start}-${duration}-${Math.random().toString(36).slice(2, 7)}`;
+      normalized.push({ id, start, duration, title, type });
+    }
+    if (!normalized.length) {
+      return {
+        error: 'Add at least one quick slot before saving. / Agrega al menos un horario rápido antes de guardar.'
+      };
+    }
+    return { slots: normalized };
+  };
   const todayMidnight = () => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -489,7 +737,12 @@ document.addEventListener('DOMContentLoaded', () => {
         messageParts.push(calendarNotice);
       }
       if (!busySlots.length) {
-        messageParts.push('All curated slots are open — or dial in your own time below.');
+        const curatedCount = slotPresets.length;
+        const curatedMessage =
+          curatedCount > 0
+            ? `All ${curatedCount} curated slot${curatedCount > 1 ? 's' : ''} are open — fine-tune them under "Curated Quick Slots." / Los ${curatedCount} horario${curatedCount > 1 ? 's' : ''} curado${curatedCount > 1 ? 's' : ''} están libres — ajústalos en "Curated Quick Slots".`
+            : 'All curated slots are open — or dial in your own time below. / Todos los horarios curados están libres — o marca tu propia hora abajo.';
+        messageParts.push(curatedMessage);
       } else {
         messageParts.push(`${busySlots.length} booking block${busySlots.length > 1 ? 's' : ''} already on the calendar.`);
       }
@@ -1035,6 +1288,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (slotContainer) slotContainer.innerHTML = '';
     if (slotAvailability) slotAvailability.textContent = '';
     slotButtonRefs = [];
+    if (slotPresetEditor) {
+      slotPresetEditor.classList.add('hidden');
+    }
+    if (slotPresetToggle) {
+      updateSlotPresetToggleLabel(false);
+    }
+    if (slotPresetNotice) {
+      if (slotPresetNoticeTimeout) {
+        clearTimeout(slotPresetNoticeTimeout);
+        slotPresetNoticeTimeout = null;
+      }
+      slotPresetNotice.textContent = defaultSlotPresetNotice;
+    }
   }
 
   saveBtn.addEventListener('click', async () => {
@@ -1062,6 +1328,84 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   cancelBtn.addEventListener('click', closeModal);
+
+  if (slotPresetToggle && slotPresetEditor) {
+    updateSlotPresetToggleLabel(false);
+    slotPresetToggle.addEventListener('click', () => {
+      const isHidden = slotPresetEditor.classList.toggle('hidden');
+      const expanded = !isHidden;
+      updateSlotPresetToggleLabel(expanded);
+      if (expanded) {
+        ensureSlotPresetDrafts();
+        renderSlotPresetEditor();
+        if (slotPresetNotice) {
+          slotPresetNotice.textContent = defaultSlotPresetNotice;
+        }
+      }
+    });
+  }
+
+  if (slotPresetAddBtn) {
+    slotPresetAddBtn.addEventListener('click', () => {
+      const last = slotPresetDrafts[slotPresetDrafts.length - 1];
+      const nextStart = (() => {
+        if (!last || typeof last.start !== 'string' || !/^\d{2}:\d{2}$/.test(last.start)) {
+          return '09:00';
+        }
+        const [hoursStr, minutesStr] = last.start.split(':');
+        const hours = Number.parseInt(hoursStr, 10);
+        const minutes = Number.parseInt(minutesStr, 10);
+        const duration = Number.isFinite(last?.duration)
+          ? last.duration
+          : (() => {
+              const parsed = Number.parseInt(last?.duration, 10);
+              return Number.isFinite(parsed) ? parsed : defaultDurationMinutes;
+            })();
+        if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+          return last.start;
+        }
+        const candidate = new Date();
+        candidate.setHours(hours, minutes + duration, 0, 0);
+        return `${pad(candidate.getHours())}:${pad(candidate.getMinutes())}`;
+      })();
+      slotPresetDrafts.push({
+        id: `preset-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        start: nextStart,
+        duration: defaultDurationMinutes,
+        title: '',
+        type: ''
+      });
+      renderSlotPresetEditor();
+    });
+  }
+
+  if (slotPresetResetBtn) {
+    slotPresetResetBtn.addEventListener('click', () => {
+      resetSlotPresetsToDefault();
+      ensureSlotPresetDrafts();
+      renderSlotPresetEditor();
+      refreshSlotSuggestions(dateInput?.value || selectedDate, { autopick: false });
+      highlightSelectedSlot();
+      setSlotPresetNotice('Quick slots reset to defaults. / Horarios rápidos restablecidos.');
+    });
+  }
+
+  if (slotPresetSaveBtn) {
+    slotPresetSaveBtn.addEventListener('click', () => {
+      const { slots, error } = normalizeSlotPresetDrafts();
+      if (error) {
+        setSlotPresetNotice(error, false);
+        return;
+      }
+      slotPresets = slots;
+      ensureSlotPresetDrafts();
+      renderSlotPresetEditor();
+      persistSlotPresetsState();
+      refreshSlotSuggestions(dateInput?.value || selectedDate, { autopick: false });
+      highlightSelectedSlot();
+      setSlotPresetNotice('Quick slots updated. / Horarios rápidos actualizados.');
+    });
+  }
 
   if (saveCustomSlotBtn) {
     saveCustomSlotBtn.addEventListener('click', async () => {

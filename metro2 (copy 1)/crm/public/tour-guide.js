@@ -70,13 +70,7 @@ export function setupPageTour(pageKey, {
   if (!pageKey) {
     throw new Error('setupPageTour requires a pageKey.');
   }
-  const hasSteps = Array.isArray(steps) && steps.length > 0;
-
-  if (typeof window !== 'undefined' && typeof window.registerTourAvailability === 'function') {
-    window.registerTourAvailability({ pageKey, available: hasSteps });
-  }
-
-  if (!hasSteps) {
+  if (!Array.isArray(steps) || steps.length === 0) {
     return {
       startTour: () => false,
       resetTour: () => {},
