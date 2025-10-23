@@ -38,7 +38,7 @@ const MONTH_KEYWORDS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 
 const STATEMENT_KEYWORDS = ['statement', 'cycle', 'closing', 'closes', 'cut', 'billing'];
 const STATEMENT_PLACEHOLDER_SUBSTRINGS = ['tbd', 'rolling', 'varies', 'upon request', 'call', 'available now', 'asap', 'see notes'];
 const STATEMENT_PLACEHOLDER_PATTERNS = [
-  /\bn[-\s\/.]?a\b/,
+  /\bn\s*\/\s*a\b/,
   /\bnone\b/,
 ];
 
