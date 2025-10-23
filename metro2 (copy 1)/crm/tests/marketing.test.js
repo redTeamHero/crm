@@ -162,7 +162,7 @@ test("marketing API queues tests, templates, and providers", async () => {
         segment: "inactive",
         nextTouchAt: nextTouch,
         kpiTarget: "20% consult rate",
-        summary: "Warm inactive households with bilingual concierge CTA.",
+        summary: "Warm inactive households with concierge CTA.",
         progress: 45,
       });
     assert.equal(campaignRes.status, 201);

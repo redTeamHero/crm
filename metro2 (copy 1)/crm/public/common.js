@@ -56,8 +56,8 @@ function ensureTourButton() {
     <span data-tour-icon aria-hidden="true">🚀</span>
   `;
   button.dataset.mode = 'start';
-  button.setAttribute('aria-label', 'Start guided tour • Iniciar recorrido guiado');
-  button.title = 'Start the guided tour • Iniciar el recorrido guiado';
+  button.setAttribute('aria-label', 'Start guided tour');
+  button.title = 'Start the guided tour';
   button.addEventListener('click', () => {
     const mode = button.dataset.mode || 'start';
     window.dispatchEvent(new CustomEvent('crm:tutorial-request', { detail: { mode } }));
@@ -97,14 +97,14 @@ function applyTourButtonState(partial = {}) {
   }
 
   if (tourButtonState.mode === 'resume') {
-    button.setAttribute('aria-label', 'Resume guided tour • Reanudar recorrido guiado');
-    button.title = 'Resume where you left off • Reanuda donde te quedaste';
+    button.setAttribute('aria-label', 'Resume guided tour');
+    button.title = 'Resume where you left off';
   } else if (tourButtonState.mode === 'replay') {
-    button.setAttribute('aria-label', 'Replay guided tour • Repetir recorrido guiado');
-    button.title = 'Replay the guided tour • Repite el recorrido guiado';
+    button.setAttribute('aria-label', 'Replay guided tour');
+    button.title = 'Replay the guided tour';
   } else {
-    button.setAttribute('aria-label', 'Start guided tour • Iniciar recorrido guiado');
-    button.title = 'Start the guided tour • Iniciar el recorrido guiado';
+    button.setAttribute('aria-label', 'Start guided tour');
+    button.title = 'Start the guided tour';
   }
 }
 
@@ -127,16 +127,16 @@ const TRANSLATIONS = {
     nav: {
       dashboard: 'Dashboard',
       clients: 'Clients',
-      clientsMenu: 'Clients Hub • Centro de clientes',
+      clientsMenu: 'Clients Hub',
       leads: 'Leads',
       schedule: 'Schedule',
       billing: 'Billing',
-      marketingSms: 'Marketing • SMS / Mensajes',
-      marketingEmail: 'Marketing • Email / Correo',
+      marketingSms: 'Marketing • SMS',
+      marketingEmail: 'Marketing • Email',
       marketing: 'Marketing',
       settings: 'Settings',
       myCompany: 'My Company',
-      clientPortal: 'Client Portal • Portal del Cliente',
+      clientPortal: 'Client Portal',
       letters: 'Letter',
       library: 'Library',
       workflows: 'Workflows',
@@ -162,68 +162,68 @@ const TRANSLATIONS = {
     },
     billing: {
       plans: {
-        heading: 'Custom billing plans • Planes personalizados',
-        subheading: 'Package recurring services and automate reminders for every client. • Empaqueta servicios recurrentes y automatiza recordatorios para cada cliente.',
-        newButton: 'New plan • Nuevo plan',
-        empty: 'No plans yet. Create a plan to automate billing cadence. • Aún no hay planes. Crea uno para automatizar la facturación.',
+        heading: 'Custom billing plans',
+        subheading: 'Package recurring services and automate reminders for every client.',
+        newButton: 'New plan',
+        empty: 'No plans yet. Create a plan to automate billing cadence.',
         summary: {
-          nextBill: 'Next bill • Próximo cobro'
+          nextBill: 'Next bill'
         },
         form: {
-          titleNew: 'New plan • Nuevo plan',
-          titleEdit: 'Editing {name} • Editando {name}',
-          nameLabel: 'Plan name / Nombre del plan',
-          namePlaceholder: 'Premium credit concierge / Concierge de crédito premium',
-          amountLabel: 'Amount / Monto',
+          titleNew: 'New plan',
+          titleEdit: 'Editing {name}',
+          nameLabel: 'Plan name',
+          namePlaceholder: 'Premium credit concierge',
+          amountLabel: 'Amount',
           amountPlaceholder: '297.00',
-          startLabel: 'Start date / Fecha de inicio',
-          nextLabel: 'Next bill date / Próximo cobro',
-          frequencyLabel: 'Frequency / Frecuencia',
-          frequencyMonthly: 'Monthly • Mensual',
-          frequencyBiweekly: 'Biweekly • Cada 2 semanas',
-          frequencyWeekly: 'Weekly • Semanal',
-          frequencyCustom: 'Custom days • Días personalizados',
-          intervalLabel: 'Interval (days) / Intervalo (días)',
-          reminderLeadLabel: 'Reminder lead (days) / Aviso previo (días)',
-          notesLabel: 'Notes / Notas',
-          notesPlaceholder: 'Outline deliverables / Describe los entregables',
-          activeLabel: 'Plan active / Plan activo',
-          saveButton: 'Save plan • Guardar plan',
-          sendButton: 'Send next invoice • Enviar próxima factura',
-          validationName: 'Add a plan name before saving. • Agrega un nombre al plan antes de guardar.',
-          validationAmount: 'Enter a positive amount. • Ingresa un monto mayor a cero.'
+          startLabel: 'Start date',
+          nextLabel: 'Next bill date',
+          frequencyLabel: 'Frequency',
+          frequencyMonthly: 'Monthly',
+          frequencyBiweekly: 'Biweekly',
+          frequencyWeekly: 'Weekly',
+          frequencyCustom: 'Custom days',
+          intervalLabel: 'Interval (days)',
+          reminderLeadLabel: 'Reminder lead (days)',
+          notesLabel: 'Notes',
+          notesPlaceholder: 'Outline deliverables',
+          activeLabel: 'Plan active',
+          saveButton: 'Save plan',
+          sendButton: 'Send next invoice',
+          validationName: 'Add a plan name before saving.',
+          validationAmount: 'Enter a positive amount.'
         },
         list: {
-          activeBadge: 'Active • Activo',
-          inactiveBadge: 'Paused • Pausado',
-          sendCta: 'Send invoice • Enviar factura',
-          editCta: 'Edit • Editar',
-          nextBill: 'Next bill • Próximo cobro',
-          reminderSameDay: 'Reminder day-of • Recordatorio el mismo día',
-          reminderDays: 'Reminder {days} day before • Recordatorio {days} día antes',
-          reminderDaysPlural: 'Reminder {days} days before • Recordatorio {days} días antes',
-          lastSent: 'Last sent {date} • Último envío {date}',
-          cyclesCompleted: '{count} cycles completed • {count} ciclos completados',
-          unscheduled: 'Unscheduled • Sin programar'
+          activeBadge: 'Active',
+          inactiveBadge: 'Paused',
+          sendCta: 'Send invoice',
+          editCta: 'Edit',
+          nextBill: 'Next bill',
+          reminderSameDay: 'Reminder day-of',
+          reminderDays: 'Reminder {days} day before',
+          reminderDaysPlural: 'Reminder {days} days before',
+          lastSent: 'Last sent {date}',
+          cyclesCompleted: '{count} cycles completed',
+          unscheduled: 'Unscheduled'
         },
         toast: {
-          saveError: 'Unable to save plan. • No se pudo guardar el plan.',
-          sendError: 'Unable to send plan invoice. • No se pudo enviar la factura del plan.'
+          saveError: 'Unable to save plan.',
+          sendError: 'Unable to send plan invoice.'
         }
       },
       summary: {
-        nextBill: 'Next bill • Próximo cobro'
+        nextBill: 'Next bill'
       }
     },
     marketing: {
       meta: {
         title: 'Marketing',
-        smsTitle: 'Marketing • SMS / Mensajes',
-        emailTitle: 'Marketing • Email / Correo'
+        smsTitle: 'Marketing • SMS',
+        emailTitle: 'Marketing • Email'
       },
       channelBadges: {
-        sms: 'SMS Focus • Enfoque SMS',
-        email: 'Email Focus • Enfoque Email'
+        sms: 'SMS Focus',
+        email: 'Email Focus'
       },
       hero: {
         title: 'Marketing Launchpad',
@@ -267,46 +267,46 @@ const TRANSLATIONS = {
       },
       testQueue: {
         status: {
-          queued: 'Queued • En cola',
-          sending: 'Sending • Enviando',
-          sent: 'Sent • Enviado',
-          failed: 'Failed • Falló'
+          queued: 'Queued',
+          sending: 'Sending',
+          sent: 'Sent',
+          failed: 'Failed'
         },
-        deliveredLabel: 'Delivered {value} • Entregado {value}',
-        errorLabel: 'Error: {error} • Error: {error}'
+        deliveredLabel: 'Delivered {value}',
+        errorLabel: 'Error: {error}'
       },
       campaigns: {
-        untitled: 'Untitled campaign • Campaña sin título',
+        untitled: 'Untitled campaign',
         status: {
-          draft: 'Draft • Borrador',
-          scheduled: 'Scheduled • Programada',
-          running: 'Running • En curso',
-          paused: 'Paused • En pausa',
-          completed: 'Completed • Completada'
+          draft: 'Draft',
+          scheduled: 'Scheduled',
+          running: 'Running',
+          paused: 'Paused',
+          completed: 'Completed'
         },
         segment: {
-          b2c: 'B2C • Consumidores',
-          b2b: 'B2B • Negocios',
-          attorneys: 'Attorneys • Abogados',
-          inactive: 'Inactive • Inactivos'
+          b2c: 'B2C',
+          b2b: 'B2B',
+          attorneys: 'Attorneys',
+          inactive: 'Inactive'
         },
         meta: {
-          nextTouch: 'Next touch: {date} • Próximo contacto: {date}',
-          segment: 'Segment: {segment} • Segmento: {segment}',
-          kpi: 'KPI: {kpi} • KPI: {kpi}',
-          updated: 'Updated {timestamp} • Actualizado {timestamp}'
+          nextTouch: 'Next touch: {date}',
+          segment: 'Segment: {segment}',
+          kpi: 'KPI: {kpi}',
+          updated: 'Updated {timestamp}'
         },
         actions: {
-          edit: 'Edit • Editar'
+          edit: 'Edit'
         },
         form: {
-          nameRequired: 'Name required • Nombre requerido',
-          saved: 'Campaign saved • Campaña guardada',
-          updated: 'Campaign updated • Campaña actualizada',
-          error: 'Failed to save campaign • Error al guardar la campaña'
+          nameRequired: 'Name required',
+          saved: 'Campaign saved',
+          updated: 'Campaign updated',
+          error: 'Failed to save campaign'
         },
         export: {
-          empty: 'Add a campaign before exporting. • Agrega una campaña antes de exportar.'
+          empty: 'Add a campaign before exporting.'
         }
       }
     },
@@ -686,7 +686,7 @@ function injectClientsDropdown(){
   toggle.dataset.i18nAriaLabel = 'nav.clientsMenu';
   toggle.dataset.i18nTitle = 'nav.clientsMenu';
 
-  const toggleLabel = getTranslation('nav.clientsMenu') || 'Clients Hub • Centro de clientes';
+  const toggleLabel = getTranslation('nav.clientsMenu') || 'Clients Hub';
   toggle.setAttribute('aria-label', toggleLabel);
   toggle.title = toggleLabel;
 
@@ -859,7 +859,7 @@ if (navContainer) {
   };
   ensureMarketingLink('/marketing/sms', 'nav.marketingSms');
   ensureMarketingLink('/marketing/email', 'nav.marketingEmail');
-  ensureSettingsLink('/settings/client-portal', 'nav.clientPortal', 'Client Portal • Portal del Cliente', '#navCompany');
+  ensureSettingsLink('/settings/client-portal', 'nav.clientPortal', 'Client Portal', '#navCompany');
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
   btnLogout.className = 'btn nav-btn';
@@ -1473,8 +1473,8 @@ function initBackToTop(){
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'back-to-top';
-  btn.setAttribute('aria-label', 'Back to top • Volver arriba');
-  btn.title = 'Back to top • Volver arriba';
+  btn.setAttribute('aria-label', 'Back to top');
+  btn.title = 'Back to top';
   btn.textContent = '⬆️';
   btn.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

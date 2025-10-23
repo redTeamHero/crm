@@ -1929,7 +1929,6 @@ function buildTeamMemberResponse(user){
     teamRole: preset.id,
     roleLabel: preset.label,
     roleDescription: preset.description,
-    roleDescriptionEs: preset.descriptionEs,
   };
 }
 async function saveUsersDB(db){ await writeKey('users', db); }
@@ -2083,8 +2082,9 @@ async function createInvoice({
   inv.paymentProvider = paymentProviderValue;
   inv.stripeSessionId = stripeSessionValue;
 
-  const bilingualMessage = message || `Payment due for ${inv.desc || "invoice"} (${formatUsd(inv.amount)}). Pay inside your client portal (Pay / Pagos tab) or at ${payLinkValue}. • Pago pendiente por ${inv.desc || "factura"} (${formatUsd(inv.amount)}). Paga en tu portal del cliente (Pestaña Pagos) o en ${payLinkValue}.`;
-  await addEvent(inv.consumerId, "message", { from: "system", text: bilingualMessage });
+  const notificationMessage =
+    message || `Payment due for ${inv.desc || "invoice"} (${formatUsd(inv.amount)}). Pay inside your client portal (Pay tab) or at ${payLinkValue}.`;
+  await addEvent(inv.consumerId, "message", { from: "system", text: notificationMessage });
 
   db.invoices.push(inv);
   await saveInvoicesDB(db);
@@ -2838,17 +2838,17 @@ app.get("/api/dashboard/summary", authenticate, requirePermission("reports"), as
     );
 
     let nextRevenueMove =
-      "Bundle the automation + monitoring offer at $249/mo for warm leads. / Ofrece el paquete de automatización + monitoreo a $249/mes para leads calientes.";
+      "Bundle the automation and monitoring offer at $249/mo for warm leads.";
     if (topOutstanding) {
       const dueLabel = topOutstanding.due ? new Date(topOutstanding.due) : null;
       const dueText = dueLabel
-        ? `${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(dueLabel)} / ${new Intl.DateTimeFormat("es-MX", { month: "short", day: "numeric" }).format(dueLabel)}`
-        : "soon / pronto";
+        ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(dueLabel)
+        : "soon";
       const amountText = formatUsd(topOutstanding.amount);
-      nextRevenueMove = `Check-in with ${topOutstanding.consumerName} about the ${amountText} balance due ${dueText}. Offer certified mail tracking as the premium add-on. / Llama a ${topOutstanding.consumerName} sobre el saldo de ${amountText} que vence ${dueText}. Ofrece seguimiento por correo certificado como extra premium.`;
+      nextRevenueMove = `Check in with ${topOutstanding.consumerName} about the ${amountText} balance due ${dueText}. Offer certified mail tracking as the premium add-on.`;
     } else if (outstanding > 0) {
       const amountText = formatUsd(outstanding);
-      nextRevenueMove = `Close out the ${amountText} outstanding pipeline with a concierge call-to-action. Bundle certified mail credits. / Cierra los ${amountText} pendientes con una llamada estilo concierge. Incluye créditos de correo certificado.`;
+      nextRevenueMove = `Close out the ${amountText} outstanding pipeline with a concierge call-to-action. Bundle certified mail credits.`;
     }
 
     res.json({

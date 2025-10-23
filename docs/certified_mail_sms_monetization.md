@@ -26,7 +26,7 @@
 1. **Certified Mail**
    - Markup provider cost 20-50% and auto-adjust via cost-plus pricing table.
    - Offer tiers (Starter, Growth, Elite) with included mail credits and overage.
-   - Add-ons: green card scan, signature proof, same-day drop, bilingual letters, colored inserts.
+   - Add-ons: green card scan, signature proof, same-day drop, multi-language letters, colored inserts.
    - Volume discounts via negotiated provider rates; pass partial savings to enterprise clients.
    - White-label portal for attorneys/trucking firms with custom branding + webhooks.
 2. **SMS (Token System)**
@@ -38,7 +38,7 @@
 
 ## Bundled Offers
 - **Dispute Automation Suite:** Upload report → Metro-2 validation → letter generation → Stripe paywall → certified mail dispatch + SMS updates.
-- **Compliance Ops Pack:** Calendar SLAs, return receipt storage, bilingual templates, audit logs.
+- **Compliance Ops Pack:** Calendar SLAs, return receipt storage, curated templates, audit logs.
 - **B2B Reseller Program:** Volume pricing, white-label portal, Zapier/Make integrations.
 
 ## Pricing Model (Sample)
@@ -58,13 +58,13 @@
 1. Test CTA copy: “Send compliant disputes now” vs. “Launch certified dispute workflow”.
 2. Compare pricing anchor order: Elite-first vs Starter-first to influence perceived value.
 3. Bundle upsell timing: modal at letter generation vs post-payment confirmation.
-4. Experiment bilingual toggle placement (header vs hero) for conversion impact.
+4. Experiment language toggle placement (header vs hero) for conversion impact.
 5. Offer split test: free SMS credits vs free certified mail credit on trial signup.
 
 ## Next Revenue Wins (90-Day Roadmap)
 1. Implement token ledger service (Postgres, Prisma/SQLAlchemy) with provider adapters.
 2. Launch Stripe billing with metered overage and portal for self-serve upgrades.
-3. Build certified mail automation wizard with bilingual UX + trust badges.
+3. Build certified mail automation wizard with guided UX + trust badges.
 4. Integrate Plivo/Telnyx for SMS workflows, including opt-in compliance prompts.
 5. Roll out reseller portal with role-based access, bulk upload, and branded invoices.
 6. Add analytics dashboards and weekly margin email for ops team.
@@ -72,7 +72,7 @@
 ## Execution Checklist
 - [ ] Draft provider contracts (SimpleCertifiedMail/Docsmit + Plivo/Telnyx) with volume tiers.
 - [ ] Implement usage tracking microservice with webhook retries and auditing.
-- [ ] Ship marketing site section highlighting compliance, testimonials, bilingual support.
+- [ ] Ship marketing site section highlighting compliance, testimonials, concierge support.
 - [ ] Create onboarding sequence (email/SMS) guiding first mail + SMS automation.
 - [ ] Train support on dispute status scripts and NEPQ question flow.
 - [ ] Configure BI dashboards and margin alerts.

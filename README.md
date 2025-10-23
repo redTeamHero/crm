@@ -1,15 +1,15 @@
 # CRM Metro-2
 
-Premium credit dispute CRM engineered for Metro-2 accuracy, bilingual client journeys, and revenue automation from day one.
+ Premium credit dispute CRM engineered for Metro-2 accuracy, guided client journeys, and revenue automation from day one.
 
 ## Use Case
-- Launch a branded credit dispute hub that unifies Metro-2 validations, bilingual portals, and certified mail workflows for B2C and B2B clients (truckers, small businesses, attorneys).
+- Launch a branded credit dispute hub that unifies Metro-2 validations, client portals, and certified mail workflows for B2C and B2B clients (truckers, small businesses, attorneys).
 - Replace spreadsheet-driven case management with permissioned workspaces, automated dispute generation, and Stripe-powered upsells.
 - Give advisors NEPQ-style conversation flows, audit reports, and ready-to-send letters that preserve compliance guardrails.
 
 ## Value
 - **Faster conversions:** Guided intake → Metro-2 audit → Stripe paywall in minutes so leads experience value before purchasing.
-- **Premium trust:** Built-in bilingual portal, audit transparency, and documented FCRA/METRO-2 safeguards for peace of mind.
+- **Premium trust:** Built-in client portal, audit transparency, and documented FCRA/METRO-2 safeguards for peace of mind.
 - **Scalable ops:** Multi-tenant database modes, throttled workers, and automation hooks (Twilio, SimpleCertifiedMail, Gmail) keep recurring revenue predictable as you grow toward 7–8 figures.
 
 ## Getting Started Demo
@@ -38,24 +38,24 @@ npm start
 ## Pricing & Plan Concepts (roadmap)
 | Plan | Target | Pricing Concept | Included Value | Upsell Hooks |
 | --- | --- | --- | --- | --- |
-| **Launch** | DIY consumers | $97 setup + $49/mo | Metro-2 audit, 3 dispute letters/mo, bilingual portal | Upgrade to Certified Mail or advisor review |
+| **Launch** | DIY consumers | $97 setup + $49/mo | Metro-2 audit, 3 dispute letters/mo, client portal | Upgrade to Certified Mail or advisor review |
 | **Operator** | Trucking & small biz | $297 setup + $149/mo | Team seats, task automation, CRM webhook, Stripe billing | Add-on: automated certified mail batches |
 | **Partner** | Law firms & agencies | Custom (rev-share) | Multi-tenant schemas, priority support, white-label portal | Enterprise support, analytics workspace |
 | **Services Add-on** | Any tier | Usage-based | Done-for-you disputes, NEPQ coaching calls | Retainer increases, audit deep dives |
 
 ## Customer Proof & Use Cases
-- **Maria (Consumer):** "The bilingual portal let me track every Metro-2 dispute without guessing what's next. I paid for certified mail because the timeline was crystal clear."
+- **Maria (Consumer):** "The portal let me track every Metro-2 dispute without guessing what's next. I paid for certified mail because the timeline was crystal clear."
 - **Interstate Logistics (Trucking firm):** "We onboarded 6 drivers in a weekend. The Metro-2 audit flagged repos with missing DOFD, and Stripe subscriptions made billing painless."
 - **Lopez & Ortiz PLLC (Attorneys):** "Schema isolation keeps client data segregated, and the audit exports drop straight into our litigation workflows."
 
 ## Change Log & Roadmap
-- **v1.5.0 (current):** Multi-tenant throttling, Stripe Checkout tokens, Twilio marketing worker, bilingual portal polish.
+- **v1.5.0 (current):** Multi-tenant throttling, Stripe Checkout tokens, Twilio marketing worker, portal polish.
 - **v1.6.0 (next 30 days):** Certified mail batch dashboard, dispute letter A/B library, analytics event stream.
 - **v2.0 (roadmap):** OCR-resistant upload triage, Metro-2 AI rule suggestions, in-app NEPQ coaching prompts, Render/AWS blue-green deploy guides.
 
 ## Architecture Overview
 ```
-Browser (Bilingual Portal + Admin)
+Browser (Client Portal + Admin)
     ↓ REST / Webhooks
 Express API (server/) ──┬── Metro-2 audit engine (shared/metro2-data/)
                         ├── Stripe + Twilio + Gmail integrations
@@ -111,7 +111,7 @@ Python Utilities (python-tests/, scripts/) → HTML → PDF letters, regression 
 - Set `DEBUG=crm:*` for verbose Express + Knex logs (make sure tokens/PII stay redacted).
 
 ## Marketing & Conversion Ideas
-- Launch a bilingual landing funnel (Hero → Trust badges → Outcomes → Social proof → Pricing) pointing to `/portal`.
+- Launch a high-converting landing funnel (Hero → Trust badges → Outcomes → Social proof → Pricing) pointing to `/portal`.
 - Offer a downloadable "Metro-2 Compliance Checklist" as a lead magnet synced to your marketing automation worker.
 - Run A/B tests: (1) CTA copy "Start Your Audit" vs "See Your Metro-2 Score", (2) Pricing anchor with certified mail bonus, (3) Social proof placement vs NEPQ video testimonial.
 

@@ -580,10 +580,10 @@ function updatePlanSummary(plans = []){
 function formatPlanFrequencyLabel(plan = {}){
   const freq = (plan.frequency || 'monthly').toLowerCase();
   const labels = {
-    monthly: translate('billing.plans.form.frequencyMonthly') || 'Monthly • Mensual',
-    biweekly: translate('billing.plans.form.frequencyBiweekly') || 'Biweekly • Cada 2 semanas',
-    weekly: translate('billing.plans.form.frequencyWeekly') || 'Weekly • Semanal',
-    custom: translate('billing.plans.form.frequencyCustom') || 'Custom days • Días personalizados',
+    monthly: translate('billing.plans.form.frequencyMonthly') || 'Monthly',
+    biweekly: translate('billing.plans.form.frequencyBiweekly') || 'Biweekly',
+    weekly: translate('billing.plans.form.frequencyWeekly') || 'Weekly',
+    custom: translate('billing.plans.form.frequencyCustom') || 'Custom days',
   };
   if(freq === 'custom'){
     const days = Number(plan.intervalDays) || 30;

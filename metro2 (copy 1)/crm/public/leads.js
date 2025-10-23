@@ -310,7 +310,7 @@ function renderSourceBreakdown(){
   if(leadsForBreakdown.length === 0){
     const empty = document.createElement('div');
     empty.className = 'lead-source-empty';
-    empty.innerHTML = 'No leads yet.<br><span class="lead-source-empty__hint">Sin datos todavía.</span>';
+    empty.innerHTML = 'No leads yet.<br><span class="lead-source-empty__hint">No data available.</span>';
     container.appendChild(empty);
     return;
   }
