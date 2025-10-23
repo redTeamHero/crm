@@ -335,15 +335,47 @@ document.addEventListener('DOMContentLoaded', () => {
     modeIdentity: 'i'
   };
 
+  function showHotkeyMessage(text, isError = false) {
+    if (!hotkeyMsgEl) return;
+    hotkeyMsgEl.textContent = text;
+    hotkeyMsgEl.classList.remove('hidden');
+    if (isError) hotkeyMsgEl.classList.add('text-red-500');
+    else hotkeyMsgEl.classList.remove('text-red-500');
+    if (hotkeyMsgEl.__timer) {
+      clearTimeout(hotkeyMsgEl.__timer);
+    }
+    hotkeyMsgEl.__timer = setTimeout(() => {
+      hotkeyMsgEl.classList.add('hidden');
+    }, isError ? 4000 : 2000);
+  }
+
   function loadHotkeys() {
     const active = window.__crm_hotkeys?.get?.() || { ...defaultHotkeys };
     for (const k in hotkeyEls) if (hotkeyEls[k]) hotkeyEls[k].value = active[k] || '';
   }
 
+  function applyHotkeySettings(overrides = {}) {
+    try {
+      if (typeof window.__crm_hotkeys?.store === 'function') {
+        window.__crm_hotkeys.store(overrides);
+      } else {
+        const normalized = window.__crm_hotkeys?.normalize?.(overrides) || {};
+        localStorage.setItem('hotkeys', JSON.stringify(normalized));
+        window.__crm_hotkeys?.refresh?.();
+      }
+    } catch (error) {
+      console.warn('Failed to persist hotkeys locally', error);
+    }
+    loadHotkeys();
+  }
+
   loadHotkeys();
 
   if (saveHotkeysBtn) {
-    saveHotkeysBtn.addEventListener('click', () => {
+    saveHotkeysBtn.addEventListener('click', async (event) => {
+      if (event?.preventDefault) {
+        event.preventDefault();
+      }
       const hk = {};
       for (const k in hotkeyEls) {
         const value = (hotkeyEls[k].value || '').trim().toLowerCase().slice(0,1);
@@ -351,11 +383,31 @@ document.addEventListener('DOMContentLoaded', () => {
           hk[k] = value;
         }
       }
-      localStorage.setItem('hotkeys', JSON.stringify(hk));
-      window.__crm_hotkeys?.refresh?.();
-      if (hotkeyMsgEl) {
-        hotkeyMsgEl.classList.remove('hidden');
-        setTimeout(() => hotkeyMsgEl.classList.add('hidden'), 2000);
+      const normalized = window.__crm_hotkeys?.normalize?.(hk) || hk;
+      const originalLabel = saveHotkeysBtn.textContent;
+      saveHotkeysBtn.disabled = true;
+      saveHotkeysBtn.textContent = 'Saving…';
+      try {
+        const resp = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hotkeys: normalized })
+        });
+        const result = await resp.json().catch(() => ({}));
+        if (!resp.ok || !result.ok) {
+          throw new Error(result?.error || 'Failed to save hotkeys');
+        }
+        currentSettings = { ...currentSettings, ...(result.settings || {}) };
+        const latest = currentSettings.hotkeys || normalized;
+        currentSettings.hotkeys = latest;
+        applyHotkeySettings(latest);
+        showHotkeyMessage('Saved!');
+      } catch (error) {
+        console.error('Failed to save hotkeys', error);
+        showHotkeyMessage('Save failed. Try again.', true);
+      } finally {
+        saveHotkeysBtn.disabled = false;
+        saveHotkeysBtn.textContent = originalLabel;
       }
     });
   }
@@ -378,6 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = currentSettings.gmailRefreshToken || '';
       renderEnvOverrides(currentSettings.envOverrides || {});
       applyPortalSettingsForm(currentSettings.clientPortal || {});
+      applyHotkeySettings(currentSettings.hotkeys || {});
 
     } catch (e) {
       console.error('Failed to load settings', e);
@@ -465,6 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = currentSettings.gmailRefreshToken || '';
       renderEnvOverrides(currentSettings.envOverrides || {});
       applyPortalSettingsForm(currentSettings.clientPortal || {});
+      applyHotkeySettings(currentSettings.hotkeys || {});
       if (msgEl) {
         msgEl.textContent = 'Saved!';
         msgEl.classList.remove('hidden');

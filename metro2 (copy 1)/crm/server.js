@@ -90,6 +90,22 @@ const DEFAULT_CLIENT_PORTAL_MODULES = Object.freeze(
   }, {})
 );
 
+const DEFAULT_HOTKEYS = Object.freeze({
+  help: "h",
+  newConsumer: "n",
+  newClient: "n",
+  newLead: "l",
+  upload: "u",
+  editConsumer: "e",
+  generate: "g",
+  remove: "r",
+  modeBreach: "d",
+  modeAssault: "s",
+  modeIdentity: "i",
+});
+
+const KNOWN_HOTKEY_KEYS = new Set(Object.keys(DEFAULT_HOTKEYS));
+
 function cloneDefaultClientPortalSettings() {
   return {
     theme: { ...DEFAULT_CLIENT_PORTAL_THEME },
@@ -111,6 +127,7 @@ const DEFAULT_SETTINGS = {
   gmailRefreshToken: "",
   envOverrides: {},
   clientPortal: cloneDefaultClientPortalSettings(),
+  hotkeys: {},
 };
 
 const STRING_SETTING_KEYS = [
@@ -232,6 +249,23 @@ function normalizeEnvOverrides(raw){
   return result;
 }
 
+function normalizeHotkeySettings(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  const overrides = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!key) continue;
+    const normalizedKey = key.toString().trim();
+    if (!normalizedKey) continue;
+    const normalizedValue = sanitizeSettingString(value).toLowerCase().slice(0, 1);
+    if (!normalizedValue) continue;
+    if (KNOWN_HOTKEY_KEYS.has(normalizedKey) && DEFAULT_HOTKEYS[normalizedKey] === normalizedValue) {
+      continue;
+    }
+    overrides[normalizedKey] = normalizedValue;
+  }
+  return overrides;
+}
+
 function sanitizePortalBackground(value = "") {
   const cleaned = sanitizeSettingString(value).toLowerCase();
   if (!cleaned) return "";
@@ -307,6 +341,7 @@ function normalizeSettings(raw){
   const base = { ...DEFAULT_SETTINGS, ...(raw || {}) };
   base.envOverrides = normalizeEnvOverrides((raw && raw.envOverrides) ?? base.envOverrides);
   base.clientPortal = normalizeClientPortalSettings((raw && raw.clientPortal) ?? base.clientPortal ?? {});
+  base.hotkeys = normalizeHotkeySettings((raw && raw.hotkeys) ?? base.hotkeys ?? {});
   for (const key of STRING_SETTING_KEYS) {
     base[key] = sanitizeSettingString(base[key]);
   }
@@ -1098,8 +1133,19 @@ app.get("/buy", async (req, res) => {
   }
 });
 
-app.get("/api/settings", async (_req, res) => {
-  res.json({ ok: true, settings: await loadSettings() });
+app.get("/api/settings", optionalAuth, async (req, res) => {
+  const settings = await loadSettings(req);
+  res.json({ ok: true, settings });
+});
+
+app.get("/api/settings/hotkeys", optionalAuth, async (req, res) => {
+  try {
+    const settings = await loadSettings(req);
+    res.json({ ok: true, hotkeys: settings.hotkeys || {} });
+  } catch (err) {
+    logWarn("HOTKEY_SETTINGS_LOAD_FAILED", err?.message || String(err));
+    res.status(500).json({ ok: false, error: "Failed to load hotkeys" });
+  }
 });
 
 app.get("/api/experiments/portal-data-region", optionalAuth, async (req, res) => {
@@ -1148,42 +1194,46 @@ app.post("/api/experiments/portal-data-region/convert", optionalAuth, async (req
   }
 });
 
-app.post("/api/settings", async (req, res) => {
-  const {
-    hibpApiKey = "",
-    rssFeedUrl = "",
-    googleCalendarToken = "",
-    googleCalendarId = "",
-    stripeApiKey = "",
-    marketingApiBaseUrl = "",
-    marketingApiKey = "",
-    sendCertifiedMailApiKey = "",
-    gmailClientId = "",
-    gmailClientSecret = "",
-    gmailRefreshToken = "",
-    envOverrides = {},
-    clientPortal = {},
-  } = req.body || {};
-  const previousSettings = await loadSettings();
-  const settings = await saveSettings({
-    hibpApiKey,
-    rssFeedUrl,
-    googleCalendarToken,
-    googleCalendarId,
-    stripeApiKey,
-    marketingApiBaseUrl,
-    marketingApiKey,
-    sendCertifiedMailApiKey,
-    gmailClientId,
-    gmailClientSecret,
-    gmailRefreshToken,
-    envOverrides,
-    clientPortal,
-  });
+app.post("/api/settings", optionalAuth, async (req, res) => {
+  const payload = req && req.body && typeof req.body === "object" ? req.body : {};
+  const updates = {};
+
+  for (const key of STRING_SETTING_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(payload, key)) {
+      updates[key] = payload[key];
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, "envOverrides")) {
+    updates.envOverrides = payload.envOverrides;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "clientPortal")) {
+    updates.clientPortal = payload.clientPortal;
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "hotkeys")) {
+    updates.hotkeys = payload.hotkeys;
+  }
+
+  const payloadKeys = Object.keys(payload || {});
+  const hasNonHotkeyUpdate = payloadKeys.some((key) => key !== "hotkeys");
+  if (!Object.prototype.hasOwnProperty.call(payload, "envOverrides") && hasNonHotkeyUpdate) {
+    updates.envOverrides = {};
+  }
+
+  const previousSettings = await loadSettings(req);
+  if (Object.keys(updates).length === 0) {
+    return res.json({ ok: true, settings: previousSettings });
+  }
+
+  const settings = await saveSettings(updates, req);
 
   if (
-    previousSettings.googleCalendarToken !== settings.googleCalendarToken ||
-    previousSettings.googleCalendarId !== settings.googleCalendarId
+    (Object.prototype.hasOwnProperty.call(updates, "googleCalendarToken") ||
+      Object.prototype.hasOwnProperty.call(updates, "googleCalendarId")) &&
+    (
+      previousSettings.googleCalendarToken !== settings.googleCalendarToken ||
+      previousSettings.googleCalendarId !== settings.googleCalendarId
+    )
   ) {
     await clearCalendarCache();
   }

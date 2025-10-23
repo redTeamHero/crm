@@ -97,6 +97,41 @@ test('saving integration keys trims whitespace and hydrates process.env', async 
   assert.equal(process.env.GMAIL_REFRESH_TOKEN, 'refresh-token');
 });
 
+test('saves, loads, and clears hotkey overrides via API', async () => {
+  const res = await request(app)
+    .post('/api/settings')
+    .send({
+      hotkeys: {
+        help: 'F',
+        newLead: 'q',
+        customKey: '9',
+        modeAssault: 's'
+      },
+    });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.ok, true);
+  assert.deepEqual(res.body.settings.hotkeys, { help: 'f', newLead: 'q', customKey: '9' });
+
+  const getRes = await request(app).get('/api/settings/hotkeys');
+  assert.equal(getRes.status, 200);
+  assert.equal(getRes.body.ok, true);
+  assert.deepEqual(getRes.body.hotkeys, { help: 'f', newLead: 'q', customKey: '9' });
+
+  const clearRes = await request(app)
+    .post('/api/settings')
+    .send({ hotkeys: {} });
+
+  assert.equal(clearRes.status, 200);
+  assert.equal(clearRes.body.ok, true);
+  assert.deepEqual(clearRes.body.settings.hotkeys, {});
+
+  const afterClear = await request(app).get('/api/settings/hotkeys');
+  assert.equal(afterClear.status, 200);
+  assert.equal(afterClear.body.ok, true);
+  assert.deepEqual(afterClear.body.hotkeys, {});
+});
+
 test.after(async () => {
   if (originalSettings === null) await deleteKey('settings');
   else await writeKey('settings', originalSettings);
