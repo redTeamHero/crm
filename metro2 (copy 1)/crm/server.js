@@ -286,6 +286,19 @@ function sanitizePortalTagline(value = "") {
   return sanitizeSettingString(value).slice(0, 160);
 }
 
+function normalizePortalModuleValue(value) {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return false;
+    if (["false", "0", "off", "no", "disabled", "legacy"].includes(normalized)) return false;
+    if (["true", "1", "on", "yes", "enabled"].includes(normalized)) return true;
+  }
+  return Boolean(value);
+}
+
 function normalizeClientPortalSettings(raw = {}) {
   const defaults = cloneDefaultClientPortalSettings();
   const themeSource = raw && typeof raw.theme === "object" ? raw.theme : raw;
@@ -303,7 +316,7 @@ function normalizeClientPortalSettings(raw = {}) {
   const moduleSource = raw && typeof raw.modules === "object" ? raw.modules : raw;
   for (const key of CLIENT_PORTAL_MODULE_KEYS) {
     if (moduleSource && Object.prototype.hasOwnProperty.call(moduleSource, key)) {
-      defaults.modules[key] = Boolean(moduleSource[key]);
+      defaults.modules[key] = normalizePortalModuleValue(moduleSource[key]);
     }
   }
 

@@ -56,6 +56,28 @@ const PERSONAL_INFO_FIELD_MAP = Object.fromEntries(
   Object.entries(PERSONAL_INFO_FIELD_DEFINITIONS).map(([label, key]) => [normalizeGenericLabel(label), key])
 );
 
+function directChildCells(adapter, row, selector){
+  const nodes = adapter.find(row, selector) || [];
+  if(!nodes.length) return [];
+  return nodes.filter(cell => adapter.parent(cell) === row);
+}
+
+function extractRowLabel(adapter, row){
+  const labeled = adapter.text(row, 'td.label');
+  if(labeled) return labeled;
+  const cells = directChildCells(adapter, row, 'td');
+  if(!cells.length) return '';
+  return adapter.text(cells[0]);
+}
+
+function extractRowValues(adapter, row){
+  let cells = directChildCells(adapter, row, 'td.info');
+  if(!cells.length){
+    cells = directChildCells(adapter, row, 'td').slice(1);
+  }
+  return cells.map(cell => adapter.text(cell));
+}
+
 export function parseReport(context){
   const adapter = createDomAdapter(context);
   if(!adapter){
@@ -76,10 +98,10 @@ export function parseReport(context){
     const cells = headerCells.length ? headerCells : adapter.find(rows[0], 'td');
     const bureaus = cells.slice(1).map(cell => adapter.text(cell));
 
-    const dataRows = rows.slice(1).map(row => ({
-      label: adapter.text(row, 'td.label'),
-      values: adapter.find(row, 'td.info').map(cell => adapter.text(cell))
-    }));
+  const dataRows = rows.slice(1).map(row => ({
+    label: extractRowLabel(adapter, row),
+    values: extractRowValues(adapter, row)
+  }));
 
     const tradeline = buildTradeline(bureaus, dataRows, meta);
     if(!hasTradelineData(tradeline, bureaus)) continue;
