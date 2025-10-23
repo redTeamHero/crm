@@ -21,7 +21,15 @@ const adminUser = {
   permissions: ['reports']
 };
 
-await writeKey('users', { users: [adminUser] });
+const analystUser = {
+  id: 'dash-analyst',
+  username: 'dash-analyst',
+  password: bcrypt.hashSync('secret', 10),
+  role: 'member',
+  permissions: ['reports']
+};
+
+await writeKey('users', { users: [adminUser, analystUser] });
 
 const now = new Date();
 const nowIso = now.toISOString();
@@ -219,6 +227,23 @@ test('PUT /api/dashboard/config updates ladder settings', async () => {
   assert.equal(summaryRes.body.summary.goals.monthlyRecurringTarget, 55555);
   assert.equal(summaryRes.body.summary.ladder.title, 'New Revenue Plan');
   assert.equal(summaryRes.body.summary.ladder.pipelineValue, 'Synced');
+});
+
+test('PUT /api/dashboard/config allows reports permission members to update goals', async () => {
+  const res = await request(app)
+    .put('/api/dashboard/config')
+    .set('Authorization', `Bearer ${tokenFor(analystUser)}`)
+    .send({
+      goals: {
+        leadToConsultTarget: 45,
+        monthlyRecurringTarget: 65000
+      }
+    });
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.ok, true);
+  assert.equal(res.body.config.goals.leadToConsultTarget, 45);
+  assert.equal(res.body.config.goals.monthlyRecurringTarget, 65000);
 });
 
 test.after(async () => {
