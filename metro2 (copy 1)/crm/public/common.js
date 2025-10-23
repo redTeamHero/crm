@@ -31,6 +31,96 @@ if (typeof window !== 'undefined') window.trackEvent = trackEvent;
 const LANGUAGE_STORAGE_KEY = 'crm_language';
 const DEFAULT_LANGUAGE = 'en';
 
+const TOUR_BUTTON_ID = 'crmTourButton';
+const TOUR_BUTTON_MODE_LABELS = {
+  start: 'Need a tour?',
+  resume: 'Resume tour',
+  replay: 'Replay tour'
+};
+const tourButtonState = {
+  available: false,
+  mode: 'start',
+  completed: false
+};
+
+function ensureTourButton() {
+  if (typeof document === 'undefined') return null;
+  let button = document.getElementById(TOUR_BUTTON_ID);
+  if (button) return button;
+  button = document.createElement('button');
+  button.id = TOUR_BUTTON_ID;
+  button.type = 'button';
+  button.className = 'fixed bottom-4 right-4 z-50 hidden items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-white shadow-lg transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]';
+  button.innerHTML = `
+    <span data-tour-label>${TOUR_BUTTON_MODE_LABELS.start}</span>
+    <span data-tour-icon aria-hidden="true">🚀</span>
+  `;
+  button.dataset.mode = 'start';
+  button.setAttribute('aria-label', 'Start guided tour • Iniciar recorrido guiado');
+  button.title = 'Start the guided tour • Iniciar el recorrido guiado';
+  button.addEventListener('click', () => {
+    const mode = button.dataset.mode || 'start';
+    window.dispatchEvent(new CustomEvent('crm:tutorial-request', { detail: { mode } }));
+  });
+  button.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    window.dispatchEvent(new CustomEvent('crm:tutorial-reset'));
+  });
+  document.body.appendChild(button);
+  return button;
+}
+
+function applyTourButtonState(partial = {}) {
+  const button = ensureTourButton();
+  if (!button) return;
+  if (typeof partial.available === 'boolean') {
+    tourButtonState.available = partial.available;
+  }
+  if (partial.mode) {
+    tourButtonState.mode = partial.mode;
+  }
+  if (typeof partial.completed === 'boolean') {
+    tourButtonState.completed = partial.completed;
+  }
+
+  button.dataset.mode = tourButtonState.mode;
+  button.classList.toggle('hidden', !tourButtonState.available);
+
+  const labelEl = button.querySelector('[data-tour-label]');
+  if (labelEl) {
+    const label = TOUR_BUTTON_MODE_LABELS[tourButtonState.mode] || TOUR_BUTTON_MODE_LABELS.start;
+    labelEl.textContent = label;
+  }
+  const iconEl = button.querySelector('[data-tour-icon]');
+  if (iconEl) {
+    iconEl.textContent = tourButtonState.completed ? '✅' : '🚀';
+  }
+
+  if (tourButtonState.mode === 'resume') {
+    button.setAttribute('aria-label', 'Resume guided tour • Reanudar recorrido guiado');
+    button.title = 'Resume where you left off • Reanuda donde te quedaste';
+  } else if (tourButtonState.mode === 'replay') {
+    button.setAttribute('aria-label', 'Replay guided tour • Repetir recorrido guiado');
+    button.title = 'Replay the guided tour • Repite el recorrido guiado';
+  } else {
+    button.setAttribute('aria-label', 'Start guided tour • Iniciar recorrido guiado');
+    button.title = 'Start the guided tour • Iniciar el recorrido guiado';
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.registerTourAvailability = function registerTourAvailability({ pageKey, available } = {}) {
+    const button = ensureTourButton();
+    if (button && pageKey) {
+      button.dataset.pageKey = pageKey;
+    }
+    applyTourButtonState({ available: Boolean(available) });
+  };
+  window.setFloatingTourState = function setFloatingTourState(state = {}) {
+    applyTourButtonState(state);
+  };
+}
+
 const TRANSLATIONS = {
   en: {
     brand: 'Metro 2 CRM',
@@ -1254,6 +1344,7 @@ function bindHelp(){
 
 window.setHelpGuideState = function(state = {}){
   ensureHelpModal();
+  applyTourButtonState({ mode: state.mode, completed: state.completed });
   const tourButton = document.getElementById('helpTourButton');
   const resetButton = document.getElementById('helpTourReset');
   const status = document.getElementById('helpTourStatus');
@@ -1279,6 +1370,7 @@ window.selectedConsumerId = localStorage.getItem('selectedConsumerId') || null;
 
 document.addEventListener('DOMContentLoaded', ()=>{
   ensureHelpModal();
+  ensureTourButton();
   bindHelp();
   initPalette();
   ensureTierBadge();

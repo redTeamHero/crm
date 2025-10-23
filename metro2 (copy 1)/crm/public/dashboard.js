@@ -7,6 +7,10 @@ import { resolveStateInfo, toTitleCase } from './state-utils.js';
 const TOUR_STEP_KEY = 'dashboard.tour.step';
 const TOUR_COMPLETE_KEY = 'dashboard.tour.complete';
 let tourInstance = null;
+
+if (typeof window !== 'undefined' && typeof window.registerTourAvailability === 'function') {
+  window.registerTourAvailability({ pageKey: 'dashboard', available: true });
+}
 let activeTourStepId = null;
 let confettiTarget = null;
 const chatState = {
@@ -1835,19 +1839,6 @@ document.addEventListener('DOMContentLoaded', () => {
   })();
 
   syncTourWidget();
-});
-
-window.addEventListener('crm:tutorial-request', (event) => {
-  const mode = event?.detail?.mode || 'start';
-  if(mode === 'resume'){
-    startTour({ resume: true });
-  } else {
-    startTour({ resume: false });
-  }
-});
-
-window.addEventListener('crm:tutorial-reset', () => {
-  handleTutorialReset();
 });
 
 window.addEventListener('crm:tutorial-request', (event) => {

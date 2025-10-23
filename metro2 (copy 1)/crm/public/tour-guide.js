@@ -290,17 +290,26 @@ export function setupPageTour(pageKey, {
     resetTour();
   };
 
-  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  if (
+    typeof window !== 'undefined' &&
+    typeof window.addEventListener === 'function'
+  ) {
     window.addEventListener('crm:tutorial-request', handleTutorialRequest);
     window.addEventListener('crm:tutorial-reset', handleTutorialReset);
   }
 
-  if (typeof document !== 'undefined') {
+  if (
+    typeof document !== 'undefined' &&
+    typeof document.addEventListener === 'function'
+  ) {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', refreshHelpState, { once: true });
     } else {
       refreshHelpState();
     }
+  } else if (typeof window === 'undefined') {
+    // Non-DOM environments (tests) can still mark the help state immediately.
+    refreshHelpState();
   }
 
   return { startTour, resetTour, refreshHelpState };

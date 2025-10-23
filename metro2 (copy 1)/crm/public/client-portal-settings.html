@@ -68,7 +68,7 @@
     </nav>
   </div>
 </header>
-<main class="page-shell">
+<main id="adminPanel" class="page-shell hidden">
   <section class="page-hero glass card" aria-labelledby="clientPortalTitle">
     <div class="hero-header">
       <div>
@@ -188,6 +188,12 @@
     </div>
   </section>
 </main>
+<section id="adminAccessNotice" class="page-shell hidden" aria-live="polite">
+  <div class="glass card space-y-2 text-sm">
+    <h2 class="section-title text-base">Admin access required • Se requiere acceso de administrador</h2>
+    <p class="section-description">Sign in with an admin account to update the client portal experience. Inicia sesión con una cuenta de administrador para actualizar el portal del cliente.</p>
+  </div>
+</section>
 <script type="module" src="/common.js"></script>
 <script src="/hotkeys.js"></script>
 <script src="/settings.js"></script>

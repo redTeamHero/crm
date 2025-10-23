@@ -171,8 +171,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const saveBtn = document.getElementById('saveSettings');
   const msgEl = document.getElementById('saveMsg');
+  const adminNoticeEl = document.getElementById('adminAccessNotice');
 
   const MAX_ENV_KEY_LEN = 64;
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+  }
+
+  function showAdminNotice() {
+    if (!adminNoticeEl) return;
+    adminNoticeEl.classList.remove('hidden');
+  }
 
   function readSettingValue(el, key) {
     if (el && typeof el.value === 'string') {
@@ -378,94 +388,109 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const resp = await fetch('/api/me', { headers: authHeader() });
       if (!resp.ok) {
+        showAdminNotice();
         return;
       }
       const data = await resp.json();
       if (data.user?.role === 'admin') {
         panelEl?.classList.remove('hidden');
         userMgrEl?.classList.remove('hidden');
+        bindSaveButton();
         await Promise.all([load(), loadUsers()]);
+      } else {
+        showAdminNotice();
       }
     } catch (e) {
       console.error('Failed to load user', e);
+      showAdminNotice();
     }
   }
 
-  if (saveBtn) {
-    saveBtn.addEventListener('click', async () => {
-      const body = {
-        hibpApiKey: readSettingValue(hibpEl, 'hibpApiKey'),
-        rssFeedUrl: readSettingValue(rssEl, 'rssFeedUrl'),
-        googleCalendarToken: readSettingValue(gcalTokenEl, 'googleCalendarToken'),
-        googleCalendarId: readSettingValue(gcalIdEl, 'googleCalendarId'),
-        stripeApiKey: readSettingValue(stripeEl, 'stripeApiKey'),
-        marketingApiBaseUrl: readSettingValue(marketingBaseEl, 'marketingApiBaseUrl'),
-        marketingApiKey: readSettingValue(marketingKeyEl, 'marketingApiKey'),
-        sendCertifiedMailApiKey: readSettingValue(sendCertifiedMailEl, 'sendCertifiedMailApiKey'),
-        gmailClientId: readSettingValue(gmailClientIdEl, 'gmailClientId'),
-        gmailClientSecret: readSettingValue(gmailClientSecretEl, 'gmailClientSecret'),
-        gmailRefreshToken: readSettingValue(gmailRefreshTokenEl, 'gmailRefreshToken'),
-        envOverrides: collectEnvOverrides(),
-        clientPortal: hasPortalForm
-          ? {
-              theme: {
-                backgroundColor: (portalBackgroundEl?.value || '').trim(),
-                logoUrl: (portalLogoEl?.value || '').trim(),
-                taglinePrimary: (portalTaglinePrimaryEl?.value || '').trim(),
-                taglineSecondary: (portalTaglineSecondaryEl?.value || '').trim(),
-              },
-              modules: collectPortalModules(),
-            }
-          : { ...(currentSettings.clientPortal || {}) },
+  async function handleSave(event) {
+    if (!saveBtn) return;
+    if (event?.preventDefault) {
+      event.preventDefault();
+    }
 
-      };
-      const originalLabel = saveBtn.textContent;
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving…';
-      try {
-        const resp = await fetch('/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        const result = await resp.json().catch(() => ({}));
-        if (!resp.ok || !result.ok) {
-          throw new Error(result?.error || 'Failed to save settings');
-        }
-        currentSettings = result.settings || currentSettings;
-        if (hibpEl) hibpEl.value = currentSettings.hibpApiKey || '';
-        if (rssEl) rssEl.value = currentSettings.rssFeedUrl || '';
-        if (gcalTokenEl) gcalTokenEl.value = currentSettings.googleCalendarToken || '';
-        if (gcalIdEl) gcalIdEl.value = currentSettings.googleCalendarId || '';
-        if (stripeEl) stripeEl.value = currentSettings.stripeApiKey || '';
-        if (marketingBaseEl) marketingBaseEl.value = currentSettings.marketingApiBaseUrl || '';
-        if (marketingKeyEl) marketingKeyEl.value = currentSettings.marketingApiKey || '';
-        if (sendCertifiedMailEl) sendCertifiedMailEl.value = currentSettings.sendCertifiedMailApiKey || '';
-        if (gmailClientIdEl) gmailClientIdEl.value = currentSettings.gmailClientId || '';
-        if (gmailClientSecretEl) gmailClientSecretEl.value = currentSettings.gmailClientSecret || '';
-        if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = currentSettings.gmailRefreshToken || '';
-        renderEnvOverrides(currentSettings.envOverrides || {});
-        applyPortalSettingsForm(currentSettings.clientPortal || {});
-        if (msgEl) {
-          msgEl.textContent = 'Saved!';
-          msgEl.classList.remove('hidden');
-          msgEl.classList.remove('text-red-500');
-          setTimeout(() => msgEl.classList.add('hidden'), 2000);
-        }
-      } catch (e) {
-        console.error('Failed to save settings', e);
-        if (msgEl) {
-          msgEl.textContent = 'Save failed. Check the fields and try again.';
-          msgEl.classList.remove('hidden');
-          msgEl.classList.add('text-red-500');
-          setTimeout(() => msgEl.classList.add('hidden'), 4000);
-        }
+    const body = {
+      hibpApiKey: readSettingValue(hibpEl, 'hibpApiKey'),
+      rssFeedUrl: readSettingValue(rssEl, 'rssFeedUrl'),
+      googleCalendarToken: readSettingValue(gcalTokenEl, 'googleCalendarToken'),
+      googleCalendarId: readSettingValue(gcalIdEl, 'googleCalendarId'),
+      stripeApiKey: readSettingValue(stripeEl, 'stripeApiKey'),
+      marketingApiBaseUrl: readSettingValue(marketingBaseEl, 'marketingApiBaseUrl'),
+      marketingApiKey: readSettingValue(marketingKeyEl, 'marketingApiKey'),
+      sendCertifiedMailApiKey: readSettingValue(sendCertifiedMailEl, 'sendCertifiedMailApiKey'),
+      gmailClientId: readSettingValue(gmailClientIdEl, 'gmailClientId'),
+      gmailClientSecret: readSettingValue(gmailClientSecretEl, 'gmailClientSecret'),
+      gmailRefreshToken: readSettingValue(gmailRefreshTokenEl, 'gmailRefreshToken'),
+      envOverrides: collectEnvOverrides(),
+      clientPortal: hasPortalForm
+        ? {
+            theme: {
+              backgroundColor: (portalBackgroundEl?.value || '').trim(),
+              logoUrl: (portalLogoEl?.value || '').trim(),
+              taglinePrimary: (portalTaglinePrimaryEl?.value || '').trim(),
+              taglineSecondary: (portalTaglineSecondaryEl?.value || '').trim(),
+            },
+            modules: collectPortalModules(),
+          }
+        : { ...(currentSettings.clientPortal || {}) },
+
+    };
+    const originalLabel = saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    try {
+      const resp = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const result = await resp.json().catch(() => ({}));
+      if (!resp.ok || !result.ok) {
+        throw new Error(result?.error || 'Failed to save settings');
       }
-      finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = originalLabel;
+      currentSettings = result.settings || currentSettings;
+      if (hibpEl) hibpEl.value = currentSettings.hibpApiKey || '';
+      if (rssEl) rssEl.value = currentSettings.rssFeedUrl || '';
+      if (gcalTokenEl) gcalTokenEl.value = currentSettings.googleCalendarToken || '';
+      if (gcalIdEl) gcalIdEl.value = currentSettings.googleCalendarId || '';
+      if (stripeEl) stripeEl.value = currentSettings.stripeApiKey || '';
+      if (marketingBaseEl) marketingBaseEl.value = currentSettings.marketingApiBaseUrl || '';
+      if (marketingKeyEl) marketingKeyEl.value = currentSettings.marketingApiKey || '';
+      if (sendCertifiedMailEl) sendCertifiedMailEl.value = currentSettings.sendCertifiedMailApiKey || '';
+      if (gmailClientIdEl) gmailClientIdEl.value = currentSettings.gmailClientId || '';
+      if (gmailClientSecretEl) gmailClientSecretEl.value = currentSettings.gmailClientSecret || '';
+      if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = currentSettings.gmailRefreshToken || '';
+      renderEnvOverrides(currentSettings.envOverrides || {});
+      applyPortalSettingsForm(currentSettings.clientPortal || {});
+      if (msgEl) {
+        msgEl.textContent = 'Saved!';
+        msgEl.classList.remove('hidden');
+        msgEl.classList.remove('text-red-500');
+        setTimeout(() => msgEl.classList.add('hidden'), 2000);
       }
-    });
+    } catch (e) {
+      console.error('Failed to save settings', e);
+      if (msgEl) {
+        msgEl.textContent = 'Save failed. Check the fields and try again.';
+        msgEl.classList.remove('hidden');
+        msgEl.classList.add('text-red-500');
+        setTimeout(() => msgEl.classList.add('hidden'), 4000);
+      }
+    }
+    finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = originalLabel;
+    }
+  }
+
+  function bindSaveButton() {
+    if (!saveBtn || saveBtn.dataset.bound === '1') return;
+    saveBtn.disabled = false;
+    saveBtn.dataset.bound = '1';
+    saveBtn.addEventListener('click', handleSave);
   }
 
   init();
