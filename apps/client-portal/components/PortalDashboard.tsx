@@ -10,6 +10,18 @@ import RuleDebugGrid from './RuleDebugGrid';
 
 const DEFAULT_BACKGROUND = 'radial-gradient(circle at top left, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.08))';
 
+type NavLink = {
+  id: string;
+  primary: string;
+  secondary: string;
+};
+
+type ModuleEntry = {
+  key: string;
+  label: string;
+  enabled: boolean;
+};
+
 function toScoreEntries(score: PortalPayload['creditScore']) {
   if (!score || typeof score !== 'object') return [] as Array<{ bureau: string; value: number }>;
   return Object.entries(score)
@@ -28,12 +40,35 @@ function safeList<T>(value: T[] | undefined | null, limit: number) {
   return value.slice(0, limit);
 }
 
+function formatModuleLabel(key: string) {
+  if (!key) return 'Module';
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   const [language, setLanguage] = useState<LanguageKey>('en');
   const copy = translations[language];
   const theme = portal.portalSettings?.theme || {};
-  const modules = portal.portalSettings?.modules || {};
+  const modulesSource = portal.portalSettings?.modules;
+  const modules = useMemo<Record<string, boolean>>(
+    () => (modulesSource ? modulesSource : {}),
+    [modulesSource]
+  );
   const background = theme.backgroundColor || DEFAULT_BACKGROUND;
+
+  const navLinks = (copy.navLinks || []) as NavLink[];
+  const moduleLabelsSource = copy.moduleLabels;
+  const moduleLabels = useMemo(
+    () => (moduleLabelsSource || {}) as Record<string, string>,
+    [moduleLabelsSource]
+  );
+  const navTaglineCandidate = (language === 'es' ? theme.taglineSecondary : theme.taglinePrimary)?.toString().trim();
+  const navTagline = navTaglineCandidate && navTaglineCandidate.length > 0 ? navTaglineCandidate : copy.navTagline;
 
   const scoreEntries = useMemo(() => toScoreEntries(portal.creditScore), [portal.creditScore]);
   const disputeCount = portal.negativeItems?.length ?? 0;
@@ -48,6 +83,29 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   const messages = safeList(portal.messages, 4);
   const ruleGroups = useMemo(() => buildRuleGroups(portal.negativeItems), [portal.negativeItems]);
 
+  const moduleEntries = useMemo<ModuleEntry[]>(() => {
+    const keys = new Set<string>();
+    Object.keys(moduleLabels).forEach((key) => keys.add(key));
+    Object.keys(modules || {}).forEach((key) => keys.add(key));
+    return Array.from(keys)
+      .map((key) => {
+        const enabled = Object.prototype.hasOwnProperty.call(modules, key) ? Boolean(modules[key]) : true;
+        const label = moduleLabels[key] || formatModuleLabel(key);
+        return { key, label, enabled };
+      })
+      .sort((a, b) => {
+        if (a.enabled === b.enabled) {
+          return a.label.localeCompare(b.label);
+        }
+        return a.enabled ? -1 : 1;
+      });
+  }, [modules, moduleLabels]);
+
+  const enabledModuleCount = useMemo(
+    () => moduleEntries.filter((entry) => entry.enabled).length,
+    [moduleEntries]
+  );
+
   const handleLanguageToggle = () => {
     setLanguage((prev) => (prev === 'en' ? 'es' : 'en'));
   };
@@ -60,41 +118,102 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
     [copy, portal.consumer.name]
   );
 
+  const nextReminder = reminders[0] ?? null;
+
   return (
     <div style={{ background }} className="min-h-screen pb-16">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
-        <header className="glass flex flex-col gap-6 px-6 py-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            {theme.logoUrl ? (
-              <Image
-                src={theme.logoUrl}
-                alt="Company logo"
-                width={56}
-                height={56}
-                className="h-14 w-14 rounded-2xl bg-white/70 object-contain p-2"
-                unoptimized
-              />
-            ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-lg font-semibold text-white">
-                Portal
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <nav className="glass sticky top-6 z-20 flex flex-col gap-4 px-6 py-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-3">
+              {theme.logoUrl ? (
+                <Image
+                  src={theme.logoUrl}
+                  alt="Company logo"
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 rounded-2xl bg-white/70 object-contain p-2"
+                  unoptimized
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-sm font-semibold text-white">
+                  M2
+                </div>
+              )}
+              <div className="flex flex-col">
+                <span className="text-lg font-semibold text-slate-900 sm:text-xl">{copy.navBrand}</span>
+                <span className="text-xs font-medium text-slate-600 sm:text-sm">{navTagline}</span>
+                <span className="text-[11px] text-slate-500 sm:text-xs">{copy.navSubtitle}</span>
               </div>
-            )}
-            <div className="flex flex-col gap-1 text-left">
-              <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">{heroCopy.welcome}</h1>
-              <p className="text-sm text-slate-600 sm:text-base">{heroCopy.subheading}</p>
+            </div>
+            <div className="flex flex-1 items-center gap-3 overflow-x-auto py-1">
+              {navLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={`#${link.id}`}
+                  className="flex min-w-[9rem] flex-col gap-1 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-left text-sm font-semibold !text-slate-700 shadow-sm transition hover:border-primary/40 hover:!text-primary hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <span>{link.primary}</span>
+                  <span className="text-[11px] font-normal text-slate-500">{link.secondary}</span>
+                </a>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="hidden md:inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                {copy.navThemeLabel}: <span className="text-primary">{copy.navThemeValue}</span>
+              </span>
+              <span className="hidden md:inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-600">
+                {copy.navLanguage}: {copy.languageLabel}
+              </span>
+              <button
+                type="button"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-primary hover:text-primary"
+              >
+                {copy.navHelp}
+              </button>
+              <button
+                type="button"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-primary hover:text-primary"
+              >
+                {copy.navLogout}
+              </button>
+              <button
+                type="button"
+                onClick={handleLanguageToggle}
+                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-110"
+              >
+                {copy.toggleLabel}
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-slate-600">
-              {translations[language].languageLabel}
+        </nav>
+
+        <header
+          id="overview"
+          className="glass scroll-mt-32 flex flex-col gap-6 px-6 py-6 md:flex-row md:items-center md:justify-between"
+        >
+          <div className="flex flex-col gap-3 text-left">
+            <span className="w-fit rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              {copy.kpiHeadline}
             </span>
-            <button
-              type="button"
-              onClick={handleLanguageToggle}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-primary hover:text-primary"
-            >
-              {copy.toggleLabel}
-            </button>
+            <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">{heroCopy.welcome}</h1>
+            <p className="text-sm text-slate-600 sm:text-base">{heroCopy.subheading}</p>
+          </div>
+          <div className="flex w-full max-w-xs flex-col gap-2 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-card">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.nextStep}</p>
+            {nextReminder ? (
+              <>
+                <p className="text-sm font-semibold text-slate-800">{nextReminder.title || copy.nextStep}</p>
+                <p className="text-xs text-slate-500">
+                  {formatDate(nextReminder.due, language === 'es' ? 'es-US' : 'en-US')}
+                </p>
+                {nextReminder.note && (
+                  <p className="text-xs text-slate-500">{nextReminder.note}</p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-slate-500">{copy.empty}</p>
+            )}
           </div>
         </header>
 
@@ -129,7 +248,9 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               </div>
               <div className="rounded-2xl bg-white/90 p-5 shadow-card">
                 <p className="text-xs uppercase tracking-wide text-slate-500">{copy.payments}</p>
-                <div className="mt-2 text-3xl font-semibold text-slate-900">{formatCurrency(openBalance, language === 'es' ? 'es-US' : 'en-US')}</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-900">
+                  {formatCurrency(openBalance, language === 'es' ? 'es-US' : 'en-US')}
+                </div>
                 <p className="mt-4 text-[11px] text-slate-500">
                   {language === 'es'
                     ? 'Configura un CTA para pagos recurrentes con Stripe Checkout.'
@@ -138,7 +259,10 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               </div>
             </div>
           </article>
-          <aside className="glass flex flex-col justify-between gap-4 p-6">
+          <aside
+            id="marketing"
+            className="glass scroll-mt-32 flex flex-col justify-between gap-4 p-6"
+          >
             <div>
               <h3 className="text-lg font-semibold text-slate-900">{copy.planCta}</h3>
               <p className="mt-2 text-sm text-slate-600">{copy.planCopy}</p>
@@ -154,7 +278,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
         </section>
 
         {moduleEnabled(modules, 'messages') && (
-          <section className="grid gap-4 md:grid-cols-2">
+          <section id="clients" className="grid gap-4 scroll-mt-32 md:grid-cols-2">
             <article className="glass p-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-slate-900">{copy.messages}</h2>
@@ -210,7 +334,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                     {doc.url && (
                       <a
                         href={doc.url}
-                        className="text-xs font-semibold text-primary"
+                        className="text-xs font-semibold text-primary hover:no-underline"
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -268,9 +392,46 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
           )}
         </section>
 
-        <RuleDebugGrid groups={ruleGroups} copy={copy} />
+        <div id="tradelines" className="scroll-mt-32">
+          <RuleDebugGrid groups={ruleGroups} copy={copy} />
+        </div>
 
-        <section className="glass p-6">
+        <section id="settings" className="glass scroll-mt-32 p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">{copy.settingsTitle}</h2>
+              <p className="text-sm text-slate-600">{copy.settingsSubtitle}</p>
+            </div>
+            <span className="badge">
+              {enabledModuleCount}/{moduleEntries.length}
+            </span>
+          </div>
+          {moduleEntries.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">{copy.empty}</p>
+          ) : (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {moduleEntries.map((entry) => (
+                <div
+                  key={entry.key}
+                  className="flex flex-col gap-1 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm"
+                >
+                  <span className="text-sm font-semibold text-slate-800">{entry.label}</span>
+                  <span
+                    className={
+                      entry.enabled
+                        ? 'text-xs font-semibold text-emerald-600'
+                        : 'text-xs font-semibold text-slate-500'
+                    }
+                  >
+                    {entry.enabled ? copy.settingsModuleEnabled : copy.settingsModuleDisabled}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section id="schedule" className="glass scroll-mt-32 p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">{copy.timeline}</h2>
             <span className="badge">Metro-2</span>
@@ -287,7 +448,12 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                   </div>
                   {event.message && <p className="mt-1 text-sm text-slate-600">{event.message}</p>}
                   {event.link && (
-                    <a href={event.link} className="text-xs font-semibold text-primary" target="_blank" rel="noreferrer">
+                    <a
+                      href={event.link}
+                      className="text-xs font-semibold text-primary hover:no-underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       {language === 'es' ? 'Abrir recurso' : 'Open resource'}
                     </a>
                   )}
