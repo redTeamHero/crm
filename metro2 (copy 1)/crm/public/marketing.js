@@ -89,10 +89,10 @@ const SEGMENT_GRADIENTS = {
 };
 
 const SEGMENT_LABELS = {
-  b2c: "B2C • Consumidores",
-  b2b: "B2B • Negocios",
-  attorneys: "Attorneys • Abogados",
-  inactive: "Inactive • Inactivos",
+  b2c: "B2C",
+  b2b: "B2B",
+  attorneys: "Attorneys",
+  inactive: "Inactive",
 };
 
 const CAMPAIGN_STATUS_COLORS = {
@@ -170,7 +170,7 @@ const marketingTourSteps = (() => {
       {
         id: "marketing-email-builder",
         title: "Design email assets",
-        text: `<p class="font-semibold">Craft premium templates with bilingual copy.</p>
+        text: `<p class="font-semibold">Craft premium templates with polished copy.</p>
                <p class="mt-1 text-xs text-slate-600">Preview the journey and prep HTML before connecting SendGrid.</p>`,
         attachTo: { element: "#marketingEmailBuilder", on: "top" }
       },
@@ -215,7 +215,7 @@ const marketingTourSteps = (() => {
     {
       id: "marketing-email-builder",
       title: "Email template designer",
-      text: `<p class="font-semibold">Draft bilingual, conversion-first email assets.</p>
+      text: `<p class="font-semibold">Draft conversion-first email assets.</p>
              <p class="mt-1 text-xs text-slate-600">Prep HTML and segmentation tags before wiring to providers.</p>`,
       attachTo: { element: "#marketingEmailBuilder", on: "top" }
     },
@@ -272,11 +272,11 @@ function detectActiveChannel(pathname = "") {
 function getCampaignStatusLabel(status) {
   const key = String(status || "draft").toLowerCase();
   const fallback = {
-    draft: "Draft • Borrador",
-    scheduled: "Scheduled • Programada",
-    running: "Running • En curso",
-    paused: "Paused • En pausa",
-    completed: "Completed • Completada",
+    draft: "Draft",
+    scheduled: "Scheduled",
+    running: "Running",
+    paused: "Paused",
+    completed: "Completed",
   }[key] || key;
   return t(`marketing.campaigns.status.${key}`, fallback);
 }
@@ -386,7 +386,7 @@ function configureChannelBadge(channel) {
     channel === "sms" ? "marketing.channelBadges.sms" : "marketing.channelBadges.email";
   channelBadge.textContent = t(
     key,
-    channel === "sms" ? "SMS Focus • Enfoque SMS" : "Email Focus • Enfoque Email"
+    channel === "sms" ? "SMS Focus" : "Email Focus"
   );
   channelBadge.classList.remove("hidden");
 }
@@ -432,7 +432,7 @@ function updateDocumentTitleForChannel(channel) {
   if (typeof document === "undefined" || !channel) return;
   const key = channel === "sms" ? "marketing.meta.smsTitle" : "marketing.meta.emailTitle";
   const fallback =
-    channel === "sms" ? "Marketing • SMS / Mensajes" : "Marketing • Email / Correo";
+    channel === "sms" ? "Marketing • SMS" : "Marketing • Email";
   const title = t(key, fallback);
   if (title) document.title = title;
 }
@@ -1125,7 +1125,7 @@ function createCampaignCard(campaign) {
   const editBtn = document.createElement("button");
   editBtn.type = "button";
   editBtn.className = "btn text-xs";
-  editBtn.textContent = t("marketing.campaigns.actions.edit", "Edit • Editar");
+  editBtn.textContent = t("marketing.campaigns.actions.edit", "Edit");
   editBtn.addEventListener("click", (event) => {
     event.stopPropagation();
     openCampaignModal(campaign);
@@ -1201,7 +1201,7 @@ async function hydrateCampaigns() {
 function exportCampaignsToCsv() {
   if (!campaignCache.length) {
     window.alert(
-      t("marketing.campaigns.export.empty", "Add a campaign before exporting. • Agrega una campaña antes de exportar.")
+      t("marketing.campaigns.export.empty", "Add a campaign before exporting.")
     );
     return;
   }
@@ -1407,10 +1407,10 @@ function renderTestQueue(items) {
     if (item.status) {
       const status = String(item.status).toLowerCase();
       const fallbackMap = {
-        queued: "Queued • En cola",
-        sending: "Sending • Enviando",
-        sent: "Sent • Enviado",
-        failed: "Failed • Falló",
+        queued: "Queued",
+        sending: "Sending",
+        sent: "Sent",
+        failed: "Failed",
       };
       const statusLabel = t(`marketing.testQueue.status.${status}`, fallbackMap[status] || fallbackMap.queued);
       const statusClasses = {
@@ -1459,7 +1459,7 @@ function renderTestQueue(items) {
       const delivered = document.createElement("span");
       delivered.textContent = t(
         "marketing.testQueue.deliveredLabel",
-        "Delivered {value} • Entregado {value}"
+        "Delivered {value}"
       ).replace("{value}", new Date(item.deliveredAt).toLocaleString());
       footer.appendChild(delivered);
     }
@@ -1472,7 +1472,7 @@ function renderTestQueue(items) {
     if (item.error) {
       const error = document.createElement("p");
       error.className = "mt-2 text-[11px] text-rose-600";
-      error.textContent = t("marketing.testQueue.errorLabel", "Error: {error} • Error: {error}").replace(
+      error.textContent = t("marketing.testQueue.errorLabel", "Error: {error}").replace(
         "{error}",
         item.error
       );
@@ -1918,7 +1918,7 @@ function bindCampaignControls() {
     if (!name) {
       showInlineStatus(
         campaignStatusMessage,
-        t("marketing.campaigns.form.nameRequired", "Name required • Nombre requerido"),
+        t("marketing.campaigns.form.nameRequired", "Name required"),
         "error"
       );
       return;
@@ -1942,8 +1942,8 @@ function bindCampaignControls() {
       showInlineStatus(
         campaignStatusMessage,
         activeCampaignId
-          ? t("marketing.campaigns.form.updated", "Campaign updated • Campaña actualizada")
-          : t("marketing.campaigns.form.saved", "Campaign saved • Campaña guardada")
+          ? t("marketing.campaigns.form.updated", "Campaign updated")
+          : t("marketing.campaigns.form.saved", "Campaign saved")
       );
       window.setTimeout(() => {
         closeCampaignModal();
@@ -1951,7 +1951,7 @@ function bindCampaignControls() {
     } catch (error) {
       showInlineStatus(
         campaignStatusMessage,
-        error.message || t("marketing.campaigns.form.error", "Failed to save campaign • Error al guardar"),
+        error.message || t("marketing.campaigns.form.error", "Failed to save campaign"),
         "error"
       );
     }

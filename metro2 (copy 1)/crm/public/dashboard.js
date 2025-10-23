@@ -261,14 +261,6 @@ function hydrateLadderStateFromDom() {
     config.playbookUrl = href === '#' ? '' : href;
   }
 
-  const spanishLink = document.getElementById('ladderSpanishLink');
-  if (spanishLink) {
-    const label = spanishLink.textContent?.trim();
-    const href = spanishLink.getAttribute('href') || '';
-    if (label) config.spanishSummaryLabel = label;
-    config.spanishSummaryUrl = href === '#' ? '' : href;
-  }
-
   currentLadderConfig = mergeConfig(DEFAULT_LADDER_CONFIG, config);
   currentDashboardGoals = {
     ...currentDashboardGoals,
@@ -294,8 +286,8 @@ function formatPercent(value, fallback = '0.0%') {
 
 function formatFocusDate(value) {
   const date = value ? new Date(value) : null;
-  if (!date || Number.isNaN(date.getTime())) return 'soon / pronto';
-  return `${focusDateFormatterEn.format(date)} / ${focusDateFormatterEs.format(date)}`;
+  if (!date || Number.isNaN(date.getTime())) return 'soon';
+  return focusDateFormatterEn.format(date);
 }
 
 function updateRevenueLadder(value, goal) {
@@ -304,7 +296,7 @@ function updateRevenueLadder(value, goal) {
   if (labelEl) {
     if (Number.isFinite(value)) {
       const base = formatCurrency(value);
-      const goalLabel = Number.isFinite(goal) ? ` / Meta ${formatCurrency(goal)}` : '';
+      const goalLabel = Number.isFinite(goal) ? ` · Goal ${formatCurrency(goal)}` : '';
       labelEl.textContent = `${base}${goalLabel}`;
     } else {
       labelEl.textContent = 'Sync billing';
@@ -328,7 +320,7 @@ function updateGoalKpiLabel(summary) {
   const target = summary?.goals?.leadToConsultTarget;
   const current = summary?.kpis?.leadToConsultRate;
   if (Number.isFinite(target) && Number.isFinite(current)) {
-    el.textContent = `Goal KPI: Lead → Consult ≥ ${target.toFixed(0)}% · Current ${current.toFixed(1)}% / Seguimiento Lead→Consulta.`;
+    el.textContent = `Goal KPI: Lead → Consult ≥ ${target.toFixed(0)}% · Current ${current.toFixed(1)}%.`;
   } else if (Number.isFinite(target)) {
     el.textContent = `Goal KPI: Lead → Consult ≥ ${target.toFixed(0)}% · Track consult follow-ups.`;
   } else {
@@ -357,7 +349,7 @@ function renderFocusList(summary) {
     const due = escapeHtml(formatFocusDate(first.due));
     items.push({
       badge: 'bg-emerald-100 text-emerald-600',
-      text: `Prep ${name} consult by ${due}. Confirm docs before letters. / Prepara la consulta de ${name} antes de ${due}.`
+      text: `Prep ${name} consult by ${due}. Confirm docs before letters.`
     });
   }
 
@@ -368,7 +360,7 @@ function renderFocusList(summary) {
     const targetText = escapeHtml(`${leadTarget.toFixed(0)}%`);
     items.push({
       badge: 'bg-sky-100 text-sky-600',
-      text: `Lead → Consult at ${rateText} vs goal ${targetText}. Drop NEPQ close in nurture drip. / Lead → Consulta en ${rateText} vs meta ${targetText}. Añade cierre NEPQ.`
+      text: `Lead → Consult at ${rateText} vs goal ${targetText}. Drop NEPQ close in nurture drip.`
     });
   }
 
@@ -381,13 +373,13 @@ function renderFocusList(summary) {
       const due = escapeHtml(formatFocusDate(invoice.due));
       items.push({
         badge: 'bg-amber-100 text-amber-600',
-        text: `Check-in with ${name} about ${amount} due ${due}. Bundle certified mail tracking. / Contacta a ${name} sobre ${amount} vence ${due}. Incluye seguimiento por correo certificado.`
+        text: `Check in with ${name} about ${amount} due ${due}. Bundle certified mail tracking.`
       });
     } else {
       const amount = escapeHtml(formatCurrency(outstanding));
       items.push({
         badge: 'bg-amber-100 text-amber-600',
-        text: `Collect ${amount} outstanding with concierge CTA. Offer certified mail credits. / Cobra ${amount} pendiente con CTA concierge. Ofrece créditos de correo certificado.`
+        text: `Collect ${amount} outstanding with concierge CTA. Offer certified mail credits.`
       });
     }
   }
@@ -395,22 +387,22 @@ function renderFocusList(summary) {
   if (!items.length) {
     items.push({
       badge: 'bg-emerald-100 text-emerald-600',
-      text: 'Document the next consult follow-up and sync reminders. / Documenta el siguiente seguimiento y sincroniza recordatorios.'
+      text: 'Document the next consult follow-up and sync reminders.'
     });
   }
 
   const filler = [
     {
       badge: 'bg-emerald-100 text-emerald-600',
-      text: 'Launch the 7-Day Credit Momentum email sequence. / Lanza la secuencia Momentum de 7 días.'
+      text: 'Launch the 7-Day Credit Momentum email sequence.'
     },
     {
       badge: 'bg-sky-100 text-sky-600',
-      text: 'Review Metro-2 evidence before your next letter batch. / Revisa evidencias Metro-2 antes del siguiente envío.'
+      text: 'Review Metro-2 evidence before your next letter batch.'
     },
     {
       badge: 'bg-amber-100 text-amber-600',
-      text: 'Promote the automation bundle during consult recap. / Promueve el paquete de automatización en el recap.'
+      text: 'Promote the automation bundle during consult recap.'
     }
   ];
 
@@ -1139,13 +1131,6 @@ function generateAssistantReply(message){
              <p class="mt-2 text-xs text-slate-500">KPI: Average Order Value & Refund%. A/B ideas: headline emphasizing "Clarity-first dispute plan" vs. "Tailored Metro-2 review"; test trust badge placement near the paywall.</p>`
     };
   }
-  if(normalized.includes('spanish')){
-    return {
-      html: true,
-      text: `<p class="font-semibold text-slate-800">We currently provide guidance in English.</p>
-             <p class="mt-1 text-xs text-slate-600">Clone any template you need to localize and collaborate with your team outside the app.</p>`
-    };
-  }
   return {
     html: true,
     text: `<p class="font-semibold text-slate-800">Here’s how to keep momentum:</p>
@@ -1493,7 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!ladderEditorSubmit) return;
 
       if (ladderEditorStatus) {
-        ladderEditorStatus.textContent = 'Saving… / Guardando…';
+        ladderEditorStatus.textContent = 'Saving…';
         ladderEditorStatus.classList.remove('text-red-600');
         ladderEditorStatus.classList.add('text-emerald-600');
       }
@@ -1571,7 +1556,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (ladderEditorStatus) {
-          ladderEditorStatus.textContent = 'Saved • Guardado';
+          ladderEditorStatus.textContent = 'Saved';
           ladderEditorStatus.classList.remove('text-red-600');
           ladderEditorStatus.classList.add('text-emerald-600');
         }
@@ -1582,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (err) {
         console.error('Failed to save ladder config', err);
         if (ladderEditorStatus) {
-          ladderEditorStatus.textContent = `Save failed • Error: ${err?.message || 'Unknown error'}`;
+          ladderEditorStatus.textContent = `Save failed: ${err?.message || 'Unknown error'}`;
           ladderEditorStatus.classList.remove('text-emerald-600');
           ladderEditorStatus.classList.add('text-red-600');
         }

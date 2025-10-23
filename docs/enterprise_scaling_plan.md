@@ -2,7 +2,7 @@
 
 ## Goal & Why (Business Impact)
 - Deliver premium, resilient credit-repair SaaS that supports 7–8 figure ARR by safeguarding uptime, speed, and tenant fairness.
-- Protect enterprise credibility with proactive observability and compliance-aware guardrails that preserve trust with bilingual B2C/B2B segments.
+- Protect enterprise credibility with proactive observability and compliance-aware guardrails that preserve trust with diverse B2C/B2B segments.
 - Enable upsell opportunities (priority support SLAs, managed dispute operations) through transparent performance metrics.
 
 ## Architecture (Diagram + Decisions)
@@ -30,7 +30,7 @@
 - **Metrics pipeline**: Scrape CPU, memory, request throughput, error rates, queue depth, and Stripe/Twilio success ratios with Prometheus. Mirror business KPIs (Lead→Consult%, Consult→Purchase%, AOV) into Grafana for unified ops + revenue dashboards.
 - **Structured logging**: Emit JSON logs enriched with tenant ID, correlation IDs, request IDs, and redacted PII flags. Forward to CloudWatch or Datadog with retention tuned for Metro-2 dispute audits.
 - **Distributed tracing**: Instrument API, workers, and external calls using OpenTelemetry (OTLP exporter). Propagate trace context across service boundaries (CRM API ↔ marketing worker ↔ certified mail API) to isolate latency spikes and compliance exceptions fast.
-- **Dashboards & alerts**: Publish Grafana boards (English/Spanish labels) for SLA/SLO burn rates, dispute automation throughput, and premium tier add-on upsell performance. Configure alert rules for p95 latency, queue saturation, failed mail jobs, and anomaly detection on refund% or chargeback trends.
+- **Dashboards & alerts**: Publish Grafana boards (clear English labels) for SLA/SLO burn rates, dispute automation throughput, and premium tier add-on upsell performance. Configure alert rules for p95 latency, queue saturation, failed mail jobs, and anomaly detection on refund% or chargeback trends.
 - **Health checks**: Expose `/healthz` (liveness) and `/readyz` (readiness) endpoints plus worker heartbeat channels. Integrate with Kubernetes/Render probes and third-party uptime monitors to trigger automated failover before tenants feel friction.
 
 ## Scaffold / Files (Suggested Tree)
@@ -123,7 +123,7 @@ int main() {
 
 ## Metrics / A/B Ideas
 - Track **API latency p95**, **queue depth**, **integration success rate**, **tenant quota breach count** as core SLIs/SLAs.
-- A/B test bilingual status dashboards: baseline text vs. icon-driven layout to improve enterprise transparency.
+- A/B test status dashboards: baseline text vs. icon-driven layout to improve enterprise transparency.
 - Experiment with paywalled premium alerts (SMS/WhatsApp) vs. email-only to increase add-on conversions.
 
 ## Next Revenue Wins

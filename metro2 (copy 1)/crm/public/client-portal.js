@@ -20,7 +20,7 @@ const DEFAULT_PORTAL_THEME = Object.freeze({
   backgroundColor: '',
   logoUrl: '',
   taglinePrimary: 'Track disputes, uploads, and approvals in one place.',
-  taglineSecondary: 'Sigue tus disputas, cargas y aprobaciones en un solo lugar.',
+  taglineSecondary: 'Stay on top of disputes, uploads, and approvals from one hub.',
 });
 
 const PORTAL_MODULE_CONFIG = Object.freeze({
@@ -311,7 +311,7 @@ function renderScore(score){
     if (stamp) {
       const date = new Date(stamp);
       if (!Number.isNaN(date.getTime())) {
-        updatedAtEl.textContent = `Updated • Actualizado: ${date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`;
+        updatedAtEl.textContent = `Updated: ${date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`;
         updatedAtEl.classList.remove('hidden');
       } else {
         updatedAtEl.classList.add('hidden');
@@ -413,53 +413,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
 
-  const languageToggle = document.getElementById('languageToggle');
-  const mobileLanguageToggle = document.getElementById('mobileLanguageToggle');
   const bookCallButton = document.getElementById('bookCall');
   const htmlRoot = document.documentElement;
 
-  const updateLanguageButtons = (lang) => {
-    const label = lang === 'es' ? 'Español • English' : 'English • Español';
-    if (languageToggle) languageToggle.textContent = label;
-    if (mobileLanguageToggle) mobileLanguageToggle.textContent = label;
-  };
-
-  const applyLanguagePreference = (lang) => {
-    const normalized = lang === 'es' ? 'es' : 'en';
-    htmlRoot.setAttribute('lang', normalized);
-    try {
-      localStorage.setItem('portalLang', normalized);
-    } catch {}
-    updateLanguageButtons(normalized);
-  };
-
-  const cycleLanguage = () => {
-    const current = htmlRoot.getAttribute('lang') === 'es' ? 'es' : 'en';
-    applyLanguagePreference(current === 'es' ? 'en' : 'es');
-  };
+  if (htmlRoot) {
+    htmlRoot.setAttribute('lang', 'en');
+  }
 
   if (bookCallButton) {
     bookCallButton.addEventListener('click', () => {
       recordDataRegionConversion(consumerId, 'book_call');
     });
   }
-
-  [languageToggle, mobileLanguageToggle].forEach(btn => {
-    if (!btn) return;
-    btn.addEventListener('click', (event) => {
-      event.preventDefault();
-      cycleLanguage();
-    });
-  });
-
-  const storedLang = (() => {
-    try {
-      return localStorage.getItem('portalLang');
-    } catch {
-      return null;
-    }
-  })();
-  applyLanguagePreference(storedLang || htmlRoot.getAttribute('lang') || 'en');
 
   const mascotEl = document.getElementById('mascot');
   if (mascotEl && window.lottie && !mascotEl.dataset.customLogo) {

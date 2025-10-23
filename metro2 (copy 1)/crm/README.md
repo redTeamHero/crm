@@ -111,7 +111,7 @@ Without them, letter generation will fail with errors like `libnspr4.so: cannot 
   order by avg_duration_ms desc;
   ```
 
-- Set `PORTAL_DATA_REGION_WEIGHT` (and optional `PORTAL_DATA_REGION_CONTROL_WEIGHT`) to bias the bilingual “Dedicated secured data region” banner experiment. Portal clicks are recorded via `ab_test_assignments.converted_at` for revenue-focused reporting.
+- Set `PORTAL_DATA_REGION_WEIGHT` (and optional `PORTAL_DATA_REGION_CONTROL_WEIGHT`) to bias the “Dedicated secured data region” banner experiment. Portal clicks are recorded via `ab_test_assignments.converted_at` for revenue-focused reporting.
 - Analyze invoice funnel drop-off with a simple checkout stage report:
 
   ```sql
@@ -170,7 +170,7 @@ Keep disputes compliant without hard-coded logic. The workflow engine persists i
 
 - **Cadence guardrail** — default `letters.generate` rules block new disputes for the same bureau within 35 days.
 - **Validation freshness** — warns advisors if the latest `validation_completed` event is older than seven days.
-- **Automatic follow-up** — when a `dispute_resolved` event lands, the engine schedules a bilingual reminder and logs a notification so you can upsell progress reviews without promising deletions or timelines.
+- **Automatic follow-up** — when a `dispute_resolved` event lands, the engine schedules a reminder and logs a notification so you can upsell progress reviews without promising deletions or timelines.
 
 Manage the configuration through the new API endpoints (requires a bearer token with `consumers` permission):
 

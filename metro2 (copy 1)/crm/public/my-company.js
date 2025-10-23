@@ -48,7 +48,6 @@ function normalizeRole(role) {
     id,
     label: role.label || role.id,
     description: role.description || '',
-    descriptionEs: role.descriptionEs || '',
     permissions: Array.from(new Set(Array.isArray(role.permissions) ? role.permissions.map(String) : []))
   };
 }
@@ -58,28 +57,24 @@ const FALLBACK_ROLES = [
     id: 'analyst',
     label: 'Credit Analyst',
     description: 'Audits Metro-2 issues and prepares dispute drafts.',
-    descriptionEs: 'Audita reportes Metro-2 y prepara borradores de disputas.',
     permissions: ['consumers', 'letters', 'reports']
   }),
   normalizeRole({
     id: 'closer',
     label: 'Sales Closer',
     description: 'Handles NEPQ consults and closes premium offers.',
-    descriptionEs: 'Lidera consultas NEPQ y cierra ofertas premium.',
     permissions: ['contacts', 'tasks', 'reports']
   }),
   normalizeRole({
     id: 'attorney',
     label: 'Attorney',
     description: 'Escalates FCRA/FDCPA matters with compliant evidence.',
-    descriptionEs: 'Escala asuntos FCRA/FDCPA con evidencia en cumplimiento.',
     permissions: ['consumers', 'letters', 'reports', 'tasks']
   }),
   normalizeRole({
     id: 'success',
     label: 'Client Success',
     description: 'Supports clients post-onboarding and tracks tasks.',
-    descriptionEs: 'Da soporte a clientes después del onboarding y rastrea tareas.',
     permissions: ['contacts', 'tasks']
   })
 ].filter(Boolean);
@@ -292,7 +287,6 @@ function normalizeTeamMember(member = {}) {
     teamRole: role?.id || member.teamRole || defaultRoleId,
     roleLabel: role?.label || '',
     roleDescription: role?.description || '',
-    roleDescriptionEs: role?.descriptionEs || '',
     permissions: normalizedPermissions,
   };
 }
@@ -306,7 +300,6 @@ function syncTeamToLocalStorage() {
     teamRole: member.teamRole,
     roleLabel: member.roleLabel,
     roleDescription: member.roleDescription,
-    roleDescriptionEs: member.roleDescriptionEs,
     permissions: Array.isArray(member.permissions) ? member.permissions : []
   }));
   localStorage.setItem('teamMembers', JSON.stringify(payload));
@@ -350,7 +343,7 @@ function renderTeamMembers() {
       `).join('');
     const roleDescriptions = [
       member.roleDescription ? `<div class="role-hint">${escapeHtml(member.roleDescription)}</div>` : '',
-      member.roleDescriptionEs ? `<div class="role-hint role-hint-es">${escapeHtml(member.roleDescriptionEs)}</div>` : ''
+      ''
     ].join('');
     const permissionChips = member.permissions?.length
       ? member.permissions.map(perm => `<span class="chip chip-soft">${escapeHtml(perm)}</span>`).join('')

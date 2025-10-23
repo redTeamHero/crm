@@ -69,7 +69,6 @@ const DEFAULT_WORKFLOW_CONFIG = {
           payloadTemplate: {
             type: "follow_up",
             summary: "Confirm {{event.payload.bureau || 'bureau'}} resolution",
-            bilingualNote: "Check in with client / Comunícate con el cliente",
             workflow: "dispute_resolved",
           },
         },
@@ -80,8 +79,6 @@ const DEFAULT_WORKFLOW_CONFIG = {
           payloadTemplate: {
             message:
               "Dispute resolved for {{event.payload.accountName || 'an account'}} ({{event.payload.bureau || 'bureau'}}). Update the client and offer a progress review.",
-            message_es:
-              "Disputa resuelta para {{event.payload.accountName || 'una cuenta'}} ({{event.payload.bureau || 'buró'}}). Actualiza al cliente y ofrece una revisión de progreso.",
             severity: "info",
           },
         },

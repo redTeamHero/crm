@@ -54,7 +54,7 @@
 
 ## Compliance guardrails baked into layers
 - Domain layer owns Metro-2 sanity checks: DOFD required on charge-offs, status vs balance consistency, date ordering.
-- Application services enforce bilingual copy + rate limiting before calling infrastructure.
+- Application services enforce copy guardrails + rate limiting before calling infrastructure.
 - Edge layer redacts PII in logs (`logInfo` strips SSNs) and enforces tenant quotas before handing off.
 
 ## What "good" looks like

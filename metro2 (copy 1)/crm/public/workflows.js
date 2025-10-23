@@ -384,7 +384,7 @@ async function bootstrapWorkflowEngineSummary() {
       steps.push(`${mode.charAt(0).toUpperCase()}${mode.slice(1)} validation within ${validationRule.maxAgeDays} day(s).`);
     }
     if (resolvedEvent?.actions?.length) {
-      steps.push('Auto-schedules bilingual follow-up reminders when disputes resolve.');
+      steps.push('Auto-schedules follow-up reminders when disputes resolve.');
     }
     if (!steps.length) {
       steps.push('Configure cadence, validation, and follow-up triggers inside the workflow engine.');
@@ -403,7 +403,7 @@ async function bootstrapWorkflowEngineSummary() {
       automations: [
         'API: GET/PUT /api/workflows/config to edit rules',
         'API: POST /api/workflows/validate for pre-flight checks',
-        'Auto reminders + notifications when disputes resolve (English/Spanish copy)'
+        'Auto reminders + notifications when disputes resolve (consistent English copy)'
       ],
       upsell: 'Offer “Managed Workflow Governance” for partner agencies needing compliance audits.',
       abTest: 'Test advisor messaging (gentle warning vs hard stop) to maximize throughput without risking compliance.',
