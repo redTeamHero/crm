@@ -3,6 +3,8 @@ import { validateTradeline, enrich } from './validators.js';
 
 export { fieldMap, validateTradeline, enrich };
 
+export { coerceDateMDY, normalizeBureau, emptyHistory, emptyInquirySummary };
+
 const NORMALIZED_FIELD_MAP = Object.fromEntries(
   Object.entries(fieldMap).map(([label, config]) => [normalizeFieldLabel(label), config])
 );
