@@ -50,7 +50,7 @@
           </button>
           <div id="navSettingsMenu" class="nav-dropdown-menu glass card p-2">
             <a id="navCompany" href="/my-company" class="btn text-sm">My Company</a>
-            <a href="/settings#client-portal" class="btn text-sm" data-i18n="nav.clientPortal">Client Portal • Portal del Cliente</a>
+            <a href="/settings/client-portal" class="btn text-sm" data-i18n="nav.clientPortal">Client Portal • Portal del Cliente</a>
             <a href="/letters" class="btn text-sm">Letter</a>
             <a href="/library" class="btn text-sm">Library</a>
             <a href="/settings#api-integrations" class="btn text-sm">APIs</a>
@@ -104,58 +104,13 @@
     </div>
 
     <div class="space-y-2 pt-2 border-t border-white/10">
-      <details id="clientPortalDetails" class="group rounded-lg border border-white/10 bg-white/5 p-3" open>
-        <summary class="flex items-center justify-between cursor-pointer">
-          <span class="font-medium">Client Portal • Portal del Cliente</span>
-          <svg class="h-4 w-4 transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </summary>
-        <div class="mt-3 space-y-3 text-sm">
-          <p class="text-xs text-gray-600">Brand the client portal with your logo, colors, and bilingual copy. Toggle sections to match the services you deliver.</p>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="creditScore" checked /> Credit Score / Puntaje de Crédito</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="negativeItems" checked /> Negative Items / Elementos Negativos</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="reportSnapshot" checked /> Report Snapshot / Resumen</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="milestones" checked /> Milestones / Metas</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="team" checked /> Team / Equipo</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="news" checked /> News / Noticias</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="debtCalc" checked /> Debt Tools / Calculadora</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="messages" checked /> Messages / Mensajes</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="education" checked /> Education / Educación</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="documents" checked /> Documents / Documentos</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="mail" checked /> Mail / Correo</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="payments" checked /> Payments / Pagos</label>
-            <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="uploads" checked /> Uploads / Cargas</label>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label class="block space-y-1">
-              <span class="text-xs uppercase tracking-wide text-gray-500">Background Color (Hex) / Color de Fondo</span>
-              <input id="portalBackgroundColor" class="w-full border rounded px-2 py-1 text-sm" placeholder="#0f172a" />
-              <span class="text-[11px] text-gray-500">Leave blank to keep the animated gradient.</span>
-            </label>
-            <label class="block space-y-1">
-              <span class="text-xs uppercase tracking-wide text-gray-500">Logo URL</span>
-              <input id="portalLogoUrl" class="w-full border rounded px-2 py-1 text-sm" placeholder="https://cdn.yourbrand.com/logo.png" />
-              <span class="text-[11px] text-gray-500">PNG/SVG recommended, 160×160px, HTTPS or relative path.</span>
-            </label>
-            <label class="block space-y-1 sm:col-span-2">
-              <span class="text-xs uppercase tracking-wide text-gray-500">Headline (English)</span>
-              <input id="portalTaglinePrimary" class="w-full border rounded px-2 py-1 text-sm" placeholder="Track disputes, uploads, and approvals in one place." />
-            </label>
-            <label class="block space-y-1 sm:col-span-2">
-              <span class="text-xs uppercase tracking-wide text-gray-500">Headline (Spanish)</span>
-              <input id="portalTaglineSecondary" class="w-full border rounded px-2 py-1 text-sm" placeholder="Sigue tus disputas, cargas y aprobaciones en un solo lugar." />
-            </label>
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <button type="button" id="portalThemeReset" class="btn text-xs">Reset to Defaults</button>
-          </div>
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-medium">Client Portal</div>
+          <p class="text-xs text-gray-600">Branding, bilingual copy, and module toggles now live in the Client Portal settings.</p>
         </div>
-      </details>
+        <a href="/settings/client-portal" class="btn text-xs" data-i18n="nav.clientPortal">Open Client Portal</a>
+      </div>
     </div>
 
     <div class="border-t border-white/10 pt-3 space-y-2">

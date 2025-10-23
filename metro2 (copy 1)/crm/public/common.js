@@ -304,7 +304,7 @@ export function applyLanguage(lang = currentLanguage) {
     ['a[href="/marketing"]', 'nav.marketing'],
     ['a[href="/tradelines"]', 'nav.tradelines'],
     ['#navCompany', 'nav.myCompany'],
-    ['#navSettingsMenu a[href="/settings#client-portal"]', 'nav.clientPortal'],
+    ['#navSettingsMenu a[href="/settings/client-portal"]', 'nav.clientPortal'],
     ['#navSettingsMenu a[href="/letters"]', 'nav.letters'],
     ['#navSettingsMenu a[href="/library"]', 'nav.library'],
     ['#navSettingsMenu a[href="/settings#api-integrations"]', 'nav.apis'],
@@ -700,7 +700,7 @@ if (navContainer) {
   };
   ensureMarketingLink('/marketing/sms', 'nav.marketingSms');
   ensureMarketingLink('/marketing/email', 'nav.marketingEmail');
-  ensureSettingsLink('/settings#client-portal', 'nav.clientPortal', 'Client Portal • Portal del Cliente', '#navCompany');
+  ensureSettingsLink('/settings/client-portal', 'nav.clientPortal', 'Client Portal • Portal del Cliente', '#navCompany');
   const btnLogout = document.createElement('button');
   btnLogout.id = 'btnLogout';
   btnLogout.className = 'btn nav-btn';
