@@ -115,6 +115,15 @@
   #eventModal {
     z-index: 120;
   }
+  #eventModal .modal-panel {
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+  }
+  @media (max-width: 640px) {
+    #eventModal .modal-panel {
+      max-height: calc(100vh - 2rem);
+    }
+  }
   @media (max-width: 768px) {
     .calendar-grid {
       gap: 6px;
@@ -238,47 +247,49 @@
   </section>
 </main>
 
-<div id="eventModal" class="fixed inset-0 hidden items-center justify-center bg-black/50 px-4">
-  <div class="bg-white p-6 rounded-3xl shadow-xl w-full max-w-md space-y-4">
-    <div>
-      <h2 class="text-xl font-semibold text-slate-900">Event</h2>
-      <p class="text-xs text-slate-500 mt-1">Drop a premium touchpoint and reserve the exact slot you want.</p>
-    </div>
-    <div class="space-y-3">
-      <label class="block text-sm font-medium text-slate-600">Date
-        <input id="eventDate" type="date" class="mt-1 border p-2 rounded-lg w-full">
-      </label>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <label class="block text-sm font-medium text-slate-600">Start Time
-          <input id="eventStartTime" type="time" step="60" class="mt-1 border p-2 rounded-lg w-full">
-        </label>
-        <label class="block text-sm font-medium text-slate-600">End Time
-          <input id="eventEndTime" type="time" step="60" class="mt-1 border p-2 rounded-lg w-full">
-        </label>
-      </div>
+<div id="eventModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50">
+  <div class="flex min-h-full items-center justify-center px-4 py-8">
+    <div class="modal-panel w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-xl">
       <div>
-        <p class="text-xs uppercase tracking-wide text-slate-500">Quick slots</p>
-        <div id="slotSuggestions" class="mt-2 flex flex-wrap gap-2"></div>
-        <p id="slotAvailability" class="mt-2 text-xs text-slate-500"></p>
-        <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 space-y-2">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input id="customSlotLabel" type="text" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60" placeholder="Label your slot (optional)">
-            <button id="saveCustomSlot" type="button" class="btn btn-outline whitespace-nowrap">Save custom slot</button>
-          </div>
-          <p id="customSlotNotice" class="text-[11px] text-slate-500">Use the start/end fields above to define your own slot&mdash;we'll remember it on this browser. / Usa los horarios de inicio y fin para crear tu propio espacio y lo guardaremos en este navegador.</p>
-        </div>
+        <h2 class="text-xl font-semibold text-slate-900">Event</h2>
+        <p class="text-xs text-slate-500 mt-1">Drop a premium touchpoint and reserve the exact slot you want.</p>
       </div>
-      <label class="block text-sm font-medium text-slate-600">Type
-        <input id="eventType" type="text" class="mt-1 border p-2 rounded-lg w-full" placeholder="consult/meeting/follow-up">
-      </label>
-      <label class="block text-sm font-medium text-slate-600">Details
-        <input id="eventText" type="text" class="mt-1 border p-2 rounded-lg w-full" placeholder="Client name or goal">
-      </label>
-    </div>
-    <div class="flex flex-wrap justify-end gap-2">
-      <button id="deleteEvent" class="btn bg-red-600 hidden">Delete</button>
-      <button id="cancelEvent" class="btn btn-outline">Cancel</button>
-      <button id="saveEvent" class="btn">Save</button>
+      <div class="space-y-3">
+        <label class="block text-sm font-medium text-slate-600">Date
+          <input id="eventDate" type="date" class="mt-1 border p-2 rounded-lg w-full">
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="block text-sm font-medium text-slate-600">Start Time
+            <input id="eventStartTime" type="time" step="60" class="mt-1 border p-2 rounded-lg w-full">
+          </label>
+          <label class="block text-sm font-medium text-slate-600">End Time
+            <input id="eventEndTime" type="time" step="60" class="mt-1 border p-2 rounded-lg w-full">
+          </label>
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wide text-slate-500">Quick slots</p>
+          <div id="slotSuggestions" class="mt-2 flex flex-wrap gap-2"></div>
+          <p id="slotAvailability" class="mt-2 text-xs text-slate-500"></p>
+          <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input id="customSlotLabel" type="text" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60" placeholder="Label your slot (optional)">
+              <button id="saveCustomSlot" type="button" class="btn btn-outline whitespace-nowrap">Save custom slot</button>
+            </div>
+            <p id="customSlotNotice" class="text-[11px] text-slate-500">Use the start/end fields above to define your own slot&mdash;we'll remember it on this browser. / Usa los horarios de inicio y fin para crear tu propio espacio y lo guardaremos en este navegador.</p>
+          </div>
+        </div>
+        <label class="block text-sm font-medium text-slate-600">Type
+          <input id="eventType" type="text" class="mt-1 border p-2 rounded-lg w-full" placeholder="consult/meeting/follow-up">
+        </label>
+        <label class="block text-sm font-medium text-slate-600">Details
+          <input id="eventText" type="text" class="mt-1 border p-2 rounded-lg w-full" placeholder="Client name or goal">
+        </label>
+      </div>
+      <div class="flex flex-wrap justify-end gap-2">
+        <button id="deleteEvent" class="btn bg-red-600 hidden">Delete</button>
+        <button id="cancelEvent" class="btn btn-outline">Cancel</button>
+        <button id="saveEvent" class="btn">Save</button>
+      </div>
     </div>
   </div>
 </div>
