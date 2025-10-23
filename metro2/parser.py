@@ -20,6 +20,16 @@ def text(cell: Optional[Any]) -> str:
     return cell.get_text(" ", strip=True) if cell is not None else ""
 
 
+def _ensure_soup(doc: Union[str, BeautifulSoup, Tag]) -> BeautifulSoup:
+    """Normalize inputs into a :class:`BeautifulSoup` document."""
+
+    if isinstance(doc, BeautifulSoup):
+        return doc
+    if isinstance(doc, Tag):
+        return BeautifulSoup(str(doc), "html.parser")
+    return BeautifulSoup(doc or "", "html.parser")
+
+
 # ───────────── Personal Info ─────────────
 def parse_personal_info(soup: BeautifulSoup) -> Dict[str, Dict[str, str]]:
     bureaus = ["TransUnion", "Experian", "Equifax"]
@@ -121,37 +131,45 @@ def parse_inquiries(soup: BeautifulSoup) -> List[Dict[str, str]]:
     return inquiries
 
 
-def parse_credit_report_html(doc: Union[str, BeautifulSoup, Tag]) -> Dict[str, Any]:
-    """Parse the provided HTML document into the schema expected by the audits."""
-    if isinstance(doc, BeautifulSoup):
-        soup = doc
-    elif isinstance(doc, Tag):
-        soup = BeautifulSoup(str(doc), "html.parser")
-    else:
-        soup = BeautifulSoup(doc or "", "html.parser")
+def parse_negative_item_cards(doc: Union[str, BeautifulSoup, Tag]) -> Dict[str, Any]:
+    """Return normalized tradelines + inquiries for negative item cards."""
 
-    personal = parse_personal_info(soup)
+    soup = _ensure_soup(doc)
     tradelines = parse_account_history(soup)
     inquiries = parse_inquiries(soup)
 
     return {
-        "personal_information": personal,
         "accounts": tradelines,
         "inquiries": inquiries,
     }
 
 
+def parse_client_portal_data(doc: Union[str, BeautifulSoup, Tag]) -> Dict[str, Any]:
+    """Return structured data tailored for the client portal experience."""
+
+    soup = _ensure_soup(doc)
+    payload = dict(parse_negative_item_cards(soup))
+    payload["personal_information"] = parse_personal_info(soup)
+    return payload
+
+
+def parse_credit_report_html(doc: Union[str, BeautifulSoup, Tag]) -> Dict[str, Any]:
+    """Backward-compatible wrapper that mirrors :func:`parse_client_portal_data`."""
+
+    return parse_client_portal_data(doc)
+
+
 def parse_html_report(source: Union[str, Path, BeautifulSoup, Tag]) -> Dict[str, Any]:
     """Load an HTML file (path or markup) and return structured data."""
     if isinstance(source, (BeautifulSoup, Tag)):
-        return parse_credit_report_html(source)
+        return parse_client_portal_data(source)
 
     if isinstance(source, (str, Path)) and Path(source).exists():
         html = Path(source).read_text(encoding="utf-8")
-        return parse_credit_report_html(html)
+        return parse_client_portal_data(html)
 
     # Treat fallback as raw HTML string
-    return parse_credit_report_html(str(source) if source is not None else "")
+    return parse_client_portal_data(str(source) if source is not None else "")
 
 
 def detect_tradeline_violations(
@@ -180,7 +198,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     with open(html_path, encoding="utf-8") as handle:
         soup = BeautifulSoup(handle.read(), "html.parser")
 
-    parsed = parse_credit_report_html(soup)
+    parsed = parse_client_portal_data(soup)
     audited = run_all_audits(parsed)
 
     print(build_cli_report(audited))
@@ -193,6 +211,8 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "parse_negative_item_cards",
+    "parse_client_portal_data",
     "parse_html_report",
     "parse_credit_report_html",
     "detect_tradeline_violations",
