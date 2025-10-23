@@ -49,6 +49,21 @@ test('member cannot list team members', async () => {
   assert.equal(res.status, 403);
 });
 
+test('member cannot update team member role', async () => {
+  const res = await request(app)
+    .patch('/api/team-members/any')
+    .set('Authorization', `Bearer ${token(member)}`)
+    .send({ teamRole: 'attorney' });
+  assert.equal(res.status, 403);
+});
+
+test('member cannot list team roles', async () => {
+  const res = await request(app)
+    .get('/api/team-roles')
+    .set('Authorization', `Bearer ${token(member)}`);
+  assert.equal(res.status, 403);
+});
+
 test('member cannot delete team member', async () => {
   const res = await request(app)
     .delete('/api/team-members/any')

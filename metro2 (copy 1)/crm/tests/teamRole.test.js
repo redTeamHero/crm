@@ -7,6 +7,7 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import { JSDOM } from 'jsdom';
 import { readKey, writeKey } from '../kvdb.js';
+import { TEAM_ROLE_PRESETS, DEFAULT_TEAM_ROLE_ID } from '../teamRoles.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const COMMON_JS_PATH = path.join(__dirname, '..', 'public', 'common.js');
@@ -24,6 +25,11 @@ test('team member lifecycle issues team role token and updates roster', async ()
   process.env.NODE_ENV = 'test';
   const { default: app } = await import('../server.js');
 
+  const defaultRole = TEAM_ROLE_PRESETS.find(role => role.id === DEFAULT_TEAM_ROLE_ID);
+  const attorneyRole = TEAM_ROLE_PRESETS.find(role => role.id === 'attorney');
+  assert.ok(defaultRole);
+  assert.ok(attorneyRole);
+
   const adminLogin = await request(app).post('/api/login').send({ username: 'ducky', password: 'duck' });
   const adminToken = adminLogin.body.token;
 
@@ -38,12 +44,19 @@ test('team member lifecycle issues team role token and updates roster', async ()
   assert.equal(created.body.member.name, 'T1');
   assert.equal(created.body.member.lastLoginAt, null);
   assert.ok(created.body.member.createdAt);
+  assert.equal(created.body.member.teamRole, DEFAULT_TEAM_ROLE_ID);
+  assert.equal(created.body.member.roleLabel, defaultRole.label);
+  assert.deepEqual(
+    new Set(created.body.member.permissions || []),
+    new Set(defaultRole.permissions)
+  );
   const loginToken = created.body.member.token;
 
   const loginRes = await request(app).post(`/api/team/${loginToken}/login`).send({ password: 'pw1' });
   assert.equal(loginRes.body.ok, true);
   const payload = jwt.decode(loginRes.body.token);
   assert.equal(payload.role, 'team');
+  assert.deepEqual(new Set(payload.permissions || []), new Set(defaultRole.permissions));
 
   const listRes = await request(app)
     .get('/api/team-members')
@@ -54,6 +67,33 @@ test('team member lifecycle issues team role token and updates roster', async ()
   assert.equal(listRes.body.members[0].email, 't1@example.com');
   assert.equal(listRes.body.members[0].name, 'T1');
   assert.ok(listRes.body.members[0].lastLoginAt);
+  assert.equal(listRes.body.members[0].teamRole, DEFAULT_TEAM_ROLE_ID);
+  assert.equal(listRes.body.members[0].roleLabel, defaultRole.label);
+  assert.deepEqual(
+    new Set(listRes.body.members[0].permissions || []),
+    new Set(defaultRole.permissions)
+  );
+
+  const rolesRes = await request(app)
+    .get('/api/team-roles')
+    .set('Authorization', 'Bearer ' + adminToken);
+  assert.equal(rolesRes.status, 200);
+  assert.equal(rolesRes.body.ok, true);
+  assert.ok(Array.isArray(rolesRes.body.roles));
+  assert.ok(rolesRes.body.roles.some(role => role.id === DEFAULT_TEAM_ROLE_ID));
+
+  const updateRes = await request(app)
+    .patch(`/api/team-members/${listRes.body.members[0].id}`)
+    .set('Authorization', 'Bearer ' + adminToken)
+    .send({ teamRole: 'attorney' });
+  assert.equal(updateRes.status, 200);
+  assert.equal(updateRes.body.ok, true);
+  assert.equal(updateRes.body.member.teamRole, attorneyRole.id);
+  assert.equal(updateRes.body.member.roleLabel, attorneyRole.label);
+  assert.deepEqual(
+    new Set(updateRes.body.member.permissions || []),
+    new Set(attorneyRole.permissions)
+  );
 
   const removeRes = await request(app)
     .delete(`/api/team-members/${listRes.body.members[0].id}`)

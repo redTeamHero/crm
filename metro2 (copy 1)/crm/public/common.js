@@ -1169,9 +1169,10 @@ export async function api(url, options = {}) {
   }
 }
 
-export async function createTeamMember({ name = '', email = '', password = '' } = {}) {
+export async function createTeamMember({ name = '', email = '', password = '', teamRole = '' } = {}) {
   const payload = { username: email, name };
   if (password) payload.password = password;
+  if (teamRole) payload.teamRole = teamRole;
   const res = await api('/api/team-members', {
     method: 'POST',
     body: JSON.stringify(payload)
@@ -1184,12 +1185,51 @@ export async function createTeamMember({ name = '', email = '', password = '' } 
     name: res.member.name || name || res.member.email || email,
     email: res.member.email || email,
     role: 'team',
+    teamRole: res.member.teamRole || teamRole || 'analyst',
+    roleLabel: res.member.roleLabel || '',
+    roleDescription: res.member.roleDescription || '',
+    roleDescriptionEs: res.member.roleDescriptionEs || '',
+    permissions: Array.isArray(res.member.permissions) ? res.member.permissions : [],
     createdAt: res.member.createdAt || null,
     lastLoginAt: res.member.lastLoginAt || null
   };
   const team = JSON.parse(localStorage.getItem('teamMembers') || '[]')
     .filter(m => m.id !== entry.id && m.email !== entry.email);
   team.push(entry);
+  localStorage.setItem('teamMembers', JSON.stringify(team));
+  return res.member;
+}
+
+export async function fetchTeamRoles() {
+  const res = await api('/api/team-roles');
+  if (!res.ok) {
+    throw new Error(res.error || 'Failed to load team roles');
+  }
+  return Array.isArray(res.roles) ? res.roles : [];
+}
+
+export async function updateTeamMemberRole(id, teamRole) {
+  if (!id || !teamRole) {
+    throw new Error('id and teamRole are required');
+  }
+  const res = await api(`/api/team-members/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ teamRole })
+  });
+  if (!res.ok || !res.member) {
+    throw new Error(res.error || 'Failed to update team member');
+  }
+  const team = JSON.parse(localStorage.getItem('teamMembers') || '[]').map(member => {
+    if (member.id !== res.member.id) return member;
+    return {
+      ...member,
+      teamRole: res.member.teamRole || teamRole,
+      roleLabel: res.member.roleLabel || member.roleLabel || '',
+      roleDescription: res.member.roleDescription || member.roleDescription || '',
+      roleDescriptionEs: res.member.roleDescriptionEs || member.roleDescriptionEs || '',
+      permissions: Array.isArray(res.member.permissions) ? res.member.permissions : member.permissions || [],
+    };
+  });
   localStorage.setItem('teamMembers', JSON.stringify(team));
   return res.member;
 }

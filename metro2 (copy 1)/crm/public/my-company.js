@@ -1,4 +1,4 @@
-import { api, createTeamMember } from './common.js';
+import { api, createTeamMember, fetchTeamRoles, updateTeamMemberRole } from './common.js';
 import { setupPageTour } from './tour-guide.js';
 
 setupPageTour('settings-company', {
@@ -41,10 +41,86 @@ setupPageTour('settings-company', {
   ]
 });
 
+function normalizeRole(role) {
+  if (!role || !role.id) return null;
+  const id = String(role.id).trim().toLowerCase();
+  return {
+    id,
+    label: role.label || role.id,
+    description: role.description || '',
+    descriptionEs: role.descriptionEs || '',
+    permissions: Array.from(new Set(Array.isArray(role.permissions) ? role.permissions.map(String) : []))
+  };
+}
+
+const FALLBACK_ROLES = [
+  normalizeRole({
+    id: 'analyst',
+    label: 'Credit Analyst',
+    description: 'Audits Metro-2 issues and prepares dispute drafts.',
+    descriptionEs: 'Audita reportes Metro-2 y prepara borradores de disputas.',
+    permissions: ['consumers', 'letters', 'reports']
+  }),
+  normalizeRole({
+    id: 'closer',
+    label: 'Sales Closer',
+    description: 'Handles NEPQ consults and closes premium offers.',
+    descriptionEs: 'Lidera consultas NEPQ y cierra ofertas premium.',
+    permissions: ['contacts', 'tasks', 'reports']
+  }),
+  normalizeRole({
+    id: 'attorney',
+    label: 'Attorney',
+    description: 'Escalates FCRA/FDCPA matters with compliant evidence.',
+    descriptionEs: 'Escala asuntos FCRA/FDCPA con evidencia en cumplimiento.',
+    permissions: ['consumers', 'letters', 'reports', 'tasks']
+  }),
+  normalizeRole({
+    id: 'success',
+    label: 'Client Success',
+    description: 'Supports clients post-onboarding and tracks tasks.',
+    descriptionEs: 'Da soporte a clientes después del onboarding y rastrea tareas.',
+    permissions: ['contacts', 'tasks']
+  })
+].filter(Boolean);
+
 const state = {
   members: [],
-  credentials: {}
+  credentials: {},
+  roles: FALLBACK_ROLES.map(role => ({ ...role }))
 };
+
+function getRoles() {
+  return state.roles && state.roles.length ? state.roles : FALLBACK_ROLES;
+}
+
+function getDefaultRole() {
+  const roles = getRoles();
+  return roles[0] || null;
+}
+
+function setRoles(roles = []) {
+  const normalized = Array.isArray(roles)
+    ? roles.map(normalizeRole).filter(Boolean)
+    : [];
+  state.roles = normalized.length ? normalized : FALLBACK_ROLES.map(role => ({ ...role }));
+}
+
+function findRole(roleId) {
+  const id = String(roleId || '').trim().toLowerCase();
+  return getRoles().find(role => role.id === id) || getDefaultRole();
+}
+
+function syncInviteRoleOptions() {
+  if (!inviteRole) return;
+  const roles = getRoles();
+  const current = inviteRole.value;
+  inviteRole.innerHTML = roles.map(role => `<option value="${role.id}">${escapeHtml(role.label)}</option>`).join('');
+  const preferred = roles.some(role => role.id === current) ? current : (getDefaultRole()?.id || '');
+  if (preferred) {
+    inviteRole.value = preferred;
+  }
+}
 
 let inviteDialog;
 let inviteForm;
@@ -53,6 +129,7 @@ let inviteError;
 let inviteSubmit;
 let inviteName;
 let inviteEmail;
+let inviteRole;
 let inviteToken;
 let invitePassword;
 let inviteAnother;
@@ -200,12 +277,37 @@ function removeStoredCredentials(member) {
   }
 }
 
+function normalizeTeamMember(member = {}) {
+  const role = findRole(member.teamRole);
+  const defaultRoleId = getDefaultRole()?.id || 'analyst';
+  const permissions = Array.isArray(member.permissions) ? member.permissions : [];
+  const normalizedPermissions = Array.from(new Set((permissions.length ? permissions : role?.permissions || []).map(String)));
+  const email = member.email || member.username || '';
+  const name = member.name || email || 'Team member';
+  return {
+    ...member,
+    id: member.id,
+    name,
+    email,
+    teamRole: role?.id || member.teamRole || defaultRoleId,
+    roleLabel: role?.label || '',
+    roleDescription: role?.description || '',
+    roleDescriptionEs: role?.descriptionEs || '',
+    permissions: normalizedPermissions,
+  };
+}
+
 function syncTeamToLocalStorage() {
   const payload = state.members.map(member => ({
     id: member.id,
     name: member.name || member.email || 'Team member',
     email: member.email || '',
-    role: 'team'
+    role: 'team',
+    teamRole: member.teamRole,
+    roleLabel: member.roleLabel,
+    roleDescription: member.roleDescription,
+    roleDescriptionEs: member.roleDescriptionEs,
+    permissions: Array.isArray(member.permissions) ? member.permissions : []
   }));
   localStorage.setItem('teamMembers', JSON.stringify(payload));
 }
@@ -218,10 +320,14 @@ function renderTeamMembers() {
     teamEmpty?.classList.remove('hidden');
     return;
   }
+  const normalizedMembers = state.members.map(normalizeTeamMember);
+  state.members = normalizedMembers;
   teamEmpty?.classList.add('hidden');
   teamTableWrap?.classList.remove('hidden');
-  teamTable.innerHTML = state.members.map(member => {
-    const name = escapeHtml(member.name || member.email || 'Team member');
+  const roles = getRoles();
+  teamTable.innerHTML = normalizedMembers.map(member => {
+    const displayName = member.name || member.email || 'Team member';
+    const name = escapeHtml(displayName);
     const email = escapeHtml(member.email || '—');
     const lastLogin = formatDate(member.lastLoginAt) || 'Pending';
     const invited = formatDate(member.createdAt) || '—';
@@ -238,6 +344,17 @@ function renderTeamMembers() {
     const credentialMeta = credentialSavedAt
       ? `<div class="text-[11px] muted">Saved ${escapeHtml(credentialSavedAt)}</div>`
       : '';
+    const selectId = `role-${String(member.id || credentialKey || 'member').replace(/[^a-z0-9_-]/gi, '')}`;
+    const roleOptions = roles.map(role => `
+        <option value="${role.id}" ${role.id === member.teamRole ? 'selected' : ''}>${escapeHtml(role.label)}</option>
+      `).join('');
+    const roleDescriptions = [
+      member.roleDescription ? `<div class="role-hint">${escapeHtml(member.roleDescription)}</div>` : '',
+      member.roleDescriptionEs ? `<div class="role-hint role-hint-es">${escapeHtml(member.roleDescriptionEs)}</div>` : ''
+    ].join('');
+    const permissionChips = member.permissions?.length
+      ? member.permissions.map(perm => `<span class="chip chip-soft">${escapeHtml(perm)}</span>`).join('')
+      : '<span class="text-xs muted">No explicit permissions</span>';
     return `
       <tr class="align-top">
         <td class="px-4 py-3">
@@ -246,11 +363,20 @@ function renderTeamMembers() {
           ${credentialButton}
           ${credentialMeta}
         </td>
+        <td class="px-4 py-3 role-cell">
+          <div class="role-select-wrap">
+            <label class="sr-only" for="${selectId}">Assign role for ${name}</label>
+            <select id="${selectId}" class="role-select input input-select" data-role-select data-member-id="${member.id}" data-current-role="${member.teamRole}" aria-label="Assign role for ${name}">
+              ${roleOptions}
+            </select>
+          </div>
+          ${roleDescriptions}
+        </td>
         <td class="px-4 py-3">
           <div><a class="text-accent underline" href="mailto:${email}">${email}</a></div>
-          <div class="mt-1 inline-flex items-center gap-2 text-xs">
+          <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
             <span class="chip ${member.lastLoginAt ? 'active' : ''}">${escapeHtml(status)}</span>
-            ${member.permissions?.length ? `<span class="text-xs muted">${escapeHtml(member.permissions.join(', '))}</span>` : ''}
+            ${permissionChips}
           </div>
         </td>
         <td class="px-4 py-3 text-sm">${escapeHtml(lastLogin)}</td>
@@ -270,11 +396,7 @@ async function loadTeamMembers() {
   try {
     const res = await api('/api/team-members');
     if (!res.ok) throw new Error(res.error || 'Failed to load team');
-    state.members = (res.members || []).map(member => ({
-      ...member,
-      name: member.name || member.email || 'Team member',
-      email: member.email || member.username || ''
-    }));
+    state.members = (res.members || []).map(normalizeTeamMember);
     syncTeamToLocalStorage();
     renderTeamMembers();
   } catch (err) {
@@ -287,6 +409,19 @@ async function loadTeamMembers() {
     renderTeamMembers();
   } finally {
     teamLoading.classList.add('hidden');
+  }
+}
+
+async function loadTeamRoles() {
+  try {
+    const roles = await fetchTeamRoles();
+    setRoles(roles);
+  } catch (err) {
+    console.error('Failed to load team roles', err);
+    setRoles([]);
+  } finally {
+    syncInviteRoleOptions();
+    renderTeamMembers();
   }
 }
 
@@ -308,6 +443,12 @@ function resetInviteView() {
   }
   if (inviteName) inviteName.value = '';
   if (inviteEmail) inviteEmail.value = '';
+  if (inviteRole) {
+    const defaultRole = getDefaultRole();
+    if (defaultRole) {
+      inviteRole.value = defaultRole.id;
+    }
+  }
   lastInviteCredentials = null;
   if (inviteToken) {
     inviteToken.textContent = '';
@@ -329,6 +470,7 @@ function closeInviteDialog() {
 function openInviteDialog() {
   if (!inviteDialog) return;
   resetInviteView();
+  syncInviteRoleOptions();
   inviteDialog.showModal();
   inviteName?.focus();
 }
@@ -410,6 +552,7 @@ async function handleInviteSubmit(event) {
   if (!inviteForm || !inviteSubmit) return;
   const name = inviteName?.value.trim() || '';
   const email = inviteEmail?.value.trim() || '';
+  const teamRole = inviteRole?.value || getDefaultRole()?.id || 'analyst';
   if (!name || !email) {
     if (inviteError) {
       inviteError.textContent = 'Name and email are required.';
@@ -421,7 +564,7 @@ async function handleInviteSubmit(event) {
   inviteSubmit.disabled = true;
   inviteSubmit.textContent = 'Sending…';
   try {
-    const member = await createTeamMember({ name, email });
+    const member = await createTeamMember({ name, email, teamRole });
     showInviteSuccess(member);
     await loadTeamMembers();
   } catch (err) {
@@ -471,6 +614,42 @@ async function handleTeamTableClick(event) {
   }
 }
 
+async function handleRoleSelectChange(select) {
+  if (!select) return;
+  const memberId = select.getAttribute('data-member-id');
+  const previousRole = select.getAttribute('data-current-role') || '';
+  const nextRole = select.value;
+  if (!memberId || !nextRole || nextRole === previousRole) {
+    return;
+  }
+  select.disabled = true;
+  select.classList.add('loading');
+  try {
+    const updated = await updateTeamMemberRole(memberId, nextRole);
+    const normalized = normalizeTeamMember(updated);
+    state.members = state.members.map(member => (
+      String(member.id) === String(normalized.id) ? normalized : member
+    ));
+    select.setAttribute('data-current-role', normalized.teamRole);
+    syncTeamToLocalStorage();
+    renderTeamMembers();
+  } catch (err) {
+    console.error('Failed to update teammate role', err);
+    alert('We could not update that role. Please refresh and try again.');
+    select.value = previousRole;
+  } finally {
+    select.disabled = false;
+    select.classList.remove('loading');
+  }
+}
+
+function handleTeamTableChange(event) {
+  const select = event.target.closest('select[data-role-select]');
+  if (select) {
+    handleRoleSelectChange(select);
+  }
+}
+
 function copyToClipboard(value, label) {
   if (!value) return;
   navigator.clipboard?.writeText(value)
@@ -516,7 +695,7 @@ function initCompanyForm() {
   }
 }
 
-function initTeamSection() {
+async function initTeamSection() {
   inviteDialog = document.getElementById('inviteDialog');
   inviteForm = document.getElementById('inviteForm');
   inviteSuccess = document.getElementById('inviteSuccess');
@@ -524,6 +703,7 @@ function initTeamSection() {
   inviteSubmit = document.getElementById('inviteSubmit');
   inviteName = document.getElementById('inviteName');
   inviteEmail = document.getElementById('inviteEmail');
+  inviteRole = document.getElementById('inviteRole');
   inviteToken = document.getElementById('inviteToken');
   invitePassword = document.getElementById('invitePassword');
   inviteAnother = document.getElementById('inviteAnother');
@@ -541,6 +721,7 @@ function initTeamSection() {
   inviteSuccessDescriptionDefault = inviteSuccessDescription?.textContent || inviteSuccessDescriptionDefault;
 
   loadStoredInviteCredentials();
+  syncInviteRoleOptions();
 
   if (inviteForm) {
     inviteForm.addEventListener('submit', handleInviteSubmit);
@@ -574,6 +755,7 @@ function initTeamSection() {
     });
   });
   teamTable?.addEventListener('click', handleTeamTableClick);
+  teamTable?.addEventListener('change', handleTeamTableChange);
 
   document.addEventListener('team-invite:open', (event) => {
     if (!inviteDialog) return;
@@ -581,10 +763,13 @@ function initTeamSection() {
     openInviteDialog();
   });
 
-  loadTeamMembers();
+  await loadTeamRoles();
+  await loadTeamMembers();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initCompanyForm();
-  initTeamSection();
+  initTeamSection().catch(err => {
+    console.error('Failed to initialize team section', err);
+  });
 });

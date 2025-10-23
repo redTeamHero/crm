@@ -188,6 +188,7 @@
         <thead>
           <tr>
             <th scope="col">Name</th>
+            <th scope="col">Role</th>
             <th scope="col">Email</th>
             <th scope="col">Last Login</th>
             <th scope="col">Invited</th>
@@ -232,6 +233,16 @@
         <span class="form-label">Work Email</span>
         <input id="inviteEmail" name="email" type="email" class="input" placeholder="team@revolv.ai" required />
         <span class="helper-text">We recommend SSO or enforced MFA.</span>
+      </label>
+      <label class="form-field">
+        <span class="form-label">Role</span>
+        <select id="inviteRole" name="teamRole" class="input input-select">
+          <option value="analyst">Credit Analyst</option>
+          <option value="closer">Sales Closer</option>
+          <option value="attorney">Attorney</option>
+          <option value="success">Client Success</option>
+        </select>
+        <span class="helper-text">Assign permissions now—update anytime under Team Members.</span>
       </label>
       <p id="inviteError" class="hidden text-sm text-red-600"></p>
       <div class="form-actions justify-end">
