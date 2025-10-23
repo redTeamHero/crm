@@ -173,6 +173,29 @@ test('parseReport derives creditor from surrounding header and skips duplicate t
   assert.equal(tl.per_bureau.TransUnion.account_number, '12345');
 });
 
+test('parseReport handles tables missing label/info classes', () => {
+  const html = `
+    <div>
+      <div class="sub_header">Acme Finance</div>
+      <table class="rpt_content_table rpt_content_header rpt_table4column">
+        <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
+        <tr><td>Account #</td><td>9876</td><td>8765</td><td>7654</td></tr>
+        <tr><td>Balance</td><td>$1,200</td><td>$900</td><td>$0</td></tr>
+      </table>
+    </div>
+  `;
+  const nodeResult = parseCheerio(html);
+  const dom = new JSDOM(html);
+  const browserResult = parseDOM(dom.window.document);
+  assert.deepStrictEqual(browserResult, nodeResult);
+  assert.equal(browserResult.tradelines.length, 1);
+  const tl = browserResult.tradelines[0];
+  assert.equal(tl.meta.creditor, 'Acme Finance');
+  assert.equal(tl.per_bureau.TransUnion.account_number, '9876');
+  assert.equal(tl.per_bureau.Experian.balance, 900);
+  assert.equal(tl.per_bureau.Equifax.balance, 0);
+});
+
 test('validateTradeline returns enriched violation objects', () => {
   const violations = validateTradeline({ account_status: 'Current', past_due: 100 });
   assert.equal(violations.length, 1);

@@ -102,15 +102,22 @@ function parseCreditReportHTML(doc) {
     // ---- D) Walk data rows ----
     for (let i = 1; i < trs.length; i++) {
       const tr = trs[i];
-      const label = text(tr.querySelector("td.label")).replace(/:\s*$/, "");
+      const labelCell = tr.querySelector("td.label") || tr.querySelector("td:first-child");
+      const label = text(labelCell).replace(/:\s*$/, "");
       const ruleDef = matchRule(rowRules, label);
       if (!ruleDef) continue;
 
-      const infoTds = Array.from(tr.querySelectorAll("td.info"));
-      // ensure we have a cell for each bureau column
-      while (infoTds.length < bureaus.length) infoTds.push(null);
+      const infoTds = Array.from(tr.querySelectorAll("td.info"))
+        .filter(td => td.parentElement === tr);
+      let valueCells = infoTds;
+      if (!valueCells.length) {
+        valueCells = Array.from(tr.children || [])
+          .filter(node => node.tagName === "TD")
+          .slice(1);
+      }
+      while (valueCells.length < bureaus.length) valueCells.push(null);
 
-      infoTds.forEach((td, idx) => {
+      valueCells.forEach((td, idx) => {
         const bureau = bureaus[idx];
         if (!bureau) return;
 

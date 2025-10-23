@@ -1,5 +1,13 @@
 (() => {
   const doc = document.documentElement;
+  const isClientPortal = typeof window !== 'undefined'
+    && /^\/portal(\/|$)/.test(window.location?.pathname || '');
+
+  if (isClientPortal) {
+    doc.style.visibility = '';
+    return;
+  }
+
   doc.style.visibility = 'hidden';
 
   const THEMES = {
