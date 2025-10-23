@@ -127,6 +127,7 @@ const TRANSLATIONS = {
     nav: {
       dashboard: 'Dashboard',
       clients: 'Clients',
+      clientsMenu: 'Clients Hub • Centro de clientes',
       leads: 'Leads',
       schedule: 'Schedule',
       billing: 'Billing',
@@ -668,18 +669,26 @@ function injectClientsDropdown(){
   if (!clientsLink || !leadsLink) return;
 
   const dropdown = document.createElement('div');
-  dropdown.className = 'nav-dropdown';
+  dropdown.className = 'nav-dropdown nav-clients-dropdown';
   dropdown.id = 'navClients';
 
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.id = 'navClientsToggle';
   toggle.className = 'btn nav-btn flex items-center justify-between md:justify-center gap-2';
+  toggle.dataset.dropdownToggle = 'navClientsMenu';
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-haspopup', 'true');
+  toggle.dataset.i18nAriaLabel = 'nav.clientsMenu';
+  toggle.dataset.i18nTitle = 'nav.clientsMenu';
+
+  const toggleLabel = getTranslation('nav.clientsMenu') || 'Clients Hub • Centro de clientes';
+  toggle.setAttribute('aria-label', toggleLabel);
+  toggle.title = toggleLabel;
 
   const label = document.createElement('span');
-  label.textContent = clientsLink.textContent?.trim() || 'Clients';
+  label.dataset.i18n = 'nav.clientsMenu';
+  label.textContent = toggleLabel;
   toggle.appendChild(label);
 
   const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -699,18 +708,41 @@ function injectClientsDropdown(){
   menu.id = 'navClientsMenu';
   menu.className = 'nav-dropdown-menu glass card p-2';
 
+  const createMenuLink = (link, translationKey) => {
+    if (!link) return null;
+    const href = link.getAttribute('href');
+    if (!href) return null;
+    const anchor = document.createElement('a');
+    anchor.href = href;
+    anchor.className = 'btn text-sm';
+    if (translationKey) {
+      anchor.dataset.i18n = translationKey;
+      const text = getTranslation(translationKey) || link.textContent?.trim();
+      if (text) anchor.textContent = text;
+    } else {
+      anchor.textContent = link.textContent?.trim() || href;
+    }
+    const target = link.getAttribute('target');
+    if (target) anchor.setAttribute('target', target);
+    const rel = link.getAttribute('rel');
+    if (rel) anchor.setAttribute('rel', rel);
+    return anchor;
+  };
+
+  [
+    createMenuLink(clientsLink, 'nav.clients'),
+    createMenuLink(leadsLink, 'nav.leads'),
+    createMenuLink(billingLink, 'nav.billing')
+  ].forEach((anchor) => {
+    if (anchor) menu.appendChild(anchor);
+  });
+
   dropdown.appendChild(toggle);
   dropdown.appendChild(menu);
 
-  navLinks.insertBefore(dropdown, clientsLink);
-
-  clientsLink.className = 'btn text-sm';
-  leadsLink.className = 'btn text-sm';
-  if (billingLink) billingLink.className = 'btn text-sm';
-
-  menu.appendChild(clientsLink);
-  menu.appendChild(leadsLink);
-  if (billingLink) menu.appendChild(billingLink);
+  const insertBeforeNode = clientsLink.nextSibling;
+  if (insertBeforeNode) navLinks.insertBefore(dropdown, insertBeforeNode);
+  else navLinks.appendChild(dropdown);
 
   menu.addEventListener('click', () => {
     dropdown.classList.remove('open');
