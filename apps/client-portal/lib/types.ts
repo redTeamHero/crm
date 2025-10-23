@@ -18,6 +18,46 @@ export type PortalSnapshot = {
   }>;
 };
 
+export type PortalViolation = {
+  id?: string | null;
+  code?: string | null;
+  category?: string | null;
+  title?: string | null;
+  detail?: string | null;
+  severity?: number | null;
+  bureaus?: string[];
+  bureau?: string | null;
+  source?: string | null;
+  evidence?: Record<string, unknown> | null;
+};
+
+export type PortalHeadline = {
+  id?: string | null;
+  code?: string | null;
+  category?: string | null;
+  title?: string | null;
+  detail?: string | null;
+  severity?: number | null;
+  bureaus?: string[];
+  text?: string | null;
+};
+
+export type PortalNegativeItem = {
+  index?: number;
+  creditor?: string;
+  severity?: number;
+  bureaus?: string[];
+  balance?: number;
+  account_numbers?: Record<string, string>;
+  metrics?: {
+    violationCount?: number;
+    maxSeverity?: number;
+  };
+  headline?: PortalHeadline | null;
+  violations?: Array<PortalViolation | string>;
+  bureau_details?: Record<string, Record<string, string>>;
+};
+
 export type PortalEvent = {
   id: string;
   type: string;
@@ -80,13 +120,7 @@ export type PortalPayload = {
     createdAt?: string | null;
   };
   creditScore: Record<string, number | string | null> | null;
-  negativeItems: Array<{
-    creditor?: string;
-    severity?: number;
-    bureaus?: string[];
-    violations?: string[];
-    balance?: number;
-  }>;
+  negativeItems: PortalNegativeItem[];
   snapshot: PortalSnapshot;
   portalSettings: PortalSettings;
   timeline: PortalEvent[];
