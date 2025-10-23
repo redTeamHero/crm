@@ -1927,6 +1927,9 @@ header#host-nav {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: visible;
+  position: relative;
+  z-index: 60;
 }
 
 .nav-brand-row {
@@ -1992,7 +1995,7 @@ header#host-nav {
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.16);
   padding: 12px;
-  z-index: 20;
+  z-index: 80;
 }
 
 .nav-dropdown.open .nav-dropdown-menu {
