@@ -24,15 +24,19 @@ test('schedule page renders without Google Calendar credentials', { concurrency:
   assert.equal(scheduleRes.headers['x-calendar-mode'], 'local');
   assert.match(scheduleRes.text, /Schedule/);
 
-  const futureDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const base = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+  base.setHours(15, 0, 0, 0);
+  const end = new Date(base.getTime() + 45 * 60 * 1000);
+  const startIso = base.toISOString();
+  const endIso = end.toISOString();
 
   const createRes = await request(app)
     .post('/api/calendar/events')
     .send({
       summary: 'Test local consult',
       description: 'Consult',
-      start: { date: futureDate },
-      end: { date: futureDate },
+      start: { dateTime: startIso },
+      end: { dateTime: endIso },
     });
   assert.equal(createRes.status, 200);
   assert.equal(createRes.body.mode, 'local');
@@ -43,6 +47,7 @@ test('schedule page renders without Google Calendar credentials', { concurrency:
   assert.ok(Array.isArray(eventsRes.body.events));
   assert.equal(eventsRes.body.events.length, 1);
   assert.equal(eventsRes.body.events[0].summary, 'Test local consult');
+  assert.equal(eventsRes.body.events[0].start?.dateTime, startIso);
 });
 
 test.after(async () => {

@@ -11,6 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const nextBtn = document.getElementById('nextMonth');
   const modal = document.getElementById('eventModal');
   const dateInput = document.getElementById('eventDate');
+  const startTimeInput = document.getElementById('eventStartTime');
+  const endTimeInput = document.getElementById('eventEndTime');
+  const slotContainer = document.getElementById('slotSuggestions');
+  const slotAvailability = document.getElementById('slotAvailability');
+  const customSlotLabelInput = document.getElementById('customSlotLabel');
+  const saveCustomSlotBtn = document.getElementById('saveCustomSlot');
+  const customSlotNotice = document.getElementById('customSlotNotice');
   const typeInput = document.getElementById('eventType');
   const textInput = document.getElementById('eventText');
   const saveBtn = document.getElementById('saveEvent');
@@ -24,12 +31,160 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedDate = new Date().toISOString().split('T')[0];
   let calendarError = '';
   let calendarNotice = '';
+  let slotButtonRefs = [];
+  let customSlots = [];
+  let customSlotNoticeTimeout = null;
+
+  const customSlotStorageKey = 'schedule.customSlots';
+  const localStorageAvailable = (() => {
+    try {
+      const probe = '__schedule_custom_slot__';
+      window.localStorage.setItem(probe, '1');
+      window.localStorage.removeItem(probe);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  })();
+  let defaultCustomSlotNotice = customSlotNotice ? customSlotNotice.textContent || '' : '';
+
+  if (!localStorageAvailable && customSlotNotice) {
+    const fallback = 'Custom slots stay active for this session only. / Los horarios personalizados solo viven en esta sesión.';
+    customSlotNotice.textContent = fallback;
+    defaultCustomSlotNotice = fallback;
+  }
+
+  const setCustomSlotNotice = (message, revert = true) => {
+    if (!customSlotNotice) return;
+    if (customSlotNoticeTimeout) {
+      clearTimeout(customSlotNoticeTimeout);
+      customSlotNoticeTimeout = null;
+    }
+    customSlotNotice.textContent = message;
+    if (revert) {
+      customSlotNoticeTimeout = window.setTimeout(() => {
+        customSlotNotice.textContent = defaultCustomSlotNotice;
+        customSlotNoticeTimeout = null;
+      }, 4000);
+    }
+  };
+
+  const loadStoredCustomSlots = () => {
+    if (!localStorageAvailable) {
+      return [];
+    }
+    try {
+      const raw = window.localStorage.getItem(customSlotStorageKey);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((slot) => {
+          if (!slot || typeof slot !== 'object') return null;
+          const start = typeof slot.start === 'string' ? slot.start : '';
+          if (!/^\d{2}:\d{2}$/.test(start)) return null;
+          const duration = Number.parseInt(slot.duration, 10);
+          const title = typeof slot.title === 'string' ? slot.title : '';
+          const type = typeof slot.type === 'string' ? slot.type : '';
+          const id = typeof slot.id === 'string' && slot.id
+            ? slot.id
+            : `custom-${start}-${Math.max(15, Number.isFinite(duration) ? duration : defaultDurationMinutes)}-${Math.random()
+                .toString(36)
+                .slice(2, 7)}`;
+          return {
+            id,
+            start,
+            duration: Number.isFinite(duration) && duration > 0 ? duration : defaultDurationMinutes,
+            title,
+            type
+          };
+        })
+        .filter(Boolean);
+    } catch (e) {
+      console.warn('Failed to parse custom slots', e);
+      return [];
+    }
+  };
+
+  const persistCustomSlotsState = () => {
+    if (!localStorageAvailable) return;
+    try {
+      const payload = customSlots.map(({ id, start, duration, title, type }) => ({ id, start, duration, title, type }));
+      window.localStorage.setItem(customSlotStorageKey, JSON.stringify(payload));
+    } catch (e) {
+      console.warn('Failed to persist custom slots', e);
+      setCustomSlotNotice('We could not save this slot to storage. / No pudimos guardar este horario.', false);
+    }
+  };
+
+  const removeCustomSlotById = (slotId) => {
+    const next = customSlots.filter((slot) => slot.id !== slotId);
+    if (next.length === customSlots.length) {
+      return false;
+    }
+    customSlots = next;
+    persistCustomSlotsState();
+    return true;
+  };
 
   const dayMs = 24 * 60 * 60 * 1000;
+  const defaultDurationMinutes = 45;
+  const slotPresets = [
+    { start: '09:00', duration: 60, title: 'Strategy Consult', type: 'Consult' },
+    { start: '11:30', duration: 30, title: 'Follow-up Touchpoint', type: 'Follow-up' },
+    { start: '14:00', duration: 45, title: 'Dispute Update', type: 'Dispute Work' },
+    { start: '16:30', duration: 30, title: 'Billing Review', type: 'Billing' }
+  ];
+  customSlots = loadStoredCustomSlots();
   const todayMidnight = () => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
+  };
+
+  const pad = (value) => String(value ?? '').padStart(2, '0');
+
+  const toDatePart = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+  const toDateFromParts = (dateStr, timeStr = '00:00') => {
+    if (!dateStr) return null;
+    const [year, month, day] = dateStr.split('-').map((part) => Number.parseInt(part, 10));
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+    const [hours, minutes] = (timeStr || '00:00').split(':').map((part) => Number.parseInt(part, 10));
+    const result = new Date();
+    result.setFullYear(year, month - 1, day);
+    result.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+    result.setMilliseconds(0);
+    if (Number.isNaN(result.getTime())) return null;
+    return result;
+  };
+
+  const parseEdge = (edge) => {
+    if (!edge || typeof edge !== 'object') {
+      return { date: '', time: '', iso: '', ts: null };
+    }
+    if (edge.dateTime) {
+      const dt = new Date(edge.dateTime);
+      if (Number.isNaN(dt.getTime())) {
+        return { date: '', time: '', iso: edge.dateTime, ts: null };
+      }
+      return {
+        date: toDatePart(dt),
+        time: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`,
+        iso: edge.dateTime,
+        ts: dt.getTime()
+      };
+    }
+    if (edge.date) {
+      const dt = toDateFromParts(edge.date, '00:00');
+      return {
+        date: edge.date,
+        time: '',
+        iso: `${edge.date}T00:00:00Z`,
+        ts: dt ? dt.getTime() : null
+      };
+    }
+    return { date: '', time: '', iso: '', ts: null };
   };
 
   const formatDateLabel = (dateStr) => {
@@ -41,6 +196,48 @@ document.addEventListener('DOMContentLoaded', () => {
     if (diffDays === 1) return 'Tomorrow';
     if (diffDays === -1) return 'Yesterday';
     return target.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  const formatTimeLabel = (timeStr) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':').map((part) => Number.parseInt(part, 10));
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return timeStr;
+    const dt = new Date();
+    dt.setHours(hours, minutes, 0, 0);
+    return dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const formatDateTimeLabel = (dateStr, timeStr) => {
+    const dt = toDateFromParts(dateStr, timeStr || '00:00');
+    if (!dt) return '';
+    return dt.toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+
+  const formatEventTimeRange = (ev) => {
+    if (!ev) return '';
+    if (ev.startTime) {
+      const startLabel = formatTimeLabel(ev.startTime);
+      if (ev.endTime) {
+        if (ev.endDate && ev.endDate !== ev.date) {
+          return `${startLabel} – ${formatDateTimeLabel(ev.endDate, ev.endTime)}`;
+        }
+        return `${startLabel} – ${formatTimeLabel(ev.endTime)}`;
+      }
+      return startLabel;
+    }
+    if (ev.endTime) {
+      if (ev.endDate && ev.endDate !== ev.date) {
+        return `Ends ${formatDateTimeLabel(ev.endDate, ev.endTime)}`;
+      }
+      return `Ends ${formatTimeLabel(ev.endTime)}`;
+    }
+    return 'All day';
   };
 
   const getDueMeta = (dateStr) => {
@@ -102,6 +299,227 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   };
 
+  const compareEvents = (a, b) => {
+    const aTs = Number.isFinite(a?.startTs) ? a.startTs : Number.MAX_SAFE_INTEGER;
+    const bTs = Number.isFinite(b?.startTs) ? b.startTs : Number.MAX_SAFE_INTEGER;
+    if (aTs !== bTs) return aTs - bTs;
+    return (a?.text || '').localeCompare(b?.text || '');
+  };
+
+  const computeEndDate = (dateStr, startTime, endTime) => {
+    const start = toDateFromParts(dateStr, startTime);
+    if (!start) return null;
+    if (!endTime) {
+      return new Date(start.getTime() + defaultDurationMinutes * 60 * 1000);
+    }
+    const explicitEnd = toDateFromParts(dateStr, endTime);
+    if (!explicitEnd) {
+      return new Date(start.getTime() + defaultDurationMinutes * 60 * 1000);
+    }
+    if (explicitEnd <= start) {
+      return new Date(explicitEnd.getTime() + 24 * 60 * 60 * 1000);
+    }
+    return explicitEnd;
+  };
+
+  const buildEventPayload = (dateStr, type, text, startTime, endTime) => {
+    const timezone = (() => {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      } catch (e) {
+        return 'UTC';
+      }
+    })();
+    const base = {
+      summary: text,
+      description: type,
+      start: { date: dateStr },
+      end: { date: dateStr }
+    };
+    if (startTime) {
+      const startDate = toDateFromParts(dateStr, startTime);
+      if (startDate) {
+        const endDate = computeEndDate(dateStr, startTime, endTime) || new Date(startDate.getTime() + defaultDurationMinutes * 60 * 1000);
+        return {
+          summary: text,
+          description: type,
+          start: { dateTime: startDate.toISOString(), timeZone: timezone },
+          end: { dateTime: endDate.toISOString(), timeZone: timezone }
+        };
+      }
+    }
+    if (endTime) {
+      const endDate = toDateFromParts(dateStr, endTime);
+      if (endDate) {
+        const startDate = new Date(endDate.getTime() - defaultDurationMinutes * 60 * 1000);
+        return {
+          summary: text,
+          description: type,
+          start: { dateTime: startDate.toISOString(), timeZone: timezone },
+          end: { dateTime: endDate.toISOString(), timeZone: timezone }
+        };
+      }
+    }
+    return base;
+  };
+
+  const slotConflicts = (busySlots, dateStr, slot) => {
+    const start = toDateFromParts(dateStr, slot.start);
+    if (!start) return false;
+    const minutes = Number.isFinite(slot.duration) ? slot.duration : defaultDurationMinutes;
+    const end = new Date(start.getTime() + minutes * 60 * 1000);
+    return busySlots.some((busy) => start < busy.end && end > busy.start);
+  };
+
+  const applySlot = (slot) => {
+    if (!startTimeInput) return;
+    startTimeInput.value = slot.start;
+    const dateStr = dateInput?.value || selectedDate;
+    if (endTimeInput) {
+      const startDate = toDateFromParts(dateStr, slot.start);
+      if (startDate) {
+        const minutes = Number.isFinite(slot.duration) ? slot.duration : defaultDurationMinutes;
+        const endDate = new Date(startDate.getTime() + minutes * 60 * 1000);
+        endTimeInput.value = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+      }
+    }
+    if (typeInput && slot.type && !typeInput.value) {
+      typeInput.value = slot.type;
+    }
+    ensureEndTimeOrder();
+    highlightSelectedSlot();
+  };
+
+  const highlightSelectedSlot = () => {
+    if (!startTimeInput || !slotButtonRefs.length) return;
+    const value = startTimeInput.value;
+    slotButtonRefs.forEach(({ slot, button, busy }) => {
+      button.classList.toggle('selected', !busy && slot.start === value);
+    });
+  };
+
+  const ensureEndTimeOrder = () => {
+    if (!startTimeInput || !endTimeInput) return;
+    const dateStr = dateInput?.value || selectedDate;
+    const startTime = startTimeInput.value;
+    if (!dateStr || !startTime) return;
+    const endDate = computeEndDate(dateStr, startTime, endTimeInput.value);
+    if (!endDate) return;
+    endTimeInput.value = `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+  };
+
+  async function refreshSlotSuggestions(dateStr, { autopick = false } = {}) {
+    if (!slotContainer || !slotAvailability) return;
+    slotContainer.innerHTML = '';
+    slotAvailability.textContent = '';
+    slotButtonRefs = [];
+    if (!dateStr) return;
+
+    if (calendarError) {
+      slotAvailability.textContent = calendarError;
+      return;
+    }
+
+    let busySlots = [];
+    try {
+      const busy = await checkAvailability(dateStr);
+      busySlots = Array.isArray(busy)
+        ? busy
+            .map((slot) => {
+              const start = new Date(slot.start);
+              const end = new Date(slot.end || slot.start);
+              if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+              return { start, end };
+            })
+            .filter(Boolean)
+        : [];
+    } catch (e) {
+      console.error('Failed to load availability', e);
+      busySlots = [];
+      slotAvailability.textContent = [calendarNotice, 'Availability check failed. You can still choose a time manually.']
+        .filter(Boolean)
+        .join(' ');
+    }
+
+    if (!slotAvailability.textContent) {
+      const messageParts = [];
+      if (calendarNotice) {
+        messageParts.push(calendarNotice);
+      }
+      if (!busySlots.length) {
+        messageParts.push('All curated slots are open — or dial in your own time below.');
+      } else {
+        messageParts.push(`${busySlots.length} booking block${busySlots.length > 1 ? 's' : ''} already on the calendar.`);
+      }
+      if (customSlots.length) {
+        const count = customSlots.length;
+        messageParts.push(`${count} saved custom slot${count > 1 ? 's' : ''} ready to book / ${count} horario${count > 1 ? 's' : ''} personalizado${count > 1 ? 's' : ''} listo${count > 1 ? 's' : ''}.`);
+      }
+      slotAvailability.textContent = messageParts.join(' ');
+    }
+
+    const combinedSlots = [
+      ...slotPresets.map((slot, index) => ({ ...slot, id: slot.id || `preset-${index}`, custom: false })),
+      ...customSlots.map((slot) => ({ ...slot, custom: true }))
+    ];
+
+    combinedSlots.forEach((slot) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      const isBusy = slotConflicts(busySlots, dateStr, slot);
+      button.className = `slot-button${isBusy ? ' busy' : ''}`;
+      const metaPieces = [];
+      if (slot.title) metaPieces.push(slot.title);
+      else if (slot.type) metaPieces.push(slot.type);
+      else metaPieces.push(`${slot.duration} min`);
+      if (slot.custom && !slot.title) {
+        metaPieces.push('Custom');
+      }
+      const metaLabel = metaPieces.join(' • ');
+      const statusClass = isBusy ? 'slot-status-busy' : 'slot-status-open';
+      const statusLabel = isBusy ? 'Booked / Reservado' : slot.custom ? 'Custom / Personalizado' : 'Open / Disponible';
+      button.innerHTML = `
+        <span class="slot-time">${formatTimeLabel(slot.start)}</span>
+        <span class="slot-meta">${metaLabel}</span>
+        <span class="slot-status ${statusClass}">${statusLabel}</span>
+      `;
+      if (!isBusy) {
+        button.addEventListener('click', () => {
+          applySlot(slot);
+        });
+      }
+      const wrapper = document.createElement('div');
+      wrapper.className = 'slot-chip-wrapper';
+      wrapper.appendChild(button);
+      if (slot.custom) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'slot-remove-button';
+        removeBtn.setAttribute('aria-label', 'Remove custom slot');
+        removeBtn.innerHTML = '&times;';
+        removeBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (removeCustomSlotById(slot.id)) {
+            refreshSlotSuggestions(dateStr);
+            highlightSelectedSlot();
+            setCustomSlotNotice('Custom slot removed. / Horario personalizado eliminado.');
+          }
+        });
+        wrapper.appendChild(removeBtn);
+      }
+      slotContainer.appendChild(wrapper);
+      slotButtonRefs.push({ slot, button, busy: isBusy });
+    });
+
+    if (autopick && startTimeInput && !startTimeInput.value) {
+      const available = slotButtonRefs.find((entry) => !entry.busy);
+      if (available) {
+        applySlot(available.slot);
+      }
+    }
+    highlightSelectedSlot();
+  }
+
   const updateSelectedCell = (dateStr) => {
     document.querySelectorAll('.calendar-cell').forEach((cell) => {
       cell.classList.toggle('is-selected', cell.dataset.date === dateStr);
@@ -136,12 +554,25 @@ document.addEventListener('DOMContentLoaded', () => {
         events = [];
         return false;
       }
-      events = (data.events || []).map((ev) => ({
-        id: ev.id,
-        date: (ev.start?.date || ev.start?.dateTime || '').split('T')[0],
-        text: ev.summary || '',
-        type: ev.description || ''
-      }));
+      events = (data.events || []).map((ev) => {
+        const startEdge = parseEdge(ev.start);
+        const endEdge = parseEdge(ev.end);
+        const startDate = startEdge.date ? toDateFromParts(startEdge.date, startEdge.time || '00:00') : null;
+        const endDate = endEdge.date ? toDateFromParts(endEdge.date, endEdge.time || '00:00') : null;
+        return {
+          id: ev.id,
+          date: startEdge.date,
+          endDate: endEdge.date,
+          startTime: startEdge.time,
+          endTime: endEdge.time,
+          startIso: startEdge.iso,
+          endIso: endEdge.iso,
+          startTs: startDate ? startDate.getTime() : null,
+          endTs: endDate ? endDate.getTime() : null,
+          text: ev.summary || '',
+          type: ev.description || ''
+        };
+      });
       const mode = data.mode || 'google';
       const notice = data.notice || (mode === 'local'
         ? 'Calendar is operating in local-only mode until you add your Google credentials.'
@@ -156,17 +587,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function addEvent(dateStr, type, text) {
+  async function addEvent(eventPayload) {
     try {
       const resp = await fetch('/api/calendar/events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          summary: text,
-          description: type,
-          start: { date: dateStr },
-          end: { date: dateStr }
-        })
+        body: JSON.stringify(eventPayload)
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -181,17 +607,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function updateEvent(id, dateStr, type, text) {
+  async function updateEvent(id, eventPayload) {
     try {
       const resp = await fetch(`/api/calendar/events/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          summary: text,
-          description: type,
-          start: { date: dateStr },
-          end: { date: dateStr }
-        })
+        body: JSON.stringify(eventPayload)
       });
       const data = await resp.json();
       if (!resp.ok) {
@@ -244,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!listEl) return;
     const upcoming = events
       .slice()
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort(compareEvents);
 
     listEl.innerHTML = '';
     if (calendarError) {
@@ -294,7 +715,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const date = document.createElement('span');
       date.textContent = formatDateLabel(ev.date);
 
+      const time = document.createElement('span');
+      const rangeLabel = formatEventTimeRange(ev);
+      if (rangeLabel) {
+        time.textContent = rangeLabel;
+      }
+
       meta.append(badge, date);
+      if (rangeLabel) {
+        meta.append(time);
+      }
       details.append(title, meta);
 
       const due = document.createElement('span');
@@ -333,8 +763,9 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const monthEvents = events.filter((ev) => ev.date.startsWith(monthKey));
+    const monthEvents = events.filter((ev) => (ev.date || '').startsWith(monthKey));
     const upcoming14 = events.filter((ev) => {
+      if (!ev.date) return false;
       const target = new Date(ev.date);
       target.setHours(0, 0, 0, 0);
       const diff = (target - now) / dayMs;
@@ -395,7 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const todays = events
       .filter((ev) => ev.date === dateStr)
-      .sort((a, b) => a.text.localeCompare(b.text));
+      .sort(compareEvents);
 
     const focusDate = dateStr ? new Date(dateStr) : new Date();
     if (focusTitle) {
@@ -414,6 +845,7 @@ document.addEventListener('DOMContentLoaded', () => {
     focusEl.innerHTML = '';
     todays.forEach((ev) => {
       const theme = getTypeTheme(ev.type);
+      const whenLabel = formatEventTimeRange(ev);
       const item = document.createElement('div');
       item.className = 'timeline-item';
       item.innerHTML = `
@@ -421,14 +853,14 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="flex-1 space-y-1">
           <div class="flex items-center justify-between gap-3">
             <p class="text-sm font-semibold text-slate-800">${ev.text || 'Untitled event'}</p>
-            <span class="text-xs text-slate-500">All day</span>
+            <span class="text-xs text-slate-500">${whenLabel || 'All day'}</span>
           </div>
           <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase ${theme.badge}">${theme.label}</span>
             <span>${formatDateLabel(ev.date)}</span>
           </div>
         </div>
-        <button class="text-xs font-semibold text-[color:var(--accent)] hover:underline">Open</button>
+        <button class="text-xs font-semibold text-[color:var(--accent)] hover:underline">Edit slot</button>
       `;
       item.querySelector('button').addEventListener('click', () => openModal(ev.date, ev));
       focusEl.appendChild(item);
@@ -445,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const days = new Date(year, month + 1, 0).getDate();
     titleEl.textContent = first.toLocaleString('default', { month: 'long', year: 'numeric' });
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-    const monthEvents = events.filter((ev) => ev.date.startsWith(monthKey));
+    const monthEvents = events.filter((ev) => (ev.date || '').startsWith(monthKey));
     if (subtitleEl) {
       const count = monthEvents.length;
       subtitleEl.textContent = `${count} event${count === 1 ? '' : 's'} scheduled this month`;
@@ -471,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dayNum.className = 'text-sm font-semibold text-slate-900';
       dayNum.textContent = d;
       header.appendChild(dayNum);
-      const todays = events.filter((e) => e.date === dateStr);
+      const todays = events.filter((e) => e.date === dateStr).sort(compareEvents);
       if (todays.length) {
         const badge = document.createElement('span');
         badge.className = 'text-[10px] font-semibold uppercase tracking-wide text-slate-500';
@@ -489,11 +921,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const pill = document.createElement('span');
         pill.className = `event-pill ${theme.badge}`;
         pill.textContent = theme.label;
-        const text = document.createElement('p');
-        text.className = 'event-text overflow-hidden text-ellipsis';
-        text.textContent = ev.text || 'Untitled event';
+        const content = document.createElement('div');
+        content.className = 'flex flex-col overflow-hidden';
+        const title = document.createElement('p');
+        title.className = 'event-text overflow-hidden text-ellipsis';
+        title.textContent = ev.text || 'Untitled event';
+        content.appendChild(title);
+        const rangeLabel = formatEventTimeRange(ev);
+        if (rangeLabel) {
+          const timeRow = document.createElement('span');
+          timeRow.className = 'text-[10px] uppercase tracking-wide text-slate-400';
+          timeRow.textContent = rangeLabel;
+          content.appendChild(timeRow);
+        }
         item.appendChild(pill);
-        item.appendChild(text);
+        item.appendChild(content);
         item.addEventListener('click', (e) => {
           e.stopPropagation();
           openModal(dateStr, ev);
@@ -524,27 +966,44 @@ document.addEventListener('DOMContentLoaded', () => {
     dateInput.value = dateStr;
     typeInput.value = ev?.type || '';
     textInput.value = ev?.text || '';
+    if (startTimeInput) {
+      startTimeInput.value = ev?.startTime || '';
+    }
+    if (endTimeInput) {
+      endTimeInput.value = ev?.endTime || '';
+    }
     deleteBtn.classList.toggle('hidden', !editingId);
     modal.classList.remove('hidden');
+    ensureEndTimeOrder();
+    refreshSlotSuggestions(dateStr, { autopick: !editingId && !(ev?.startTime) });
+    highlightSelectedSlot();
   }
 
   function closeModal() {
     modal.classList.add('hidden');
     editingId = null;
+    if (startTimeInput) startTimeInput.value = '';
+    if (endTimeInput) endTimeInput.value = '';
+    if (slotContainer) slotContainer.innerHTML = '';
+    if (slotAvailability) slotAvailability.textContent = '';
+    slotButtonRefs = [];
   }
 
   saveBtn.addEventListener('click', async () => {
     const dateStr = dateInput.value;
     const type = typeInput.value.trim();
     const text = textInput.value.trim();
+    const startTime = startTimeInput ? startTimeInput.value : '';
+    const endTime = endTimeInput ? endTimeInput.value : '';
     if (!dateStr || !text) return;
+    ensureEndTimeOrder();
+    const payload = buildEventPayload(dateStr, type, text, startTime, endTime);
     if (editingId) {
-      await updateEvent(editingId, dateStr, type, text);
+      await updateEvent(editingId, payload);
     } else {
-      await addEvent(dateStr, type, text);
+      await addEvent(payload);
     }
     closeModal();
-    render();
   });
 
   deleteBtn.addEventListener('click', async () => {
@@ -555,6 +1014,80 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   cancelBtn.addEventListener('click', closeModal);
+
+  if (saveCustomSlotBtn) {
+    saveCustomSlotBtn.addEventListener('click', async () => {
+      if (!startTimeInput || !startTimeInput.value) {
+        setCustomSlotNotice('Pick a start time before saving. / Selecciona una hora de inicio antes de guardar.');
+        return;
+      }
+      const dateStr = dateInput?.value || selectedDate;
+      const start = startTimeInput.value;
+      const startDate = toDateFromParts(dateStr, start);
+      if (!startDate) {
+        setCustomSlotNotice('Choose a valid date and time first. / Elige una fecha y hora válidas primero.');
+        return;
+      }
+      let minutes = defaultDurationMinutes;
+      if (endTimeInput && endTimeInput.value) {
+        const endDate = computeEndDate(dateStr, start, endTimeInput.value);
+        if (endDate) {
+          minutes = Math.max(5, Math.round((endDate.getTime() - startDate.getTime()) / (60 * 1000)));
+        }
+      }
+      const label = customSlotLabelInput?.value.trim() || '';
+      const type = typeInput?.value.trim() || '';
+      const existingIndex = customSlots.findIndex((slot) => slot.start === start && slot.duration === minutes);
+      const slotRecord = {
+        id:
+          existingIndex >= 0
+            ? customSlots[existingIndex].id
+            : `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        start,
+        duration: minutes,
+        title: label,
+        type
+      };
+      if (existingIndex >= 0) {
+        customSlots[existingIndex] = slotRecord;
+      } else {
+        customSlots.push(slotRecord);
+      }
+      persistCustomSlotsState();
+      if (customSlotLabelInput) {
+        customSlotLabelInput.value = '';
+      }
+      await refreshSlotSuggestions(dateStr);
+      applySlot(slotRecord);
+      highlightSelectedSlot();
+      setCustomSlotNotice('Custom slot saved. / Horario personalizado guardado.');
+    });
+  }
+
+  if (dateInput) {
+    dateInput.addEventListener('change', () => {
+      if (!dateInput.value) return;
+      selectedDate = dateInput.value;
+      updateSelectedCell(selectedDate);
+      renderFocus(selectedDate);
+      refreshSlotSuggestions(selectedDate, { autopick: !editingId });
+    });
+  }
+
+  if (startTimeInput) {
+    const handleStartChange = () => {
+      ensureEndTimeOrder();
+      highlightSelectedSlot();
+    };
+    startTimeInput.addEventListener('input', handleStartChange);
+    startTimeInput.addEventListener('change', handleStartChange);
+  }
+
+  if (endTimeInput) {
+    endTimeInput.addEventListener('change', () => {
+      ensureEndTimeOrder();
+    });
+  }
 
   if (newBtn) {
     newBtn.addEventListener('click', () => {
