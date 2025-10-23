@@ -27,12 +27,50 @@ function maskAccountNumber(value){
 }
 
 function normalizeBureaus(entry = {}, fallback = []){
-  const bureaus = Array.isArray(entry.bureaus) && entry.bureaus.length
-    ? entry.bureaus
-    : entry.bureau
-      ? [entry.bureau]
-      : fallback;
-  return Array.from(new Set(bureaus.filter(Boolean)));
+  const result = new Set();
+
+  const addCandidate = (value) => {
+    if (value === null || value === undefined) return;
+    if (Array.isArray(value)) {
+      value.forEach(addCandidate);
+      return;
+    }
+    const text = String(value).trim();
+    if (!text) return;
+    const normalized = normalizeBureauName(text) || null;
+    if (normalized) {
+      result.add(normalized);
+    }
+  };
+
+  const scanEvidence = (node, depth = 0) => {
+    if (!node || depth > 3) return;
+    if (Array.isArray(node)) {
+      node.forEach((item) => scanEvidence(item, depth));
+      return;
+    }
+    if (typeof node !== "object") {
+      addCandidate(node);
+      return;
+    }
+    addCandidate(node.bureau);
+    addCandidate(node.bureaus);
+    for (const [key, value] of Object.entries(node)) {
+      addCandidate(key);
+      if (value && typeof value === "object") {
+        scanEvidence(value, depth + 1);
+      } else {
+        addCandidate(value);
+      }
+    }
+  };
+
+  addCandidate(entry.bureaus);
+  addCandidate(entry.bureau);
+  scanEvidence(entry.evidence);
+  addCandidate(fallback);
+
+  return Array.from(result);
 }
 
 function normalizeTitle(entry = {}){
@@ -46,14 +84,14 @@ function dedupeViolations(entries = []){
   for (const entry of entries){
     if (!entry || typeof entry !== "object") continue;
     const code = (entry.code || entry.id || entry.violation || "").toString().toUpperCase();
-    const bureauKey = Array.isArray(entry.bureaus) && entry.bureaus.length
-      ? entry.bureaus.join(",")
+    const bureaus = normalizeBureaus(entry);
+    const bureauKey = bureaus.length
+      ? bureaus.join(",")
       : entry.bureau || "";
     const detail = (entry.detail || entry.violation || "").toString();
     const key = `${code}|${bureauKey}|${detail}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const bureaus = normalizeBureaus(entry);
     result.push({
       ...entry,
       code,
