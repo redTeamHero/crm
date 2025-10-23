@@ -210,6 +210,72 @@ function applyLadderConfig(ladder, goals) {
   }
 }
 
+function hydrateLadderStateFromDom() {
+  if (typeof document === 'undefined') return;
+
+  const readText = (id) => {
+    const el = document.getElementById(id);
+    if (!el || typeof el.textContent !== 'string') return null;
+    return el.textContent.trim();
+  };
+
+  const config = { ...currentLadderConfig };
+  const textMappings = [
+    ['title', 'ladderTitle'],
+    ['subtitle', 'ladderSubtitle'],
+    ['goalLabel', 'ladderGoalLabel'],
+    ['goalAmountLabel', 'ladderGoalAmount'],
+    ['goalCaption', 'ladderGoalCaption'],
+    ['mrrCaption', 'ladderMrrCaption'],
+    ['pipelineValue', 'ladderPipeline'],
+    ['pipelineCaption', 'ladderPipelineCaption'],
+    ['aovValue', 'ladderAov'],
+    ['aovCaption', 'ladderAovCaption'],
+    ['milestone', 'ladderMilestone'],
+    ['milestoneCaption', 'ladderMilestoneCaption'],
+    ['progressBaselineLabel', 'ladderProgressBaseline'],
+    ['progressGoalLabel', 'ladderProgressGoal'],
+  ];
+
+  for (const [key, id] of textMappings) {
+    const value = readText(id);
+    if (value !== null) {
+      config[key] = value;
+    }
+  }
+
+  const upsellEl = document.getElementById('ladderUpsellCopy');
+  if (upsellEl) {
+    const headingEl = upsellEl.querySelector('span');
+    const heading = headingEl?.textContent?.trim() || '';
+    const bodyText = (upsellEl.textContent || '').replace(heading, '').trim();
+    if (heading) config.upsellHeading = heading;
+    if (bodyText) config.upsellBody = bodyText;
+  }
+
+  const playbookBtn = document.getElementById('ladderPlaybookButton');
+  if (playbookBtn) {
+    const label = playbookBtn.textContent?.trim();
+    const href = playbookBtn.getAttribute('href') || '';
+    if (label) config.playbookLabel = label;
+    config.playbookUrl = href === '#' ? '' : href;
+  }
+
+  const spanishLink = document.getElementById('ladderSpanishLink');
+  if (spanishLink) {
+    const label = spanishLink.textContent?.trim();
+    const href = spanishLink.getAttribute('href') || '';
+    if (label) config.spanishSummaryLabel = label;
+    config.spanishSummaryUrl = href === '#' ? '' : href;
+  }
+
+  currentLadderConfig = mergeConfig(DEFAULT_LADDER_CONFIG, config);
+  currentDashboardGoals = {
+    ...currentDashboardGoals,
+    monthlyRecurringTarget: Number.NaN,
+  };
+}
+
 function setTextContent(id, value) {
   if (typeof document === 'undefined') return;
   const el = document.getElementById(id);
@@ -1327,7 +1393,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const detailModalController = createDetailModal();
 
-  applyLadderConfig(currentLadderConfig, currentDashboardGoals);
+  hydrateLadderStateFromDom();
 
   const ladderEditor = document.getElementById('ladderEditor');
   const ladderEditorForm = document.getElementById('ladderEditorForm');
