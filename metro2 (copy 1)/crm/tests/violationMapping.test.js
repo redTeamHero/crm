@@ -18,6 +18,9 @@ function stubDom(){
   stubEl.classList = { add: () => {}, remove: () => {}, contains: () => false, toggle: () => {} };
   stubEl.querySelector = () => stubEl;
   stubEl.querySelectorAll = () => [];
+  stubEl.setAttribute = () => {};
+  stubEl.getAttribute = () => '';
+  stubEl.removeAttribute = () => {};
   stubEl.appendChild = () => {};
   stubEl.innerHTML = '';
   stubEl.textContent = '';
