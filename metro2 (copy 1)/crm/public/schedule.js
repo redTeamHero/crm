@@ -73,6 +73,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const deleteBtn = document.getElementById('deleteEvent');
   const cancelBtn = document.getElementById('cancelEvent');
   const newBtn = document.getElementById('newEvent');
+  const modalModeLabel = document.getElementById('eventModalMode');
+  const modalActiveDate = document.getElementById('eventModalActiveDate');
+  const modalTypeBadge = document.getElementById('eventModalTypeBadge');
+  const modalModeDefault = modalModeLabel ? modalModeLabel.textContent : '';
+  const modalActiveDateDefault = modalActiveDate ? modalActiveDate.textContent : '';
+
+  const updateModalTypeBadge = (value) => {
+    if (!modalTypeBadge) return;
+    const trimmed = (value || '').trim();
+    if (trimmed) {
+      modalTypeBadge.textContent = trimmed;
+      modalTypeBadge.classList.remove('hidden');
+    } else {
+      modalTypeBadge.classList.add('hidden');
+    }
+  };
+
+  if (typeInput) {
+    typeInput.addEventListener('input', (event) => updateModalTypeBadge(event.target.value));
+  }
 
   let current = new Date();
   let events = [];
@@ -1266,6 +1286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderFocus(dateStr);
     dateInput.value = dateStr;
     typeInput.value = ev?.type || '';
+    updateModalTypeBadge(typeInput.value);
     textInput.value = ev?.text || '';
     if (startTimeInput) {
       startTimeInput.value = ev?.startTime || '';
@@ -1274,6 +1295,14 @@ document.addEventListener('DOMContentLoaded', () => {
       endTimeInput.value = ev?.endTime || '';
     }
     deleteBtn.classList.toggle('hidden', !editingId);
+    if (modalModeLabel) {
+      modalModeLabel.textContent = editingId
+        ? 'Update touchpoint / Actualiza el compromiso'
+        : 'Book premium touchpoint / Agenda un contacto premium';
+    }
+    if (modalActiveDate) {
+      modalActiveDate.textContent = formatDateLabel(dateStr);
+    }
     modal.classList.remove('hidden');
     ensureEndTimeOrder();
     refreshSlotSuggestions(dateStr, { autopick: !editingId && !(ev?.startTime) });
@@ -1283,6 +1312,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeModal() {
     modal.classList.add('hidden');
     editingId = null;
+    if (modalModeLabel) {
+      modalModeLabel.textContent = modalModeDefault;
+    }
+    if (modalActiveDate) {
+      modalActiveDate.textContent = modalActiveDateDefault;
+    }
+    updateModalTypeBadge('');
     if (startTimeInput) startTimeInput.value = '';
     if (endTimeInput) endTimeInput.value = '';
     if (slotContainer) slotContainer.innerHTML = '';
@@ -1463,6 +1499,9 @@ document.addEventListener('DOMContentLoaded', () => {
       updateSelectedCell(selectedDate);
       renderFocus(selectedDate);
       refreshSlotSuggestions(selectedDate, { autopick: !editingId });
+      if (modalActiveDate) {
+        modalActiveDate.textContent = formatDateLabel(selectedDate);
+      }
     });
   }
 

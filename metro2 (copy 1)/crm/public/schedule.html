@@ -120,10 +120,243 @@
   #eventModal .modal-panel {
     max-height: calc(100vh - 4rem);
     overflow-y: auto;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 255, 0.94) 100%);
+    box-shadow: 0 40px 80px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(18px);
+  }
+  #eventModal .modal-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0ea5e9 100%);
+    padding: 28px;
+    color: #fff;
+    box-shadow: 0 24px 48px rgba(79, 70, 229, 0.28);
+  }
+  @media (min-width: 768px) {
+    #eventModal .modal-hero {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+  #eventModal .modal-hero-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  #eventModal .modal-hero-mode {
+    font-size: 0.75rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.75);
+  }
+  #eventModal .modal-hero-subcopy {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.78);
+    max-width: 32rem;
+  }
+  #eventModal .modal-hero-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    border-radius: 24px;
+    background: rgba(15, 23, 42, 0.16);
+    padding: 16px 20px;
+    backdrop-filter: blur(8px);
+    min-width: 220px;
+  }
+  #eventModal .modal-hero-meta-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 1.5rem;
+  }
+  #eventModal .modal-hero-meta-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.68);
+  }
+  #eventModal .modal-hero-meta-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #fff;
+  }
+  #eventModal .modal-grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+  @media (min-width: 1024px) {
+    #eventModal .modal-grid {
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    }
+  }
+  #eventModal .modal-card {
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    box-shadow: 0 24px 45px rgba(15, 23, 42, 0.08);
+  }
+  #eventModal .modal-card.accent {
+    background: linear-gradient(145deg, rgba(79, 70, 229, 0.95), rgba(99, 102, 241, 0.92));
+    border: none;
+    box-shadow: 0 28px 55px rgba(79, 70, 229, 0.28);
+    color: #fff;
+  }
+  #eventModal .section-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #475569;
+  }
+  #eventModal .modal-card.accent .section-label {
+    color: rgba(255, 255, 255, 0.78);
+  }
+  #eventModal .modal-card.accent p {
+    color: rgba(255, 255, 255, 0.86);
+  }
+  #eventModal .modal-card label span {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+  #eventModal .modal-card label input {
+    margin-top: 6px;
+  }
+  #eventModal .modal-actions {
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    padding-top: 1rem;
+  }
+  #eventModal .modal-card.accent .slot-button {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.32);
+    color: #fff;
+  }
+  #eventModal .modal-card.accent .slot-button:hover:not(.busy) {
+    border-color: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 20px 44px rgba(79, 70, 229, 0.32);
+  }
+  #eventModal .modal-card.accent .slot-button .slot-time {
+    color: #fff;
+  }
+  #eventModal .modal-card.accent .slot-button .slot-meta {
+    color: rgba(255, 255, 255, 0.72);
+  }
+  #eventModal .modal-card.accent .slot-button .slot-status {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+  #eventModal .modal-card.accent .slot-remove-button {
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+  }
+  #eventModal .modal-card.accent .slot-remove-button:hover {
+    background: rgba(239, 68, 68, 0.28);
+    color: #fff;
+  }
+  .slot-chip-wrapper {
+    position: relative;
+  }
+  .slot-button {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(255, 255, 255, 0.95);
+    min-width: 168px;
+    text-align: left;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+  }
+  .slot-button:not(.busy) {
+    cursor: pointer;
+  }
+  .slot-button:hover:not(.busy) {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.45);
+    box-shadow: 0 18px 34px rgba(99, 102, 241, 0.22);
+  }
+  .slot-button.busy {
+    opacity: 0.55;
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+  .slot-time {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #1f2937;
+  }
+  .slot-meta {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #475569;
+  }
+  .slot-status {
+    margin-top: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .slot-status-open {
+    background: rgba(34, 197, 94, 0.16);
+    color: #047857;
+  }
+  .slot-status-busy {
+    background: rgba(239, 68, 68, 0.16);
+    color: #b91c1c;
+  }
+  .slot-remove-button {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(15, 23, 42, 0.12);
+    color: #475569;
+    font-size: 12px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease, transform .2s ease;
+  }
+  .slot-remove-button:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #b91c1c;
+    transform: translateY(-1px);
   }
   @media (max-width: 640px) {
     #eventModal .modal-panel {
       max-height: calc(100vh - 2rem);
+      padding: 1.25rem;
     }
   }
   @media (max-width: 768px) {
@@ -251,40 +484,83 @@
 
 <div id="eventModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50">
   <div class="flex min-h-full items-center justify-center px-4 py-8">
-    <div class="modal-panel w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-xl">
-      <div>
-        <h2 class="text-xl font-semibold text-slate-900">Event</h2>
-        <p class="text-xs text-slate-500 mt-1">Drop a premium touchpoint and reserve the exact slot you want.</p>
-      </div>
-      <div class="space-y-3">
-        <label class="block text-sm font-medium text-slate-600">Date
-          <input id="eventDate" type="date" class="mt-1 border p-2 rounded-lg w-full">
-        </label>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label class="block text-sm font-medium text-slate-600">Start Time
-            <input id="eventStartTime" type="time" step="60" class="mt-1 border p-2 rounded-lg w-full">
-          </label>
-          <label class="block text-sm font-medium text-slate-600">End Time
-            <input id="eventEndTime" type="time" step="60" class="mt-1 border p-2 rounded-lg w-full">
-          </label>
+    <div class="modal-panel w-full max-w-4xl space-y-6 rounded-3xl bg-white/95 p-6 shadow-2xl">
+      <div class="modal-hero">
+        <div class="space-y-3">
+          <p id="eventModalMode" class="modal-hero-mode">Book premium touchpoint / Agenda un contacto premium</p>
+          <h2 class="modal-hero-title">Schedule event</h2>
+          <p class="modal-hero-subcopy">Protect your consult → purchase conversion by blocking the right slots and narrating the next step. / Protege tu conversión de consulta a compra reservando los horarios correctos y narrando el siguiente paso.</p>
         </div>
-        <div>
-          <p class="text-xs uppercase tracking-wide text-slate-500">Quick slots</p>
-          <div id="slotSuggestions" class="mt-2 flex flex-wrap gap-2"></div>
-          <p id="slotAvailability" class="mt-2 text-xs text-slate-500"></p>
-          <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+        <div class="modal-hero-meta">
+          <span class="modal-hero-meta-icon" aria-hidden="true">🗓️</span>
+          <div>
+            <p class="modal-hero-meta-label">Focus date / Fecha objetivo</p>
+            <p id="eventModalActiveDate" class="modal-hero-meta-value">Pick a date / Selecciona una fecha</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-grid">
+        <section class="space-y-4">
+          <div class="modal-card space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="section-label">Date &amp; time / Fecha y hora</p>
+              <span id="eventModalTypeBadge" class="hidden rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-600"></span>
+            </div>
+            <div class="space-y-3">
+              <label class="block">
+                <span>Date / Fecha</span>
+                <input id="eventDate" type="date" class="input mt-1 w-full">
+              </label>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label class="block">
+                  <span>Start time / Hora de inicio</span>
+                  <input id="eventStartTime" type="time" step="60" class="input mt-1 w-full">
+                </label>
+                <label class="block">
+                  <span>End time / Hora de cierre</span>
+                  <input id="eventEndTime" type="time" step="60" class="input mt-1 w-full">
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-card space-y-4">
+            <p class="section-label">Context / Contexto</p>
+            <div class="space-y-3">
+              <label class="block">
+                <span>Touchpoint type / Tipo de interacción</span>
+                <input id="eventType" type="text" class="input mt-1 w-full" placeholder="consult / meeting / follow-up">
+              </label>
+              <label class="block">
+                <span>Details / Detalles</span>
+                <input id="eventText" type="text" class="input mt-1 w-full" placeholder="Client + goal (ex. Perez - FCRA timeline)">
+              </label>
+              <p class="text-[11px] text-slate-500">State the objective without promising outcomes. / Explica el objetivo sin prometer resultados.</p>
+            </div>
+          </div>
+        </section>
+        <section class="space-y-4">
+          <div class="modal-card accent space-y-4">
+            <div class="space-y-2">
+              <p class="section-label">Quick slots / Horarios rápidos</p>
+              <p class="text-sm">Curate premium windows that protect Lead→Consult→Purchase KPIs. / Cura ventanas premium que protegen los KPIs de Lead→Consulta→Compra.</p>
+            </div>
+            <div id="slotSuggestions" class="flex flex-wrap gap-3"></div>
+            <p id="slotAvailability" class="text-[11px] text-white/80"></p>
+          </div>
+          <div class="modal-card space-y-3">
+            <p class="section-label">Custom slot / Horario personalizado</p>
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input id="customSlotLabel" type="text" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60" placeholder="Label your slot (optional)">
+              <input id="customSlotLabel" type="text" class="input flex-1" placeholder="Label your slot (optional)">
               <button id="saveCustomSlot" type="button" class="btn btn-outline whitespace-nowrap">Save custom slot</button>
             </div>
-            <p id="customSlotNotice" class="text-[11px] text-slate-500">Use the start/end fields above to define your own slot&mdash;we'll remember it on this browser. / Usa los horarios de inicio y fin para crear tu propio espacio y lo guardaremos en este navegador.</p>
+            <p id="customSlotNotice" class="text-[11px] text-slate-500">Use the start/end fields above to define your own slot—we'll remember it on this browser. / Usa los horarios de inicio y fin para crear tu propio espacio y lo guardaremos en este navegador.</p>
           </div>
-          <div class="mt-3 rounded-2xl border border-violet-200 bg-violet-50/60 p-3 space-y-3">
+          <div class="modal-card space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="text-xs font-semibold uppercase tracking-wide text-violet-600">Curated Quick Slots</p>
-              <button id="toggleSlotPresetEditor" type="button" class="btn-ghost text-xs font-semibold uppercase tracking-wide text-violet-600" aria-expanded="false">Customize quick slots / Personaliza horarios rápidos</button>
+              <p class="section-label">Curated quick slots / Horarios rápidos curados</p>
+              <button id="toggleSlotPresetEditor" type="button" class="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-600 transition hover:bg-violet-100" aria-expanded="false">Customize quick slots / Personaliza horarios rápidos</button>
             </div>
-            <p class="text-[11px] text-slate-600">Tune the preset times to match your consult cadence. / Ajusta los horarios predefinidos para tu cadencia de consultas.</p>
+            <p class="text-[11px] text-slate-500">Tune the preset times to match your consult cadence. / Ajusta los horarios predefinidos para tu cadencia de consultas.</p>
             <div id="slotPresetEditor" class="hidden space-y-3">
               <div id="slotPresetList" class="space-y-2"></div>
               <div class="flex flex-wrap gap-2">
@@ -295,16 +571,10 @@
               <p id="slotPresetNotice" class="text-[11px] text-slate-500">Saved per browser; type keywords (consult/follow-up/dispute/billing) drive colors. / Se guarda por navegador; las palabras clave del tipo (consult/follow-up/dispute/billing) definen los colores.</p>
             </div>
           </div>
-        </div>
-        <label class="block text-sm font-medium text-slate-600">Type
-          <input id="eventType" type="text" class="mt-1 border p-2 rounded-lg w-full" placeholder="consult/meeting/follow-up">
-        </label>
-        <label class="block text-sm font-medium text-slate-600">Details
-          <input id="eventText" type="text" class="mt-1 border p-2 rounded-lg w-full" placeholder="Client name or goal">
-        </label>
+        </section>
       </div>
-      <div class="flex flex-wrap justify-end gap-2">
-        <button id="deleteEvent" class="btn bg-red-600 hidden">Delete</button>
+      <div class="modal-actions flex flex-wrap justify-end gap-2">
+        <button id="deleteEvent" class="btn-destructive hidden px-4 py-2 text-sm font-semibold">Delete / Eliminar</button>
         <button id="cancelEvent" class="btn btn-outline">Cancel</button>
         <button id="saveEvent" class="btn">Save</button>
       </div>
