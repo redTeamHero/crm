@@ -17,6 +17,8 @@ const defaultHotkeys = {
   modeIdentity: 'i'
 };
 
+const HOTKEY_STORAGE_KEY = 'hotkeys';
+
 function normalizeHotkeys(raw = {}) {
   const normalized = {};
   for (const key in raw) {
@@ -26,13 +28,35 @@ function normalizeHotkeys(raw = {}) {
   return normalized;
 }
 
-function getHotkeys(){
+function hotkeySignature(map = {}) {
+  return Object.keys(map)
+    .sort()
+    .map((key) => `${key}:${map[key]}`)
+    .join('|');
+}
+
+function getStoredHotkeyOverrides() {
   try {
-    const stored = JSON.parse(localStorage.getItem('hotkeys') || '{}');
-    return { ...defaultHotkeys, ...normalizeHotkeys(stored) };
+    const raw = JSON.parse(localStorage.getItem(HOTKEY_STORAGE_KEY) || '{}');
+    return normalizeHotkeys(raw || {});
   } catch {
-    return { ...defaultHotkeys };
+    return {};
   }
+}
+
+function setStoredHotkeyOverrides(overrides = {}) {
+  const normalized = normalizeHotkeys(overrides || {});
+  try {
+    localStorage.setItem(HOTKEY_STORAGE_KEY, JSON.stringify(normalized));
+  } catch {
+    // Ignore storage quota errors
+  }
+  return normalized;
+}
+
+function getHotkeys(){
+  const stored = getStoredHotkeyOverrides();
+  return { ...defaultHotkeys, ...stored };
 }
 
 function refreshHotkeys() {
@@ -41,8 +65,27 @@ function refreshHotkeys() {
 }
 
 let hotkeys = getHotkeys();
+
+async function syncHotkeysFromServer() {
+  if (typeof fetch !== 'function') return;
+  try {
+    const resp = await fetch('/api/settings/hotkeys', { credentials: 'same-origin' });
+    if (!resp.ok) return;
+    const data = await resp.json().catch(() => null);
+    if (!data || data.ok === false) return;
+    const overrides = normalizeHotkeys(data.hotkeys || {});
+    const current = getStoredHotkeyOverrides();
+    if (hotkeySignature(current) !== hotkeySignature(overrides)) {
+      setStoredHotkeyOverrides(overrides);
+      refreshHotkeys();
+    }
+  } catch (error) {
+    console.warn('[hotkeys] failed to sync from API', error);
+  }
+}
+
 window.addEventListener('storage', (e) => {
-  if (e.key === 'hotkeys') refreshHotkeys();
+  if (e.key === HOTKEY_STORAGE_KEY) refreshHotkeys();
 });
 
 function runHotkeyAction(name){
@@ -61,8 +104,15 @@ window.__crm_hotkeys = {
   defaults: { ...defaultHotkeys },
   get: () => ({ ...hotkeys }),
   normalize: normalizeHotkeys,
-  refresh: refreshHotkeys
+  refresh: refreshHotkeys,
+  store: (overrides = {}) => {
+    const normalized = setStoredHotkeyOverrides(overrides);
+    hotkeys = { ...defaultHotkeys, ...normalized };
+    return { ...hotkeys };
+  }
 };
+
+syncHotkeysFromServer();
 
 document.addEventListener('keydown', (e) => {
   if (isTyping(document.activeElement)) return;
