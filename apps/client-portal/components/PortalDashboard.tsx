@@ -5,6 +5,8 @@ import { useMemo, useState } from 'react';
 import { translations, type LanguageKey } from '@/lib/translations';
 import type { PortalPayload } from '@/lib/types';
 import { formatCurrency, formatDate, formatTimeAgo } from '@/lib/format';
+import { buildRuleGroups } from '@/lib/rule-debug';
+import RuleDebugGrid from './RuleDebugGrid';
 
 const DEFAULT_BACKGROUND = 'radial-gradient(circle at top left, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.08))';
 
@@ -44,6 +46,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   const documents = safeList(portal.documents, 4);
   const reminders = safeList(portal.reminders, 3);
   const messages = safeList(portal.messages, 4);
+  const ruleGroups = useMemo(() => buildRuleGroups(portal.negativeItems), [portal.negativeItems]);
 
   const handleLanguageToggle = () => {
     setLanguage((prev) => (prev === 'en' ? 'es' : 'en'));
@@ -264,6 +267,8 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
             </article>
           )}
         </section>
+
+        <RuleDebugGrid groups={ruleGroups} copy={copy} />
 
         <section className="glass p-6">
           <div className="flex items-center justify-between">

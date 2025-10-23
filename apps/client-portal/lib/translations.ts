@@ -20,6 +20,19 @@ const english = {
   planCopy: 'Add a white-glove Metro-2 review session + certified mail batching.',
   educationCta: 'Book strategy call',
   analyticsTip: 'Track CTA clicks vs. doc uploads to monitor Lead→Consult%.',
+  ruleDebugTitle: 'Metro-2 Rule Coverage',
+  ruleDebugSubtitle: 'Auto-generated QA cards show how every validation rule fires per bureau.',
+  ruleDebugBadge: 'QA Lab',
+  ruleDebugEmpty: 'No Metro-2 validations yet.',
+  ruleDebugSeverity: 'Severity',
+  ruleDebugCreditor: 'Creditor',
+  ruleDebugCode: 'Rule code',
+  ruleDebugCategory: 'Category',
+  ruleDebugSource: 'Source',
+  ruleDebugFields: 'Key fields',
+  ruleDebugNoDetail: 'No narrative provided.',
+  ruleDebugUnknown: 'N/A',
+  ruleDebugBureau: (bureau: string) => bureau,
 };
 
 const spanish = {
@@ -44,6 +57,19 @@ const spanish = {
   planCopy: 'Incluye sesión guiada y automatización de cartas certificadas.',
   educationCta: 'Agenda llamada estratégica',
   analyticsTip: 'Compara clics en CTA vs. cargas para monitorear Lead→Consult%.',
+  ruleDebugTitle: 'Cobertura de reglas Metro-2',
+  ruleDebugSubtitle: 'Tarjetas auto-generadas muestran cómo dispara cada validación por buró.',
+  ruleDebugBadge: 'Laboratorio QA',
+  ruleDebugEmpty: 'Sin validaciones Metro-2 todavía.',
+  ruleDebugSeverity: 'Severidad',
+  ruleDebugCreditor: 'Acreedor',
+  ruleDebugCode: 'Código',
+  ruleDebugCategory: 'Categoría',
+  ruleDebugSource: 'Fuente',
+  ruleDebugFields: 'Campos clave',
+  ruleDebugNoDetail: 'Sin detalle disponible.',
+  ruleDebugUnknown: 'N/D',
+  ruleDebugBureau: (bureau: string) => bureau,
 };
 
 export const translations = {
