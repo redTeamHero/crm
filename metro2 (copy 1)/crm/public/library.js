@@ -1,3 +1,45 @@
+import { setupPageTour } from './tour-guide.js';
+
+setupPageTour('settings-library', {
+  steps: [
+    {
+      id: 'library-nav',
+      title: 'Navigation',
+      text: `<p class="font-semibold">Jump between Library, Letters, Workflows, and Billing.</p>
+             <p class="mt-1 text-xs text-slate-600">Keep playbooks, templates, and contracts in lockstep.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'library-hero',
+      title: 'Template hero',
+      text: `<p class="font-semibold">Showcase your premium content strategy.</p>
+             <p class="mt-1 text-xs text-slate-600">Use these metrics to anchor marketing and fulfillment conversations.</p>`,
+      attachTo: { element: '#libraryHero', on: 'top' }
+    },
+    {
+      id: 'library-contracts',
+      title: 'Contracts',
+      text: `<p class="font-semibold">Draft compliance-ready agreements.</p>
+             <p class="mt-1 text-xs text-slate-600">Use them to upsell retainers and document deliverables.</p>`,
+      attachTo: { element: '#libraryContracts', on: 'top' }
+    },
+    {
+      id: 'library-playbooks',
+      title: 'Playbooks',
+      text: `<p class="font-semibold">Package Metro-2 workflows step-by-step.</p>
+             <p class="mt-1 text-xs text-slate-600">Drag letter templates into repeatable revenue sequences.</p>`,
+      attachTo: { element: '#libraryPlaybooks', on: 'top' }
+    },
+    {
+      id: 'library-templates',
+      title: 'Letter templates',
+      text: `<p class="font-semibold">Manage reusable dispute content.</p>
+             <p class="mt-1 text-xs text-slate-600">Edit, tag, and copy templates before exporting to automations.</p>`,
+      attachTo: { element: '#templatePanel', on: 'left' }
+    }
+  ]
+});
+
 let templates = [];
 let sequences = [];
 let currentTemplateId = null;

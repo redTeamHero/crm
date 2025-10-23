@@ -1,4 +1,44 @@
+import { setupPageTour } from './tour-guide.js';
 
+setupPageTour('leads', {
+  steps: [
+    {
+      id: 'leads-nav',
+      title: 'Route every lead fast',
+      text: `<p class="font-semibold">Use the global nav to bounce between revenue tabs.</p>
+             <p class="mt-1 text-xs text-slate-600">Dashboard shows KPIs, Billing closes payments, and Marketing keeps nurture sequences tight.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'leads-metrics',
+      title: 'Monitor lead health',
+      text: `<p class="font-semibold">Watch totals, win rate, and pipeline momentum.</p>
+             <p class="mt-1 text-xs text-slate-600">Share these stats on morning huddles to align sales and fulfillment.</p>`,
+      attachTo: { element: '#leadMetrics', on: 'top' }
+    },
+    {
+      id: 'leads-pipeline',
+      title: 'Work the pipeline board',
+      text: `<p class="font-semibold">Drag every conversation through NEPQ stages.</p>
+             <p class="mt-1 text-xs text-slate-600">Use the Refresh button after campaigns to sync new activity.</p>`,
+      attachTo: { element: '#pipelineBoard', on: 'top' }
+    },
+    {
+      id: 'leads-intake',
+      title: 'Intake with compliance first',
+      text: `<p class="font-semibold">Capture source, stage, and address before the consult.</p>
+             <p class="mt-1 text-xs text-slate-600">Log facts only—no promises of score jumps or timelines.</p>`,
+      attachTo: { element: '#leadForm', on: 'left' }
+    },
+    {
+      id: 'leads-followup',
+      title: 'Prioritize follow-ups',
+      text: `<p class="font-semibold">Lean on the radar to call hot leads first.</p>
+             <p class="mt-1 text-xs text-slate-600">Pair it with Source Mix to decide which campaigns deserve more ad spend.</p>`,
+      attachTo: { element: '#leadFollowupCard', on: 'left' }
+    }
+  ]
+});
 const PIPELINE_STAGES = [
   {
     id: 'new',

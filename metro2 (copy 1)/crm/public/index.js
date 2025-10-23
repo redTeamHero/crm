@@ -3,8 +3,49 @@
 import { PLAYBOOKS } from './playbooks.js';
 import { authHeader, api, escapeHtml, formatCurrency } from './common.js';
 import { clearClientLocationsCache } from './client-map.js';
+import { setupPageTour } from './tour-guide.js';
 
 const $ = (s) => document.querySelector(s);
+
+setupPageTour('clients', {
+  steps: [
+    {
+      id: 'clients-nav',
+      title: 'Navigate the command center',
+      text: `<p class="font-semibold">Keep revenue workspaces one tap away.</p>
+             <p class="mt-1 text-xs text-slate-600">Bounce between Dashboard, Leads, Billing, and Marketing to monitor Lead→Consult% and upsell paths.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'clients-metrics',
+      title: 'Snapshot KPIs',
+      text: `<p class="font-semibold">Scan active clients, revenue collected, and pipeline gaps.</p>
+             <p class="mt-1 text-xs text-slate-600">Use these numbers to anchor consults and forecast automation upgrades.</p>`,
+      attachTo: { element: '#clientsMetrics', on: 'top' }
+    },
+    {
+      id: 'clients-journey',
+      title: 'Map the client journey',
+      text: `<p class="font-semibold">Document every promise to keep fulfillment airtight.</p>
+             <p class="mt-1 text-xs text-slate-600">Drop NEPQ notes and next steps so advisors, analysts, and attorneys stay aligned.</p>`,
+      attachTo: { element: '#clientsJourneyTracker', on: 'top' }
+    },
+    {
+      id: 'clients-sidebar',
+      title: 'Control your roster',
+      text: `<p class="font-semibold">Search, filter, and open any client in seconds.</p>
+             <p class="mt-1 text-xs text-slate-600">Upload reports, tag statuses, and prep every review before a consult starts.</p>`,
+      attachTo: { element: '#clientsSidebar', on: 'right' }
+    },
+    {
+      id: 'clients-tradelines',
+      title: 'Build dispute packs',
+      text: `<p class="font-semibold">Select negative items and trigger premium letters.</p>
+             <p class="mt-1 text-xs text-slate-600">Layer AI, OCR, and certified mail upsells before generating the batch.</p>`,
+      attachTo: { element: '#clientsNegativePanel', on: 'top' }
+    }
+  ]
+});
 
 if (typeof window !== 'undefined') {
   window.__crm_hotkeyActions = window.__crm_hotkeyActions || {};

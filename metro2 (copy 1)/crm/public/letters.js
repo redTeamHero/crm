@@ -1,5 +1,66 @@
 // public/letters.js
 import { api, escapeHtml } from './common.js';
+import { setupPageTour } from './tour-guide.js';
+
+function restoreLettersTour(context){
+  if(!context || context.restored) return;
+  const jobsSection = document.getElementById('jobsSection');
+  if(context.showJobs && jobsSection){
+    jobsSection.classList.add('hidden');
+  }
+  context.restored = true;
+}
+
+setupPageTour('settings-letters', {
+  onBeforeStart: () => {
+    const jobsSection = document.getElementById('jobsSection');
+    const state = { showJobs: false };
+    if(jobsSection && jobsSection.classList.contains('hidden')){
+      jobsSection.classList.remove('hidden');
+      state.showJobs = true;
+    }
+    return state;
+  },
+  onAfterComplete: ({ context }) => restoreLettersTour(context),
+  onAfterCancel: ({ context }) => restoreLettersTour(context),
+  steps: [
+    {
+      id: 'letters-nav',
+      title: 'Navigation',
+      text: `<p class="font-semibold">Move between Letters, Clients, and Billing.</p>
+             <p class="mt-1 text-xs text-slate-600">Keep dispute production synced with payments and fulfillment.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'letters-hero',
+      title: 'Letter jobs',
+      text: `<p class="font-semibold">Review batches, totals, and last run details.</p>
+             <p class="mt-1 text-xs text-slate-600">Share KPIs with the team before launching new disputes.</p>`,
+      attachTo: { element: '#lettersHero', on: 'top' }
+    },
+    {
+      id: 'letters-search',
+      title: 'Find jobs fast',
+      text: `<p class="font-semibold">Search by client, job, or ID.</p>
+             <p class="mt-1 text-xs text-slate-600">Filter batches before downloading or sending to the portal.</p>`,
+      attachTo: { element: '#jobSearch', on: 'bottom' }
+    },
+    {
+      id: 'letters-actions',
+      title: 'Fulfillment actions',
+      text: `<p class="font-semibold">Download, email, or push letters to the portal.</p>
+             <p class="mt-1 text-xs text-slate-600">Bundle concierge mail or certified delivery as an upsell.</p>`,
+      attachTo: { element: '#lettersActions', on: 'top' }
+    },
+    {
+      id: 'letters-cards',
+      title: 'Letter gallery',
+      text: `<p class="font-semibold">Preview individual letters by bureau.</p>
+             <p class="mt-1 text-xs text-slate-600">Open the modal to print, email, or export OCR-resistant PDFs.</p>`,
+      attachTo: { element: '#cards', on: 'top' }
+    }
+  ]
+});
 const $ = (s) => document.querySelector(s);
 
 function showErr(msg){
