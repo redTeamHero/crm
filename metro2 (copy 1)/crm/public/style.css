@@ -2643,7 +2643,14 @@ header#host-nav {
 
 @media (min-width: 1280px) {
   .lead-layout {
-    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+    align-items: start;
+  }
+}
+
+@media (min-width: 1536px) {
+  .lead-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(360px, 1fr);
   }
 }
 
@@ -2732,8 +2739,7 @@ header#host-nav {
 .lead-board {
   display: grid;
   gap: 20px;
-  grid-template-columns: repeat(6, minmax(240px, 1fr));
-  min-width: 1080px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   padding: 4px 8px 12px;
 }
 
@@ -2937,6 +2943,26 @@ header#host-nav {
   flex-direction: column;
   gap: 24px;
   box-shadow: 0 26px 50px rgba(148, 163, 184, 0.22);
+}
+
+.lead-intake-card--full {
+  width: 100%;
+}
+
+.lead-intake-card--full .lead-intake-card__subtitle {
+  max-width: 640px;
+}
+
+@media (min-width: 1024px) {
+  .lead-intake-card--full .lead-form__grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+@media (min-width: 1536px) {
+  .lead-intake-card--full .lead-form__grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
 }
 
 .lead-intake-card__header {
