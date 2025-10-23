@@ -422,10 +422,11 @@ export function applyLanguage(lang = currentLanguage) {
   const mapping = [
     ['.nav-brand-row .text-xl', 'brand'],
     ['a[href="/dashboard"]', 'nav.dashboard'],
-    ['a[href="/clients"]', 'nav.clients'],
-    ['a[href="/leads"]', 'nav.leads'],
+    ['#navClientsToggle span', 'nav.clientsMenu'],
+    ['[data-i18n="nav.clients"]', 'nav.clients'],
+    ['[data-i18n="nav.leads"]', 'nav.leads'],
     ['a[href="/schedule"]', 'nav.schedule'],
-    ['a[href="/billing"]', 'nav.billing'],
+    ['[data-i18n="nav.billing"]', 'nav.billing'],
     ['a[href="/marketing"]', 'nav.marketing'],
     ['a[href="/tradelines"]', 'nav.tradelines'],
     ['#navCompany', 'nav.myCompany'],
@@ -460,10 +461,13 @@ export function applyLanguage(lang = currentLanguage) {
     if (settingsToggle && settingsLabel) settingsToggle.setAttribute('aria-label', settingsLabel);
 
     const clientsToggleLabel = document.querySelector('#navClientsToggle span');
-    const clientsLabel = getTranslation('nav.clients', target);
-    if (clientsToggleLabel && clientsLabel) clientsToggleLabel.textContent = clientsLabel;
+    const clientsMenuLabel = getTranslation('nav.clientsMenu', target);
+    if (clientsToggleLabel && clientsMenuLabel) clientsToggleLabel.textContent = clientsMenuLabel;
     const clientsToggle = document.getElementById('navClientsToggle');
-    if (clientsToggle && clientsLabel) clientsToggle.setAttribute('aria-label', clientsLabel);
+    if (clientsToggle && clientsMenuLabel) {
+      clientsToggle.setAttribute('aria-label', clientsMenuLabel);
+      clientsToggle.setAttribute('title', clientsMenuLabel);
+    }
 
     const helpButton = document.getElementById('btnHelp');
     if (helpButton) {
@@ -666,7 +670,7 @@ function injectClientsDropdown(){
   const clientsLink = navLinks.querySelector('a[href="/clients"]');
   const leadsLink = navLinks.querySelector('a[href="/leads"]');
   const billingLink = navLinks.querySelector('a[href="/billing"]');
-  if (!clientsLink || !leadsLink) return;
+  if (!clientsLink) return;
 
   const dropdown = document.createElement('div');
   dropdown.className = 'nav-dropdown nav-clients-dropdown';
@@ -707,42 +711,41 @@ function injectClientsDropdown(){
   const menu = document.createElement('div');
   menu.id = 'navClientsMenu';
   menu.className = 'nav-dropdown-menu glass card p-2';
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-labelledby', 'navClientsToggle');
 
-  const createMenuLink = (link, translationKey) => {
+  const transformLink = (link, translationKey) => {
     if (!link) return null;
-    const href = link.getAttribute('href');
-    if (!href) return null;
-    const anchor = document.createElement('a');
-    anchor.href = href;
-    anchor.className = 'btn text-sm';
+    const clone = link.cloneNode(true);
+    clone.className = 'btn text-sm';
     if (translationKey) {
-      anchor.dataset.i18n = translationKey;
+      clone.dataset.i18n = translationKey;
       const text = getTranslation(translationKey) || link.textContent?.trim();
-      if (text) anchor.textContent = text;
-    } else {
-      anchor.textContent = link.textContent?.trim() || href;
+      if (text) clone.textContent = text;
+    } else if (link.textContent) {
+      clone.textContent = link.textContent.trim();
     }
     const target = link.getAttribute('target');
-    if (target) anchor.setAttribute('target', target);
+    if (target) clone.setAttribute('target', target);
     const rel = link.getAttribute('rel');
-    if (rel) anchor.setAttribute('rel', rel);
-    return anchor;
+    if (rel) clone.setAttribute('rel', rel);
+    link.remove();
+    return clone;
   };
 
+  const insertBeforeNode = clientsLink;
+  navLinks.insertBefore(dropdown, insertBeforeNode);
+
   [
-    createMenuLink(clientsLink, 'nav.clients'),
-    createMenuLink(leadsLink, 'nav.leads'),
-    createMenuLink(billingLink, 'nav.billing')
+    transformLink(clientsLink, 'nav.clients'),
+    transformLink(leadsLink, 'nav.leads'),
+    transformLink(billingLink, 'nav.billing')
   ].forEach((anchor) => {
     if (anchor) menu.appendChild(anchor);
   });
 
   dropdown.appendChild(toggle);
   dropdown.appendChild(menu);
-
-  const insertBeforeNode = clientsLink.nextSibling;
-  if (insertBeforeNode) navLinks.insertBefore(dropdown, insertBeforeNode);
-  else navLinks.appendChild(dropdown);
 
   menu.addEventListener('click', () => {
     dropdown.classList.remove('open');
