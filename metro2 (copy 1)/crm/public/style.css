@@ -995,11 +995,12 @@ body::after {
   font-size: 1rem;
 }
 .palette .toggle-active {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(30, 41, 59, 0.62);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--accent);
+  white-space: nowrap;
 }
 .palette .palette-controls {
   position: absolute;
@@ -1119,7 +1120,7 @@ body::after {
     display: none;
   }
   .palette .toggle-active {
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
   }
   .palette .palette-controls {
     left: 0;
