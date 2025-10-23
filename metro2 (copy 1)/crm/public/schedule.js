@@ -645,8 +645,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function checkAvailability(dateStr) {
     try {
-      const timeMin = `${dateStr}T00:00:00Z`;
-      const timeMax = `${dateStr}T23:59:59Z`;
+      let timeMin = `${dateStr}T00:00:00Z`;
+      let timeMax = `${dateStr}T23:59:59Z`;
+      const startOfDay = toDateFromParts(dateStr, '00:00');
+      if (startOfDay) {
+        const endOfDay = new Date(startOfDay.getTime() + dayMs);
+        timeMin = startOfDay.toISOString();
+        timeMax = endOfDay.toISOString();
+      }
       const resp = await fetch('/api/calendar/freebusy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
