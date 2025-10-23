@@ -37,8 +37,8 @@
             </svg>
           </button>
           <div id="navMarketingMenu" class="nav-dropdown-menu glass card p-2">
-            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing • SMS / Mensajes</a>
-            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing • Email / Correo</a>
+            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing • SMS</a>
+            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing • Email</a>
           </div>
         </div>
         <a href="/schedule" class="btn nav-btn">Schedule</a>
@@ -181,62 +181,62 @@
         <section class="glass card p-6 space-y-5" id="planBuilder">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 class="text-lg font-semibold text-slate-900" data-i18n="billing.plans.heading">Custom billing plans • Planes personalizados</h3>
+              <h3 class="text-lg font-semibold text-slate-900" data-i18n="billing.plans.heading">Custom billing plans</h3>
               <p class="text-sm text-slate-600" data-i18n="billing.plans.subheading">Package recurring services and automate reminders.</p>
             </div>
-            <button type="button" class="btn text-xs font-semibold" id="planNew" data-i18n="billing.plans.newButton">New plan • Nuevo plan</button>
+            <button type="button" class="btn text-xs font-semibold" id="planNew" data-i18n="billing.plans.newButton">New plan</button>
           </div>
           <div class="rounded-lg bg-white/70 p-4 space-y-4">
-            <p id="planFormTitle" class="text-sm font-semibold text-slate-700" data-i18n="billing.plans.form.titleNew">New plan • Nuevo plan</p>
+            <p id="planFormTitle" class="text-sm font-semibold text-slate-700" data-i18n="billing.plans.form.titleNew">New plan</p>
             <div class="grid gap-3 sm:grid-cols-2">
               <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                <span data-i18n="billing.plans.form.nameLabel">Plan name / Nombre del plan</span>
+                <span data-i18n="billing.plans.form.nameLabel">Plan name</span>
                 <input id="planName" class="input text-sm" placeholder="Premium credit concierge" data-i18n-placeholder="billing.plans.form.namePlaceholder" />
               </label>
               <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                <span data-i18n="billing.plans.form.amountLabel">Amount / Monto</span>
+                <span data-i18n="billing.plans.form.amountLabel">Amount</span>
                 <input id="planAmount" type="number" step="0.01" class="input text-sm" placeholder="297.00" data-i18n-placeholder="billing.plans.form.amountPlaceholder" />
               </label>
               <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                <span data-i18n="billing.plans.form.startLabel">Start date / Fecha de inicio</span>
+                <span data-i18n="billing.plans.form.startLabel">Start date</span>
                 <input id="planStart" type="date" class="input text-sm" />
               </label>
               <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                <span data-i18n="billing.plans.form.nextLabel">Next bill date / Próximo cobro</span>
+                <span data-i18n="billing.plans.form.nextLabel">Next bill date</span>
                 <input id="planNext" type="date" class="input text-sm" />
               </label>
               <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                <span data-i18n="billing.plans.form.frequencyLabel">Frequency / Frecuencia</span>
+                <span data-i18n="billing.plans.form.frequencyLabel">Frequency</span>
                 <select id="planFrequency" class="input text-sm">
-                  <option value="monthly" data-i18n="billing.plans.form.frequencyMonthly">Monthly • Mensual</option>
-                  <option value="biweekly" data-i18n="billing.plans.form.frequencyBiweekly">Biweekly • Cada 2 semanas</option>
-                  <option value="weekly" data-i18n="billing.plans.form.frequencyWeekly">Weekly • Semanal</option>
-                  <option value="custom" data-i18n="billing.plans.form.frequencyCustom">Custom days • Días personalizados</option>
+                  <option value="monthly" data-i18n="billing.plans.form.frequencyMonthly">Monthly</option>
+                  <option value="biweekly" data-i18n="billing.plans.form.frequencyBiweekly">Biweekly</option>
+                  <option value="weekly" data-i18n="billing.plans.form.frequencyWeekly">Weekly</option>
+                  <option value="custom" data-i18n="billing.plans.form.frequencyCustom">Custom days</option>
                 </select>
               </label>
               <label id="planIntervalWrap" class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-slate-500 hidden">
-                <span data-i18n="billing.plans.form.intervalLabel">Interval (days) / Intervalo (días)</span>
+                <span data-i18n="billing.plans.form.intervalLabel">Interval (days)</span>
                 <input id="planInterval" type="number" min="1" max="365" class="input text-sm" placeholder="30" />
               </label>
               <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                <span data-i18n="billing.plans.form.reminderLeadLabel">Reminder lead (days) / Aviso previo (días)</span>
+                <span data-i18n="billing.plans.form.reminderLeadLabel">Reminder lead (days)</span>
                 <input id="planReminderLead" type="number" min="0" max="60" class="input text-sm" placeholder="3" />
               </label>
               <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-slate-500 sm:col-span-2">
-                <span data-i18n="billing.plans.form.notesLabel">Notes / Notas</span>
+                <span data-i18n="billing.plans.form.notesLabel">Notes</span>
                 <textarea id="planNotes" class="input min-h-[72px] text-sm" placeholder="Outline deliverables" data-i18n-placeholder="billing.plans.form.notesPlaceholder"></textarea>
               </label>
               <label class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500 sm:col-span-2">
                 <input id="planActive" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" checked>
-                <span data-i18n="billing.plans.form.activeLabel">Plan active / Plan activo</span>
+                <span data-i18n="billing.plans.form.activeLabel">Plan active</span>
               </label>
             </div>
             <div class="flex flex-wrap gap-3">
-              <button id="planSave" type="button" class="btn px-4 py-2 text-sm font-semibold" data-i18n="billing.plans.form.saveButton">Save plan • Guardar plan</button>
-              <button id="planSend" type="button" class="btn px-4 py-2 text-sm font-semibold" data-i18n="billing.plans.form.sendButton">Send next invoice • Enviar próxima factura</button>
+              <button id="planSave" type="button" class="btn px-4 py-2 text-sm font-semibold" data-i18n="billing.plans.form.saveButton">Save plan</button>
+              <button id="planSend" type="button" class="btn px-4 py-2 text-sm font-semibold" data-i18n="billing.plans.form.sendButton">Send next invoice</button>
             </div>
           </div>
-          <div id="planEmpty" class="hidden rounded-xl border border-dashed border-slate-300/70 bg-white/60 p-4 text-xs text-slate-600" data-i18n="billing.plans.empty">No plans yet. Create a plan to automate billing cadence. • Aún no hay planes. Crea uno para automatizar la facturación.</div>
+          <div id="planEmpty" class="hidden rounded-xl border border-dashed border-slate-300/70 bg-white/60 p-4 text-xs text-slate-600" data-i18n="billing.plans.empty">No plans yet. Create a plan to automate billing cadence.</div>
           <div id="plansList" class="space-y-3"></div>
         </section>
 

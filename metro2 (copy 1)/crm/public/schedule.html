@@ -397,8 +397,8 @@
             </svg>
           </button>
           <div id="navMarketingMenu" class="nav-dropdown-menu glass card p-2">
-            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing • SMS / Mensajes</a>
-            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing • Email / Correo</a>
+            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing • SMS</a>
+            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing • Email</a>
           </div>
         </div>
         <a href="/schedule" class="btn nav-btn">Schedule</a>
@@ -487,15 +487,15 @@
     <div class="modal-panel w-full max-w-4xl space-y-6 rounded-3xl bg-white/95 p-6 shadow-2xl">
       <div class="modal-hero">
         <div class="space-y-3">
-          <p id="eventModalMode" class="modal-hero-mode">Book premium touchpoint / Agenda un contacto premium</p>
+          <p id="eventModalMode" class="modal-hero-mode">Book premium touchpoint</p>
           <h2 class="modal-hero-title">Schedule event</h2>
-          <p class="modal-hero-subcopy">Protect your consult → purchase conversion by blocking the right slots and narrating the next step. / Protege tu conversión de consulta a compra reservando los horarios correctos y narrando el siguiente paso.</p>
+          <p class="modal-hero-subcopy">Protect your consult → purchase conversion by blocking the right slots and narrating the next step.</p>
         </div>
         <div class="modal-hero-meta">
           <span class="modal-hero-meta-icon" aria-hidden="true">🗓️</span>
           <div>
-            <p class="modal-hero-meta-label">Focus date / Fecha objetivo</p>
-            <p id="eventModalActiveDate" class="modal-hero-meta-value">Pick a date / Selecciona una fecha</p>
+            <p class="modal-hero-meta-label">Focus date</p>
+            <p id="eventModalActiveDate" class="modal-hero-meta-value">Pick a date</p>
           </div>
         </div>
       </div>
@@ -503,78 +503,78 @@
         <section class="space-y-4">
           <div class="modal-card space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="section-label">Date &amp; time / Fecha y hora</p>
+              <p class="section-label">Date &amp; time</p>
               <span id="eventModalTypeBadge" class="hidden rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-600"></span>
             </div>
             <div class="space-y-3">
               <label class="block">
-                <span>Date / Fecha</span>
+                <span>Date</span>
                 <input id="eventDate" type="date" class="input mt-1 w-full">
               </label>
               <div class="grid gap-3 sm:grid-cols-2">
                 <label class="block">
-                  <span>Start time / Hora de inicio</span>
+                  <span>Start time</span>
                   <input id="eventStartTime" type="time" step="60" class="input mt-1 w-full">
                 </label>
                 <label class="block">
-                  <span>End time / Hora de cierre</span>
+                  <span>End time</span>
                   <input id="eventEndTime" type="time" step="60" class="input mt-1 w-full">
                 </label>
               </div>
             </div>
           </div>
           <div class="modal-card space-y-4">
-            <p class="section-label">Context / Contexto</p>
+            <p class="section-label">Context</p>
             <div class="space-y-3">
               <label class="block">
-                <span>Touchpoint type / Tipo de interacción</span>
+                <span>Touchpoint type</span>
                 <input id="eventType" type="text" class="input mt-1 w-full" placeholder="consult / meeting / follow-up">
               </label>
               <label class="block">
-                <span>Details / Detalles</span>
+                <span>Details</span>
                 <input id="eventText" type="text" class="input mt-1 w-full" placeholder="Client + goal (ex. Perez - FCRA timeline)">
               </label>
-              <p class="text-[11px] text-slate-500">State the objective without promising outcomes. / Explica el objetivo sin prometer resultados.</p>
+              <p class="text-[11px] text-slate-500">State the objective without promising outcomes.</p>
             </div>
           </div>
         </section>
         <section class="space-y-4">
           <div class="modal-card accent space-y-4">
             <div class="space-y-2">
-              <p class="section-label">Quick slots / Horarios rápidos</p>
-              <p class="text-sm">Curate premium windows that protect Lead→Consult→Purchase KPIs. / Cura ventanas premium que protegen los KPIs de Lead→Consulta→Compra.</p>
+              <p class="section-label">Quick slots</p>
+              <p class="text-sm">Curate premium windows that protect Lead→Consult→Purchase KPIs.</p>
             </div>
             <div id="slotSuggestions" class="flex flex-wrap gap-3"></div>
             <p id="slotAvailability" class="text-[11px] text-white/80"></p>
           </div>
           <div class="modal-card space-y-3">
-            <p class="section-label">Custom slot / Horario personalizado</p>
+            <p class="section-label">Custom slot</p>
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
               <input id="customSlotLabel" type="text" class="input flex-1" placeholder="Label your slot (optional)">
               <button id="saveCustomSlot" type="button" class="btn btn-outline whitespace-nowrap">Save custom slot</button>
             </div>
-            <p id="customSlotNotice" class="text-[11px] text-slate-500">Use the start/end fields above to define your own slot—we'll remember it on this browser. / Usa los horarios de inicio y fin para crear tu propio espacio y lo guardaremos en este navegador.</p>
+            <p id="customSlotNotice" class="text-[11px] text-slate-500">Use the start/end fields above to define your own slot—we'll remember it on this browser.</p>
           </div>
           <div class="modal-card space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="section-label">Curated quick slots / Horarios rápidos curados</p>
-              <button id="toggleSlotPresetEditor" type="button" class="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-600 transition hover:bg-violet-100" aria-expanded="false">Customize quick slots / Personaliza horarios rápidos</button>
+              <p class="section-label">Curated quick slots</p>
+              <button id="toggleSlotPresetEditor" type="button" class="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-600 transition hover:bg-violet-100" aria-expanded="false">Customize quick slots</button>
             </div>
-            <p class="text-[11px] text-slate-500">Tune the preset times to match your consult cadence. / Ajusta los horarios predefinidos para tu cadencia de consultas.</p>
+            <p class="text-[11px] text-slate-500">Tune the preset times to match your consult cadence.</p>
             <div id="slotPresetEditor" class="hidden space-y-3">
               <div id="slotPresetList" class="space-y-2"></div>
               <div class="flex flex-wrap gap-2">
-                <button id="addSlotPreset" type="button" class="btn-ghost text-xs font-semibold text-violet-600">Add slot / Añadir horario</button>
-                <button id="resetSlotPresets" type="button" class="btn-outline text-xs font-semibold">Reset defaults / Restablecer</button>
-                <button id="saveSlotPresets" type="button" class="btn text-xs font-semibold">Save quick slots / Guardar horarios</button>
+                <button id="addSlotPreset" type="button" class="btn-ghost text-xs font-semibold text-violet-600">Add slot</button>
+                <button id="resetSlotPresets" type="button" class="btn-outline text-xs font-semibold">Reset defaults</button>
+                <button id="saveSlotPresets" type="button" class="btn text-xs font-semibold">Save quick slots</button>
               </div>
-              <p id="slotPresetNotice" class="text-[11px] text-slate-500">Saved per browser; type keywords (consult/follow-up/dispute/billing) drive colors. / Se guarda por navegador; las palabras clave del tipo (consult/follow-up/dispute/billing) definen los colores.</p>
+              <p id="slotPresetNotice" class="text-[11px] text-slate-500">Saved per browser; type keywords (consult/follow-up/dispute/billing) drive colors.</p>
             </div>
           </div>
         </section>
       </div>
       <div class="modal-actions flex flex-wrap justify-end gap-2">
-        <button id="deleteEvent" class="btn-destructive hidden px-4 py-2 text-sm font-semibold">Delete / Eliminar</button>
+        <button id="deleteEvent" class="btn-destructive hidden px-4 py-2 text-sm font-semibold">Delete</button>
         <button id="cancelEvent" class="btn btn-outline">Cancel</button>
         <button id="saveEvent" class="btn">Save</button>
       </div>
