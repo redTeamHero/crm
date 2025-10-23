@@ -154,17 +154,18 @@ function initPipelineBoard(){
   columnRefs.clear();
   PIPELINE_STAGES.forEach(stage => {
     const column = document.createElement('div');
-    column.className = 'glass card min-h-[260px] border border-slate-200/60 bg-white/70 shadow-sm flex flex-col';
+    column.className = 'lead-column glass card';
     column.dataset.stage = stage.id;
     column.innerHTML = `
-      <div class="flex items-start justify-between gap-3">
+      <div class="lead-column__header">
         <div>
-          <div class="text-sm font-semibold text-slate-900">${stage.label}</div>
-          <p class="text-xs text-slate-500 leading-snug">${stage.description}</p>
+          <span class="lead-column__eyebrow">Stage</span>
+          <h3 class="lead-column__title">${stage.label}</h3>
+          <p class="lead-column__subtitle">${stage.description}</p>
         </div>
-        <span class="shrink-0 text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600" data-stage-count="${stage.id}">0</span>
+        <span class="lead-column__count" data-stage-count="${stage.id}">0</span>
       </div>
-      <div class="mt-4 flex-1 space-y-3" data-stage-list="${stage.id}"></div>
+      <div class="lead-column__body" data-stage-list="${stage.id}"></div>
     `;
     const list = column.querySelector('[data-stage-list]');
     pipelineBoard.appendChild(column);
@@ -277,10 +278,16 @@ function renderMetrics(){
   const won = state.leads.filter(lead => lead.status === 'won').length;
   const winRate = total > 0 ? Math.round((won / total) * 100) : 0;
 
-  setText('leadTotalCount', total);
-  setText('leadNewCount', newThisWeek);
-  setText('leadActiveCount', active);
+  const formatNumber = value => (Number.isFinite(value) ? value.toLocaleString() : '0');
+
+  setText('leadTotalCount', formatNumber(total));
+  setText('leadNewCount', formatNumber(newThisWeek));
+  setText('leadActiveCount', formatNumber(active));
   setText('leadWinRate', `${winRate}%`);
+  setText('leadActiveBadge', formatNumber(active));
+  setText('leadNewBadge', formatNumber(newThisWeek));
+  setText('leadWinRateBadge', `${winRate}%`);
+  setText('leadWinRateBadgeSecondary', `${winRate}%`);
 }
 
 function renderSourceFilter(){
@@ -301,10 +308,10 @@ function renderSourceBreakdown(){
   container.innerHTML = '';
   const leadsForBreakdown = state.filterSource === 'all' ? state.leads : getFilteredLeads();
   if(leadsForBreakdown.length === 0){
-    const span = document.createElement('span');
-    span.className = 'text-xs text-slate-500';
-    span.textContent = 'No leads yet.';
-    container.appendChild(span);
+    const empty = document.createElement('div');
+    empty.className = 'lead-source-empty';
+    empty.innerHTML = 'No leads yet.<br><span class="lead-source-empty__hint">Sin datos todavía.</span>';
+    container.appendChild(empty);
     return;
   }
   const counts = new Map();
@@ -312,14 +319,24 @@ function renderSourceBreakdown(){
     const key = lead.sourceLabel || 'Unknown';
     counts.set(key, (counts.get(key) || 0) + 1);
   });
+  const total = leadsForBreakdown.length;
   Array.from(counts.entries())
     .sort((a,b)=>b[1]-a[1])
     .slice(0,6)
-    .forEach(([source, count]) => {
-      const chip = document.createElement('span');
-      chip.className = 'px-3 py-1 rounded-full bg-white/70 border border-slate-200 text-xs text-slate-600 shadow-sm';
-      chip.textContent = `${source} • ${count}`;
-      container.appendChild(chip);
+    .forEach(([source, count], index) => {
+      const percent = Math.round((count / total) * 100);
+      const row = document.createElement('div');
+      row.className = 'lead-source-row';
+      row.innerHTML = `
+        <div class="lead-source-row__meta">
+          <span>${index === 0 ? '⭐ ' : ''}${source}</span>
+          <span>${count} • ${percent}%</span>
+        </div>
+        <div class="lead-source-row__bar">
+          <span style="width:${Math.max(percent, 6)}%;"></span>
+        </div>
+      `;
+      container.appendChild(row);
     });
 }
 
@@ -339,8 +356,11 @@ function renderHighlights(){
 
   if(stale.length === 0){
     const li = document.createElement('li');
-    li.className = 'text-xs text-slate-500 bg-white/60 border border-slate-200 rounded-md px-3 py-2';
-    li.innerHTML = 'No stalled leads. Keep nurturing daily.<br><span class="text-[10px] text-slate-400">Sin leads estancados. Sigue nutriendo diariamente.</span>';
+    li.className = 'lead-highlight lead-highlight--empty';
+    li.innerHTML = `
+      <p>No stalled leads. Keep nurturing daily.</p>
+      <p class="lead-highlight__hint">Sin leads estancados. Sigue nutriendo diariamente.</p>
+    `;
     list.appendChild(li);
     return;
   }
@@ -348,15 +368,15 @@ function renderHighlights(){
   stale.forEach(({ lead, idleDays }) => {
     const stageInfo = STAGE_META[lead.status] || STAGE_META.nurture;
     const li = document.createElement('li');
-    li.className = 'space-y-1 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-3';
+    li.className = 'lead-highlight';
     li.innerHTML = `
-      <div class="flex items-center justify-between text-xs font-medium text-amber-700">
-        <span>${lead.displayName}</span>
-        <span>${idleDays}d idle</span>
+      <div class="lead-highlight__row">
+        <span class="lead-highlight__name">${lead.displayName}</span>
+        <span class="lead-highlight__idle">${idleDays}d idle</span>
       </div>
-      <div class="text-[11px] text-amber-700/80">Stage: ${stageInfo.label}</div>
-      <div class="text-[11px] text-amber-700/80">Last touch: ${formatRelativeTime(lead.updatedAt)}</div>
-      <div class="text-[11px] text-amber-700/80">Next step: ${stageInfo.nextAction}</div>
+      <div class="lead-highlight__stage">Stage: ${stageInfo.label}</div>
+      <div class="lead-highlight__time">Last touch: ${formatRelativeTime(lead.updatedAt)}</div>
+      <div class="lead-highlight__next">Next step: ${stageInfo.nextAction}</div>
     `;
     list.appendChild(li);
   });
@@ -369,34 +389,37 @@ function stageSelectMarkup(current){
 function createLeadCard(lead){
   const stageInfo = STAGE_META[lead.status] || STAGE_META.nurture;
   const card = document.createElement('article');
-  card.className = 'rounded-xl border border-slate-200/60 bg-white/80 shadow-sm p-4 space-y-3 text-slate-700';
+  card.className = 'lead-card';
   card.innerHTML = `
-    <div class="flex items-start justify-between gap-2">
+    <header class="lead-card__header">
       <div>
-        <div class="text-sm font-semibold text-slate-900">${lead.displayName}</div>
-        <div class="text-[11px] text-slate-500">${lead.sourceLabel} • Added ${formatDateDisplay(lead.createdAt)}</div>
+        <h3 class="lead-card__name">${lead.displayName}</h3>
+        <p class="lead-card__meta">${lead.sourceLabel} • Added ${formatDateDisplay(lead.createdAt)}</p>
       </div>
-      <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${stageInfo.badgeClass}">${stageInfo.label}</span>
+      <span class="lead-card__badge ${stageInfo.badgeClass}">${stageInfo.label}</span>
+    </header>
+    <div class="lead-card__details">
+      ${lead.email ? `<div class="lead-card__detail"><span>Email</span><span>${lead.email}</span></div>` : ''}
+      ${lead.phone ? `<div class="lead-card__detail"><span>Phone</span><span>${lead.phone}</span></div>` : ''}
+      ${(lead.locationSummary || lead.zip) ? `<div class="lead-card__detail"><span>Location</span><span>${[lead.locationSummary, lead.zip].filter(Boolean).join(' ')}</span></div>` : ''}
     </div>
-    <div class="space-y-1 text-xs text-slate-600">
-      ${lead.email ? `<div class="flex items-center gap-2"><span class="text-slate-500">Email</span><span>${lead.email}</span></div>` : ''}
-      ${lead.phone ? `<div class="flex items-center gap-2"><span class="text-slate-500">Phone</span><span>${lead.phone}</span></div>` : ''}
-      ${lead.locationSummary || lead.zip ? `<div class="flex items-center gap-2"><span class="text-slate-500">Location</span><span>${[lead.locationSummary, lead.zip].filter(Boolean).join(' ')}</span></div>` : ''}
-    </div>
-    ${lead.notes ? `<div class="text-xs text-slate-600 bg-slate-50/80 border border-slate-200 rounded-md px-3 py-2">${lead.notes}</div>` : ''}
-    <div class="text-[11px] text-slate-500 flex items-center justify-between">
+    ${lead.notes ? `<div class="lead-card__notes">${lead.notes}</div>` : ''}
+    <div class="lead-card__status">
       <span>Last touch: ${formatRelativeTime(lead.updatedAt)}</span>
-      <span class="text-slate-400">ID • ${lead.id.slice(-4).toUpperCase()}</span>
+      <span>ID • ${lead.id.slice(-4).toUpperCase()}</span>
     </div>
-    <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/60">
-      <select data-stage-selector class="text-xs border border-slate-200 rounded-md bg-white/80 px-2 py-1 shadow-sm">
-        ${stageSelectMarkup(lead.status)}
-      </select>
+    <div class="lead-card__actions">
+      <label class="lead-card__stage">
+        <span class="sr-only">Stage</span>
+        <select data-stage-selector class="lead-card__stage-select">
+          ${stageSelectMarkup(lead.status)}
+        </select>
+      </label>
       ${lead.status !== 'won' ? '<button data-action="convert" class="btn text-xs px-3 py-1">Convert</button>' : ''}
       ${lead.status !== 'lost' ? '<button data-action="drop" class="btn-outline text-xs px-3 py-1">Drop</button>' : ''}
       <button data-action="delete" class="btn-destructive text-xs">Delete</button>
     </div>
-    <div class="text-[11px] text-slate-500">Next step: ${stageInfo.nextAction}</div>
+    <div class="lead-card__next">Next step: ${stageInfo.nextAction}</div>
   `;
 
   const stageSelector = card.querySelector('[data-stage-selector]');
@@ -453,8 +476,8 @@ function renderPipeline(){
     const list = columnRefs.get(stage.id);
     if(list && list.children.length === 0){
       const empty = document.createElement('div');
-      empty.className = 'text-xs text-slate-500 italic border border-dashed border-slate-200/70 rounded-lg px-3 py-4 bg-white/40';
-      empty.textContent = stage.empty;
+      empty.className = 'lead-column__empty';
+      empty.innerHTML = `<p>${stage.empty}</p><p class="lead-column__empty-hint">Sin leads en esta etapa.</p>`;
       list.appendChild(empty);
     }
   });
