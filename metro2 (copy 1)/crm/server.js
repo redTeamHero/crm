@@ -53,6 +53,7 @@ import {
 import { withTenantContext, getCurrentTenantId } from "./tenantContext.js";
 import { spawnPythonProcess } from "./pythonEnv.js";
 import { enqueueJob, registerJobProcessor, isQueueEnabled } from "./jobQueue.js";
+import { buildRuleDebugReport } from "./ruleDebugGenerator.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
@@ -3170,36 +3171,75 @@ app.put("/api/dashboard/config", authenticate, requirePermission(["admin", "repo
     res.status(400).json({ ok: false, error: err?.message || "Unable to update dashboard config" });
   }
 });
-app.post("/api/consumers", authenticate, requirePermission("consumers", { allowGuest: true }), async (req,res)=>{
-
+app.post("/api/consumers", authenticate, requirePermission("consumers", { allowGuest: true }), async (req, res) => {
   const db = await loadDB();
 
-  const id = nanoid(10);
+  const isTestClient = Boolean(req.body?.testClient);
+  const requestedIdRaw = isTestClient && typeof req.body?.id === "string" ? req.body.id.trim() : "";
+  const requestedId = requestedIdRaw && /^[a-z0-9_-]{3,}$/i.test(requestedIdRaw) ? requestedIdRaw : null;
+  let id = nanoid(10);
+  if (requestedId && !db.consumers.some((existing) => existing?.id === requestedId)) {
+    id = requestedId;
+  }
+
+  const nowIso = new Date().toISOString();
   const consumer = {
     id,
-    name: req.body.name || "Unnamed",
+    name: req.body.name || (isTestClient ? "Rule Debug Client" : "Unnamed"),
     email: req.body.email || "",
     phone: req.body.phone || "",
     addr1: req.body.addr1 || "",
     addr2: req.body.addr2 || "",
-    city:  req.body.city  || "",
+    city: req.body.city || "",
     state: req.body.state || "",
-    zip:   req.body.zip   || "",
+    zip: req.body.zip || "",
     ssn_last4: req.body.ssn_last4 || "",
     dob: req.body.dob || "",
     sale: Number(req.body.sale) || 0,
     paid: Number(req.body.paid) || 0,
     status: req.body.status || "active",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    reports: []
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    reports: [],
   };
+
+  if (isTestClient) {
+    const ruleReport = buildRuleDebugReport({ includeNegativeItems: true });
+    const reportPayload = {
+      tradelines: ruleReport.tradelines,
+      negative_items: ruleReport.negativeItems,
+      inquiries: [],
+      inquiry_summary: {},
+      personal_info: {},
+      personal_info_mismatches: {},
+      generated_at: nowIso,
+      meta: { source: "rule-debug-auto" },
+    };
+    const reportId = `rule-debug-${nanoid(8)}`;
+    const reportSize = Buffer.byteLength(JSON.stringify(reportPayload), "utf-8");
+    consumer.reports.push({
+      id: reportId,
+      uploadedAt: nowIso,
+      filename: "rule-debug-report.json",
+      size: reportSize,
+      summary: {
+        tradelines: ruleReport.summary.tradelines,
+        negative_items: ruleReport.summary.negative_items,
+        personalInfoMismatches: {},
+      },
+      data: reportPayload,
+    });
+    consumer.testClient = true;
+  }
+
   refreshConsumerGeo(consumer, { force: true });
   db.consumers.push(consumer);
   await saveDB(db);
-  // log event
   await addEvent(id, "consumer_created", { name: consumer.name });
-  res.json({ ok:true, consumer });
+  if (isTestClient) {
+    await addEvent(id, "test_client_seeded", { ruleCount: consumer.reports[0]?.summary?.tradelines || 0 });
+  }
+  res.json({ ok: true, consumer });
 });
 
 app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), async (req,res)=>{
