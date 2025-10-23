@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>My Company</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/css/shepherd.css">
+  <script src="https://cdn.jsdelivr.net/npm/shepherd.js@9.1.1/dist/js/shepherd.min.js" defer></script>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -68,7 +70,7 @@
   </div>
 </header>
 <main class="page-shell">
-  <section class="page-hero glass card" aria-labelledby="pageTitle">
+  <section id="myCompanyHero" class="page-hero glass card" aria-labelledby="pageTitle">
     <div class="hero-header">
       <div>
         <p class="eyebrow">Operations HQ</p>
@@ -97,7 +99,7 @@
         <div class="metric-context">Bundle audit + concierge automation upsell</div>
       </div>
     </div>
-    <div class="hero-upsell">
+    <div id="myCompanyUpsell" class="hero-upsell">
       <div>
         <h2 class="hero-upsell-title">Concierge Ops Upgrade</h2>
         <p class="hero-upsell-copy">Scale faster with concierge onboarding, certified mail automation, and Metro-2 QA reviews built into every client journey.</p>
@@ -146,7 +148,7 @@
     </form>
   </section>
 
-  <section class="glass card team-card" aria-labelledby="teamHeading">
+  <section id="myCompanyTeam" class="glass card team-card" aria-labelledby="teamHeading">
     <div class="section-heading">
       <div>
           <p class="eyebrow">Team Workspace</p>

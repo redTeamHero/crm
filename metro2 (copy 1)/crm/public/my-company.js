@@ -1,4 +1,45 @@
 import { api, createTeamMember } from './common.js';
+import { setupPageTour } from './tour-guide.js';
+
+setupPageTour('settings-company', {
+  steps: [
+    {
+      id: 'my-company-nav',
+      title: 'Navigate settings',
+      text: `<p class="font-semibold">Hop between My Company, Letters, Library, and APIs.</p>
+             <p class="mt-1 text-xs text-slate-600">Keep branding, documents, and automations aligned.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'my-company-hero',
+      title: 'Brand overview',
+      text: `<p class="font-semibold">Use this hero to reinforce your premium mission.</p>
+             <p class="mt-1 text-xs text-slate-600">Share KPIs and concierge upgrades when onboarding teammates.</p>`,
+      attachTo: { element: '#myCompanyHero', on: 'top' }
+    },
+    {
+      id: 'my-company-profile',
+      title: 'Company profile',
+      text: `<p class="font-semibold">Store legal details, contact info, and addresses.</p>
+             <p class="mt-1 text-xs text-slate-600">Everything syncs with letters, billing, and client portals.</p>`,
+      attachTo: { element: '#companyForm', on: 'left' }
+    },
+    {
+      id: 'my-company-team',
+      title: 'Team members',
+      text: `<p class="font-semibold">Invite analysts, closers, and attorneys.</p>
+             <p class="mt-1 text-xs text-slate-600">Create secure logins and keep Metro-2 permissions clear.</p>`,
+      attachTo: { element: '#myCompanyTeam', on: 'top' }
+    },
+    {
+      id: 'my-company-upsell',
+      title: 'Concierge upgrades',
+      text: `<p class="font-semibold">Pitch strategy consults and concierge ops.</p>
+             <p class="mt-1 text-xs text-slate-600">Use this section to promote premium services to partners.</p>`,
+      attachTo: { element: '#myCompanyUpsell', on: 'left' }
+    }
+  ]
+});
 
 const state = {
   members: []

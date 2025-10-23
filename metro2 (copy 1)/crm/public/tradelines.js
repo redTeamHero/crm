@@ -1,3 +1,45 @@
+import { setupPageTour } from './tour-guide.js';
+
+setupPageTour('tradelines', {
+  steps: [
+    {
+      id: 'tradelines-nav',
+      title: 'Navigation',
+      text: `<p class="font-semibold">Switch between Tradelines, Clients, and Billing.</p>
+             <p class="mt-1 text-xs text-slate-600">Use this flow to prep upsells and financing plans.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'tradelines-overview',
+      title: 'Educate first',
+      text: `<p class="font-semibold">Set expectations before pitching tradelines.</p>
+             <p class="mt-1 text-xs text-slate-600">Stay compliance-safe by focusing on education and budgeting.</p>`,
+      attachTo: { element: '#tradelinesOverview', on: 'top' }
+    },
+    {
+      id: 'tradelines-range',
+      title: 'Select price ranges',
+      text: `<p class="font-semibold">Segment offers by budget.</p>
+             <p class="mt-1 text-xs text-slate-600">Match price tiers to buyer personas before showing banks.</p>`,
+      attachTo: { element: '#tradelinesRangeSection', on: 'top' }
+    },
+    {
+      id: 'tradelines-bank',
+      title: 'Choose banks',
+      text: `<p class="font-semibold">Filter by lenders clients already trust.</p>
+             <p class="mt-1 text-xs text-slate-600">Capture preferences before confirming availability.</p>`,
+      attachTo: { element: '#tradelinesBankSection', on: 'top' }
+    },
+    {
+      id: 'tradelines-results',
+      title: 'Review tradelines',
+      text: `<p class="font-semibold">Compare price, limit, age, and cadence.</p>
+             <p class="mt-1 text-xs text-slate-600">Log results and remind buyers there are no guaranteed score changes.</p>`,
+      attachTo: { element: '#tradelinesResultsSection', on: 'top' }
+    }
+  ]
+});
+
 /* public/tradelines.js */
 document.addEventListener('DOMContentLoaded', () => {
   const priceRangeGrid = document.getElementById('price-range-grid');

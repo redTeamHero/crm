@@ -1,3 +1,45 @@
+import { setupPageTour } from './tour-guide.js';
+
+setupPageTour('settings-workflows', {
+  steps: [
+    {
+      id: 'workflows-nav',
+      title: 'Navigation',
+      text: `<p class="font-semibold">Move between Workflows, Library, Marketing, and Billing.</p>
+             <p class="mt-1 text-xs text-slate-600">Connect automation plans with the rest of the revenue stack.</p>`,
+      attachTo: { element: '#primaryNav', on: 'bottom' }
+    },
+    {
+      id: 'workflows-hero',
+      title: 'Workflow launchpad',
+      text: `<p class="font-semibold">Frame the mission and KPIs for automation.</p>
+             <p class="mt-1 text-xs text-slate-600">Use this to align teams on scaling to 7–8 figures.</p>`,
+      attachTo: { element: '#workflowsHero', on: 'top' }
+    },
+    {
+      id: 'workflows-grid',
+      title: 'Workflow catalog',
+      text: `<p class="font-semibold">Browse prebuilt automations for disputes, billing, and marketing.</p>
+             <p class="mt-1 text-xs text-slate-600">Document triggers, steps, and upsells before handing off to devs.</p>`,
+      attachTo: { element: '#workflowGrid', on: 'top' }
+    },
+    {
+      id: 'workflows-analytics',
+      title: 'Analytics backlog',
+      text: `<p class="font-semibold">Instrument every workflow.</p>
+             <p class="mt-1 text-xs text-slate-600">Plan tracking for time-to-value, Metro-2 resolution, and billing recovery.</p>`,
+      attachTo: { element: '#workflowsAnalytics', on: 'top' }
+    },
+    {
+      id: 'workflows-revenue',
+      title: 'Next revenue wins',
+      text: `<p class="font-semibold">Prioritize experiments and upsells.</p>
+             <p class="mt-1 text-xs text-slate-600">Log sprint ideas that move AOV, retention, and consult rates.</p>`,
+      attachTo: { element: '#workflowsRevenue', on: 'top' }
+    }
+  ]
+});
+
 const workflows = [
   {
     id: 'client-onboarding',
