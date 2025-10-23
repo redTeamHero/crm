@@ -36,7 +36,17 @@ function tidyText(str) {
 
 const MONTH_KEYWORDS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const STATEMENT_KEYWORDS = ['statement', 'cycle', 'closing', 'closes', 'cut', 'billing'];
-const STATEMENT_PLACEHOLDERS = ['tbd', 'rolling', 'varies', 'upon request', 'call', 'available now', 'asap', 'n/a', 'na', 'none', 'see notes'];
+const STATEMENT_PLACEHOLDER_SUBSTRINGS = ['tbd', 'rolling', 'varies', 'upon request', 'call', 'available now', 'asap', 'see notes'];
+const STATEMENT_PLACEHOLDER_PATTERNS = [
+  /\bn\s*\/\s*a\b/,
+  /\bnone\b/,
+];
+
+function containsStatementPlaceholder(lower) {
+  if (!lower) return false;
+  if (STATEMENT_PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(lower))) return true;
+  return STATEMENT_PLACEHOLDER_SUBSTRINGS.some((placeholder) => lower.includes(placeholder));
+}
 
 function hasContent(value) {
   if (value == null) return false;
@@ -49,9 +59,7 @@ function normalizeStatement(raw) {
   const value = tidyText(raw);
   if (!value) return '';
   const lower = value.toLowerCase();
-  if (STATEMENT_PLACEHOLDERS.some((placeholder) => lower.includes(placeholder))) return '';
-  if (/^n\/?a$/.test(lower)) return '';
-  if (/^none$/.test(lower)) return '';
+  if (containsStatementPlaceholder(lower)) return '';
   if (/^available$/.test(lower)) return '';
   if (/^\d{1,2}(st|nd|rd|th)$/.test(lower)) return value;
   if (/^\d{1,2}(st|nd|rd|th)?\s*[-–]\s*\d{1,2}(st|nd|rd|th)?$/.test(lower)) return value;
@@ -71,8 +79,7 @@ function isLikelyBank(raw) {
   if (!value) return false;
   if (isLikelyStatement(value)) return false;
   const lower = value.toLowerCase();
-  if (STATEMENT_PLACEHOLDERS.some((placeholder) => lower.includes(placeholder))) return false;
-  if (lower === 'n/a' || lower === 'na') return false;
+  if (containsStatementPlaceholder(lower)) return false;
   if (/\$/.test(lower)) return false;
   if (/(?:limit|season|price|range|spots?|seats?|available|reporting|statement|cycle|closing)/.test(lower)) return false;
   if (!/[a-z]/i.test(value)) return false;

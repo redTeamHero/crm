@@ -80,3 +80,14 @@ test('normalizeViolations falls back to violation text when title missing', asyn
   `).join('');
   assert.ok(html.includes('Only violation field'));
 });
+
+test('resolveBestViolationIdx honors highest severity original index', async () => {
+  const { normalizeViolations, resolveBestViolationIdx } = await loadPublicModule();
+  const normalized = normalizeViolations([
+    { idx: 2, title: 'Low severity', severity: 1 },
+    { idx: 7, title: 'High severity', severity: 5 },
+    { idx: 3, title: 'Medium severity', severity: 3 }
+  ]);
+  const best = resolveBestViolationIdx(normalized);
+  assert.equal(best, 7);
+});
