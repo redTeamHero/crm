@@ -112,6 +112,89 @@
     background: rgba(255, 255, 255, 0.55);
     color: #475569;
   }
+  #eventModal {
+    z-index: 120;
+  }
+  .slot-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.16);
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    transition: all .2s ease;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+  }
+  .slot-button:not(.busy):hover {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.35);
+    color: var(--accent);
+  }
+  .slot-button.selected {
+    background: var(--accent);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 12px 24px rgba(99, 102, 241, 0.25);
+  }
+  .slot-button.busy {
+    opacity: 0.55;
+    cursor: not-allowed;
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.18);
+  }
+  .slot-chip-wrapper {
+    position: relative;
+    display: inline-flex;
+  }
+  .slot-remove-button {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.55);
+    color: rgba(71, 85, 105, 0.9);
+    font-size: 11px;
+    line-height: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.16);
+    transition: all .2s ease;
+  }
+  .slot-remove-button:hover {
+    background: rgba(248, 250, 252, 0.95);
+    color: rgba(220, 38, 38, 1);
+  }
+  .slot-button .slot-time {
+    font-weight: 700;
+  }
+  .slot-button .slot-meta {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: rgba(15, 23, 42, 0.7);
+  }
+  .slot-button.selected .slot-meta {
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .slot-button .slot-status {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .slot-status-open {
+    color: #047857;
+  }
+  .slot-status-busy {
+    color: #dc2626;
+  }
   @media (max-width: 768px) {
     .calendar-grid {
       gap: 6px;
@@ -235,21 +318,46 @@
   </section>
 </main>
 
-<div id="eventModal" class="fixed inset-0 hidden items-center justify-center bg-black/50">
-  <div class="bg-white p-4 rounded w-80">
-    <h2 class="text-lg font-bold mb-2">Event</h2>
-    <label class="block mb-2 text-sm">Date
-      <input id="eventDate" type="date" class="border p-1 w-full">
-    </label>
-    <label class="block mb-2 text-sm">Type
-      <input id="eventType" type="text" class="border p-1 w-full" placeholder="booking/meeting/phone">
-    </label>
-    <label class="block mb-4 text-sm">Details
-      <input id="eventText" type="text" class="border p-1 w-full">
-    </label>
-    <div class="flex justify-end gap-2">
+<div id="eventModal" class="fixed inset-0 hidden items-center justify-center bg-black/50 px-4">
+  <div class="bg-white p-6 rounded-3xl shadow-xl w-full max-w-md space-y-4">
+    <div>
+      <h2 class="text-xl font-semibold text-slate-900">Event</h2>
+      <p class="text-xs text-slate-500 mt-1">Drop a premium touchpoint and reserve the exact slot you want.</p>
+    </div>
+    <div class="space-y-3">
+      <label class="block text-sm font-medium text-slate-600">Date
+        <input id="eventDate" type="date" class="mt-1 border p-2 rounded-lg w-full">
+      </label>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label class="block text-sm font-medium text-slate-600">Start Time
+          <input id="eventStartTime" type="time" step="60" class="mt-1 border p-2 rounded-lg w-full">
+        </label>
+        <label class="block text-sm font-medium text-slate-600">End Time
+          <input id="eventEndTime" type="time" step="60" class="mt-1 border p-2 rounded-lg w-full">
+        </label>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wide text-slate-500">Quick slots</p>
+        <div id="slotSuggestions" class="mt-2 flex flex-wrap gap-2"></div>
+        <p id="slotAvailability" class="mt-2 text-xs text-slate-500"></p>
+        <div class="mt-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input id="customSlotLabel" type="text" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60" placeholder="Label your slot (optional)">
+            <button id="saveCustomSlot" type="button" class="btn btn-outline whitespace-nowrap">Save custom slot</button>
+          </div>
+          <p id="customSlotNotice" class="text-[11px] text-slate-500">Use the start/end fields above to define your own slot&mdash;we'll remember it on this browser. / Usa los horarios de inicio y fin para crear tu propio espacio y lo guardaremos en este navegador.</p>
+        </div>
+      </div>
+      <label class="block text-sm font-medium text-slate-600">Type
+        <input id="eventType" type="text" class="mt-1 border p-2 rounded-lg w-full" placeholder="consult/meeting/follow-up">
+      </label>
+      <label class="block text-sm font-medium text-slate-600">Details
+        <input id="eventText" type="text" class="mt-1 border p-2 rounded-lg w-full" placeholder="Client name or goal">
+      </label>
+    </div>
+    <div class="flex flex-wrap justify-end gap-2">
       <button id="deleteEvent" class="btn bg-red-600 hidden">Delete</button>
-      <button id="cancelEvent" class="btn">Cancel</button>
+      <button id="cancelEvent" class="btn btn-outline">Cancel</button>
       <button id="saveEvent" class="btn">Save</button>
     </div>
   </div>
