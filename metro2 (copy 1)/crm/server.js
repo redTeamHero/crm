@@ -1013,6 +1013,9 @@ app.get(["/marketing", "/marketing/sms", "/marketing/email"], optionalAuth, forb
 );
 app.get("/tradelines", optionalAuth, forbidMember, (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "tradelines.html")));
 app.get("/quiz", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "quiz.html")));
+app.get("/settings/client-portal", optionalAuth, forbidMember, (_req, res) =>
+  res.sendFile(path.join(PUBLIC_DIR, "client-portal-settings.html"))
+);
 app.get("/settings", optionalAuth, forbidMember, (_req,res)=> res.sendFile(path.join(PUBLIC_DIR, "settings.html")));
 app.get("/client-portal.html", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "client-portal-template.html")));
 app.get("/team/:token", (req,res)=>{

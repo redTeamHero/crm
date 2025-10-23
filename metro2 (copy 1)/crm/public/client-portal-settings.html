@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Client Portal Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <span>Menu</span>
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2" aria-label="Primary">
+      <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+        <a href="/dashboard" class="btn nav-btn">Dashboard</a>
+        <a href="/clients" class="btn nav-btn">Clients</a>
+        <a href="/leads" class="btn nav-btn">Leads</a>
+        <div class="nav-dropdown" id="navMarketing">
+          <button type="button" id="navMarketingToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
+            <span data-i18n="nav.marketing">Marketing</span>
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div id="navMarketingMenu" class="nav-dropdown-menu glass card p-2">
+            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing • SMS / Mensajes</a>
+            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing • Email / Correo</a>
+          </div>
+        </div>
+        <a href="/schedule" class="btn nav-btn">Schedule</a>
+        <a href="/billing" class="btn nav-btn">Billing</a>
+        <div class="nav-dropdown" id="navSettings">
+          <button type="button" id="navSettingsToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
+            <span>Settings</span>
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div id="navSettingsMenu" class="nav-dropdown-menu glass card p-2">
+            <a id="navCompany" href="/my-company" class="btn text-sm">My Company</a>
+            <a href="/settings/client-portal" class="btn text-sm" aria-current="page" data-i18n="nav.clientPortal">Client Portal • Portal del Cliente</a>
+            <a href="/letters" class="btn text-sm">Letter</a>
+            <a href="/library" class="btn text-sm">Library</a>
+            <a href="/settings#api-integrations" class="btn text-sm">APIs</a>
+            <a href="/workflows" class="btn text-sm">Workflows</a>
+            <button id="btnInvite" class="btn text-sm" style="background: var(--green-bg);">Add Team Member</button>
+          </div>
+        </div>
+        <a href="/tradelines" class="btn nav-btn">Tradelines</a>
+        <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="You've started your journey.">
+          <span class="text-xl">📈</span>
+          <span class="font-semibold text-sm">Builder</span>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+<main class="page-shell">
+  <section class="page-hero glass card" aria-labelledby="clientPortalTitle">
+    <div class="hero-header">
+      <div>
+        <p class="eyebrow">Premium Client Experience</p>
+        <h1 id="clientPortalTitle" class="page-title">Client Portal • Portal del Cliente</h1>
+        <p class="hero-subtitle">Deliver a bilingual, premium-branded portal that builds trust, clarity, and faster approvals.</p>
+      </div>
+      <div class="hero-actions">
+        <a class="btn" href="/client-portal-template.html" target="_blank" rel="noopener">Preview live portal</a>
+        <button type="button" class="btn-outline" data-action="share-upsell">Share upgrade offer</button>
+      </div>
+    </div>
+    <div class="hero-metrics" aria-label="Key metrics">
+      <div class="metric">
+        <div class="metric-label">Portal Adoption</div>
+        <div class="metric-value">82%</div>
+        <div class="metric-context">Hosts logging in monthly · Track active users vs. total</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Upload-to-Approval</div>
+        <div class="metric-value">18 hrs</div>
+        <div class="metric-context">Reduce wait time with automated notifications</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Upgrade Attach Rate</div>
+        <div class="metric-value">37%</div>
+        <div class="metric-context">Bundle concierge reviews for higher LTV</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="glass card space-y-4" aria-labelledby="brandingHeading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Branding Control</p>
+        <h2 id="brandingHeading" class="section-title">Portal Theme & Modules</h2>
+        <p class="section-description">Customize visuals, bilingual copy, and feature access so every client feels guided and empowered.</p>
+      </div>
+      <div class="section-side">
+        <span class="badge bg-subtle">Client-facing</span>
+        <span class="section-note">Reflects instantly for portal visitors</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="clientPortalModuleGrid">
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="creditScore" checked /> Credit Score / Puntaje de Crédito</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="negativeItems" checked /> Negative Items / Elementos Negativos</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="reportSnapshot" checked /> Report Snapshot / Resumen</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="milestones" checked /> Milestones / Metas</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="team" checked /> Team / Equipo</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="news" checked /> News / Noticias</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="debtCalc" checked /> Debt Tools / Calculadora</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="messages" checked /> Messages / Mensajes</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="education" checked /> Education / Educación</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="documents" checked /> Documents / Documentos</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="mail" checked /> Mail / Correo</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="payments" checked /> Payments / Pagos</label>
+      <label class="flex items-center gap-2"><input type="checkbox" class="form-checkbox" data-portal-module="uploads" checked /> Uploads / Cargas</label>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <label class="block space-y-1">
+        <span class="text-xs uppercase tracking-wide text-gray-500">Background Color (Hex) / Color de Fondo</span>
+        <input id="portalBackgroundColor" class="w-full border rounded px-2 py-1 text-sm" placeholder="#0f172a" />
+        <span class="text-[11px] text-gray-500">Leave blank to keep the animated gradient.</span>
+      </label>
+      <label class="block space-y-1">
+        <span class="text-xs uppercase tracking-wide text-gray-500">Logo URL</span>
+        <input id="portalLogoUrl" class="w-full border rounded px-2 py-1 text-sm" placeholder="https://cdn.yourbrand.com/logo.png" />
+        <span class="text-[11px] text-gray-500">PNG/SVG recommended, 160×160px, HTTPS or relative path.</span>
+      </label>
+      <label class="block space-y-1 sm:col-span-2">
+        <span class="text-xs uppercase tracking-wide text-gray-500">Headline (English)</span>
+        <input id="portalTaglinePrimary" class="w-full border rounded px-2 py-1 text-sm" placeholder="Track disputes, uploads, and approvals in one place." />
+      </label>
+      <label class="block space-y-1 sm:col-span-2">
+        <span class="text-xs uppercase tracking-wide text-gray-500">Headline (Spanish)</span>
+        <input id="portalTaglineSecondary" class="w-full border rounded px-2 py-1 text-sm" placeholder="Sigue tus disputas, cargas y aprobaciones en un solo lugar." />
+      </label>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" id="portalThemeReset" class="btn text-xs">Reset to Defaults</button>
+      <button type="button" id="saveSettings" class="btn text-sm">Save</button>
+      <div id="saveMsg" class="text-sm muted hidden" role="status">Saved!</div>
+    </div>
+  </section>
+
+  <section class="glass card" aria-labelledby="ctaPortalHeading">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Next Revenue Win</p>
+        <h2 id="ctaPortalHeading" class="section-title">Offer a concierge portal upgrade</h2>
+        <p class="section-description">Bundle priority dispute reviews + SMS alerts for $97/mo to lift LTV while keeping compliance-safe messaging.</p>
+      </div>
+      <div class="section-side">
+        <a class="btn" href="mailto:sales@revolv.ai?subject=Concierge%20Portal%20Upgrade">Book strategy consult</a>
+      </div>
+    </div>
+    <div class="grid gap-3 md:grid-cols-2">
+      <div class="rounded-xl border border-white/10 bg-white/30 p-4 backdrop-blur space-y-2">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Automation ideas</h3>
+        <ul class="list-disc list-inside text-sm space-y-1">
+          <li>Trigger certified mail when uploads hit “Ready to Approve”.</li>
+          <li>Drop NEPQ follow-ups into the portal inbox.</li>
+          <li>Highlight Metro-2 wins with bilingual milestone banners.</li>
+        </ul>
+      </div>
+      <div class="rounded-xl border border-white/10 bg-white/30 p-4 backdrop-blur space-y-2">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">Analytics to track</h3>
+        <ul class="list-disc list-inside text-sm space-y-1">
+          <li>Portal logins per client per week.</li>
+          <li>Document upload-to-approval conversion.</li>
+          <li>Checkout completions from concierge upsell.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+<script type="module" src="/common.js"></script>
+<script src="/hotkeys.js"></script>
+<script src="/settings.js"></script>
+</body>
+</html>
