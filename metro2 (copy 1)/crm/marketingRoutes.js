@@ -3,6 +3,9 @@ import {
   enqueueTestSend,
   updateTestQueueItem,
   listTestQueue,
+  listCampaigns,
+  createCampaign,
+  updateCampaign,
   listTemplates,
   createTemplate,
   updateTemplate,
@@ -33,6 +36,154 @@ function parseLimit(value, defaultValue = 10) {
   if (Number.isNaN(num)) return defaultValue;
   return Math.max(1, Math.min(num, 50));
 }
+
+const ALLOWED_CAMPAIGN_STATUSES = new Set(["draft", "scheduled", "running", "paused", "completed"]);
+
+function sanitizeCampaignStatus(value, fallback = "draft") {
+  if (typeof value !== "string") return fallback;
+  const status = value.trim().toLowerCase();
+  if (!status) return fallback;
+  return ALLOWED_CAMPAIGN_STATUSES.has(status) ? status : fallback;
+}
+
+function sanitizeSegmentValue(value, fallback = "b2c") {
+  const safe = sanitizeString(value || "").toLowerCase().slice(0, 24);
+  return safe || fallback;
+}
+
+function parseCampaignProgress(value, fallback = 0) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    throw new Error("Progress must be a number");
+  }
+  return Math.max(0, Math.min(Math.round(num), 100));
+}
+
+function parseCampaignDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid date");
+  }
+  return date.toISOString();
+}
+
+router.get("/campaigns", async (_req, res) => {
+  const campaigns = await listCampaigns();
+  res.json({ ok: true, campaigns });
+});
+
+router.post("/campaigns", async (req, res) => {
+  const {
+    name,
+    status = "draft",
+    segment = "b2c",
+    nextTouchAt = null,
+    kpiTarget = "",
+    summary = "",
+    progress = 0,
+  } = req.body || {};
+
+  const safeName = sanitizeString(name).slice(0, 160);
+  if (!safeName) {
+    return res.status(400).json({ ok: false, error: "Campaign name is required" });
+  }
+
+  let safeProgress;
+  let safeNextTouch = null;
+  try {
+    safeProgress = parseCampaignProgress(progress, 0);
+    safeNextTouch = nextTouchAt ? parseCampaignDate(nextTouchAt) : null;
+  } catch (error) {
+    return res.status(400).json({ ok: false, error: error.message || "Invalid campaign data" });
+  }
+
+  try {
+    const campaign = await createCampaign({
+      name: safeName,
+      status: sanitizeCampaignStatus(status),
+      segment: sanitizeSegmentValue(segment),
+      nextTouchAt: safeNextTouch,
+      kpiTarget: sanitizeString(kpiTarget).slice(0, 160),
+      summary: sanitizeString(summary).slice(0, 400),
+      progress: safeProgress,
+      createdBy: req.user?.username || "system",
+    });
+    res.status(201).json({ ok: true, campaign });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "Failed to create campaign" });
+  }
+});
+
+router.patch("/campaigns/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, status, segment, nextTouchAt, kpiTarget, summary, progress } = req.body || {};
+
+  const patch = {};
+
+  if (name !== undefined) {
+    const safeName = sanitizeString(name).slice(0, 160);
+    if (!safeName) {
+      return res.status(400).json({ ok: false, error: "Campaign name is required" });
+    }
+    patch.name = safeName;
+  }
+
+  if (status !== undefined) {
+    const trimmed = sanitizeString(status);
+    if (!trimmed) {
+      return res.status(400).json({ ok: false, error: "Campaign status is required" });
+    }
+    const safeStatus = sanitizeCampaignStatus(trimmed, null);
+    if (!safeStatus) {
+      return res.status(400).json({ ok: false, error: "Invalid campaign status" });
+    }
+    patch.status = safeStatus;
+  }
+
+  if (segment !== undefined) {
+    patch.segment = sanitizeSegmentValue(segment);
+  }
+
+  if (kpiTarget !== undefined) {
+    patch.kpiTarget = sanitizeString(kpiTarget).slice(0, 160);
+  }
+
+  if (summary !== undefined) {
+    patch.summary = sanitizeString(summary).slice(0, 400);
+  }
+
+  if (progress !== undefined) {
+    try {
+      patch.progress = parseCampaignProgress(progress, null);
+    } catch (error) {
+      return res.status(400).json({ ok: false, error: error.message || "Invalid progress" });
+    }
+  }
+
+  if (nextTouchAt !== undefined) {
+    try {
+      patch.nextTouchAt = nextTouchAt ? parseCampaignDate(nextTouchAt) : null;
+    } catch (error) {
+      return res.status(400).json({ ok: false, error: error.message || "Invalid next touch date" });
+    }
+  }
+
+  patch.updatedBy = req.user?.username || "system";
+
+  try {
+    const campaign = await updateCampaign(id, patch);
+    res.json({ ok: true, campaign });
+  } catch (error) {
+    if (error.message === "Campaign not found") {
+      return res.status(404).json({ ok: false, error: "Campaign not found" });
+    }
+    res.status(500).json({ ok: false, error: error.message || "Failed to update campaign" });
+  }
+});
 
 router.get("/templates", async (_req, res) => {
   const templates = await listTemplates();

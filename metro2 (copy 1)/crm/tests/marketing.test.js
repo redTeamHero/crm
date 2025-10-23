@@ -151,6 +151,42 @@ test("marketing API queues tests, templates, and providers", async () => {
     assert.equal(providerRes.status, 200);
     assert.equal(providerRes.body.provider.status, "ready");
     assert.equal(providerRes.body.provider.notes, "Connected in test");
+
+    const nextTouch = new Date(Date.now() + 86400000).toISOString();
+    const campaignRes = await request(app)
+      .post("/api/marketing/campaigns")
+      .set("Authorization", "Bearer " + token)
+      .send({
+        name: "Spring Revival Push",
+        status: "scheduled",
+        segment: "inactive",
+        nextTouchAt: nextTouch,
+        kpiTarget: "20% consult rate",
+        summary: "Warm inactive households with bilingual concierge CTA.",
+        progress: 45,
+      });
+    assert.equal(campaignRes.status, 201);
+    assert.equal(campaignRes.body.ok, true);
+    assert.equal(campaignRes.body.campaign.status, "scheduled");
+    assert.equal(campaignRes.body.campaign.progress, 45);
+    assert.equal(campaignRes.body.campaign.kpiTarget, "20% consult rate");
+
+    const campaignUpdate = await request(app)
+      .patch(`/api/marketing/campaigns/${campaignRes.body.campaign.id}`)
+      .set("Authorization", "Bearer " + token)
+      .send({ status: "running", progress: 60, summary: "In-flight with NEPQ nudges" });
+    assert.equal(campaignUpdate.status, 200);
+    assert.equal(campaignUpdate.body.campaign.status, "running");
+    assert.equal(campaignUpdate.body.campaign.progress, 60);
+    assert.equal(campaignUpdate.body.campaign.summary, "In-flight with NEPQ nudges");
+
+    const campaignsList = await request(app)
+      .get("/api/marketing/campaigns")
+      .set("Authorization", "Bearer " + token);
+    assert.equal(campaignsList.status, 200);
+    assert.ok(
+      campaignsList.body.campaigns.some((campaign) => campaign.id === campaignRes.body.campaign.id)
+    );
   } finally {
     if (original === null || typeof original === "undefined") {
       await writeKey(MARKETING_STATE_KEY, null);

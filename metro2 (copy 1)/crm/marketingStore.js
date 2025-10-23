@@ -63,6 +63,51 @@ const DEFAULT_EMAIL_SEQUENCES = [
   },
 ];
 
+const DEFAULT_CAMPAIGNS = [
+  {
+    id: "cmp-new-year",
+    name: "New Year Credit Boost",
+    status: "scheduled",
+    segment: "inactive",
+    nextTouchAt: new Date(2025, 0, 3, 15, 0).toISOString(),
+    kpiTarget: "18% consult rate",
+    summary: "Segment inactive households, reinforce trust timeline, and nudge Stripe upsell.",
+    progress: 65,
+    createdAt: new Date(2024, 10, 28).toISOString(),
+    updatedAt: new Date(2024, 10, 28).toISOString(),
+    createdBy: "system",
+    updatedBy: "system",
+  },
+  {
+    id: "cmp-trucker-webinar",
+    name: "Trucker Safety + Credit Webinar",
+    status: "completed",
+    segment: "b2b",
+    nextTouchAt: new Date(2024, 7, 12, 19, 0).toISOString(),
+    kpiTarget: "24 consults booked",
+    summary: "Win fleet compliance retainer upsells after webinar replay drip.",
+    progress: 92,
+    createdAt: new Date(2024, 6, 2).toISOString(),
+    updatedAt: new Date(2024, 8, 20).toISOString(),
+    createdBy: "system",
+    updatedBy: "system",
+  },
+  {
+    id: "cmp-score-drop",
+    name: "Score Drop Alert",
+    status: "draft",
+    segment: "b2c",
+    nextTouchAt: null,
+    kpiTarget: "Book dispute strategy calls",
+    summary: "Trigger Metro-2 anomaly detector + concierge scheduling CTA.",
+    progress: 40,
+    createdAt: new Date(2024, 8, 1).toISOString(),
+    updatedAt: new Date(2024, 8, 1).toISOString(),
+    createdBy: "system",
+    updatedBy: "system",
+  },
+];
+
 const DEFAULT_PROVIDERS = [
   {
     id: "sms_twilio",
@@ -94,12 +139,15 @@ const DEFAULT_STATE = {
   templates: DEFAULT_TEMPLATES,
   smsTemplates: DEFAULT_SMS_TEMPLATES,
   emailSequences: DEFAULT_EMAIL_SEQUENCES,
+  campaigns: DEFAULT_CAMPAIGNS,
   testQueue: [],
   emailDispatchQueue: [],
   providers: DEFAULT_PROVIDERS,
 };
 
 const ALLOWED_TEST_STATUSES = new Set(["queued", "sending", "sent", "failed"]);
+
+const CAMPAIGN_STATUSES = new Set(["draft", "scheduled", "running", "paused", "completed"]);
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -212,6 +260,51 @@ function normalizeEmailSequence(raw = {}) {
   };
 }
 
+function parseCampaignDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function normalizeCampaign(raw = {}) {
+  const name = String(raw.name || raw.title || "Campaign").trim();
+  const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
+  const statusRaw = String(raw.status || "draft").toLowerCase();
+  const status = CAMPAIGN_STATUSES.has(statusRaw) ? statusRaw : "draft";
+  const kpiTarget = raw.kpiTarget ? String(raw.kpiTarget).slice(0, 160) : "";
+  const summary = raw.summary ? String(raw.summary).slice(0, 400) : "";
+  const progress = Number.isFinite(Number(raw.progress))
+    ? Math.max(0, Math.min(Math.round(Number(raw.progress)), 100))
+    : 0;
+  const nextTouchAt = parseCampaignDate(raw.nextTouchAt);
+  const createdAtDate = raw.createdAt ? new Date(raw.createdAt) : new Date();
+  const createdAt = Number.isNaN(createdAtDate.getTime())
+    ? new Date().toISOString()
+    : createdAtDate.toISOString();
+  const updatedAtDate = raw.updatedAt ? new Date(raw.updatedAt) : new Date(createdAt);
+  const updatedAt = Number.isNaN(updatedAtDate.getTime())
+    ? createdAt
+    : updatedAtDate.toISOString();
+  const createdBy = raw.createdBy || "system";
+  const updatedBy = raw.updatedBy || raw.createdBy || "system";
+
+  return {
+    id: raw.id || nanoid(10),
+    name: name || "Campaign",
+    segment,
+    status,
+    kpiTarget,
+    summary,
+    progress,
+    nextTouchAt,
+    createdAt,
+    updatedAt,
+    createdBy,
+    updatedBy,
+  };
+}
+
 function normalizeEmailDispatch(raw = {}) {
   const targetType = raw.targetType === "sequence" ? "sequence" : "template";
   const targetId = String(raw.targetId || "").trim();
@@ -267,10 +360,20 @@ function normalizeState(raw) {
     templates: ensureArray(base.templates),
     smsTemplates: ensureArray(base.smsTemplates),
     emailSequences: ensureArray(base.emailSequences),
+    campaigns: ensureArray(base.campaigns),
     testQueue: ensureArray(base.testQueue),
     emailDispatchQueue: ensureArray(base.emailDispatchQueue),
     providers: ensureArray(base.providers),
   };
+
+  const campaignMap = new Map();
+  for (const campaign of [...DEFAULT_CAMPAIGNS, ...normalized.campaigns]) {
+    const normalizedCampaign = normalizeCampaign(campaign);
+    campaignMap.set(normalizedCampaign.id, normalizedCampaign);
+  }
+  normalized.campaigns = Array.from(campaignMap.values()).sort((a, b) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
 
   const templateMap = new Map();
   for (const tpl of [...DEFAULT_STATE.templates, ...normalized.templates]) {
@@ -357,6 +460,55 @@ async function loadMarketingState() {
 
 async function saveMarketingState(state) {
   await writeKey(MARKETING_STATE_KEY, state);
+}
+
+export async function listCampaigns() {
+  const state = await loadMarketingState();
+  return state.campaigns;
+}
+
+export async function createCampaign(campaign) {
+  const state = await loadMarketingState();
+  const now = new Date().toISOString();
+  const createdBy = campaign?.createdBy || "system";
+  const next = normalizeCampaign({
+    ...campaign,
+    createdAt: now,
+    updatedAt: now,
+    createdBy,
+    updatedBy: createdBy,
+  });
+  state.campaigns = [next, ...state.campaigns.filter((cmp) => cmp.id !== next.id)].slice(0, 100);
+  await saveMarketingState(state);
+  return next;
+}
+
+export async function updateCampaign(id, updates = {}) {
+  if (!id) throw new Error("Campaign id is required");
+  const state = await loadMarketingState();
+  const index = state.campaigns.findIndex((cmp) => cmp.id === id);
+  if (index === -1) {
+    throw new Error("Campaign not found");
+  }
+  const now = new Date().toISOString();
+  const current = state.campaigns[index];
+  const updatedBy = updates.updatedBy || updates.lastModifiedBy || current.updatedBy || current.createdBy || "system";
+  const next = normalizeCampaign({
+    ...current,
+    ...updates,
+    id: current.id,
+    createdAt: current.createdAt,
+    createdBy: current.createdBy,
+    updatedAt: now,
+    updatedBy,
+  });
+  state.campaigns[index] = next;
+  state.campaigns = [
+    state.campaigns[index],
+    ...state.campaigns.filter((cmp, cmpIndex) => cmpIndex !== index),
+  ].slice(0, 100);
+  await saveMarketingState(state);
+  return state.campaigns[0];
 }
 
 export async function listTemplates() {
@@ -603,5 +755,9 @@ export function getDefaultTemplates() {
 
 export function getDefaultProviders() {
   return clone(DEFAULT_PROVIDERS);
+}
+
+export function getDefaultCampaigns() {
+  return clone(DEFAULT_CAMPAIGNS);
 }
 

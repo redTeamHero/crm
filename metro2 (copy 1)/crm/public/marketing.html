@@ -426,6 +426,76 @@
     </div>
   </div>
 
+  <div id="campaignModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
+    <div class="glass card w-full max-w-3xl space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="campaignModalHeading">
+      <header class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 id="campaignModalHeading" class="text-lg font-semibold">Campaign Planner • Planificador de campañas</h3>
+          <p class="text-xs text-slate-500">Map segments, KPIs, and next touch so automations stay compliant. • Mapea segmentos, KPIs y próximo contacto para mantener la automatización en cumplimiento.</p>
+        </div>
+        <button class="btn bg-slate-900" type="button" data-close-campaign>Close • Cerrar</button>
+      </header>
+      <form id="campaignForm" class="space-y-4">
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="campaignName">Campaign name • Nombre de campaña</label>
+            <input id="campaignName" name="name" class="input" placeholder="Score Drop Alert" required />
+          </div>
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="campaignSegment">Segment</label>
+            <select id="campaignSegment" name="segment" class="input">
+              <option value="b2c">B2C • Consumidores</option>
+              <option value="b2b">B2B • Negocios</option>
+              <option value="attorneys">Attorneys • Abogados</option>
+              <option value="inactive">Inactive • Inactivos</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="campaignStatusSelect">Status • Estado</label>
+            <select id="campaignStatusSelect" name="status" class="input">
+              <option value="draft">Draft • Borrador</option>
+              <option value="scheduled">Scheduled • Programada</option>
+              <option value="running">Running • En curso</option>
+              <option value="paused">Paused • En pausa</option>
+              <option value="completed">Completed • Completada</option>
+            </select>
+          </div>
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="campaignProgress">Progress • Progreso</label>
+            <div class="flex items-center gap-3">
+              <input id="campaignProgress" name="progress" class="flex-1" type="range" min="0" max="100" step="1" value="0" />
+              <span id="campaignProgressValue" class="w-12 text-right text-xs text-slate-600">0%</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="campaignNextTouch">Next touch • Próximo contacto</label>
+            <input id="campaignNextTouch" name="nextTouchAt" class="input" type="datetime-local" />
+          </div>
+          <div class="grid gap-2">
+            <label class="text-sm font-medium" for="campaignKpiTarget">KPI target • Meta KPI</label>
+            <input id="campaignKpiTarget" name="kpiTarget" class="input" placeholder="20% consult rate" />
+          </div>
+        </div>
+        <div class="grid gap-2">
+          <label class="text-sm font-medium" for="campaignSummary">Summary / CTA notes • Resumen / CTA</label>
+          <textarea id="campaignSummary" name="summary" class="input h-28" placeholder="Outline the offer, CTA, and compliance promise."></textarea>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+          <span>No guaranteed score promises; log opt-out guardrails. • No prometas resultados garantizados; registra guardas de opt-out.</span>
+          <div class="flex flex-wrap gap-2">
+            <button class="btn" type="submit">Save Campaign • Guardar campaña</button>
+            <button class="btn" type="button" data-close-campaign>Cancel • Cancelar</button>
+          </div>
+        </div>
+        <p id="campaignStatus" class="hidden rounded-lg px-3 py-2 text-xs"></p>
+      </form>
+    </div>
+  </div>
+
   <!-- Campaign Analytics Preview -->
   <section aria-labelledby="campaign-dashboard-heading" class="glass card p-6 space-y-6">
     <div class="flex items-center gap-3">
@@ -437,42 +507,15 @@
     </div>
     <div class="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
       <section class="space-y-4">
-        <header class="flex items-center justify-between">
+        <header class="flex flex-wrap items-center justify-between gap-3">
           <h3 class="text-lg font-semibold" data-i18n="marketing.campaignDashboard.recentCampaigns">Recent Campaigns</h3>
-          <button class="btn" type="button" data-i18n="marketing.campaignDashboard.exportCsv">Export CSV</button>
+          <div class="flex flex-wrap gap-2">
+            <button class="btn" id="btnAddCampaign" type="button">New Campaign • Nueva campaña</button>
+            <button class="btn" id="btnExportCampaigns" type="button" data-i18n="marketing.campaignDashboard.exportCsv">Export CSV</button>
+          </div>
         </header>
-        <div class="space-y-3" id="campaignList">
-          <article class="glass card bg-white/70 space-y-2" data-status="scheduled">
-            <div class="flex items-center justify-between text-sm">
-              <span class="font-semibold" data-i18n="marketing.campaignDashboard.cards.newYear.title">New Year Credit Boost</span>
-              <span class="chip" data-i18n="marketing.campaignDashboard.statuses.scheduled">Scheduled</span>
-            </div>
-            <p class="text-xs text-slate-500" data-i18n="marketing.campaignDashboard.cards.newYear.body">Next touch: Jan 3 • Segment: Inactive Accounts • KPI target: 18% consult rate.</p>
-            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-              <div class="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500" style="width:65%"></div>
-            </div>
-          </article>
-          <article class="glass card bg-white/70 space-y-2" data-status="completed">
-            <div class="flex items-center justify-between text-sm">
-              <span class="font-semibold" data-i18n="marketing.campaignDashboard.cards.trucker.title">Trucker Safety + Credit Webinar</span>
-              <span class="chip" data-i18n="marketing.campaignDashboard.statuses.completed">Completed</span>
-            </div>
-            <p class="text-xs text-slate-500" data-i18n="marketing.campaignDashboard.cards.trucker.body">Result: 24 booked consults • Upsell opportunity: Fleet compliance retainer.</p>
-            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-              <div class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" style="width:92%"></div>
-            </div>
-          </article>
-          <article class="glass card bg-white/70 space-y-2" data-status="draft">
-            <div class="flex items-center justify-between text-sm">
-              <span class="font-semibold" data-i18n="marketing.campaignDashboard.cards.scoreDrop.title">Score Drop Alert</span>
-              <span class="chip" data-i18n="marketing.campaignDashboard.statuses.draft">Draft</span>
-            </div>
-            <p class="text-xs text-slate-500" data-i18n="marketing.campaignDashboard.cards.scoreDrop.body">Set webhook to Metro-2 anomaly detector • CTA: Schedule dispute strategy.</p>
-            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-              <div class="h-full rounded-full bg-gradient-to-r from-sky-500 to-indigo-500" style="width:40%"></div>
-            </div>
-          </article>
-        </div>
+        <div class="space-y-3" id="campaignList"></div>
+        <p id="campaignEmpty" class="hidden text-xs text-slate-500">Log your first campaign to sync metrics and upsell paths. • Registra tu primera campaña para sincronizar métricas y rutas de upsell.</p>
       </section>
       <aside class="space-y-4">
         <div class="glass card bg-white/80 p-4 space-y-3">
