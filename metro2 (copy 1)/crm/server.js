@@ -1137,7 +1137,12 @@ app.get("/portal/:id", async (req, res) => {
       negativeItems = latestReport.data.negative_items;
     } else if (Array.isArray(latestReport.data.tradelines)) {
       try {
-        const { items } = prepareNegativeItems(latestReport.data.tradelines);
+        const { items } = prepareNegativeItems(latestReport.data.tradelines, {
+          inquiries: latestReport.data.inquiries,
+          inquirySummary: latestReport.data.inquiry_summary,
+          personalInfo: latestReport.data.personalInfo || latestReport.data.personal_information || latestReport.data.personal_info,
+          personalInfoMismatches: latestReport.data.personalInfoMismatches || latestReport.data.personal_info_mismatches,
+        });
         negativeItems = items;
       } catch (e) {
         logError("NEGATIVE_ITEM_ERROR", "Failed to prepare portal negative items", e, { consumerId: consumer.id, reportId: latestReport.id });
@@ -3827,8 +3832,23 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       const dom = new JSDOM(htmlText);
       const jsResult = parseCreditReportHTML(dom.window.document);
       analyzed.tradelines = jsResult.tradelines || [];
-      if (jsResult.personalInfo) {
+      if (Array.isArray(jsResult.inquiries)) {
+        analyzed.inquiries = jsResult.inquiries;
+      }
+      if (jsResult.inquiry_summary && typeof jsResult.inquiry_summary === "object") {
+        analyzed.inquiry_summary = jsResult.inquiry_summary;
+      }
+      if (Array.isArray(jsResult.inquiry_details)) {
+        analyzed.inquiry_details = jsResult.inquiry_details;
+      }
+      if (jsResult.credit_scores && typeof jsResult.credit_scores === "object") {
+        analyzed.credit_scores = jsResult.credit_scores;
+      }
+      if (jsResult.personalInfo && typeof jsResult.personalInfo === "object") {
         analyzed.personalInfo = jsResult.personalInfo;
+      }
+      if (jsResult.personal_information && typeof jsResult.personal_information === "object") {
+        analyzed.personal_information = analyzed.personal_information || jsResult.personal_information;
       }
       diagnostics.jsTradelineCount = analyzed.tradelines.length;
     } catch (e) {
@@ -3954,14 +3974,6 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       errors.push({ step: "rule_audit", message: e.message, details: e.stack || String(e) });
     }
 
-    try {
-      const { items } = prepareNegativeItems(analyzed.tradelines || []);
-      analyzed.negative_items = items;
-    } catch (e) {
-      logError("NEGATIVE_ITEM_ERROR", "Failed to prepare negative items", e);
-      errors.push({ step: "negative_items", message: e.message, details: e.stack || String(e) });
-    }
-
     try{
       const extractedScores = extractCreditScores(htmlText);
       if (Object.keys(extractedScores).length) {
@@ -4005,6 +4017,20 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       }
     }
     analyzed.personalInfoMismatches = mismatches;
+
+    try {
+      const { items } = prepareNegativeItems(analyzed.tradelines || [], {
+        inquiries: analyzed.inquiries,
+        inquirySummary: analyzed.inquiry_summary,
+        personalInfo: analyzed.personalInfo || analyzed.personal_information || analyzed.personal_info,
+        personalInfoMismatches: analyzed.personalInfoMismatches,
+      });
+      analyzed.negative_items = items;
+    } catch (e) {
+      logError("NEGATIVE_ITEM_ERROR", "Failed to prepare negative items", e);
+      errors.push({ step: "negative_items", message: e.message, details: e.stack || String(e) });
+    }
+
     const rid = nanoid(8);
     // store original uploaded file so clients can access it from document center
     const uploadDir = consumerUploadsDir(consumer.id);
@@ -4070,7 +4096,12 @@ app.get("/api/consumers/:id/report/:rid", async (req,res)=>{
   if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
   if (!Array.isArray(r.data?.negative_items) && Array.isArray(r.data?.tradelines)) {
     try {
-      const { items } = prepareNegativeItems(r.data.tradelines);
+      const { items } = prepareNegativeItems(r.data.tradelines, {
+        inquiries: r.data.inquiries,
+        inquirySummary: r.data.inquiry_summary,
+        personalInfo: r.data.personalInfo || r.data.personal_information || r.data.personal_info,
+        personalInfoMismatches: r.data.personalInfoMismatches || r.data.personal_info_mismatches,
+      });
       r.data.negative_items = items;
     } catch (e) {
       logError("NEGATIVE_ITEM_ERROR", "Failed to backfill negative items on fetch", e, { consumerId: c.id, reportId: r.id });
@@ -4124,7 +4155,12 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
   }
   runBasicRuleAudit(r.data);
   try {
-    const { items } = prepareNegativeItems(r.data.tradelines || []);
+    const { items } = prepareNegativeItems(r.data.tradelines || [], {
+      inquiries: r.data.inquiries,
+      inquirySummary: r.data.inquiry_summary,
+      personalInfo: r.data.personalInfo || r.data.personal_information || r.data.personal_info,
+      personalInfoMismatches: r.data.personalInfoMismatches || r.data.personal_info_mismatches,
+    });
     r.data.negative_items = items;
   } catch (e) {
     logError("NEGATIVE_ITEM_ERROR", "Failed to refresh negative items after edit", e, { consumerId: c.id, reportId: r.id });
