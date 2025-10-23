@@ -1010,23 +1010,39 @@ function updateSelectionStateFromCard(card){
   updateSelectAllButton();
 }
 
+export function resolveBestViolationIdx(violations = []){
+  if (!Array.isArray(violations) || !violations.length) return null;
+  let best = null;
+  let bestSeverity = -Infinity;
+  violations.forEach(v => {
+    if (!v) return;
+    const severity = Number.isFinite(v.severity) ? v.severity : Number(v.severity) || 0;
+    if (severity > bestSeverity){
+      bestSeverity = severity;
+      best = v;
+    }
+  });
+  if (!best) return null;
+  if (best.idx !== undefined && best.idx !== null) return best.idx;
+  if (best.originalIndex !== undefined && best.originalIndex !== null) return best.originalIndex;
+  return violations.indexOf(best);
+}
+
 function autoSelectBestViolation(card){
   const idx = Number(card.dataset.index);
   const tl = CURRENT_REPORT?.tradelines?.[idx];
   if (!tl) return;
   const vs = normalizeViolations(tl.violations || []);
   if (!vs.length) return;
-  let bestIdx = 0;
-  let bestSeverity = -Infinity;
-  vs.forEach((v,i)=>{
-    const sev = v.severity || 0;
-    if (sev > bestSeverity){
-      bestSeverity = sev;
-      bestIdx = i;
-    }
-  });
+  const targetIdx = resolveBestViolationIdx(vs);
+  if (targetIdx === null) return;
   card.querySelectorAll('.violation').forEach(cb => {
-    cb.checked = Number(cb.value) === bestIdx;
+    const raw = cb.value;
+    const numVal = Number(raw);
+    const matches = Number.isNaN(numVal)
+      ? String(raw) === String(targetIdx)
+      : numVal === targetIdx;
+    cb.checked = matches;
   });
   updateSelectionStateFromCard(card);
 }
