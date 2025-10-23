@@ -363,6 +363,219 @@ function buildPortalSnapshot(items = []){
   return { totalIssues, summary };
 }
 
+function safeIsoString(value){
+  if(!value) return null;
+  const ts = Date.parse(value);
+  if(!Number.isFinite(ts)) return null;
+  return new Date(ts).toISOString();
+}
+
+function sanitizePortalEvent(event){
+  if(!event || typeof event !== "object") return null;
+  const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
+  const textFields = [payload.title, payload.text, payload.message, payload.note, payload.description]
+    .map(val => (typeof val === "string" ? val.trim() : ""))
+    .filter(Boolean);
+  const rawMessage = textFields[0] || null;
+  const truncatedMessage = rawMessage ? rawMessage.slice(0, 280) : null;
+  const actor = typeof payload.from === "string"
+    ? payload.from
+    : typeof payload.author === "string"
+      ? payload.author
+      : null;
+  const stage = typeof payload.stage === "string" ? payload.stage : null;
+  const link = typeof payload.url === "string"
+    ? payload.url
+    : typeof payload.file === "string"
+      ? payload.file
+      : null;
+  return {
+    id: (event.id || nanoid(8)).toString(),
+    type: (event.type || "update").toString(),
+    at: safeIsoString(event.at) || new Date().toISOString(),
+    actor,
+    title: typeof payload.title === "string" ? payload.title : null,
+    message: truncatedMessage,
+    stage,
+    link,
+  };
+}
+
+function sanitizePortalDocument(file, consumerId){
+  if(!file || typeof file !== "object") return null;
+  const id = (file.id || file.storedName || nanoid(8)).toString();
+  const label = [file.originalName, file.name, file.filename]
+    .map(value => (typeof value === "string" ? value.trim() : ""))
+    .find(Boolean);
+  const sizeValue = Number.parseInt(file.size, 10);
+  const size = Number.isFinite(sizeValue) ? sizeValue : null;
+  const storedName = typeof file.storedName === "string" ? file.storedName : null;
+  const url = typeof file.url === "string"
+    ? file.url
+    : storedName
+      ? `/api/consumers/${consumerId}/state/files/${storedName}`
+      : null;
+  return {
+    id,
+    name: label || `Document ${id.slice(-4)}`,
+    uploadedAt: safeIsoString(file.uploadedAt),
+    type: typeof file.type === "string" ? file.type : null,
+    size,
+    url,
+  };
+}
+
+function sanitizePortalReminder(reminder){
+  if(!reminder || typeof reminder !== "object") return null;
+  const payload = reminder.payload && typeof reminder.payload === "object" ? reminder.payload : {};
+  return {
+    id: (reminder.id || nanoid(8)).toString(),
+    due: safeIsoString(reminder.due),
+    title: typeof reminder.title === "string"
+      ? reminder.title
+      : typeof payload.title === "string"
+        ? payload.title
+        : typeof payload.name === "string"
+          ? payload.name
+          : null,
+    note: typeof payload.note === "string" ? payload.note : null,
+  };
+}
+
+function sanitizePortalInvoice(invoice){
+  if(!invoice || typeof invoice !== "object") return null;
+  const amount = roundCurrency(coerceAmount(invoice.amount));
+  const due = safeIsoString(invoice.due);
+  const createdAt = safeIsoString(invoice.createdAt);
+  const paidAt = safeIsoString(invoice.paidAt);
+  const status = invoice.paid
+    ? "paid"
+    : due && Date.parse(due) < Date.now()
+      ? "past_due"
+      : "open";
+  return {
+    id: (invoice.id || nanoid(8)).toString(),
+    description: (invoice.desc || invoice.description || "Invoice").toString(),
+    amount,
+    amountFormatted: formatUsd(amount),
+    due,
+    createdAt,
+    paid: Boolean(invoice.paid),
+    paidAt,
+    status,
+    payLink: typeof invoice.payLink === "string" ? invoice.payLink : null,
+  };
+}
+
+function portalInvoiceTimestamp(invoice){
+  if(!invoice || typeof invoice !== "object") return 0;
+  const candidates = [invoice.updatedAt, invoice.createdAt, invoice.due];
+  for (const candidate of candidates){
+    const iso = safeIsoString(candidate);
+    if(!iso) continue;
+    const ts = Date.parse(iso);
+    if(Number.isFinite(ts)) return ts;
+  }
+  return 0;
+}
+
+async function buildClientPortalPayload(consumer){
+  if(!consumer) return null;
+  const latestReport = consumer.reports?.[0];
+  let negativeItems = [];
+  if(latestReport?.data){
+    if(Array.isArray(latestReport.data.negative_items)){
+      negativeItems = latestReport.data.negative_items;
+    } else if(Array.isArray(latestReport.data.tradelines)){
+      try {
+        const { items } = prepareNegativeItems(latestReport.data.tradelines, {
+          inquiries: latestReport.data.inquiries,
+          inquirySummary: latestReport.data.inquiry_summary,
+          personalInfo:
+            latestReport.data.personalInfo ||
+            latestReport.data.personal_information ||
+            latestReport.data.personal_info,
+          personalInfoMismatches:
+            latestReport.data.personalInfoMismatches ||
+            latestReport.data.personal_info_mismatches,
+        });
+        negativeItems = items;
+      } catch (err) {
+        logError('NEGATIVE_ITEM_ERROR', 'Failed to prepare portal negative items', err, { consumerId: consumer.id, reportId: latestReport.id });
+      }
+    }
+  }
+
+  const [settings, consumerState, tracker, invoicesDb] = await Promise.all([
+    loadSettings(),
+    listConsumerState(consumer.id).catch(() => ({ events: [], files: [], reminders: [], creditScore: null })),
+    listTracker(consumer.id).catch(() => ({ steps: [], completed: {} })),
+    loadInvoicesDB().catch(() => ({ invoices: [] })),
+  ]);
+
+  const portalSettings = exportClientPortalSettings(settings?.clientPortal);
+  const events = Array.isArray(consumerState?.events)
+    ? consumerState.events
+        .slice(0, 50)
+        .map(event => sanitizePortalEvent(event))
+        .filter(Boolean)
+    : [];
+  const documents = Array.isArray(consumerState?.files)
+    ? consumerState.files
+        .slice(0, 40)
+        .map(file => sanitizePortalDocument(file, consumer.id))
+        .filter(Boolean)
+    : [];
+  const reminders = Array.isArray(consumerState?.reminders)
+    ? consumerState.reminders
+        .slice(0, 20)
+        .map(reminder => sanitizePortalReminder(reminder))
+        .filter(Boolean)
+    : [];
+  const invoices = Array.isArray(invoicesDb?.invoices)
+    ? invoicesDb.invoices
+        .filter(invoice => invoice?.consumerId === consumer.id)
+        .sort((a, b) => portalInvoiceTimestamp(b) - portalInvoiceTimestamp(a))
+        .slice(0, 20)
+        .map(invoice => sanitizePortalInvoice(invoice))
+        .filter(Boolean)
+    : [];
+
+  return {
+    consumer: {
+      id: consumer.id,
+      name: consumer.name || 'Client',
+      status: consumer.status || 'active',
+      email: consumer.email || null,
+      phone: consumer.phone || null,
+      createdAt: safeIsoString(consumer.createdAt || consumer.enrolledAt),
+    },
+    creditScore:
+      consumer.creditScore ||
+      (consumerState && typeof consumerState === 'object' ? consumerState.creditScore : null) ||
+      null,
+    negativeItems,
+    snapshot: buildPortalSnapshot(negativeItems),
+    portalSettings,
+    timeline: events,
+    documents,
+    reminders,
+    tracker: {
+      steps: Array.isArray(tracker?.steps)
+        ? tracker.steps.map(step => (step == null ? null : step.toString())).filter(Boolean)
+        : [],
+      completed:
+        tracker && typeof tracker.completed === 'object' && tracker.completed !== null
+          ? tracker.completed
+          : {},
+    },
+    invoices,
+    messages: events
+      .filter(event => event.type === 'message' && event.message)
+      .map(event => ({ id: event.id, at: event.at, actor: event.actor, message: event.message })),
+  };
+}
+
 function toInlineJson(data){
   return JSON.stringify(data)
     .replace(/</g, "\\u003c")
@@ -1115,7 +1328,7 @@ app.get("/team/:token", (req, res) => {
 });
 app.get("/portal/:id", async (req, res) => {
   const db = await loadDB();
-  const consumer = db.consumers.find(c => c.id === req.params.id);
+  const consumer = db.consumers.find((c) => c.id === req.params.id);
   if (!consumer) return res.status(404).send("Portal not found");
   const templatePath = resolvePublicFilePath("client-portal-template.html");
   if (!templatePath) {
@@ -1129,37 +1342,57 @@ app.get("/portal/:id", async (req, res) => {
     logError("PORTAL_TEMPLATE_READ_FAILED", "Failed to read client portal template", err);
     return res.status(500).send("Portal unavailable");
   }
-  let html = tmpl.replace(/{{name}}/g, consumer.name);
-  const latestReport = consumer.reports?.[0];
-  let negativeItems = [];
-  if (latestReport?.data) {
-    if (Array.isArray(latestReport.data.negative_items)) {
-      negativeItems = latestReport.data.negative_items;
-    } else if (Array.isArray(latestReport.data.tradelines)) {
-      try {
-        const { items } = prepareNegativeItems(latestReport.data.tradelines, {
-          inquiries: latestReport.data.inquiries,
-          inquirySummary: latestReport.data.inquiry_summary,
-          personalInfo: latestReport.data.personalInfo || latestReport.data.personal_information || latestReport.data.personal_info,
-          personalInfoMismatches: latestReport.data.personalInfoMismatches || latestReport.data.personal_info_mismatches,
-        });
-        negativeItems = items;
-      } catch (e) {
-        logError("NEGATIVE_ITEM_ERROR", "Failed to prepare portal negative items", e, { consumerId: consumer.id, reportId: latestReport.id });
-      }
-    }
+  let payload;
+  try {
+    payload = await buildClientPortalPayload(consumer);
+  } catch (err) {
+    logError("PORTAL_PAYLOAD_FAILED", "Failed to build portal payload", err, { consumerId: consumer.id });
+    return res.status(500).send("Portal unavailable");
   }
-  const settings = await loadSettings();
+  if (!payload) {
+    return res.status(500).send("Portal unavailable");
+  }
+  let html = tmpl.replace(/{{name}}/g, consumer.name);
   const bootstrap = {
-    creditScore: consumer.creditScore || null,
-    negativeItems,
-    snapshot: buildPortalSnapshot(negativeItems),
-    portalSettings: exportClientPortalSettings(settings?.clientPortal),
+    creditScore: payload.creditScore,
+    negativeItems: payload.negativeItems,
+    snapshot: payload.snapshot,
+    portalSettings: payload.portalSettings,
   };
   const serializedBootstrap = toInlineJson(bootstrap);
   const bootstrapScript = `\n<script>\n  try {\n    const data = ${serializedBootstrap};\n    window.__PORTAL_BOOTSTRAP__ = data;\n    window.__NEGATIVE_ITEMS__ = Array.isArray(data.negativeItems) ? data.negativeItems : [];\n    if (data.creditScore) {\n      localStorage.setItem('creditScore', JSON.stringify(data.creditScore));\n    } else {\n      localStorage.removeItem('creditScore');\n    }\n    localStorage.setItem('negativeItems', JSON.stringify(window.__NEGATIVE_ITEMS__));\n    localStorage.setItem('creditSnapshot', JSON.stringify(data.snapshot || {}));\n  } catch (err) {\n    console.warn('Failed to bootstrap portal data', err);\n  }\n</script>`;
-  html = html.replace('<script src="/client-portal.js"></script>', `${bootstrapScript}\n<script src="/client-portal.js"></script>`);
+  const enhancedPayload = toInlineJson({
+    timeline: payload.timeline,
+    documents: payload.documents,
+    reminders: payload.reminders,
+    tracker: payload.tracker,
+    invoices: payload.invoices,
+    messages: payload.messages,
+  });
+  const enhancedScript = `\n<script>\n  try {\n    window.__PORTAL_ENHANCED__ = ${enhancedPayload};\n  } catch (err) {\n    console.warn('Failed to hydrate enhanced portal data', err);\n  }\n</script>`;
+  html = html.replace(
+    '<script src="/client-portal.js"></script>',
+    `${bootstrapScript}${enhancedScript}\n<script src="/client-portal.js"></script>`
+  );
   res.send(html);
+});
+
+app.get("/api/portal/:id", async (req, res) => {
+  try {
+    const db = await loadDB();
+    const consumer = db.consumers.find((c) => c.id === req.params.id);
+    if (!consumer) {
+      return res.status(404).json({ ok: false, error: "Portal not found" });
+    }
+    const payload = await buildClientPortalPayload(consumer);
+    if (!payload) {
+      return res.status(500).json({ ok: false, error: "Portal unavailable" });
+    }
+    res.json({ ok: true, portal: payload });
+  } catch (err) {
+    logError("PORTAL_API_ERROR", "Failed to build portal payload", err, { consumerId: req.params.id });
+    res.status(500).json({ ok: false, error: "Portal unavailable" });
+  }
 });
 
 app.get("/buy", async (req, res) => {
