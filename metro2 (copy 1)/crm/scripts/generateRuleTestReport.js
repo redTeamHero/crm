@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateRuleDebugTradelines } from '../ruleDebugGenerator.js';
-import { prepareNegativeItems } from '../negativeItems.js';
+import { prepareNegativeItems } from '../../../shared/lib/format/negativeItems.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');

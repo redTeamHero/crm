@@ -14,7 +14,7 @@
 [ Application Services — reportPipeline.js, tradelineBuckets.js,
   marketingStore.js, playbook.js, state transitions ]
                   ↓ Domain Rules & Entities
-[ Domain / Model Layer — negativeItems.js, letterEngine.js,
+[ Domain / Model Layer — shared/lib/format/negativeItems.js, letterEngine.js,
   tenantLimits.js, shared/metro2 schemas ]
                   ↓ Persistence & External Providers
 [ Infrastructure / Integration — kvdb.js, pdfUtils.js,
@@ -27,7 +27,7 @@
 | --- | --- | --- | --- |
 | **API / Gateway / Edge** | Request routing, auth (JWT + client tokens), tenant resolution, validation, response shaping, rate limiting. | `server.js`, `marketingRoutes.js`, `public/api` handlers, `middleware` sections. | Accepts HTTP/WS requests, hands validated commands/events to Application layer. Returns DTOs only (no raw DB rows). |
 | **Application Services** | Business workflows: onboarding consumers, running Metro-2 audits, generating invoices, orchestrating calendar + marketing jobs. Applies use-case rules and coordinates domain entities. | `reportPipeline.js`, `marketingStore.js`, `playbook.js`, `state.js` (workflow orchestration), service utilities in `packages/metro2-browser` when orchestrating browser automation. | Consumes domain models, calls infrastructure through explicit adapters. Emits events (`logInfo`, job queues) back to edge. |
-| **Domain / Model** | Core concepts (Consumer, Tradeline, Dispute Letter, Tenant Quota) and business invariants (Metro-2 validations, quota math). Pure logic with no side effects. | `negativeItems.js`, `letterEngine.js`, `letterTemplates.js`, `tenantLimits.js`, `shared/data/**`, `shared/violations.js`, `packages/metro2-core/src/**`. | Exposed as pure functions/classes consumed by Application layer. Accepts POJOs/value objects; returns domain DTOs, errors. |
+| **Domain / Model** | Core concepts (Consumer, Tradeline, Dispute Letter, Tenant Quota) and business invariants (Metro-2 validations, quota math). Pure logic with no side effects. | `shared/lib/format/negativeItems.js`, `letterEngine.js`, `letterTemplates.js`, `tenantLimits.js`, `shared/data/**`, `shared/violations.js`, `packages/metro2-core/src/**`. | Exposed as pure functions/classes consumed by Application layer. Accepts POJOs/value objects; returns domain DTOs, errors. |
 | **Infrastructure / Integration** | Persistence adapters (SQLite via `kvdb.js`), file storage, PDF rendering (Puppeteer), calendar, certified mail, marketing APIs, Python workers. Handles retries, circuit breakers, secrets. | `kvdb.js`, `pdfUtils.js`, `googleCalendar.js`, `simpleCertifiedMail.js`, `fetchUtil.js`, `scripts/`, `python-tests/`, `metro2_audit_multi.py`, `packages/metro2-cheerio/src/**`. | Provide async adapters returning promises/observables. Never expose Express `req/res`. |
 | **UI / Frontend** | Client portals, admin console, marketing microsites. Should stay framework-agnostic via REST + event APIs. | `public/`, static dashboards, and documented flows in `docs/marketing-integration.md`. Future Next.js surfaces live under `/apps` when we split them out. | Talks only to API layer via HTTPS/WebSocket; no direct DB access. |
 
@@ -45,7 +45,7 @@
 
 ## Extension guide (checklist)
 - [ ] Define the domain change (new entity, rule update) in `docs/` and update relevant schemas in `shared/`.
-- [ ] Add/adjust domain logic (`shared/domain/**` or `negativeItems.js`). Keep functions pure.
+- [ ] Add/adjust domain logic (`shared/domain/**` or `shared/lib/format/negativeItems.js`). Keep functions pure.
 - [ ] Create/extend an application service that coordinates the workflow. Inject adapters instead of importing infra modules directly.
 - [ ] Expose an endpoint/controller in `server.js` (or a dedicated router) that binds request → service.
 - [ ] Wire infrastructure adapters (DB tables, external API clients) in `kvdb.js` or a new adapter file.

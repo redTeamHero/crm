@@ -22,6 +22,7 @@ export default {
   "Comment":                  { key: "comments" },
   "Date of Last Payment":     { key: "date_last_payment", normalizer: toMDY },
   "Date Last Payment":        { key: "date_last_payment", normalizer: toMDY },
+  "Last Payment Date":        { key: "date_last_payment", normalizer: toMDY },
   "Two-Year Payment History": { key: "two_year_payment_history" },
   "Two Year Payment History": { key: "two_year_payment_history" },
   "Date of First Delinquency": { key: "date_first_delinquency", normalizer: toMDY },
