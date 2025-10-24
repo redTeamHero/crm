@@ -1,4 +1,5 @@
-import { validateTradeline } from "../../packages/metro2-core/src/validators.js";
+import { validateTradeline } from "../../../packages/metro2-core/src/validators.js";
+import { normalizeBureau as coreNormalizeBureau } from "../../../packages/metro2-core/src/index.js";
 
 const ALL_BUREAUS = ["TransUnion", "Experian", "Equifax"];
 
@@ -221,12 +222,7 @@ function normalizePersonalField(label = ""){
 }
 
 function normalizeBureauName(value = ""){
-  const t = String(value).toLowerCase();
-  if (!t) return null;
-  if (/transunion|\btu\b|\btuc\b/.test(t)) return "TransUnion";
-  if (/experian|\bexp\b/.test(t)) return "Experian";
-  if (/equifax|\beqf\b|\beqx\b/.test(t)) return "Equifax";
-  return null;
+  return coreNormalizeBureau(value) || null;
 }
 
 function formatPersonalInfoValue(value){

@@ -33,7 +33,7 @@ import {
   paginate,
 } from "./tradelineBuckets.js";
 import marketingRoutes from "./marketingRoutes.js";
-import { prepareNegativeItems } from "./negativeItems.js";
+import { prepareNegativeItems } from "../../shared/lib/format/negativeItems.js";
 import { mapAuditedViolations } from "./pullTradelineData.js";
 import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID, resolveTenantId } from "./tenantLimits.js";
 import {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { prepareNegativeItems } from '../negativeItems.js';
+import { prepareNegativeItems } from '../../../shared/lib/format/negativeItems.js';
 
 test('prepareNegativeItems keeps categories and selects highest severity headline', () => {
   const tradelines = [

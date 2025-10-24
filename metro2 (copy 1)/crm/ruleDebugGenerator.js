@@ -1,6 +1,6 @@
 import { loadKnowledgeGraph } from '../../shared/knowledgeGraph.js';
 import { loadMetro2Violations } from '../../shared/violations.js';
-import { prepareNegativeItems } from './negativeItems.js';
+import { prepareNegativeItems } from '../../shared/lib/format/negativeItems.js';
 
 const MONEY_FIELDS = new Set(['past_due', 'balance', 'credit_limit', 'high_credit']);
 const DATE_FIELDS = new Set([

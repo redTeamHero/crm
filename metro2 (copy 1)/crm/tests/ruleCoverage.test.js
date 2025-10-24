@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { prepareNegativeItems } from '../negativeItems.js';
+import { prepareNegativeItems } from '../../../shared/lib/format/negativeItems.js';
 import { loadKnowledgeGraph } from '../../../shared/knowledgeGraph.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
