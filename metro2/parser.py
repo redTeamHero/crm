@@ -208,7 +208,7 @@ def _parse_with_bridge(
             personal_cards = payload.get("personalInfo")
             if isinstance(personal_cards, dict) and personal_cards:
                 result["personalInfo"] = personal_cards
-        return result
+        return run_all_audits(result)
 
     soup = soup_factory()
     result = {
@@ -217,7 +217,7 @@ def _parse_with_bridge(
     }
     if include_personal:
         result["personal_information"] = _fallback_parse_personal_info(soup)
-    return result
+    return run_all_audits(result)
 
 
 # ───────────── Fallback BeautifulSoup parsers ─────────────
