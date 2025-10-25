@@ -290,6 +290,12 @@ FIELD_SYNONYMS: Dict[str, Sequence[str]] = {
     "bureau": ("credit_bureau",),
 }
 
+KNOWN_BUREAUS = {
+    "transunion": "TransUnion",
+    "experian": "Experian",
+    "equifax": "Equifax",
+}
+
 
 def normalize_tradeline(record: MutableMapping[str, Any]) -> None:
     """Normalize keys and whitespace so audit rules see consistent fields."""
@@ -337,7 +343,8 @@ def normalize_tradeline(record: MutableMapping[str, Any]) -> None:
                 break
 
     if "bureau" in record and isinstance(record["bureau"], str):
-        record["bureau"] = record["bureau"].strip().title()
+        bureau_value = record["bureau"].strip()
+        record["bureau"] = KNOWN_BUREAUS.get(bureau_value.lower(), bureau_value.title())
 
 
 # ---------------------------------------------------------------------------
