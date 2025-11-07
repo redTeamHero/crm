@@ -80,7 +80,7 @@ const workflows = [
     outcome: 'Every dispute is mailed, tracked, and auditable without manual prep.',
     kpis: ['Dispute completion rate', 'Mail turnaround time', 'Violation categories fixed'],
     automations: [
-      'Use metro2-core to score violations before generation',
+      'Use the updated Metro-2 workflow to score violations before generation',
       'Connect to certified mail API + webhook for delivery',
       'Sync status back to CRM tasks'
     ],
@@ -234,7 +234,7 @@ const workflows = [
     outcome: 'Adds professionalism and pressure without manual handling.',
     kpis: ['Escalation success rate', 'Average approval time', 'Regulator response time'],
     automations: [
-      'Auto-fill complaint forms with metro2-core data',
+      'Auto-fill complaint forms with audited Metro-2 data',
       'Securely store supporting evidence',
       'Create compliance tasks with due dates'
     ],

@@ -1,7 +1,5 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { JSDOM } from 'jsdom';
-import parseCreditReportHTML from './parser.js';
 import { generateLetters } from './letterEngine.js';
 import { htmlToPdfBuffer } from './pdfUtils.js';
 
@@ -12,22 +10,7 @@ import { htmlToPdfBuffer } from './pdfUtils.js';
  * @returns {Promise<Array<{filename:string,pdf:Buffer}>>}
  */
 export async function htmlReportToDisputePdfs(html, consumer){
-  if(!html) throw new Error('html required');
-  const dom = new JSDOM(html);
-  const { tradelines } = parseCreditReportHTML(dom.window.document);
-  const report = { tradelines };
-  const selections = report.tradelines.map((tl, idx)=>({
-    tradelineIndex: idx,
-    bureaus: Object.keys(tl.per_bureau||{}).filter(b=>Object.keys(tl.per_bureau[b]||{}).length),
-    violationIdxs: (tl.violations||[]).map((_,i)=>i)
-  }));
-  const letters = generateLetters({ report, selections, consumer });
-  const out = [];
-  for(const L of letters){
-    const pdf = await htmlToPdfBuffer(L.html);
-    out.push({ filename: L.filename.replace(/\.html?$/i,'.pdf'), pdf });
-  }
-  return out;
+  throw new Error('Credit report parser has been removed pending a manual rewrite.');
 }
 
 if(import.meta.url===`file://${process.argv[1]}`){

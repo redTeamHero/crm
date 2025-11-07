@@ -67,8 +67,7 @@ Dev-time packages (installed by the same command):
 - `supertest` for HTTP integration tests.
 
 Monorepo utilities:
-- `packages/metro2-cheerio` depends on `cheerio@^1.0.0-rc.12` and `jsdom@^23.0.1` for isolated parsing tests.
-- `packages/metro2-core` & `packages/metro2-browser` currently ship helpers without external deps.
+- Parser-specific packages were removed while the parsing stack is rewritten, so no additional Metro-2 parser utilities are currently shipped.
 
 ---
 

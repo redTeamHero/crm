@@ -13,8 +13,6 @@ import archiver from "archiver";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { PassThrough } from "stream";
-import { JSDOM } from "jsdom";
-import parseCreditReportHTML from "./parser.js";
 
 
 import { logInfo, logError, logWarn } from "./logger.js";
@@ -4164,33 +4162,12 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     const htmlText = req.file.buffer.toString("utf-8");
     let analyzed = { tradelines: [] };
 
-    try {
-      const dom = new JSDOM(htmlText);
-      const jsResult = parseCreditReportHTML(dom.window.document);
-      analyzed.tradelines = jsResult.tradelines || [];
-      if (Array.isArray(jsResult.inquiries)) {
-        analyzed.inquiries = jsResult.inquiries;
-      }
-      if (jsResult.inquiry_summary && typeof jsResult.inquiry_summary === "object") {
-        analyzed.inquiry_summary = jsResult.inquiry_summary;
-      }
-      if (Array.isArray(jsResult.inquiry_details)) {
-        analyzed.inquiry_details = jsResult.inquiry_details;
-      }
-      if (jsResult.credit_scores && typeof jsResult.credit_scores === "object") {
-        analyzed.credit_scores = jsResult.credit_scores;
-      }
-      if (jsResult.personalInfo && typeof jsResult.personalInfo === "object") {
-        analyzed.personalInfo = jsResult.personalInfo;
-      }
-      if (jsResult.personal_information && typeof jsResult.personal_information === "object") {
-        analyzed.personal_information = analyzed.personal_information || jsResult.personal_information;
-      }
-      diagnostics.jsTradelineCount = analyzed.tradelines.length;
-    } catch (e) {
-      logError("JS_PARSER_FAILED", "JS parser failed", e);
-      errors.push({ step: "js_parse", message: e.message, details: e.stack || String(e) });
-    }
+    logWarn("JS_PARSER_REMOVED", "Legacy JS parser removed; skipping JS parsing stage.");
+    errors.push({
+      step: "js_parse",
+      message: "Legacy parser removed",
+      details: "The JavaScript credit report parser was removed pending a manual rewrite.",
+    });
 
     const jsTradelinesBefore = analyzed.tradelines?.length || 0;
     let pythonStdout = "";
