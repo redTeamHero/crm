@@ -64,12 +64,6 @@ function directChildCells(adapter, row, selector){
   return nodes.filter(cell => adapter.parent(cell) === row);
 }
 
-function directChildElements(adapter, node, selector){
-  const nodes = adapter.find(node, selector) || [];
-  if(!nodes.length) return [];
-  return nodes.filter(child => adapter.parent(child) === node);
-}
-
 function extractRowLabel(adapter, row){
   const labeled = adapter.text(row, 'td.label');
   if(labeled) return labeled;
@@ -78,71 +72,12 @@ function extractRowLabel(adapter, row){
   return adapter.text(cells[0]);
 }
 
-function extractRowValues(adapter, row, label){
+function extractRowValues(adapter, row){
   let cells = directChildCells(adapter, row, 'td.info');
   if(!cells.length){
     cells = directChildCells(adapter, row, 'td').slice(1);
   }
-  return cells.map(cell => extractCellValue(adapter, cell, label));
-}
-
-function extractCellValue(adapter, cell, label){
-  if(label){
-    const normalized = normalizeFieldLabel(label);
-    if(normalized === 'comments'){
-      const commentValue = extractCommentValue(adapter, cell);
-      if(commentValue !== null){
-        return commentValue;
-      }
-    }
-  }
-  return adapter.text(cell);
-}
-
-function extractCommentValue(adapter, cell){
-  const segments = directChildElements(adapter, cell, 'div, li, p, span')
-    .map(child => adapter.text(child))
-    .map(text => text.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .filter(text => text !== '-' && text !== '—');
-
-  if(segments.length > 1){
-    const unique = [];
-    for(const segment of segments){
-      if(unique.includes(segment)) continue;
-      unique.push(segment);
-    }
-    if(unique.length) return unique;
-  }
-
-  if(segments.length === 1){
-    return segments[0];
-  }
-
-  const html = adapter.html(cell) || '';
-  if(/<br\s*\/?>/i.test(html)){
-    const parts = html
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .split(/\n+/)
-      .map(part => part.replace(/<[^>]*>/g, ' '))
-      .map(part => part.replace(/\s+/g, ' ').trim())
-      .filter(Boolean)
-      .filter(part => part !== '-' && part !== '—');
-    if(parts.length > 1){
-      const unique = [];
-      for(const part of parts){
-        if(unique.includes(part)) continue;
-        unique.push(part);
-      }
-      if(unique.length) return unique;
-    }
-    if(parts.length === 1){
-      return parts[0];
-    }
-  }
-
-  return null;
+  return cells.map(cell => adapter.text(cell));
 }
 
 export function parseReport(context){
@@ -165,13 +100,10 @@ export function parseReport(context){
     const cells = headerCells.length ? headerCells : adapter.find(rows[0], 'td');
     const bureaus = cells.slice(1).map(cell => adapter.text(cell));
 
-  const dataRows = rows.slice(1).map(row => {
-    const label = extractRowLabel(adapter, row);
-    return {
-      label,
-      values: extractRowValues(adapter, row, label)
-    };
-  });
+  const dataRows = rows.slice(1).map(row => ({
+    label: extractRowLabel(adapter, row),
+    values: extractRowValues(adapter, row)
+  }));
 
     const tradeline = buildTradeline(bureaus, dataRows, meta);
     if(!hasTradelineData(tradeline, bureaus)) continue;
