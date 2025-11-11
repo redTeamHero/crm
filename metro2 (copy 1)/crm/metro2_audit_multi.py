@@ -1,16 +1,6 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-metro2_audit_multi.py
----------------------
-Parse consumer credit report HTML files, normalize personal info, tradelines,
-and inquiries, then run a lightweight Metro-2 compliance audit.
-
-This implementation is intentionally self-contained so that JavaScript tooling
-can call it via CLI or import and reuse ``parse_credit_report_html``.
-"""
-
 from __future__ import annotations
+import logging
+from logging.handlers import RotatingFileHandler
 
 import argparse
 import json
@@ -24,6 +14,12 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from bs4 import BeautifulSoup, Tag
+from datetime import datetime, date
+
+
+
+
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -92,75 +88,79 @@ NON_CREDITOR_HEADERS = {
 
 BUREAUS: Sequence[str] = ("TransUnion", "Experian", "Equifax")
 
-
 # ---------------------------------------------------------------------------
-# Backwards-compatible globals expected by legacy tooling/tests
+# Globals
 # ---------------------------------------------------------------------------
 
-# Older automation relies on a global registry of seen account numbers to
-# detect duplicates as each tradeline is processed.  The modern rule engine
-# keeps everything functional-style, so we maintain this helper structure to
-# bridge both worlds.
 SEEN_ACCOUNT_NUMBERS: defaultdict[str, set[str]] = defaultdict(set)
-
-# Legacy clients reference a simple severity lookup keyed by UI section.  The
-# comprehensive rulebook still provides severities when known, but we keep a
-# small default mapping so compatibility shims can fall back gracefully.
-SEVERITY: Dict[str, int] = {
-    "Dates": 5,
-    "Account": 4,
-    "General": 3,
-}
-
-# Modern audit engine expresses severity as human-readable buckets.  Legacy
-# consumers expect an integer scale, so we keep a small translation table.
-MODERN_SEVERITY_TO_LEGACY: Dict[str, int] = {
-    "minor": 3,
-    "moderate": 4,
-    "major": 5,
-}
-
-# When a legacy rule is executing it toggles this global with the active rule
-# identifier.  We honour it so make_violation can enrich the payload with
-# metadata from the shared metro2Violations.json file.
+SEVERITY: Dict[str, int] = {"Dates": 5, "Account": 4, "General": 3}
+MODERN_SEVERITY_TO_LEGACY: Dict[str, int] = {"minor": 3, "moderate": 4, "major": 5}
 _CURRENT_RULE_ID: Optional[str] = None
 
-
-
+# ---------------------------------------------------------------------------
+# Rulebook loader
+# ---------------------------------------------------------------------------
 
 def _resolve_rulebook_path() -> Path:
-    """Locate the Metro-2 rulebook JSON shared across runtimes."""
-
     here = Path(__file__).resolve().parent
     env_path = os.getenv("METRO2_RULEBOOK_PATH")
     if env_path:
         candidate = Path(env_path).expanduser().resolve()
         if candidate.exists():
             return candidate
-    candidates = [
+    for candidate in [
         here / "data" / "metro2Violations.json",
         here / "public" / "metro2Violations.json",
         here.parent / "metro2Violations.json",
         here.parent / "metro2" / "metro2Violations.json",
         here.parent.parent / "metro2" / "metro2Violations.json",
-    ]
-    for candidate in candidates:
+    ]:
         if candidate.exists():
             return candidate
-    raise FileNotFoundError("metro2Violations.json not found in expected locations")
+    raise FileNotFoundError("metro2Violations.json not found")
+
+
+# ---------------------------------------------------------------------------
+# Logging Setup (Verbose + Rotating)
+# ---------------------------------------------------------------------------
+LOG_PATH = "/var/log/metro2_debug.log"
+
+def setup_logger(debug_enabled: bool = False):
+    """Configures rotating logs and optional console output."""
+    logger = logging.getLogger("metro2")
+    if logger.handlers:
+        return logger  # already configured
+    logger.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
+    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+    handler = RotatingFileHandler(LOG_PATH, maxBytes=2_000_000, backupCount=5)
+    fmt = logging.Formatter("[%(asctime)s][%(levelname)s] %(message)s")
+    handler.setFormatter(fmt)
+    logger.addHandler(handler)
+    if debug_enabled:
+        console = logging.StreamHandler()
+        console.setFormatter(fmt)
+        logger.addHandler(console)
+    return logger
 
 
 def _load_rulebook() -> Dict[str, Dict[str, Any]]:
     path = _resolve_rulebook_path()
-    data = json.loads(path.read_text())
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        text = path.read_text(encoding="latin-1")  # fallback for § or special chars
+    data = json.loads(text)
     if not isinstance(data, dict):
         raise ValueError("metro2Violations.json must contain a JSON object")
     return data
 
 
+
 RULEBOOK: Dict[str, Dict[str, Any]] = _load_rulebook()
 
-
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _strip_text(cell: Optional[Any]) -> str:
     if cell is None:
@@ -175,17 +175,45 @@ def clean_amount(value: Optional[str]) -> float:
         return float(re.sub(r"[^\d.-]", "", value))
     except Exception:
         return 0.0
+    
 
-
-def parse_date(value: Optional[str]) -> Optional[datetime.date]:
-    if not value or not value.strip():
+def parse_date(value: Optional[Any]) -> Optional[datetime.date]:
+    """Safely parse strings or reuse already parsed datetime.date objects."""
+    if value is None:
         return None
+
+    if isinstance(value, date):   # ✅ use date, not datetime.date
+        return value
+
+    value = str(value).strip()
+    if not value:
+        return None
+
     for fmt in DATE_FORMATS:
         try:
-            return datetime.strptime(value.strip(), fmt).date()
+            return datetime.strptime(value, fmt).date()
         except Exception:
             continue
     return None
+
+
+def _normalize_status(value: str) -> str:
+    """Normalize account status text for reliable comparisons."""
+    if not value:
+        return ""
+    clean = re.sub(r"[^A-Za-z ]", "", value).strip().lower()
+    synonyms = {
+        "pays as agreed": "current",
+        "ok": "current",
+        "paid": "closed",
+        "charge off": "chargeoff",
+        "collection": "collection",
+    }
+    for k, v in synonyms.items():
+        if k in clean:
+            return v
+    return clean
+
 
 
 def _safe_lower(value: Any) -> str:
@@ -198,76 +226,56 @@ def _normalized_account_number(value: Any) -> str:
 
 
 def _account_number_for(tradeline: Dict[str, Any]) -> str:
-    return _normalized_account_number(
+    raw = str(
         tradeline.get("account_number")
         or tradeline.get("account_#")
         or tradeline.get("number")
         or tradeline.get("acct_number")
+        or ""
     )
+    return re.sub(r"[^A-Za-z0-9]", "", raw).upper()
 
 
 def _is_revolving(tradeline: Dict[str, Any]) -> bool:
-    acct_type = _safe_lower(tradeline.get("account_type"))
-    detail = _safe_lower(tradeline.get("account_type_detail"))
-    return any(keyword in acct_type or keyword in detail for keyword in ("revolv", "credit card", "line of credit"))
+    t = _safe_lower(tradeline.get("account_type"))
+    d = _safe_lower(tradeline.get("account_type_detail"))
+    return any(k in t or k in d for k in ("revolv", "credit card", "line of credit"))
 
 
 def _is_installment(tradeline: Dict[str, Any]) -> bool:
-    acct_type = _safe_lower(tradeline.get("account_type"))
-    detail = _safe_lower(tradeline.get("account_type_detail"))
-    return any(keyword in acct_type or keyword in detail for keyword in ("install", "auto loan", "mortgage"))
+    t = _safe_lower(tradeline.get("account_type"))
+    d = _safe_lower(tradeline.get("account_type_detail"))
+    return any(k in t or k in d for k in ("install", "auto loan", "mortgage"))
 
 
 def _calc_utilization(tradeline: Dict[str, Any]) -> Optional[float]:
     balance = clean_amount(tradeline.get("balance"))
     limit = clean_amount(tradeline.get("credit_limit"))
-    high_credit = clean_amount(tradeline.get("high_credit"))
-    base = limit if limit > 0 else high_credit if high_credit > 0 else 0
-    if base <= 0:
-        return None
-    return balance / base
+    high = clean_amount(tradeline.get("high_credit"))
+    base = limit if limit > 0 else high if high > 0 else 0
+    return None if base <= 0 else balance / base
 
 
-def _get_comments(tradeline: Dict[str, Any]) -> str:
-    comments = tradeline.get("comments") or tradeline.get("remarks") or tradeline.get("notes") or ""
-    return comments
+def _get_comments(t: Dict[str, Any]) -> str:
+    return t.get("comments") or t.get("remarks") or t.get("notes") or ""
 
 
-def _get_ecoa(tradeline: Dict[str, Any]) -> str:
-    return _safe_lower(
-        tradeline.get("ecoa")
-        or tradeline.get("ecoa_designator")
-        or tradeline.get("ecoa_code")
-        or tradeline.get("responsibility")
-    )
+def _get_ecoa(t: Dict[str, Any]) -> str:
+    return _safe_lower(t.get("ecoa") or t.get("responsibility"))
 
 
-def _get_compliance_code(tradeline: Dict[str, Any]) -> str:
-    return _safe_lower(
-        tradeline.get("compliance_condition_code")
-        or tradeline.get("compliance_code")
-        or tradeline.get("ccc")
-    )
+def _get_compliance_code(t: Dict[str, Any]) -> str:
+    return _safe_lower(t.get("compliance_condition_code") or t.get("ccc"))
 
 
 def _has_keywords(text: str, keywords: Sequence[str]) -> bool:
-    lowered = _safe_lower(text)
-    return any(keyword in lowered for keyword in keywords)
+    low = _safe_lower(text)
+    return any(k in low for k in keywords)
 
 
-def _group_tradelines(tradelines: List[Dict[str, Any]]) -> Dict[tuple[str, str], List[Dict[str, Any]]]:
-    groups: Dict[tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
-    counters: Dict[str, int] = defaultdict(int)
-    for tl in tradelines:
-        creditor = (_safe_lower(tl.get("creditor_name")) or "unknown").upper()
-        acct = _account_number_for(tl)
-        if not acct:
-            suffix = counters[creditor]
-            counters[creditor] += 1
-            acct = f"__NO_ACCOUNT__#{suffix}"
-        groups[(creditor, acct)].append(tl)
-    return groups
-
+# ---------------------------------------------------------------------------
+# Personal info parsing
+# ---------------------------------------------------------------------------
 
 @dataclass
 class AuditPayload:
@@ -277,10 +285,6 @@ class AuditPayload:
     inquiries: List[Dict[str, str]]
     inquiry_violations: List[Dict[str, Any]]
 
-
-# ---------------------------------------------------------------------------
-# Personal information parsing
-# ---------------------------------------------------------------------------
 
 def parse_personal_info(soup: BeautifulSoup) -> List[Dict[str, Dict[str, str]]]:
     results: List[Dict[str, Dict[str, str]]] = []
@@ -300,58 +304,53 @@ def parse_personal_info(soup: BeautifulSoup) -> List[Dict[str, Dict[str, str]]]:
             results.append(field_map)
     return results
 
+def detect_personal_violations(personal_info: Dict[str, Any]) -> List[Dict[str, Any]]:
+    out = []
+    for rule_name, rule_data in RULEBOOK.items():
+        if rule_data.get("target") != "personal":
+            continue
+        if evaluate_rule(rule_data.get("rule", {}), personal_info):
+            out.append({
+                "id": rule_name,
+                "title": rule_data["violation"],
+                "severity": rule_data["severity"]
+            })
+    return out
 
-def detect_personal_info_mismatches(personal_info: List[Dict[str, Dict[str, str]]]) -> List[Dict[str, Any]]:
-    mismatches: List[Dict[str, Any]] = []
-    if not personal_info:
-        return mismatches
-    info = personal_info[0]
-    for field, values in info.items():
-        vals = {v.strip().lower() for v in values.values() if v and v.strip()}
-        if len(vals) > 1:
-            mismatches.append(
-                {
-                    "id": "PERSONAL_INFO_MISMATCH",
-                    "field": field,
-                    "title": f"{field} differs between bureaus",
-                    "values": values,
-                }
-            )
-    return mismatches
+def detect_personal_info_mismatches(pinfo: List[Dict[str, Dict[str, str]]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    if not pinfo:
+        return out
+    info = pinfo[0]
+    for field, vals in info.items():
+        clean = {v.strip().lower() for v in vals.values() if v.strip()}
+        if len(clean) > 1:
+            out.append({"id": "PERSONAL_INFO_MISMATCH", "field": field,
+                        "title": f"{field} differs between bureaus", "values": vals})
+    return out
 
 
 # ---------------------------------------------------------------------------
-# Tradeline parsing
+# Tradeline parsing � fixed version
 # ---------------------------------------------------------------------------
 
 def _normalize_field(label: str) -> str:
     cleaned = re.sub(r"[:：]\s*$", "", label.strip()).strip().lower()
     if cleaned in FIELD_ALIASES:
         return FIELD_ALIASES[cleaned]
-    cleaned = re.sub(r"[^a-z0-9]+", "_", cleaned)
-    return cleaned.strip("_")
+    return re.sub(r"[^a-z0-9]+", "_", cleaned).strip("_")
 
 
-def _clean_creditor_name(value: str) -> str:
-    if not value:
+def _clean_creditor_name(v: str) -> str:
+    if not v:
         return ""
-    text = re.sub(r"\s+", " ", value).strip()
-    if not text:
-        return ""
-
+    text = re.sub(r"\s+", " ", v).strip()
     text = re.sub(r"^(account\s+name|creditor|subscriber name)\s*[:\-]\s*", "", text, flags=re.I)
-
-    earliest_index: Optional[int] = None
     for bureau in ("TransUnion", "Experian", "Equifax"):
-        match = re.search(rf"\b{bureau}\b", text, flags=re.I)
-        if match:
-            if earliest_index is None or match.start() < earliest_index:
-                earliest_index = match.start()
-    if earliest_index is not None:
-        text = text[:earliest_index].strip()
+        text = re.sub(rf"\b{bureau}\b.*", "", text, flags=re.I)
+    return text.strip("-|:. ")
 
-    text = text.strip("-|:•·")
-    return text
+
 
 
 def _looks_like_creditor_header(tag: Tag) -> bool:
@@ -359,86 +358,124 @@ def _looks_like_creditor_header(tag: Tag) -> bool:
         return False
     if tag.name in {"h2", "h3", "h4"}:
         return True
-    class_string = " ".join(tag.get("class", []))
-    if class_string and HEADER_CLASS_RE.search(class_string):
+    if HEADER_CLASS_RE.search(" ".join(tag.get("class", []))):
         return True
-    if tag.name in {"table", "tbody", "thead", "tr", "td"}:
+    if tag.name in {"table", "td", "tr"}:
         return False
-    text = tag.get_text(" ", strip=True)
-    return bool(text) and len(text) <= 120
+    txt = tag.get_text(" ", strip=True)
+    return bool(txt) and 2 < len(txt) <= 120
 
 
 def _iter_header_candidates(table: Tag):
-    current: Optional[Tag] = table
-    seen: set[int] = set()
+    seen = set()
+    cur = table
+    while isinstance(cur, Tag):
+        for sib in list(cur.previous_siblings) + list(cur.next_siblings):
+            if isinstance(sib, Tag) and id(sib) not in seen:
+                seen.add(id(sib))
+                if _looks_like_creditor_header(sib):
+                    yield sib
+        cur = cur.parent
 
-    while isinstance(current, Tag):
-        if current is not table and _looks_like_creditor_header(current):
-            if id(current) not in seen:
-                seen.add(id(current))
-                yield current
 
-        sibling = current.previous_sibling
-        while sibling is not None:
-            if isinstance(sibling, Tag) and id(sibling) not in seen:
-                seen.add(id(sibling))
-                if _looks_like_creditor_header(sibling):
-                    yield sibling
-            sibling = sibling.previous_sibling
-
-        sibling = current.next_sibling
-        while sibling is not None:
-            if isinstance(sibling, Tag) and id(sibling) not in seen:
-                seen.add(id(sibling))
-                if _looks_like_creditor_header(sibling):
-                    yield sibling
-            sibling = sibling.next_sibling
-
-        current = current.parent if isinstance(current, Tag) else None
+NON_CREDITOR_KEYWORDS = {
+    "two-year", "payment history", "legend", "back to top", "top",
+    "summary", "risk factor", "key factor", "account history",
+    "personal information", "inquiries", "score factors", "credit score","customer statement",
+}
 
 
 def extract_creditor_name(table: Any) -> Optional[str]:
+    """Find correct creditor header; ignore junk and log detection process."""
+    logger = logging.getLogger("metro2")
+
     if not isinstance(table, Tag):
         return None
-
-    for candidate in _iter_header_candidates(table):
-        candidate_name = _clean_creditor_name(candidate.get_text(" ", strip=True))
-        if not candidate_name:
+    for cand in _iter_header_candidates(table):
+        txt_raw = cand.get_text(" ", strip=True)
+        txt = _clean_creditor_name(txt_raw)
+        if not txt:
             continue
-        if candidate_name.lower() in NON_CREDITOR_HEADERS:
+        if any(bad in txt.lower() for bad in NON_CREDITOR_KEYWORDS):
+            logger.debug(f"Ignored non-creditor header candidate: {txt_raw}")
             continue
-        return candidate_name
+        if re.search(r"[A-Za-z]", txt):
+            logger.debug(f"Detected creditor name: {txt}")
+            return txt
 
-    container = table.find_parent(class_="ng-binding")
-    if not isinstance(container, Tag):
-        container = table.parent if isinstance(table.parent, Tag) else None
-
-    if isinstance(container, Tag):
-        fallback_header = container.find("div", class_=HEADER_CLASS_RE)
-        if isinstance(fallback_header, Tag):
-            fallback = _clean_creditor_name(fallback_header.get_text(" ", strip=True))
-            if fallback and fallback.lower() not in NON_CREDITOR_HEADERS:
-                return fallback
-
-    text_block = table.get_text(" ", strip=True)
-    match = re.match(r"([A-Z0-9\s&.\-]+)\s+TransUnion", text_block)
-    if match:
-        fallback = _clean_creditor_name(match.group(1))
-        if fallback and fallback.lower() not in NON_CREDITOR_HEADERS:
-            return fallback
+    # Fallback pattern search
+    block = table.get_text(" ", strip=True)
+    m = re.match(r"([A-Za-z0-9/&\-\s]+)\s+(TransUnion|Experian|Equifax)", block)
+    if m:
+        poss = _clean_creditor_name(m.group(1))
+        if not any(bad in poss.lower() for bad in NON_CREDITOR_KEYWORDS):
+            logger.debug(f"Fallback creditor match: {poss}")
+            return poss
+    logger.debug("No creditor name found for current table.")
     return None
+
+def _clean_currency(value):
+    """Safely normalize $-style amounts → float."""
+    if not value:
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        text = str(value).replace("$", "").replace(",", "").strip()
+        return float(text) if text.replace(".", "", 1).isdigit() else 0.0
+    except Exception:
+        return 0.0
+def _clean_date(value):
+    return value.strip() if "/" in value else None
+
+def _clean_date(value):
+    """Convert '09/11/2025' → datetime.date(2025, 9, 11)."""
+    if not value:
+        return None
+    value = str(value).strip()
+    if value in ("", "-", "N/A", "None"):
+        return None
+    for fmt in ("%m/%d/%Y", "%m-%d-%Y", "%m/%Y"):
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            continue
+    return None  
+
+
+
 
 
 def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
+    """Parse tradeline tables and attach correct creditor names only."""
     tradelines: List[Dict[str, Any]] = []
+
     for table in soup.find_all("table"):
-        header = table.find_previous(string=re.compile(r"account history", re.I))
-        if not header:
+        # quick text dump for filtering
+        raw_text = table.get_text(" ", strip=True).lower()
+
+        # skip obviously non-tradeline tables
+        if any(bad in raw_text for bad in [
+            "two-year payment history", "legend", "key factors",
+            "risk factor", "back to top", "personal information", "inquiries" , "Customer Statement "
+        ]):
             continue
+
+        # verify the table contains account-like data
+        if not any(keyword in raw_text for keyword in [
+            "account", "balance", "date opened", "credit limit", "high credit"
+        ]):
+            continue
+
+        creditor = extract_creditor_name(table)
+        if not creditor:
+            continue  # skip orphaned tables with no clear creditor name
+
         rows = table.find_all("tr")
         if len(rows) < 2:
             continue
-        creditor = extract_creditor_name(table) or "Unknown Creditor"
+
+        # map each field label to its values by bureau
         field_map: Dict[str, Dict[str, str]] = {}
         for row in rows:
             cells = row.find_all("td")
@@ -447,75 +484,53 @@ def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
             label = _strip_text(cells[0])
             tu, exp, eqf = [_strip_text(c) for c in cells[1:4]]
             field_map[label] = {"TransUnion": tu, "Experian": exp, "Equifax": eqf}
+
+        # build one tradeline record per bureau
         for bureau in BUREAUS:
             tl: Dict[str, Any] = {"creditor_name": creditor, "bureau": bureau}
             for field, values in field_map.items():
                 key = _normalize_field(field)
                 tl[key] = values.get(bureau, "")
             tradelines.append(tl)
-    return tradelines
-
-
-def extract_all_tradelines(soup: BeautifulSoup) -> List[Dict[str, Any]]:
-    """Aggregate tradeline details across bureaus for compatibility helpers."""
-
-    tradelines: List[Dict[str, Any]] = []
-    for container in soup.select("td.ng-binding"):
-        table = container.find("table")
-        if not table:
-            continue
-
-        rows = table.find_all("tr")
-        if len(rows) < 2:
-            continue
-
-        header_cells = rows[0].find_all(["th", "td"])
-        bureau_order: List[Optional[str]] = []
-        for cell in header_cells[1:]:
-            header_text = _strip_text(cell)
-            matched = None
-            for bureau in BUREAUS:
-                if bureau.lower() in header_text.lower():
-                    matched = bureau
-                    break
-            bureau_order.append(matched)
-
-        per_bureau: Dict[str, Dict[str, str]] = {bureau: {} for bureau in BUREAUS}
-        for row in rows[1:]:
-            cells = row.find_all("td")
-            if len(cells) < 2:
-                continue
-            label = _strip_text(cells[0])
-            label = re.sub(r"[:：]\s*$", "", label)
-            key = _normalize_field(label)
-            for idx, cell in enumerate(cells[1:]):
-                if idx >= len(bureau_order):
-                    break
-                bureau = bureau_order[idx]
-                if not bureau:
-                    continue
-                value = _strip_text(cell)
-                if value:
-                    per_bureau[bureau][key] = value
-
-        if not any(per_bureau.values()):
-            continue
-
-        creditor_name = extract_creditor_name(table) or "Unknown Creditor"
-        meta = {"account_numbers": {}}
-        for bureau in BUREAUS:
-            if "account_number" in per_bureau[bureau]:
-                meta["account_numbers"][bureau] = per_bureau[bureau]["account_number"]
-
-        tradelines.append(
-            {
-                "creditor_name": creditor_name,
-                "per_bureau": per_bureau,
-                "meta": meta,
-            }
-        )
 
     return tradelines
+
+
+
+def _extract_creditor_name(table: Any) -> Optional[str]:
+    """
+    Enhanced creditor name extractor.
+    - Looks at sibling tags and nearby text
+    - Ignores non-creditor headers
+    """
+    logger = logging.getLogger("metro2")
+
+    if not isinstance(table, Tag):
+        return None
+
+    for cand in _iter_header_candidates(table):
+        txt_raw = cand.get_text(" ", strip=True)
+        txt = _clean_creditor_name(txt_raw)
+        if not txt:
+            continue
+        if any(bad in txt.lower() for bad in NON_CREDITOR_KEYWORDS):
+            logger.debug(f"Ignored non-creditor header candidate: {txt_raw}")
+            continue
+        if re.search(r"[A-Za-z]", txt):
+            logger.debug(f"Detected creditor name: {txt}")
+            return txt
+
+    # fallback: check previous sibling or text node
+    prev_text = None
+    prev_tag = table.find_previous(string=True)
+    if prev_tag:
+        prev_text = _clean_creditor_name(prev_tag)
+    if prev_text and not any(k in prev_text.lower() for k in NON_CREDITOR_KEYWORDS):
+        logger.debug(f"Sibling text creditor name: {prev_text}")
+        return prev_text
+
+    logger.debug("No creditor name found for current table.")
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -531,22 +546,24 @@ def parse_inquiries(soup: BeautifulSoup) -> List[Dict[str, str]]:
         rows = table.find_all("tr")
         if len(rows) < 2:
             continue
-        headers = [_strip_text(th) for th in rows[0].find_all(["th", "td"])]
-        if not any("Creditor" in h for h in headers):
-            continue
         for row in rows[1:]:
             cells = row.find_all("td")
             if len(cells) < 4:
                 continue
-            inquiries.append(
-                {
-                    "creditor_name": _strip_text(cells[0]),
-                    "type_of_business": _strip_text(cells[1]),
-                    "date_of_inquiry": _strip_text(cells[2]),
-                    "credit_bureau": _strip_text(cells[3]),
-                }
-            )
+            inquiries.append({
+                "creditor_name": _strip_text(cells[0]),
+                "type_of_business": _strip_text(cells[1]),
+                "date_of_inquiry": _strip_text(cells[2]),
+                "credit_bureau": _strip_text(cells[3]),
+            })
     return inquiries
+
+# ---------------------------------------------------------------------------
+# (Audit rule section continues unchanged)
+# ---------------------------------------------------------------------------
+# ... all your rule definitions, detect_tradeline_violations, CLI, etc.
+# ---------------------------------------------------------------------------
+
 
 
 # ---------------------------------------------------------------------------
@@ -690,7 +707,7 @@ def r_current_but_pastdue(
     tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     past_due = clean_amount(tradeline.get("past_due"))
     if past_due <= 0:
         return []
@@ -714,7 +731,7 @@ def r_late_status_no_pastdue(
     tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     past_due = clean_amount(tradeline.get("past_due"))
     if past_due > 0:
         return []
@@ -728,7 +745,7 @@ def r_open_zero_balance(
     tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     balance = clean_amount(tradeline.get("balance"))
     if "open" in status and balance <= 0:
         return [_violation("OPEN_ZERO_BALANCE", "Open account reporting $0 balance")]
@@ -741,7 +758,7 @@ def r_open_zero_cl_with_hc_comment(
     del group_records, all_tradelines
     if not _is_revolving(tradeline):
         return []
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     if "closed" in status:
         return []
     limit = clean_amount(tradeline.get("credit_limit"))
@@ -818,7 +835,7 @@ def r_revolving_missing_cl_hc(
     del group_records, all_tradelines
     if not _is_revolving(tradeline):
         return []
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     if any(keyword in status for keyword in ("closed", "paid")):
         return []
     limit = clean_amount(tradeline.get("credit_limit"))
@@ -855,7 +872,7 @@ def r_co_collection_pastdue(
     tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     past_due = clean_amount(tradeline.get("past_due"))
     if past_due <= 0:
         return []
@@ -893,7 +910,7 @@ def r_derog_rating_but_current(
     tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     past_due = clean_amount(tradeline.get("past_due"))
     if past_due > 0 or not any(keyword in status for keyword in ("current", "pays as agreed", "ok")):
         return []
@@ -933,7 +950,7 @@ def r_closed_but_monthly_payment(
     tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     if not _has_keywords(status, ("closed", "paid", "charge", "collection")):
         return []
     payment = clean_amount(tradeline.get("monthly_payment"))
@@ -952,7 +969,7 @@ def r_stale_active_reporting(
     tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     if not any(keyword in status for keyword in ("open", "current", "pays as agreed", "ok")):
         return []
     last_reported = parse_date(tradeline.get("last_reported") or tradeline.get("date_last_active"))
@@ -976,7 +993,7 @@ def r_dofd_obsolete_7y(
     dofd = parse_date(tradeline.get("date_of_first_delinquency"))
     if not dofd:
         return []
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     derogatory = _has_keywords(status, ("charge", "collection", "late", "delinquent", "derog"))
     if not derogatory:
         return []
@@ -994,7 +1011,7 @@ def r_dofd_obsolete_7y(
 def r_3(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
     closed_date = parse_date(tradeline.get("date_closed"))
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     if closed_date and any(keyword in status for keyword in ("open", "current", "pays as agreed", "ok")):
         return [
             _violation(
@@ -1008,7 +1025,7 @@ def r_3(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_trad
 
 def r_8(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     if not _has_keywords(status, ("charge", "chargeoff", "collection")):
         return []
     if tradeline.get("date_of_first_delinquency"):
@@ -1023,7 +1040,7 @@ def r_8(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_trad
 
 def r_9(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    status = _safe_lower(tradeline.get("account_status"))
+    status = _normalize_status(tradeline.get("account_status"))
     if not _has_keywords(status, ("collection",)):
         return []
     if tradeline.get("original_creditor"):
@@ -1188,40 +1205,196 @@ def _translate_modern_violation(
     return make_violation(section, title, detail, meta)
 
 
+
+
+# ---------------------------------------------------------------------------
+# Grouping Helper
+# ---------------------------------------------------------------------------
+
+def _group_tradelines(tradelines: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Groups tradelines by creditor + account number + bureau.
+    Skips empty or duplicate creditors.
+    """
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    for t in tradelines:
+        creditor = re.sub(r"\s+", " ", str(t.get("creditor_name", ""))).strip().lower()
+        if not creditor or creditor in ("unknown", "address", "type of business"):
+            continue
+
+        acct = _account_number_for(t)
+        bureau = t.get("bureau", "Unknown")
+        key = f"{creditor}|{acct}|{bureau}"
+
+        # skip duplicates
+        if key in groups:
+            continue
+
+        groups.setdefault(key, []).append(t)
+    return groups
+
+
+def evaluate_rule(rule_def: Dict[str, Any], record: Dict[str, Any]) -> bool:
+    """Return True if record violates the rule definition (safe numeric checks)."""
+    for cond in rule_def.get("all", []):
+        field = cond.get("field")
+        value = record.get(field)
+
+        # Attempt numeric normalization for safe comparison
+        try:
+            if isinstance(value, str):
+                value_clean = float(re.sub(r"[^\d.-]", "", value)) if re.search(r"\d", value) else value
+            else:
+                value_clean = value
+        except Exception:
+            value_clean = value
+
+        # handle exists
+        if "exists" in cond:
+            exists = value not in (None, "", [])
+            if exists != cond["exists"]:
+                return False
+
+        # handle equalities
+        if "eq" in cond and value_clean != cond["eq"]:
+            return False
+        if "neq" in cond and value_clean == cond["neq"]:
+            return False
+
+        # safe numeric >, <, >=, <=
+        def safe_cmp(a, b, op):
+            try:
+                return op(a, b)
+            except Exception:
+                return False
+
+        import operator
+        if "gt" in cond and not safe_cmp(value_clean, cond["gt"], operator.gt):
+            return False
+        if "lt" in cond and not safe_cmp(value_clean, cond["lt"], operator.lt):
+            return False
+        if "gte" in cond and not safe_cmp(value_clean, cond["gte"], operator.ge):
+            return False
+        if "lte" in cond and not safe_cmp(value_clean, cond["lte"], operator.le):
+            return False
+
+        if "in" in cond and value_clean not in cond["in"]:
+            return False
+
+        # field-to-field comparisons
+        if "gt_field" in cond:
+            other = record.get(cond["gt_field"])
+            if not safe_cmp(clean_amount(value), clean_amount(other), operator.gt):
+                return False
+        if "lt_field" in cond:
+            other = record.get(cond["lt_field"])
+            if not safe_cmp(clean_amount(value), clean_amount(other), operator.lt):
+                return False
+        if "neq_field" in cond:
+            other = record.get(cond["neq_field"])
+            if value_clean == other:
+                return False
+
+    return True
+
+
 def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    logger = logging.getLogger("metro2")
     for record in tradelines:
         record["violations"] = []
+        for rule_name, rule_data in RULEBOOK.items():
+            # Skip personal/inquiry rules on tradelines
+            if rule_data.get("target") and rule_data["target"].lower() != "tradeline":
+                continue
+
+            if evaluate_rule(rule_data.get("rule", {}), record):
+                record["violations"].append({
+                    "id": rule_name,
+                    "title": rule_data["violation"],
+                    "category": rule_data.get("category", rule_data.get("target")),
+                    "fcraSection": rule_data["fcraSection"],
+                    "severity": rule_data["severity"],
+                    "fieldsImpacted": rule_data["fieldsImpacted"]
+                })
+                logger.debug(f"✔ {rule_name} fired → {rule_data['violation']}")
+    return tradelines
+
+
+
     groups = _group_tradelines(tradelines)
-    for records in groups.values():
+    for creditor_name, records in groups.items():
+        logger.debug(f"Auditing {creditor_name} ({len(records)} tradelines)")
         for record in records:
+            bureau = record.get("bureau", "?")
+            logger.debug(f"→ Bureau: {bureau} | Account: {record.get('account_number','?')}")
             for rule in RULES:
-                findings = rule(record, records, tradelines)
-                if findings:
-                    record.setdefault("violations", []).extend(findings)
+                try:
+                    findings = rule(record, records, tradelines)
+                    if findings:
+                        record.setdefault("violations", []).extend(findings)
+                        logger.debug(f"   Rule {rule.__name__} fired → {len(findings)} finding(s)")
+                    else:
+                        logger.debug(f"   Rule {rule.__name__} passed clean")
+                except Exception as e:
+                    logger.exception(f"Error in rule {rule.__name__}: {e}")
     return tradelines
 
 
 def detect_inquiry_no_match(inquiries: List[Dict[str, str]], tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Smarter cross-check:
+      - Links inquiries to tradelines by creditor name similarity + date proximity (±45 days).
+      - Includes creditor name and bureau in output for human readability.
+    """
     violations: List[Dict[str, Any]] = []
-    tradeline_dates = set()
+
+    def _short(x):
+        return re.sub(r'[^a-z0-9]', '', (x or '').lower())[:6]
+
+    # Build index: creditor → important dates
+    tradeline_index: List[Dict[str, Any]] = []
     for tl in tradelines:
-        for field in ("date_opened", "date_last_payment"):
+        creditor = tl.get("creditor_name", "").strip()
+        bureau = tl.get("bureau", "Unknown")
+        dates = []
+        for field in ("date_opened", "date_last_payment", "last_reported", "date_last_active"):
             d = parse_date(tl.get(field))
             if d:
-                tradeline_dates.add(d)
+                dates.append((field, d))
+        tradeline_index.append({"creditor": creditor, "bureau": bureau, "dates": dates})
+
+    # Check each inquiry
     for iq in inquiries:
         iq_date = parse_date(iq.get("date_of_inquiry"))
+        iq_name = iq.get("creditor_name", "").strip()
+        iq_bureau = iq.get("credit_bureau", "Unknown")
+
         if not iq_date:
             continue
-        if not any(abs((iq_date - d).days) <= 5 for d in tradeline_dates):
-            violations.append(
-                {
-                    "id": "INQUIRY_NO_MATCH",
-                    "title": f"Inquiry on {iq['date_of_inquiry']} not linked to any tradeline",
-                    "creditor_name": iq.get("creditor_name"),
-                    "bureau": iq.get("credit_bureau"),
-                }
-            )
+
+        matched = False
+        for tl in tradeline_index:
+            cred_name = tl["creditor"]
+            # Fuzzy creditor match (first 5 letters)
+            if _short(iq_name) and _short(iq_name) in _short(cred_name):
+                for fld, d in tl["dates"]:
+                    if abs((iq_date - d).days) <= 45:
+                        matched = True
+                        break
+            if matched:
+                break
+
+        if not matched:
+            # no match found → show both inquiry + tradeline context
+            for tl in tradeline_index:
+                for fld, d in tl["dates"]:
+                    violations.append({
+                        "id": "INQUIRY_NO_MATCH",
+                        "creditor_name": tl["creditor"],
+                        "bureau": tl["bureau"],
+                        "title": f"{tl['creditor']} [{tl['bureau']}] - Inquiry on {iq.get('date_of_inquiry')} not linked to any tradeline (closest {fld}: {d.strftime('%m/%d/%Y')})"
+                    })
+
     return violations
 
 
@@ -1399,7 +1572,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("-i", "--input", dest="input_cli", help="Path to the HTML report (legacy flag)")
     parser.add_argument("-o", "--output", dest="output", help="Optional path to write JSON results")
     parser.add_argument("--json-only", action="store_true", help="Suppress CLI summary and emit JSON only")
+    parser.add_argument("--debug", action="store_true", help="Enable verbose debug logging")
     args = parser.parse_args(argv)
+    logger = setup_logger(args.debug)
+    logger.info("Starting Metro2 audit for %s", args.input_cli or args.input)
+
     html_path = args.input_cli or args.input
     if not html_path:
         parser.error("Missing input HTML file")
@@ -1411,7 +1588,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "inquiries": payload.inquiries,
         "inquiry_violations": payload.inquiry_violations,
     }
-    json_blob = json.dumps(data, indent=2, ensure_ascii=False)
+    json_blob = json.dumps(data, indent=2, ensure_ascii=False, default=str)
     if args.output:
         Path(args.output).write_text(json_blob, encoding="utf-8")
     if not args.json_only:
