@@ -148,7 +148,7 @@ def _load_rulebook() -> Dict[str, Dict[str, Any]]:
     try:
         text = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-        text = path.read_text(encoding="latin-1")  # fallback for § or special chars
+        text = path.read_text(encoding="latin-1")  # fallback for Â§ or special chars
     data = json.loads(text)
     if not isinstance(data, dict):
         raise ValueError("metro2Violations.json must contain a JSON object")
@@ -182,7 +182,7 @@ def parse_date(value: Optional[Any]) -> Optional[datetime.date]:
     if value is None:
         return None
 
-    if isinstance(value, date):   # ✅ use date, not datetime.date
+    if isinstance(value, date):   # âœ… use date, not datetime.date
         return value
 
     value = str(value).strip()
@@ -331,11 +331,11 @@ def detect_personal_info_mismatches(pinfo: List[Dict[str, Dict[str, str]]]) -> L
 
 
 # ---------------------------------------------------------------------------
-# Tradeline parsing � fixed version
+# Tradeline parsing ï¿½ fixed version
 # ---------------------------------------------------------------------------
 
 def _normalize_field(label: str) -> str:
-    cleaned = re.sub(r"[:：]\s*$", "", label.strip()).strip().lower()
+    cleaned = re.sub(r"[:ï¼š]\s*$", "", label.strip()).strip().lower()
     if cleaned in FIELD_ALIASES:
         return FIELD_ALIASES[cleaned]
     return re.sub(r"[^a-z0-9]+", "_", cleaned).strip("_")
@@ -415,7 +415,7 @@ def extract_creditor_name(table: Any) -> Optional[str]:
     return None
 
 def _clean_currency(value):
-    """Safely normalize $-style amounts → float."""
+    """Safely normalize $-style amounts â†’ float."""
     if not value:
         return 0.0
     if isinstance(value, (int, float)):
@@ -429,7 +429,7 @@ def _clean_date(value):
     return value.strip() if "/" in value else None
 
 def _clean_date(value):
-    """Convert '09/11/2025' → datetime.date(2025, 9, 11)."""
+    """Convert '09/11/2025' â†’ datetime.date(2025, 9, 11)."""
     if not value:
         return None
     value = str(value).strip()
@@ -1316,7 +1316,7 @@ def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[s
                     "severity": rule_data["severity"],
                     "fieldsImpacted": rule_data["fieldsImpacted"]
                 })
-                logger.debug(f"✔ {rule_name} fired → {rule_data['violation']}")
+                logger.debug(f"âœ” {rule_name} fired â†’ {rule_data['violation']}")
     return tradelines
 
 
@@ -1326,13 +1326,13 @@ def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[s
         logger.debug(f"Auditing {creditor_name} ({len(records)} tradelines)")
         for record in records:
             bureau = record.get("bureau", "?")
-            logger.debug(f"→ Bureau: {bureau} | Account: {record.get('account_number','?')}")
+            logger.debug(f"â†’ Bureau: {bureau} | Account: {record.get('account_number','?')}")
             for rule in RULES:
                 try:
                     findings = rule(record, records, tradelines)
                     if findings:
                         record.setdefault("violations", []).extend(findings)
-                        logger.debug(f"   Rule {rule.__name__} fired → {len(findings)} finding(s)")
+                        logger.debug(f"   Rule {rule.__name__} fired â†’ {len(findings)} finding(s)")
                     else:
                         logger.debug(f"   Rule {rule.__name__} passed clean")
                 except Exception as e:
@@ -1343,7 +1343,7 @@ def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[s
 def detect_inquiry_no_match(inquiries: List[Dict[str, str]], tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Smarter cross-check:
-      - Links inquiries to tradelines by creditor name similarity + date proximity (±45 days).
+      - Links inquiries to tradelines by creditor name similarity + date proximity (Â±45 days).
       - Includes creditor name and bureau in output for human readability.
     """
     violations: List[Dict[str, Any]] = []
@@ -1351,7 +1351,7 @@ def detect_inquiry_no_match(inquiries: List[Dict[str, str]], tradelines: List[Di
     def _short(x):
         return re.sub(r'[^a-z0-9]', '', (x or '').lower())[:6]
 
-    # Build index: creditor → important dates
+    # Build index: creditor â†’ important dates
     tradeline_index: List[Dict[str, Any]] = []
     for tl in tradelines:
         creditor = tl.get("creditor_name", "").strip()
@@ -1385,7 +1385,7 @@ def detect_inquiry_no_match(inquiries: List[Dict[str, str]], tradelines: List[Di
                 break
 
         if not matched:
-            # no match found → show both inquiry + tradeline context
+            # no match found â†’ show both inquiry + tradeline context
             for tl in tradeline_index:
                 for fld, d in tl["dates"]:
                     violations.append({
@@ -1507,16 +1507,16 @@ class Color:
 
 
 def print_audit_summary(personal_mismatches: Sequence[Dict[str, Any]], tradelines: Sequence[Dict[str, Any]], inquiry_violations: Sequence[Dict[str, Any]]) -> None:
-    print(f"\n{Color.BOLD}{Color.CYAN}📋 METRO-2 COMPLIANCE AUDIT SUMMARY{Color.RESET}")
+    print(f"\n{Color.BOLD}{Color.CYAN}ðŸ“‹ METRO-2 COMPLIANCE AUDIT SUMMARY{Color.RESET}")
     print("-" * 60)
     if personal_mismatches:
-        print(f"\n{Color.BOLD}{Color.YELLOW}🧍 PERSONAL INFORMATION MISMATCHES{Color.RESET}")
+        print(f"\n{Color.BOLD}{Color.YELLOW}ðŸ§ PERSONAL INFORMATION MISMATCHES{Color.RESET}")
         for mismatch in personal_mismatches:
-            print(f"  {Color.RED}❌ {mismatch['field']}: {mismatch['title']}{Color.RESET}")
+            print(f"  {Color.RED}âŒ {mismatch['field']}: {mismatch['title']}{Color.RESET}")
             for bureau, value in mismatch["values"].items():
                 print(f"     {bureau}: {value}")
     else:
-        print(f"{Color.GREEN}✅ Personal information consistent across bureaus{Color.RESET}")
+        print(f"{Color.GREEN}âœ… Personal information consistent across bureaus{Color.RESET}")
     for tl in tradelines:
         creditor = tl.get("creditor_name", "UNKNOWN")
         bureau = tl.get("bureau", "?")
@@ -1524,16 +1524,16 @@ def print_audit_summary(personal_mismatches: Sequence[Dict[str, Any]], tradeline
         print(f"\n{Color.BOLD}{Color.YELLOW}{creditor}{Color.RESET} [{bureau}]")
         print(f"  Balance: {tl.get('balance', '')} | Status: {tl.get('account_status', '')}")
         if not violations:
-            print(f"  {Color.GREEN}✅ No tradeline violations{Color.RESET}")
+            print(f"  {Color.GREEN}âœ… No tradeline violations{Color.RESET}")
         else:
             for violation in violations:
-                print(f"  {Color.RED}❌ {violation['id']}: {violation['title']}{Color.RESET}")
+                print(f"  {Color.RED}âŒ {violation['id']}: {violation['title']}{Color.RESET}")
     if inquiry_violations:
-        print(f"\n{Color.BOLD}{Color.YELLOW}🔍 INQUIRY ISSUES{Color.RESET}")
+        print(f"\n{Color.BOLD}{Color.YELLOW}ðŸ” INQUIRY ISSUES{Color.RESET}")
         for violation in inquiry_violations:
-            print(f"  {Color.RED}❌ {violation['creditor_name']} [{violation['bureau']}] - {violation['title']}{Color.RESET}")
+            print(f"  {Color.RED}âŒ {violation['creditor_name']} [{violation['bureau']}] - {violation['title']}{Color.RESET}")
     else:
-        print(f"\n{Color.GREEN}✅ All inquiries correspond to valid tradeline dates{Color.RESET}")
+        print(f"\n{Color.GREEN}âœ… All inquiries correspond to valid tradeline dates{Color.RESET}")
     print("\n")
 
 
@@ -1601,4 +1601,4 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main()) missing infomation when parsing
