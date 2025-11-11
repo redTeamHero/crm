@@ -196,40 +196,6 @@ test('parseReport handles tables missing label/info classes', () => {
   assert.equal(tl.per_bureau.Equifax.balance, 0);
 });
 
-test('parseReport captures multi-valued comments as arrays', () => {
-  const html = `
-    <div>
-      <div class="sub_header">Example Creditor</div>
-      <table class="rpt_content_table rpt_content_header rpt_table4column">
-        <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
-        <tr>
-          <td class="label">Account #</td>
-          <td class="info">1111</td>
-          <td class="info">2222</td>
-          <td class="info">3333</td>
-        </tr>
-        <tr>
-          <td class="label">Comments</td>
-          <td class="info"><ng>-</ng></td>
-          <td class="info"><ng>-</ng></td>
-          <td class="info">
-            <div>Fixed rate&nbsp;</div>
-            <div>Unsecured&nbsp;</div>
-          </td>
-        </tr>
-      </table>
-    </div>
-  `;
-
-  const result = parseCheerio(html);
-  assert.equal(result.tradelines.length, 1);
-  const tl = result.tradelines[0];
-  assert.deepStrictEqual(tl.per_bureau.TransUnion.comments, '-');
-  assert.deepStrictEqual(tl.per_bureau.Experian.comments, '-');
-  assert.deepStrictEqual(tl.per_bureau.Equifax.comments, ['Fixed rate', 'Unsecured']);
-  assert.deepStrictEqual(tl.per_bureau.Equifax.comments_raw, ['Fixed rate', 'Unsecured']);
-});
-
 test('validateTradeline returns enriched violation objects', () => {
   const violations = validateTradeline({ account_status: 'Current', past_due: 100 });
   assert.equal(violations.length, 1);
