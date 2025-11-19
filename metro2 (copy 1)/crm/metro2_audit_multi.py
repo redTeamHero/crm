@@ -1601,4 +1601,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == "__main__":
+<<<<<<< Updated upstream
     sys.exit(main()) missing infomation when parsing
+=======
+    sys.exit(main()) missing infomation when parsing
+>>>>>>> Stashed changes
