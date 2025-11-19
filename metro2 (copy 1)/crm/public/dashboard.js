@@ -1587,6 +1587,7 @@ document.addEventListener('DOMContentLoaded', () => {
   chatState.input = document.getElementById('guideChatInput');
   chatState.categories = document.getElementById('guideChatCategories');
   chatState.prompts = document.getElementById('guideChatPrompts');
+  const moneybagToggle = document.getElementById('guideChatMoneyToggle');
   initChatPromptMenu();
 
   if(chatState.messages && pendingChatMessages.length){
@@ -1595,6 +1596,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   chatState.toggle?.addEventListener('click', () => openChatCoach());
+  moneybagToggle?.addEventListener('click', () => openChatCoach());
   chatState.close?.addEventListener('click', () => closeChatCoach());
   chatState.tour?.addEventListener('click', () => {
     openChatCoach({ focusInput: false });
