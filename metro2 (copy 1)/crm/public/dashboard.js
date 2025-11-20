@@ -1588,8 +1588,6 @@ document.addEventListener('DOMContentLoaded', () => {
   chatState.categories = document.getElementById('guideChatCategories');
   chatState.prompts = document.getElementById('guideChatPrompts');
   const moneybagToggle = document.getElementById('guideChatMoneyToggle');
-  const growthNavigatorPanel = document.getElementById('growthNavigatorPanel');
-  const growthNavigatorClose = document.getElementById('growthNavigatorClose');
   initChatPromptMenu();
 
   const openGrowthNavigator = () => {
@@ -1597,9 +1595,6 @@ document.addEventListener('DOMContentLoaded', () => {
     growthNavigatorPanel.classList.remove('hidden');
     growthNavigatorPanel.classList.add('flex');
     growthNavigatorPanel.setAttribute('aria-hidden', 'false');
-    if (growthNavigatorClose) {
-      growthNavigatorClose.focus({ preventScroll: true });
-    }
   };
 
   const closeGrowthNavigator = () => {
@@ -1623,7 +1618,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   chatState.toggle?.addEventListener('click', () => openChatCoach());
-  moneybagToggle?.addEventListener('click', () => openGrowthNavigator());
+  moneybagToggle?.addEventListener('click', () => openChatCoach());
   chatState.close?.addEventListener('click', () => closeChatCoach());
   chatState.tour?.addEventListener('click', () => {
     openChatCoach({ focusInput: false });
