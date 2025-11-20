@@ -4,6 +4,7 @@ import { validateTradeline, enrich } from './validators.js';
 export { fieldMap, validateTradeline, enrich };
 
 export { coerceDateMDY, normalizeBureau, emptyHistory, emptyInquirySummary };
+export { sanitizeCreditor };
 
 const NORMALIZED_FIELD_MAP = Object.fromEntries(
   Object.entries(fieldMap).map(([label, config]) => [normalizeFieldLabel(label), config])
@@ -15,6 +16,11 @@ const NON_CREDITOR_HEADERS = new Set([
   'key factors',
   'score factors',
 ]);
+
+const NON_CREDITOR_HEADER_PATTERNS = [
+  'credit report',
+  'reference #',
+];
 
 const BUREAU_PRIORITY = ['TransUnion', 'Experian', 'Equifax'];
 
@@ -764,14 +770,25 @@ function createDomAdapter(context){
 function inferTradelineMeta(adapter, table){
   const meta = {};
   const header = findNearestHeader(adapter, table);
-  if(!header) return { meta };
-  const name = sanitizeCreditor(adapter.text(header));
-  if(!name) return { meta };
-  if(NON_CREDITOR_HEADERS.has(name.toLowerCase())){
-    return { meta, skip: true };
+  if(header){
+    const name = sanitizeCreditor(adapter.text(header));
+    if(isNonCreditorHeader(name)) return { meta, skip: true };
+    if(name) meta.creditor = name;
   }
-  meta.creditor = name;
+
+  if(!meta.creditor){
+    const tableText = sanitizeCreditor(adapter.text(table));
+    if(isNonCreditorHeader(tableText)){
+      return { meta, skip: true };
+    }
+  }
+
   return { meta };
+}
+
+// Exposed for testing to validate non-creditor detection without coupling to DOM helpers
+export function __test_inferTradelineMeta(adapter, table){
+  return inferTradelineMeta(adapter, table);
 }
 
 function findNearestHeader(adapter, node){
@@ -807,6 +824,13 @@ function sanitizeCreditor(value){
   const text = String(value).replace(/\s+/g, ' ').trim();
   if(!text) return '';
   return text;
+}
+
+export function isNonCreditorHeader(value){
+  const normalized = sanitizeCreditor(value).toLowerCase();
+  if(!normalized) return false;
+  if(NON_CREDITOR_HEADERS.has(normalized)) return true;
+  return NON_CREDITOR_HEADER_PATTERNS.some(pattern => normalized.includes(pattern));
 }
 
 function inferCreditorFromPerBureau(perBureau = {}){
