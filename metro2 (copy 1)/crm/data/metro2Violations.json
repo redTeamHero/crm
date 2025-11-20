@@ -1,102 +1,29 @@
 {
   "BALANCE_GT_CL": {
-    "violation": "Balance exceeds reported Credit Limit",
+    "violation": "Balance exceeds Credit Limit",
     "target": "tradeline",
     "fcraSection": "§607(b)",
     "severity": "critical",
     "fieldsImpacted": ["balance","credit_limit"],
-    "rule": {"all":[{"field":"balance","gt_field":"credit_limit"}]}
-  },
-
-  "CURRENT_BUT_PASTDUE": {
-    "violation": "Account marked Current but Past Due > 0",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "moderate",
-    "fieldsImpacted": ["account_status","past_due"],
-    "rule":{"all":[{"field":"account_status","eq":"Current"},{"field":"past_due","gt":0}]}
-  },
-
-  "DOLP_BEFORE_OPEN": {
-    "violation": "Date of Last Payment occurs before Date Opened",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "moderate",
-    "fieldsImpacted": ["date_last_payment","date_opened"],
-    "rule":{"all":[{"field":"date_last_payment","lt_field":"date_opened"}]}
-  },
-
-
-  "DOLP_EQUALS_OPEN_DATE": {
-    "violation": "Date of Last Payment equals Date Opened",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "minor",
-    "fieldsImpacted": ["date_last_payment","date_opened"],
-    "rule":{"all":[{"field":"date_last_payment","eq_field":"date_opened"}]}
-  },
-
-  "DOLP_MOVED_FORWARD": {
-    "violation": "Re-aging: Date of Last Payment moved forward",
-    "target": "tradeline",
-    "fcraSection": "§623(a)(5)",
-    "severity": "critical",
-    "fieldsImpacted": ["date_last_payment","historical_dolp"],
-    "rule":{"all":[{"field":"date_last_payment","gt_field":"historical_dolp"}]}
-  },
-
-  "CHARGEOFF_DATE_BEFORE_DOLP": {
-    "violation": "Charge-off date before Date of Last Payment",
-    "target": "collection",
-    "fcraSection": "§623(a)(5)",
-    "severity": "critical",
-    "fieldsImpacted": ["date_chargeoff","date_last_payment"],
-    "rule":{"all":[{"field":"date_chargeoff","lt_field":"date_last_payment"}]}
-  },
-
-  "CHARGEOFF_PASTDUE_PRESENT": {
-    "violation": "Charge-off account still shows Past Due amount",
-    "target": "collection",
-    "fcraSection": "§607(b)",
-    "severity": "moderate",
-    "fieldsImpacted": ["account_status","past_due"],
-    "rule":{"all":[{"field":"account_status","eq":"Charge-off"},{"field":"past_due","gt":0}]}
-  },
-
-  "CHARGEOFF_WITH_BALANCE": {
-    "violation": "Balance still changing after charge-off",
-    "target": "collection",
-    "fcraSection": "§607(b)",
-    "severity": "moderate",
-    "fieldsImpacted": ["balance","account_status"],
-    "rule":{"all":[{"field":"account_status","eq":"Charge-off"},{"field":"balance","gt":0}]}
-  },
-
-  "HIGH_CREDIT_LT_BALANCE": {
-    "violation": "High Credit less than Balance",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "moderate",
-    "fieldsImpacted": ["high_credit","balance"],
-    "rule":{"all":[{"field":"high_credit","lt_field":"balance"}]}
-  },
-
-  "INSTALLMENT_BALANCE_GT_ORIGINAL": {
-    "violation": "Installment balance greater than original loan amount",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "moderate",
-    "fieldsImpacted": ["balance","original_amount"],
-    "rule":{"all":[{"field":"balance","gt_field":"original_amount"}]}
+    "rule": {
+      "all": [
+        {"field":"account_type","eq":"Revolving"},
+        {"field":"balance","gt_field":"credit_limit"}
+      ]
+    }
   },
 
   "PASTDUE_GT_BALANCE": {
-    "violation": "Past Due exceeds Balance",
+    "violation": "Past Due exceeds balance",
     "target": "tradeline",
     "fcraSection": "§607(b)",
     "severity": "moderate",
     "fieldsImpacted": ["past_due","balance"],
-    "rule":{"all":[{"field":"past_due","gt_field":"balance"}]}
+    "rule": {
+      "all": [
+        {"field":"past_due","gt_field":"balance"}
+      ]
+    }
   },
 
   "PASTDUE_WITH_ZERO_BALANCE": {
@@ -105,102 +32,249 @@
     "fcraSection": "§607(b)",
     "severity": "moderate",
     "fieldsImpacted": ["past_due","balance"],
-    "rule":{"all":[{"field":"past_due","gt":0},{"field":"balance","eq":0}]}
+    "rule": {
+      "all": [
+        {"field":"balance","eq":0},
+        {"field":"past_due","gt":0}
+      ]
+    }
   },
 
   "NEGATIVE_BALANCE": {
-    "violation": "Negative balance reported",
+    "violation": "Balance is negative",
     "target": "tradeline",
     "fcraSection": "§607(b)",
     "severity": "minor",
     "fieldsImpacted": ["balance"],
-    "rule":{"all":[{"field":"balance","lt":0}]}
+    "rule": {
+      "all": [
+        {"field":"balance","lt":0}
+      ]
+    }
   },
 
-
-
-
-
-
-  "UPDATE_BEFORE_OPEN": {
-    "violation": "Reported date before open date",
+  "HIGH_CREDIT_LT_BALANCE": {
+    "violation": "High Credit is less than Balance",
     "target": "tradeline",
     "fcraSection": "§607(b)",
-    "severity": "minor",
-    "fieldsImpacted": ["last_reported","date_opened"],
-    "rule":{"all":[{"field":"last_reported","lt_field":"date_opened"}]}
+    "severity": "moderate",
+    "fieldsImpacted": ["high_credit","balance"],
+    "rule": {
+      "all": [
+        {"field":"high_credit","lt_field":"balance"}
+      ]
+    }
   },
 
-  "REPORT_DATE_TOO_OLD_ACTIVE": {
-    "violation": "Active account not updated in >1 months",
+  "UTILIZATION_SPIKE_XB": {
+    "violation": "Utilization spike during XB/XF dispute period",
     "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "minor",
-    "fieldsImpacted": ["last_reported","account_status"],
-    "rule":{"all":[{"field":"account_status","neq":"Closed"},{"field":"last_reported","lt":"1M"}]}
+    "fcraSection": "§611(a)",
+    "severity": "moderate",
+    "fieldsImpacted": ["balance","credit_limit","compliance_code"],
+    "rule": {
+      "all": [
+        {"field":"account_type","eq":"Revolving"},
+        {"field":"compliance_code","in":["XB","XF"]},
+        {"expr":"balance / credit_limit","gt":0.5}
+      ]
+    }
   },
 
-  "MISSING_DATE_REPORTED": {
-    "violation": "Missing Date Reported on derogatory account",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "minor",
-    "fieldsImpacted": ["last_reported"],
-    "rule":{"all":[{"field":"last_reported","exists":false}]}
-  },
-
-  "MISSING_DOLP": {
-    "violation": "Missing Date of Last Payment on derogatory account",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "minor",
-    "fieldsImpacted": ["date_last_payment",""],
-    "rule":{"all":[{"field":"date_last_payment","exists":false}]}
-  },
-
-  "PAYMENT_HISTORY_AFTER_CLOSE": {
-    "violation": "Payment history after closure date",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "minor",
-    "fieldsImpacted": ["payment_history","date_closed"],
-    "rule":{"all":[{"field":"payment_history_date","gt_field":"date_closed"}]}
-  },
-
-  "LIMIT_MISSING_ON_REVOLVING": {
-    "violation": "No limit on revolving account",
-    "target": "tradeline",
-    "fcraSection": "§607(b)",
-    "severity": "minor",
-    "fieldsImpacted": ["credit_limit","account_type"],
-    "rule":{"all":[{"field":"account_type","eq":"Revolving"},{"field":"credit_limit","exists":false}]}
-  },
-
-  "OPEN_ACCOUNT_ZERO_LIMIT": {
-    "violation": "Open revolving account with 0 limit",
+  "OPEN_REVOLVING_ZERO_LIMIT": {
+    "violation": "Open revolving account has a zero credit limit",
     "target": "tradeline",
     "fcraSection": "§607(b)",
     "severity": "moderate",
     "fieldsImpacted": ["account_status","credit_limit"],
-    "rule":{"all":[{"field":"account_status","eq":"Open"},{"field":"credit_limit","eq":0}]}
+    "rule": {
+      "all": [
+        {"field":"account_type","eq":"Revolving"},
+        {"field":"account_status","eq":"Open"},
+        {"field":"credit_limit","eq":0}
+      ]
+    }
   },
 
-  "OPEN_ACCOUNT_ZERO_PAYMENT": {
-    "violation": "Open installment account with 0 payment",
+  "OPEN_INSTALLMENT_ZERO_PAYMENT": {
+    "violation": "Open installment account has 0 monthly payment",
     "target": "tradeline",
     "fcraSection": "§607(b)",
     "severity": "moderate",
     "fieldsImpacted": ["account_status","monthly_payment"],
-    "rule":{"all":[{"field":"account_status","eq":"Open"},{"field":"monthly_payment","eq":0}]}
+    "rule": {
+      "all": [
+        {"field":"account_type","eq":"Installment"},
+        {"field":"account_status","eq":"Open"},
+        {"field":"monthly_payment","eq":0}
+      ]
+    }
   },
 
-  "TERMS_MISSING_ON_MORTGAGE": {
-    "violation": "No term length on mortgage",
+  "ZERO_BAL_WITH_PAYMENT_DUE": {
+    "violation": "Zero balance but scheduled payment due",
     "target": "tradeline",
     "fcraSection": "§607(b)",
     "severity": "minor",
-    "fieldsImpacted": ["account_type","no_of_months_terms"],
-    "rule":{"all":[{"field":"account_type","contains":"Mortgage"},{"field":"no_of_months_terms","exists":false}]}
+    "fieldsImpacted": ["balance","scheduled_payment_amount"],
+    "rule": {
+      "all": [
+        {"field":"balance","eq":0},
+        {"field":"scheduled_payment_amount","gt":0}
+      ]
+    }
+  },
+
+  "BALANCE_UP_AFTER_CHARGEOFF": {
+    "violation": "Balance increased after Chargeoff",
+    "target": "tradeline",
+    "fcraSection": "§623(a)(5)",
+    "severity": "critical",
+    "fieldsImpacted": ["balance","historical_balance"],
+    "rule": {
+      "all": [
+        {"field":"account_status","eq":"Charge-off"},
+        {"field":"balance","gt_field":"history[*].fields.balance"} 
+      ]
+    }
+  },
+
+  "BALANCE_CHANGED_POST_CLOSE": {
+    "violation": "Balance changed after closure date",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "major",
+    "fieldsImpacted": ["balance","date_closed","history"],
+    "rule": {
+      "all": [
+        {"field":"account_status","eq":"Closed"},
+        {"field":"balance","neq_field":"history[*].fields.balance"}
+      ]
+    }
+  },
+
+  "CREDIT_LIMIT_FLUCTUATION": {
+    "violation": "Credit limit changed without notation",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "minor",
+    "fieldsImpacted": ["credit_limit","history"],
+    "rule": {
+      "all": [
+        {"field":"account_type","eq":"Revolving"},
+        {"field":"credit_limit","neq_field":"history[*].fields.credit_limit"}
+      ]
+    }
+  },
+
+  "UTILIZATION_INCONSISTENT_WITH_BALANCE": {
+    "violation": "Reported utilization inconsistent with balance/limit",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "minor",
+    "fieldsImpacted": ["balance","credit_limit","reported_utilization"],
+    "rule": {
+      "all": [
+        {"expr":"(balance / credit_limit) * 100","neq_field":"reported_utilization"}
+      ]
+    }
+  },
+
+  "INSTALLMENT_BALANCE_GT_ORIGINAL": {
+    "violation": "Installment balance greater than original loan amount",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "moderate",
+    "fieldsImpacted": ["balance","original_amount"],
+    "rule": {
+      "all": [
+        {"field":"account_type","eq":"Installment"},
+        {"field":"balance","gt_field":"original_amount"}
+      ]
+    }
+  },
+
+  "BALANCE_PRESENT_ON_PAID_ACCOUNT": {
+    "violation": "Account marked paid but still shows a balance",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "major",
+    "fieldsImpacted": ["account_status","balance"],
+    "rule": {
+      "all": [
+        {"field":"account_status","in":["Paid","Paid in Full","Settled"]},
+        {"field":"balance","gt":0}
+      ]
+    }
+  },
+
+
+  "LAST_REPORTED_STALE_ACTIVE": {
+    "violation": "Active account not updated in over 90 days",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "minor",
+    "fieldsImpacted": ["last_reported","account_status"],
+    "rule": {
+      "all": [
+        {"field":"account_status","in":["Open","Current","Pays as Agreed"]},
+        {"field":"last_reported","gt":"90"} 
+      ]
+    }
+  },
+
+  "LAST_REPORTED_BEFORE_OPEN_DATE": {
+    "violation": "Last Reported date occurs before Date Opened",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "moderate",
+    "fieldsImpacted": ["last_reported","date_opened"],
+    "rule": {
+      "all": [
+        {"field":"last_reported","lt_field":"date_opened"}
+      ]
+    }
+  },
+
+  "DOLP_BEFORE_OPEN_DATE": {
+    "violation": "Date of Last Payment occurs before Date Opened",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "major",
+    "fieldsImpacted": ["date_last_payment","date_opened"],
+    "rule": {
+      "all": [
+        {"field":"date_last_payment","lt_field":"date_opened"}
+      ]
+    }
+  },
+
+  "PAYMENT_AFTER_CLOSURE": {
+    "violation": "Account shows payment after being closed",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "major",
+    "fieldsImpacted": ["date_last_payment","date_closed"],
+    "rule": {
+      "all": [
+        {"field":"date_closed","exists":true},
+        {"field":"date_last_payment","gt_field":"date_closed"}
+      ]
+    }
+  },
+
+  "CLOSED_ACCOUNT_STILL_REPORTING": {
+    "violation": "Closed account still reporting monthly activity",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "minor",
+    "fieldsImpacted": ["account_status","last_reported"],
+    "rule": {
+      "all": [
+        {"field":"account_status","eq":"Closed"},
+        {"field":"last_reported","gt":"90"}
+      ]
+    }
   },
 
   "REPORTING_AFTER_ZERO_BAL_CLOSED": {
@@ -209,24 +283,134 @@
     "fcraSection": "§607(b)",
     "severity": "minor",
     "fieldsImpacted": ["balance","account_status","last_reported"],
-    "rule":{"all":[{"field":"balance","eq":0},{"field":"account_status","eq":"Closed"},{"field":"last_reported","gt":"90D"}]}
+    "rule": {
+      "all": [
+        {"field":"balance","eq":0},
+        {"field":"account_status","eq":"Closed"},
+        {"field":"last_reported","gt":"90"}
+      ]
+    }
   },
 
-  "UTILIZATION_SPIKE_XB": {
-    "violation": "Utilization spike = 50% during dispute period",
-    "target": "cross_bureau",
-    "fcraSection": "§611(a)",
-    "severity": "moderate",
-    "fieldsImpacted": ["credit_limit","balance","compliance_code"],
-    "rule":{"all":[{"field":"compliance_code","in":["XB","XF"]},{"expr":"(balance/credit_limit)","gt":0.5}]}
+  "DOLP_MOVED_FORWARD": {
+    "violation": "Re-aging: DOFD moved forward compared to history",
+    "target": "tradeline",
+    "fcraSection": "§623(a)(5)",
+    "severity": "critical",
+    "fieldsImpacted": ["dofd","history"],
+    "rule": {
+      "all": [
+        {"field":"dofd","gt_field":"history[*].fields.dofd"}
+      ]
+    }
   },
 
-  "ZERO_BAL_WITH_PAYMENT_DUE": {
-    "violation": "Zero balance but scheduled payment present",
+  "DOFD_MISSING_ON_DEROG": {
+    "violation": "DOFD missing on derogatory tradeline",
+    "target": "tradeline",
+    "fcraSection": "§623(a)(5)",
+    "severity": "major",
+    "fieldsImpacted": ["dofd","payment_status"],
+    "rule": {
+      "all": [
+        {"field":"payment_status","in":["30","60","90","120","180","CO","Collection"]},
+        {"field":"dofd","exists":false}
+      ]
+    }
+  },
+
+  "DATE_CLOSED_BEFORE_OPEN_DATE": {
+    "violation": "Date Closed occurs before Date Opened",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "major",
+    "fieldsImpacted": ["date_closed","date_opened"],
+    "rule": {
+      "all": [
+        {"field":"date_closed","lt_field":"date_opened"}
+      ]
+    }
+  },
+
+  "CHARGEOFF_DATE_BEFORE_DELINQUENCY": {
+    "violation": "Chargeoff date occurs before DOFD",
+    "target": "tradeline",
+    "fcraSection": "§623(a)(5)",
+    "severity": "critical",
+    "fieldsImpacted": ["date_chargeoff","dofd"],
+    "rule": {
+      "all": [
+        {"field":"date_chargeoff","lt_field":"dofd"}
+      ]
+    }
+  },
+
+  "DOLP_EQUALS_OPEN_DATE": {
+    "violation": "Last Payment date equals Date Opened (potential inaccuracy)",
     "target": "tradeline",
     "fcraSection": "§607(b)",
     "severity": "minor",
-    "fieldsImpacted": ["balance","scheduled_payment_amount"],
-    "rule":{"all":[{"field":"balance","eq":0},{"field":"scheduled_payment_amount","gt":0}]}
+    "fieldsImpacted": ["date_last_payment","date_opened"],
+    "rule": {
+      "all": [
+        {"field":"date_last_payment","eq_field":"date_opened"}
+      ]
+    }
+  },
+
+  "LAST_PAYMENT_TOO_RECENT_ON_DEROG": {
+    "violation": "Account marked derogatory but last payment is too recent",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "major",
+    "fieldsImpacted": ["date_last_payment","payment_status"],
+    "rule": {
+      "all": [
+        {"field":"payment_status","in":["60","90","120","180","CO"]},
+        {"field":"date_last_payment","gt":"30"}
+      ]
+    }
+  },
+
+  "PAYMENT_HISTORY_AFTER_CLOSED": {
+    "violation": "Payment history shows activity after closure date",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "major",
+    "fieldsImpacted": ["payment_history","date_closed"],
+    "rule": {
+      "all": [
+        {"field":"payment_history_date","gt_field":"date_closed"}
+      ]
+    }
+  },
+
+  "LAST_REPORTED_MISSING_ON_ACTIVE": {
+    "violation": "Active account missing last reported date",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "moderate",
+    "fieldsImpacted": ["last_reported"],
+    "rule": {
+      "all": [
+        {"field":"account_status","in":["Open","Current"]},
+        {"field":"last_reported","exists":false}
+      ]
+    }
+  },
+
+  "STUDENT_LOAN_DISBURSEMENT_CONFLICT": {
+    "violation": "Student loan disbursement date conflicts with Date Opened",
+    "target": "tradeline",
+    "fcraSection": "§607(b)",
+    "severity": "moderate",
+    "fieldsImpacted": ["date_opened","first_disbursement_date"],
+    "rule": {
+      "all": [
+        {"field":"account_type","contains":"Student"},
+        {"field":"first_disbursement_date","lt_field":"date_opened"}
+      ]
+    }
   }
 }
+

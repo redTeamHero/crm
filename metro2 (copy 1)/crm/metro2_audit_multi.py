@@ -1235,12 +1235,33 @@ def _group_tradelines(tradelines: List[Dict[str, Any]]) -> Dict[str, List[Dict[s
 
 
 def evaluate_rule(rule_def: Dict[str, Any], record: Dict[str, Any]) -> bool:
-    """Return True if record violates the rule definition (safe numeric checks)."""
+    """Return True if record violates the rule definition (date-aware, numeric-safe)."""
+
+    import operator
+
+    # --- unified helpers ---
+    def get_date(v):
+        try:
+            return parse_date(v)
+        except Exception:
+            return None
+
+    def get_num(v):
+        try:
+            return clean_amount(v)
+        except Exception:
+            return None
+
+    # ============================================================
+    # MAIN LOOP
+    # ============================================================
     for cond in rule_def.get("all", []):
         field = cond.get("field")
         value = record.get(field)
 
-        # Attempt numeric normalization for safe comparison
+        # -----------------------------
+        # basic normalization
+        # -----------------------------
         try:
             if isinstance(value, str):
                 value_clean = float(re.sub(r"[^\d.-]", "", value)) if re.search(r"\d", value) else value
@@ -1249,26 +1270,31 @@ def evaluate_rule(rule_def: Dict[str, Any], record: Dict[str, Any]) -> bool:
         except Exception:
             value_clean = value
 
-        # handle exists
+        # -----------------------------
+        # exists operator
+        # -----------------------------
         if "exists" in cond:
             exists = value not in (None, "", [])
             if exists != cond["exists"]:
                 return False
 
-        # handle equalities
+        # -----------------------------
+        # basic equalities
+        # -----------------------------
         if "eq" in cond and value_clean != cond["eq"]:
             return False
         if "neq" in cond and value_clean == cond["neq"]:
             return False
 
-        # safe numeric >, <, >=, <=
+        # -----------------------------
+        # numeric comparisons
+        # -----------------------------
         def safe_cmp(a, b, op):
             try:
                 return op(a, b)
-            except Exception:
+            except:
                 return False
 
-        import operator
         if "gt" in cond and not safe_cmp(value_clean, cond["gt"], operator.gt):
             return False
         if "lt" in cond and not safe_cmp(value_clean, cond["lt"], operator.lt):
@@ -1281,21 +1307,108 @@ def evaluate_rule(rule_def: Dict[str, Any], record: Dict[str, Any]) -> bool:
         if "in" in cond and value_clean not in cond["in"]:
             return False
 
-        # field-to-field comparisons
+        # ============================================================
+        # FIELD-TO-FIELD DATE-FIRST COMPARISON ENGINE
+        # ============================================================
+
+        # ---- greater than field ----
         if "gt_field" in cond:
             other = record.get(cond["gt_field"])
-            if not safe_cmp(clean_amount(value), clean_amount(other), operator.gt):
+            d1, d2 = get_date(value), get_date(other)
+            if d1 and d2:
+                if not operator.gt(d1, d2):
+                    return False
+                continue
+            n1, n2 = get_num(value), get_num(other)
+            if n1 is not None and n2 is not None:
+                if not operator.gt(n1, n2):
+                    return False
+                continue
+            if not operator.gt(str(value), str(other)):
                 return False
+
+        # ---- less than field ----
         if "lt_field" in cond:
             other = record.get(cond["lt_field"])
-            if not safe_cmp(clean_amount(value), clean_amount(other), operator.lt):
+            d1, d2 = get_date(value), get_date(other)
+            if d1 and d2:
+                if not operator.lt(d1, d2):
+                    return False
+                continue
+            n1, n2 = get_num(value), get_num(other)
+            if n1 is not None and n2 is not None:
+                if not operator.lt(n1, n2):
+                    return False
+                continue
+            if not operator.lt(str(value), str(other)):
                 return False
+
+        # ---- greater or equal field ----
+        if "gte_field" in cond:
+            other = record.get(cond["gte_field"])
+            d1, d2 = get_date(value), get_date(other)
+            if d1 and d2:
+                if not operator.ge(d1, d2):
+                    return False
+                continue
+            n1, n2 = get_num(value), get_num(other)
+            if n1 is not None and n2 is not None:
+                if not operator.ge(n1, n2):
+                    return False
+                continue
+            if not operator.ge(str(value), str(other)):
+                return False
+
+        # ---- less or equal field ----
+        if "lte_field" in cond:
+            other = record.get(cond["lte_field"])
+            d1, d2 = get_date(value), get_date(other)
+            if d1 and d2:
+                if not operator.le(d1, d2):
+                    return False
+                continue
+            n1, n2 = get_num(value), get_num(other)
+            if n1 is not None and n2 is not None:
+                if not operator.le(n1, n2):
+                    return False
+                continue
+            if not operator.le(str(value), str(other)):
+                return False
+
+        # ---- equal field ----  (THIS FIXES YOUR BUG)
+        if "eq_field" in cond:
+            other = record.get(cond["eq_field"])
+            d1, d2 = get_date(value), get_date(other)
+            if d1 and d2:
+                if not operator.eq(d1, d2):
+                    return False
+                continue
+            n1, n2 = get_num(value), get_num(other)
+            if n1 is not None and n2 is not None:
+                if not operator.eq(n1, n2):
+                    return False
+                continue
+            if str(value) != str(other):
+                return False
+
+        # ---- not equal field ----
         if "neq_field" in cond:
             other = record.get(cond["neq_field"])
-            if value_clean == other:
+            d1, d2 = get_date(value), get_date(other)
+            if d1 and d2:
+                if operator.eq(d1, d2):
+                    return False
+                continue
+            n1, n2 = get_num(value), get_num(other)
+            if n1 is not None and n2 is not None:
+                if operator.eq(n1, n2):
+                    return False
+                continue
+            if str(value) == str(other):
                 return False
 
     return True
+
 
 
 def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -1601,8 +1714,4 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == "__main__":
-<<<<<<< Updated upstream
-    sys.exit(main()) missing infomation when parsing
-=======
-    sys.exit(main()) missing infomation when parsing
->>>>>>> Stashed changes
+    sys.exit(main())
