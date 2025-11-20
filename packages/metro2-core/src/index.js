@@ -770,10 +770,11 @@ function createDomAdapter(context){
 function inferTradelineMeta(adapter, table){
   const meta = {};
   const header = findNearestHeader(adapter, table);
-  if(header){
-    const name = sanitizeCreditor(adapter.text(header));
-    if(isNonCreditorHeader(name)) return { meta, skip: true };
-    if(name) meta.creditor = name;
+  if(!header) return { meta };
+  const name = sanitizeCreditor(adapter.text(header));
+  if(!name) return { meta };
+  if(isNonCreditorHeader(name)){
+    return { meta, skip: true };
   }
 
   if(!meta.creditor){

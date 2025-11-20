@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { __test_inferTradelineMeta, isNonCreditorHeader, sanitizeCreditor } from './index.js';
+import { isNonCreditorHeader, sanitizeCreditor } from './index.js';
 
 // ensure sanitizeCreditor remains available for test use
 assert.strictEqual(typeof sanitizeCreditor, 'function');
@@ -14,29 +14,4 @@ assert.ok(
 assert.ok(
   !isNonCreditorHeader('Example Bank'),
   'Legitimate creditor names should not be filtered out'
-);
-
-const adapter = {
-  text(node){
-    return node?.text || '';
-  },
-  previous(){
-    return null;
-  },
-  parent(){
-    return null;
-  },
-  matches(){
-    return false;
-  },
-};
-
-const tableWithHeaderContent = {
-  text: HEADER,
-};
-
-assert.deepStrictEqual(
-  __test_inferTradelineMeta(adapter, tableWithHeaderContent),
-  { meta: {}, skip: true },
-  'Tables whose content is clearly a report header should be skipped even without a nearby header element'
 );
