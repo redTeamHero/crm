@@ -1590,6 +1590,28 @@ document.addEventListener('DOMContentLoaded', () => {
   const moneybagToggle = document.getElementById('guideChatMoneyToggle');
   initChatPromptMenu();
 
+  const openGrowthNavigator = () => {
+    if (!growthNavigatorPanel) return;
+    growthNavigatorPanel.classList.remove('hidden');
+    growthNavigatorPanel.classList.add('flex');
+    growthNavigatorPanel.setAttribute('aria-hidden', 'false');
+  };
+
+  const closeGrowthNavigator = () => {
+    if (!growthNavigatorPanel) return;
+    growthNavigatorPanel.classList.add('hidden');
+    growthNavigatorPanel.classList.remove('flex');
+    growthNavigatorPanel.setAttribute('aria-hidden', 'true');
+  };
+
+  growthNavigatorPanel?.addEventListener('click', (event) => {
+    if (event.target === growthNavigatorPanel) {
+      closeGrowthNavigator();
+    }
+  });
+
+  growthNavigatorClose?.addEventListener('click', () => closeGrowthNavigator());
+
   if(chatState.messages && pendingChatMessages.length){
     const items = pendingChatMessages.splice(0, pendingChatMessages.length);
     items.forEach(msg => appendChatMessage(msg.role, msg.content, { html: msg.html }));
@@ -1610,8 +1632,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if(value) sendChatMessage(value);
   });
   document.addEventListener('keydown', (event) => {
-    if(event.key === 'Escape' && chatState.isOpen){
-      closeChatCoach();
+    if(event.key === 'Escape'){
+      if(chatState.isOpen){
+        closeChatCoach();
+      }
+      const isGrowthOpen = growthNavigatorPanel && !growthNavigatorPanel.classList.contains('hidden');
+      if (isGrowthOpen) {
+        closeGrowthNavigator();
+      }
     }
   });
 
