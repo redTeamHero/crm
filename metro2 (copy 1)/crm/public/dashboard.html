@@ -566,17 +566,15 @@
     </div>
   </div>
 </main>
-<div class="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
-  <button id="guideChatMoneyToggle" type="button" class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl text-emerald-600 shadow-lg ring-1 ring-emerald-100 transition duration-150 hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-300" title="Open Growth Navigator">
-    <span class="sr-only">Open Growth Navigator</span>
-    <span aria-hidden="true">💰</span>
-  </button>
-  <button id="guideChatToggle" type="button" class="flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-white shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]" title="Open coach">
-    <span>Coach</span>
-    <span aria-hidden="true">💬</span>
-  </button>
-</div>
-<section id="growthNavigatorPanel" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Growth Navigator summary" aria-hidden="true" hidden>
+<button id="guideChatMoneyToggle" type="button" class="fixed bottom-32 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-lg text-white shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]" title="Open coach">
+  <span class="sr-only">Open coach</span>
+  <span aria-hidden="true">💰</span>
+</button>
+<button id="guideChatToggle" type="button" class="fixed bottom-20 right-4 z-40 flex items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-white shadow-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]" title="Open coach">
+  <span>Coach</span>
+  <span aria-hidden="true">💬</span>
+</button>
+<section id="growthNavigatorPanel" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Growth Navigator summary" aria-hidden="true">
   <div class="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-gradient-to-b from-emerald-50 via-white to-white shadow-2xl ring-1 ring-emerald-100/80">
     <button id="growthNavigatorClose" class="absolute right-4 top-4 rounded-full bg-white/80 px-3 py-1 text-sm font-semibold text-slate-600 shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300" aria-label="Close Growth Navigator">×</button>
     <div class="grid gap-6 p-6 md:p-8">
