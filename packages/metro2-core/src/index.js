@@ -776,8 +776,20 @@ function inferTradelineMeta(adapter, table){
   if(isNonCreditorHeader(name)){
     return { meta, skip: true };
   }
-  meta.creditor = name;
+
+  if(!meta.creditor){
+    const tableText = sanitizeCreditor(adapter.text(table));
+    if(isNonCreditorHeader(tableText)){
+      return { meta, skip: true };
+    }
+  }
+
   return { meta };
+}
+
+// Exposed for testing to validate non-creditor detection without coupling to DOM helpers
+export function __test_inferTradelineMeta(adapter, table){
+  return inferTradelineMeta(adapter, table);
 }
 
 function findNearestHeader(adapter, node){
