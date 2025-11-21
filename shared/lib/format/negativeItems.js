@@ -4,6 +4,18 @@ import { normalizeBureau as coreNormalizeBureau } from "../../../packages/metro2
 const ALL_BUREAUS = ["TransUnion", "Experian", "Equifax"];
 
 function normalizeSeverity(value){
+  const SEVERITY_SCORES = {
+    critical: 4,
+    major: 3,
+    moderate: 2,
+    minor: 1,
+  };
+
+  if (typeof value === "string") {
+    const key = value.trim().toLowerCase();
+    if (key in SEVERITY_SCORES) return SEVERITY_SCORES[key];
+  }
+
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
 }
