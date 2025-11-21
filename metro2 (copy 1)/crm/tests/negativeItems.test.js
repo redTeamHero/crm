@@ -41,6 +41,42 @@ test('prepareNegativeItems keeps categories and selects highest severity headlin
   assert.equal(item.headline.text, 'Balances & Amounts – Past due reported as current');
 });
 
+test('prepareNegativeItems normalizes string severities from validation metadata', () => {
+  const tradelines = [
+    {
+      meta: { creditor: 'Limit Tester' },
+      per_bureau: { TransUnion: { account_number: '1234' } },
+      violations: [
+        {
+          id: 'CURRENT_BUT_PASTDUE',
+          code: 'CURRENT_BUT_PASTDUE',
+          category: 'Payment History',
+          title: 'Past due marked as current',
+          detail: 'Account shows past-due amount while marked current.',
+          severity: 'critical',
+        },
+        {
+          id: 'MINOR_NOTE',
+          code: 'MINOR_NOTE',
+          category: 'Other',
+          title: 'Minor note',
+          detail: 'Low-impact reminder.',
+          severity: 'minor',
+        },
+      ],
+    },
+  ];
+
+  const { items } = prepareNegativeItems(tradelines);
+  assert.equal(items.length, 1);
+  const [item] = items;
+  assert.equal(item.severity, 4);
+  assert.ok(item.headline);
+  assert.equal(item.headline.severity, 4);
+  assert.equal(item.violations[0].severity, 4);
+  assert.equal(item.violations[1].severity, 1);
+});
+
 test('prepareNegativeItems builds masked bureau details with formatted values', () => {
   const tradelines = [
     {
