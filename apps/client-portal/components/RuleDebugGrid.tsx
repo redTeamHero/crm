@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from 'clsx';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { BureauRuleGroup } from '@/lib/rule-debug';
 
 type RuleDebugCopy = {
@@ -46,10 +46,21 @@ function formatSeverityLabel(label: string, severity: number) {
   return `${label} ${severity}`;
 }
 
+const STORAGE_KEY = 'rule-debug-view-mode';
+
 export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
-  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'cards';
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored === 'list' ? 'list' : 'cards';
+  });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const hasCards = groups?.some((group) => group.cards.length > 0) ?? false;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(STORAGE_KEY, viewMode);
+  }, [viewMode]);
 
   const flatCards = useMemo(() => {
     return (
@@ -89,6 +100,7 @@ export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               )}
+              aria-pressed={viewMode === 'cards'}
             >
               {copy.ruleDebugCardView}
             </button>
@@ -101,6 +113,7 @@ export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
                   ? 'bg-white text-slate-900 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               )}
+              aria-pressed={viewMode === 'list'}
             >
               {copy.ruleDebugListView}
             </button>
