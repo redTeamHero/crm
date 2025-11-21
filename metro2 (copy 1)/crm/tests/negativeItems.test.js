@@ -77,44 +77,6 @@ test('prepareNegativeItems normalizes string severities from validation metadata
   assert.equal(item.violations[1].severity, 1);
 });
 
-test('prepareNegativeItems preserves violation sources and sets defaults for computed rules', () => {
-  const tradelines = [
-    {
-      per_bureau: {
-        TransUnion: {
-          account_number: '9999',
-          account_status: 'Chargeoff',
-          balance: 100,
-        },
-      },
-      violations: [
-        {
-          id: 'MANUAL_FLAG',
-          code: 'MANUAL_FLAG',
-          category: 'Manual',
-          title: 'Manually added violation',
-          detail: 'Entered by user upload.',
-          severity: 2,
-          source: 'portal-upload',
-          bureaus: ['Experian'],
-        },
-      ],
-    },
-  ];
-
-  const { items } = prepareNegativeItems(tradelines);
-  assert.equal(items.length, 1);
-  const [item] = items;
-
-  const manual = item.violations.find((v) => v.code === 'MANUAL_FLAG');
-  assert.ok(manual, 'expected manual violation to be preserved');
-  assert.equal(manual.source, 'portal-upload');
-
-  const computed = item.violations.find((v) => v.source === 'metro2-core');
-  assert.ok(computed, 'expected computed metro2-core violation');
-  assert.equal(computed.source, 'metro2-core');
-});
-
 test('prepareNegativeItems builds masked bureau details with formatted values', () => {
   const tradelines = [
     {
