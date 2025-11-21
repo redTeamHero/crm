@@ -49,6 +49,10 @@ const english = {
   ruleDebugNoDetail: 'No narrative provided.',
   ruleDebugUnknown: 'N/A',
   ruleDebugBureau: (bureau: string) => bureau,
+  ruleDebugCardView: 'Card view',
+  ruleDebugListView: 'List view',
+  ruleDebugExpand: 'Show more',
+  ruleDebugCollapse: 'Show less',
   moduleLabels: {
     creditScore: 'Credit Score • Puntaje de crédito',
     negativeItems: 'Negative Items • Ítems negativos',
@@ -121,6 +125,10 @@ const spanish = {
   ruleDebugNoDetail: 'Sin detalle disponible.',
   ruleDebugUnknown: 'N/D',
   ruleDebugBureau: (bureau: string) => bureau,
+  ruleDebugCardView: 'Vista de tarjetas',
+  ruleDebugListView: 'Vista de lista',
+  ruleDebugExpand: 'Ver más',
+  ruleDebugCollapse: 'Ver menos',
   moduleLabels: {
     creditScore: 'Puntaje de crédito • Credit Score',
     negativeItems: 'Ítems negativos • Negative Items',
