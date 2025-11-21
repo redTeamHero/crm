@@ -41,6 +41,80 @@ test('prepareNegativeItems keeps categories and selects highest severity headlin
   assert.equal(item.headline.text, 'Balances & Amounts – Past due reported as current');
 });
 
+test('prepareNegativeItems normalizes string severities from validation metadata', () => {
+  const tradelines = [
+    {
+      meta: { creditor: 'Limit Tester' },
+      per_bureau: { TransUnion: { account_number: '1234' } },
+      violations: [
+        {
+          id: 'CURRENT_BUT_PASTDUE',
+          code: 'CURRENT_BUT_PASTDUE',
+          category: 'Payment History',
+          title: 'Past due marked as current',
+          detail: 'Account shows past-due amount while marked current.',
+          severity: 'critical',
+        },
+        {
+          id: 'MINOR_NOTE',
+          code: 'MINOR_NOTE',
+          category: 'Other',
+          title: 'Minor note',
+          detail: 'Low-impact reminder.',
+          severity: 'minor',
+        },
+      ],
+    },
+  ];
+
+  const { items } = prepareNegativeItems(tradelines);
+  assert.equal(items.length, 1);
+  const [item] = items;
+  assert.equal(item.severity, 4);
+  assert.ok(item.headline);
+  assert.equal(item.headline.severity, 4);
+  assert.equal(item.violations[0].severity, 4);
+  assert.equal(item.violations[1].severity, 1);
+});
+
+test('prepareNegativeItems preserves violation sources and sets defaults for computed rules', () => {
+  const tradelines = [
+    {
+      per_bureau: {
+        TransUnion: {
+          account_number: '9999',
+          account_status: 'Chargeoff',
+          balance: 100,
+        },
+      },
+      violations: [
+        {
+          id: 'MANUAL_FLAG',
+          code: 'MANUAL_FLAG',
+          category: 'Manual',
+          title: 'Manually added violation',
+          detail: 'Entered by user upload.',
+          severity: 2,
+          source: 'portal-upload',
+          bureaus: ['Experian'],
+        },
+      ],
+    },
+  ];
+
+  const { items } = prepareNegativeItems(tradelines);
+  assert.equal(items.length, 1);
+  const [item] = items;
+
+  const manual = item.violations.find((v) => v.code === 'MANUAL_FLAG');
+  assert.ok(manual, 'expected manual violation to be preserved');
+  assert.equal(manual.source, 'portal-upload');
+
+  const computed = item.violations.find((v) => v.source === 'metro2-core');
+  assert.ok(computed, 'expected computed metro2-core violation');
+  assert.equal(computed.source, 'metro2-core');
+});
+
 test('prepareNegativeItems builds masked bureau details with formatted values', () => {
   const tradelines = [
     {
