@@ -109,11 +109,13 @@ def _resolve_rulebook_path() -> Path:
         if candidate.exists():
             return candidate
     for candidate in [
+        # Prefer the authoritative shared rulebook shipped at the repo root
+        here.parent.parent / "metro2" / "metro2Violations.json",
+        # Local overrides or bundled copies fall back next
+        here.parent / "metro2Violations.json",
         here / "data" / "metro2Violations.json",
         here / "public" / "metro2Violations.json",
-        here.parent / "metro2Violations.json",
         here.parent / "metro2" / "metro2Violations.json",
-        here.parent.parent / "metro2" / "metro2Violations.json",
     ]:
         if candidate.exists():
             return candidate
@@ -494,6 +496,39 @@ def parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]:
             tradelines.append(tl)
 
     return tradelines
+
+
+def extract_all_tradelines(soup: BeautifulSoup) -> List[Dict[str, Any]]:
+    """Public helper that mirrors legacy parsing structure used in tests."""
+
+    parsed = parse_account_history(soup)
+    grouped: List[Dict[str, Any]] = []
+    by_creditor: Dict[str, Dict[str, Any]] = {}
+
+    for record in parsed:
+        creditor = record.get("creditor_name") or record.get("creditor")
+        if not creditor:
+            continue
+
+        group = by_creditor.get(creditor)
+        if group is None:
+            group = {
+                "creditor": creditor,
+                "creditor_name": creditor,
+                "per_bureau": {bureau: {} for bureau in BUREAUS},
+                "meta": {"account_numbers": {}},
+            }
+            by_creditor[creditor] = group
+            grouped.append(group)
+
+        bureau = record.get("bureau")
+        if bureau:
+            group["per_bureau"][bureau] = record
+            acct = record.get("account_number") or record.get("account #") or record.get("number")
+            if acct:
+                group["meta"]["account_numbers"][bureau] = acct
+
+    return grouped
 
 
 
@@ -1415,6 +1450,9 @@ def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[s
     logger = logging.getLogger("metro2")
     for record in tradelines:
         record["violations"] = []
+
+    # First, execute JSON rulebook rules that operate on individual tradelines
+    for record in tradelines:
         for rule_name, rule_data in RULEBOOK.items():
             # Skip personal/inquiry rules on tradelines
             if rule_data.get("target") and rule_data["target"].lower() != "tradeline":
@@ -1427,29 +1465,27 @@ def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[s
                     "category": rule_data.get("category", rule_data.get("target")),
                     "fcraSection": rule_data["fcraSection"],
                     "severity": rule_data["severity"],
-                    "fieldsImpacted": rule_data["fieldsImpacted"]
+                    "fieldsImpacted": rule_data["fieldsImpacted"],
                 })
-                logger.debug(f"âœ” {rule_name} fired â†’ {rule_data['violation']}")
-    return tradelines
+                logger.debug(f"✓ {rule_name} fired → {rule_data['violation']}")
 
-
-
+    # Then, execute bespoke Python rules that may rely on cross-tradeline context
     groups = _group_tradelines(tradelines)
     for creditor_name, records in groups.items():
         logger.debug(f"Auditing {creditor_name} ({len(records)} tradelines)")
         for record in records:
             bureau = record.get("bureau", "?")
-            logger.debug(f"â†’ Bureau: {bureau} | Account: {record.get('account_number','?')}")
+            logger.debug(f"→ Bureau: {bureau} | Account: {record.get('account_number','?')}")
             for rule in RULES:
                 try:
                     findings = rule(record, records, tradelines)
                     if findings:
                         record.setdefault("violations", []).extend(findings)
-                        logger.debug(f"   Rule {rule.__name__} fired â†’ {len(findings)} finding(s)")
+                        logger.debug(f"   Rule {rule.__name__} fired → {len(findings)} finding(s)")
                     else:
                         logger.debug(f"   Rule {rule.__name__} passed clean")
-                except Exception as e:
-                    logger.exception(f"Error in rule {rule.__name__}: {e}")
+                except Exception as exc:
+                    logger.exception(f"Error in rule {rule.__name__}: {exc}")
     return tradelines
 
 
