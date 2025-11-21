@@ -164,6 +164,7 @@ function mapViolation(entry = {}){
     detail: entry.detail || "",
     severity: normalizeSeverity(entry.severity),
     bureaus: normalizeBureaus(entry),
+    source: entry.source || null,
   };
 }
 
