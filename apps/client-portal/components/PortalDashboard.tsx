@@ -101,7 +101,6 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   const navTagline = navTaglineCandidate && navTaglineCandidate.length > 0 ? navTaglineCandidate : copy.navTagline;
 
   const scoreEntries = useMemo(() => toScoreEntries(portal.creditScore), [portal.creditScore]);
-  const disputeCount = portal.negativeItems?.length ?? 0;
   const openBalance = useMemo(
     () => portal.invoices?.filter((invoice) => !invoice.paid).reduce((sum, invoice) => sum + (invoice.amount || 0), 0) ?? 0,
     [portal.invoices]
@@ -112,7 +111,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   const documents = safeList(portal.documents, 4);
   const reminders = safeList(portal.reminders, 3);
   const messages = safeList(portal.messages, 4);
-  const ruleGroups = useMemo(() => buildRuleGroups(portal.negativeItems), [portal.negativeItems]);
+  const ruleGroups = useMemo(() => buildRuleGroups(negativeItems), [negativeItems]);
 
   const moduleEntries = useMemo<ModuleEntry[]>(() => {
     const keys = new Set<string>();
