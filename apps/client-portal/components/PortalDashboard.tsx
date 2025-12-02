@@ -323,26 +323,40 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                 <h2 className="text-lg font-semibold text-slate-900">{copy.documents}</h2>
                 <span className="badge">Uploads</span>
               </div>
-              <div className="mt-4 space-y-3">
-                {documents.length === 0 && <p className="text-sm text-slate-500">{copy.empty}</p>}
-                {documents.map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{doc.name}</p>
-                      <p className="text-xs text-slate-500">{formatDate(doc.uploadedAt, language === 'es' ? 'es-US' : 'en-US')}</p>
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <div className="space-y-3">
+                  {documents.length === 0 && <p className="text-sm text-slate-500">{copy.empty}</p>}
+                  {documents.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{doc.name}</p>
+                        <p className="text-xs text-slate-500">{formatDate(doc.uploadedAt, language === 'es' ? 'es-US' : 'en-US')}</p>
+                      </div>
+                      {doc.url && (
+                        <a
+                          href={doc.url}
+                          className="text-xs font-semibold text-primary hover:no-underline"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View
+                        </a>
+                      )}
                     </div>
-                    {doc.url && (
-                      <a
-                        href={doc.url}
-                        className="text-xs font-semibold text-primary hover:no-underline"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View
-                      </a>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4">
+                  <p className="text-sm font-semibold text-slate-800">{copy.uploadChecklistTitle}</p>
+                  <ul className="mt-3 space-y-2 text-sm text-slate-600">
+                    {copy.uploadChecklistItems.map((item) => (
+                      <li key={item} className="flex items-start gap-2">
+                        <span className="mt-1 h-2 w-2 rounded-full bg-primary" aria-hidden />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-xs text-slate-500">{copy.uploadChecklistNote}</p>
+                </div>
               </div>
             </article>
           )}
