@@ -80,37 +80,6 @@ function getPrimaryAccountNumber(item: PortalPayload['negativeItems'][number]) {
   return entries[0] ?? null;
 }
 
-function normalizeViolation(
-  entry: PortalPayload['negativeItems'][number]['violations'][number],
-  item: PortalPayload['negativeItems'][number]
-) {
-  if (!entry) {
-    return null as const;
-  }
-  const codeSource =
-    typeof entry === 'string'
-      ? entry
-      : entry.code || entry.id || entry.title || entry.detail || '';
-  const titleSource = typeof entry === 'string' ? entry : entry.title || entry.code || entry.id || '';
-  const detail = typeof entry === 'string' ? '' : (entry.detail || '').trim();
-  const bureaus = Array.isArray((entry as { bureaus?: string[] })?.bureaus)
-    ? ((entry as { bureaus?: string[] }).bureaus as string[])
-    : [];
-  const fallbackBureaus = Array.isArray(item.bureaus) ? item.bureaus : [];
-
-  const code = codeSource.trim();
-  const title = titleSource.trim();
-  const bureauKey = (bureaus.length ? bureaus : fallbackBureaus).join('|') || 'all';
-  const keyBase = code || title || detail || 'violation';
-  return {
-    key: `${keyBase}-${bureauKey}-${detail || 'none'}`,
-    code: code || null,
-    title: title || null,
-    detail,
-    bureaus: bureaus.length ? bureaus : fallbackBureaus,
-  };
-}
-
 export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   const [language, setLanguage] = useState<LanguageKey>('en');
   const copy = translations[language];
@@ -136,12 +105,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
     () => portal.invoices?.filter((invoice) => !invoice.paid).reduce((sum, invoice) => sum + (invoice.amount || 0), 0) ?? 0,
     [portal.invoices]
   );
-  const negativeItems = useMemo(() => {
-    const source = Array.isArray(portal.negativeItems) ? portal.negativeItems : [];
-    const withViolations = source.filter((item) => Array.isArray(item?.violations) && item.violations.length > 0);
-    return withViolations.length > 0 ? withViolations : source;
-  }, [portal.negativeItems]);
-  const disputeCount = negativeItems.length;
+  const negativeItems = Array.isArray(portal.negativeItems) ? portal.negativeItems : [];
   const openInvoices = safeList(portal.invoices, 5);
   const timeline = safeList(portal.timeline, 6);
   const documents = safeList(portal.documents, 4);
@@ -489,11 +453,6 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                   const bureaus = Array.isArray(item.bureaus) && item.bureaus.length > 0 ? item.bureaus.join(', ') : null;
                   const explanation = resolveNegativeExplanation(item, copy.ruleDebugNoDetail);
                   const accountNumber = getPrimaryAccountNumber(item);
-                  const violations = Array.isArray(item.violations)
-                    ? item.violations
-                        .map((entry) => normalizeViolation(entry, item))
-                        .filter((violation) => violation !== null)
-                    : [];
                   return (
                     <article
                       key={item.index ?? item.creditor ?? index}
@@ -523,42 +482,6 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                           <dd>{item.balance ? formatCurrency(item.balance) : copy.negativeItemsUnknown}</dd>
                         </div>
                       </dl>
-                      <div className="mt-4 space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                          {copy.negativeItemsViolations}
-                        </p>
-                        {violations.length === 0 ? (
-                          <p className="text-[11px] text-slate-500">{copy.negativeItemsNoViolations}</p>
-                        ) : (
-                          <ul className="space-y-2">
-                            {violations.map((violation) => (
-                              <li
-                                key={violation.key}
-                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="font-semibold text-slate-800">
-                                    {violation.title || copy.negativeItemsUnknown}
-                                  </span>
-                                  {violation.code && (
-                                    <span className="rounded-full bg-slate-900/5 px-2 py-1 text-[10px] font-semibold text-slate-700">
-                                      {violation.code}
-                                    </span>
-                                  )}
-                                </div>
-                                {violation.detail ? (
-                                  <p className="mt-1 text-[11px] text-slate-600">{violation.detail}</p>
-                                ) : null}
-                                {violation.bureaus.length > 0 ? (
-                                  <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-500">
-                                    {copy.negativeItemsBureaus}: {violation.bureaus.join(', ')}
-                                  </p>
-                                ) : null}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
                     </article>
                   );
                 })}
