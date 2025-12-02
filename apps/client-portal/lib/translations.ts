@@ -69,8 +69,6 @@ const english = {
   negativeItemsBalance: 'Reported balance',
   negativeItemsAccount: 'Account #',
   negativeItemsSeverity: 'Impact score',
-  negativeItemsViolations: 'Metro-2 violations',
-  negativeItemsNoViolations: 'No Metro-2 violations found.',
   negativeItemsUnknown: 'N/A',
   moduleLabels: {
     creditScore: 'Credit Score • Puntaje de crédito',
@@ -164,8 +162,6 @@ const spanish = {
   negativeItemsBalance: 'Saldo reportado',
   negativeItemsAccount: 'Cuenta #',
   negativeItemsSeverity: 'Impacto',
-  negativeItemsViolations: 'Violaciones Metro-2',
-  negativeItemsNoViolations: 'Sin violaciones Metro-2.',
   negativeItemsUnknown: 'N/D',
   moduleLabels: {
     creditScore: 'Puntaje de crédito • Credit Score',
