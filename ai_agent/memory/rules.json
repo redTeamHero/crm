@@ -1,0 +1,7 @@
+{
+  "three_source_confirmation": {
+    "description": "Facts must be corroborated by at least three independent sources before the agent treats them as authoritative.",
+    "rationale": "Reduces hallucinations and keeps Metro-2 advice defensible.",
+    "enforcement": "When searching the knowledge base, only return entries where metadata.source_count >= 3; otherwise return a polite refusal."
+  }
+}

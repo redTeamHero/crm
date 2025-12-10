@@ -116,6 +116,20 @@ Python Utilities (python-tests/, scripts/) → HTML → PDF letters, regression 
   ```
   - **Analytics idea:** capture `audit_completed` and `checkout_succeeded` events to monitor Lead→Consult% and Consult→Purchase%.
 
+## AI Agent (Option 1: plug-and-play)
+- A lightweight `/ai_agent` package now ships with Metro-2 aware tools (audit, dispute drafting, NEPQ prompts, in-memory knowledge base) and a Flask blueprint ready to register on any existing Flask app.
+- **Register the blueprint:**
+  ```python
+  from ai_agent.router import ai_router
+
+  app.register_blueprint(ai_router, url_prefix="/ai")
+  ```
+- **Endpoints:**
+  - `POST /ai/chat` – `{ "message": "run audit", "context": {"report": {...}} }`
+  - `POST /ai/memory` – `{ "text": "Metro-2 DOFD rule", "metadata": {"source_count": 3} }`
+  - `GET /ai/health` – returns available tools
+- The agent routes intents to Metro-2 audits (`metro2/audit_rules.py`), dispute planning, and NEPQ framing. Swap the lightweight memory (`ai_agent/memory/vectorstore.py`) with Supabase/Pinecone when ready.
+
 ## Debugging Tips
 - Delete `crm.sqlite` to reset local data quickly.
 - Use `npm run marketing:twilio-worker` to replay Twilio queue events with verbose logging.
