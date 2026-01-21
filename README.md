@@ -1,152 +1,173 @@
 # CRM Metro-2
 
- Premium credit dispute CRM engineered for Metro-2 accuracy, guided client journeys, and revenue automation from day one.
+## Overview
+CRM Metro-2 is a credit-dispute CRM and audit toolkit that combines a Node.js API, Metro-2 rule data, and a client portal for guided dispute workflows. The repository is aimed at teams who need a repeatable process for identifying Metro-2 reporting issues, generating dispute letters, and managing client-facing portals. It ships with a Node/Express server that powers audits, PDFs, workflow rules, and integrations, along with a separate Next.js portal UI. A Python test suite validates Metro-2 audit behavior against known scenarios, and shared Metro-2 data files keep the audit engine and letter generator consistent. The codebase is organized as a multi-part system: the backend lives in a dedicated CRM folder, the portal is a separate app, and reusable Metro-2 libraries are maintained under packages. By default, the backend uses SQLite for local development and can be pointed at PostgreSQL/MySQL via environment configuration. It targets teams building a compliance-forward credit dispute experience with audit transparency, letter generation, and automation hooks.
 
-## Use Case
-- Launch a branded credit dispute hub that unifies Metro-2 validations, client portals, and certified mail workflows for B2C and B2B clients (truckers, small businesses, attorneys).
-- Replace spreadsheet-driven case management with permissioned workspaces, automated dispute generation, and Stripe-powered upsells.
-- Give advisors NEPQ-style conversation flows, audit reports, and ready-to-send letters that preserve compliance guardrails.
+**Key capabilities**
+- Run Metro-2 audits and generate dispute letters from shared violation metadata.
+- Serve a CRM API with authentication, workflows, and job processing.
+- Offer a Next.js client portal that consumes `/api/portal/:id` data.
+- Extend the system with reusable Metro-2 packages and Python regression tests.
 
-## Value
-- **Faster conversions:** Guided intake → Metro-2 audit → Stripe paywall in minutes so leads experience value before purchasing.
-- **Premium trust:** Built-in client portal, audit transparency, and documented FCRA/METRO-2 safeguards for peace of mind.
-- **Scalable ops:** Multi-tenant database modes, throttled workers, and automation hooks (Twilio, SimpleCertifiedMail, Gmail) keep recurring revenue predictable as you grow toward 7–8 figures.
+## Repository Status
+- **Fork status:** Unclear. There is no upstream/remote metadata or explicit fork statement in the repository itself, so provenance cannot be confirmed from the checked-in files.
+- **Evidence missing:** Git remote URLs or a README note identifying an upstream repository.
 
-## Getting Started Demo
-- **Video (7 min):** [docs/getting-started-demo.md](docs/getting-started-demo.md) outlines the storyline, voiceover script, and shot list for a high-conversion Loom/YouTube walkthrough. Record once, then embed the exported MP4/GIF in `docs/media/` and update this link with the hosted URL.
-- **Demo storyline:** Prospect uploads a credit report, reviews Metro-2 violations, preview letters, then checks out via Stripe test mode. Emphasize value moments and KPIs (Lead → Consult%, Consult → Purchase%).
+## Features
+- Metro-2 violation metadata stored in `metro2 (copy 1)/crm/data/metro2Violations.json` is shared between audit and letter-generation logic. 
+- Express-based API server with scripts for audits, migrations, and background workers.
+- PDF/letter generation workflows alongside report parsing utilities.
+- Portal UI built with Next.js and TypeScript.
+- Python regression tests covering audit rules and report parsing.
 
-## How to Install
+## Tech Stack
+- **Languages:** JavaScript (Node.js), TypeScript (Next.js), Python.
+- **Backend:** Express, Knex, BullMQ, Stripe, Twilio, Puppeteer.
+- **Frontend:** Next.js, React, Tailwind CSS.
+- **Database:** SQLite (default), PostgreSQL/MySQL via Knex.
+- **Testing:** Node’s test runner, Jest/Supertest dependencies, Python unittest.
+- **Package managers:** npm, pip (requirements.txt in CRM backend).
+
+## Project Structure
+```
+.
+├── apps/client-portal/         # Next.js portal UI
+├── metro2/                     # Metro-2 Python rule data and parsers
+├── metro2 (copy 1)/crm/         # Primary Node/Express CRM backend
+│   ├── server.js               # API entry point
+│   ├── migrations/             # Knex migrations
+│   ├── scripts/                # CLI utilities + workers
+│   ├── tests/                  # Node test suite
+│   ├── requirements.txt        # Python deps for CRM backend utilities
+│   └── .env.sample             # Environment variable template
+├── packages/                   # Reusable Metro-2 libraries
+└── python-tests/               # Python audit/regression tests
+```
+
+## Getting Started
+### Prerequisites
+- **Node.js + npm** (required for the CRM backend and client portal).
+- **Python 3** (required for Python tests and audit utilities).
+- **Database**: SQLite for local development, or PostgreSQL/MySQL for production.
+- **Optional**: Redis for BullMQ-backed job processing.
+- **Optional**: System dependencies for Puppeteer PDF rendering (see `install-chrome-deps.sh`).
+
+### Installation
+**Backend (CRM API)**
 ```bash
+cd "metro2 (copy 1)/crm"
 cp .env.sample .env
 npm install
 npm run migrate
 npm start
 ```
-- First boot seeds an admin account: **username** `ducky`, **password** `duck`.
-- SQLite (`crm.sqlite`) is used locally. Set `DATABASE_URL` + `DATABASE_CLIENT` (`pg`, `mysql2`, `sqlite3`) for production.
-- Keep `.env` secrets scoped per tenant; never commit real PII.
 
-## Client Portal Frontend (Next.js)
-1. `cd apps/client-portal`
-2. `npm install`
-3. `PORTAL_API_BASE_URL=http://localhost:3000 npm run dev`
-- Visit `http://localhost:3000/api/portal/{consumerId}` to confirm data, then open `http://localhost:3001/portal/{consumerId}` to see the bilingual UI (Next.js will choose the next available port).
-- `npm run lint` and `npm run typecheck` keep the portal production ready; track CTA clicks for conversion experiments.
-
-## How to Scale
-1. **Choose tenant strategy:**
-   - `DB_TENANT_STRATEGY=partitioned` (default) – shared tables keyed by `tenant_id` with hash partitions tuned by `DB_PARTITIONS` (default 8).
-   - `DB_TENANT_STRATEGY=schema` – PostgreSQL schema-per-tenant with prefix `DB_TENANT_SCHEMA_PREFIX` (default `tenant_`).
-2. **Automate revenue ops:** enable `STRIPE_SECRET_KEY`, `SCM_API_KEY`, Twilio, and Gmail credentials to productize certified mail, SMS nudges, and onboarding drip sequences.
-3. **Extend workers:** marketing/Twilio workers respect `TENANT_LIMITS` JSON to throttle bulk sends without cross-tenant bleed.
-4. **Observe KPIs:** instrument events (`lead_created`, `audit_completed`, `checkout_succeeded`, `letter_downloaded`) into your analytics stack to monitor Lead→Consult% and AOV.
-
-## Pricing & Plan Concepts (roadmap)
-| Plan | Target | Pricing Concept | Included Value | Upsell Hooks |
-| --- | --- | --- | --- | --- |
-| **Launch** | DIY consumers | $97 setup + $49/mo | Metro-2 audit, 3 dispute letters/mo, client portal | Upgrade to Certified Mail or advisor review |
-| **Operator** | Trucking & small biz | $297 setup + $149/mo | Team seats, task automation, CRM webhook, Stripe billing | Add-on: automated certified mail batches |
-| **Partner** | Law firms & agencies | Custom (rev-share) | Multi-tenant schemas, priority support, white-label portal | Enterprise support, analytics workspace |
-| **Services Add-on** | Any tier | Usage-based | Done-for-you disputes, NEPQ coaching calls | Retainer increases, audit deep dives |
-
-## Customer Proof & Use Cases
-- **Maria (Consumer):** "The portal let me track every Metro-2 dispute without guessing what's next. I paid for certified mail because the timeline was crystal clear."
-- **Interstate Logistics (Trucking firm):** "We onboarded 6 drivers in a weekend. The Metro-2 audit flagged repos with missing DOFD, and Stripe subscriptions made billing painless."
-- **Lopez & Ortiz PLLC (Attorneys):** "Schema isolation keeps client data segregated, and the audit exports drop straight into our litigation workflows."
-
-## Change Log & Roadmap
-- **v1.5.0 (current):** Multi-tenant throttling, Stripe Checkout tokens, Twilio marketing worker, portal polish.
-- **v1.6.0 (next 30 days):** Certified mail batch dashboard, dispute letter A/B library, analytics event stream.
-- **v2.0 (roadmap):** OCR-resistant upload triage, Metro-2 AI rule suggestions, in-app NEPQ coaching prompts, Render/AWS blue-green deploy guides.
-
-## Architecture Overview
+**Client portal**
+```bash
+cd apps/client-portal
+npm install
+npm run dev
 ```
-Browser (Client Portal + Admin)
-    ↓ REST / Webhooks
-Express API (server/) ──┬── Metro-2 audit engine (shared/metro2-data/)
-                        ├── Stripe + Twilio + Gmail integrations
-                        ├── Certified mail worker (SimpleCertifiedMail)
-                        └── Queue throttler (tenant-aware)
-Data Layer (Knex + SQLite/PostgreSQL/MySQL)
-    └── Tenant isolation (shared partitions or per-schema)
-Python Utilities (python-tests/, scripts/) → HTML → PDF letters, regression audits
+
+### Configuration
+- Start from `metro2 (copy 1)/crm/.env.sample` and define any required secrets or API credentials.
+- Database configuration is controlled by `DATABASE_CLIENT` and `DATABASE_URL`. If omitted, the backend uses SQLite in `metro2 (copy 1)/crm/data/dev.sqlite`.
+- Multi-tenant behavior is controlled by `DB_TENANT_STRATEGY` and `DB_TENANT_SCHEMA_PREFIX` (see backend database configuration).
+
+If you need additional environment variables beyond the sample file, search the backend for `process.env` usage to identify required values.
+
+## Usage
+### Run Locally
+**Backend API**
+```bash
+cd "metro2 (copy 1)/crm"
+npm start
 ```
-- **Why:** Express keeps REST-first simplicity, Python scripts preserve existing Metro-2 validators, and Knex migrations handle tenant migrations without manual SQL.
+- The server starts on `http://localhost:3000` by default (configurable with `PORT`).
+- A default admin account is seeded for first-time access (`ducky` / `duck`).
 
-## Deployment
-1. Provision PostgreSQL (Render, Supabase, RDS) and set `DATABASE_URL`, `DATABASE_CLIENT=pg`.
-2. Set production secrets (`STRIPE_*`, `SCM_API_KEY`, Twilio, Gmail) in your hosting dashboard.
-3. `npm run migrate` on deploy to align schemas; ensure the process has permission to create schemas if using `schema` strategy.
-4. Run `npm start` (or `node server/index.js`) behind a process manager (Render service, PM2, or systemd). Enforce HTTPS and WAF rules to guard intake forms.
-5. Attach monitoring: health endpoint `/api/health`, logs filtered for PII (only last4 of SSN, redacted tokens).
+**Client portal**
+```bash
+cd apps/client-portal
+PORTAL_API_BASE_URL=http://localhost:3000 npm run dev
+```
+- Visit `http://localhost:3000/api/portal/{consumerId}` to verify API data.
+- Visit `http://localhost:3001/portal/{consumerId}` for the portal UI (Next.js picks the next available port).
 
-## Scaling & Multi-Tenant Strategy
-- **Tenant Resolution:** `X-Tenant-Id` header or authenticated user context chooses the tenant (defaults to `default`).
-- **Quotas:** baseline per-tenant rate limits (requests/minute 240, letters/hour 60, PDF/hour 200, etc.). Override via `TENANT_LIMITS` or `TENANT_LIMIT_OVERRIDES` JSON blobs.
-- **Schema Mode:** automatically provisions `tenant_{id}` schemas and applies migrations per schema; schedule nightly vacuum/analyze on PostgreSQL.
-- **Partition Mode:** tune `DB_PARTITIONS` for write-heavy tenants; monitor `tenant_registry` to audit onboarding cadence.
+### Build / Packaging
+**Client portal**
+```bash
+cd apps/client-portal
+npm run build
+npm run start
+```
 
-## Environment Variables (essentials)
-| Key | Purpose |
-| --- | --- |
-| `PORT` | Dev server port (default **3000**). |
-| `DATABASE_URL`, `DATABASE_CLIENT` | Production database connection + driver (`pg`, `mysql2`, `sqlite3`). |
-| `DB_TENANT_STRATEGY`, `DB_PARTITIONS`, `DB_TENANT_SCHEMA_PREFIX` | Multi-tenant tuning. |
-| `METRO2_VIOLATIONS_PATH`, `METRO2_KNOWLEDGE_GRAPH_PATH` | Override Metro-2 JSON assets per brand. |
-| `PORTAL_PAYMENT_BASE`, `STRIPE_SECRET_KEY`, `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL` | Stripe Checkout & portal pay links. |
-| `MARKETING_API_BASE_URL`, `MARKETING_API_KEY`, `CRM_URL`, `CRM_TOKEN` | Marketing worker auth + mirroring. |
-| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID`, `TWILIO_FROM_NUMBER`, `TWILIO_STATUS_CALLBACK_URL` | SMS worker configuration. |
-| `MARKETING_TENANT_ID`, `MARKETING_POLL_INTERVAL_MS`, `MARKETING_TEST_FETCH_LIMIT` | Marketing worker tuning. |
-| `SCM_API_KEY` | SimpleCertifiedMail integration for certified mail upsells. |
-| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | Gmail API OAuth for transactional sends. |
+### Tests
+**Backend tests**
+```bash
+cd "metro2 (copy 1)/crm"
+npm test
+```
 
-## Testing & QA
-- **Integration (Jest):** `npm test`
-- **Python regression:** `pytest python-tests`
-- **Smoke (curl):**
-  ```bash
-  curl -X POST http://localhost:3000/api/auth/login \
-    -H 'Content-Type: application/json' \
-    -d '{"username":"ducky","password":"duck"}'
-  ```
-- **Portal payload:**
-  ```bash
-  curl http://localhost:3000/api/portal/{consumerId}
-  ```
-  - **Analytics idea:** capture `audit_completed` and `checkout_succeeded` events to monitor Lead→Consult% and Consult→Purchase%.
+**Python regression tests**
+```bash
+bash python-tests/run.sh
+```
 
-## AI Agent (Option 1: plug-and-play)
-- A lightweight `/ai_agent` package now ships with Metro-2 aware tools (audit, dispute drafting, NEPQ prompts, in-memory knowledge base) and a Flask blueprint ready to register on any existing Flask app.
-- **Register the blueprint:**
-  ```python
-  from ai_agent.router import ai_router
+**Portal lint + type checks**
+```bash
+cd apps/client-portal
+npm run lint
+npm run typecheck
+```
 
-  app.register_blueprint(ai_router, url_prefix="/ai")
-  ```
-- **Endpoints:**
-  - `POST /ai/chat` – `{ "message": "run audit", "context": {"report": {...}} }`
-  - `POST /ai/memory` – `{ "text": "Metro-2 DOFD rule", "metadata": {"source_count": 3} }`
-  - `GET /ai/health` – returns available tools
-- The agent routes intents to Metro-2 audits (`metro2/audit_rules.py`), dispute planning, and NEPQ framing. Swap the lightweight memory (`ai_agent/memory/vectorstore.py`) with Supabase/Pinecone when ready.
+## Development Guide
+### How to Edit / Customize
+- **API behavior:** update `metro2 (copy 1)/crm/server.js` and supporting modules in that folder.
+- **Metro-2 rules and metadata:** edit `metro2 (copy 1)/crm/data/metro2Violations.json` and the Python modules in `metro2/`.
+- **Letter templates:** update `metro2 (copy 1)/crm/letterTemplates.js` or the PDF utilities in `metro2 (copy 1)/crm/pdfUtils.js`.
+- **Portal UI:** modify pages and components inside `apps/client-portal/`.
+- **Reusable data parsing:** update shared packages under `packages/`.
 
-## Debugging Tips
-- Delete `crm.sqlite` to reset local data quickly.
-- Use `npm run marketing:twilio-worker` to replay Twilio queue events with verbose logging.
-- Set `DEBUG=crm:*` for verbose Express + Knex logs (make sure tokens/PII stay redacted).
+### Troubleshooting
+1. **Server starts but database errors appear:** confirm `DATABASE_CLIENT` and `DATABASE_URL` are set correctly for PostgreSQL/MySQL.
+2. **PDF generation fails with missing shared libraries:** run `npm run setup:chrome` to install Puppeteer system deps.
+3. **Python tests fail to import modules:** ensure `python-tests/run.sh` is used so `PYTHONPATH` includes the CRM backend.
+4. **Background jobs stall:** configure Redis (`REDIS_URL` or host/port) or accept the in-process scheduler fallback.
+5. **Portal shows empty data:** verify `PORTAL_API_BASE_URL` points to the backend and `/api/portal/:id` returns data.
+6. **Stripe/Twilio/Gmail errors:** ensure the relevant API keys are populated in `.env`.
 
-## Marketing & Conversion Ideas
-- Launch a high-converting landing funnel (Hero → Trust badges → Outcomes → Social proof → Pricing) pointing to `/portal`.
-- Offer a downloadable "Metro-2 Compliance Checklist" as a lead magnet synced to your marketing automation worker.
-- Run A/B tests: (1) CTA copy "Start Your Audit" vs "See Your Metro-2 Score", (2) Pricing anchor with certified mail bonus, (3) Social proof placement vs NEPQ video testimonial.
+## Roadmap
+_Suggested improvements based on the current codebase:_
+1. Add a top-level `README` section for the packages in `packages/` with versioning and release notes.
+2. Introduce Docker Compose files for the backend, Redis, and Postgres to simplify local setup.
+3. Provide a `.env.example` at the repo root that links the backend and portal configuration.
+4. Add CI workflows to run `npm test` and Python regression tests on pull requests.
+5. Expand portal documentation with a component inventory and design tokens.
+6. Document a production deployment guide (PM2/systemd, or Render/Fargate).
+7. Add lint/format scripts for the backend (ESLint/Prettier) for consistent style.
+8. Expose a health check endpoint list in the docs for operational monitoring.
 
-## Deploy Notes
-- Render deployment: add `render.yaml` (see `/scripts` for starter) with separate web service + background worker.
-- AWS Fargate: containerize via `Dockerfile`, attach Secrets Manager for env vars, and enable load balancer stickiness per tenant.
-- Backups: schedule nightly dumps of Postgres plus S3 upload of `shared/metro2-data` overrides.
+## Contributing
+- Open issues with clear reproduction steps and expected behavior.
+- Fork the repository, create a feature branch, and open a pull request describing the change.
+- Keep changes scoped to the relevant app (`metro2 (copy 1)/crm`, `apps/client-portal`, or `packages/`).
+- Run tests before submitting: backend `npm test`, portal `npm run lint` + `npm run typecheck`, and Python `bash python-tests/run.sh`.
 
-## GitHub Auto-Pull Webhook
-- Optional script under `scripts/` listens for GitHub webhook and pulls latest main branch for staging tenants. Protect production by requiring manual promotion.
+## License
+No license file detected.
 
----
-Focus on compliance: no guaranteed deletions, respect Metro-2 rules (status vs. past-due amounts, DOFD for charge-offs/collections, consistent reporting dates), and redact SSN except last4 in logs.
+## Acknowledgements / Credits
+- Express, Knex, BullMQ, Stripe, Twilio, and Puppeteer for backend capabilities.
+- Next.js, React, Tailwind CSS, and TypeScript for the client portal.
+- Python unittest and BeautifulSoup for audit regression coverage.
+
+## Donate / Support
+If this project helps your team deliver more reliable dispute workflows, consider supporting ongoing maintenance, documentation, and QA coverage.
+
+- GitHub Sponsors: <link>
+- Buy Me a Coffee: <link>
+- PayPal: <link>
+- Crypto (optional): <address>
+
+Thank you for supporting the project!
