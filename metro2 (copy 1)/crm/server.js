@@ -2488,14 +2488,15 @@ async function sendPlanInvoice({ plan, plansDb, req, company = {}, consumer = nu
 const upload = multer({ storage: multer.memoryStorage() });
 
 // ---------- Python Analyzer Bridge ----------
-async function runPythonAnalyzer(htmlContent){
+async function runPythonAnalyzer({ buffer, filename }){
   const scriptPath = path.join(__dirname, "metro2_audit_multi.py");
   await fs.promises.access(scriptPath, fs.constants.R_OK)
     .catch(()=>{ throw new Error(`Analyzer not found or unreadable: ${scriptPath}`); });
   const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(),"metro2-"));
-  const htmlPath = path.join(tmpDir,"report.html");
+  const ext = (filename || "").toString().toLowerCase().endsWith(".pdf") ? ".pdf" : ".html";
+  const htmlPath = path.join(tmpDir,`report${ext}`);
   const outPath  = path.join(tmpDir,"report.json");
-  await fs.promises.writeFile(htmlPath, htmlContent, "utf-8");
+  await fs.promises.writeFile(htmlPath, buffer);
 
   const { child: py } = await spawnPythonProcess(
     [scriptPath,"-i",htmlPath,"-o",outPath],
@@ -4146,7 +4147,7 @@ app.post("/api/contracts", async (req,res)=>{
 });
 
 
-// Upload HTML -> analyze -> save under consumer
+// Upload HTML/PDF -> analyze -> save under consumer
 app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   const db=await loadDB();
   const consumer = db.consumers.find(c=>c.id===req.params.id);
@@ -4161,35 +4162,38 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     basicRuleViolations: 0,
   };
   try{
-    const htmlText = req.file.buffer.toString("utf-8");
+    const isPdf = req.file.mimetype === "application/pdf" || /\.pdf$/i.test(req.file.originalname || "");
+    const htmlText = isPdf ? "" : req.file.buffer.toString("utf-8");
     let analyzed = { tradelines: [] };
 
-    try {
-      const dom = new JSDOM(htmlText);
-      const jsResult = parseCreditReportHTML(dom.window.document);
-      analyzed.tradelines = jsResult.tradelines || [];
-      if (Array.isArray(jsResult.inquiries)) {
-        analyzed.inquiries = jsResult.inquiries;
+    if (!isPdf) {
+      try {
+        const dom = new JSDOM(htmlText);
+        const jsResult = parseCreditReportHTML(dom.window.document);
+        analyzed.tradelines = jsResult.tradelines || [];
+        if (Array.isArray(jsResult.inquiries)) {
+          analyzed.inquiries = jsResult.inquiries;
+        }
+        if (jsResult.inquiry_summary && typeof jsResult.inquiry_summary === "object") {
+          analyzed.inquiry_summary = jsResult.inquiry_summary;
+        }
+        if (Array.isArray(jsResult.inquiry_details)) {
+          analyzed.inquiry_details = jsResult.inquiry_details;
+        }
+        if (jsResult.credit_scores && typeof jsResult.credit_scores === "object") {
+          analyzed.credit_scores = jsResult.credit_scores;
+        }
+        if (jsResult.personalInfo && typeof jsResult.personalInfo === "object") {
+          analyzed.personalInfo = jsResult.personalInfo;
+        }
+        if (jsResult.personal_information && typeof jsResult.personal_information === "object") {
+          analyzed.personal_information = analyzed.personal_information || jsResult.personal_information;
+        }
+        diagnostics.jsTradelineCount = analyzed.tradelines.length;
+      } catch (e) {
+        logError("JS_PARSER_FAILED", "JS parser failed", e);
+        errors.push({ step: "js_parse", message: e.message, details: e.stack || String(e) });
       }
-      if (jsResult.inquiry_summary && typeof jsResult.inquiry_summary === "object") {
-        analyzed.inquiry_summary = jsResult.inquiry_summary;
-      }
-      if (Array.isArray(jsResult.inquiry_details)) {
-        analyzed.inquiry_details = jsResult.inquiry_details;
-      }
-      if (jsResult.credit_scores && typeof jsResult.credit_scores === "object") {
-        analyzed.credit_scores = jsResult.credit_scores;
-      }
-      if (jsResult.personalInfo && typeof jsResult.personalInfo === "object") {
-        analyzed.personalInfo = jsResult.personalInfo;
-      }
-      if (jsResult.personal_information && typeof jsResult.personal_information === "object") {
-        analyzed.personal_information = analyzed.personal_information || jsResult.personal_information;
-      }
-      diagnostics.jsTradelineCount = analyzed.tradelines.length;
-    } catch (e) {
-      logError("JS_PARSER_FAILED", "JS parser failed", e);
-      errors.push({ step: "js_parse", message: e.message, details: e.stack || String(e) });
     }
 
     const jsTradelinesBefore = analyzed.tradelines?.length || 0;
@@ -4200,7 +4204,10 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     let pythonTradelines = [];
 
     try {
-      const pyResult = await runPythonAnalyzer(htmlText);
+      const pyResult = await runPythonAnalyzer({
+        buffer: req.file.buffer,
+        filename: req.file.originalname,
+      });
       pythonStdout = pyResult?.stdout || "";
       pythonStderr = pyResult?.stderr || "";
       const py = pyResult?.data || {};
@@ -4310,15 +4317,17 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       errors.push({ step: "rule_audit", message: e.message, details: e.stack || String(e) });
     }
 
-    try{
-      const extractedScores = extractCreditScores(htmlText);
-      if (Object.keys(extractedScores).length) {
-        consumer.creditScore = mergeCreditScores(consumer.creditScore, extractedScores);
-        await setCreditScore(consumer.id, consumer.creditScore);
+    if (!isPdf) {
+      try{
+        const extractedScores = extractCreditScores(htmlText);
+        if (Object.keys(extractedScores).length) {
+          consumer.creditScore = mergeCreditScores(consumer.creditScore, extractedScores);
+          await setCreditScore(consumer.id, consumer.creditScore);
+        }
+      }catch(e){
+        logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
+        errors.push({ step: "score_extract", message: e.message, details: e.stack || String(e) });
       }
-    }catch(e){
-      logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
-      errors.push({ step: "score_extract", message: e.message, details: e.stack || String(e) });
     }
 
     if (pythonStdout.trim()) {
