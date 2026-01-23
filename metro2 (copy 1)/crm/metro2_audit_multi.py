@@ -11,7 +11,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 from bs4 import BeautifulSoup, Tag
 from datetime import datetime, date
@@ -286,7 +286,7 @@ def _has_keywords(text: str, keywords: Sequence[str]) -> bool:
 
 @dataclass
 class AuditPayload:
-    personal_information: List[Dict[str, Dict[str, str]]]
+    personal_information: Union[List[Dict[str, Dict[str, str]]], Dict[str, Any]]
     personal_violations: List[Dict[str, Any]]
     personal_mismatches: List[Dict[str, Any]]
     account_history: List[Dict[str, Any]]
@@ -1777,8 +1777,30 @@ def parse_credit_report_html(html_content: str) -> AuditPayload:
 
 
 def parse_credit_report_file(path: str) -> AuditPayload:
+    report_path = Path(path)
+    if report_path.suffix.lower() == ".pdf":
+        payload = parse_credit_report_pdf(report_path)
+        return AuditPayload(
+            personal_information=payload.get("personal_information") or {},
+            personal_violations=payload.get("personal_info_violations") or [],
+            personal_mismatches=payload.get("personal_mismatches") or [],
+            account_history=payload.get("accounts") or payload.get("account_history") or [],
+            inquiries=payload.get("inquiries") or [],
+            inquiry_violations=payload.get("inquiry_violations") or [],
+        )
     with open(path, "r", encoding="utf-8") as handle:
         return parse_credit_report_html(handle.read())
+
+
+def parse_credit_report_pdf(path: Path) -> Dict[str, Any]:
+    root = path.resolve().parents[2]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    try:
+        from metro2.parser import parse_client_portal_data
+    except ImportError as exc:
+        raise RuntimeError("PDF parser module is unavailable.") from exc
+    return parse_client_portal_data(path)
 
 
 # ---------------------------------------------------------------------------
@@ -1790,9 +1812,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     except AttributeError:
         pass
-    parser = argparse.ArgumentParser(description="Parse and audit consumer credit report HTML files.")
-    parser.add_argument("input", nargs="?", help="Path to the HTML report")
-    parser.add_argument("-i", "--input", dest="input_cli", help="Path to the HTML report (legacy flag)")
+    parser = argparse.ArgumentParser(description="Parse and audit consumer credit report HTML/PDF files.")
+    parser.add_argument("input", nargs="?", help="Path to the HTML or PDF report")
+    parser.add_argument("-i", "--input", dest="input_cli", help="Path to the HTML or PDF report (legacy flag)")
     parser.add_argument("-o", "--output", dest="output", help="Optional path to write JSON results")
     parser.add_argument("--json-only", action="store_true", help="Suppress CLI summary and emit JSON only")
     parser.add_argument("--debug", action="store_true", help="Enable verbose debug logging")
