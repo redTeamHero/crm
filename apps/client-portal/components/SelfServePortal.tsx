@@ -192,9 +192,14 @@ export default function SelfServePortal() {
               <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
                 <p className="text-sm font-semibold text-slate-700">Drop file here or click to upload</p>
                 <p className="text-xs text-slate-500">storage/tenant_acme/case_019/report.html</p>
-                <button className="mx-auto rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white">
-                  Select file
-                </button>
+                <div className="mx-auto flex flex-wrap items-center justify-center gap-3">
+                  <button className="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white">
+                    Select file
+                  </button>
+                  <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
+                    Upload PDF
+                  </button>
+                </div>
               </div>
               <div className="mt-6 rounded-2xl border border-slate-100 bg-emerald-50 p-4">
                 <p className="text-sm font-semibold text-emerald-800">Parsing progress</p>

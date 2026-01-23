@@ -14,6 +14,8 @@ from typing import Any, Callable, Dict, List, MutableMapping, Optional, Sequence
 from bs4 import BeautifulSoup, Tag
 
 from .audit_rules import build_cli_report, run_all_audits
+from .pdf_parser import parse_credit_report_pdf
+from .report_adapters import ReportAdapterFactory
 
 ALL_BUREAUS: Tuple[str, ...] = ("TransUnion", "Experian", "Equifax")
 NODE_BRIDGE = Path(__file__).with_name("node_parser_bridge.mjs")
@@ -322,10 +324,22 @@ def _fallback_parse_inquiries(soup: BeautifulSoup) -> List[Dict[str, str]]:
 
 
 # ───────────── Public API ─────────────
+def _parse_report(
+    doc: Union[str, Path, BeautifulSoup, Tag, None],
+    include_personal: bool,
+) -> Dict[str, Any]:
+    factory = ReportAdapterFactory(
+        html_parser=lambda source: _parse_with_bridge(source, include_personal=include_personal),
+        pdf_parser=parse_credit_report_pdf,
+    )
+    adapter = factory.adapter_for(doc)
+    return adapter.parse(doc)
+
+
 def parse_negative_item_cards(doc: Union[str, Path, BeautifulSoup, Tag, None]) -> Dict[str, Any]:
     """Return normalized tradelines + inquiries for negative item cards."""
 
-    parsed = _parse_with_bridge(doc, include_personal=False)
+    parsed = _parse_report(doc, include_personal=False)
     return {
         "accounts": parsed.get("accounts", []),
         "inquiries": parsed.get("inquiries", []),
@@ -335,8 +349,7 @@ def parse_negative_item_cards(doc: Union[str, Path, BeautifulSoup, Tag, None]) -
 def parse_client_portal_data(doc: Union[str, Path, BeautifulSoup, Tag, None]) -> Dict[str, Any]:
     """Return structured data tailored for the client portal experience."""
 
-    parsed = _parse_with_bridge(doc, include_personal=True)
-    return parsed
+    return _parse_report(doc, include_personal=True)
 
 
 def parse_credit_report_html(doc: Union[str, Path, BeautifulSoup, Tag, None]) -> Dict[str, Any]:
@@ -380,7 +393,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         argv = sys.argv[1:]
 
     if len(argv) < 1:
-        print("Usage: python3 parser.py report.html")
+        print("Usage: python3 parser.py report.html|report.pdf")
         return 1
 
     html_path = Path(argv[0])
@@ -388,8 +401,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"File not found: {html_path}")
         return 1
 
-    html = html_path.read_text(encoding="utf-8")
-    parsed = parse_client_portal_data(html)
+    if html_path.suffix.lower() == ".pdf":
+        parsed = parse_client_portal_data(html_path)
+    else:
+        html = html_path.read_text(encoding="utf-8")
+        parsed = parse_client_portal_data(html)
     audited = run_all_audits(parsed)
 
     print(build_cli_report(audited))
