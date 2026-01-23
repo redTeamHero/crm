@@ -1660,19 +1660,36 @@ $("#tlEditForm").addEventListener("submit", async (e)=>{
 });
 
 // Upload report
-$("#btnUpload").addEventListener("click", ()=>{
+let lastUploadButton = null;
+function triggerReportUpload(btn){
   if(!currentConsumerId) return showErr("Select a consumer first.");
+  lastUploadButton = btn;
   $("#fileInput").value = "";
   $("#fileInput").click();
+}
+
+$("#btnUpload").addEventListener("click", ()=>{
+  triggerReportUpload($("#btnUpload"));
 });
+
+const uploadPdfButton = document.getElementById("btnUploadPdf");
+if (uploadPdfButton) {
+  uploadPdfButton.addEventListener("click", ()=>{
+    triggerReportUpload(uploadPdfButton);
+  });
+}
 $("#fileInput").addEventListener("change", async (e)=>{
   clearErr();
   const file = e.target.files?.[0];
   if(!file) return;
-  const btn = $("#btnUpload");
+  const btn = lastUploadButton || $("#btnUpload");
   const old = btn.textContent;
   btn.textContent = "Uploading…";
   btn.disabled = true;
+  const otherBtn = btn === $("#btnUpload") ? document.getElementById("btnUploadPdf") : $("#btnUpload");
+  if (otherBtn) {
+    otherBtn.disabled = true;
+  }
 
   try{
     const fd = new FormData();
@@ -1713,6 +1730,10 @@ $("#fileInput").addEventListener("change", async (e)=>{
   }finally{
     btn.textContent = old;
     btn.disabled = false;
+    if (otherBtn) {
+      otherBtn.disabled = false;
+    }
+    lastUploadButton = null;
   }
 });
 
@@ -2068,4 +2089,3 @@ const companyName = localStorage.getItem("companyName");
 if (companyName) {
   $("#navCompany").textContent = companyName;
 }
-
