@@ -16,6 +16,9 @@ export function parseIdentityIqPdfToJson(pdfPath) {
     py.stderr.on("data", (data) => {
       err += data.toString("utf8");
     });
+    py.on("error", (error) => {
+      reject(new Error(`PDF parse failed to start: ${error.message}`));
+    });
 
     py.on("close", (code) => {
       if (code !== 0) {
