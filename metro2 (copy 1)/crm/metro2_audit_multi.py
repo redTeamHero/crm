@@ -108,9 +108,14 @@ def _resolve_rulebook_path() -> Path:
         candidate = Path(env_path).expanduser().resolve()
         if candidate.exists():
             return candidate
+    root_dir = here.parent.parent
+    for entry in root_dir.iterdir():
+        candidate = entry / "crm" / "data" / "metro2Violations.json"
+        if candidate.exists():
+            return candidate
     for candidate in [
         # Prefer the authoritative shared rulebook shipped at the repo root
-        here.parent.parent / "metro2" / "metro2Violations.json",
+        root_dir / "metro2" / "metro2Violations.json",
         # Local overrides or bundled copies fall back next
         here.parent / "metro2Violations.json",
         here / "data" / "metro2Violations.json",
