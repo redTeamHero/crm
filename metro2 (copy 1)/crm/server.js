@@ -4212,6 +4212,8 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       pythonStderr = pyResult?.stderr || "";
       const py = pyResult?.data || {};
       const pyPersonalInfo = mapPythonPersonalInfo(py?.personal_info || py?.personal_information);
+      const pythonPersonalMismatches = Array.isArray(py?.personal_mismatches) ? py.personal_mismatches : [];
+      const pythonInquiryViolations = Array.isArray(py?.inquiry_violations) ? py.inquiry_violations : [];
       let convertedPyTradelines = Array.isArray(py?.tradelines) ? py.tradelines : [];
       if (!convertedPyTradelines.length && Array.isArray(py?.account_history)) {
         try {
@@ -4223,7 +4225,16 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       }
 
       pythonTradelines = convertedPyTradelines;
-      diagnostics.pythonViolationCount = pythonTradelines.reduce((sum, tl) => sum + ((tl?.violations || []).length), 0);
+      diagnostics.pythonViolationCount = pythonTradelines.reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
+        + pythonPersonalMismatches.length
+        + pythonInquiryViolations.length;
+
+      if (!Array.isArray(analyzed.personal_mismatches)) {
+        analyzed.personal_mismatches = pythonPersonalMismatches;
+      }
+      if (!Array.isArray(analyzed.inquiry_violations)) {
+        analyzed.inquiry_violations = pythonInquiryViolations;
+      }
 
       if (!analyzed.tradelines?.length && pythonTradelines.length) {
         analyzed.tradelines = pythonTradelines.map(tl => ({ ...tl, source: "python_only" }));
@@ -4409,7 +4420,9 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       filename: req.file.originalname,
       size: req.file.size
     });
-    const totalViolations = (analyzed.tradelines || []).reduce((sum, tl) => sum + ((tl?.violations || []).length), 0);
+    const totalViolations = (analyzed.tradelines || []).reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
+      + (analyzed.personal_mismatches?.length || 0)
+      + (analyzed.inquiry_violations?.length || 0);
     console.log("[Audit Success]", {
       consumerId: consumer.id,
       reportId: rid,
