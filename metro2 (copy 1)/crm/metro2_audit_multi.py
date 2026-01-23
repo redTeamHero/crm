@@ -1792,10 +1792,20 @@ def parse_credit_report_file(path: str) -> AuditPayload:
         return parse_credit_report_html(handle.read())
 
 
+def _add_metro2_module_path(report_path: Path) -> None:
+    candidate_roots = [
+        Path(__file__).resolve().parents[2],
+        report_path.resolve().parents[2],
+        Path.cwd(),
+    ]
+    for root in candidate_roots:
+        metro2_init = root / "metro2" / "__init__.py"
+        if metro2_init.exists() and str(root) not in sys.path:
+            sys.path.insert(0, str(root))
+
+
 def parse_credit_report_pdf(path: Path) -> Dict[str, Any]:
-    root = path.resolve().parents[2]
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
+    _add_metro2_module_path(path)
     try:
         from metro2.parser import parse_client_portal_data
     except ImportError as exc:
