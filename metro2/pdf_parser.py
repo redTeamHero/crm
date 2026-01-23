@@ -147,7 +147,7 @@ def _section_lines(lines: Sequence[Line]) -> Dict[str, List[Line]]:
 
 
 def _normalize_heading(text: str) -> str:
-    return re.sub(r"\\s+", " ", text.strip().lower())
+    return re.sub(r"\s+", " ", text.strip().lower())
 
 
 def _parse_personal_information(lines: Sequence[Line]) -> Dict[str, Dict[str, str]]:
