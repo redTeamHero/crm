@@ -1306,13 +1306,15 @@ def run_all_audits(parsed_data: MutableMapping[str, Any]) -> MutableMapping[str,
     inquiries = parsed_data.get("inquiries", [])
     personal_info = parsed_data.get("personal_information", {})
 
-    for record in tradelines:
+    active_tradelines = [record for record in tradelines if record.get("present", True) is not False]
+
+    for record in active_tradelines:
         normalize_tradeline(record)
 
     for fn in AUDIT_FUNCTIONS:
-        fn(tradelines)
+        fn(active_tradelines)
 
-    parsed_data["inquiry_violations"] = audit_inquiries(inquiries, tradelines)
+    parsed_data["inquiry_violations"] = audit_inquiries(inquiries, active_tradelines)
     parsed_data["personal_info_violations"] = audit_personal_info(personal_info)
 
     return parsed_data
