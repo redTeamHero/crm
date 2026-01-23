@@ -32,6 +32,32 @@ export default {
   "Subscriber Name":          { key: "creditor_name" },
 };
 
-function parseMoney(v){ return Number(v.replace(/[^0-9.-]/g,'')) || 0; }
-function toMDY(v){ const d=new Date(v); return isNaN(d)?'':`${d.getMonth()+1}`.padStart(2,'0')+'/'+`${d.getDate()}`.padStart(2,'0')+'/'+d.getFullYear(); }
-function parseInteger(v){ const n = parseInt(v.replace(/[^0-9-]/g,''),10); return Number.isNaN(n) ? null : n; }
+function isBlank(value){
+  const text = String(value ?? '').trim();
+  if(!text) return true;
+  if(/^[-–—]+$/.test(text)) return true;
+  if(/^(n\/?a|none|not reported|not available)$/i.test(text)) return true;
+  return false;
+}
+
+function parseMoney(v){
+  if(isBlank(v)) return null;
+  const cleaned = String(v).replace(/[^0-9.-]/g,'');
+  if(!cleaned || cleaned === '-' || cleaned === '.' || cleaned === '-.') return null;
+  const num = Number(cleaned);
+  return Number.isFinite(num) ? num : null;
+}
+
+function toMDY(v){
+  if(isBlank(v)) return null;
+  const d = new Date(v);
+  return isNaN(d) ? null : `${d.getMonth()+1}`.padStart(2,'0')+'/'+`${d.getDate()}`.padStart(2,'0')+'/'+d.getFullYear();
+}
+
+function parseInteger(v){
+  if(isBlank(v)) return null;
+  const cleaned = String(v).replace(/[^0-9-]/g,'');
+  if(!cleaned) return null;
+  const n = parseInt(cleaned,10);
+  return Number.isNaN(n) ? null : n;
+}

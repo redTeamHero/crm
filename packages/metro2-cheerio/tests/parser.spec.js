@@ -143,6 +143,39 @@ test('parseReport extracts structured personal info, scores, accounts, inquiries
   ]);
 });
 
+test('parseReport captures bureau-specific personal information tables', () => {
+  const html = `
+    <div>
+      <div class="sub_header">Personal Information</div>
+      <table class="rpt_content_table rpt_content_header rpt_table4column">
+        <tr><th></th><th>TransUnion</th><th>Experian</th><th>Equifax</th></tr>
+        <tr><td>Name</td><td>Jane Doe</td><td>Jane Doe</td><td>Jane A. Doe</td></tr>
+        <tr><td>Date of Birth</td><td>01/01/1990</td><td>01/01/1990</td><td>01/01/1990</td></tr>
+        <tr><td>Current Address(es)</td><td>123 Main St<br/>Miami, FL 33101</td><td>-</td><td>456 Elm St<br/>Austin, TX 78701</td></tr>
+      </table>
+    </div>
+  `;
+
+  const result = parseCheerio(html);
+
+  assert.deepStrictEqual(result.personal_information, {
+    TransUnion: {
+      name: 'Jane Doe',
+      date_of_birth: '01/01/1990',
+      current_addresses: ['123 Main St', 'Miami, FL 33101'],
+    },
+    Experian: {
+      name: 'Jane Doe',
+      date_of_birth: '01/01/1990',
+    },
+    Equifax: {
+      name: 'Jane A. Doe',
+      date_of_birth: '01/01/1990',
+      current_addresses: ['456 Elm St', 'Austin, TX 78701'],
+    },
+  });
+});
+
 test('parseReport derives creditor from surrounding header and skips duplicate tables', () => {
   const html = `
     <div>
@@ -244,4 +277,3 @@ test('lowercase violation codes return same metadata as uppercase', () => {
   const lowerMissingDofd = enrich('missing_dofd');
   assert.deepStrictEqual(lowerMissingDofd, upperMissingDofd);
 });
-

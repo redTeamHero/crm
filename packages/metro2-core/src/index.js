@@ -157,7 +157,9 @@ export function buildTradeline(bureaus, rows, meta = {}){
     values.forEach((raw,i)=>{
       const bureau = bureaus[i];
       if(!bureau) return;
+      if(isEmptyValue(raw)) return;
       const norm = rule.normalizer ? rule.normalizer(raw) : raw;
+      if(isEmptyValue(norm)) return;
       tl.per_bureau[bureau] ??= {};
       tl.per_bureau[bureau][rule.key] = norm;
       tl.per_bureau[bureau][`${rule.key}_raw`] = raw;
@@ -312,6 +314,7 @@ export function parsePersonalInformation(context){
   if(!adapter) return {};
 
   const info = {};
+  const bureauInfo = {};
   const tables = adapter.selectAll('table');
   for(const table of tables){
     const header = findNearestHeader(adapter, table);
@@ -320,17 +323,69 @@ export function parsePersonalInformation(context){
     if(!/personal information/i.test(headerText)) continue;
 
     const rows = adapter.rows(table);
+    let bureauHeaders = [];
+    let headerIndex = -1;
+    for(let i = 0; i < rows.length; i++){
+      const row = rows[i];
+      const headerCells = adapter.find(row, 'th');
+      const candidates = headerCells.map(cell => normalizeBureau(adapter.text(cell))).filter(Boolean);
+      if(candidates.length){
+        bureauHeaders = candidates;
+        headerIndex = i;
+        break;
+      }
+    }
+    if(!bureauHeaders.length && rows.length){
+      const firstRowCells = adapter.find(rows[0], 'td').slice(1);
+      const candidates = firstRowCells.map(cell => normalizeBureau(adapter.text(cell))).filter(Boolean);
+      if(candidates.length){
+        bureauHeaders = candidates;
+        headerIndex = 0;
+      }
+    }
+
     for(const row of rows){
+      if(headerIndex >= 0 && row === rows[headerIndex]) continue;
+      if(adapter.find(row, 'th').length) continue;
       const cells = adapter.find(row, 'td');
       if(cells.length < 2) continue;
       const label = adapter.text(cells[0]);
       const key = mapPersonalInfoKey(label);
       if(!key) continue;
+      if(bureauHeaders.length){
+        bureauHeaders.forEach((bureau, idx) => {
+          if(!bureau) return;
+          const cell = cells[idx + 1];
+          if(!cell) return;
+          const rawValue = adapter.text(cell);
+          if(isEmptyValue(rawValue)) return;
+
+          if(PERSONAL_MULTI_VALUE_FIELDS.has(key)){
+            const values = extractValuesFromCell(adapter, cell, rawValue)
+              .filter(value => !isEmptyValue(value));
+            if(!values.length) return;
+            bureauInfo[bureau] ??= {};
+            const existing = new Set(bureauInfo[bureau][key] || []);
+            for(const value of values){
+              if(value) existing.add(value);
+            }
+            bureauInfo[bureau][key] = Array.from(existing);
+          } else {
+            bureauInfo[bureau] ??= {};
+            if(!bureauInfo[bureau][key]) {
+              bureauInfo[bureau][key] = rawValue;
+            }
+          }
+        });
+        continue;
+      }
+
       const rawValue = adapter.text(cells[1]);
-      if(!rawValue) continue;
+      if(isEmptyValue(rawValue)) continue;
 
       if(PERSONAL_MULTI_VALUE_FIELDS.has(key)){
-        const values = extractValuesFromCell(adapter, cells[1], rawValue);
+        const values = extractValuesFromCell(adapter, cells[1], rawValue)
+          .filter(value => !isEmptyValue(value));
         if(!values.length) continue;
         const existing = new Set(info[key] || []);
         for(const value of values){
@@ -343,6 +398,9 @@ export function parsePersonalInformation(context){
     }
   }
 
+  if(Object.keys(bureauInfo).length){
+    return bureauInfo;
+  }
   return info;
 }
 
@@ -496,7 +554,7 @@ function normalizeGenericLabel(label){
 
 function extractValuesFromCell(adapter, cell, fallback){
   const items = adapter.find(cell, 'li').map(li => adapter.text(li)).filter(Boolean);
-  if(items.length) return items.map(value => value.trim()).filter(Boolean);
+  if(items.length) return items.map(value => value.trim()).filter(value => !isEmptyValue(value));
 
   const html = adapter.html ? adapter.html(cell) : '';
   if(html){
@@ -511,7 +569,7 @@ function extractValuesFromCell(adapter, cell, fallback){
   }
 
   const text = (adapter.text(cell) || fallback || '').trim();
-  return text ? [text] : [];
+  return text && !isEmptyValue(text) ? [text] : [];
 }
 
 function decodeEntities(value){
@@ -526,6 +584,15 @@ function getCellText(adapter, row, index){
   const cells = adapter.find(row, 'td');
   if(index >= cells.length) return '';
   return adapter.text(cells[index]);
+}
+
+function isEmptyValue(value){
+  if(value == null) return true;
+  const text = String(value).trim();
+  if(!text) return true;
+  if(/^[-–—]+$/.test(text)) return true;
+  if(/^(n\/?a|none|not reported|not available)$/i.test(text)) return true;
+  return false;
 }
 
 function normalizeScoreBureau(value){
