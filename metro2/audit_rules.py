@@ -63,6 +63,8 @@ def parse_date(value: Any) -> date | None:
     text = str(value).strip()
     if not text:
         return None
+    if text.lower() in {"-", "--", "—", "n/a", "na", "not reported"}:
+        return None
 
     # Normalize ISO8601 timezone shorthand (trailing Z or offsets without colon).
     normalized = text.replace("Z", "+00:00")
@@ -214,23 +216,108 @@ def _payment_history_entries(record: Mapping[str, Any]) -> List[Mapping[str, Any
     return []
 
 
+MATCH_SCORE_THRESHOLD = 80
+
+
 def group_by_creditor(
     tradelines: Iterable[Mapping[str, Any]]
 ) -> Dict[tuple[str, str], List[Mapping[str, Any]]]:
-    """Group tradelines by creditor and account number when available."""
+    """Group tradelines by creditor using a cross-bureau matching score."""
 
-    groups: Dict[tuple[str, str], List[Mapping[str, Any]]] = defaultdict(list)
-    name_counters: Dict[str, int] = defaultdict(int)
+    grouped: Dict[tuple[str, str], List[Mapping[str, Any]]] = {}
+    by_creditor: Dict[str, List[Mapping[str, Any]]] = defaultdict(list)
+
     for tl in tradelines:
         name = (tl.get("creditor_name") or "UNKNOWN").strip().upper()
-        account = _normalized_account_number(tl)
-        if not account:
-            suffix = name_counters[name]
-            name_counters[name] += 1
-            account = f"__NO_ACCOUNT__#{suffix}"
-        key = (name, account)
-        groups[key].append(tl)
-    return groups
+        by_creditor[name].append(tl)
+
+    for name, records in by_creditor.items():
+        partitions: List[List[Mapping[str, Any]]] = []
+        for record in records:
+            best_index = None
+            best_score = float("-inf")
+            for idx, partition in enumerate(partitions):
+                score = _match_score(record, partition)
+                if score > best_score:
+                    best_score = score
+                    best_index = idx
+            if best_index is not None and best_score >= MATCH_SCORE_THRESHOLD:
+                partitions[best_index].append(record)
+            else:
+                partitions.append([record])
+
+        for idx, partition in enumerate(partitions):
+            account = _normalized_account_number(partition[0])
+            if not account:
+                account = f"__NO_ACCOUNT__#{idx}"
+            grouped[(name, account)] = partition
+
+    return grouped
+
+
+def _match_score(record: Mapping[str, Any], partition: Sequence[Mapping[str, Any]]) -> float:
+    score = float("-inf")
+    for candidate in partition:
+        score = max(score, _match_score_pair(record, candidate))
+    return score
+
+
+def _match_score_pair(a: Mapping[str, Any], b: Mapping[str, Any]) -> float:
+    score = 0.0
+
+    account_a = _normalized_account_number(a)
+    account_b = _normalized_account_number(b)
+    if account_a and account_b:
+        if account_a == account_b:
+            score += 80
+        else:
+            score -= 100
+
+    open_a = parse_date(a.get("date_opened"))
+    open_b = parse_date(b.get("date_opened"))
+    if open_a and open_b and abs((open_a - open_b).days) <= 30:
+        score += 30
+
+    last_reported_a = parse_date(a.get("last_reported") or a.get("date_last_reported"))
+    last_reported_b = parse_date(b.get("last_reported") or b.get("date_last_reported"))
+    if last_reported_a and last_reported_b and abs((last_reported_a - last_reported_b).days) <= 60:
+        score += 20
+
+    type_a = _account_type_bucket(a)
+    type_b = _account_type_bucket(b)
+    if type_a and type_b and type_a == type_b:
+        score += 15
+
+    return score
+
+
+def _account_type_bucket(record: Mapping[str, Any]) -> str | None:
+    values = [
+        record.get("account_type"),
+        record.get("account_type_detail"),
+        record.get("payment_status"),
+        record.get("account_status"),
+        record.get("comments"),
+    ]
+    text = " ".join(str(val or "") for val in values).lower()
+    if not text.strip():
+        return None
+
+    if "student" in text:
+        return "student_loan"
+    if "collection" in text or "charge-off" in text or "chargeoff" in text:
+        return "collection"
+    if "auto" in text or "vehicle" in text:
+        return "auto"
+    if "mortgage" in text or "home equity" in text or "heloc" in text:
+        return "mortgage"
+    if "installment" in text:
+        return "installment"
+    if "revolving" in text or "credit card" in text:
+        return "revolving"
+    if "open account" in text:
+        return "open"
+    return None
 
 
 ACCOUNT_NUMBER_KEYS: Sequence[str] = (
@@ -358,6 +445,10 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "STATUS_MISMATCH": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "OPEN_DATE_MISMATCH": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "PAYMENT_HISTORY_MISMATCH": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "POSSIBLE_MISMATCHED_ACCOUNTS_ACROSS_BUREAUS": {
+        "severity": "moderate",
+        "fcra_section": "FCRA §607(b)",
+    },
     "OPEN_CLOSED_MISMATCH": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
     "INCOMPLETE_BUREAU_REPORTING": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
     "STALE_DATA": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
@@ -506,6 +597,27 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
                     "LAST_REPORTED_MISMATCH",
                     f"Last Reported differs across bureaus ({pretty})",
                 )
+
+
+def audit_possible_mismatched_accounts(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    by_creditor: Dict[str, List[MutableMapping[str, Any]]] = defaultdict(list)
+    for record in tradelines:
+        name = (record.get("creditor_name") or "UNKNOWN").strip().upper()
+        by_creditor[name].append(record)
+
+    for name, records in by_creditor.items():
+        account_numbers = {_normalized_account_number(r) for r in records if _normalized_account_number(r)}
+        bureaus = {r.get("bureau") for r in records if r.get("bureau")}
+        if len(account_numbers) < 2 or len(bureaus) < 2:
+            continue
+
+        detail = f"Multiple account numbers reported under {name} across bureaus."
+        for record in records:
+            _attach_violation(
+                record,
+                "POSSIBLE_MISMATCHED_ACCOUNTS_ACROSS_BUREAUS",
+                detail,
+            )
 
 
 def audit_payment_history_mismatch(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
@@ -1172,6 +1284,7 @@ def audit_personal_info(info: Mapping[str, Mapping[str, Any]]) -> List[Dict[str,
 AUDIT_FUNCTIONS = [
     audit_missing_open_date,
     audit_balance_status_mismatch,
+    audit_possible_mismatched_accounts,
     audit_payment_history_mismatch,
     audit_open_closed_mismatch,
     audit_missing_bureau,
@@ -1280,4 +1393,3 @@ def _format_violation_line(violation: Mapping[str, Any], prefix: str = "") -> st
 
 
 __all__ = ["run_all_audits", "build_cli_report"]
-

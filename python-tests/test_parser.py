@@ -175,6 +175,28 @@ class DetectTradelineViolationsGroupingTest(unittest.TestCase):
         self.assertIn("STATUS_MISMATCH", violation_ids)
         self.assertIn("BALANCE_MISMATCH", violation_ids)
 
+    def test_possible_mismatched_accounts_warning(self):
+        tradelines = [
+            build_tradeline(
+                "One Finance",
+                "10224117****",
+                "Closed",
+                "$0",
+                "TransUnion",
+            ),
+            build_tradeline(
+                "One Finance",
+                "58563708****",
+                "Charge-Off",
+                "$958",
+                "Equifax",
+            ),
+        ]
+
+        audited = detect_tradeline_violations(tradelines)
+        violation_ids = {v["id"] for tl in audited for v in tl.get("violations", [])}
+        self.assertIn("POSSIBLE_MISMATCHED_ACCOUNTS_ACROSS_BUREAUS", violation_ids)
+
 
 class SplitParserCoverageTest(unittest.TestCase):
     def test_negative_item_parser_scope(self):
