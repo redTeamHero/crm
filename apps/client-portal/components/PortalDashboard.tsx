@@ -99,6 +99,11 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   );
   const navTaglineCandidate = (language === 'es' ? theme.taglineSecondary : theme.taglinePrimary)?.toString().trim();
   const navTagline = navTaglineCandidate && navTaglineCandidate.length > 0 ? navTaglineCandidate : copy.navTagline;
+  const showRuleDebug = Boolean(modulesSource?.ruleDebug);
+  const visibleNavLinks = useMemo(
+    () => navLinks.filter((link) => link.id !== 'tradelines' || showRuleDebug),
+    [navLinks, showRuleDebug]
+  );
 
   const scoreEntries = useMemo(() => toScoreEntries(portal.creditScore), [portal.creditScore]);
   const openBalance = useMemo(
@@ -177,7 +182,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               </div>
             </div>
             <div className="flex flex-1 items-center gap-3 overflow-x-auto py-1">
-              {navLinks.map((link) => (
+              {visibleNavLinks.map((link) => (
                 <a
                   key={link.id}
                   href={`#${link.id}`}
@@ -490,9 +495,11 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
           </section>
         )}
 
-        <div id="tradelines" className="scroll-mt-32">
-          <RuleDebugGrid groups={ruleGroups} copy={copy} />
-        </div>
+        {showRuleDebug && (
+          <div id="tradelines" className="scroll-mt-32">
+            <RuleDebugGrid groups={ruleGroups} copy={copy} />
+          </div>
+        )}
 
         <section id="settings" className="glass scroll-mt-32 p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
