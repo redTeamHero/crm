@@ -287,6 +287,7 @@ def _has_keywords(text: str, keywords: Sequence[str]) -> bool:
 @dataclass
 class AuditPayload:
     personal_information: List[Dict[str, Dict[str, str]]]
+    personal_violations: List[Dict[str, Any]]
     personal_mismatches: List[Dict[str, Any]]
     account_history: List[Dict[str, Any]]
     inquiries: List[Dict[str, str]]
@@ -311,12 +312,61 @@ def parse_personal_info(soup: BeautifulSoup) -> List[Dict[str, Dict[str, str]]]:
             results.append(field_map)
     return results
 
-def detect_personal_violations(personal_info: Dict[str, Any]) -> List[Dict[str, Any]]:
-    out = []
-    for rule_name, rule_data in RULEBOOK.items():
-        if rule_data.get("target") != "personal":
+PERSONAL_FIELD_ALIASES: Dict[str, str] = {
+    "name": "name",
+    "full_name": "name",
+    "consumer_name": "name",
+    "dob": "dob",
+    "date_of_birth": "dob",
+    "birth_date": "dob",
+    "address": "address",
+    "current_address": "address",
+    "phone": "phone",
+    "telephone": "phone",
+    "ecoa_code": "ecoa_code",
+    "ecoa": "ecoa_code",
+    "responsibility": "ecoa_code",
+}
+
+
+def _normalize_personal_field(label: str) -> str:
+    cleaned = re.sub(r"[:ï¼š]\s*$", "", label.strip()).strip().lower()
+    cleaned = re.sub(r"[^a-z0-9]+", "_", cleaned).strip("_")
+    return PERSONAL_FIELD_ALIASES.get(cleaned, cleaned)
+
+
+def _normalize_personal_info(pinfo: List[Dict[str, Dict[str, str]]]) -> Dict[str, Any]:
+    if not pinfo:
+        return {}
+    normalized: Dict[str, Any] = {}
+    for field, values in pinfo[0].items():
+        key = _normalize_personal_field(field)
+        if not key:
             continue
-        if evaluate_rule(rule_data.get("rule", {}), personal_info):
+        for value in values.values():
+            if value and str(value).strip():
+                normalized[key] = value
+                break
+    return normalized
+
+
+def _is_personal_rule(rule_data: Dict[str, Any]) -> bool:
+    target = str(rule_data.get("target") or "").strip().lower()
+    if target == "personal":
+        return True
+    category = str(rule_data.get("category") or "").strip().lower()
+    return category == "ecoa_identity"
+
+
+def detect_personal_violations(personal_info: List[Dict[str, Dict[str, str]]]) -> List[Dict[str, Any]]:
+    out = []
+    normalized = _normalize_personal_info(personal_info)
+    if not normalized:
+        return out
+    for rule_name, rule_data in RULEBOOK.items():
+        if not _is_personal_rule(rule_data):
+            continue
+        if evaluate_rule(rule_data.get("rule", {}), normalized):
             out.append({
                 "id": rule_name,
                 "title": rule_data["violation"],
@@ -1460,6 +1510,8 @@ def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[s
     for record in tradelines:
         for rule_name, rule_data in RULEBOOK.items():
             # Skip personal/inquiry rules on tradelines
+            if _is_personal_rule(rule_data):
+                continue
             if rule_data.get("target") and rule_data["target"].lower() != "tradeline":
                 continue
 
@@ -1660,17 +1712,26 @@ class Color:
     BOLD = "\033[1m"
 
 
-def print_audit_summary(personal_mismatches: Sequence[Dict[str, Any]], tradelines: Sequence[Dict[str, Any]], inquiry_violations: Sequence[Dict[str, Any]]) -> None:
-    print(f"\n{Color.BOLD}{Color.CYAN}ðŸ“‹ METRO-2 COMPLIANCE AUDIT SUMMARY{Color.RESET}")
+def print_audit_summary(
+    personal_mismatches: Sequence[Dict[str, Any]],
+    personal_violations: Sequence[Dict[str, Any]],
+    tradelines: Sequence[Dict[str, Any]],
+    inquiry_violations: Sequence[Dict[str, Any]],
+) -> None:
+    print(f"\n{Color.BOLD}{Color.CYAN}\U0001F4CB METRO-2 COMPLIANCE AUDIT SUMMARY{Color.RESET}")
     print("-" * 60)
     if personal_mismatches:
-        print(f"\n{Color.BOLD}{Color.YELLOW}ðŸ§ PERSONAL INFORMATION MISMATCHES{Color.RESET}")
+        print(f"\n{Color.BOLD}{Color.YELLOW}\U0001F9ED PERSONAL INFORMATION MISMATCHES{Color.RESET}")
         for mismatch in personal_mismatches:
-            print(f"  {Color.RED}âŒ {mismatch['field']}: {mismatch['title']}{Color.RESET}")
+            print(f"  {Color.RED}\u274C {mismatch['field']}: {mismatch['title']}{Color.RESET}")
             for bureau, value in mismatch["values"].items():
                 print(f"     {bureau}: {value}")
     else:
-        print(f"{Color.GREEN}âœ… Personal information consistent across bureaus{Color.RESET}")
+        print(f"{Color.GREEN}\u2705 Personal information consistent across bureaus{Color.RESET}")
+    if personal_violations:
+        print(f"\n{Color.BOLD}{Color.YELLOW}\U0001F9ED PERSONAL INFORMATION VIOLATIONS{Color.RESET}")
+        for violation in personal_violations:
+            print(f"  {Color.RED}\u274C {violation['id']}: {violation['title']}{Color.RESET}")
     for tl in tradelines:
         creditor = tl.get("creditor_name", "UNKNOWN")
         bureau = tl.get("bureau", "?")
@@ -1678,16 +1739,18 @@ def print_audit_summary(personal_mismatches: Sequence[Dict[str, Any]], tradeline
         print(f"\n{Color.BOLD}{Color.YELLOW}{creditor}{Color.RESET} [{bureau}]")
         print(f"  Balance: {tl.get('balance', '')} | Status: {tl.get('account_status', '')}")
         if not violations:
-            print(f"  {Color.GREEN}âœ… No tradeline violations{Color.RESET}")
+            print(f"  {Color.GREEN}\u2705 No tradeline violations{Color.RESET}")
         else:
             for violation in violations:
-                print(f"  {Color.RED}âŒ {violation['id']}: {violation['title']}{Color.RESET}")
+                print(f"  {Color.RED}\u274C {violation['id']}: {violation['title']}{Color.RESET}")
     if inquiry_violations:
-        print(f"\n{Color.BOLD}{Color.YELLOW}ðŸ” INQUIRY ISSUES{Color.RESET}")
+        print(f"\n{Color.BOLD}{Color.YELLOW}\U0001F50D INQUIRY ISSUES{Color.RESET}")
         for violation in inquiry_violations:
-            print(f"  {Color.RED}âŒ {violation['creditor_name']} [{violation['bureau']}] - {violation['title']}{Color.RESET}")
+            print(
+                f"  {Color.RED}\u274C {violation['creditor_name']} [{violation['bureau']}] - {violation['title']}{Color.RESET}"
+            )
     else:
-        print(f"\n{Color.GREEN}âœ… All inquiries correspond to valid tradeline dates{Color.RESET}")
+        print(f"\n{Color.GREEN}\u2705 All inquiries correspond to valid tradeline dates{Color.RESET}")
     print("\n")
 
 
@@ -1698,12 +1761,14 @@ def print_audit_summary(personal_mismatches: Sequence[Dict[str, Any]], tradeline
 def parse_credit_report_html(html_content: str) -> AuditPayload:
     soup = BeautifulSoup(html_content, "html.parser")
     personal = parse_personal_info(soup)
+    personal_violations = detect_personal_violations(personal)
     tradelines = detect_tradeline_violations(parse_account_history(soup))
     inquiries = parse_inquiries(soup)
     personal_mismatches = detect_personal_info_mismatches(personal)
     inquiry_violations = detect_inquiry_no_match(inquiries, tradelines)
     return AuditPayload(
         personal_information=personal,
+        personal_violations=personal_violations,
         personal_mismatches=personal_mismatches,
         account_history=tradelines,
         inquiries=inquiries,
@@ -1721,6 +1786,10 @@ def parse_credit_report_file(path: str) -> AuditPayload:
 # ---------------------------------------------------------------------------
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except AttributeError:
+        pass
     parser = argparse.ArgumentParser(description="Parse and audit consumer credit report HTML files.")
     parser.add_argument("input", nargs="?", help="Path to the HTML report")
     parser.add_argument("-i", "--input", dest="input_cli", help="Path to the HTML report (legacy flag)")
@@ -1737,6 +1806,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     payload = parse_credit_report_file(html_path)
     data = {
         "personal_information": payload.personal_information,
+        "personal_violations": payload.personal_violations,
         "personal_mismatches": payload.personal_mismatches,
         "account_history": payload.account_history,
         "inquiries": payload.inquiries,
@@ -1746,7 +1816,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.output:
         Path(args.output).write_text(json_blob, encoding="utf-8")
     if not args.json_only:
-        print_audit_summary(payload.personal_mismatches, payload.account_history, payload.inquiry_violations)
+        print_audit_summary(
+            payload.personal_mismatches,
+            payload.personal_violations,
+            payload.account_history,
+            payload.inquiry_violations,
+        )
         if not args.output:
             print(json_blob)
     elif not args.output:
