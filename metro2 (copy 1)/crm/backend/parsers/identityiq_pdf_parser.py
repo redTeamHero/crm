@@ -220,13 +220,13 @@ def parse_tradelines(pdf: pdfplumber.PDF) -> List[Dict[str, Any]]:
     last_field_key: Optional[str] = None  # canonical key, e.g. "comments"
 
     for page in pdf.pages:
+        if stop_mode:
+            break
         page_text = page.extract_text() or ""
         if TRADE_SECTION_TRIGGER in page_text:
             trade_mode = True
-        if any(hint in page_text for hint in STOP_SECTION_HINTS):
-            stop_mode = True
 
-        if not trade_mode or stop_mode:
+        if not trade_mode:
             continue
 
         words = page.extract_words()
@@ -239,6 +239,10 @@ def parse_tradelines(pdf: pdfplumber.PDF) -> List[Dict[str, Any]]:
             line_text = " ".join(w["text"] for w in sorted(ln, key=lambda x: x["x0"])).strip()
             if not line_text:
                 continue
+
+            if any(hint in line_text for hint in STOP_SECTION_HINTS):
+                stop_mode = True
+                break
 
             # Start of a new furnisher block
             if is_creditor_header(line_text):
