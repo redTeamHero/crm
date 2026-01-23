@@ -9,9 +9,10 @@ import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
+import importlib
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from bs4 import BeautifulSoup, Tag
 from datetime import datetime, date
@@ -1759,6 +1760,17 @@ def print_audit_summary(
 # ---------------------------------------------------------------------------
 
 def parse_credit_report_html(html_content: str) -> AuditPayload:
+    metro2_parser = _load_metro2_parser(Path.cwd())
+    if metro2_parser:
+        try:
+            parsed = metro2_parser(html_content)
+            return _audit_payload_from_metro2(parsed)
+        except Exception as exc:
+            logging.getLogger("metro2").warning(
+                "Metro2 parser failed for HTML input, falling back to legacy parser: %s",
+                exc,
+            )
+
     soup = BeautifulSoup(html_content, "html.parser")
     personal = parse_personal_info(soup)
     personal_violations = detect_personal_violations(personal)
@@ -1803,14 +1815,33 @@ def _add_metro2_module_path(report_path: Path) -> None:
         if metro2_init.exists() and str(root) not in sys.path:
             sys.path.insert(0, str(root))
 
+def _load_metro2_parser(report_path: Path) -> Optional[Callable[[Any], Dict[str, Any]]]:
+    _add_metro2_module_path(report_path)
+    spec = importlib.util.find_spec("metro2.parser")
+    if spec is None:
+        return None
+    module = importlib.import_module("metro2.parser")
+    return getattr(module, "parse_client_portal_data", None)
+
+
+def _audit_payload_from_metro2(parsed: Mapping[str, Any]) -> AuditPayload:
+    return AuditPayload(
+        personal_information=parsed.get("personal_information") or {},
+        personal_violations=parsed.get("personal_info_violations")
+        or parsed.get("personal_violations")
+        or [],
+        personal_mismatches=parsed.get("personal_mismatches") or [],
+        account_history=parsed.get("accounts") or parsed.get("account_history") or [],
+        inquiries=parsed.get("inquiries") or [],
+        inquiry_violations=parsed.get("inquiry_violations") or [],
+    )
+
 
 def parse_credit_report_pdf(path: Path) -> Dict[str, Any]:
-    _add_metro2_module_path(path)
-    try:
-        from metro2.parser import parse_client_portal_data
-    except ImportError as exc:
-        raise RuntimeError("PDF parser module is unavailable.") from exc
-    return parse_client_portal_data(path)
+    metro2_parser = _load_metro2_parser(path)
+    if not metro2_parser:
+        raise RuntimeError("PDF parser module is unavailable.")
+    return metro2_parser(path)
 
 
 # ---------------------------------------------------------------------------
