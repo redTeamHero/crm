@@ -17,6 +17,9 @@ export type BureauRuleCard = {
   category?: string | null;
   creditor?: string | null;
   source?: string | null;
+  disputeReason?: string | null;
+  fcraSection?: string | null;
+  recommendedAction?: string | null;
   fields: BureauFieldHighlight[];
 };
 
@@ -156,6 +159,9 @@ function normalizeViolation(
   severity: number;
   bureaus: string[];
   source?: string | null;
+  disputeReason?: string | null;
+  fcraSection?: string | null;
+  recommendedAction?: string | null;
 } {
   if (typeof violation === 'string') {
     return {
@@ -166,6 +172,9 @@ function normalizeViolation(
       severity: resolveSeverity(violation, item),
       bureaus: collectBureaus(violation, item),
       source: null,
+      disputeReason: null,
+      fcraSection: null,
+      recommendedAction: null,
     };
   }
   const code = violation.code || violation.id || violation.title || 'UNKNOWN_RULE';
@@ -180,6 +189,9 @@ function normalizeViolation(
     severity: resolveSeverity(violation, item),
     bureaus,
     source: violation.source || null,
+    disputeReason: violation.disputeReason || null,
+    fcraSection: violation.fcraSection || null,
+    recommendedAction: violation.recommendedAction || null,
   };
 }
 
@@ -238,6 +250,9 @@ export function buildRuleGroups(items: PortalNegativeItem[] | undefined | null):
             category: normalizedViolation.category,
             creditor: item.creditor || null,
             source: normalizedViolation.source || null,
+            disputeReason: normalizedViolation.disputeReason || null,
+            fcraSection: normalizedViolation.fcraSection || null,
+            recommendedAction: normalizedViolation.recommendedAction || null,
             fields,
           });
         }

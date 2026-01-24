@@ -16,6 +16,9 @@ type RuleDebugCopy = {
   ruleDebugCategory: string;
   ruleDebugSource: string;
   ruleDebugFields: string;
+  ruleDebugDisputeReason: string;
+  ruleDebugFcraBasis: string;
+  ruleDebugAction: string;
   ruleDebugNoDetail: string;
   ruleDebugUnknown: string;
   ruleDebugBureau: (bureau: string) => string;
@@ -167,6 +170,34 @@ export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
                     <p className="mt-2 text-sm text-slate-600">
                       {card.detail || copy.ruleDebugNoDetail}
                     </p>
+                    {(card.disputeReason || card.fcraSection || card.recommendedAction) && (
+                      <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-xs text-amber-800">
+                        {card.disputeReason && (
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                              {copy.ruleDebugDisputeReason}
+                            </p>
+                            <p className="mt-1 text-sm text-amber-900">{card.disputeReason}</p>
+                          </div>
+                        )}
+                        {(card.fcraSection || card.recommendedAction) && (
+                          <dl className="mt-2 space-y-1 text-[11px] text-amber-700">
+                            {card.fcraSection && (
+                              <div className="flex items-center gap-2">
+                                <dt className="font-semibold">{copy.ruleDebugFcraBasis}:</dt>
+                                <dd className="text-amber-800">{card.fcraSection}</dd>
+                              </div>
+                            )}
+                            {card.recommendedAction && (
+                              <div className="flex items-center gap-2">
+                                <dt className="font-semibold">{copy.ruleDebugAction}:</dt>
+                                <dd className="text-amber-800">{card.recommendedAction}</dd>
+                              </div>
+                            )}
+                          </dl>
+                        )}
+                      </div>
+                    )}
                     <dl className="mt-3 space-y-1 text-xs text-slate-500">
                       <div className="flex items-center gap-2">
                         <dt className="font-semibold text-slate-700">{copy.ruleDebugCategory}:</dt>
@@ -247,6 +278,34 @@ export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
                 {isExpanded && (
                   <div className="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
                     <p>{card.detail || copy.ruleDebugNoDetail}</p>
+                    {(card.disputeReason || card.fcraSection || card.recommendedAction) && (
+                      <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-xs text-amber-800">
+                        {card.disputeReason && (
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                              {copy.ruleDebugDisputeReason}
+                            </p>
+                            <p className="mt-1 text-sm text-amber-900">{card.disputeReason}</p>
+                          </div>
+                        )}
+                        {(card.fcraSection || card.recommendedAction) && (
+                          <dl className="mt-2 space-y-1 text-[11px] text-amber-700">
+                            {card.fcraSection && (
+                              <div className="flex items-center gap-2">
+                                <dt className="font-semibold">{copy.ruleDebugFcraBasis}:</dt>
+                                <dd className="text-amber-800">{card.fcraSection}</dd>
+                              </div>
+                            )}
+                            {card.recommendedAction && (
+                              <div className="flex items-center gap-2">
+                                <dt className="font-semibold">{copy.ruleDebugAction}:</dt>
+                                <dd className="text-amber-800">{card.recommendedAction}</dd>
+                              </div>
+                            )}
+                          </dl>
+                        )}
+                      </div>
+                    )}
                     <dl className="mt-3 space-y-2 text-xs text-slate-500">
                       <div className="flex items-center gap-2">
                         <dt className="font-semibold text-slate-700">{copy.ruleDebugCategory}:</dt>
