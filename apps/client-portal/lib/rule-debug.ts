@@ -20,6 +20,11 @@ export type BureauRuleCard = {
   disputeReason?: string | null;
   fcraSection?: string | null;
   recommendedAction?: string | null;
+  cfpbEligible?: boolean | null;
+  cfpbReasonCode?: string | null;
+  cfpbStatutes?: string[] | null;
+  cfpbSummary?: string | null;
+  cfpbRecommendedAction?: string | null;
   fields: BureauFieldHighlight[];
 };
 
@@ -162,6 +167,11 @@ function normalizeViolation(
   disputeReason?: string | null;
   fcraSection?: string | null;
   recommendedAction?: string | null;
+  cfpbEligible?: boolean | null;
+  cfpbReasonCode?: string | null;
+  cfpbStatutes?: string[] | null;
+  cfpbSummary?: string | null;
+  cfpbRecommendedAction?: string | null;
 } {
   if (typeof violation === 'string') {
     return {
@@ -175,6 +185,11 @@ function normalizeViolation(
       disputeReason: null,
       fcraSection: null,
       recommendedAction: null,
+      cfpbEligible: null,
+      cfpbReasonCode: null,
+      cfpbStatutes: null,
+      cfpbSummary: null,
+      cfpbRecommendedAction: null,
     };
   }
   const code = violation.code || violation.id || violation.title || 'UNKNOWN_RULE';
@@ -192,6 +207,11 @@ function normalizeViolation(
     disputeReason: violation.disputeReason || null,
     fcraSection: violation.fcraSection || null,
     recommendedAction: violation.recommendedAction || null,
+    cfpbEligible: violation.cfpbEligible ?? null,
+    cfpbReasonCode: violation.cfpbReasonCode || null,
+    cfpbStatutes: violation.cfpbStatutes || null,
+    cfpbSummary: violation.cfpbSummary || null,
+    cfpbRecommendedAction: violation.cfpbRecommendedAction || null,
   };
 }
 
@@ -253,6 +273,11 @@ export function buildRuleGroups(items: PortalNegativeItem[] | undefined | null):
             disputeReason: normalizedViolation.disputeReason || null,
             fcraSection: normalizedViolation.fcraSection || null,
             recommendedAction: normalizedViolation.recommendedAction || null,
+            cfpbEligible: normalizedViolation.cfpbEligible ?? null,
+            cfpbReasonCode: normalizedViolation.cfpbReasonCode || null,
+            cfpbStatutes: normalizedViolation.cfpbStatutes || null,
+            cfpbSummary: normalizedViolation.cfpbSummary || null,
+            cfpbRecommendedAction: normalizedViolation.cfpbRecommendedAction || null,
             fields,
           });
         }

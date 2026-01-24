@@ -27,6 +27,11 @@ export type PortalViolation = {
   disputeReason?: string | null;
   fcraSection?: string | null;
   recommendedAction?: string | null;
+  cfpbEligible?: boolean | null;
+  cfpbReasonCode?: string | null;
+  cfpbStatutes?: string[] | null;
+  cfpbSummary?: string | null;
+  cfpbRecommendedAction?: string | null;
   severity?: number | null;
   bureaus?: string[];
   bureau?: string | null;

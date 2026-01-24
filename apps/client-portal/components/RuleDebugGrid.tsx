@@ -19,6 +19,11 @@ type RuleDebugCopy = {
   ruleDebugDisputeReason: string;
   ruleDebugFcraBasis: string;
   ruleDebugAction: string;
+  ruleDebugCfpbTitle: string;
+  ruleDebugCfpbReason: string;
+  ruleDebugCfpbStatutes: string;
+  ruleDebugCfpbAction: string;
+  ruleDebugCfpbButton: string;
   ruleDebugNoDetail: string;
   ruleDebugUnknown: string;
   ruleDebugBureau: (bureau: string) => string;
@@ -198,6 +203,37 @@ export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
                         )}
                       </div>
                     )}
+                    {card.cfpbEligible && (
+                      <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/70 p-3 text-xs text-rose-800">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">
+                          {copy.ruleDebugCfpbTitle}
+                        </p>
+                        <div className="mt-2 space-y-2 text-sm text-rose-900">
+                          <p>
+                            <span className="font-semibold">{copy.ruleDebugCfpbReason}:</span>{' '}
+                            {card.cfpbSummary || copy.ruleDebugNoDetail}
+                          </p>
+                          {card.cfpbStatutes?.length ? (
+                            <p>
+                              <span className="font-semibold">{copy.ruleDebugCfpbStatutes}:</span>{' '}
+                              {card.cfpbStatutes.join(', ')}
+                            </p>
+                          ) : null}
+                          {card.cfpbRecommendedAction ? (
+                            <p>
+                              <span className="font-semibold">{copy.ruleDebugCfpbAction}:</span>{' '}
+                              {card.cfpbRecommendedAction}
+                            </p>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          className="mt-3 rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                        >
+                          {copy.ruleDebugCfpbButton}
+                        </button>
+                      </div>
+                    )}
                     <dl className="mt-3 space-y-1 text-xs text-slate-500">
                       <div className="flex items-center gap-2">
                         <dt className="font-semibold text-slate-700">{copy.ruleDebugCategory}:</dt>
@@ -304,6 +340,37 @@ export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
                             )}
                           </dl>
                         )}
+                      </div>
+                    )}
+                    {card.cfpbEligible && (
+                      <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50/70 p-3 text-xs text-rose-800">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">
+                          {copy.ruleDebugCfpbTitle}
+                        </p>
+                        <div className="mt-2 space-y-2 text-sm text-rose-900">
+                          <p>
+                            <span className="font-semibold">{copy.ruleDebugCfpbReason}:</span>{' '}
+                            {card.cfpbSummary || copy.ruleDebugNoDetail}
+                          </p>
+                          {card.cfpbStatutes?.length ? (
+                            <p>
+                              <span className="font-semibold">{copy.ruleDebugCfpbStatutes}:</span>{' '}
+                              {card.cfpbStatutes.join(', ')}
+                            </p>
+                          ) : null}
+                          {card.cfpbRecommendedAction ? (
+                            <p>
+                              <span className="font-semibold">{copy.ruleDebugCfpbAction}:</span>{' '}
+                              {card.cfpbRecommendedAction}
+                            </p>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          className="mt-3 rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100"
+                        >
+                          {copy.ruleDebugCfpbButton}
+                        </button>
                       </div>
                     )}
                     <dl className="mt-3 space-y-2 text-xs text-slate-500">
