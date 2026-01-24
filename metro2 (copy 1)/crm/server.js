@@ -2914,6 +2914,7 @@ function pathExists(root, path) {
 
 async function callOpenAiStructured({ schema, schemaName, system, developer, user, model }) {
   const apiKey = getOpenAiKey();
+  const formatName = schemaName || "canonical_report_v1";
   const body = {
     model,
     input: [
@@ -2924,11 +2925,9 @@ async function callOpenAiStructured({ schema, schemaName, system, developer, use
     text: {
       format: {
         type: "json_schema",
-        json_schema: {
-          name: schemaName,
-          schema,
-          strict: true,
-        },
+        name: formatName,
+        schema,
+        strict: true,
       },
     },
     temperature: 0,
