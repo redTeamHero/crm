@@ -2524,6 +2524,667 @@ async function runPythonAnalyzer({ buffer, filename }){
   });
 }
 
+const OPENAI_API_URL = process.env.OPENAI_API_URL || "https://api.openai.com/v1/responses";
+const OPENAI_PARSE_MODEL = process.env.OPENAI_PARSE_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const OPENAI_AUDIT_MODEL = process.env.OPENAI_AUDIT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const OPENAI_MAX_CHUNK_CHARS = Number.parseInt(process.env.OPENAI_REPORT_CHUNK_CHARS || "12000", 10);
+const OPENAI_MAX_PARSE_RETRIES = 1;
+
+const CANONICAL_REPORT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["reportMeta", "identity", "tradelines"],
+  properties: {
+    reportMeta: {
+      type: "object",
+      additionalProperties: false,
+      required: ["provider"],
+      properties: {
+        provider: { type: "string" },
+        reportDate: { type: ["string", "null"] },
+      },
+    },
+    identity: {
+      type: "object",
+      additionalProperties: false,
+      required: ["TUC", "EXP", "EQF"],
+      properties: {
+        TUC: { $ref: "#/$defs/identityBlock" },
+        EXP: { $ref: "#/$defs/identityBlock" },
+        EQF: { $ref: "#/$defs/identityBlock" },
+      },
+    },
+    tradelines: {
+      type: "array",
+      items: { $ref: "#/$defs/tradelineGroup" },
+    },
+  },
+  $defs: {
+    identityBlock: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        name: { type: ["string", "null"] },
+        dob: { type: ["string", "null"] },
+        addresses: { type: "array", items: { type: "string" } },
+      },
+    },
+    tradelineGroup: {
+      type: "object",
+      additionalProperties: false,
+      required: ["furnisherName", "byBureau"],
+      properties: {
+        furnisherName: { type: "string" },
+        byBureau: {
+          type: "object",
+          additionalProperties: false,
+          required: ["TUC", "EXP", "EQF"],
+          properties: {
+            TUC: { $ref: "#/$defs/tradeline" },
+            EXP: { $ref: "#/$defs/tradeline" },
+            EQF: { $ref: "#/$defs/tradeline" },
+          },
+        },
+      },
+    },
+    tradeline: {
+      type: "object",
+      additionalProperties: false,
+      required: ["present"],
+      properties: {
+        present: { type: "boolean" },
+        accountNumberMasked: { type: ["string", "null"] },
+        accountStatus: { type: ["string", "null"] },
+        paymentStatus: { type: ["string", "null"] },
+        balance: { type: ["number", "null"] },
+        pastDue: { type: ["number", "null"] },
+        creditLimit: { type: ["number", "null"] },
+        highCredit: { type: ["number", "null"] },
+        dateOpened: { type: ["string", "null"] },
+        dateClosed: { type: ["string", "null"] },
+        lastReported: { type: ["string", "null"] },
+        dateLastPayment: { type: ["string", "null"] },
+        comments: { type: ["string", "null"] },
+      },
+    },
+  },
+};
+
+const VIOLATIONS_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    additionalProperties: false,
+    required: ["ruleId", "severity", "bureau", "furnisherName", "evidencePaths", "explanation"],
+    properties: {
+      ruleId: { type: "string" },
+      severity: { type: "string", enum: ["low", "medium", "high"] },
+      bureau: { type: "string", enum: ["TUC", "EXP", "EQF", "CROSS_BUREAU"] },
+      furnisherName: { type: "string" },
+      accountNumberMasked: { type: ["string", "null"] },
+      category: { type: "string", enum: ["metro2_integrity", "fcra_mapping", "fdcpa_mapping", "grouping_warning"] },
+      evidencePaths: { type: "array", items: { type: "string" } },
+      explanation: { type: "string" },
+      disputeTargets: {
+        type: "array",
+        items: { type: "string", enum: ["CRA", "FURNISHER", "COLLECTOR"] },
+      },
+    },
+  },
+};
+
+const PARSE_SYSTEM_PROMPT = [
+  "You are a data extraction engine.",
+  "Output must conform to the provided JSON schema exactly.",
+  "Use null when a field is not present; never infer or guess.",
+  "Do not add extra fields.",
+].join(" ");
+
+const PARSE_DEVELOPER_PROMPT = [
+  "Bureau keys must be exactly: TUC, EXP, EQF.",
+  "Missing markers to treat as null: -, —, empty, N/A.",
+  "If a bureau section is blank, set present:false and all fields null for that bureau entry.",
+  "accountNumberMasked should retain masking (e.g., ****1234) as shown.",
+  "reportMeta.provider should be the report source if explicitly stated; otherwise use \"unknown\".",
+  "reportMeta.reportDate only when explicitly present.",
+  "Do not invent dates or amounts.",
+].join(" ");
+
+const AUDIT_SYSTEM_PROMPT = [
+  "You are a compliance/audit engine.",
+  "Only emit violations if evidence exists in the provided JSON.",
+  "If prerequisites are missing, do not emit a violation.",
+  "Do not compare missing values.",
+].join(" ");
+
+const AUDIT_DEVELOPER_PROMPT = [
+  "Rule catalog (emit ruleId values exactly):",
+  "- OPEN_DATE_AFTER_CLOSE: dateOpened after dateClosed for same bureau entry.",
+  "- PAID_BUT_BALANCE: accountStatus indicates paid/closed but balance > 0.",
+  "- HIGH_CREDIT_GT_LIMIT: highCredit > creditLimit when both present.",
+  "- CURRENT_BUT_PAST_DUE: accountStatus/paymentStatus indicate current but pastDue > 0.",
+  "- LATE_STATUS_NO_PASTDUE: paymentStatus indicates late/charge-off but pastDue is 0 or null.",
+  "- ZERO_BALANCE_BUT_PASTDUE: balance is 0 but pastDue > 0.",
+  "- CHARGEOFF_OR_COLLECTION_MISSING_DOFD: accountStatus indicates charge-off/collection and dateOpened present but dateLastPayment and dateClosed both null.",
+  "- BALANCE_MISMATCH_ACROSS_BUREAUS: same furnisher/account has differing balances across bureaus.",
+  "- POSSIBLE_MISMATCHED_ACCOUNTS: furnisherName matches but accountNumberMasked differs across bureaus.",
+  "- LIMIT_MISSING_FOR_REVOLVING: paymentStatus/comments indicate revolving/credit card and both creditLimit/highCredit are null.",
+  "Cross-bureau comparisons require at least 2 bureaus with present:true and non-null values.",
+  "evidencePaths must reference exact JSON paths in CanonicalReport.",
+].join(" ");
+
+const NUMBER_FIELDS = ["balance", "pastDue", "creditLimit", "highCredit"];
+const DATE_FIELDS = ["dateOpened", "dateClosed", "lastReported", "dateLastPayment"];
+const STRING_FIELDS = ["accountNumberMasked", "accountStatus", "paymentStatus", "comments"];
+
+function getOpenAiKey() {
+  const key = process.env.OPENAI_API_KEY || "";
+  if (!key.trim()) {
+    throw new Error("OPENAI_API_KEY is required for LLM report parsing.");
+  }
+  return key.trim();
+}
+
+function redactSensitive(text = "") {
+  return text
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]")
+    .replace(/\b\d{9}\b/g, "[REDACTED_SSN]")
+    .replace(/\b\d{5}(?:-\d{4})?\b/g, "[REDACTED_ZIP]");
+}
+
+function extractHtmlVisibleText(htmlText = "") {
+  try {
+    const dom = new JSDOM(htmlText);
+    return (dom.window.document.body?.textContent || "").replace(/\s+\n/g, "\n").trim();
+  } catch {
+    return htmlText;
+  }
+}
+
+async function extractReportText({ buffer, filename }) {
+  const isPdf = (filename || "").toLowerCase().endsWith(".pdf");
+  if (!isPdf) {
+    const htmlText = buffer.toString("utf-8");
+    return { text: extractHtmlVisibleText(htmlText), source: "html" };
+  }
+  const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "metro2-llm-"));
+  const pdfPath = path.join(tmpDir, "report.pdf");
+  const outPath = path.join(tmpDir, "report-text.json");
+  await fs.promises.writeFile(pdfPath, buffer);
+  const scriptPath = path.join(__dirname, "backend/parsers/report_text_extractor.py");
+  const { child: py } = await spawnPythonProcess(
+    [scriptPath, pdfPath, outPath],
+    { stdio: ["ignore", "pipe", "pipe"] }
+  );
+  let stdout = "";
+  let stderr = "";
+  py.stdout.on("data", data => { stdout += data.toString(); });
+  py.stderr.on("data", data => { stderr += data.toString(); });
+  return new Promise((resolve, reject) => {
+    py.once("error", async err => {
+      try { await fs.promises.rm(tmpDir, { recursive: true, force: true }); } catch {}
+      reject(err);
+    });
+    py.on("close", async code => {
+      try {
+        if (code !== 0) {
+          throw new Error(`PDF text extraction failed (${code}): ${stderr || stdout}`);
+        }
+        const raw = await fs.promises.readFile(outPath, "utf-8");
+        const parsed = JSON.parse(raw);
+        resolve({ text: String(parsed?.text || ""), source: "pdf" });
+      } catch (err) {
+        reject(err);
+      } finally {
+        try { await fs.promises.rm(tmpDir, { recursive: true, force: true }); } catch {}
+      }
+    });
+  });
+}
+
+function coerceNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const num = Number(String(value).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(num) ? num : null;
+}
+
+function normalizeCanonicalReport(report = {}) {
+  const reportMeta = report.reportMeta && typeof report.reportMeta === "object" ? { ...report.reportMeta } : {};
+  if (!reportMeta.provider || typeof reportMeta.provider !== "string" || !reportMeta.provider.trim()) {
+    reportMeta.provider = "unknown";
+  }
+  reportMeta.reportDate = reportMeta.reportDate || null;
+  const normalized = {
+    reportMeta,
+    identity: report.identity || { TUC: {}, EXP: {}, EQF: {} },
+    tradelines: Array.isArray(report.tradelines) ? report.tradelines : [],
+  };
+
+  ["TUC", "EXP", "EQF"].forEach(key => {
+    if (!normalized.identity[key] || typeof normalized.identity[key] !== "object") {
+      normalized.identity[key] = {};
+    }
+    if (!Array.isArray(normalized.identity[key].addresses)) {
+      normalized.identity[key].addresses = [];
+    }
+    normalized.identity[key].name ??= null;
+    normalized.identity[key].dob ??= null;
+  });
+
+  normalized.tradelines = normalized.tradelines
+    .filter(tl => tl && typeof tl === "object")
+    .map(tl => {
+      const byBureau = tl.byBureau || {};
+      const normByBureau = {};
+      ["TUC", "EXP", "EQF"].forEach(bureau => {
+        const entry = byBureau[bureau] && typeof byBureau[bureau] === "object"
+          ? { ...byBureau[bureau] }
+          : { present: false };
+        entry.present = Boolean(entry.present);
+        NUMBER_FIELDS.forEach(field => {
+          entry[field] = coerceNumber(entry[field]);
+        });
+        DATE_FIELDS.forEach(field => {
+          if (entry[field] === undefined) entry[field] = null;
+        });
+        STRING_FIELDS.forEach(field => {
+          if (entry[field] === undefined) entry[field] = null;
+        });
+        if (!entry.present) {
+          Object.keys(entry).forEach(field => {
+            if (field !== "present") entry[field] = null;
+          });
+        } else {
+          [...NUMBER_FIELDS, ...DATE_FIELDS, ...STRING_FIELDS].forEach(field => {
+            if (entry[field] === undefined) entry[field] = null;
+          });
+        }
+        normByBureau[bureau] = entry;
+      });
+      return {
+        furnisherName: tl.furnisherName || "Unknown",
+        byBureau: normByBureau,
+      };
+    });
+
+  return normalized;
+}
+
+function validateCanonicalReport(report = {}) {
+  const errors = [];
+  if (!report || typeof report !== "object") {
+    return ["Report is not an object."];
+  }
+  if (!report.reportMeta || typeof report.reportMeta.provider !== "string") {
+    errors.push("reportMeta.provider is required.");
+  }
+  if (!report.identity || typeof report.identity !== "object") {
+    errors.push("identity is required.");
+  } else {
+    ["TUC", "EXP", "EQF"].forEach(key => {
+      if (!report.identity[key] || typeof report.identity[key] !== "object") {
+        errors.push(`identity.${key} is required.`);
+      }
+    });
+  }
+  if (!Array.isArray(report.tradelines)) {
+    errors.push("tradelines must be an array.");
+  } else {
+    report.tradelines.forEach((tl, idx) => {
+      if (!tl || typeof tl !== "object") {
+        errors.push(`tradelines[${idx}] must be an object.`);
+        return;
+      }
+      if (!tl.furnisherName) {
+        errors.push(`tradelines[${idx}].furnisherName is required.`);
+      }
+      const byBureau = tl.byBureau || {};
+      ["TUC", "EXP", "EQF"].forEach(bureau => {
+        const entry = byBureau[bureau];
+        if (!entry || typeof entry !== "object") {
+          errors.push(`tradelines[${idx}].byBureau.${bureau} is required.`);
+          return;
+        }
+        if (typeof entry.present !== "boolean") {
+          errors.push(`tradelines[${idx}].byBureau.${bureau}.present must be boolean.`);
+        }
+        if (!entry.present) {
+          Object.entries(entry).forEach(([field, value]) => {
+            if (field !== "present" && value !== null) {
+              errors.push(`tradelines[${idx}].byBureau.${bureau}.${field} must be null when present=false.`);
+            }
+          });
+        } else {
+          DATE_FIELDS.forEach(field => {
+            if (entry[field] && !isValidDate(entry[field])) {
+              errors.push(`tradelines[${idx}].byBureau.${bureau}.${field} must be a valid date string.`);
+            }
+          });
+        }
+      });
+    });
+  }
+  return errors;
+}
+
+function isValidDate(value) {
+  const parsed = Date.parse(String(value));
+  return !Number.isNaN(parsed);
+}
+
+function validateViolations(violations = [], report = {}) {
+  const errors = [];
+  if (!Array.isArray(violations)) {
+    return ["violations must be an array."];
+  }
+  violations.forEach((violation, idx) => {
+    if (!violation || typeof violation !== "object") {
+      errors.push(`violations[${idx}] must be an object.`);
+      return;
+    }
+    if (!violation.ruleId) errors.push(`violations[${idx}].ruleId required.`);
+    if (!violation.furnisherName) errors.push(`violations[${idx}].furnisherName required.`);
+    if (!Array.isArray(violation.evidencePaths)) {
+      errors.push(`violations[${idx}].evidencePaths must be array.`);
+    } else {
+      violation.evidencePaths.forEach(path => {
+        if (!pathExists(report, path)) {
+          errors.push(`violations[${idx}].evidencePaths contains missing path: ${path}`);
+        }
+      });
+    }
+  });
+  return errors;
+}
+
+function pathExists(root, path) {
+  const parts = String(path || "").replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean);
+  let cursor = root;
+  for (const part of parts) {
+    if (cursor && Object.prototype.hasOwnProperty.call(cursor, part)) {
+      cursor = cursor[part];
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function callOpenAiStructured({ schema, schemaName, system, developer, user, model }) {
+  const apiKey = getOpenAiKey();
+  const body = {
+    model,
+    input: [
+      { role: "system", content: system },
+      { role: "developer", content: developer },
+      { role: "user", content: user },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: schemaName,
+        schema,
+        strict: true,
+      },
+    },
+    temperature: 0,
+    store: false,
+  };
+
+  const response = await fetchFn(OPENAI_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(`OpenAI error ${response.status}: ${JSON.stringify(payload)}`);
+  }
+  const outputText = payload.output_text
+    || payload.output?.map(item => item.content?.map(c => c.text || c.output_text).join("") || "").join("");
+  if (outputText) {
+    return JSON.parse(outputText);
+  }
+  const jsonContent = payload.output?.[0]?.content?.find(c => c.type === "output_json");
+  if (jsonContent?.json) return jsonContent.json;
+  throw new Error("OpenAI response missing structured output.");
+}
+
+function splitText(text = "", maxChunk = OPENAI_MAX_CHUNK_CHARS) {
+  if (text.length <= maxChunk) return [text];
+  const chunks = [];
+  let offset = 0;
+  while (offset < text.length) {
+    chunks.push(text.slice(offset, offset + maxChunk));
+    offset += maxChunk;
+  }
+  return chunks;
+}
+
+function mergeCanonicalReports(reports = []) {
+  const primary = reports.find(r => r && r.reportMeta) || { reportMeta: { provider: "unknown", reportDate: null }, identity: { TUC: {}, EXP: {}, EQF: {} } };
+  const merged = {
+    reportMeta: primary.reportMeta,
+    identity: primary.identity,
+    tradelines: [],
+  };
+  const seen = new Set();
+  reports.forEach(report => {
+    (report.tradelines || []).forEach((tl, idx) => {
+      const acct = tl.byBureau?.TUC?.accountNumberMasked
+        || tl.byBureau?.EXP?.accountNumberMasked
+        || tl.byBureau?.EQF?.accountNumberMasked
+        || "";
+      const suffix = acct ? acct.slice(-4) : `idx${idx}`;
+      const key = `${normalizeCreditorName(tl.furnisherName)}|${suffix}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      merged.tradelines.push(tl);
+    });
+  });
+  return merged;
+}
+
+async function parseCanonicalReport(text, sourceLabel) {
+  const sanitizedText = redactSensitive(text);
+  const userPayload = [
+    `Source: ${sourceLabel}`,
+    "Extracted text follows:",
+    sanitizedText,
+  ].join("\n\n");
+
+  let attempts = 0;
+  let report;
+  let errors = [];
+  while (attempts <= OPENAI_MAX_PARSE_RETRIES) {
+    attempts += 1;
+    report = await callOpenAiStructured({
+      schema: CANONICAL_REPORT_SCHEMA,
+      schemaName: "CanonicalReport",
+      system: PARSE_SYSTEM_PROMPT,
+      developer: PARSE_DEVELOPER_PROMPT + (errors.length ? ` Previous validation errors: ${errors.join("; ")}` : ""),
+      user: userPayload,
+      model: OPENAI_PARSE_MODEL,
+    });
+    report = normalizeCanonicalReport(report);
+    errors = validateCanonicalReport(report);
+    if (!errors.length) break;
+  }
+  if (errors.length) {
+    throw new Error(`CanonicalReport validation failed: ${errors.join("; ")}`);
+  }
+  return report;
+}
+
+async function parseCanonicalReportWithChunking(text, sourceLabel) {
+  const chunks = splitText(text);
+  if (chunks.length === 1) {
+    return parseCanonicalReport(text, sourceLabel);
+  }
+  const reports = [];
+  for (const chunk of chunks) {
+    const report = await parseCanonicalReport(chunk, `${sourceLabel} chunk`);
+    reports.push(report);
+  }
+  return mergeCanonicalReports(reports);
+}
+
+async function auditCanonicalReport(report) {
+  const reportJson = JSON.stringify(report);
+  let violations = await callOpenAiStructured({
+    schema: VIOLATIONS_SCHEMA,
+    schemaName: "ViolationList",
+    system: AUDIT_SYSTEM_PROMPT,
+    developer: AUDIT_DEVELOPER_PROMPT,
+    user: reportJson,
+    model: OPENAI_AUDIT_MODEL,
+  });
+  if (!Array.isArray(violations)) {
+    throw new Error("Violation response is not an array.");
+  }
+  violations = violations.filter(v => v && typeof v === "object");
+  const errors = validateViolations(violations, report);
+  if (errors.length) {
+    throw new Error(`Violation validation failed: ${errors.join("; ")}`);
+  }
+  return violations;
+}
+
+function mapCanonicalIdentityToPersonalInfo(identity = {}) {
+  const mapBlock = block => {
+    const addresses = Array.isArray(block?.addresses) ? block.addresses : [];
+    const [addr1, addr2] = addresses;
+    return {
+      name: block?.name || null,
+      dob: block?.dob || null,
+      address: addresses.length
+        ? {
+            addr1: addr1 || null,
+            addr2: addr2 || null,
+          }
+        : null,
+    };
+  };
+  return {
+    TransUnion: mapBlock(identity.TUC),
+    Experian: mapBlock(identity.EXP),
+    Equifax: mapBlock(identity.EQF),
+  };
+}
+
+function canonicalToTradelines(report = {}) {
+  const tradelines = [];
+  (report.tradelines || []).forEach(group => {
+    const per_bureau = {
+      TransUnion: mapCanonicalBureau(group.byBureau?.TUC, "TransUnion"),
+      Experian: mapCanonicalBureau(group.byBureau?.EXP, "Experian"),
+      Equifax: mapCanonicalBureau(group.byBureau?.EQF, "Equifax"),
+    };
+    tradelines.push({
+      meta: { creditor: group.furnisherName },
+      per_bureau,
+      source: "llm",
+      violations: [],
+      violations_grouped: {},
+    });
+  });
+  return tradelines;
+}
+
+function mapCanonicalBureau(entry = {}, bureauLabel = "") {
+  if (!entry || !entry.present) {
+    return { bureau: bureauLabel, present: false };
+  }
+  return {
+    bureau: bureauLabel,
+    present: true,
+    account_number: entry.accountNumberMasked || null,
+    account_status: entry.accountStatus || null,
+    payment_status: entry.paymentStatus || null,
+    balance: entry.balance ?? null,
+    past_due: entry.pastDue ?? null,
+    credit_limit: entry.creditLimit ?? null,
+    high_credit: entry.highCredit ?? null,
+    date_opened: entry.dateOpened || null,
+    date_closed: entry.dateClosed || null,
+    last_reported: entry.lastReported || null,
+    last_payment: entry.dateLastPayment || null,
+    comments: entry.comments || null,
+  };
+}
+
+function attachViolationsToTradelines(tradelines = [], violations = []) {
+  const map = new Map();
+  tradelines.forEach((tl, idx) => {
+    const nameKey = normalizeCreditorName(tl?.meta?.creditor || "");
+    const accountNumbers = collectAccountNumbers(tl)
+      .map(normalizeAccountNumber)
+      .filter(Boolean);
+    map.set(`${nameKey}|${accountNumbers.join("|")}`, idx);
+    if (accountNumbers.length) {
+      accountNumbers.forEach(num => {
+        map.set(`${nameKey}|${num}`, idx);
+        if (num.length >= 4) {
+          map.set(`${nameKey}|${num.slice(-4)}`, idx);
+        }
+      });
+    }
+  });
+
+  violations.forEach(violation => {
+    const nameKey = normalizeCreditorName(violation.furnisherName || "");
+    const acct = normalizeAccountNumber(violation.accountNumberMasked || "");
+    const keyCandidates = [
+      `${nameKey}|${acct}`,
+      `${nameKey}|${acct.slice(-4)}`,
+      `${nameKey}|`,
+    ];
+    const targetIndex = keyCandidates.map(k => map.get(k)).find(idx => idx !== undefined);
+    if (targetIndex === undefined) return;
+    const tl = tradelines[targetIndex];
+    tl.violations = tl.violations || [];
+    tl.violations_grouped = tl.violations_grouped || {};
+    const entry = {
+      id: violation.ruleId,
+      title: violation.explanation,
+      source: "llm",
+      category: violation.category || "LLM",
+      bureau: violation.bureau,
+      evidencePaths: violation.evidencePaths,
+      disputeTargets: violation.disputeTargets || [],
+    };
+    tl.violations.push(entry);
+    if (!tl.violations_grouped.LLM) tl.violations_grouped.LLM = [];
+    tl.violations_grouped.LLM.push(entry);
+  });
+}
+
+async function runLLMAnalyzer({ buffer, filename }) {
+  const { text, source } = await extractReportText({ buffer, filename });
+  if (!text || !text.trim()) {
+    throw new Error("Report text extraction returned empty text.");
+  }
+  const accountHint = /account\s*(?:number|#|no\.?)/i.test(text);
+  let canonicalReport = await parseCanonicalReport(text, source);
+  if (!canonicalReport.tradelines.length && accountHint) {
+    canonicalReport = await parseCanonicalReportWithChunking(text, source);
+  }
+  canonicalReport = normalizeCanonicalReport(canonicalReport);
+  const violations = await auditCanonicalReport(canonicalReport);
+  const tradelines = canonicalToTradelines(canonicalReport);
+  attachViolationsToTradelines(tradelines, violations);
+  return {
+    canonicalReport,
+    violations,
+    tradelines,
+    personalInfo: mapCanonicalIdentityToPersonalInfo(canonicalReport.identity),
+  };
+}
+
 function mapPythonPersonalInfo(raw){
   if (!raw) return null;
   if (Array.isArray(raw)) {
@@ -4159,6 +4820,10 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     jsTradelineCount: 0,
     pythonViolationCount: 0,
     matchedTradelineCount: 0,
+    llmTradelineCount: 0,
+    llmViolationCount: 0,
+    llmParseSource: null,
+    llmError: null,
     basicRuleViolations: 0,
   };
   try{
@@ -4202,122 +4867,148 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     let matchSummary = { matches: [], unmatchedJs: [], unmatchedPy: [] };
     let matchDetails = [];
     let pythonTradelines = [];
+    let llmResult = null;
 
+    let llmError = null;
     try {
-      const pyResult = await runPythonAnalyzer({
+      llmResult = await runLLMAnalyzer({
         buffer: req.file.buffer,
         filename: req.file.originalname,
       });
-      pythonStdout = pyResult?.stdout || "";
-      pythonStderr = pyResult?.stderr || "";
-      const py = pyResult?.data || {};
-      const pyPersonalInfo = mapPythonPersonalInfo(py?.personal_info || py?.personal_information);
-      const pythonPersonalMismatches = Array.isArray(py?.personal_mismatches) ? py.personal_mismatches : [];
-      const pythonInquiryViolations = Array.isArray(py?.inquiry_violations) ? py.inquiry_violations : [];
-      let convertedPyTradelines = Array.isArray(py?.tradelines) ? py.tradelines : [];
-      if (!convertedPyTradelines.length && Array.isArray(py?.account_history)) {
-        try {
-          convertedPyTradelines = mapAuditedViolations(py);
-        } catch (err) {
-          logError("PYTHON_TRADELINE_CONVERT_FAILED", "Failed to normalize Python account history", err);
-          convertedPyTradelines = [];
-        }
-      }
-
-      pythonTradelines = convertedPyTradelines;
-      diagnostics.pythonViolationCount = pythonTradelines.reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
-        + pythonPersonalMismatches.length
-        + pythonInquiryViolations.length;
-
-      if (!Array.isArray(analyzed.personal_mismatches)) {
-        analyzed.personal_mismatches = pythonPersonalMismatches;
-      }
-      if (!Array.isArray(analyzed.inquiry_violations)) {
-        analyzed.inquiry_violations = pythonInquiryViolations;
-      }
-
-      if (!analyzed.tradelines?.length && pythonTradelines.length) {
-        analyzed.tradelines = pythonTradelines.map(tl => ({ ...tl, source: "python_only" }));
-        matchSummary = {
-          matches: [],
-          unmatchedJs: [],
-          unmatchedPy: pythonTradelines.map((tl, idx) => ({
-            index: idx,
-            creditor: tl?.meta?.creditor || "",
-            accountNumbers: collectAccountNumbers(tl),
-            keys: Array.from(buildTradelineKeySet(tl)),
-          })),
-        };
-      } else if (pythonTradelines.length) {
-        matchSummary = matchTradelines(analyzed.tradelines || [], pythonTradelines);
-        diagnostics.matchedTradelineCount = matchSummary.matches.length;
-        const matchMap = new Map(matchSummary.matches.map(m => [m.pyIndex, m]));
-        matchDetails = [];
-
-        pythonTradelines.forEach((tl, pyIndex) => {
-          const mapping = matchMap.get(pyIndex);
-          if (mapping) {
-            const base = analyzed.tradelines[mapping.jsIndex] || (analyzed.tradelines[mapping.jsIndex] = {});
-            const beforeCount = (base.violations || []).length;
-            base.meta = deepMerge(base.meta, tl.meta);
-            base.per_bureau = deepMerge(base.per_bureau, tl.per_bureau);
-            if (tl.metrics) {
-              base.metrics = deepMerge(base.metrics || {}, tl.metrics);
-            }
-            base.violations = [
-              ...(base.violations || []),
-              ...(tl.violations || []),
-            ];
-            base.violations_grouped = deepMerge(
-              base.violations_grouped || {},
-              tl.violations_grouped || {}
-            );
-            const afterCount = (base.violations || []).length;
-            matchDetails.push({
-              jsIndex: mapping.jsIndex,
-              pyIndex,
-              key: mapping.key,
-              strategy: mapping.strategy,
-              creditor: base?.meta?.creditor || tl?.meta?.creditor || "",
-              addedViolations: Math.max(0, afterCount - beforeCount),
-              totalViolations: afterCount,
-            });
-          } else {
-            const clone = JSON.parse(JSON.stringify(tl));
-            clone.source = "python_only";
-            analyzed.tradelines.push(clone);
-          }
-        });
-      }
-
-      diagnostics.matchedTradelineCount = diagnostics.matchedTradelineCount || 0;
-
-      const addedViolations = matchDetails.reduce((sum, item) => sum + (item.addedViolations || 0), 0);
-      console.log("[Match Statistics]", {
-        consumerId: consumer.id,
-        jsTradelines: jsTradelinesBefore,
-        pythonTradelines: pythonTradelines.length,
-        matched: diagnostics.matchedTradelineCount,
-        unmatchedJs: matchSummary.unmatchedJs.length,
-        unmatchedPython: matchSummary.unmatchedPy.length,
-        addedViolations,
-      });
-      if (matchDetails.length) {
-        console.log("[Match Statistics] Details", matchDetails);
-      }
-      if (matchSummary.unmatchedJs.length) {
-        console.log("[Unmatched Keys] JS sample", matchSummary.unmatchedJs.slice(0, 3));
-      }
-      if (matchSummary.unmatchedPy.length) {
-        console.log("[Unmatched Keys] Python sample", matchSummary.unmatchedPy.slice(0, 3));
-      }
-
-      if (!analyzed.personalInfo && pyPersonalInfo) {
-        analyzed.personalInfo = pyPersonalInfo;
-      }
+      diagnostics.llmTradelineCount = llmResult.tradelines.length;
+      diagnostics.llmViolationCount = llmResult.violations.length;
+      diagnostics.llmParseSource = llmResult?.canonicalReport?.reportMeta?.provider || null;
+      analyzed.tradelines = llmResult.tradelines;
+      analyzed.canonical_report = llmResult.canonicalReport;
+      analyzed.llm_violations = llmResult.violations;
+      analyzed.personalInfo = analyzed.personalInfo || llmResult.personalInfo;
     } catch (e) {
-      logError("PYTHON_ANALYZER_ERROR", "Python analyzer failed", e);
-      errors.push({ step: "python_analyzer", message: e.message, details: e.stack || String(e) });
+      llmError = e;
+      logError("LLM_ANALYZER_ERROR", "LLM analyzer failed", e);
+    }
+
+    if (!llmResult) {
+      try {
+        const pyResult = await runPythonAnalyzer({
+          buffer: req.file.buffer,
+          filename: req.file.originalname,
+        });
+        pythonStdout = pyResult?.stdout || "";
+        pythonStderr = pyResult?.stderr || "";
+        const py = pyResult?.data || {};
+        const pyPersonalInfo = mapPythonPersonalInfo(py?.personal_info || py?.personal_information);
+        const pythonPersonalMismatches = Array.isArray(py?.personal_mismatches) ? py.personal_mismatches : [];
+        const pythonInquiryViolations = Array.isArray(py?.inquiry_violations) ? py.inquiry_violations : [];
+        let convertedPyTradelines = Array.isArray(py?.tradelines) ? py.tradelines : [];
+        if (!convertedPyTradelines.length && Array.isArray(py?.account_history)) {
+          try {
+            convertedPyTradelines = mapAuditedViolations(py);
+          } catch (err) {
+            logError("PYTHON_TRADELINE_CONVERT_FAILED", "Failed to normalize Python account history", err);
+            convertedPyTradelines = [];
+          }
+        }
+
+        pythonTradelines = convertedPyTradelines;
+        diagnostics.pythonViolationCount = pythonTradelines.reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
+          + pythonPersonalMismatches.length
+          + pythonInquiryViolations.length;
+
+        if (!Array.isArray(analyzed.personal_mismatches)) {
+          analyzed.personal_mismatches = pythonPersonalMismatches;
+        }
+        if (!Array.isArray(analyzed.inquiry_violations)) {
+          analyzed.inquiry_violations = pythonInquiryViolations;
+        }
+
+        if (!analyzed.tradelines?.length && pythonTradelines.length) {
+          analyzed.tradelines = pythonTradelines.map(tl => ({ ...tl, source: "python_only" }));
+          matchSummary = {
+            matches: [],
+            unmatchedJs: [],
+            unmatchedPy: pythonTradelines.map((tl, idx) => ({
+              index: idx,
+              creditor: tl?.meta?.creditor || "",
+              accountNumbers: collectAccountNumbers(tl),
+              keys: Array.from(buildTradelineKeySet(tl)),
+            })),
+          };
+        } else if (pythonTradelines.length) {
+          matchSummary = matchTradelines(analyzed.tradelines || [], pythonTradelines);
+          diagnostics.matchedTradelineCount = matchSummary.matches.length;
+          const matchMap = new Map(matchSummary.matches.map(m => [m.pyIndex, m]));
+          matchDetails = [];
+
+          pythonTradelines.forEach((tl, pyIndex) => {
+            const mapping = matchMap.get(pyIndex);
+            if (mapping) {
+              const base = analyzed.tradelines[mapping.jsIndex] || (analyzed.tradelines[mapping.jsIndex] = {});
+              const beforeCount = (base.violations || []).length;
+              base.meta = deepMerge(base.meta, tl.meta);
+              base.per_bureau = deepMerge(base.per_bureau, tl.per_bureau);
+              if (tl.metrics) {
+                base.metrics = deepMerge(base.metrics || {}, tl.metrics);
+              }
+              base.violations = [
+                ...(base.violations || []),
+                ...(tl.violations || []),
+              ];
+              base.violations_grouped = deepMerge(
+                base.violations_grouped || {},
+                tl.violations_grouped || {}
+              );
+              const afterCount = (base.violations || []).length;
+              matchDetails.push({
+                jsIndex: mapping.jsIndex,
+                pyIndex,
+                key: mapping.key,
+                strategy: mapping.strategy,
+                creditor: base?.meta?.creditor || tl?.meta?.creditor || "",
+                addedViolations: Math.max(0, afterCount - beforeCount),
+                totalViolations: afterCount,
+              });
+            } else {
+              const clone = JSON.parse(JSON.stringify(tl));
+              clone.source = "python_only";
+              analyzed.tradelines.push(clone);
+            }
+          });
+        }
+
+        diagnostics.matchedTradelineCount = diagnostics.matchedTradelineCount || 0;
+
+        const addedViolations = matchDetails.reduce((sum, item) => sum + (item.addedViolations || 0), 0);
+        console.log("[Match Statistics]", {
+          consumerId: consumer.id,
+          jsTradelines: jsTradelinesBefore,
+          pythonTradelines: pythonTradelines.length,
+          matched: diagnostics.matchedTradelineCount,
+          unmatchedJs: matchSummary.unmatchedJs.length,
+          unmatchedPython: matchSummary.unmatchedPy.length,
+          addedViolations,
+        });
+        if (matchDetails.length) {
+          console.log("[Match Statistics] Details", matchDetails);
+        }
+        if (matchSummary.unmatchedJs.length) {
+          console.log("[Unmatched Keys] JS sample", matchSummary.unmatchedJs.slice(0, 3));
+        }
+        if (matchSummary.unmatchedPy.length) {
+          console.log("[Unmatched Keys] Python sample", matchSummary.unmatchedPy.slice(0, 3));
+        }
+
+        if (!analyzed.personalInfo && pyPersonalInfo) {
+          analyzed.personalInfo = pyPersonalInfo;
+        }
+      } catch (e) {
+        logError("PYTHON_ANALYZER_ERROR", "Python analyzer failed", e);
+        errors.push({ step: "python_analyzer", message: e.message, details: e.stack || String(e) });
+      }
+      if (llmError) {
+        diagnostics.llmError = llmError.message || String(llmError);
+      }
+    } else if (llmError) {
+      diagnostics.llmError = llmError.message || String(llmError);
     }
 
     try {
