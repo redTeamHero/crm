@@ -4,7 +4,7 @@ import crypto from "crypto";
 import EventEmitter from "events";
 import { logError, logInfo, logWarn } from "./logger.js";
 
-const { Queue, Worker, QueueScheduler } = BullMQ;
+const { Queue, Worker } = BullMQ;
 
 const DEFAULT_CONCURRENCY = Number.parseInt(process.env.JOB_WORKER_CONCURRENCY || "2", 10) || 2;
 
@@ -51,7 +51,6 @@ if (connectionConfig) {
 }
 
 const queues = new Map();
-const schedulers = new Map();
 const workers = new Map();
 const processors = new Map();
 const localEmitter = new EventEmitter();
@@ -66,12 +65,7 @@ function ensureQueue(name) {
   }
   if (!queues.has(name) && queueEnabled && connection) {
     const queue = new Queue(name, { connection });
-    const scheduler = new QueueScheduler(name, { connection });
-    scheduler.waitUntilReady().catch((err) => {
-      logWarn("QUEUE_SCHEDULER_UNAVAILABLE", err?.message || "Queue scheduler failed", { queue: name });
-    });
     queues.set(name, queue);
-    schedulers.set(name, scheduler);
   }
   return queues.get(name) || null;
 }
@@ -171,9 +165,6 @@ export async function shutdownQueues() {
   for (const worker of workers.values()) {
     shuttingDown.push(worker.close().catch(() => {}));
   }
-  for (const scheduler of schedulers.values()) {
-    shuttingDown.push(scheduler.close().catch(() => {}));
-  }
   for (const queue of queues.values()) {
     shuttingDown.push(queue.close().catch(() => {}));
   }
@@ -182,7 +173,6 @@ export async function shutdownQueues() {
   }
   await Promise.all(shuttingDown);
   queues.clear();
-  schedulers.clear();
   workers.clear();
   processors.clear();
 }
