@@ -440,7 +440,11 @@ def normalize_tradeline(record: MutableMapping[str, Any]) -> None:
 
 
 RULE_METADATA: Dict[str, Dict[str, str]] = {
-    "MISSING_OPEN_DATE": {"severity": "moderate", "fcra_section": "FCRA §611(a)(1)"},
+    "MISSING_OPEN_DATE": {
+        "severity": "moderate",
+        "fcra_section": "FCRA §611(a)(1)",
+        "category": "required_field_validation",
+    },
     "BALANCE_MISMATCH": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "STATUS_MISMATCH": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "OPEN_DATE_MISMATCH": {"severity": "major", "fcra_section": "FCRA §607(b)"},
@@ -456,7 +460,11 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "ACCOUNT_TYPE_MISMATCH": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "HIGH_UTILIZATION": {"severity": "minor", "fcra_section": "FCRA §607(b)"},
     "DISPUTE_PENDING_TOO_LONG": {"severity": "major", "fcra_section": "FCRA §623(a)(3)"},
-    "MISSING_LAST_PAYMENT_DATE": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "MISSING_LAST_PAYMENT_DATE": {
+        "severity": "moderate",
+        "fcra_section": "FCRA §623(a)(1)",
+        "category": "required_field_validation",
+    },
     "ACCOUNT_OPENED_AFTER_LAST_PAYMENT_DATE": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "DATE_CLOSED_INCONSISTENT_WITH_STATUS": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
     "INACCURATE_LAST_PAYMENT_DATE": {"severity": "major", "fcra_section": "FCRA §607(b)"},
@@ -506,7 +514,11 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "HIGH_CREDIT_EXCEEDS_LIMIT": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "fcra_dofd_invalid": {"severity": "major", "fcra_section": "FCRA §623(a)(5) / §605(a)(4)"},
     "collection_status_inconsistent": {"severity": "major", "fcra_section": "FCRA §607(b)"},
-    "missing_last_payment_date": {"severity": "major", "fcra_section": "FCRA §607(b) / §611(a)(1)(A)"},
+    "missing_last_payment_date": {
+        "severity": "major",
+        "fcra_section": "FCRA §607(b) / §611(a)(1)(A)",
+        "category": "required_field_validation",
+    },
     "balance_status_conflict": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "chargeoff_continues_reporting": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
     "high_credit_equals_balance": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
@@ -515,6 +527,21 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "duplicate_collection_account": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "furnisher_identity_unclear": {"severity": "major", "fcra_section": "FCRA §611(a)(1)(A)"},
     "failure_to_correct_after_dispute": {"severity": "major", "fcra_section": "FCRA §611(a)(5) / §623(b)"},
+    "missing_account_number": {
+        "severity": "major",
+        "fcra_section": "FCRA §607(b)",
+        "category": "required_field_validation",
+    },
+    "missing_date_opened": {
+        "severity": "moderate",
+        "fcra_section": "FCRA §607(b)",
+        "category": "required_field_validation",
+    },
+    "missing_dofd": {
+        "severity": "major",
+        "fcra_section": "FCRA §623(a)(5) / §605(a)(4)",
+        "category": "required_field_validation",
+    },
 }
 
 
@@ -528,6 +555,8 @@ def _attach_violation(
         "severity": meta["severity"],
         "fcra_section": meta["fcra_section"],
     }
+    if "category" in meta:
+        violation["category"] = meta["category"]
     if extra:
         violation.update(extra)
     record.setdefault("violations", []).append(violation)
@@ -546,6 +575,15 @@ def audit_missing_open_date(tradelines: Iterable[MutableMapping[str, Any]]) -> N
     for record in tradelines:
         if not record.get("date_opened"):
             _attach_violation(record, "MISSING_OPEN_DATE", "Missing Date Opened")
+            _attach_violation(record, "missing_date_opened", "Missing Date Opened")
+        if not _normalized_account_number(record):
+            last_reported = record.get("last_reported") or record.get("date_last_reported")
+            if last_reported:
+                _attach_violation(
+                    record,
+                    "missing_account_number",
+                    "Active tradeline missing account number",
+                )
 
 
 def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
@@ -775,6 +813,11 @@ def audit_dofd_integrity(tradelines: Iterable[MutableMapping[str, Any]]) -> None
         if is_delinquent and not dofd:
             _attach_violation(
                 record,
+                "missing_dofd",
+                "Missing Date of First Delinquency on derogatory account",
+            )
+            _attach_violation(
+                record,
                 "fcra_dofd_invalid",
                 "Missing Date of First Delinquency on derogatory account",
             )
@@ -973,6 +1016,7 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
     for record in tradelines:
         payment_status = _normalize_status(record.get("payment_status"))
         status = _normalize_status(record.get("account_status"))
+        comments = _normalize_status(record.get("comments"))
 
         last_payment = _get_last_payment_date(record)
 
@@ -987,10 +1031,11 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
         balance = clean_amount(record.get("balance"))
         past_due = clean_amount(record.get("past_due") or record.get("amount_past_due"))
 
-        delinquency_markers = ("late", "collection", "charge", "delin", "repos")
+        delinquency_markers = ("late", "collection", "charge", "delin", "repos", "derog")
         is_delinquent = any(marker in status for marker in delinquency_markers) or any(
             marker in payment_status for marker in delinquency_markers
         )
+        is_delinquent = is_delinquent or any(marker in comments for marker in delinquency_markers)
         if is_delinquent and not last_payment:
             _attach_violation(
                 record,
