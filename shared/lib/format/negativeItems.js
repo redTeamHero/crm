@@ -18,6 +18,44 @@ const DISPUTE_REASON_MAP = {
   },
 };
 
+const CFPB_RULES = {
+  cfpb_failure_to_correct: {
+    cfpb_reason_code: "cfpb_failure_to_correct",
+    cfpb_statutes: ["15 U.S.C. §1681i(a)(5)", "15 U.S.C. §1681s-2(b)"],
+    cfpb_summary:
+      "The furnisher and credit reporting agency failed to correct or delete inaccurate information after a completed dispute.",
+    cfpb_recommended_action: "Submit CFPB complaint",
+  },
+  cfpb_unverifiable_information: {
+    cfpb_reason_code: "cfpb_unverifiable_information",
+    cfpb_statutes: ["15 U.S.C. §1681i(a)(1)(A)"],
+    cfpb_summary:
+      "Information could not be verified after a completed dispute and should have been deleted.",
+    cfpb_recommended_action: "Submit CFPB complaint",
+  },
+  cfpb_cross_bureau_inaccuracy: {
+    cfpb_reason_code: "cfpb_cross_bureau_inaccuracy",
+    cfpb_statutes: ["15 U.S.C. §1681e(b)"],
+    cfpb_summary:
+      "Cross-bureau inconsistencies remain after a completed dispute, suggesting inadequate procedures for maximum possible accuracy.",
+    cfpb_recommended_action: "Submit CFPB complaint",
+  },
+  cfpb_reaging_violation: {
+    cfpb_reason_code: "cfpb_reaging_violation",
+    cfpb_statutes: ["15 U.S.C. §1681c(a)(4)", "15 U.S.C. §1681s-2(a)(5)"],
+    cfpb_summary:
+      "The delinquency timeline appears to have been re-aged or improperly extended beyond the legal reporting window.",
+    cfpb_recommended_action: "Submit CFPB complaint",
+  },
+  cfpb_misleading_reporting: {
+    cfpb_reason_code: "cfpb_misleading_reporting",
+    cfpb_statutes: ["15 U.S.C. §1681e(b)"],
+    cfpb_summary:
+      "The tradeline is reported in a materially misleading way that could impact lending decisions.",
+    cfpb_recommended_action: "Submit CFPB complaint",
+  },
+};
+
 function normalizeViolationCode(entry = {}){
   if (!entry || typeof entry !== "object") return "";
   const raw = entry.code || entry.id || entry.violation || "";
@@ -143,6 +181,175 @@ function normalizeRecommendedAction(entry = {}){
   return typeof raw === "string" ? raw.trim() : "";
 }
 
+function parseDate(value){
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  const str = String(value).trim();
+  if (!str) return null;
+  const parsed = new Date(str);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function extractNumber(value){
+  if (value == null) return null;
+  const num = Number(value);
+  if (Number.isFinite(num)) return num;
+  const match = String(value).match(/[-]?\d+(\.\d+)?/);
+  if (!match) return null;
+  const parsed = Number(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasDisputeMarker(text){
+  if (!text) return false;
+  return /\bdispute\b/i.test(String(text));
+}
+
+function normalizeDisputeHistory(entry = {}, perBureau = {}){
+  const candidates = [
+    entry.disputeHistory,
+    entry.dispute_history,
+    entry.dispute,
+    entry.disputeStatus,
+    entry.dispute_status,
+    entry.evidence?.disputeHistory,
+    entry.evidence?.dispute_history,
+    entry.evidence?.dispute,
+  ];
+
+  const summary = {
+    completed: false,
+    daysSince: null,
+    hasConsumerDispute: false,
+  };
+
+  const hydrateFromCandidate = (value) => {
+    if (!value) return;
+    if (typeof value === "string") {
+      if (hasDisputeMarker(value)) summary.hasConsumerDispute = true;
+      if (/completed|closed|resolved/i.test(value)) summary.completed = true;
+      return;
+    }
+    if (typeof value !== "object") return;
+    if (typeof value.completed === "boolean") summary.completed = summary.completed || value.completed;
+    if (typeof value.closed === "boolean") summary.completed = summary.completed || value.closed;
+    if (typeof value.resolved === "boolean") summary.completed = summary.completed || value.resolved;
+    if (typeof value.status === "string" && /completed|closed|resolved/i.test(value.status)) {
+      summary.completed = true;
+    }
+    const daysCandidate =
+      value.daysSince ??
+      value.days_since ??
+      value.days_since_dispute ??
+      value.daysSinceDispute ??
+      value.days_since_completion;
+    const days = extractNumber(daysCandidate);
+    if (days != null && (summary.daysSince == null || days > summary.daysSince)) {
+      summary.daysSince = days;
+    }
+    if (value.completedAt || value.completed_at) {
+      summary.completed = true;
+    }
+    if (value.consumerDispute === true) summary.hasConsumerDispute = true;
+  };
+
+  candidates.forEach(hydrateFromCandidate);
+
+  const perBureauEntries = Object.values(perBureau || {});
+  perBureauEntries.forEach((data) => {
+    if (!data || typeof data !== "object") return;
+    if (data.dispute_closed === true || data.dispute_closed === "true") summary.completed = true;
+    if (data.dispute_outcome_present === true || data.dispute_outcome_present === "true") summary.completed = true;
+    if (data.dispute_completed === true || data.dispute_completed === "true") summary.completed = true;
+    if (hasDisputeMarker(data.comments || data.comment || data.remarks)) summary.hasConsumerDispute = true;
+    if (data.remark_dispute === true || data.remark_dispute === "true") summary.hasConsumerDispute = true;
+    if (data.remark_dispute_resolved === true || data.remark_dispute_resolved === "true") {
+      summary.completed = true;
+    }
+    const days = extractNumber(data.days_since_dispute ?? data.daysSinceDispute);
+    if (days != null && (summary.daysSince == null || days > summary.daysSince)) {
+      summary.daysSince = days;
+    }
+    const disputeDate = parseDate(data.dispute_date);
+    if (disputeDate) {
+      const delta = Math.floor((Date.now() - disputeDate.getTime()) / (24 * 60 * 60 * 1000));
+      if (Number.isFinite(delta) && delta >= 0) {
+        summary.daysSince = Math.max(summary.daysSince ?? 0, delta);
+      }
+    }
+  });
+
+  if (!summary.hasConsumerDispute) {
+    summary.hasConsumerDispute = hasDisputeMarker(entry.comments || entry.comment || entry.remarks);
+  }
+
+  return summary;
+}
+
+function isUnverifiableViolation(entry = {}){
+  const code = normalizeViolationCode(entry);
+  const detail = `${normalizeTitle(entry)} ${entry.detail || ""}`.trim();
+  const fieldList = Array.isArray(entry.fieldsImpacted || entry.fields_impacted)
+    ? entry.fieldsImpacted || entry.fields_impacted
+    : [];
+  const fieldText = fieldList.map(field => String(field).toLowerCase());
+  const codeMatches = /MISSING|UNKNOWN|UNVERIFIABLE/i.test(code) &&
+    (/DOFD|DOLP|LAST_PAYMENT|OWNER|OWNERSHIP/i.test(code));
+  const detailMatches = /missing|unverifiable/i.test(detail) &&
+    /(dofd|delinquency|last payment|ownership|owner)/i.test(detail);
+  const fieldMatches = fieldText.some(field => field.includes("dofd") || field.includes("delinquency") || field.includes("last_payment") || field.includes("ownership") || field.includes("owner"));
+  return codeMatches || detailMatches || fieldMatches || code === "DOFD_MISSING_ON_DEROG";
+}
+
+function isCrossBureauInaccuracy(entry = {}){
+  const code = normalizeViolationCode(entry);
+  const detail = `${normalizeTitle(entry)} ${entry.detail || ""}`.trim();
+  const bureaus = normalizeBureaus(entry);
+  if (bureaus.length >= 2 && /(inconsistent|mismatch|conflict)/i.test(detail)) return true;
+  return /CROSS_BUREAU|BUREAU_MISMATCH|INCONSISTENT/i.test(code);
+}
+
+function isReagingViolation(entry = {}){
+  const code = normalizeViolationCode(entry);
+  const detail = `${normalizeTitle(entry)} ${entry.detail || ""}`.trim();
+  return /REAG|RE-AGING|DOLP_MOVED_FORWARD|DOFD/i.test(code) && /re-?aging|dofd|delinquency/i.test(detail || code);
+}
+
+function isMisleadingReporting(entry = {}){
+  const code = normalizeViolationCode(entry);
+  const detail = `${normalizeTitle(entry)} ${entry.detail || ""}`.trim();
+  const detailMatch = /open.*derogatory|current.*past[-\s]?due|past[-\s]?due.*current/i.test(detail);
+  return detailMatch || /CURRENT_BUT_PASTDUE|MISLEADING/i.test(code);
+}
+
+function evaluateCFPBEligibility(entry = {}, perBureau = {}){
+  const disputeHistory = normalizeDisputeHistory(entry, perBureau);
+  if (!disputeHistory.completed || !(disputeHistory.daysSince >= 30)) return null;
+
+  if (disputeHistory.hasConsumerDispute) {
+    return CFPB_RULES.cfpb_failure_to_correct;
+  }
+
+  if (isUnverifiableViolation(entry)) {
+    return CFPB_RULES.cfpb_unverifiable_information;
+  }
+
+  if (isCrossBureauInaccuracy(entry)) {
+    return CFPB_RULES.cfpb_cross_bureau_inaccuracy;
+  }
+
+  if (isReagingViolation(entry)) {
+    return CFPB_RULES.cfpb_reaging_violation;
+  }
+
+  if (isMisleadingReporting(entry)) {
+    return CFPB_RULES.cfpb_misleading_reporting;
+  }
+
+  return null;
+}
+
 function applyDisputeReasonDefaults(entry = {}){
   if (!entry || typeof entry !== "object") return entry;
   const mapping = DISPUTE_REASON_MAP[normalizeViolationCode(entry)];
@@ -239,6 +446,7 @@ function headlineFromViolations(list = []){
 function mapViolation(entry = {}){
   const normalizedEntry = applyDisputeReasonDefaults(entry);
   const title = normalizeTitle(normalizedEntry);
+  const cfpb = evaluateCFPBEligibility(normalizedEntry, normalizedEntry.per_bureau || normalizedEntry.perBureau);
   return {
     id: normalizedEntry.id || normalizedEntry.code || null,
     code: normalizedEntry.code || null,
@@ -252,6 +460,11 @@ function mapViolation(entry = {}){
     fcraSection: normalizeFcraSection(normalizedEntry),
     recommendedAction: normalizeRecommendedAction(normalizedEntry),
     tradelineKey: normalizedEntry.tradelineKey || null,
+    cfpbEligible: Boolean(cfpb),
+    cfpbReasonCode: cfpb?.cfpb_reason_code || null,
+    cfpbStatutes: cfpb?.cfpb_statutes || null,
+    cfpbSummary: cfpb?.cfpb_summary || null,
+    cfpbRecommendedAction: cfpb?.cfpb_recommended_action || null,
   };
 }
 
@@ -717,7 +930,7 @@ export function prepareNegativeItems(tradelines = [], extras = {}, options = {})
       bureaus: summarizeBureaus(perBureau),
       severity: tl.metrics.maxSeverity,
       headline,
-      violations: deduped.map(mapViolation),
+      violations: deduped.map(violation => mapViolation({ ...violation, per_bureau: perBureau })),
       bureau_details: buildBureauDetails(perBureau),
     });
   });
