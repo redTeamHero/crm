@@ -38,6 +38,7 @@ export type PortalViolation = {
   source?: string | null;
   evidence?: Record<string, unknown> | null;
   tradelineKey?: string | null;
+  instanceKey?: string | null;
 };
 
 export type PortalHeadline = {

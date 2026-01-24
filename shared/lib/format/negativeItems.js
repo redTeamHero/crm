@@ -376,13 +376,14 @@ function dedupeViolations(entries = []){
   const result = [];
   for (const entry of entries){
     if (!entry || typeof entry !== "object") continue;
+    const instanceKey = typeof entry.instanceKey === "string" ? entry.instanceKey : "";
     const code = normalizeViolationCode(entry);
     const bureaus = normalizeBureaus(entry);
     const bureauKey = bureaus.length
       ? bureaus.join(",")
       : entry.bureau || "";
     const detail = (entry.detail || entry.violation || "").toString();
-    const key = `${code}|${bureauKey}|${detail}`;
+    const key = instanceKey || `${code}|${bureauKey}|${detail}`;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push({
@@ -460,6 +461,7 @@ function mapViolation(entry = {}){
     fcraSection: normalizeFcraSection(normalizedEntry),
     recommendedAction: normalizeRecommendedAction(normalizedEntry),
     tradelineKey: normalizedEntry.tradelineKey || null,
+    instanceKey: normalizedEntry.instanceKey || null,
     cfpbEligible: Boolean(cfpb),
     cfpbReasonCode: cfpb?.cfpb_reason_code || null,
     cfpbStatutes: cfpb?.cfpb_statutes || null,
