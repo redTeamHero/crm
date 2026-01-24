@@ -165,6 +165,7 @@ function mapViolation(entry = {}){
     severity: normalizeSeverity(entry.severity),
     bureaus: normalizeBureaus(entry),
     source: entry.source || null,
+    tradelineKey: entry.tradelineKey || null,
   };
 }
 
@@ -586,13 +587,23 @@ export function prepareNegativeItems(tradelines = [], extras = {}){
             : v.bureau
               ? [v.bureau]
               : [bureau],
+          tradelineKey: data.tradelineKey || v.tradelineKey || null,
           source: v.source || "metro2-core",
         });
       });
     }
 
     const existing = Array.isArray(tl.violations) ? tl.violations : [];
-    const merged = [...existing, ...computed];
+    const existingWithKeys = existing.map((entry) => {
+      if (!entry || typeof entry !== "object") return entry;
+      if (entry.tradelineKey) return entry;
+      const bureau = entry.bureau || (Array.isArray(entry.bureaus) ? entry.bureaus[0] : null);
+      if (bureau && perBureau[bureau]?.tradelineKey) {
+        return { ...entry, tradelineKey: perBureau[bureau].tradelineKey };
+      }
+      return entry;
+    });
+    const merged = [...existingWithKeys, ...computed];
     const deduped = dedupeViolations(merged);
     deduped.sort((a, b) => {
       const severityDelta = (b.severity ?? 0) - (a.severity ?? 0);
