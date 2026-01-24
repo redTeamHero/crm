@@ -56,7 +56,14 @@ const workers = new Map();
 const processors = new Map();
 const localEmitter = new EventEmitter();
 
+function normalizeQueueName(name) {
+  return String(name).replace(/:/g, "_");
+}
+
 function ensureQueue(name) {
+  if (name.includes(":")) {
+    throw new Error(`Invalid queue name "${name}". Use "_" or "-" instead of ":"`);
+  }
   if (!queues.has(name) && queueEnabled && connection) {
     const queue = new Queue(name, { connection });
     const scheduler = new QueueScheduler(name, { connection });
@@ -78,16 +85,20 @@ export function getQueueConnectionOptions() {
 }
 
 export function registerJobProcessor(name, handler, options = {}) {
-  processors.set(name, handler);
+  const normalizedName = normalizeQueueName(name);
+  if (normalizedName !== name) {
+    logWarn("QUEUE_NAME_NORMALIZED", `Queue name "${name}" normalized to "${normalizedName}"`);
+  }
+  processors.set(normalizedName, handler);
   if (!queueEnabled || !connection) {
     return;
   }
-  if (workers.has(name)) {
+  if (workers.has(normalizedName)) {
     return;
   }
-  ensureQueue(name);
+  ensureQueue(normalizedName);
   const worker = new Worker(
-    name,
+    normalizedName,
     async (job) => {
       return handler(job.data, job);
     },
@@ -98,25 +109,29 @@ export function registerJobProcessor(name, handler, options = {}) {
   );
   worker.on("failed", (job, err) => {
     logError("QUEUE_JOB_FAILED", "Background job failed", err, {
-      queue: name,
+      queue: normalizedName,
       jobId: job?.id,
       attempts: job?.attemptsMade,
     });
   });
   worker.on("error", (err) => {
-    logError("QUEUE_WORKER_ERROR", "Worker error", err, { queue: name });
+    logError("QUEUE_WORKER_ERROR", "Worker error", err, { queue: normalizedName });
   });
-  workers.set(name, worker);
+  workers.set(normalizedName, worker);
 }
 
 export async function enqueueJob(name, data, options = {}) {
+  const normalizedName = normalizeQueueName(name);
+  if (normalizedName !== name) {
+    logWarn("QUEUE_NAME_NORMALIZED", `Queue name "${name}" normalized to "${normalizedName}"`);
+  }
   const jobId = options.jobId || crypto.randomUUID();
   if (queueEnabled && connection) {
-    const queue = ensureQueue(name);
+    const queue = ensureQueue(normalizedName);
     if (!queue) {
-      throw new Error(`Queue ${name} unavailable`);
+      throw new Error(`Queue ${normalizedName} unavailable`);
     }
-    await queue.add(name, data, {
+    await queue.add(normalizedName, data, {
       jobId,
       attempts: Number.parseInt(options.attempts, 10) || 1,
       removeOnComplete: true,
@@ -126,13 +141,13 @@ export async function enqueueJob(name, data, options = {}) {
     return { id: jobId };
   }
 
-  const processor = processors.get(name);
+  const processor = processors.get(normalizedName);
   if (!processor) {
-    throw new Error(`No processor registered for queue ${name}`);
+    throw new Error(`No processor registered for queue ${normalizedName}`);
   }
   const fakeJob = {
     id: jobId,
-    name,
+    name: normalizedName,
     data,
     attemptsMade: 0,
   };
@@ -143,7 +158,7 @@ export async function enqueueJob(name, data, options = {}) {
     } catch (err) {
       localEmitter.emit(`job:${jobId}:failed`, err);
       logError("QUEUE_FALLBACK_JOB_FAILED", "Job failed in in-process queue", err, {
-        queue: name,
+        queue: normalizedName,
         jobId,
       });
     }
