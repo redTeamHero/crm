@@ -24,6 +24,9 @@ export type PortalViolation = {
   category?: string | null;
   title?: string | null;
   detail?: string | null;
+  disputeReason?: string | null;
+  fcraSection?: string | null;
+  recommendedAction?: string | null;
   severity?: number | null;
   bureaus?: string[];
   bureau?: string | null;

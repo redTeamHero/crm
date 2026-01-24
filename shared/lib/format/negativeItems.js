@@ -91,6 +91,37 @@ function normalizeTitle(entry = {}){
   return typeof raw === "string" ? raw : String(raw ?? "");
 }
 
+function normalizeFcraSection(entry = {}){
+  const raw = entry.fcraSection || entry.fcra_section || entry.fcra || entry.fcra_citation;
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
+function normalizeDisputeReason(entry = {}){
+  const candidates = [
+    entry.dispute_reason,
+    entry.disputeReason,
+    entry.dispute_text,
+    entry.disputeText,
+    entry.explanation,
+    entry.reason,
+  ];
+  for (const candidate of candidates){
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  const detail = typeof entry.detail === "string" ? entry.detail.trim() : "";
+  const title = normalizeTitle(entry).trim();
+  const section = normalizeFcraSection(entry);
+  const base = detail || title;
+  if (base && section) return `${base} This may violate ${section}.`;
+  if (base) return base;
+  return "";
+}
+
+function normalizeRecommendedAction(entry = {}){
+  const raw = entry.recommended_action || entry.recommendedAction || entry.action;
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
 function dedupeViolations(entries = []){
   const seen = new Set();
   const result = [];
@@ -174,6 +205,9 @@ function mapViolation(entry = {}){
     severity: normalizeSeverity(entry.severity),
     bureaus: normalizeBureaus(entry),
     source: entry.source || null,
+    disputeReason: normalizeDisputeReason(entry),
+    fcraSection: normalizeFcraSection(entry),
+    recommendedAction: normalizeRecommendedAction(entry),
     tradelineKey: entry.tradelineKey || null,
   };
 }
