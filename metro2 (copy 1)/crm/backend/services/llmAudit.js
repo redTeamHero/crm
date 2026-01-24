@@ -182,6 +182,14 @@ function normalizeTradelineKeyInput(value) {
   });
 }
 
+function buildViolationInstanceKey(violation) {
+  if (!violation || typeof violation !== "object") return null;
+  const tradelineKey = typeof violation.tradelineKey === "string" ? violation.tradelineKey : "";
+  const ruleId = typeof violation.ruleId === "string" ? violation.ruleId : "";
+  const base = [tradelineKey, ruleId].filter(Boolean).join("|");
+  return base || null;
+}
+
 function extractOutputText(response) {
   if (response?.output_text) return response.output_text;
   if (Array.isArray(response?.output)) {
@@ -246,7 +254,10 @@ export async function auditCanonicalReport(report, { model } = {}) {
   }
 
   return {
-    violations: violations.slice(0, 50),
+    violations: violations.slice(0, 50).map((violation) => ({
+      ...violation,
+      instanceKey: buildViolationInstanceKey(violation),
+    })),
     rawCount: violations.length,
   };
 }

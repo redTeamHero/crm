@@ -2975,6 +2975,7 @@ function attachViolationsToTradelines(tradelines = [], violations = []) {
       evidencePaths: violation.evidencePaths,
       disputeTargets: violation.disputeTargets || [],
       tradelineKey: violation.tradelineKey,
+      instanceKey: violation.instanceKey || null,
     };
     tl.violations.push(entry);
     if (!tl.violations_grouped.LLM) tl.violations_grouped.LLM = [];
@@ -4424,7 +4425,9 @@ app.get("/api/reports/:id/debug", authenticate, requirePermission("admin"), asyn
   const canonicalReport = data.canonical_report || data.canonicalReport || {};
   const violations = Array.isArray(data.llm_violations) ? data.llm_violations : [];
   const tradelineKeys = collectTradelineKeys(canonicalReport);
-  const violationKeys = violations.map((v) => v?.tradelineKey).filter(Boolean);
+  const violationKeys = violations
+    .map((v) => v?.instanceKey || (v?.tradelineKey && v?.ruleId ? `${v.tradelineKey}|${v.ruleId}` : null))
+    .filter(Boolean);
   res.json({
     ok: true,
     reportId,
@@ -4699,7 +4702,9 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       analyzed.status = "analyzed";
 
       const tradelineKeys = collectTradelineKeys(llmResult.canonicalReport);
-      const violationKeys = llmResult.violations.map((v) => v?.tradelineKey).filter(Boolean);
+      const violationKeys = llmResult.violations
+        .map((v) => v?.instanceKey || (v?.tradelineKey && v?.ruleId ? `${v.tradelineKey}|${v.ruleId}` : null))
+        .filter(Boolean);
       console.log("[LLM Audit Raw]", {
         consumerId: consumer.id,
         count: diagnostics.llmAuditRawCount,
