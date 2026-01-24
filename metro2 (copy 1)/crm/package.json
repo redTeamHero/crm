@@ -16,6 +16,7 @@
     "generate:rule-report": "node scripts/generateRuleTestReport.js"
   },
   "dependencies": {
+    "ajv": "^8.17.1",
     "archiver": "^6.0.2",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.61.0",
@@ -30,6 +31,7 @@
     "nanoid": "^5.1.5",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.12",
+    "openai": "^4.104.0",
     "pdfkit": "^0.15.0",
     "pg": "^8.11.5",
     "puppeteer": "^24.17.0",

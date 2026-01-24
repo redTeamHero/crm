@@ -133,6 +133,15 @@ function collectAccountNumbers(perBureau = {}){
   return numbers;
 }
 
+function collectTradelineKeys(perBureau = {}){
+  const keys = new Set();
+  for (const data of Object.values(perBureau)){
+    const key = data?.tradelineKey || data?.tradeline_key;
+    if (key) keys.add(String(key));
+  }
+  return Array.from(keys);
+}
+
 function headlineFromViolations(list = []){
   if (!Array.isArray(list) || !list.length) return null;
   for (const entry of list){
@@ -567,30 +576,33 @@ function buildPersonalInfoItem(personalInfo, mismatches){
   };
 }
 
-export function prepareNegativeItems(tradelines = [], extras = {}){
+export function prepareNegativeItems(tradelines = [], extras = {}, options = {}){
   if (!Array.isArray(tradelines)) return { tradelines: [], items: [] };
+  const includeLegacyRules = Boolean(options.includeLegacyRules);
   const items = [];
   tradelines.forEach((tl, idx) => {
     if (!tl || typeof tl !== "object") return;
     const perBureau = tl.per_bureau || {};
     const computed = [];
 
-    for (const [bureau, data] of Object.entries(perBureau)){
-      if (!data || typeof data !== "object") continue;
-      const violations = validateTradeline(data) || [];
-      violations.forEach(v => {
-        computed.push({
-          ...v,
-          bureau,
-          bureaus: Array.isArray(v.bureaus) && v.bureaus.length
-            ? v.bureaus
-            : v.bureau
-              ? [v.bureau]
-              : [bureau],
-          tradelineKey: data.tradelineKey || v.tradelineKey || null,
-          source: v.source || "metro2-core",
+    if (includeLegacyRules) {
+      for (const [bureau, data] of Object.entries(perBureau)){
+        if (!data || typeof data !== "object") continue;
+        const violations = validateTradeline(data) || [];
+        violations.forEach(v => {
+          computed.push({
+            ...v,
+            bureau,
+            bureaus: Array.isArray(v.bureaus) && v.bureaus.length
+              ? v.bureaus
+              : v.bureau
+                ? [v.bureau]
+                : [bureau],
+            tradelineKey: data.tradelineKey || v.tradelineKey || null,
+            source: v.source || "metro2-core",
+          });
         });
-      });
+      }
     }
 
     const existing = Array.isArray(tl.violations) ? tl.violations : [];
@@ -624,6 +636,7 @@ export function prepareNegativeItems(tradelines = [], extras = {}){
       index: idx,
       creditor: tl.meta?.creditor || "Unknown Creditor",
       account_numbers: collectAccountNumbers(perBureau),
+      tradelineKeys: collectTradelineKeys(perBureau),
       bureaus: summarizeBureaus(perBureau),
       severity: tl.metrics.maxSeverity,
       headline,

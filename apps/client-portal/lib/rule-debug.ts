@@ -183,6 +183,22 @@ function normalizeViolation(
   };
 }
 
+function filterViolationsByTradelineKey(
+  violations: Array<PortalViolation | string>,
+  item: PortalNegativeItem
+): Array<PortalViolation | string> {
+  const tradelineKeys = Array.isArray(item.tradelineKeys)
+    ? item.tradelineKeys.filter((key) => typeof key === 'string' && key.trim().length > 0)
+    : [];
+  if (tradelineKeys.length === 0) {
+    return violations;
+  }
+  return violations.filter((violation) => {
+    if (typeof violation === 'string') return false;
+    return Boolean(violation?.tradelineKey && tradelineKeys.includes(violation.tradelineKey));
+  });
+}
+
 export function buildRuleGroups(items: PortalNegativeItem[] | undefined | null): BureauRuleGroup[] {
   const groups = new Map<string, Map<string, BureauRuleCard>>();
   const encounteredBureaus = new Set<string>();
@@ -195,7 +211,8 @@ export function buildRuleGroups(items: PortalNegativeItem[] | undefined | null):
     for (const item of items) {
       if (!item || typeof item !== 'object') continue;
       const violations = Array.isArray(item.violations) ? item.violations : [];
-      for (const violationEntry of violations) {
+      const filteredViolations = filterViolationsByTradelineKey(violations, item);
+      for (const violationEntry of filteredViolations) {
         if (!violationEntry) continue;
         const normalizedViolation = normalizeViolation(violationEntry, item);
         const bureaus = normalizedViolation.bureaus.length

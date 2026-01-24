@@ -14,7 +14,6 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { PassThrough } from "stream";
 import { JSDOM } from "jsdom";
-import parseCreditReportHTML from "./parser.js";
 
 
 import { logInfo, logError, logWarn } from "./logger.js";
@@ -34,7 +33,6 @@ import {
 } from "./tradelineBuckets.js";
 import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "../../shared/lib/format/negativeItems.js";
-import { mapAuditedViolations } from "./pullTradelineData.js";
 import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID, resolveTenantId } from "./tenantLimits.js";
 import {
   listTeamRoles,
@@ -54,6 +52,12 @@ import { withTenantContext, getCurrentTenantId } from "./tenantContext.js";
 import { spawnPythonProcess } from "./pythonEnv.js";
 import { enqueueJob, registerJobProcessor, isQueueEnabled } from "./jobQueue.js";
 import { buildRuleDebugReport } from "./ruleDebugGenerator.js";
+import {
+  addTradelineKeysToCanonicalReport,
+  auditCanonicalReport,
+  collectTradelineKeys,
+} from "./backend/services/llmAudit.js";
+import { CANONICAL_REPORT_SCHEMA } from "./backend/services/llmSchemas.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
@@ -547,7 +551,7 @@ async function buildClientPortalPayload(consumer){
           personalInfoMismatches:
             latestReport.data.personalInfoMismatches ||
             latestReport.data.personal_info_mismatches,
-        });
+        }, { includeLegacyRules: LEGACY_ANALYZERS_ENABLED });
         negativeItems = items;
       } catch (err) {
         logError('NEGATIVE_ITEM_ERROR', 'Failed to prepare portal negative items', err, { consumerId: consumer.id, reportId: latestReport.id });
@@ -2526,145 +2530,10 @@ async function runPythonAnalyzer({ buffer, filename }){
 
 const OPENAI_API_URL = process.env.OPENAI_API_URL || "https://api.openai.com/v1/responses";
 const OPENAI_PARSE_MODEL = process.env.OPENAI_PARSE_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
-const OPENAI_AUDIT_MODEL = process.env.OPENAI_AUDIT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
 const OPENAI_MAX_CHUNK_CHARS = Number.parseInt(process.env.OPENAI_REPORT_CHUNK_CHARS || "12000", 10);
 const OPENAI_MAX_PARSE_RETRIES = 1;
-const OPENAI_MAX_AUDIT_RETRIES = 1;
+const LEGACY_ANALYZERS_ENABLED = process.env.ENABLE_LEGACY_ANALYZERS === "true";
 
-const CANONICAL_REPORT_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["reportMeta", "identity", "tradelines"],
-  properties: {
-    reportMeta: {
-      type: "object",
-      additionalProperties: false,
-      required: ["provider", "reportDate"],
-      properties: {
-        provider: { type: "string" },
-        reportDate: { type: ["string", "null"] },
-      },
-    },
-    identity: {
-      type: "object",
-      additionalProperties: false,
-      required: ["TUC", "EXP", "EQF"],
-      properties: {
-        TUC: { $ref: "#/$defs/identityBlock" },
-        EXP: { $ref: "#/$defs/identityBlock" },
-        EQF: { $ref: "#/$defs/identityBlock" },
-      },
-    },
-    tradelines: {
-      type: "array",
-      items: { $ref: "#/$defs/tradelineGroup" },
-    },
-  },
-  $defs: {
-    identityBlock: {
-      type: "object",
-      additionalProperties: false,
-      required: ["name", "dob", "addresses"],
-      properties: {
-        name: { type: ["string", "null"] },
-        dob: { type: ["string", "null"] },
-        addresses: { type: "array", items: { type: "string" } },
-      },
-    },
-    tradelineGroup: {
-      type: "object",
-      additionalProperties: false,
-      required: ["furnisherName", "byBureau"],
-      properties: {
-        furnisherName: { type: "string" },
-        byBureau: {
-          type: "object",
-          additionalProperties: false,
-          required: ["TUC", "EXP", "EQF"],
-          properties: {
-            TUC: { $ref: "#/$defs/tradeline" },
-            EXP: { $ref: "#/$defs/tradeline" },
-            EQF: { $ref: "#/$defs/tradeline" },
-          },
-        },
-      },
-    },
-    tradeline: {
-      type: "object",
-      additionalProperties: false,
-      required: [
-        "present",
-        "accountNumberMasked",
-        "accountStatus",
-        "paymentStatus",
-        "balance",
-        "pastDue",
-        "creditLimit",
-        "highCredit",
-        "dateOpened",
-        "dateClosed",
-        "lastReported",
-        "dateLastPayment",
-        "comments",
-      ],
-      properties: {
-        present: { type: "boolean" },
-        accountNumberMasked: { type: ["string", "null"] },
-        accountStatus: { type: ["string", "null"] },
-        paymentStatus: { type: ["string", "null"] },
-        balance: { type: ["number", "null"] },
-        pastDue: { type: ["number", "null"] },
-        creditLimit: { type: ["number", "null"] },
-        highCredit: { type: ["number", "null"] },
-        dateOpened: { type: ["string", "null"] },
-        dateClosed: { type: ["string", "null"] },
-        lastReported: { type: ["string", "null"] },
-        dateLastPayment: { type: ["string", "null"] },
-        comments: { type: ["string", "null"] },
-      },
-    },
-  },
-};
-
-const VIOLATIONS_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    violations: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          ruleId: { type: "string" },
-          severity: { type: "string", enum: ["low", "medium", "high"] },
-          bureau: { type: "string", enum: ["TUC", "EXP", "EQF", "CROSS_BUREAU"] },
-          furnisherName: { type: "string" },
-          accountNumberMasked: { type: ["string", "null"] },
-          category: { type: "string", enum: ["metro2_integrity", "fcra_mapping", "fdcpa_mapping", "grouping_warning"] },
-          evidencePaths: { type: "array", items: { type: "string" } },
-          explanation: { type: "string" },
-          disputeTargets: {
-            type: "array",
-            items: { type: "string", enum: ["CRA", "FURNISHER", "COLLECTOR"] },
-          },
-        },
-        required: [
-          "ruleId",
-          "severity",
-          "bureau",
-          "furnisherName",
-          "accountNumberMasked",
-          "category",
-          "evidencePaths",
-          "explanation",
-          "disputeTargets",
-        ],
-      },
-    },
-  },
-  required: ["violations"],
-};
 
 const PARSE_SYSTEM_PROMPT = [
   "You are a data extraction engine.",
@@ -2683,28 +2552,6 @@ const PARSE_DEVELOPER_PROMPT = [
   "Do not invent dates or amounts.",
 ].join(" ");
 
-const AUDIT_SYSTEM_PROMPT = [
-  "You are a compliance/audit engine.",
-  "Only emit violations if evidence exists in the provided JSON.",
-  "If prerequisites are missing, do not emit a violation.",
-  "Do not compare missing values.",
-].join(" ");
-
-const AUDIT_DEVELOPER_PROMPT = [
-  "Rule catalog (emit ruleId values exactly):",
-  "- OPEN_DATE_AFTER_CLOSE: dateOpened after dateClosed for same bureau entry.",
-  "- PAID_BUT_BALANCE: accountStatus indicates paid/closed but balance > 0.",
-  "- HIGH_CREDIT_GT_LIMIT: highCredit > creditLimit when both present.",
-  "- CURRENT_BUT_PAST_DUE: accountStatus/paymentStatus indicate current but pastDue > 0.",
-  "- LATE_STATUS_NO_PASTDUE: paymentStatus indicates late/charge-off but pastDue is 0 or null.",
-  "- ZERO_BALANCE_BUT_PASTDUE: balance is 0 but pastDue > 0.",
-  "- CHARGEOFF_OR_COLLECTION_MISSING_DOFD: accountStatus indicates charge-off/collection and dateOpened present but dateLastPayment and dateClosed both null.",
-  "- BALANCE_MISMATCH_ACROSS_BUREAUS: same furnisher/account has differing balances across bureaus.",
-  "- POSSIBLE_MISMATCHED_ACCOUNTS: furnisherName matches but accountNumberMasked differs across bureaus.",
-  "- LIMIT_MISSING_FOR_REVOLVING: paymentStatus/comments indicate revolving/credit card and both creditLimit/highCredit are null.",
-  "Cross-bureau comparisons require at least 2 bureaus with present:true and non-null values.",
-  "evidencePaths must reference exact JSON paths in CanonicalReport.",
-].join(" ");
 
 const NUMBER_FIELDS = ["balance", "pastDue", "creditLimit", "highCredit"];
 const DATE_FIELDS = ["dateOpened", "dateClosed", "lastReported", "dateLastPayment"];
@@ -2906,43 +2753,6 @@ function isValidDate(value) {
   return !Number.isNaN(parsed);
 }
 
-function validateViolations(violations = [], report = {}) {
-  const errors = [];
-  if (!Array.isArray(violations)) {
-    return ["violations must be an array."];
-  }
-  violations.forEach((violation, idx) => {
-    if (!violation || typeof violation !== "object") {
-      errors.push(`violations[${idx}] must be an object.`);
-      return;
-    }
-    if (!violation.ruleId) errors.push(`violations[${idx}].ruleId required.`);
-    if (!violation.furnisherName) errors.push(`violations[${idx}].furnisherName required.`);
-    if (!Array.isArray(violation.evidencePaths)) {
-      errors.push(`violations[${idx}].evidencePaths must be array.`);
-    } else {
-      violation.evidencePaths.forEach(path => {
-        if (!pathExists(report, path)) {
-          errors.push(`violations[${idx}].evidencePaths contains missing path: ${path}`);
-        }
-      });
-    }
-  });
-  return errors;
-}
-
-function pathExists(root, path) {
-  const parts = String(path || "").replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean);
-  let cursor = root;
-  for (const part of parts) {
-    if (cursor && Object.prototype.hasOwnProperty.call(cursor, part)) {
-      cursor = cursor[part];
-    } else {
-      return false;
-    }
-  }
-  return true;
-}
 
 async function callOpenAiStructured({ schema, schemaName, system, developer, user, model }) {
   const apiKey = getOpenAiKey();
@@ -3067,35 +2877,6 @@ async function parseCanonicalReportWithChunking(text, sourceLabel) {
   return mergeCanonicalReports(reports);
 }
 
-async function auditCanonicalReport(report) {
-  const reportJson = JSON.stringify(report);
-  let attempts = 0;
-  let violations = [];
-  let errors = [];
-  while (attempts <= OPENAI_MAX_AUDIT_RETRIES) {
-    attempts += 1;
-    const auditResponse = await callOpenAiStructured({
-      schema: VIOLATIONS_SCHEMA,
-      schemaName: "ViolationList",
-      system: AUDIT_SYSTEM_PROMPT,
-      developer: AUDIT_DEVELOPER_PROMPT + (errors.length ? ` Previous validation errors: ${errors.join("; ")}` : ""),
-      user: reportJson,
-      model: OPENAI_AUDIT_MODEL,
-    });
-    violations = auditResponse?.violations || [];
-    if (!Array.isArray(violations)) {
-      errors = ["Violation response is not an array."];
-      continue;
-    }
-    violations = violations.filter(v => v && typeof v === "object");
-    errors = validateViolations(violations, report);
-    if (!errors.length) break;
-  }
-  if (errors.length) {
-    throw new Error(`Violation validation failed: ${errors.join("; ")}`);
-  }
-  return violations;
-}
 
 function mapCanonicalIdentityToPersonalInfo(identity = {}) {
   const mapBlock = block => {
@@ -3140,11 +2921,16 @@ function canonicalToTradelines(report = {}) {
 
 function mapCanonicalBureau(entry = {}, bureauLabel = "") {
   if (!entry || !entry.present) {
-    return { bureau: bureauLabel, present: false };
+    return {
+      bureau: bureauLabel,
+      present: false,
+      tradelineKey: entry?.tradelineKey || null,
+    };
   }
   return {
     bureau: bureauLabel,
     present: true,
+    tradelineKey: entry.tradelineKey || null,
     account_number: entry.accountNumberMasked || null,
     account_status: entry.accountStatus || null,
     payment_status: entry.paymentStatus || null,
@@ -3161,49 +2947,23 @@ function mapCanonicalBureau(entry = {}, bureauLabel = "") {
 }
 
 function attachViolationsToTradelines(tradelines = [], violations = []) {
-  const map = new Map();
-  const nameMap = new Map();
+  const keyToIndex = new Map();
   tradelines.forEach((tl, idx) => {
-    const nameKey = normalizeCreditorName(tl?.meta?.creditor || "");
-    if (nameKey) {
-      const existing = nameMap.get(nameKey);
-      if (existing) {
-        existing.push(idx);
-      } else {
-        nameMap.set(nameKey, [idx]);
+    const perBureau = tl?.per_bureau || {};
+    Object.values(perBureau || {}).forEach((entry) => {
+      const key = entry?.tradelineKey;
+      if (typeof key === "string" && key.trim()) {
+        keyToIndex.set(key, idx);
       }
-    }
-    const accountNumbers = collectAccountNumbers(tl)
-      .map(normalizeAccountNumber)
-      .filter(Boolean);
-    map.set(`${nameKey}|${accountNumbers.join("|")}`, idx);
-    if (accountNumbers.length) {
-      accountNumbers.forEach(num => {
-        map.set(`${nameKey}|${num}`, idx);
-        if (num.length >= 4) {
-          map.set(`${nameKey}|${num.slice(-4)}`, idx);
-        }
-      });
-    }
+    });
   });
 
-  violations.forEach(violation => {
-    const nameKey = normalizeCreditorName(violation.furnisherName || "");
-    const acct = normalizeAccountNumber(violation.accountNumberMasked || "");
-    const keyCandidates = [
-      `${nameKey}|${acct}`,
-      `${nameKey}|${acct.slice(-4)}`,
-      `${nameKey}|`,
-    ];
-    let targetIndex = keyCandidates.map(k => map.get(k)).find(idx => idx !== undefined);
-    if (targetIndex === undefined && nameKey) {
-      const candidates = nameMap.get(nameKey);
-      if (candidates && candidates.length === 1) {
-        targetIndex = candidates[0];
-      }
-    }
-    if (targetIndex === undefined) return;
+  violations.forEach((violation) => {
+    const key = violation?.tradelineKey;
+    if (!key || !keyToIndex.has(key)) return;
+    const targetIndex = keyToIndex.get(key);
     const tl = tradelines[targetIndex];
+    if (!tl) return;
     tl.violations = tl.violations || [];
     tl.violations_grouped = tl.violations_grouped || {};
     const entry = {
@@ -3214,6 +2974,7 @@ function attachViolationsToTradelines(tradelines = [], violations = []) {
       bureau: violation.bureau,
       evidencePaths: violation.evidencePaths,
       disputeTargets: violation.disputeTargets || [],
+      tradelineKey: violation.tradelineKey,
     };
     tl.violations.push(entry);
     if (!tl.violations_grouped.LLM) tl.violations_grouped.LLM = [];
@@ -3232,12 +2993,15 @@ async function runLLMAnalyzer({ buffer, filename }) {
     canonicalReport = await parseCanonicalReportWithChunking(text, source);
   }
   canonicalReport = normalizeCanonicalReport(canonicalReport);
-  const violations = await auditCanonicalReport(canonicalReport);
+  canonicalReport = addTradelineKeysToCanonicalReport(canonicalReport);
+  const auditResult = await auditCanonicalReport(canonicalReport);
+  const violations = auditResult.violations || [];
   const tradelines = canonicalToTradelines(canonicalReport);
   attachViolationsToTradelines(tradelines, violations);
   return {
     canonicalReport,
     violations,
+    auditRawCount: auditResult.rawCount ?? violations.length,
     tradelines,
     personalInfo: mapCanonicalIdentityToPersonalInfo(canonicalReport.identity),
   };
@@ -4644,6 +4408,36 @@ app.get("/api/reports/summary", authenticate, requirePermission("reports"), asyn
 
 });
 
+app.get("/api/reports/:id/debug", authenticate, requirePermission("admin"), async (req, res) => {
+  const reportId = String(req.params.id || "").trim();
+  if (!reportId) {
+    return res.status(400).json({ ok: false, error: "reportId required" });
+  }
+  const db = await loadDB();
+  const reportEntry = db.consumers
+    .flatMap((consumer) => (Array.isArray(consumer.reports) ? consumer.reports : []))
+    .find((report) => report?.id === reportId);
+  if (!reportEntry) {
+    return res.status(404).json({ ok: false, error: "Report not found" });
+  }
+  const data = reportEntry.data || {};
+  const canonicalReport = data.canonical_report || data.canonicalReport || {};
+  const violations = Array.isArray(data.llm_violations) ? data.llm_violations : [];
+  const tradelineKeys = collectTradelineKeys(canonicalReport);
+  const violationKeys = violations.map((v) => v?.tradelineKey).filter(Boolean);
+  res.json({
+    ok: true,
+    reportId,
+    tradelineKeys,
+    violationKeys,
+    counts: {
+      tradelines: tradelineKeys.length,
+      violations: violations.length,
+      violationKeys: violationKeys.length,
+    },
+  });
+});
+
 // =================== Messages ===================
 app.get("/api/messages", async (_req, res) => {
   const db = await loadDB();
@@ -4875,59 +4669,19 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
 
   const errors = [];
   const diagnostics = {
-    jsTradelineCount: 0,
-    pythonViolationCount: 0,
-    matchedTradelineCount: 0,
     llmTradelineCount: 0,
     llmViolationCount: 0,
     llmParseSource: null,
     llmError: null,
-    basicRuleViolations: 0,
+    llmAuditRawCount: 0,
+    legacyAnalyzersEnabled: LEGACY_ANALYZERS_ENABLED,
   };
   try{
     const isPdf = req.file.mimetype === "application/pdf" || /\.pdf$/i.test(req.file.originalname || "");
     const htmlText = isPdf ? "" : req.file.buffer.toString("utf-8");
-    let analyzed = { tradelines: [] };
-
-    if (!isPdf) {
-      try {
-        const dom = new JSDOM(htmlText);
-        const jsResult = parseCreditReportHTML(dom.window.document);
-        analyzed.tradelines = jsResult.tradelines || [];
-        if (Array.isArray(jsResult.inquiries)) {
-          analyzed.inquiries = jsResult.inquiries;
-        }
-        if (jsResult.inquiry_summary && typeof jsResult.inquiry_summary === "object") {
-          analyzed.inquiry_summary = jsResult.inquiry_summary;
-        }
-        if (Array.isArray(jsResult.inquiry_details)) {
-          analyzed.inquiry_details = jsResult.inquiry_details;
-        }
-        if (jsResult.credit_scores && typeof jsResult.credit_scores === "object") {
-          analyzed.credit_scores = jsResult.credit_scores;
-        }
-        if (jsResult.personalInfo && typeof jsResult.personalInfo === "object") {
-          analyzed.personalInfo = jsResult.personalInfo;
-        }
-        if (jsResult.personal_information && typeof jsResult.personal_information === "object") {
-          analyzed.personal_information = analyzed.personal_information || jsResult.personal_information;
-        }
-        diagnostics.jsTradelineCount = analyzed.tradelines.length;
-      } catch (e) {
-        logError("JS_PARSER_FAILED", "JS parser failed", e);
-        errors.push({ step: "js_parse", message: e.message, details: e.stack || String(e) });
-      }
-    }
-
-    const jsTradelinesBefore = analyzed.tradelines?.length || 0;
-    let pythonStdout = "";
-    let pythonStderr = "";
-    let matchSummary = { matches: [], unmatchedJs: [], unmatchedPy: [] };
-    let matchDetails = [];
-    let pythonTradelines = [];
+    let analyzed = { tradelines: [], status: "analyzing" };
     let llmResult = null;
 
-    let llmError = null;
     try {
       llmResult = await runLLMAnalyzer({
         buffer: req.file.buffer,
@@ -4935,146 +4689,38 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       });
       diagnostics.llmTradelineCount = llmResult.tradelines.length;
       diagnostics.llmViolationCount = llmResult.violations.length;
+      diagnostics.llmAuditRawCount = llmResult.auditRawCount ?? llmResult.violations.length;
       diagnostics.llmParseSource = llmResult?.canonicalReport?.reportMeta?.provider || null;
       analyzed.tradelines = llmResult.tradelines;
       analyzed.canonical_report = llmResult.canonicalReport;
       analyzed.llm_violations = llmResult.violations;
-      analyzed.personalInfo = analyzed.personalInfo || llmResult.personalInfo;
+      analyzed.violations = llmResult.violations;
+      analyzed.personalInfo = llmResult.personalInfo;
+      analyzed.status = "analyzed";
+
+      const tradelineKeys = collectTradelineKeys(llmResult.canonicalReport);
+      const violationKeys = llmResult.violations.map((v) => v?.tradelineKey).filter(Boolean);
+      console.log("[LLM Audit Raw]", {
+        consumerId: consumer.id,
+        count: diagnostics.llmAuditRawCount,
+      });
+      console.log("[LLM Audit Saved]", {
+        consumerId: consumer.id,
+        count: diagnostics.llmViolationCount,
+      });
+      console.log("[LLM Audit Keys]", {
+        tradelineKeys: tradelineKeys.slice(0, 5),
+        violationKeys: violationKeys.slice(0, 5),
+      });
     } catch (e) {
-      llmError = e;
       logError("LLM_ANALYZER_ERROR", "LLM analyzer failed", e);
+      diagnostics.llmError = e.message || String(e);
+      analyzed.status = "analyzer_failed";
+      errors.push({ step: "llm_audit", message: e.message, details: e.stack || String(e) });
     }
 
-    if (!llmResult) {
-      try {
-        const pyResult = await runPythonAnalyzer({
-          buffer: req.file.buffer,
-          filename: req.file.originalname,
-        });
-        pythonStdout = pyResult?.stdout || "";
-        pythonStderr = pyResult?.stderr || "";
-        const py = pyResult?.data || {};
-        const pyPersonalInfo = mapPythonPersonalInfo(py?.personal_info || py?.personal_information);
-        const pythonPersonalMismatches = Array.isArray(py?.personal_mismatches) ? py.personal_mismatches : [];
-        const pythonInquiryViolations = Array.isArray(py?.inquiry_violations) ? py.inquiry_violations : [];
-        let convertedPyTradelines = Array.isArray(py?.tradelines) ? py.tradelines : [];
-        if (!convertedPyTradelines.length && Array.isArray(py?.account_history)) {
-          try {
-            convertedPyTradelines = mapAuditedViolations(py);
-          } catch (err) {
-            logError("PYTHON_TRADELINE_CONVERT_FAILED", "Failed to normalize Python account history", err);
-            convertedPyTradelines = [];
-          }
-        }
-
-        pythonTradelines = convertedPyTradelines;
-        diagnostics.pythonViolationCount = pythonTradelines.reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
-          + pythonPersonalMismatches.length
-          + pythonInquiryViolations.length;
-
-        if (!Array.isArray(analyzed.personal_mismatches)) {
-          analyzed.personal_mismatches = pythonPersonalMismatches;
-        }
-        if (!Array.isArray(analyzed.inquiry_violations)) {
-          analyzed.inquiry_violations = pythonInquiryViolations;
-        }
-
-        if (!analyzed.tradelines?.length && pythonTradelines.length) {
-          analyzed.tradelines = pythonTradelines.map(tl => ({ ...tl, source: "python_only" }));
-          matchSummary = {
-            matches: [],
-            unmatchedJs: [],
-            unmatchedPy: pythonTradelines.map((tl, idx) => ({
-              index: idx,
-              creditor: tl?.meta?.creditor || "",
-              accountNumbers: collectAccountNumbers(tl),
-              keys: Array.from(buildTradelineKeySet(tl)),
-            })),
-          };
-        } else if (pythonTradelines.length) {
-          matchSummary = matchTradelines(analyzed.tradelines || [], pythonTradelines);
-          diagnostics.matchedTradelineCount = matchSummary.matches.length;
-          const matchMap = new Map(matchSummary.matches.map(m => [m.pyIndex, m]));
-          matchDetails = [];
-
-          pythonTradelines.forEach((tl, pyIndex) => {
-            const mapping = matchMap.get(pyIndex);
-            if (mapping) {
-              const base = analyzed.tradelines[mapping.jsIndex] || (analyzed.tradelines[mapping.jsIndex] = {});
-              const beforeCount = (base.violations || []).length;
-              base.meta = deepMerge(base.meta, tl.meta);
-              base.per_bureau = deepMerge(base.per_bureau, tl.per_bureau);
-              if (tl.metrics) {
-                base.metrics = deepMerge(base.metrics || {}, tl.metrics);
-              }
-              base.violations = [
-                ...(base.violations || []),
-                ...(tl.violations || []),
-              ];
-              base.violations_grouped = deepMerge(
-                base.violations_grouped || {},
-                tl.violations_grouped || {}
-              );
-              const afterCount = (base.violations || []).length;
-              matchDetails.push({
-                jsIndex: mapping.jsIndex,
-                pyIndex,
-                key: mapping.key,
-                strategy: mapping.strategy,
-                creditor: base?.meta?.creditor || tl?.meta?.creditor || "",
-                addedViolations: Math.max(0, afterCount - beforeCount),
-                totalViolations: afterCount,
-              });
-            } else {
-              const clone = JSON.parse(JSON.stringify(tl));
-              clone.source = "python_only";
-              analyzed.tradelines.push(clone);
-            }
-          });
-        }
-
-        diagnostics.matchedTradelineCount = diagnostics.matchedTradelineCount || 0;
-
-        const addedViolations = matchDetails.reduce((sum, item) => sum + (item.addedViolations || 0), 0);
-        console.log("[Match Statistics]", {
-          consumerId: consumer.id,
-          jsTradelines: jsTradelinesBefore,
-          pythonTradelines: pythonTradelines.length,
-          matched: diagnostics.matchedTradelineCount,
-          unmatchedJs: matchSummary.unmatchedJs.length,
-          unmatchedPython: matchSummary.unmatchedPy.length,
-          addedViolations,
-        });
-        if (matchDetails.length) {
-          console.log("[Match Statistics] Details", matchDetails);
-        }
-        if (matchSummary.unmatchedJs.length) {
-          console.log("[Unmatched Keys] JS sample", matchSummary.unmatchedJs.slice(0, 3));
-        }
-        if (matchSummary.unmatchedPy.length) {
-          console.log("[Unmatched Keys] Python sample", matchSummary.unmatchedPy.slice(0, 3));
-        }
-
-        if (!analyzed.personalInfo && pyPersonalInfo) {
-          analyzed.personalInfo = pyPersonalInfo;
-        }
-      } catch (e) {
-        logError("PYTHON_ANALYZER_ERROR", "Python analyzer failed", e);
-        errors.push({ step: "python_analyzer", message: e.message, details: e.stack || String(e) });
-      }
-      if (llmError) {
-        diagnostics.llmError = llmError.message || String(llmError);
-      }
-    } else if (llmError) {
-      diagnostics.llmError = llmError.message || String(llmError);
-    }
-
-    try {
-      const touched = runBasicRuleAudit(analyzed);
-      diagnostics.basicRuleViolations = touched?.size || 0;
-    } catch(e){
-      logError("RULE_AUDIT_ERROR", "Basic rule audit failed", e);
-      errors.push({ step: "rule_audit", message: e.message, details: e.stack || String(e) });
+    if (!llmResult && LEGACY_ANALYZERS_ENABLED) {
+      logWarn("LEGACY_ANALYZERS_SKIPPED", "LLM audit failed; legacy analyzers are disabled by default.");
     }
 
     if (!isPdf) {
@@ -5088,13 +4734,6 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
         logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
         errors.push({ step: "score_extract", message: e.message, details: e.stack || String(e) });
       }
-    }
-
-    if (pythonStdout.trim()) {
-      console.log("[Python Analyzer stdout]\n" + pythonStdout.trim());
-    }
-    if (pythonStderr.trim()) {
-      console.log("[Python Analyzer stderr]\n" + pythonStderr.trim());
     }
 
     // compare bureau-reported personal info against consumer record
@@ -5129,7 +4768,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
         inquirySummary: analyzed.inquiry_summary,
         personalInfo: analyzed.personalInfo || analyzed.personal_information || analyzed.personal_info,
         personalInfoMismatches: analyzed.personalInfoMismatches,
-      });
+      }, { includeLegacyRules: LEGACY_ANALYZERS_ENABLED });
       analyzed.negative_items = items;
     } catch (e) {
       logError("NEGATIVE_ITEM_ERROR", "Failed to prepare negative items", e);
@@ -5153,6 +4792,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     });
     consumer.reports.unshift({
       id: rid,
+      status: analyzed.status || "analyzed",
       uploadedAt: new Date().toISOString(),
       filename: req.file.originalname,
       size: req.file.size,
@@ -5178,8 +4818,6 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       reportId: rid,
       tradelines: analyzed.tradelines?.length || 0,
       totalViolations,
-      pythonViolations: diagnostics.pythonViolationCount,
-      basicRuleTradelines: diagnostics.basicRuleViolations,
       errors: errors.length,
     });
     if (auditFailed) {
@@ -5208,12 +4846,12 @@ app.get("/api/consumers/:id/report/:rid", async (req,res)=>{
   if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
   if (!Array.isArray(r.data?.negative_items) && Array.isArray(r.data?.tradelines)) {
     try {
-      const { items } = prepareNegativeItems(r.data.tradelines, {
-        inquiries: r.data.inquiries,
-        inquirySummary: r.data.inquiry_summary,
-        personalInfo: r.data.personalInfo || r.data.personal_information || r.data.personal_info,
-        personalInfoMismatches: r.data.personalInfoMismatches || r.data.personal_info_mismatches,
-      });
+    const { items } = prepareNegativeItems(r.data.tradelines, {
+      inquiries: r.data.inquiries,
+      inquirySummary: r.data.inquiry_summary,
+      personalInfo: r.data.personalInfo || r.data.personal_information || r.data.personal_info,
+      personalInfoMismatches: r.data.personalInfoMismatches || r.data.personal_info_mismatches,
+    }, { includeLegacyRules: LEGACY_ANALYZERS_ENABLED });
       r.data.negative_items = items;
     } catch (e) {
       logError("NEGATIVE_ITEM_ERROR", "Failed to backfill negative items on fetch", e, { consumerId: c.id, reportId: r.id });
@@ -5265,14 +4903,16 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
       }
     });
   }
-  runBasicRuleAudit(r.data);
+  if (LEGACY_ANALYZERS_ENABLED) {
+    runBasicRuleAudit(r.data);
+  }
   try {
     const { items } = prepareNegativeItems(r.data.tradelines || [], {
       inquiries: r.data.inquiries,
       inquirySummary: r.data.inquiry_summary,
       personalInfo: r.data.personalInfo || r.data.personal_information || r.data.personal_info,
       personalInfoMismatches: r.data.personalInfoMismatches || r.data.personal_info_mismatches,
-    });
+    }, { includeLegacyRules: LEGACY_ANALYZERS_ENABLED });
     r.data.negative_items = items;
   } catch (e) {
     logError("NEGATIVE_ITEM_ERROR", "Failed to refresh negative items after edit", e, { consumerId: c.id, reportId: r.id });

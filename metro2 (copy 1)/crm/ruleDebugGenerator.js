@@ -261,7 +261,7 @@ export function buildRuleDebugReport({ startIndex = 0, includeNegativeItems = tr
   const tradelines = generateRuleDebugTradelines({ startIndex });
   let negativeItems = [];
   if (includeNegativeItems) {
-    const { items } = prepareNegativeItems(tradelines);
+    const { items } = prepareNegativeItems(tradelines, {}, { includeLegacyRules: true });
     negativeItems = items;
   }
   return {
