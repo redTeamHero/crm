@@ -4213,6 +4213,11 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       const py = pyResult?.data || {};
       const pyPersonalInfo = mapPythonPersonalInfo(py?.personal_info || py?.personal_information);
       const pythonPersonalMismatches = Array.isArray(py?.personal_mismatches) ? py.personal_mismatches : [];
+      const pythonPersonalViolations = Array.isArray(py?.personal_violations)
+        ? py.personal_violations
+        : Array.isArray(py?.personal_info_violations)
+          ? py.personal_info_violations
+          : [];
       const pythonInquiryViolations = Array.isArray(py?.inquiry_violations) ? py.inquiry_violations : [];
       let convertedPyTradelines = Array.isArray(py?.tradelines) ? py.tradelines : [];
       if (!convertedPyTradelines.length && Array.isArray(py?.account_history)) {
@@ -4227,13 +4232,27 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       pythonTradelines = convertedPyTradelines;
       diagnostics.pythonViolationCount = pythonTradelines.reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
         + pythonPersonalMismatches.length
+        + pythonPersonalViolations.length
         + pythonInquiryViolations.length;
 
       if (!Array.isArray(analyzed.personal_mismatches)) {
-        analyzed.personal_mismatches = pythonPersonalMismatches;
+        analyzed.personal_mismatches = [];
+      }
+      if (!Array.isArray(analyzed.personal_violations)) {
+        analyzed.personal_violations = [];
       }
       if (!Array.isArray(analyzed.inquiry_violations)) {
-        analyzed.inquiry_violations = pythonInquiryViolations;
+        analyzed.inquiry_violations = [];
+      }
+
+      if (pythonPersonalMismatches.length) {
+        analyzed.personal_mismatches = analyzed.personal_mismatches.concat(pythonPersonalMismatches);
+      }
+      if (pythonPersonalViolations.length) {
+        analyzed.personal_violations = analyzed.personal_violations.concat(pythonPersonalViolations);
+      }
+      if (pythonInquiryViolations.length) {
+        analyzed.inquiry_violations = analyzed.inquiry_violations.concat(pythonInquiryViolations);
       }
 
       if (!analyzed.tradelines?.length && pythonTradelines.length) {
@@ -4422,6 +4441,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     });
     const totalViolations = (analyzed.tradelines || []).reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
       + (analyzed.personal_mismatches?.length || 0)
+      + (analyzed.personal_violations?.length || 0)
       + (analyzed.inquiry_violations?.length || 0);
     const auditFailed = errors.length > 0;
     console.log(auditFailed ? "[Audit Failed]" : "[Audit Success]", {
