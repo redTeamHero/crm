@@ -2627,26 +2627,43 @@ const CANONICAL_REPORT_SCHEMA = {
 };
 
 const VIOLATIONS_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    additionalProperties: false,
-    required: ["ruleId", "severity", "bureau", "furnisherName", "evidencePaths", "explanation"],
-    properties: {
-      ruleId: { type: "string" },
-      severity: { type: "string", enum: ["low", "medium", "high"] },
-      bureau: { type: "string", enum: ["TUC", "EXP", "EQF", "CROSS_BUREAU"] },
-      furnisherName: { type: "string" },
-      accountNumberMasked: { type: ["string", "null"] },
-      category: { type: "string", enum: ["metro2_integrity", "fcra_mapping", "fdcpa_mapping", "grouping_warning"] },
-      evidencePaths: { type: "array", items: { type: "string" } },
-      explanation: { type: "string" },
-      disputeTargets: {
-        type: "array",
-        items: { type: "string", enum: ["CRA", "FURNISHER", "COLLECTOR"] },
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    violations: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          ruleId: { type: "string" },
+          severity: { type: "string", enum: ["low", "medium", "high"] },
+          bureau: { type: "string", enum: ["TUC", "EXP", "EQF", "CROSS_BUREAU"] },
+          furnisherName: { type: "string" },
+          accountNumberMasked: { type: ["string", "null"] },
+          category: { type: "string", enum: ["metro2_integrity", "fcra_mapping", "fdcpa_mapping", "grouping_warning"] },
+          evidencePaths: { type: "array", items: { type: "string" } },
+          explanation: { type: "string" },
+          disputeTargets: {
+            type: "array",
+            items: { type: "string", enum: ["CRA", "FURNISHER", "COLLECTOR"] },
+          },
+        },
+        required: [
+          "ruleId",
+          "severity",
+          "bureau",
+          "furnisherName",
+          "accountNumberMasked",
+          "category",
+          "evidencePaths",
+          "explanation",
+          "disputeTargets",
+        ],
       },
     },
   },
+  required: ["violations"],
 };
 
 const PARSE_SYSTEM_PROMPT = [
@@ -3057,7 +3074,7 @@ async function auditCanonicalReport(report) {
   let errors = [];
   while (attempts <= OPENAI_MAX_AUDIT_RETRIES) {
     attempts += 1;
-    violations = await callOpenAiStructured({
+    const auditResponse = await callOpenAiStructured({
       schema: VIOLATIONS_SCHEMA,
       schemaName: "ViolationList",
       system: AUDIT_SYSTEM_PROMPT,
@@ -3065,6 +3082,7 @@ async function auditCanonicalReport(report) {
       user: reportJson,
       model: OPENAI_AUDIT_MODEL,
     });
+    violations = auditResponse?.violations || [];
     if (!Array.isArray(violations)) {
       errors = ["Violation response is not an array."];
       continue;
