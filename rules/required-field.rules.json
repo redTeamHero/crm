@@ -1,0 +1,186 @@
+{
+  "rule_set": "required_field_validation",
+  "version": "1.0.0",
+  "description": "Validates legally required Metro 2 / FCRA fields independent of cross-bureau comparison.",
+  "rules": [
+    {
+      "code": "missing_last_payment_date",
+      "category": "required_field_validation",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681e(b)",
+        "15 U.S.C. §1681i(a)(1)(A)"
+      ],
+      "applies_when": {
+        "payment_status": [
+          "Late",
+          "Collection",
+          "Chargeoff",
+          "Derogatory"
+        ]
+      },
+      "fails_when": {
+        "date_last_payment": null
+      },
+      "explanation": "The account is reported as delinquent or charged off but does not include a Date of Last Payment, making the delinquency timeline unverifiable."
+    },
+    {
+      "code": "missing_dofd",
+      "category": "required_field_validation",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681c(a)(4)",
+        "15 U.S.C. §1681s-2(a)(5)",
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "payment_status": [
+          "Late",
+          "Collection",
+          "Chargeoff",
+          "Derogatory"
+        ]
+      },
+      "fails_when": {
+        "date_of_first_delinquency": null
+      },
+      "explanation": "The account is derogatory but does not report a Date of First Delinquency, preventing verification of legal reporting period and raising re-aging concerns."
+    },
+    {
+      "code": "missing_account_number",
+      "category": "required_field_validation",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "account_status": [
+          "Open",
+          "Derogatory",
+          "Collection",
+          "Chargeoff"
+        ]
+      },
+      "fails_when": {
+        "account_number": null
+      },
+      "explanation": "The tradeline is actively reporting without a verifiable account number, making it impossible to confirm ownership or accuracy."
+    },
+    {
+      "code": "missing_date_opened",
+      "category": "required_field_validation",
+      "severity": "correction_or_deletion",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "account_status": [
+          "Open",
+          "Derogatory",
+          "Collection",
+          "Chargeoff"
+        ]
+      },
+      "fails_when": {
+        "date_opened": null
+      },
+      "explanation": "The account is reporting without a Date Opened, preventing verification of account age and lifecycle."
+    },
+    {
+      "code": "missing_last_reported_date",
+      "category": "required_field_validation",
+      "severity": "correction_required",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "account_status": [
+          "Open",
+          "Derogatory",
+          "Collection",
+          "Chargeoff"
+        ]
+      },
+      "fails_when": {
+        "last_reported": null
+      },
+      "explanation": "The tradeline does not include a Last Reported date, preventing verification of data freshness."
+    },
+    {
+      "code": "missing_balance_on_derogatory",
+      "category": "required_field_validation",
+      "severity": "correction_or_deletion",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "payment_status": [
+          "Collection",
+          "Chargeoff",
+          "Derogatory"
+        ]
+      },
+      "fails_when": {
+        "balance": null
+      },
+      "explanation": "The account is reported as derogatory without a balance, making the severity and status unverifiable."
+    },
+    {
+      "code": "missing_high_credit",
+      "category": "required_field_validation",
+      "severity": "correction_required",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "account_type": [
+          "Installment",
+          "Revolving"
+        ]
+      },
+      "fails_when": {
+        "high_credit": null
+      },
+      "explanation": "The tradeline does not include a High Credit amount, preventing accurate risk assessment."
+    },
+    {
+      "code": "missing_payment_status",
+      "category": "required_field_validation",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681e(b)",
+        "15 U.S.C. §1681i(a)(1)(A)"
+      ],
+      "applies_when": {
+        "account_status": [
+          "Open",
+          "Derogatory",
+          "Collection",
+          "Chargeoff"
+        ]
+      },
+      "fails_when": {
+        "payment_status": null
+      },
+      "explanation": "The account does not report a Payment Status, making it impossible to determine delinquency or current standing."
+    },
+    {
+      "code": "missing_comments_on_collection",
+      "category": "required_field_validation",
+      "severity": "correction_required",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "payment_status": [
+          "Collection",
+          "Chargeoff"
+        ]
+      },
+      "fails_when": {
+        "comments": null
+      },
+      "explanation": "The collection or charge-off account does not include explanatory comments required to clarify status and disposition."
+    }
+  ]
+}
