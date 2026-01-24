@@ -3,6 +3,27 @@ import { normalizeBureau as coreNormalizeBureau } from "../../../packages/metro2
 
 const ALL_BUREAUS = ["TransUnion", "Experian", "Equifax"];
 
+const DISPUTE_REASON_MAP = {
+  METRO2_INTEGRITY: {
+    title: "Inaccurate or inconsistent reporting",
+    fcraSection: "15 U.S.C. §1681e(b)",
+    recommendedAction: "Correct or delete the inaccurate tradeline.",
+    buildReason: (entry, bureausText) => {
+      const detail = typeof entry.detail === "string" ? entry.detail.trim() : "";
+      if (detail) {
+        return `The account is reported inconsistently${bureausText}. ${detail}`;
+      }
+      return `The account is reported inconsistently${bureausText}, which makes the tradeline inaccurate or unverifiable.`;
+    },
+  },
+};
+
+function normalizeViolationCode(entry = {}){
+  if (!entry || typeof entry !== "object") return "";
+  const raw = entry.code || entry.id || entry.violation || "";
+  return String(raw ?? "").trim().toUpperCase();
+}
+
 function normalizeSeverity(value){
   const SEVERITY_SCORES = {
     critical: 4,
@@ -122,12 +143,33 @@ function normalizeRecommendedAction(entry = {}){
   return typeof raw === "string" ? raw.trim() : "";
 }
 
+function applyDisputeReasonDefaults(entry = {}){
+  if (!entry || typeof entry !== "object") return entry;
+  const mapping = DISPUTE_REASON_MAP[normalizeViolationCode(entry)];
+  if (!mapping) return entry;
+
+  const title = normalizeTitle(entry).trim();
+  const disputeReason = normalizeDisputeReason(entry);
+  const fcraSection = normalizeFcraSection(entry);
+  const recommendedAction = normalizeRecommendedAction(entry);
+  const bureaus = normalizeBureaus(entry);
+  const bureausText = bureaus.length ? ` across ${bureaus.join(" and ")}` : " across credit bureaus";
+
+  return {
+    ...entry,
+    title: title || mapping.title,
+    disputeReason: disputeReason || (mapping.buildReason ? mapping.buildReason(entry, bureausText) : ""),
+    fcraSection: fcraSection || mapping.fcraSection,
+    recommendedAction: recommendedAction || mapping.recommendedAction,
+  };
+}
+
 function dedupeViolations(entries = []){
   const seen = new Set();
   const result = [];
   for (const entry of entries){
     if (!entry || typeof entry !== "object") continue;
-    const code = (entry.code || entry.id || entry.violation || "").toString().toUpperCase();
+    const code = normalizeViolationCode(entry);
     const bureaus = normalizeBureaus(entry);
     const bureauKey = bureaus.length
       ? bureaus.join(",")
@@ -195,20 +237,21 @@ function headlineFromViolations(list = []){
 }
 
 function mapViolation(entry = {}){
-  const title = normalizeTitle(entry);
+  const normalizedEntry = applyDisputeReasonDefaults(entry);
+  const title = normalizeTitle(normalizedEntry);
   return {
-    id: entry.id || entry.code || null,
-    code: entry.code || null,
-    category: entry.category || entry.group || null,
+    id: normalizedEntry.id || normalizedEntry.code || null,
+    code: normalizedEntry.code || null,
+    category: normalizedEntry.category || normalizedEntry.group || null,
     title,
-    detail: entry.detail || "",
-    severity: normalizeSeverity(entry.severity),
-    bureaus: normalizeBureaus(entry),
-    source: entry.source || null,
-    disputeReason: normalizeDisputeReason(entry),
-    fcraSection: normalizeFcraSection(entry),
-    recommendedAction: normalizeRecommendedAction(entry),
-    tradelineKey: entry.tradelineKey || null,
+    detail: normalizedEntry.detail || "",
+    severity: normalizeSeverity(normalizedEntry.severity),
+    bureaus: normalizeBureaus(normalizedEntry),
+    source: normalizedEntry.source || null,
+    disputeReason: normalizeDisputeReason(normalizedEntry),
+    fcraSection: normalizeFcraSection(normalizedEntry),
+    recommendedAction: normalizeRecommendedAction(normalizedEntry),
+    tradelineKey: normalizedEntry.tradelineKey || null,
   };
 }
 
