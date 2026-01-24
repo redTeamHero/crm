@@ -2529,6 +2529,7 @@ const OPENAI_PARSE_MODEL = process.env.OPENAI_PARSE_MODEL || process.env.OPENAI_
 const OPENAI_AUDIT_MODEL = process.env.OPENAI_AUDIT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
 const OPENAI_MAX_CHUNK_CHARS = Number.parseInt(process.env.OPENAI_REPORT_CHUNK_CHARS || "12000", 10);
 const OPENAI_MAX_PARSE_RETRIES = 1;
+const OPENAI_MAX_AUDIT_RETRIES = 1;
 
 const CANONICAL_REPORT_SCHEMA = {
   type: "object",
@@ -3035,19 +3036,27 @@ async function parseCanonicalReportWithChunking(text, sourceLabel) {
 
 async function auditCanonicalReport(report) {
   const reportJson = JSON.stringify(report);
-  let violations = await callOpenAiStructured({
-    schema: VIOLATIONS_SCHEMA,
-    schemaName: "ViolationList",
-    system: AUDIT_SYSTEM_PROMPT,
-    developer: AUDIT_DEVELOPER_PROMPT,
-    user: reportJson,
-    model: OPENAI_AUDIT_MODEL,
-  });
-  if (!Array.isArray(violations)) {
-    throw new Error("Violation response is not an array.");
+  let attempts = 0;
+  let violations = [];
+  let errors = [];
+  while (attempts <= OPENAI_MAX_AUDIT_RETRIES) {
+    attempts += 1;
+    violations = await callOpenAiStructured({
+      schema: VIOLATIONS_SCHEMA,
+      schemaName: "ViolationList",
+      system: AUDIT_SYSTEM_PROMPT,
+      developer: AUDIT_DEVELOPER_PROMPT + (errors.length ? ` Previous validation errors: ${errors.join("; ")}` : ""),
+      user: reportJson,
+      model: OPENAI_AUDIT_MODEL,
+    });
+    if (!Array.isArray(violations)) {
+      errors = ["Violation response is not an array."];
+      continue;
+    }
+    violations = violations.filter(v => v && typeof v === "object");
+    errors = validateViolations(violations, report);
+    if (!errors.length) break;
   }
-  violations = violations.filter(v => v && typeof v === "object");
-  const errors = validateViolations(violations, report);
   if (errors.length) {
     throw new Error(`Violation validation failed: ${errors.join("; ")}`);
   }
