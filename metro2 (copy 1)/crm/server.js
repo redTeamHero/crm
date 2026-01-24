@@ -2921,12 +2921,14 @@ async function callOpenAiStructured({ schema, schemaName, system, developer, use
       { role: "developer", content: developer },
       { role: "user", content: user },
     ],
-    response_format: {
-      type: "json_schema",
-      json_schema: {
-        name: schemaName,
-        schema,
-        strict: true,
+    text: {
+      format: {
+        type: "json_schema",
+        json_schema: {
+          name: schemaName,
+          schema,
+          strict: true,
+        },
       },
     },
     temperature: 0,
