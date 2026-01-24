@@ -1,173 +1,197 @@
-# CRM Metro-2
+# Metro2 CRM
 
 ## Overview
-CRM Metro-2 is a credit-dispute CRM and audit toolkit that combines a Node.js API, Metro-2 rule data, and a client portal for guided dispute workflows. The repository is aimed at teams who need a repeatable process for identifying Metro-2 reporting issues, generating dispute letters, and managing client-facing portals. It ships with a Node/Express server that powers audits, PDFs, workflow rules, and integrations, along with a separate Next.js portal UI. A Python test suite validates Metro-2 audit behavior against known scenarios, and shared Metro-2 data files keep the audit engine and letter generator consistent. The codebase is organized as a multi-part system: the backend lives in a dedicated CRM folder, the portal is a separate app, and reusable Metro-2 libraries are maintained under packages. By default, the backend uses SQLite for local development and can be pointed at PostgreSQL/MySQL via environment configuration. It targets teams building a compliance-forward credit dispute experience with audit transparency, letter generation, and automation hooks.
+This repository contains a multi-tenant CRM backend for credit-report auditing and dispute-letter generation, a Next.js client portal, and shared Metro 2 parsing/audit libraries. The backend parses Metro 2 HTML/PDF reports, maps violations using a knowledge graph, generates dispute letters as PDFs/HTML, and exposes APIs that power both legacy static pages and the modern client portal. The frontend portal consumes the backend’s `/api/portal/:consumerId` payload and renders a bilingual, tenant-configurable dashboard for clients.
 
-**Key capabilities**
-- Run Metro-2 audits and generate dispute letters from shared violation metadata.
-- Serve a CRM API with authentication, workflows, and job processing.
-- Offer a Next.js client portal that consumes `/api/portal/:id` data.
-- Extend the system with reusable Metro-2 packages and Python regression tests.
-
-## Repository Status
-- **Fork status:** Unclear. There is no upstream/remote metadata or explicit fork statement in the repository itself, so provenance cannot be confirmed from the checked-in files.
-- **Evidence missing:** Git remote URLs or a README note identifying an upstream repository.
-
-## Features
-- Metro-2 violation metadata stored in `metro2 (copy 1)/crm/data/metro2Violations.json` is shared between audit and letter-generation logic. 
-- Express-based API server with scripts for audits, migrations, and background workers.
-- PDF/letter generation workflows alongside report parsing utilities.
-- Portal UI built with Next.js and TypeScript.
-- Python regression tests covering audit rules and report parsing.
-
-## Tech Stack
-- **Languages:** JavaScript (Node.js), TypeScript (Next.js), Python.
-- **Backend:** Express, Knex, BullMQ, Stripe, Twilio, Puppeteer.
-- **Frontend:** Next.js, React, Tailwind CSS.
-- **Database:** SQLite (default), PostgreSQL/MySQL via Knex.
-- **Testing:** Node’s test runner, Jest/Supertest dependencies, Python unittest.
-- **Package managers:** npm, pip (requirements.txt in CRM backend).
+## How It Works
+1. **Backend boot and settings**: The Express server (`metro2 (copy 1)/crm/server.js`) loads tenant-scoped settings from the key-value store, applies integration keys into process environment variables, and initializes workflow automation. Settings are stored in the database via the tenant-aware kv store and are hydrated on startup.
+2. **Report ingestion**: Report uploads go through `multer` and then dispatch to the Python analyzer (`metro2_audit_multi.py`) or the LLM-based parser. The Python analyzer parses HTML/PDF reports and returns normalized account history, inquiry details, and personal information.
+3. **Parsing and violations**: The JS parser (`metro2 (copy 1)/crm/parser.js`) delegates to `packages/metro2-core`, which extracts tradelines, histories, inquiries, and personal info from Metro 2 report markup. Metro 2 violations are loaded from JSON rulebooks and validated using the knowledge-graph/ontology mapping logic in `packages/metro2-core`.
+4. **Letter generation**: The letter engine renders dispute letters as HTML and converts them to PDF with Puppeteer; it can fall back to a PDFKit renderer when Chromium is unavailable.
+5. **Client portal**: The Next.js app (`apps/client-portal`) fetches portal data from the backend API and renders modules such as negative items, timeline, invoices, and rule-debug views.
 
 ## Project Structure
-```
-.
-├── apps/client-portal/         # Next.js portal UI
-├── metro2/                     # Metro-2 Python rule data and parsers
-├── metro2 (copy 1)/crm/         # Primary Node/Express CRM backend
-│   ├── server.js               # API entry point
-│   ├── migrations/             # Knex migrations
-│   ├── scripts/                # CLI utilities + workers
-│   ├── tests/                  # Node test suite
-│   ├── requirements.txt        # Python deps for CRM backend utilities
-│   └── .env.sample             # Environment variable template
-├── packages/                   # Reusable Metro-2 libraries
-└── python-tests/               # Python audit/regression tests
-```
+- `metro2 (copy 1)/crm/` — Primary Node.js/Express CRM backend, API routes, static assets, and integrations.
+  - `server.js` — Backend entry point and API router.
+  - `db/` — Knex database connection and migrations.
+  - `metro2_audit_multi.py` — Python CLI for parsing/auditing HTML/PDF Metro 2 reports.
+  - `parser.js` — JS parser bridging to `metro2-core`.
+  - `letterEngine.js`, `pdfUtils.js`, `htmlToDisputePdf.js` — Letter rendering/PDF conversion utilities.
+  - `workflowEngine.js` — Workflow rules and automation.
+  - `marketingRoutes.js`, `marketingStore.js` — Marketing automation endpoints.
+- `apps/client-portal/` — Next.js client portal with Tailwind UI, bilingual strings, and portal data normalization.
+- `packages/metro2-core/` — Metro 2 parsing, validation, and knowledge-graph-backed rule evaluation.
+- `packages/metro2-cheerio/` — Cheerio adapter for Metro 2 parsing in Node.
+- `packages/metro2-browser/` — Browser-compatible Metro 2 parser entry.
+- `metro2/` — Python parser and audit utilities; includes a Node bridge for JS-based parsing.
+- `shared/` — Shared knowledge graph + violations data and formatting helpers used by both backend and parsers.
+- `python-tests/` — Python test suite targeting Metro 2 parsers and audit rules.
 
-## Getting Started
-### Prerequisites
-- **Node.js + npm** (required for the CRM backend and client portal).
-- **Python 3** (required for Python tests and audit utilities).
-- **Database**: SQLite for local development, or PostgreSQL/MySQL for production.
-- **Optional**: Redis for BullMQ-backed job processing.
-- **Optional**: System dependencies for Puppeteer PDF rendering (see `install-chrome-deps.sh`).
+## Installation
+> The repo is a multi-project layout. Install dependencies in the directories you plan to run.
 
-### Installation
-**Backend (CRM API)**
+### Backend (Express CRM)
 ```bash
 cd "metro2 (copy 1)/crm"
-cp .env.sample .env
 npm install
-npm run migrate
-npm start
 ```
 
-**Client portal**
+If you plan to run the Python analyzers:
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Client Portal (Next.js)
 ```bash
 cd apps/client-portal
 npm install
+```
+
+## Configuration
+### Backend environment variables
+**Core server**
+- `PORT` — HTTP port for the Express server (default: 3000).
+- `NODE_ENV` — Controls production/test behaviors.
+- `START_SERVER_IN_TEST` — Allows server startup during tests.
+- `JWT_SECRET` — Signing secret for session tokens.
+
+**Database & tenancy**
+- `DATABASE_CLIENT` — Database client (`sqlite3`, `pg`, `mysql2`, etc.).
+- `DATABASE_URL` — Connection URL (required for Postgres/MySQL; optional for SQLite).
+- `DATABASE_POOL_MIN`, `DATABASE_POOL_MAX` — Knex pool sizing.
+- `DB_TENANT_STRATEGY` — `partitioned`, `schema`, or `shared`.
+- `DB_TENANT_SCHEMA_PREFIX` — Prefix when using schema-per-tenant.
+- `DB_PARTITIONS` — Partition count used by migrations.
+
+**Tenant quota controls**
+- `TENANT_REQUESTS_PER_MINUTE`, `TENANT_REQUEST_WINDOW_MS`
+- `TENANT_LETTER_JOBS_PER_HOUR`, `TENANT_LETTER_JOBS_WINDOW_MS`
+- `TENANT_LETTER_PDFS_PER_HOUR`, `TENANT_LETTER_PDFS_WINDOW_MS`
+- `TENANT_LETTER_ZIPS_PER_HOUR`, `TENANT_LETTER_ZIPS_WINDOW_MS`
+- `TENANT_AUDITS_PER_HOUR`, `TENANT_AUDITS_WINDOW_MS`
+- `TENANT_BREACH_LOOKUPS_PER_HOUR`, `TENANT_BREACH_LOOKUPS_WINDOW_MS`
+- `TENANT_LIMITS` / `TENANT_LIMIT_OVERRIDES` — JSON map of per-tenant overrides.
+
+**Queues / Redis (optional)**
+- `REDIS_URL` / `REDIS_TLS_URL`
+- `REDIS_HOST` / `REDIS_HOSTNAME`
+- `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_TLS`
+- `JOB_WORKER_CONCURRENCY`
+
+**External integrations**
+- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_API_KEY`, `STRIPE_PRIVATE_KEY`, `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL`
+- Email (SMTP): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+- Send Certified Mail: `SCM_API_KEY`
+- Gmail OAuth: `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`
+- Marketing API: `MARKETING_API_BASE_URL`, `MARKETING_API_KEY`
+- Client portal URLs: `CLIENT_PORTAL_BASE_URL`, `PORTAL_BASE_URL`, `PORTAL_PAYMENT_BASE`, `PUBLIC_BASE_URL`
+- HIBP (breach lookups): `HIBP_API_KEY`
+
+**OpenAI (optional report parsing/auditing)**
+- `OPENAI_API_KEY`
+- `OPENAI_API_URL`
+- `OPENAI_MODEL`, `OPENAI_PARSE_MODEL`, `OPENAI_AUDIT_MODEL`
+- `OPENAI_REPORT_CHUNK_CHARS`
+
+**PDF rendering**
+- `PUPPETEER_EXECUTABLE_PATH` — Custom Chromium path.
+- `FORCE_PDF_FALLBACK` — Force PDFKit fallback renderer.
+
+**Python runtime selection**
+- `CRM_PYTHON_BIN`, `PYTHON_BIN`, `VIRTUAL_ENV`
+
+**Background monitoring**
+- `MAX_RSS_MB`, `RESOURCE_CHECK_MS`
+
+### Backend settings stored in the database
+The CRM stores a `settings` record in the tenant kv store. This includes:
+- `hibpApiKey`
+- `rssFeedUrl`
+- `googleCalendarToken`, `googleCalendarId`
+- `stripeApiKey`
+- `marketingApiBaseUrl`, `marketingApiKey`
+- `sendCertifiedMailApiKey`
+- `gmailClientId`, `gmailClientSecret`, `gmailRefreshToken`
+- `envOverrides`
+- `clientPortal` theme/modules configuration
+- `hotkeys`
+
+Settings are normalized on read/write and can be used to override certain environment keys for integrations.
+
+### Metro 2 data sources
+- `METRO2_VIOLATIONS_PATH` — JSON rulebook path for violations.
+- `METRO2_KNOWLEDGE_GRAPH_PATH` — Knowledge graph used by `metro2-core`.
+- `METRO2_RULEBOOK_PATH` — Python audit rulebook path override.
+
+### Client portal environment variables
+- `PORTAL_API_BASE_URL` — Backend API base URL (server-side).
+- `NEXT_PUBLIC_API_BASE_URL` — Backend API base URL (client-side fallback).
+
+### Marketing/Twilio worker environment variables
+The `scripts/marketingTwilioWorker.js` worker supports:
+- `.env` loading via `MARKETING_ENV_FILE` or `ENV_FILE`
+- Twilio: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID`, `TWILIO_FROM_NUMBER`, `TWILIO_STATUS_CALLBACK_URL`
+- Marketing API: `MARKETING_API_BASE_URL`, `MARKETING_API_KEY`, `MARKETING_TENANT_ID`
+- CRM auth fallback: `CRM_URL`, `CRM_TOKEN`
+- Worker tuning: `MARKETING_SMS_PROVIDER_ID`, `MARKETING_POLL_INTERVAL_MS`, `MARKETING_TEST_FETCH_LIMIT`
+
+## Usage
+### Start the CRM backend
+```bash
+cd "metro2 (copy 1)/crm"
+npm run migrate
 npm run dev
 ```
 
-### Configuration
-- Start from `metro2 (copy 1)/crm/.env.sample` and define any required secrets or API credentials.
-- Database configuration is controlled by `DATABASE_CLIENT` and `DATABASE_URL`. If omitted, the backend uses SQLite in `metro2 (copy 1)/crm/data/dev.sqlite`.
-- Multi-tenant behavior is controlled by `DB_TENANT_STRATEGY` and `DB_TENANT_SCHEMA_PREFIX` (see backend database configuration).
+### Start the client portal
+```bash
+cd apps/client-portal
+npm run dev
+```
 
-If you need additional environment variables beyond the sample file, search the backend for `process.env` usage to identify required values.
-
-## Usage
-### Run Locally
-**Backend API**
+### Run the Metro 2 audit CLI
 ```bash
 cd "metro2 (copy 1)/crm"
-npm start
-```
-- The server starts on `http://localhost:3000` by default (configurable with `PORT`).
-- A default admin account is seeded for first-time access (`ducky` / `duck`).
-
-**Client portal**
-```bash
-cd apps/client-portal
-PORTAL_API_BASE_URL=http://localhost:3000 npm run dev
-```
-- Visit `http://localhost:3000/api/portal/{consumerId}` to verify API data.
-- Visit `http://localhost:3001/portal/{consumerId}` for the portal UI (Next.js picks the next available port).
-
-### Build / Packaging
-**Client portal**
-```bash
-cd apps/client-portal
-npm run build
-npm run start
+python metro2_audit_multi.py -i ./data/report.html -o ./data/report.json --json-only
 ```
 
-### Tests
-**Backend tests**
+### Generate a standalone audit PDF
 ```bash
 cd "metro2 (copy 1)/crm"
-npm test
+node creditAuditTool.js ./data/report.html
 ```
 
-**Python regression tests**
+### Run the marketing/Twilio worker
 ```bash
-bash python-tests/run.sh
+cd "metro2 (copy 1)/crm"
+node scripts/marketingTwilioWorker.js
 ```
 
-**Portal lint + type checks**
-```bash
-cd apps/client-portal
-npm run lint
-npm run typecheck
-```
+## Debugging & Development
+- **Logs**: The Node server logs structured JSON to stdout/stderr. The Python audit CLI writes rotating logs to `/var/log/metro2_debug.log` and mirrors logs to stdout when `--debug` is set.
+- **Enable debug**:
+  - Set `KNEX_DEBUG=1` for SQL debug logging.
+  - Pass `--debug` to `metro2_audit_multi.py` for verbose Python logs.
+- **Common failure points**:
+  - Missing `metro2Violations.json` or knowledge-graph data causes parser initialization errors.
+  - Missing Python interpreter or dependencies will prevent report analysis.
+  - Missing Chromium or sandbox dependencies causes PDF rendering to fall back (or fail if fallback is disabled).
+  - LLM parsing/auditing requires `OPENAI_API_KEY`.
+  - Redis is optional; without it, jobs run in-process and aren’t persisted across restarts.
+- **Extending the system**:
+  - Add new parsing rules in `packages/metro2-core` and update the shared knowledge graph.
+  - Add workflow rules in `workflowEngine.js` and store configuration via the settings API.
+  - Update portal modules or translations in `apps/client-portal`.
 
-## Development Guide
-### How to Edit / Customize
-- **API behavior:** update `metro2 (copy 1)/crm/server.js` and supporting modules in that folder.
-- **Metro-2 rules and metadata:** edit `metro2 (copy 1)/crm/data/metro2Violations.json` and the Python modules in `metro2/`.
-- **Letter templates:** update `metro2 (copy 1)/crm/letterTemplates.js` or the PDF utilities in `metro2 (copy 1)/crm/pdfUtils.js`.
-- **Portal UI:** modify pages and components inside `apps/client-portal/`.
-- **Reusable data parsing:** update shared packages under `packages/`.
+## Known Limitations
+- The Metro 2 HTML parser expects specific report table structures; unsupported vendor layouts may return partial or empty results.
+- The Python audit logger writes to `/var/log/metro2_debug.log`, which may require elevated filesystem permissions.
+- PDF generation relies on Chromium; environments without compatible binaries may need `PUPPETEER_EXECUTABLE_PATH` or the fallback renderer.
+- Redis-backed queues are optional; if Redis is not configured, job execution is in-process only.
 
-### Troubleshooting
-1. **Server starts but database errors appear:** confirm `DATABASE_CLIENT` and `DATABASE_URL` are set correctly for PostgreSQL/MySQL.
-2. **PDF generation fails with missing shared libraries:** run `npm run setup:chrome` to install Puppeteer system deps.
-3. **Python tests fail to import modules:** ensure `python-tests/run.sh` is used so `PYTHONPATH` includes the CRM backend.
-4. **Background jobs stall:** configure Redis (`REDIS_URL` or host/port) or accept the in-process scheduler fallback.
-5. **Portal shows empty data:** verify `PORTAL_API_BASE_URL` points to the backend and `/api/portal/:id` returns data.
-6. **Stripe/Twilio/Gmail errors:** ensure the relevant API keys are populated in `.env`.
-
-## Roadmap
-_Suggested improvements based on the current codebase:_
-1. Add a top-level `README` section for the packages in `packages/` with versioning and release notes.
-2. Introduce Docker Compose files for the backend, Redis, and Postgres to simplify local setup.
-3. Provide a `.env.example` at the repo root that links the backend and portal configuration.
-4. Add CI workflows to run `npm test` and Python regression tests on pull requests.
-5. Expand portal documentation with a component inventory and design tokens.
-6. Document a production deployment guide (PM2/systemd, or Render/Fargate).
-7. Add lint/format scripts for the backend (ESLint/Prettier) for consistent style.
-8. Expose a health check endpoint list in the docs for operational monitoring.
-
-## Contributing
-- Open issues with clear reproduction steps and expected behavior.
-- Fork the repository, create a feature branch, and open a pull request describing the change.
-- Keep changes scoped to the relevant app (`metro2 (copy 1)/crm`, `apps/client-portal`, or `packages/`).
-- Run tests before submitting: backend `npm test`, portal `npm run lint` + `npm run typecheck`, and Python `bash python-tests/run.sh`.
-
-## License
-No license file detected.
-
-## Acknowledgements / Credits
-- Express, Knex, BullMQ, Stripe, Twilio, and Puppeteer for backend capabilities.
-- Next.js, React, Tailwind CSS, and TypeScript for the client portal.
-- Python unittest and BeautifulSoup for audit regression coverage.
-
-## Donate / Support
-If this project helps your team deliver more reliable dispute workflows, consider supporting ongoing maintenance, documentation, and QA coverage.
-
-- GitHub Sponsors: <link>
-- Buy Me a Coffee: <link>
-- PayPal: <link>
-- Crypto (optional): <address>
-
-Thank you for supporting the project!
+## Assumptions
+- The backend (`metro2 (copy 1)/crm`) is the primary runtime service and must be started separately from the client portal.
+- The client portal expects the backend to serve `/api/portal/:consumerId` responses.
+- Developers run Node.js and Python in the same environment when using the Python analyzers or LLM PDF extraction.
