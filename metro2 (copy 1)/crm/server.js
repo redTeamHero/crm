@@ -2539,7 +2539,7 @@ const CANONICAL_REPORT_SCHEMA = {
     reportMeta: {
       type: "object",
       additionalProperties: false,
-      required: ["provider"],
+      required: ["provider", "reportDate"],
       properties: {
         provider: { type: "string" },
         reportDate: { type: ["string", "null"] },
@@ -2564,6 +2564,7 @@ const CANONICAL_REPORT_SCHEMA = {
     identityBlock: {
       type: "object",
       additionalProperties: false,
+      required: ["name", "dob", "addresses"],
       properties: {
         name: { type: ["string", "null"] },
         dob: { type: ["string", "null"] },
@@ -2591,7 +2592,21 @@ const CANONICAL_REPORT_SCHEMA = {
     tradeline: {
       type: "object",
       additionalProperties: false,
-      required: ["present"],
+      required: [
+        "present",
+        "accountNumberMasked",
+        "accountStatus",
+        "paymentStatus",
+        "balance",
+        "pastDue",
+        "creditLimit",
+        "highCredit",
+        "dateOpened",
+        "dateClosed",
+        "lastReported",
+        "dateLastPayment",
+        "comments",
+      ],
       properties: {
         present: { type: "boolean" },
         accountNumberMasked: { type: ["string", "null"] },
