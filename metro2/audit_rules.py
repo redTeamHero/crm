@@ -504,6 +504,17 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
     "DOFD_AFTER_LAST_PAYMENT": {"severity": "major", "fcra_section": "FCRA §623(a)(5)"},
     "LAST_REPORTED_MISMATCH": {"severity": "major", "fcra_section": "FCRA §607(b)"},
     "HIGH_CREDIT_EXCEEDS_LIMIT": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "fcra_dofd_invalid": {"severity": "major", "fcra_section": "FCRA §623(a)(5) / §605(a)(4)"},
+    "collection_status_inconsistent": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "missing_last_payment_date": {"severity": "major", "fcra_section": "FCRA §607(b) / §611(a)(1)(A)"},
+    "balance_status_conflict": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "chargeoff_continues_reporting": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "high_credit_equals_balance": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "open_date_mismatch": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "comment_field_conflict": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "duplicate_collection_account": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "furnisher_identity_unclear": {"severity": "major", "fcra_section": "FCRA §611(a)(1)(A)"},
+    "failure_to_correct_after_dispute": {"severity": "major", "fcra_section": "FCRA §611(a)(5) / §623(b)"},
 }
 
 
@@ -572,6 +583,7 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
         if len(open_dates) > 1:
             for r in records:
                 _attach_violation(r, "OPEN_DATE_MISMATCH", "Date Opened differs across bureaus")
+                _attach_violation(r, "open_date_mismatch", "Date Opened differs across bureaus")
 
         if len(last_payments) > 1:
             for r in records:
@@ -587,6 +599,11 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
                     r,
                     "FIRST_DELINQUENCY_DATE_NOT_FROZEN",
                     "Date of First Delinquency inconsistent across bureaus",
+                )
+                _attach_violation(
+                    r,
+                    "fcra_dofd_invalid",
+                    "Date of First Delinquency is inconsistent across bureaus",
                 )
 
         if len(distinct_last_reported) > 1:
@@ -740,6 +757,218 @@ def audit_stale_disputes(tradelines: Iterable[MutableMapping[str, Any]]) -> None
             )
 
 
+def audit_dofd_integrity(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    delinquency_keywords = ("late", "collection", "charge", "derog")
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        payment_status = _normalize_status(record.get("payment_status"))
+        dofd = _get_dofd(record)
+        past_due_date = _get_past_due_date(record)
+
+        bucket = _account_type_bucket(record) or ""
+        is_delinquent = (
+            any(keyword in status for keyword in delinquency_keywords)
+            or any(keyword in payment_status for keyword in delinquency_keywords)
+            or bucket == "collection"
+        )
+
+        if is_delinquent and not dofd:
+            _attach_violation(
+                record,
+                "fcra_dofd_invalid",
+                "Missing Date of First Delinquency on derogatory account",
+            )
+            continue
+
+        if dofd and past_due_date and dofd > past_due_date:
+            _attach_violation(
+                record,
+                "fcra_dofd_invalid",
+                "DOFD occurs after the first reported delinquency date",
+            )
+            continue
+
+        if dofd:
+            delinquency_dates = []
+            for entry in _payment_history_entries(record):
+                hist_status = _normalize_status(entry.get("status"))
+                if any(keyword in hist_status for keyword in delinquency_keywords):
+                    hist_date = parse_date(entry.get("date"))
+                    if hist_date:
+                        delinquency_dates.append(hist_date)
+            if delinquency_dates and dofd > min(delinquency_dates):
+                _attach_violation(
+                    record,
+                    "fcra_dofd_invalid",
+                    "DOFD post-dates the first delinquency in payment history",
+                )
+
+
+def audit_collection_status_inconsistent(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        bucket = _account_type_bucket(record)
+        balance = clean_amount(record.get("balance"))
+
+        if bucket == "collection" and "open" in status and balance > 0:
+            _attach_violation(
+                record,
+                "collection_status_inconsistent",
+                "Collection account reported as open with an active balance",
+            )
+
+
+def audit_balance_status_conflict(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        payment_status = _normalize_status(record.get("payment_status"))
+        balance = clean_amount(record.get("balance"))
+
+        derogatory = any(keyword in status for keyword in ("late", "collection", "charge", "delin"))
+        derogatory = derogatory or any(keyword in payment_status for keyword in ("late", "collection", "charge", "delin"))
+
+        paid_or_closed = any(keyword in status for keyword in ("paid", "closed", "settled", "paid in full"))
+        paid_or_closed = paid_or_closed or any(keyword in payment_status for keyword in ("paid", "closed", "settled"))
+
+        if balance == 0 and derogatory:
+            _attach_violation(
+                record,
+                "balance_status_conflict",
+                "Zero balance conflicts with delinquent status",
+            )
+
+        if balance > 0 and paid_or_closed:
+            _attach_violation(
+                record,
+                "balance_status_conflict",
+                "Positive balance reported alongside a paid/closed status",
+            )
+
+
+def audit_comment_field_conflict(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        comment = _normalize_status(record.get("comments") or record.get("special_comment"))
+        if not comment:
+            continue
+
+        bucket = _account_type_bucket(record)
+        balance = clean_amount(record.get("balance"))
+
+        if "collection" in comment and bucket != "collection":
+            _attach_violation(
+                record,
+                "comment_field_conflict",
+                "Comments indicate collection activity but account type is not collection",
+            )
+
+        if any(keyword in comment for keyword in ("paid", "paid in full", "settled")) and balance > 0:
+            _attach_violation(
+                record,
+                "comment_field_conflict",
+                "Comments indicate paid status while balance remains outstanding",
+            )
+
+
+def audit_collection_high_credit(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        bucket = _account_type_bucket(record)
+        if bucket != "collection":
+            continue
+        balance = clean_amount(record.get("balance"))
+        high_credit = clean_amount(record.get("high_credit"))
+        if balance > 0 and high_credit > 0 and abs(high_credit - balance) < 0.01:
+            _attach_violation(
+                record,
+                "high_credit_equals_balance",
+                "Collection account reports High Credit equal to current balance",
+            )
+
+
+def audit_chargeoff_continues_reporting(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        payment_status = _normalize_status(record.get("payment_status"))
+        if "charge" not in status and "charge" not in payment_status:
+            continue
+
+        chargeoff_date = _get_chargeoff_date(record)
+        if not chargeoff_date:
+            continue
+
+        post_charge_history = []
+        for entry in _payment_history_entries(record):
+            hist_date = parse_date(entry.get("date"))
+            if hist_date and hist_date > chargeoff_date:
+                post_charge_history.append(hist_date)
+
+        if len(post_charge_history) >= 2:
+            _attach_violation(
+                record,
+                "chargeoff_continues_reporting",
+                "Charge-off continues to update after charge-off date",
+            )
+
+
+def audit_duplicate_collection_accounts(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    grouped: Dict[tuple, List[MutableMapping[str, Any]]] = defaultdict(list)
+    for record in tradelines:
+        if _account_type_bucket(record) != "collection":
+            continue
+
+        original_creditor = (
+            record.get("original_creditor")
+            or record.get("original_creditor_name")
+            or record.get("original_creditor_name_raw")
+        )
+        original_creditor = str(original_creditor or "").strip().upper()
+        if not original_creditor:
+            continue
+
+        balance = clean_amount(record.get("balance"))
+        if balance <= 0:
+            continue
+
+        grouped[(original_creditor, balance)].append(record)
+
+    for (original_creditor, balance), records in grouped.items():
+        agencies = {
+            str(r.get("creditor_name") or "").strip().upper()
+            for r in records
+            if r.get("creditor_name")
+        }
+        if len(agencies) > 1:
+            pretty_balance = f"${balance:,.2f}"
+            for record in records:
+                _attach_violation(
+                    record,
+                    "duplicate_collection_account",
+                    f"Multiple collection agencies reporting {pretty_balance} for {original_creditor.title()}",
+                )
+
+
+def audit_furnisher_identity_unclear(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    grouped: Dict[str, List[MutableMapping[str, Any]]] = defaultdict(list)
+    for record in tradelines:
+        account_number = _normalized_account_number(record)
+        if not account_number:
+            continue
+        grouped[account_number].append(record)
+
+    for account_number, records in grouped.items():
+        creditors = {
+            str(r.get("creditor_name") or "").strip().upper()
+            for r in records
+            if r.get("creditor_name")
+        }
+        if len(creditors) > 1:
+            for record in records:
+                _attach_violation(
+                    record,
+                    "furnisher_identity_unclear",
+                    f"Furnisher name varies across bureaus for account {account_number}",
+                )
+
+
 def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
     for record in tradelines:
         payment_status = _normalize_status(record.get("payment_status"))
@@ -757,6 +986,17 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
 
         balance = clean_amount(record.get("balance"))
         past_due = clean_amount(record.get("past_due") or record.get("amount_past_due"))
+
+        delinquency_markers = ("late", "collection", "charge", "delin", "repos")
+        is_delinquent = any(marker in status for marker in delinquency_markers) or any(
+            marker in payment_status for marker in delinquency_markers
+        )
+        if is_delinquent and not last_payment:
+            _attach_violation(
+                record,
+                "missing_last_payment_date",
+                "Delinquent account missing a Date of Last Payment",
+            )
 
         # Existing guard: Charged-off accounts should carry a payment date to validate charge-off timing.
         if "charge" in payment_status and not last_payment:
@@ -1120,6 +1360,14 @@ def audit_dispute_compliance(tradelines: Iterable[MutableMapping[str, Any]]) -> 
                 "Dispute flagged without Metro-2 compliance condition code",
             )
 
+        last_reported = parse_date(record.get("last_reported") or record.get("date_last_reported"))
+        if last_reported and days_since(last_reported) > 30:
+            _attach_violation(
+                record,
+                "failure_to_correct_after_dispute",
+                "Dispute notation present without updates after 30+ days",
+            )
+
         if any(keyword in status for keyword in ("paid", "resolved", "closed", "settled")) or "resolved" in comment:
             _attach_violation(
                 record,
@@ -1294,6 +1542,14 @@ AUDIT_FUNCTIONS = [
     audit_account_type_mismatch,
     audit_high_utilization,
     audit_stale_disputes,
+    audit_dofd_integrity,
+    audit_collection_status_inconsistent,
+    audit_balance_status_conflict,
+    audit_comment_field_conflict,
+    audit_collection_high_credit,
+    audit_chargeoff_continues_reporting,
+    audit_duplicate_collection_accounts,
+    audit_furnisher_identity_unclear,
     audit_missing_payment_date,
     audit_closed_account_integrity,
     audit_dispute_compliance,
