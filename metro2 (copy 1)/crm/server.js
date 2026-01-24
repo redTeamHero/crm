@@ -3162,8 +3162,17 @@ function mapCanonicalBureau(entry = {}, bureauLabel = "") {
 
 function attachViolationsToTradelines(tradelines = [], violations = []) {
   const map = new Map();
+  const nameMap = new Map();
   tradelines.forEach((tl, idx) => {
     const nameKey = normalizeCreditorName(tl?.meta?.creditor || "");
+    if (nameKey) {
+      const existing = nameMap.get(nameKey);
+      if (existing) {
+        existing.push(idx);
+      } else {
+        nameMap.set(nameKey, [idx]);
+      }
+    }
     const accountNumbers = collectAccountNumbers(tl)
       .map(normalizeAccountNumber)
       .filter(Boolean);
@@ -3186,7 +3195,13 @@ function attachViolationsToTradelines(tradelines = [], violations = []) {
       `${nameKey}|${acct.slice(-4)}`,
       `${nameKey}|`,
     ];
-    const targetIndex = keyCandidates.map(k => map.get(k)).find(idx => idx !== undefined);
+    let targetIndex = keyCandidates.map(k => map.get(k)).find(idx => idx !== undefined);
+    if (targetIndex === undefined && nameKey) {
+      const candidates = nameMap.get(nameKey);
+      if (candidates && candidates.length === 1) {
+        targetIndex = candidates[0];
+      }
+    }
     if (targetIndex === undefined) return;
     const tl = tradelines[targetIndex];
     tl.violations = tl.violations || [];
