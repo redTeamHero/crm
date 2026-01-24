@@ -145,11 +145,41 @@ function validateTradelineKeys(violations = [], report = {}) {
       errors.push(`violations[${idx}].tradelineKey required.`);
       return;
     }
-    if (!tradelineKeySet.has(violation.tradelineKey)) {
-      errors.push(`violations[${idx}].tradelineKey not found in CanonicalReport.`);
+    if (tradelineKeySet.has(violation.tradelineKey)) {
+      return;
     }
+    const normalizedFromKey = normalizeTradelineKeyInput(violation.tradelineKey);
+    if (normalizedFromKey && tradelineKeySet.has(normalizedFromKey)) {
+      violation.tradelineKey = normalizedFromKey;
+      return;
+    }
+    if (violation.bureau && violation.furnisherName !== undefined) {
+      const normalizedFromFields = buildTradelineKey({
+        bureau: violation.bureau,
+        furnisherName: violation.furnisherName,
+        accountNumberMasked: violation.accountNumberMasked,
+      });
+      if (tradelineKeySet.has(normalizedFromFields)) {
+        violation.tradelineKey = normalizedFromFields;
+        return;
+      }
+    }
+    errors.push(`violations[${idx}].tradelineKey not found in CanonicalReport.`);
   });
   return errors;
+}
+
+function normalizeTradelineKeyInput(value) {
+  if (typeof value !== "string") return null;
+  const parts = value.split("|").map((part) => part.trim());
+  if (parts.length < 3) return null;
+  const [bureau, furnisherName, accountNumberMasked] = parts;
+  if (!bureau) return null;
+  return buildTradelineKey({
+    bureau,
+    furnisherName,
+    accountNumberMasked,
+  });
 }
 
 function extractOutputText(response) {
