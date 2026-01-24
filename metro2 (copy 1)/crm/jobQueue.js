@@ -11,7 +11,7 @@ const DEFAULT_CONCURRENCY = Number.parseInt(process.env.JOB_WORKER_CONCURRENCY |
 function buildRedisConfig() {
   const url = process.env.REDIS_URL || process.env.REDIS_TLS_URL;
   if (url) {
-    return url;
+    return { url, maxRetriesPerRequest: null };
   }
   const host = process.env.REDIS_HOST || process.env.REDIS_HOSTNAME;
   if (!host) return null;
@@ -24,6 +24,7 @@ function buildRedisConfig() {
     port,
     password,
     tls,
+    maxRetriesPerRequest: null,
   };
 }
 
@@ -33,7 +34,11 @@ let queueEnabled = false;
 
 if (connectionConfig) {
   try {
-    connection = new IORedis(connectionConfig);
+    if (connectionConfig.url) {
+      connection = new IORedis(connectionConfig.url, { maxRetriesPerRequest: connectionConfig.maxRetriesPerRequest });
+    } else {
+      connection = new IORedis(connectionConfig);
+    }
     queueEnabled = true;
     connection.on("error", (err) => {
       logWarn("QUEUE_CONNECTION_ERROR", err?.message || "Redis connection error");
