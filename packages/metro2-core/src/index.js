@@ -190,6 +190,20 @@ export function buildTradeline(bureaus, rows, meta = {}){
   if(!tl.meta.creditor){
     tl.meta.creditor = inferCreditorFromPerBureau(tl.per_bureau) || 'Unknown Creditor';
   }
+  for(const bureau of bureaus){
+    const data = tl.per_bureau[bureau];
+    if(!data) continue;
+    const accountNumber = data.account_number || data.accountNumber || '';
+    const furnisher = data.creditor_name || data.creditor || tl.meta.creditor || '';
+    data.tradelineKey = makeTradelineKey(bureau, furnisher, accountNumber);
+  }
+  for(const violation of tl.violations){
+    if(!violation || !violation.bureau) continue;
+    if(violation.tradelineKey) continue;
+    const data = tl.per_bureau[violation.bureau];
+    if(!data) continue;
+    violation.tradelineKey = data.tradelineKey;
+  }
   return tl;
 }
 
@@ -892,6 +906,30 @@ function sanitizeCreditor(value){
   const text = String(value).replace(/\s+/g, ' ').trim();
   if(!text) return '';
   return text;
+}
+
+function cleanAccountIdentifier(value){
+  if(value === undefined || value === null) return '';
+  return String(value)
+    .replace(/\s+/g, '')
+    .replace(/[^\w*]/g, '');
+}
+
+function normalizeBureauCode(value){
+  const normalized = normalizeBureau(value);
+  if(normalized === 'TransUnion') return 'TUC';
+  if(normalized === 'Experian') return 'EXP';
+  if(normalized === 'Equifax') return 'EQF';
+  const raw = (value || '').toString().trim().toUpperCase();
+  if(['TUC', 'EXP', 'EQF'].includes(raw)) return raw;
+  return raw || '';
+}
+
+function makeTradelineKey(bureau, furnisherName, accountNumberMasked){
+  const bureauCode = normalizeBureauCode(bureau);
+  const furnisher = sanitizeCreditor(furnisherName || '').toUpperCase();
+  const account = cleanAccountIdentifier(accountNumberMasked);
+  return `${bureauCode}|${furnisher}|${account}`;
 }
 
 export function isNonCreditorHeader(value){
