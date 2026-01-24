@@ -1817,9 +1817,11 @@ def _add_metro2_module_path(report_path: Path) -> None:
 
 def _load_metro2_parser(report_path: Path) -> Optional[Callable[[Any], Dict[str, Any]]]:
     _add_metro2_module_path(report_path)
-    spec = importlib.util.find_spec("metro2.parser")
-    if spec is None:
-        return None
+    util = getattr(importlib, "util", None)
+    if util is not None and hasattr(util, "find_spec"):
+        spec = util.find_spec("metro2.parser")
+        if spec is None:
+            return None
     module = importlib.import_module("metro2.parser")
     return getattr(module, "parse_client_portal_data", None)
 

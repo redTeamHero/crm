@@ -4423,7 +4423,8 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     const totalViolations = (analyzed.tradelines || []).reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
       + (analyzed.personal_mismatches?.length || 0)
       + (analyzed.inquiry_violations?.length || 0);
-    console.log("[Audit Success]", {
+    const auditFailed = errors.length > 0;
+    console.log(auditFailed ? "[Audit Failed]" : "[Audit Success]", {
       consumerId: consumer.id,
       reportId: rid,
       tradelines: analyzed.tradelines?.length || 0,
@@ -4432,6 +4433,10 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       basicRuleTradelines: diagnostics.basicRuleViolations,
       errors: errors.length,
     });
+    if (auditFailed) {
+      res.status(500).json({ ok: false, reportId: rid, creditScore: consumer.creditScore, errors, diagnostics });
+      return;
+    }
     res.json({ ok:true, reportId: rid, creditScore: consumer.creditScore, errors, diagnostics });
   }catch(e){
     logError("UPLOAD_PROCESSING_FAILED", "Analyzer error", e);
