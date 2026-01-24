@@ -55,7 +55,7 @@ function main() {
       personalInfo: report.personal_info || report.personalInfo || report.personal_information,
       personalInfoMismatches: report.personalInfoMismatches || report.personal_info_mismatches,
     };
-    const { items } = prepareNegativeItems(report.tradelines, extras);
+    const { items } = prepareNegativeItems(report.tradelines, extras, { includeLegacyRules: true });
     report.negative_items = items;
   } catch (err) {
     console.warn(`Failed to rebuild negative items: ${err.message}`);

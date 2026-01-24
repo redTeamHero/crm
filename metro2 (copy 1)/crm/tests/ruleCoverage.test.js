@@ -15,7 +15,7 @@ test('rule sample triggers every knowledge graph violation', () => {
   const report = JSON.parse(raw);
   const tradelines = Array.isArray(report.tradelines) ? report.tradelines : [];
 
-  const { items } = prepareNegativeItems(tradelines);
+  const { items } = prepareNegativeItems(tradelines, {}, { includeLegacyRules: true });
   const triggeredCodes = new Set();
   for (const item of items) {
     for (const violation of item.violations || []) {

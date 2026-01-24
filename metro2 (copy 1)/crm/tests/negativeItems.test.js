@@ -28,7 +28,7 @@ test('prepareNegativeItems keeps categories and selects highest severity headlin
     },
   ];
 
-  const { items } = prepareNegativeItems(tradelines);
+  const { items } = prepareNegativeItems(tradelines, {}, { includeLegacyRules: true });
   assert.equal(items.length, 1);
   const item = items[0];
   assert.equal(item.violations.length, 2);
@@ -67,7 +67,7 @@ test('prepareNegativeItems normalizes string severities from validation metadata
     },
   ];
 
-  const { items } = prepareNegativeItems(tradelines);
+  const { items } = prepareNegativeItems(tradelines, {}, { includeLegacyRules: true });
   assert.equal(items.length, 1);
   const [item] = items;
   assert.equal(item.severity, 4);
@@ -101,7 +101,7 @@ test('prepareNegativeItems builds masked bureau details with formatted values', 
     },
   ];
 
-  const { items } = prepareNegativeItems(tradelines);
+  const { items } = prepareNegativeItems(tradelines, {}, { includeLegacyRules: true });
   assert.equal(items.length, 1);
   const item = items[0];
   assert.ok(item.account_numbers.TransUnion.includes('67890') === false);
@@ -125,7 +125,7 @@ test('prepareNegativeItems appends inquiry summary when inquiries provided', () 
       { creditor: 'Amex', industry: 'Finance', date: '02/10/2024', bureau: 'Experian' },
     ],
     inquirySummary: { last12mo: 2, last24mo: 2 },
-  });
+  }, { includeLegacyRules: true });
   const inquiryItem = items.find(item => item.type === 'inquiries');
   assert.ok(inquiryItem, 'expected inquiry card');
   assert.equal(inquiryItem.violations.length, 2);
@@ -146,7 +146,7 @@ test('prepareNegativeItems appends personal info card with mismatches', () => {
       TransUnion: { name: 'Jane Doe', address: { addr1: '123 Main St' } },
     },
   };
-  const { items } = prepareNegativeItems([], extras);
+  const { items } = prepareNegativeItems([], extras, { includeLegacyRules: true });
   const personalItem = items.find(item => item.type === 'personal_info');
   assert.ok(personalItem, 'expected personal info card');
   assert.equal(personalItem.severity, 3);
@@ -161,11 +161,10 @@ test('prepareNegativeItems accepts snake_case personal_info extras', () => {
       current_addresses: '123 Main St, Miami, FL 33101',
     },
   };
-  const { items } = prepareNegativeItems([], extras);
+  const { items } = prepareNegativeItems([], extras, { includeLegacyRules: true });
   const personalItem = items.find(item => item.type === 'personal_info');
   assert.ok(personalItem, 'expected personal info card from personal_info extras');
   assert.equal(personalItem.severity, 1);
   assert.ok(Array.isArray(personalItem.violations) && personalItem.violations.length >= 3);
   assert.ok(personalItem.violations.every(v => v.bureaus && v.bureaus.length));
 });
-

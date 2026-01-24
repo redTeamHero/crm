@@ -50,6 +50,7 @@ export type PortalNegativeItem = {
   bureaus?: string[];
   balance?: number;
   account_numbers?: Record<string, string>;
+  tradelineKeys?: string[];
   metrics?: {
     violationCount?: number;
     maxSeverity?: number;

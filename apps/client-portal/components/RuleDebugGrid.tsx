@@ -8,6 +8,7 @@ type RuleDebugCopy = {
   ruleDebugTitle: string;
   ruleDebugSubtitle: string;
   ruleDebugBadge: string;
+  ruleDebugTotalLabel: string;
   ruleDebugEmpty: string;
   ruleDebugSeverity: string;
   ruleDebugCreditor: string;
@@ -73,6 +74,7 @@ export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
       ) || []
     );
   }, [groups]);
+  const totalValidations = flatCards.length;
 
   const handleToggle = (id: string) => {
     setExpanded((prev) => ({
@@ -90,6 +92,9 @@ export default function RuleDebugGrid({ groups, copy }: RuleDebugGridProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="badge">{copy.ruleDebugBadge}</span>
+          <span className="badge">
+            {copy.ruleDebugTotalLabel}: {totalValidations}
+          </span>
           <div className="flex items-center rounded-full bg-slate-100 p-1 text-xs font-semibold text-slate-600">
             <button
               type="button"
