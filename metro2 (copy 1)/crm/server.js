@@ -2958,9 +2958,23 @@ function attachViolationsToTradelines(tradelines = [], violations = []) {
     });
   });
 
+  let attachedCount = 0;
+  let skippedCount = 0;
+  const missingKeys = new Set();
+  const missingSampleKeys = [];
+
   violations.forEach((violation) => {
     const key = violation?.tradelineKey;
-    if (!key || !keyToIndex.has(key)) return;
+    if (!key || !keyToIndex.has(key)) {
+      skippedCount += 1;
+      if (key && !missingKeys.has(key)) {
+        missingKeys.add(key);
+        if (missingSampleKeys.length < 5) {
+          missingSampleKeys.push(key);
+        }
+      }
+      return;
+    }
     const targetIndex = keyToIndex.get(key);
     const tl = tradelines[targetIndex];
     if (!tl) return;
@@ -2980,7 +2994,14 @@ function attachViolationsToTradelines(tradelines = [], violations = []) {
     tl.violations.push(entry);
     if (!tl.violations_grouped.LLM) tl.violations_grouped.LLM = [];
     tl.violations_grouped.LLM.push(entry);
+    attachedCount += 1;
   });
+
+  return {
+    attachedCount,
+    skippedCount,
+    missingSampleKeys,
+  };
 }
 
 async function runLLMAnalyzer({ buffer, filename }) {
@@ -2998,13 +3019,14 @@ async function runLLMAnalyzer({ buffer, filename }) {
   const auditResult = await auditCanonicalReport(canonicalReport);
   const violations = auditResult.violations || [];
   const tradelines = canonicalToTradelines(canonicalReport);
-  attachViolationsToTradelines(tradelines, violations);
+  const attachStats = attachViolationsToTradelines(tradelines, violations);
   return {
     canonicalReport,
     violations,
     auditRawCount: auditResult.rawCount ?? violations.length,
     tradelines,
     personalInfo: mapCanonicalIdentityToPersonalInfo(canonicalReport.identity),
+    attachStats,
   };
 }
 
@@ -4694,6 +4716,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       diagnostics.llmViolationCount = llmResult.violations.length;
       diagnostics.llmAuditRawCount = llmResult.auditRawCount ?? llmResult.violations.length;
       diagnostics.llmParseSource = llmResult?.canonicalReport?.reportMeta?.provider || null;
+      diagnostics.llmAttachment = llmResult.attachStats || null;
       analyzed.tradelines = llmResult.tradelines;
       analyzed.canonical_report = llmResult.canonicalReport;
       analyzed.llm_violations = llmResult.violations;
@@ -4712,6 +4735,12 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       console.log("[LLM Audit Saved]", {
         consumerId: consumer.id,
         count: diagnostics.llmViolationCount,
+      });
+      console.log("[LLM Audit Attach]", {
+        consumerId: consumer.id,
+        attached: llmResult.attachStats?.attachedCount ?? 0,
+        skipped: llmResult.attachStats?.skippedCount ?? 0,
+        sampleMissingKeys: llmResult.attachStats?.missingSampleKeys || [],
       });
       console.log("[LLM Audit Keys]", {
         tradelineKeys: tradelineKeys.slice(0, 5),
