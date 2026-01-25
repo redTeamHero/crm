@@ -3004,12 +3004,28 @@ function attachViolationsToTradelines(tradelines = [], violations = []) {
   };
 }
 
-const REQUIRED_FIELD_RULES_PATH = path.resolve(__dirname, "..", "..", "..", "rules", "required-field.rules.json");
+const REQUIRED_FIELD_RULES_PATHS = [
+  process.env.REQUIRED_FIELD_RULES_PATH,
+  path.resolve(__dirname, "..", "..", "..", "rules", "required-field.rules.json"),
+  path.resolve(process.cwd(), "rules", "required-field.rules.json"),
+  path.resolve(process.cwd(), "..", "rules", "required-field.rules.json"),
+  path.resolve(process.cwd(), "..", "..", "rules", "required-field.rules.json"),
+].filter(Boolean);
+
+function resolveRequiredFieldRulesPath() {
+  return REQUIRED_FIELD_RULES_PATHS.find((candidate) => fs.existsSync(candidate)) || null;
+}
 let requiredFieldRulesCache = null;
 
 function loadRequiredFieldRules() {
   if (requiredFieldRulesCache) return requiredFieldRulesCache;
-  const raw = fs.readFileSync(REQUIRED_FIELD_RULES_PATH, "utf-8");
+  const resolvedPath = resolveRequiredFieldRulesPath();
+  if (!resolvedPath) {
+    console.warn("Required field rules file not found; skipping LLM required-field checks.");
+    requiredFieldRulesCache = [];
+    return requiredFieldRulesCache;
+  }
+  const raw = fs.readFileSync(resolvedPath, "utf-8");
   const parsed = JSON.parse(raw);
   requiredFieldRulesCache = Array.isArray(parsed?.rules) ? parsed.rules : [];
   return requiredFieldRulesCache;
