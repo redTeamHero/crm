@@ -2983,6 +2983,142 @@ function attachViolationsToTradelines(tradelines = [], violations = []) {
   });
 }
 
+const REQUIRED_FIELD_RULES_PATH = path.resolve(__dirname, "..", "..", "..", "rules", "required-field.rules.json");
+let requiredFieldRulesCache = null;
+
+function loadRequiredFieldRules() {
+  if (requiredFieldRulesCache) return requiredFieldRulesCache;
+  const raw = fs.readFileSync(REQUIRED_FIELD_RULES_PATH, "utf-8");
+  const parsed = JSON.parse(raw);
+  requiredFieldRulesCache = Array.isArray(parsed?.rules) ? parsed.rules : [];
+  return requiredFieldRulesCache;
+}
+
+function normalizeRuleValue(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed.toLowerCase() : null;
+  }
+  return value;
+}
+
+function matchesRuleCondition(fieldValue, condition) {
+  const normalizedValue = normalizeRuleValue(fieldValue);
+  if (Array.isArray(condition)) {
+    return condition.some((option) => {
+      const normalizedOption = normalizeRuleValue(option);
+      if (normalizedValue === normalizedOption) return true;
+      if (typeof normalizedValue === "string" && typeof normalizedOption === "string") {
+        return normalizedValue.includes(normalizedOption);
+      }
+      return false;
+    });
+  }
+  if (condition === null) {
+    return normalizedValue === null;
+  }
+  if (typeof condition === "string") {
+    const normalizedOption = normalizeRuleValue(condition);
+    if (normalizedValue === normalizedOption) return true;
+    if (typeof normalizedValue === "string" && typeof normalizedOption === "string") {
+      return normalizedValue.includes(normalizedOption);
+    }
+    return false;
+  }
+  return normalizedValue === condition;
+}
+
+function appliesRule(rule = {}, tradeline = {}) {
+  const when = rule.applies_when || {};
+  return Object.entries(when).every(([field, condition]) =>
+    matchesRuleCondition(tradeline[field], condition)
+  );
+}
+
+function failsRule(rule = {}, tradeline = {}) {
+  const checks = rule.fails_when || {};
+  return Object.entries(checks).every(([field, condition]) =>
+    matchesRuleCondition(tradeline[field], condition)
+  );
+}
+
+function mapRequiredFieldSeverity(value) {
+  const key = String(value || "").trim().toLowerCase();
+  const mapping = {
+    deletion_eligible: 4,
+    correction_or_deletion: 3,
+    correction_required: 2,
+  };
+  return mapping[key] ?? 1;
+}
+
+function buildRequiredFieldPayload(entry = {}) {
+  return {
+    account_number: entry.account_number ?? null,
+    account_status: entry.account_status ?? null,
+    payment_status: entry.payment_status ?? null,
+    balance: entry.balance ?? null,
+    credit_limit: entry.credit_limit ?? null,
+    high_credit: entry.high_credit ?? null,
+    date_opened: entry.date_opened ?? null,
+    date_last_payment: entry.last_payment ?? entry.date_last_payment ?? null,
+    date_of_first_delinquency: entry.date_first_delinquency ?? entry.date_of_first_delinquency ?? null,
+    last_reported: entry.last_reported ?? null,
+    comments: entry.comments ?? null,
+  };
+}
+
+function attachRequiredFieldViolations(tradelines = []) {
+  const rules = loadRequiredFieldRules();
+  const violations = [];
+  const ruleViolations = Array.isArray(rules) ? rules : [];
+
+  tradelines.forEach((tl) => {
+    if (!tl || typeof tl !== "object") return;
+    tl.violations = Array.isArray(tl.violations) ? tl.violations : [];
+    tl.violations_grouped = tl.violations_grouped || {};
+    const existingKeys = new Set(
+      tl.violations
+        .map((entry) => entry?.instanceKey || entry?.code || entry?.id)
+        .filter(Boolean)
+    );
+    const perBureau = tl.per_bureau || {};
+    for (const [bureau, data] of Object.entries(perBureau)) {
+      if (!data || typeof data !== "object" || data.present === false) continue;
+      const payload = buildRequiredFieldPayload(data);
+      for (const rule of ruleViolations) {
+        if (!appliesRule(rule, payload)) continue;
+        if (!failsRule(rule, payload)) continue;
+        const tradelineKey = data.tradelineKey || null;
+        const instanceKey = [tradelineKey, rule.code].filter(Boolean).join("|");
+        if (instanceKey && existingKeys.has(instanceKey)) continue;
+        if (instanceKey) existingKeys.add(instanceKey);
+        const entry = {
+          id: rule.code,
+          code: rule.code,
+          title: rule.explanation,
+          detail: rule.explanation,
+          category: rule.category || "required_field_validation",
+          severity: mapRequiredFieldSeverity(rule.severity),
+          bureau,
+          bureaus: [bureau],
+          fcraSection: Array.isArray(rule.fcra) ? rule.fcra.join(", ") : "",
+          tradelineKey,
+          instanceKey,
+          source: "required_field",
+        };
+        tl.violations.push(entry);
+        if (!tl.violations_grouped.required_field) tl.violations_grouped.required_field = [];
+        tl.violations_grouped.required_field.push(entry);
+        violations.push(entry);
+      }
+    }
+  });
+
+  return violations;
+}
+
 async function runLLMAnalyzer({ buffer, filename }) {
   const { text, source } = await extractReportText({ buffer, filename });
   if (!text || !text.trim()) {
@@ -2999,9 +3135,12 @@ async function runLLMAnalyzer({ buffer, filename }) {
   const violations = auditResult.violations || [];
   const tradelines = canonicalToTradelines(canonicalReport);
   attachViolationsToTradelines(tradelines, violations);
+  const requiredFieldViolations = attachRequiredFieldViolations(tradelines);
   return {
     canonicalReport,
     violations,
+    requiredFieldViolations,
+    requiredFieldCount: requiredFieldViolations.length,
     auditRawCount: auditResult.rawCount ?? violations.length,
     tradelines,
     personalInfo: mapCanonicalIdentityToPersonalInfo(canonicalReport.identity),
@@ -4693,11 +4832,13 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       diagnostics.llmTradelineCount = llmResult.tradelines.length;
       diagnostics.llmViolationCount = llmResult.violations.length;
       diagnostics.llmAuditRawCount = llmResult.auditRawCount ?? llmResult.violations.length;
+      diagnostics.requiredFieldViolationCount = llmResult.requiredFieldCount ?? 0;
       diagnostics.llmParseSource = llmResult?.canonicalReport?.reportMeta?.provider || null;
       analyzed.tradelines = llmResult.tradelines;
       analyzed.canonical_report = llmResult.canonicalReport;
       analyzed.llm_violations = llmResult.violations;
       analyzed.violations = llmResult.violations;
+      analyzed.required_field_violations = llmResult.requiredFieldViolations;
       analyzed.personalInfo = llmResult.personalInfo;
       analyzed.status = "analyzed";
 
@@ -4712,6 +4853,10 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       console.log("[LLM Audit Saved]", {
         consumerId: consumer.id,
         count: diagnostics.llmViolationCount,
+      });
+      console.log("[Required Field Audit]", {
+        consumerId: consumer.id,
+        count: diagnostics.requiredFieldViolationCount,
       });
       console.log("[LLM Audit Keys]", {
         tradelineKeys: tradelineKeys.slice(0, 5),
