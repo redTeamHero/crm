@@ -3156,6 +3156,7 @@ async function runLLMAnalyzer({ buffer, filename }) {
   const violations = auditResult.violations || [];
   const tradelines = canonicalToTradelines(canonicalReport);
   const attachStats = attachViolationsToTradelines(tradelines, violations);
+  const requiredFieldViolations = attachRequiredFieldViolations(tradelines);
   return {
     canonicalReport,
     violations,
