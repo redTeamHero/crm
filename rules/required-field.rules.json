@@ -181,6 +181,201 @@
         "comments": null
       },
       "explanation": "The collection or charge-off account does not include explanatory comments required to clarify status and disposition."
+    },
+    {
+      "code": "balance_status_impossible",
+      "category": "logical_inconsistency",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "account_status": [
+          "Paid",
+          "Closed"
+        ]
+      },
+      "fails_when": {
+        "balance": {
+          "gt": 0
+        }
+      },
+      "explanation": "The account reports a positive balance while simultaneously reporting a paid or closed status, which is logically inconsistent and misleading."
+    },
+    {
+      "code": "collection_reported_open",
+      "category": "logical_inconsistency",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "payment_status": [
+          "Collection",
+          "Chargeoff"
+        ]
+      },
+      "fails_when": {
+        "account_status": "Open"
+      },
+      "explanation": "A collection or charge-off account is reported as open, which misrepresents the nature and risk of the account."
+    },
+    {
+      "code": "high_credit_less_than_balance",
+      "category": "logical_inconsistency",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "balance": {
+          "gt": 0
+        }
+      },
+      "fails_when": {
+        "high_credit": {
+          "lt": "balance"
+        }
+      },
+      "explanation": "The reported balance exceeds the high credit amount, which is not possible and indicates inaccurate reporting."
+    },
+    {
+      "code": "obsolete_account_reporting",
+      "category": "legal_timeline",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681c(a)(4)"
+      ],
+      "applies_when": {
+        "date_of_first_delinquency": {
+          "exists": true
+        }
+      },
+      "fails_when": {
+        "date_of_first_delinquency": {
+          "older_than_years": 7
+        }
+      },
+      "explanation": "The account is reporting beyond the maximum permissible reporting period under the FCRA."
+    },
+    {
+      "code": "dofd_after_open_date",
+      "category": "legal_timeline",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681c(a)(4)",
+        "15 U.S.C. §1681s-2(a)(5)"
+      ],
+      "applies_when": {
+        "date_opened": {
+          "exists": true
+        },
+        "date_of_first_delinquency": {
+          "exists": true
+        }
+      },
+      "fails_when": {
+        "date_of_first_delinquency": {
+          "after": "date_opened"
+        }
+      },
+      "explanation": "The Date of First Delinquency occurs after the account opening date, indicating potential re-aging or inaccurate reporting."
+    },
+    {
+      "code": "chargeoff_continues_reporting",
+      "category": "metro2_semantic",
+      "severity": "correction_or_deletion",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "payment_status": [
+          "Chargeoff"
+        ]
+      },
+      "fails_when": {
+        "last_reported": {
+          "updates_monthly": true
+        }
+      },
+      "explanation": "The account is charged off but continues to update as if active, which misrepresents its status."
+    },
+    {
+      "code": "comment_core_field_conflict",
+      "category": "metro2_semantic",
+      "severity": "correction_or_deletion",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "comments": {
+          "exists": true
+        }
+      },
+      "fails_when": {
+        "comments": {
+          "conflicts_with": [
+            "account_status",
+            "payment_status"
+          ]
+        }
+      },
+      "explanation": "Narrative comments contradict core account fields, creating misleading and inconsistent reporting."
+    },
+    {
+      "code": "high_credit_equals_collection_balance",
+      "category": "metro2_semantic",
+      "severity": "correction_required",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "payment_status": [
+          "Collection"
+        ]
+      },
+      "fails_when": {
+        "high_credit": {
+          "equals": "balance"
+        }
+      },
+      "explanation": "High Credit improperly reflects the collection balance instead of the original credit amount, contrary to Metro 2 standards."
+    },
+    {
+      "code": "missing_furnisher_identity",
+      "category": "ownership_validation",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681e(b)",
+        "15 U.S.C. §1681i(a)(1)(A)"
+      ],
+      "applies_when": {
+        "account_status": [
+          "Collection",
+          "Chargeoff"
+        ]
+      },
+      "fails_when": {
+        "furnisher_name": null
+      },
+      "explanation": "The reporting entity is not clearly identified, preventing verification of ownership or authority to report."
+    },
+    {
+      "code": "duplicate_debt_indicator",
+      "category": "ownership_validation",
+      "severity": "deletion_eligible",
+      "fcra": [
+        "15 U.S.C. §1681e(b)"
+      ],
+      "applies_when": {
+        "original_creditor": {
+          "exists": true
+        }
+      },
+      "fails_when": {
+        "duplicate_amount_detected": true
+      },
+      "explanation": "Multiple tradelines appear to represent the same debt obligation, resulting in duplicate reporting."
     }
   ]
 }
