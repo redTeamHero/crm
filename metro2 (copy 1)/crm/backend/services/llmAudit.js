@@ -121,52 +121,62 @@ function pathExists(root, path) {
   return true;
 }
 
-function validateEvidencePaths(violations = [], report = {}) {
-  const errors = [];
-  violations.forEach((violation, idx) => {
-    if (!Array.isArray(violation.evidencePaths)) {
-      errors.push(`violations[${idx}].evidencePaths must be an array.`);
-      return;
+function validateEvidencePaths(violation, report = {}) {
+  if (!Array.isArray(violation.evidencePaths)) {
+    return { valid: false, error: "evidencePaths must be an array." };
+  }
+  for (const path of violation.evidencePaths) {
+    if (!pathExists(report, path)) {
+      return { valid: false, error: `evidencePaths missing path: ${path}` };
     }
-    violation.evidencePaths.forEach((path) => {
-      if (!pathExists(report, path)) {
-        errors.push(`violations[${idx}].evidencePaths missing path: ${path}`);
-      }
-    });
-  });
-  return errors;
+  }
+  return { valid: true };
 }
 
-function validateTradelineKeys(violations = [], report = {}) {
+function validateTradelineKey(violation, tradelineKeySet) {
+  if (!violation.tradelineKey) {
+    return { valid: false, error: "tradelineKey required." };
+  }
+  if (tradelineKeySet.has(violation.tradelineKey)) {
+    return { valid: true };
+  }
+  const normalizedFromKey = normalizeTradelineKeyInput(violation.tradelineKey);
+  if (normalizedFromKey && tradelineKeySet.has(normalizedFromKey)) {
+    violation.tradelineKey = normalizedFromKey;
+    return { valid: true };
+  }
+  if (violation.bureau && violation.furnisherName !== undefined) {
+    const normalizedFromFields = buildTradelineKey({
+      bureau: violation.bureau,
+      furnisherName: violation.furnisherName,
+      accountNumberMasked: violation.accountNumberMasked,
+    });
+    if (tradelineKeySet.has(normalizedFromFields)) {
+      violation.tradelineKey = normalizedFromFields;
+      return { valid: true };
+    }
+  }
+  return { valid: false, error: "tradelineKey not found in CanonicalReport." };
+}
+
+function filterValidViolations(violations = [], report = {}) {
   const errors = [];
   const tradelineKeySet = new Set(collectTradelineKeys(report));
+  const validViolations = [];
   violations.forEach((violation, idx) => {
-    if (!violation.tradelineKey) {
-      errors.push(`violations[${idx}].tradelineKey required.`);
+    const evidenceCheck = validateEvidencePaths(violation, report);
+    if (!evidenceCheck.valid) {
+      errors.push(`violations[${idx}].${evidenceCheck.error}`);
       return;
     }
-    if (tradelineKeySet.has(violation.tradelineKey)) {
+    const tradelineCheck = validateTradelineKey(violation, tradelineKeySet);
+    if (!tradelineCheck.valid) {
+      errors.push(`violations[${idx}].${tradelineCheck.error}`);
       return;
     }
-    const normalizedFromKey = normalizeTradelineKeyInput(violation.tradelineKey);
-    if (normalizedFromKey && tradelineKeySet.has(normalizedFromKey)) {
-      violation.tradelineKey = normalizedFromKey;
-      return;
-    }
-    if (violation.bureau && violation.furnisherName !== undefined) {
-      const normalizedFromFields = buildTradelineKey({
-        bureau: violation.bureau,
-        furnisherName: violation.furnisherName,
-        accountNumberMasked: violation.accountNumberMasked,
-      });
-      if (tradelineKeySet.has(normalizedFromFields)) {
-        violation.tradelineKey = normalizedFromFields;
-        return;
-      }
-    }
-    errors.push(`violations[${idx}].tradelineKey not found in CanonicalReport.`);
+    validViolations.push(violation);
   });
-  return errors;
+  return { validViolations, errors };
 }
 
 function normalizeTradelineKeyInput(value) {
@@ -245,16 +255,15 @@ export async function auditCanonicalReport(report, { model } = {}) {
   }
 
   const violations = Array.isArray(parsed.violations) ? parsed.violations : [];
-  const evidenceErrors = validateEvidencePaths(violations, report);
-  const tradelineErrors = validateTradelineKeys(violations, report);
-  if (evidenceErrors.length || tradelineErrors.length) {
-    throw new Error(
-      `LLM audit validation failed: ${[...evidenceErrors, ...tradelineErrors].join("; ")}`
+  const { validViolations, errors } = filterValidViolations(violations, report);
+  if (errors.length) {
+    console.warn(
+      `LLM audit validation filtered ${errors.length} violation(s): ${errors.join("; ")}`
     );
   }
 
   return {
-    violations: violations.slice(0, 50).map((violation) => ({
+    violations: validViolations.slice(0, 50).map((violation) => ({
       ...violation,
       instanceKey: buildViolationInstanceKey(violation),
     })),
