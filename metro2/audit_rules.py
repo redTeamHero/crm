@@ -141,6 +141,13 @@ PAST_DUE_DATE_FIELDS: Sequence[str] = (
     "date_past_due",
 )
 
+DISPUTE_DATE_FIELDS: Sequence[str] = (
+    "dispute_date",
+    "date_of_dispute",
+    "date_disputed",
+    "dispute_filed_date",
+)
+
 SCHEDULED_PAYMENT_FIELDS: Sequence[str] = (
     "scheduled_payment_amount",
     "scheduled_monthly_payment",
@@ -182,6 +189,10 @@ def _get_past_due_date(record: Mapping[str, Any]) -> date | None:
     return parse_date(_first_value(record, PAST_DUE_DATE_FIELDS))
 
 
+def _get_dispute_date(record: Mapping[str, Any]) -> date | None:
+    return parse_date(_first_value(record, DISPUTE_DATE_FIELDS))
+
+
 def _get_scheduled_payment_amount(record: Mapping[str, Any]) -> float:
     return clean_amount(_first_value(record, SCHEDULED_PAYMENT_FIELDS))
 
@@ -195,6 +206,15 @@ def _boolish(value: Any) -> bool:
         return value
     text = str(value or "").strip().lower()
     return text in {"1", "true", "yes", "y", "open", "active", "dispute"}
+
+
+def _falseyish(value: Any) -> bool:
+    if value is False:
+        return True
+    if value is None:
+        return False
+    text = str(value).strip().lower()
+    return text in {"0", "false", "no", "n"}
 
 
 def _payment_history_entries(record: Mapping[str, Any]) -> List[Mapping[str, Any]]:
@@ -217,6 +237,51 @@ def _payment_history_entries(record: Mapping[str, Any]) -> List[Mapping[str, Any
 
 
 MATCH_SCORE_THRESHOLD = 80
+
+
+LATE_PAYMENT_MARKERS = (
+    "late",
+    "delin",
+    "collection",
+    "charge",
+    "past due",
+    "repos",
+    "derog",
+    "30",
+    "60",
+    "90",
+    "120",
+    "150",
+    "180",
+)
+
+
+def _payment_history_has_late(record: Mapping[str, Any]) -> bool:
+    for entry in _payment_history_entries(record):
+        status = _normalize_status(entry.get("status") or entry.get("payment_status"))
+        if not status:
+            continue
+        if any(marker in status for marker in LATE_PAYMENT_MARKERS):
+            return True
+    return False
+
+
+def _has_prior_dispute(record: Mapping[str, Any]) -> bool:
+    dispute_fields = (
+        "prior_dispute",
+        "prior_dispute_flag",
+        "previous_dispute",
+        "prior_dispute_date",
+        "prior_dispute_status",
+        "dispute_flag",
+        "dispute_status",
+        "account_in_dispute",
+        "remark_dispute",
+    )
+    for key in dispute_fields:
+        if _boolish(record.get(key)):
+            return True
+    return False
 
 
 def group_by_creditor(
@@ -439,7 +504,7 @@ def normalize_tradeline(record: MutableMapping[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 
 
-RULE_METADATA: Dict[str, Dict[str, str]] = {
+RULE_METADATA: Dict[str, Dict[str, Any]] = {
     "MISSING_OPEN_DATE": {
         "severity": "moderate",
         "fcra_section": "FCRA §611(a)(1)",
@@ -542,6 +607,54 @@ RULE_METADATA: Dict[str, Dict[str, str]] = {
         "fcra_section": "FCRA §623(a)(5) / §605(a)(4)",
         "category": "required_field_validation",
     },
+    "balance_reporting_without_post_chargeoff_activity": {
+        "severity": "major",
+        "fcra_section": "FCRA §1681e(b) / §1681s-2(a)(1)(A)",
+        "category": "factual_dispute",
+        "requires": ["comparison", "timeline"],
+    },
+    "open_account_reported_in_collection": {
+        "severity": "major",
+        "fcra_section": "FCRA §1681e(b)",
+        "category": "factual_dispute",
+        "requires": ["comparison"],
+    },
+    "cross_bureau_balance_conflict": {
+        "severity": "major",
+        "fcra_section": "FCRA §1681e(b) / §1681i(a)(1)(A)",
+        "category": "factual_dispute",
+        "requires": ["comparison"],
+    },
+    "dofd_precedes_date_opened": {
+        "severity": "major",
+        "fcra_section": "FCRA §1681c(a)(4) / §1681e(b)",
+        "category": "factual_dispute",
+        "requires": ["comparison", "timeline"],
+    },
+    "payment_history_status_conflict": {
+        "severity": "moderate",
+        "fcra_section": "FCRA §1681e(b)",
+        "category": "factual_dispute",
+        "requires": ["comparison"],
+    },
+    "post_dispute_update_no_correction": {
+        "severity": "major",
+        "fcra_section": "FCRA §1681i(a)(5)(A)",
+        "category": "factual_dispute",
+        "requires": ["comparison", "timeline"],
+    },
+    "collection_reaging_detected": {
+        "severity": "major",
+        "fcra_section": "FCRA §1681c(a)(4) / §1681s-2(a)(5)",
+        "category": "factual_dispute",
+        "requires": ["comparison", "timeline"],
+    },
+    "consumer_denies_account_ownership": {
+        "severity": "major",
+        "fcra_section": "FCRA §1681i(a)(1)(A)",
+        "category": "factual_dispute",
+        "requires": ["consumer_assertion"],
+    },
 }
 
 
@@ -557,6 +670,8 @@ def _attach_violation(
     }
     if "category" in meta:
         violation["category"] = meta["category"]
+    if "requires" in meta:
+        violation["requires"] = meta["requires"]
     if extra:
         violation.update(extra)
     record.setdefault("violations", []).append(violation)
@@ -593,6 +708,7 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
             continue
 
         balances = {clean_amount(r.get("balance")) for r in records if r.get("balance")}
+        bureaus = {r.get("bureau") for r in records if r.get("bureau")}
         statuses = {str(r.get("account_status") or "").strip().lower() for r in records if r.get("account_status")}
         open_dates = {str(r.get("date_opened") or "").strip() for r in records if r.get("date_opened")}
         last_payments = {dt for r in records if (dt := _get_last_payment_date(r))}
@@ -613,6 +729,12 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
         if len(balances) > 1:
             for r in records:
                 _attach_violation(r, "BALANCE_MISMATCH", "Balance mismatch across bureaus")
+                if len(bureaus) > 1:
+                    _attach_violation(
+                        r,
+                        "cross_bureau_balance_conflict",
+                        "Balance differs across consumer reporting agencies",
+                    )
 
         if len(statuses) > 1:
             for r in records:
@@ -886,6 +1008,108 @@ def audit_balance_status_conflict(tradelines: Iterable[MutableMapping[str, Any]]
                 "balance_status_conflict",
                 "Positive balance reported alongside a paid/closed status",
             )
+
+
+def audit_factual_disputes(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        payment_status = _normalize_status(record.get("payment_status"))
+        balance = clean_amount(record.get("balance"))
+        chargeoff_date = _get_chargeoff_date(record)
+        last_payment = _get_last_payment_date(record)
+        dofd = _get_dofd(record)
+        date_opened = parse_date(record.get("date_opened"))
+        last_reported = parse_date(record.get("last_reported") or record.get("date_last_reported"))
+        dispute_date = _get_dispute_date(record)
+
+        if chargeoff_date and balance > 0 and ("charge" in status or "charge" in payment_status):
+            post_chargeoff_activity = []
+            for entry in _payment_history_entries(record):
+                hist_date = parse_date(entry.get("date"))
+                if hist_date and hist_date > chargeoff_date:
+                    post_chargeoff_activity.append(hist_date)
+            has_post_chargeoff_payment = last_payment and last_payment > chargeoff_date
+            if not post_chargeoff_activity and not has_post_chargeoff_payment:
+                _attach_violation(
+                    record,
+                    "balance_reporting_without_post_chargeoff_activity",
+                    "Balance reported after charge-off without post-charge-off activity",
+                )
+
+        if "open" in status and (
+            any(keyword in payment_status for keyword in ("collection", "charge"))
+            or "collection" in status
+            or _account_type_bucket(record) == "collection"
+        ):
+            _attach_violation(
+                record,
+                "open_account_reported_in_collection",
+                "Account reported as open while also marked for collection/charge-off",
+            )
+
+        if dofd and date_opened and dofd < date_opened:
+            _attach_violation(
+                record,
+                "dofd_precedes_date_opened",
+                "Date of First Delinquency precedes Date Opened",
+            )
+
+        if _payment_history_has_late(record) and (
+            "current" in status or "current" in payment_status
+        ):
+            _attach_violation(
+                record,
+                "payment_history_status_conflict",
+                "Payment history shows late activity while account is reported current",
+            )
+
+        if _has_prior_dispute(record) and dispute_date and last_reported and last_reported > dispute_date:
+            material_fields_changed = record.get("material_fields_changed")
+            if material_fields_changed is None:
+                material_fields_changed = record.get("material_fields_change") or record.get("material_fields_updated")
+            if _falseyish(material_fields_changed):
+                _attach_violation(
+                    record,
+                    "post_dispute_update_no_correction",
+                    "Account updated after dispute with no material corrections noted",
+                )
+
+        reaging_flag = None
+        for key in (
+            "date_of_first_delinquency_changed",
+            "date_first_delinquency_changed",
+            "dofd_changed",
+            "changed_after_collection",
+        ):
+            if key in record:
+                reaging_flag = record.get(key)
+                break
+        if reaging_flag is not None and _boolish(reaging_flag):
+            bucket = _account_type_bucket(record)
+            if (
+                bucket == "collection"
+                or "collection" in status
+                or any(keyword in payment_status for keyword in ("collection", "charge"))
+            ):
+                _attach_violation(
+                    record,
+                    "collection_reaging_detected",
+                    "Collection account indicates a changed DOFD after entering collection",
+                )
+
+        consumer_assertion = _normalize_status(record.get("consumer_assertion") or record.get("consumer_assertions"))
+        if consumer_assertion in {"not_mine", "not my account", "not my", "notmine"}:
+            ownership_proof = (
+                record.get("ownership_proof")
+                or record.get("ownership_verification")
+                or record.get("ownership_documents")
+            )
+            if not ownership_proof:
+                _attach_violation(
+                    record,
+                    "consumer_denies_account_ownership",
+                    "Consumer disputes ownership without supporting verification",
+                )
 
 
 def audit_comment_field_conflict(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
@@ -1590,6 +1814,7 @@ AUDIT_FUNCTIONS = [
     audit_dofd_integrity,
     audit_collection_status_inconsistent,
     audit_balance_status_conflict,
+    audit_factual_disputes,
     audit_comment_field_conflict,
     audit_collection_high_credit,
     audit_chargeoff_continues_reporting,
