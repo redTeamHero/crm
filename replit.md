@@ -42,6 +42,10 @@ npm run dev
 - Various API keys for integrations (Stripe, OpenAI, etc.)
 
 ## Recent Changes
+- 2026-01-30: Fixed coach button collapse and question handling
+  - Removed undefined `syncTourWidget()` call that caused JavaScript errors
+  - Fixed module script initialization - now properly handles deferred module loading
+  - Added debug logging to verify coach panel wiring (can be removed after testing)
 - 2026-01-30: Fixed bank name extraction in tradeline scraper
   - Added isLikelyCurrency() function to detect currency-formatted strings
   - Updated all fallback paths in extractBankAndStatement and parseDataAttributeRows

@@ -1369,7 +1369,8 @@ function createDetailModal(){
     }
   };
 }
-document.addEventListener('DOMContentLoaded', () => {
+function initDashboard() {
+  console.log('[Dashboard] initDashboard called');
   confettiTarget = document.getElementById('confetti');
   const goalBtn = document.getElementById('btnGoal');
   if(goalBtn){
@@ -1588,6 +1589,15 @@ document.addEventListener('DOMContentLoaded', () => {
   chatState.categories = document.getElementById('guideChatCategories');
   chatState.prompts = document.getElementById('guideChatPrompts');
   const moneybagToggle = document.getElementById('guideChatMoneyToggle');
+  
+  console.log('[Coach] Elements found:', {
+    panel: !!chatState.panel,
+    toggle: !!chatState.toggle,
+    close: !!chatState.close,
+    form: !!chatState.form,
+    input: !!chatState.input
+  });
+  
   initChatPromptMenu();
 
   const openGrowthNavigator = () => {
@@ -1617,17 +1627,28 @@ document.addEventListener('DOMContentLoaded', () => {
     items.forEach(msg => appendChatMessage(msg.role, msg.content, { html: msg.html }));
   }
 
-  chatState.toggle?.addEventListener('click', () => openChatCoach());
-  moneybagToggle?.addEventListener('click', () => openChatCoach());
-  chatState.close?.addEventListener('click', () => closeChatCoach());
+  chatState.toggle?.addEventListener('click', () => {
+    console.log('[Coach] Toggle clicked');
+    openChatCoach();
+  });
+  moneybagToggle?.addEventListener('click', () => {
+    console.log('[Coach] Moneybag clicked');
+    openChatCoach();
+  });
+  chatState.close?.addEventListener('click', () => {
+    console.log('[Coach] Close clicked');
+    closeChatCoach();
+  });
   chatState.tour?.addEventListener('click', () => {
     openChatCoach({ focusInput: false });
     startTour({ resume: false });
   });
   chatState.form?.addEventListener('submit', (event) => {
     event.preventDefault();
+    console.log('[Coach] Form submitted');
     if(!chatState.input) return;
     const value = chatState.input.value.trim();
+    console.log('[Coach] Message value:', value);
     chatState.input.value = '';
     if(value) sendChatMessage(value);
   });
@@ -1918,9 +1939,13 @@ document.addEventListener('DOMContentLoaded', () => {
       renderClientLocationChart([]);
     }
   })();
+}
 
-  syncTourWidget();
-});
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  initDashboard();
+}
 
 window.addEventListener('crm:tutorial-request', (event) => {
   const mode = event?.detail?.mode || 'start';
