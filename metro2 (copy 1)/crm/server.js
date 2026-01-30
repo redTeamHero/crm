@@ -7101,45 +7101,39 @@ async function runDiyAudit({ reportId, userId }) {
   }
 
   let violations = [];
-  const context = { mode: 'DIY', userId, tenantId: null };
+  const auditDetails = {
+    source: null,
+    violationCount: 0,
+    error: null
+  };
 
   try {
-    if (ext === '.html' || ext === '.htm') {
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-      const tradelines = scrapeTradelines(fileContent);
-
-      if (tradelines && tradelines.length > 0) {
-        const canonicalReport = {
-          tradelines,
-          byBureau: {
-            TUC: tradelines.filter(t => t.bureau === 'TUC' || t.bureau === 'TransUnion'),
-            EXP: tradelines.filter(t => t.bureau === 'EXP' || t.bureau === 'Experian'),
-            EQF: tradelines.filter(t => t.bureau === 'EQF' || t.bureau === 'Equifax')
-          },
-          context
-        };
-
-        const auditResult = await auditCanonicalReport(canonicalReport, context);
-        if (auditResult && auditResult.violations) {
-          violations = auditResult.violations.map(v => ({
-            ...v,
-            explanation: v.explanation || v.description || 'This item may contain inaccurate information that violates credit reporting standards.'
-          }));
-        }
-      }
-    } else if (ext === '.pdf') {
-      return {
-        violations: [],
-        auditedAt: new Date().toISOString(),
-        message: 'PDF parsing is available. Please upload the HTML version of your credit report for best results.'
-      };
+    const buffer = await fs.promises.readFile(filePath);
+    const llmResult = await runLLMAnalyzer({
+      buffer,
+      filename: report.originalName || report.storedName
+    });
+    auditDetails.source = llmResult?.canonicalReport?.reportMeta?.provider || null;
+    if (llmResult?.violations?.length) {
+      violations = llmResult.violations.map(v => ({
+        ...v,
+        explanation: v.explanation || v.description || 'This item may contain inaccurate information that violates credit reporting standards.'
+      }));
     }
+    auditDetails.violationCount = violations.length;
   } catch (auditErr) {
-    logWarn('DIY_AUDIT_ENGINE_ERROR', auditErr?.message || 'Audit engine error');
+    auditDetails.error = auditErr?.message || 'Audit engine error';
+    logWarn('DIY_AUDIT_ENGINE_ERROR', auditDetails.error);
+    report.auditStatus = 'failed';
+    report.auditError = auditDetails.error;
+    report.auditedAt = new Date().toISOString();
+    await saveDiyReportsDB(db);
+    return { status: 500, error: 'Audit failed. Please try again later.' };
   }
 
   report.auditStatus = 'completed';
   report.violations = violations;
+  report.auditDetails = auditDetails;
   report.auditedAt = new Date().toISOString();
   await saveDiyReportsDB(db);
 
