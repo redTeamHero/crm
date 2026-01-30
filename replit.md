@@ -46,6 +46,11 @@ npm run dev
   - Configured Next.js to run on port 5000 with 0.0.0.0 host
   - Added allowedDevOrigins for Replit proxy compatibility
   - Set up deployment configuration for autoscale
+- 2026-01-30: Replaced initial landing page with a dual-access portal
+  - Created new landing page at `apps/client-portal/app/page.tsx`
+  - Added direct links to Client Side (Next.js) and CRM Side (Express)
+- 2026-01-30: Fixed build error in PortalDashboard
+  - Added missing `disputeCount` variable definition
 
 ## Dependencies
 - Node.js 20

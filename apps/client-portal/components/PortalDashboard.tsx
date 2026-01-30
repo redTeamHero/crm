@@ -106,6 +106,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   );
 
   const scoreEntries = useMemo(() => toScoreEntries(portal.creditScore), [portal.creditScore]);
+  const disputeCount = Array.isArray(portal.disputeResults) ? portal.disputeResults.length : 0;
   const openBalance = useMemo(
     () => portal.invoices?.filter((invoice) => !invoice.paid).reduce((sum, invoice) => sum + (invoice.amount || 0), 0) ?? 0,
     [portal.invoices]
