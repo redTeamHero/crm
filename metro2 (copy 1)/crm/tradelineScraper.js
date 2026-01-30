@@ -74,10 +74,22 @@ function isLikelyStatement(raw) {
   return Boolean(normalizeStatement(raw));
 }
 
+function isLikelyCurrency(raw) {
+  const value = tidyText(raw);
+  if (!value) return false;
+  // Check for currency patterns: $1,000 or $1000.00 or plain numbers like 10000
+  if (/^\$?\d{1,3}(,\d{3})*(\.\d{2})?$/.test(value)) return true;
+  if (/^\$/.test(value)) return true;
+  // Check for plain large numbers that could be credit limits
+  if (/^\d{4,}$/.test(value)) return true;
+  return false;
+}
+
 function isLikelyBank(raw) {
   const value = tidyText(raw);
   if (!value) return false;
   if (isLikelyStatement(value)) return false;
+  if (isLikelyCurrency(value)) return false;
   const lower = value.toLowerCase();
   if (containsStatementPlaceholder(lower)) return false;
   if (/\$/.test(lower)) return false;
@@ -202,7 +214,7 @@ function extractBankAndStatement($cell, segments = []) {
 
   const statement = statementCandidates.find(Boolean) || '';
   const bank = bankCandidates.find((candidate) => isLikelyBank(candidate))
-    || bankCandidates.find((candidate) => !isLikelyStatement(candidate))
+    || bankCandidates.find((candidate) => !isLikelyStatement(candidate) && !isLikelyCurrency(candidate))
     || '';
 
   return { bank, statement, bankCandidates };
