@@ -42,6 +42,13 @@ npm run dev
 - Various API keys for integrations (Stripe, OpenAI, etc.)
 
 ## Recent Changes
+- 2026-01-30: Performance optimizations for PDF parsing and audit processing
+  - Pre-compiled 25+ regex patterns at module level in metro2-core parser
+  - Added parallel bureau processing (TUC/EXP/EQF) for LLM audits with configurable concurrency
+  - Implemented parallelProcess utility with concurrency limiting (default: 3)
+  - Fixed splitReportByBureau to only include tradelines with explicit bureau data
+  - Preserved full byBureau context in split reports for cross-bureau audit logic
+  - Added proper error propagation in parallel audit workflow
 - 2026-01-30: Initial Replit environment setup
   - Configured Next.js to run on port 5000 with 0.0.0.0 host
   - Added allowedDevOrigins for Replit proxy compatibility
