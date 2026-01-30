@@ -3,13 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {},
   async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/portal/demo-client',
-        permanent: false,
-      },
-    ];
+    return [];
   },
   async rewrites() {
     return [
