@@ -6,6 +6,36 @@ export { fieldMap, validateTradeline, enrich };
 export { coerceDateMDY, normalizeBureau, emptyHistory, emptyInquirySummary };
 export { sanitizeCreditor };
 
+// Pre-compiled regex patterns for performance optimization
+const RE_BUREAU_INQUIRY = /\b(transunion|experian|equifax|tu|tuc|exp|eqf)\b/i;
+const RE_PERSONAL_INFO = /personal information/i;
+const RE_CREDIT_SCORE = /credit score/i;
+const RE_CREDITOR_CONTACT = /creditor contact/i;
+const RE_CREDITOR_INFO = /creditor information/i;
+const RE_AMP_ENTITY = /&amp;/g;
+const RE_NON_ALPHANUM = /[^a-z0-9]+/g;
+const RE_WHITESPACE = /\s+/g;
+const RE_BR_TAG = /<br\s*\/?\s*>/gi;
+const RE_HTML_TAG = /<[^>]+>/g;
+const RE_NBSP = /&nbsp;/gi;
+const RE_AMP_LOWER = /&amp;/gi;
+const RE_APOS_ENTITY = /&#39;/g;
+const RE_QUOT_ENTITY = /&quot;/g;
+const RE_EMPTY_DASH = /^[-–—]+$/;
+const RE_NA_VALUES = /^(n\/?a|none|not reported|not available)$/i;
+const RE_THREE_DIGITS = /\d{3}/;
+const RE_EXT_PHONE = /ext\.?\s*\d*/gi;
+const RE_PHONE_CHARS = /^[+()0-9\s.-]+$/;
+const RE_HISTORY_CLASS = /hstry-(late|derog|neg)/;
+const RE_YEAR_PREFIX = /^['']/;
+const RE_DATE_MDY_LOOSE = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+const RE_DATE_MDY_STRICT = /^\d{2}\/\d{2}\/\d{4}$/;
+const RE_TRANSUNION = /\b(transunion|tu|tuc)\b/;
+const RE_EXPERIAN = /\b(experian|exp)\b/;
+const RE_EQUIFAX = /\b(equifax|eqf|eqx)\b/;
+const RE_COLON = /[:]/g;
+const RE_NON_WORD_STAR = /[^\w*]/g;
+
 const NORMALIZED_FIELD_MAP = Object.fromEntries(
   Object.entries(fieldMap).map(([label, config]) => [normalizeFieldLabel(label), config])
 );
@@ -258,7 +288,7 @@ export function parseInquiries(context){
     if(tds.length !== 4) return false;
     const bureauText = adapter.text(tds[3]);
     const dateText = adapter.text(tds[2]);
-    const hasBureau = /\b(transunion|experian|equifax|tu|tuc|exp|eqf)\b/i.test(bureauText);
+    const hasBureau = RE_BUREAU_INQUIRY.test(bureauText);
     return hasBureau && looksLikeDate(dateText);
   });
 
@@ -334,7 +364,7 @@ export function parsePersonalInformation(context){
     const header = findNearestHeader(adapter, table);
     if(!header) continue;
     const headerText = adapter.text(header) || '';
-    if(!/personal information/i.test(headerText)) continue;
+    if(!RE_PERSONAL_INFO.test(headerText)) continue;
 
     const rows = adapter.rows(table);
     let bureauHeaders = [];
@@ -428,7 +458,7 @@ export function parseCreditScores(context){
     const header = findNearestHeader(adapter, table);
     if(!header) continue;
     const headerText = adapter.text(header) || '';
-    if(!/credit score/i.test(headerText)) continue;
+    if(!RE_CREDIT_SCORE.test(headerText)) continue;
 
     const rows = adapter.rows(table);
     if(!rows.length) continue;
@@ -440,7 +470,7 @@ export function parseCreditScores(context){
 
     for(const row of rows){
       const label = adapter.text(row, 'td.label') || adapter.text(row, 'th.label') || getCellText(adapter, row, 0);
-      if(!/credit score/i.test(label)) continue;
+      if(!RE_CREDIT_SCORE.test(label)) continue;
 
       if(bureaus.length){
         const valueCells = adapter.find(row, 'td.info');
@@ -528,7 +558,7 @@ export function parseCreditorContacts(context){
     const header = findNearestHeader(adapter, table);
     if(!header) continue;
     const headerText = adapter.text(header) || '';
-    if(!/creditor contact/i.test(headerText) && !/creditor information/i.test(headerText)) continue;
+    if(!RE_CREDITOR_CONTACT.test(headerText) && !RE_CREDITOR_INFO.test(headerText)) continue;
 
     const rows = adapter.rows(table);
     for(const row of rows){
@@ -560,9 +590,9 @@ function mapPersonalInfoKey(label){
 function normalizeGenericLabel(label){
   return (label || '')
     .toLowerCase()
-    .replace(/&amp;/g, '&')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(RE_AMP_ENTITY, '&')
+    .replace(RE_NON_ALPHANUM, ' ')
+    .replace(RE_WHITESPACE, ' ')
     .trim();
 }
 
@@ -573,11 +603,11 @@ function extractValuesFromCell(adapter, cell, fallback){
   const html = adapter.html ? adapter.html(cell) : '';
   if(html){
     const sanitized = decodeEntities(html)
-      .replace(/<br\s*\/?\s*>/gi, '\n')
-      .replace(/<[^>]+>/g, ' ');
+      .replace(RE_BR_TAG, '\n')
+      .replace(RE_HTML_TAG, ' ');
     const parts = sanitized
       .split(/\n+/)
-      .map(part => part.replace(/\s+/g, ' ').trim())
+      .map(part => part.replace(RE_WHITESPACE, ' ').trim())
       .filter(Boolean);
     if(parts.length) return parts;
   }
@@ -588,10 +618,10 @@ function extractValuesFromCell(adapter, cell, fallback){
 
 function decodeEntities(value){
   return (value || '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"');
+    .replace(RE_NBSP, ' ')
+    .replace(RE_AMP_LOWER, '&')
+    .replace(RE_APOS_ENTITY, "'")
+    .replace(RE_QUOT_ENTITY, '"');
 }
 
 function getCellText(adapter, row, index){
@@ -604,8 +634,8 @@ function isEmptyValue(value){
   if(value == null) return true;
   const text = String(value).trim();
   if(!text) return true;
-  if(/^[-–—]+$/.test(text)) return true;
-  if(/^(n\/?a|none|not reported|not available)$/i.test(text)) return true;
+  if(RE_EMPTY_DASH.test(text)) return true;
+  if(RE_NA_VALUES.test(text)) return true;
   return false;
 }
 
@@ -660,10 +690,10 @@ function hasTradelineData(tradeline, bureaus){
 function looksLikePhone(value){
   if(!value) return false;
   const trimmed = value.trim();
-  if(!/\d{3}/.test(trimmed)) return false;
-  const normalized = trimmed.replace(/ext\.?\s*\d*/gi, '').trim();
+  if(!RE_THREE_DIGITS.test(trimmed)) return false;
+  const normalized = trimmed.replace(RE_EXT_PHONE, '').trim();
   if(!normalized) return false;
-  return /^[+()0-9\s.-]+$/.test(normalized);
+  return RE_PHONE_CHARS.test(normalized);
 }
 
 function emptyHistory(){
@@ -692,7 +722,7 @@ function summarizeHistory(statuses){
       summary.unknown += 1;
     } else if(cls === 'hstry-ok' || txt === 'OK'){
       summary.ok += 1;
-    } else if(/hstry-(late|derog|neg)/.test(cls)){
+    } else if(RE_HISTORY_CLASS.test(cls)){
       summary.late += 1;
     }
   }
@@ -715,7 +745,7 @@ function parseInquiryDate(entry){
 function looksLikeDate(value){
   const v = (value || '').trim();
   if(!v) return false;
-  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return true;
+  if(RE_DATE_MDY_LOOSE.test(v)) return true;
   const d = new Date(v);
   return !Number.isNaN(+d);
 }
@@ -723,7 +753,7 @@ function looksLikeDate(value){
 function coerceDateMDY(value){
   const v = (value || '').trim();
   if(!v) return '';
-  if(/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return v;
+  if(RE_DATE_MDY_STRICT.test(v)) return v;
   const d = new Date(v);
   if(Number.isNaN(+d)) return '';
   const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -734,9 +764,9 @@ function coerceDateMDY(value){
 
 function normalizeBureau(value){
   const t = (value || '').toLowerCase();
-  if(/\b(transunion|tu|tuc)\b/.test(t)) return 'TransUnion';
-  if(/\b(experian|exp)\b/.test(t)) return 'Experian';
-  if(/\b(equifax|eqf|eqx)\b/.test(t)) return 'Equifax';
+  if(RE_TRANSUNION.test(t)) return 'TransUnion';
+  if(RE_EXPERIAN.test(t)) return 'Experian';
+  if(RE_EQUIFAX.test(t)) return 'Equifax';
   return null;
 }
 
@@ -896,14 +926,14 @@ function lookupFieldRule(label){
 function normalizeFieldLabel(label){
   return (label || '')
     .toLowerCase()
-    .replace(/[:]/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(RE_COLON, '')
+    .replace(RE_WHITESPACE, ' ')
     .trim();
 }
 
 function sanitizeCreditor(value){
   if(!value) return '';
-  const text = String(value).replace(/\s+/g, ' ').trim();
+  const text = String(value).replace(RE_WHITESPACE, ' ').trim();
   if(!text) return '';
   return text;
 }
@@ -911,8 +941,8 @@ function sanitizeCreditor(value){
 function cleanAccountIdentifier(value){
   if(value === undefined || value === null) return '';
   return String(value)
-    .replace(/\s+/g, '')
-    .replace(/[^\w*]/g, '');
+    .replace(RE_WHITESPACE, '')
+    .replace(RE_NON_WORD_STAR, '');
 }
 
 function normalizeBureauCode(value){
