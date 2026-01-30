@@ -1,0 +1,357 @@
+Robert Butler
+	
+11:56 PM (0 minutes ago)
+	
+	
+to me
+
+Love this direction. You do not need to rebuild the backend — this is a clean multi-tenant + role-based split on top of what you already shipped. Below is a production-ready architecture plan that fits your existing CRM and scales into a SaaS.
+
+
+
+
+
+High-Level Goal
+
+
+
+One backend → two products:
+
+
+    🧠 CRM (Pro Mode) → credit repair specialists
+    🧑‍💻 DIY Mode → individual consumers
+
+
+
+Both share:
+
+
+    Metro-2 audit engine
+    Letter generation
+    Report parsing
+    Rule engine
+    Storage
+
+
+
+But differ in access, UX, permissions, and automation limits.
+
+
+
+
+
+1️⃣ Entry Point (Public Landing Page)
+
+
+
+Create a neutral entry HTML page (no auth):
+
+
+/public/index.html
+
+<h1>Welcome</h1>
+
+<p>Choose how you want to use the platform:</p>
+
+
+<a href="/crm">I’m a Credit Repair Professional</a>
+
+<a href="/diy">I Want to Fix My Own Credit</a>
+
+Routing logic:
+
+
+    /crm → existing CRM flow
+    /diy → new DIY auth + onboarding
+
+
+
+This keeps branding clean and avoids mixing audiences.
+
+
+
+
+
+2️⃣ Auth Model (Single System, Two Roles)
+
+
+
+
+Users Table (extend, don’t replace)
+
+
+users
+
+- id
+
+- email
+
+- password_hash
+
+- role ENUM('crm_admin','crm_agent','diy_user')
+
+- plan ENUM('free','basic','pro')
+
+- tenant_id NULLABLE
+
+- created_at
+
+
+Key Rule
+
+
+
+    CRM users → belong to a tenant_id
+    DIY users → tenant_id = NULL, isolated sandbox
+
+
+
+💡 This is what keeps DIY users from ever touching multi-client logic.
+
+
+
+
+
+3️⃣ Routing & Middleware (Critical)
+
+
+
+Add role-aware middleware:
+
+requireRole(['diy_user'])
+
+requireRole(['crm_admin','crm_agent'])
+
+
+Route Separation
+
+
+/diy/*
+
+/crm/*
+
+/api/shared/*
+
+Example:
+
+
+    /api/shared/audit → used by both
+    /api/crm/clients → professionals only
+    /api/diy/report → single-user version
+
+
+
+
+
+
+4️⃣ DIY Authentication & Plan Selection Flow
+
+
+
+
+/diy
+
+
+
+    Login
+    Create account
+    Choose plan (Stripe later)
+
+
+
+
+Plans (example)
+
+
+Plan
+	
+
+Features
+
+Free
+	
+
+View report, education
+
+Basic
+	
+
+Run audit, generate letters
+
+Pro
+	
+
+Automation, re-audit, tracking
+
+Plan gates enforced server-side, not UI only.
+
+
+
+
+
+5️⃣ DIY Dashboard (Simplified UX)
+
+
+
+
+DIY Dashboard SHOULD NOT expose:
+
+
+
+❌ Client lists
+
+❌ Bulk automation
+
+❌ CRM workflows
+
+❌ Agent tools
+
+
+
+DIY Dashboard SHOULD include:
+
+
+
+    Upload credit report
+    Run Metro-2 audit
+    View violations (plain English)
+    Generate dispute letters (guided)
+    Educational prompts (why this matters)
+    Progress tracker
+
+
+
+Same engine — different wrapper.
+
+
+
+
+
+6️⃣ Shared Engine (Your Biggest Win)
+
+
+
+You already built this correctly.
+
+
+Keep:
+
+/engine
+
+  ├─ audit/
+
+  ├─ rules/
+
+  ├─ metro2/
+
+  ├─ letters/
+
+
+Add Context Flag
+
+
+context = {
+
+  mode: 'DIY' | 'CRM',
+
+  userId,
+
+  tenantId
+
+}
+
+Rules can behave differently if needed:
+
+
+    CRM → advanced flags
+    DIY → simplified explanations
+
+
+
+
+
+
+7️⃣ Data Isolation (Very Important)
+
+
+
+DIY users should never write to:
+
+
+    clients
+    tenants
+    crm_letters
+
+
+
+Instead:
+
+diy_profiles
+
+diy_reports
+
+diy_letters
+
+Same schema, different tables = legal & security safety.
+
+
+
+
+
+8️⃣ UI Folder Structure (Clean Split)
+
+
+/frontend
+
+  /public
+
+    index.html
+
+  /crm
+
+    dashboard.html
+
+  /diy
+
+    login.html
+
+    signup.html
+
+    dashboard.html
+
+Backend doesn’t care — it enforces access.
+
+
+
+
+
+9️⃣ Why This Scales Perfectly
+
+
+
+✅ Same backend
+
+✅ Same audit logic
+
+✅ Same rule engine
+
+✅ Same letters
+
+✅ Two revenue streams
+
+✅ Clear legal boundary
+
+✅ Easy upsell DIY → Pro
+
+
+This is exactly how:
+
+
+    Credit Karma
+    Self
+    Lexis-style SaaS
+    are structured internally.
+
+
+
+
