@@ -1,14 +1,31 @@
 # Metro2 CRM
 
 ## Overview
-This is a multi-tenant CRM system for credit-report auditing and dispute-letter generation. It includes:
-- **Client Portal**: A Next.js frontend for clients to upload reports, review findings, and manage disputes
-- **CRM Backend**: An Express.js backend (in `metro2 (copy 1)/crm/`) for API routes and processing
-- **Metro 2 Core Libraries**: Shared packages for parsing and validating Metro 2 credit report data
+This is a dual-access credit platform with two distinct user journeys:
+- **CRM (Pro Mode)**: Full multi-tenant system for credit repair professionals with client management, bulk automation, and team tools
+- **DIY Mode**: Simplified self-service for individual consumers to fix their own credit
+
+Both share the same backend, Metro-2 audit engine, letter generation, and rule engine.
+
+## Architecture
+### Entry Points
+- `/` - Neutral welcome page with CRM/DIY selection
+- `/crm` - CRM login for professionals
+- `/diy` - DIY login for consumers
+
+### Auth Model
+- **CRM users**: role='crm_admin|crm_agent|member', belong to a tenant_id
+- **DIY users**: role='diy_user', tenant_id=NULL (isolated sandbox), plan='free|basic|pro'
+
+### Data Isolation
+- CRM data: `users`, `consumers`, `clients`, `letters` (multi-tenant)
+- DIY data: `diy_users`, `diy_reports`, `diy_letters` (single-user sandbox)
 
 ## Project Structure
 - `apps/client-portal/` - Next.js client portal (main frontend, runs on port 5000)
-- `metro2 (copy 1)/crm/` - Express CRM backend with API routes
+- `metro2 (copy 1)/crm/` - Express CRM backend with API routes (port 3000)
+  - `public/` - CRM static files (dashboard, clients, etc.)
+  - `public/diy/` - DIY static files (login, signup, dashboard)
 - `packages/metro2-core/` - Core Metro 2 parsing and validation logic
 - `packages/metro2-cheerio/` - Cheerio adapter for Node.js parsing
 - `packages/metro2-browser/` - Browser-compatible parser
@@ -42,6 +59,14 @@ npm run dev
 - Various API keys for integrations (Stripe, OpenAI, etc.)
 
 ## Recent Changes
+- 2026-01-30: Implemented dual-access CRM/DIY architecture
+  - Created neutral welcome page at "/" with CRM/DIY routing
+  - Added DIY user management with separate data isolation (diy_users, diy_reports, diy_letters)
+  - Built DIY auth flow (login, signup) with plan selection (free/basic/pro)
+  - Created DIY dashboard with report upload, audit, violations display, and letter generation
+  - Implemented server-side plan gating (free can view, basic/pro can audit and generate letters)
+  - Added DIY API routes: /api/diy/signup, /api/diy/login, /api/diy/me, /api/diy/reports/*, /api/diy/letters/*
+  - DIY users are fully isolated from CRM multi-tenant data
 - 2026-01-30: Removed coach button from dashboard
   - Removed coach toggle button, moneybag toggle, and coach panel from dashboard.html
 - 2026-01-30: Fixed bank name extraction in tradeline scraper

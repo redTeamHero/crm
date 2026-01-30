@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Login - DIY Credit Repair</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#10B981" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-slate-100">
+  <div class="glass card w-full max-w-sm space-y-4 p-6">
+    <div class="text-center mb-2">
+      <a href="/" class="text-sm text-slate-500 hover:text-slate-700">&larr; Back to home</a>
+    </div>
+    <h1 class="text-xl font-semibold text-center text-slate-800">DIY Credit Repair</h1>
+    <p class="text-sm text-center text-slate-600">Sign in to manage your credit disputes</p>
+    <div id="err" class="hidden p-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded"></div>
+    <input id="email" type="email" placeholder="Email address" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none" />
+    <input id="password" type="password" placeholder="Password" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none" />
+    <button id="btnLogin" class="btn w-full bg-emerald-600 hover:bg-emerald-700 text-white">Sign In</button>
+    <div class="text-center text-sm text-slate-600">
+      Don't have an account? <a href="/diy/signup" class="text-emerald-600 hover:underline font-medium">Create one</a>
+    </div>
+    <div class="text-center">
+      <a href="#" class="text-sm text-slate-500 hover:text-slate-700">Forgot password?</a>
+    </div>
+  </div>
+  <script type="module" src="/common.js"></script>
+  <script src="/diy/login.js"></script>
+</body>
+</html>

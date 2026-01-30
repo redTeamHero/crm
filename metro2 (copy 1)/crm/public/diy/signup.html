@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Sign Up - DIY Credit Repair</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#10B981" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-slate-100 p-4">
+  <div class="glass card w-full max-w-md space-y-5 p-6">
+    <div class="text-center mb-2">
+      <a href="/" class="text-sm text-slate-500 hover:text-slate-700">&larr; Back to home</a>
+    </div>
+    <h1 class="text-xl font-semibold text-center text-slate-800">Create Your DIY Account</h1>
+    <p class="text-sm text-center text-slate-600">Start fixing your credit today</p>
+    <div id="err" class="hidden p-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded"></div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <input id="firstName" type="text" placeholder="First name" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none" />
+      <input id="lastName" type="text" placeholder="Last name" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none" />
+    </div>
+    <input id="email" type="email" placeholder="Email address" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none" />
+    <input id="password" type="password" placeholder="Create password (min 8 characters)" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none" />
+    <input id="confirmPassword" type="password" placeholder="Confirm password" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 outline-none" />
+
+    <div class="space-y-3">
+      <p class="text-sm font-medium text-slate-700">Choose your plan:</p>
+      <div class="grid gap-3">
+        <label class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-emerald-50 transition-colors has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+          <input type="radio" name="plan" value="free" checked class="mt-1 text-emerald-600" />
+          <div>
+            <span class="font-medium text-slate-800">Free</span>
+            <span class="text-emerald-600 text-sm ml-2">$0/mo</span>
+            <p class="text-xs text-slate-500 mt-1">View your report and learn about credit repair</p>
+          </div>
+        </label>
+        <label class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-emerald-50 transition-colors has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+          <input type="radio" name="plan" value="basic" class="mt-1 text-emerald-600" />
+          <div>
+            <span class="font-medium text-slate-800">Basic</span>
+            <span class="text-emerald-600 text-sm ml-2">$19/mo</span>
+            <p class="text-xs text-slate-500 mt-1">Run audits, generate up to 5 dispute letters/month</p>
+          </div>
+        </label>
+        <label class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-emerald-50 transition-colors has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50">
+          <input type="radio" name="plan" value="pro" class="mt-1 text-emerald-600" />
+          <div>
+            <span class="font-medium text-slate-800">Pro</span>
+            <span class="text-emerald-600 text-sm ml-2">$49/mo</span>
+            <p class="text-xs text-slate-500 mt-1">Unlimited letters, automation, priority support</p>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <button id="btnSignup" class="btn w-full bg-emerald-600 hover:bg-emerald-700 text-white">Create Account</button>
+    <div class="text-center text-sm text-slate-600">
+      Already have an account? <a href="/diy/login" class="text-emerald-600 hover:underline font-medium">Sign in</a>
+    </div>
+  </div>
+  <script type="module" src="/common.js"></script>
+  <script src="/diy/signup.js"></script>
+</body>
+</html>

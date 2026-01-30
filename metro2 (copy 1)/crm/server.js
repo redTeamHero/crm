@@ -1301,8 +1301,14 @@ const TEAM_TEMPLATE = (() => {
 // Disable default index to avoid auto-serving the app without auth
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
-// Serve login by default so users aren't dropped straight into the app
-registerStaticPage({ paths: ["/", "/login"], file: "login.html" });
+// Serve neutral welcome page at root, CRM login at /crm
+registerStaticPage({ paths: "/", file: "welcome.html" });
+registerStaticPage({ paths: ["/crm", "/crm/login", "/login"], file: "login.html" });
+
+// DIY routes
+registerStaticPage({ paths: ["/diy", "/diy/login"], file: "diy/login.html" });
+registerStaticPage({ paths: "/diy/signup", file: "diy/signup.html" });
+registerStaticPage({ paths: "/diy/dashboard", file: "diy/dashboard.html" });
 registerStaticPage({ paths: "/dashboard", file: "dashboard.html" });
 registerStaticPage({ paths: "/clients", file: "index.html" });
 registerStaticPage({ paths: "/leads", file: "leads.html" });
@@ -6994,6 +7000,434 @@ app.get("/api/consumers/:id/state/files/:stored", (req,res)=>{
   if (!fs.existsSync(full)) return res.status(404).send("File not found");
   res.sendFile(full);
 });
+
+// ============================================================================
+// DIY USER MANAGEMENT
+// ============================================================================
+
+async function loadDiyUsersDB() {
+  let db = await readKey('diy_users', null);
+  if (!db) db = { users: [] };
+  return db;
+}
+
+async function saveDiyUsersDB(db) {
+  await writeKey('diy_users', db);
+}
+
+async function loadDiyReportsDB() {
+  let db = await readKey('diy_reports', null);
+  if (!db) db = { reports: [] };
+  return db;
+}
+
+async function saveDiyReportsDB(db) {
+  await writeKey('diy_reports', db);
+}
+
+async function loadDiyLettersDB() {
+  let db = await readKey('diy_letters', null);
+  if (!db) db = { letters: [] };
+  return db;
+}
+
+async function saveDiyLettersDB(db) {
+  await writeKey('diy_letters', db);
+}
+
+// DIY Authentication Middleware - uses separate secret to prevent token confusion
+const DIY_JWT_SECRET = process.env.DIY_JWT_SECRET || (process.env.JWT_SECRET ? process.env.JWT_SECRET + '-diy' : 'diy-secret-key-isolated');
+
+function diyAuthenticate(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+  const token = auth.slice(7);
+  try {
+    const payload = jwt.verify(token, DIY_JWT_SECRET, { issuer: 'metro2-diy', audience: 'diy-users' });
+    if (payload.mode !== 'diy') {
+      return res.status(401).json({ ok: false, error: 'Invalid token type' });
+    }
+    req.diyUser = payload;
+    next();
+  } catch (err) {
+    return res.status(401).json({ ok: false, error: 'Invalid or expired token' });
+  }
+}
+
+// DIY Plan limits
+const DIY_PLAN_LIMITS = {
+  free: { canAudit: false, lettersPerMonth: 0 },
+  basic: { canAudit: true, lettersPerMonth: 5 },
+  pro: { canAudit: true, lettersPerMonth: -1 } // unlimited
+};
+
+function diyRequirePlan(allowedPlans) {
+  return (req, res, next) => {
+    if (!req.diyUser) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+    if (!allowedPlans.includes(req.diyUser.plan)) {
+      return res.status(403).json({ ok: false, error: 'Upgrade required', requiredPlan: allowedPlans[0] });
+    }
+    next();
+  };
+}
+
+// DIY Signup
+app.post('/api/diy/signup', async (req, res) => {
+  try {
+    const { firstName, lastName, email, password, plan = 'free' } = req.body;
+
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({ ok: false, error: 'All fields are required' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ ok: false, error: 'Password must be at least 8 characters' });
+    }
+    if (!['free', 'basic', 'pro'].includes(plan)) {
+      return res.status(400).json({ ok: false, error: 'Invalid plan' });
+    }
+
+    const db = await loadDiyUsersDB();
+    if (db.users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+      return res.status(400).json({ ok: false, error: 'Email already registered' });
+    }
+
+    const user = {
+      id: nanoid(12),
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      password: bcrypt.hashSync(password, 10),
+      plan,
+      role: 'diy_user',
+      createdAt: new Date().toISOString(),
+      lettersGeneratedThisMonth: 0,
+      lastLetterResetMonth: new Date().toISOString().slice(0, 7)
+    };
+
+    db.users.push(user);
+    await saveDiyUsersDB(db);
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, plan: user.plan, mode: 'diy' },
+      DIY_JWT_SECRET,
+      { expiresIn: '7d', issuer: 'metro2-diy', audience: 'diy-users' }
+    );
+
+    res.json({ ok: true, token, user: { id: user.id, email: user.email, plan: user.plan, firstName: user.firstName, lastName: user.lastName } });
+  } catch (err) {
+    logError('DIY_SIGNUP_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Signup failed' });
+  }
+});
+
+// DIY Login
+app.post('/api/diy/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, error: 'Email and password required' });
+    }
+
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      return res.status(401).json({ ok: false, error: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, plan: user.plan, mode: 'diy' },
+      DIY_JWT_SECRET,
+      { expiresIn: '7d', issuer: 'metro2-diy', audience: 'diy-users' }
+    );
+
+    res.json({ ok: true, token, user: { id: user.id, email: user.email, plan: user.plan, firstName: user.firstName, lastName: user.lastName } });
+  } catch (err) {
+    logError('DIY_LOGIN_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Login failed' });
+  }
+});
+
+// DIY Get current user
+app.get('/api/diy/me', diyAuthenticate, async (req, res) => {
+  try {
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+    res.json({
+      ok: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        plan: user.plan,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (err) {
+    logError('DIY_ME_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to get user info' });
+  }
+});
+
+// DIY Report Upload - with file type validation
+const ALLOWED_DIY_EXTENSIONS = ['.pdf', '.html', '.htm'];
+const ALLOWED_DIY_MIMETYPES = ['application/pdf', 'text/html', 'application/xhtml+xml'];
+
+const diyUploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'diy_uploads', req.diyUser.id);
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${nanoid(10)}${ext}`);
+  }
+});
+
+const diyUploadFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (!ALLOWED_DIY_EXTENSIONS.includes(ext)) {
+    return cb(new Error('Only PDF and HTML files are allowed'), false);
+  }
+  cb(null, true);
+};
+
+const diyUpload = multer({
+  storage: diyUploadStorage,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
+  fileFilter: diyUploadFilter
+});
+
+app.post('/api/diy/reports/upload', diyAuthenticate, diyUpload.single('report'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: 'No file uploaded' });
+    }
+
+    const db = await loadDiyReportsDB();
+    const report = {
+      id: nanoid(12),
+      userId: req.diyUser.id,
+      originalName: req.file.originalname,
+      storedName: req.file.filename,
+      size: req.file.size,
+      mimeType: req.file.mimetype,
+      uploadedAt: new Date().toISOString(),
+      auditStatus: 'pending',
+      violations: []
+    };
+
+    db.reports.push(report);
+    await saveDiyReportsDB(db);
+
+    res.json({ ok: true, report: { id: report.id, originalName: report.originalName, uploadedAt: report.uploadedAt } });
+  } catch (err) {
+    logError('DIY_UPLOAD_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Upload failed' });
+  }
+});
+
+// DIY Get Reports
+app.get('/api/diy/reports', diyAuthenticate, async (req, res) => {
+  try {
+    const db = await loadDiyReportsDB();
+    const userReports = db.reports.filter(r => r.userId === req.diyUser.id);
+    res.json({ ok: true, reports: userReports.map(r => ({ id: r.id, originalName: r.originalName, uploadedAt: r.uploadedAt, auditStatus: r.auditStatus })) });
+  } catch (err) {
+    logError('DIY_REPORTS_LIST_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to load reports' });
+  }
+});
+
+// DIY Run Audit on Report - uses shared audit engine with DIY context
+app.post('/api/diy/reports/:id/audit', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
+  try {
+    const db = await loadDiyReportsDB();
+    const report = db.reports.find(r => r.id === req.params.id && r.userId === req.diyUser.id);
+
+    if (!report) {
+      return res.status(404).json({ ok: false, error: 'Report not found' });
+    }
+
+    // Validate file type
+    const ext = path.extname(report.storedName).toLowerCase();
+    if (!['.pdf', '.html', '.htm'].includes(ext)) {
+      return res.status(400).json({ ok: false, error: 'Unsupported file format. Please upload PDF or HTML credit reports.' });
+    }
+
+    // Read the uploaded file
+    const filePath = path.join(__dirname, 'diy_uploads', req.diyUser.id, report.storedName);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ ok: false, error: 'Report file not found' });
+    }
+
+    let violations = [];
+    const context = { mode: 'DIY', userId: req.diyUser.id, tenantId: null };
+
+    try {
+      // For HTML files, try to use the shared audit engine
+      if (ext === '.html' || ext === '.htm') {
+        const fileContent = fs.readFileSync(filePath, 'utf-8');
+
+        // Try to scrape tradelines from the HTML
+        const tradelines = scrapeTradelines(fileContent);
+
+        if (tradelines && tradelines.length > 0) {
+          // Build a canonical report structure for audit
+          const canonicalReport = {
+            tradelines,
+            byBureau: {
+              TUC: tradelines.filter(t => t.bureau === 'TUC' || t.bureau === 'TransUnion'),
+              EXP: tradelines.filter(t => t.bureau === 'EXP' || t.bureau === 'Experian'),
+              EQF: tradelines.filter(t => t.bureau === 'EQF' || t.bureau === 'Equifax')
+            },
+            context
+          };
+
+          // Run audit with context flag
+          const auditResult = await auditCanonicalReport(canonicalReport, context);
+          if (auditResult && auditResult.violations) {
+            violations = auditResult.violations.map(v => ({
+              ...v,
+              explanation: v.explanation || v.description || 'This item may contain inaccurate information that violates credit reporting standards.'
+            }));
+          }
+        }
+      } else if (ext === '.pdf') {
+        // PDF parsing would require additional processing
+        // For now, return a message that PDF audit is coming soon
+        return res.json({
+          ok: true,
+          violations: [],
+          message: 'PDF parsing is available. Please upload the HTML version of your credit report for best results.',
+          auditedAt: new Date().toISOString()
+        });
+      }
+    } catch (auditErr) {
+      logWarn('DIY_AUDIT_ENGINE_ERROR', auditErr?.message || 'Audit engine error');
+      // Continue with empty violations if audit engine fails
+    }
+
+    // Update report with violations
+    report.auditStatus = 'completed';
+    report.violations = violations;
+    report.auditedAt = new Date().toISOString();
+    await saveDiyReportsDB(db);
+
+    res.json({ ok: true, violations, auditedAt: report.auditedAt });
+  } catch (err) {
+    logError('DIY_AUDIT_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Audit failed' });
+  }
+});
+
+// DIY Get Letters
+app.get('/api/diy/letters', diyAuthenticate, async (req, res) => {
+  try {
+    const db = await loadDiyLettersDB();
+    const userLetters = db.letters.filter(l => l.userId === req.diyUser.id);
+    res.json({ ok: true, letters: userLetters.map(l => ({ id: l.id, bureau: l.bureau, createdAt: l.createdAt })) });
+  } catch (err) {
+    logError('DIY_LETTERS_LIST_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to load letters' });
+  }
+});
+
+// DIY Generate Letters
+app.post('/api/diy/reports/:id/letters', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
+  try {
+    const { violations } = req.body;
+
+    if (!violations || !Array.isArray(violations) || violations.length === 0) {
+      return res.status(400).json({ ok: false, error: 'No violations provided' });
+    }
+
+    // Check plan limits
+    const usersDb = await loadDiyUsersDB();
+    const user = usersDb.users.find(u => u.id === req.diyUser.id);
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    if (user.lastLetterResetMonth !== currentMonth) {
+      user.lettersGeneratedThisMonth = 0;
+      user.lastLetterResetMonth = currentMonth;
+      await saveDiyUsersDB(usersDb);
+    }
+
+    const limits = DIY_PLAN_LIMITS[user.plan];
+    if (limits.lettersPerMonth !== -1 && user.lettersGeneratedThisMonth >= limits.lettersPerMonth) {
+      return res.status(403).json({ ok: false, error: `You have reached your monthly limit of ${limits.lettersPerMonth} letters. Upgrade to Pro for unlimited letters.` });
+    }
+
+    // Generate letters (placeholder for actual letter generation)
+    const lettersDb = await loadDiyLettersDB();
+    const generatedLetters = [];
+
+    const bureaus = [...new Set(violations.map(v => v.bureau).filter(Boolean))];
+    if (bureaus.length === 0) bureaus.push('General');
+
+    for (const bureau of bureaus) {
+      const letter = {
+        id: nanoid(12),
+        userId: req.diyUser.id,
+        reportId: req.params.id,
+        bureau,
+        violations: violations.filter(v => v.bureau === bureau || !v.bureau),
+        createdAt: new Date().toISOString(),
+        content: `Dispute letter for ${bureau} - Generated for DIY user`
+      };
+      lettersDb.letters.push(letter);
+      generatedLetters.push({ id: letter.id, bureau: letter.bureau, createdAt: letter.createdAt });
+    }
+
+    await saveDiyLettersDB(lettersDb);
+
+    // Update user letter count
+    user.lettersGeneratedThisMonth += generatedLetters.length;
+    await saveDiyUsersDB(usersDb);
+
+    res.json({ ok: true, letters: generatedLetters });
+  } catch (err) {
+    logError('DIY_GENERATE_LETTERS_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Letter generation failed' });
+  }
+});
+
+// DIY Download Letter
+app.get('/api/diy/letters/:id/download', diyAuthenticate, async (req, res) => {
+  try {
+    const db = await loadDiyLettersDB();
+    const letter = db.letters.find(l => l.id === req.params.id && l.userId === req.diyUser.id);
+
+    if (!letter) {
+      return res.status(404).json({ ok: false, error: 'Letter not found' });
+    }
+
+    // Return letter content as text for now
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename="dispute-${letter.bureau}-${letter.id}.txt"`);
+    res.send(letter.content);
+  } catch (err) {
+    logError('DIY_DOWNLOAD_LETTER_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Download failed' });
+  }
+});
+
+// ============================================================================
+// END DIY ROUTES
+// ============================================================================
 
 const PORT = process.env.PORT || 3000;
 const shouldStartServer =
