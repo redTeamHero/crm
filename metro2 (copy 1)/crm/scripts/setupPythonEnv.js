@@ -78,9 +78,28 @@ async function installWithSystemPython() {
     "Falling back to system Python for requirements installation (no virtualenv)."
   );
   await ensureSystemPip();
+  // Check if we are in a virtualenv or similar restricted environment
+  const isVirtualEnv = process.env.VIRTUAL_ENV || process.env.CONDA_PREFIX;
+  const args = [
+    "-m",
+    "pip",
+    "install",
+    "--user",
+    "-r",
+    requirementsPath
+  ];
+  
+  // If in a virtualenv, --user is not allowed
+  if (isVirtualEnv) {
+    const userIndex = args.indexOf("--user");
+    if (userIndex !== -1) {
+      args.splice(userIndex, 1);
+    }
+  }
+
   await runCommand(
     pythonExecutable,
-    ["-m", "pip", "install", "--user", "-r", requirementsPath],
+    args,
     { capture: true }
   );
 }

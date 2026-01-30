@@ -8,7 +8,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "audit": "node creditAuditTool.js",
-    "postinstall": "node ./scripts/setupPythonEnv.js",
+    "postinstall": "if [ \"$NODE_ENV\" != \"production\" ]; then node ./scripts/setupPythonEnv.js; fi",
     "test": "node --test tests/*.test.js",
     "marketing:twilio-worker": "node scripts/marketingTwilioWorker.js",
     "setup:chrome": "bash install-chrome-deps.sh",
