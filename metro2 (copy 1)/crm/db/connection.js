@@ -84,9 +84,20 @@ function buildConnectionConfig() {
 
   if (client === "sqlite3") {
     ensureDataDir();
-    const filename = process.env.DATABASE_URL
-      ? process.env.DATABASE_URL.replace(/^file:/i, "")
-      : path.join(PROJECT_ROOT, "dev.sqlite");
+    const filename = (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('://'))
+      ? path.join(PROJECT_ROOT, "dev.sqlite")
+      : (process.env.DATABASE_URL || path.join(PROJECT_ROOT, "dev.sqlite"));
+    
+    // Attempt to ensure file exists and is writable
+    try {
+      const targetPath = path.isAbsolute(filename) ? filename : path.join(PROJECT_ROOT, filename);
+      if (!fs.existsSync(targetPath)) {
+        fs.writeFileSync(targetPath, "");
+        fs.chmodSync(targetPath, 0o666);
+      }
+    } catch (e) {
+      console.error("Failed to ensure database file:", e);
+    }
     return {
       ...baseConfig,
       connection: {
