@@ -29,6 +29,26 @@ const AUDIT_DEVELOPER_PROMPT = [
   "Each violation must include bureau and tradelineKey.",
 ].join(" ");
 
+const CROSS_BUREAU_SYSTEM_PROMPT = [
+  "You are a credit report cross-bureau comparison engine.",
+  "Your task is to identify DISCREPANCIES between bureaus (TransUnion/TUC, Experian/EXP, Equifax/EQF) for the same tradeline.",
+  "Only emit violations when you find ACTUAL DIFFERENCES in the data between bureaus.",
+  "If a field is missing from all bureaus, that is NOT a cross-bureau discrepancy.",
+  "Never hallucinate data or differences.",
+].join(" ");
+
+const CROSS_BUREAU_DEVELOPER_PROMPT = [
+  "Analyze tradelines for cross-bureau discrepancies.",
+  "Focus on these violation types:",
+  "1. cross_bureau_date_discrepancy: Date Opened, Date Closed, Date Last Payment, or Date of First Delinquency differs between bureaus by more than 30 days.",
+  "2. cross_bureau_balance_discrepancy: Balance or High Credit differs significantly between bureaus.",
+  "3. cross_bureau_status_discrepancy: Account Status or Payment Status differs between bureaus.",
+  "4. cross_bureau_missing_account: Account appears on some bureaus but is completely absent from others.",
+  "For each violation, set bureau to the bureau with the discrepant/missing data.",
+  "evidencePaths must reference valid JSON paths showing the compared values.",
+  "Return up to 25 cross-bureau violations.",
+].join(" ");
+
 const DEFAULT_AUDIT_MODEL = process.env.OPENAI_AUDIT_MODEL || process.env.OPENAI_MODEL || "gpt-4.1-mini";
 
 const ajv = new Ajv({ allErrors: true, strict: true, allowUnionTypes: true });
@@ -281,6 +301,117 @@ export function splitReportByBureau(report = {}) {
 }
 
 /**
+ * Deduplicate violations by instanceKey to prevent duplicates from parallel processing
+ * @param {Array} violations - Array of violations to deduplicate
+ * @returns {Array} Deduplicated violations
+ */
+function deduplicateViolations(violations = []) {
+  const seen = new Map();
+  const result = [];
+  
+  for (const violation of violations) {
+    const key = buildViolationInstanceKey(violation);
+    if (key && !seen.has(key)) {
+      seen.set(key, true);
+      result.push(violation);
+    } else if (!key) {
+      result.push(violation);
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * Run cross-bureau comparison audit on full report
+ * Detects discrepancies between TUC/EXP/EQF data for the same tradeline
+ * @param {Object} report - Full canonical report with all bureau data
+ * @param {Object} client - OpenAI client
+ * @param {string} model - Model to use
+ * @returns {Promise<Object>} Cross-bureau violations
+ */
+async function crossBureauAudit(report, client, model) {
+  const tradelines = Array.isArray(report.tradelines) ? report.tradelines : [];
+  
+  // Filter tradelines for cross-bureau analysis:
+  // 1. Tradelines with 2+ bureaus (for discrepancy comparison including all 3 bureaus)
+  // 2. Tradelines with exactly 1 bureau (missing from other bureaus - potential cross_bureau_missing_account)
+  const multiBureauTradelines = tradelines.filter((tl) => {
+    const byBureau = tl?.byBureau || {};
+    const presentBureaus = ["TUC", "EXP", "EQF"].filter((b) => {
+      const entry = byBureau[b];
+      return entry && typeof entry === "object" && entry.present !== false;
+    });
+    // Include if present on 2+ bureaus (for date/balance/status comparison)
+    return presentBureaus.length >= 2;
+  });
+  
+  const missingBureauTradelines = tradelines.filter((tl) => {
+    const byBureau = tl?.byBureau || {};
+    const presentBureaus = ["TUC", "EXP", "EQF"].filter((b) => {
+      const entry = byBureau[b];
+      return entry && typeof entry === "object" && entry.present !== false;
+    });
+    // Include if present on 1-2 bureaus (missing from others - cross_bureau_missing_account)
+    return presentBureaus.length >= 1 && presentBureaus.length < 3;
+  });
+  
+  // Combine both sets using Map-based deduplication
+  const allCandidates = [...new Map(
+    [...multiBureauTradelines, ...missingBureauTradelines].map((tl) => [JSON.stringify(tl), tl])
+  ).values()];
+  
+  if (!allCandidates.length) {
+    return { violations: [], rawCount: 0 };
+  }
+  
+  const crossBureauReport = { ...report, tradelines: allCandidates };
+  
+  const response = await client.responses.create({
+    model: model || DEFAULT_AUDIT_MODEL,
+    input: [
+      { role: "system", content: CROSS_BUREAU_SYSTEM_PROMPT },
+      { role: "developer", content: CROSS_BUREAU_DEVELOPER_PROMPT },
+      { role: "user", content: JSON.stringify(crossBureauReport) },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: "ViolationList",
+        strict: true,
+        schema: VIOLATION_LIST_SCHEMA,
+      },
+    },
+    temperature: 0,
+    store: false,
+  });
+  
+  const outputText = extractOutputText(response);
+  if (!outputText) {
+    console.warn("Cross-bureau audit returned no output");
+    return { violations: [], rawCount: 0 };
+  }
+  
+  let parsed;
+  try {
+    parsed = JSON.parse(outputText);
+  } catch (err) {
+    console.warn(`Cross-bureau audit output is not valid JSON: ${err?.message || err}`);
+    return { violations: [], rawCount: 0 };
+  }
+  
+  if (!validateViolationList(parsed)) {
+    console.warn("Cross-bureau audit failed schema validation");
+    return { violations: [], rawCount: 0 };
+  }
+  
+  return {
+    violations: Array.isArray(parsed.violations) ? parsed.violations : [],
+    rawCount: parsed.violations?.length || 0,
+  };
+}
+
+/**
  * Audit a single bureau's tradelines
  * @throws {Error} Propagates errors to caller for proper error handling
  */
@@ -356,20 +487,30 @@ export async function auditCanonicalReport(report, { model, parallel = true, con
     );
     
     let bureauResults;
+    let crossBureauResults;
+    
     try {
-      bureauResults = await parallelProcess(
-        bureaus,
-        (bureau) => auditBureau(bureauReports[bureau], client, model),
-        concurrency
-      );
+      // Run per-bureau audits and cross-bureau analysis in parallel
+      const [perBureauResults, crossResults] = await Promise.all([
+        parallelProcess(
+          bureaus,
+          (bureau) => auditBureau(bureauReports[bureau], client, model),
+          concurrency
+        ),
+        crossBureauAudit(report, client, model),
+      ]);
+      bureauResults = perBureauResults;
+      crossBureauResults = crossResults;
     } catch (err) {
-      // If any bureau audit fails, propagate the error to maintain parity with sequential behavior
-      throw new Error(`Parallel bureau audit failed: ${err?.message || err}`);
+      // If any audit fails, propagate the error to maintain parity with sequential behavior
+      throw new Error(`Parallel audit failed: ${err?.message || err}`);
     }
     
-    // Merge violations from all bureaus
-    const allViolations = bureauResults.flatMap((r) => r.violations || []);
-    const totalRawCount = bureauResults.reduce((sum, r) => sum + (r.rawCount || 0), 0);
+    // Merge violations from all bureaus + cross-bureau analysis
+    const perBureauViolations = bureauResults.flatMap((r) => r.violations || []);
+    const crossBureauViolations = crossBureauResults.violations || [];
+    const allViolations = [...perBureauViolations, ...crossBureauViolations];
+    const totalRawCount = bureauResults.reduce((sum, r) => sum + (r.rawCount || 0), 0) + (crossBureauResults.rawCount || 0);
     
     const { validViolations, errors } = filterValidViolations(allViolations, report);
     if (errors.length) {
@@ -378,8 +519,11 @@ export async function auditCanonicalReport(report, { model, parallel = true, con
       );
     }
     
+    // Deduplicate violations (in case same issue detected by both passes)
+    const dedupedViolations = deduplicateViolations(validViolations);
+    
     return {
-      violations: validViolations.slice(0, 50).map((violation) => ({
+      violations: dedupedViolations.slice(0, 50).map((violation) => ({
         ...violation,
         instanceKey: buildViolationInstanceKey(violation),
       })),
@@ -388,26 +532,30 @@ export async function auditCanonicalReport(report, { model, parallel = true, con
   }
   
   // Standard sequential processing for smaller reports
-  const response = await client.responses.create({
-    model: model || DEFAULT_AUDIT_MODEL,
-    input: [
-      { role: "system", content: AUDIT_SYSTEM_PROMPT },
-      { role: "developer", content: AUDIT_DEVELOPER_PROMPT },
-      { role: "user", content: JSON.stringify(report) },
-    ],
-    text: {
-      format: {
-        type: "json_schema",
-        name: "ViolationList",
-        strict: true,
-        schema: VIOLATION_LIST_SCHEMA,
+  // Run both standard audit and cross-bureau analysis
+  const [mainResponse, crossBureauResults] = await Promise.all([
+    client.responses.create({
+      model: model || DEFAULT_AUDIT_MODEL,
+      input: [
+        { role: "system", content: AUDIT_SYSTEM_PROMPT },
+        { role: "developer", content: AUDIT_DEVELOPER_PROMPT },
+        { role: "user", content: JSON.stringify(report) },
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "ViolationList",
+          strict: true,
+          schema: VIOLATION_LIST_SCHEMA,
+        },
       },
-    },
-    temperature: 0,
-    store: false,
-  });
+      temperature: 0,
+      store: false,
+    }),
+    crossBureauAudit(report, client, model),
+  ]);
 
-  const outputText = extractOutputText(response);
+  const outputText = extractOutputText(mainResponse);
   if (!outputText) {
     throw new Error("LLM audit response missing structured output.");
   }
@@ -424,19 +572,27 @@ export async function auditCanonicalReport(report, { model, parallel = true, con
     throw new Error(`LLM audit schema validation failed: ${details || "unknown error"}`);
   }
 
-  const violations = Array.isArray(parsed.violations) ? parsed.violations : [];
-  const { validViolations, errors } = filterValidViolations(violations, report);
+  // Merge standard violations with cross-bureau violations
+  const mainViolations = Array.isArray(parsed.violations) ? parsed.violations : [];
+  const crossViolations = crossBureauResults.violations || [];
+  const allViolations = [...mainViolations, ...crossViolations];
+  const totalRawCount = mainViolations.length + (crossBureauResults.rawCount || 0);
+  
+  const { validViolations, errors } = filterValidViolations(allViolations, report);
   if (errors.length) {
     console.warn(
       `LLM audit validation filtered ${errors.length} violation(s): ${errors.join("; ")}`
     );
   }
 
+  // Deduplicate violations
+  const dedupedViolations = deduplicateViolations(validViolations);
+
   return {
-    violations: validViolations.slice(0, 50).map((violation) => ({
+    violations: dedupedViolations.slice(0, 50).map((violation) => ({
       ...violation,
       instanceKey: buildViolationInstanceKey(violation),
     })),
-    rawCount: violations.length,
+    rawCount: totalRawCount,
   };
 }
