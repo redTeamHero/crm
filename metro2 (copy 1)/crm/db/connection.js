@@ -86,7 +86,7 @@ function buildConnectionConfig() {
     ensureDataDir();
     const filename = process.env.DATABASE_URL
       ? process.env.DATABASE_URL.replace(/^file:/i, "")
-      : path.join(process.cwd(), "data", "dev.sqlite");
+      : path.join(PROJECT_ROOT, "dev.sqlite");
     return {
       ...baseConfig,
       connection: {
