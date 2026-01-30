@@ -2,7 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {},
-  allowedDevOrigins: ['*'],
+  images: {
+    unoptimized: true,
+  },
   async headers() {
     return [
       {

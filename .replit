@@ -17,6 +17,10 @@ author = "agent"
 task = "workflow.run"
 args = "Client Portal"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "CRM Backend"
+
 [[workflows.workflow]]
 name = "Client Portal"
 author = "agent"
@@ -29,9 +33,25 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
+[[workflows.workflow]]
+name = "CRM Backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd \"metro2 (copy 1)/crm\" && npm run dev"
+waitForPort = 3000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
