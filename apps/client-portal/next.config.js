@@ -2,6 +2,18 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {},
+  async rewrites() {
+    return [
+      {
+        source: '/api-proxy/:path*',
+        destination: 'http://localhost:3000/api/:path*',
+      },
+      {
+        source: '/crm-proxy/:path*',
+        destination: 'http://localhost:3000/:path*',
+      },
+    ];
+  },
   images: {
     unoptimized: true,
   },

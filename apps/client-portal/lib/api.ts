@@ -5,26 +5,28 @@ const DEFAULT_BASE = process.env.PORTAL_API_BASE_URL || process.env.NEXT_PUBLIC_
 
 function resolveBaseUrl() {
   if (typeof window !== 'undefined') {
-    return `https://${window.location.hostname.replace('-5000', '-3000')}`;
+    return '/api-proxy';
   }
-  const base = (process.env.PORTAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000').trim();
-  return base.replace(/\/$/, '');
+  return 'http://localhost:3000';
 }
 
 export async function getPortalData(consumerId: string): Promise<PortalPayload | null> {
   if (!consumerId) return null;
   const baseUrl = resolveBaseUrl();
   const endpoint = `${baseUrl}/api/portal/${encodeURIComponent(consumerId)}`;
+  console.log('Fetching portal data from:', endpoint);
   const res = await fetch(endpoint, { cache: 'no-store' });
   if (!res.ok) {
+    console.error('Portal data fetch failed:', res.status, res.statusText);
     return null;
   }
   const payload = await res.json().catch(() => null);
-  if (!payload?.ok || !payload.portal) {
-    return null;
-  }
+  console.log('Portal data received:', payload);
+  // Support both direct payload and tenant_kv style if the backend wraps it
+  const data = payload?.portal || payload;
+  if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) return null;
 
-  const portalSource = payload.portal as Record<string, unknown>;
+  const portalSource = data as Record<string, unknown>;
 
   const normalizeArray = <T>(primary?: unknown, fallback?: unknown) => {
     if (Array.isArray(primary)) return primary as T[];

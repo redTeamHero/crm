@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspace=apps/client-portal",
-    "start": "npm run start --workspace=apps/client-portal"
+    "start": "npm run start --workspace=apps/client-portal",
+    "dev": "npm run dev --workspace=apps/client-portal"
   }
 }

@@ -88,6 +88,8 @@ function buildConnectionConfig() {
       ? path.join(PROJECT_ROOT, "dev.sqlite")
       : (process.env.DATABASE_URL || path.join(PROJECT_ROOT, "dev.sqlite"));
     
+    console.log('Using database file:', filename);
+    
     // Attempt to ensure file exists and is writable
     try {
       const targetPath = path.isAbsolute(filename) ? filename : path.join(PROJECT_ROOT, filename);

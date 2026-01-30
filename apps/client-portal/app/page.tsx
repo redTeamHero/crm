@@ -8,7 +8,13 @@ export default function HomePage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setCrmUrl(`https://${window.location.hostname.replace('-5000', '-3000')}`);
+      // Use the actual CRM dashboard URL if possible, otherwise fallback to proxy
+      const host = window.location.hostname;
+      if (host.includes('replit.dev')) {
+        setCrmUrl(`https://${host.replace('-5000', '-3000')}`);
+      } else {
+        setCrmUrl('/crm-proxy/');
+      }
     }
   }, []);
 
