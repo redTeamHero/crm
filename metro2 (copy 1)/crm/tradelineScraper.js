@@ -249,7 +249,7 @@ function pickFallbackByPattern(values = [], pattern) {
 function buildRecord(base) {
   const statement = normalizeStatement(base.statement_date);
   let bank = tidyText(base.bank);
-  if (isLikelyStatement(bank)) bank = '';
+  if (isLikelyStatement(bank) || isLikelyCurrency(bank)) bank = '';
   const price = Number.isFinite(base.price) ? Math.round(base.price * 100) / 100 : base.price;
   const limit = Number.isFinite(base.limit) ? base.limit : 0;
   return {
@@ -342,7 +342,7 @@ function parseDataAttributeRows($) {
 
     if (!record.bank) {
       const fallbackBank = bankCandidates.find((candidate) => isLikelyBank(candidate))
-        || bankCandidates.find((candidate) => !isLikelyStatement(candidate));
+        || bankCandidates.find((candidate) => !isLikelyStatement(candidate) && !isLikelyCurrency(candidate));
       if (fallbackBank) record.bank = fallbackBank;
     }
 
