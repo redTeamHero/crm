@@ -1,0 +1,49 @@
+
+MIDLAND CRED (Original Creditor: 01 CELTIC BANK)
+TransUnion
+Account #	[REDACTED_ZIP]****
+Account Status	Derogatory
+Payment Status	Collection/Chargeoff
+Balance	$692.00
+Past Due	—
+Credit Limit	—
+High Credit	$692.00
+Date Opened	2023-12-27
+Last Reported	2025-09-05
+Date Last Payment	—
+Comments	Customer disputed account - reported by subscriber.
+Experian
+Account #	[REDACTED_ZIP]****
+Account Status	Derogatory
+Payment Status	Collection/Chargeoff
+Balance	$692.00
+Past Due	—
+Credit Limit	—
+High Credit	$692.00
+Date Opened	2023-12-01
+Last Reported	2025-08-22
+Date Last Payment	—
+Comments	Account information disputed by consumer, meets FCRA requirements
+Equifax
+Account #	—
+Account Status	—
+Payment Status	—
+Balance	—
+Past Due	—
+Credit Limit	—
+High Credit	—
+Date Opened	—
+Last Reported	—
+Date Last Payment	—
+Comments	—
+Violations
+
+    required_field_validation – The account is derogatory but does not report a Date of First Delinquency, preventing verification of legal reporting period and raising re-aging concerns. TransUnion
+    The account is derogatory but does not report a Date of First Delinquency, preventing verification of legal reporting period and raising re-aging concerns.
+    required_field_validation – The account is derogatory but does not report a Date of First Delinquency, preventing verification of legal reporting period and raising re-aging concerns. Experian
+    The account is derogatory but does not report a Date of First Delinquency, preventing verification of legal reporting period and raising re-aging concerns.
+    required_field_validation – The account is reported as delinquent or charged off but does not include a Date of Last Payment, making the delinquency timeline unverifiable. TransUnion
+    The account is reported as delinquent or charged off but does not include a Date of Last Payment, making the delinquency timeline unverifiable.
+    required_field_validation – The account is reported as delinquent or charged off but does not include a Date of Last Payment, making the delinquency timeline unverifiable. Experian
+    The account is reported as delinquent or charged off but does not include a Date of Last Payment, making the delinquency timeline unverifiable.
+
