@@ -42,6 +42,12 @@ npm run dev
 - Various API keys for integrations (Stripe, OpenAI, etc.)
 
 ## Recent Changes
+- 2026-01-30: Added cross-bureau violation detection
+  - Added dedicated cross-bureau audit pass that detects discrepancies between bureaus
+  - Detects: date mismatches, balance differences, status inconsistencies, missing accounts
+  - Cross-bureau analysis runs in parallel with per-bureau audits for speed
+  - Added deduplication to prevent duplicate violations from both passes
+  - Works in both parallel (large reports) and sequential (small reports) paths
 - 2026-01-30: Performance optimizations for PDF parsing and audit processing
   - Pre-compiled 25+ regex patterns at module level in metro2-core parser
   - Added parallel bureau processing (TUC/EXP/EQF) for LLM audits with configurable concurrency
