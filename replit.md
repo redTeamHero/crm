@@ -42,6 +42,11 @@ npm run dev
 - Various API keys for integrations (Stripe, OpenAI, etc.)
 
 ## Recent Changes
+- 2026-01-30: Fixed bank name extraction in tradeline scraper
+  - Added isLikelyCurrency() function to detect currency-formatted strings
+  - Updated all fallback paths in extractBankAndStatement and parseDataAttributeRows
+  - Added safety check in buildRecord to clear currency-like bank values
+  - Prevents credit limit values from appearing in bank filter dropdown
 - 2026-01-30: Added cross-bureau violation detection
   - Added dedicated cross-bureau audit pass that detects discrepancies between bureaus
   - Detects: date mismatches, balance differences, status inconsistencies, missing accounts
