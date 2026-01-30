@@ -4,7 +4,10 @@ import type { PortalPayload } from './types';
 const DEFAULT_BASE = process.env.PORTAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
 function resolveBaseUrl() {
-  const base = (process.env.PORTAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_BASE).trim();
+  if (typeof window !== 'undefined') {
+    return `https://${window.location.hostname.replace('-5000', '-3000')}`;
+  }
+  const base = (process.env.PORTAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000').trim();
   return base.replace(/\/$/, '');
 }
 

@@ -1,6 +1,34 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function HomePage() {
+  const [crmUrl, setCrmUrl] = useState('http://localhost:3000');
+
+  useEffect(() => {
+    const host = window.location.hostname;
+    const protocol = window.location.protocol;
+    // For Replit, the CRM is on another port which means a different subdomain/URL in the proxy
+    // Replit format: https://[guid]-00-[random].janeway.replit.dev
+    // Port 3000 is usually not directly accessible via the same domain.
+    // However, if we're on Replit, we can try to guess the 3000 port URL or just use the local relative one if proxied.
+    // For now, let's use a relative path if possible, but Express is on 3000.
+    // Replit allows multiple ports by using the format: slug-port.user.repl.co (old)
+    // or through the janeway proxy which maps ports.
+    
+    if (host.includes('replit.dev')) {
+       // Heuristic: swap the first part of the domain to include the port if Replit supports it
+       // Or just assume the user will access it via the Replit interface.
+       // The best way in Replit is to use the specific port URL.
+       const parts = host.split('.');
+       const slug = parts[0];
+       // Replace the 5000 port part if it exists or append
+       // Actually Replit Janeway uses a specific URL for each port.
+       // We'll leave it as localhost for now but mention it's internal.
+    }
+  }, []);
+
   return (
     <main className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center gap-12 px-6 py-16 text-center">
       <div className="space-y-4">
@@ -50,7 +78,9 @@ export default function HomePage() {
           </div>
           <a
             className="w-full rounded-xl bg-slate-900 px-6 py-4 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-            href="http://localhost:3000"
+            href={`https://${window.location.hostname.replace('-5000', '-3000')}`}
+            target="_blank"
+            rel="noopener noreferrer"
           >
             Go to CRM Side
           </a>
