@@ -2,6 +2,15 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {},
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/dashboard',
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
