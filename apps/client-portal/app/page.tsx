@@ -8,12 +8,12 @@ export default function HomePage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Use the actual CRM dashboard URL if possible, otherwise fallback to proxy
       const host = window.location.hostname;
       if (host.includes('replit.dev')) {
+        // Direct link to the backend port
         setCrmUrl(`https://${host.replace('-5000', '-3000')}`);
       } else {
-        setCrmUrl('/crm-proxy/');
+        setCrmUrl('http://localhost:3000');
       }
     }
   }, []);
