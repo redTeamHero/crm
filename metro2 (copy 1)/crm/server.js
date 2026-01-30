@@ -7075,6 +7075,146 @@ function diyRequirePlan(allowedPlans) {
   };
 }
 
+function getLatestDiyReportId(reports, userId) {
+  const userReports = reports.filter(report => report.userId === userId);
+  if (userReports.length === 0) return null;
+  const sorted = userReports.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  return sorted[0]?.id || null;
+}
+
+async function runDiyAudit({ reportId, userId }) {
+  const db = await loadDiyReportsDB();
+  const report = db.reports.find(r => r.id === reportId && r.userId === userId);
+
+  if (!report) {
+    return { status: 404, error: 'Report not found' };
+  }
+
+  const ext = path.extname(report.storedName).toLowerCase();
+  if (!ALLOWED_DIY_EXTENSIONS.includes(ext)) {
+    return { status: 400, error: 'Unsupported file format. Please upload PDF or HTML credit reports.' };
+  }
+
+  const filePath = path.join(__dirname, 'diy_uploads', userId, report.storedName);
+  if (!fs.existsSync(filePath)) {
+    return { status: 404, error: 'Report file not found' };
+  }
+
+  let violations = [];
+  const context = { mode: 'DIY', userId, tenantId: null };
+
+  try {
+    if (ext === '.html' || ext === '.htm') {
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+      const tradelines = scrapeTradelines(fileContent);
+
+      if (tradelines && tradelines.length > 0) {
+        const canonicalReport = {
+          tradelines,
+          byBureau: {
+            TUC: tradelines.filter(t => t.bureau === 'TUC' || t.bureau === 'TransUnion'),
+            EXP: tradelines.filter(t => t.bureau === 'EXP' || t.bureau === 'Experian'),
+            EQF: tradelines.filter(t => t.bureau === 'EQF' || t.bureau === 'Equifax')
+          },
+          context
+        };
+
+        const auditResult = await auditCanonicalReport(canonicalReport, context);
+        if (auditResult && auditResult.violations) {
+          violations = auditResult.violations.map(v => ({
+            ...v,
+            explanation: v.explanation || v.description || 'This item may contain inaccurate information that violates credit reporting standards.'
+          }));
+        }
+      }
+    } else if (ext === '.pdf') {
+      return {
+        violations: [],
+        auditedAt: new Date().toISOString(),
+        message: 'PDF parsing is available. Please upload the HTML version of your credit report for best results.'
+      };
+    }
+  } catch (auditErr) {
+    logWarn('DIY_AUDIT_ENGINE_ERROR', auditErr?.message || 'Audit engine error');
+  }
+
+  report.auditStatus = 'completed';
+  report.violations = violations;
+  report.auditedAt = new Date().toISOString();
+  await saveDiyReportsDB(db);
+
+  return { violations, auditedAt: report.auditedAt };
+}
+
+async function generateDiyLetters({ reportId, userId, violations }) {
+  const resolvedReportId = reportId;
+  if (!resolvedReportId) {
+    return { status: 400, error: 'Report ID is required' };
+  }
+
+  let resolvedViolations = violations;
+  if (!resolvedViolations || resolvedViolations.length === 0) {
+    const reportsDb = await loadDiyReportsDB();
+    const report = reportsDb.reports.find(r => r.id === resolvedReportId && r.userId === userId);
+    if (!report) {
+      return { status: 404, error: 'Report not found' };
+    }
+    resolvedViolations = report.violations || [];
+  }
+
+  if (!resolvedViolations || !Array.isArray(resolvedViolations) || resolvedViolations.length === 0) {
+    return { status: 400, error: 'No violations provided' };
+  }
+
+  const usersDb = await loadDiyUsersDB();
+  const user = usersDb.users.find(u => u.id === userId);
+  if (!user) {
+    return { status: 404, error: 'User not found' };
+  }
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  if (user.lastLetterResetMonth !== currentMonth) {
+    user.lettersGeneratedThisMonth = 0;
+    user.lastLetterResetMonth = currentMonth;
+    await saveDiyUsersDB(usersDb);
+  }
+
+  const limits = DIY_PLAN_LIMITS[user.plan];
+  if (limits.lettersPerMonth !== -1 && user.lettersGeneratedThisMonth >= limits.lettersPerMonth) {
+    return {
+      status: 403,
+      error: `You have reached your monthly limit of ${limits.lettersPerMonth} letters. Upgrade to Pro for unlimited letters.`
+    };
+  }
+
+  const lettersDb = await loadDiyLettersDB();
+  const generatedLetters = [];
+
+  const bureaus = [...new Set(resolvedViolations.map(v => v.bureau).filter(Boolean))];
+  if (bureaus.length === 0) bureaus.push('General');
+
+  for (const bureau of bureaus) {
+    const letter = {
+      id: nanoid(12),
+      userId,
+      reportId: resolvedReportId,
+      bureau,
+      violations: resolvedViolations.filter(v => v.bureau === bureau || !v.bureau),
+      createdAt: new Date().toISOString(),
+      content: `Dispute letter for ${bureau} - Generated for DIY user`
+    };
+    lettersDb.letters.push(letter);
+    generatedLetters.push({ id: letter.id, bureau: letter.bureau, createdAt: letter.createdAt });
+  }
+
+  await saveDiyLettersDB(lettersDb);
+
+  user.lettersGeneratedThisMonth += generatedLetters.length;
+  await saveDiyUsersDB(usersDb);
+
+  return { letters: generatedLetters };
+}
+
 // DIY Signup
 app.post('/api/diy/signup', async (req, res) => {
   try {
@@ -7249,82 +7389,48 @@ app.get('/api/diy/reports', diyAuthenticate, async (req, res) => {
   }
 });
 
+app.post('/api/diy/audit', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
+  try {
+    const { reportId } = req.body || {};
+    const reportsDb = await loadDiyReportsDB();
+    const resolvedReportId = reportId || getLatestDiyReportId(reportsDb.reports, req.diyUser.id);
+
+    if (!resolvedReportId) {
+      return res.status(400).json({ ok: false, error: 'Report ID is required' });
+    }
+
+    const result = await runDiyAudit({ reportId: resolvedReportId, userId: req.diyUser.id });
+    if (result.error) {
+      return res.status(result.status || 500).json({ ok: false, error: result.error });
+    }
+
+    res.json({
+      ok: true,
+      reportId: resolvedReportId,
+      violations: result.violations || [],
+      auditedAt: result.auditedAt,
+      message: result.message
+    });
+  } catch (err) {
+    logError('DIY_AUDIT_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Audit failed' });
+  }
+});
+
 // DIY Run Audit on Report - uses shared audit engine with DIY context
 app.post('/api/diy/reports/:id/audit', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
   try {
-    const db = await loadDiyReportsDB();
-    const report = db.reports.find(r => r.id === req.params.id && r.userId === req.diyUser.id);
-
-    if (!report) {
-      return res.status(404).json({ ok: false, error: 'Report not found' });
+    const result = await runDiyAudit({ reportId: req.params.id, userId: req.diyUser.id });
+    if (result.error) {
+      return res.status(result.status || 500).json({ ok: false, error: result.error });
     }
 
-    // Validate file type
-    const ext = path.extname(report.storedName).toLowerCase();
-    if (!['.pdf', '.html', '.htm'].includes(ext)) {
-      return res.status(400).json({ ok: false, error: 'Unsupported file format. Please upload PDF or HTML credit reports.' });
-    }
-
-    // Read the uploaded file
-    const filePath = path.join(__dirname, 'diy_uploads', req.diyUser.id, report.storedName);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ ok: false, error: 'Report file not found' });
-    }
-
-    let violations = [];
-    const context = { mode: 'DIY', userId: req.diyUser.id, tenantId: null };
-
-    try {
-      // For HTML files, try to use the shared audit engine
-      if (ext === '.html' || ext === '.htm') {
-        const fileContent = fs.readFileSync(filePath, 'utf-8');
-
-        // Try to scrape tradelines from the HTML
-        const tradelines = scrapeTradelines(fileContent);
-
-        if (tradelines && tradelines.length > 0) {
-          // Build a canonical report structure for audit
-          const canonicalReport = {
-            tradelines,
-            byBureau: {
-              TUC: tradelines.filter(t => t.bureau === 'TUC' || t.bureau === 'TransUnion'),
-              EXP: tradelines.filter(t => t.bureau === 'EXP' || t.bureau === 'Experian'),
-              EQF: tradelines.filter(t => t.bureau === 'EQF' || t.bureau === 'Equifax')
-            },
-            context
-          };
-
-          // Run audit with context flag
-          const auditResult = await auditCanonicalReport(canonicalReport, context);
-          if (auditResult && auditResult.violations) {
-            violations = auditResult.violations.map(v => ({
-              ...v,
-              explanation: v.explanation || v.description || 'This item may contain inaccurate information that violates credit reporting standards.'
-            }));
-          }
-        }
-      } else if (ext === '.pdf') {
-        // PDF parsing would require additional processing
-        // For now, return a message that PDF audit is coming soon
-        return res.json({
-          ok: true,
-          violations: [],
-          message: 'PDF parsing is available. Please upload the HTML version of your credit report for best results.',
-          auditedAt: new Date().toISOString()
-        });
-      }
-    } catch (auditErr) {
-      logWarn('DIY_AUDIT_ENGINE_ERROR', auditErr?.message || 'Audit engine error');
-      // Continue with empty violations if audit engine fails
-    }
-
-    // Update report with violations
-    report.auditStatus = 'completed';
-    report.violations = violations;
-    report.auditedAt = new Date().toISOString();
-    await saveDiyReportsDB(db);
-
-    res.json({ ok: true, violations, auditedAt: report.auditedAt });
+    res.json({
+      ok: true,
+      violations: result.violations || [],
+      auditedAt: result.auditedAt,
+      message: result.message
+    });
   } catch (err) {
     logError('DIY_AUDIT_ERROR', err);
     res.status(500).json({ ok: false, error: 'Audit failed' });
@@ -7343,62 +7449,48 @@ app.get('/api/diy/letters', diyAuthenticate, async (req, res) => {
   }
 });
 
+app.post('/api/diy/letters', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
+  try {
+    const { reportId, violations } = req.body || {};
+    const reportsDb = await loadDiyReportsDB();
+    const resolvedReportId = reportId || getLatestDiyReportId(reportsDb.reports, req.diyUser.id);
+
+    if (!resolvedReportId) {
+      return res.status(400).json({ ok: false, error: 'Report ID is required' });
+    }
+
+    const result = await generateDiyLetters({
+      reportId: resolvedReportId,
+      userId: req.diyUser.id,
+      violations
+    });
+
+    if (result.error) {
+      return res.status(result.status || 500).json({ ok: false, error: result.error });
+    }
+
+    res.json({ ok: true, reportId: resolvedReportId, letters: result.letters || [] });
+  } catch (err) {
+    logError('DIY_GENERATE_LETTERS_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Letter generation failed' });
+  }
+});
+
 // DIY Generate Letters
 app.post('/api/diy/reports/:id/letters', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
   try {
-    const { violations } = req.body;
+    const { violations } = req.body || {};
+    const result = await generateDiyLetters({
+      reportId: req.params.id,
+      userId: req.diyUser.id,
+      violations
+    });
 
-    if (!violations || !Array.isArray(violations) || violations.length === 0) {
-      return res.status(400).json({ ok: false, error: 'No violations provided' });
+    if (result.error) {
+      return res.status(result.status || 500).json({ ok: false, error: result.error });
     }
 
-    // Check plan limits
-    const usersDb = await loadDiyUsersDB();
-    const user = usersDb.users.find(u => u.id === req.diyUser.id);
-    if (!user) {
-      return res.status(404).json({ ok: false, error: 'User not found' });
-    }
-
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    if (user.lastLetterResetMonth !== currentMonth) {
-      user.lettersGeneratedThisMonth = 0;
-      user.lastLetterResetMonth = currentMonth;
-      await saveDiyUsersDB(usersDb);
-    }
-
-    const limits = DIY_PLAN_LIMITS[user.plan];
-    if (limits.lettersPerMonth !== -1 && user.lettersGeneratedThisMonth >= limits.lettersPerMonth) {
-      return res.status(403).json({ ok: false, error: `You have reached your monthly limit of ${limits.lettersPerMonth} letters. Upgrade to Pro for unlimited letters.` });
-    }
-
-    // Generate letters (placeholder for actual letter generation)
-    const lettersDb = await loadDiyLettersDB();
-    const generatedLetters = [];
-
-    const bureaus = [...new Set(violations.map(v => v.bureau).filter(Boolean))];
-    if (bureaus.length === 0) bureaus.push('General');
-
-    for (const bureau of bureaus) {
-      const letter = {
-        id: nanoid(12),
-        userId: req.diyUser.id,
-        reportId: req.params.id,
-        bureau,
-        violations: violations.filter(v => v.bureau === bureau || !v.bureau),
-        createdAt: new Date().toISOString(),
-        content: `Dispute letter for ${bureau} - Generated for DIY user`
-      };
-      lettersDb.letters.push(letter);
-      generatedLetters.push({ id: letter.id, bureau: letter.bureau, createdAt: letter.createdAt });
-    }
-
-    await saveDiyLettersDB(lettersDb);
-
-    // Update user letter count
-    user.lettersGeneratedThisMonth += generatedLetters.length;
-    await saveDiyUsersDB(usersDb);
-
-    res.json({ ok: true, letters: generatedLetters });
+    res.json({ ok: true, letters: result.letters || [] });
   } catch (err) {
     logError('DIY_GENERATE_LETTERS_ERROR', err);
     res.status(500).json({ ok: false, error: 'Letter generation failed' });
