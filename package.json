@@ -1,0 +1,13 @@
+{
+  "name": "metro2-crm",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "metro2 (copy 1)/crm"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=apps/client-portal",
+    "start": "npm run start --workspace=apps/client-portal"
+  }
+}

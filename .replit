@@ -55,5 +55,5 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "cd apps/client-portal && npm run start"]
-build = ["bash", "-c", "cd apps/client-portal && npm install && npm run build"]
+run = ["npm start"]
+build = ["npm install && npm run build"]
