@@ -47,7 +47,7 @@ export default function HomePage() {
           </div>
           <Link
             className="w-full rounded-xl bg-primary px-6 py-4 text-center text-sm font-semibold text-white shadow-sm transition hover:brightness-110"
-            href="/portal/demo-client"
+            href={crmUrl + '/portal/demo-client'}
           >
             Go to Client Side
           </Link>
@@ -67,7 +67,7 @@ export default function HomePage() {
           </div>
           <a
             className="w-full rounded-xl bg-slate-900 px-6 py-4 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-            href={crmUrl}
+            href={crmUrl + '/login.html'}
             target="_blank"
             rel="noopener noreferrer"
           >
