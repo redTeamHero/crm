@@ -1,7 +1,7 @@
-# Metro2 CRM
+# Evolve.Ai
 
 ## Overview
-This is a dual-access credit platform with two distinct user journeys:
+Evolve.Ai is a dual-access credit transformation platform with two distinct user journeys:
 - **CRM (Pro Mode)**: Full multi-tenant system for credit repair professionals with client management, bulk automation, and team tools
 - **DIY Mode**: Simplified self-service for individual consumers to fix their own credit
 

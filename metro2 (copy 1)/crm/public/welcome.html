@@ -2,52 +2,278 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Metro 2 Credit Platform</title>
+  <title>Evolve.Ai - Transform Your Credit</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#AF52DE" />
+  <meta name="theme-color" content="#7C3AED" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="/theme.js"></script>
-  <link rel="stylesheet" href="/style.css">
   <style>
-    .choice-card {
-      transition: all 0.2s ease;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
+    
+    .gradient-bg {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4c1d95 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .gradient-bg::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 80%;
+      height: 150%;
+      background: radial-gradient(ellipse, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    
+    .gradient-bg::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -20%;
+      width: 60%;
+      height: 100%;
+      background: radial-gradient(ellipse, rgba(16, 185, 129, 0.1) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    
+    .metamorphosis-container {
+      position: relative;
+    }
+    
+    .stage {
+      opacity: 0.4;
+      transition: all 0.5s ease;
+    }
+    
+    .stage:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    
+    .butterfly {
+      animation: flutter 3s ease-in-out infinite;
+    }
+    
+    @keyframes flutter {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-8px) rotate(2deg); }
+      75% { transform: translateY(4px) rotate(-2deg); }
+    }
+    
+    .cocoon {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4)); }
+      50% { filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.8)); }
+    }
+    
+    .path-line {
+      stroke-dasharray: 8, 4;
+      animation: dash 1s linear infinite;
+    }
+    
+    @keyframes dash {
+      to { stroke-dashoffset: -12; }
+    }
+    
+    .choice-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+    
     .choice-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
       transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .choice-card.pro:hover {
+      border-color: rgba(139, 92, 246, 0.5);
+      box-shadow: 0 20px 40px rgba(139, 92, 246, 0.2);
+    }
+    
+    .choice-card.diy:hover {
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 20px 40px rgba(16, 185, 129, 0.2);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .btn-glow {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-glow::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .btn-glow:hover::before {
+      left: 100%;
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-  <div class="text-center mb-10">
-    <h1 class="text-3xl md:text-4xl font-bold text-slate-800 mb-3">Welcome to Metro 2</h1>
-    <p class="text-lg text-slate-600 max-w-md mx-auto">The most powerful credit dispute platform. Choose how you want to use it:</p>
-  </div>
-
-  <div class="grid md:grid-cols-2 gap-6 max-w-3xl w-full">
-    <a href="/crm" class="choice-card glass card p-8 flex flex-col items-center text-center cursor-pointer border-2 border-transparent hover:border-purple-300">
-      <div class="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center mb-4">
-        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-        </svg>
+<body class="min-h-screen gradient-bg text-white">
+  <div class="relative z-10 min-h-screen flex flex-col">
+    <header class="p-6">
+      <div class="max-w-6xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-emerald-500 flex items-center justify-center">
+            <svg class="w-6 h-6 text-white butterfly" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C9.5 2 7 4 7 7c0 2 1 3.5 2 4.5-2.5.5-5 2.5-5 5.5 0 2 1.5 4 4 4 1.5 0 3-.5 4-2 1 1.5 2.5 2 4 2 2.5 0 4-2 4-4 0-3-2.5-5-5-5.5 1-1 2-2.5 2-4.5 0-3-2.5-5-5-5zm0 2c1.5 0 3 1.5 3 3s-1.5 3-3 3-3-1.5-3-3 1.5-3 3-3z"/>
+            </svg>
+          </div>
+          <span class="text-xl font-bold">Evolve<span class="text-emerald-400">.Ai</span></span>
+        </div>
+        <nav class="hidden md:flex items-center gap-6 text-sm text-violet-200">
+          <a href="#" class="hover:text-white transition-colors">How it Works</a>
+          <a href="#" class="hover:text-white transition-colors">Pricing</a>
+          <a href="#" class="hover:text-white transition-colors">About</a>
+        </nav>
       </div>
-      <h2 class="text-xl font-semibold text-slate-800 mb-2">Credit Repair Professional</h2>
-      <p class="text-slate-600 text-sm">Full CRM with client management, bulk automation, team tools, and advanced workflows.</p>
-      <span class="mt-4 text-sm font-medium text-purple-600">Access CRM &rarr;</span>
-    </a>
+    </header>
 
-    <a href="/diy" class="choice-card glass card p-8 flex flex-col items-center text-center cursor-pointer border-2 border-transparent hover:border-emerald-300">
-      <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-        <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-        </svg>
+    <main class="flex-1 flex flex-col items-center justify-center px-4 py-12">
+      <div class="max-w-4xl mx-auto text-center mb-12">
+        <div class="metamorphosis-container flex items-center justify-center gap-4 mb-8">
+          <div class="stage flex flex-col items-center">
+            <div class="w-12 h-8 bg-gradient-to-r from-amber-700 to-amber-600 rounded-full opacity-80"></div>
+            <span class="text-xs text-violet-300 mt-2">Struggle</span>
+          </div>
+          <svg class="w-8 h-4 text-violet-400 path-line" viewBox="0 0 32 16">
+            <path d="M0 8 L32 8" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
+          <div class="stage cocoon flex flex-col items-center">
+            <div class="w-10 h-14 bg-gradient-to-b from-violet-600 to-violet-800 rounded-full"></div>
+            <span class="text-xs text-violet-300 mt-2">Transform</span>
+          </div>
+          <svg class="w-8 h-4 text-violet-400 path-line" viewBox="0 0 32 16">
+            <path d="M0 8 L32 8" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
+          <div class="stage flex flex-col items-center opacity-100">
+            <svg class="w-16 h-16 butterfly" viewBox="0 0 64 64" fill="none">
+              <path d="M32 28C24 20 12 18 8 26C4 34 12 44 24 40C20 48 24 58 34 58C44 58 48 48 44 40C56 44 64 34 60 26C56 18 44 20 36 28" fill="url(#butterfly-gradient)" opacity="0.9"/>
+              <ellipse cx="32" cy="38" rx="3" ry="12" fill="#4c1d95"/>
+              <circle cx="30" cy="26" r="2" fill="#1e1b4b"/>
+              <circle cx="34" cy="26" r="2" fill="#1e1b4b"/>
+              <defs>
+                <linearGradient id="butterfly-gradient" x1="8" y1="18" x2="60" y2="58">
+                  <stop offset="0%" stop-color="#8b5cf6"/>
+                  <stop offset="50%" stop-color="#a78bfa"/>
+                  <stop offset="100%" stop-color="#10b981"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="text-xs text-emerald-400 mt-2 font-medium">Thrive</span>
+          </div>
+        </div>
+
+        <h1 class="text-4xl md:text-6xl font-extrabold mb-4">
+          <span class="gradient-text">Evolve</span> Your Credit
+        </h1>
+        <p class="text-lg md:text-xl text-violet-200 max-w-2xl mx-auto leading-relaxed">
+          Transform your financial future with AI-powered credit repair. Like a butterfly emerging from its cocoon, watch your credit score take flight.
+        </p>
       </div>
-      <h2 class="text-xl font-semibold text-slate-800 mb-2">Fix My Own Credit</h2>
-      <p class="text-slate-600 text-sm">DIY tools to upload your report, find violations, and generate dispute letters yourself.</p>
-      <span class="mt-4 text-sm font-medium text-emerald-600">Start DIY &rarr;</span>
-    </a>
-  </div>
 
-  <p class="mt-10 text-sm text-slate-500">Powered by Metro 2 compliance engine</p>
+      <div class="w-full max-w-3xl">
+        <p class="text-center text-violet-300 text-sm mb-6">Choose your evolution path</p>
+        
+        <div class="grid md:grid-cols-2 gap-6">
+          <a href="/crm" class="choice-card pro rounded-2xl p-8 block group">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center group-hover:bg-violet-500/30 transition-colors">
+                <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+              </div>
+              <div>
+                <span class="text-xs text-violet-400 font-medium uppercase tracking-wider">Professional</span>
+                <h2 class="text-xl font-bold text-white">Credit Repair Pro</h2>
+              </div>
+            </div>
+            <p class="text-violet-200 text-sm mb-6 leading-relaxed">
+              Full CRM suite with client management, bulk automation, team collaboration, and advanced workflows for credit repair professionals.
+            </p>
+            <div class="flex items-center text-violet-400 font-medium group-hover:text-violet-300 transition-colors">
+              <span>Access CRM</span>
+              <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+              </svg>
+            </div>
+          </a>
+
+          <a href="/diy" class="choice-card diy rounded-2xl p-8 block group">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+                <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+              </div>
+              <div>
+                <span class="text-xs text-emerald-400 font-medium uppercase tracking-wider">Personal</span>
+                <h2 class="text-xl font-bold text-white">Fix My Credit</h2>
+              </div>
+            </div>
+            <p class="text-violet-200 text-sm mb-6 leading-relaxed">
+              DIY tools to upload your report, discover violations with AI, and generate dispute letters yourself. Start your transformation today.
+            </p>
+            <div class="flex items-center text-emerald-400 font-medium group-hover:text-emerald-300 transition-colors">
+              <span>Start Free</span>
+              <svg class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+              </svg>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-16 text-center">
+        <p class="text-violet-400 text-sm mb-4">Trusted by thousands on their credit evolution journey</p>
+        <div class="flex items-center justify-center gap-8 text-violet-300/50">
+          <div class="text-center">
+            <p class="text-2xl font-bold text-white">50K+</p>
+            <p class="text-xs">Disputes Filed</p>
+          </div>
+          <div class="w-px h-10 bg-violet-500/30"></div>
+          <div class="text-center">
+            <p class="text-2xl font-bold text-white">89%</p>
+            <p class="text-xs">Success Rate</p>
+          </div>
+          <div class="w-px h-10 bg-violet-500/30"></div>
+          <div class="text-center">
+            <p class="text-2xl font-bold text-white">+127</p>
+            <p class="text-xs">Avg Score Increase</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="py-6 text-center text-violet-400/60 text-xs">
+      <p>Powered by Metro 2 AI Compliance Engine</p>
+    </footer>
+  </div>
 </body>
 </html>
