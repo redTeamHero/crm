@@ -220,7 +220,13 @@ function selectBureaus(acc, selection) {
 }
 
 export function normalizeReport(raw = {}, selections = null) {
-  const accounts = buildAccountBuckets(raw.account_history || [], raw.tradelines || []);
+  const accountHistory = Array.isArray(raw.account_history) ? raw.account_history : [];
+  const tradelines = Array.isArray(raw.tradelines) ? raw.tradelines : [];
+  const accountHistoryHasViolations = accountHistory.some(
+    (entry) => Array.isArray(entry?.violations) && entry.violations.length > 0,
+  );
+  const useAccountHistory = accountHistory.length > 0 && (accountHistoryHasViolations || tradelines.length === 0);
+  const accounts = buildAccountBuckets(useAccountHistory ? accountHistory : [], tradelines);
   const personalInformation = raw.personal_information || [];
   const personalMismatches = raw.personal_mismatches || [];
   const inquiries = raw.inquiries || [];
