@@ -59,9 +59,21 @@ const queues = new Map();
 const workers = new Map();
 const processors = new Map();
 const localEmitter = new EventEmitter();
+const normalizationWarnings = new Set();
 
 function normalizeQueueName(name) {
   return String(name).replace(/:/g, "_");
+}
+
+function warnIfQueueNameNormalized(originalName, normalizedName) {
+  if (normalizedName === originalName) {
+    return;
+  }
+  if (normalizationWarnings.has(normalizedName)) {
+    return;
+  }
+  normalizationWarnings.add(normalizedName);
+  logWarn("QUEUE_NAME_NORMALIZED", `Queue name "${originalName}" normalized to "${normalizedName}"`);
 }
 
 function ensureQueue(name) {
@@ -85,9 +97,7 @@ export function getQueueConnectionOptions() {
 
 export function registerJobProcessor(name, handler, options = {}) {
   const normalizedName = normalizeQueueName(name);
-  if (normalizedName !== name) {
-    logWarn("QUEUE_NAME_NORMALIZED", `Queue name "${name}" normalized to "${normalizedName}"`);
-  }
+  warnIfQueueNameNormalized(name, normalizedName);
   processors.set(normalizedName, handler);
   if (!queueEnabled || !connection) {
     return;
@@ -121,9 +131,7 @@ export function registerJobProcessor(name, handler, options = {}) {
 
 export async function enqueueJob(name, data, options = {}) {
   const normalizedName = normalizeQueueName(name);
-  if (normalizedName !== name) {
-    logWarn("QUEUE_NAME_NORMALIZED", `Queue name "${name}" normalized to "${normalizedName}"`);
-  }
+  warnIfQueueNameNormalized(name, normalizedName);
   const jobId = options.jobId || crypto.randomUUID();
   if (queueEnabled && connection) {
     const queue = ensureQueue(normalizedName);
