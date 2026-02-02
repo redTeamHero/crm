@@ -5120,6 +5120,7 @@ app.put("/api/consumers/:id/report/:rid/tradeline/:tidx", async (req,res)=>{
 
 app.post(
   "/api/consumers/:id/report/:rid/audit",
+  optionalAuth,
   enforceTenantQuota("reports:audit"),
   async (req, res) => {
     try {
