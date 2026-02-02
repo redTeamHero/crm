@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { detectChromium, launchBrowser } from './pdfUtils.js';
+import { htmlToPdfBuffer } from './pdfUtils.js';
 import { spawnPythonProcess } from './pythonEnv.js';
 
 // ---------------------------------------------------------------------------
@@ -410,24 +410,15 @@ export async function savePdf(html) {
   await fs.mkdir(outDir, { recursive: true });
   const filename = `credit-repair-audit-${Date.now()}.pdf`;
   const outPath = path.join(outDir, filename);
-  let browser;
   try {
-    const execPath = await detectChromium();
-    browser = await launchBrowser({
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      executablePath: execPath || undefined,
-    });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load' });
-    await page.pdf({ path: outPath, format: 'Letter', printBackground: true, margin: { top: '1in', bottom: '1in', left: '1in', right: '1in' } });
+    const pdfBuffer = await htmlToPdfBuffer(html, { title: 'Credit Repair Audit' });
+    await fs.writeFile(outPath, pdfBuffer);
     return { path: outPath, url: `/reports/${filename}` };
   } catch (err) {
     console.error('PDF generation failed, saving HTML instead:', err.message);
     const htmlPath = outPath.replace(/\.pdf$/, '.html');
     await fs.writeFile(htmlPath, html, 'utf-8');
     return { path: htmlPath, url: `/reports/${path.basename(htmlPath)}`, warning: err.message };
-  } finally {
-    if (browser) await browser.close();
   }
 }
 
