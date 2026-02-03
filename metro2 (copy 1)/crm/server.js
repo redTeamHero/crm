@@ -5161,6 +5161,25 @@ app.post(
         return res.status(preflight.status || 400).json({ ok: false, error: preflight.error || "Unable to queue audit" });
       }
 
+      const selections = Array.isArray(req.body?.selections) ? req.body.selections : null;
+      if (selections?.length) {
+        try {
+          const db = await loadDB({ tenantId });
+          const consumer = db.consumers.find((c) => c.id === consumerId);
+          const report = consumer?.reports?.find((r) => r.id === reportId);
+          if (report) {
+            report.auditSelections = selections;
+            report.auditSelectionUpdatedAt = new Date().toISOString();
+            await saveDB(db, { tenantId });
+          }
+        } catch (err) {
+          logWarn("AUDIT_SELECTION_SAVE_FAILED", err?.message || "Failed to persist audit selections", {
+            consumerId,
+            reportId,
+          });
+        }
+      }
+
       const jobId = crypto.randomBytes(8).toString("hex");
       const metadata = { consumerId, reportId };
       await createJobRecord({
@@ -5176,7 +5195,7 @@ app.post(
       const payload = {
         consumerId,
         reportId,
-        selections: Array.isArray(req.body?.selections) ? req.body.selections : null,
+        selections,
       };
 
       await enqueueJob(JOB_TYPES.REPORTS_AUDIT, {
@@ -6004,7 +6023,7 @@ async function executeAuditJob({ jobId, tenantId, userId, payload }) {
   return withTenantContext(tenantId, async () => {
     const consumerId = String(payload?.consumerId || payload?.id || "").trim();
     const reportId = String(payload?.reportId || payload?.rid || "").trim();
-    const selections = Array.isArray(payload?.selections) && payload.selections.length ? payload.selections : null;
+    const payloadSelections = Array.isArray(payload?.selections) && payload.selections.length ? payload.selections : null;
 
     const db = await loadDB();
     const consumer = db.consumers.find((c) => c.id === consumerId);
@@ -6019,6 +6038,10 @@ async function executeAuditJob({ jobId, tenantId, userId, payload }) {
       err.status = 404;
       throw err;
     }
+    const savedSelections = Array.isArray(report.auditSelections) && report.auditSelections.length
+      ? report.auditSelections
+      : null;
+    const selections = payloadSelections || savedSelections;
 
     let normalized;
     try {
