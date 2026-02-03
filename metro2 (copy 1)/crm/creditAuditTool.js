@@ -219,6 +219,69 @@ function selectBureaus(acc, selection) {
   return { bureaus: filteredBureaus, issues };
 }
 
+function normalizeAccountNumber(value) {
+  return String(value || "").replace(/[^0-9A-Za-z*]/g, "").toUpperCase();
+}
+
+function accountNumberMatches(a, b) {
+  const normA = normalizeAccountNumber(a);
+  const normB = normalizeAccountNumber(b);
+  if (!normA || !normB) return false;
+  if (normA === normB) return true;
+  const cleanedA = normA.replace(/\*/g, "");
+  const cleanedB = normB.replace(/\*/g, "");
+  if (cleanedA && cleanedB && cleanedA === cleanedB) return true;
+  const suffixA = cleanedA.slice(-4);
+  const suffixB = cleanedB.slice(-4);
+  if (suffixA.length === 4 && suffixB.length === 4 && suffixA === suffixB) return true;
+  return false;
+}
+
+function resolveAccountSelection(accounts, selection) {
+  const idx = Number(selection?.tradelineIndex);
+  if (Number.isFinite(idx) && accounts[idx]) {
+    return { account: accounts[idx], index: idx };
+  }
+
+  const creditor = String(selection?.creditor || "").trim().toLowerCase();
+  const accountNumbers = selection?.accountNumbers || {};
+  const selectionAccounts = Object.values(accountNumbers)
+    .filter(Boolean)
+    .map(normalizeAccountNumber)
+    .filter((val) => val.length > 0);
+
+  let best = null;
+  let bestScore = 0;
+  let bestIndex = -1;
+
+  accounts.forEach((acc, accIdx) => {
+    if (!acc) return;
+    const accCreditor = String(acc.creditor || "").trim().toLowerCase();
+    if (creditor && accCreditor && creditor !== accCreditor) return;
+
+    const bureauAccounts = Object.values(acc.bureaus || {})
+      .map((fields) => fields?.account_number)
+      .filter(Boolean);
+
+    let score = 0;
+    if (creditor && accCreditor && creditor === accCreditor) score += 1;
+    if (selectionAccounts.length && bureauAccounts.some((num) => selectionAccounts.some((sel) => accountNumberMatches(sel, num)))) {
+      score += 2;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = acc;
+      bestIndex = accIdx;
+    }
+  });
+
+  if (bestScore > 0) {
+    return { account: best, index: bestIndex };
+  }
+  return { account: null, index: -1 };
+}
+
 export function normalizeReport(raw = {}, selections = null) {
   const accountHistory = Array.isArray(raw.account_history) ? raw.account_history : [];
   const tradelines = Array.isArray(raw.tradelines) ? raw.tradelines : [];
@@ -234,10 +297,14 @@ export function normalizeReport(raw = {}, selections = null) {
 
   if (Array.isArray(selections) && selections.length) {
     const selected = [];
+    const usedIndexes = new Set();
     selections.forEach((selection) => {
-      const acc = accounts[selection.tradelineIndex];
+      const resolved = resolveAccountSelection(accounts, selection);
+      const acc = resolved.account;
       if (!acc) return;
+      if (resolved.index >= 0 && usedIndexes.has(resolved.index)) return;
       const { bureaus, issues } = selectBureaus(acc, selection);
+      if (resolved.index >= 0) usedIndexes.add(resolved.index);
       selected.push({
         creditor: acc.creditor,
         bureaus,
