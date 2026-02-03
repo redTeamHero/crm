@@ -159,8 +159,9 @@ function buildAccountBuckets(accountHistory = [], fallbackTradelines = []) {
     if (Array.isArray(violations)) {
       for (const violation of violations) {
         const legal = statuteRefs(violation.title);
-        const issueKey = violation.originalIndex != null
-          ? `idx:${violation.originalIndex}`
+        const indexKey = violation.originalIndex ?? violation.idx;
+        const issueKey = indexKey != null
+          ? `idx:${indexKey}`
           : `${violation.id || violation.code || ''}::${violation.title || ''}::${violation.bureau || ''}`;
         if (bucket.issueKeys.has(issueKey)) continue;
         bucket.issueKeys.add(issueKey);
@@ -173,6 +174,7 @@ function buildAccountBuckets(accountHistory = [], fallbackTradelines = []) {
           bureau: violation.bureau || bureau,
           fcra: legal.fcra,
           fdcpa: legal.fdcpa,
+          idx: violation.idx,
           originalIndex: violation.originalIndex,
         });
       }
@@ -212,7 +214,7 @@ function selectBureaus(acc, selection) {
   const issues = !wantedViolations.size
     ? acc.issues
     : acc.issues.filter((issue, idx) => {
-        const key = issue?.originalIndex != null ? issue.originalIndex : idx;
+        const key = issue?.originalIndex ?? issue?.idx ?? idx;
         return wantedViolations.has(key);
       });
 
