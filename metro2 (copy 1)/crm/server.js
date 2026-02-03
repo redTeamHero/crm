@@ -50,7 +50,7 @@ import {
 } from "./workflowEngine.js";
 import { withTenantContext, getCurrentTenantId } from "./tenantContext.js";
 import { spawnPythonProcess } from "./pythonEnv.js";
-import { enqueueJob, registerJobProcessor, isQueueEnabled } from "./jobQueue.js";
+import { enqueueJob, registerJobProcessor, isQueueEnabled, checkRedisHealth } from "./jobQueue.js";
 import { buildRuleDebugReport } from "./ruleDebugGenerator.js";
 import {
   addTradelineKeysToCanonicalReport,
@@ -1052,6 +1052,22 @@ app.use((req, res, next) => {
 app.use((req, _res, next) => {
   const tenantId = resolveRequestTenant(req, DEFAULT_TENANT_ID);
   withTenantContext(tenantId, next);
+});
+
+app.get("/health/redis", async (_req, res) => {
+  const result = await checkRedisHealth();
+  if (result.ok) {
+    return res.json({
+      status: "ok",
+      redis: "connected",
+      latency_ms: result.latencyMs,
+    });
+  }
+  return res.status(503).json({
+    status: "error",
+    redis: "unavailable",
+    message: result.message || "Redis health check failed",
+  });
 });
 
 const apiRequestLimiter = enforceTenantQuota("requests:minute", {

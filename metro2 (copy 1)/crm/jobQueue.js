@@ -95,6 +95,33 @@ export function getQueueConnectionOptions() {
   return connectionConfig ? { ...connectionConfig } : null;
 }
 
+export async function checkRedisHealth() {
+  const start = Date.now();
+  if (!connection) {
+    return {
+      ok: false,
+      message: connectionConfig
+        ? "Redis connection unavailable"
+        : "Redis connection details missing",
+    };
+  }
+  try {
+    const pong = await connection.ping();
+    if (pong !== "PONG") {
+      throw new Error("Redis ping failed");
+    }
+    const testKey = `healthcheck:${crypto.randomUUID()}`;
+    await connection.set(testKey, "ok", "EX", 5);
+    const value = await connection.get(testKey);
+    if (value !== "ok") {
+      throw new Error("Redis read/write failed");
+    }
+    return { ok: true, latencyMs: Date.now() - start };
+  } catch (err) {
+    return { ok: false, message: err?.message || "Redis health check failed" };
+  }
+}
+
 export function registerJobProcessor(name, handler, options = {}) {
   const normalizedName = normalizeQueueName(name);
   warnIfQueueNameNormalized(name, normalizedName);
