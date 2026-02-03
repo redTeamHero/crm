@@ -157,9 +157,9 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   const nextReminder = reminders[0] ?? null;
 
   return (
-    <div style={{ background }} className="min-h-screen pb-16">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-        <nav className="glass sticky top-6 z-20 flex flex-col gap-4 px-6 py-5">
+    <div style={{ background }} className="min-h-screen pb-16 text-slate-900">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <nav className="glass sticky top-6 z-20 flex flex-col gap-4 px-6 py-5 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.35)]">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-4">
               {theme.logoUrl ? (
@@ -172,14 +172,14 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                   unoptimized
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-sm font-semibold text-white shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-500 text-sm font-semibold text-white shadow-sm">
                   M2
                 </div>
               )}
               <div className="flex flex-col">
                 <span className="text-lg font-semibold text-slate-900 sm:text-xl">{copy.navBrand}</span>
-                <span className="text-xs font-medium text-slate-600 sm:text-sm">{navTagline}</span>
-                <span className="text-[11px] text-slate-500 sm:text-xs">{copy.navSubtitle}</span>
+                <span className="text-xs font-medium text-slate-600/90 sm:text-sm">{navTagline}</span>
+                <span className="text-[11px] text-slate-500/90 sm:text-xs">{copy.navSubtitle}</span>
               </div>
             </div>
             <div className="flex flex-1 items-center gap-3 overflow-x-auto py-1">
@@ -195,10 +195,10 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               ))}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className="hidden md:inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-600">
+              <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-600">
                 {copy.navThemeLabel}: <span className="text-primary">{copy.navThemeValue}</span>
               </span>
-              <span className="hidden md:inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 text-[11px] font-semibold text-slate-600">
+              <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-600">
                 {copy.navLanguage}: {copy.languageLabel}
               </span>
               <button
@@ -235,7 +235,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
             <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">{heroCopy.welcome}</h1>
             <p className="text-sm text-slate-600 sm:text-base">{heroCopy.subheading}</p>
           </div>
-          <div className="apple-card flex w-full max-w-xs flex-col gap-2">
+          <div className="apple-card flex w-full max-w-xs flex-col gap-2 bg-white/95">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.nextStep}</p>
             {nextReminder ? (
               <>
@@ -260,7 +260,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
           <article className="stat-card md:col-span-2">
             <span className="badge">{copy.kpiHeadline}</span>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-900/95 p-5 text-white shadow-[0_18px_50px_-40px_rgba(15,23,42,0.9)]">
+              <div className="rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-blue-900 p-5 text-white shadow-[0_20px_45px_-30px_rgba(15,23,42,0.75)]">
                 <p className="text-xs uppercase tracking-wide text-white/70">{copy.creditScore}</p>
                 <div className="mt-2 flex items-end gap-3">
                   <span className="text-4xl font-semibold">
@@ -276,7 +276,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                     : 'Tip: show bureau-level progress to reinforce trust.'}
                 </p>
               </div>
-              <div className="rounded-2xl bg-white/90 p-5 shadow-card">
+              <div className="rounded-2xl bg-white/95 p-5 shadow-card ring-1 ring-slate-200/60">
                 <p className="text-xs uppercase tracking-wide text-slate-500">{copy.disputes}</p>
                 <div className="mt-2 text-4xl font-semibold text-slate-900">{disputeCount}</div>
                 <p className="mt-4 text-[11px] text-slate-500">
@@ -285,7 +285,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                     : 'Highlight which correction unlocks the next milestone.'}
                 </p>
               </div>
-              <div className="rounded-2xl bg-white/90 p-5 shadow-card">
+              <div className="rounded-2xl bg-white/95 p-5 shadow-card ring-1 ring-slate-200/60">
                 <p className="text-xs uppercase tracking-wide text-slate-500">{copy.payments}</p>
                 <div className="mt-2 text-3xl font-semibold text-slate-900">
                   {formatCurrency(openBalance, language === 'es' ? 'es-US' : 'en-US')}
@@ -300,7 +300,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
           </article>
           <aside
             id="marketing"
-            className="glass scroll-mt-32 flex flex-col justify-between gap-4 p-6"
+            className="glass scroll-mt-32 flex flex-col justify-between gap-4 bg-gradient-to-br from-white/95 via-white/80 to-blue-50/80 p-6"
           >
             <div>
               <h3 className="text-lg font-semibold text-slate-900">{copy.planCta}</h3>
@@ -326,7 +326,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               <div className="mt-4 space-y-3">
                 {messages.length === 0 && <p className="text-sm text-slate-500">{copy.empty}</p>}
                 {messages.map((message) => (
-                  <div key={message.id} className="rounded-2xl bg-white/80 p-4 shadow-sm">
+                  <div key={message.id} className="rounded-2xl border border-slate-200/60 bg-white/90 p-4 shadow-sm">
                     <p className="text-sm text-slate-700">{message.message}</p>
                     <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                       <span>{message.actor || 'Advisor'}</span>
@@ -344,7 +344,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               <div className="mt-4 space-y-3">
                 {reminders.length === 0 && <p className="text-sm text-slate-500">{copy.empty}</p>}
                 {reminders.map((reminder) => (
-                  <div key={reminder.id} className="rounded-2xl border border-slate-200/70 bg-white/80 p-4">
+                  <div key={reminder.id} className="rounded-2xl border border-slate-200/60 bg-slate-50/80 p-4">
                     <p className="font-semibold text-slate-800">{reminder.title || copy.nextStep}</p>
                     <p className="text-xs text-slate-500">{formatDate(reminder.due, language === 'es' ? 'es-US' : 'en-US')}</p>
                     {reminder.note && <p className="mt-2 text-sm text-slate-600">{reminder.note}</p>}
@@ -366,7 +366,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                 <div className="space-y-3">
                   {documents.length === 0 && <p className="text-sm text-slate-500">{copy.empty}</p>}
                   {documents.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between rounded-2xl bg-white/80 px-4 py-3 shadow-sm">
+                    <div key={doc.id} className="flex items-center justify-between rounded-2xl border border-slate-200/60 bg-white/90 px-4 py-3 shadow-sm">
                       <div>
                         <p className="text-sm font-semibold text-slate-800">{doc.name}</p>
                         <p className="text-xs text-slate-500">{formatDate(doc.uploadedAt, language === 'es' ? 'es-US' : 'en-US')}</p>
@@ -384,7 +384,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                     </div>
                   ))}
                 </div>
-                <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4">
+                <div className="rounded-2xl border border-dashed border-primary/30 bg-gradient-to-br from-primary/10 via-white/70 to-white p-4">
                   <p className="text-sm font-semibold text-slate-800">{copy.uploadChecklistTitle}</p>
                   <ul className="mt-3 space-y-2 text-sm text-slate-600">
                     {copy.uploadChecklistItems.map((item) => (
@@ -421,7 +421,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                     </thead>
                     <tbody>
                       {openInvoices.map((invoice) => (
-                        <tr key={invoice.id} className="odd:bg-white/70">
+                        <tr key={invoice.id} className="odd:bg-slate-50/70">
                           <td className="font-medium text-slate-700">{invoice.description}</td>
                           <td>{invoice.amountFormatted || formatCurrency(invoice.amount)}</td>
                           <td>{formatDate(invoice.due, language === 'es' ? 'es-US' : 'en-US')}</td>
@@ -465,7 +465,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                   return (
                     <article
                       key={item.index ?? item.creditor ?? index}
-                      className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-card"
+                      className="rounded-2xl border border-slate-200/60 bg-white/95 p-5 shadow-card ring-1 ring-slate-200/60"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -522,7 +522,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               {moduleEntries.map((entry) => (
                 <div
                   key={entry.key}
-                  className="flex flex-col gap-1 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm"
+                  className="flex flex-col gap-1 rounded-2xl border border-slate-200/60 bg-white/90 px-4 py-3 shadow-sm"
                 >
                   <span className="text-sm font-semibold text-slate-800">{entry.label}</span>
                   <span
@@ -548,7 +548,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
           <div className="mt-4 space-y-4">
             {timeline.length === 0 && <p className="text-sm text-slate-500">{copy.empty}</p>}
             {timeline.map((event) => (
-              <div key={event.id} className="flex items-start gap-4 rounded-2xl bg-white/80 p-4 shadow-sm">
+              <div key={event.id} className="flex items-start gap-4 rounded-2xl border border-slate-200/60 bg-white/90 p-4 shadow-sm">
                 <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
