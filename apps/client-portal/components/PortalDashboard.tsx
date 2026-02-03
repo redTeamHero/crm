@@ -8,7 +8,7 @@ import { formatCurrency, formatDate, formatTimeAgo } from '@/lib/format';
 import { buildRuleGroups } from '@/lib/rule-debug';
 import RuleDebugGrid from './RuleDebugGrid';
 
-const DEFAULT_BACKGROUND = 'radial-gradient(circle at top, rgba(0, 122, 255, 0.08), rgba(255, 255, 255, 0.96) 55%), linear-gradient(180deg, rgba(245, 245, 247, 0.95), rgba(237, 242, 247, 0.9))';
+const DEFAULT_BACKGROUND = 'radial-gradient(1200px circle at 15% -15%, rgba(59, 130, 246, 0.18), transparent 60%), radial-gradient(1000px circle at 85% -25%, rgba(14, 165, 233, 0.12), transparent 55%), linear-gradient(180deg, rgba(244, 247, 251, 0.95), rgba(233, 239, 247, 0.85))';
 
 type NavLink = {
   id: string;
@@ -158,8 +158,8 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
 
   return (
     <div style={{ background }} className="min-h-screen pb-16 text-slate-900">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-        <nav className="glass sticky top-6 z-20 flex flex-col gap-4 px-6 py-5 shadow-[0_20px_45px_-35px_rgba(15,23,42,0.35)]">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <nav className="glass sticky top-6 z-20 flex flex-col gap-4 px-6 py-5 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.35)]">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-4">
               {theme.logoUrl ? (
