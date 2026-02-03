@@ -239,10 +239,36 @@ function accountNumberMatches(a, b) {
   return false;
 }
 
+function accountMatchesSelection(account, selection) {
+  if (!account || !selection) return false;
+  const selectionCreditor = String(selection?.creditor || "").trim().toLowerCase();
+  const selectionAccounts = Object.values(selection?.accountNumbers || {})
+    .filter(Boolean)
+    .map(normalizeAccountNumber)
+    .filter((val) => val.length > 0);
+  if (selectionCreditor) {
+    const accountCreditor = String(account.creditor || "").trim().toLowerCase();
+    if (accountCreditor && accountCreditor !== selectionCreditor) return false;
+  }
+  if (selectionAccounts.length) {
+    const accountNumbers = Object.values(account.bureaus || {})
+      .map((fields) => fields?.account_number)
+      .filter(Boolean);
+    if (!accountNumbers.some((num) => selectionAccounts.some((sel) => accountNumberMatches(sel, num)))) {
+      return false;
+    }
+  }
+  return !!(selectionCreditor || selectionAccounts.length);
+}
+
 function resolveAccountSelection(accounts, selection) {
   const idx = Number(selection?.tradelineIndex);
   if (Number.isFinite(idx) && accounts[idx]) {
-    return { account: accounts[idx], index: idx };
+    if (!accountMatchesSelection(accounts[idx], selection)) {
+      // Fall through to a more reliable match when indices drift.
+    } else {
+      return { account: accounts[idx], index: idx };
+    }
   }
 
   const creditor = String(selection?.creditor || "").trim().toLowerCase();
