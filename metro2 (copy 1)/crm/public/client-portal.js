@@ -14,7 +14,7 @@ const productTiers = [
   { deletions:0, score:0, name:'Secured Start', icon:'🔒', class:'bg-emerald-100 text-emerald-700', message:'You’ve planted the seed — secured cards are your first step to building credit.' },
 ];
 
-const DEFAULT_PORTAL_BACKGROUND = 'radial-gradient(circle at top left, rgba(16,185,129,0.08), rgba(59,130,246,0.08))';
+const DEFAULT_PORTAL_BACKGROUND = 'radial-gradient(circle at top, rgba(0, 122, 255, 0.08), rgba(255, 255, 255, 0.96) 55%), linear-gradient(180deg, rgba(245, 245, 247, 0.95), rgba(237, 242, 247, 0.9))';
 
 const DEFAULT_PORTAL_THEME = Object.freeze({
   backgroundColor: '',
@@ -109,6 +109,51 @@ function getPortalSettings(){
     return bootstrap.portalSettings;
   }
   return {};
+}
+
+function getPortalEnhanced(){
+  const enhanced = window.__PORTAL_ENHANCED__;
+  if (enhanced && typeof enhanced === 'object') {
+    return enhanced;
+  }
+  return {};
+}
+
+function formatReminderDate(due){
+  if(!due) return '';
+  const date = new Date(due);
+  if(Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function applyNextSteps(reminders = []){
+  const card = document.getElementById('nextStepCard');
+  const title = document.getElementById('nextStepTitle');
+  const due = document.getElementById('nextStepDue');
+  const note = document.getElementById('nextStepNote');
+  const action = document.getElementById('nextStepAction');
+  if (!card || !title) return;
+  const next = Array.isArray(reminders)
+    ? reminders.find(reminder => reminder && (reminder.title || reminder.due || reminder.note))
+    : null;
+  if (!next) {
+    title.textContent = 'No upcoming steps yet.';
+    if (due) due.textContent = '';
+    if (note) note.textContent = '';
+    if (action) action.classList.add('hidden');
+    return;
+  }
+  title.textContent = next.title || 'Next step';
+  if (due) {
+    const dateText = formatReminderDate(next.due);
+    due.textContent = dateText ? dateText : '';
+  }
+  if (note) {
+    note.textContent = next.note || '';
+  }
+  if (action) {
+    action.classList.remove('hidden');
+  }
 }
 
 function applyPortalTheme(theme = {}){
@@ -389,6 +434,7 @@ function initClientPortalNav(){
 document.addEventListener('DOMContentLoaded', () => {
   const portalSettings = getPortalSettings();
   applyPortalTheme(portalSettings.theme);
+  const enhanced = getPortalEnhanced();
 
   const idMatch = location.pathname.match(/\/portal\/(.+)$/);
 
@@ -407,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initClientPortalNav();
   applyPortalModules(portalSettings.modules || {});
   loadScores();
+  applyNextSteps(enhanced.reminders);
   applyDataRegionBanner(dataRegionVariant);
   bootstrapDataRegionExperiment(consumerId);
 
