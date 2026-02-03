@@ -8,7 +8,7 @@ import { formatCurrency, formatDate, formatTimeAgo } from '@/lib/format';
 import { buildRuleGroups } from '@/lib/rule-debug';
 import RuleDebugGrid from './RuleDebugGrid';
 
-const DEFAULT_BACKGROUND = 'radial-gradient(circle at top left, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.08))';
+const DEFAULT_BACKGROUND = 'radial-gradient(circle at top, rgba(0, 122, 255, 0.08), rgba(255, 255, 255, 0.96) 55%), linear-gradient(180deg, rgba(245, 245, 247, 0.95), rgba(237, 242, 247, 0.9))';
 
 type NavLink = {
   id: string;
@@ -159,20 +159,20 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
   return (
     <div style={{ background }} className="min-h-screen pb-16">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-        <nav className="glass sticky top-6 z-20 flex flex-col gap-4 px-6 py-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-3">
+        <nav className="glass sticky top-6 z-20 flex flex-col gap-4 px-6 py-5">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex items-center gap-4">
               {theme.logoUrl ? (
                 <Image
                   src={theme.logoUrl}
                   alt="Company logo"
                   width={48}
                   height={48}
-                  className="h-12 w-12 rounded-2xl bg-white/70 object-contain p-2"
+                  className="h-12 w-12 rounded-2xl bg-white/80 object-contain p-2 shadow-sm"
                   unoptimized
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-sm font-semibold text-white">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-sm font-semibold text-white shadow-sm">
                   M2
                 </div>
               )}
@@ -187,7 +187,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                 <a
                   key={link.id}
                   href={`#${link.id}`}
-                  className="flex min-w-[9rem] flex-col gap-1 rounded-2xl border border-white/60 bg-white/80 px-4 py-3 text-left text-sm font-semibold !text-slate-700 shadow-sm transition hover:border-primary/40 hover:!text-primary hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  className="apple-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   <span>{link.primary}</span>
                   <span className="text-[11px] font-normal text-slate-500">{link.secondary}</span>
@@ -203,20 +203,20 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               </span>
               <button
                 type="button"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-primary hover:text-primary"
+                className="apple-button-secondary"
               >
                 {copy.navHelp}
               </button>
               <button
                 type="button"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-primary hover:text-primary"
+                className="apple-button-secondary"
               >
                 {copy.navLogout}
               </button>
               <button
                 type="button"
                 onClick={handleLanguageToggle}
-                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-110"
+                className="apple-button-primary"
               >
                 {copy.toggleLabel}
               </button>
@@ -235,7 +235,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
             <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">{heroCopy.welcome}</h1>
             <p className="text-sm text-slate-600 sm:text-base">{heroCopy.subheading}</p>
           </div>
-          <div className="flex w-full max-w-xs flex-col gap-2 rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-card">
+          <div className="apple-card flex w-full max-w-xs flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{copy.nextStep}</p>
             {nextReminder ? (
               <>
@@ -250,6 +250,9 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
             ) : (
               <p className="text-xs text-slate-500">{copy.empty}</p>
             )}
+            <button type="button" className="apple-button-secondary mt-2 w-full">
+              {copy.nextStepAction}
+            </button>
           </div>
         </header>
 
@@ -257,7 +260,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
           <article className="stat-card md:col-span-2">
             <span className="badge">{copy.kpiHeadline}</span>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-900 p-5 text-white">
+              <div className="rounded-2xl bg-slate-900/95 p-5 text-white shadow-[0_18px_50px_-40px_rgba(15,23,42,0.9)]">
                 <p className="text-xs uppercase tracking-wide text-white/70">{copy.creditScore}</p>
                 <div className="mt-2 flex items-end gap-3">
                   <span className="text-4xl font-semibold">
@@ -305,7 +308,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
             </div>
             <a
               href={openInvoices[0]?.payLink || '#payments'}
-              className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-card transition hover:brightness-110"
+              className="apple-button-primary px-5 py-2 text-sm"
             >
               {copy.educationCta}
             </a>
@@ -341,7 +344,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               <div className="mt-4 space-y-3">
                 {reminders.length === 0 && <p className="text-sm text-slate-500">{copy.empty}</p>}
                 {reminders.map((reminder) => (
-                  <div key={reminder.id} className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                  <div key={reminder.id} className="rounded-2xl border border-slate-200/70 bg-white/80 p-4">
                     <p className="font-semibold text-slate-800">{reminder.title || copy.nextStep}</p>
                     <p className="text-xs text-slate-500">{formatDate(reminder.due, language === 'es' ? 'es-US' : 'en-US')}</p>
                     {reminder.note && <p className="mt-2 text-sm text-slate-600">{reminder.note}</p>}
@@ -426,7 +429,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                             {invoice.payLink && (
                               <a
                                 href={invoice.payLink}
-                                className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-110"
+                                className="apple-button-primary"
                               >
                                 {copy.payNow}
                               </a>
@@ -462,7 +465,7 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                   return (
                     <article
                       key={item.index ?? item.creditor ?? index}
-                      className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-card"
+                      className="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-card"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
