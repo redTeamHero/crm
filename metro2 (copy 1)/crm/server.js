@@ -2589,10 +2589,16 @@ function getOpenAiKey() {
 }
 
 function redactSensitive(text = "") {
-  return text
+  const sanitized = text
     .replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]")
-    .replace(/\b\d{9}\b/g, "[REDACTED_SSN]")
-    .replace(/\b\d{5}(?:-\d{4})?\b/g, "[REDACTED_ZIP]");
+    .replace(/\b\d{9}\b/g, "[REDACTED_SSN]");
+
+  const zipWithLabel = /\b(?:zip|postal)(?:\s+code)?\s*[:#]?\s*(\d{5}(?:-\d{4})?)\b/gi;
+  const zipWithState = /\b([A-Z]{2})[ ,]+(\d{5}(?:-\d{4})?)\b/g;
+
+  return sanitized
+    .replace(zipWithLabel, (match, zip) => match.replace(zip, "[REDACTED_ZIP]"))
+    .replace(zipWithState, (_match, state) => `${state} [REDACTED_ZIP]`);
 }
 
 function extractHtmlVisibleText(htmlText = "") {
