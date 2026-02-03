@@ -58,6 +58,7 @@ import {
   collectTradelineKeys,
 } from "./backend/services/llmAudit.js";
 import { CANONICAL_REPORT_SCHEMA } from "./backend/services/llmSchemas.js";
+import { assignExperimentVariant, recordExperimentConversion } from "./analytics/metrics.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
