@@ -304,13 +304,18 @@ const FIELDS = [
 
 function buildRowValues(info, field) {
   const value = info?.[field];
+  const placeholder = '— Missing —';
   if (field === 'comments' && Array.isArray(value)) {
-    return value.join('<br>');
+    const joined = value.filter(Boolean).join('<br>');
+    return joined ? joined : placeholder;
   }
   if (['payment_status', 'account_status'].includes(field)) {
-    return friendlyStatus(value);
+    const friendly = value ? friendlyStatus(value) : '';
+    return friendly || placeholder;
   }
-  return value ?? '';
+  if (value === null || value === undefined) return placeholder;
+  if (typeof value === 'string' && value.trim() === '') return placeholder;
+  return value;
 }
 
 function isNegative(field, value) {
@@ -337,7 +342,38 @@ export function renderHtml(report, consumerName = 'Consumer') {
       return `<tr class="row${diffClass}"><th>${escapeHtml(label)}</th>${cells}</tr>`;
     }).join('');
 
-    const issueItems = (acc.issues || [])
+    const issues = Array.isArray(acc.issues) ? acc.issues : [];
+    const summaryItems = [];
+    const summaryKeys = new Set();
+    issues.forEach((issue) => {
+      if (!issue?.title) return;
+      const key = issue.title;
+      if (summaryKeys.has(key)) return;
+      summaryKeys.add(key);
+      summaryItems.push(`<li>${escapeHtml(issue.title)}</li>`);
+    });
+
+    const keyViolationItems = [];
+    issues.forEach((issue) => {
+      if (!issue?.title) return;
+      const bureauLabel = issue.bureau || 'All Bureaus';
+      const sev = issue.severity ? `Severity ${issue.severity}` : null;
+      const label = [issue.title, bureauLabel, sev].filter(Boolean).join(' • ');
+      keyViolationItems.push(`<li>${escapeHtml(label)}</li>`);
+    });
+
+    const legalItems = [];
+    const legalKeys = new Set();
+    issues.forEach((issue) => {
+      const refs = [issue.fcra, issue.fdcpa].filter(Boolean);
+      refs.forEach((ref) => {
+        if (legalKeys.has(ref)) return;
+        legalKeys.add(ref);
+        legalItems.push(`<li>${escapeHtml(ref)}</li>`);
+      });
+    });
+
+    const issueItems = issues
       .map((issue) => {
         if (!issue || !issue.title) return '';
         const action = recommendAction(issue.title);
@@ -349,16 +385,32 @@ export function renderHtml(report, consumerName = 'Consumer') {
       .filter(Boolean)
       .join('');
 
-    const issueBlock = issueItems ? `<p><strong>Audit Reasons:</strong></p><ul>${issueItems}</ul>` : '';
+    const summaryBlock = summaryItems.length
+      ? `<div class="audit-block"><h4>Audit Summary</h4><ul>${summaryItems.join('')}</ul></div>`
+      : '';
+    const legalBlock = legalItems.length
+      ? `<div class="audit-block"><h4>Legal Basis</h4><ul>${legalItems.join('')}</ul></div>`
+      : '';
+    const issueBlock = issueItems
+      ? `<div class="audit-block"><h4>Audit Reasons</h4><ul>${issueItems}</ul></div>`
+      : '';
 
     return `
+      <section class="account">
       <h2>${escapeHtml(acc.creditor)}</h2>
-      <h3>Comparison (All Available Bureaus)</h3>
-      <table>
+      <h3>Account Snapshot (All Available Bureaus)</h3>
+      <table class="audit-table">
         <thead><tr><th>Field</th>${bureaus.map((b) => `<th class="bureau">${escapeHtml(b)}</th>`).join('')}</tr></thead>
         <tbody>${rows}</tbody>
       </table>
+      ${summaryBlock}
+      <div class="audit-block">
+        <h4>Key Violations</h4>
+        ${keyViolationItems.length ? `<ul>${keyViolationItems.join('')}</ul>` : '<p>No violations detected.</p>'}
+      </div>
+      ${legalBlock}
       ${issueBlock}
+      </section>
     `;
   }).join('\n');
 
@@ -374,6 +426,13 @@ export function renderHtml(report, consumerName = 'Consumer') {
   th.bureau{text-align:center;background:#f5f5f5;}
   tr.diff td{background:#fff3cd;}
   .neg{background:#fee2e2;color:#b91c1c;}
+  .account{margin-bottom:32px;page-break-inside:auto;}
+  .audit-block{margin-top:12px;}
+  .audit-block ul{margin:6px 0 0 20px;padding:0;}
+  .audit-table{page-break-inside:auto;}
+  .audit-table thead{display:table-header-group;}
+  .audit-table tr{page-break-inside:avoid;break-inside:avoid;}
+  .audit-table th,.audit-table td{vertical-align:top;}
   footer{margin-top:40px;font-size:0.8em;color:#555;}
   </style></head>
   <body>
