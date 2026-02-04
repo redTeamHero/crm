@@ -44,7 +44,7 @@
       "fails_when": {
         "date_of_first_delinquency": null
       },
-      "explanation": "The account is derogatory but does not report a Date of First Delinquency, preventing verification of legal reporting period and raising re-aging concerns."
+      "explanation": "The account does not report a Date of First Delinquency, preventing verification of legal reporting period and raising re-aging concerns."
     },
     {
       "code": "missing_account_number",
