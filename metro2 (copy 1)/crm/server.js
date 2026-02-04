@@ -1323,9 +1323,23 @@ const CLIENT_PORTAL_TEMPLATE = (() => {
   }
 })();
 
-function resolveClientPortalAppBase() {
+function isLocalhostHost(hostname = "") {
+  const normalized = String(hostname).toLowerCase();
+  return normalized === "localhost" || normalized === "127.0.0.1" || normalized === "::1";
+}
+
+function resolveClientPortalAppBase(req) {
   const configured = (process.env.CLIENT_PORTAL_BASE_URL || process.env.PORTAL_BASE_URL || "").trim();
-  return configured ? configured.replace(/\/$/, "") : "";
+  if (!configured) return "";
+  try {
+    const portalUrl = new URL(configured);
+    if (req?.hostname && isLocalhostHost(portalUrl.hostname) && !isLocalhostHost(req.hostname)) {
+      portalUrl.hostname = req.hostname;
+    }
+    return portalUrl.toString().replace(/\/$/, "");
+  } catch {
+    return configured.replace(/\/$/, "");
+  }
 }
 
 function renderClientPortalRedirectHtml(portalUrl) {
@@ -1412,8 +1426,8 @@ registerStaticPage({
   file: "settings.html",
   middlewares: [optionalAuth, forbidMember],
 });
-app.get(["/client-portal", "/client-portal.html"], (_req, res) => {
-  const portalBase = resolveClientPortalAppBase();
+app.get(["/client-portal", "/client-portal.html"], (req, res) => {
+  const portalBase = resolveClientPortalAppBase(req);
   const portalUrl = portalBase ? `${portalBase}/portal` : "";
   const html = renderClientPortalRedirectHtml(portalUrl);
   res.send(html);
@@ -1428,7 +1442,7 @@ app.get("/portal/:id", async (req, res) => {
   const db = await loadDB();
   const consumer = db.consumers.find((c) => c.id === req.params.id);
   if (!consumer) return res.status(404).send("Portal not found");
-  const portalBase = resolveClientPortalAppBase();
+  const portalBase = resolveClientPortalAppBase(req);
   if (portalBase) {
     const portalUrl = `${portalBase}/portal/${encodeURIComponent(consumer.id)}`;
     return res.redirect(302, portalUrl);
