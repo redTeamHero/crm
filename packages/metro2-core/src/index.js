@@ -517,6 +517,7 @@ export function buildAccountHistoryRecords(tradelines = []){
         last_reported: getFieldValue(data, 'last_reported'),
         date_last_active: getFieldValue(data, 'date_last_active'),
         comments: getFieldValue(data, 'comments'),
+        date_last_payment: getFieldValue(data, 'date_last_payment'),
         date_of_last_payment: getFieldValue(data, 'date_last_payment'),
         two_year_payment_history: getFieldValue(data, 'two_year_payment_history'),
       };
