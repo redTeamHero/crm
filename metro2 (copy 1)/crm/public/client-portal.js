@@ -690,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
     high_credit: 'High credit',
     date_opened: 'Opened',
     last_reported: 'Last reported',
-    date_last_payment: 'Last payment',
+    date_last_payment: 'Date of Last Payment',
     date_first_delinquency: 'First delinquency',
   };
 

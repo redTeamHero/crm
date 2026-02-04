@@ -1307,7 +1307,13 @@ function collectCollectorSelections(){
 function renderPB(pb){
   if (!pb) return "<div class='text-sm muted'>No data.</div>";
   const currencyFields = new Set(["balance","past_due","credit_limit","high_credit"]);
-  const get = (k) => pb?.[k] ?? pb?.[`${k}_raw`];
+  const get = (k) => {
+    let val = pb?.[k] ?? pb?.[`${k}_raw`];
+    if ((val === null || val === undefined || val === "") && k === "date_last_payment") {
+      val = pb?.last_payment ?? pb?.date_of_last_payment ?? pb?.dateLastPayment ?? null;
+    }
+    return val;
+  };
   const row = (k,l) => {
     let val = get(k);
     val = currencyFields.has(k) ? formatCurrency(val) : escapeHtml(val ?? "—");
@@ -1325,7 +1331,7 @@ function renderPB(pb){
         ${row("high_credit","High Credit")}
         ${row("date_opened","Date Opened")}
         ${row("last_reported","Last Reported")}
-        ${row("date_last_payment","Date Last Payment")}
+        ${row("date_last_payment","Date of Last Payment")}
         ${row("comments","Comments")}
       </tbody>
     </table>`;

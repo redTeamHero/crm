@@ -2971,6 +2971,7 @@ function mapCanonicalBureau(entry = {}, bureauLabel = "") {
     date_closed: entry.dateClosed || null,
     last_reported: entry.lastReported || null,
     last_payment: entry.dateLastPayment || null,
+    date_last_payment: entry.dateLastPayment || null,
     comments: entry.comments || null,
   };
 }
