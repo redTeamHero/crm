@@ -698,7 +698,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if(value === undefined || value === null) return '';
     const str = String(value).trim();
     if(!str) return '';
+    const redactedMatch = str.match(/REDACTED[_\s-]*SSN/i);
+    if(redactedMatch){
+      const suffixMatch = str.match(/(\*{4,}|•{4,}|\d{4})\s*$/);
+      const suffix = suffixMatch ? suffixMatch[1].replace(/\*/g, '•') : '••••';
+      return `REDACTED SSN ${suffix}`;
+    }
     if(str.startsWith('••••')) return str;
+    if(/\*{4,}/.test(str)) return str.replace(/\*/g, '•');
     const clean = str.replace(/[^0-9a-z]/gi, '');
     if(clean.length <= 4) return clean;
     return `•••• ${clean.slice(-4)}`;
