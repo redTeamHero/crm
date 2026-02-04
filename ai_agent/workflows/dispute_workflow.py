@@ -7,7 +7,7 @@ from typing import Any, Iterable, Mapping
 
 def plan_disputes(violations: Iterable[Mapping[str, Any]]) -> str:
     steps = [
-        "Step 1: Validate Metro-2 fields (status, DOFD, payment dates).",
+        "Step 1: Validate Metro-2 fields (status, Date of Last Payment, payment dates).",
         "Step 2: Choose dispute basis per bureau with evidence.",
         "Step 3: Queue letters and reminders for follow-up (30–45 days).",
     ]

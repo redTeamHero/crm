@@ -4,12 +4,12 @@ import { filterViolationsBySeverity } from '../letterEngine.js';
 
 test('filterViolationsBySeverity prioritizes high severity', () => {
   const input = [
-    { code: 'MISSING_DOFD' },
+    { code: 'MISSING_LAST_PAYMENT_DATE' },
     { code: 'LATE_STATUS_NO_PASTDUE' }
   ];
   const filtered = filterViolationsBySeverity(input, 4, 'en');
   assert.equal(filtered.length, 2);
-  assert.equal(filtered[0].code, 'MISSING_DOFD');
+  assert.equal(filtered[0].code, 'MISSING_LAST_PAYMENT_DATE');
 });
 
 function stubDom(){

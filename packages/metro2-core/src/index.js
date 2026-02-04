@@ -990,7 +990,7 @@ function buildTradelineKey(tradeline){
       data.date_opened || '',
       data.date_last_payment || '',
       data.last_reported || '',
-      data.date_first_delinquency || '',
+      data.date_of_last_payment || '',
       data.balance ?? data.balance_raw ?? '',
       data.past_due ?? data.past_due_raw ?? '',
     ];

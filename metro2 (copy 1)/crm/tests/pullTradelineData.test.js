@@ -9,7 +9,7 @@ const SAMPLE_AUDIT = {
       bureau: 'TransUnion',
       account_number: '1234',
       balance: '$500',
-      violations: [{ id: 'V1', title: 'Missing DOFD' }],
+      violations: [{ id: 'V1', title: 'Missing Date of Last Payment' }],
     },
     {
       creditor_name: 'Test Creditor',

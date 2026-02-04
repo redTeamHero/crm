@@ -40,7 +40,7 @@ const CROSS_BUREAU_SYSTEM_PROMPT = [
 const CROSS_BUREAU_DEVELOPER_PROMPT = [
   "Analyze tradelines for cross-bureau discrepancies.",
   "Focus on these violation types:",
-  "1. cross_bureau_date_discrepancy: Date Opened, Date Closed, Date Last Payment, or Date of First Delinquency differs between bureaus by more than 30 days.",
+  "1. cross_bureau_date_discrepancy: Date Opened, Date Closed, or Date of Last Payment differs between bureaus by more than 30 days.",
   "2. cross_bureau_balance_discrepancy: Balance or High Credit differs significantly between bureaus.",
   "3. cross_bureau_status_discrepancy: Account Status or Payment Status differs between bureaus.",
   "4. cross_bureau_missing_account: Account appears on some bureaus but is completely absent from others.",

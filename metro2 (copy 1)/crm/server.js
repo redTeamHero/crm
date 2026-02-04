@@ -3136,7 +3136,7 @@ function buildRequiredFieldPayload(entry = {}) {
       entry.last_payment_date ??
       entry.dateLastPayment ??
       null,
-    date_of_first_delinquency: entry.date_first_delinquency ?? entry.date_of_first_delinquency ?? null,
+    date_of_last_payment: entry.date_of_last_payment ?? entry.date_last_payment ?? entry.last_payment_date ?? null,
     last_reported: entry.last_reported ?? null,
     comments: entry.comments ?? null,
   };
@@ -3459,8 +3459,11 @@ export function runBasicRuleAudit(report = {}) {
     }
 
     for (const data of Object.values(perBureau)) {
-      if (/charge[- ]?off|collection/i.test(data.account_status || "") && !data.date_first_delinquency) {
-        add("MISSING_DOFD", "Charge-off or collection missing date of first delinquency");
+      if (
+        /charge[- ]?off|collection/i.test(data.account_status || "") &&
+        !(data.date_of_last_payment || data.date_last_payment || data.last_payment_date)
+      ) {
+        add("MISSING_LAST_PAYMENT_DATE", "Charge-off or collection missing Date of Last Payment");
         break;
       }
     }

@@ -113,8 +113,8 @@ EXPLANATIONS: dict[tuple[str, str], str] = {
         "Flags open/current tradelines whose last update is older than six"
         " months."
     ),
-    ("metro2 (copy 1)/crm/metro2_audit_multi.py", "r_dofd_obsolete_7y"): (
-        "Surfaces negative items older than seven years from DOFD for"
+    ("metro2 (copy 1)/crm/metro2_audit_multi.py", "r_last_payment_obsolete_7y"): (
+        "Surfaces negative items older than seven years from Date of Last Payment for"
         " obsolescence disputes."
     ),
     ("metro2 (copy 1)/crm/metro2_audit_multi.py", "r_3"): (

@@ -83,5 +83,5 @@ Schema tables are created automatically on first run via `scripts/html_ingest/db
 
 ## Next Revenue Wins
 - Add Stripe Checkout paywall before export for concierge analysis.
-- Enrich exporter with Metro-2 gap flags (charge-off vs DOFD) for instant consult upsells.
+- Enrich exporter with Metro-2 gap flags (charge-off vs Date of Last Payment) for instant consult upsells.
 - Surface bilingual (EN/ES) compliance tips alongside each parsed heading for higher trust.

@@ -72,39 +72,39 @@ class TestLastPaymentAuditSuite(unittest.TestCase):
             "Active balances with stale payments should trigger a violation",
         )
 
-    def test_chargeoff_payment_after_dofd(self):
+    def test_chargeoff_payment_after_last_payment_reference(self):
         record = {
             "account_status": "Charge-Off",
             "date_of_last_payment": "02/01/2022",
-            "date_first_delinquency": "01/01/2022",
+            "last_payment_date": "02/15/2022",
         }
         self._run(record)
         self.assertTrue(
-            _find_violation(record, "LAST_PAYMENT_AFTER_DOFD"),
-            "Payment after DOFD should be flagged for charge-offs",
+            _find_violation(record, "LAST_PAYMENT_AFTER_DATE_OF_LAST_PAYMENT"),
+            "Payment after Date of Last Payment should be flagged for charge-offs",
         )
 
-    def test_payment_after_dofd_flags_cure_rule(self):
+    def test_payment_after_last_payment_reference_flags_cure_rule(self):
         record = {
             "account_status": "120 Days Late",
             "date_of_last_payment": "03/15/2023",
-            "date_first_delinquency": "02/01/2023",
+            "last_payment_date": "03/20/2023",
         }
         self._run(record)
         self.assertTrue(
-            _find_violation(record, "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE"),
-            "Payments after DOFD should signal the delinquency was cured",
+            _find_violation(record, "PAYMENT_AFTER_LAST_PAYMENT_REFERENCE_IMPLIES_CURE"),
+            "Payments after the Date of Last Payment should signal the delinquency was cured",
         )
 
-    def test_payment_before_dofd_no_cure_violation(self):
+    def test_payment_before_last_payment_reference_no_cure_violation(self):
         record = {
             "account_status": "90 Days Late",
             "date_of_last_payment": "01/01/2023",
-            "date_first_delinquency": "02/15/2023",
+            "last_payment_date": "12/15/2022",
         }
         self._run(record)
         self.assertFalse(
-            _find_violation(record, "PAYMENT_BEFORE_DELINQUENCY_IMPLIES_CURE"),
+            _find_violation(record, "PAYMENT_AFTER_LAST_PAYMENT_REFERENCE_IMPLIES_CURE"),
             "Legitimate delinquencies should not trigger cure rule",
         )
 

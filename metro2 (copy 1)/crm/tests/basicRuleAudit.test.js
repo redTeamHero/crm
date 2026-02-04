@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 process.env.NODE_ENV = 'test';
 const { runBasicRuleAudit } = await import('../server.js');
 
-test('flags missing DOFD on charge-off or collection', () => {
+test('flags missing Date of Last Payment on charge-off or collection', () => {
   const report = {
     tradelines: [
       {
@@ -16,7 +16,7 @@ test('flags missing DOFD on charge-off or collection', () => {
   };
   runBasicRuleAudit(report);
   const viols = report.tradelines[0].violations || [];
-  assert.ok(viols.some(v => v.id === 'MISSING_DOFD'));
+  assert.ok(viols.some(v => v.id === 'MISSING_LAST_PAYMENT_DATE'));
 });
 
 test('flags balance mismatch across bureaus', () => {

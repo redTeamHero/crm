@@ -26,7 +26,7 @@ The knowledge graph that powers per-bureau sanity checks now lives in `shared/da
 import { loadMetro2Violations } from './utils.js';
 
 const violations = await loadMetro2Violations();
-console.log(violations.MISSING_DOFD.severity); // 5
+console.log(violations.MISSING_LAST_PAYMENT_DATE.severity); // 5
 ```
 
 ### Extending the dataset
@@ -197,5 +197,4 @@ curl -X POST http://localhost:3000/api/workflows/validate \
 ```
 
 Settings updates return both the stored configuration and a summarized snapshot so front-end dashboards can highlight active rules and automation triggers.
-
 

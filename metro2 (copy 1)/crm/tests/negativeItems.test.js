@@ -90,7 +90,7 @@ test('prepareNegativeItems builds masked bureau details with formatted values', 
           credit_limit: 4000,
           date_opened: '2021-05-17T00:00:00Z',
           last_reported_raw: '05/2023',
-          date_first_delinquency: '2022-02-01',
+          date_of_last_payment: '2022-02-01',
         },
         Experian: {
           accountNumber: 'ABCD6789',
@@ -113,7 +113,7 @@ test('prepareNegativeItems builds masked bureau details with formatted values', 
   assert.equal(item.bureau_details.TransUnion.credit_limit, '$4,000.00');
   assert.equal(item.bureau_details.TransUnion.date_opened, '2021-05-17');
   assert.equal(item.bureau_details.TransUnion.last_reported, '05/2023');
-  assert.equal(item.bureau_details.TransUnion.date_first_delinquency, '2022-02-01');
+  assert.equal(item.bureau_details.TransUnion.date_of_last_payment, '2022-02-01');
   assert.equal(item.bureau_details.Experian.account_number, '•••• 6789');
   assert.equal(item.bureau_details.Experian.balance, '$0.00');
 });

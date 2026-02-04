@@ -25,9 +25,9 @@
 - `metro2 (copy 1)/crm/metro2_audit_multi.py:715` – unused function 'r_dispute_comment_needs_xb' (confidence 60%) — Requires accounts with dispute language to carry the XB dispute compliance code.
 - `metro2 (copy 1)/crm/metro2_audit_multi.py:725` – unused function 'r_closed_but_monthly_payment' (confidence 60%) — Checks that closed accounts are not still reporting a monthly payment obligation.
 - `metro2 (copy 1)/crm/metro2_audit_multi.py:735` – unused function 'r_stale_active_reporting' (confidence 60%) — Flags open/current tradelines whose last update is older than six months.
-- `metro2 (copy 1)/crm/metro2_audit_multi.py:747` – unused function 'r_dofd_obsolete_7y' (confidence 60%) — Surfaces negative items older than seven years from DOFD for obsolescence disputes.
+- `metro2 (copy 1)/crm/metro2_audit_multi.py:747` – unused function 'r_last_payment_obsolete_7y' (confidence 60%) — Surfaces negative items older than seven years from Date of Last Payment for obsolescence disputes.
 - `metro2 (copy 1)/crm/metro2_audit_multi.py:760` – unused function 'r_3' (confidence 60%) — Metro-2 code 3 guardrail: prevents accounts with a Date Closed from still reporting as open/current.
-- `metro2 (copy 1)/crm/metro2_audit_multi.py:771` – unused function 'r_8' (confidence 60%) — Metro-2 code 8 guardrail: charge-offs must provide a Date of First Delinquency.
+- `metro2 (copy 1)/crm/metro2_audit_multi.py:771` – unused function 'r_8' (confidence 60%) — Metro-2 code 8 guardrail: charge-offs must provide a Date of Last Payment.
 - `metro2 (copy 1)/crm/metro2_audit_multi.py:781` – unused function 'r_9' (confidence 60%) — Metro-2 code 9 guardrail: collections must list the original creditor.
 - `metro2 (copy 1)/crm/metro2_audit_multi.py:791` – unused function 'r_10' (confidence 60%) — Metro-2 code 10 guardrail: blocks duplicate account numbers within the same bureau feed.
 - `metro2 (copy 1)/crm/metro2_audit_multi.py:812` – unused function 'r_sl_no_lates_during_deferment' (confidence 60%) — Student-loan sanity check ensuring deferment/forbearance accounts do not show late history.

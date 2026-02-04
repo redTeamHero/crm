@@ -170,25 +170,25 @@
     "subcategory": "post_default_status",
     "violation": "Bankruptcy flag without Discharge Date"
   },
-  "CHARGEOFF_DATE_BEFORE_DOFD": {
+  "CHARGEOFF_DATE_BEFORE_LAST_PAYMENT": {
     "category": "timeline",
     "fcraSection": "\u00a7 607(b)",
     "fieldsImpacted": [
       "ChargeOffDate",
-      "DateOfFirstDelinquency"
+      "DateOfLastPayment"
     ],
     "id": 12,
     "rule": {
       "all": [
         {
           "field": "chargeoff_date",
-          "lt_field": "date_first_delinquency"
+          "lt_field": "last_payment_date"
         }
       ]
     },
     "severity": 4,
-    "subcategory": "dofd_timeline",
-    "violation": "Charge-off Date precedes DOFD"
+    "subcategory": "last_payment_timeline",
+    "violation": "Charge-off Date precedes Date of Last Payment"
   },
   "CHARGEOFF_PASTDUE_PRESENT": {
     "category": "payment_logic",
@@ -527,14 +527,14 @@
     "category": "collections_linkage",
     "fcraSection": "\u00a7 605(a)",
     "fieldsImpacted": [
-      "DOFD",
+      "LastPaymentDate",
       "State"
     ],
     "id": 59,
     "rule": {
       "all": [
         {
-          "field": "age_since_dofd_years",
+          "field": "age_since_last_payment_years",
           "gt_field": "state_sol_years"
         }
       ]
@@ -594,7 +594,7 @@
     "rule": {
       "all": [
         {
-          "field": "age_since_dofd_years",
+          "field": "age_since_last_payment_years",
           "gt_field": "state_sol_years"
         },
         {
@@ -1048,88 +1048,88 @@
     "subcategory": "pii",
     "violation": "Date of Birth missing"
   },
-  "DOFD_AFTER_CLOSE": {
+  "LAST_PAYMENT_AFTER_CLOSE": {
     "category": "timeline",
     "fcraSection": "\u00a7 623(a)(5)",
     "fieldsImpacted": [
-      "DateOfFirstDelinquency",
+      "DateOfLastPayment",
       "DateClosed"
     ],
     "id": 2,
     "rule": {
       "all": [
         {
-          "field": "date_first_delinquency",
+          "field": "last_payment_date",
           "gt_field": "date_closed"
         }
       ]
     },
     "severity": 4,
-    "subcategory": "dofd_timeline",
-    "violation": "DOFD occurs after Date Closed"
+    "subcategory": "last_payment_timeline",
+    "violation": "Date of Last Payment occurs after Date Closed"
   },
-  "DOFD_BEFORE_OPEN": {
+  "LAST_PAYMENT_BEFORE_OPEN": {
     "category": "timeline",
     "fcraSection": "\u00a7 607(b)",
     "fieldsImpacted": [
-      "DateOfFirstDelinquency",
+      "DateOfLastPayment",
       "DateOpened"
     ],
     "id": 5,
     "rule": {
       "all": [
         {
-          "field": "date_first_delinquency",
+          "field": "last_payment_date",
           "lt_field": "date_opened"
         }
       ]
     },
     "severity": 3,
-    "subcategory": "dofd_timeline",
-    "violation": "DOFD occurs before Date Opened"
+    "subcategory": "last_payment_timeline",
+    "violation": "Date of Last Payment occurs before Date Opened"
   },
-  "DOFD_EQUALS_OPEN_DATE": {
+  "LAST_PAYMENT_EQUALS_OPEN_DATE": {
     "category": "date_consistency",
     "fcraSection": "\u00a7 607(b)",
     "fieldsImpacted": [
       "DateOpened",
-      "DateOfFirstDelinquency"
+      "DateOfLastPayment"
     ],
     "id": 37,
     "rule": {
       "all": [
         {
           "eq": true,
-          "field": "date_first_delinquency_equals_open"
+          "field": "last_payment_date_equals_open"
         }
       ]
     },
     "severity": 2,
     "subcategory": "ordering",
-    "violation": "DOFD equals open date (suspicious)"
+    "violation": "Date of Last Payment equals open date (suspicious)"
   },
-  "DOFD_MOVED_FORWARD": {
+  "LAST_PAYMENT_MOVED_FORWARD": {
     "category": "timeline",
     "fcraSection": "\u00a7 623(a)(5)",
     "fieldsImpacted": [
-      "DateOfFirstDelinquency"
+      "DateOfLastPayment"
     ],
     "id": 9,
     "rule": {
       "all": [
         {
           "exists": true,
-          "field": "prior_dofd"
+          "field": "prior_last_payment_date"
         },
         {
-          "field": "date_first_delinquency",
-          "gt_field": "prior_dofd"
+          "field": "last_payment_date",
+          "gt_field": "prior_last_payment_date"
         }
       ]
     },
     "severity": 5,
-    "subcategory": "dofd_timeline",
-    "violation": "Re-aged: DOFD advanced to later date"
+    "subcategory": "last_payment_timeline",
+    "violation": "Re-aged: Date of Last Payment advanced to later date"
   },
   "DUPLICATE_ACCOUNT": {
     "category": "cross_bureau_duplicates",
@@ -1237,25 +1237,25 @@
     "subcategory": "pii",
     "violation": "Employment info missing where reported"
   },
-  "FIRSTPAY_AFTER_DOFD": {
+  "FIRSTPAY_AFTER_LAST_PAYMENT": {
     "category": "date_consistency",
     "fcraSection": "\u00a7 607(b)",
     "fieldsImpacted": [
       "FirstPaymentDate",
-      "DateOfFirstDelinquency"
+      "DateOfLastPayment"
     ],
     "id": 34,
     "rule": {
       "all": [
         {
           "field": "first_payment_date",
-          "gt_field": "date_first_delinquency"
+          "gt_field": "last_payment_date"
         }
       ]
     },
     "severity": 2,
     "subcategory": "ordering",
-    "violation": "First Payment Date after DOFD"
+    "violation": "First Payment Date after Date of Last Payment"
   },
   "FIRST_PAYMENT_BEFORE_OPEN": {
     "category": "date_consistency",
@@ -1392,25 +1392,25 @@
     "subcategory": "sanity",
     "violation": "Missing high-credit/original amount on installment"
   },
-  "INCONSISTENT_DOFD_HISTORY": {
+  "INCONSISTENT_LAST_PAYMENT_HISTORY": {
     "category": "timeline",
     "fcraSection": "\u00a7 607(b)",
     "fieldsImpacted": [
       "PaymentHistory",
-      "DateOfFirstDelinquency"
+      "DateOfLastPayment"
     ],
     "id": 4,
     "rule": {
       "all": [
         {
           "field": "payment_history_first_90_late",
-          "neq_field": "date_first_delinquency"
+          "neq_field": "last_payment_date"
         }
       ]
     },
     "severity": 4,
-    "subcategory": "dofd_timeline",
-    "violation": "DOFD not aligned with first 90-day late in history"
+    "subcategory": "last_payment_timeline",
+    "violation": "Date of Last Payment not aligned with first 90-day late in history"
   },
   "INQUIRY_AFTER_OPT_OUT_PRESCREEN": {
     "category": "inquiries_public_records",
@@ -1589,7 +1589,7 @@
       ]
     },
     "severity": 3,
-    "subcategory": "dofd_timeline",
+    "subcategory": "last_payment_timeline",
     "violation": "Date of Last Activity after account closed"
   },
   "LAST_UPDATE_BEFORE_LAST_PAYMENT": {
@@ -1852,14 +1852,14 @@
       ]
     },
     "severity": 3,
-    "subcategory": "dofd_timeline",
+    "subcategory": "last_payment_timeline",
     "violation": "Date Reported missing on derogatory item"
   },
-  "MISSING_DOFD": {
+  "MISSING_LAST_PAYMENT_DATE": {
     "category": "timeline",
     "fcraSection": "\u00a7 623(a)(5)",
     "fieldsImpacted": [
-      "DateOfFirstDelinquency"
+      "DateOfLastPayment"
     ],
     "id": 1,
     "rule": {
@@ -1874,13 +1874,13 @@
         },
         {
           "exists": false,
-          "field": "date_first_delinquency"
+          "field": "last_payment_date"
         }
       ]
     },
     "severity": 5,
-    "subcategory": "dofd_timeline",
-    "violation": "Missing or invalid Date of First Delinquency"
+    "subcategory": "last_payment_timeline",
+    "violation": "Missing or invalid Date of Last Payment"
   },
   "MISSING_PAYMENT_HISTORY": {
     "category": "payment_logic",
@@ -2114,12 +2114,12 @@
     "subcategory": "sanity",
     "violation": "Open date equals close date"
   },
-  "OPEN_WITH_DOFD": {
+  "OPEN_WITH_LAST_PAYMENT_DATE": {
     "category": "timeline",
     "fcraSection": "\u00a7 607(b)",
     "fieldsImpacted": [
       "Status",
-      "DateOfFirstDelinquency"
+      "DateOfLastPayment"
     ],
     "id": 3,
     "rule": {
@@ -2130,13 +2130,13 @@
         },
         {
           "exists": true,
-          "field": "date_first_delinquency"
+          "field": "last_payment_date"
         }
       ]
     },
     "severity": 4,
-    "subcategory": "dofd_timeline",
-    "violation": "Open account reporting a DOFD"
+    "subcategory": "last_payment_timeline",
+    "violation": "Open account reporting a Date of Last Payment"
   },
   "ORIG_CHARGEOFF_MISSING_SOURCE": {
     "category": "collections_linkage",
@@ -2450,11 +2450,11 @@
     "subcategory": "pii_match",
     "violation": "Public record last-4 SSN mismatch"
   },
-  "REAGING_WITHOUT_PAYMENT": {
+  "LAST_PAYMENT_MOVED_FORWARD_WITHOUT_PAYMENT": {
     "category": "timeline",
     "fcraSection": "\u00a7 623(a)(5)",
     "fieldsImpacted": [
-      "DateOfFirstDelinquency",
+      "DateOfLastPayment",
       "PaymentHistory"
     ],
     "id": 80,
@@ -2462,7 +2462,7 @@
       "all": [
         {
           "eq": true,
-          "field": "dofd_forward_shift"
+          "field": "last_payment_forward_shift"
         },
         {
           "eq": false,
@@ -2472,7 +2472,7 @@
     },
     "severity": 5,
     "subcategory": "reaging",
-    "violation": "DOFD moved forward absent qualifying payment/activity"
+    "violation": "Date of Last Payment moved forward absent qualifying payment/activity"
   },
   "REMARK_ACCOUNT_CLOSED_BY_GRANTOR_CONFLICT_OPEN": {
     "category": "remarks_codes",
@@ -2933,14 +2933,14 @@
       ]
     },
     "severity": 4,
-    "subcategory": "dofd_timeline",
+    "subcategory": "last_payment_timeline",
     "violation": "No update within 30 days of dispute"
   },
   "REPORTING_AFTER_OBSOLESCENCE": {
     "category": "timeline",
     "fcraSection": "\u00a7 605(a)",
     "fieldsImpacted": [
-      "DateOfFirstDelinquency",
+      "DateOfLastPayment",
       "DateReported"
     ],
     "id": 11,
@@ -2951,13 +2951,13 @@
           "field": "derogatory"
         },
         {
-          "field": "age_since_dofd_years",
+          "field": "age_since_last_payment_years",
           "gt": 7.5
         }
       ]
     },
     "severity": 4,
-    "subcategory": "dofd_timeline",
+    "subcategory": "last_payment_timeline",
     "violation": "Reporting derogatory past obsolescence period"
   },
   "REPORTING_AFTER_ZERO_BAL_CLOSED": {
@@ -3163,7 +3163,7 @@
       ]
     },
     "severity": 2,
-    "subcategory": "dofd_timeline",
+    "subcategory": "last_payment_timeline",
     "violation": "Date Reported stale > 180 days on active trade"
   },
   "TAX_LIEN_REPORTED_POST_2018": {

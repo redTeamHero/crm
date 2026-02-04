@@ -20,7 +20,7 @@ app.register_blueprint(ai_router, url_prefix="/ai")
 | Route | Method | Purpose | Example payload |
 | --- | --- | --- | --- |
 | `/ai/chat` | `POST` | Routes the incoming message to Metro-2 tools (audit, dispute drafting, NEPQ prompts, or education). | `{ "message": "run audit", "context": { "report": { ... } } }` |
-| `/ai/memory` | `POST` | Stores facts in the in-memory vector store for later lookups. | `{ "text": "Metro-2 DOFD rule", "metadata": { "source": "policy" } }` |
+| `/ai/memory` | `POST` | Stores facts in the in-memory vector store for later lookups. | `{ "text": "Metro-2 Date of Last Payment rule", "metadata": { "source": "policy" } }` |
 | `/ai/health` | `GET` | Returns available tools for observability/health checks. | `n/a` |
 
 ### Chat routing behavior

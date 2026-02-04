@@ -25,7 +25,7 @@
       "explanation": "The account is reported as delinquent or charged off but does not include a Date of Last Payment, making the delinquency timeline unverifiable."
     },
     {
-      "code": "missing_dofd",
+      "code": "missing_last_payment_date_reporting_period",
       "category": "required_field_validation",
       "severity": "deletion_eligible",
       "fcra": [
@@ -42,9 +42,9 @@
         ]
       },
       "fails_when": {
-        "date_of_first_delinquency": null
+        "date_of_last_payment": null
       },
-      "explanation": "The account does not report a Date of last payment correctly, preventing verification of legal reporting period and raising re-aging concerns."
+      "explanation": "The account does not report a Date of Last Payment correctly, preventing verification of legal reporting period and raising re-aging concerns."
     },
     {
       "code": "missing_account_number",
@@ -247,19 +247,19 @@
         "15 U.S.C. §1681c(a)(4)"
       ],
       "applies_when": {
-        "date_of_first_delinquency": {
+        "date_of_last_payment": {
           "exists": true
         }
       },
       "fails_when": {
-        "date_of_first_delinquency": {
+        "date_of_last_payment": {
           "older_than_years": 7
         }
       },
       "explanation": "The account is reporting beyond the maximum permissible reporting period under the FCRA."
     },
     {
-      "code": "dofd_after_open_date",
+      "code": "last_payment_after_open_date",
       "category": "legal_timeline",
       "severity": "deletion_eligible",
       "fcra": [
@@ -270,16 +270,16 @@
         "date_opened": {
           "exists": true
         },
-        "date_of_first_delinquency": {
+        "date_of_last_payment": {
           "exists": true
         }
       },
       "fails_when": {
-        "date_of_first_delinquency": {
+        "date_of_last_payment": {
           "after": "date_opened"
         }
       },
-      "explanation": "The Date of First Delinquency occurs after the account opening date, indicating potential re-aging or inaccurate reporting."
+      "explanation": "The Date of Last Payment occurs after the account opening date, indicating potential re-aging or inaccurate reporting."
     },
     {
       "code": "chargeoff_continues_reporting",
