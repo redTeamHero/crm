@@ -230,6 +230,29 @@ function clearErr(){
   const e = $("#err");
   if (e) { e.textContent = ""; e.classList.add("hidden"); }
 }
+function showWorkflowNotice(message){
+  const el = $("#workflowNotice");
+  if (!el) return;
+  if (!message) {
+    el.textContent = "";
+    el.classList.add("hidden");
+    return;
+  }
+  el.textContent = message;
+  el.classList.remove("hidden");
+}
+function buildMinIntervalNotice(validation){
+  const result = validation?.results?.find((rule) => rule.ruleId === "letters-min-interval" && !rule.ok);
+  const blocked = result?.metadata?.blocked;
+  if (!Array.isArray(blocked) || blocked.length === 0) return null;
+  const messages = blocked.map((entry) => {
+    const days = Number(entry.remainingDays ?? result?.metadata?.intervalDays ?? 0);
+    const dayLabel = days === 1 ? "day" : "days";
+    const bureau = entry.bureau || "bureau";
+    return `You have ${days} ${dayLabel} until next round with ${bureau}.`;
+  });
+  return messages.join(" ");
+}
 function formatEvent(ev){
   const when = new Date(ev.at).toLocaleString();
   let title = escapeHtml(ev.type);
@@ -1468,6 +1491,15 @@ $("#btnGenerate").addEventListener("click", async ()=>{
     }
     const data = await resp.json().catch(()=> ({}));
     if(!data?.ok || !data?.redirect) throw new Error(data?.error || "Server did not return a redirect.");
+    const notice = buildMinIntervalNotice(data.validation);
+    if (notice) {
+      showWorkflowNotice(notice);
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem("lettersMinIntervalNotice", notice);
+      }
+    } else if (typeof sessionStorage !== "undefined") {
+      sessionStorage.removeItem("lettersMinIntervalNotice");
+    }
     window.location.assign(data.redirect);
     setTimeout(()=>{
       if (!/\/letters(\?|$)/.test(location.href)) window.location.href = data.redirect;

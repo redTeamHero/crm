@@ -6521,6 +6521,7 @@ app.post(
         status: jobRecord?.status || "queued",
         type: JOB_TYPES.LETTERS_GENERATE,
         redirect,
+        validation: preflight.context.validation,
         job: sanitizeJobForResponse(jobRecord),
       });
     } catch (e) {
