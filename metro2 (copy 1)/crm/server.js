@@ -1394,7 +1394,7 @@ registerStaticPage({
 });
 registerStaticPage({
   paths: ["/client-portal", "/client-portal.html"],
-  file: "client-portal-template.html",
+  file: "client-portal.html",
 });
 app.get("/team/:token", (req, res) => {
   const token = path.basename(req.params.token);
@@ -1406,7 +1406,7 @@ app.get("/portal/:id", async (req, res) => {
   const db = await loadDB();
   const consumer = db.consumers.find((c) => c.id === req.params.id);
   if (!consumer) return res.status(404).send("Portal not found");
-  const templatePath = resolvePublicFilePath("client-portal-template.html");
+  const templatePath = resolvePublicFilePath("client-portal.html");
   if (!templatePath) {
     logError("PORTAL_TEMPLATE_MISSING", "Client portal template not found");
     return res.status(500).send("Portal unavailable");
