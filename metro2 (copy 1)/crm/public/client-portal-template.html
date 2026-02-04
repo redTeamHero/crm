@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Client Portal</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Inter", "Segoe UI", sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    main {
+      max-width: 560px;
+      padding: 32px;
+      text-align: center;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: 12px;
+    }
+    p {
+      margin: 0 0 12px;
+      color: #475569;
+      line-height: 1.5;
+    }
+    a {
+      color: #2563eb;
+      font-weight: 600;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Client Portal</h1>
+    <p>This portal now lives in the Next.js client portal experience.</p>
+    <p id="redirectMessage">Redirecting you now…</p>
+    <p><a id="portalLink" href="{{portalUrl}}">Open the Next.js client portal</a></p>
+    <p id="portalHint" hidden>Ask your administrator to configure <code>CLIENT_PORTAL_BASE_URL</code>.</p>
+  </main>
+  <script>
+    (function () {
+      const portalUrl = "{{portalUrl}}";
+      const message = document.getElementById("redirectMessage");
+      const link = document.getElementById("portalLink");
+      const hint = document.getElementById("portalHint");
+      const hasPortalUrl = portalUrl && !portalUrl.includes("{{portalUrl}}");
+
+      if (!hasPortalUrl) {
+        if (message) {
+          message.textContent = "Portal URL not configured.";
+        }
+        if (link) {
+          link.removeAttribute("href");
+          link.style.pointerEvents = "none";
+          link.style.opacity = "0.6";
+        }
+        if (hint) {
+          hint.hidden = false;
+        }
+        return;
+      }
+
+      if (link) {
+        link.setAttribute("href", portalUrl);
+      }
+      window.location.replace(portalUrl);
+    })();
+  </script>
+</body>
+</html>

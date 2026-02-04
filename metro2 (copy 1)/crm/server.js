@@ -1315,6 +1315,26 @@ const TEAM_TEMPLATE = (() => {
   }
 })();
 
+const CLIENT_PORTAL_TEMPLATE = (() => {
+  try {
+    return fs.readFileSync(path.join(PUBLIC_DIR, "client-portal-template.html"), "utf-8");
+  } catch {
+    return "";
+  }
+})();
+
+function resolveClientPortalAppBase() {
+  const configured = (process.env.CLIENT_PORTAL_BASE_URL || process.env.PORTAL_BASE_URL || "").trim();
+  return configured ? configured.replace(/\/$/, "") : "";
+}
+
+function renderClientPortalRedirectHtml(portalUrl) {
+  if (!CLIENT_PORTAL_TEMPLATE) {
+    return "Client portal unavailable";
+  }
+  return CLIENT_PORTAL_TEMPLATE.replace(/{{portalUrl}}/g, portalUrl || "");
+}
+
 // Disable default index to avoid auto-serving the app without auth
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
@@ -1392,9 +1412,11 @@ registerStaticPage({
   file: "settings.html",
   middlewares: [optionalAuth, forbidMember],
 });
-registerStaticPage({
-  paths: ["/client-portal", "/client-portal.html"],
-  file: "client-portal.html",
+app.get(["/client-portal", "/client-portal.html"], (_req, res) => {
+  const portalBase = resolveClientPortalAppBase();
+  const portalUrl = portalBase ? `${portalBase}/portal` : "";
+  const html = renderClientPortalRedirectHtml(portalUrl);
+  res.send(html);
 });
 app.get("/team/:token", (req, res) => {
   const token = path.basename(req.params.token);
@@ -1406,50 +1428,12 @@ app.get("/portal/:id", async (req, res) => {
   const db = await loadDB();
   const consumer = db.consumers.find((c) => c.id === req.params.id);
   if (!consumer) return res.status(404).send("Portal not found");
-  const templatePath = resolvePublicFilePath("client-portal.html");
-  if (!templatePath) {
-    logError("PORTAL_TEMPLATE_MISSING", "Client portal template not found");
-    return res.status(500).send("Portal unavailable");
+  const portalBase = resolveClientPortalAppBase();
+  if (portalBase) {
+    const portalUrl = `${portalBase}/portal/${encodeURIComponent(consumer.id)}`;
+    return res.redirect(302, portalUrl);
   }
-  let tmpl = "";
-  try {
-    tmpl = fs.readFileSync(templatePath, "utf-8");
-  } catch (err) {
-    logError("PORTAL_TEMPLATE_READ_FAILED", "Failed to read client portal template", err);
-    return res.status(500).send("Portal unavailable");
-  }
-  let payload;
-  try {
-    payload = await buildClientPortalPayload(consumer);
-  } catch (err) {
-    logError("PORTAL_PAYLOAD_FAILED", "Failed to build portal payload", err, { consumerId: consumer.id });
-    return res.status(500).send("Portal unavailable");
-  }
-  if (!payload) {
-    return res.status(500).send("Portal unavailable");
-  }
-  let html = tmpl.replace(/{{name}}/g, consumer.name);
-  const bootstrap = {
-    creditScore: payload.creditScore,
-    negativeItems: payload.negativeItems,
-    snapshot: payload.snapshot,
-    portalSettings: payload.portalSettings,
-  };
-  const serializedBootstrap = toInlineJson(bootstrap);
-  const bootstrapScript = `\n<script>\n  try {\n    const data = ${serializedBootstrap};\n    window.__PORTAL_BOOTSTRAP__ = data;\n    window.__NEGATIVE_ITEMS__ = Array.isArray(data.negativeItems) ? data.negativeItems : [];\n    if (data.creditScore) {\n      localStorage.setItem('creditScore', JSON.stringify(data.creditScore));\n    } else {\n      localStorage.removeItem('creditScore');\n    }\n    localStorage.setItem('negativeItems', JSON.stringify(window.__NEGATIVE_ITEMS__));\n    localStorage.setItem('creditSnapshot', JSON.stringify(data.snapshot || {}));\n  } catch (err) {\n    console.warn('Failed to bootstrap portal data', err);\n  }\n</script>`;
-  const enhancedPayload = toInlineJson({
-    timeline: payload.timeline,
-    documents: payload.documents,
-    reminders: payload.reminders,
-    tracker: payload.tracker,
-    invoices: payload.invoices,
-    messages: payload.messages,
-  });
-  const enhancedScript = `\n<script>\n  try {\n    window.__PORTAL_ENHANCED__ = ${enhancedPayload};\n  } catch (err) {\n    console.warn('Failed to hydrate enhanced portal data', err);\n  }\n</script>`;
-  html = html.replace(
-    '<script src="/client-portal.js"></script>',
-    `${bootstrapScript}${enhancedScript}\n<script src="/client-portal.js"></script>`
-  );
+  const html = renderClientPortalRedirectHtml("");
   res.send(html);
 });
 
