@@ -36,10 +36,10 @@ const DEFAULT_WORKFLOW_CONFIG = {
           description: "Wait 35 days before disputing the same bureau again.",
           eventType: "letters_generated",
           intervalDays: 35,
-          enforcement: "block",
+          enforcement: "warn",
           onFail: {
             message:
-              "Hold disputes: {{first.bureau}} needs {{first.remainingDays}} more day(s) before the next round.",
+              "Next round alert: {{first.bureau}} has {{first.remainingDays}} day(s) remaining.",
           },
         },
         {
@@ -127,6 +127,9 @@ function normalizeRule(rule, fallbackId) {
   normalized.intervalDays = Number.isFinite(Number(rule.intervalDays)) ? Number(rule.intervalDays) : 0;
   normalized.maxAgeDays = Number.isFinite(Number(rule.maxAgeDays)) ? Number(rule.maxAgeDays) : 0;
   normalized.enforcement = rule.enforcement === "warn" ? "warn" : "block";
+  if (normalized.id === "letters-min-interval" && normalized.type === "minInterval") {
+    normalized.enforcement = "warn";
+  }
   normalized.match = isPlainObject(rule.match) ? { ...rule.match } : null;
   normalized.scope = typeof rule.scope === "string" ? rule.scope : null;
   normalized.onFail = isPlainObject(rule.onFail) ? normalizeTemplate(rule.onFail) : {};

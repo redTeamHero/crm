@@ -67,6 +67,26 @@ function showErr(msg){
   const e=$("#err"); e.textContent=msg; e.classList.remove("hidden");
 }
 function clearErr(){ $("#err").classList.add("hidden"); $("#err").textContent=""; }
+function showWorkflowNotice(message){
+  const el = $("#workflowNotice");
+  if (!el) return;
+  if (!message) {
+    el.textContent = "";
+    el.classList.add("hidden");
+    return;
+  }
+  el.textContent = message;
+  el.classList.remove("hidden");
+}
+function hydrateWorkflowNotice(){
+  if (typeof sessionStorage === "undefined") return;
+  const notice = sessionStorage.getItem("lettersMinIntervalNotice");
+  if (!notice) return;
+  showWorkflowNotice(notice);
+  sessionStorage.removeItem("lettersMinIntervalNotice");
+}
+
+hydrateWorkflowNotice();
 
 // Accept /letters?job=ID and /letters/ID
 function getJobId(){
