@@ -178,8 +178,8 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
               )}
               <div className="flex flex-col">
                 <span className="text-lg font-semibold text-slate-900 sm:text-xl">{copy.navBrand}</span>
-                <span className="text-xs font-medium text-slate-600/90 sm:text-sm">{navTagline}</span>
-                <span className="text-[11px] text-slate-500/90 sm:text-xs">{copy.navSubtitle}</span>
+                <span className="hidden text-xs font-medium text-slate-600/90 sm:inline sm:text-sm">{navTagline}</span>
+                <span className="hidden text-[11px] text-slate-500/90 sm:inline sm:text-xs">{copy.navSubtitle}</span>
               </div>
             </div>
             <div className="flex flex-1 items-center gap-3 overflow-x-auto py-1">
@@ -194,32 +194,26 @@ export default function PortalDashboard({ portal }: { portal: PortalPayload }) {
                 </a>
               ))}
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-600">
-                {copy.navThemeLabel}: <span className="text-primary">{copy.navThemeValue}</span>
-              </span>
-              <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-slate-200/70 bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-600">
-                {copy.navLanguage}: {copy.languageLabel}
-              </span>
-              <button
-                type="button"
-                className="apple-button-secondary"
-              >
-                {copy.navHelp}
-              </button>
-              <button
-                type="button"
-                className="apple-button-secondary"
-              >
-                {copy.navLogout}
-              </button>
-              <button
-                type="button"
-                onClick={handleLanguageToggle}
-                className="apple-button-primary"
-              >
-                {copy.toggleLabel}
-              </button>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/85 px-3 py-1 text-[11px] font-semibold text-slate-600 shadow-sm">
+                <span aria-hidden>🎨</span>
+                <span>{copy.navThemeValue}</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <button type="button" className="apple-button-secondary min-w-[7.5rem] gap-2 px-4 py-2 text-sm">
+                  <span className="text-base" aria-hidden>
+                    ≡
+                  </span>
+                  <span>{copy.navMenu}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLanguageToggle}
+                  className="apple-button-primary hidden px-4 py-2 text-sm sm:inline-flex"
+                >
+                  {copy.toggleLabel}
+                </button>
+              </div>
             </div>
           </div>
         </nav>
