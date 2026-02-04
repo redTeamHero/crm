@@ -17,7 +17,7 @@ test('login route alias returns the same document as root', async () => {
   assert.match(loginRes.text, /Metro 2 CRM/);
 });
 
-test('client portal alias serves the portal template', async () => {
+test('client portal alias serves the Next.js portal redirect page', async () => {
   const [portalRes, legacyRes] = await Promise.all([
     request(app).get('/client-portal'),
     request(app).get('/client-portal.html'),
@@ -26,5 +26,5 @@ test('client portal alias serves the portal template', async () => {
   assert.equal(legacyRes.status, 200);
   assert.equal(portalRes.headers['content-type']?.includes('text/html'), true);
   assert.equal(portalRes.text, legacyRes.text);
-  assert.match(portalRes.text, /Client Portal/);
+  assert.match(portalRes.text, /Next.js client portal/i);
 });
