@@ -235,7 +235,7 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
     }),
     renderRow("Account #", available, tl, conflictMap, errorMap, {
       fields: ["account_number"],
-      renderCell: (pb) => safe(pb.account_number, "—"),
+      renderCell: (pb) => fieldVal(pb, "account_number") || "—",
     }),
     renderRow("Account Type", available, tl, conflictMap, errorMap, {
       fields: ["account_type"],
@@ -285,6 +285,10 @@ function buildComparisonTableHTML(tl, comparisonBureaus, conflictMap, errorMap) 
       fields: ["date_closed"],
       renderCell: (pb) => fieldVal(pb, "date_closed") || "—",
     }),
+    renderRow("Last Reported", available, tl, conflictMap, errorMap, {
+      fields: ["last_reported"],
+      renderCell: (pb) => fieldVal(pb, "last_reported") || "—",
+    }),
     // PATCH 3: Comments rendered correctly (arrays join with <br>)
     renderRow("Comments", available, tl, conflictMap, errorMap, {
       fields: ["comments"],
@@ -323,7 +327,7 @@ function buildTradelineBlockHTML(tl, bureau) {
     : safe(commentsVal, "");
 
   const creds = {
-    acct: safe(pb.account_number, "N/A"),
+    acct: fieldVal(pb, "account_number") || "N/A",
     type: safe(pb.account_type, "N/A"),
     status: safe(pb.account_status, "N/A"),
     payStatus: safe(pb.payment_status, "N/A"),
@@ -336,6 +340,7 @@ function buildTradelineBlockHTML(tl, bureau) {
     lastActive: fieldVal(pb, "date_last_active") || "N/A",
     lastPay: fieldVal(pb, "date_last_payment") || "N/A",
     closed: fieldVal(pb, "date_closed") || "N/A",
+    lastReported: fieldVal(pb, "last_reported") || "N/A",
     comments: commentsHTML,
   };
 
@@ -356,6 +361,7 @@ function buildTradelineBlockHTML(tl, bureau) {
         <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Date Last Active</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.lastActive}</td></tr>
         <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Date Last Payment</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.lastPay}</td></tr>
         <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Date Closed</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.closed}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Last Reported</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.lastReported}</td></tr>
         ${creds.comments ? `<tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;">Comments</td><td style="padding:6px;border:1px solid #e5e7eb;">${creds.comments}</td></tr>` : ""}
       </tbody>
     </table>`;
