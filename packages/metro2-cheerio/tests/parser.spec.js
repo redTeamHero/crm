@@ -246,9 +246,9 @@ test('validateTradeline infers account_status from payment_status strings', () =
   assert.ok(violations.some(v => v.code === 'CURRENT_BUT_PASTDUE'));
 });
 
-test('validateTradeline infers negative status from payment_status when DOFD missing', () => {
-  const violations = validateTradeline({ payment_status: 'Charge-Off', date_first_delinquency: '' });
-  assert.ok(violations.some(v => v.code === 'MISSING_DOFD'));
+test('validateTradeline infers negative status from payment_status when Date of Last Payment missing', () => {
+  const violations = validateTradeline({ payment_status: 'Charge-Off', date_of_last_payment: '' });
+  assert.ok(violations.some(v => v.code === 'MISSING_LAST_PAYMENT_DATE'));
 });
 
 test('validateTradeline loads knowledge graph constraints', () => {
@@ -256,9 +256,9 @@ test('validateTradeline loads knowledge graph constraints', () => {
   assert.ok(violations.some(v => v.code === 'CURRENT_BUT_PASTDUE'));
 });
 
-test('validateTradeline flags missing DOFD for charge-offs via knowledge graph', () => {
-  const violations = validateTradeline({ account_status: 'Charge-Off', date_first_delinquency: '' });
-  assert.ok(violations.some(v => v.code === 'MISSING_DOFD'));
+test('validateTradeline flags missing Date of Last Payment for charge-offs via knowledge graph', () => {
+  const violations = validateTradeline({ account_status: 'Charge-Off', date_of_last_payment: '' });
+  assert.ok(violations.some(v => v.code === 'MISSING_LAST_PAYMENT_DATE'));
 });
 
 test('unknown violation codes fall back to default message', () => {
@@ -273,7 +273,7 @@ test('lowercase violation codes return same metadata as uppercase', () => {
   const lowerPastDue = enrich('current_but_pastdue');
   assert.deepStrictEqual(lowerPastDue, upperPastDue);
 
-  const upperMissingDofd = enrich('MISSING_DOFD');
-  const lowerMissingDofd = enrich('missing_dofd');
-  assert.deepStrictEqual(lowerMissingDofd, upperMissingDofd);
+  const upperMissingLastPayment = enrich('MISSING_LAST_PAYMENT_DATE');
+  const lowerMissingLastPayment = enrich('missing_last_payment_date');
+  assert.deepStrictEqual(lowerMissingLastPayment, upperMissingLastPayment);
 });

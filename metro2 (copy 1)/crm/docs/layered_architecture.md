@@ -53,7 +53,7 @@
 - [ ] Cover with integration test (`tests/*.test.js`) hitting the API boundary.
 
 ## Compliance guardrails baked into layers
-- Domain layer owns Metro-2 sanity checks: DOFD required on charge-offs, status vs balance consistency, date ordering.
+- Domain layer owns Metro-2 sanity checks: Date of Last Payment required on charge-offs, status vs balance consistency, date ordering.
 - Application services enforce copy guardrails + rate limiting before calling infrastructure.
 - Edge layer redacts PII in logs (`logInfo` strips SSNs) and enforces tenant quotas before handing off.
 

@@ -1104,7 +1104,7 @@ function renderTradelines(tradelines){
     // Skip tradelines with no meaningful bureau data or account numbers.
     // Some parsed reports include placeholder entries with empty `per_bureau`
     // sections and no account numbers, which resulted in blank cards that only
-    // displayed generic violations like "Missing Date of First Delinquency".
+    // displayed generic violations like "Missing Date of Last Payment".
     // Filtering these out up front keeps the visible list focused on usable
     // tradelines.
     const pb = tl.per_bureau || {};

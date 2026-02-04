@@ -9,17 +9,17 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / "metro2 (copy 1)" / "c
 import metro2_audit_multi as m2
 
 
-class TestMissingDOFD(unittest.TestCase):
+class TestMissingLastPaymentDate(unittest.TestCase):
     def test_empty_tradeline_skipped(self):
         violations = []
-        m2.r_missing_dofd({}, "Experian", {}, violations.append)
+        m2.r_missing_last_payment_date({}, "Experian", {}, violations.append)
         self.assertEqual(violations, [])
 
     def test_enriched_violation_has_severity_and_fcra(self):
         violations = []
         # Simulate rule execution context
-        m2._CURRENT_RULE_ID = "MISSING_DOFD"
-        m2.r_missing_dofd({}, "Experian", {"account_number": "1", "balance": 50}, violations.append)
+        m2._CURRENT_RULE_ID = "MISSING_LAST_PAYMENT_DATE"
+        m2.r_missing_last_payment_date({}, "Experian", {"account_number": "1", "balance": 50}, violations.append)
         m2._CURRENT_RULE_ID = None
         self.assertEqual(len(violations), 1)
         v = violations[0]
@@ -39,14 +39,14 @@ class TestDuplicateAccount(unittest.TestCase):
     def test_detects_duplicate_account_numbers(self):
         m2.SEEN_ACCOUNT_NUMBERS.clear()
         per_bureau1 = {b: {} for b in m2.BUREAUS}
-        per_bureau1["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
+        per_bureau1["TransUnion"].update({"account_number": "123", "date_last_payment": "2020-01-01"})
         v1, _ = m2.run_rules_for_tradeline("CredA", per_bureau1, {"global": {"disabled": ["10"]}})
         v1_ids = {v.get("id") for v in v1}
         self.assertNotIn("10", v1_ids)
         self.assertNotIn("METRO2_CODE_10_DUPLICATE", v1_ids)
 
         per_bureau2 = {b: {} for b in m2.BUREAUS}
-        per_bureau2["TransUnion"].update({"account_number": "123", "date_first_delinquency": "2020-01-01"})
+        per_bureau2["TransUnion"].update({"account_number": "123", "date_last_payment": "2020-01-01"})
         v2, _ = m2.run_rules_for_tradeline("CredB", per_bureau2, {"global": {"disabled": ["10"]}})
         self.assertTrue(any(v["id"] == "DUPLICATE_ACCOUNT" for v in v2))
 
@@ -106,7 +106,7 @@ class TestDisableConfig(unittest.TestCase):
         violations, _ = m2.run_rules_for_tradeline("CredMetro", per_bureau, None)
 
         ids = [v.get("id") for v in violations]
-        self.assertIn("METRO2_CODE_8_MISSING_DOFD", ids)
+        self.assertIn("METRO2_CODE_8_MISSING_LAST_PAYMENT_DATE", ids)
 
     def test_numeric_disable_targets_leading_code_digits(self):
         m2.SEEN_ACCOUNT_NUMBERS.clear()
@@ -116,7 +116,7 @@ class TestDisableConfig(unittest.TestCase):
         violations, _ = m2.run_rules_for_tradeline("CredDisabled", per_bureau, config)
 
         ids = {v.get("id") for v in violations}
-        self.assertNotIn("METRO2_CODE_8_MISSING_DOFD", ids)
+        self.assertNotIn("METRO2_CODE_8_MISSING_LAST_PAYMENT_DATE", ids)
         self.assertIn("MISSING_OPEN_DATE", ids)
 
 

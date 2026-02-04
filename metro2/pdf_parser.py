@@ -49,7 +49,7 @@ ACCOUNT_FIELD_MAP = {
     "last reported": "last_reported",
     "date reported": "last_reported",
     "date closed": "date_closed",
-    "date of first delinquency": "date_of_first_delinquency",
+    "date of first delinquency": "date_of_last_payment",
     "comments": "comments",
     "payment status": "payment_status",
     "past due": "past_due",

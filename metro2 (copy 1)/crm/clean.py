@@ -47,11 +47,11 @@ FIELD_ALIASES: Dict[str, str] = {
     "creditor classification": "creditor_class",
     "date closed": "date_closed",
     "date closed:": "date_closed",
-    "date first delinquency": "date_of_first_delinquency",
-    "date of first delinquency": "date_of_first_delinquency",
-    "date of first delinquency:": "date_of_first_delinquency",
-    "dofd": "date_of_first_delinquency",
-    "dofd:": "date_of_first_delinquency",
+    "date first delinquency": "date_last_payment",
+    "date of first delinquency": "date_last_payment",
+    "date of first delinquency:": "date_last_payment",
+    "dofd": "date_last_payment",
+    "dofd:": "date_last_payment",
     "date last active": "date_last_active",
     "date last payment": "date_last_payment",
     "date of last payment": "date_last_payment",
@@ -824,23 +824,23 @@ def r_stale_active_reporting(
     return []
 
 
-def r_dofd_obsolete_7y(
+def r_last_payment_obsolete_7y(
     tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_tradelines: List[Dict[str, Any]]
 ) -> List[Dict[str, Any]]:
     del group_records, all_tradelines
-    dofd = parse_date(tradeline.get("date_of_first_delinquency"))
-    if not dofd:
+    last_payment = parse_date(tradeline.get("date_last_payment"))
+    if not last_payment:
         return []
     status = _safe_lower(tradeline.get("account_status"))
     derogatory = _has_keywords(status, ("charge", "collection", "late", "delinquent", "derog"))
     if not derogatory:
         return []
-    if (date.today() - dofd).days > 365 * 7:
+    if (date.today() - last_payment).days > 365 * 7:
         return [
             _violation(
-                "DOFD_OBSOLETE_7Y",
-                "Negative account older than 7 years from DOFD",
-                date_of_first_delinquency=tradeline.get("date_of_first_delinquency"),
+                "LAST_PAYMENT_OBSOLETE_7Y",
+                "Negative account older than 7 years from Date of Last Payment",
+                date_last_payment=tradeline.get("date_last_payment"),
             )
         ]
     return []
@@ -866,12 +866,12 @@ def r_8(tradeline: Dict[str, Any], group_records: List[Dict[str, Any]], all_trad
     status = _safe_lower(tradeline.get("account_status"))
     if not _has_keywords(status, ("charge", "chargeoff", "collection")):
         return []
-    if tradeline.get("date_of_first_delinquency"):
+    if tradeline.get("date_last_payment"):
         return []
     return [
         _violation(
-            "METRO2_CODE_8_MISSING_DOFD",
-            "Charge-off or collection missing Date of First Delinquency",
+            "METRO2_CODE_8_MISSING_LAST_PAYMENT_DATE",
+            "Charge-off or collection missing Date of Last Payment",
         )
     ]
 
@@ -948,7 +948,7 @@ RULES: Sequence[RuleFunc] = (
     r_dispute_comment_needs_xb,
     r_closed_but_monthly_payment,
     r_stale_active_reporting,
-    r_dofd_obsolete_7y,
+    r_last_payment_obsolete_7y,
     r_3,
     r_8,
     r_9,
@@ -957,7 +957,7 @@ RULES: Sequence[RuleFunc] = (
 )
 
 
-def r_missing_dofd(
+def r_missing_last_payment_date(
     config: Optional[Dict[str, Any]],
     bureau: str,
     tradeline: Dict[str, Any],
@@ -967,7 +967,7 @@ def r_missing_dofd(
 
     Older flows executed rules with side-effect callbacks.  The modern rule
     engine is pure/functional, so we replicate the minimum behaviour expected
-    by the tests: emit a violation when a tradeline lacking DOFD data looks
+    by the tests: emit a violation when a tradeline lacking Date of Last Payment data looks
     substantive enough to audit.
     """
 
@@ -976,8 +976,8 @@ def r_missing_dofd(
     if not tradeline or not emit:
         return
 
-    dofd = tradeline.get("date_of_first_delinquency") or tradeline.get("date_first_delinquency")
-    if dofd:
+    last_payment = tradeline.get("date_last_payment") or tradeline.get("date_of_last_payment")
+    if last_payment:
         return
 
     has_signal = any(tradeline.get(field) for field in ("account_number", "balance", "account_status"))
@@ -986,12 +986,12 @@ def r_missing_dofd(
 
     violation = make_violation(
         "Dates",
-        "Missing Date of First Delinquency",
-        "Reported account is missing required Date of First Delinquency data",
+        "Missing Date of Last Payment",
+        "Reported account is missing required Date of Last Payment data",
         {
             "bureau": bureau,
             "account_number": tradeline.get("account_number"),
-            "rule_id": "MISSING_DOFD",
+            "rule_id": "MISSING_LAST_PAYMENT_DATE",
         },
     )
     emit(violation)
@@ -1001,7 +1001,7 @@ def _section_from_rule(rule_id: str) -> str:
     """Best-effort mapping of rule identifiers to legacy UI sections."""
 
     upper = rule_id.upper()
-    if any(keyword in upper for keyword in ("DATE", "DOFD", "REPORTED", "REPORT")):
+    if any(keyword in upper for keyword in ("DATE", "LAST_PAYMENT", "REPORTED", "REPORT")):
         return "Dates"
     if any(keyword in upper for keyword in ("BALANCE", "PAYMENT", "LIMIT", "UTILIZATION", "STATUS", "PAST_DUE", "ACCOUNT")):
         return "Account"

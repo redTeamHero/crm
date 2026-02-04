@@ -25,7 +25,6 @@ export default {
   "Last Payment Date":        { key: "date_last_payment", normalizer: toMDY },
   "Two-Year Payment History": { key: "two_year_payment_history" },
   "Two Year Payment History": { key: "two_year_payment_history" },
-  "Date of First Delinquency": { key: "date_first_delinquency", normalizer: toMDY },
   "Creditor":                 { key: "creditor_name" },
   "Creditor Name":            { key: "creditor_name" },
   "Company Name":             { key: "creditor_name" },

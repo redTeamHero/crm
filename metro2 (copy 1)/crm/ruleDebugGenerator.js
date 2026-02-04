@@ -6,7 +6,7 @@ const MONEY_FIELDS = new Set(['past_due', 'balance', 'credit_limit', 'high_credi
 const DATE_FIELDS = new Set([
   'date_opened',
   'date_last_payment',
-  'date_first_delinquency',
+  'date_of_last_payment',
   'last_reported',
 ]);
 

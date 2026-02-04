@@ -14,7 +14,7 @@ Use this outline to record a high-conversion Loom/YouTube walkthrough that sells
 | --- | --- | --- |
 | 0:00 – 0:45 | **Hook + Vision** | "In under 7 minutes you'll see how Metro-2 compliant workflows feel like a premium Apple-style experience for your clients." Mention trust and concierge follow-through. |
 | 0:45 – 1:30 | **Persona callouts** | Address consumers, trucking fleets, and attorneys. Highlight NEPQ-inspired intake and compliance guardrails. |
-| 1:30 – 3:00 | **Live Intake & Audit** | Upload sample report → run Metro-2 audit. Narrate key rule checks (status vs past due, DOFD, payment ratings). Emphasize Lead→Consult% KPI. |
+| 1:30 – 3:00 | **Live Intake & Audit** | Upload sample report → run Metro-2 audit. Narrate key rule checks (status vs past due, Date of Last Payment, payment ratings). Emphasize Lead→Consult% KPI. |
 | 3:00 – 4:30 | **Dispute Letter Preview** | Show the letter preview, OCR-resistant layout, and automation triggers. Mention upsell to certified mail services. |
 | 4:30 – 5:30 | **Stripe Checkout & Portal** | Trigger Stripe Checkout (test mode). Explain how advisors close sales with clear value and no "guaranteed results" claims. |
 | 5:30 – 6:30 | **Automation & Multi-Tenant** | Switch to admin view showing tenant isolation, Twilio worker queue, and SimpleCertifiedMail integration. Tie to Consult→Purchase% and AOV growth. |

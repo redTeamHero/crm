@@ -6,7 +6,7 @@
       "properties": [
         "account_status",
         "past_due",
-        "date_first_delinquency"
+        "date_of_last_payment"
       ]
     },
     {
@@ -26,17 +26,17 @@
       "category": "Payment History"
     },
     {
-      "id": "Violation:MISSING_DOFD",
+      "id": "Violation:MISSING_LAST_PAYMENT_DATE",
       "type": "violation",
-      "code": "MISSING_DOFD",
+      "code": "MISSING_LAST_PAYMENT_DATE",
       "scope": "per_bureau",
-      "detail": "Charge-off or collection accounts must include a Date of First Delinquency.",
+      "detail": "Charge-off or collection accounts must include a Date of Last Payment.",
       "fieldsImpacted": [
-        "Date of First Delinquency"
+        "Date of Last Payment"
       ],
       "evidenceFields": [
         "account_status",
-        "date_first_delinquency"
+        "date_of_last_payment"
       ],
       "category": "Reporting Completeness"
     }
@@ -96,9 +96,9 @@
       ]
     },
     {
-      "id": "REL_NEGATIVE_REQUIRES_DOFD",
+      "id": "REL_NEGATIVE_REQUIRES_LAST_PAYMENT_DATE",
       "type": "violation_link",
-      "violation": "MISSING_DOFD",
+      "violation": "MISSING_LAST_PAYMENT_DATE",
       "source": "Tradeline",
       "when": [
         {
@@ -109,13 +109,13 @@
       ],
       "checks": [
         {
-          "field": "date_first_delinquency",
+          "field": "date_of_last_payment",
           "operator": "blank"
         }
       ],
       "evidence": [
         "account_status",
-        "date_first_delinquency"
+        "date_of_last_payment"
       ]
     }
   ]

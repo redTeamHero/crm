@@ -295,11 +295,11 @@ function isUnverifiableViolation(entry = {}){
     : [];
   const fieldText = fieldList.map(field => String(field).toLowerCase());
   const codeMatches = /MISSING|UNKNOWN|UNVERIFIABLE/i.test(code) &&
-    (/DOFD|DOLP|LAST_PAYMENT|OWNER|OWNERSHIP/i.test(code));
+    (/DOLP|LAST_PAYMENT|OWNER|OWNERSHIP/i.test(code));
   const detailMatches = /missing|unverifiable/i.test(detail) &&
-    /(dofd|delinquency|last payment|ownership|owner)/i.test(detail);
-  const fieldMatches = fieldText.some(field => field.includes("dofd") || field.includes("delinquency") || field.includes("last_payment") || field.includes("ownership") || field.includes("owner"));
-  return codeMatches || detailMatches || fieldMatches || code === "DOFD_MISSING_ON_DEROG";
+    /(delinquency|last payment|ownership|owner)/i.test(detail);
+  const fieldMatches = fieldText.some(field => field.includes("delinquency") || field.includes("last_payment") || field.includes("ownership") || field.includes("owner"));
+  return codeMatches || detailMatches || fieldMatches || code === "LAST_PAYMENT_MISSING_ON_DEROG";
 }
 
 function isCrossBureauInaccuracy(entry = {}){
@@ -313,7 +313,7 @@ function isCrossBureauInaccuracy(entry = {}){
 function isReagingViolation(entry = {}){
   const code = normalizeViolationCode(entry);
   const detail = `${normalizeTitle(entry)} ${entry.detail || ""}`.trim();
-  return /REAG|RE-AGING|DOLP_MOVED_FORWARD|DOFD/i.test(code) && /re-?aging|dofd|delinquency/i.test(detail || code);
+  return /REAG|RE-AGING|DOLP_MOVED_FORWARD|LAST_PAYMENT/i.test(code) && /re-?aging|last payment|delinquency/i.test(detail || code);
 }
 
 function isMisleadingReporting(entry = {}){
@@ -502,7 +502,7 @@ const BUREAU_FIELDS = [
   { key: "date_opened", type: "date" },
   { key: "last_reported", type: "date" },
   { key: "date_last_payment", type: "date" },
-  { key: "date_first_delinquency", type: "date" },
+  { key: "date_of_last_payment", type: "date" },
 ];
 
 function buildBureauDetails(perBureau = {}){

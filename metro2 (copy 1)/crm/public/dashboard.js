@@ -1088,7 +1088,7 @@ function generateAssistantReply(message){
       html: true,
       text: `<p class="font-semibold text-slate-800">Metro-2 + FCRA compliance guardrails:</p>
              <ul class="mt-1 list-disc list-inside space-y-1 text-sm text-slate-700">
-               <li>Validate DOFD on every charge-off/collection before letters—no DOFD, no send.</li>
+               <li>Validate Date of Last Payment on every charge-off/collection before letters—no Date of Last Payment, no send.</li>
                <li>Match account status to balance logic (current = $0 past due, installment vs. revolving limits).</li>
                <li>Redact SSN to last4 in all logs and force TLS + rate limiting on auth endpoints.</li>
              </ul>

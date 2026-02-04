@@ -44,7 +44,7 @@ const FIELD_LABEL_OVERRIDES: Record<string, string> = {
   last_reported: 'Last Reported',
   date_opened: 'Date Opened',
   date_last_payment: 'Last Payment',
-  date_first_delinquency: 'DOFD',
+  date_of_last_payment: 'Date of Last Payment',
 };
 
 const HIGHLIGHT_FIELD_ORDER = [
@@ -57,7 +57,7 @@ const HIGHLIGHT_FIELD_ORDER = [
   'high_credit',
   'last_reported',
   'date_last_payment',
-  'date_first_delinquency',
+  'date_of_last_payment',
 ];
 
 const BUREAU_ALIAS_ENTRIES: Array<[RegExp, string]> = [
