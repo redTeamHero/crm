@@ -9,7 +9,7 @@ function redirectByRole(user){
       try { localStorage.setItem('clientId', clientId); } catch {}
       location.href = `/portal/${encodeURIComponent(clientId)}`;
     } else {
-      location.href = '/client-portal-template.html';
+      location.href = '/client-portal';
     }
     return;
   }else if(role === 'team'){

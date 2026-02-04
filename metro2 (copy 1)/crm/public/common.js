@@ -815,7 +815,7 @@ function restrictRoutes(role){
   const path = location.pathname;
   const ok = allowed.some(p=> path.startsWith(p));
   if(!ok){
-    location.href = role === 'client' ? '/client-portal-template.html' : '/dashboard';
+    location.href = role === 'client' ? '/client-portal' : '/dashboard';
   }
 }
 restrictRoutes(window.userRole);
