@@ -59,9 +59,14 @@ if (typeof window !== 'undefined') {
   }
 }
 
+const portalBaseUrl = typeof window !== 'undefined'
+  ? (window.CLIENT_PORTAL_BASE_URL || 'http://localhost:3001/portal')
+  : 'http://localhost:3001/portal';
+const buildPortalUrl = (id) => id ? `${portalBaseUrl}/${id}` : portalBaseUrl;
+
 const role = typeof window !== 'undefined' ? (window.userRole || 'host') : 'host';
 if (typeof window !== 'undefined' && role === 'client') {
-  window.location.href = '/client-portal-template.html';
+  window.location.href = buildPortalUrl(window.clientId || window.consumerId);
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
   document.addEventListener('DOMContentLoaded', () => {
@@ -209,7 +214,7 @@ function updatePortalLink(){
   links.forEach(a => {
     if(!a) return;
     if(currentConsumerId){
-      a.href = `/portal/${currentConsumerId}`;
+      a.href = buildPortalUrl(currentConsumerId);
       a.classList.remove("hidden");
     } else {
       a.href = "#";
