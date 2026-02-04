@@ -59,9 +59,14 @@ if (typeof window !== 'undefined') {
   }
 }
 
-const portalBaseUrl = typeof window !== 'undefined'
-  ? (window.CLIENT_PORTAL_BASE_URL || 'http://localhost:3001/portal')
-  : 'http://localhost:3001/portal';
+const resolvePortalBaseUrl = () => {
+  if (typeof window === 'undefined') return '';
+  if (window.CLIENT_PORTAL_BASE_URL) return window.CLIENT_PORTAL_BASE_URL;
+  const origin = window.location?.origin;
+  if (origin) return `${origin.replace(/\/$/, '')}/portal`;
+  return '';
+};
+const portalBaseUrl = resolvePortalBaseUrl();
 const buildPortalUrl = (id) => id ? `${portalBaseUrl}/${id}` : portalBaseUrl;
 
 const role = typeof window !== 'undefined' ? (window.userRole || 'host') : 'host';
