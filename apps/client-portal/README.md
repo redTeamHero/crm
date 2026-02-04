@@ -1,6 +1,6 @@
 # Client Portal (Next.js)
 
-Premium bilingual portal UI that consumes the Express API (`/api/portal/:id`) and renders a conversion-focused dashboard for each consumer.
+Premium bilingual portal UI that consumes the Express API (`/api/portal/:id`) and renders a conversion-focused dashboard for each consumer. This app now maintains a single portal experience (the dashboard only) to keep the UI consistent for every client.
 
 ## Prerequisites
 - Node.js 18+
