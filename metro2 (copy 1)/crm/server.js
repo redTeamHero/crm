@@ -3129,7 +3129,13 @@ function buildRequiredFieldPayload(entry = {}) {
     credit_limit: entry.credit_limit ?? null,
     high_credit: entry.high_credit ?? null,
     date_opened: entry.date_opened ?? null,
-    date_last_payment: entry.last_payment ?? entry.date_last_payment ?? null,
+    date_last_payment:
+      entry.last_payment ??
+      entry.date_last_payment ??
+      entry.date_of_last_payment ??
+      entry.last_payment_date ??
+      entry.dateLastPayment ??
+      null,
     date_of_first_delinquency: entry.date_first_delinquency ?? entry.date_of_first_delinquency ?? null,
     last_reported: entry.last_reported ?? null,
     comments: entry.comments ?? null,
