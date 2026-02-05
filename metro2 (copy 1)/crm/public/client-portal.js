@@ -1748,6 +1748,19 @@ document.addEventListener('DOMContentLoaded', () => {
       portalMain.classList.remove('hidden');
     }
   }
+  const navLinks = document.querySelectorAll('#primaryNav a[href^="#"]');
+  navLinks.forEach(link => {
+    link.addEventListener('click', event => {
+      const targetHash = link.getAttribute('href');
+      if (!targetHash) return;
+      event.preventDefault();
+      if (location.hash !== targetHash) {
+        location.hash = targetHash;
+      } else {
+        showSection(targetHash);
+      }
+    });
+  });
   showSection(location.hash);
   window.addEventListener('hashchange', () => showSection(location.hash));
   window.addEventListener('beforeunload', () => {
