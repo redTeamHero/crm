@@ -36,6 +36,7 @@ const PORTAL_MODULE_CONFIG = Object.freeze({
   documents: { nav: '#navDocuments', sections: ['#documentsCard', '#documentSection'] },
   mail: { nav: '#navMail', sections: ['#mailSection'] },
   payments: { nav: '#navPayments', sections: ['#paymentSection'] },
+  tradelines: { nav: '#navTradelines', sections: ['#tradelinesSection'] },
   uploads: { nav: '#navUploads', sections: ['#uploadSection'] },
 });
 
@@ -46,6 +47,7 @@ const HASH_TO_PORTAL_MODULE = Object.freeze({
   '#documentSection': 'documents',
   '#mailSection': 'mail',
   '#payments': 'payments',
+  '#tradelines': 'tradelines',
   '#negative-items': 'negativeItems',
 });
 
@@ -456,6 +458,9 @@ document.addEventListener('DOMContentLoaded', () => {
   applyNextSteps(enhanced.reminders);
   applyDataRegionBanner(dataRegionVariant);
   bootstrapDataRegionExperiment(consumerId);
+  if (isPortalModuleEnabled(portalSettings.modules, 'tradelines')) {
+    initTradelineStorefront(consumerId);
+  }
 
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
@@ -716,6 +721,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const paymentEmpty = document.getElementById('paymentEmpty');
   const paymentTotal = document.getElementById('paymentTotal');
   const paymentError = document.getElementById('paymentError');
+  const tradelineSection = document.getElementById('tradelinesSection');
+  const tradelineRangeSelect = document.getElementById('tradelineRange');
+  const tradelineBankSelect = document.getElementById('tradelineBank');
+  const tradelineSearchInput = document.getElementById('tradelineSearch');
+  const tradelineList = document.getElementById('tradelineList');
+  const tradelineMeta = document.getElementById('tradelineMeta');
+  const tradelineEmpty = document.getElementById('tradelineEmpty');
+  const tradelineCartList = document.getElementById('tradelineCartList');
+  const tradelineCartEmpty = document.getElementById('tradelineCartEmpty');
+  const tradelineCartTotal = document.getElementById('tradelineCartTotal');
+  const tradelineCartCount = document.getElementById('tradelineCartCount');
+  const tradelineCartClear = document.getElementById('tradelineCartClear');
   let invoiceCache = [];
   let invoicesLoaded = false;
   let invoiceLoading = false;
@@ -733,6 +750,375 @@ document.addEventListener('DOMContentLoaded', () => {
     const date = new Date(due);
     if(Number.isNaN(date.getTime())) return 'Due on receipt';
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function formatTradelineMeta(item){
+    const age = item?.age ? item.age : 'Seasoning N/A';
+    const limit = Number.isFinite(item?.limit) ? formatCurrency(item.limit) : '';
+    return `${age}${limit ? ` • ${limit} limit` : ''}`;
+  }
+  function buildTradelineId(item){
+    const parts = [
+      item?.bank || '',
+      item?.price ?? '',
+      item?.limit ?? '',
+      item?.age || '',
+      item?.statement_date || '',
+      item?.reporting || '',
+      item?.buy_link || '',
+    ];
+    return parts.map(part => String(part).trim()).join('|');
+  }
+  function getCartKey(id){
+    return `tradelineCart:${id || 'guest'}`;
+  }
+  function loadCart(id){
+    try {
+      const stored = localStorage.getItem(getCartKey(id));
+      const parsed = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  function saveCart(id, cart){
+    try {
+      localStorage.setItem(getCartKey(id), JSON.stringify(cart));
+    } catch {}
+  }
+  function getPriceValue(price){
+    const numeric = Number(price);
+    return Number.isFinite(numeric) ? numeric : 0;
+  }
+  function initTradelineStorefront(id){
+    if (!tradelineSection) return;
+    const cartState = { items: loadCart(id) };
+    const tradelineState = {
+      ranges: [],
+      banks: [],
+      selectedRange: '',
+      selectedBank: '',
+      items: [],
+      filtered: [],
+      loading: false,
+    };
+
+    const updateCartSummary = () => {
+      if (tradelineCartCount) {
+        const count = cartState.items.reduce((sum, item) => sum + (item.qty || 0), 0);
+        tradelineCartCount.textContent = String(count);
+      }
+    };
+
+    const renderCart = () => {
+      if (!tradelineCartList || !tradelineCartEmpty || !tradelineCartTotal) return;
+      tradelineCartList.innerHTML = '';
+      if (!cartState.items.length) {
+        tradelineCartEmpty.textContent = 'Cart is empty. Add tradelines to reserve seats.';
+        tradelineCartTotal.textContent = formatCurrency(0);
+        updateCartSummary();
+        return;
+      }
+      tradelineCartEmpty.textContent = '';
+      let total = 0;
+      cartState.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'flex flex-col gap-1 rounded border border-slate-200 bg-white/80 p-2 text-xs';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between gap-2';
+        const name = document.createElement('div');
+        name.className = 'font-medium';
+        name.textContent = item.bank || 'Tradeline';
+        const price = document.createElement('div');
+        price.className = 'text-slate-600';
+        price.textContent = formatCurrency(item.price);
+        header.appendChild(name);
+        header.appendChild(price);
+
+        const meta = document.createElement('div');
+        meta.className = 'text-slate-500';
+        meta.textContent = formatTradelineMeta(item);
+
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center justify-between gap-2';
+        const qtyWrap = document.createElement('div');
+        qtyWrap.className = 'flex items-center gap-1';
+        const decBtn = document.createElement('button');
+        decBtn.type = 'button';
+        decBtn.className = 'btn text-[10px] px-2 py-1';
+        decBtn.textContent = '−';
+        const qtyText = document.createElement('span');
+        qtyText.className = 'text-xs';
+        qtyText.textContent = `Qty ${item.qty}`;
+        const incBtn = document.createElement('button');
+        incBtn.type = 'button';
+        incBtn.className = 'btn text-[10px] px-2 py-1';
+        incBtn.textContent = '+';
+        qtyWrap.appendChild(decBtn);
+        qtyWrap.appendChild(qtyText);
+        qtyWrap.appendChild(incBtn);
+
+        const checkout = document.createElement('a');
+        checkout.className = 'btn text-[10px] px-2 py-1';
+        checkout.textContent = 'Checkout';
+        checkout.target = '_blank';
+        checkout.rel = 'noreferrer';
+        checkout.href = item.buy_link || '#';
+        if (!item.buy_link) checkout.classList.add('opacity-50', 'pointer-events-none');
+
+        actions.appendChild(qtyWrap);
+        actions.appendChild(checkout);
+
+        decBtn.addEventListener('click', () => {
+          updateCartQty(item.id, (item.qty || 0) - 1);
+        });
+        incBtn.addEventListener('click', () => {
+          updateCartQty(item.id, (item.qty || 0) + 1);
+        });
+
+        row.appendChild(header);
+        row.appendChild(meta);
+        row.appendChild(actions);
+        tradelineCartList.appendChild(row);
+        total += getPriceValue(item.price) * (item.qty || 0);
+      });
+      tradelineCartTotal.textContent = formatCurrency(total);
+      updateCartSummary();
+    };
+
+    const updateCartQty = (itemId, qty) => {
+      const nextQty = Math.max(0, qty);
+      const idx = cartState.items.findIndex(item => item.id === itemId);
+      if (idx === -1) return;
+      if (nextQty === 0) {
+        cartState.items.splice(idx, 1);
+      } else {
+        cartState.items[idx].qty = nextQty;
+      }
+      saveCart(id, cartState.items);
+      renderCart();
+    };
+
+    const addToCart = (item) => {
+      const idValue = buildTradelineId(item);
+      const existing = cartState.items.find(entry => entry.id === idValue);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cartState.items.push({
+          id: idValue,
+          bank: item.bank || '',
+          price: item.price,
+          limit: item.limit,
+          age: item.age,
+          statement_date: item.statement_date,
+          reporting: item.reporting,
+          buy_link: item.buy_link,
+          qty: 1,
+        });
+      }
+      saveCart(id, cartState.items);
+      renderCart();
+    };
+
+    const filterTradelines = () => {
+      const term = (tradelineSearchInput?.value || '').toLowerCase().trim();
+      if (!term) {
+        tradelineState.filtered = [...tradelineState.items];
+        return;
+      }
+      tradelineState.filtered = tradelineState.items.filter(item => {
+        const haystack = [
+          item.bank,
+          item.reporting,
+          item.statement_date,
+          item.age,
+        ].filter(Boolean).join(' ').toLowerCase();
+        return haystack.includes(term);
+      });
+    };
+
+    const renderTradelines = () => {
+      if (!tradelineList || !tradelineMeta || !tradelineEmpty) return;
+      tradelineList.innerHTML = '';
+      tradelineEmpty.textContent = '';
+      if (tradelineState.loading) {
+        tradelineMeta.textContent = 'Loading tradelines...';
+        return;
+      }
+      filterTradelines();
+      const items = tradelineState.filtered;
+      tradelineMeta.textContent = tradelineState.selectedRange
+        ? `${items.length} tradeline${items.length === 1 ? '' : 's'} available.`
+        : 'Select a price range to load inventory.';
+
+      if (!tradelineState.selectedRange) {
+        tradelineEmpty.textContent = 'Pick a price range to see availability.';
+        return;
+      }
+      if (!items.length) {
+        tradelineEmpty.textContent = 'No tradelines found. Try another range or bank.';
+        return;
+      }
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm';
+        const title = document.createElement('div');
+        title.className = 'text-sm font-semibold';
+        title.textContent = item.bank || 'Tradeline';
+        const meta = document.createElement('div');
+        meta.className = 'text-xs text-slate-500';
+        meta.textContent = formatTradelineMeta(item);
+        const price = document.createElement('div');
+        price.className = 'text-sm font-semibold text-emerald-600';
+        price.textContent = formatCurrency(item.price);
+
+        const actions = document.createElement('div');
+        actions.className = 'mt-2 flex flex-wrap gap-2';
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'btn text-xs';
+        addBtn.textContent = 'Add to cart';
+        addBtn.addEventListener('click', () => addToCart(item));
+
+        const checkout = document.createElement('a');
+        checkout.className = 'btn text-xs';
+        checkout.textContent = 'View checkout';
+        checkout.target = '_blank';
+        checkout.rel = 'noreferrer';
+        checkout.href = item.buy_link || '#';
+        if (!item.buy_link) checkout.classList.add('opacity-50', 'pointer-events-none');
+
+        actions.appendChild(addBtn);
+        actions.appendChild(checkout);
+
+        card.appendChild(title);
+        card.appendChild(meta);
+        card.appendChild(price);
+        card.appendChild(actions);
+        tradelineList.appendChild(card);
+      });
+    };
+
+    const renderRangeOptions = () => {
+      if (!tradelineRangeSelect) return;
+      tradelineRangeSelect.innerHTML = '<option value="">Select price range</option>';
+      tradelineState.ranges.forEach(range => {
+        const option = document.createElement('option');
+        option.value = range.id;
+        option.textContent = `${range.label} (${range.count})`;
+        tradelineRangeSelect.appendChild(option);
+      });
+    };
+
+    const renderBankOptions = () => {
+      if (!tradelineBankSelect) return;
+      tradelineBankSelect.innerHTML = '<option value="">All banks</option>';
+      tradelineState.banks.forEach(bank => {
+        const option = document.createElement('option');
+        option.value = bank.bank;
+        option.textContent = `${bank.bank} (${bank.count})`;
+        tradelineBankSelect.appendChild(option);
+      });
+    };
+
+    const fetchJson = async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    };
+
+    const loadRanges = async () => {
+      if (!tradelineRangeSelect) return;
+      tradelineState.loading = true;
+      renderTradelines();
+      try {
+        const data = await fetchJson('/api/tradelines');
+        tradelineState.ranges = data.ranges || [];
+        renderRangeOptions();
+        const firstRange = tradelineState.ranges.find(range => range.count > 0) || tradelineState.ranges[0];
+        if (firstRange && !tradelineState.selectedRange) {
+          tradelineState.selectedRange = firstRange.id;
+          tradelineRangeSelect.value = firstRange.id;
+          await loadTradelines();
+        } else {
+          tradelineState.loading = false;
+          renderTradelines();
+        }
+      } catch (err) {
+        console.error('Failed to load tradeline ranges', err);
+        tradelineState.loading = false;
+        if (tradelineMeta) tradelineMeta.textContent = 'Unable to load tradelines.';
+      }
+    };
+
+    const loadTradelines = async () => {
+      if (!tradelineState.selectedRange) {
+        tradelineState.items = [];
+        tradelineState.filtered = [];
+        tradelineState.banks = [];
+        renderBankOptions();
+        renderTradelines();
+        return;
+      }
+      tradelineState.loading = true;
+      renderTradelines();
+      try {
+        const params = new URLSearchParams({
+          range: tradelineState.selectedRange,
+          perPage: '200',
+        });
+        if (tradelineState.selectedBank) {
+          params.set('bank', tradelineState.selectedBank);
+        }
+        const data = await fetchJson(`/api/tradelines?${params.toString()}`);
+        tradelineState.items = Array.isArray(data.tradelines) ? data.tradelines : [];
+        tradelineState.banks = data.banks || [];
+        tradelineState.loading = false;
+        renderBankOptions();
+        renderTradelines();
+      } catch (err) {
+        console.error('Failed to load tradelines', err);
+        tradelineState.items = [];
+        tradelineState.banks = [];
+        tradelineState.loading = false;
+        renderBankOptions();
+        renderTradelines();
+      }
+    };
+
+    if (tradelineRangeSelect) {
+      tradelineRangeSelect.addEventListener('change', async (event) => {
+        tradelineState.selectedRange = event.target.value;
+        tradelineState.selectedBank = '';
+        if (tradelineBankSelect) tradelineBankSelect.value = '';
+        await loadTradelines();
+      });
+    }
+
+    if (tradelineBankSelect) {
+      tradelineBankSelect.addEventListener('change', async (event) => {
+        tradelineState.selectedBank = event.target.value;
+        await loadTradelines();
+      });
+    }
+
+    if (tradelineSearchInput) {
+      tradelineSearchInput.addEventListener('input', () => renderTradelines());
+    }
+
+    if (tradelineCartClear) {
+      tradelineCartClear.addEventListener('click', () => {
+        cartState.items = [];
+        saveCart(id, cartState.items);
+        renderCart();
+      });
+    }
+
+    renderCart();
+    loadRanges();
   }
   function isDueSoon(inv){
     if(inv.paid || !inv?.due) return false;
@@ -1324,6 +1710,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mailSection) mailSection.classList.add('hidden');
     if (negativeItemsSection) negativeItemsSection.classList.add('hidden');
     if (paymentSection) paymentSection.classList.add('hidden');
+    if (tradelineSection) tradelineSection.classList.add('hidden');
     if (invoiceRefreshTimer) {
       clearInterval(invoiceRefreshTimer);
       invoiceRefreshTimer = null;
@@ -1352,6 +1739,8 @@ document.addEventListener('DOMContentLoaded', () => {
       paymentSection.classList.remove('hidden');
       loadInvoices({ force: true });
       invoiceRefreshTimer = setInterval(() => loadInvoices({ force: true }), 60000);
+    } else if (hash === '#tradelines' && tradelineSection) {
+      tradelineSection.classList.remove('hidden');
     } else if (hash === '#negative-items' && negativeItemsSection) {
       negativeItemsSection.classList.remove('hidden');
       initNegativeItems();
