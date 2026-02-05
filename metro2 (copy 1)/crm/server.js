@@ -1634,6 +1634,53 @@ app.post("/api/settings", optionalAuth, async (req, res) => {
   res.json({ ok: true, settings });
 });
 
+app.get("/api/credit-companies", authenticate, requirePermission("admin"), async (_req, res) => {
+  try {
+    const companiesDb = await loadCreditCompaniesDB();
+    res.json({ ok: true, companies: companiesDb.companies });
+  } catch (err) {
+    logError("CREDIT_COMPANY_LIST_ERROR", err);
+    res.status(500).json({ ok: false, error: "Failed to load credit companies" });
+  }
+});
+
+app.post("/api/credit-companies", authenticate, requirePermission("admin"), async (req, res) => {
+  try {
+    const payload = req?.body || {};
+    const companiesDb = await loadCreditCompaniesDB();
+    let nextCompanies = companiesDb.companies;
+
+    if (Array.isArray(payload.companies)) {
+      nextCompanies = payload.companies
+        .map(entry => normalizeCreditCompany(entry))
+        .filter(Boolean);
+    } else if (payload.company && typeof payload.company === "object") {
+      const normalized = normalizeCreditCompany(payload.company);
+      if (!normalized) {
+        return res.status(400).json({ ok: false, error: "Company name is required" });
+      }
+      const existingIndex = nextCompanies.findIndex(entry => entry.id === normalized.id);
+      if (existingIndex >= 0) {
+        nextCompanies[existingIndex] = { ...nextCompanies[existingIndex], ...normalized };
+      } else {
+        nextCompanies = [...nextCompanies, normalized];
+      }
+    } else {
+      return res.status(400).json({ ok: false, error: "Company payload is required" });
+    }
+
+    companiesDb.companies = nextCompanies;
+    await saveCreditCompaniesDB(companiesDb);
+    const metricsDb = await loadCreditCompanyMetricsDB();
+    await syncCreditCompanyMetrics(metricsDb, companiesDb);
+
+    res.json({ ok: true, companies: companiesDb.companies });
+  } catch (err) {
+    logError("CREDIT_COMPANY_SAVE_ERROR", err);
+    res.status(500).json({ ok: false, error: "Failed to save credit companies" });
+  }
+});
+
 app.use("/api/marketing", marketingKeyAuth, authenticate, forbidMember, marketingRoutes);
 
 app.get("/api/calendar/events", async (_req, res) => {
@@ -7211,6 +7258,46 @@ async function saveCreditCompaniesDB(db) {
   await writeKey('credit_companies', db);
 }
 
+function normalizeCreditCompany(payload = {}) {
+  const name = sanitizeSettingString(payload.name || '').slice(0, 120);
+  if (!name) return null;
+  const serviceArea = sanitizeSettingString(payload.serviceArea || '').slice(0, 120);
+  const focus = sanitizeSettingString(payload.focus || '').slice(0, 160);
+  const minPlanValue = sanitizeSettingString(payload.minPlan || '').toLowerCase();
+  const minPlan = DIY_PLAN_ORDER.includes(minPlanValue) ? minPlanValue : 'basic';
+  const isActive = payload.isActive !== false;
+  const idValue = sanitizeSettingString(payload.id || '');
+  return {
+    id: idValue || nanoid(),
+    name,
+    serviceArea,
+    minPlan,
+    isActive,
+    focus
+  };
+}
+
+async function syncCreditCompanyMetrics(metricsDb, companiesDb) {
+  const metricsByCompany = new Map(metricsDb.metrics.map(metric => [metric.companyId, metric]));
+  const now = new Date().toISOString();
+  const additions = companiesDb.companies
+    .filter(company => !metricsByCompany.has(company.id))
+    .map((company, index) => ({
+      companyId: company.id,
+      disputeSuccessRate: 0.7 + (index % 4) * 0.05,
+      caseCloseRate: 0.6 + (index % 3) * 0.08,
+      avgResponseTimeDays: 2.5 + (index % 4) * 0.7,
+      activeClients: 120 + index * 40,
+      reviewScore: 4 + (index % 3) * 0.3,
+      dissatisfiedCount: 0,
+      updatedAt: now
+    }));
+  if (additions.length) {
+    metricsDb.metrics = [...metricsDb.metrics, ...additions];
+    await saveCreditCompanyMetricsDB(metricsDb);
+  }
+}
+
 async function loadCreditCompanyMetricsDB() {
   let db = await readKey('credit_company_metrics', null);
   if (!db) {
@@ -7228,6 +7315,12 @@ async function loadCreditCompanyMetricsDB() {
       }))
     };
     await writeKey('credit_company_metrics', db);
+  }
+  try {
+    const companiesDb = await loadCreditCompaniesDB();
+    await syncCreditCompanyMetrics(db, companiesDb);
+  } catch (err) {
+    logWarn('CREDIT_COMPANY_METRICS_SYNC_FAILED', err?.message || String(err));
   }
   return db;
 }
