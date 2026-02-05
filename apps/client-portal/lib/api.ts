@@ -8,7 +8,7 @@ function resolveBaseUrl() {
     // In Replit, use the server-side API proxy which we'll handle via next.config
     return '';
   }
-  return 'http://localhost:3000';
+  return DEFAULT_BASE;
 }
 
 export async function getPortalData(consumerId: string): Promise<PortalPayload | null> {
