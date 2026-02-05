@@ -1443,9 +1443,9 @@ app.get("/team/:token", (req, res) => {
   if (!file) return res.status(404).send("Not found");
   res.sendFile(file);
 });
-app.get("/portal/:id", async (req, res) => {
+async function renderClientPortalForConsumer(req, res, consumerId) {
   const db = await loadDB();
-  const consumer = db.consumers.find((c) => c.id === req.params.id);
+  const consumer = db.consumers.find((c) => c.id === consumerId);
   if (!consumer) return res.status(404).send("Portal not found");
   const payload = await buildClientPortalPayload(consumer);
   if (!payload) return res.status(500).send("Portal unavailable");
@@ -1465,6 +1465,14 @@ app.get("/portal/:id", async (req, res) => {
     negativeItems: payload.negativeItems,
   });
   res.send(html);
+}
+
+app.get("/client-portal/:id", async (req, res) => {
+  await renderClientPortalForConsumer(req, res, req.params.id);
+});
+
+app.get("/portal/:id", async (req, res) => {
+  await renderClientPortalForConsumer(req, res, req.params.id);
 });
 
 app.get("/api/portal/:id", async (req, res) => {
