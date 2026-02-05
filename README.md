@@ -1,14 +1,14 @@
 # Metro2 CRM
 
 ## Overview
-This repository contains a multi-tenant CRM backend for credit-report auditing and dispute-letter generation, a Next.js client portal, and shared Metro 2 parsing/audit libraries. The backend parses Metro 2 HTML/PDF reports, maps violations using a knowledge graph, generates dispute letters as PDFs/HTML, and exposes APIs that power both legacy static pages and the modern client portal. The frontend portal consumes the backend’s `/api/portal/:consumerId` payload and renders a bilingual, tenant-configurable dashboard for clients.
+This repository contains a multi-tenant CRM backend for credit-report auditing and dispute-letter generation, a legacy HTML client portal served by the backend, and shared Metro 2 parsing/audit libraries. The backend parses Metro 2 HTML/PDF reports, maps violations using a knowledge graph, generates dispute letters as PDFs/HTML, and exposes APIs that power both the CRM UI and the static client portal experience at `/portal/:consumerId`.
 
 ## How It Works
 1. **Backend boot and settings**: The Express server (`metro2 (copy 1)/crm/server.js`) loads tenant-scoped settings from the key-value store, applies integration keys into process environment variables, and initializes workflow automation. Settings are stored in the database via the tenant-aware kv store and are hydrated on startup.
 2. **Report ingestion**: Report uploads go through `multer` and then dispatch to the Python analyzer (`metro2_audit_multi.py`) or the LLM-based parser. The Python analyzer parses HTML/PDF reports and returns normalized account history, inquiry details, and personal information.
 3. **Parsing and violations**: The JS parser (`metro2 (copy 1)/crm/parser.js`) delegates to `packages/metro2-core`, which extracts tradelines, histories, inquiries, and personal info from Metro 2 report markup. Metro 2 violations are loaded from JSON rulebooks and validated using the knowledge-graph/ontology mapping logic in `packages/metro2-core`.
 4. **Letter generation**: The letter engine renders dispute letters as HTML and converts them to PDF with Puppeteer; it can fall back to a PDFKit renderer when Chromium is unavailable.
-5. **Client portal**: The Next.js app (`apps/client-portal`) fetches portal data from the backend API and renders modules such as negative items, timeline, invoices, and rule-debug views.
+5. **Client portal**: The Express backend renders the legacy HTML portal template, injecting portal data and settings so clients can view snapshots, timeline entries, invoices, and documents at `/portal/:consumerId`.
 
 ## Project Structure
 - `metro2 (copy 1)/crm/` — Primary Node.js/Express CRM backend, API routes, static assets, and integrations.
@@ -19,7 +19,6 @@ This repository contains a multi-tenant CRM backend for credit-report auditing a
   - `letterEngine.js`, `pdfUtils.js`, `htmlToDisputePdf.js` — Letter rendering/PDF conversion utilities.
   - `workflowEngine.js` — Workflow rules and automation.
   - `marketingRoutes.js`, `marketingStore.js` — Marketing automation endpoints.
-- `apps/client-portal/` — Next.js client portal with Tailwind UI, bilingual strings, and portal data normalization.
 - `packages/metro2-core/` — Metro 2 parsing, validation, and knowledge-graph-backed rule evaluation.
 - `packages/metro2-cheerio/` — Cheerio adapter for Metro 2 parsing in Node.
 - `packages/metro2-browser/` — Browser-compatible Metro 2 parser entry.
@@ -41,12 +40,6 @@ If you plan to run the Python analyzers:
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-### Client Portal (Next.js)
-```bash
-cd apps/client-portal
-npm install
 ```
 
 ## Configuration
@@ -125,10 +118,6 @@ Settings are normalized on read/write and can be used to override certain enviro
 - `METRO2_KNOWLEDGE_GRAPH_PATH` — Knowledge graph used by `metro2-core`.
 - `METRO2_RULEBOOK_PATH` — Python audit rulebook path override.
 
-### Client portal environment variables
-- `PORTAL_API_BASE_URL` — Backend API base URL (server-side).
-- `NEXT_PUBLIC_API_BASE_URL` — Backend API base URL (client-side fallback).
-
 ### Marketing/Twilio worker environment variables
 The `scripts/marketingTwilioWorker.js` worker supports:
 - `.env` loading via `MARKETING_ENV_FILE` or `ENV_FILE`
@@ -142,12 +131,6 @@ The `scripts/marketingTwilioWorker.js` worker supports:
 ```bash
 cd "metro2 (copy 1)/crm"
 npm run migrate
-npm run dev
-```
-
-### Start the client portal
-```bash
-cd apps/client-portal
 npm run dev
 ```
 
@@ -183,7 +166,7 @@ node scripts/marketingTwilioWorker.js
 - **Extending the system**:
   - Add new parsing rules in `packages/metro2-core` and update the shared knowledge graph.
   - Add workflow rules in `workflowEngine.js` and store configuration via the settings API.
-  - Update portal modules or translations in `apps/client-portal`.
+  - Update portal modules or copy in `metro2 (copy 1)/crm/public/client-portal.js` and `metro2 (copy 1)/crm/public/client-portal-template.html`.
 
 ## Known Limitations
 - The Metro 2 HTML parser expects specific report table structures; unsupported vendor layouts may return partial or empty results.
@@ -192,6 +175,5 @@ node scripts/marketingTwilioWorker.js
 - Redis-backed queues are optional; if Redis is not configured, job execution is in-process only.
 
 ## Assumptions
-- The backend (`metro2 (copy 1)/crm`) is the primary runtime service and must be started separately from the client portal.
-- The client portal expects the backend to serve `/api/portal/:consumerId` responses.
+- The backend (`metro2 (copy 1)/crm`) is the primary runtime service and serves the legacy client portal routes alongside `/api/portal/:consumerId`.
 - Developers run Node.js and Python in the same environment when using the Python analyzers or LLM PDF extraction.
