@@ -263,6 +263,123 @@ function buildMinIntervalNotice(validation){
   });
   return messages.join(" ");
 }
+let breachSaveTimer = null;
+let pendingBreachSave = {};
+function queueBreachSave(update){
+  pendingBreachSave = { ...pendingBreachSave, ...update };
+  if (breachSaveTimer) clearTimeout(breachSaveTimer);
+  breachSaveTimer = setTimeout(async ()=>{
+    if (!currentConsumerId) return;
+    const payload = { ...pendingBreachSave };
+    pendingBreachSave = {};
+    breachSaveTimer = null;
+    const res = await api(`/api/consumers/${currentConsumerId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if(!res?.ok) return showErr(res?.error || "Failed to save breach details.");
+    const updated = DB.find(x=>x.id===currentConsumerId);
+    if (updated) Object.assign(updated, payload);
+  }, 500);
+}
+async function flushBreachSave(){
+  if (!currentConsumerId) return;
+  if (!breachSaveTimer) return;
+  clearTimeout(breachSaveTimer);
+  breachSaveTimer = null;
+  const payload = { ...pendingBreachSave };
+  pendingBreachSave = {};
+  if (!Object.keys(payload).length) return;
+  const res = await api(`/api/consumers/${currentConsumerId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if(!res?.ok) return showErr(res?.error || "Failed to save breach details.");
+  const updated = DB.find(x=>x.id===currentConsumerId);
+  if (updated) Object.assign(updated, payload);
+}
+function updateBreachStatus(consumer){
+  const el = $("#breachStatus");
+  if (!el) return;
+  if (!consumer){
+    el.textContent = "Breaches: —";
+    el.disabled = true;
+    return;
+  }
+  const count = Array.isArray(consumer.breaches) ? consumer.breaches.length : 0;
+  el.textContent = `Breaches: ${count}`;
+  el.disabled = false;
+}
+function renderBreachSelectionList(consumer, list){
+  const wrap = $("#breachSelectionList");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  const email = consumer?.email || "";
+  if (!list.length){
+    wrap.innerHTML = `<div class="muted">No breaches found for ${escapeHtml(email)}.</div>`;
+    return;
+  }
+  const saved = Array.isArray(consumer?.breachSelections) && consumer.breachSelections.length
+    ? consumer.breachSelections
+    : list;
+  const selectedSet = new Set(saved);
+  list.forEach((breach)=>{
+    const label = document.createElement("label");
+    label.className = "flex items-start gap-2";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.className = "breach-select";
+    input.value = breach;
+    input.checked = selectedSet.has(breach);
+    const span = document.createElement("span");
+    span.textContent = breach || "Unknown breach";
+    label.appendChild(input);
+    label.appendChild(span);
+    wrap.appendChild(label);
+  });
+}
+function getBreachSelectionsFromUI(){
+  return Array.from(document.querySelectorAll("#breachSelectionList input.breach-select"))
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+}
+function renderBreachEvidenceFiles(consumer){
+  const wrap = $("#breachEvidenceFiles");
+  if (!wrap) return;
+  const files = Array.isArray(consumer?.breachEvidenceFiles) ? consumer.breachEvidenceFiles : [];
+  if (!files.length){
+    wrap.innerHTML = `<div class="muted text-xs">No evidence files uploaded yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = files.map(file=>{
+    const name = escapeHtml(file.name || file.originalName || "Evidence file");
+    const url = escapeHtml(file.url || "#");
+    const date = file.uploadedAt ? ` • ${new Date(file.uploadedAt).toLocaleString()}` : "";
+    return `<div class="flex items-center justify-between text-xs">
+      <div class="wrap-anywhere">${name}${date}</div>
+      <a class="text-accent underline" href="${url}" target="_blank">Open</a>
+    </div>`;
+  }).join("");
+}
+function openBreachModal(consumer){
+  const list = Array.isArray(consumer?.breaches) ? consumer.breaches : [];
+  const summary = $("#breachSummary");
+  const email = consumer?.email || "";
+  if (summary){
+    summary.innerHTML = list.length
+      ? `<p>${escapeHtml(email)} found in ${list.length} breach${list.length===1?"":"es"}.</p>`
+      : `<p>No breaches found for ${escapeHtml(email)}.</p>`;
+  }
+  renderBreachSelectionList(consumer, list);
+  const notes = $("#breachEvidenceNotes");
+  if (notes) notes.value = consumer?.breachEvidenceNotes || "";
+  renderBreachEvidenceFiles(consumer);
+  const modal = $("#breachModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
 function formatEvent(ev){
   const when = new Date(ev.at).toLocaleString();
   let title = escapeHtml(ev.type);
@@ -284,6 +401,13 @@ function formatEvent(ev){
     title = "Data breach audit generated";
     const link = file ? `<a href="${escapeHtml(file)}" target="_blank" class="text-accent underline">open</a>` : "";
     body = `<div class="text-xs mt-1">${link}</div>`;
+  } else if(ev.type === "breach_lookup"){
+    const { count, email } = ev.payload || {};
+    title = "Data breach lookup";
+    const total = Number.isFinite(Number(count)) ? Number(count) : 0;
+    const label = total === 1 ? "breach" : "breaches";
+    const emailPart = email ? ` for ${escapeHtml(email)}` : "";
+    body = `<div class="text-xs mt-1">${escapeHtml(total)} ${label} found${emailPart}.</div>`;
   } else if(ev.type === "letters_portal_sent"){
     const { file } = ev.payload || {};
     title = "Letters sent to portal";
@@ -331,6 +455,42 @@ function formatEvent(ev){
       ${body}
     </div>
   `;
+}
+function formatBreachHistoryEntry(ev){
+  const when = new Date(ev.at).toLocaleString();
+  if (ev.type === "breach_lookup"){
+    const total = Number.isFinite(Number(ev.payload?.count)) ? Number(ev.payload.count) : 0;
+    const label = total === 1 ? "breach" : "breaches";
+    const emailPart = ev.payload?.email ? ` for ${escapeHtml(ev.payload.email)}` : "";
+    return `
+      <div class="glass card p-2">
+        <div class="flex items-center justify-between">
+          <div class="font-medium">Lookup completed</div>
+          <div class="text-xs muted">${when}</div>
+        </div>
+        <div class="text-xs mt-1">${escapeHtml(total)} ${label} found${emailPart}.</div>
+      </div>
+    `;
+  }
+  if (ev.type === "breach_audit_generated"){
+    const count = Number.isFinite(Number(ev.payload?.count)) ? Number(ev.payload.count) : 0;
+    const selected = Number.isFinite(Number(ev.payload?.selected)) ? Number(ev.payload.selected) : 0;
+    const link = ev.payload?.file ? `<a href="${escapeHtml(ev.payload.file)}" target="_blank" class="text-accent underline">Open audit PDF</a>` : "";
+    const selectionNote = count || selected ? `Selected ${escapeHtml(selected)} of ${escapeHtml(count)} breaches.` : "";
+    return `
+      <div class="glass card p-2">
+        <div class="flex items-center justify-between">
+          <div class="font-medium">Audit generated</div>
+          <div class="text-xs muted">${when}</div>
+        </div>
+        <div class="text-xs mt-1 flex flex-col gap-1">
+          ${selectionNote ? `<span>${selectionNote}</span>` : ""}
+          ${link ? `<span>${link}</span>` : ""}
+        </div>
+      </div>
+    `;
+  }
+  return formatEvent(ev);
 }
 
 // ===================== Consumers (search + pagination) =====================
@@ -411,6 +571,7 @@ function renderConsumers(){
         $("#tlList").innerHTML = "";
         $("#selConsumer").textContent = "—";
         $("#activityList").innerHTML = "";
+        updateBreachStatus(null);
         updatePortalLink();
         setSelectedConsumerId(null);
 
@@ -473,6 +634,7 @@ async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
+  updateBreachStatus(c);
   setSelectedConsumerId(id);
   renderConsumers();
 
@@ -1803,20 +1965,31 @@ $("#btnDataBreach").addEventListener("click", async ()=>{
     if(!res?.ok) return showErr(res?.error || "Breach check failed.");
     const list = res.breaches || [];
     c.breaches = list.map(b=>b.Name || b.name || "");
-    const body = $("#breachBody");
-    const content = list.length
-      ? `<p>${escapeHtml(c.email)} found in:</p><ul>${list.map(b=>`<li>${escapeHtml(b.Name || b.name || "unknown")}</li>`).join("")}</ul>`
-      : `<p>No breaches found for ${escapeHtml(c.email)}.</p>`;
-    body.innerHTML = content;
-    const modal = $("#breachModal");
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
+    const filteredSelections = Array.isArray(c.breachSelections)
+      ? c.breachSelections.filter((item)=> c.breaches.includes(item))
+      : [];
+    if (c.breaches.length && !filteredSelections.length) {
+      c.breachSelections = [...c.breaches];
+      queueBreachSave({ breachSelections: c.breachSelections });
+    } else if (filteredSelections.length !== (c.breachSelections || []).length) {
+      c.breachSelections = filteredSelections;
+      queueBreachSave({ breachSelections: c.breachSelections });
+    }
+    updateBreachStatus(c);
+    openBreachModal(c);
   }catch(err){
     showErr(String(err));
   }finally{
     btn.textContent = old;
     btn.disabled = false;
   }
+});
+
+$("#breachStatus").addEventListener("click", ()=>{
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  const c = DB.find(x=>x.id===currentConsumerId);
+  if (!c) return;
+  openBreachModal(c);
 });
 
 // Data breach modal handlers
@@ -1826,6 +1999,69 @@ $("#breachClose").addEventListener("click", ()=>{
   m.classList.remove("flex");
 });
 
+$("#breachBody").addEventListener("change", (e)=>{
+  if (!e.target.classList.contains("breach-select")) return;
+  const selections = getBreachSelectionsFromUI();
+  queueBreachSave({ breachSelections: selections });
+});
+
+$("#breachEvidenceNotes").addEventListener("input", (e)=>{
+  queueBreachSave({ breachEvidenceNotes: e.target.value });
+});
+
+$("#breachEvidenceUpload").addEventListener("click", ()=>{
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  $("#breachEvidenceFile").value = "";
+  $("#breachEvidenceFile").click();
+});
+
+$("#breachEvidenceFile").addEventListener("change", async (e)=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  try{
+    const fd = new FormData();
+    fd.append("file", file, file.name);
+    fd.append("type", "breach_evidence");
+    const res = await fetch(`/api/consumers/${currentConsumerId}/state/upload`, {
+      method: "POST",
+      headers: authHeader(),
+      body: fd
+    });
+    const data = await res.json().catch(()=> ({}));
+    if(!data?.ok) throw new Error(data?.error || `Upload failed`);
+    const c = DB.find(x=>x.id===currentConsumerId);
+    if (c){
+      const files = Array.isArray(c.breachEvidenceFiles) ? c.breachEvidenceFiles : [];
+      const entry = {
+        name: data.file?.originalName || file.name,
+        url: data.file?.url,
+        uploadedAt: data.file?.uploadedAt || new Date().toISOString()
+      };
+      c.breachEvidenceFiles = files.concat(entry);
+      queueBreachSave({ breachEvidenceFiles: c.breachEvidenceFiles });
+      renderBreachEvidenceFiles(c);
+    }
+  }catch(err){
+    showErr(String(err));
+  }
+});
+
+$("#breachUseInDispute").addEventListener("click", ()=>{
+  if (!currentConsumerId) return showErr("Select a consumer first.");
+  const cards = Array.from(document.querySelectorAll(".tl-card.selected"));
+  if (!cards.length) return showErr("Select tradelines to apply breach mode.");
+  if (activeMode !== "breach") {
+    setMode("breach");
+  } else {
+    updateModeButtons();
+  }
+  cards.forEach(card => {
+    if (!card.classList.contains("mode-breach")) {
+      toggleCardMode(card, "breach");
+    }
+  });
+});
+
 $("#breachSend").addEventListener("click", async ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
   const btn = $("#breachSend");
@@ -1833,6 +2069,16 @@ $("#breachSend").addEventListener("click", async ()=>{
   btn.disabled = true;
   btn.textContent = "Generating...";
   try{
+    const c = DB.find(x=>x.id===currentConsumerId);
+    if (c){
+      const payload = {
+        breachSelections: getBreachSelectionsFromUI(),
+        breachEvidenceNotes: $("#breachEvidenceNotes").value,
+        breachEvidenceFiles: Array.isArray(c.breachEvidenceFiles) ? c.breachEvidenceFiles : []
+      };
+      queueBreachSave(payload);
+      await flushBreachSave();
+    }
     const res = await fetch(`/api/consumers/${currentConsumerId}/databreach/audit`, { method:"POST" }).then(r=>r.json());
     if(!res?.ok) return showErr(res?.error || "Failed to generate audit.");
     if(res.url) window.open(res.url, "_blank");
@@ -1898,10 +2144,19 @@ async function loadConsumerState(){
   if (!resp?.ok){ $("#activityList").innerHTML = `<div class="muted">No activity.</div>`; return; }
   const allEvents = resp.state?.events || [];
   const events = allEvents.filter(ev => ev.type !== "message");
+  const breachEvents = events.filter(ev => ev.type === "breach_lookup" || ev.type === "breach_audit_generated");
+  const activityEvents = events.filter(ev => !breachEvents.includes(ev));
   const files = resp.state?.files || [];
   consumerFiles = files;
 
   const list = [];
+
+  list.push(`<div class="font-medium mb-1">Breach History</div>`);
+  if (!breachEvents.length){
+    list.push(`<div class="muted text-sm">No breach history yet.</div>`);
+  } else {
+    breachEvents.forEach(ev=>{ list.push(formatBreachHistoryEntry(ev)); });
+  }
 
   if (files.length){
     list.push(`<div class="font-medium mb-1">Files</div>`);
@@ -1919,10 +2174,10 @@ async function loadConsumerState(){
   }
 
   list.push(`<div class="font-medium mt-2 mb-1">Activity</div>`);
-  if (!events.length){
+  if (!activityEvents.length){
     list.push(`<div class="muted">No recent events.</div>`);
   } else {
-    events.forEach(ev=>{ list.push(formatEvent(ev)); });
+    activityEvents.forEach(ev=>{ list.push(formatEvent(ev)); });
   }
   $("#activityList").innerHTML = list.join("");
 }
