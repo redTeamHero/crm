@@ -21,6 +21,7 @@
   const btnRunAudit = document.getElementById('btnRunAudit');
   const btnGenerateLetters = document.getElementById('btnGenerateLetters');
   const upgradeCard = document.getElementById('upgradeCard');
+  const companyMatch = document.getElementById('companyMatch');
 
   async function init() {
     if (!token) {
@@ -43,6 +44,7 @@
         upgradeCard.classList.remove('hidden');
       }
 
+      loadCompanyMatch();
       loadReports();
       loadLetters();
     } catch (e) {
@@ -115,6 +117,29 @@
       }
     } catch (e) {
       console.error('Failed to load letters:', e);
+    }
+  }
+
+  async function loadCompanyMatch() {
+    if (!companyMatch) return;
+    try {
+      const res = await fetch('/api/diy/credit-companies/current', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!data.company) {
+        companyMatch.innerHTML = `
+          <p>No company selected yet.</p>
+          <a href="/diy/upgrade" class="text-emerald-600 font-medium">Browse top picks →</a>
+        `;
+        return;
+      }
+      companyMatch.innerHTML = `
+        <p class="font-semibold text-gray-900">${data.company.name}</p>
+        <p class="text-xs text-gray-500">${data.company.serviceArea} · Min plan: ${data.company.minPlan.charAt(0).toUpperCase() + data.company.minPlan.slice(1)}</p>
+      `;
+    } catch (e) {
+      companyMatch.innerHTML = '<p class="text-sm text-red-500">Unable to load company details.</p>';
     }
   }
 

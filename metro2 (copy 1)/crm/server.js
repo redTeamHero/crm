@@ -1363,6 +1363,7 @@ registerStaticPage({ paths: ["/crm", "/crm/login", "/login"], file: "login.html"
 registerStaticPage({ paths: ["/diy", "/diy/login"], file: "diy/login.html" });
 registerStaticPage({ paths: "/diy/signup", file: "diy/signup.html" });
 registerStaticPage({ paths: "/diy/dashboard", file: "diy/dashboard.html" });
+registerStaticPage({ paths: "/diy/upgrade", file: "diy/upgrade.html" });
 registerStaticPage({ paths: "/dashboard", file: "dashboard.html" });
 registerStaticPage({ paths: "/clients", file: "index.html" });
 registerStaticPage({ paths: "/leads", file: "leads.html" });
@@ -7146,6 +7147,129 @@ async function saveDiyLettersDB(db) {
   await writeKey('diy_letters', db);
 }
 
+async function loadCreditCompaniesDB() {
+  let db = await readKey('credit_companies', null);
+  if (!db) {
+    db = {
+      companies: [
+        {
+          id: nanoid(),
+          name: 'ClearPath Credit',
+          serviceArea: 'Nationwide',
+          minPlan: 'basic',
+          isActive: true,
+          focus: 'Fast dispute turnaround'
+        },
+        {
+          id: nanoid(),
+          name: 'Northstar Credit Lab',
+          serviceArea: 'West & Midwest',
+          minPlan: 'free',
+          isActive: true,
+          focus: 'High success rate on bureau disputes'
+        },
+        {
+          id: nanoid(),
+          name: 'Summit Credit Partners',
+          serviceArea: 'South & Southeast',
+          minPlan: 'basic',
+          isActive: true,
+          focus: 'Hands-on monitoring & coaching'
+        },
+        {
+          id: nanoid(),
+          name: 'Brightline Credit Co.',
+          serviceArea: 'Northeast',
+          minPlan: 'pro',
+          isActive: true,
+          focus: 'Complex case specialists'
+        },
+        {
+          id: nanoid(),
+          name: 'Evergreen Credit Studio',
+          serviceArea: 'Nationwide',
+          minPlan: 'free',
+          isActive: true,
+          focus: 'Balanced performance & responsiveness'
+        },
+        {
+          id: nanoid(),
+          name: 'Atlas Credit Guild',
+          serviceArea: 'Southwest',
+          minPlan: 'basic',
+          isActive: true,
+          focus: 'Great for high utilization disputes'
+        }
+      ]
+    };
+    await writeKey('credit_companies', db);
+  }
+  return db;
+}
+
+async function saveCreditCompaniesDB(db) {
+  await writeKey('credit_companies', db);
+}
+
+async function loadCreditCompanyMetricsDB() {
+  let db = await readKey('credit_company_metrics', null);
+  if (!db) {
+    const companiesDb = await loadCreditCompaniesDB();
+    db = {
+      metrics: companiesDb.companies.map((company, index) => ({
+        companyId: company.id,
+        disputeSuccessRate: 0.72 + (index % 4) * 0.06,
+        caseCloseRate: 0.65 + (index % 3) * 0.08,
+        avgResponseTimeDays: 2.4 + (index % 5) * 0.6,
+        activeClients: 140 + index * 45,
+        reviewScore: 4.1 + (index % 3) * 0.3,
+        dissatisfiedCount: index % 2 === 0 ? 1 : 0,
+        updatedAt: new Date().toISOString()
+      }))
+    };
+    await writeKey('credit_company_metrics', db);
+  }
+  return db;
+}
+
+async function saveCreditCompanyMetricsDB(db) {
+  await writeKey('credit_company_metrics', db);
+}
+
+async function loadCreditCompanyBoostsDB() {
+  let db = await readKey('credit_company_boosts', null);
+  if (!db) {
+    const companiesDb = await loadCreditCompaniesDB();
+    db = {
+      boosts: [
+        {
+          companyId: companiesDb.companies[0]?.id,
+          tier: 'starter',
+          amount: 0.15,
+          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ]
+    };
+    await writeKey('credit_company_boosts', db);
+  }
+  return db;
+}
+
+async function saveCreditCompanyBoostsDB(db) {
+  await writeKey('credit_company_boosts', db);
+}
+
+async function loadDiyCompanyMatchesDB() {
+  let db = await readKey('diy_company_matches', null);
+  if (!db) db = { matches: [] };
+  return db;
+}
+
+async function saveDiyCompanyMatchesDB(db) {
+  await writeKey('diy_company_matches', db);
+}
+
 // DIY Authentication Middleware - uses separate secret to prevent token confusion
 const DIY_JWT_SECRET = process.env.DIY_JWT_SECRET || (process.env.JWT_SECRET ? process.env.JWT_SECRET + '-diy' : 'diy-secret-key-isolated');
 
@@ -7184,6 +7308,59 @@ function diyRequirePlan(allowedPlans) {
     }
     next();
   };
+}
+
+const DIY_PLAN_ORDER = ['free', 'basic', 'pro'];
+
+function isPlanAllowed(userPlan, minPlan) {
+  return DIY_PLAN_ORDER.indexOf(userPlan) >= DIY_PLAN_ORDER.indexOf(minPlan);
+}
+
+function normalizeRange(values) {
+  const filtered = values.filter(value => Number.isFinite(value));
+  const min = Math.min(...filtered);
+  const max = Math.max(...filtered);
+  return { min, max };
+}
+
+function normalizeValue(value, range) {
+  if (!Number.isFinite(value)) return 0;
+  if (!Number.isFinite(range.min) || !Number.isFinite(range.max) || range.max === range.min) return 1;
+  return (value - range.min) / (range.max - range.min);
+}
+
+function calculatePerformanceScore(metrics, ranges) {
+  const responseNormalized = 1 - normalizeValue(metrics.avgResponseTimeDays, ranges.responseTime);
+  const activeNormalized = normalizeValue(metrics.activeClients, ranges.activeClients);
+  const reviewNormalized = normalizeValue(metrics.reviewScore, ranges.reviewScore);
+  const dissatisfiedPenalty = Math.min(0.1, (metrics.dissatisfiedCount || 0) * 0.02);
+  const baseScore =
+    0.4 * metrics.disputeSuccessRate +
+    0.2 * metrics.caseCloseRate +
+    0.15 * responseNormalized +
+    0.15 * activeNormalized +
+    0.1 * reviewNormalized;
+  return Math.max(0, baseScore - dissatisfiedPenalty);
+}
+
+function isBoostActive(boost, now) {
+  if (!boost) return false;
+  const start = new Date(boost.startDate).getTime();
+  const end = new Date(boost.endDate).getTime();
+  return Number.isFinite(start) && Number.isFinite(end) && now >= start && now <= end;
+}
+
+function applyRotationWindow(rankings) {
+  const topFive = rankings.slice(0, 5);
+  const hasNonBoosted = topFive.some(entry => !entry.isBoosted);
+  if (hasNonBoosted) return rankings;
+
+  const bestNonBoosted = rankings.find(entry => !entry.isBoosted);
+  if (!bestNonBoosted) return rankings;
+
+  const updated = rankings.filter(entry => entry.companyId !== bestNonBoosted.companyId);
+  updated.splice(4, 0, bestNonBoosted);
+  return updated;
 }
 
 function getLatestDiyReportId(reports, userId) {
@@ -7420,6 +7597,168 @@ app.get('/api/diy/me', diyAuthenticate, async (req, res) => {
   } catch (err) {
     logError('DIY_ME_ERROR', err);
     res.status(500).json({ ok: false, error: 'Failed to get user info' });
+  }
+});
+
+app.post('/api/diy/upgrade', diyAuthenticate, async (req, res) => {
+  try {
+    const { plan } = req.body || {};
+    if (!DIY_PLAN_ORDER.includes(plan)) {
+      return res.status(400).json({ ok: false, error: 'Invalid plan selection' });
+    }
+
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+
+    user.plan = plan;
+    await saveDiyUsersDB(db);
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, plan: user.plan, mode: 'diy' },
+      DIY_JWT_SECRET,
+      { expiresIn: '7d', issuer: 'metro2-diy', audience: 'diy-users' }
+    );
+
+    res.json({
+      ok: true,
+      token,
+      user: { id: user.id, email: user.email, plan: user.plan, firstName: user.firstName, lastName: user.lastName }
+    });
+  } catch (err) {
+    logError('DIY_UPGRADE_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to upgrade plan' });
+  }
+});
+
+app.get('/api/diy/credit-companies', diyAuthenticate, async (req, res) => {
+  try {
+    const [companiesDb, metricsDb, boostsDb] = await Promise.all([
+      loadCreditCompaniesDB(),
+      loadCreditCompanyMetricsDB(),
+      loadCreditCompanyBoostsDB()
+    ]);
+    const now = Date.now();
+
+    const metricsByCompany = new Map(metricsDb.metrics.map(metric => [metric.companyId, metric]));
+    const boostsByCompany = new Map(boostsDb.boosts.map(boost => [boost.companyId, boost]));
+    const activeCompanies = companiesDb.companies.filter(company => company.isActive);
+
+    const ranges = {
+      responseTime: normalizeRange(activeCompanies.map(company => metricsByCompany.get(company.id)?.avgResponseTimeDays)),
+      activeClients: normalizeRange(activeCompanies.map(company => metricsByCompany.get(company.id)?.activeClients)),
+      reviewScore: normalizeRange(activeCompanies.map(company => metricsByCompany.get(company.id)?.reviewScore))
+    };
+
+    let rankings = activeCompanies.map(company => {
+      const metrics = metricsByCompany.get(company.id);
+      const boost = boostsByCompany.get(company.id);
+      const isBoosted = isBoostActive(boost, now);
+      const performanceScore = metrics ? calculatePerformanceScore(metrics, ranges) : 0;
+      const boostMultiplier = isBoosted ? 1 + Math.min(0.25, boost.amount || 0) : 1;
+      const finalScore = performanceScore * boostMultiplier;
+
+      return {
+        companyId: company.id,
+        name: company.name,
+        serviceArea: company.serviceArea,
+        minPlan: company.minPlan,
+        focus: company.focus,
+        performanceScore,
+        finalScore,
+        boostMultiplier,
+        isBoosted,
+        metrics: metrics || {}
+      };
+    });
+
+    rankings = rankings.sort((a, b) => b.finalScore - a.finalScore);
+    rankings = applyRotationWindow(rankings);
+
+    const response = rankings.map((entry, index) => ({
+      rank: index + 1,
+      eligible: isPlanAllowed(req.diyUser.plan, entry.minPlan),
+      ...entry
+    }));
+
+    res.json({ ok: true, companies: response });
+  } catch (err) {
+    logError('DIY_CREDIT_COMPANY_LIST_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to fetch credit companies' });
+  }
+});
+
+app.get('/api/diy/credit-companies/current', diyAuthenticate, async (req, res) => {
+  try {
+    const [matchesDb, companiesDb] = await Promise.all([
+      loadDiyCompanyMatchesDB(),
+      loadCreditCompaniesDB()
+    ]);
+    const match = [...matchesDb.matches]
+      .filter(entry => entry.userId === req.diyUser.id)
+      .sort((a, b) => new Date(b.selectedAt) - new Date(a.selectedAt))[0];
+
+    if (!match) {
+      return res.json({ ok: true, company: null });
+    }
+
+    const company = companiesDb.companies.find(entry => entry.id === match.companyId);
+    res.json({ ok: true, company, match });
+  } catch (err) {
+    logError('DIY_CREDIT_COMPANY_CURRENT_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to fetch current company' });
+  }
+});
+
+app.post('/api/diy/credit-companies/select', diyAuthenticate, async (req, res) => {
+  try {
+    const { companyId, dissatisfiedReason } = req.body || {};
+    if (!companyId) {
+      return res.status(400).json({ ok: false, error: 'Company selection required' });
+    }
+
+    const [matchesDb, metricsDb] = await Promise.all([
+      loadDiyCompanyMatchesDB(),
+      loadCreditCompanyMetricsDB()
+    ]);
+
+    const now = new Date().toISOString();
+    const currentMatch = matchesDb.matches
+      .filter(entry => entry.userId === req.diyUser.id)
+      .sort((a, b) => new Date(b.selectedAt) - new Date(a.selectedAt))[0];
+
+    if (currentMatch && dissatisfiedReason) {
+      currentMatch.dissatisfiedReason = dissatisfiedReason;
+      currentMatch.endedAt = now;
+      currentMatch.status = 'switched';
+
+      const metrics = metricsDb.metrics.find(entry => entry.companyId === currentMatch.companyId);
+      if (metrics) {
+        metrics.dissatisfiedCount = (metrics.dissatisfiedCount || 0) + 1;
+        metrics.updatedAt = now;
+      }
+    }
+
+    const newMatch = {
+      id: nanoid(),
+      userId: req.diyUser.id,
+      companyId,
+      selectedAt: now,
+      status: 'active'
+    };
+
+    matchesDb.matches.push(newMatch);
+    await Promise.all([
+      saveDiyCompanyMatchesDB(matchesDb),
+      saveCreditCompanyMetricsDB(metricsDb)
+    ]);
+
+    res.json({ ok: true, match: newMatch });
+  } catch (err) {
+    logError('DIY_CREDIT_COMPANY_SELECT_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to save company selection' });
   }
 });
 
