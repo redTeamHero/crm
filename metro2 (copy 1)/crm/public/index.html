@@ -186,6 +186,9 @@
               <div>
                 <div class="panel-title">Selected Consumer: <span id="selConsumer">—</span></div>
                 <p class="panel-subtitle">Report: <select id="reportPicker" class="input input-select text-sm"></select></p>
+                <div class="mt-2">
+                  <button id="breachStatus" class="btn btn-outline text-xs" type="button">Breaches: —</button>
+                </div>
               </div>
               <div class="panel-actions chip-row">
                 <button id="btnUpload" class="chip" data-tip="Upload HTML (U)">Upload HTML</button>
@@ -490,13 +493,29 @@
 
 <!-- Data Breach Results Modal -->
 <div id="breachModal" class="fixed inset-0 hidden items-center justify-center bg-[rgba(0,0,0,.55)] z-50">
-  <div class="glass card w-[min(600px,95vw)]">
+  <div class="glass card w-[min(680px,95vw)]">
     <div class="flex items-center justify-between mb-2">
       <div class="font-semibold">Data Breach Results</div>
       <button id="breachClose" class="btn">×</button>
     </div>
-    <div id="breachBody" class="text-sm max-h-64 overflow-y-auto"></div>
-    <div class="text-right mt-3">
+    <div id="breachBody" class="text-sm max-h-80 overflow-y-auto space-y-4">
+      <div id="breachSummary" class="text-sm"></div>
+      <div>
+        <div class="font-medium">Select breaches to include</div>
+        <div id="breachSelectionList" class="mt-2 space-y-2"></div>
+      </div>
+      <div>
+        <div class="font-medium">Breach evidence</div>
+        <textarea id="breachEvidenceNotes" class="input input-textarea text-sm mt-2" rows="3" placeholder="Add notes about breach notifications, FTC reports, or other evidence."></textarea>
+        <div class="flex items-center gap-2 mt-2">
+          <button id="breachEvidenceUpload" class="btn btn-outline text-sm" type="button">Upload evidence</button>
+          <input id="breachEvidenceFile" type="file" class="hidden" />
+        </div>
+        <div id="breachEvidenceFiles" class="mt-2 space-y-1"></div>
+      </div>
+    </div>
+    <div class="flex items-center justify-between mt-3">
+      <button id="breachUseInDispute" class="btn btn-outline text-sm" type="button">Use in dispute</button>
       <button id="breachSend" class="btn">Send Audit PDF</button>
     </div>
   </div>

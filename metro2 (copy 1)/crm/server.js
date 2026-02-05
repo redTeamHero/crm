@@ -3979,7 +3979,10 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
     dob:req.body.dob??c.dob,
     sale: req.body.sale !== undefined ? Number(req.body.sale) : c.sale,
     paid: req.body.paid !== undefined ? Number(req.body.paid) : c.paid,
-    status: req.body.status ?? c.status ?? "active"
+    status: req.body.status ?? c.status ?? "active",
+    breachSelections: req.body.breachSelections ?? c.breachSelections,
+    breachEvidenceNotes: req.body.breachEvidenceNotes ?? c.breachEvidenceNotes,
+    breachEvidenceFiles: req.body.breachEvidenceFiles ?? c.breachEvidenceFiles
 
   });
   const newSignature = addressSignature(c);
@@ -5320,9 +5323,28 @@ function escapeHtml(str) {
 }
 
 function renderBreachAuditHtml(consumer) {
-  const list = (consumer.breaches || []).map(b => `<li>${escapeHtml(b)}</li>`).join("") || "<li>No breaches found.</li>";
+  const allBreaches = Array.isArray(consumer.breaches) ? consumer.breaches : [];
+  const selectedBreaches = Array.isArray(consumer.breachSelections) && consumer.breachSelections.length
+    ? consumer.breachSelections
+    : allBreaches;
+  const list = selectedBreaches.length
+    ? selectedBreaches.map(b => `<li>${escapeHtml(b)}</li>`).join("")
+    : "<li>No breaches found.</li>";
+  const notes = escapeHtml(consumer.breachEvidenceNotes || "");
+  const files = Array.isArray(consumer.breachEvidenceFiles) ? consumer.breachEvidenceFiles : [];
+  const filesList = files.length
+    ? files.map(file => {
+      const name = escapeHtml(file.name || file.originalName || "Evidence file");
+      const url = escapeHtml(file.url || "#");
+      const date = file.uploadedAt ? ` (${escapeHtml(new Date(file.uploadedAt).toLocaleString())})` : "";
+      return `<li><a href="${url}" target="_blank">${name}</a>${date}</li>`;
+    }).join("")
+    : "";
   const dateStr = new Date().toLocaleString();
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial, sans-serif;margin:20px;}h1{text-align:center;}ul{margin-top:10px;}</style></head><body><h1>${escapeHtml(consumer.name || "Consumer")}</h1><h2>Data Breach Audit</h2><p>Email: ${escapeHtml(consumer.email || "")}</p><ul>${list}</ul><footer><hr/><div style="font-size:0.8em;color:#555;margin-top:20px;">Generated ${escapeHtml(dateStr)}</div></footer></body></html>`;
+  const evidenceSection = notes || filesList
+    ? `<h2>Breach Evidence</h2>${notes ? `<p>${notes}</p>` : ""}${filesList ? `<ul>${filesList}</ul>` : ""}`
+    : "";
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial, sans-serif;margin:20px;}h1{text-align:center;}ul{margin-top:10px;}</style></head><body><h1>${escapeHtml(consumer.name || "Consumer")}</h1><h2>Data Breach Audit</h2><p>Email: ${escapeHtml(consumer.email || "")}</p><ul>${list}</ul>${evidenceSection}<footer><hr/><div style="font-size:0.8em;color:#555;margin-top:20px;">Generated ${escapeHtml(dateStr)}</div></footer></body></html>`;
 }
 
 async function handleDataBreach(email, consumerId, res) {
@@ -5334,6 +5356,7 @@ async function handleDataBreach(email, consumerId, res) {
       if (c) {
         c.breaches = (result.breaches || []).map(b => b.Name || b.name || "");
         await saveDB(db);
+        await addEvent(consumerId, "breach_lookup", { count: c.breaches.length, email });
       }
     } catch (err) {
       console.error("Failed to store breach info", err);
@@ -5373,7 +5396,15 @@ async function generateBreachAudit(consumer) {
   } catch (err) {
     console.error("Failed to store breach audit file", err);
   }
-  await addEvent(consumer.id, "breach_audit_generated", { file: result.url });
+  const allBreaches = Array.isArray(consumer.breaches) ? consumer.breaches : [];
+  const selectedBreaches = Array.isArray(consumer.breachSelections) && consumer.breachSelections.length
+    ? consumer.breachSelections
+    : allBreaches;
+  await addEvent(consumer.id, "breach_audit_generated", {
+    file: result.url,
+    count: allBreaches.length,
+    selected: selectedBreaches.length,
+  });
   return { ok: true, url: result.url, warning: result.warning };
 }
 

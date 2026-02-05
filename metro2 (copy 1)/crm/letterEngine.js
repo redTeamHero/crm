@@ -536,11 +536,26 @@ function buildLetterHTML(opts) {
   const ask = colorize(mc.ask);
   const afterIssuesPara = mc.afterIssues ? `<p class="ocr">${colorize(mc.afterIssues)}</p>` : "";
   const evidencePara = mc.evidence ? `<p class="ocr">${colorize(mc.evidence)}</p>` : "";
+  const breachList = Array.isArray(consumer.breachSelections) && consumer.breachSelections.length
+    ? consumer.breachSelections
+    : (consumer.breaches || []);
   const breachSection =
-    modeKey === "breach" && consumer.breaches && consumer.breaches.length
-      ? `<h2>Data Breaches</h2><p>The following breaches exposed my information:</p><ul>${consumer.breaches
+    modeKey === "breach" && breachList.length
+      ? `<h2>Data Breaches</h2><p>The following breaches exposed my information:</p><ul>${breachList
           .map((b) => `<li>${safe(b)}</li>`)
           .join("")}</ul>`
+      : "";
+  const breachEvidenceNotes = safe(consumer.breachEvidenceNotes);
+  const breachEvidenceFiles = Array.isArray(consumer.breachEvidenceFiles) ? consumer.breachEvidenceFiles : [];
+  const breachEvidenceSection =
+    modeKey === "breach" && (breachEvidenceNotes || breachEvidenceFiles.length)
+      ? `<h2>Breach Evidence</h2>${breachEvidenceNotes ? `<p class="ocr">${breachEvidenceNotes}</p>` : ""}${
+          breachEvidenceFiles.length
+            ? `<ul>${breachEvidenceFiles
+                .map((file) => `<li>${safe(file.name || file.originalName || "Evidence file")}</li>`)
+                .join("")}</ul>`
+            : ""
+        }`
       : "";
   const verifyLine = colorize(
     "Please provide the method of verification, including the name and contact information of any furnisher relied upon. If you cannot verify the information with maximum possible accuracy, delete the item and send me an updated report."
@@ -574,6 +589,7 @@ function buildLetterHTML(opts) {
   <p class="ocr">${ask}</p>
 
   ${breachSection}
+  ${breachEvidenceSection}
   <h2>Comparison (All Available Bureaus)</h2>
   ${compTable}
 
