@@ -7,7 +7,7 @@
 ## Architecture
 ```
 [Credit Repair CRM]
-   |-- Web App (Next.js + Tailwind)
+   |-- Web App (Legacy HTML + Tailwind)
    |-- Backend (Node/Express or Flask)
    |-- Services Layer
           |-- Certified Mail Provider (SimpleCertifiedMail or Docsmit)

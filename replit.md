@@ -22,7 +22,6 @@ Both share the same backend, Metro-2 audit engine, letter generation, and rule e
 - DIY data: `diy_users`, `diy_reports`, `diy_letters` (single-user sandbox)
 
 ## Project Structure
-- `apps/client-portal/` - Next.js client portal (main frontend, runs on port 5000)
 - `metro2 (copy 1)/crm/` - Express CRM backend with API routes (port 3000)
   - `public/` - CRM static files (dashboard, clients, etc.)
   - `public/diy/` - DIY static files (login, signup, dashboard)
@@ -34,11 +33,6 @@ Both share the same backend, Metro-2 audit engine, letter generation, and rule e
 - `python-tests/` - Python test suite
 
 ## Running the Project
-The client portal runs automatically via the configured workflow:
-```bash
-cd apps/client-portal && npm run dev
-```
-
 The backend can be started separately if needed:
 ```bash
 cd "metro2 (copy 1)/crm"
@@ -47,11 +41,6 @@ npm run dev
 ```
 
 ## Configuration
-### Client Portal (Next.js)
-- Runs on port 5000 (0.0.0.0)
-- Configured to allow all dev origins for Replit proxy compatibility
-- Uses Tailwind CSS for styling
-
 ### Backend Environment Variables (see README.md for full list)
 - `PORT` - Backend HTTP port (default: 3000)
 - `DATABASE_URL` - Database connection string
@@ -87,19 +76,6 @@ npm run dev
   - Fixed splitReportByBureau to only include tradelines with explicit bureau data
   - Preserved full byBureau context in split reports for cross-bureau audit logic
   - Added proper error propagation in parallel audit workflow
-- 2026-01-30: Initial Replit environment setup
-  - Configured Next.js to run on port 5000 with 0.0.0.0 host
-  - Added allowedDevOrigins for Replit proxy compatibility
-  - Set up deployment configuration for autoscale
-- 2026-01-30: Replaced initial landing page with a dual-access portal
-  - Created new landing page at `apps/client-portal/app/page.tsx`
-  - Added direct links to Client Side (Next.js) and CRM Side (Express)
-- 2026-01-30: Fixed build error in PortalDashboard
-  - Added missing `disputeCount` variable definition
-
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)
-- Next.js 14.x
-- React 18.x
-- Tailwind CSS 3.x

@@ -7,7 +7,7 @@
 
 ## Architecture
 ```
-[ UI / Frontend (Next.js portal, public assets) ]
+[ UI / Frontend (Legacy portal, public assets) ]
                   ↓ REST / Webhooks / Auth
 [ API / Gateway / Edge — server.js, marketingRoutes.js ]
                   ↓ Service Orchestration
@@ -29,7 +29,7 @@
 | **Application Services** | Business workflows: onboarding consumers, running Metro-2 audits, generating invoices, orchestrating calendar + marketing jobs. Applies use-case rules and coordinates domain entities. | `reportPipeline.js`, `marketingStore.js`, `playbook.js`, `state.js` (workflow orchestration), service utilities in `packages/metro2-browser` when orchestrating browser automation. | Consumes domain models, calls infrastructure through explicit adapters. Emits events (`logInfo`, job queues) back to edge. |
 | **Domain / Model** | Core concepts (Consumer, Tradeline, Dispute Letter, Tenant Quota) and business invariants (Metro-2 validations, quota math). Pure logic with no side effects. | `shared/lib/format/negativeItems.js`, `letterEngine.js`, `letterTemplates.js`, `tenantLimits.js`, `shared/data/**`, `shared/violations.js`, `packages/metro2-core/src/**`. | Exposed as pure functions/classes consumed by Application layer. Accepts POJOs/value objects; returns domain DTOs, errors. |
 | **Infrastructure / Integration** | Persistence adapters (SQLite via `kvdb.js`), file storage, PDF rendering (Puppeteer), calendar, certified mail, marketing APIs, Python workers. Handles retries, circuit breakers, secrets. | `kvdb.js`, `pdfUtils.js`, `googleCalendar.js`, `simpleCertifiedMail.js`, `fetchUtil.js`, `scripts/`, `python-tests/`, `metro2_audit_multi.py`, `packages/metro2-cheerio/src/**`. | Provide async adapters returning promises/observables. Never expose Express `req/res`. |
-| **UI / Frontend** | Client portals, admin console, marketing microsites. Should stay framework-agnostic via REST + event APIs. | `public/`, static dashboards, and documented flows in `docs/marketing-integration.md`. Future Next.js surfaces live under `/apps` when we split them out. | Talks only to API layer via HTTPS/WebSocket; no direct DB access. |
+| **UI / Frontend** | Client portals, admin console, marketing microsites. Should stay framework-agnostic via REST + event APIs. | `public/`, static dashboards, and documented flows in `docs/marketing-integration.md`. | Talks only to API layer via HTTPS/WebSocket; no direct DB access. |
 
 ## Mapping existing flows
 - **Client onboarding**: `/api/consumers` (API) → `state.js` orchestrates file + reminder updates (App) → `tenantLimits.js` (Domain) ensures quota → `kvdb.js` + `data/` writes (Infra) → UI surfaces status in `public/dashboard.html`.
