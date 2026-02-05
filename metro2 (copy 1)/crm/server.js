@@ -7596,11 +7596,27 @@ app.get('/api/diy/letters/:id/download', diyAuthenticate, async (req, res) => {
 // ============================================================================
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || "0.0.0.0";
+const LAN_IP = (() => {
+  const nets = os.networkInterfaces();
+  for (const interfaces of Object.values(nets)) {
+    for (const net of interfaces || []) {
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return null;
+})();
 const shouldStartServer =
   process.env.NODE_ENV !== "test" || process.env.START_SERVER_IN_TEST === "true";
 if (shouldStartServer) {
-  app.listen(PORT, () => {
-    console.log(`CRM ready    http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    const displayHost = HOST === "0.0.0.0" || HOST === "::" ? "localhost" : HOST;
+    console.log(`CRM ready    http://${displayHost}:${PORT}`);
+    if (LAN_IP && (HOST === "0.0.0.0" || HOST === "::" || HOST === "localhost" || HOST === "127.0.0.1")) {
+      console.log(`CRM LAN URL  http://${LAN_IP}:${PORT}`);
+    }
     const dbClient = (process.env.DATABASE_CLIENT || (process.env.NODE_ENV === "production" ? "pg" : "sqlite3")).toString();
     console.log(`DB client    ${dbClient}`);
     console.log(`Tenant mode  ${(process.env.DB_TENANT_STRATEGY || "partitioned").toString()}`);
