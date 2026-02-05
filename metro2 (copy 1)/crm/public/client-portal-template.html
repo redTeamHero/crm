@@ -4,80 +4,234 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Client Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js" defer></script>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
   <style>
-    :root {
-      color-scheme: light;
-      font-family: "Inter", "Segoe UI", sans-serif;
-    }
+    :root { color-scheme: light; }
     body {
-      margin: 0;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f8fafc;
-      color: #0f172a;
-    }
-    main {
-      max-width: 560px;
-      padding: 32px;
-      text-align: center;
-      background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-    }
-    h1 {
-      font-size: 1.75rem;
-      margin-bottom: 12px;
-    }
-    p {
-      margin: 0 0 12px;
-      color: #475569;
-      line-height: 1.5;
-    }
-    a {
-      color: #2563eb;
-      font-weight: 600;
-      text-decoration: none;
+      background: var(--portal-background, radial-gradient(circle at top, rgba(0, 122, 255, 0.08), rgba(255, 255, 255, 0.96) 55%));
     }
   </style>
 </head>
-<body>
-  <main>
-    <h1>Client Portal</h1>
-    <p>This portal now lives in the Next.js client portal experience.</p>
-    <p id="redirectMessage">Redirecting you now…</p>
-    <p><a id="portalLink" href="{{portalUrl}}">Open the Next.js client portal</a></p>
-    <p id="portalHint" hidden>Ask your administrator to configure <code>CLIENT_PORTAL_BASE_URL</code>.</p>
-  </main>
+<body class="text-slate-900">
   <script>
-    (function () {
-      const portalUrl = "{{portalUrl}}";
-      const message = document.getElementById("redirectMessage");
-      const link = document.getElementById("portalLink");
-      const hint = document.getElementById("portalHint");
-      const hasPortalUrl = portalUrl && !portalUrl.includes("{{portalUrl}}");
-
-      if (!hasPortalUrl) {
-        if (message) {
-          message.textContent = "Portal URL not configured.";
-        }
-        if (link) {
-          link.removeAttribute("href");
-          link.style.pointerEvents = "none";
-          link.style.opacity = "0.6";
-        }
-        if (hint) {
-          hint.hidden = false;
-        }
-        return;
-      }
-
-      if (link) {
-        link.setAttribute("href", portalUrl);
-      }
-      window.location.replace(portalUrl);
-    })();
+    window.__PORTAL_BOOTSTRAP__ = {{portalBootstrap}};
+    window.__PORTAL_ENHANCED__ = {{portalEnhanced}};
+    window.__NEGATIVE_ITEMS__ = {{portalNegativeItems}};
   </script>
+  <header class="p-4">
+    <div class="max-w-7xl mx-auto glass card nav-shell bg-white/90 backdrop-blur">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div class="flex items-center gap-3">
+          <div id="mascot" class="h-12 w-12"></div>
+          <div>
+            <div id="companyName" class="text-lg font-semibold tracking-tight">Your Client Portal</div>
+            <div id="companyTaglinePrimary" class="text-sm text-slate-600">Track disputes, uploads, and approvals in one place.</div>
+            <div id="companyTaglineSecondary" class="text-xs text-slate-500 hidden">Stay on top of disputes, uploads, and approvals from one hub.</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="Welcome to your portal.">
+            <span class="text-xl">✅</span>
+            <span class="font-semibold text-sm">Portal Ready</span>
+          </div>
+          <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+            <span>Menu</span>
+          </button>
+        </div>
+      </div>
+      <nav id="primaryNav" class="hidden flex-col gap-2 pt-4 md:flex md:flex-row md:items-center md:gap-2" aria-label="Primary">
+        <a id="navDashboard" href="#overview" class="btn nav-btn">Overview</a>
+        <a id="navNegativeItems" href="#negative-items" class="btn nav-btn">Negative Items</a>
+        <a id="navMessages" href="#messages" class="btn nav-btn">Messages</a>
+        <a id="navEducation" href="#educationSection" class="btn nav-btn">Education</a>
+        <a id="navDocuments" href="#documentSection" class="btn nav-btn">Documents</a>
+        <a id="navMail" href="#mailSection" class="btn nav-btn">Mail</a>
+        <a id="navPayments" href="#payments" class="btn nav-btn">Payments</a>
+        <a id="navUploads" href="#uploads" class="btn nav-btn">Uploads</a>
+        <button id="bookCall" class="btn nav-btn" type="button">Book a Call</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="portalMain" class="max-w-7xl mx-auto p-4 space-y-6">
+    <div id="dataRegionBanner" class="hidden glass card p-4 text-sm">
+      Dedicated data region enabled for your account. Book a call to learn more.
+    </div>
+
+    <section id="overview" class="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
+      <div class="glass card p-5 space-y-4">
+        <div class="flex flex-col gap-2">
+          <div class="text-xs uppercase tracking-[0.25em] text-slate-500">Progress Snapshot</div>
+          <h2 class="text-2xl font-semibold text-slate-900">Welcome to your credit restoration portal</h2>
+          <p class="text-sm text-slate-600">Check your credit score, milestones, and next actions at a glance.</p>
+          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span id="currentStep">Loading tracker...</span>
+            <button id="btnGoal" class="btn text-xs" type="button">Mark Today’s Goal Done</button>
+          </div>
+        </div>
+        <div id="creditScoreWidget" class="grid gap-4 rounded-2xl border border-white/60 bg-white/70 p-4 shadow-sm md:grid-cols-3">
+          <div>
+            <div class="text-xs uppercase text-slate-500">TransUnion</div>
+            <div class="tu text-2xl font-semibold">—</div>
+          </div>
+          <div>
+            <div class="text-xs uppercase text-slate-500">Experian</div>
+            <div class="ex text-2xl font-semibold">—</div>
+          </div>
+          <div>
+            <div class="text-xs uppercase text-slate-500">Equifax</div>
+            <div class="eq text-2xl font-semibold">—</div>
+          </div>
+          <div id="scoreConfetti" class="col-span-full"></div>
+          <div id="creditScoreUpdated" class="col-span-full text-xs text-slate-500 hidden">Updated: —</div>
+        </div>
+        <div id="milestonesCard" class="glass card p-4">
+          <div class="text-sm font-semibold">Milestones</div>
+          <div id="milestones" class="text-sm text-slate-600">Milestones will appear here.</div>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div id="nextStepCard" class="glass card p-4 space-y-2">
+          <div class="text-sm uppercase tracking-[0.2em] text-slate-500">Next Step</div>
+          <div id="nextStepTitle" class="text-lg font-semibold">Loading your next step...</div>
+          <div id="nextStepDue" class="text-xs text-slate-500"></div>
+          <div id="nextStepNote" class="text-sm text-slate-600"></div>
+          <button id="nextStepAction" class="btn text-sm hidden" type="button">View Details</button>
+        </div>
+        <div id="teamCard" class="glass card p-4">
+          <div class="text-sm font-semibold mb-2">Your Team</div>
+          <div id="teamList" class="space-y-2 text-sm text-slate-600">Team details will load here.</div>
+        </div>
+        <div id="newsCard" class="glass card p-4">
+          <div class="text-sm font-semibold mb-2">Industry News</div>
+          <div id="newsFeed" class="space-y-2 text-sm text-slate-600">Loading news...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="reportSnapshotCard" class="glass card p-4">
+      <div class="text-sm font-semibold">Report Snapshot</div>
+      <div id="reportSnapshot" class="text-sm text-slate-600">Snapshot will load after data sync.</div>
+    </section>
+    <section id="debtCalculatorCard" class="glass card p-4 space-y-3">
+      <div class="text-sm font-semibold">Debt Paydown Calculator</div>
+      <form id="debtForm" class="grid gap-2 sm:grid-cols-3">
+        <input id="debtAmount" type="number" class="rounded border px-2 py-2 text-sm" placeholder="Balance">
+        <input id="debtRate" type="number" class="rounded border px-2 py-2 text-sm" placeholder="APR %">
+        <input id="debtMonths" type="number" class="rounded border px-2 py-2 text-sm" placeholder="Months">
+        <button class="btn text-xs sm:col-span-3 sm:w-32" type="submit">Calculate</button>
+      </form>
+      <div id="debtResult" class="text-sm text-slate-600"></div>
+    </section>
+  </main>
+
+  <section id="negativeItemsSection" class="hidden max-w-7xl mx-auto p-4 space-y-4">
+    <div id="negative-items"></div>
+    <div id="negativeItemsCard" class="glass card p-4 space-y-4">
+      <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div class="text-sm font-semibold">Negative Items in Dispute</div>
+          <div id="itemsSummary" class="text-xs text-slate-500">Summary will update after loading.</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="negativeItemSearch" class="w-full rounded border px-3 py-2 text-sm" placeholder="Search items">
+          <select id="negativeItemSort" class="rounded border px-2 py-2 text-sm">
+            <option value="severity">Sort by severity</option>
+            <option value="age">Sort by age</option>
+          </select>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div id="negativeItemList" class="space-y-3"></div>
+      </div>
+      <div id="itemsInDispute" class="space-y-2 text-sm text-slate-600"></div>
+      <div id="itemsInDisputeEmpty" class="text-sm text-slate-500"></div>
+      <div id="itemsInDisputeText" class="text-xs text-slate-500"></div>
+    </div>
+  </section>
+
+  <section id="messageSection" class="hidden max-w-7xl mx-auto p-4 space-y-4">
+    <div id="messages"></div>
+    <div class="glass card p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-semibold">Messages</div>
+        <button id="retryMessages" class="btn text-xs hidden" type="button">Retry</button>
+      </div>
+      <div id="messageBanner" class="text-xs text-slate-500"></div>
+      <div id="messageList" class="space-y-2 text-sm text-slate-700">Loading messages...</div>
+      <form id="messageForm" class="flex flex-col gap-2">
+        <textarea id="messageInput" class="w-full rounded border px-3 py-2 text-sm" rows="3" placeholder="Send a message..."></textarea>
+        <button class="btn text-sm self-end" type="submit">Send</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="educationSection" class="hidden max-w-7xl mx-auto p-4">
+    <div class="glass card p-4 space-y-2">
+      <div class="text-sm font-semibold">Education</div>
+      <div id="education" class="text-sm text-slate-600">Educational resources will appear here.</div>
+    </div>
+  </section>
+
+  <section id="documentSection" class="hidden max-w-7xl mx-auto p-4">
+    <div id="documentsCard" class="glass card p-4 space-y-2">
+      <div class="text-sm font-semibold">Document Vault</div>
+      <div class="space-y-2">
+        <div id="docListPreview" class="text-xs text-slate-500"></div>
+        <div id="docList" class="space-y-2 text-sm text-slate-700"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="mailSection" class="hidden max-w-7xl mx-auto p-4">
+    <div class="glass card p-4 space-y-3">
+      <div class="text-sm font-semibold">Mail Activity</div>
+      <div class="flex gap-2">
+        <button id="mailTabWaiting" class="btn text-xs" type="button">Waiting</button>
+        <button id="mailTabMailed" class="btn text-xs" type="button">Mailed</button>
+      </div>
+      <div id="mailWaiting" class="space-y-2 text-sm text-slate-700"></div>
+      <div id="mailMailed" class="space-y-2 text-sm text-slate-700"></div>
+    </div>
+  </section>
+
+  <section id="paymentSection" class="hidden max-w-7xl mx-auto p-4 space-y-4">
+    <div id="payments"></div>
+    <div class="glass card p-4 space-y-3">
+      <div class="text-sm font-semibold">Payments</div>
+      <div id="paymentError" class="text-xs text-rose-500"></div>
+      <div id="paymentList" class="space-y-2 text-sm text-slate-700"></div>
+      <div id="paymentEmpty" class="text-sm text-slate-500"></div>
+      <div id="paymentTotal" class="text-sm font-semibold text-slate-900"></div>
+    </div>
+  </section>
+
+  <section id="uploadSection" class="hidden max-w-7xl mx-auto p-4 space-y-4">
+    <div id="uploads"></div>
+    <div class="glass card p-4 space-y-3">
+      <div class="text-sm font-semibold">Secure Uploads</div>
+      <form id="uploadForm" class="flex flex-col gap-3">
+        <input id="uploadFile" type="file" class="text-sm">
+        <select id="uploadType" class="rounded border px-2 py-2 text-sm">
+          <option value="id">Identity Document</option>
+          <option value="statement">Account Statement</option>
+          <option value="other">Other</option>
+        </select>
+        <button class="btn text-sm self-start" type="submit">Upload</button>
+        <div id="uploadStatus" class="text-xs text-slate-500"></div>
+      </form>
+    </div>
+  </section>
+
+
+  <div id="confetti" class="pointer-events-none fixed inset-0"></div>
+  <div id="goalBurst" class="pointer-events-none fixed inset-0"></div>
+
+  <script defer src="/client-portal.js"></script>
 </body>
 </html>
