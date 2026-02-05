@@ -1342,11 +1342,14 @@ function resolveClientPortalAppBase(req) {
   }
 }
 
-function renderClientPortalRedirectHtml(portalUrl) {
+function renderClientPortalHtml({ portalBootstrap = {}, portalEnhanced = {}, negativeItems = [] } = {}) {
   if (!CLIENT_PORTAL_TEMPLATE) {
     return "Client portal unavailable";
   }
-  return CLIENT_PORTAL_TEMPLATE.replace(/{{portalUrl}}/g, portalUrl || "");
+  return CLIENT_PORTAL_TEMPLATE
+    .replace(/{{portalBootstrap}}/g, toInlineJson(portalBootstrap))
+    .replace(/{{portalEnhanced}}/g, toInlineJson(portalEnhanced))
+    .replace(/{{portalNegativeItems}}/g, toInlineJson(negativeItems));
 }
 
 // Disable default index to avoid auto-serving the app without auth
@@ -1426,10 +1429,12 @@ registerStaticPage({
   file: "settings.html",
   middlewares: [optionalAuth, forbidMember],
 });
-app.get(["/client-portal", "/client-portal.html"], (req, res) => {
-  const portalBase = resolveClientPortalAppBase(req);
-  const portalUrl = portalBase ? `${portalBase}/portal` : "";
-  const html = renderClientPortalRedirectHtml(portalUrl);
+app.get(["/client-portal", "/client-portal.html"], async (_req, res) => {
+  const settings = await loadSettings().catch(() => null);
+  const portalSettings = exportClientPortalSettings(settings?.clientPortal);
+  const html = renderClientPortalHtml({
+    portalBootstrap: { portalSettings },
+  });
   res.send(html);
 });
 app.get("/team/:token", (req, res) => {
@@ -1442,12 +1447,23 @@ app.get("/portal/:id", async (req, res) => {
   const db = await loadDB();
   const consumer = db.consumers.find((c) => c.id === req.params.id);
   if (!consumer) return res.status(404).send("Portal not found");
-  const portalBase = resolveClientPortalAppBase(req);
-  if (portalBase) {
-    const portalUrl = `${portalBase}/portal/${encodeURIComponent(consumer.id)}`;
-    return res.redirect(302, portalUrl);
-  }
-  const html = renderClientPortalRedirectHtml("");
+  const payload = await buildClientPortalPayload(consumer);
+  if (!payload) return res.status(500).send("Portal unavailable");
+  const html = renderClientPortalHtml({
+    portalBootstrap: {
+      consumer: payload.consumer,
+      creditScore: payload.creditScore,
+      portalSettings: payload.portalSettings,
+    },
+    portalEnhanced: {
+      reminders: payload.reminders,
+      tracker: payload.tracker,
+      timeline: payload.timeline,
+      documents: payload.documents,
+      invoices: payload.invoices,
+    },
+    negativeItems: payload.negativeItems,
+  });
   res.send(html);
 });
 
