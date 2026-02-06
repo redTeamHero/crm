@@ -19,6 +19,8 @@ from .report_adapters import ReportAdapterFactory
 
 ALL_BUREAUS: Tuple[str, ...] = ("TransUnion", "Experian", "Equifax")
 NODE_BRIDGE = Path(__file__).with_name("node_parser_bridge.mjs")
+NON_CREDITOR_HEADERS = {"risk factors", "risk factor", "key factors", "score factors"}
+NON_CREDITOR_HEADER_PATTERNS = ("credit report", "reference #")
 
 
 # ───────────── Shared helper utilities ─────────────
@@ -274,7 +276,10 @@ def _fallback_parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]
             }
 
         for bureau in ALL_BUREAUS:
-            tl: Dict[str, Any] = {"creditor_name": creditor, "bureau": bureau}
+            bureau_creditor = creditor or _infer_creditor_from_fields(field_map, bureau)
+            tl: Dict[str, Any] = {"bureau": bureau}
+            if bureau_creditor:
+                tl["creditor_name"] = bureau_creditor
             for field, values in field_map.items():
                 key = field.lower().replace(" ", "_").replace(":", "")
                 tl[key] = values.get(bureau)
@@ -289,9 +294,74 @@ def _fallback_parse_account_history(soup: BeautifulSoup) -> List[Dict[str, Any]]
 
 
 def extract_creditor_name(table: Any) -> Optional[str]:
+    if not isinstance(table, Tag):
+        return None
+
+    header = _find_nearest_header(table)
+    if header:
+        candidate = _sanitize_creditor(text(header))
+        if candidate and not _is_non_creditor_header(candidate):
+            return candidate
+
     text_block = table.get_text(" ", strip=True)
-    match = re.match(r"([A-Z0-9\s&.\-]+)\s+TransUnion", text_block)
-    return match.group(1).strip() if match else None
+    match = re.search(r"([A-Z0-9\s&.\-]+?)\s+(TransUnion|Experian|Equifax)\b", text_block)
+    if match:
+        candidate = _sanitize_creditor(match.group(1))
+        if candidate and not _is_non_creditor_header(candidate):
+            return candidate
+    return None
+
+
+def _find_nearest_header(table: Tag) -> Optional[Tag]:
+    header_classes = {"sub_header", "section_header", "section-title", "section_header_title"}
+    header_tags = {"h2", "h3", "h4"}
+    current: Optional[Tag] = table
+    while current:
+        sibling = current.previous_sibling
+        while sibling:
+            if isinstance(sibling, Tag):
+                if sibling.name in header_tags:
+                    return sibling
+                if sibling.name == "div":
+                    classes = set(sibling.get("class") or [])
+                    if classes & header_classes:
+                        return sibling
+            sibling = sibling.previous_sibling
+        current = current.parent if isinstance(current.parent, Tag) else None
+    return None
+
+
+def _sanitize_creditor(value: str) -> str:
+    return re.sub(r"\s+", " ", str(value or "")).strip()
+
+
+def _is_non_creditor_header(value: str) -> bool:
+    normalized = _sanitize_creditor(value).lower()
+    if not normalized:
+        return False
+    if normalized in NON_CREDITOR_HEADERS:
+        return True
+    return any(pattern in normalized for pattern in NON_CREDITOR_HEADER_PATTERNS)
+
+
+def _infer_creditor_from_fields(
+    field_map: Dict[str, Dict[str, str]], bureau: str
+) -> Optional[str]:
+    label_candidates = {
+        "creditor",
+        "creditor name",
+        "company name",
+        "subscriber name",
+        "furnisher name",
+    }
+    for label, values in field_map.items():
+        normalized = label.strip().lower()
+        if normalized not in label_candidates:
+            continue
+        candidate = _sanitize_creditor(values.get(bureau) or "")
+        if candidate and not _is_non_creditor_header(candidate):
+            return candidate
+    return None
 
 
 def _fallback_parse_inquiries(soup: BeautifulSoup) -> List[Dict[str, str]]:
