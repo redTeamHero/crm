@@ -52,6 +52,7 @@ import { withTenantContext, getCurrentTenantId } from "./tenantContext.js";
 import { spawnPythonProcess } from "./pythonEnv.js";
 import { enqueueJob, registerJobProcessor, isQueueEnabled, checkRedisHealth } from "./jobQueue.js";
 import { buildRuleDebugReport } from "./ruleDebugGenerator.js";
+import { mapAuditedViolations } from "./pullTradelineData.js";
 import {
   addTradelineKeysToCanonicalReport,
   auditCanonicalReport,
@@ -2643,6 +2644,11 @@ const OPENAI_MAX_CHUNK_CHARS = Number.parseInt(process.env.OPENAI_REPORT_CHUNK_C
 const OPENAI_MAX_PARSE_RETRIES = 1;
 const LEGACY_ANALYZERS_ENABLED = process.env.ENABLE_LEGACY_ANALYZERS === "true";
 
+function normalizeParseMode(value) {
+  const mode = String(value || "").trim().toLowerCase();
+  if (["legacy", "python", "non_llm", "non-llm"].includes(mode)) return "legacy";
+  return "llm";
+}
 
 const PARSE_SYSTEM_PROMPT = [
   "You are a data extraction engine.",
@@ -4997,6 +5003,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });
 
+  const parseMode = normalizeParseMode(req.query?.parseMode);
   const errors = [];
   const diagnostics = {
     llmTradelineCount: 0,
@@ -5005,6 +5012,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     llmError: null,
     llmAuditRawCount: 0,
     legacyAnalyzersEnabled: LEGACY_ANALYZERS_ENABLED,
+    parseMode,
   };
   try{
     const isPdf = req.file.mimetype === "application/pdf" || /\.pdf$/i.test(req.file.originalname || "");
@@ -5012,52 +5020,75 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     let analyzed = { tradelines: [], status: "analyzing" };
     let llmResult = null;
 
-    try {
-      llmResult = await runLLMAnalyzer({
-        buffer: req.file.buffer,
-        filename: req.file.originalname,
-      });
-      diagnostics.llmTradelineCount = llmResult.tradelines.length;
-      diagnostics.llmViolationCount = llmResult.violations.length;
-      diagnostics.llmAuditRawCount = llmResult.auditRawCount ?? llmResult.violations.length;
-      diagnostics.requiredFieldViolationCount = llmResult.requiredFieldCount ?? 0;
-      diagnostics.llmParseSource = llmResult?.canonicalReport?.reportMeta?.provider || null;
-      diagnostics.llmAttachment = llmResult.attachStats || null;
-      analyzed.tradelines = llmResult.tradelines;
-      analyzed.canonical_report = llmResult.canonicalReport;
-      analyzed.llm_violations = llmResult.violations;
-      analyzed.violations = llmResult.violations;
-      analyzed.required_field_violations = llmResult.requiredFieldViolations;
-      analyzed.personalInfo = llmResult.personalInfo;
-      analyzed.status = "analyzed";
+    if (parseMode === "llm") {
+      try {
+        llmResult = await runLLMAnalyzer({
+          buffer: req.file.buffer,
+          filename: req.file.originalname,
+        });
+        diagnostics.llmTradelineCount = llmResult.tradelines.length;
+        diagnostics.llmViolationCount = llmResult.violations.length;
+        diagnostics.llmAuditRawCount = llmResult.auditRawCount ?? llmResult.violations.length;
+        diagnostics.requiredFieldViolationCount = llmResult.requiredFieldCount ?? 0;
+        diagnostics.llmParseSource = llmResult?.canonicalReport?.reportMeta?.provider || null;
+        diagnostics.llmAttachment = llmResult.attachStats || null;
+        analyzed.tradelines = llmResult.tradelines;
+        analyzed.canonical_report = llmResult.canonicalReport;
+        analyzed.llm_violations = llmResult.violations;
+        analyzed.violations = llmResult.violations;
+        analyzed.required_field_violations = llmResult.requiredFieldViolations;
+        analyzed.personalInfo = llmResult.personalInfo;
+        analyzed.status = "analyzed";
 
-      const tradelineKeys = collectTradelineKeys(llmResult.canonicalReport);
-      const violationKeys = llmResult.violations
-        .map((v) => v?.instanceKey || (v?.tradelineKey && v?.ruleId ? `${v.tradelineKey}|${v.ruleId}` : null))
-        .filter(Boolean);
-      console.log("[LLM Audit Raw]", {
-        consumerId: consumer.id,
-        count: diagnostics.llmAuditRawCount,
-      });
-      console.log("[LLM Audit Saved]", {
-        consumerId: consumer.id,
-        count: diagnostics.llmViolationCount,
-      });
-      console.log("[LLM Audit Attach]", {
-        consumerId: consumer.id,
-        attached: llmResult.attachStats?.attachedCount ?? 0,
-        skipped: llmResult.attachStats?.skippedCount ?? 0,
-        sampleMissingKeys: llmResult.attachStats?.missingSampleKeys || [],
-      });
-      console.log("[LLM Audit Keys]", {
-        tradelineKeys: tradelineKeys.slice(0, 5),
-        violationKeys: violationKeys.slice(0, 5),
-      });
-    } catch (e) {
-      logError("LLM_ANALYZER_ERROR", "LLM analyzer failed", e);
-      diagnostics.llmError = e.message || String(e);
-      analyzed.status = "analyzer_failed";
-      errors.push({ step: "llm_audit", message: e.message, details: e.stack || String(e) });
+        const tradelineKeys = collectTradelineKeys(llmResult.canonicalReport);
+        const violationKeys = llmResult.violations
+          .map((v) => v?.instanceKey || (v?.tradelineKey && v?.ruleId ? `${v.tradelineKey}|${v.ruleId}` : null))
+          .filter(Boolean);
+        console.log("[LLM Audit Raw]", {
+          consumerId: consumer.id,
+          count: diagnostics.llmAuditRawCount,
+        });
+        console.log("[LLM Audit Saved]", {
+          consumerId: consumer.id,
+          count: diagnostics.llmViolationCount,
+        });
+        console.log("[LLM Audit Attach]", {
+          consumerId: consumer.id,
+          attached: llmResult.attachStats?.attachedCount ?? 0,
+          skipped: llmResult.attachStats?.skippedCount ?? 0,
+          sampleMissingKeys: llmResult.attachStats?.missingSampleKeys || [],
+        });
+        console.log("[LLM Audit Keys]", {
+          tradelineKeys: tradelineKeys.slice(0, 5),
+          violationKeys: violationKeys.slice(0, 5),
+        });
+      } catch (e) {
+        logError("LLM_ANALYZER_ERROR", "LLM analyzer failed", e);
+        diagnostics.llmError = e.message || String(e);
+        analyzed.status = "analyzer_failed";
+        errors.push({ step: "llm_audit", message: e.message, details: e.stack || String(e) });
+      }
+    } else {
+      try {
+        const pyResult = await runPythonAnalyzer({
+          buffer: req.file.buffer,
+          filename: req.file.originalname,
+        });
+        const pyData = pyResult?.data || {};
+        const personalInformation = pyData.personal_information || {};
+        analyzed = {
+          ...pyData,
+          tradelines: mapAuditedViolations(pyData),
+          personal_information: personalInformation,
+          personalInfo: personalInformation,
+          personal_info_mismatches: pyData.personal_mismatches || [],
+          status: "analyzed",
+        };
+      } catch (e) {
+        logError("PYTHON_ANALYZER_ERROR", "Python analyzer failed", e);
+        analyzed.status = "analyzer_failed";
+        errors.push({ step: "python_analyzer", message: e.message, details: e.stack || String(e) });
+      }
     }
 
     if (!llmResult && LEGACY_ANALYZERS_ENABLED) {

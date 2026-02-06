@@ -94,6 +94,27 @@ let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 let trackerData = {};
+const PARSE_MODE_STORAGE_KEY = "reportParseMode";
+const parseModeButton = document.getElementById("btnToggleParseMode");
+const normalizeParseMode = (value) => (value === "legacy" ? "legacy" : "llm");
+let reportParseMode = normalizeParseMode(localStorage.getItem(PARSE_MODE_STORAGE_KEY));
+
+function updateParseModeButton() {
+  if (!parseModeButton) return;
+  const isLlm = reportParseMode === "llm";
+  parseModeButton.textContent = isLlm ? "Parse: LLM" : "Parse: Legacy";
+  parseModeButton.setAttribute("data-tip", isLlm ? "LLM parsing enabled" : "Legacy parsing enabled");
+  parseModeButton.setAttribute("aria-pressed", String(isLlm));
+}
+
+if (parseModeButton) {
+  updateParseModeButton();
+  parseModeButton.addEventListener("click", () => {
+    reportParseMode = reportParseMode === "llm" ? "legacy" : "llm";
+    localStorage.setItem(PARSE_MODE_STORAGE_KEY, reportParseMode);
+    updateParseModeButton();
+  });
+}
 
 function buildIdempotencyKey(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -1904,7 +1925,8 @@ $("#fileInput").addEventListener("change", async (e)=>{
   try{
     const fd = new FormData();
     fd.append("file", file, file.name);
-    const res = await fetch(`/api/consumers/${currentConsumerId}/upload`, {
+    const uploadUrl = `/api/consumers/${currentConsumerId}/upload?parseMode=${encodeURIComponent(reportParseMode)}`;
+    const res = await fetch(uploadUrl, {
       method: "POST",
       headers: authHeader(),
       body: fd
