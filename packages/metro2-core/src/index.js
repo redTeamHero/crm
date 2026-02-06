@@ -8,10 +8,11 @@ export { sanitizeCreditor };
 
 // Pre-compiled regex patterns for performance optimization
 const RE_BUREAU_INQUIRY = /\b(transunion|experian|equifax|tu|tuc|exp|eqf)\b/i;
-const RE_PERSONAL_INFO = /personal information/i;
-const RE_CREDIT_SCORE = /credit score/i;
+const RE_PERSONAL_INFO = /personal (information|profile|data)/i;
+const RE_CREDIT_SCORE = /(credit score|fico score|vantage score)/i;
 const RE_CREDITOR_CONTACT = /creditor contact/i;
 const RE_CREDITOR_INFO = /creditor information/i;
+const RE_INQUIRIES = /inquiries?/i;
 const RE_AMP_ENTITY = /&amp;/g;
 const RE_NON_ALPHANUM = /[^a-z0-9]+/g;
 const RE_WHITESPACE = /\s+/g;
@@ -124,7 +125,7 @@ export function parseReport(context){
 
   const tradelines = [];
   const seenTradelines = new Set();
-  const tables = adapter.selectAll('table.rpt_content_table.rpt_content_header.rpt_table4column');
+  const tables = collectTradelineTables(adapter);
   for(const table of tables){
     const { meta, skip } = inferTradelineMeta(adapter, table);
     if(skip) continue;
@@ -132,14 +133,19 @@ export function parseReport(context){
     const rows = adapter.rows(table);
     if(!rows.length) continue;
 
-    const headerCells = adapter.find(rows[0], 'th');
-    const cells = headerCells.length ? headerCells : adapter.find(rows[0], 'td');
-    const bureaus = cells.slice(1).map(cell => adapter.text(cell));
+    const headerRow = findTradelineHeaderRow(adapter, rows);
+    const headerCells = adapter.find(headerRow, 'th');
+    const cells = headerCells.length ? headerCells : adapter.find(headerRow, 'td');
+    const dataRows = rows
+      .filter(row => row !== headerRow)
+      .filter(row => adapter.find(row, 'th').length === 0)
+      .map(row => ({
+        label: extractRowLabel(adapter, row),
+        values: extractRowValues(adapter, row)
+      }));
 
-  const dataRows = rows.slice(1).map(row => ({
-    label: extractRowLabel(adapter, row),
-    values: extractRowValues(adapter, row)
-  }));
+    const bureaus = inferBureaus(adapter, cells, dataRows);
+    if(!bureaus.length) continue;
 
     const tradeline = buildTradeline(bureaus, dataRows, meta);
     if(!hasTradelineData(tradeline, bureaus)) continue;
@@ -282,6 +288,7 @@ export function parseInquiries(context){
   if(!adapter) return { list: [], summary: emptyInquirySummary() };
 
   const primaryRows = adapter.selectAll("tr[ng-repeat*='inqPartition']");
+  const headerRows = findInquiryRowsByHeader(adapter);
   const heuristicRows = adapter.selectAll('tr').filter(tr => {
     if(adapter.hasAttr(tr, 'ng-repeat')) return false;
     const tds = adapter.find(tr, 'td.info');
@@ -293,8 +300,8 @@ export function parseInquiries(context){
   });
 
   const rows = primaryRows.length
-    ? mergeUnique(primaryRows, heuristicRows)
-    : heuristicRows;
+    ? mergeUnique(primaryRows, mergeUnique(headerRows, heuristicRows))
+    : mergeUnique(headerRows, heuristicRows);
 
   const list = rows.map(row => {
     const tds = adapter.find(row, 'td.info');
@@ -743,6 +750,89 @@ function parseInquiryDate(entry){
   return +d;
 }
 
+function collectTradelineTables(adapter){
+  const primaryTables = adapter.selectAll('table.rpt_content_table.rpt_content_header.rpt_table4column');
+  const fallbackTables = adapter.selectAll('table');
+  const results = [];
+  const seen = new Set();
+  const pushTable = (table) => {
+    if(!table || seen.has(table)) return;
+    seen.add(table);
+    results.push(table);
+  };
+
+  primaryTables.forEach(pushTable);
+  for(const table of fallbackTables){
+    if(seen.has(table)) continue;
+    if(hasTradelineLabels(adapter, table)){
+      pushTable(table);
+    }
+  }
+  return results;
+}
+
+function hasTradelineLabels(adapter, table){
+  const rows = adapter.rows(table);
+  if(rows.length < 2) return false;
+  let matches = 0;
+  for(const row of rows){
+    const label = extractRowLabel(adapter, row);
+    if(!label) continue;
+    if(lookupFieldRule(label)){
+      matches += 1;
+      if(matches >= 2) return true;
+    }
+  }
+  return false;
+}
+
+function findTradelineHeaderRow(adapter, rows){
+  for(const row of rows){
+    const headerCells = adapter.find(row, 'th');
+    const cells = headerCells.length ? headerCells : adapter.find(row, 'td');
+    if(cells.length < 2) continue;
+    const bureauHits = cells
+      .slice(1)
+      .map(cell => normalizeBureau(adapter.text(cell)))
+      .filter(Boolean);
+    if(bureauHits.length) return row;
+  }
+  return rows[0];
+}
+
+function inferBureaus(adapter, cells, dataRows){
+  const headerTexts = cells.slice(1).map(cell => adapter.text(cell));
+  const normalized = headerTexts.map(value => normalizeBureau(value)).filter(Boolean);
+  if(normalized.length){
+    return headerTexts.map(value => normalizeBureau(value) || value).filter(Boolean);
+  }
+
+  const maxValues = dataRows.reduce((max, row) => Math.max(max, row.values.length), 0);
+  if(maxValues){
+    return BUREAU_PRIORITY.slice(0, Math.min(maxValues, BUREAU_PRIORITY.length));
+  }
+  return [];
+}
+
+function findInquiryRowsByHeader(adapter){
+  const rows = [];
+  const tables = adapter.selectAll('table');
+  for(const table of tables){
+    const header = findNearestHeader(adapter, table);
+    if(!header) continue;
+    const headerText = adapter.text(header) || '';
+    if(!RE_INQUIRIES.test(headerText)) continue;
+    const tableRows = adapter.rows(table);
+    for(const row of tableRows){
+      if(adapter.find(row, 'th').length) continue;
+      const tds = adapter.find(row, 'td');
+      if(tds.length < 3) continue;
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
 function looksLikeDate(value){
   const v = (value || '').trim();
   if(!v) return false;
@@ -928,6 +1018,7 @@ function normalizeFieldLabel(label){
   return (label || '')
     .toLowerCase()
     .replace(RE_COLON, '')
+    .replace(RE_NON_ALPHANUM, ' ')
     .replace(RE_WHITESPACE, ' ')
     .trim();
 }
