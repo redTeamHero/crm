@@ -3303,6 +3303,7 @@ async function runLLMAnalyzer({ buffer, filename }) {
     auditRawCount: auditResult.rawCount ?? violations.length,
     tradelines,
     personalInfo: mapCanonicalIdentityToPersonalInfo(canonicalReport.identity),
+    reportText: text,
     attachStats,
   };
 }
@@ -3571,16 +3572,37 @@ export function runBasicRuleAudit(report = {}) {
 // consumer credit reports varies, but typically the bureau name appears near a
 // three-digit score. This helper scans the HTML text for each bureau and
 // returns any score it finds.
-function extractCreditScores(html){
+function extractCreditScores(text = ""){
   const scores = {};
+  const source = String(text || "");
   const patterns = {
-    transunion: /transunion[^0-9]{0,100}(\d{3})/i,
-    experian: /experian[^0-9]{0,100}(\d{3})/i,
-    equifax: /equifax[^0-9]{0,100}(\d{3})/i,
+    transunion: [
+      /transunion[^0-9]{0,120}(\d{3})/i,
+      /(\d{3})[^0-9]{0,120}transunion/i,
+    ],
+    experian: [
+      /experian[^0-9]{0,120}(\d{3})/i,
+      /(\d{3})[^0-9]{0,120}experian/i,
+    ],
+    equifax: [
+      /equifax[^0-9]{0,120}(\d{3})/i,
+      /(\d{3})[^0-9]{0,120}equifax/i,
+    ],
   };
-  for(const [key, re] of Object.entries(patterns)){
-    const m = html.match(re);
-    if(m) scores[key] = Number(m[1]);
+  for(const [key, list] of Object.entries(patterns)){
+    for (const re of list) {
+      const m = source.match(re);
+      if(m) {
+        scores[key] = Number(m[1]);
+        break;
+      }
+    }
+  }
+  if (!scores.current) {
+    const overallMatch = source.match(/\bcredit\s*score\b[^0-9]{0,40}(\d{3})/i);
+    if (overallMatch) {
+      scores.current = Number(overallMatch[1]);
+    }
   }
   return scores;
 }
@@ -5042,17 +5064,25 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       logWarn("LEGACY_ANALYZERS_SKIPPED", "LLM audit failed; legacy analyzers are disabled by default.");
     }
 
-    if (!isPdf) {
-      try{
-        const extractedScores = extractCreditScores(htmlText);
-        if (Object.keys(extractedScores).length) {
-          consumer.creditScore = mergeCreditScores(consumer.creditScore, extractedScores);
-          await setCreditScore(consumer.id, consumer.creditScore);
+    try{
+      let scoreText = "";
+      if (isPdf) {
+        scoreText = llmResult?.reportText || "";
+        if (!scoreText) {
+          const extracted = await extractReportText({ buffer: req.file.buffer, filename: req.file.originalname });
+          scoreText = extracted.text || "";
         }
-      }catch(e){
-        logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
-        errors.push({ step: "score_extract", message: e.message, details: e.stack || String(e) });
+      } else {
+        scoreText = extractHtmlVisibleText(htmlText);
       }
+      const extractedScores = extractCreditScores(scoreText);
+      if (Object.keys(extractedScores).length) {
+        consumer.creditScore = mergeCreditScores(consumer.creditScore, extractedScores);
+        await setCreditScore(consumer.id, consumer.creditScore);
+      }
+    }catch(e){
+      logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
+      errors.push({ step: "score_extract", message: e.message, details: e.stack || String(e) });
     }
 
     // compare bureau-reported personal info against consumer record
