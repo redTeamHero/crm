@@ -1659,7 +1659,11 @@ app.post("/api/credit-companies", authenticate, requirePermission("admin"), asyn
       if (!normalized) {
         return res.status(400).json({ ok: false, error: "Company name is required" });
       }
-      const existingIndex = nextCompanies.findIndex(entry => entry.id === normalized.id);
+      const normalizedName = normalized.name.toLowerCase();
+      let existingIndex = nextCompanies.findIndex(entry => entry.id === normalized.id);
+      if (existingIndex < 0) {
+        existingIndex = nextCompanies.findIndex(entry => entry.name?.toLowerCase() === normalizedName);
+      }
       if (existingIndex >= 0) {
         nextCompanies[existingIndex] = { ...nextCompanies[existingIndex], ...normalized };
       } else {

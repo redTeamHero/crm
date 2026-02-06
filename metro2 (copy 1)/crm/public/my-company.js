@@ -655,6 +655,26 @@ function copyToClipboard(value, label) {
     });
 }
 
+async function syncCreditCompanyProfile(company = {}) {
+  if (!company?.name) return;
+  const payload = {
+    company: {
+      name: company.name,
+      serviceArea: company.address || 'Nationwide',
+      minPlan: 'basic',
+      focus: 'DIY upgrade option',
+      isActive: true
+    }
+  };
+  const res = await api('/api/credit-companies', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    console.warn('Failed to sync credit company profile', res.error || res.data);
+  }
+}
+
 function initCompanyForm() {
   const formEl = document.getElementById('companyForm');
   const nameEl = document.getElementById('companyName');
@@ -669,7 +689,7 @@ function initCompanyForm() {
   if (emailEl) emailEl.value = company.email || '';
   if (addrEl) addrEl.value = company.address || '';
 
-  const handleSave = (event) => {
+  const handleSave = async (event) => {
     event?.preventDefault();
     const data = {
       name: nameEl?.value.trim() || '',
@@ -678,6 +698,7 @@ function initCompanyForm() {
       address: addrEl?.value.trim() || ''
     };
     localStorage.setItem('companyInfo', JSON.stringify(data));
+    await syncCreditCompanyProfile(data);
   };
 
   if (formEl) {
