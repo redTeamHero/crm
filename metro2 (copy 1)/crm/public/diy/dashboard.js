@@ -22,6 +22,7 @@
   const btnGenerateLetters = document.getElementById('btnGenerateLetters');
   const upgradeCard = document.getElementById('upgradeCard');
   const companyMatch = document.getElementById('companyMatch');
+  const LOCAL_COMPANY_SELECTION_KEY = 'diy_local_company';
 
   async function init() {
     if (!token) {
@@ -128,6 +129,14 @@
       });
       const data = await res.json();
       if (!data.company) {
+        const localSelection = getLocalCompanySelection();
+        if (localSelection) {
+          companyMatch.innerHTML = `
+            <p class="font-semibold text-gray-900">${localSelection.name}</p>
+            <p class="text-xs text-gray-500">${localSelection.serviceArea} · Min plan: ${localSelection.minPlan.charAt(0).toUpperCase() + localSelection.minPlan.slice(1)}</p>
+          `;
+          return;
+        }
         companyMatch.innerHTML = `
           <p>No company selected yet.</p>
           <a href="/diy/upgrade" class="text-emerald-600 font-medium">Browse top picks →</a>
@@ -140,6 +149,16 @@
       `;
     } catch (e) {
       companyMatch.innerHTML = '<p class="text-sm text-red-500">Unable to load company details.</p>';
+    }
+  }
+
+  function getLocalCompanySelection() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(LOCAL_COMPANY_SELECTION_KEY) || 'null');
+      if (!stored || !stored.name) return null;
+      return stored;
+    } catch {
+      return null;
     }
   }
 

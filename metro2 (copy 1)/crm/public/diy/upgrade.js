@@ -2,6 +2,8 @@
   const token = localStorage.getItem('diy_token');
   let currentUser = null;
   let currentCompanyId = null;
+  const LOCAL_COMPANY_PREFIX = 'local-company:';
+  const LOCAL_COMPANY_SELECTION_KEY = 'diy_local_company';
 
   const userEmail = document.getElementById('userEmail');
   const planBadge = document.getElementById('planBadge');
@@ -57,12 +59,18 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load companies');
 
-      if (!data.companies || data.companies.length === 0) {
+      const localCompany = getLocalCompanyProfile();
+      const companies = Array.isArray(data.companies) ? [...data.companies] : [];
+      if (localCompany && !companies.some(company => company.name?.toLowerCase() === localCompany.name.toLowerCase())) {
+        companies.unshift(localCompany);
+      }
+
+      if (companies.length === 0) {
         companyList.innerHTML = '<div class="text-sm text-gray-500">No companies available for your plan.</div>';
         return;
       }
 
-      companyList.innerHTML = data.companies.map(renderCompanyCard).join('');
+      companyList.innerHTML = companies.map(renderCompanyCard).join('');
       companyList.querySelectorAll('.select-company').forEach(button => {
         button.addEventListener('click', () => handleSelectCompany(button.dataset.companyId));
       });
@@ -78,10 +86,20 @@
       });
       const data = await res.json();
       if (!data.company) {
+        const localSelection = getLocalCompanySelection();
+        if (localSelection) {
+          currentCompanyId = localSelection.companyId;
+          currentCompany.innerHTML = `
+            <p class="font-semibold text-gray-900">${localSelection.name}</p>
+            <p class="text-xs text-gray-500">${localSelection.serviceArea} · Min plan: ${formatPlan(localSelection.minPlan)}</p>
+          `;
+          return;
+        }
         currentCompanyId = null;
         currentCompany.innerHTML = '<p>No company selected yet.</p><a href="#companyList" class="text-emerald-600 font-medium">Browse top picks →</a>';
         return;
       }
+      clearLocalCompanySelection();
       currentCompanyId = data.company.id;
       currentCompany.innerHTML = `
         <p class="font-semibold text-gray-900">${data.company.name}</p>
@@ -94,15 +112,25 @@
 
   function renderCompanyCard(company) {
     const badges = [];
-    if (company.metrics.disputeSuccessRate >= 0.85) {
+    if (Number.isFinite(company.metrics?.disputeSuccessRate) && company.metrics.disputeSuccessRate >= 0.85) {
       badges.push(renderBadge('High success rate', 'emerald'));
     }
-    if (company.metrics.avgResponseTimeDays <= 3) {
+    if (Number.isFinite(company.metrics?.avgResponseTimeDays) && company.metrics.avgResponseTimeDays <= 3) {
       badges.push(renderBadge('Fast response', 'blue'));
     }
     if (company.isBoosted) {
       badges.push(renderBadge('Boosted placement', 'amber'));
     }
+
+    const successRate = Number.isFinite(company.metrics?.disputeSuccessRate)
+      ? `${Math.round(company.metrics.disputeSuccessRate * 100)}%`
+      : '—';
+    const avgResponse = Number.isFinite(company.metrics?.avgResponseTimeDays)
+      ? `${company.metrics.avgResponseTimeDays.toFixed(1)}d`
+      : '—';
+    const reviewScore = Number.isFinite(company.metrics?.reviewScore)
+      ? company.metrics.reviewScore.toFixed(1)
+      : '—';
 
     const buttonDisabled = !company.eligible;
     const buttonLabel = buttonDisabled ? `Upgrade to ${formatPlan(company.minPlan)}` : 'Select';
@@ -125,15 +153,15 @@
         </div>
         <div class="mt-4 grid grid-cols-3 gap-4 text-xs text-gray-500">
           <div>
-            <p class="font-semibold text-gray-700">${Math.round(company.metrics.disputeSuccessRate * 100)}%</p>
+            <p class="font-semibold text-gray-700">${successRate}</p>
             <p>Success rate</p>
           </div>
           <div>
-            <p class="font-semibold text-gray-700">${company.metrics.avgResponseTimeDays?.toFixed(1)}d</p>
+            <p class="font-semibold text-gray-700">${avgResponse}</p>
             <p>Avg response</p>
           </div>
           <div>
-            <p class="font-semibold text-gray-700">${company.metrics.reviewScore?.toFixed(1)}</p>
+            <p class="font-semibold text-gray-700">${reviewScore}</p>
             <p>Review score</p>
           </div>
         </div>
@@ -151,10 +179,69 @@
   }
 
   function formatPlan(plan) {
+    if (!plan) return 'Free';
     return plan.charAt(0).toUpperCase() + plan.slice(1);
   }
 
+  function slugify(value) {
+    return String(value || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  }
+
+  function getLocalCompanyProfile() {
+    const info = JSON.parse(localStorage.getItem('companyInfo') || '{}');
+    if (!info.name) return null;
+    const companyId = `${LOCAL_COMPANY_PREFIX}${slugify(info.name) || 'profile'}`;
+    return {
+      companyId,
+      name: info.name,
+      serviceArea: info.address || 'Local only',
+      minPlan: 'basic',
+      focus: 'Local company profile',
+      eligible: true,
+      isBoosted: false,
+      rank: 'Local',
+      metrics: {}
+    };
+  }
+
+  function getLocalCompanySelection() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(LOCAL_COMPANY_SELECTION_KEY) || 'null');
+      if (!stored || !stored.name) return null;
+      return stored;
+    } catch {
+      return null;
+    }
+  }
+
+  function setLocalCompanySelection(company) {
+    localStorage.setItem(LOCAL_COMPANY_SELECTION_KEY, JSON.stringify(company));
+  }
+
+  function clearLocalCompanySelection() {
+    localStorage.removeItem(LOCAL_COMPANY_SELECTION_KEY);
+  }
+
   async function handleSelectCompany(companyId) {
+    if (companyId?.startsWith(LOCAL_COMPANY_PREFIX)) {
+      const localCompany = getLocalCompanyProfile();
+      if (!localCompany) {
+        alert('Company profile missing. Please update your company info first.');
+        return;
+      }
+      setLocalCompanySelection(localCompany);
+      currentCompanyId = localCompany.companyId;
+      currentCompany.innerHTML = `
+        <p class="font-semibold text-gray-900">${localCompany.name}</p>
+        <p class="text-xs text-gray-500">${localCompany.serviceArea} · Min plan: ${formatPlan(localCompany.minPlan)}</p>
+      `;
+      return;
+    }
+    clearLocalCompanySelection();
     try {
       let dissatisfiedReason = null;
       if (currentCompanyId && currentCompanyId !== companyId) {
