@@ -1649,6 +1649,10 @@ app.post("/api/credit-companies", authenticate, requirePermission("admin"), asyn
     const payload = req?.body || {};
     const companiesDb = await loadCreditCompaniesDB();
     let nextCompanies = companiesDb.companies;
+    const requestTenantId = sanitizeTenantId(
+      req.user?.tenantId || getCurrentTenantId() || DEFAULT_TENANT_ID,
+      DEFAULT_TENANT_ID
+    );
 
     if (Array.isArray(payload.companies)) {
       nextCompanies = payload.companies
@@ -1664,8 +1668,16 @@ app.post("/api/credit-companies", authenticate, requirePermission("admin"), asyn
       if (existingIndex < 0) {
         existingIndex = nextCompanies.findIndex(entry => entry.name?.toLowerCase() === normalizedName);
       }
+      if (!normalized.tenantId) {
+        normalized.tenantId = requestTenantId;
+      }
       if (existingIndex >= 0) {
-        nextCompanies[existingIndex] = { ...nextCompanies[existingIndex], ...normalized };
+        const existing = nextCompanies[existingIndex];
+        nextCompanies[existingIndex] = {
+          ...existing,
+          ...normalized,
+          tenantId: existing?.tenantId || normalized.tenantId
+        };
       } else {
         nextCompanies = [...nextCompanies, normalized];
       }
@@ -7271,13 +7283,16 @@ function normalizeCreditCompany(payload = {}) {
   const minPlan = DIY_PLAN_ORDER.includes(minPlanValue) ? minPlanValue : 'basic';
   const isActive = payload.isActive !== false;
   const idValue = sanitizeSettingString(payload.id || '');
+  const tenantValue = sanitizeSettingString(payload.tenantId || '');
+  const tenantId = tenantValue ? sanitizeTenantId(tenantValue, DEFAULT_TENANT_ID) : null;
   return {
     id: idValue || nanoid(),
     name,
     serviceArea,
     minPlan,
     isActive,
-    focus
+    focus,
+    tenantId
   };
 }
 
@@ -7365,6 +7380,64 @@ async function loadDiyCompanyMatchesDB() {
 
 async function saveDiyCompanyMatchesDB(db) {
   await writeKey('diy_company_matches', db);
+}
+
+async function ensureDiyClientForCompany({ company, diyUser, diyPlan } = {}) {
+  if (!company?.tenantId || !diyUser?.id) return null;
+  const tenantId = company.tenantId;
+  const nowIso = new Date().toISOString();
+  const nameParts = [diyUser.firstName, diyUser.lastName].map(part => sanitizeSettingString(part)).filter(Boolean);
+  const name = nameParts.join(' ') || diyUser.email || 'DIY Client';
+
+  const db = await loadDB(tenantId);
+  const existing = db.consumers.find(consumer => consumer?.diyUserId === diyUser.id);
+  const consumerId = existing?.id || nanoid(10);
+  if (!existing) {
+    const consumer = {
+      id: consumerId,
+      name,
+      email: diyUser.email || "",
+      phone: "",
+      addr1: "",
+      addr2: "",
+      city: "",
+      state: "",
+      zip: "",
+      ssn_last4: "",
+      dob: "",
+      sale: 0,
+      paid: 0,
+      status: "active",
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      reports: [],
+      diyUserId: diyUser.id,
+      diyPlan: diyPlan || null,
+      source: "diy"
+    };
+    db.consumers.push(consumer);
+    await saveDB(db, tenantId);
+  } else {
+    const shouldUpdateName = !existing.name && name;
+    const shouldUpdateEmail = !existing.email && diyUser.email;
+    if (shouldUpdateName || shouldUpdateEmail) {
+      if (shouldUpdateName) existing.name = name;
+      if (shouldUpdateEmail) existing.email = diyUser.email;
+      existing.updatedAt = nowIso;
+      await saveDB(db, tenantId);
+    }
+  }
+
+  await withTenantContext(tenantId, async () => {
+    await addEvent(consumerId, "diy_client_selected", {
+      text: `${name} selected ${company.name} from DIY.`,
+      diyUserId: diyUser.id,
+      plan: diyPlan || null,
+      companyId: company.id
+    });
+  });
+
+  return { tenantId, consumerId };
 }
 
 // DIY Authentication Middleware - uses separate secret to prevent token confusion
@@ -7816,10 +7889,14 @@ app.post('/api/diy/credit-companies/select', diyAuthenticate, async (req, res) =
       return res.status(400).json({ ok: false, error: 'Company selection required' });
     }
 
-    const [matchesDb, metricsDb] = await Promise.all([
+    const [matchesDb, metricsDb, companiesDb, usersDb] = await Promise.all([
       loadDiyCompanyMatchesDB(),
-      loadCreditCompanyMetricsDB()
+      loadCreditCompanyMetricsDB(),
+      loadCreditCompaniesDB(),
+      loadDiyUsersDB()
     ]);
+    const diyUser = usersDb.users.find(user => user.id === req.diyUser.id);
+    const selectedCompany = companiesDb.companies.find(entry => entry.id === companyId);
 
     const now = new Date().toISOString();
     const currentMatch = matchesDb.matches
@@ -7845,6 +7922,18 @@ app.post('/api/diy/credit-companies/select', diyAuthenticate, async (req, res) =
       selectedAt: now,
       status: 'active'
     };
+
+    if (selectedCompany && diyUser) {
+      const clientResult = await ensureDiyClientForCompany({
+        company: selectedCompany,
+        diyUser,
+        diyPlan: req.diyUser.plan
+      });
+      if (clientResult) {
+        newMatch.tenantId = clientResult.tenantId;
+        newMatch.consumerId = clientResult.consumerId;
+      }
+    }
 
     matchesDb.matches.push(newMatch);
     await Promise.all([
