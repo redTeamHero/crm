@@ -176,6 +176,52 @@ function normalizeDisputeReason(entry = {}){
   return "";
 }
 
+function normalizeCreditorName(value){
+  if (value == null) return "";
+  const text = String(value).trim();
+  if (!text) return "";
+  if (/^unknown creditor$/i.test(text)) return "";
+  return text;
+}
+
+function deriveCreditorName(tradeline = {}, perBureau = {}){
+  const candidates = [
+    tradeline?.meta?.creditor,
+    tradeline?.creditor,
+    tradeline?.creditor_name,
+    tradeline?.company_name,
+    tradeline?.subscriber_name,
+    tradeline?.furnisher_name,
+    tradeline?.name_of_account,
+    tradeline?.account_name,
+    tradeline?.account_name_raw,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeCreditorName(candidate);
+    if (normalized) return normalized;
+  }
+
+  for (const data of Object.values(perBureau || {})) {
+    if (!data || typeof data !== "object") continue;
+    const perBureauCandidates = [
+      data.creditor_name,
+      data.creditor,
+      data.company_name,
+      data.subscriber_name,
+      data.furnisher_name,
+      data.name_of_account,
+      data.account_name,
+    ];
+    for (const candidate of perBureauCandidates) {
+      const normalized = normalizeCreditorName(candidate);
+      if (normalized) return normalized;
+    }
+  }
+
+  return "";
+}
+
 function normalizeRecommendedAction(entry = {}){
   const raw = entry.recommended_action || entry.recommendedAction || entry.action;
   return typeof raw === "string" ? raw.trim() : "";
@@ -926,7 +972,7 @@ export function prepareNegativeItems(tradelines = [], extras = {}, options = {})
 
     items.push({
       index: idx,
-      creditor: tl.meta?.creditor || "Unknown Creditor",
+      creditor: deriveCreditorName(tl, perBureau) || "Unknown Creditor",
       account_numbers: collectAccountNumbers(perBureau),
       tradelineKeys: collectTradelineKeys(perBureau),
       bureaus: summarizeBureaus(perBureau),
