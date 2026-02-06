@@ -153,6 +153,24 @@ test('prepareNegativeItems appends personal info card with mismatches', () => {
   assert.ok(personalItem.violations.some(v => /mismatch/i.test(v.title)));
 });
 
+test('prepareNegativeItems falls back to legacy creditor fields', () => {
+  const tradelines = [
+    {
+      per_bureau: {
+        Experian: {
+          creditor_name: 'Legacy Creditor Inc',
+          account_number: '9999',
+        },
+      },
+      violations: [],
+    },
+  ];
+
+  const { items } = prepareNegativeItems(tradelines, {}, { includeLegacyRules: true });
+  assert.equal(items.length, 1);
+  assert.equal(items[0].creditor, 'Legacy Creditor Inc');
+});
+
 test('prepareNegativeItems accepts snake_case personal_info extras', () => {
   const extras = {
     personal_info: {
