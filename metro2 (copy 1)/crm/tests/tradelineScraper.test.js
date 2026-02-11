@@ -235,6 +235,50 @@ test('scrapeTradelines retains duplicate-looking rows without statement dates', 
   assert.equal(results.length, 2);
 });
 
+
+
+test('scrapeTradelines prioritizes explicit bank labels over noisy attribute aliases', async () => {
+  const html = `
+    <table>
+      <tr>
+        <td class="product_data"
+            data-bankname="Barclays Barc"
+            data-clientprice="$510">
+          <div class="tradeline-card">
+            <strong class="bank-name">Barclays</strong><br>
+            Credit Limit: $15,000<br>
+            Statement: Jul 2024
+          </div>
+        </td>
+        <td class="product_price">$310</td>
+      </tr>
+      <tr>
+        <td class="product_data"
+            data-bankname="CP1 CP1"
+            data-clientprice="$610">
+          <div class="tradeline-card">
+            <strong class="bank-name">CP1</strong><br>
+            High Limit: $8,000
+          </div>
+        </td>
+        <td class="product_price">$410</td>
+      </tr>
+    </table>
+  `;
+
+  const results = await scrapeTradelines(async () => createResponse(html));
+  assert.equal(results.length, 2);
+
+  assert.equal(results[0].bank, 'Barclays');
+  assert.equal(results[0].limit, 15000);
+  assert.equal(results[0].price, 510);
+  assert.equal(results[0].statement_date, 'Jul 2024');
+
+  assert.equal(results[1].bank, 'CP1');
+  assert.equal(results[1].limit, 8000);
+  assert.equal(results[1].price, 610);
+});
+
 test('scrapeTradelines throws when fetch fails', async () => {
   const fetchStub = async () => createResponse('nope', false, 500);
   await assert.rejects(() => scrapeTradelines(fetchStub), /Failed to fetch tradelines/);
