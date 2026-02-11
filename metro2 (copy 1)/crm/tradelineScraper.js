@@ -34,6 +34,16 @@ function tidyText(str) {
     .trim();
 }
 
+function normalizeSpacingPreservingLines(str) {
+  return (str || '')
+    .toString()
+    .replace(/\r/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t\f\v]+/g, ' ')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
 const MONTH_KEYWORDS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const STATEMENT_KEYWORDS = ['statement', 'cycle', 'closing', 'closes', 'cut', 'billing'];
 const STATEMENT_PLACEHOLDER_SUBSTRINGS = ['tbd', 'rolling', 'varies', 'upon request', 'call', 'available now', 'asap', 'see notes'];
@@ -58,15 +68,16 @@ function hasContent(value) {
 function normalizeStatement(raw) {
   const value = tidyText(raw);
   if (!value) return '';
-  const lower = value.toLowerCase();
+  const stripped = value.replace(/^statement\s*:\s*/i, '').replace(/^statement\s+/i, '');
+  const lower = stripped.toLowerCase();
   if (containsStatementPlaceholder(lower)) return '';
   if (/^available$/.test(lower)) return '';
-  if (/^\d{1,2}(st|nd|rd|th)$/.test(lower)) return value;
-  if (/^\d{1,2}(st|nd|rd|th)?\s*[-–]\s*\d{1,2}(st|nd|rd|th)?$/.test(lower)) return value;
-  if (/^\d{1,2}\/\d{1,2}$/.test(lower)) return value;
+  if (/^\d{1,2}(st|nd|rd|th)$/.test(lower)) return stripped;
+  if (/^\d{1,2}(st|nd|rd|th)?\s*[-–]\s*\d{1,2}(st|nd|rd|th)?$/.test(lower)) return stripped;
+  if (/^\d{1,2}\/\d{1,2}$/.test(lower)) return stripped;
   const hasMonth = MONTH_KEYWORDS.some((month) => lower.includes(month));
-  if (hasMonth && /\d/.test(lower)) return value;
-  if (STATEMENT_KEYWORDS.some((keyword) => lower.includes(keyword))) return value;
+  if (hasMonth && /\d/.test(lower)) return stripped;
+  if (STATEMENT_KEYWORDS.some((keyword) => lower.includes(keyword))) return stripped;
   return '';
 }
 
@@ -144,12 +155,47 @@ function getTextSegments($el) {
   const clone = $el.clone();
   clone.find('script, style').remove();
   clone.find('br').replaceWith('\n');
-  const raw = tidyText(clone.text());
+  const raw = normalizeSpacingPreservingLines(clone.text());
   if (!raw) return [];
   return raw
     .split(/\n+/)
     .map((segment) => tidyText(segment))
     .filter(Boolean);
+}
+
+function simplifyRepeatedName(raw) {
+  const text = tidyText(raw);
+  if (!text) return '';
+  const tokens = text.split(' ').filter(Boolean);
+  if (tokens.length >= 2) {
+    const half = Math.floor(tokens.length / 2);
+    if (half * 2 === tokens.length) {
+      const left = tokens.slice(0, half).join(' ').toLowerCase();
+      const right = tokens.slice(half).join(' ').toLowerCase();
+      if (left === right) {
+        return tokens.slice(0, half).join(' ');
+      }
+    }
+  }
+  return text;
+}
+
+function extractLimitFromSegments(segments = []) {
+  const patterns = [
+    /(?:credit\s*)?limit[^\d$-]*([$]?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
+    /high\s*limit[^\d$-]*([$]?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
+  ];
+  for (const segment of segments) {
+    const text = tidyText(segment);
+    if (!text) continue;
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (!match?.[1]) continue;
+      const parsed = parseCurrency(match[1]);
+      if (parsed != null) return parsed;
+    }
+  }
+  return 0;
 }
 
 const BANK_ATTR_NAMES = [
@@ -192,32 +238,41 @@ const BANK_SELECTORS = [
 ];
 
 function extractBankAndStatement($cell, segments = []) {
-  const candidateSet = new Set();
-  const pushCandidate = (value) => {
+  const pushCandidate = (list, value) => {
     const text = tidyText(value);
-    if (text) candidateSet.add(text);
+    if (text) list.push(text);
   };
 
-  BANK_ATTR_NAMES.forEach((name) => pushCandidate(getAttribute($cell, [name])));
-  BANK_SELECTORS.forEach((selector) => pushCandidate($cell.find(selector).first().text()));
-  segments.forEach((segment) => pushCandidate(segment));
+  const selectorCandidates = [];
+  const attrCandidates = [];
+  const segmentCandidates = [];
 
-  const bankCandidates = Array.from(candidateSet);
+  BANK_SELECTORS.forEach((selector) => pushCandidate(selectorCandidates, $cell.find(selector).first().text()));
+  BANK_ATTR_NAMES.forEach((name) => pushCandidate(attrCandidates, getAttribute($cell, [name])));
+  segments.forEach((segment) => pushCandidate(segmentCandidates, segment));
+
+  const bankCandidates = [
+    ...selectorCandidates,
+    ...attrCandidates,
+    ...segmentCandidates,
+  ].map(simplifyRepeatedName);
+
+  const uniqueCandidates = Array.from(new Set(bankCandidates));
 
   const statementCandidates = [];
   const attrStatement = normalizeStatement(getAttribute($cell, STATEMENT_ATTR_NAMES));
   if (attrStatement) statementCandidates.push(attrStatement);
-  bankCandidates.forEach((candidate) => {
+  uniqueCandidates.forEach((candidate) => {
     const normalized = normalizeStatement(candidate);
     if (normalized) statementCandidates.push(normalized);
   });
 
   const statement = statementCandidates.find(Boolean) || '';
-  const bank = bankCandidates.find((candidate) => isLikelyBank(candidate))
-    || bankCandidates.find((candidate) => !isLikelyStatement(candidate) && !isLikelyCurrency(candidate))
+  const bank = uniqueCandidates.find((candidate) => isLikelyBank(candidate))
+    || uniqueCandidates.find((candidate) => !isLikelyStatement(candidate) && !isLikelyCurrency(candidate))
     || '';
 
-  return { bank, statement, bankCandidates };
+  return { bank, statement, bankCandidates: uniqueCandidates };
 }
 
 function inferBankFromBuyLink(link) {
@@ -297,7 +352,7 @@ function parseDataAttributeRows($) {
 
     const creditLimit = parseCurrency(getAttribute(productTd, ['creditlimit', 'credit-limit', 'limit', 'highlimit', 'high-limit']))
       ?? parseCurrency(getAttribute(productTd, ['availablelimit', 'available-limit']))
-      ?? 0;
+      ?? extractLimitFromSegments(segments);
     let dateOpened = tidyText(getAttribute(productTd, ['dateopened', 'date-opened', 'seasoning', 'seasoningtext', 'seasoning-text', 'age']));
     let reportingPeriod = tidyText(getAttribute(productTd, ['reportingperiod', 'reporting-period', 'reporting', 'bureaus', 'bureausreported', 'bureaus-reported']));
 
