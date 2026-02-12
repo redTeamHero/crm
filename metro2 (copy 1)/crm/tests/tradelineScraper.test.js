@@ -279,6 +279,35 @@ test('scrapeTradelines prioritizes explicit bank labels over noisy attribute ali
   assert.equal(results[1].price, 610);
 });
 
+test('scrapeTradelines extracts labeled values from free-form card text', async () => {
+  const html = `
+    <table>
+      <tr>
+        <td class="product_data" data-bankname="Discover">
+          <div class="tradeline-card">
+            <strong class="bank-name">Discover</strong><br>
+            Credit Limit: $15,000<br>
+            Seasoning: 8 years<br>
+            Reports To: Experian, Equifax, TransUnion<br>
+            Statement: 2024 Oct
+          </div>
+        </td>
+        <td class="product_price">$410</td>
+      </tr>
+    </table>
+  `;
+
+  const results = await scrapeTradelines(async () => createResponse(html));
+  assert.equal(results.length, 1);
+  const [row] = results;
+  assert.equal(row.bank, 'Discover');
+  assert.equal(row.price, 510);
+  assert.equal(row.limit, 15000);
+  assert.equal(row.age, '8 years');
+  assert.equal(row.reporting, 'Experian, Equifax, TransUnion');
+  assert.equal(row.statement_date, '2024 Oct');
+});
+
 test('scrapeTradelines throws when fetch fails', async () => {
   const fetchStub = async () => createResponse('nope', false, 500);
   await assert.rejects(() => scrapeTradelines(fetchStub), /Failed to fetch tradelines/);
