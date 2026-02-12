@@ -184,6 +184,9 @@ function extractLimitFromSegments(segments = []) {
   const patterns = [
     /(?:credit\s*)?limit[^\d$-]*([$]?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
     /high\s*limit[^\d$-]*([$]?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
+    /([$]?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:credit\s*)?limit/i,
+    /up\s*to[^\d$-]*([$]?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
+    /high\s*credit[^\d$-]*([$]?\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/i,
   ];
   for (const segment of segments) {
     const text = tidyText(segment);
@@ -196,6 +199,22 @@ function extractLimitFromSegments(segments = []) {
     }
   }
   return 0;
+}
+
+function extractLabeledText(segments = [], labels = []) {
+  if (!segments.length || !labels.length) return '';
+  const labelPattern = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const regex = new RegExp(`(?:^|\\b)(?:${labelPattern})\\s*[:\\-]?\\s*(.+)$`, 'i');
+
+  for (const segment of segments) {
+    const text = tidyText(segment);
+    if (!text) continue;
+    const match = text.match(regex);
+    if (!match?.[1]) continue;
+    const value = tidyText(match[1]);
+    if (value) return value;
+  }
+  return '';
 }
 
 const BANK_ATTR_NAMES = [
@@ -350,18 +369,23 @@ function parseDataAttributeRows($) {
     const segments = getTextSegments(productTd);
     const { bank: rawBank, statement, bankCandidates } = extractBankAndStatement(productTd, segments);
 
-    const creditLimit = parseCurrency(getAttribute(productTd, ['creditlimit', 'credit-limit', 'limit', 'highlimit', 'high-limit']))
+    const creditLimit = parseCurrency(getAttribute(productTd, ['creditlimit', 'credit-limit', 'limit', 'highlimit', 'high-limit', 'creditline', 'credit-line', 'highcredit', 'high-credit']))
       ?? parseCurrency(getAttribute(productTd, ['availablelimit', 'available-limit']))
+      ?? parseCurrency(extractLabeledText(segments, ['credit limit', 'limit', 'high limit', 'high credit', 'credit line']))
       ?? extractLimitFromSegments(segments);
-    let dateOpened = tidyText(getAttribute(productTd, ['dateopened', 'date-opened', 'seasoning', 'seasoningtext', 'seasoning-text', 'age']));
-    let reportingPeriod = tidyText(getAttribute(productTd, ['reportingperiod', 'reporting-period', 'reporting', 'bureaus', 'bureausreported', 'bureaus-reported']));
+    let dateOpened = tidyText(getAttribute(productTd, ['dateopened', 'date-opened', 'date_opened', 'seasoning', 'seasoningtext', 'seasoning-text', 'seasoned', 'age', 'ageofaccount', 'age-of-account']));
+    let reportingPeriod = tidyText(getAttribute(productTd, ['reportingperiod', 'reporting-period', 'reporting', 'reportsto', 'reports-to', 'bureaus', 'bureau', 'bureausreported', 'bureaus-reported']));
 
     if (!dateOpened) {
-      dateOpened = pickFallbackByPattern(segments, /(year|month|week|season)/i);
+      dateOpened = extractLabeledText(segments, ['seasoning', 'age', 'date opened', 'opened'])
+        || pickFallbackByPattern(segments, /(year|month|week|season)/i);
     }
     if (!reportingPeriod) {
-      reportingPeriod = pickFallbackByPattern(segments, /(experian|equifax|trans)/i);
+      reportingPeriod = extractLabeledText(segments, ['reporting', 'reports to', 'bureaus'])
+        || pickFallbackByPattern(segments, /(experian|equifax|trans)/i);
     }
+
+    const statementFromText = normalizeStatement(extractLabeledText(segments, ['statement', 'statement date', 'cycle', 'closing']));
 
     const rawClientPrice = parseCurrency(getAttribute(productTd, ['clientprice', 'client-price', 'retailprice', 'retail-price']));
     const rawWholesalePrice = parseCurrency(getAttribute(productTd, ['wholesaleprice', 'wholesale-price', 'baseprice', 'base-price']));
@@ -386,6 +410,10 @@ function parseDataAttributeRows($) {
       reporting: reportingPeriod,
       statement_date: statement,
     };
+
+    if (!record.statement_date && statementFromText) {
+      record.statement_date = statementFromText;
+    }
 
     let buyLink = tidyText(getAttribute(productTd, ['checkouturl', 'checkout-url', 'checkout', 'buy', 'buy-url', 'url']));
     if (!buyLink) {
