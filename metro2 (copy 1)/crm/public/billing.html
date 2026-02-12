@@ -107,7 +107,12 @@
       </div>
     </section>
 
-    <section id="billingMetrics" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <section id="billingMetrics" class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <article class="glass card p-5 space-y-2">
+        <p class="text-xs uppercase tracking-widest text-slate-500">Total billed (all clients)</p>
+        <p id="metricTotalBilledAll" class="text-2xl font-semibold text-slate-900">$0.00</p>
+        <p class="text-sm text-slate-600">Lifetime invoiced amount across every client.</p>
+      </article>
       <article class="glass card p-5 space-y-2">
         <p class="text-xs uppercase tracking-widest text-slate-500" data-i18n="billing.metrics.planLabel">Plan</p>
         <p id="planSummaryValue" class="text-xl font-semibold text-slate-900" data-i18n="billing.metrics.planValue">Growth Suite · $297/mo</p>
@@ -154,9 +159,17 @@
             <h3 class="text-xl font-semibold text-slate-900" data-i18n="billing.invoices.heading">Invoice history</h3>
             <p class="text-sm text-slate-600" data-i18n="billing.invoices.subheading">Monitor payments, disputes, and refunds.</p>
           </div>
-          <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-            <span class="badge badge-unpaid" data-i18n="billing.invoices.badges.dueSoon">Due soon</span>
-            <span class="badge badge-paid" data-i18n="billing.invoices.badges.paid">Paid</span>
+          <div class="flex flex-wrap items-end gap-3">
+            <label class="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+              <span>Client</span>
+              <select id="billingClientFilter" class="input min-w-[220px] text-sm">
+                <option value="all">All clients</option>
+              </select>
+            </label>
+            <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+              <span class="badge badge-unpaid" data-i18n="billing.invoices.badges.dueSoon">Due soon</span>
+              <span class="badge badge-paid" data-i18n="billing.invoices.badges.paid">Paid</span>
+            </div>
           </div>
         </div>
         <div class="overflow-x-auto rounded-2xl border border-white/40">

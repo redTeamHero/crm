@@ -80,13 +80,14 @@ setupPageTour('billing', {
 const $ = (s) => document.querySelector(s);
 
 const consumerId = getSelectedConsumerId();
+const noClientEl = document.getElementById('noClient');
+const billingContentEl = document.getElementById('billingContent');
 
+billingContentEl?.classList.remove('hidden');
 if(!consumerId){
-  document.getElementById('noClient').classList.remove('hidden');
+  noClientEl?.classList.remove('hidden');
 } else {
-  document.getElementById('billingContent').classList.remove('hidden');
-  loadInvoices();
-  loadPlans();
+  noClientEl?.classList.add('hidden');
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -117,8 +118,13 @@ const planNewBtn = document.getElementById('planNew');
 const planSummaryValueEl = document.getElementById('planSummaryValue');
 const planSummaryDescriptionEl = document.getElementById('planSummaryDescription');
 const planSummaryCta = document.getElementById('planSummaryCta');
+const billingClientFilterEl = document.getElementById('billingClientFilter');
+const metricTotalBilledAllEl = document.getElementById('metricTotalBilledAll');
 
-let lastInvoices = [];
+let consumerDirectory = new Map();
+let allInvoices = [];
+let filteredInvoices = [];
+let activeClientFilter = consumerId || 'all';
 
 function translate(key, replacements = {}) {
   const template = getTranslation(key, getCurrentLanguage());
@@ -166,13 +172,98 @@ planSummaryCta?.addEventListener('click', ()=>{
   }
 });
 
+billingClientFilterEl?.addEventListener('change', (event) => {
+  applyInvoiceFilter(event?.target?.value || 'all', { updateSelect: false });
+});
+
+loadInvoices();
+if(consumerId){
+  loadPlans();
+}
+
 async function loadInvoices(options = {}){
-  if(!consumerId) return;
-  if(!options.reRenderOnly){
-    const data = await api(`/api/invoices/${consumerId}`);
-    lastInvoices = data.invoices || [];
+  if(options.reRenderOnly){
+    renderInvoices(filteredInvoices);
+    return;
   }
-  renderInvoices(lastInvoices);
+
+  const consumersData = await api('/api/consumers');
+  const consumers = Array.isArray(consumersData?.consumers) ? consumersData.consumers : [];
+  consumerDirectory = new Map(consumers.map((consumer) => [consumer.id, consumer]));
+
+  const invoiceRequests = consumers.map(async (consumer) => {
+    const invoiceData = await api(`/api/invoices/${consumer.id}`);
+    const invoices = Array.isArray(invoiceData?.invoices) ? invoiceData.invoices : [];
+    return invoices.map((invoice) => ({ ...invoice, consumerId: invoice.consumerId || consumer.id }));
+  });
+
+  if(consumerId && !consumerDirectory.has(consumerId)){
+    invoiceRequests.push((async () => {
+      const invoiceData = await api(`/api/invoices/${consumerId}`);
+      const invoices = Array.isArray(invoiceData?.invoices) ? invoiceData.invoices : [];
+      return invoices.map((invoice) => ({ ...invoice, consumerId: invoice.consumerId || consumerId }));
+    })());
+  }
+
+  const invoiceBuckets = await Promise.all(invoiceRequests);
+  allInvoices = invoiceBuckets.flat();
+
+  renderClientFilterOptions();
+  updateAllClientsBilledMetric();
+
+  const targetFilter = billingClientFilterEl?.value || activeClientFilter || consumerId || 'all';
+  applyInvoiceFilter(targetFilter, { updateSelect: true });
+}
+
+function renderClientFilterOptions(){
+  if(!billingClientFilterEl) return;
+  const selected = billingClientFilterEl.value || activeClientFilter || consumerId || 'all';
+  billingClientFilterEl.innerHTML = '<option value="all">All clients</option>';
+
+  const sortedConsumers = [...consumerDirectory.values()].sort((a, b) => {
+    const nameA = (a?.name || '').toLowerCase();
+    const nameB = (b?.name || '').toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  sortedConsumers.forEach((consumer) => {
+    const option = document.createElement('option');
+    option.value = consumer.id;
+    option.textContent = consumer.name || consumer.email || consumer.id;
+    billingClientFilterEl.appendChild(option);
+  });
+
+  billingClientFilterEl.value = consumerDirectory.has(selected) || selected === 'all' ? selected : 'all';
+}
+
+function updateAllClientsBilledMetric(){
+  if(!metricTotalBilledAllEl) return;
+  const billedTotal = allInvoices.reduce((sum, invoice) => sum + (Number(invoice?.amount) || 0), 0);
+  metricTotalBilledAllEl.textContent = formatCurrency(billedTotal);
+}
+
+function applyInvoiceFilter(clientId, options = {}){
+  activeClientFilter = clientId || 'all';
+  filteredInvoices = activeClientFilter === 'all'
+    ? [...allInvoices]
+    : allInvoices.filter((invoice) => invoice.consumerId === activeClientFilter);
+
+  if(options.updateSelect && billingClientFilterEl){
+    const nextValue = consumerDirectory.has(activeClientFilter) || activeClientFilter === 'all' ? activeClientFilter : 'all';
+    billingClientFilterEl.value = nextValue;
+    activeClientFilter = nextValue;
+    if(nextValue === 'all'){
+      filteredInvoices = [...allInvoices];
+    }
+  }
+
+  renderInvoices(filteredInvoices);
+}
+
+function getConsumerDisplayName(consumerIdValue){
+  const consumer = consumerDirectory.get(consumerIdValue);
+  if(!consumer) return consumerIdValue || 'Unknown client';
+  return consumer.name || consumer.email || consumer.id;
 }
 
 function renderInvoices(invoices = []){
@@ -211,9 +302,13 @@ function renderInvoices(invoices = []){
       }
     }
 
+    const invoiceConsumerId = inv.consumerId || consumerId;
+    const clientLabel = getConsumerDisplayName(invoiceConsumerId);
+
     tr.innerHTML = `
       <td class="px-4 py-4 align-top">
         <div class="font-medium text-slate-900">${escapeHtml(inv.desc)}</div>
+        <div class="mt-1 text-xs text-slate-500">${escapeHtml(clientLabel)}</div>
         ${dueBadge}
       </td>
       <td class="px-4 py-4 font-semibold text-slate-900">${formatCurrency(amount)}</td>
@@ -221,7 +316,7 @@ function renderInvoices(invoices = []){
       <td class="px-4 py-4">${statusBadge}</td>
       <td class="px-4 py-4">
         <div class="flex flex-wrap gap-2">
-          ${inv.pdf ? `<a class="btn text-sm" target="_blank" href="/api/consumers/${consumerId}/state/files/${inv.pdf}">${escapeHtml(translate('billing.invoices.actions.pdf') || 'PDF')}</a>` : ''}
+          ${inv.pdf ? `<a class="btn text-sm" target="_blank" href="/api/consumers/${invoiceConsumerId}/state/files/${inv.pdf}">${escapeHtml(translate('billing.invoices.actions.pdf') || 'PDF')}</a>` : ''}
           ${inv.paid ? '' : `<button class="btn text-sm mark-paid" data-id="${inv.id}">${escapeHtml(translate('billing.invoices.actions.markPaid'))}</button>`}
         </div>
       </td>`;
@@ -265,6 +360,10 @@ document.getElementById('invAdd')?.addEventListener('click', async ()=>{
   const desc = $('#invDesc').value.trim();
   const amount = parseFloat($('#invAmount').value) || 0;
   const due = $('#invDue').value;
+  if(!consumerId){
+    alert('Select a client in Clients before adding an invoice.');
+    return;
+  }
   if(!desc || !amount) return;
   const company = JSON.parse(localStorage.getItem('companyInfo')||'{}');
   await api('/api/invoices', { method:'POST', body: JSON.stringify({ consumerId, desc, amount, due, company }) });
