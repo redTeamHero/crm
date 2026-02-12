@@ -75,6 +75,8 @@ function normalizeStatement(raw) {
   if (/^\d{1,2}(st|nd|rd|th)$/.test(lower)) return stripped;
   if (/^\d{1,2}(st|nd|rd|th)?\s*[-–]\s*\d{1,2}(st|nd|rd|th)?$/.test(lower)) return stripped;
   if (/^\d{1,2}\/\d{1,2}$/.test(lower)) return stripped;
+  if (/^\d{1,2}[/-]\d{2,4}$/.test(lower)) return stripped;
+  if (/^\d{4}[/-]\d{1,2}$/.test(lower)) return stripped;
   const hasMonth = MONTH_KEYWORDS.some((month) => lower.includes(month));
   if (hasMonth && /\d/.test(lower)) return stripped;
   if (STATEMENT_KEYWORDS.some((keyword) => lower.includes(keyword))) return stripped;

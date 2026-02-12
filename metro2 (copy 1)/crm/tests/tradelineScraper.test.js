@@ -308,6 +308,27 @@ test('scrapeTradelines extracts labeled values from free-form card text', async 
   assert.equal(row.statement_date, '2024 Oct');
 });
 
+test('scrapeTradelines keeps numeric month/year statement formats', async () => {
+  const html = `
+    <table>
+      <tr>
+        <td class="product_data" data-bankname="Lambda Bank" data-clientprice="$510" data-statementdate="10/2024">
+          <div class="tradeline-card">
+            <strong class="bank-name">Lambda Bank</strong><br>
+            Credit Limit: $9,000<br>
+            Statement: 10/2024
+          </div>
+        </td>
+        <td class="product_price">$410</td>
+      </tr>
+    </table>
+  `;
+
+  const results = await scrapeTradelines(async () => createResponse(html));
+  assert.equal(results.length, 1);
+  assert.equal(results[0].statement_date, '10/2024');
+});
+
 test('scrapeTradelines throws when fetch fails', async () => {
   const fetchStub = async () => createResponse('nope', false, 500);
   await assert.rejects(() => scrapeTradelines(fetchStub), /Failed to fetch tradelines/);
