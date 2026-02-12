@@ -10,28 +10,12 @@ runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
-mode = "parallel"
+mode = "sequential"
 author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Client Portal"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "CRM Backend"
-
-[[workflows.workflow]]
-name = "Client Portal"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd apps/client-portal && npm run dev"
-waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow]]
 name = "CRM Backend"
@@ -50,10 +34,10 @@ localPort = 3000
 externalPort = 3001
 
 [[ports]]
-localPort = 5000
+localPort = 3000
 externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["npm start"]
-build = ["npm install && npm run build"]
+run = ["npm --prefix \"metro2 (copy 1)/crm\" start"]
+build = ["npm --prefix \"metro2 (copy 1)/crm\" install"]
