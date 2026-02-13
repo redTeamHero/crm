@@ -33,11 +33,7 @@ outputType = "console"
 localPort = 3000
 externalPort = 3001
 
-[[ports]]
-localPort = 3000
-externalPort = 80
-
 [deployment]
 deploymentTarget = "autoscale"
-run = ["npm --prefix \"metro2 (copy 1)/crm\" start"]
-build = ["npm --prefix \"metro2 (copy 1)/crm\" install"]
+run = ["bash", "-c", "cd 'metro2 (copy 1)/crm' && NODE_ENV=production node server.js"]
+build = ["bash", "-c", "cd 'metro2 (copy 1)/crm' && NODE_ENV=production npm install --production"]
