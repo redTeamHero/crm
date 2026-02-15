@@ -538,7 +538,7 @@
     var GOLD_DIM = 'rgba(212,168,83,0.3)';
     var BLUE = '#6d9eeb';
     var t0 = performance.now();
-    var SCENE_DUR = [2200, 2000, 1800, 1500, 2500];
+    var SCENE_DUR = [2200, 2200, 1800, 2500];
     var TOTAL = SCENE_DUR.reduce(function(a,b){return a+b},0);
     var sceneStarts = [];
     var acc = 0;
@@ -572,12 +572,6 @@
         glitchOffset: Math.random()*6-3,
         alpha: 0.7+Math.random()*0.3
       });
-    }
-
-    var helixPts = 48;
-    var helixData = [];
-    for(var i=0;i<helixPts;i++){
-      helixData.push({ angle: (i/helixPts)*Math.PI*4, yOff: (i/helixPts)*2-1 });
     }
 
     var butterflyWingL = [], butterflyWingR = [];
@@ -649,46 +643,6 @@
         ctx.fillText(f.text, fx, fy);
         ctx.restore();
       }
-    }
-
-    function drawScene1(p){
-      var ep = ease(p);
-      var radius = lerp(120, 50, ep);
-      var heightSpread = lerp(0.15, 0.35, ep);
-
-      ctx.save();
-      ctx.translate(cx, cy);
-
-      for(var strand=0;strand<2;strand++){
-        ctx.beginPath();
-        for(var i=0;i<helixPts;i++){
-          var d = helixData[i];
-          var ang = d.angle + performance.now()*0.001 + strand*Math.PI;
-          var x = Math.cos(ang) * radius;
-          var y = d.yOff * H * heightSpread;
-          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-        }
-        ctx.strokeStyle = strand===0 ? GOLD : BLUE;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = ep;
-        ctx.stroke();
-      }
-
-      for(var i=0;i<helixPts;i+=4){
-        var d = helixData[i];
-        var ang1 = d.angle + performance.now()*0.001;
-        var ang2 = ang1 + Math.PI;
-        var x1 = Math.cos(ang1)*radius, y1 = d.yOff*H*heightSpread;
-        var x2 = Math.cos(ang2)*radius, y2 = d.yOff*H*heightSpread;
-        ctx.beginPath();
-        ctx.moveTo(x1,y1);
-        ctx.lineTo(x2,y2);
-        ctx.strokeStyle = 'rgba(212,168,83,'+ep*0.3+')';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      ctx.restore();
     }
 
     function drawScene2(p){
@@ -865,16 +819,8 @@
           drawScene0(1);
           ctx.restore();
         }
-        drawScene1(p);
-      } else if(s === 2){
-        if(p < 0.2){
-          ctx.save();
-          ctx.globalAlpha = 1 - p/0.2;
-          drawScene1(1);
-          ctx.restore();
-        }
         drawScene2(p);
-      } else if(s === 3){
+      } else if(s === 2){
         if(p < 0.2){
           ctx.save();
           ctx.globalAlpha = 1 - p/0.2;
