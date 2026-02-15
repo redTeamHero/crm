@@ -1663,15 +1663,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (negativeItemsSection) negativeItemsSection.classList.add('hidden');
     if (paymentSection) paymentSection.classList.add('hidden');
     if (tradelineSection) tradelineSection.classList.add('hidden');
-    if (invoiceRefreshTimer) {
-      clearInterval(invoiceRefreshTimer);
-      invoiceRefreshTimer = null;
-    }
 
-    const moduleKey = HASH_TO_PORTAL_MODULE[hash];
-    if (!isPortalModuleEnabled(portalSettings.modules, moduleKey)) {
-      if (portalMain) portalMain.classList.remove('hidden');
-      return;
+    const moduleKey = HASH_TO_PORTAL_MODULE[hash] || 'overview';
+    
+    // Overview is always enabled or fallback
+    if (hash && hash !== '#' && hash !== '#overview') {
+      if (!isPortalModuleEnabled(portalSettings.modules, moduleKey)) {
+        if (portalMain) portalMain.classList.remove('hidden');
+        return;
+      }
     }
 
     if (hash === '#uploads' && uploadSection) {
@@ -1690,7 +1690,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (hash === '#payments' && paymentSection) {
       paymentSection.classList.remove('hidden');
       loadInvoices({ force: true });
-      invoiceRefreshTimer = setInterval(() => loadInvoices({ force: true }), 60000);
     } else if (hash === '#tradelines' && tradelineSection) {
       tradelineSection.classList.remove('hidden');
     } else if (hash === '#negative-items' && negativeItemsSection) {
