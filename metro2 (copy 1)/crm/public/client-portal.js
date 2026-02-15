@@ -1224,6 +1224,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const dueText = formatDue(inv.due);
       const overdue = isOverdue(inv);
       const dueSoon = isDueSoon(inv);
+      const statusIcon = inv.paid
+        ? '<div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#34d399,#10b981)"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>'
+        : overdue
+        ? '<div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#f87171,#ef4444)"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>'
+        : '<div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#818cf8,#6366f1)"><svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>';
       const badges = [
         inv.paid ? '<span class="badge badge-paid">Paid</span>' : '<span class="badge badge-unpaid">Open</span>',
         overdue ? '<span class="badge badge-unpaid">Overdue</span>' : (dueSoon ? '<span class="badge badge-unpaid">Due soon</span>' : '')
@@ -1238,15 +1243,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const pdfUrl = inv.pdf ? `/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(inv.pdf)}` : '';
       const pdfButton = inv.pdf ? `<a class="btn text-xs" target="_blank" rel="noopener" href="${pdfUrl}">Invoice PDF</a>` : '';
       return `
-        <div class="glass card p-4 flex flex-col gap-3">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <div class="font-semibold text-base">${escape(inv.desc || 'Invoice')}</div>
-              <div class="text-xs muted">${escape(dueText)}</div>
+        <div class="invoice-card flex flex-col gap-3">
+          <div class="flex items-center gap-3">
+            ${statusIcon}
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-sm">${esc(inv.desc || 'Invoice')}</div>
+              <div class="text-xs text-slate-400">${esc(dueText)}</div>
             </div>
             <div class="text-right">
-              <div class="text-lg font-semibold">${amountText}</div>
-              <div class="flex flex-wrap gap-2 justify-end mt-1">${badges}</div>
+              <div class="text-lg font-bold text-slate-800">${amountText}</div>
+              <div class="flex flex-wrap gap-1 justify-end mt-1">${badges}</div>
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
@@ -1264,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(paymentList) paymentList.innerHTML = '';
     if(paymentEmpty) paymentEmpty.classList.add('hidden');
     if(paymentError){
-      paymentError.textContent = message || 'Failed to load invoices. Please retry.';
+      paymentError.innerHTML = '<strong>Error:</strong> ' + esc(message || 'Failed to load invoices. Please retry.');
       paymentError.classList.remove('hidden');
     }
   }
@@ -1419,10 +1425,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function esc(str){ return String(str).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
+  function updateMailEmptyState(){
+    const emptyEl = document.getElementById('mailEmptyState');
+    if(!emptyEl) return;
+    const waitingVisible = mailWaiting && !mailWaiting.classList.contains('hidden');
+    const mailedVisible = mailMailed && !mailMailed.classList.contains('hidden');
+    const activeEl = waitingVisible ? mailWaiting : (mailedVisible ? mailMailed : null);
+    if(activeEl && activeEl.children.length > 0){
+      emptyEl.classList.add('hidden');
+    } else {
+      emptyEl.classList.remove('hidden');
+    }
+  }
+
   function renderMailList(el, items, allowMail){
     if(!el) return;
-    if(!items.length){ el.innerHTML='<div class="muted text-sm">No letters.</div>'; return; }
-    el.innerHTML = items.map(it=>`<div class="glass card tl-card flex items-center justify-between"><div class="font-medium">${esc(it.name)}</div><div class="flex gap-2"><a class="btn text-xs" href="${it.url}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${it.jobId}" data-file="${it.file}">Mail</button>`:''}</div></div>`).join('');
+    if(!items.length){
+      el.innerHTML='';
+      updateMailEmptyState();
+      return;
+    }
+    const iconClass = allowMail ? 'waiting' : 'mailed';
+    const statusText = allowMail ? 'Pending' : 'Sent';
+    const svgIcon = allowMail
+      ? '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+      : '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+    el.innerHTML = items.map(it=>`<div class="mail-card"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status">${statusText}</div></div><div class="flex gap-2"><a class="btn text-xs" href="${it.url}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${it.jobId}" data-file="${it.file}">Mail</button>`:''}</div></div>`).join('');
+    updateMailEmptyState();
     if(allowMail){
       el.querySelectorAll('.mail-act').forEach(btn=>{
         btn.addEventListener('click',async ()=>{
@@ -1456,12 +1485,14 @@ document.addEventListener('DOMContentLoaded', () => {
       mailTabMailed.classList.remove('active');
       if(mailWaiting) mailWaiting.classList.remove('hidden');
       if(mailMailed) mailMailed.classList.add('hidden');
+      updateMailEmptyState();
     });
     mailTabMailed.addEventListener('click',()=>{
       mailTabMailed.classList.add('active');
       mailTabWaiting.classList.remove('active');
       if(mailMailed) mailMailed.classList.remove('hidden');
       if(mailWaiting) mailWaiting.classList.add('hidden');
+      updateMailEmptyState();
     });
   }
 

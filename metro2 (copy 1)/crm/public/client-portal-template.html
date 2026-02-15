@@ -279,25 +279,58 @@
       </section>
 
       <section id="mailSection" class="hidden">
-        <div class="glass card p-4 space-y-3">
-          <div class="text-sm font-semibold">Mail Activity</div>
-          <div class="flex gap-2">
-            <button id="mailTabWaiting" class="btn text-xs" type="button">Waiting</button>
-            <button id="mailTabMailed" class="btn text-xs" type="button">Mailed</button>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-slate-800">Mail Activity</h2>
+              <p class="text-sm text-slate-500">Track your dispute letters and mailing status.</p>
+            </div>
           </div>
-          <div id="mailWaiting" class="space-y-2 text-sm text-slate-700"></div>
-          <div id="mailMailed" class="space-y-2 text-sm text-slate-700"></div>
+          <div class="flex gap-2">
+            <button id="mailTabWaiting" class="mail-tab active" type="button">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Waiting
+            </button>
+            <button id="mailTabMailed" class="mail-tab" type="button">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Mailed
+            </button>
+          </div>
+          <div id="mailWaiting" class="space-y-3"></div>
+          <div id="mailMailed" class="space-y-3 hidden"></div>
+          <div id="mailEmptyState" class="hidden glass card p-8 text-center">
+            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <p class="text-sm text-slate-500">No letters in this category yet.</p>
+            <p class="text-xs text-slate-400 mt-1">Generated dispute letters will appear here.</p>
+          </div>
         </div>
       </section>
 
-      <section id="paymentSection" class="hidden space-y-4">
-        <div id="payments"></div>
-        <div class="glass card p-4 space-y-3">
-          <div class="text-sm font-semibold">Payments</div>
-          <div id="paymentError" class="text-xs text-rose-500"></div>
-          <div id="paymentList" class="space-y-2 text-sm text-slate-700"></div>
-          <div id="paymentEmpty" class="text-sm text-slate-500"></div>
-          <div id="paymentTotal" class="text-sm font-semibold text-slate-900"></div>
+      <section id="paymentSection" class="hidden">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-slate-800">Payments</h2>
+              <p class="text-sm text-slate-500">View and manage your invoices.</p>
+            </div>
+          </div>
+          <div id="paymentSummaryCard" class="glass card p-5 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+              <svg class="w-6 h-6 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div>
+              <div class="text-xs text-slate-500 font-medium">Outstanding Balance</div>
+              <div id="paymentTotal" class="text-2xl font-bold text-slate-800">$0.00</div>
+            </div>
+          </div>
+          <div id="paymentError" class="hidden glass card p-4 border-l-4 border-rose-400 text-sm text-rose-600"></div>
+          <div id="paymentList" class="space-y-3"></div>
+          <div id="paymentEmpty" class="hidden glass card p-8 text-center">
+            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <p class="text-sm text-slate-500">No invoices yet.</p>
+            <p class="text-xs text-slate-400 mt-1">Your billing history will appear here.</p>
+          </div>
+          <div id="payments"></div>
         </div>
       </section>
 
