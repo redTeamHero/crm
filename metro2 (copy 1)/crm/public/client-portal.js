@@ -646,7 +646,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const snapEl = document.getElementById('reportSnapshot');
   if (snapEl) {
-    const snap = JSON.parse(localStorage.getItem('creditSnapshot') || '{}');
+    let snap = {};
+    try {
+      if (window.__PORTAL_BOOTSTRAP__?.snapshot) {
+        snap = window.__PORTAL_BOOTSTRAP__.snapshot;
+      } else {
+        snap = JSON.parse(localStorage.getItem('creditSnapshot') || '{}');
+      }
+    } catch { snap = {}; }
     const summary = Array.isArray(snap.summary) ? snap.summary : [];
     const totalIssues = Number.isFinite(snap.totalIssues) ? snap.totalIssues : 0;
     if(summary.length){

@@ -1456,6 +1456,7 @@ async function renderClientPortalForConsumer(req, res, consumerId) {
       consumer: payload.consumer,
       creditScore: payload.creditScore,
       portalSettings: payload.portalSettings,
+      snapshot: payload.snapshot,
     },
     portalEnhanced: {
       reminders: payload.reminders,
