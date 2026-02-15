@@ -1537,9 +1537,57 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
   });
 
+  async function loadBookedCalls() {
+    const listEl = document.getElementById('bookedCallsList');
+    if (!listEl) return;
+    try {
+      const resp = await fetch('/api/booking/bookings');
+      const data = await resp.json();
+      if (!data.ok || !data.bookings.length) {
+        listEl.innerHTML = '<p class="text-sm text-slate-400">No upcoming booked calls</p>';
+        return;
+      }
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const upcoming = data.bookings.filter(b => b.date >= todayStr);
+      if (!upcoming.length) {
+        listEl.innerHTML = '<p class="text-sm text-slate-400">No upcoming booked calls</p>';
+        return;
+      }
+      listEl.innerHTML = upcoming.slice(0, 10).map(b => {
+        const [h, m] = b.time.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        const niceTime = h12 + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+        const d = new Date(b.date + 'T12:00:00');
+        const niceDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const contactInfo = [b.phone, b.email].filter(Boolean).join(' · ') || '';
+        return `<div class="p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-semibold text-indigo-900">${esc(b.name)}</span>
+            <span class="text-xs text-indigo-600 font-medium">${esc(niceTime)}</span>
+          </div>
+          <p class="text-xs text-indigo-700">${esc(niceDate)}</p>
+          ${contactInfo ? `<p class="text-xs text-slate-500 mt-1">${esc(contactInfo)}</p>` : ''}
+          ${b.notes ? `<p class="text-xs text-slate-400 mt-1 italic">${esc(b.notes)}</p>` : ''}
+        </div>`;
+      }).join('');
+    } catch (e) {
+      listEl.innerHTML = '<p class="text-sm text-red-400">Failed to load bookings</p>';
+    }
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    const el = document.createElement('span');
+    el.textContent = s;
+    return el.innerHTML;
+  }
+
   (async function init() {
     await loadEvents();
     render();
+    loadBookedCalls();
   })();
 });
 

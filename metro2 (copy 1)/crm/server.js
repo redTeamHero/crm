@@ -1982,21 +1982,41 @@ app.post("/api/booking/book", async (req, res) => {
     bookings.push(booking);
     await writeKey("call_bookings", bookings);
 
-    try {
-      const settings = await loadSettings();
-      if (settings.googleCalendarToken && settings.googleCalendarId) {
-        const endH = Math.floor((reqMinutes + slotMinutes) / 60);
-        const endM = (reqMinutes + slotMinutes) % 60;
-        const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
-        await createCalendarEvent({
-          summary: `Call with ${name}`,
-          description: `Phone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nNotes: ${notes || ""}`,
-          start: { dateTime: `${date}T${time}:00`, timeZone: avail.timezone },
-          end: { dateTime: `${date}T${endTime}:00`, timeZone: avail.timezone },
+    const endH = Math.floor((reqMinutes + slotMinutes) / 60);
+    const endM = (reqMinutes + slotMinutes) % 60;
+    const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+    const h12 = (parseInt(time.split(":")[0]) % 12) || 12;
+    const ampm = parseInt(time.split(":")[0]) >= 12 ? "PM" : "AM";
+    const niceTime = `${h12}:${time.split(":")[1]} ${ampm}`;
+    const niceDate = new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+
+    if (consumerId) {
+      try {
+        const msgText = `New call booked for ${niceDate} at ${niceTime}.\nName: ${name}\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}${notes ? "\nNotes: " + notes : ""}`;
+        await addEvent(consumerId, "message", { from: "system", text: msgText });
+        await addEvent(consumerId, "call_booked", {
+          bookingId: booking.id,
+          date,
+          time,
+          name,
+          email: email || "",
+          phone: phone || "",
+          notes: notes || "",
         });
+      } catch (msgErr) {
+        logWarn("BOOKING_MESSAGE_FAILED", msgErr?.message || "Could not post booking notification");
       }
+    }
+
+    try {
+      await createCalendarEvent({
+        summary: `Call with ${name}`,
+        description: `Phone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nNotes: ${notes || ""}${consumerId ? "\nClient ID: " + consumerId : ""}`,
+        start: { dateTime: `${date}T${time}:00`, timeZone: avail.timezone },
+        end: { dateTime: `${date}T${endTime}:00`, timeZone: avail.timezone },
+      });
     } catch (calErr) {
-      logWarn("BOOKING_CALENDAR_SYNC_FAILED", calErr?.message || "Could not sync to Google Calendar");
+      logWarn("BOOKING_CALENDAR_SYNC_FAILED", calErr?.message || "Could not sync to calendar");
     }
 
     res.json({ ok: true, booking });
