@@ -1288,40 +1288,100 @@ document.addEventListener('DOMContentLoaded', () => {
         invoiceLoading = false;
       });
   }
+  let allDocs = [];
+  function getFileExt(name) {
+    const m = (name || '').match(/\.(\w+)$/);
+    return m ? m[1].toLowerCase() : '';
+  }
+  function getDocIconClass(ext) {
+    if (ext === 'pdf') return 'doc-icon-pdf';
+    if (ext === 'html' || ext === 'htm') return 'doc-icon-html';
+    if (ext === 'doc' || ext === 'docx' || ext === 'txt' || ext === 'rtf') return 'doc-icon-doc';
+    if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(ext)) return 'doc-icon-img';
+    return 'doc-icon-default';
+  }
+  function getDocIconLabel(ext) {
+    if (ext === 'pdf') return 'PDF';
+    if (ext === 'html' || ext === 'htm') return 'HTML';
+    if (ext === 'doc' || ext === 'docx') return 'DOC';
+    if (ext === 'txt') return 'TXT';
+    if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(ext)) return 'IMG';
+    return 'FILE';
+  }
+  function renderDocCard(d) {
+    const ext = getFileExt(d.originalName);
+    const iconClass = getDocIconClass(ext);
+    const iconLabel = getDocIconLabel(ext);
+    const created = d.createdAt ? new Date(d.createdAt) : null;
+    const dateStr = created && !Number.isNaN(created.getTime())
+      ? created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '';
+    const metaParts = [ext.toUpperCase(), dateStr].filter(Boolean).join(' · ');
+    const safeName = esc(d.originalName);
+    return `<a class="doc-card" href="/api/consumers/${consumerId}/state/files/${d.storedName}" target="_blank" title="${safeName}">
+      <div class="doc-card-icon ${iconClass}">${iconLabel}</div>
+      <div class="doc-card-info">
+        <div class="doc-card-name">${safeName}</div>
+        <div class="doc-card-meta">${metaParts}</div>
+      </div>
+      <div class="doc-card-action"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+    </a>`;
+  }
+  function renderDocList(docs) {
+    const docCountLabel = document.getElementById('docCountLabel');
+    const docEmpty = document.getElementById('docEmpty');
+    if (docCountLabel) docCountLabel.textContent = docs.length ? `${docs.length} file${docs.length !== 1 ? 's' : ''} in your vault` : 'Your uploaded files';
+    if (docEl) {
+      if (!docs.length) {
+        docEl.innerHTML = '';
+        if (docEmpty) docEmpty.classList.remove('hidden');
+      } else {
+        if (docEmpty) docEmpty.classList.add('hidden');
+        docEl.innerHTML = docs.map(renderDocCard).join('');
+      }
+    }
+  }
   function loadDocs(){
     if (!(consumerId && (docEl || docPreviewEl))) return;
     fetch(`/api/consumers/${consumerId}/state`)
       .then(r => r.json())
       .then(data => {
-        const docs = data.state?.files || [];
+        allDocs = data.state?.files || [];
         if (data.state?.creditScore) {
           applyCreditScore(data.state.creditScore);
         }
-        const docMarkup = docs.map(d => `<div class="news-item"><a href="/api/consumers/${consumerId}/state/files/${d.storedName}" target="_blank">${d.originalName}</a></div>`).join('');
-        if (docEl) {
-          if (!docs.length) docEl.textContent = 'No documents uploaded.';
-          else docEl.innerHTML = docMarkup;
-        }
+        renderDocList(allDocs);
         if (docPreviewEl) {
-          if (!docs.length) {
+          if (!allDocs.length) {
             docPreviewEl.textContent = 'No documents uploaded.';
           } else {
-            const previewDocs = docs.slice(0, 3).map(d => {
+            const previewDocs = allDocs.slice(0, 3).map(d => {
+              const ext = getFileExt(d.originalName);
+              const iconClass = getDocIconClass(ext);
+              const iconLabel = getDocIconLabel(ext);
               const created = d.createdAt ? new Date(d.createdAt) : null;
               const timestamp = created && !Number.isNaN(created.getTime())
-                ? created.toLocaleDateString()
+                ? created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                 : 'Ready to view';
-              return `<div class="news-item preview-item"><div class="font-medium">${d.originalName}</div><div class="text-xs muted">${timestamp}</div></div>`;
+              return `<div class="doc-card" style="cursor:default;"><div class="doc-card-icon ${iconClass}">${iconLabel}</div><div class="doc-card-info"><div class="doc-card-name">${esc(d.originalName)}</div><div class="doc-card-meta">${timestamp}</div></div></div>`;
             }).join('');
-            const overflow = docs.length > 3 ? `<div class="text-xs muted">+${docs.length - 3} more in your library</div>` : '';
+            const overflow = allDocs.length > 3 ? `<div class="text-xs text-slate-500 mt-2">+${allDocs.length - 3} more in your library</div>` : '';
             docPreviewEl.innerHTML = previewDocs + overflow;
           }
         }
       })
       .catch(() => {
-        if (docEl) docEl.textContent = 'Failed to load documents.';
+        if (docEl) docEl.innerHTML = '<p class="text-sm text-red-500">Failed to load documents.</p>';
         if (docPreviewEl) docPreviewEl.textContent = 'Failed to load documents.';
       });
+  }
+  const docSearchInput = document.getElementById('docSearchInput');
+  if (docSearchInput) {
+    docSearchInput.addEventListener('input', () => {
+      const q = docSearchInput.value.toLowerCase().trim();
+      if (!q) { renderDocList(allDocs); return; }
+      renderDocList(allDocs.filter(d => (d.originalName || '').toLowerCase().includes(q)));
+    });
   }
   loadDocs();
   loadMessages();

@@ -4315,6 +4315,82 @@ header#host-nav {
   }
 }
 
+/* Document Vault */
+.doc-vault-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.doc-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.85);
+  border: 1px solid var(--glass-brd);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  overflow: hidden;
+}
+.doc-card:hover {
+  background: var(--accent-bg);
+  border-color: rgba(99,102,241,0.2);
+  box-shadow: 0 4px 12px rgba(99,102,241,0.08);
+  transform: translateY(-1px);
+}
+.doc-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: white;
+}
+.doc-icon-pdf { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.doc-icon-html { background: linear-gradient(135deg, #f97316, #ea580c); }
+.doc-icon-doc { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.doc-icon-img { background: linear-gradient(135deg, #10b981, #059669); }
+.doc-icon-default { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+.doc-card-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.doc-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.doc-card-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.doc-card-action {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+.doc-card:hover .doc-card-action {
+  color: var(--accent);
+}
+@media (max-width: 768px) {
+  .doc-vault-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Override the old portal body background for sidebar layout */
 body.portal-layout {
   background: #f8f9ff;
