@@ -24,6 +24,9 @@ import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, u
 
 import { fetchFn } from "./fetchUtil.js";
 import { scrapeTradelines } from "./tradelineScraper.js";
+import { getStripeSync, getUncachableStripeClient, getStripePublishableKey } from "./stripeClient.js";
+import { WebhookHandlers } from "./webhookHandlers.js";
+import pg from "pg";
 import {
   groupTradelinesByPrice,
   buildRangeSummary,
@@ -1030,6 +1033,30 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
 }
 
 const app = express();
+
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+    if (!signature) {
+      return res.status(400).json({ error: 'Missing stripe-signature' });
+    }
+    try {
+      const sig = Array.isArray(signature) ? signature[0] : signature;
+      if (!Buffer.isBuffer(req.body)) {
+        console.error('STRIPE WEBHOOK: req.body is not a Buffer');
+        return res.status(500).json({ error: 'Webhook processing error' });
+      }
+      await WebhookHandlers.processWebhook(req.body, sig);
+      res.status(200).json({ received: true });
+    } catch (error) {
+      console.error('Webhook error:', error.message);
+      res.status(400).json({ error: 'Webhook processing error' });
+    }
+  }
+);
+
 app.use(express.json({ limit: "10mb" }));
 let mailer = null;
 if(nodemailer && process.env.SMTP_HOST){
@@ -8213,6 +8240,347 @@ app.get('/api/diy/letters/:id/download', diyAuthenticate, async (req, res) => {
 // END DIY ROUTES
 // ============================================================================
 
+// ============================================================================
+// STRIPE SUBSCRIPTION ROUTES
+// ============================================================================
+
+app.get('/api/stripe/publishable-key', async (_req, res) => {
+  try {
+    const key = await getStripePublishableKey();
+    res.json({ ok: true, publishableKey: key });
+  } catch (err) {
+    res.json({ ok: false, publishableKey: null });
+  }
+});
+
+app.get('/api/stripe/products', async (_req, res) => {
+  try {
+    const result = await pgQuery(`
+      SELECT p.id, p.name, p.description, p.metadata, p.active,
+             pr.id as price_id, pr.unit_amount, pr.currency, pr.recurring, pr.active as price_active
+      FROM stripe.products p
+      LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+      WHERE p.active = true
+      ORDER BY p.metadata->>'type', pr.unit_amount
+    `);
+
+    const productsMap = new Map();
+    for (const row of result.rows) {
+      if (!productsMap.has(row.id)) {
+        const meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : (row.metadata || {});
+        productsMap.set(row.id, {
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          metadata: meta,
+          type: meta.type || 'crm',
+          tier: meta.tier || '',
+          prices: []
+        });
+      }
+      if (row.price_id) {
+        const recurring = typeof row.recurring === 'string' ? JSON.parse(row.recurring) : (row.recurring || {});
+        productsMap.get(row.id).prices.push({
+          id: row.price_id,
+          unit_amount: row.unit_amount,
+          currency: row.currency || 'usd',
+          interval: recurring.interval || 'month'
+        });
+      }
+    }
+
+    const products = Array.from(productsMap.values());
+    res.json({ ok: true, products });
+  } catch (err) {
+    logError('STRIPE_PRODUCTS_ERROR', err);
+    res.json({ ok: true, products: [] });
+  }
+});
+
+app.post('/api/stripe/checkout', async (req, res) => {
+  try {
+    const { priceId, mode = 'crm', userId, email } = req.body;
+    if (!priceId) {
+      return res.status(400).json({ ok: false, error: 'Price ID required' });
+    }
+
+    const stripe = await getUncachableStripeClient();
+    const base = `${req.protocol}://${req.get('host')}`;
+
+    let customerId = null;
+
+    if (mode === 'diy' && userId) {
+      const db = await loadDiyUsersDB();
+      const user = db.users.find(u => u.id === userId);
+      if (user?.stripeCustomerId) {
+        customerId = user.stripeCustomerId;
+      } else if (user) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          metadata: { userId: user.id, mode: 'diy' }
+        });
+        customerId = customer.id;
+        user.stripeCustomerId = customerId;
+        await saveDiyUsersDB(db);
+      }
+    } else if (mode === 'crm' && req.user) {
+      const usersDb = await loadUsersDB();
+      const crmUser = usersDb.users.find(u => u.id === req.user.id);
+      if (crmUser?.stripeCustomerId) {
+        customerId = crmUser.stripeCustomerId;
+      } else if (crmUser) {
+        const customer = await stripe.customers.create({
+          email: crmUser.email || crmUser.username,
+          metadata: { userId: crmUser.id, mode: 'crm', tenantId: crmUser.tenantId || '' }
+        });
+        customerId = customer.id;
+        crmUser.stripeCustomerId = customerId;
+        await writeKey('users', usersDb);
+      }
+    }
+
+    const successUrl = mode === 'diy'
+      ? `${base}/diy/dashboard?subscription=success&session_id={CHECKOUT_SESSION_ID}`
+      : `${base}/billing?subscription=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = mode === 'diy'
+      ? `${base}/diy/dashboard?subscription=canceled`
+      : `${base}/billing?subscription=canceled`;
+
+    const sessionParams = {
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    };
+
+    if (customerId) {
+      sessionParams.customer = customerId;
+    } else if (email) {
+      sessionParams.customer_email = email;
+    }
+
+    sessionParams.metadata = { mode, userId: userId || '' };
+    sessionParams.subscription_data = { metadata: { mode, userId: userId || '' } };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    res.json({ ok: true, url: session.url, sessionId: session.id });
+  } catch (err) {
+    logError('STRIPE_CHECKOUT_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Checkout failed' });
+  }
+});
+
+app.post('/api/stripe/portal', async (req, res) => {
+  try {
+    const { customerId, mode = 'crm' } = req.body;
+    if (!customerId) {
+      return res.status(400).json({ ok: false, error: 'Customer ID required' });
+    }
+
+    const stripe = await getUncachableStripeClient();
+    const base = `${req.protocol}://${req.get('host')}`;
+    const returnUrl = mode === 'diy' ? `${base}/diy/dashboard` : `${base}/billing`;
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl
+    });
+
+    res.json({ ok: true, url: session.url });
+  } catch (err) {
+    logError('STRIPE_PORTAL_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Portal session failed' });
+  }
+});
+
+app.get('/api/stripe/subscription-status', optionalAuth, async (req, res) => {
+  try {
+    const { customerId, userId, mode = 'crm' } = req.query;
+    let stripeCustomerId = customerId;
+
+    if (!stripeCustomerId && mode === 'diy' && userId) {
+      const db = await loadDiyUsersDB();
+      const user = db.users.find(u => u.id === userId);
+      stripeCustomerId = user?.stripeCustomerId;
+    } else if (!stripeCustomerId && mode === 'crm' && req.user) {
+      const usersDb = await loadUsersDB();
+      const crmUser = usersDb.users.find(u => u.id === req.user.id);
+      stripeCustomerId = crmUser?.stripeCustomerId;
+    }
+
+    if (!stripeCustomerId) {
+      return res.json({ ok: true, subscription: null, plan: mode === 'diy' ? 'free' : null });
+    }
+
+    const result = await pgQuery(`
+      SELECT s.id, s.status, s.current_period_start, s.current_period_end,
+             s.cancel_at_period_end, s.metadata,
+             si.price as price_id
+      FROM stripe.subscriptions s
+      LEFT JOIN stripe.subscription_items si ON si.subscription = s.id
+      WHERE s.customer = $1
+        AND s.status IN ('active', 'trialing', 'past_due')
+      ORDER BY s.created DESC
+      LIMIT 1
+    `, [stripeCustomerId]);
+
+    if (result.rows.length === 0) {
+      return res.json({ ok: true, subscription: null, plan: mode === 'diy' ? 'free' : null });
+    }
+
+    const sub = result.rows[0];
+    let plan = null;
+
+    if (sub.price_id) {
+      const priceResult = await pgQuery(`
+        SELECT pr.id, pr.unit_amount, pr.recurring,
+               p.name, p.metadata as product_metadata
+        FROM stripe.prices pr
+        JOIN stripe.products p ON pr.product = p.id
+        WHERE pr.id = $1
+      `, [sub.price_id]);
+
+      if (priceResult.rows.length > 0) {
+        const priceRow = priceResult.rows[0];
+        const prodMeta = typeof priceRow.product_metadata === 'string' ? JSON.parse(priceRow.product_metadata) : (priceRow.product_metadata || {});
+        plan = prodMeta.tier || priceRow.name?.toLowerCase() || null;
+      }
+    }
+
+    res.json({
+      ok: true,
+      subscription: {
+        id: sub.id,
+        status: sub.status,
+        currentPeriodEnd: sub.current_period_end,
+        cancelAtPeriodEnd: sub.cancel_at_period_end
+      },
+      plan,
+      customerId: stripeCustomerId
+    });
+  } catch (err) {
+    logError('STRIPE_SUB_STATUS_ERROR', err);
+    res.json({ ok: true, subscription: null, plan: null });
+  }
+});
+
+const CRM_TIER_FEATURES = {
+  starter: {
+    maxClients: 25,
+    canBulkAutomate: false,
+    canUseAiLetters: false,
+    canWhiteLabel: false,
+    canAccessApi: false,
+    teamSeats: 1
+  },
+  growth: {
+    maxClients: -1,
+    canBulkAutomate: true,
+    canUseAiLetters: true,
+    canWhiteLabel: false,
+    canAccessApi: false,
+    teamSeats: 5
+  },
+  enterprise: {
+    maxClients: -1,
+    canBulkAutomate: true,
+    canUseAiLetters: true,
+    canWhiteLabel: true,
+    canAccessApi: true,
+    teamSeats: -1
+  }
+};
+
+app.get('/api/stripe/feature-access', optionalAuth, async (req, res) => {
+  try {
+    const { mode = 'crm', userId } = req.query;
+
+    if (mode === 'diy' && userId) {
+      const db = await loadDiyUsersDB();
+      const user = db.users.find(u => u.id === userId);
+      if (!user) return res.json({ ok: true, plan: 'free', features: DIY_PLAN_LIMITS.free });
+
+      if (user.stripeCustomerId && pgPool) {
+        try {
+          const subResult = await pgQuery(`
+            SELECT s.status, si.price as price_id
+            FROM stripe.subscriptions s
+            LEFT JOIN stripe.subscription_items si ON si.subscription = s.id
+            WHERE s.customer = $1 AND s.status IN ('active', 'trialing')
+            ORDER BY s.created DESC LIMIT 1
+          `, [user.stripeCustomerId]);
+
+          if (subResult.rows.length > 0) {
+            const priceResult = await pgQuery(`
+              SELECT p.metadata FROM stripe.prices pr
+              JOIN stripe.products p ON pr.product = p.id
+              WHERE pr.id = $1
+            `, [subResult.rows[0].price_id]);
+
+            if (priceResult.rows.length > 0) {
+              const meta = typeof priceResult.rows[0].metadata === 'string'
+                ? JSON.parse(priceResult.rows[0].metadata)
+                : (priceResult.rows[0].metadata || {});
+              const tier = meta.tier || 'basic';
+              return res.json({ ok: true, plan: tier, features: DIY_PLAN_LIMITS[tier] || DIY_PLAN_LIMITS.basic });
+            }
+          }
+        } catch (err) {
+          console.warn('Feature access check fallback:', err.message);
+        }
+      }
+
+      return res.json({ ok: true, plan: user.plan, features: DIY_PLAN_LIMITS[user.plan] || DIY_PLAN_LIMITS.free });
+    }
+
+    if (!req.user) {
+      return res.json({ ok: true, plan: null, features: CRM_TIER_FEATURES.starter });
+    }
+
+    const usersDb = await loadUsersDB();
+    const crmUser = usersDb.users.find(u => u.id === req.user.id);
+
+    if (crmUser?.stripeCustomerId && pgPool) {
+      try {
+        const subResult = await pgQuery(`
+          SELECT s.status, si.price as price_id
+          FROM stripe.subscriptions s
+          LEFT JOIN stripe.subscription_items si ON si.subscription = s.id
+          WHERE s.customer = $1 AND s.status IN ('active', 'trialing')
+          ORDER BY s.created DESC LIMIT 1
+        `, [crmUser.stripeCustomerId]);
+
+        if (subResult.rows.length > 0) {
+          const priceResult = await pgQuery(`
+            SELECT p.metadata FROM stripe.prices pr
+            JOIN stripe.products p ON pr.product = p.id
+            WHERE pr.id = $1
+          `, [subResult.rows[0].price_id]);
+
+          if (priceResult.rows.length > 0) {
+            const meta = typeof priceResult.rows[0].metadata === 'string'
+              ? JSON.parse(priceResult.rows[0].metadata)
+              : (priceResult.rows[0].metadata || {});
+            const tier = meta.tier || 'starter';
+            return res.json({ ok: true, plan: tier, features: CRM_TIER_FEATURES[tier] || CRM_TIER_FEATURES.starter });
+          }
+        }
+      } catch (err) {
+        console.warn('CRM feature access check fallback:', err.message);
+      }
+    }
+
+    return res.json({ ok: true, plan: null, features: CRM_TIER_FEATURES.starter });
+  } catch (err) {
+    logError('FEATURE_ACCESS_ERROR', err);
+    res.json({ ok: true, plan: null, features: CRM_TIER_FEATURES.starter });
+  }
+});
+
+// ============================================================================
+// END STRIPE SUBSCRIPTION ROUTES
+// ============================================================================
+
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
 const LAN_IP = (() => {
@@ -8226,9 +8594,54 @@ const LAN_IP = (() => {
   }
   return null;
 })();
+async function initStripeSubscriptions() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    console.warn('DATABASE_URL not set — Stripe subscription sync disabled');
+    return;
+  }
+  try {
+    const { runMigrations } = await import('stripe-replit-sync');
+    console.log('Initializing Stripe schema...');
+    await runMigrations({ databaseUrl });
+    console.log('Stripe schema ready');
+
+    const stripeSync = await getStripeSync();
+
+    const webhookBaseUrl = `https://${(process.env.REPLIT_DOMAINS || '').split(',')[0]}`;
+    if (webhookBaseUrl !== 'https://') {
+      console.log('Setting up managed webhook...');
+      try {
+        const result = await stripeSync.findOrCreateManagedWebhook(
+          `${webhookBaseUrl}/api/stripe/webhook`
+        );
+        console.log(`Webhook configured: ${result?.webhook?.url || 'ready'}`);
+      } catch (whErr) {
+        console.warn('Managed webhook setup note:', whErr.message);
+      }
+    }
+
+    console.log('Syncing Stripe data...');
+    stripeSync.syncBackfill()
+      .then(() => console.log('Stripe data synced'))
+      .catch((err) => console.error('Error syncing Stripe data:', err));
+  } catch (error) {
+    console.error('Failed to initialize Stripe subscriptions:', error.message);
+  }
+}
+
+const pgPool = process.env.DATABASE_URL ? new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3 }) : null;
+
+async function pgQuery(text, params = []) {
+  if (!pgPool) throw new Error('PostgreSQL not configured');
+  const result = await pgPool.query(text, params);
+  return result;
+}
+
 const shouldStartServer =
   process.env.NODE_ENV !== "test" || process.env.START_SERVER_IN_TEST === "true";
 if (shouldStartServer) {
+  initStripeSubscriptions().catch(err => console.error('Stripe init error:', err));
   app.listen(PORT, HOST, () => {
     const displayHost = HOST === "0.0.0.0" || HOST === "::" ? "localhost" : HOST;
     console.log(`CRM ready    http://${displayHost}:${PORT}`);

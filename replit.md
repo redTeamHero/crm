@@ -76,6 +76,31 @@ npm run dev
   - Fixed splitReportByBureau to only include tradelines with explicit bureau data
   - Preserved full byBureau context in split reports for cross-bureau audit logic
   - Added proper error propagation in parallel audit workflow
+- 2026-02-15: Implemented real Stripe subscription payments with feature gating
+  - Created stripeClient.js using Replit connector for credential management
+  - Created webhookHandlers.js for Stripe webhook processing via stripe-replit-sync
+  - Added PostgreSQL database for Stripe schema sync (stripe.products, stripe.prices, stripe.subscriptions)
+  - Webhook route registered BEFORE express.json() for raw body handling
+  - Stripe initialization on startup: schema migrations, managed webhook, data backfill
+  - Created 5 subscription products via seed-products.js:
+    - CRM: Starter ($97/mo), Growth ($297/mo), Enterprise ($597/mo)
+    - DIY: Basic ($29/mo), Pro ($79/mo)
+  - API endpoints: /api/stripe/products, /api/stripe/checkout, /api/stripe/portal, /api/stripe/subscription-status, /api/stripe/feature-access
+  - CRM billing page updated with pricing grid and subscription management UI
+  - DIY upgrade flow uses Stripe checkout with fallback to direct plan upgrade
+  - Feature gating: CRM tiers control client limits, bulk automation, AI letters, white-labeling, API access
+  - Feature gating: DIY tiers control audit access and letter generation limits
+
+### Stripe Integration Architecture
+- Credentials: Replit Stripe connector (no hardcoded keys)
+- Database: PostgreSQL `stripe` schema managed by stripe-replit-sync (auto-synced via webhooks)
+- App data: SQLite/kvdb for users, consumers, letters (unchanged)
+- Products: Created via Stripe API, synced to PostgreSQL, queried for frontend display
+- Checkout: Stripe Checkout Sessions for subscription creation
+- Portal: Stripe Customer Portal for subscription management
+- Feature gating: Query stripe.subscriptions → stripe.prices → stripe.products metadata for tier
+
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)
+- PostgreSQL (for Stripe data sync via stripe-replit-sync)

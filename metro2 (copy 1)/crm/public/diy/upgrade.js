@@ -19,7 +19,7 @@
 
   async function init() {
     await loadUser();
-    await Promise.all([loadCompanies(), loadCurrentCompany()]);
+    await Promise.all([loadCompanies(), loadCurrentCompany(), loadDiyProducts()]);
     bindUpgradeButtons();
   }
 
@@ -269,7 +269,56 @@
     });
   }
 
+  let diyStripeProducts = [];
+
+  async function loadDiyProducts() {
+    try {
+      const res = await fetch('/api/stripe/products');
+      const data = await res.json();
+      if (data.ok) {
+        diyStripeProducts = (data.products || []).filter(p => p.type === 'diy');
+      }
+    } catch (e) {
+      console.warn('Could not load DIY products:', e);
+    }
+  }
+
   async function upgradePlan(plan) {
+    const product = diyStripeProducts.find(p => p.tier === plan);
+    if (product && product.prices && product.prices[0]) {
+      const priceId = product.prices[0].id;
+      try {
+        upgradeStatus.textContent = 'Redirecting to checkout...';
+        upgradeStatus.classList.remove('hidden');
+        upgradeStatus.classList.remove('text-red-500');
+
+        const res = await fetch('/api/stripe/checkout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            priceId,
+            mode: 'diy',
+            userId: currentUser?.id,
+            email: currentUser?.email
+          })
+        });
+        const data = await res.json();
+        if (data.ok && data.url) {
+          window.location.href = data.url;
+          return;
+        }
+        throw new Error(data.error || 'Checkout failed');
+      } catch (e) {
+        upgradeStatus.textContent = e.message;
+        upgradeStatus.classList.remove('hidden');
+        upgradeStatus.classList.add('text-red-500');
+        return;
+      }
+    }
+
     try {
       const res = await fetch('/api/diy/upgrade', {
         method: 'POST',

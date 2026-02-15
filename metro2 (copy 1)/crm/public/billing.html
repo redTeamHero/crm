@@ -108,6 +108,72 @@
       </div>
     </section>
 
+    <section id="subscriptionSection" class="glass card p-6 md:p-8 space-y-6">
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.4em] text-slate-500">Platform subscription</p>
+        <h2 class="text-2xl font-semibold text-slate-900">Your CRM Plan</h2>
+        <p class="text-sm text-slate-600">Choose the plan that fits your business. Upgrade or manage anytime.</p>
+      </div>
+
+      <div id="currentSubStatus" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-emerald-800">Active subscription: <span id="currentPlanName" class="capitalize"></span></p>
+          <p id="currentSubDetails" class="text-xs text-emerald-600 mt-1"></p>
+        </div>
+        <button id="manageSubBtn" type="button" class="btn px-4 py-2 text-sm font-semibold" style="background: var(--green-bg);">Manage subscription</button>
+      </div>
+
+      <div id="pricingGrid" class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 space-y-4 flex flex-col" data-tier="starter">
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Starter</h3>
+            <p class="text-3xl font-bold text-slate-900 mt-2">$97<span class="text-base font-normal text-slate-500">/mo</span></p>
+          </div>
+          <ul class="text-sm text-slate-600 space-y-2 flex-1">
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Up to 25 clients</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Metro-2 auditing</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Dispute letter generation</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Client portal</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Email support</li>
+          </ul>
+          <button type="button" class="subscribe-btn btn w-full justify-center py-3 text-sm font-semibold" data-tier="starter">Get started</button>
+        </div>
+
+        <div class="rounded-2xl border-2 border-emerald-400 bg-white/90 p-6 space-y-4 flex flex-col relative shadow-lg" data-tier="growth">
+          <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-4 py-1 text-xs font-bold text-white">Most popular</span>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Growth</h3>
+            <p class="text-3xl font-bold text-slate-900 mt-2">$297<span class="text-base font-normal text-slate-500">/mo</span></p>
+          </div>
+          <ul class="text-sm text-slate-600 space-y-2 flex-1">
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Unlimited clients</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Bulk automation</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> AI-powered letters</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Team member seats</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Priority support</li>
+          </ul>
+          <button type="button" class="subscribe-btn btn w-full justify-center py-3 text-sm font-semibold" style="background: var(--green-bg);" data-tier="growth">Upgrade to Growth</button>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 space-y-4 flex flex-col" data-tier="enterprise">
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Enterprise</h3>
+            <p class="text-3xl font-bold text-slate-900 mt-2">$597<span class="text-base font-normal text-slate-500">/mo</span></p>
+          </div>
+          <ul class="text-sm text-slate-600 space-y-2 flex-1">
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Everything in Growth</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> White-label branding</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> API access</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Dedicated onboarding</li>
+            <li class="flex items-start gap-2"><span class="text-emerald-500 mt-0.5">&#10003;</span> Custom integrations</li>
+          </ul>
+          <button type="button" class="subscribe-btn btn w-full justify-center py-3 text-sm font-semibold" data-tier="enterprise">Contact sales</button>
+        </div>
+      </div>
+
+      <p id="subscriptionError" class="text-sm text-red-600 hidden"></p>
+    </section>
+
     <section id="billingMetrics" class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
       <article class="glass card p-5 space-y-2">
         <p class="text-xs uppercase tracking-widest text-slate-500">Total billed (all clients)</p>

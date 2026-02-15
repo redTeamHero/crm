@@ -5,5 +5,8 @@
   "workspaces": [
     "packages/*",
     "metro2 (copy 1)/crm"
-  ]
+  ],
+  "dependencies": {
+    "stripe-replit-sync": "^1.0.0"
+  }
 }
