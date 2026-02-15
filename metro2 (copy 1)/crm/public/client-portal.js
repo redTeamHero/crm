@@ -472,8 +472,251 @@ document.addEventListener('DOMContentLoaded', () => {
   if (bookCallButton) {
     bookCallButton.addEventListener('click', () => {
       recordDataRegionConversion(consumerId, 'book_call');
+      openBookingModal();
     });
   }
+
+  // ---------- Booking Modal ----------
+  (function initBookingModal() {
+    const modal = document.getElementById('bookingModal');
+    if (!modal) return;
+
+    const step1 = document.getElementById('bookingStep1');
+    const step2 = document.getElementById('bookingStep2');
+    const step3 = document.getElementById('bookingStep3');
+    const calDays = document.getElementById('calDays');
+    const calMonth = document.getElementById('calMonth');
+    const slotsWrapper = document.getElementById('timeSlotsWrapper');
+    const slotsContainer = document.getElementById('bookingSlots');
+    const noSlotsMsg = document.getElementById('noSlotsMsg');
+    const slotsLoading = document.getElementById('slotsLoading');
+    const selectedDateLabel = document.getElementById('selectedDateLabel');
+
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let selectedDate = null;
+    let selectedTime = null;
+    let availabilityCache = null;
+
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    function showStep(n) {
+      [step1, step2, step3].forEach((s, i) => {
+        if (s) s.classList.toggle('hidden', i !== n);
+      });
+    }
+
+    function formatTime12(t) {
+      const [h, m] = t.split(':').map(Number);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12 = h % 12 || 12;
+      return h12 + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+    }
+
+    function formatDateNice(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      return DAYS_SHORT[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+    }
+
+    function padDate(y, m, d) {
+      return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+
+    async function loadAvailability() {
+      if (availabilityCache) return availabilityCache;
+      try {
+        const r = await fetch('/api/booking/availability');
+        const data = await r.json();
+        if (data.ok) availabilityCache = data.availability;
+        return availabilityCache || {};
+      } catch { return {}; }
+    }
+
+    function renderCalendar() {
+      calMonth.textContent = MONTHS[currentMonth] + ' ' + currentYear;
+      calDays.innerHTML = '';
+
+      const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const today = new Date();
+      const todayStr = padDate(today.getFullYear(), today.getMonth(), today.getDate());
+
+      for (let i = 0; i < firstDay; i++) {
+        const el = document.createElement('div');
+        el.className = 'cal-day cal-day-empty';
+        calDays.appendChild(el);
+      }
+
+      loadAvailability().then(avail => {
+        const slots = avail.slots || {};
+        for (let d = 1; d <= daysInMonth; d++) {
+          const el = document.createElement('button');
+          el.type = 'button';
+          const dateStr = padDate(currentYear, currentMonth, d);
+          const dayDate = new Date(currentYear, currentMonth, d);
+          const dow = dayDate.getDay();
+          const dayAvail = slots[dow] || [];
+
+          el.className = 'cal-day';
+          el.textContent = d;
+
+          if (dateStr < todayStr) {
+            el.classList.add('cal-day-disabled');
+          } else if (!dayAvail.length) {
+            el.classList.add('cal-day-no-slots');
+          } else {
+            el.addEventListener('click', () => selectDate(dateStr, el));
+          }
+
+          if (dateStr === todayStr) el.classList.add('cal-day-today');
+          if (dateStr === selectedDate) el.classList.add('cal-day-selected');
+
+          calDays.appendChild(el);
+        }
+      });
+    }
+
+    async function selectDate(dateStr, el) {
+      selectedDate = dateStr;
+      selectedTime = null;
+      calDays.querySelectorAll('.cal-day').forEach(d => d.classList.remove('cal-day-selected'));
+      if (el) el.classList.add('cal-day-selected');
+
+      selectedDateLabel.textContent = formatDateNice(dateStr);
+      slotsWrapper.classList.remove('hidden');
+      slotsContainer.innerHTML = '';
+      noSlotsMsg.classList.add('hidden');
+      slotsLoading.classList.remove('hidden');
+
+      try {
+        const r = await fetch('/api/booking/slots?date=' + dateStr);
+        const data = await r.json();
+        slotsLoading.classList.add('hidden');
+
+        if (!data.ok || !data.slots.length) {
+          noSlotsMsg.classList.remove('hidden');
+          return;
+        }
+
+        data.slots.forEach(time => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'time-slot-btn';
+          btn.textContent = formatTime12(time);
+          btn.addEventListener('click', () => {
+            selectedTime = time;
+            slotsContainer.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            setTimeout(() => goToStep2(), 300);
+          });
+          slotsContainer.appendChild(btn);
+        });
+      } catch {
+        slotsLoading.classList.add('hidden');
+        noSlotsMsg.classList.remove('hidden');
+      }
+    }
+
+    function goToStep2() {
+      const summaryLine = document.getElementById('bookingSummaryLine');
+      if (summaryLine) {
+        summaryLine.textContent = formatDateNice(selectedDate) + ' at ' + formatTime12(selectedTime);
+      }
+      showStep(1);
+    }
+
+    document.getElementById('calPrev')?.addEventListener('click', () => {
+      currentMonth--;
+      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+      renderCalendar();
+    });
+
+    document.getElementById('calNext')?.addEventListener('click', () => {
+      currentMonth++;
+      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+      renderCalendar();
+    });
+
+    document.getElementById('bookingBack')?.addEventListener('click', () => showStep(0));
+
+    document.getElementById('bookingConfirm')?.addEventListener('click', async () => {
+      const nameVal = document.getElementById('bookingName')?.value?.trim();
+      const emailVal = document.getElementById('bookingEmail')?.value?.trim();
+      const phoneVal = document.getElementById('bookingPhone')?.value?.trim();
+      const notesVal = document.getElementById('bookingNotes')?.value?.trim();
+      const errEl = document.getElementById('bookingError');
+
+      if (!nameVal) {
+        if (errEl) { errEl.textContent = 'Please enter your name.'; errEl.classList.remove('hidden'); }
+        return;
+      }
+      if (errEl) errEl.classList.add('hidden');
+
+      const confirmBtn = document.getElementById('bookingConfirm');
+      if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Booking...'; }
+
+      try {
+        const r = await fetch('/api/booking/book', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: selectedDate,
+            time: selectedTime,
+            name: nameVal,
+            email: emailVal,
+            phone: phoneVal,
+            consumerId: consumerId || '',
+            notes: notesVal,
+          })
+        });
+        const data = await r.json();
+        if (data.ok) {
+          const confirmText = document.getElementById('bookingConfirmText');
+          if (confirmText) {
+            confirmText.textContent = 'Your call is booked for ' + formatDateNice(selectedDate) + ' at ' + formatTime12(selectedTime) + '. We look forward to speaking with you!';
+          }
+          showStep(2);
+        } else {
+          if (errEl) { errEl.textContent = data.error || 'Booking failed. Please try again.'; errEl.classList.remove('hidden'); }
+        }
+      } catch {
+        if (errEl) { errEl.textContent = 'Something went wrong. Please try again.'; errEl.classList.remove('hidden'); }
+      } finally {
+        if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm Booking'; }
+      }
+    });
+
+    [document.getElementById('closeBooking'), document.getElementById('closeBooking2'), document.getElementById('bookingDone')].forEach(btn => {
+      btn?.addEventListener('click', closeBookingModal);
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || e.target === modal.firstElementChild) closeBookingModal();
+    });
+
+    function closeBookingModal() {
+      modal.classList.add('hidden');
+      showStep(0);
+      selectedDate = null;
+      selectedTime = null;
+      slotsWrapper.classList.add('hidden');
+      document.getElementById('bookingName').value = '';
+      document.getElementById('bookingEmail').value = '';
+      document.getElementById('bookingPhone').value = '';
+      document.getElementById('bookingNotes').value = '';
+      document.getElementById('bookingError')?.classList.add('hidden');
+    }
+
+    window.openBookingModal = function() {
+      currentMonth = new Date().getMonth();
+      currentYear = new Date().getFullYear();
+      availabilityCache = null;
+      modal.classList.remove('hidden');
+      showStep(0);
+      renderCalendar();
+    };
+  })();
 
   const mascotEl = document.getElementById('mascot');
   if (mascotEl && window.lottie && !mascotEl.dataset.customLogo) {

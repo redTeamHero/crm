@@ -100,6 +100,18 @@ npm run dev
 - Portal: Stripe Customer Portal for subscription management
 - Feature gating: Query stripe.subscriptions → stripe.prices → stripe.products metadata for tier
 
+- 2026-02-15: Added call booking system to client portal
+  - "Book a Call" button opens a multi-step scheduling modal
+  - Step 1: Calendar date picker + available time slot selection (30-min increments)
+  - Step 2: Contact details form (name, email, phone, notes)
+  - Step 3: Confirmation screen
+  - Default availability: Mon-Fri 9am-5pm Eastern
+  - Backend: /api/booking/availability, /api/booking/slots, /api/booking/book, /api/booking/bookings
+  - Availability stored in kvdb (call_availability key), bookings in kvdb (call_bookings key)
+  - Conflict detection prevents double-booking same time slot
+  - Auto-syncs to Google Calendar when configured
+  - Admin can update availability via PUT /api/booking/availability
+
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)

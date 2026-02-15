@@ -1826,6 +1826,198 @@ app.post("/api/calendar/freebusy", async (req, res) => {
   }
 });
 
+// ---------- Call Booking System ----------
+
+const DEFAULT_AVAILABILITY = {
+  timezone: "America/New_York",
+  slotDuration: 30,
+  slots: {
+    0: [],
+    1: [{ start: "09:00", end: "17:00" }],
+    2: [{ start: "09:00", end: "17:00" }],
+    3: [{ start: "09:00", end: "17:00" }],
+    4: [{ start: "09:00", end: "17:00" }],
+    5: [{ start: "09:00", end: "17:00" }],
+    6: [],
+  },
+};
+
+app.get("/api/booking/availability", async (req, res) => {
+  try {
+    const avail = await readKey("call_availability", DEFAULT_AVAILABILITY);
+    res.json({ ok: true, availability: avail });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.put("/api/booking/availability", authenticate, forbidMember, async (req, res) => {
+  try {
+    const updates = req.body || {};
+    const current = await readKey("call_availability", DEFAULT_AVAILABILITY);
+    const merged = { ...current, ...updates };
+    await writeKey("call_availability", merged);
+    res.json({ ok: true, availability: merged });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/booking/slots", async (req, res) => {
+  try {
+    const { date } = req.query || {};
+    if (!date) return res.status(400).json({ ok: false, error: "date required (YYYY-MM-DD)" });
+
+    const avail = await readKey("call_availability", DEFAULT_AVAILABILITY);
+    const tz = avail.timezone || "America/New_York";
+    const slotMinutes = avail.slotDuration || 30;
+
+    const targetDate = new Date(date + "T00:00:00");
+    const dayOfWeek = targetDate.getUTCDay();
+    const daySlots = avail.slots[dayOfWeek] || [];
+
+    if (!daySlots.length) {
+      return res.json({ ok: true, slots: [], date, timezone: tz });
+    }
+
+    const bookings = await readKey("call_bookings", []);
+    const dayBookings = bookings.filter(b => b.date === date && b.status !== "cancelled");
+    const bookedTimes = new Set(dayBookings.map(b => b.time));
+
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+
+    const available = [];
+    for (const window of daySlots) {
+      const [startH, startM] = window.start.split(":").map(Number);
+      const [endH, endM] = window.end.split(":").map(Number);
+      let minutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+
+      while (minutes + slotMinutes <= endMinutes) {
+        const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
+        const mm = String(minutes % 60).padStart(2, "0");
+        const timeStr = `${hh}:${mm}`;
+
+        let isPast = false;
+        if (date === todayStr) {
+          const slotDate = new Date(date + "T" + timeStr + ":00");
+          isPast = slotDate <= now;
+        }
+
+        if (!bookedTimes.has(timeStr) && !isPast) {
+          available.push(timeStr);
+        }
+        minutes += slotMinutes;
+      }
+    }
+
+    res.json({ ok: true, slots: available, date, timezone: tz });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/booking/bookings", authenticate, async (req, res) => {
+  try {
+    const bookings = await readKey("call_bookings", []);
+    const active = bookings.filter(b => b.status !== "cancelled");
+    active.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    res.json({ ok: true, bookings: active });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post("/api/booking/book", async (req, res) => {
+  try {
+    const { date, time, name, email, phone, consumerId, notes } = req.body || {};
+    if (!date || !time) return res.status(400).json({ ok: false, error: "date and time required" });
+    if (!name) return res.status(400).json({ ok: false, error: "name required" });
+
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    if (date < todayStr) return res.status(400).json({ ok: false, error: "Cannot book a past date" });
+
+    const avail = await readKey("call_availability", DEFAULT_AVAILABILITY);
+    const slotMinutes = avail.slotDuration || 30;
+
+    const targetDate = new Date(date + "T00:00:00");
+    const dayOfWeek = targetDate.getUTCDay();
+    const daySlots = avail.slots[dayOfWeek] || [];
+    if (!daySlots.length) {
+      return res.status(400).json({ ok: false, error: "No availability on this day" });
+    }
+
+    const [h, m] = time.split(":").map(Number);
+    const reqMinutes = h * 60 + m;
+    let validSlot = false;
+    for (const window of daySlots) {
+      const [sh, sm] = window.start.split(":").map(Number);
+      const [eh, em] = window.end.split(":").map(Number);
+      if (reqMinutes >= sh * 60 + sm && reqMinutes + slotMinutes <= eh * 60 + em) {
+        validSlot = true;
+        break;
+      }
+    }
+    if (!validSlot) return res.status(400).json({ ok: false, error: "Selected time is outside available hours" });
+
+    const bookings = await readKey("call_bookings", []);
+    const conflict = bookings.find(b => b.date === date && b.time === time && b.status !== "cancelled");
+    if (conflict) return res.status(409).json({ ok: false, error: "This time slot is already booked" });
+
+    const booking = {
+      id: nanoid(10),
+      date,
+      time,
+      name,
+      email: email || "",
+      phone: phone || "",
+      consumerId: consumerId || "",
+      notes: notes || "",
+      status: "confirmed",
+      createdAt: new Date().toISOString(),
+    };
+
+    bookings.push(booking);
+    await writeKey("call_bookings", bookings);
+
+    try {
+      const settings = await loadSettings();
+      if (settings.googleCalendarToken && settings.googleCalendarId) {
+        const endH = Math.floor((reqMinutes + slotMinutes) / 60);
+        const endM = (reqMinutes + slotMinutes) % 60;
+        const endTime = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+        await createCalendarEvent({
+          summary: `Call with ${name}`,
+          description: `Phone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nNotes: ${notes || ""}`,
+          start: { dateTime: `${date}T${time}:00`, timeZone: avail.timezone },
+          end: { dateTime: `${date}T${endTime}:00`, timeZone: avail.timezone },
+        });
+      }
+    } catch (calErr) {
+      logWarn("BOOKING_CALENDAR_SYNC_FAILED", calErr?.message || "Could not sync to Google Calendar");
+    }
+
+    res.json({ ok: true, booking });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.delete("/api/booking/bookings/:id", authenticate, async (req, res) => {
+  try {
+    const bookings = await readKey("call_bookings", []);
+    const idx = bookings.findIndex(b => b.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ ok: false, error: "Booking not found" });
+    bookings[idx].status = "cancelled";
+    await writeKey("call_bookings", bookings);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ---------- Simple JSON "DB" ----------
 
 async function recordLettersJob(userId, consumerId, jobId, letters){

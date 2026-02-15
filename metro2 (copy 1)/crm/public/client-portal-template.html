@@ -505,6 +505,106 @@
     </div>
   </nav>
 
+  <div id="bookingModal" class="fixed inset-0 z-[9999] hidden" style="background:rgba(0,0,0,0.5);backdrop-filter:blur(4px)">
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" style="animation:slideUp .3s ease">
+
+        <div id="bookingStep1" class="booking-step">
+          <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-bold text-gray-900">Book a Call</h2>
+                <p class="text-sm text-gray-500 mt-1">Pick a date & time that works for you</p>
+              </div>
+              <button id="closeBooking" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+                <svg class="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Select a Date</label>
+            <div id="bookingCalendar" class="mb-4">
+              <div class="flex items-center justify-between mb-3">
+                <button id="calPrev" class="p-1.5 rounded-lg hover:bg-gray-100 transition">
+                  <svg class="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <span id="calMonth" class="text-sm font-semibold text-gray-800"></span>
+                <button id="calNext" class="p-1.5 rounded-lg hover:bg-gray-100 transition">
+                  <svg class="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+              <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-400 mb-1">
+                <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+              </div>
+              <div id="calDays" class="grid grid-cols-7 gap-1"></div>
+            </div>
+
+            <div id="timeSlotsWrapper" class="hidden">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">
+                Available Times — <span id="selectedDateLabel" class="text-indigo-600"></span>
+              </label>
+              <div id="bookingSlots" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1"></div>
+              <div id="noSlotsMsg" class="hidden text-center py-6 text-sm text-gray-400">No available times on this day</div>
+              <div id="slotsLoading" class="hidden text-center py-6">
+                <div class="inline-block w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="bookingStep2" class="booking-step hidden">
+          <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-bold text-gray-900">Your Details</h2>
+                <p class="text-sm text-gray-500 mt-1" id="bookingSummaryLine"></p>
+              </div>
+              <button id="closeBooking2" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition">
+                <svg class="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input id="bookingName" type="text" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition text-sm" placeholder="Your full name">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input id="bookingEmail" type="email" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition text-sm" placeholder="your@email.com">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input id="bookingPhone" type="tel" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition text-sm" placeholder="(555) 123-4567">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notes <span class="text-gray-400">(optional)</span></label>
+              <textarea id="bookingNotes" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition text-sm resize-none" placeholder="Anything you'd like to discuss?"></textarea>
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button id="bookingBack" class="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition">Back</button>
+              <button id="bookingConfirm" class="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">Confirm Booking</button>
+            </div>
+            <div id="bookingError" class="hidden text-sm text-rose-600 text-center"></div>
+          </div>
+        </div>
+
+        <div id="bookingStep3" class="booking-step hidden">
+          <div class="p-8 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
+              <svg class="w-8 h-8 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h2 class="text-xl font-bold text-gray-900 mb-2">You're All Set!</h2>
+            <p id="bookingConfirmText" class="text-sm text-gray-500 mb-6"></p>
+            <button id="bookingDone" class="px-8 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">Done</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <div id="confetti" class="pointer-events-none fixed inset-0"></div>
   <div id="goalBurst" class="pointer-events-none fixed inset-0"></div>
 

@@ -4961,3 +4961,28 @@ body.portal-layout::after {
   gap: 6px;
   justify-content: center;
 }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.cal-day {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all .15s;
+  color: #374151;
+}
+.cal-day:hover:not(.cal-day-disabled):not(.cal-day-empty) { background: #eef2ff; color: #4f46e5; }
+.cal-day-today { border: 2px solid #6366f1; font-weight: 700; }
+.cal-day-selected { background: #6366f1 !important; color: #fff !important; font-weight: 700; }
+.cal-day-disabled { color: #d1d5db; cursor: default; pointer-events: none; }
+.cal-day-empty { cursor: default; }
+.cal-day-no-slots { color: #9ca3af; text-decoration: line-through; cursor: default; pointer-events: none; }
+.time-slot-btn {
+  padding: 8px 4px; border-radius: 10px; border: 1.5px solid #e5e7eb;
+  font-size: 13px; font-weight: 500; color: #374151;
+  cursor: pointer; transition: all .15s; background: #fff; text-align: center;
+}
+.time-slot-btn:hover { border-color: #6366f1; color: #4f46e5; background: #eef2ff; }
+.time-slot-btn.selected { background: #6366f1; color: #fff; border-color: #6366f1; }
