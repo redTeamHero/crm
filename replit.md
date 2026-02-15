@@ -119,6 +119,16 @@ npm run dev
   - Numbered lists render with proper indentation
   - Automatic page breaks for long content
   - generateOcrPdf() accepts pdfOptions; portal endpoint passes allowBrowserLaunch:false when Chrome unavailable
+- 2026-02-15: Added portal-specific mail endpoint
+  - POST /api/portal/:consumerId/mail for unauthenticated portal mail (validates consumer + letter ownership)
+  - Portal Mail button no longer hits admin-only endpoint
+- 2026-02-15: Added cinematic animated hero to welcome page
+  - 5-scene Canvas 2D animation: fragmented scores → DNA helix assembly → butterfly morph → rising graph (780+) → EVOLV logo reveal
+  - Pro/cinematic version: dark matte background, gold (#d4a853) animation strokes
+  - Cross-fade transitions between scenes, ambient gold particles throughout
+  - IntersectionObserver pauses animation when offscreen for performance
+  - Final frame: EVOLV logo, "Your Financial Evolution Starts Here" tagline, CTA buttons for CRM/DIY paths
+  - Responsive canvas with DPR scaling, mobile-friendly text sizing
 
 ## Dependencies
 - Node.js 20
