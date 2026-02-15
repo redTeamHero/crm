@@ -164,6 +164,33 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    .cost-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:1rem; padding:1.5rem; transition:all 0.3s; }
+    .cost-card:hover { background:rgba(255,255,255,0.06); }
+    .cost-highlight { font-size:2rem; font-weight:800; background:linear-gradient(135deg,#ef4444,#f97316); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .cost-saved { font-size:2rem; font-weight:800; background:linear-gradient(135deg,#10b981,#34d399); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .range-slider { -webkit-appearance:none; width:100%; height:6px; border-radius:3px; background:linear-gradient(90deg,#ef4444,#f97316); outline:none; }
+    .range-slider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+    .range-slider::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:#fff; cursor:pointer; border:none; }
+    .transform-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:1.25rem; padding:2rem; position:relative; overflow:hidden; }
+    .transform-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#ef4444,#10b981); }
+    .score-badge { display:inline-flex; align-items:center; justify-content:center; width:3.5rem; height:3.5rem; border-radius:50%; font-weight:800; font-size:0.8rem; }
+    .score-before { background:rgba(239,68,68,0.15); color:#f87171; border:2px solid rgba(239,68,68,0.3); }
+    .score-after { background:rgba(16,185,129,0.15); color:#34d399; border:2px solid rgba(16,185,129,0.3); }
+    .compare-table { width:100%; border-collapse:separate; border-spacing:0; }
+    .compare-table th { padding:1rem; text-align:left; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; color:rgba(196,181,253,0.7); border-bottom:1px solid rgba(255,255,255,0.1); }
+    .compare-table td { padding:1rem; border-bottom:1px solid rgba(255,255,255,0.05); color:rgba(255,255,255,0.8); font-size:0.9rem; }
+    .compare-table .evolv-col { background:rgba(139,92,246,0.08); }
+    .compare-table .evolv-col.head { background:rgba(139,92,246,0.15); color:#a78bfa; font-weight:700; }
+    .compare-check { color:#10b981; }
+    .compare-x { color:#ef4444; opacity:0.6; }
+    .compare-mid { color:#f59e0b; }
+    .sticky-cta { position:fixed; bottom:0; left:0; right:0; z-index:100; background:rgba(15,23,42,0.95); backdrop-filter:blur(12px); border-top:1px solid rgba(139,92,246,0.2); padding:0.75rem 1rem; transform:translateY(100%); transition:transform 0.4s ease; }
+    .sticky-cta.visible { transform:translateY(0); }
+    .pulse-dot { width:8px; height:8px; border-radius:50%; background:#10b981; animation:pulse-live 2s ease infinite; }
+    @keyframes pulse-live { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.5)} }
+    .urgency-badge { display:inline-flex; align-items:center; gap:0.5rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); color:#fca5a5; padding:0.375rem 0.875rem; border-radius:9999px; font-size:0.75rem; font-weight:600; }
+    .lead-capture { background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(16,185,129,0.1)); border:1px solid rgba(139,92,246,0.25); border-radius:1.25rem; }
   </style>
 </head>
 <body class="min-h-screen text-white">
@@ -270,6 +297,242 @@
           </svg>
           <span class="text-violet-200 text-sm">Credit bureaus are legally required to investigate disputes within 30 days</span>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="cost-of-waiting" class="section-darker py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-4">
+        <span class="urgency-badge mb-4">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+          Every month costs you money
+        </span>
+      </div>
+      <div class="text-center mb-10">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">The Real Cost of Bad Credit</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          A low credit score doesn't just hurt your pride — it drains your wallet every single month. See how much you're losing.
+        </p>
+      </div>
+
+      <div class="max-w-lg mx-auto mb-10">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-violet-300 text-sm font-medium">Your Current Score</span>
+          <span id="score-display" class="text-2xl font-bold text-white">580</span>
+        </div>
+        <input type="range" id="score-slider" class="range-slider" min="400" max="750" value="580" step="10">
+        <div class="flex justify-between text-xs text-violet-400 mt-1">
+          <span>400</span>
+          <span>Poor</span>
+          <span>Fair</span>
+          <span>Good</span>
+          <span>750</span>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 mb-10">
+        <div class="cost-card text-center">
+          <div class="text-violet-300 text-sm mb-1">Auto Loan (5yr, $30K)</div>
+          <div id="cost-auto" class="cost-highlight">$4,680</div>
+          <div class="text-violet-400 text-xs mt-1">extra in interest</div>
+        </div>
+        <div class="cost-card text-center">
+          <div class="text-violet-300 text-sm mb-1">Mortgage (30yr, $300K)</div>
+          <div id="cost-mortgage" class="cost-highlight">$76,500</div>
+          <div class="text-violet-400 text-xs mt-1">extra over loan life</div>
+        </div>
+        <div class="cost-card text-center">
+          <div class="text-violet-300 text-sm mb-1">Credit Cards (avg $8K)</div>
+          <div id="cost-cc" class="cost-highlight">$2,160</div>
+          <div class="text-violet-400 text-xs mt-1">extra per year</div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <div class="inline-flex flex-col items-center bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-8 py-6">
+          <div class="text-violet-300 text-sm mb-2">Total you could save by fixing your credit</div>
+          <div id="cost-total" class="cost-saved">$83,340</div>
+          <div class="text-emerald-300 text-xs mt-1">That's money back in your pocket</div>
+          <a href="/diy" class="mt-4 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6 py-2.5 rounded-xl transition-colors text-sm">
+            Stop Losing Money — Start Free
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="transformations" class="section-dark py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Real Transformations</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          See how people like you took control of their credit and changed their financial future.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 mb-10">
+        <div class="transform-card">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-emerald-500 flex items-center justify-center text-white font-bold text-lg">S</div>
+            <div>
+              <div class="font-semibold text-white">Sarah M.</div>
+              <div class="text-xs text-violet-400">Single mom, Austin TX</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="score-badge score-before">520</div>
+            <svg class="w-8 h-4 text-violet-500" viewBox="0 0 32 16"><path d="M2 8h20l-6-6M22 8l-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+            <div class="score-badge score-after">742</div>
+            <span class="text-xs text-violet-400 ml-auto">90 days</span>
+          </div>
+          <p class="text-violet-200 text-sm leading-relaxed">"I found 14 violations on my report I never knew existed. Three collections were removed in the first round. I just got approved for a mortgage."</p>
+          <div class="mt-3 flex gap-2">
+            <span class="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full">3 collections removed</span>
+            <span class="text-xs bg-violet-500/15 text-violet-400 px-2 py-0.5 rounded-full">+222 points</span>
+          </div>
+        </div>
+
+        <div class="transform-card">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-lg">J</div>
+            <div>
+              <div class="font-semibold text-white">James R.</div>
+              <div class="text-xs text-violet-400">Small business owner, Atlanta GA</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="score-badge score-before">485</div>
+            <svg class="w-8 h-4 text-violet-500" viewBox="0 0 32 16"><path d="M2 8h20l-6-6M22 8l-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+            <div class="score-badge score-after">695</div>
+            <span class="text-xs text-violet-400 ml-auto">120 days</span>
+          </div>
+          <p class="text-violet-200 text-sm leading-relaxed">"The AI found Metro 2 violations my previous credit repair company missed for months. Saved me thousands compared to hiring a lawyer."</p>
+          <div class="mt-3 flex gap-2">
+            <span class="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full">5 items removed</span>
+            <span class="text-xs bg-violet-500/15 text-violet-400 px-2 py-0.5 rounded-full">+210 points</span>
+          </div>
+        </div>
+
+        <div class="transform-card">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg">M</div>
+            <div>
+              <div class="font-semibold text-white">Maria L.</div>
+              <div class="text-xs text-violet-400">Nurse, Miami FL</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="score-badge score-before">548</div>
+            <svg class="w-8 h-4 text-violet-500" viewBox="0 0 32 16"><path d="M2 8h20l-6-6M22 8l-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+            <div class="score-badge score-after">781</div>
+            <span class="text-xs text-violet-400 ml-auto">60 days</span>
+          </div>
+          <p class="text-violet-200 text-sm leading-relaxed">"Two rounds of disputes and my score jumped 233 points. The dispute letters were so professional the bureaus responded within 2 weeks."</p>
+          <div class="mt-3 flex gap-2">
+            <span class="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full">7 violations found</span>
+            <span class="text-xs bg-violet-500/15 text-violet-400 px-2 py-0.5 rounded-full">+233 points</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <a href="/diy" class="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-emerald-500 hover:from-violet-600 hover:to-emerald-600 text-white font-medium px-8 py-3 rounded-xl transition-all text-sm">
+          Start Your Transformation
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="comparison" class="section-darker py-20 px-4">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Why Evolv Wins</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          Compare your options. The choice is clear.
+        </p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="evolv-col head text-center">Evolv.Ai</th>
+              <th class="text-center">DIY (Alone)</th>
+              <th class="text-center">Credit Lawyer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-medium text-white">Monthly Cost</td>
+              <td class="evolv-col text-center font-semibold text-emerald-400">$0 – $49</td>
+              <td class="text-center">Free</td>
+              <td class="text-center">$500 – $3,000+</td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">AI Violation Detection</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Metro 2 Compliance Scan</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+              <td class="text-center"><span class="compare-mid text-lg">~</span></td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Auto-Generated Letters</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+              <td class="text-center"><span class="compare-check text-lg">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Speed to Results</td>
+              <td class="evolv-col text-center font-semibold text-emerald-400">Minutes</td>
+              <td class="text-center">Weeks</td>
+              <td class="text-center">Months</td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Cross-Bureau Analysis</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+              <td class="text-center"><span class="compare-mid text-lg">~</span></td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Available 24/7</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="lead-capture" class="section-dark py-16 px-4">
+    <div class="max-w-3xl mx-auto">
+      <div class="lead-capture p-8 md:p-12 text-center">
+        <div class="inline-flex items-center gap-2 bg-emerald-500/15 text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full mb-4">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+          Free Guide
+        </div>
+        <h2 class="text-2xl md:text-3xl font-bold text-white mb-3">Not Ready Yet? Get Your Free Credit Roadmap</h2>
+        <p class="text-violet-200 mb-6 max-w-xl mx-auto text-sm">
+          We'll send you a step-by-step guide to understanding your credit report, finding errors, and improving your score — no signup required.
+        </p>
+        <form id="lead-form" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onsubmit="return handleLeadCapture(event)">
+          <input type="email" id="lead-email" required placeholder="Enter your email" class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white placeholder-violet-400 text-sm focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400">
+          <button type="submit" class="px-6 py-3 bg-gradient-to-r from-violet-500 to-emerald-500 hover:from-violet-600 hover:to-emerald-600 text-white font-medium rounded-xl transition-all text-sm whitespace-nowrap">
+            Send My Guide
+          </button>
+        </form>
+        <p id="lead-success" class="text-emerald-400 text-sm mt-3 hidden">Check your inbox! Your roadmap is on the way.</p>
+        <p class="text-violet-400/50 text-xs mt-3">No spam. Unsubscribe anytime.</p>
       </div>
     </div>
   </section>
@@ -1119,5 +1382,93 @@
       </div>
     </div>
   </footer>
+
+  <div id="sticky-cta" class="sticky-cta">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="pulse-dot"></div>
+        <span class="text-sm text-violet-200 hidden sm:inline">Bad credit is costing you money right now</span>
+        <span class="text-sm text-violet-200 sm:hidden">Fix your credit today</span>
+      </div>
+      <a href="/diy" class="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-emerald-500 text-white font-medium px-5 py-2 rounded-lg text-sm transition-all hover:shadow-lg whitespace-nowrap">
+        Start Free Audit
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var slider = document.getElementById('score-slider');
+    var display = document.getElementById('score-display');
+    var costAuto = document.getElementById('cost-auto');
+    var costMortgage = document.getElementById('cost-mortgage');
+    var costCC = document.getElementById('cost-cc');
+    var costTotal = document.getElementById('cost-total');
+
+    function calcCosts(score){
+      var goodRate = { auto: 4.5, mortgage: 6.5, cc: 16.0 };
+      var penalty = 0;
+      if(score < 580) penalty = 1.0;
+      else if(score < 620) penalty = 0.85;
+      else if(score < 660) penalty = 0.6;
+      else if(score < 700) penalty = 0.35;
+      else if(score < 740) penalty = 0.15;
+      else penalty = 0;
+
+      var autoExtra = penalty * 4.5;
+      var mortExtra = penalty * 3.0;
+      var ccExtra = penalty * 10.0;
+
+      var autoTotal = Math.round(30000 * (autoExtra/100) * 5);
+      var mortTotal = Math.round(300000 * (mortExtra/100) * 30);
+      var ccTotal = Math.round(8000 * (ccExtra/100));
+      var total = autoTotal + mortTotal + ccTotal;
+
+      return { auto: autoTotal, mortgage: mortTotal, cc: ccTotal, total: total };
+    }
+
+    function fmt(n){ return '$' + n.toLocaleString(); }
+
+    function update(){
+      var score = parseInt(slider.value);
+      display.textContent = score;
+      var c = calcCosts(score);
+      costAuto.textContent = fmt(c.auto);
+      costMortgage.textContent = fmt(c.mortgage);
+      costCC.textContent = fmt(c.cc);
+      costTotal.textContent = fmt(c.total);
+    }
+
+    if(slider){
+      slider.addEventListener('input', update);
+      update();
+    }
+  })();
+
+  function handleLeadCapture(e){
+    e.preventDefault();
+    var email = document.getElementById('lead-email').value;
+    if(!email) return false;
+    document.getElementById('lead-form').style.display = 'none';
+    document.getElementById('lead-success').classList.remove('hidden');
+    return false;
+  }
+
+  (function(){
+    var sticky = document.getElementById('sticky-cta');
+    var hero = document.getElementById('hero');
+    if(!sticky || !hero) return;
+    var shown = false;
+    function checkScroll(){
+      var rect = hero.getBoundingClientRect();
+      var pastHero = rect.bottom < 0;
+      if(pastHero && !shown){ shown = true; sticky.classList.add('visible'); }
+      else if(!pastHero && shown){ shown = false; sticky.classList.remove('visible'); }
+    }
+    window.addEventListener('scroll', checkScroll, { passive:true });
+    checkScroll();
+  })();
+  </script>
 </body>
 </html>
