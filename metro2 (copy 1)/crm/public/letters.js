@@ -408,8 +408,7 @@ $("#btnPortalAll").addEventListener("click", async ()=>{
   btn.disabled = true;
   btn.textContent = "Sending...";
   try{
-    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/portal`, { method:"POST" });
-    const data = await resp.json().catch(()=> ({}));
+    const data = await api(`/api/letters/${encodeURIComponent(JOB_ID)}/portal`, { method:"POST" });
     if(!data?.ok) throw new Error(data?.error || "Failed to send to portal.");
     alert("Letters sent to client portal.");
   }catch(e){ showErr(e.message || String(e)); }
