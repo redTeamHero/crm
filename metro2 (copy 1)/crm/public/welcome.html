@@ -1071,68 +1071,185 @@
       drawButterflyAt(bx, by, baseScale, angle, wingFlap, alpha);
     }
 
+    var scoreZones = [
+      { min: 0, max: 0.45, color: 'rgba(239,68,68,0.06)', label: 'Poor' },
+      { min: 0.45, max: 0.65, color: 'rgba(245,158,11,0.06)', label: 'Fair' },
+      { min: 0.65, max: 0.82, color: 'rgba(34,197,94,0.05)', label: 'Good' },
+      { min: 0.82, max: 1.0, color: 'rgba(16,185,129,0.07)', label: 'Excellent' }
+    ];
+
+    var milestones = [
+      { ptIndex: 4, label: 'First Dispute', color: '#6d9eeb' },
+      { ptIndex: 10, label: 'Collections Removed', color: '#a78bfa' },
+      { ptIndex: 16, label: 'Score Goal', color: '#d4a853' }
+    ];
+
+    var scoreLabels = [
+      { value: '780+', yFrac: 0.15 },
+      { value: '700', yFrac: 0.35 },
+      { value: '600', yFrac: 0.58 },
+      { value: '500', yFrac: 0.80 }
+    ];
+
+    var monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
     function drawScene3(p){
       var ep = ease(p);
-      var gw = Math.min(W*0.6, 400);
-      var gh = Math.min(H*0.35, 200);
-      var gx = cx - gw/2;
-      var gy = cy - gh/2 + 20;
+      var gw = Math.min(W*0.65, 480);
+      var gh = Math.min(H*0.4, 240);
+      var marginLeft = 45;
+      var marginBottom = 28;
+      var gx = cx - gw/2 + marginLeft/2;
+      var gy = cy - gh/2 + 10;
+      var chartW = gw - marginLeft;
+      var chartH = gh - marginBottom;
+      var now = performance.now();
+      var isMobile = W < 500;
+      var labelFont = isMobile ? 9 : 11;
 
       ctx.save();
       ctx.globalAlpha = ep;
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+
+      for(var z=0;z<scoreZones.length;z++){
+        var zone = scoreZones[z];
+        var zy1 = gy + (1 - zone.max) * chartH;
+        var zy2 = gy + (1 - zone.min) * chartH;
+        ctx.fillStyle = zone.color;
+        ctx.fillRect(gx + marginLeft, zy1, chartW, zy2 - zy1);
+      }
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
       ctx.lineWidth = 1;
       for(var i=0;i<=4;i++){
-        var ly = gy + (gh/4)*i;
-        ctx.beginPath(); ctx.moveTo(gx,ly); ctx.lineTo(gx+gw,ly); ctx.stroke();
+        var ly = gy + (chartH/4)*i;
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(gx + marginLeft, ly);
+        ctx.lineTo(gx + marginLeft + chartW, ly);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      ctx.font = labelFont + 'px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for(var sl=0;sl<scoreLabels.length;sl++){
+        var sLabel = scoreLabels[sl];
+        var sly = gy + (1 - sLabel.yFrac) * chartH;
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillText(sLabel.value, gx + marginLeft - 8, sly);
+      }
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(gx + marginLeft, gy);
+      ctx.lineTo(gx + marginLeft, gy + chartH);
+      ctx.lineTo(gx + marginLeft + chartW, gy + chartH);
+      ctx.stroke();
+
+      var monthCount = isMobile ? 6 : 12;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      for(var m=0;m<monthCount;m++){
+        var mx = gx + marginLeft + (m / (monthCount - 1)) * chartW;
+        ctx.fillText(monthLabels[m], mx, gy + chartH + 8);
+        ctx.beginPath();
+        ctx.moveTo(mx, gy + chartH);
+        ctx.lineTo(mx, gy + chartH + 4);
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
       }
 
       var ptsToShow = Math.floor(graphPts * ep);
       if(ptsToShow > 1){
         ctx.beginPath();
+        ctx.moveTo(gx + marginLeft + graphData[0].x * chartW, gy + graphData[0].y * chartH);
+        for(var i=1;i<ptsToShow;i++){
+          ctx.lineTo(gx + marginLeft + graphData[i].x * chartW, gy + graphData[i].y * chartH);
+        }
+        ctx.lineTo(gx + marginLeft + graphData[ptsToShow-1].x * chartW, gy + chartH);
+        ctx.lineTo(gx + marginLeft, gy + chartH);
+        ctx.closePath();
+        var fillGrd = ctx.createLinearGradient(0, gy, 0, gy + chartH);
+        fillGrd.addColorStop(0, 'rgba(212,168,83,0.2)');
+        fillGrd.addColorStop(0.5, 'rgba(139,92,246,0.08)');
+        fillGrd.addColorStop(1, 'rgba(212,168,83,0)');
+        ctx.fillStyle = fillGrd;
+        ctx.fill();
+
+        ctx.beginPath();
         for(var i=0;i<ptsToShow;i++){
           var gp = graphData[i];
-          var px = gx + gp.x * gw;
-          var py = gy + gp.y * gh;
+          var px = gx + marginLeft + gp.x * chartW;
+          var py = gy + gp.y * chartH;
           if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
         }
-        var grd = ctx.createLinearGradient(gx, 0, gx+gw, 0);
-        grd.addColorStop(0, BLUE);
-        grd.addColorStop(1, GOLD);
-        ctx.strokeStyle = grd;
+        var lineGrd = ctx.createLinearGradient(gx + marginLeft, 0, gx + marginLeft + chartW, 0);
+        lineGrd.addColorStop(0, BLUE);
+        lineGrd.addColorStop(0.5, '#a78bfa');
+        lineGrd.addColorStop(1, GOLD);
+        ctx.strokeStyle = lineGrd;
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
 
-        if(ptsToShow > 0){
-          var lastPt = graphData[ptsToShow-1];
-          var lx = gx + lastPt.x*gw;
-          var ly = gy + lastPt.y*gh;
-          ctx.beginPath();
-          ctx.arc(lx, ly, 5, 0, Math.PI*2);
-          ctx.fillStyle = GOLD;
-          ctx.fill();
-          ctx.beginPath();
-          ctx.arc(lx, ly, 10, 0, Math.PI*2);
-          ctx.strokeStyle = 'rgba(212,168,83,0.3)';
-          ctx.lineWidth = 2;
-          ctx.stroke();
+        for(var mi=0;mi<milestones.length;mi++){
+          var ms = milestones[mi];
+          if(ms.ptIndex < ptsToShow){
+            var mpt = graphData[ms.ptIndex];
+            var mpx = gx + marginLeft + mpt.x * chartW;
+            var mpy = gy + mpt.y * chartH;
+
+            ctx.beginPath();
+            ctx.arc(mpx, mpy, 4, 0, Math.PI*2);
+            ctx.fillStyle = ms.color;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(mpx, mpy, 7, 0, Math.PI*2);
+            ctx.strokeStyle = ms.color;
+            ctx.globalAlpha = ep * 0.4;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.globalAlpha = ep;
+
+            if(!isMobile){
+              var labelAbove = mpy - gy > chartH * 0.3;
+              var ly = labelAbove ? mpy - 18 : mpy + 18;
+              ctx.font = '10px Inter, system-ui, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = labelAbove ? 'bottom' : 'top';
+              ctx.fillStyle = ms.color;
+              ctx.fillText(ms.label, mpx, ly);
+            }
+          }
         }
 
+        var lastPt = graphData[ptsToShow-1];
+        var lx = gx + marginLeft + lastPt.x * chartW;
+        var ly = gy + lastPt.y * chartH;
+
+        var glowPulse = 0.4 + 0.6 * Math.abs(Math.sin(now * 0.004));
+        var glowR = 14 + 4 * Math.sin(now * 0.003);
+        var glowGrd = ctx.createRadialGradient(lx, ly, 0, lx, ly, glowR);
+        glowGrd.addColorStop(0, 'rgba(212,168,83,' + (0.5 * glowPulse) + ')');
+        glowGrd.addColorStop(0.5, 'rgba(212,168,83,' + (0.15 * glowPulse) + ')');
+        glowGrd.addColorStop(1, 'rgba(212,168,83,0)');
+        ctx.fillStyle = glowGrd;
+        ctx.fillRect(lx - glowR, ly - glowR, glowR*2, glowR*2);
+
         ctx.beginPath();
-        ctx.moveTo(gx + graphData[0].x*gw, gy + graphData[0].y*gh);
-        for(var i=1;i<ptsToShow;i++){
-          ctx.lineTo(gx + graphData[i].x*gw, gy + graphData[i].y*gh);
-        }
-        ctx.lineTo(gx + graphData[ptsToShow-1].x*gw, gy+gh);
-        ctx.lineTo(gx, gy+gh);
-        ctx.closePath();
-        var fill = ctx.createLinearGradient(0, gy, 0, gy+gh);
-        fill.addColorStop(0, 'rgba(212,168,83,0.15)');
-        fill.addColorStop(1, 'rgba(212,168,83,0)');
-        ctx.fillStyle = fill;
+        ctx.arc(lx, ly, 5, 0, Math.PI*2);
+        ctx.fillStyle = GOLD;
         ctx.fill();
+        ctx.beginPath();
+        ctx.arc(lx, ly, 9, 0, Math.PI*2);
+        ctx.strokeStyle = 'rgba(212,168,83,0.35)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
 
       if(ep > 0.7 && !scoreShown){
