@@ -556,7 +556,11 @@ function initResponsiveNav() {
     nav.insertBefore(closeRow, nav.firstChild);
   }
 
+  const navOriginalParent = nav.parentElement;
+  const navOriginalNext = nav.nextElementSibling;
+
   const openMobileNav = () => {
+    document.body.appendChild(nav);
     nav.classList.remove('hidden');
     nav.setAttribute('aria-hidden', 'false');
     overlay.style.display = 'block';
@@ -575,6 +579,10 @@ function initResponsiveNav() {
       entry.dropdown.classList.remove('open');
       entry.control.setAttribute('aria-expanded', 'false');
     });
+    if (navOriginalParent) {
+      if (navOriginalNext) navOriginalParent.insertBefore(nav, navOriginalNext);
+      else navOriginalParent.appendChild(nav);
+    }
   };
 
   overlay.addEventListener('click', closeMobileNav);
@@ -638,6 +646,11 @@ function initResponsiveNav() {
       toggle.classList.add('hidden');
       overlay.style.display = 'none';
       document.body.style.overflow = '';
+
+      if (nav.parentElement === document.body && navOriginalParent) {
+        if (navOriginalNext) navOriginalParent.insertBefore(nav, navOriginalNext);
+        else navOriginalParent.appendChild(nav);
+      }
 
       if (navRoleHidden) {
         nav.classList.add('hidden');
