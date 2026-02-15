@@ -536,7 +536,7 @@ function initResponsiveNav() {
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'navOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:250;backdrop-filter:blur(4px);display:none;transition:opacity 0.3s;';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.25);z-index:250;backdrop-filter:blur(2px);display:none;transition:opacity 0.2s;';
     document.body.appendChild(overlay);
   }
 
@@ -545,11 +545,11 @@ function initResponsiveNav() {
     closeRow.className = 'nav-close-row';
     const closeLabel = document.createElement('span');
     closeLabel.textContent = 'Menu';
-    closeLabel.style.cssText = 'font-weight:600;font-size:16px;color:#d4a853;letter-spacing:0.04em;';
+    closeLabel.style.cssText = 'font-weight:600;font-size:15px;color:var(--text-primary);';
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    closeBtn.style.cssText = 'background:rgba(212,168,83,0.1);border:1px solid rgba(212,168,83,0.2);border-radius:8px;padding:6px;cursor:pointer;color:rgba(255,255,255,0.7);transition:all 0.2s;';
+    closeBtn.style.cssText = 'background:rgba(99,102,241,0.08);border:none;border-radius:8px;padding:6px;cursor:pointer;color:var(--muted);';
     closeBtn.addEventListener('click', () => closeMobileNav());
     closeRow.appendChild(closeLabel);
     closeRow.appendChild(closeBtn);
