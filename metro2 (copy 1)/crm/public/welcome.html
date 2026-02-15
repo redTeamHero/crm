@@ -944,54 +944,134 @@
     */
 
     var bflyTrail = [];
+    var settleBurstFired = false;
+    var settleBurstParticles = [];
 
-    function drawButterflyAt(bx, by, scale, angle, flapAmt, alpha){
+    function drawButterflyAt(bx, by, scale, angle, flapAmt, alpha, shimmerPhase){
+      var now = performance.now();
+      var pulse = 0.7 + 0.3 * Math.sin(now * 0.003);
+
+      ctx.save();
+      ctx.translate(bx, by);
+
+      var auraSize = scale * 110 * pulse;
+      var auraGrad = ctx.createRadialGradient(0, -10, auraSize * 0.15, 0, -10, auraSize);
+      auraGrad.addColorStop(0, 'rgba(212,168,83,' + alpha * 0.25 * pulse + ')');
+      auraGrad.addColorStop(0.4, 'rgba(212,168,83,' + alpha * 0.1 + ')');
+      auraGrad.addColorStop(0.7, 'rgba(139,92,246,' + alpha * 0.05 + ')');
+      auraGrad.addColorStop(1, 'rgba(139,92,246,0)');
+      ctx.beginPath();
+      ctx.arc(0, -10, auraSize, 0, Math.PI * 2);
+      ctx.fillStyle = auraGrad;
+      ctx.fill();
+
+      ctx.restore();
+
       ctx.save();
       ctx.translate(bx, by);
       ctx.rotate(angle);
       ctx.scale(scale, scale);
 
       var wingFlap = flapAmt;
+      var sp = shimmerPhase || 0;
+      var goldR = 212, goldG = 168, goldB = 83;
+      var purpR = 139, purpG = 92, purpB = 246;
+      var shimmer = 0.5 + 0.5 * Math.sin(sp);
+      var wc1r = Math.round(lerp(goldR, purpR, shimmer * 0.6));
+      var wc1g = Math.round(lerp(goldG, purpG, shimmer * 0.6));
+      var wc1b = Math.round(lerp(goldB, purpB, shimmer * 0.6));
+      var wc2r = Math.round(lerp(purpR, goldR, shimmer * 0.6));
+      var wc2g = Math.round(lerp(purpG, goldG, shimmer * 0.6));
+      var wc2b = Math.round(lerp(purpB, goldB, shimmer * 0.6));
 
       ctx.save();
-      ctx.scale(1-wingFlap, 1);
+      ctx.scale(1 - wingFlap, 1);
       ctx.beginPath();
-      for(var i=0;i<butterflyWingL.length;i++){
+      for(var i = 0; i < butterflyWingL.length; i++){
         var pt = butterflyWingL[i];
-        if(i===0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+        if(i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
       }
       ctx.closePath();
-      var grdL = ctx.createLinearGradient(-80,-60,0,40);
-      grdL.addColorStop(0, 'rgba(212,168,83,'+alpha*0.7+')');
-      grdL.addColorStop(1, 'rgba(139,92,246,'+alpha*0.5+')');
+      var grdL = ctx.createLinearGradient(-80, -60, 0, 40);
+      grdL.addColorStop(0, 'rgba(' + wc1r + ',' + wc1g + ',' + wc1b + ',' + alpha * 0.75 + ')');
+      grdL.addColorStop(0.5, 'rgba(212,168,83,' + alpha * 0.5 + ')');
+      grdL.addColorStop(1, 'rgba(' + wc2r + ',' + wc2g + ',' + wc2b + ',' + alpha * 0.55 + ')');
       ctx.fillStyle = grdL;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(212,168,83,'+alpha+')';
+      ctx.strokeStyle = 'rgba(212,168,83,' + alpha * 0.9 + ')';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.restore();
 
       ctx.save();
-      ctx.scale(1+wingFlap, 1);
+      ctx.scale(1 + wingFlap, 1);
       ctx.beginPath();
-      for(var i=0;i<butterflyWingR.length;i++){
+      for(var i = 0; i < butterflyWingR.length; i++){
         var pt = butterflyWingR[i];
-        if(i===0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
+        if(i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
       }
       ctx.closePath();
-      var grdR = ctx.createLinearGradient(0,-60,80,40);
-      grdR.addColorStop(0, 'rgba(139,92,246,'+alpha*0.5+')');
-      grdR.addColorStop(1, 'rgba(212,168,83,'+alpha*0.7+')');
+      var grdR = ctx.createLinearGradient(0, -60, 80, 40);
+      grdR.addColorStop(0, 'rgba(' + wc2r + ',' + wc2g + ',' + wc2b + ',' + alpha * 0.55 + ')');
+      grdR.addColorStop(0.5, 'rgba(212,168,83,' + alpha * 0.5 + ')');
+      grdR.addColorStop(1, 'rgba(' + wc1r + ',' + wc1g + ',' + wc1b + ',' + alpha * 0.75 + ')');
       ctx.fillStyle = grdR;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(212,168,83,'+alpha+')';
+      ctx.strokeStyle = 'rgba(212,168,83,' + alpha * 0.9 + ')';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.restore();
 
+      var veinAlpha = alpha * 0.2;
+      ctx.save();
+      ctx.scale(1 - wingFlap, 1);
+      ctx.strokeStyle = 'rgba(255,220,150,' + veinAlpha + ')';
+      ctx.lineWidth = 0.7;
+      for(var v = 0; v < 4; v++){
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        var va = (v / 4) * Math.PI * 0.8 + 0.2;
+        var vr = 40 + v * 12;
+        ctx.quadraticCurveTo(-vr * 0.5 * Math.sin(va), -vr * 0.4 * Math.cos(va),
+                             -vr * Math.sin(va) * 0.85, -vr * Math.cos(va) * 0.55);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.save();
+      ctx.scale(1 + wingFlap, 1);
+      ctx.strokeStyle = 'rgba(255,220,150,' + veinAlpha + ')';
+      ctx.lineWidth = 0.7;
+      for(var v = 0; v < 4; v++){
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        var va = (v / 4) * Math.PI * 0.8 + 0.2;
+        var vr = 40 + v * 12;
+        ctx.quadraticCurveTo(vr * 0.5 * Math.sin(va), -vr * 0.4 * Math.cos(va),
+                             vr * Math.sin(va) * 0.85, -vr * Math.cos(va) * 0.55);
+        ctx.stroke();
+      }
+      ctx.restore();
+
       ctx.beginPath();
-      ctx.ellipse(0, 10, 3, 25, 0, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(212,168,83,'+alpha+')';
+      ctx.ellipse(0, 10, 3, 25, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(212,168,83,' + alpha + ')';
+      ctx.fill();
+
+      var antAlpha = alpha * 0.6;
+      ctx.strokeStyle = 'rgba(212,168,83,' + antAlpha + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -14);
+      ctx.quadraticCurveTo(-8, -30, -14, -38);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -14);
+      ctx.quadraticCurveTo(8, -30, 14, -38);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(-14, -38, 1.5, 0, Math.PI * 2);
+      ctx.arc(14, -38, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(212,168,83,' + antAlpha + ')';
       ctx.fill();
 
       ctx.restore();
@@ -1000,6 +1080,11 @@
     function drawScene2(p){
       var ep = ease(p);
       var now = performance.now();
+
+      if(p < 0.05){
+        settleBurstFired = false;
+        settleBurstParticles.length = 0;
+      }
 
       var entranceEnd = 0.15;
       var flyStart = 0.1;
@@ -1056,36 +1141,86 @@
       }
 
       bflyTrail.push({ x: bx, y: by, t: now, alpha: alpha });
-      while(bflyTrail.length > 0 && now - bflyTrail[0].t > 600) bflyTrail.shift();
+      while(bflyTrail.length > 0 && now - bflyTrail[0].t > 900) bflyTrail.shift();
 
-      for(var ti=0; ti<bflyTrail.length; ti++){
+      for(var ti = 0; ti < bflyTrail.length; ti++){
         var tr = bflyTrail[ti];
-        var age = (now - tr.t) / 600;
-        var ta = (1 - age) * 0.5 * tr.alpha;
+        var age = (now - tr.t) / 900;
+        var ta = (1 - age) * 0.6 * tr.alpha;
         if(ta < 0.02) continue;
+        var trailSize = 3 + age * 8;
+        var trGrad = ctx.createRadialGradient(tr.x, tr.y, 0, tr.x, tr.y, trailSize);
+        trGrad.addColorStop(0, 'rgba(212,168,83,' + ta + ')');
+        trGrad.addColorStop(0.5, 'rgba(212,168,83,' + ta * 0.4 + ')');
+        trGrad.addColorStop(1, 'rgba(139,92,246,0)');
         ctx.beginPath();
-        ctx.arc(tr.x, tr.y, 2 + age * 4, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(212,168,83,' + ta + ')';
+        ctx.arc(tr.x, tr.y, trailSize, 0, Math.PI * 2);
+        ctx.fillStyle = trGrad;
         ctx.fill();
       }
 
       if(p > flyStart && p < flyEnd){
-        var sparkCount = 2;
-        for(var si=0; si<sparkCount; si++){
+        var sparkCount = 3;
+        for(var si = 0; si < sparkCount; si++){
           particles.push({
-            x: bx/W + (Math.random()-0.5)*0.02,
-            y: by/H + (Math.random()-0.5)*0.02,
-            vx: (Math.random()-0.5)*0.5,
-            vy: (Math.random()-0.5)*0.5,
-            size: 1 + Math.random()*2,
-            alpha: 0.4 + Math.random()*0.4
+            x: bx / W + (Math.random() - 0.5) * 0.03,
+            y: by / H + (Math.random() - 0.5) * 0.03,
+            vx: (Math.random() - 0.5) * 0.6,
+            vy: (Math.random() - 0.5) * 0.6,
+            size: 1 + Math.random() * 2.5,
+            alpha: 0.5 + Math.random() * 0.4
           });
         }
-        if(particles.length > 120) particles.splice(0, particles.length - 80);
+        if(particles.length > 150) particles.splice(0, particles.length - 100);
       }
 
+      if(p > settleStart && !settleBurstFired){
+        settleBurstFired = true;
+        for(var bi = 0; bi < 35; bi++){
+          var burstAngle = (bi / 35) * Math.PI * 2 + Math.random() * 0.3;
+          var burstSpeed = 1.5 + Math.random() * 3;
+          settleBurstParticles.push({
+            x: bx, y: by,
+            vx: Math.cos(burstAngle) * burstSpeed,
+            vy: Math.sin(burstAngle) * burstSpeed,
+            size: 1.5 + Math.random() * 3,
+            alpha: 0.7 + Math.random() * 0.3,
+            life: 1.0,
+            decay: 0.008 + Math.random() * 0.008,
+            gold: Math.random() > 0.3
+          });
+        }
+      }
+
+      for(var sbi = settleBurstParticles.length - 1; sbi >= 0; sbi--){
+        var sbp = settleBurstParticles[sbi];
+        sbp.x += sbp.vx;
+        sbp.y += sbp.vy;
+        sbp.vx *= 0.97;
+        sbp.vy *= 0.97;
+        sbp.life -= sbp.decay;
+        if(sbp.life <= 0){ settleBurstParticles.splice(sbi, 1); continue; }
+        var sba = sbp.alpha * sbp.life;
+        var sbColor = sbp.gold
+          ? 'rgba(212,168,83,' + sba + ')'
+          : 'rgba(139,92,246,' + sba + ')';
+        ctx.beginPath();
+        ctx.arc(sbp.x, sbp.y, sbp.size * sbp.life, 0, Math.PI * 2);
+        ctx.fillStyle = sbColor;
+        ctx.fill();
+        if(sbp.life > 0.5){
+          ctx.beginPath();
+          ctx.arc(sbp.x, sbp.y, sbp.size * sbp.life * 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = sbp.gold
+            ? 'rgba(212,168,83,' + sba * 0.15 + ')'
+            : 'rgba(139,92,246,' + sba * 0.15 + ')';
+          ctx.fill();
+        }
+      }
+
+      var shimmerPhase = now * 0.004;
       var wingFlap = Math.sin(now * flapSpeed) * 0.25 * alpha;
-      drawButterflyAt(bx, by, baseScale, angle, wingFlap, alpha);
+      drawButterflyAt(bx, by, baseScale, angle, wingFlap, alpha, shimmerPhase);
 
       if(p > 0.76){
         var textProg = Math.min(1, (p - 0.76) / 0.22);
