@@ -740,62 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tradelineCartTotal = document.getElementById('tradelineCartTotal');
   const tradelineCartCount = document.getElementById('tradelineCartCount');
   const tradelineCartClear = document.getElementById('tradelineCartClear');
-  let invoiceCache = [];
-  let invoicesLoaded = false;
-  let invoiceLoading = false;
-  let invoiceRefreshTimer = null;
-  function formatCurrency(amount){
-    const value = Number(amount) || 0;
-    try {
-      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value);
-    } catch {
-      return `$${value.toFixed(2)}`;
-    }
-  }
-  function formatDue(due){
-    if(!due) return 'Due on receipt';
-    const date = new Date(due);
-    if(Number.isNaN(date.getTime())) return 'Due on receipt';
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-  function formatTradelineMeta(item){
-    const age = item?.age ? item.age : 'Seasoning N/A';
-    const limit = Number.isFinite(item?.limit) ? formatCurrency(item.limit) : '';
-    return `${age}${limit ? ` • ${limit} limit` : ''}`;
-  }
-  function buildTradelineId(item){
-    const parts = [
-      item?.bank || '',
-      item?.price ?? '',
-      item?.limit ?? '',
-      item?.age || '',
-      item?.statement_date || '',
-      item?.reporting || '',
-      item?.buy_link || '',
-    ];
-    return parts.map(part => String(part).trim()).join('|');
-  }
-  function getCartKey(id){
-    return `tradelineCart:${id || 'guest'}`;
-  }
-  function loadCart(id){
-    try {
-      const stored = localStorage.getItem(getCartKey(id));
-      const parsed = stored ? JSON.parse(stored) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-  function saveCart(id, cart){
-    try {
-      localStorage.setItem(getCartKey(id), JSON.stringify(cart));
-    } catch {}
-  }
-  function getPriceValue(price){
-    const numeric = Number(price);
-    return Number.isFinite(numeric) ? numeric : 0;
-  }
+
   function initTradelineStorefront(id){
     if (!tradelineSection) return;
     const cartState = { items: loadCart(id) };
