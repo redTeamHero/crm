@@ -979,11 +979,11 @@ function inferTradelineMeta(adapter, table){
     return { meta, skip: true };
   }
 
-  if(!meta.creditor){
-    const tableText = sanitizeCreditor(adapter.text(table));
-    if(isNonCreditorHeader(tableText)){
-      return { meta, skip: true };
-    }
+  meta.creditor = name;
+
+  const tableText = sanitizeCreditor(adapter.text(table));
+  if(isNonCreditorHeader(tableText)){
+    return { meta, skip: true };
   }
 
   return { meta };
