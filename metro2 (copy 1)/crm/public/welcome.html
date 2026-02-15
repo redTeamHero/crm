@@ -819,7 +819,7 @@
     var GOLD_DIM = 'rgba(212,168,83,0.3)';
     var BLUE = '#6d9eeb';
     var t0 = performance.now();
-    var SCENE_DUR = [4800, 3500];
+    var SCENE_DUR = [7000, 3500];
     var TOTAL = SCENE_DUR.reduce(function(a,b){return a+b},0);
     var sceneStarts = [];
     var acc = 0;
@@ -1001,10 +1001,10 @@
       var ep = ease(p);
       var now = performance.now();
 
-      var entranceEnd = 0.2;
-      var flyStart = 0.15;
-      var flyEnd = 0.85;
-      var settleStart = 0.8;
+      var entranceEnd = 0.15;
+      var flyStart = 0.1;
+      var flyEnd = 0.72;
+      var settleStart = 0.65;
 
       var flyScale = Math.min(W, H) * 0.3;
       var baseScale = lerp(0.3, 0.85, Math.min(1, ep / entranceEnd));
@@ -1087,11 +1087,11 @@
       var wingFlap = Math.sin(now * flapSpeed) * 0.25 * alpha;
       drawButterflyAt(bx, by, baseScale, angle, wingFlap, alpha);
 
-      if(p > 0.82){
-        var textProg = Math.min(1, (p - 0.82) / 0.15);
-        var textAlpha = ease(textProg);
-        var textY = by + baseScale * 80 + 30;
-        var slideUp = (1 - textAlpha) * 20;
+      if(p > 0.76){
+        var textProg = Math.min(1, (p - 0.76) / 0.22);
+        var textAlpha = ease(ease(textProg));
+        var textY = by + baseScale * 80 + 40;
+        var slideUp = (1 - ease(textProg)) * 35;
 
         ctx.save();
         ctx.globalAlpha = textAlpha;
@@ -1101,8 +1101,8 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
-        ctx.shadowColor = 'rgba(212,168,83,0.6)';
-        ctx.shadowBlur = 20 + textAlpha * 15;
+        ctx.shadowColor = 'rgba(212,168,83,' + (0.3 + textAlpha * 0.4) + ')';
+        ctx.shadowBlur = 10 + textAlpha * 25;
         ctx.fillStyle = GOLD;
         ctx.fillText('Reclaim Your Future', cx, textY + slideUp);
 
