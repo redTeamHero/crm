@@ -1425,6 +1425,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function esc(str){ return String(str).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
+  function renderEducation(){
+    const container = document.getElementById('education');
+    if(!container) return;
+    const lessons = [
+      { title: 'Understanding Your Credit Score', subtitle: 'Learn what makes up your score', icon: '📊', status: 'completed' },
+      { title: 'Reading Your Credit Report', subtitle: 'Navigate the 3 bureau reports', icon: '📄', status: 'completed' },
+      { title: 'Types of Negative Items', subtitle: 'Collections, charge-offs & more', icon: '⚠️', status: 'current' },
+      { title: 'The Dispute Process', subtitle: 'How to challenge inaccuracies', icon: '📝', status: 'locked' },
+      { title: 'Writing Effective Disputes', subtitle: 'Craft letters that get results', icon: '✍️', status: 'locked' },
+      { title: 'Building Positive Credit', subtitle: 'Strategies for credit growth', icon: '🌱', status: 'locked' },
+      { title: 'Advanced Strategies', subtitle: 'Goodwill letters & pay-for-delete', icon: '🚀', status: 'locked' },
+      { title: 'Maintaining Your Score', subtitle: 'Keep your credit strong forever', icon: '🛡️', status: 'locked' },
+    ];
+    let html = '';
+    lessons.forEach(function(lesson, i){
+      var align = i % 2 === 0 ? 'align-left' : 'align-right';
+      var nodeClass = 'edu-node ' + lesson.status;
+      var stepClass = 'edu-step ' + align + (lesson.status === 'locked' ? ' locked' : '');
+      var inner = '';
+      if(lesson.status === 'completed'){
+        inner = '<span class="edu-check">✓</span>';
+      } else if(lesson.status === 'current'){
+        inner = lesson.icon;
+      } else {
+        inner = '<span class="edu-lock">🔒</span>';
+      }
+      html += '<div class="' + stepClass + '">' +
+        '<div class="' + nodeClass + '">' + inner + '</div>' +
+        '<div class="edu-lesson-info">' +
+          '<div class="edu-lesson-title">' + esc(lesson.title) + '</div>' +
+          '<div class="edu-lesson-subtitle">' + esc(lesson.subtitle) + '</div>' +
+        '</div>' +
+      '</div>';
+      if(i < lessons.length - 1){
+        var connClass = 'edu-connector';
+        if(lesson.status === 'completed' && lessons[i+1].status !== 'locked') connClass += ' completed';
+        html += '<div class="' + connClass + '"></div>';
+      }
+    });
+    container.innerHTML = html;
+  }
+  renderEducation();
+
   function updateMailEmptyState(){
     const emptyEl = document.getElementById('mailEmptyState');
     if(!emptyEl) return;
@@ -1721,6 +1764,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function formatMsgTime(dateStr){
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = now - d;
+    const mins = Math.floor(diff / 60000);
+    if(mins < 1) return 'Just now';
+    if(mins < 60) return mins + 'm ago';
+    return d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  }
+  function formatMsgDate(dateStr){
+    const d = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const msgDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diff = today - msgDay;
+    if(diff === 0) return 'Today';
+    if(diff <= 86400000) return 'Yesterday';
+    return d.toLocaleDateString([], {month:'short', day:'numeric'});
+  }
+
   function loadMessages(){
     if (!(consumerId && messageList)) return;
     fetch(`/api/messages/${consumerId}`)
@@ -1747,21 +1810,30 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
         if (!msgs.length) {
-          messageList.innerHTML = '<div class="muted">No messages.</div>';
+          messageList.innerHTML = '<div class="imsg-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>No messages yet</p><p class="imsg-empty-sub">Send a message to start the conversation.</p></div>';
         } else {
-          messageList.innerHTML = msgs.map(m => {
+          let html = '';
+          let lastDate = '';
+          msgs.forEach(m => {
+            const dateLabel = formatMsgDate(m.at);
+            if(dateLabel !== lastDate){
+              html += `<div class="imsg-date-divider">${esc(dateLabel)}</div>`;
+              lastDate = dateLabel;
+            }
             const fromUser = m.payload?.from;
             const isClient = fromUser === 'client';
-            const cls = isClient ? 'msg-client' : 'msg-host';
-            const name = isClient ? 'You' : fromUser || 'Host';
-            const when = new Date(m.at).toLocaleString();
-            return `<div class="message ${cls}"><div class="text-xs muted">${name} • ${when}</div><div>${esc(m.payload?.text || '')}</div></div>`;
-          }).join('');
+            const rowClass = isClient ? 'sent' : 'received';
+            const timeText = formatMsgTime(m.at);
+            const senderLabel = isClient ? '' : `<div class="imsg-bubble-sender">${esc(fromUser || 'Credit Team')}</div>`;
+            html += `<div class="imsg-bubble-row ${rowClass}"><div class="imsg-bubble">${senderLabel}${esc(m.payload?.text || '')}<div class="imsg-bubble-time">${esc(timeText)}</div></div></div>`;
+          });
+          messageList.innerHTML = html;
+          messageList.scrollTop = messageList.scrollHeight;
         }
       })
       .catch(err => {
         console.error('Failed to load messages', err);
-        messageList.innerHTML = '<div class="muted">Failed to load messages. <a href="#" id="retryMessages">Retry</a></div>';
+        messageList.innerHTML = '<div class="imsg-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg><p>Failed to load messages</p><p class="imsg-empty-sub"><a href="#" id="retryMessages" style="color:#007aff">Tap to retry</a></p></div>';
         const retry = document.getElementById('retryMessages');
         if (retry) retry.addEventListener('click', e => { e.preventDefault(); loadMessages(); });
       });
@@ -1912,34 +1984,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  const uploadForm = document.getElementById('uploadForm');
-  if (uploadForm && consumerId) {
-    uploadForm.addEventListener('submit', e => {
-      e.preventDefault();
-      const fileInput = document.getElementById('uploadFile');
-      const status = document.getElementById('uploadStatus');
-      if (!fileInput.files.length) return;
+  document.querySelectorAll('.upload-file-input').forEach(input => {
+    if (!consumerId) return;
+    input.addEventListener('change', function() {
+      if (!this.files.length) return;
+      const file = this.files[0];
+      const docType = this.getAttribute('data-type') || 'other';
+      const card = this.closest('.upload-card');
+      const statusEl = document.getElementById('uploadStatus');
+      const cardStatus = document.getElementById('status-' + docType);
+
+      if (cardStatus) {
+        cardStatus.textContent = 'Uploading...';
+        cardStatus.className = 'upload-card-status pending';
+      }
+
       const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-      const typeSel = document.getElementById('uploadType');
-      if (typeSel) formData.append('type', typeSel.value || '');
+      formData.append('file', file);
+      formData.append('type', docType);
 
       fetch(`/api/consumers/${consumerId}/state/upload`, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
           if (data.ok) {
-            status.textContent = 'Uploaded successfully.';
-            fileInput.value = '';
-            if (typeSel) typeSel.value = 'id';
-
-            location.hash = '#';
+            if (cardStatus) {
+              cardStatus.textContent = 'Uploaded';
+              cardStatus.className = 'upload-card-status uploaded';
+            }
+            if (card) card.classList.add('has-file');
+            if (statusEl) {
+              statusEl.textContent = file.name + ' uploaded successfully.';
+              statusEl.className = 'text-sm p-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200';
+              statusEl.classList.remove('hidden');
+              setTimeout(() => statusEl.classList.add('hidden'), 4000);
+            }
             loadDocs();
           } else {
-            status.textContent = 'Upload failed.';
+            if (cardStatus) {
+              cardStatus.textContent = 'Upload Failed';
+              cardStatus.className = 'upload-card-status pending';
+            }
+            if (statusEl) {
+              statusEl.textContent = 'Upload failed. Please try again.';
+              statusEl.className = 'text-sm p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200';
+              statusEl.classList.remove('hidden');
+            }
           }
         })
-        .catch(() => { status.textContent = 'Upload failed.'; });
+        .catch(() => {
+          if (cardStatus) {
+            cardStatus.textContent = 'Upload Failed';
+            cardStatus.className = 'upload-card-status pending';
+          }
+          if (statusEl) {
+            statusEl.textContent = 'Upload failed. Please try again.';
+            statusEl.className = 'text-sm p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200';
+            statusEl.classList.remove('hidden');
+          }
+        });
+      this.value = '';
     });
-  }
+  });
 
 });
