@@ -80,7 +80,7 @@ body::after {
   backdrop-filter: blur(18px) saturate(150%);
   box-shadow: var(--shadow-card);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 .card {
   border-radius: 24px;
