@@ -740,6 +740,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const tradelineCartTotal = document.getElementById('tradelineCartTotal');
   const tradelineCartCount = document.getElementById('tradelineCartCount');
   const tradelineCartClear = document.getElementById('tradelineCartClear');
+  const messageSection = document.getElementById('messageSection');
+  const mailSection = document.getElementById('mailSection');
+  const negativeItemsSection = document.getElementById('negativeItemsSection');
+  const portalMain = document.getElementById('portalMain');
+  const uploadSection = document.getElementById('uploadSection');
+  const educationSection = document.getElementById('educationSection');
+  const documentSection = document.getElementById('documentSection');
 
   function initTradelineStorefront(id){
     if (!tradelineSection) return;
@@ -1653,12 +1660,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return modules[key] !== false;
   }
 
-  // Handle section navigation
-  const portalMain = document.getElementById('portalMain');
-  const uploadSection = document.getElementById('uploadSection');
-  const educationSection = document.getElementById('educationSection');
-  const documentSection = document.getElementById('documentSection');
-  
   function showSection(hash){
     if (portalMain) portalMain.classList.add('hidden');
     if (uploadSection) uploadSection.classList.add('hidden');
