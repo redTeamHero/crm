@@ -458,6 +458,9 @@ document.addEventListener('DOMContentLoaded', () => {
   applyNextSteps(enhanced.reminders);
   applyDataRegionBanner(dataRegionVariant);
   bootstrapDataRegionExperiment(consumerId);
+  if (isPortalModuleEnabled(portalSettings.modules, 'tradelines')) {
+    initTradelineStorefront(consumerId);
+  }
 
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
@@ -520,9 +523,9 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           const idx = steps.findIndex(s => !completed[s]);
           if (idx === -1) {
-            stepEl.textContent = \`Completed • \${steps.length} step\${steps.length === 1 ? '' : 's'}\`;
+            stepEl.textContent = `Completed • ${steps.length} step${steps.length === 1 ? '' : 's'}`;
           } else {
-            stepEl.textContent = \`Step \${idx + 1} of \${steps.length}: \${steps[idx]}\`;
+            stepEl.textContent = `Step ${idx + 1} of ${steps.length}: ${steps[idx]}`;
           }
         })
         .catch(() => { stepEl.textContent = 'Unknown'; });
@@ -547,9 +550,9 @@ document.addEventListener('DOMContentLoaded', () => {
           feedEl.textContent = 'No news available.';
           return;
         }
-        feedEl.innerHTML = items.slice(0,5).map(item => \`
-          <div class="news-item"><a href="\${item.link}" target="_blank" class="flex items-center gap-1">\${item.title}<span class="wiggle-arrow">↗</span></a></div>
-        \`).join('');
+        feedEl.innerHTML = items.slice(0,5).map(item => `
+          <div class="news-item"><a href="${item.link}" target="_blank" class="flex items-center gap-1">${item.title}<span class="wiggle-arrow">↗</span></a></div>
+        `).join('');
       })
       .catch(err => {
         console.error('Failed to load news feed', err);
@@ -606,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   const disputeList = items.length ? items : negativeItems.map(item => ({
     account: item?.creditor || 'Negative Item',
-    stage: \`\${(item?.violations || []).length} issue\${(item?.violations || []).length === 1 ? '' : 's'} • S\${item?.severity || 0}\`,
+    stage: `${(item?.violations || []).length} issue${(item?.violations || []).length === 1 ? '' : 's'} • S${item?.severity || 0}`,
   }));
   if (itemsEl) {
     if (!disputeList.length) {
@@ -625,7 +628,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tt) tt.remove();
       const te = document.getElementById('itemsInDisputeEmpty');
       if (te) te.remove();
-      itemsEl.innerHTML = disputeList.map(t => \`<div class="timeline-item"><span class="font-medium">\${escape(t.account)}</span> - \${escape(t.stage)}</div>\`).join('');
+      itemsEl.innerHTML = disputeList.map(t => `<div class="timeline-item"><span class="font-medium">${escape(t.account)}</span> - ${escape(t.stage)}</div>`).join('');
     }
   }
 
@@ -635,7 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sourceLength = disputeList.length;
     if(sourceLength){
       const rounds = Math.ceil(sourceLength / perRound);
-      summaryEl.textContent = \`\${sourceLength} item\${sourceLength === 1 ? '' : 's'} across \${rounds} round\${rounds===1?'':'s'} (\${perRound} per round)\`;
+      summaryEl.textContent = `${sourceLength} item${sourceLength === 1 ? '' : 's'} across ${rounds} round${rounds===1?'':'s'} (${perRound} per round)`;
     } else {
       summaryEl.textContent = 'No items in dispute.';
     }
@@ -655,11 +658,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalIssues = Number.isFinite(snap.totalIssues) ? snap.totalIssues : 0;
     if(summary.length){
       const total = totalIssues || summary.reduce((sum, item) => sum + (item.issues || 0), 0);
-      const headline = \`<div class="text-xs muted">Tracking \${total} issue\${total === 1 ? '' : 's'}</div>\`;
+      const headline = `<div class="text-xs muted">Tracking ${total} issue${total === 1 ? '' : 's'}</div>`;
       const list = summary.map(item => {
         const bureauText = (item.bureaus || []).length ? item.bureaus.join(', ') : 'Bureaus pending';
         const issues = item.issues || 0;
-        return \`<div class="news-item"><div class="font-medium">\${escape(item.creditor)}</div><div class="text-xs muted">S\${item.severity || 0} • \${issues} issue\${issues === 1 ? '' : 's'} • \${escape(bureauText)}</div></div>\`;
+        return `<div class="news-item"><div class="font-medium">${escape(item.creditor)}</div><div class="text-xs muted">S${item.severity || 0} • ${issues} issue${issues === 1 ? '' : 's'} • ${escape(bureauText)}</div></div>`;
       }).join('');
       snapEl.innerHTML = headline + list;
     } else {
@@ -671,7 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (eduEl) {
     const edu = JSON.parse(localStorage.getItem('educationItems') || '[]');
     if (!edu.length) eduEl.textContent = 'No educational items.';
-    else eduEl.innerHTML = edu.map(e => \`<div class="news-item"><div class="font-medium">\${e.account}</div><div>\${e.text}</div></div>\`).join('');
+    else eduEl.innerHTML = edu.map(e => `<div class="news-item"><div class="font-medium">${e.account}</div><div>${e.text}</div></div>`).join('');
   }
 
   const docEl = document.getElementById('docList');
@@ -689,29 +692,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const negativeItemList = document.getElementById('negativeItemList');
   const negativeItemSearch = document.getElementById('negativeItemSearch');
   const negativeItemSort = document.getElementById('negativeItemSort');
-
-  const paymentSection = document.getElementById('paymentSection');
-  const paymentList = document.getElementById('paymentList');
-  const paymentEmpty = document.getElementById('paymentEmpty');
-  const paymentTotal = document.getElementById('paymentTotal');
-  const paymentError = document.getElementById('paymentError');
-  const tradelineSection = document.getElementById('tradelinesSection');
-  const tradelineRangeSelect = document.getElementById('tradelineRange');
-  const tradelineBankSelect = document.getElementById('tradelineBank');
-  const tradelineSearchInput = document.getElementById('tradelineSearch');
-  const tradelineList = document.getElementById('tradelineList');
-  const tradelineMeta = document.getElementById('tradelineMeta');
-  const tradelineEmpty = document.getElementById('tradelineEmpty');
-  const tradelineCartList = document.getElementById('tradelineCartList');
-  const tradelineCartEmpty = document.getElementById('tradelineCartEmpty');
-  const tradelineCartTotal = document.getElementById('tradelineCartTotal');
-  const tradelineCartCount = document.getElementById('tradelineCartCount');
-  const tradelineCartClear = document.getElementById('tradelineCartClear');
-  const portalMain = document.getElementById('portalMain');
-  const uploadSection = document.getElementById('uploadSection');
-  const educationSection = document.getElementById('educationSection');
-  const documentSection = document.getElementById('documentSection');
-
   const NEGATIVE_BUREAU_LABELS = {
     account_number: 'Account #',
     payment_status: 'Payment status',
@@ -732,41 +712,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!str) return '';
     const redactedMatch = str.match(/REDACTED[_\s-]*SSN/i);
     if(redactedMatch){
-      const suffixMatch = str.match(/(\\*{4,}|•{4,}|\\d{4})\\s*$/);
-      const suffix = suffixMatch ? suffixMatch[1].replace(/\\*/g, '•') : '••••';
-      return \`REDACTED SSN \${suffix}\`;
+      const suffixMatch = str.match(/(\*{4,}|•{4,}|\d{4})\s*$/);
+      const suffix = suffixMatch ? suffixMatch[1].replace(/\*/g, '•') : '••••';
+      return `REDACTED SSN ${suffix}`;
     }
     if(str.startsWith('••••')) return str;
-    if(/\\*{4,}/.test(str)) return str.replace(/\\*/g, '•');
+    if(/\*{4,}/.test(str)) return str.replace(/\*/g, '•');
     const clean = str.replace(/[^0-9a-z]/gi, '');
     if(clean.length <= 4) return clean;
-    return \`•••• \${clean.slice(-4)}\`;
+    return `•••• ${clean.slice(-4)}`;
   }
 
-  function formatCurrency(amount){
-    const value = Number(amount) || 0;
-    try {
-      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value);
-    } catch {
-      return \`$\${value.toFixed(2)}\`;
-    }
-  }
-
-  function formatTradelineMeta(item){
-    const age = item?.age ? item.age : 'Seasoning N/A';
-    const limit = Number.isFinite(item?.limit) ? formatCurrency(item.limit) : '';
-    return \`\${age}\${limit ? \` • \${limit} limit\` : ''}\`;
-  }
-
-  function loadCart(id){
-    try {
-      const stored = localStorage.getItem(\`tradelineCart:\${id || 'guest'}\`);
-      const parsed = stored ? JSON.parse(stored) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
+  const paymentSection = document.getElementById('paymentSection');
+  const paymentList = document.getElementById('paymentList');
+  const paymentEmpty = document.getElementById('paymentEmpty');
+  const paymentTotal = document.getElementById('paymentTotal');
+  const paymentError = document.getElementById('paymentError');
+  const tradelineSection = document.getElementById('tradelinesSection');
+  const tradelineRangeSelect = document.getElementById('tradelineRange');
+  const tradelineBankSelect = document.getElementById('tradelineBank');
+  const tradelineSearchInput = document.getElementById('tradelineSearch');
+  const tradelineList = document.getElementById('tradelineList');
+  const tradelineMeta = document.getElementById('tradelineMeta');
+  const tradelineEmpty = document.getElementById('tradelineEmpty');
+  const tradelineCartList = document.getElementById('tradelineCartList');
+  const tradelineCartEmpty = document.getElementById('tradelineCartEmpty');
+  const tradelineCartTotal = document.getElementById('tradelineCartTotal');
+  const tradelineCartCount = document.getElementById('tradelineCartCount');
+  const tradelineCartClear = document.getElementById('tradelineCartClear');
+  const messageSection = document.getElementById('messageSection');
+  const mailSection = document.getElementById('mailSection');
+  const negativeItemsSection = document.getElementById('negativeItemsSection');
+  const portalMain = document.getElementById('portalMain');
+  const uploadSection = document.getElementById('uploadSection');
+  const educationSection = document.getElementById('educationSection');
+  const documentSection = document.getElementById('documentSection');
 
   function initTradelineStorefront(id){
     if (!tradelineSection) return;
@@ -787,19 +767,855 @@ document.addEventListener('DOMContentLoaded', () => {
         tradelineCartCount.textContent = String(count);
       }
     };
-    updateCartSummary();
+
+    const renderCart = () => {
+      if (!tradelineCartList || !tradelineCartEmpty || !tradelineCartTotal) return;
+      tradelineCartList.innerHTML = '';
+      if (!cartState.items.length) {
+        tradelineCartEmpty.textContent = 'Cart is empty. Add tradelines to reserve seats.';
+        tradelineCartTotal.textContent = formatCurrency(0);
+        updateCartSummary();
+        return;
+      }
+      tradelineCartEmpty.textContent = '';
+      let total = 0;
+      cartState.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'flex flex-col gap-1 rounded border border-slate-200 bg-white/80 p-2 text-xs';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between gap-2';
+        const name = document.createElement('div');
+        name.className = 'font-medium';
+        name.textContent = item.bank || 'Tradeline';
+        const price = document.createElement('div');
+        price.className = 'text-slate-600';
+        price.textContent = formatCurrency(item.price);
+        header.appendChild(name);
+        header.appendChild(price);
+
+        const meta = document.createElement('div');
+        meta.className = 'text-slate-500';
+        meta.textContent = formatTradelineMeta(item);
+
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center justify-between gap-2';
+        const qtyWrap = document.createElement('div');
+        qtyWrap.className = 'flex items-center gap-1';
+        const decBtn = document.createElement('button');
+        decBtn.type = 'button';
+        decBtn.className = 'btn text-[10px] px-2 py-1';
+        decBtn.textContent = '−';
+        const qtyText = document.createElement('span');
+        qtyText.className = 'text-xs';
+        qtyText.textContent = `Qty ${item.qty}`;
+        const incBtn = document.createElement('button');
+        incBtn.type = 'button';
+        incBtn.className = 'btn text-[10px] px-2 py-1';
+        incBtn.textContent = '+';
+        qtyWrap.appendChild(decBtn);
+        qtyWrap.appendChild(qtyText);
+        qtyWrap.appendChild(incBtn);
+
+        const checkout = document.createElement('a');
+        checkout.className = 'btn text-[10px] px-2 py-1';
+        checkout.textContent = 'Checkout';
+        checkout.target = '_blank';
+        checkout.rel = 'noreferrer';
+        checkout.href = item.buy_link || '#';
+        if (!item.buy_link) checkout.classList.add('opacity-50', 'pointer-events-none');
+
+        actions.appendChild(qtyWrap);
+        actions.appendChild(checkout);
+
+        decBtn.addEventListener('click', () => {
+          updateCartQty(item.id, (item.qty || 0) - 1);
+        });
+        incBtn.addEventListener('click', () => {
+          updateCartQty(item.id, (item.qty || 0) + 1);
+        });
+
+        row.appendChild(header);
+        row.appendChild(meta);
+        row.appendChild(actions);
+        tradelineCartList.appendChild(row);
+        total += getPriceValue(item.price) * (item.qty || 0);
+      });
+      tradelineCartTotal.textContent = formatCurrency(total);
+      updateCartSummary();
+    };
+
+    const updateCartQty = (itemId, qty) => {
+      const nextQty = Math.max(0, qty);
+      const idx = cartState.items.findIndex(item => item.id === itemId);
+      if (idx === -1) return;
+      if (nextQty === 0) {
+        cartState.items.splice(idx, 1);
+      } else {
+        cartState.items[idx].qty = nextQty;
+      }
+      saveCart(id, cartState.items);
+      renderCart();
+    };
+
+    const addToCart = (item) => {
+      const idValue = buildTradelineId(item);
+      const existing = cartState.items.find(entry => entry.id === idValue);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cartState.items.push({
+          id: idValue,
+          bank: item.bank || '',
+          price: item.price,
+          limit: item.limit,
+          age: item.age,
+          statement_date: item.statement_date,
+          reporting: item.reporting,
+          buy_link: item.buy_link,
+          qty: 1,
+        });
+      }
+      saveCart(id, cartState.items);
+      renderCart();
+    };
+
+    const filterTradelines = () => {
+      const term = (tradelineSearchInput?.value || '').toLowerCase().trim();
+      if (!term) {
+        tradelineState.filtered = [...tradelineState.items];
+        return;
+      }
+      tradelineState.filtered = tradelineState.items.filter(item => {
+        const haystack = [
+          item.bank,
+          item.reporting,
+          item.statement_date,
+          item.age,
+        ].filter(Boolean).join(' ').toLowerCase();
+        return haystack.includes(term);
+      });
+    };
+
+    const renderTradelines = () => {
+      if (!tradelineList || !tradelineMeta || !tradelineEmpty) return;
+      tradelineList.innerHTML = '';
+      tradelineEmpty.textContent = '';
+      if (tradelineState.loading) {
+        tradelineMeta.textContent = 'Loading tradelines...';
+        return;
+      }
+      filterTradelines();
+      const items = tradelineState.filtered;
+      tradelineMeta.textContent = tradelineState.selectedRange
+        ? `${items.length} tradeline${items.length === 1 ? '' : 's'} available.`
+        : 'Select a price range to load inventory.';
+
+      if (!tradelineState.selectedRange) {
+        tradelineEmpty.textContent = 'Pick a price range to see availability.';
+        return;
+      }
+      if (!items.length) {
+        tradelineEmpty.textContent = 'No tradelines found. Try another range or bank.';
+        return;
+      }
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm';
+        const title = document.createElement('div');
+        title.className = 'text-sm font-semibold';
+        title.textContent = item.bank || 'Tradeline';
+        const meta = document.createElement('div');
+        meta.className = 'text-xs text-slate-500';
+        meta.textContent = formatTradelineMeta(item);
+        const price = document.createElement('div');
+        price.className = 'text-sm font-semibold text-emerald-600';
+        price.textContent = formatCurrency(item.price);
+
+        const actions = document.createElement('div');
+        actions.className = 'mt-2 flex flex-wrap gap-2';
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'btn text-xs';
+        addBtn.textContent = 'Add to cart';
+        addBtn.addEventListener('click', () => addToCart(item));
+
+        const checkout = document.createElement('a');
+        checkout.className = 'btn text-xs';
+        checkout.textContent = 'View checkout';
+        checkout.target = '_blank';
+        checkout.rel = 'noreferrer';
+        checkout.href = item.buy_link || '#';
+        if (!item.buy_link) checkout.classList.add('opacity-50', 'pointer-events-none');
+
+        actions.appendChild(addBtn);
+        actions.appendChild(checkout);
+
+        card.appendChild(title);
+        card.appendChild(meta);
+        card.appendChild(price);
+        card.appendChild(actions);
+        tradelineList.appendChild(card);
+      });
+    };
+
+    const renderRangeOptions = () => {
+      if (!tradelineRangeSelect) return;
+      tradelineRangeSelect.innerHTML = '<option value="">Select price range</option>';
+      tradelineState.ranges.forEach(range => {
+        const option = document.createElement('option');
+        option.value = range.id;
+        option.textContent = `${range.label} (${range.count})`;
+        tradelineRangeSelect.appendChild(option);
+      });
+    };
+
+    const renderBankOptions = () => {
+      if (!tradelineBankSelect) return;
+      tradelineBankSelect.innerHTML = '<option value="">All banks</option>';
+      tradelineState.banks.forEach(bank => {
+        const option = document.createElement('option');
+        option.value = bank.bank;
+        option.textContent = `${bank.bank} (${bank.count})`;
+        tradelineBankSelect.appendChild(option);
+      });
+    };
+
+    const fetchJson = async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    };
+
+    const loadRanges = async () => {
+      if (!tradelineRangeSelect) return;
+      tradelineState.loading = true;
+      renderTradelines();
+      try {
+        const data = await fetchJson('/api/tradelines');
+        tradelineState.ranges = data.ranges || [];
+        renderRangeOptions();
+        const firstRange = tradelineState.ranges.find(range => range.count > 0) || tradelineState.ranges[0];
+        if (firstRange && !tradelineState.selectedRange) {
+          tradelineState.selectedRange = firstRange.id;
+          tradelineRangeSelect.value = firstRange.id;
+          await loadTradelines();
+        } else {
+          tradelineState.loading = false;
+          renderTradelines();
+        }
+      } catch (err) {
+        console.error('Failed to load tradeline ranges', err);
+        tradelineState.loading = false;
+        if (tradelineMeta) tradelineMeta.textContent = 'Unable to load tradelines.';
+      }
+    };
+
+    const loadTradelines = async () => {
+      if (!tradelineState.selectedRange) {
+        tradelineState.items = [];
+        tradelineState.filtered = [];
+        tradelineState.banks = [];
+        renderBankOptions();
+        renderTradelines();
+        return;
+      }
+      tradelineState.loading = true;
+      renderTradelines();
+      try {
+        const params = new URLSearchParams({
+          range: tradelineState.selectedRange,
+          perPage: '200',
+        });
+        if (tradelineState.selectedBank) {
+          params.set('bank', tradelineState.selectedBank);
+        }
+        const data = await fetchJson(`/api/tradelines?${params.toString()}`);
+        tradelineState.items = Array.isArray(data.tradelines) ? data.tradelines : [];
+        tradelineState.banks = data.banks || [];
+        tradelineState.loading = false;
+        renderBankOptions();
+        renderTradelines();
+      } catch (err) {
+        console.error('Failed to load tradelines', err);
+        tradelineState.items = [];
+        tradelineState.banks = [];
+        tradelineState.loading = false;
+        renderBankOptions();
+        renderTradelines();
+      }
+    };
+
+    if (tradelineRangeSelect) {
+      tradelineRangeSelect.addEventListener('change', async (event) => {
+        tradelineState.selectedRange = event.target.value;
+        tradelineState.selectedBank = '';
+        if (tradelineBankSelect) tradelineBankSelect.value = '';
+        await loadTradelines();
+      });
+    }
+
+    if (tradelineBankSelect) {
+      tradelineBankSelect.addEventListener('change', async (event) => {
+        tradelineState.selectedBank = event.target.value;
+        await loadTradelines();
+      });
+    }
+
+    if (tradelineSearchInput) {
+      tradelineSearchInput.addEventListener('input', () => renderTradelines());
+    }
+
+    if (tradelineCartClear) {
+      tradelineCartClear.addEventListener('click', () => {
+        cartState.items = [];
+        saveCart(id, cartState.items);
+        renderCart();
+      });
+    }
+
+    renderCart();
+    loadRanges();
+  }
+  function isDueSoon(inv){
+    if(inv.paid || !inv?.due) return false;
+    const date = new Date(inv.due);
+    if(Number.isNaN(date.getTime())) return false;
+    const diff = date.getTime() - Date.now();
+    return diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000;
+  }
+  function isOverdue(inv){
+    if(inv.paid || !inv?.due) return false;
+    const date = new Date(inv.due);
+    if(Number.isNaN(date.getTime())) return false;
+    return date.getTime() < Date.now();
+  }
+  function isStripeCheckoutLink(link){
+    if(!link) return false;
+    try {
+      const url = new URL(link, window.location.origin);
+      const hostname = url.hostname.toLowerCase();
+      const path = url.pathname.toLowerCase();
+      const isStripeDomain = hostname === 'checkout.stripe.com' || hostname.endsWith('.stripe.com');
+      if(!isStripeDomain) return false;
+      return path.includes('/checkout') || path.includes('/pay/');
+    } catch {
+      return false;
+    }
   }
 
-  function loadMessages() {
-    if (!messageList || !consumerId) return;
-    fetch(\`/api/messages/\${consumerId}\`)
+  function navigateTo(link){
+    if(!link) return;
+    try {
+      window.location.assign(link);
+    } catch {
+      window.location.href = link;
+    }
+  }
+
+  function attachPayHandlers(){
+    if(!paymentList) return;
+    paymentList.querySelectorAll('.pay-invoice').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const link = btn.getAttribute('data-pay-link');
+        const provider = (btn.getAttribute('data-provider') || '').toLowerCase();
+        const invoiceId = btn.getAttribute('data-id');
+        const originalText = btn.dataset.label || btn.textContent;
+        const shouldTryStripe = provider === 'stripe' || (typeof link === 'string' && link.includes('/pay/'));
+
+        if(shouldTryStripe){
+          btn.disabled = true;
+          btn.textContent = 'Redirecting…';
+          let stripeOk = false;
+          try {
+            const resp = await fetch(`/api/invoices/${encodeURIComponent(invoiceId)}/checkout`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ consumerId }),
+            });
+            const data = await resp.json().catch(() => ({}));
+            if(resp.ok && data?.url){
+              stripeOk = true;
+              window.location.href = data.url;
+              return;
+            }
+            if(!link){
+              alert(data?.error || 'Unable to start Stripe checkout. Please contact support.');
+            } else {
+              console.warn('Stripe checkout fallback triggered', data?.error || resp.statusText);
+            }
+          } catch (err) {
+            console.error('Stripe checkout failed', err);
+            if(!link){
+              alert('Unable to start Stripe checkout. Please contact support.');
+            }
+          } finally {
+            if(!stripeOk){
+              btn.disabled = false;
+              btn.textContent = originalText;
+            }
+          }
+          if(stripeOk){
+            return;
+          }
+        }
+
+        if(link){
+          navigateTo(link);
+          return;
+        }
+        alert('Payment link unavailable. Please contact support.');
+      });
+    });
+  }
+  function renderInvoices(invoices = []){
+    invoiceCache = Array.isArray(invoices) ? invoices : [];
+    invoicesLoaded = true;
+    if(paymentTotal){
+      const total = invoiceCache.filter(inv => !inv.paid).reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+      paymentTotal.textContent = formatCurrency(total);
+    }
+    if(!paymentList) return;
+    if(!invoiceCache.length){
+      paymentList.innerHTML = '';
+      if(paymentEmpty) paymentEmpty.classList.remove('hidden');
+      if(paymentError) paymentError.classList.add('hidden');
+      return;
+    }
+    if(paymentEmpty) paymentEmpty.classList.add('hidden');
+    const cards = invoiceCache.map(inv => {
+      const amountText = formatCurrency(inv.amount);
+      const dueText = formatDue(inv.due);
+      const overdue = isOverdue(inv);
+      const dueSoon = isDueSoon(inv);
+      const badges = [
+        inv.paid ? '<span class="badge badge-paid">Paid</span>' : '<span class="badge badge-unpaid">Open</span>',
+        overdue ? '<span class="badge badge-unpaid">Overdue</span>' : (dueSoon ? '<span class="badge badge-unpaid">Due soon</span>' : '')
+      ].filter(Boolean).join(' ');
+      const canCheckout = !inv.paid && (inv.payLink || (inv.paymentProvider || '').toLowerCase() === 'stripe');
+      const providerAttr = inv.paymentProvider ? ` data-provider="${esc(inv.paymentProvider)}"` : '';
+      const linkAttr = inv.payLink ? ` data-pay-link="${esc(inv.payLink)}"` : '';
+      const buttonLabel = 'Pay now';
+      const payButton = inv.paid ? '' : (canCheckout
+        ? `<button type="button" class="btn text-sm pay-invoice" data-id="${esc(inv.id)}" data-label="${esc(buttonLabel)}"${linkAttr}${providerAttr}>${buttonLabel}</button>`
+        : '<span class="text-xs muted">Contact support to add a payment link.</span>');
+      const pdfUrl = inv.pdf ? `/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(inv.pdf)}` : '';
+      const pdfButton = inv.pdf ? `<a class="btn text-xs" target="_blank" rel="noopener" href="${pdfUrl}">Invoice PDF</a>` : '';
+      return `
+        <div class="glass card p-4 flex flex-col gap-3">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div class="font-semibold text-base">${escape(inv.desc || 'Invoice')}</div>
+              <div class="text-xs muted">${escape(dueText)}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-semibold">${amountText}</div>
+              <div class="flex flex-wrap gap-2 justify-end mt-1">${badges}</div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            ${payButton}
+            ${pdfButton}
+          </div>
+        </div>
+      `;
+    }).join('');
+    paymentList.innerHTML = cards;
+    if(paymentError) paymentError.classList.add('hidden');
+    attachPayHandlers();
+  }
+  function showInvoiceError(message){
+    if(paymentList) paymentList.innerHTML = '';
+    if(paymentEmpty) paymentEmpty.classList.add('hidden');
+    if(paymentError){
+      paymentError.textContent = message || 'Failed to load invoices. Please retry.';
+      paymentError.classList.remove('hidden');
+    }
+  }
+  function loadInvoices(options = {}){
+    if(!(consumerId && paymentSection)) return;
+    if(invoicesLoaded && !options.force){
+      renderInvoices(invoiceCache);
+      return;
+    }
+    if(invoiceLoading) return;
+    invoiceLoading = true;
+    fetch(`/api/invoices/${consumerId}`)
       .then(r => r.json())
-      .then(msgs => {
+      .then(data => {
+        renderInvoices(Array.isArray(data.invoices) ? data.invoices : []);
+      })
+      .catch(() => {
+        showInvoiceError('Could not load invoices. Refresh or contact support.');
+      })
+      .finally(() => {
+        invoiceLoading = false;
+      });
+  }
+  function loadDocs(){
+    if (!(consumerId && (docEl || docPreviewEl))) return;
+    fetch(`/api/consumers/${consumerId}/state`)
+      .then(r => r.json())
+      .then(data => {
+        const docs = data.state?.files || [];
+        if (data.state?.creditScore) {
+          applyCreditScore(data.state.creditScore);
+        }
+        const docMarkup = docs.map(d => `<div class="news-item"><a href="/api/consumers/${consumerId}/state/files/${d.storedName}" target="_blank">${d.originalName}</a></div>`).join('');
+        if (docEl) {
+          if (!docs.length) docEl.textContent = 'No documents uploaded.';
+          else docEl.innerHTML = docMarkup;
+        }
+        if (docPreviewEl) {
+          if (!docs.length) {
+            docPreviewEl.textContent = 'No documents uploaded.';
+          } else {
+            const previewDocs = docs.slice(0, 3).map(d => {
+              const created = d.createdAt ? new Date(d.createdAt) : null;
+              const timestamp = created && !Number.isNaN(created.getTime())
+                ? created.toLocaleDateString()
+                : 'Ready to view';
+              return `<div class="news-item preview-item"><div class="font-medium">${d.originalName}</div><div class="text-xs muted">${timestamp}</div></div>`;
+            }).join('');
+            const overflow = docs.length > 3 ? `<div class="text-xs muted">+${docs.length - 3} more in your library</div>` : '';
+            docPreviewEl.innerHTML = previewDocs + overflow;
+          }
+        }
+      })
+      .catch(() => {
+        if (docEl) docEl.textContent = 'Failed to load documents.';
+        if (docPreviewEl) docPreviewEl.textContent = 'Failed to load documents.';
+      });
+  }
+  loadDocs();
+  loadMessages();
+  initNegativeItems();
+  if (consumerId && paymentSection) {
+    loadInvoices();
+  }
+
+  function loadMail(){
+    if (!(mailWaiting && mailMailed && consumerId)) return;
+    fetch(`/api/consumers/${consumerId}/state`)
+      .then(r=>r.json())
+      .then(data=>{
+        const events = data.state?.events || [];
+        const files = data.state?.files || [];
+        const mailEvents = events.filter(e=>e.type==='letters_portal_sent');
+        const mailedSet = new Set(JSON.parse(localStorage.getItem('mailedLetters')||'[]'));
+        const waiting=[], mailed=[];
+        for(const ev of mailEvents){
+          const jobId = ev.payload?.jobId || '';
+          const stored = (ev.payload?.file||'').split('/').pop();
+          const meta = files.find(f=>f.storedName===stored);
+          const name = meta?.originalName || `Letters ${jobId}`;
+          const rec = { jobId, name, url: ev.payload?.file || '#', file: stored };
+          if(mailedSet.has(stored)) mailed.push(rec); else waiting.push(rec);
+        }
+        renderMailList(mailWaiting, waiting, true);
+        renderMailList(mailMailed, mailed, false);
+      })
+      .catch(()=>{
+        mailWaiting.textContent='Failed to load letters.';
+        mailMailed.textContent='Failed to load letters.';
+      });
+  }
+
+  function esc(str){ return String(str).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+  function renderMailList(el, items, allowMail){
+    if(!el) return;
+    if(!items.length){ el.innerHTML='<div class="muted text-sm">No letters.</div>'; return; }
+    el.innerHTML = items.map(it=>`<div class="glass card tl-card flex items-center justify-between"><div class="font-medium">${esc(it.name)}</div><div class="flex gap-2"><a class="btn text-xs" href="${it.url}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${it.jobId}" data-file="${it.file}">Mail</button>`:''}</div></div>`).join('');
+    if(allowMail){
+      el.querySelectorAll('.mail-act').forEach(btn=>{
+        btn.addEventListener('click',async ()=>{
+          const jobId = btn.getAttribute('data-job');
+          const file = btn.getAttribute('data-file');
+          btn.disabled = true;
+          try{
+            const resp = await fetch(`/api/letters/${encodeURIComponent(jobId)}/mail`, {
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ consumerId, file })
+            });
+            const data = await resp.json().catch(()=>({}));
+            if(!data?.ok) throw new Error(data?.error || 'Failed to mail letters');
+            const mailed = JSON.parse(localStorage.getItem('mailedLetters')||'[]');
+            if(!mailed.includes(file)) mailed.push(file);
+            localStorage.setItem('mailedLetters', JSON.stringify(mailed));
+            loadMail();
+          }catch(e){
+            alert(e.message || 'Failed to mail letters.');
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+  }
+
+  if(mailTabWaiting && mailTabMailed){
+    mailTabWaiting.addEventListener('click',()=>{
+      mailTabWaiting.classList.add('active');
+      mailTabMailed.classList.remove('active');
+      if(mailWaiting) mailWaiting.classList.remove('hidden');
+      if(mailMailed) mailMailed.classList.add('hidden');
+    });
+    mailTabMailed.addEventListener('click',()=>{
+      mailTabMailed.classList.add('active');
+      mailTabWaiting.classList.remove('active');
+      if(mailMailed) mailMailed.classList.remove('hidden');
+      if(mailWaiting) mailWaiting.classList.add('hidden');
+    });
+  }
+
+  function pickHeadline(item){
+    if (!item) return null;
+    const hl = item.headline;
+    if (hl && (hl.text || hl.title)) {
+      const text = hl.text || [hl.category, hl.title].filter(Boolean).join(' – ');
+      return {
+        text,
+        detail: hl.detail || '',
+        severity: hl.severity || 0,
+      };
+    }
+    const violations = Array.isArray(item.violations) ? [...item.violations] : [];
+    violations.sort((a, b) => {
+      const sev = (b.severity || 0) - (a.severity || 0);
+      if (sev !== 0) return sev;
+      return (a.title || '').localeCompare(b.title || '');
+    });
+    const top = violations.find(v => (v.title || '').trim());
+    if (!top) return null;
+    const text = [top.category, top.title].filter(Boolean).join(' – ');
+    return {
+      text,
+      detail: top.detail || '',
+      severity: top.severity || 0,
+    };
+  }
+
+  function renderNegativeItems(data){
+    if(!negativeItemList) return;
+    if(!data.length){
+      negativeItemList.innerHTML = '<div class="muted text-sm">No negative items detected yet.</div>';
+      return;
+    }
+    negativeItemList.innerHTML = data.map(item => {
+      const bureaus = (item.bureaus || []).map(b => `<span class="badge badge-bureau">${escape(b)}</span>`).join(' ');
+      const accounts = Object.entries(item.account_numbers || {})
+        .map(([bureau, number]) => {
+          const masked = maskAccountDisplay(number);
+          return `<span class="text-xs muted inline-block mr-2">${escape(bureau)} • ${escape(masked)}</span>`;
+        })
+        .join('');
+      const severity = item.severity || 0;
+      const headline = pickHeadline(item);
+      const violationList = (item.violations || []).slice(0, 4).map(v => `
+        <li class="flex gap-2 items-start">
+          <span class="severity-tag severity-${v.severity || 0}">S${v.severity || 0}</span>
+          <div>
+            <div class="font-medium text-sm">${escape([v.category, v.title].filter(Boolean).join(' – ') || '')}</div>
+            ${v.detail ? `<div class="text-xs muted">${escape(v.detail)}</div>` : ''}
+            ${v.bureaus && v.bureaus.length ? `<div class="text-xs muted">${v.bureaus.map(b => escape(b)).join(', ')}</div>` : ''}
+          </div>
+        </li>
+      `).join('');
+      const remaining = Math.max(0, (item.violations || []).length - 4);
+      const violationContent = violationList
+        ? `<ul class="mt-3 space-y-2">${violationList}</ul>`
+        : '<div class="text-sm muted mt-3">No Metro 2 violations detected.</div>';
+      const accountMarkup = accounts ? `<div class="mt-2 flex flex-wrap gap-2">${accounts}</div>` : '';
+      const headlineMarkup = headline ? `
+        <div class="mt-3 p-2 rounded bg-slate-50 text-sm">
+          <div class="font-medium">${escape(headline.text)}</div>
+          ${headline.detail ? `<div class="text-xs muted mt-1">${escape(headline.detail)}</div>` : ''}
+        </div>
+      ` : '';
+      const bureauDetails = item.bureau_details && typeof item.bureau_details === 'object'
+        ? Object.entries(item.bureau_details)
+          .map(([bureau, info]) => {
+            if(!info || typeof info !== 'object') return '';
+            const rows = Object.entries(NEGATIVE_BUREAU_LABELS)
+              .map(([key, label]) => {
+                let value = info[key];
+                if(!value) return '';
+                if(key === 'account_number'){
+                  value = maskAccountDisplay(value);
+                }
+                return `<div class="negative-bureau-row"><span class="negative-bureau-label">${escape(label)}</span><span class="negative-bureau-value">${escape(value)}</span></div>`;
+              })
+              .filter(Boolean)
+              .join('');
+            if(!rows) return '';
+            return `<div class="negative-bureau-card"><div class="negative-bureau-title">${escape(bureau)}</div>${rows}</div>`;
+          })
+          .filter(Boolean)
+          .join('')
+        : '';
+      const bureauSection = bureauDetails
+        ? `<div class="negative-bureau-grid" aria-label="Bureau breakdown">${bureauDetails}</div>`
+        : '';
+      const remainderMarkup = remaining
+        ? `<div class="text-xs muted mt-2">+${remaining} more violation${remaining === 1 ? '' : 's'} in this item.</div>`
+        : '';
+      const violationCount = (item.violations || []).length;
+      return `
+        <div class="glass card negative-item-card">
+          <div class="negative-item-header p-3" role="button" tabindex="0" aria-expanded="false">
+            <div class="flex items-start justify-between gap-3 w-full">
+              <div>
+                <div class="font-semibold text-base">${escape(item.creditor || 'Unknown Creditor')}</div>
+                <div class="text-xs muted mt-1">${bureaus || '—'}</div>
+              </div>
+              <div class="flex flex-col items-end gap-1 text-right">
+                <div class="severity-tag severity-${severity}">S${severity}</div>
+                <div class="text-xs muted">${violationCount} violation${violationCount === 1 ? '' : 's'}</div>
+                <span class="negative-item-chevron" aria-hidden="true">⌄</span>
+              </div>
+            </div>
+          </div>
+          <div class="negative-item-details px-3 pb-3" aria-hidden="true">
+            ${accountMarkup}
+            ${headlineMarkup}
+            ${bureauSection}
+            ${violationContent}
+            ${remainderMarkup}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function toggleNegativeItemCard(header, force){
+    if(!(header && negativeItemList)) return;
+    const card = header.closest('.negative-item-card');
+    if(!card) return;
+    const details = card.querySelector('.negative-item-details');
+    const shouldOpen = force !== undefined ? !!force : !card.classList.contains('open');
+    card.classList.toggle('open', shouldOpen);
+    header.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    if(details){
+      details.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
+    }
+  }
+
+  function filterNegativeItems(){
+    if(!negativeItemList) return;
+    let data = Array.isArray(negativeItems) ? [...negativeItems] : [];
+    const query = (negativeItemSearch?.value || '').toLowerCase();
+    if(query){
+      data = data.filter(item => {
+        const creditor = (item.creditor || '').toLowerCase();
+        const bureauMatch = (item.bureaus || []).some(b => (b || '').toLowerCase().includes(query));
+        const violationMatch = (item.violations || []).some(v => (v.title || '').toLowerCase().includes(query));
+        return creditor.includes(query) || bureauMatch || violationMatch;
+      });
+    }
+    const sort = negativeItemSort?.value || 'severity-desc';
+    if(sort === 'severity-asc'){
+      data.sort((a,b)=> (a.severity || 0) - (b.severity || 0) || (a.creditor || '').localeCompare(b.creditor || ''));
+    } else if(sort === 'creditor-asc'){
+      data.sort((a,b)=> (a.creditor || '').localeCompare(b.creditor || ''));
+    } else if(sort === 'creditor-desc'){
+      data.sort((a,b)=> (b.creditor || '').localeCompare(a.creditor || ''));
+    } else {
+      data.sort((a,b)=> (b.severity || 0) - (a.severity || 0) || (a.creditor || '').localeCompare(b.creditor || ''));
+    }
+    renderNegativeItems(data);
+  }
+
+  function initNegativeItems(){
+    if(!negativeItemList) return;
+    filterNegativeItems();
+  }
+
+  if(negativeItemSearch) negativeItemSearch.addEventListener('input', filterNegativeItems);
+  if(negativeItemSort) negativeItemSort.addEventListener('change', filterNegativeItems);
+  if(negativeItemList){
+    negativeItemList.addEventListener('click', e => {
+      const header = e.target.closest('.negative-item-header');
+      if(!header || !negativeItemList.contains(header)) return;
+      e.preventDefault();
+      toggleNegativeItemCard(header);
+    });
+    negativeItemList.addEventListener('keydown', e => {
+      if(e.key !== 'Enter' && e.key !== ' ') return;
+      const header = e.target.closest('.negative-item-header');
+      if(!header || !negativeItemList.contains(header)) return;
+      e.preventDefault();
+      toggleNegativeItemCard(header);
+    });
+  }
+
+  const goalBtn = document.getElementById('btnGoal');
+  if(goalBtn){
+    const confettiEl = document.getElementById('confetti');
+    const burstEl = document.getElementById('goalBurst');
+    goalBtn.addEventListener('click', () => {
+      if(confettiEl){
+        for(let i=0;i<20;i++){
+          const s=document.createElement('span');
+          s.className='confetti-piece';
+          const tx=(Math.random()-0.5)*200;
+          const ty=(-Math.random()*150-50);
+          s.style.setProperty('--tx', tx+'px');
+          s.style.setProperty('--ty', ty+'px');
+          s.style.backgroundColor=`hsl(${Math.random()*360},80%,60%)`;
+          confettiEl.appendChild(s);
+          setTimeout(()=>s.remove(),1200);
+        }
+      }
+      if(burstEl && window.lottie){
+        lottie.loadAnimation({
+          container: burstEl,
+          renderer: 'svg',
+          loop: false,
+          autoplay: true,
+          path: 'https://assets7.lottiefiles.com/packages/lf20_jei1c95b.json'
+        }).addEventListener('complete',()=>{burstEl.innerHTML='';});
+
+      }
+    });
+  }
+
+  const debtForm = document.getElementById('debtForm');
+  if (debtForm) {
+    debtForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('debtAmount').value);
+      const rate = parseFloat(document.getElementById('debtRate').value) / 100 / 12;
+      const months = parseFloat(document.getElementById('debtMonths').value);
+      const result = document.getElementById('debtResult');
+      const payment = amount * rate / (1 - Math.pow(1 + rate, -months));
+      if (isFinite(payment) && payment > 0) result.textContent = `Monthly payment approx $${payment.toFixed(2)}`;
+      else result.textContent = 'Invalid values.';
+    });
+  }
+
+  function loadMessages(){
+    if (!(consumerId && messageList)) return;
+    fetch(`/api/messages/${consumerId}`)
+      .then(r => {
+        if (!r.ok) throw new Error('Network response was not ok');
+        return r.text();
+      })
+      .then(text => {
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          throw new Error('Invalid JSON');
+        }
+        const msgs = data.messages || [];
         if (messageBanner) {
-          const hostMsg = msgs.find(m => m.payload?.from === 'host');
+          const hostMsg = msgs.find(m => m.payload?.from && m.payload.from !== 'client');
           if (hostMsg) {
-            const prefix = \`<strong>\${hostMsg.payload?.from}:</strong> \`;
-            messageBanner.innerHTML = prefix + (hostMsg.payload?.text || '');
+            const prefix = hostMsg.payload?.from ? hostMsg.payload.from + ': ' : '';
+            messageBanner.textContent = prefix + (hostMsg.payload?.text || '');
             messageBanner.classList.remove('hidden');
           } else {
             messageBanner.classList.add('hidden');
@@ -814,8 +1630,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const cls = isClient ? 'msg-client' : 'msg-host';
             const name = isClient ? 'You' : fromUser || 'Host';
             const when = new Date(m.at).toLocaleString();
-            const esc = (s) => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', \"'\": '&#39;' }[c] || c));
-            return \`<div class="message \${cls}"><div class="text-xs muted">\${name} • \${when}</div><div>\${esc(m.payload?.text || '')}</div></div>\`;
+            return `<div class="message ${cls}"><div class="text-xs muted">${name} • ${when}</div><div>${esc(m.payload?.text || '')}</div></div>`;
           }).join('');
         }
       })
@@ -833,10 +1648,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const input = document.getElementById('messageInput');
       const text = input.value.trim();
       if (!text) return;
-      fetch(\`/api/messages/\${consumerId}\`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'client', text }) })
+      fetch(`/api/messages/${consumerId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'client', text }) })
         .then(r => r.json())
         .then(() => { input.value = ''; loadMessages(); });
     });
+  }
+
+  function isPortalModuleEnabled(modules, key){
+    if(!key) return true;
+    if(!modules || typeof modules !== 'object') return true;
+    return modules[key] !== false;
   }
 
   function showSection(hash){
@@ -852,6 +1673,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const moduleKey = HASH_TO_PORTAL_MODULE[hash] || 'overview';
     
+    // Overview is always enabled or fallback
     if (hash && hash !== '#' && hash !== '#overview') {
       if (!isPortalModuleEnabled(portalSettings.modules, moduleKey)) {
         if (portalMain) portalMain.classList.remove('hidden');
@@ -868,22 +1690,22 @@ document.addEventListener('DOMContentLoaded', () => {
       educationSection.classList.remove('hidden');
     } else if (hash === '#documentSection' && documentSection) {
       documentSection.classList.remove('hidden');
-      // loadDocs(); // Placeholder
+      loadDocs();
     } else if (hash === '#mailSection' && mailSection) {
       mailSection.classList.remove('hidden');
-      // loadMail(); // Placeholder
+      loadMail();
     } else if (hash === '#payments' && paymentSection) {
       paymentSection.classList.remove('hidden');
+      loadInvoices({ force: true });
     } else if (hash === '#tradelines' && tradelineSection) {
       tradelineSection.classList.remove('hidden');
     } else if (hash === '#negative-items' && negativeItemsSection) {
       negativeItemsSection.classList.remove('hidden');
-      // initNegativeItems(); // Placeholder
+      initNegativeItems();
     } else if (portalMain) {
       portalMain.classList.remove('hidden');
     }
   }
-
   const navLinks = document.querySelectorAll('#primaryNav a[href^="#"]');
   navLinks.forEach(link => {
     link.addEventListener('click', event => {
@@ -899,5 +1721,41 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   showSection(location.hash);
   window.addEventListener('hashchange', () => showSection(location.hash));
+  window.addEventListener('beforeunload', () => {
+    if (invoiceRefreshTimer) {
+      clearInterval(invoiceRefreshTimer);
+      invoiceRefreshTimer = null;
+    }
+  });
+
+  const uploadForm = document.getElementById('uploadForm');
+  if (uploadForm && consumerId) {
+    uploadForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const fileInput = document.getElementById('uploadFile');
+      const status = document.getElementById('uploadStatus');
+      if (!fileInput.files.length) return;
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      const typeSel = document.getElementById('uploadType');
+      if (typeSel) formData.append('type', typeSel.value || '');
+
+      fetch(`/api/consumers/${consumerId}/state/upload`, { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+          if (data.ok) {
+            status.textContent = 'Uploaded successfully.';
+            fileInput.value = '';
+            if (typeSel) typeSel.value = 'id';
+
+            location.hash = '#';
+            loadDocs();
+          } else {
+            status.textContent = 'Upload failed.';
+          }
+        })
+        .catch(() => { status.textContent = 'Upload failed.'; });
+    });
+  }
 
 });
