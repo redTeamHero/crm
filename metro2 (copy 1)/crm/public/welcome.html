@@ -819,7 +819,7 @@
     var GOLD_DIM = 'rgba(212,168,83,0.3)';
     var BLUE = '#6d9eeb';
     var t0 = performance.now();
-    var SCENE_DUR = [2200, 3600, 1800, 2500];
+    var SCENE_DUR = [2200, 1800, 3600, 2500];
     var TOTAL = SCENE_DUR.reduce(function(a,b){return a+b},0);
     var sceneStarts = [];
     var acc = 0;
@@ -1309,20 +1309,20 @@
           drawScene0(1);
           ctx.restore();
         }
-        drawScene2(p);
+        drawScene3(p);
       } else if(s === 2){
         if(p < 0.2){
           ctx.save();
           ctx.globalAlpha = 1 - p/0.2;
-          drawScene2(1);
+          drawScene3(1);
           ctx.restore();
         }
-        drawScene3(p);
+        drawScene2(p);
       } else {
         if(p < 0.3){
           ctx.save();
           ctx.globalAlpha = 1 - p/0.3;
-          drawScene3(1);
+          drawScene2(1);
           ctx.restore();
         }
         drawScene4(p);
