@@ -801,7 +801,7 @@
     var GOLD_DIM = 'rgba(212,168,83,0.3)';
     var BLUE = '#6d9eeb';
     var t0 = performance.now();
-    var SCENE_DUR = [2200, 2200, 1800, 2500];
+    var SCENE_DUR = [2200, 3600, 1800, 2500];
     var TOTAL = SCENE_DUR.reduce(function(a,b){return a+b},0);
     var sceneStarts = [];
     var acc = 0;
@@ -908,14 +908,15 @@
       }
     }
 
-    function drawScene2(p){
-      var ep = ease(p);
-      ctx.save();
-      ctx.translate(cx, cy + 20);
-      var scale = lerp(0.5,1,ep);
-      ctx.scale(scale,scale);
+    var bflyTrail = [];
 
-      var wingFlap = Math.sin(performance.now()*0.004)*0.15*ep;
+    function drawButterflyAt(bx, by, scale, angle, flapAmt, alpha){
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(angle);
+      ctx.scale(scale, scale);
+
+      var wingFlap = flapAmt;
 
       ctx.save();
       ctx.scale(1-wingFlap, 1);
@@ -926,11 +927,11 @@
       }
       ctx.closePath();
       var grdL = ctx.createLinearGradient(-80,-60,0,40);
-      grdL.addColorStop(0, 'rgba(212,168,83,'+ep*0.7+')');
-      grdL.addColorStop(1, 'rgba(139,92,246,'+ep*0.5+')');
+      grdL.addColorStop(0, 'rgba(212,168,83,'+alpha*0.7+')');
+      grdL.addColorStop(1, 'rgba(139,92,246,'+alpha*0.5+')');
       ctx.fillStyle = grdL;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(212,168,83,'+ep+')';
+      ctx.strokeStyle = 'rgba(212,168,83,'+alpha+')';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.restore();
@@ -944,21 +945,112 @@
       }
       ctx.closePath();
       var grdR = ctx.createLinearGradient(0,-60,80,40);
-      grdR.addColorStop(0, 'rgba(139,92,246,'+ep*0.5+')');
-      grdR.addColorStop(1, 'rgba(212,168,83,'+ep*0.7+')');
+      grdR.addColorStop(0, 'rgba(139,92,246,'+alpha*0.5+')');
+      grdR.addColorStop(1, 'rgba(212,168,83,'+alpha*0.7+')');
       ctx.fillStyle = grdR;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(212,168,83,'+ep+')';
+      ctx.strokeStyle = 'rgba(212,168,83,'+alpha+')';
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.restore();
 
       ctx.beginPath();
       ctx.ellipse(0, 10, 3, 25, 0, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(212,168,83,'+ep+')';
+      ctx.fillStyle = 'rgba(212,168,83,'+alpha+')';
       ctx.fill();
 
       ctx.restore();
+    }
+
+    function drawScene2(p){
+      var ep = ease(p);
+      var now = performance.now();
+
+      var entranceEnd = 0.2;
+      var flyStart = 0.15;
+      var flyEnd = 0.85;
+      var settleStart = 0.8;
+
+      var flyScale = Math.min(W, H) * 0.3;
+      var baseScale = lerp(0.3, 0.85, Math.min(1, ep / entranceEnd));
+      var alpha = Math.min(1, ep / 0.1);
+
+      var bx, by, angle, flapSpeed;
+
+      if(p < flyStart){
+        bx = cx;
+        by = cy + 20;
+        angle = 0;
+        flapSpeed = 0.006;
+      } else if(p < flyEnd){
+        var fp = (p - flyStart) / (flyEnd - flyStart);
+        var pathT = fp * Math.PI * 2.4;
+
+        var loopX = Math.sin(pathT * 1.0) * flyScale * 0.7
+                  + Math.sin(pathT * 2.3) * flyScale * 0.25
+                  + Math.cos(pathT * 0.7) * flyScale * 0.15;
+        var loopY = Math.cos(pathT * 0.8) * flyScale * 0.35
+                  + Math.sin(pathT * 1.7) * flyScale * 0.2
+                  - Math.sin(pathT * 0.5) * flyScale * 0.15;
+
+        bx = cx + loopX;
+        by = cy + loopY;
+
+        var dx = Math.cos(pathT * 1.0) * 1.0 + Math.cos(pathT * 2.3) * 2.3 * 0.25;
+        var dy = -Math.sin(pathT * 0.8) * 0.8 + Math.cos(pathT * 1.7) * 1.7 * 0.2;
+        angle = Math.atan2(dy, dx) * 0.3;
+
+        flapSpeed = 0.012;
+        baseScale = lerp(0.6, 0.95, 0.5 + 0.5 * Math.sin(pathT * 0.5));
+
+        if(p > settleStart){
+          var settleProg = (p - settleStart) / (1 - settleStart);
+          var sp = ease(settleProg);
+          bx = lerp(bx, cx, sp);
+          by = lerp(by, cy + 20, sp);
+          angle = lerp(angle, 0, sp);
+          baseScale = lerp(baseScale, 1.0, sp);
+          flapSpeed = lerp(0.012, 0.005, sp);
+        }
+      } else {
+        bx = cx;
+        by = cy + 20;
+        angle = 0;
+        flapSpeed = 0.005;
+        baseScale = 1.0;
+      }
+
+      bflyTrail.push({ x: bx, y: by, t: now, alpha: alpha });
+      while(bflyTrail.length > 0 && now - bflyTrail[0].t > 600) bflyTrail.shift();
+
+      for(var ti=0; ti<bflyTrail.length; ti++){
+        var tr = bflyTrail[ti];
+        var age = (now - tr.t) / 600;
+        var ta = (1 - age) * 0.5 * tr.alpha;
+        if(ta < 0.02) continue;
+        ctx.beginPath();
+        ctx.arc(tr.x, tr.y, 2 + age * 4, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(212,168,83,' + ta + ')';
+        ctx.fill();
+      }
+
+      if(p > flyStart && p < flyEnd){
+        var sparkCount = 2;
+        for(var si=0; si<sparkCount; si++){
+          particles.push({
+            x: bx/W + (Math.random()-0.5)*0.02,
+            y: by/H + (Math.random()-0.5)*0.02,
+            vx: (Math.random()-0.5)*0.5,
+            vy: (Math.random()-0.5)*0.5,
+            size: 1 + Math.random()*2,
+            alpha: 0.4 + Math.random()*0.4
+          });
+        }
+        if(particles.length > 120) particles.splice(0, particles.length - 80);
+      }
+
+      var wingFlap = Math.sin(now * flapSpeed) * 0.25 * alpha;
+      drawButterflyAt(bx, by, baseScale, angle, wingFlap, alpha);
     }
 
     function drawScene3(p){
