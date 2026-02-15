@@ -1383,6 +1383,8 @@ function renderClientPortalHtml({ portalBootstrap = {}, portalEnhanced = {}, neg
 // Disable default index to avoid auto-serving the app without auth
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
+app.get("/healthz", (_req, res) => res.status(200).json({ status: "ok" }));
+
 // Serve neutral welcome page at root, CRM login at /crm
 registerStaticPage({ paths: "/", file: "welcome.html" });
 registerStaticPage({ paths: ["/crm", "/crm/login", "/login"], file: "login.html" });
@@ -8911,20 +8913,27 @@ async function initStripeSubscriptions() {
     console.warn('DATABASE_URL not set — Stripe subscription sync disabled');
     return;
   }
+  const INIT_TIMEOUT = 15000;
+  const withTimeout = (promise, ms, label) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms))
+  ]);
   try {
     const { runMigrations } = await import('stripe-replit-sync');
     console.log('Initializing Stripe schema...');
-    await runMigrations({ databaseUrl });
+    await withTimeout(runMigrations({ databaseUrl }), INIT_TIMEOUT, 'Stripe migrations');
     console.log('Stripe schema ready');
 
-    const stripeSync = await getStripeSync();
+    const stripeSync = await withTimeout(getStripeSync(), INIT_TIMEOUT, 'Stripe sync init');
 
     const webhookBaseUrl = `https://${(process.env.REPLIT_DOMAINS || '').split(',')[0]}`;
     if (webhookBaseUrl !== 'https://') {
       console.log('Setting up managed webhook...');
       try {
-        const result = await stripeSync.findOrCreateManagedWebhook(
-          `${webhookBaseUrl}/api/stripe/webhook`
+        const result = await withTimeout(
+          stripeSync.findOrCreateManagedWebhook(`${webhookBaseUrl}/api/stripe/webhook`),
+          INIT_TIMEOUT,
+          'Webhook setup'
         );
         console.log(`Webhook configured: ${result?.webhook?.url || 'ready'}`);
       } catch (whErr) {
