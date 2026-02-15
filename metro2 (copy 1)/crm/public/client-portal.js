@@ -1647,6 +1647,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function isPortalModuleEnabled(modules, key){
+    if(!key) return true;
+    if(!modules || typeof modules !== 'object') return true;
+    return modules[key] !== false;
+  }
+
   // Handle section navigation
   const portalMain = document.getElementById('portalMain');
   const uploadSection = document.getElementById('uploadSection');
