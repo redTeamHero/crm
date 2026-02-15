@@ -7299,6 +7299,39 @@ app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"),
   }
 });
 
+app.post("/api/portal/:consumerId/mail", async (req,res)=>{
+  const { consumerId } = req.params;
+  const jobId = String(req.body?.jobId || "").trim();
+  const file = String(req.body?.file || "").trim();
+  if(!consumerId) return res.status(400).json({ ok:false, error:"consumerId required" });
+  if(!jobId) return res.status(400).json({ ok:false, error:"jobId required" });
+  if(!file) return res.status(400).json({ ok:false, error:"file required" });
+  const db = await loadDB();
+  const consumer = db.consumers.find(c=>c.id===consumerId);
+  if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
+
+  const cstate = await listConsumerState(consumerId);
+  const ev = cstate.events.find(e=>e.type==='letters_portal_sent' && e.payload?.jobId===jobId && e.payload?.file?.endsWith(`/state/files/${file}`));
+  if(!ev) return res.status(404).json({ ok:false, error:"Letter not found" });
+  const filePath = path.join(consumerUploadsDir(consumerId), file);
+  try{
+    const result = await sendCertifiedMail({
+      filePath,
+      toName: consumer.name,
+      toAddress: consumer.addr1,
+      toCity: consumer.city,
+      toState: consumer.state,
+      toZip: consumer.zip
+    });
+    await addEvent(consumerId, 'letters_mailed', { jobId, file: ev.payload.file, provider: 'simplecertifiedmail', result });
+    res.json({ ok:true });
+    logInfo('SCM_MAIL_SUCCESS', 'Sent letter via SimpleCertifiedMail (portal)', { jobId, consumerId, file });
+  }catch(e){
+    logError('SCM_MAIL_FAILED', 'Failed to mail via SimpleCertifiedMail (portal)', e, { jobId, consumerId, file });
+    res.status(500).json({ ok:false, errorCode:'SCM_MAIL_FAILED', message:String(e) });
+  }
+});
+
 app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters"), async (req,res)=>{
 
   const { jobId } = req.params;

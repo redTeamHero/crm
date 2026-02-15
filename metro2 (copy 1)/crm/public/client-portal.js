@@ -1745,10 +1745,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const file = btn.getAttribute('data-file');
           btn.disabled = true;
           try{
-            const resp = await fetch(`/api/letters/${encodeURIComponent(jobId)}/mail`, {
+            const resp = await fetch(`/api/portal/${encodeURIComponent(consumerId)}/mail`, {
               method:'POST',
               headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ consumerId, file })
+              body: JSON.stringify({ jobId, file })
             });
             const data = await resp.json().catch(()=>({}));
             if(!data?.ok) throw new Error(data?.error || 'Failed to mail letters');
