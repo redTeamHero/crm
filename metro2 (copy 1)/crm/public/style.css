@@ -850,23 +850,38 @@ body::after {
 
 .tradeline-grid.list-view {
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 12px;
 }
 
 .tradeline-grid.list-view .tl-card {
-  border-radius: 8px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+.tradeline-grid.list-view .tl-card:hover {
+  transform: translateX(4px);
+  background: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.12);
 }
 
 .tradeline-grid.list-view .tl-card .tl-card-content {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .tradeline-grid.list-view .tl-card .tl-head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .tradeline-grid.list-view .tl-card .tl-title-block {
@@ -874,69 +889,82 @@ body::after {
   align-items: center;
   gap: 12px;
   flex: 1;
-  min-width: 0;
 }
 
 .tradeline-grid.list-view .tl-card .tl-creditor {
-  font-size: 0.95rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 120px;
-  max-width: 200px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-strong);
+  min-width: 140px;
 }
 
 .tradeline-grid.list-view .tl-card .tl-card-meta {
   display: flex;
   gap: 8px;
-  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .tradeline-grid.list-view .tl-card .tl-card-meta-item {
+  background: rgba(99, 102, 241, 0.06);
+  color: var(--accent);
+  border-radius: 6px;
   font-size: 0.7rem;
-  padding: 2px 6px;
+  font-weight: 600;
+  padding: 2px 8px;
 }
 
 .tradeline-grid.list-view .tl-card .tl-card-body {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding-top: 6px;
+  justify-content: space-between;
+  gap: 20px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(148, 163, 184, 0.2);
 }
 
 .tradeline-grid.list-view .tl-card .tl-bureaus {
   display: flex;
-  gap: 8px;
-  flex-wrap: nowrap;
+  gap: 12px;
 }
 
-.tradeline-grid.list-view .tl-card .tl-tags {
-  display: flex;
-  gap: 4px;
-  flex-wrap: nowrap;
-}
-
-.tradeline-grid.list-view .tl-card .tl-tags .chip {
-  font-size: 0.65rem;
-  padding: 1px 6px;
+.tradeline-grid.list-view .tl-card .tl-bureau-option {
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .tradeline-grid.list-view .tl-card .tl-violations-panel {
   flex: 1;
-  min-width: 200px;
+  background: rgba(248, 250, 255, 0.5);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+.tradeline-grid.list-view .tl-card .tl-violations-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.tradeline-grid.list-view .tl-card .tl-violations {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.tradeline-grid.list-view .tl-card .violation-item {
+  padding: 4px 0;
+  border-bottom: none;
+  background: transparent !important;
+}
+
+.tradeline-grid.list-view .tl-card .tl-card-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .tradeline-grid.list-view .tl-card .tl-letter-row {
   display: none;
-}
-
-.tradeline-grid.list-view .tl-card .tl-manual-reason {
-  display: none;
-}
-
-.tradeline-grid.list-view .tl-card .tl-card-actions {
-  flex-shrink: 0;
 }
 
 .view-toggle {
