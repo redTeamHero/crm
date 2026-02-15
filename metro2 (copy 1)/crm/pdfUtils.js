@@ -40,6 +40,7 @@ function shouldFallbackForError(err){
   if (message.includes('failed to launch the browser process')) return true;
   if (message.includes('chromium failed to launch')) return true;
   if (message.includes('could not find expected browser')) return true;
+  if (message.includes('could not find chrome')) return true;
   if (message.includes('no usable sandbox')) return true;
   if (message.includes('executable doesn')) return true;
   if (message.includes('is not a valid linux executable')) return true;

@@ -671,7 +671,7 @@ function injectStyle(html, css){
   }
   return `<style>${css}</style>` + html;
 }
-async function generateOcrPdf(html){
+async function generateOcrPdf(html, pdfOptions = {}){
   const noise = "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAAqElEQVR4nM1XSRKAMAjrO/n/Qzw5HpQlJNTm5EyRUBpDXeuBrRjZehteYpSwEm9o4u6uoffMeUaSjx1PFdsKiIjKRajVDhMr29UWW7b2q6ioYiQiYYm2wmsXYi6psajssFJIGDM+rRQem4mwXaTSRF45pp1J/sVQFwhW0SODItoRens5xqBcZCI58rpzQzaVFPFUwqjNmX9/5lXM4LGz7xRAER/xf0WRXElyH0vwJrWaAAAAAElFTkSuQmCC";
   const ocrCss = `
     .ocr{position:relative;}
@@ -688,7 +688,7 @@ async function generateOcrPdf(html){
       background-size:32px 32px,32px 32px,200px 200px,30px 30px;
     }`;
   const injected = injectStyle(html, ocrCss);
-  return await htmlToPdfBuffer(injected);
+  return await htmlToPdfBuffer(injected, pdfOptions);
 
 }
 
@@ -7387,10 +7387,18 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
 
   const needsBrowser = job.letters.some(l => !l.useOcr);
   let browserInstance;
+  let browserAvailable = false;
   try{
     logInfo('PORTAL_UPLOAD_START', 'Building portal letters', { jobId, consumerId: consumer.id });
 
-    if (needsBrowser) browserInstance = await launchBrowser();
+    if (needsBrowser) {
+      try {
+        browserInstance = await launchBrowser();
+        browserAvailable = true;
+      } catch (browserErr) {
+        logInfo('PORTAL_BROWSER_FALLBACK', 'Chrome not available, falling back to OCR PDF generation', { error: browserErr.message });
+      }
+    }
 
     const dir = consumerUploadsDir(consumer.id);
     const safe = (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g,'_');
@@ -7401,8 +7409,8 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
       const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, jobId, L.filename), 'utf-8'));
 
       let pdfBuffer;
-      if (L.useOcr) {
-        pdfBuffer = await generateOcrPdf(html);
+      if (L.useOcr || !browserAvailable) {
+        pdfBuffer = await generateOcrPdf(html, { allowBrowserLaunch: false });
       } else {
         pdfBuffer = await htmlToPdfBuffer(html, {
           browser: browserInstance || undefined,
