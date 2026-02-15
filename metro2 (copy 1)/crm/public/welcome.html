@@ -1069,6 +1069,29 @@
 
       var wingFlap = Math.sin(now * flapSpeed) * 0.25 * alpha;
       drawButterflyAt(bx, by, baseScale, angle, wingFlap, alpha);
+
+      if(p > 0.82){
+        var textProg = Math.min(1, (p - 0.82) / 0.15);
+        var textAlpha = ease(textProg);
+        var textY = by + baseScale * 80 + 30;
+        var slideUp = (1 - textAlpha) * 20;
+
+        ctx.save();
+        ctx.globalAlpha = textAlpha;
+
+        var fontSize = isMobile ? 22 : 36;
+        ctx.font = '600 ' + fontSize + 'px "Inter", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        ctx.shadowColor = 'rgba(212,168,83,0.6)';
+        ctx.shadowBlur = 20 + textAlpha * 15;
+        ctx.fillStyle = GOLD;
+        ctx.fillText('Reclaim Your Future', cx, textY + slideUp);
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
     }
 
     var scoreZones = [
