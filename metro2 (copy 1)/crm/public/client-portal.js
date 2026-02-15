@@ -1108,6 +1108,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCart();
     loadRanges();
   }
+  let invoiceCache = [];
+  let invoicesLoaded = false;
+  let invoiceLoading = false;
+  let invoiceRefreshTimer = null;
+
   function isDueSoon(inv){
     if(inv.paid || !inv?.due) return false;
     const date = new Date(inv.due);
