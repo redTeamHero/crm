@@ -1079,7 +1079,7 @@
         ctx.save();
         ctx.globalAlpha = textAlpha;
 
-        var fontSize = isMobile ? 22 : 36;
+        var fontSize = W < 500 ? 22 : 36;
         ctx.font = '600 ' + fontSize + 'px "Inter", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
