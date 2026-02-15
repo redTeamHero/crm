@@ -746,6 +746,37 @@ document.addEventListener('DOMContentLoaded', () => {
     initTradelineStorefront(consumerId);
   }
 
+  function formatCurrency(val) {
+    const n = Number(val);
+    if (!Number.isFinite(n)) return '$0.00';
+    return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  function getPriceValue(val) {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : 0;
+  }
+  function formatTradelineMeta(item) {
+    const parts = [];
+    if (item.limit) parts.push('Limit: ' + formatCurrency(item.limit));
+    if (item.age) parts.push('Age: ' + item.age);
+    if (item.statement_date) parts.push('Statement: ' + item.statement_date);
+    if (item.reporting) parts.push(item.reporting);
+    return parts.join(' · ') || 'Tradeline';
+  }
+  function buildTradelineId(item) {
+    return (item.id || [item.bank, item.limit, item.age, item.price].filter(Boolean).join('-'));
+  }
+  function formatDue(d) {
+    if (!d) return '';
+    try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); } catch { return String(d); }
+  }
+  function loadCart(cid) {
+    try { return JSON.parse(localStorage.getItem('tl_cart_' + cid) || '[]'); } catch { return []; }
+  }
+  function saveCart(cid, items) {
+    try { localStorage.setItem('tl_cart_' + cid, JSON.stringify(items)); } catch {}
+  }
+
   function initTradelineStorefront(id){
     if (!tradelineSection) return;
     const cartState = { items: loadCart(id) };
