@@ -42,7 +42,21 @@
       background: #0f172a;
     }
     
-    .butterfly { animation: flutter 3s ease-in-out infinite; }
+    .nav-butterfly { display: inline-block; width: 28px; height: 28px; position: relative; }
+    .nav-butterfly .bfly-body { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 3px; height: 16px; background: linear-gradient(to bottom, #d4a853, #b8942e); border-radius: 2px; z-index: 2; }
+    .nav-butterfly .bfly-wing-l, .nav-butterfly .bfly-wing-r { position: absolute; top: 3px; width: 12px; height: 18px; border-radius: 50% 50% 50% 0; z-index: 1; }
+    .nav-butterfly .bfly-wing-l { right: 50%; transform-origin: right center; background: linear-gradient(135deg, #d4a853 0%, #8b5cf6 60%, #6d28d9 100%); animation: flapL 0.6s ease-in-out infinite; border-radius: 50% 0 50% 50%; }
+    .nav-butterfly .bfly-wing-r { left: 50%; transform-origin: left center; background: linear-gradient(225deg, #d4a853 0%, #8b5cf6 60%, #6d28d9 100%); animation: flapR 0.6s ease-in-out infinite; border-radius: 0 50% 50% 50%; }
+    .nav-butterfly .bfly-wing-l::after, .nav-butterfly .bfly-wing-r::after { content: ''; position: absolute; bottom: -4px; width: 8px; height: 10px; }
+    .nav-butterfly .bfly-wing-l::after { right: 0; transform-origin: right center; background: linear-gradient(135deg, #d4a853 0%, #8b5cf6 100%); border-radius: 50% 0 50% 50%; animation: flapL 0.6s ease-in-out infinite; }
+    .nav-butterfly .bfly-wing-r::after { left: 0; transform-origin: left center; background: linear-gradient(225deg, #d4a853 0%, #8b5cf6 100%); border-radius: 0 50% 50% 50%; animation: flapR 0.6s ease-in-out infinite; }
+    @keyframes flapL { 0%, 100% { transform: rotateY(0deg) skewY(-5deg); } 50% { transform: rotateY(60deg) skewY(5deg); } }
+    @keyframes flapR { 0%, 100% { transform: rotateY(0deg) skewY(5deg); } 50% { transform: rotateY(-60deg) skewY(-5deg); } }
+    .nav-butterfly .bfly-antenna { position: absolute; top: 0; width: 1px; height: 8px; z-index: 3; }
+    .nav-butterfly .bfly-antenna-l { left: 10px; transform: rotate(-25deg); background: linear-gradient(to top, #d4a853, transparent); }
+    .nav-butterfly .bfly-antenna-l::after { content: ''; position: absolute; top: -2px; left: -1.5px; width: 4px; height: 4px; border-radius: 50%; background: #d4a853; }
+    .nav-butterfly .bfly-antenna-r { right: 10px; transform: rotate(25deg); background: linear-gradient(to top, #d4a853, transparent); }
+    .nav-butterfly .bfly-antenna-r::after { content: ''; position: absolute; top: -2px; right: -1.5px; width: 4px; height: 4px; border-radius: 50%; background: #d4a853; }
     @keyframes flutter { 0%,100%{transform:translateY(0) rotate(0deg)} 25%{transform:translateY(-4px) rotate(2deg)} 75%{transform:translateY(2px) rotate(-2deg)} }
     #hero-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; }
     .hero-overlay { position:relative; z-index:1; }
@@ -198,10 +212,14 @@
     <header class="p-4 sticky top-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-white/5">
       <div class="max-w-6xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-emerald-500 flex items-center justify-center">
-            <svg class="w-5 h-5 text-white butterfly" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C9.5 2 7 4 7 7c0 2 1 3.5 2 4.5-2.5.5-5 2.5-5 5.5 0 2 1.5 4 4 4 1.5 0 3-.5 4-2 1 1.5 2.5 2 4 2 2.5 0 4-2 4-4 0-3-2.5-5-5-5.5 1-1 2-2.5 2-4.5 0-3-2.5-5-5-5zm0 2c1.5 0 3 1.5 3 3s-1.5 3-3 3-3-1.5-3-3 1.5-3 3-3z"/>
-            </svg>
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/20 to-emerald-500/20 flex items-center justify-center" style="perspective:200px">
+            <div class="nav-butterfly">
+              <div class="bfly-antenna bfly-antenna-l"></div>
+              <div class="bfly-antenna bfly-antenna-r"></div>
+              <div class="bfly-wing-l"></div>
+              <div class="bfly-wing-r"></div>
+              <div class="bfly-body"></div>
+            </div>
           </div>
           <span class="text-lg font-bold">Evolve<span class="text-emerald-400">.Ai</span></span>
         </div>
