@@ -131,7 +131,7 @@ def _resolve_rulebook_path() -> Path:
 # ---------------------------------------------------------------------------
 # Logging Setup (Verbose + Rotating)
 # ---------------------------------------------------------------------------
-LOG_PATH = "/var/log/metro2_debug.log"
+LOG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs", "metro2_debug.log")
 
 def setup_logger(debug_enabled: bool = False):
     """Configures rotating logs and optional console output."""
