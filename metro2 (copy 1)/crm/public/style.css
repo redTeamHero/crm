@@ -2608,17 +2608,17 @@ header#host-nav {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 280px;
-    max-width: 85vw;
-    background: white;
-    border-left: 1px solid var(--glass-brd);
-    box-shadow: -8px 0 32px rgba(15, 23, 42, 0.12);
+    width: 300px;
+    max-width: 88vw;
+    background: linear-gradient(165deg, #1a1530 0%, #0f172a 40%, #0a0e1a 100%);
+    border-left: 1px solid rgba(212, 168, 83, 0.15);
+    box-shadow: -12px 0 48px rgba(0, 0, 0, 0.5), -2px 0 8px rgba(212, 168, 83, 0.06);
     z-index: 300;
     flex-direction: column;
-    padding: 20px 16px;
+    padding: 24px 20px;
     overflow-y: auto;
     transform: translateX(0);
-    transition: transform 0.25s ease, opacity 0.25s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
   }
 
   #primaryNav.hidden {
@@ -2642,15 +2642,21 @@ header#host-nav {
   #primaryNav .btn.nav-btn {
     width: 100%;
     justify-content: flex-start;
-    padding: 12px 14px;
+    padding: 14px 16px;
     border-radius: 10px;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
-    color: var(--text-primary);
+    color: rgba(255, 255, 255, 0.85);
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+    letter-spacing: 0.01em;
   }
 
-  #primaryNav .btn.nav-btn:hover {
-    background: rgba(99, 102, 241, 0.08);
+  #primaryNav .btn.nav-btn:hover,
+  #primaryNav .btn.nav-btn:active {
+    background: rgba(212, 168, 83, 0.1);
+    color: #d4a853;
+    border-left-color: #d4a853;
   }
 
   .nav-dropdown-menu {
@@ -2660,11 +2666,13 @@ header#host-nav {
     transform: none;
     box-shadow: none;
     border: none;
-    background: rgba(248, 250, 255, 0.6);
-    border-radius: 10px;
-    padding: 4px 0 4px 12px;
+    background: rgba(212, 168, 83, 0.05);
+    border-left: 2px solid rgba(212, 168, 83, 0.2);
+    border-radius: 0 10px 10px 0;
+    padding: 6px 0 6px 10px;
+    margin-left: 16px;
     min-width: unset;
-    width: 100%;
+    width: calc(100% - 16px);
   }
 
   .nav-dropdown.open .nav-dropdown-menu {
@@ -2672,17 +2680,49 @@ header#host-nav {
   }
 
   .nav-dropdown-menu .btn {
-    padding: 10px 12px;
-    font-size: 13px;
+    padding: 11px 14px;
+    font-size: 13.5px;
+    color: rgba(255, 255, 255, 0.7) !important;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .nav-dropdown-menu .btn:hover {
+    background: rgba(212, 168, 83, 0.12) !important;
+    color: #d4a853 !important;
   }
 
   #primaryNav .nav-close-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--glass-brd);
+    margin-bottom: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(212, 168, 83, 0.2);
+  }
+
+  #primaryNav svg {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  #primaryNav .nav-dropdown > button svg {
+    color: rgba(212, 168, 83, 0.6);
+  }
+
+  #primaryNav .nav-dropdown.open > button {
+    color: #d4a853;
+    background: rgba(212, 168, 83, 0.1);
+    border-left-color: #d4a853;
+  }
+
+  #primaryNav a,
+  #primaryNav button {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  #primaryNav a:hover,
+  #primaryNav button:hover {
+    color: #d4a853;
   }
 }
 
