@@ -3609,29 +3609,87 @@ export function runBasicRuleAudit(report = {}) {
 function extractCreditScores(text = ""){
   const scores = {};
   const source = String(text || "");
-  const patterns = {
-    transunion: [
-      /transunion[^0-9]{0,120}(\d{3})/i,
-      /(\d{3})[^0-9]{0,120}transunion/i,
-    ],
-    experian: [
-      /experian[^0-9]{0,120}(\d{3})/i,
-      /(\d{3})[^0-9]{0,120}experian/i,
-    ],
-    equifax: [
-      /equifax[^0-9]{0,120}(\d{3})/i,
-      /(\d{3})[^0-9]{0,120}equifax/i,
-    ],
-  };
-  for(const [key, list] of Object.entries(patterns)){
-    for (const re of list) {
-      const m = source.match(re);
-      if(m) {
-        scores[key] = Number(m[1]);
-        break;
+
+  const bureauNames = ["transunion", "experian", "equifax"];
+
+  const bureauOccurrences = [];
+  for (const name of bureauNames) {
+    const re = new RegExp(name, "gi");
+    let m;
+    while ((m = re.exec(source)) !== null) {
+      bureauOccurrences.push({ name, pos: m.index, end: m.index + m[0].length });
+    }
+  }
+  bureauOccurrences.sort((a, b) => a.pos - b.pos);
+
+  const headerGroups = [];
+  let currentGroup = [];
+  for (const occ of bureauOccurrences) {
+    if (currentGroup.length === 0) {
+      currentGroup.push(occ);
+    } else {
+      const lastInGroup = currentGroup[currentGroup.length - 1];
+      const gap = occ.pos - lastInGroup.end;
+      if (gap < 200) {
+        const between = source.slice(lastInGroup.end, occ.pos);
+        const hasScoreBetween = /\b\d{3}\b/.test(between);
+        const names = new Set(currentGroup.map(o => o.name));
+        if (!names.has(occ.name) && !hasScoreBetween) {
+          currentGroup.push(occ);
+        } else {
+          if (currentGroup.length >= 2) headerGroups.push([...currentGroup]);
+          currentGroup = [occ];
+        }
+      } else {
+        if (currentGroup.length >= 2) headerGroups.push([...currentGroup]);
+        currentGroup = [occ];
       }
     }
   }
+  if (currentGroup.length >= 2) headerGroups.push([...currentGroup]);
+
+  let tabularMatch = false;
+  for (const group of headerGroups) {
+    const lastBureau = group[group.length - 1];
+    const searchStart = lastBureau.end;
+    const searchText = source.slice(searchStart, searchStart + 500);
+    const validScores = [];
+    const scoreRe = /\b(\d{3})\b/g;
+    let sm;
+    while ((sm = scoreRe.exec(searchText)) !== null) {
+      const val = Number(sm[1]);
+      if (val >= 300 && val <= 850) {
+        validScores.push(val);
+        if (validScores.length >= group.length) break;
+      }
+    }
+    if (validScores.length >= group.length) {
+      for (let i = 0; i < group.length; i++) {
+        scores[group[i].name] = validScores[i];
+      }
+      tabularMatch = true;
+      break;
+    }
+  }
+
+  if (!tabularMatch) {
+    for (const name of bureauNames) {
+      if (scores[name]) continue;
+      const directRe = new RegExp(name + "[^0-9]{0,120}(\\d{3})", "i");
+      const reverseRe = new RegExp("(\\d{3})[^0-9]{0,120}" + name, "i");
+      for (const re of [directRe, reverseRe]) {
+        const m = source.match(re);
+        if (m) {
+          const val = Number(m[1]);
+          if (val >= 300 && val <= 850) {
+            scores[name] = val;
+          }
+          break;
+        }
+      }
+    }
+  }
+
   if (!scores.current) {
     const overallMatch = source.match(/\bcredit\s*score\b[^0-9]{0,40}(\d{3})/i);
     if (overallMatch) {
