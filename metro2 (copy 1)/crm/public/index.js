@@ -2405,6 +2405,32 @@ const tlList = $("#tlList");
 const obs = new MutationObserver(()=> attachCardHandlers(tlList));
 obs.observe(tlList, { childList:true, subtree:true });
 
+// ===================== View Toggle =====================
+const btnCardView = $("#btnCardView");
+const btnListView = $("#btnListView");
+
+function setViewMode(mode) {
+  const grid = $("#tlList");
+  if (mode === "list") {
+    grid.classList.add("list-view");
+    btnListView.classList.add("active");
+    btnCardView.classList.remove("active");
+    localStorage.setItem("tlViewMode", "list");
+  } else {
+    grid.classList.remove("list-view");
+    btnCardView.classList.add("active");
+    btnListView.classList.remove("active");
+    localStorage.setItem("tlViewMode", "card");
+  }
+}
+
+if (btnCardView && btnListView) {
+  btnCardView.addEventListener("click", () => setViewMode("card"));
+  btnListView.addEventListener("click", () => setViewMode("list"));
+  const savedView = localStorage.getItem("tlViewMode");
+  if (savedView === "list") setViewMode("list");
+}
+
 // ===================== Init =====================
 loadConsumers(true, true);
 loadTracker();

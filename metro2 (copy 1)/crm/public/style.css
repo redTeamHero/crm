@@ -848,6 +848,126 @@ body::after {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.tradeline-grid.list-view {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.tradeline-grid.list-view .tl-card {
+  border-radius: 8px;
+}
+
+.tradeline-grid.list-view .tl-card .tl-card-content {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.tradeline-grid.list-view .tl-card .tl-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tradeline-grid.list-view .tl-card .tl-title-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tradeline-grid.list-view .tl-card .tl-creditor {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 120px;
+  max-width: 200px;
+}
+
+.tradeline-grid.list-view .tl-card .tl-card-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.tradeline-grid.list-view .tl-card .tl-card-meta-item {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+}
+
+.tradeline-grid.list-view .tl-card .tl-card-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}
+
+.tradeline-grid.list-view .tl-card .tl-bureaus {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.tradeline-grid.list-view .tl-card .tl-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.tradeline-grid.list-view .tl-card .tl-tags .chip {
+  font-size: 0.65rem;
+  padding: 1px 6px;
+}
+
+.tradeline-grid.list-view .tl-card .tl-violations-panel {
+  flex: 1;
+  min-width: 200px;
+}
+
+.tradeline-grid.list-view .tl-card .tl-letter-row {
+  display: none;
+}
+
+.tradeline-grid.list-view .tl-card .tl-manual-reason {
+  display: none;
+}
+
+.tradeline-grid.list-view .tl-card .tl-card-actions {
+  flex-shrink: 0;
+}
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-left: 4px;
+}
+
+.view-toggle-btn {
+  background: transparent;
+  border: none;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.view-toggle-btn:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.view-toggle-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
 .messages-list::-webkit-scrollbar,
 .activity-list::-webkit-scrollbar,
 .collector-list::-webkit-scrollbar,
