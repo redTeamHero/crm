@@ -459,10 +459,6 @@ document.addEventListener('DOMContentLoaded', () => {
   applyNextSteps(enhanced.reminders);
   applyDataRegionBanner(dataRegionVariant);
   bootstrapDataRegionExperiment(consumerId);
-  if (isPortalModuleEnabled(portalSettings.modules, 'tradelines')) {
-    initTradelineStorefront(consumerId);
-  }
-
   const dash = document.getElementById('navDashboard');
   if (dash) dash.href = location.pathname;
 
@@ -745,6 +741,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const uploadSection = document.getElementById('uploadSection');
   const educationSection = document.getElementById('educationSection');
   const documentSection = document.getElementById('documentSection');
+
+  if (isPortalModuleEnabled(portalSettings.modules, 'tradelines')) {
+    initTradelineStorefront(consumerId);
+  }
 
   function initTradelineStorefront(id){
     if (!tradelineSection) return;
@@ -1759,6 +1759,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const targetHash = link.getAttribute('href') || link.dataset.hash;
       if (!targetHash) return;
       event.preventDefault();
+      event.stopPropagation();
       closeSidebar();
       if (mobileMoreMenu) mobileMoreMenu.classList.add('hidden');
       if (link.dataset.hash) {
