@@ -1000,11 +1000,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function formatTradelineMeta(item) {
     const parts = [];
-    if (item.limit) parts.push('Limit: ' + formatCurrency(item.limit));
-    if (item.age) parts.push('Age: ' + item.age);
+    parts.push('Limit: ' + (item.limit ? formatCurrency(item.limit) : 'N/A'));
+    parts.push('Age: ' + (item.age || 'N/A'));
     if (item.statement_date) parts.push('Statement: ' + item.statement_date);
     if (item.reporting) parts.push(item.reporting);
-    return parts.join(' · ') || 'Tradeline';
+    return parts.join(' · ');
   }
   function buildTradelineId(item) {
     return (item.id || [item.bank, item.limit, item.age, item.price].filter(Boolean).join('-'));
