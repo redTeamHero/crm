@@ -1390,7 +1390,7 @@ function renderTradelines(tradelines){
     function renderViolations(){
       if(!vs.length){
         vWrap.innerHTML = `<div class="text-sm muted">No auto-detected validations for this negative item.</div>`;
-        countEl.textContent = '0 validations';
+        countEl.textContent = '0 violations';
         prevBtn.classList.add("hidden");
         nextBtn.classList.add("hidden");
         return;
@@ -1414,7 +1414,13 @@ function renderTradelines(tradelines){
         if (saved.includes(val)) cb.checked = true;
         cb.addEventListener('change', () => updateSelectionStateFromCard(card));
       });
-      countEl.textContent = `Showing ${vStart + 1}-${end} of ${vs.length} validation${vs.length===1?"":"s"}`;
+      const isListView = $("#tlList")?.classList.contains("list-view");
+      const verboseText = `Showing ${vStart + 1}-${end} of ${vs.length} violation${vs.length===1?"":"s"}`;
+      countEl.dataset.violationCount = vs.length;
+      countEl.dataset.verboseText = verboseText;
+      countEl.textContent = isListView
+        ? `${vs.length} violation${vs.length===1?"":"s"}`
+        : verboseText;
       if(vs.length > pageSize){
         prevBtn.classList.remove('hidden');
         nextBtn.classList.remove('hidden');
@@ -1426,6 +1432,13 @@ function renderTradelines(tradelines){
       }
     }
     renderViolations();
+    countEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const grid = $("#tlList");
+      if (grid && grid.classList.contains("list-view")) {
+        card.classList.toggle("lv-violations-open");
+      }
+    });
     prevBtn.addEventListener("click", ()=>{ if(vStart>0){ vStart -= pageSize; renderViolations(); }});
     nextBtn.addEventListener("click", ()=>{ if(vStart + pageSize < vs.length){ vStart += pageSize; renderViolations(); }});
 
@@ -2422,6 +2435,14 @@ function setViewMode(mode) {
     btnListView.classList.remove("active");
     localStorage.setItem("tlViewMode", "card");
   }
+  grid.querySelectorAll(".tl-violations-count").forEach(el => {
+    const total = el.dataset.violationCount;
+    if (total !== undefined) {
+      el.textContent = mode === "list"
+        ? `${total} violation${total == 1 ? "" : "s"}`
+        : el.dataset.verboseText || el.textContent;
+    }
+  });
 }
 
 if (btnCardView && btnListView) {
