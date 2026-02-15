@@ -627,7 +627,7 @@ function buildLetterHeader(consumer, recipient){
     <div class="card" style="flex:1;">
       <strong>${safe(consumer.name)}</strong><br>
       ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
-      ${consumer.city}, ${consumer.state} ${consumer.zip}<br>
+      ${[consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', ') || ''}<br>
       ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
       ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
       ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}

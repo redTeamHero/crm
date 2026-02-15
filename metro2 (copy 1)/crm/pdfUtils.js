@@ -49,23 +49,99 @@ function shouldFallbackForError(err){
   return false;
 }
 
-function htmlToPlainText(markup = ''){
-  return String(markup)
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
-    .replace(/<\/(p|div|section|li|tr|h[1-6])\s*>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
+function decodeEntities(str){
+  return String(str)
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&#39;/gi, "'")
     .replace(/&quot;/gi, '"')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .join('\n');
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+}
+
+function stripTags(str){
+  return decodeEntities(String(str).replace(/<\s*br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, '')).trim();
+}
+
+function extractTables(html){
+  const tables = [];
+  const tableRx = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+  let m;
+  while((m = tableRx.exec(html)) !== null){
+    const rows = [];
+    const trRx = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    let tr;
+    while((tr = trRx.exec(m[1])) !== null){
+      const cells = [];
+      const cellRx = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
+      let td;
+      while((td = cellRx.exec(tr[1])) !== null){
+        cells.push(stripTags(td[1]));
+      }
+      if(cells.length) rows.push(cells);
+    }
+    if(rows.length) tables.push({ start: m.index, end: m.index + m[0].length, rows });
+  }
+  return tables;
+}
+
+function htmlToStructuredBlocks(markup = ''){
+  const blocks = [];
+  let cleaned = String(markup)
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '');
+
+  const tables = extractTables(cleaned);
+  let cursor = 0;
+  for(const tbl of tables){
+    if(tbl.start > cursor){
+      const chunk = cleaned.slice(cursor, tbl.start);
+      pushTextBlocks(blocks, chunk);
+    }
+    blocks.push({ type: 'table', rows: tbl.rows });
+    cursor = tbl.end;
+  }
+  if(cursor < cleaned.length){
+    pushTextBlocks(blocks, cleaned.slice(cursor));
+  }
+  return blocks;
+}
+
+function pushTextBlocks(blocks, html){
+  let text = html
+    .replace(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi, (_, inner) => '\n##HEADING##' + stripTags(inner) + '##/HEADING##\n')
+    .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, (_, inner) => '##BOLD##' + stripTags(inner) + '##/BOLD##')
+    .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (_, inner) => '##BOLD##' + stripTags(inner) + '##/BOLD##')
+    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, inner) => '\n##LI##' + inner + '##/LI##\n')
+    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/(p|div|section|h[1-6])\s*>/gi, '\n')
+    .replace(/<[^>]+>/g, '');
+  text = decodeEntities(text);
+  const lines = text.split('\n');
+  for(const raw of lines){
+    const line = raw.trim();
+    if(!line) continue;
+    if(line.startsWith('##HEADING##')){
+      blocks.push({ type: 'heading', text: line.replace(/##\/?HEADING##/g, '').trim() });
+    } else if(line.startsWith('##LI##')){
+      const inner = line.replace(/##\/?LI##/g, '').trim();
+      const cleaned = inner.replace(/##\/?BOLD##/g, '');
+      blocks.push({ type: 'listitem', text: cleaned });
+    } else {
+      const segments = [];
+      const parts = line.split(/(##BOLD##[\s\S]*?##\/BOLD##)/);
+      for(const part of parts){
+        if(part.startsWith('##BOLD##')){
+          segments.push({ bold: true, text: part.replace(/##\/?BOLD##/g, '').trim() });
+        } else {
+          const t = part.trim();
+          if(t) segments.push({ bold: false, text: t });
+        }
+      }
+      if(segments.length) blocks.push({ type: 'text', segments });
+    }
+  }
 }
 
 async function renderFallbackPdf(html, { title = 'Dispute Letter Preview' } = {}){
@@ -80,17 +156,45 @@ async function renderFallbackPdf(html, { title = 'Dispute Letter Preview' } = {}
       doc.on('error', reject);
       doc.on('end', () => resolve(Buffer.concat(chunks)));
 
+      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
       doc.font('Helvetica-Bold').fontSize(14).text(title, { align: 'center' });
       doc.moveDown(0.5);
-      doc.font('Helvetica').fontSize(11);
 
-      const plain = htmlToPlainText(html) || 'No content provided.';
-      const paragraphs = plain.split(/\n{2,}/);
-      for(const para of paragraphs){
-        const text = para.trim();
-        if(!text) continue;
-        doc.text(text);
-        doc.moveDown(0.35);
+      const blocks = htmlToStructuredBlocks(html);
+      let listIdx = 0;
+
+      for(const block of blocks){
+        if(doc.y > doc.page.height - doc.page.margins.bottom - 40){
+          doc.addPage();
+        }
+
+        if(block.type === 'heading'){
+          doc.moveDown(0.3);
+          doc.font('Helvetica-Bold').fontSize(12).text(block.text);
+          doc.moveDown(0.2);
+          doc.font('Helvetica').fontSize(10);
+        } else if(block.type === 'listitem'){
+          listIdx++;
+          doc.font('Helvetica').fontSize(10);
+          doc.text(`${listIdx}. ${block.text}`, { indent: 12 });
+          doc.moveDown(0.2);
+        } else if(block.type === 'text'){
+          for(let si = 0; si < block.segments.length; si++){
+            const seg = block.segments[si];
+            const isLast = si === block.segments.length - 1;
+            doc.font(seg.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(10);
+            if(!isLast){
+              doc.text(seg.text + ' ', { continued: true });
+            } else {
+              doc.text(seg.text, { continued: false });
+            }
+          }
+          doc.moveDown(0.15);
+        } else if(block.type === 'table'){
+          renderTable(doc, block.rows, pageWidth);
+          doc.moveDown(0.3);
+        }
       }
 
       doc.end();
@@ -98,6 +202,54 @@ async function renderFallbackPdf(html, { title = 'Dispute Letter Preview' } = {}
       reject(err);
     }
   });
+}
+
+function renderTable(doc, rows, pageWidth){
+  if(!rows.length) return;
+  const numCols = Math.max(...rows.map(r => r.length));
+  if(numCols === 0) return;
+  const colWidth = pageWidth / numCols;
+  const cellPadding = 4;
+  const fontSize = 9;
+  const startX = doc.page.margins.left;
+
+  for(let ri = 0; ri < rows.length; ri++){
+    const row = rows[ri];
+    doc.font('Helvetica').fontSize(fontSize);
+    const cellHeights = row.map((cell, ci) => {
+      const w = colWidth - cellPadding * 2;
+      return doc.heightOfString(cell || '', { width: w }) + cellPadding * 2;
+    });
+    const rowHeight = Math.max(16, ...cellHeights);
+
+    if(doc.y + rowHeight > doc.page.height - doc.page.margins.bottom - 10){
+      doc.addPage();
+    }
+
+    const y = doc.y;
+    for(let ci = 0; ci < numCols; ci++){
+      const x = startX + ci * colWidth;
+      const cellText = (row[ci] || '').trim();
+      const isLabel = ci === 0 && numCols >= 2;
+
+      doc.save();
+      if(isLabel){
+        doc.rect(x, y, colWidth, rowHeight).fillAndStroke('#f5f5f5', '#cccccc');
+      } else {
+        doc.rect(x, y, colWidth, rowHeight).stroke('#cccccc');
+      }
+      doc.restore();
+
+      doc.font(isLabel ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize);
+      doc.fillColor('#000000');
+      doc.text(cellText, x + cellPadding, y + cellPadding, {
+        width: colWidth - cellPadding * 2,
+        height: rowHeight - cellPadding * 2,
+        lineBreak: true,
+      });
+    }
+    doc.y = y + rowHeight;
+  }
 }
 
 async function renderWithBrowser(browser, html){

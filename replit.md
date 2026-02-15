@@ -111,6 +111,14 @@ npm run dev
   - Conflict detection prevents double-booking same time slot
   - Auto-syncs to Google Calendar when configured
   - Admin can update availability via PUT /api/booking/availability
+- 2026-02-15: Fixed PDF letter generation formatting
+  - Fixed "undefined, undefined undefined" in consumer address (letterEngine.js) — uses filter(Boolean).join()
+  - Rewrote PDFKit fallback renderer (pdfUtils.js) to properly parse HTML structure
+  - Tables now render with cell borders, shaded label columns, and proper column alignment
+  - Bold text, headings, and inline formatting preserved correctly
+  - Numbered lists render with proper indentation
+  - Automatic page breaks for long content
+  - generateOcrPdf() accepts pdfOptions; portal endpoint passes allowBrowserLaunch:false when Chrome unavailable
 
 ## Dependencies
 - Node.js 20
