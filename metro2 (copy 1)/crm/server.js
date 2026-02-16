@@ -1034,6 +1034,9 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
 
 const app = express();
 
+app.get("/healthz", (_req, res) => res.status(200).json({ status: "ok" }));
+app.get("/health", (_req, res) => res.status(200).json({ status: "ok" }));
+
 app.post(
   '/api/stripe/webhook',
   express.raw({ type: 'application/json' }),
@@ -1382,8 +1385,6 @@ function renderClientPortalHtml({ portalBootstrap = {}, portalEnhanced = {}, neg
 
 // Disable default index to avoid auto-serving the app without auth
 app.use(express.static(PUBLIC_DIR, { index: false }));
-
-app.get("/healthz", (_req, res) => res.status(200).json({ status: "ok" }));
 
 // Serve neutral welcome page at root, CRM login at /crm
 registerStaticPage({ paths: "/", file: "welcome.html" });
@@ -8950,7 +8951,17 @@ async function initStripeSubscriptions() {
   }
 }
 
-const pgPool = process.env.DATABASE_URL ? new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3 }) : null;
+let pgPool = null;
+try {
+  if (process.env.DATABASE_URL) {
+    pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 3, connectionTimeoutMillis: 10000 });
+    pgPool.on('error', (err) => {
+      console.error('PostgreSQL pool error (non-fatal):', err.message);
+    });
+  }
+} catch (err) {
+  console.warn('Failed to create PostgreSQL pool:', err.message);
+}
 
 async function pgQuery(text, params = []) {
   if (!pgPool) throw new Error('PostgreSQL not configured');
@@ -8961,7 +8972,6 @@ async function pgQuery(text, params = []) {
 const shouldStartServer =
   process.env.NODE_ENV !== "test" || process.env.START_SERVER_IN_TEST === "true";
 if (shouldStartServer) {
-  initStripeSubscriptions().catch(err => console.error('Stripe init error:', err));
   app.listen(PORT, HOST, () => {
     const displayHost = HOST === "0.0.0.0" || HOST === "::" ? "localhost" : HOST;
     console.log(`CRM ready    http://${displayHost}:${PORT}`);
@@ -8972,6 +8982,7 @@ if (shouldStartServer) {
     console.log(`DB client    ${dbClient}`);
     console.log(`Tenant mode  ${(process.env.DB_TENANT_STRATEGY || "partitioned").toString()}`);
     console.log(`Letters dir  ${LETTERS_DIR}`);
+    initStripeSubscriptions().catch(err => console.error('Stripe init error:', err));
   });
 }
 
