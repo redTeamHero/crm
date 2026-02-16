@@ -1025,7 +1025,11 @@ function normalizeFieldLabel(label){
 
 function sanitizeCreditor(value){
   if(!value) return '';
-  const text = String(value).replace(RE_WHITESPACE, ' ').trim();
+  let text = String(value).replace(RE_WHITESPACE, ' ').trim();
+  if(!text) return '';
+  if(/\{\{.*\}\}/.test(text)) {
+    text = text.replace(/\{\{[^}]*\}\}/g, '').replace(RE_WHITESPACE, ' ').trim();
+  }
   if(!text) return '';
   return text;
 }

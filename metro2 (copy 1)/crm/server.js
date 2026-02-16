@@ -24,6 +24,8 @@ import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, u
 
 import { fetchFn } from "./fetchUtil.js";
 import { scrapeTradelines } from "./tradelineScraper.js";
+import * as cheerio from "cheerio";
+import { parseReport as metro2ParseReport } from "../../packages/metro2-core/src/index.js";
 import { getStripeSync, getUncachableStripeClient, getStripePublishableKey } from "./stripeClient.js";
 import { WebhookHandlers } from "./webhookHandlers.js";
 import pg from "pg";
@@ -5526,6 +5528,75 @@ app.get("/api/consumers/:id/report/:rid", async (req,res)=>{
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
   const r=c.reports.find(x=>x.id===req.params.rid);
   if(!r) return res.status(404).json({ ok:false, error:"Report not found" });
+
+  if (Array.isArray(r.data?.tradelines) && r.data.tradelines.length > 0) {
+    const unknownCount = r.data.tradelines.filter(tl => !tl.meta?.creditor || tl.meta.creditor === "Unknown Creditor").length;
+    const unknownRatio = unknownCount / r.data.tradelines.length;
+    if (unknownRatio > 0.5) {
+      try {
+        const uploadsDir = consumerUploadsDir(c.id);
+        let htmlPath = null;
+        for (const ext of [".html", ".htm"]) {
+          const candidate = path.join(uploadsDir, `${r.id}${ext}`);
+          if (fs.existsSync(candidate)) { htmlPath = candidate; break; }
+        }
+        if (!htmlPath) {
+          logWarn("CREDITOR_BACKFILL_SKIP", `No HTML file found for report ${r.id}`, { consumerId: c.id, reportId: r.id });
+        }
+        if (htmlPath) {
+          const html = await fs.promises.readFile(htmlPath, "utf-8");
+          const $ = cheerio.load(html);
+          const parsed = metro2ParseReport($);
+          if (parsed.tradelines && parsed.tradelines.length > 0) {
+            const parsedCreditors = parsed.tradelines
+              .map(pt => (pt.meta?.creditor || "").trim())
+              .filter(c => c && c !== "Unknown Creditor");
+            if (parsedCreditors.length > 0) {
+              const matchCreditors = (stored, parsed) => {
+                for (const st of stored) {
+                  if (st.meta?.creditor && st.meta.creditor !== "Unknown Creditor") continue;
+                  const stBureaus = Object.keys(st.per_bureau || {});
+                  let bestMatch = null;
+                  let bestScore = 0;
+                  for (const pt of parsed) {
+                    const ptBureaus = Object.keys(pt.per_bureau || {});
+                    let score = 0;
+                    for (const b of stBureaus) {
+                      if (!pt.per_bureau?.[b]) continue;
+                      const sd = st.per_bureau[b] || {};
+                      const pd = pt.per_bureau[b] || {};
+                      if (sd.account_number && pd.account_number && sd.account_number === pd.account_number) score += 10;
+                      if (sd.account_status && pd.account_status && sd.account_status === pd.account_status) score += 2;
+                      if (sd.date_opened && pd.date_opened && sd.date_opened === pd.date_opened) score += 3;
+                      if (sd.balance_raw && pd.balance_raw && sd.balance_raw === pd.balance_raw) score += 1;
+                      if (ptBureaus.includes(b)) score += 1;
+                    }
+                    if (score > bestScore) {
+                      bestScore = score;
+                      bestMatch = pt;
+                    }
+                  }
+                  if (bestMatch && bestScore >= 3) {
+                    st.meta = st.meta || {};
+                    st.meta.creditor = bestMatch.meta?.creditor || st.meta.creditor;
+                  }
+                }
+              };
+              matchCreditors(r.data.tradelines, parsed.tradelines);
+              const fixed = r.data.tradelines.filter(tl => tl.meta?.creditor && tl.meta.creditor !== "Unknown Creditor").length;
+              if (fixed > 0) {
+                await saveDB(db);
+                logInfo("CREDITOR_BACKFILL", `Backfilled ${fixed}/${r.data.tradelines.length} creditor names`, { consumerId: c.id, reportId: r.id });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        logWarn("CREDITOR_BACKFILL_ERROR", `Failed to backfill creditor names: ${e.message}`, { consumerId: c.id, reportId: r.id });
+      }
+    }
+  }
+
   if (!Array.isArray(r.data?.negative_items) && Array.isArray(r.data?.tradelines)) {
     try {
     const { items } = prepareNegativeItems(r.data.tradelines, {
