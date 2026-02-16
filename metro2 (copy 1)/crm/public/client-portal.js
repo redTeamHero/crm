@@ -1825,7 +1825,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .join('');
       const severity = item.severity || 0;
       const headline = pickHeadline(item);
-      const violationList = (item.violations || []).slice(0, 4).map(v => `
+      const violationList = (item.violations || []).map(v => `
         <li class="flex gap-2 items-start">
           <span class="severity-tag severity-${v.severity || 0}">S${v.severity || 0}</span>
           <div>
@@ -1835,7 +1835,6 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </li>
       `).join('');
-      const remaining = Math.max(0, (item.violations || []).length - 4);
       const violationContent = violationList
         ? `<ul class="mt-3 space-y-2">${violationList}</ul>`
         : '<div class="text-sm muted mt-3">No Metro 2 violations detected.</div>';
@@ -1870,9 +1869,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const bureauSection = bureauDetails
         ? `<div class="negative-bureau-grid" aria-label="Bureau breakdown">${bureauDetails}</div>`
         : '';
-      const remainderMarkup = remaining
-        ? `<div class="text-xs muted mt-2">+${remaining} more violation${remaining === 1 ? '' : 's'} in this item.</div>`
-        : '';
+      const remainderMarkup = '';
       const violationCount = (item.violations || []).length;
       return `
         <div class="glass card negative-item-card">
