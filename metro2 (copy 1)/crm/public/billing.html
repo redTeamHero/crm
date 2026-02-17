@@ -39,12 +39,13 @@
             </svg>
           </button>
           <div id="navMarketingMenu" class="nav-dropdown-menu glass card p-2">
-            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing • SMS</a>
-            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing • Email</a>
+            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing &bull; SMS</a>
+            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing &bull; Email</a>
           </div>
         </div>
         <a href="/schedule" class="btn nav-btn">Schedule</a>
         <a href="/billing" class="btn nav-btn">Billing</a>
+        <a href="/client-invoicing" class="btn nav-btn">Client Invoicing</a>
         <div class="nav-dropdown" id="navSettings">
           <button type="button" id="navSettingsToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
             <span>Settings</span>
@@ -75,12 +76,7 @@
 <main class="max-w-7xl mx-auto p-4 space-y-6">
 
   <div id="billingContent" class="space-y-6">
-    <div class="flex gap-2" id="billingTabs" style="border-bottom: 1px solid rgba(212,168,83,0.15); padding-bottom: 0;">
-      <button type="button" class="billing-tab active" data-tab="subscription" style="padding:12px 24px; font-size:14px; font-weight:600; border:none; background:transparent; color:#d4a853; cursor:pointer; border-bottom:2px solid #d4a853; transition: all 0.2s;">My Subscription</button>
-      <button type="button" class="billing-tab" data-tab="invoicing" style="padding:12px 24px; font-size:14px; font-weight:600; border:none; background:transparent; color:#666; cursor:pointer; border-bottom:2px solid transparent; transition: all 0.2s;">Client Invoicing</button>
-    </div>
 
-    <div id="tabSubscription" class="billing-tab-content space-y-6">
     <section id="subscriptionSection" class="glass card p-6 md:p-8 space-y-6">
       <div class="space-y-2">
         <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">Platform subscription</p>
@@ -158,212 +154,7 @@
       <div class="rounded-xl bg-[#111113] p-4 text-sm text-gray-300 shadow-sm">Apple Pay &amp; ACH ready. Use Stripe to refresh authorization.</div>
       <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold">Update card</button>
     </section>
-    </div>
 
-    <div id="tabInvoicing" class="billing-tab-content space-y-6" style="display:none;">
-
-    <section class="glass card p-6 md:p-8 space-y-6">
-      <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-        <div class="space-y-4 max-w-2xl">
-          <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">Client billing</p>
-          <div>
-            <h1 class="text-3xl font-semibold text-white">Client Invoicing</h1>
-            <h2 class="text-lg text-gray-400">Create, send, and track invoices for your credit repair clients.</h2>
-          </div>
-          <ul class="grid gap-2 text-sm text-gray-400 sm:grid-cols-2">
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">&#9657;</span>Send secure payment links within seconds.</li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">&#9657;</span>Track charge-offs vs. settlements cleanly.</li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">&#9657;</span>Auto-remind clients ahead of due dates.</li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">&#9657;</span>Snapshot KPIs for finance + sales teams.</li>
-          </ul>
-        </div>
-        <div class="glass card border border-gray-700 bg-[#111113] p-5 shadow-xl shadow-gray-900/5 md:max-w-sm space-y-4">
-          <div>
-            <div class="text-sm font-semibold text-gray-300">Active invoices</div>
-            <div class="text-3xl font-bold text-white" id="invoiceCount">0</div>
-          </div>
-          <div class="space-y-1 text-sm text-gray-400">
-            <p>Consult &rarr; Purchase target: 42%.</p>
-          </div>
-          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold">Send payment link</button>
-          <p class="text-xs text-gray-500">Share via SMS or email&mdash;no SSN stored, only last4 on file.</p>
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-3">
-        <button type="button" class="btn px-4 py-2 text-sm font-semibold">Download CSV</button>
-        <button type="button" class="btn px-4 py-2 text-sm font-semibold" style="background: var(--green-bg);">Offer one-time payoff</button>
-      </div>
-    </section>
-
-    <section id="billingMetrics" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-gray-500">Total billed (all clients)</p>
-        <p id="metricTotalBilledAll" class="text-2xl font-semibold text-white">$0.00</p>
-        <p class="text-sm text-gray-400">Lifetime invoiced amount across every client.</p>
-      </article>
-      <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-gray-500" data-i18n="billing.metrics.outstandingLabel">Outstanding</p>
-        <p id="metricOutstanding" class="text-2xl font-semibold text-white">$0.00</p>
-        <p class="text-sm text-gray-400" data-i18n="billing.metrics.outstandingDescription">Balance awaiting payment.</p>
-      </article>
-      <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-gray-500" data-i18n="billing.metrics.nextDueLabel">Next due</p>
-        <p id="metricNextDue" class="text-xl font-semibold text-white">—</p>
-        <p id="metricNextAmount" class="text-sm font-medium text-[#d4a853]">—</p>
-        <p id="metricNextDesc" class="text-xs text-gray-500" data-i18n="billing.metrics.nextDescriptionDefault">No open invoices.</p>
-      </article>
-      <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-gray-500" data-i18n="billing.metrics.collectedLabel">Collected YTD</p>
-        <p id="metricCollected" class="text-2xl font-semibold text-white">$0.00</p>
-        <p class="text-sm text-gray-400" data-i18n="billing.metrics.collectedDescription">Closed revenue booked this year.</p>
-      </article>
-    </section>
-
-    <section id="billingAutopayCard" class="glass card p-6 md:p-7 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div class="space-y-2">
-        <p class="text-sm font-semibold text-gray-300" data-i18n="billing.autopay.heading">Autopay control</p>
-        <p id="autopayStatus" class="text-lg font-semibold text-white">Autopay off</p>
-        <p id="autopayCopy" class="text-sm text-gray-400" data-i18n="billing.autopay.copyOff">Turn this on to draft recurring invoices and stay Metro-2 compliant.</p>
-      </div>
-      <div class="space-y-2">
-        <label class="flex items-center gap-3">
-          <input id="autopaySwitch" type="checkbox" class="h-5 w-5 rounded border-gray-700 text-[#d4a853] focus:ring-[#d4a853]">
-          <span id="autopaySwitchLabel" class="text-sm font-medium text-gray-300" data-i18n="billing.autopay.toggleOn">Enable autopay</span>
-        </label>
-        <p class="text-xs text-gray-500" data-i18n="billing.autopay.receipts">Receipts email instantly.</p>
-      </div>
-    </section>
-
-    <div class="grid gap-6 lg:grid-cols-3">
-      <section class="glass card p-6 lg:col-span-2 space-y-6">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 class="text-xl font-semibold text-white" data-i18n="billing.invoices.heading">Invoice history</h3>
-            <p class="text-sm text-gray-400" data-i18n="billing.invoices.subheading">Monitor payments, disputes, and refunds.</p>
-          </div>
-          <div class="flex flex-wrap items-end gap-3">
-            <label class="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-widest text-gray-500">
-              <span>Client</span>
-              <select id="billingClientFilter" class="input min-w-[220px] text-sm">
-                <option value="all">All clients</option>
-              </select>
-            </label>
-            <div class="flex flex-wrap gap-2 text-xs font-medium text-gray-400">
-              <span class="badge badge-unpaid" data-i18n="billing.invoices.badges.dueSoon">Due soon</span>
-              <span class="badge badge-paid" data-i18n="billing.invoices.badges.paid">Paid</span>
-            </div>
-          </div>
-        </div>
-        <div class="overflow-x-auto rounded-2xl border border-gray-800">
-          <table id="invoiceTable" class="invoice-table min-w-full divide-y divide-gray-800 text-sm">
-            <thead class="bg-[rgba(18,18,22,0.95)] text-left text-xs font-semibold uppercase tracking-widest text-gray-500">
-              <tr>
-                <th class="px-4 py-3" data-i18n="billing.invoices.table.description">Description</th>
-                <th class="px-4 py-3" data-i18n="billing.invoices.table.amount">Amount</th>
-                <th class="px-4 py-3" data-i18n="billing.invoices.table.due">Due</th>
-                <th class="px-4 py-3" data-i18n="billing.invoices.table.status">Status</th>
-                <th class="px-4 py-3" data-i18n="billing.invoices.table.actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="invoiceBody" class="bg-[rgba(18,18,22,0.9)]"></tbody>
-          </table>
-        </div>
-        <div id="invoiceEmpty" class="hidden rounded-xl border border-dashed border-gray-700/70 bg-[rgba(18,18,22,0.95)] p-6 text-sm text-gray-400" data-i18n="billing.invoices.empty">No invoices yet. Create your first invoice to trigger consult → purchase tracking.</div>
-        <p class="text-xs text-gray-500" data-i18n="billing.invoices.compliance">Compliance note: never promise guaranteed credit outcomes or timelines. Set realistic expectations on every invoice.</p>
-      </section>
-
-      <div class="space-y-6">
-        <section class="glass card p-6 space-y-5" id="planBuilder">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 class="text-lg font-semibold text-white" data-i18n="billing.plans.heading">Custom billing plans</h3>
-              <p class="text-sm text-gray-400" data-i18n="billing.plans.subheading">Package recurring services and automate reminders.</p>
-            </div>
-            <button type="button" class="btn text-xs font-semibold" id="planNew" data-i18n="billing.plans.newButton">New plan</button>
-          </div>
-          <div class="rounded-lg bg-[#111113] p-4 space-y-4">
-            <p id="planFormTitle" class="text-sm font-semibold text-gray-300" data-i18n="billing.plans.form.titleNew">New plan</p>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
-                <span data-i18n="billing.plans.form.nameLabel">Plan name</span>
-                <input id="planName" class="input text-sm" placeholder="Premium credit concierge" data-i18n-placeholder="billing.plans.form.namePlaceholder" />
-              </label>
-              <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
-                <span data-i18n="billing.plans.form.amountLabel">Amount</span>
-                <input id="planAmount" type="number" step="0.01" class="input text-sm" placeholder="297.00" data-i18n-placeholder="billing.plans.form.amountPlaceholder" />
-              </label>
-              <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
-                <span data-i18n="billing.plans.form.startLabel">Start date</span>
-                <input id="planStart" type="date" class="input text-sm" />
-              </label>
-              <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
-                <span data-i18n="billing.plans.form.nextLabel">Next bill date</span>
-                <input id="planNext" type="date" class="input text-sm" />
-              </label>
-              <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
-                <span data-i18n="billing.plans.form.frequencyLabel">Frequency</span>
-                <select id="planFrequency" class="input text-sm">
-                  <option value="monthly" data-i18n="billing.plans.form.frequencyMonthly">Monthly</option>
-                  <option value="biweekly" data-i18n="billing.plans.form.frequencyBiweekly">Biweekly</option>
-                  <option value="weekly" data-i18n="billing.plans.form.frequencyWeekly">Weekly</option>
-                  <option value="custom" data-i18n="billing.plans.form.frequencyCustom">Custom days</option>
-                </select>
-              </label>
-              <label id="planIntervalWrap" class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-gray-500 hidden">
-                <span data-i18n="billing.plans.form.intervalLabel">Interval (days)</span>
-                <input id="planInterval" type="number" min="1" max="365" class="input text-sm" placeholder="30" />
-              </label>
-              <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-gray-500">
-                <span data-i18n="billing.plans.form.reminderLeadLabel">Reminder lead (days)</span>
-                <input id="planReminderLead" type="number" min="0" max="60" class="input text-sm" placeholder="3" />
-              </label>
-              <label class="flex flex-col gap-1 text-xs font-semibold uppercase tracking-widest text-gray-500 sm:col-span-2">
-                <span data-i18n="billing.plans.form.notesLabel">Notes</span>
-                <textarea id="planNotes" class="input min-h-[72px] text-sm" placeholder="Outline deliverables" data-i18n-placeholder="billing.plans.form.notesPlaceholder"></textarea>
-              </label>
-              <label class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-gray-500 sm:col-span-2">
-                <input id="planActive" type="checkbox" class="h-4 w-4 rounded border-gray-700 text-[#d4a853] focus:ring-[#d4a853]" checked>
-                <span data-i18n="billing.plans.form.activeLabel">Plan active</span>
-              </label>
-            </div>
-            <div class="flex flex-wrap gap-3">
-              <button id="planSave" type="button" class="btn px-4 py-2 text-sm font-semibold" data-i18n="billing.plans.form.saveButton">Save plan</button>
-              <button id="planSend" type="button" class="btn px-4 py-2 text-sm font-semibold" data-i18n="billing.plans.form.sendButton">Send next invoice</button>
-            </div>
-          </div>
-          <div id="planEmpty" class="hidden rounded-xl border border-dashed border-gray-700/70 bg-[rgba(18,18,22,0.95)] p-4 text-xs text-gray-400" data-i18n="billing.plans.empty">No plans yet. Create a plan to automate billing cadence.</div>
-          <div id="plansList" class="space-y-3"></div>
-        </section>
-
-        <section class="glass card p-6 space-y-4">
-          <h3 class="text-lg font-semibold text-white" data-i18n="billing.quickAdd.heading">Quick add invoice</h3>
-          <div class="space-y-3">
-            <label class="flex flex-col gap-1 text-sm text-gray-300">
-              <span data-i18n="billing.quickAdd.fields.descriptionLabel">Description</span>
-              <input id="invDesc" class="input" placeholder="Metro-2 audit retainer" data-i18n-placeholder="billing.quickAdd.fields.descriptionPlaceholder" />
-            </label>
-            <label class="flex flex-col gap-1 text-sm text-gray-300">
-              <span data-i18n="billing.quickAdd.fields.amountLabel">Amount</span>
-              <input id="invAmount" type="number" step="0.01" class="input" placeholder="297.00" data-i18n-placeholder="billing.quickAdd.fields.amountPlaceholder" />
-            </label>
-            <label class="flex flex-col gap-1 text-sm text-gray-300">
-              <span data-i18n="billing.quickAdd.fields.dueLabel">Due date</span>
-              <input id="invDue" type="date" class="input" />
-            </label>
-          </div>
-          <button id="invAdd" type="button" class="btn w-full justify-center py-3 text-sm font-semibold" data-i18n="billing.quickAdd.button">Add invoice</button>
-          <p class="text-xs text-gray-500" data-i18n="billing.quickAdd.footnote">We only store last4 + token.</p>
-        </section>
-
-        <section class="glass card border border-gray-700 bg-[#111113] p-6 space-y-4">
-          <h3 class="text-lg font-semibold text-white" data-i18n="billing.revenue.heading">Revenue accelerator</h3>
-          <p class="text-sm text-gray-400" data-i18n="billing.revenue.copy">Bundle a Metro-2 compliance review for $97 and boost AOV.</p>
-          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold" data-i18n="billing.revenue.button">Launch growth review</button>
-          <p class="text-xs text-gray-500" data-i18n="billing.revenue.footnote">KPI to watch: AOV &amp; Consult → Purchase%.</p>
-        </section>
-      </div>
-    </div>
-    </div>
   </div>
 </main>
 <script type="module" src="/common.js"></script>

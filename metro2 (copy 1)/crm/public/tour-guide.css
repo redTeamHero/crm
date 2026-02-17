@@ -106,6 +106,25 @@
   margin-bottom: 16px;
 }
 
+.tour-bubble__body p,
+.tour-bubble__body span,
+.tour-bubble__body div {
+  color: inherit !important;
+}
+
+.tour-bubble__body .font-semibold,
+.tour-bubble__body p.font-semibold {
+  color: #e5e5e5 !important;
+  font-weight: 600;
+}
+
+.tour-bubble__body .text-slate-600,
+.tour-bubble__body .text-slate-500,
+.tour-bubble__body .text-gray-600,
+.tour-bubble__body .text-gray-500 {
+  color: #999 !important;
+}
+
 .tour-bubble__footer {
   display: flex;
   align-items: center;

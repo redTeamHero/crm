@@ -52,6 +52,7 @@
     ]},
     { label: 'Schedule', icon: 'calendar', href: '/schedule', match: ['/schedule'] },
     { label: 'Billing', icon: 'creditCard', href: '/billing', match: ['/billing'] },
+    { label: 'Invoicing', icon: 'dollarSign', href: '/client-invoicing', match: ['/client-invoicing'] },
     { group: 'TOOLS' },
     { label: 'Tradelines', icon: 'dollarSign', href: '/tradelines', match: ['/tradelines'] },
     { group: 'SETTINGS' },

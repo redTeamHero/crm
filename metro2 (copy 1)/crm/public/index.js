@@ -708,6 +708,12 @@ async function selectConsumer(id){
   setSelectedConsumerId(id);
   renderConsumers();
 
+  const negPanel = $("#clientsNegativePanel");
+  if(negPanel){
+    if(id) negPanel.classList.remove("hidden");
+    else negPanel.classList.add("hidden");
+  }
+
   updatePortalLink();
   await refreshReports();
   await loadConsumerState();

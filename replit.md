@@ -158,11 +158,23 @@ npm run dev
   - "Check Breaches" button triggers existing breach lookup flow
   - Card updates dynamically after breach lookup completes
 
-- 2026-02-17: Split billing page into tabbed layout
-  - "My Subscription" tab: CRM plan pricing grid, subscription management, saved payment method
-  - "Client Invoicing" tab: client billing hero, metrics (outstanding, next due, collected YTD), autopay, invoice history, plan builder, quick add invoice
-  - Gold tab indicator with smooth switching animation
-  - Updated guided tour steps to reference new tab structure
+- 2026-02-17: Separated billing into two distinct pages
+  - /billing: CRM subscription only — pricing grid, subscription management, saved payment method
+  - /client-invoicing: Standalone page — hero, metrics (outstanding, next due, collected YTD), autopay, invoice history, plan builder, quick add invoice, revenue accelerator
+  - Added Invoicing to sidebar navigation
+  - Each page has its own JS module and guided tour
+
+- 2026-02-17: Fixed guided tour positioning and colors
+  - Replaced fixed 400ms scroll timeout with scroll-settle detection using rAF loop (max 120 frames safety)
+  - Added viewport boundary clamping so popover never goes off-screen
+  - Added 'left' placement option in calculatePlacement
+  - Improved element finding with getBoundingClientRect fallback
+  - CSS overrides ensure .text-slate-600 and similar dark Tailwind classes render as readable #999 on dark backgrounds
+  - .font-semibold in tour body renders as #e5e5e5 for contrast
+
+- 2026-02-17: Fixed Files & Activity panel visibility on /clients
+  - #clientsNegativePanel now programmatically shows when a consumer is selected
+  - Portal Invite and Client Portal buttons visible when consumer is active
 
 ## Dependencies
 - Node.js 20

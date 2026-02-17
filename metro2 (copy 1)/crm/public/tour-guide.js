@@ -264,6 +264,7 @@ class EvolvTourEngine {
       try {
         const el = document.querySelector(sel);
         if (el && el.offsetParent !== null) return el;
+        if (el && el.getBoundingClientRect().height > 0) return el;
       } catch { /* skip invalid selectors */ }
     }
     return null;
@@ -276,8 +277,32 @@ class EvolvTourEngine {
     const target = this.findTarget(step);
 
     if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setTimeout(() => this.positionElements(target, step), 400);
+      const rect = target.getBoundingClientRect();
+      const inView = rect.top >= 0 && rect.bottom <= window.innerHeight;
+      if (inView) {
+        this.positionElements(target, step);
+      } else {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const waitForScroll = () => {
+          let settled = 0;
+          let lastY = window.scrollY;
+          let frames = 0;
+          const maxFrames = 120;
+          const check = () => {
+            frames++;
+            if (Math.abs(window.scrollY - lastY) < 1) settled++;
+            else settled = 0;
+            lastY = window.scrollY;
+            if (settled >= 3 || frames >= maxFrames) {
+              this.positionElements(target, step);
+            } else {
+              requestAnimationFrame(check);
+            }
+          };
+          requestAnimationFrame(check);
+        };
+        waitForScroll();
+      }
     } else {
       this.positionCenter(step);
     }
@@ -287,12 +312,11 @@ class EvolvTourEngine {
     const rect = target.getBoundingClientRect();
     const pad = 10;
 
-    this.spotlight.style.top = `${rect.top - pad + window.scrollY}px`;
+    this.spotlight.style.position = 'fixed';
+    this.spotlight.style.top = `${rect.top - pad}px`;
     this.spotlight.style.left = `${rect.left - pad}px`;
     this.spotlight.style.width = `${rect.width + pad * 2}px`;
     this.spotlight.style.height = `${rect.height + pad * 2}px`;
-    this.spotlight.style.position = 'fixed';
-    this.spotlight.style.top = `${rect.top - pad}px`;
 
     const placement = this.calculatePlacement(rect);
     this.renderPopover(step, placement, rect);
@@ -312,11 +336,13 @@ class EvolvTourEngine {
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;
     const spaceRight = vw - rect.right;
+    const spaceLeft = rect.left;
 
-    if (spaceBelow > 260) return 'bottom';
-    if (spaceAbove > 260) return 'top';
-    if (spaceRight > 440) return 'right';
-    return 'bottom';
+    if (spaceBelow > 280) return 'bottom';
+    if (spaceAbove > 280) return 'top';
+    if (spaceRight > 460) return 'right';
+    if (spaceLeft > 460) return 'left';
+    return spaceBelow >= spaceAbove ? 'bottom' : 'top';
   }
 
   renderPopover(step, placement, rect) {
@@ -380,26 +406,32 @@ class EvolvTourEngine {
       this.popover.style.position = 'fixed';
       this.popover.style.transform = 'none';
       const popRect = this.popover.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const margin = 16;
       let top, left;
 
       switch (placement) {
         case 'bottom':
-          top = rect.bottom + 20;
-          left = Math.max(16, Math.min(rect.left, window.innerWidth - popRect.width - 16));
+          top = rect.bottom + 16;
+          left = Math.max(margin, Math.min(rect.left, vw - popRect.width - margin));
           break;
         case 'top':
-          top = rect.top - popRect.height - 20;
-          left = Math.max(16, Math.min(rect.left, window.innerWidth - popRect.width - 16));
+          top = rect.top - popRect.height - 16;
+          left = Math.max(margin, Math.min(rect.left, vw - popRect.width - margin));
           break;
         case 'right':
-          top = Math.max(16, rect.top);
-          left = rect.right + 20;
+          top = Math.max(margin, rect.top);
+          left = rect.right + 16;
           break;
         case 'left':
-          top = Math.max(16, rect.top);
-          left = rect.left - popRect.width - 20;
+          top = Math.max(margin, rect.top);
+          left = rect.left - popRect.width - 16;
           break;
       }
+
+      top = Math.max(margin, Math.min(top, vh - popRect.height - margin));
+      left = Math.max(margin, Math.min(left, vw - popRect.width - margin));
 
       this.popover.style.top = `${top}px`;
       this.popover.style.left = `${left}px`;
