@@ -137,6 +137,34 @@
     </article>
   </section>
 
+  <section class="glass card p-4 mb-4" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <div>
+      <h3 class="text-sm font-semibold" style="color: #d4a853;">Lead Capture Link</h3>
+      <p class="text-xs" style="color: #888;">Generate a shareable link to capture prospect information for your sales pipeline.</p>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <select id="leadCaptureSource" class="input text-sm" style="background:#1a1a1e; border:1px solid #2a2a2e; color:#fff; padding:8px 12px; border-radius:8px; min-width:140px;">
+        <option value="link">Direct Link</option>
+        <option value="website">Website</option>
+        <option value="facebook">Facebook</option>
+        <option value="instagram">Instagram</option>
+        <option value="tiktok">TikTok</option>
+        <option value="email-campaign">Email Campaign</option>
+        <option value="referral">Referral</option>
+        <option value="webinar">Webinar</option>
+      </select>
+      <button id="btnGenerateLeadLink" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600; padding: 8px 16px; border-radius: 8px; white-space: nowrap;">🔗 Generate Link</button>
+    </div>
+  </section>
+
+  <div id="leadLinkResult" class="glass card p-3 mb-4" style="display:none; border:1px solid rgba(212,168,83,0.2);">
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input id="leadLinkInput" type="text" readonly class="input flex-1 text-sm" style="background:#1a1a1e; border:1px solid #2a2a2e; color:#fff; padding:8px 12px; border-radius:8px;" />
+      <button id="leadLinkCopy" class="btn text-sm" style="background:#d4a853; color:#0a0a0a; font-weight:600; padding:8px 16px; border-radius:8px;">Copy</button>
+    </div>
+    <div id="leadLinkStatus" class="text-xs mt-1" style="color: #22c55e; display: none;">Copied to clipboard!</div>
+  </div>
+
   <section class="glass card lead-intake-card lead-intake-card--full">
     <div class="lead-intake-card__header">
       <div>

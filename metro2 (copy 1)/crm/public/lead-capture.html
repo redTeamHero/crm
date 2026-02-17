@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Free Credit Consultation — EVOLV.AI</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .hero {
+      text-align: center;
+      padding: 60px 20px 40px;
+      background: linear-gradient(180deg, rgba(212,168,83,0.08) 0%, transparent 100%);
+    }
+    .hero-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #d4a853, #c49a45);
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .hero h1 span { color: #d4a853; }
+    .hero p {
+      color: #999;
+      font-size: 15px;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    .trust-badges {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #888;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .trust-badge .icon { color: #d4a853; font-size: 16px; }
+    .form-container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+    .form-card {
+      background: #111113;
+      border: 1px solid rgba(212, 168, 83, 0.15);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .form-card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: #d4a853;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #999;
+      margin-bottom: 6px;
+    }
+    .form-group label .required { color: #d4a853; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      background: #1a1a1e;
+      border: 1px solid #2a2a2e;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: #d4a853;
+    }
+    .form-group input::placeholder, .form-group textarea::placeholder {
+      color: #555;
+    }
+    .form-group select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+    .form-group select option {
+      background: #1a1a1e;
+      color: #fff;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #d4a853, #c49a45);
+      color: #0a0a0a;
+      font-weight: 700;
+      font-size: 15px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { opacity: 0.9; }
+    .btn-submit:active { transform: scale(0.98); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .privacy-note {
+      text-align: center;
+      color: #666;
+      font-size: 11px;
+      margin-top: 16px;
+      line-height: 1.4;
+    }
+    .error-msg {
+      background: rgba(220, 38, 38, 0.1);
+      border: 1px solid rgba(220, 38, 38, 0.3);
+      color: #ef4444;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .success-screen {
+      text-align: center;
+      padding: 40px 20px;
+      display: none;
+    }
+    .success-screen .check {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #d4a853, #c49a45);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin-bottom: 20px;
+    }
+    .success-screen h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .success-screen p {
+      color: #888;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    @media (max-width: 500px) {
+      .form-row { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 22px; }
+      .form-card { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="hero-icon">🦋</div>
+    <h1>Take Control of Your <span>Credit</span></h1>
+    <p>Get a free consultation with our credit repair experts. Fill out the form below and we'll reach out to discuss how we can help improve your credit score.</p>
+    <div class="trust-badges">
+      <div class="trust-badge"><span class="icon">✓</span> Free Consultation</div>
+      <div class="trust-badge"><span class="icon">🔒</span> Secure & Private</div>
+      <div class="trust-badge"><span class="icon">⚡</span> Fast Response</div>
+    </div>
+  </div>
+
+  <div class="form-container">
+    <div class="form-card" id="formCard">
+      <h2>Tell Us About Your Situation</h2>
+
+      <div id="errorMsg" class="error-msg"></div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>First & Last Name <span class="required">*</span></label>
+          <input type="text" id="nameField" placeholder="Jane Smith" required />
+        </div>
+        <div class="form-group">
+          <label>Phone Number <span class="required">*</span></label>
+          <input type="tel" id="phoneField" placeholder="(555) 123-4567" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address <span class="required">*</span></label>
+        <input type="email" id="emailField" placeholder="jane@email.com" required />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Current Credit Score (estimate)</label>
+          <select id="scoreField">
+            <option value="">Select range...</option>
+            <option value="below-500">Below 500</option>
+            <option value="500-550">500 - 550</option>
+            <option value="550-600">550 - 600</option>
+            <option value="600-650">600 - 650</option>
+            <option value="650-700">650 - 700</option>
+            <option value="700+">700+</option>
+            <option value="unsure">Not sure</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Credit Goal</label>
+          <select id="goalField">
+            <option value="">What's your goal?</option>
+            <option value="buy-home">Buy a Home</option>
+            <option value="buy-car">Buy a Car</option>
+            <option value="remove-negatives">Remove Negative Items</option>
+            <option value="build-credit">Build Credit History</option>
+            <option value="lower-rates">Lower Interest Rates</option>
+            <option value="business-credit">Business Credit</option>
+            <option value="general">General Improvement</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tell us more about your situation (optional)</label>
+        <textarea id="notesField" placeholder="Describe any specific issues like collections, late payments, identity errors, etc."></textarea>
+      </div>
+
+      <button class="btn-submit" id="submitBtn">Get My Free Consultation</button>
+
+      <div class="privacy-note">
+        Your information is secure and will only be used to contact you about credit repair services. We never share your data with third parties.
+      </div>
+    </div>
+
+    <div id="successScreen" class="success-screen">
+      <div class="check">✓</div>
+      <h2>Thank You!</h2>
+      <p>We've received your information and a credit specialist will reach out to you shortly. Check your email and phone for our follow-up.</p>
+    </div>
+  </div>
+
+  <script>
+    const source = new URLSearchParams(window.location.search).get('source') || 'direct';
+    const submitBtn = document.getElementById('submitBtn');
+    const errorMsg = document.getElementById('errorMsg');
+
+    submitBtn.addEventListener('click', async () => {
+      const name = document.getElementById('nameField').value.trim();
+      const phone = document.getElementById('phoneField').value.trim();
+      const email = document.getElementById('emailField').value.trim();
+      const currentScore = document.getElementById('scoreField').value;
+      const creditGoal = document.getElementById('goalField').value;
+      const notes = document.getElementById('notesField').value.trim();
+
+      errorMsg.style.display = 'none';
+
+      if (!name || !phone || !email) {
+        errorMsg.textContent = 'Please fill in your name, phone, and email.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      if (!/\S+@\S+\.\S+/.test(email)) {
+        errorMsg.textContent = 'Please enter a valid email address.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      try {
+        const res = await fetch('/api/lead-capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, email, currentScore, creditGoal, notes, source })
+        });
+        const data = await res.json();
+
+        if (!data.ok) {
+          errorMsg.textContent = data.error || 'Something went wrong. Please try again.';
+          errorMsg.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Get My Free Consultation';
+          return;
+        }
+
+        document.getElementById('formCard').style.display = 'none';
+        document.getElementById('successScreen').style.display = 'block';
+      } catch (err) {
+        errorMsg.textContent = 'Network error. Please check your connection and try again.';
+        errorMsg.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Get My Free Consultation';
+      }
+    });
+  </script>
+</body>
+</html>

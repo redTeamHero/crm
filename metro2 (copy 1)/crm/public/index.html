@@ -216,6 +216,7 @@
               <input id="activityFile" type="file" class="hidden" />
               <button id="btnAddFile" class="btn text-sm" data-tip="Upload file to this consumer">+ Add File</button>
               <a id="activityPortalLink" class="btn btn-outline text-sm hidden" href="#" target="_blank">Client Portal</a>
+              <button id="btnPortalInvite" class="btn text-sm hidden" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Generate portal login link for this client">🔗 Portal Invite Link</button>
             </div>
           </div>
           <div id="activityList" class="activity-list text-sm"></div>
@@ -569,6 +570,21 @@
         <div class="text-xs muted">Opens new tab</div>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="portalInviteModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background: rgba(0,0,0,0.7);">
+  <div class="glass card p-6" style="max-width: 480px; width: 90%; background: #111113; border: 1px solid rgba(212,168,83,0.2); border-radius: 16px;">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold" style="color: #d4a853;">Portal Invite Link</h3>
+      <button id="portalInviteClose" class="btn text-sm" style="background: transparent; color: #888;">&times;</button>
+    </div>
+    <p class="text-sm mb-3" style="color: #999;">Share this link with your client. When they open it, they'll be prompted to create a password for their portal access.</p>
+    <div class="flex gap-2 mb-3">
+      <input id="portalInviteLinkInput" type="text" readonly class="input flex-1 text-sm" style="background: #1a1a1e; border: 1px solid #2a2a2e; color: #fff; padding: 10px 12px; border-radius: 8px;" />
+      <button id="portalInviteCopy" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600; padding: 10px 16px; border-radius: 8px; white-space: nowrap;">Copy</button>
+    </div>
+    <div id="portalInviteStatus" class="text-xs" style="color: #22c55e; display: none;">Copied to clipboard!</div>
   </div>
 </div>
 

@@ -1398,6 +1398,12 @@ registerStaticPage({ paths: ["/diy", "/diy/login"], file: "diy/login.html" });
 registerStaticPage({ paths: "/diy/signup", file: "diy/signup.html" });
 registerStaticPage({ paths: "/diy/dashboard", file: "diy/dashboard.html" });
 registerStaticPage({ paths: "/diy/upgrade", file: "diy/upgrade.html" });
+app.get("/client-setup", (_req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "client-setup.html"));
+});
+app.get("/lead-capture", (_req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "lead-capture.html"));
+});
 registerStaticPage({ paths: "/dashboard", file: "dashboard.html" });
 registerStaticPage({ paths: "/clients", file: "index.html" });
 registerStaticPage({ paths: "/leads", file: "leads.html" });
@@ -4773,6 +4779,107 @@ app.post("/api/client/login", async (req,res)=>{
   const u = { id: client.id, username: client.email || client.name || "client", role: "client", tenantId: clientTenant, permissions: [] };
   logInfo("CLIENT_LOGIN_SUCCESS", "Client login successful", { clientId: client.id });
   res.json({ ok:true, token: generateToken(u) });
+});
+
+const PORTAL_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+app.post("/api/consumers/:id/portal-invite", authenticate, async (req, res) => {
+  const db = await loadDB();
+  const userTenant = sanitizeTenantId(req.user?.tenantId || DEFAULT_TENANT_ID);
+  const consumer = db.consumers.find(c => c.id === req.params.id);
+  if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+  const consTenant = sanitizeTenantId(consumer.tenantId || consumer.ownerTenantId || DEFAULT_TENANT_ID);
+  if (consTenant !== userTenant) return res.status(403).json({ ok: false, error: "Access denied" });
+  const token = nanoid(20);
+  consumer.portalInviteToken = token;
+  consumer.portalInviteCreatedAt = new Date().toISOString();
+  await saveDB(db);
+  const base = `${req.protocol}://${req.get("host")}`;
+  const link = `${base}/client-setup?token=${token}`;
+  res.json({ ok: true, link, token });
+});
+
+function findConsumerByInviteToken(db, token) {
+  const consumer = db.consumers.find(c => c.portalInviteToken === token);
+  if (!consumer) return null;
+  const created = new Date(consumer.portalInviteCreatedAt).getTime();
+  if (Date.now() - created > PORTAL_INVITE_TTL_MS) return null;
+  return consumer;
+}
+
+app.get("/api/client-setup/validate", async (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(400).json({ ok: false, error: "Missing token" });
+  const db = await loadDB();
+  const consumer = findConsumerByInviteToken(db, token);
+  if (!consumer) return res.status(410).json({ ok: false, error: "This link is invalid or has expired. Please request a new one." });
+  const hasPassword = !!consumer.password;
+  res.json({ ok: true, name: consumer.name || "", email: consumer.email || "", hasPassword });
+});
+
+app.post("/api/client-setup/complete", async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ ok: false, error: "Token and password required" });
+  if (password.length < 6) return res.status(400).json({ ok: false, error: "Password must be at least 6 characters" });
+  const db = await loadDB();
+  const consumer = findConsumerByInviteToken(db, token);
+  if (!consumer) return res.status(410).json({ ok: false, error: "This link is invalid or has expired. Please request a new one." });
+  consumer.password = bcrypt.hashSync(password, 10);
+  consumer.portalSetupCompletedAt = new Date().toISOString();
+  delete consumer.portalInviteToken;
+  delete consumer.portalInviteCreatedAt;
+  await saveDB(db);
+  const clientTenant = sanitizeTenantId(consumer?.tenantId || consumer?.ownerTenantId || DEFAULT_TENANT_ID);
+  const u = { id: consumer.id, username: consumer.email || consumer.name || "client", role: "client", tenantId: clientTenant, permissions: [] };
+  res.json({ ok: true, token: generateToken(u) });
+});
+
+const leadCaptureTimestamps = new Map();
+
+app.post("/api/lead-capture", async (req, res) => {
+  const name = (req.body.name || "").trim();
+  const email = (req.body.email || "").trim();
+  const phone = (req.body.phone || "").trim();
+  if (!name || !email || !phone) return res.status(400).json({ ok: false, error: "Name, email, and phone are required" });
+  if (!/\S+@\S+\.\S+/.test(email)) return res.status(400).json({ ok: false, error: "Invalid email address" });
+  if (req.body.website) return res.status(200).json({ ok: true, lead: { id: "ok", name } });
+
+  const ip = req.ip || req.connection.remoteAddress || "unknown";
+  const now = Date.now();
+  const last = leadCaptureTimestamps.get(ip) || 0;
+  if (now - last < 10000) return res.status(429).json({ ok: false, error: "Please wait a moment before submitting again" });
+  leadCaptureTimestamps.set(ip, now);
+
+  const db = await loadLeadsDB();
+  const id = nanoid(10);
+  const lead = {
+    id,
+    name,
+    email,
+    phone,
+    addr1: req.body.addr1 || "",
+    addr2: req.body.addr2 || "",
+    city: req.body.city || "",
+    state: req.body.state || "",
+    zip: req.body.zip || "",
+    source: req.body.source || "Lead Capture Form",
+    notes: req.body.notes || "",
+    creditGoal: req.body.creditGoal || "",
+    currentScore: req.body.currentScore || "",
+    status: "new",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  db.leads.push(lead);
+  await saveLeadsDB(db);
+  res.json({ ok: true, lead: { id: lead.id, name: lead.name } });
+});
+
+app.post("/api/lead-capture/generate-link", authenticate, async (req, res) => {
+  const base = `${req.protocol}://${req.get("host")}`;
+  const source = req.body.source || "link";
+  const link = `${base}/lead-capture?source=${encodeURIComponent(source)}`;
+  res.json({ ok: true, link });
 });
 
 app.post("/api/request-password-reset", async (req,res)=>{

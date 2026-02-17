@@ -247,6 +247,11 @@ function updatePortalLink(){
       a.classList.add("hidden");
     }
   });
+  const inviteBtn = $("#btnPortalInvite");
+  if(inviteBtn){
+    if(currentConsumerId) inviteBtn.classList.remove("hidden");
+    else inviteBtn.classList.add("hidden");
+  }
 }
 
 // ----- UI helpers -----
@@ -2461,3 +2466,54 @@ const companyName = localStorage.getItem("companyName");
 if (companyName) {
   $("#navCompany").textContent = companyName;
 }
+
+(function initPortalInvite(){
+  const btn = $("#btnPortalInvite");
+  const modal = $("#portalInviteModal");
+  const linkInput = $("#portalInviteLinkInput");
+  const copyBtn = $("#portalInviteCopy");
+  const closeBtn = $("#portalInviteClose");
+  const status = $("#portalInviteStatus");
+  if(!btn || !modal) return;
+
+  btn.addEventListener("click", async ()=>{
+    if(!currentConsumerId) return;
+    btn.disabled = true;
+    btn.textContent = "Generating...";
+    try {
+      const res = await api(`/api/consumers/${currentConsumerId}/portal-invite`, { method: "POST" });
+      if(!res?.ok) { showErr(res?.error || "Failed to generate invite link"); return; }
+      linkInput.value = res.link;
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      status.style.display = "none";
+    } catch(e) {
+      showErr("Failed to generate invite link");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = "🔗 Portal Invite Link";
+    }
+  });
+
+  closeBtn.addEventListener("click", ()=>{
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  });
+  modal.addEventListener("click", (e)=>{
+    if(e.target === modal){ modal.classList.add("hidden"); modal.classList.remove("flex"); }
+  });
+
+  copyBtn.addEventListener("click", async ()=>{
+    try {
+      await navigator.clipboard.writeText(linkInput.value);
+      status.style.display = "block";
+      copyBtn.textContent = "Copied!";
+      setTimeout(()=>{ copyBtn.textContent = "Copy"; status.style.display = "none"; }, 2000);
+    } catch(e) {
+      linkInput.select();
+      document.execCommand("copy");
+      status.style.display = "block";
+      setTimeout(()=>{ status.style.display = "none"; }, 2000);
+    }
+  });
+})();

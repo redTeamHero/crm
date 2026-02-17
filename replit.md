@@ -141,6 +141,16 @@ npm run dev
   - Added micro-animations: page fade-in, card hover lift, counter animations, shimmer loading, button press effects, staggered grid entrance, gold glow pulse, custom scrollbars
   - Excluded from dark theme: client-portal-template.html, DIY pages, welcome.html (these keep their own styles)
 
+- 2026-02-17: Added client portal invite link and lead capture link features
+  - Client Portal Invite: /api/consumers/:id/portal-invite generates a unique token link (7-day TTL, single-use)
+  - Client Setup Page: /client-setup?token=... prompts first-time password creation, then redirects to login
+  - Token security: tenant-scoped, TTL-enforced, consumed on use
+  - Portal Invite button appears in Files & Activity panel when a consumer is selected on /clients
+  - Lead Capture Form: public /lead-capture page captures name, phone, email, credit score, goal, notes
+  - Lead Capture Link: /leads page has "Generate Link" button with source tracking (Facebook, Instagram, etc.)
+  - Rate limiting on lead capture (10s per IP), honeypot field for bot protection, server-side validation
+  - Captured leads auto-added to pipeline as "new" status with source attribution
+
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)

@@ -648,3 +648,56 @@ if(refreshButton){
 }
 
 refreshLeads();
+
+(function initLeadCapture(){
+  const genBtn = document.getElementById('btnGenerateLeadLink');
+  const sourceSelect = document.getElementById('leadCaptureSource');
+  const resultDiv = document.getElementById('leadLinkResult');
+  const linkInput = document.getElementById('leadLinkInput');
+  const copyBtn = document.getElementById('leadLinkCopy');
+  const statusEl = document.getElementById('leadLinkStatus');
+  if(!genBtn) return;
+
+  genBtn.addEventListener('click', async ()=>{
+    const source = sourceSelect ? sourceSelect.value : 'link';
+    genBtn.disabled = true;
+    genBtn.textContent = 'Generating...';
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/lead-capture/generate-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ source })
+      });
+      const data = await res.json();
+      if(data.ok && data.link){
+        linkInput.value = data.link;
+        resultDiv.style.display = 'block';
+        if(statusEl) statusEl.style.display = 'none';
+      } else {
+        alert(data.error || 'Failed to generate link. Please try again.');
+      }
+    } catch(e){
+      alert('Network error. Please check your connection and try again.');
+    } finally {
+      genBtn.disabled = false;
+      genBtn.innerHTML = '🔗 Generate Link';
+    }
+  });
+
+  if(copyBtn){
+    copyBtn.addEventListener('click', async ()=>{
+      try {
+        await navigator.clipboard.writeText(linkInput.value);
+        copyBtn.textContent = 'Copied!';
+        if(statusEl) statusEl.style.display = 'block';
+        setTimeout(()=>{ copyBtn.textContent = 'Copy'; if(statusEl) statusEl.style.display = 'none'; }, 2000);
+      } catch(e){
+        linkInput.select();
+        document.execCommand('copy');
+        if(statusEl) statusEl.style.display = 'block';
+        setTimeout(()=>{ if(statusEl) statusEl.style.display = 'none'; }, 2000);
+      }
+    });
+  }
+})();
