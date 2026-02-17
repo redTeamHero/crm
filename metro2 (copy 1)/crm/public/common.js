@@ -31,94 +31,9 @@ if (typeof window !== 'undefined') window.trackEvent = trackEvent;
 const LANGUAGE_STORAGE_KEY = 'crm_language';
 const DEFAULT_LANGUAGE = 'en';
 
-const TOUR_BUTTON_ID = 'crmTourButton';
-const TOUR_BUTTON_MODE_LABELS = {
-  start: 'Need a tour?',
-  resume: 'Resume tour',
-  replay: 'Replay tour'
-};
-const tourButtonState = {
-  available: false,
-  mode: 'start',
-  completed: false
-};
-
-function ensureTourButton() {
-  if (typeof document === 'undefined') return null;
-  let button = document.getElementById(TOUR_BUTTON_ID);
-  if (button) return button;
-  button = document.createElement('button');
-  button.id = TOUR_BUTTON_ID;
-  button.type = 'button';
-  button.className = 'fixed bottom-4 right-4 z-50 hidden items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-white shadow-lg transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]';
-  button.innerHTML = `
-    <span data-tour-label>${TOUR_BUTTON_MODE_LABELS.start}</span>
-    <span data-tour-icon aria-hidden="true">🚀</span>
-  `;
-  button.dataset.mode = 'start';
-  button.setAttribute('aria-label', 'Start guided tour');
-  button.title = 'Start the guided tour';
-  button.addEventListener('click', () => {
-    const mode = button.dataset.mode || 'start';
-    window.dispatchEvent(new CustomEvent('crm:tutorial-request', { detail: { mode } }));
-  });
-  button.addEventListener('contextmenu', (event) => {
-    event.preventDefault();
-    window.dispatchEvent(new CustomEvent('crm:tutorial-reset'));
-  });
-  document.body.appendChild(button);
-  return button;
-}
-
-function applyTourButtonState(partial = {}) {
-  const button = ensureTourButton();
-  if (!button) return;
-  if (typeof partial.available === 'boolean') {
-    tourButtonState.available = partial.available;
-  }
-  if (partial.mode) {
-    tourButtonState.mode = partial.mode;
-  }
-  if (typeof partial.completed === 'boolean') {
-    tourButtonState.completed = partial.completed;
-  }
-
-  button.dataset.mode = tourButtonState.mode;
-  button.classList.toggle('hidden', !tourButtonState.available);
-
-  const labelEl = button.querySelector('[data-tour-label]');
-  if (labelEl) {
-    const label = TOUR_BUTTON_MODE_LABELS[tourButtonState.mode] || TOUR_BUTTON_MODE_LABELS.start;
-    labelEl.textContent = label;
-  }
-  const iconEl = button.querySelector('[data-tour-icon]');
-  if (iconEl) {
-    iconEl.textContent = tourButtonState.completed ? '✅' : '🚀';
-  }
-
-  if (tourButtonState.mode === 'resume') {
-    button.setAttribute('aria-label', 'Resume guided tour');
-    button.title = 'Resume where you left off';
-  } else if (tourButtonState.mode === 'replay') {
-    button.setAttribute('aria-label', 'Replay guided tour');
-    button.title = 'Replay the guided tour';
-  } else {
-    button.setAttribute('aria-label', 'Start guided tour');
-    button.title = 'Start the guided tour';
-  }
-}
-
 if (typeof window !== 'undefined') {
-  window.registerTourAvailability = function registerTourAvailability({ pageKey, available } = {}) {
-    const button = ensureTourButton();
-    if (button && pageKey) {
-      button.dataset.pageKey = pageKey;
-    }
-    applyTourButtonState({ available: Boolean(available) });
-  };
-  window.setFloatingTourState = function setFloatingTourState(state = {}) {
-    applyTourButtonState(state);
-  };
+  window.registerTourAvailability = function registerTourAvailability() {};
+  window.setFloatingTourState = function setFloatingTourState() {};
 }
 
 const TRANSLATIONS = {
@@ -1491,7 +1406,6 @@ function bindHelp(){
 
 window.setHelpGuideState = function(state = {}){
   ensureHelpModal();
-  applyTourButtonState({ mode: state.mode, completed: state.completed });
   const tourButton = document.getElementById('helpTourButton');
   const resetButton = document.getElementById('helpTourReset');
   const status = document.getElementById('helpTourStatus');
@@ -1517,7 +1431,6 @@ window.selectedConsumerId = localStorage.getItem('selectedConsumerId') || null;
 
 document.addEventListener('DOMContentLoaded', ()=>{
   ensureHelpModal();
-  ensureTourButton();
   bindHelp();
   initPalette();
   ensureTierBadge();
@@ -1545,30 +1458,20 @@ function initBackToTop(){
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'back-to-top';
-  btn.setAttribute('aria-label', 'Back to top');
-  btn.title = 'Back to top';
-  btn.textContent = '⬆️';
+  btn.setAttribute('aria-label', 'Guided Tour');
+  btn.title = 'Guided Tour';
+  btn.innerHTML = '<svg viewBox="0 0 100 100" width="28" height="28" xmlns="http://www.w3.org/2000/svg"><g transform="translate(50,50)"><g class="fab-wing-l"><path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="#c49a45" opacity="0.85"/></g><g class="fab-wing-r"><path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="#c49a45" opacity="0.85"/></g><ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#1a1a1a"/><circle cx="-1.5" cy="-8" r="1.8" fill="#d4a853"/><circle cx="1.5" cy="-8" r="1.8" fill="#d4a853"/><line x1="-2" y1="-12" x2="-6" y2="-20" stroke="#d4a853" stroke-width="0.8" stroke-linecap="round"/><line x1="2" y1="-12" x2="6" y2="-20" stroke="#d4a853" stroke-width="0.8" stroke-linecap="round"/><circle cx="-6" cy="-21" r="1.2" fill="#d4a853"/><circle cx="6" cy="-21" r="1.2" fill="#d4a853"/></g></svg>';
   btn.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
-  document.body.appendChild(btn);
-
-  if (typeof IntersectionObserver === 'undefined') {
-    btn.classList.add('show');
-    return;
-  }
-
-  const observer = new IntersectionObserver((entries) => {
-    const entry = entries[0];
-    if (!entry) return;
-    if (entry.isIntersecting) {
-      btn.classList.remove('show');
+    if (window.EvolvTour && typeof window.EvolvTour.showMenu === 'function') {
+      window.EvolvTour.showMenu();
+    } else if (window.EvolvTour && typeof window.EvolvTour.startCurrentPage === 'function') {
+      window.EvolvTour.startCurrentPage();
     } else {
-      btn.classList.add('show');
+      window.dispatchEvent(new CustomEvent('crm:tutorial-request', { detail: { mode: 'start' } }));
     }
   });
-
-  observer.observe(nav);
+  document.body.appendChild(btn);
+  btn.classList.add('show');
 }
 
 if (typeof document !== 'undefined') {
