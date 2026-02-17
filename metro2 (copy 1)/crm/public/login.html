@@ -16,27 +16,27 @@
       background: #0a0a0a;
     }
     .input-focus:focus {
-      box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.3);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 212, 168, 83), 0.3);
     }
     .btn-primary {
-      background: linear-gradient(135deg, #d4a853 0%, #c4973e 100%);
+      background: linear-gradient(135deg, var(--accent, #d4a853) 0%, #c4973e 100%);
       color: #0a0a0a;
       font-weight: 700;
       transition: all 0.2s ease;
     }
     .btn-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 20px rgba(212, 168, 83, 0.5);
+      box-shadow: 0 4px 20px rgba(var(--accent-rgb, 212, 168, 83), 0.5);
     }
     .btn-secondary {
       background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(212, 168, 83, 0.3);
-      color: #d4a853;
+      border: 1px solid rgba(var(--accent-rgb, 212, 168, 83), 0.3);
+      color: var(--accent, #d4a853);
       transition: all 0.2s ease;
     }
     .btn-secondary:hover {
-      background: rgba(212, 168, 83, 0.1);
-      border-color: rgba(212, 168, 83, 0.5);
+      background: rgba(var(--accent-rgb, 212, 168, 83), 0.1);
+      border-color: rgba(var(--accent-rgb, 212, 168, 83), 0.5);
     }
     .glass-card {
       background: rgba(18, 18, 22, 0.95);
@@ -49,11 +49,11 @@
       border-color: rgba(255,255,255,0.1) !important;
     }
     .role-option:hover {
-      background: rgba(212, 168, 83, 0.08);
+      background: rgba(var(--accent-rgb, 212, 168, 83), 0.08);
     }
     .role-option.selected {
-      background: rgba(212, 168, 83, 0.12);
-      border-color: #d4a853 !important;
+      background: rgba(var(--accent-rgb, 212, 168, 83), 0.12);
+      border-color: var(--accent, #d4a853) !important;
     }
   </style>
 </head>
@@ -69,7 +69,7 @@
     <main class="flex-1 flex items-center justify-center px-4 py-8">
       <div class="w-full max-w-md">
         <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style="background:linear-gradient(135deg,#d4a853,#c4973e);box-shadow:0 8px 32px rgba(212,168,83,0.3)">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style="background:linear-gradient(135deg,var(--accent, #d4a853),#c4973e);box-shadow:0 8px 32px rgba(212,168,83,0.3)">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
           </div>
           <h1 class="text-2xl font-bold text-white" style="letter-spacing:0.05em">EVOLV.AI</h1>
@@ -82,20 +82,20 @@
           <div class="space-y-5">
             <div>
               <label for="username" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
-              <input id="username" type="text" placeholder="Enter your username" class="input-focus w-full border border-gray-700 bg-[#0a0a0a] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#d4a853] outline-none transition-all" />
+              <input id="username" type="text" placeholder="Enter your username" class="input-focus w-full border border-gray-700 bg-[#0a0a0a] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[var(--accent, #d4a853)] outline-none transition-all" />
             </div>
 
             <div>
               <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
-              <input id="password" type="password" placeholder="Enter your password" class="input-focus w-full border border-gray-700 bg-[#0a0a0a] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[#d4a853] outline-none transition-all" />
+              <input id="password" type="password" placeholder="Enter your password" class="input-focus w-full border border-gray-700 bg-[#0a0a0a] rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-[var(--accent, #d4a853)] outline-none transition-all" />
             </div>
 
             <div>
               <label class="block text-sm font-medium text-gray-300 mb-2">Sign in as</label>
               <div class="grid grid-cols-3 gap-2">
-                <label class="role-option selected flex items-center justify-center gap-1.5 p-3 border-2 border-[#d4a853] rounded-xl cursor-pointer text-center">
+                <label class="role-option selected flex items-center justify-center gap-1.5 p-3 border-2 border-[var(--accent, #d4a853)] rounded-xl cursor-pointer text-center">
                   <input type="radio" name="role" value="host" checked class="sr-only" />
-                  <svg class="w-4 h-4 text-[#d4a853]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <svg class="w-4 h-4 text-[var(--accent, #d4a853)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   <span class="text-sm font-medium text-white">Host</span>
                 </label>
                 <label class="role-option flex items-center justify-center gap-1.5 p-3 border-2 border-gray-700 rounded-xl cursor-pointer text-center">
@@ -141,7 +141,7 @@
           label.classList.remove('selected');
           label.classList.remove('border-violet-500');
           label.classList.add('border-gray-700');
-          label.querySelector('svg').classList.remove('text-[#d4a853]');
+          label.querySelector('svg').classList.remove('text-[var(--accent, #d4a853)]');
           label.querySelector('svg').classList.add('text-gray-400');
           label.querySelector('span:last-child').classList.remove('text-white');
           label.querySelector('span:last-child').classList.add('text-gray-300');
@@ -149,9 +149,9 @@
         const selected = radio.closest('label');
         selected.classList.add('selected');
         selected.classList.remove('border-gray-700');
-        selected.classList.add('border-[#d4a853]');
+        selected.classList.add('border-[var(--accent, #d4a853)]');
         selected.querySelector('svg').classList.remove('text-gray-400');
-        selected.querySelector('svg').classList.add('text-[#d4a853]');
+        selected.querySelector('svg').classList.add('text-[var(--accent, #d4a853)]');
         selected.querySelector('span:last-child').classList.remove('text-gray-300');
         selected.querySelector('span:last-child').classList.add('text-white');
       });

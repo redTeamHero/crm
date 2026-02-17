@@ -1,24 +1,24 @@
 const BUTTERFLY_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <g transform="translate(50,50)">
     <g class="tour-butterfly__wing-l" transform="translate(-2,0)">
-      <path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="#d4a853" opacity="0.9"/>
-      <path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="#c49a45" opacity="0.85"/>
-      <path d="M-8,-3 C-18,-22 -35,-20 -32,-8 Z" fill="#e8c875" opacity="0.4"/>
-      <path d="M-8,5 C-18,20 -32,18 -28,8 Z" fill="#e8c875" opacity="0.3"/>
+      <path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="var(--accent, #d4a853)" opacity="0.9"/>
+      <path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="var(--accent-hover, #c49a45)" opacity="0.85"/>
+      <path d="M-8,-3 C-18,-22 -35,-20 -32,-8 Z" fill="#fff" opacity="0.25"/>
+      <path d="M-8,5 C-18,20 -32,18 -28,8 Z" fill="#fff" opacity="0.18"/>
     </g>
     <g class="tour-butterfly__wing-r" transform="translate(2,0)">
-      <path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="#d4a853" opacity="0.9"/>
-      <path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="#c49a45" opacity="0.85"/>
-      <path d="M8,-3 C18,-22 35,-20 32,-8 Z" fill="#e8c875" opacity="0.4"/>
-      <path d="M8,5 C18,20 32,18 28,8 Z" fill="#e8c875" opacity="0.3"/>
+      <path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="var(--accent, #d4a853)" opacity="0.9"/>
+      <path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="var(--accent-hover, #c49a45)" opacity="0.85"/>
+      <path d="M8,-3 C18,-22 35,-20 32,-8 Z" fill="#fff" opacity="0.25"/>
+      <path d="M8,5 C18,20 32,18 28,8 Z" fill="#fff" opacity="0.18"/>
     </g>
-    <ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#1a1a1a"/>
-    <circle cx="-1.5" cy="-8" r="1.8" fill="#d4a853"/>
-    <circle cx="1.5" cy="-8" r="1.8" fill="#d4a853"/>
-    <line x1="-2" y1="-12" x2="-6" y2="-20" stroke="#d4a853" stroke-width="0.8" stroke-linecap="round"/>
-    <line x1="2" y1="-12" x2="6" y2="-20" stroke="#d4a853" stroke-width="0.8" stroke-linecap="round"/>
-    <circle cx="-6" cy="-21" r="1.2" fill="#d4a853"/>
-    <circle cx="6" cy="-21" r="1.2" fill="#d4a853"/>
+    <ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#e0e0e0"/>
+    <circle cx="-1.5" cy="-8" r="1.8" fill="var(--accent, #d4a853)"/>
+    <circle cx="1.5" cy="-8" r="1.8" fill="var(--accent, #d4a853)"/>
+    <line x1="-2" y1="-12" x2="-6" y2="-20" stroke="var(--accent, #d4a853)" stroke-width="0.8" stroke-linecap="round"/>
+    <line x1="2" y1="-12" x2="6" y2="-20" stroke="var(--accent, #d4a853)" stroke-width="0.8" stroke-linecap="round"/>
+    <circle cx="-6" cy="-21" r="1.2" fill="var(--accent, #d4a853)"/>
+    <circle cx="6" cy="-21" r="1.2" fill="var(--accent, #d4a853)"/>
   </g>
 </svg>`;
 

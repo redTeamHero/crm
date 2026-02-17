@@ -126,7 +126,7 @@
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #d4a853 0%, #c4973e 100%);
+      background: linear-gradient(135deg, var(--accent, #d4a853) 0%, var(--accent-hover, #c4973e) 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -134,7 +134,7 @@
       font-size: 18px;
       color: #0a0a0a;
       flex-shrink: 0;
-      box-shadow: 0 0 18px rgba(212,168,83,0.25);
+      box-shadow: 0 0 18px rgba(var(--accent-rgb, 212,168,83), 0.25);
     }
     .evolv-sb-brand-text {
       font-size: 16px;
@@ -198,7 +198,7 @@
       font-weight: 600;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: #d4a853;
+      color: var(--accent, #d4a853);
       padding: 0 24px;
       white-space: nowrap;
       opacity: 0;
@@ -239,12 +239,12 @@
       color: #aaa;
     }
     .evolv-sb-item.active {
-      color: #d4a853;
-      background: rgba(212,168,83,0.08);
-      border-left-color: #d4a853;
+      color: var(--accent, #d4a853);
+      background: rgba(var(--accent-rgb, 212,168,83), 0.08);
+      border-left-color: var(--accent, #d4a853);
     }
     .evolv-sb-item.active svg {
-      color: #d4a853;
+      color: var(--accent, #d4a853);
     }
     .evolv-sb-item svg {
       flex-shrink: 0;
@@ -322,9 +322,9 @@
       color: #aaa;
     }
     .evolv-sb-parent-toggle.active {
-      color: #d4a853;
-      background: rgba(212,168,83,0.08);
-      border-left-color: #d4a853;
+      color: var(--accent, #d4a853);
+      background: rgba(var(--accent-rgb, 212,168,83), 0.08);
+      border-left-color: var(--accent, #d4a853);
     }
     .evolv-sb-parent-toggle svg {
       flex-shrink: 0;
@@ -354,8 +354,8 @@
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: rgba(212,168,83,0.15);
-      color: #d4a853;
+      background: rgba(var(--accent-rgb, 212,168,83), 0.15);
+      color: var(--accent, #d4a853);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -369,12 +369,66 @@
       gap: 6px;
       padding: 6px 24px;
       font-size: 11px;
-      color: #d4a853;
+      color: var(--accent, #d4a853);
       opacity: 0;
       transition: opacity 0.2s ease;
     }
     .evolv-sidebar.expanded .evolv-sb-tier {
       opacity: 0.7;
+    }
+    .evolv-sb-theme-picker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      justify-content: center;
+    }
+    .evolv-sidebar.expanded .evolv-sb-theme-picker {
+      padding: 10px 24px;
+      justify-content: flex-start;
+    }
+    .evolv-sb-theme-dots {
+      display: grid;
+      grid-template-columns: repeat(4, 14px);
+      gap: 4px;
+    }
+    .evolv-sidebar.expanded .evolv-sb-theme-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .evolv-sb-theme-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      padding: 0;
+      outline: none;
+      flex-shrink: 0;
+    }
+    .evolv-sidebar.expanded .evolv-sb-theme-dot {
+      width: 18px;
+      height: 18px;
+    }
+    .evolv-sb-theme-dot:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 8px rgba(255,255,255,0.2);
+    }
+    .evolv-sb-theme-dot.active {
+      border-color: #fff;
+      box-shadow: 0 0 10px rgba(255,255,255,0.25);
+      transform: scale(1.15);
+    }
+    .evolv-sb-theme-label {
+      font-size: 11px;
+      color: #666;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .evolv-sidebar.expanded .evolv-sb-theme-label {
+      opacity: 1;
     }
 
     body.evolv-sidebar-active {
@@ -518,9 +572,24 @@
   html += '</div>';
 
   html += '<div class="evolv-sb-bottom">';
-  html += '<a href="#" class="evolv-sb-item" data-tooltip="Guided Tour" id="evolv-sb-tour" style="color:#d4a853;">';
-  html += '<svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(50,50)"><g><path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="#c49a45" opacity="0.85"/></g><g><path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="#c49a45" opacity="0.85"/></g><ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#1a1a1a"/></g></svg>';
-  html += '<span class="evolv-sb-item-label" style="color:#d4a853;">Guided Tour</span></a>';
+
+  var themes = window.__EVOLV_THEMES || {};
+  var currentTheme = localStorage.getItem('theme') || 'gold';
+  html += '<div class="evolv-sb-theme-picker" data-tooltip="Theme">';
+  html += '<div class="evolv-sb-theme-dots">';
+  var themeKeys = Object.keys(themes);
+  for (var t = 0; t < themeKeys.length; t++) {
+    var tKey = themeKeys[t];
+    var tData = themes[tKey];
+    html += '<button class="evolv-sb-theme-dot' + (tKey === currentTheme ? ' active' : '') + '" data-theme="' + tKey + '" style="background:' + tData.accent + ';" title="' + tData.label + '"></button>';
+  }
+  html += '</div>';
+  html += '<span class="evolv-sb-item-label evolv-sb-theme-label">Theme</span>';
+  html += '</div>';
+
+  html += '<a href="#" class="evolv-sb-item" data-tooltip="Guided Tour" id="evolv-sb-tour" style="color:var(--accent);">';
+  html += '<svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(50,50)"><g><path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="var(--accent, #d4a853)" opacity="0.9"/><path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="var(--accent-hover, #c49a45)" opacity="0.85"/></g><g><path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="var(--accent, #d4a853)" opacity="0.9"/><path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="var(--accent-hover, #c49a45)" opacity="0.85"/></g><ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#e0e0e0"/></g></svg>';
+  html += '<span class="evolv-sb-item-label" style="color:var(--accent);">Guided Tour</span></a>';
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Help" id="evolv-sb-help">' + svg('help', 20) + '<span class="evolv-sb-item-label">Help</span></a>';
 
   var tierBadge = document.getElementById('tierBadge');
@@ -619,6 +688,19 @@
         }
       });
     })(parentToggles[p]);
+  }
+
+  var themeDots = sidebar.querySelectorAll('.evolv-sb-theme-dot');
+  for (var td = 0; td < themeDots.length; td++) {
+    (function(dot) {
+      dot.addEventListener('click', function () {
+        var name = dot.getAttribute('data-theme');
+        if (window.evolvSetTheme) window.evolvSetTheme(name);
+        var allDots = sidebar.querySelectorAll('.evolv-sb-theme-dot');
+        for (var d = 0; d < allDots.length; d++) allDots[d].classList.remove('active');
+        dot.classList.add('active');
+      });
+    })(themeDots[td]);
   }
 
   var tourBtn = sidebar.querySelector('#evolv-sb-tour');
