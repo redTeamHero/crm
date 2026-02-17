@@ -4,30 +4,12 @@ import { setupPageTour } from './tour-guide.js';
 
 function restoreBillingTour(context) {
   if (!context || context.restored) return;
-  const contentEl = document.getElementById('billingContent');
-  const noClientEl = document.getElementById('noClient');
-  if (context.showContent && contentEl) {
-    contentEl.classList.add('hidden');
-  }
-  if (context.hideNoClient && noClientEl) {
-    noClientEl.classList.remove('hidden');
-  }
   context.restored = true;
 }
 
 setupPageTour('billing', {
   onBeforeStart: () => {
-    const contentEl = document.getElementById('billingContent');
-    const noClientEl = document.getElementById('noClient');
-    const state = { showContent: false, hideNoClient: false };
-    if (contentEl && contentEl.classList.contains('hidden')) {
-      contentEl.classList.remove('hidden');
-      state.showContent = true;
-    }
-    if (noClientEl && !noClientEl.classList.contains('hidden')) {
-      noClientEl.classList.add('hidden');
-      state.hideNoClient = true;
-    }
+    const state = {};
     return state;
   },
   onAfterComplete: ({ context }) => restoreBillingTour(context),
@@ -41,11 +23,18 @@ setupPageTour('billing', {
       attachTo: { element: '#primaryNav', on: 'bottom' }
     },
     {
-      id: 'billing-hero',
-      title: 'Position the billing story',
-      text: `<p class="font-semibold">Frame subscriptions and offers with premium copy.</p>
-             <p class="mt-1 text-xs text-slate-600">Use this hero to remind teams about concierge payment experiences.</p>`,
-      attachTo: { element: '#billingHero', on: 'top' }
+      id: 'billing-tabs',
+      title: 'Two billing views',
+      text: `<p class="font-semibold">Switch between your CRM subscription and client invoicing.</p>
+             <p class="mt-1 text-xs text-slate-600">"My Subscription" manages your plan. "Client Invoicing" tracks payments from clients.</p>`,
+      attachTo: { element: '#billingTabs', on: 'bottom' }
+    },
+    {
+      id: 'billing-subscription',
+      title: 'Manage your plan',
+      text: `<p class="font-semibold">View pricing tiers and manage your CRM subscription.</p>
+             <p class="mt-1 text-xs text-slate-600">Upgrade anytime to unlock more features like bulk automation and AI letters.</p>`,
+      attachTo: { element: '#subscriptionSection', on: 'top' }
     },
     {
       id: 'billing-metrics',
@@ -80,15 +69,26 @@ setupPageTour('billing', {
 const $ = (s) => document.querySelector(s);
 
 const consumerId = getSelectedConsumerId();
-const noClientEl = document.getElementById('noClient');
-const billingContentEl = document.getElementById('billingContent');
 
-billingContentEl?.classList.remove('hidden');
-if(!consumerId){
-  noClientEl?.classList.remove('hidden');
-} else {
-  noClientEl?.classList.add('hidden');
-}
+(function initBillingTabs(){
+  const tabs = document.querySelectorAll('.billing-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => {
+        t.style.color = '#666';
+        t.style.borderBottomColor = 'transparent';
+        t.classList.remove('active');
+      });
+      tab.style.color = '#d4a853';
+      tab.style.borderBottomColor = '#d4a853';
+      tab.classList.add('active');
+      document.querySelectorAll('.billing-tab-content').forEach(c => c.style.display = 'none');
+      const target = tab.dataset.tab;
+      const panel = document.getElementById('tab' + target.charAt(0).toUpperCase() + target.slice(1));
+      if(panel) panel.style.display = '';
+    });
+  });
+})();
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 

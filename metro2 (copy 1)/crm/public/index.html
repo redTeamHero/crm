@@ -222,6 +222,21 @@
           <div id="activityList" class="activity-list text-sm"></div>
         </article>
 
+        <article id="breachCard" class="glass panel hidden">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
+                <span style="color:#d4a853;">🛡</span> Data Breaches
+              </div>
+              <p class="panel-subtitle" id="breachCardSubtitle">No breach data available.</p>
+            </div>
+            <div class="panel-actions">
+              <button id="btnBreachLookup" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Check for data breaches">🔍 Check Breaches</button>
+            </div>
+          </div>
+          <div id="breachCardBody" class="space-y-2 text-sm" style="max-height:280px; overflow-y:auto;"></div>
+        </article>
+
         <article class="glass panel">
           <div class="panel-header panel-header--centered">
             <div class="panel-header-text">

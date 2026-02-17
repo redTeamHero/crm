@@ -338,6 +338,49 @@ function updateBreachStatus(consumer){
   el.textContent = `Breaches: ${count}`;
   el.disabled = false;
 }
+function renderBreachCard(consumer){
+  const card = $("#breachCard");
+  const body = $("#breachCardBody");
+  const subtitle = $("#breachCardSubtitle");
+  if(!card || !body) return;
+  if(!consumer){
+    card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+  const breaches = Array.isArray(consumer.breaches) ? consumer.breaches : [];
+  if(!breaches.length){
+    subtitle.textContent = "No breaches found yet. Click 'Check Breaches' to scan.";
+    body.innerHTML = `<div style="padding:12px; text-align:center; color:#666; border:1px dashed rgba(212,168,83,0.2); border-radius:10px; background:rgba(212,168,83,0.03);">
+      <div style="font-size:24px; margin-bottom:8px;">🔒</div>
+      <div>No breach records on file</div>
+      <div style="font-size:11px; margin-top:4px; color:#555;">Run a breach lookup to check if this client's data was exposed</div>
+    </div>`;
+    return;
+  }
+  subtitle.textContent = `${breaches.length} breach${breaches.length!==1?'es':''} detected`;
+  subtitle.style.color = "#ef4444";
+  let html = '';
+  breaches.forEach((name, i) => {
+    html += `<div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15); border-radius:10px;">
+      <div style="width:32px; height:32px; border-radius:8px; background:rgba(239,68,68,0.12); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <span style="color:#ef4444; font-size:14px;">⚠</span>
+      </div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:600; color:#fff; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(name)}</div>
+        <div style="font-size:11px; color:#888;">Data breach exposure detected</div>
+      </div>
+    </div>`;
+  });
+  const selected = Array.isArray(consumer.breachSelections) ? consumer.breachSelections : [];
+  if(selected.length > 0){
+    html += `<div style="margin-top:8px; padding:8px 12px; background:rgba(212,168,83,0.06); border:1px solid rgba(212,168,83,0.15); border-radius:8px; font-size:12px; color:#d4a853;">
+      ${selected.length} breach${selected.length!==1?'es':''} selected for dispute letters
+    </div>`;
+  }
+  body.innerHTML = html;
+}
+
 function renderBreachSelectionList(consumer, list){
   const wrap = $("#breachSelectionList");
   if (!wrap) return;
@@ -661,6 +704,7 @@ async function selectConsumer(id){
   const c = DB.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
   updateBreachStatus(c);
+  renderBreachCard(c);
   setSelectedConsumerId(id);
   renderConsumers();
 
@@ -2016,6 +2060,7 @@ $("#btnDataBreach").addEventListener("click", async ()=>{
       queueBreachSave({ breachSelections: c.breachSelections });
     }
     updateBreachStatus(c);
+    renderBreachCard(c);
     openBreachModal(c);
   }catch(err){
     showErr(String(err));
@@ -2023,6 +2068,10 @@ $("#btnDataBreach").addEventListener("click", async ()=>{
     btn.textContent = old;
     btn.disabled = false;
   }
+});
+
+$("#btnBreachLookup")?.addEventListener("click", ()=>{
+  $("#btnDataBreach")?.click();
 });
 
 $("#breachStatus").addEventListener("click", ()=>{

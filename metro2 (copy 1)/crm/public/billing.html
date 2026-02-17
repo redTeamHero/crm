@@ -73,43 +73,14 @@
   </div>
 </header>
 <main class="max-w-7xl mx-auto p-4 space-y-6">
-  <div id="noClient" class="glass card hidden" data-i18n="billing.noClient">Select a client from the Clients page first.</div>
 
-  <div id="billingContent" class="space-y-6 hidden">
-    <section id="billingHero" class="glass card p-6 md:p-8 space-y-6">
-      <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-        <div class="space-y-4 max-w-2xl">
-          <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500" data-i18n="billing.hero.eyebrow">Cashflow clarity</p>
-          <div>
-            <h1 class="text-3xl font-semibold text-white" data-i18n="billing.hero.title">Billing &amp; Subscriptions</h1>
-            <h2 class="text-lg text-gray-400" data-i18n="billing.hero.subtitle">Keep every charge traceable for Metro-2 and FCRA compliance while giving clients premium payment experiences.</h2>
-          </div>
-          <p class="text-sm text-gray-300 leading-relaxed" data-i18n="billing.hero.body">Keep every charge traceable for Metro-2 and FCRA compliance while giving clients premium payment experiences.</p>
-          <ul class="grid gap-2 text-sm text-gray-400 sm:grid-cols-2">
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span data-i18n="billing.hero.bullets.secureLinks">Send secure payment links within seconds.</span></li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span data-i18n="billing.hero.bullets.trackChargeoffs">Track charge-offs vs. settlements cleanly.</span></li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span data-i18n="billing.hero.bullets.remindClients">Auto-remind clients ahead of due dates.</span></li>
-            <li class="flex items-start gap-2"><span class="mt-1 text-accent">▹</span><span data-i18n="billing.hero.bullets.snapshotKpis">Snapshot KPIs for finance + sales teams.</span></li>
-          </ul>
-        </div>
-        <div class="glass card border border-gray-700 bg-[#111113] p-5 shadow-xl shadow-gray-900/5 md:max-w-sm space-y-4">
-          <div>
-            <div class="text-sm font-semibold text-gray-300" data-i18n="billing.hero.card.heading">Active invoices</div>
-            <div class="text-3xl font-bold text-white" id="invoiceCount">0</div>
-          </div>
-          <div class="space-y-1 text-sm text-gray-400">
-            <p data-i18n="billing.hero.card.target">Consult → Purchase target: 42%.</p>
-          </div>
-          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold" data-i18n="billing.hero.card.button">Send payment link</button>
-          <p class="text-xs text-gray-500" data-i18n="billing.hero.card.footnote">Share via SMS or email—no SSN stored, only last4 on file.</p>
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-3">
-        <button type="button" class="btn px-4 py-2 text-sm font-semibold" data-i18n="billing.hero.buttons.downloadCsv">Download CSV</button>
-        <button type="button" class="btn px-4 py-2 text-sm font-semibold" style="background: var(--green-bg);" data-i18n="billing.hero.buttons.offerPayoff">Offer one-time payoff</button>
-      </div>
-    </section>
+  <div id="billingContent" class="space-y-6">
+    <div class="flex gap-2" id="billingTabs" style="border-bottom: 1px solid rgba(212,168,83,0.15); padding-bottom: 0;">
+      <button type="button" class="billing-tab active" data-tab="subscription" style="padding:12px 24px; font-size:14px; font-weight:600; border:none; background:transparent; color:#d4a853; cursor:pointer; border-bottom:2px solid #d4a853; transition: all 0.2s;">My Subscription</button>
+      <button type="button" class="billing-tab" data-tab="invoicing" style="padding:12px 24px; font-size:14px; font-weight:600; border:none; background:transparent; color:#666; cursor:pointer; border-bottom:2px solid transparent; transition: all 0.2s;">Client Invoicing</button>
+    </div>
 
+    <div id="tabSubscription" class="billing-tab-content space-y-6">
     <section id="subscriptionSection" class="glass card p-6 md:p-8 space-y-6">
       <div class="space-y-2">
         <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">Platform subscription</p>
@@ -176,17 +147,59 @@
       <p id="subscriptionError" class="text-sm text-red-600 hidden"></p>
     </section>
 
-    <section id="billingMetrics" class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+    <section class="glass card p-6 space-y-4">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-semibold text-white">Saved payment method</h3>
+          <p class="text-sm text-gray-400">Visa ending 4242 &middot; Updated Jun 14</p>
+        </div>
+        <span class="rounded-full bg-[rgba(212,168,83,0.12)] px-3 py-1 text-xs font-semibold text-[#d4a853]">Tokenized</span>
+      </div>
+      <div class="rounded-xl bg-[#111113] p-4 text-sm text-gray-300 shadow-sm">Apple Pay &amp; ACH ready. Use Stripe to refresh authorization.</div>
+      <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold">Update card</button>
+    </section>
+    </div>
+
+    <div id="tabInvoicing" class="billing-tab-content space-y-6" style="display:none;">
+
+    <section class="glass card p-6 md:p-8 space-y-6">
+      <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div class="space-y-4 max-w-2xl">
+          <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">Client billing</p>
+          <div>
+            <h1 class="text-3xl font-semibold text-white">Client Invoicing</h1>
+            <h2 class="text-lg text-gray-400">Create, send, and track invoices for your credit repair clients.</h2>
+          </div>
+          <ul class="grid gap-2 text-sm text-gray-400 sm:grid-cols-2">
+            <li class="flex items-start gap-2"><span class="mt-1 text-accent">&#9657;</span>Send secure payment links within seconds.</li>
+            <li class="flex items-start gap-2"><span class="mt-1 text-accent">&#9657;</span>Track charge-offs vs. settlements cleanly.</li>
+            <li class="flex items-start gap-2"><span class="mt-1 text-accent">&#9657;</span>Auto-remind clients ahead of due dates.</li>
+            <li class="flex items-start gap-2"><span class="mt-1 text-accent">&#9657;</span>Snapshot KPIs for finance + sales teams.</li>
+          </ul>
+        </div>
+        <div class="glass card border border-gray-700 bg-[#111113] p-5 shadow-xl shadow-gray-900/5 md:max-w-sm space-y-4">
+          <div>
+            <div class="text-sm font-semibold text-gray-300">Active invoices</div>
+            <div class="text-3xl font-bold text-white" id="invoiceCount">0</div>
+          </div>
+          <div class="space-y-1 text-sm text-gray-400">
+            <p>Consult &rarr; Purchase target: 42%.</p>
+          </div>
+          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold">Send payment link</button>
+          <p class="text-xs text-gray-500">Share via SMS or email&mdash;no SSN stored, only last4 on file.</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button type="button" class="btn px-4 py-2 text-sm font-semibold">Download CSV</button>
+        <button type="button" class="btn px-4 py-2 text-sm font-semibold" style="background: var(--green-bg);">Offer one-time payoff</button>
+      </div>
+    </section>
+
+    <section id="billingMetrics" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <article class="glass card p-5 space-y-2">
         <p class="text-xs uppercase tracking-widest text-gray-500">Total billed (all clients)</p>
         <p id="metricTotalBilledAll" class="text-2xl font-semibold text-white">$0.00</p>
         <p class="text-sm text-gray-400">Lifetime invoiced amount across every client.</p>
-      </article>
-      <article class="glass card p-5 space-y-2">
-        <p class="text-xs uppercase tracking-widest text-gray-500" data-i18n="billing.metrics.planLabel">Plan</p>
-        <p id="planSummaryValue" class="text-xl font-semibold text-white" data-i18n="billing.metrics.planValue">Growth Suite · $297/mo</p>
-        <p id="planSummaryDescription" class="text-sm text-gray-400" data-i18n="billing.metrics.planDescription">Includes Metro-2 automation, dispute letter engine, and concierge support.</p>
-        <button id="planSummaryCta" type="button" class="btn w-fit px-4 py-2 text-xs font-semibold" data-i18n="billing.metrics.planCta">View upgrades</button>
       </article>
       <article class="glass card p-5 space-y-2">
         <p class="text-xs uppercase tracking-widest text-gray-500" data-i18n="billing.metrics.outstandingLabel">Outstanding</p>
@@ -323,18 +336,6 @@
         </section>
 
         <section class="glass card p-6 space-y-4">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <h3 class="text-lg font-semibold text-white" data-i18n="billing.paymentMethod.heading">Saved payment method</h3>
-              <p class="text-sm text-gray-400" data-i18n="billing.paymentMethod.summary">Visa ending 4242 · Updated Jun 14</p>
-            </div>
-            <span class="rounded-full bg-[rgba(212,168,83,0.12)] px-3 py-1 text-xs font-semibold text-[#d4a853]" data-i18n="billing.paymentMethod.badge">Tokenized</span>
-          </div>
-          <div class="rounded-xl bg-[#111113] p-4 text-sm text-gray-300 shadow-sm" data-i18n="billing.paymentMethod.message">Apple Pay &amp; ACH ready. Use Stripe to refresh authorization.</div>
-          <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold" data-i18n="billing.paymentMethod.button">Update card</button>
-        </section>
-
-        <section class="glass card p-6 space-y-4">
           <h3 class="text-lg font-semibold text-white" data-i18n="billing.quickAdd.heading">Quick add invoice</h3>
           <div class="space-y-3">
             <label class="flex flex-col gap-1 text-sm text-gray-300">
@@ -361,6 +362,7 @@
           <p class="text-xs text-gray-500" data-i18n="billing.revenue.footnote">KPI to watch: AOV &amp; Consult → Purchase%.</p>
         </section>
       </div>
+    </div>
     </div>
   </div>
 </main>

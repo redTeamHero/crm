@@ -151,6 +151,19 @@ npm run dev
   - Rate limiting on lead capture (10s per IP), honeypot field for bot protection, server-side validation
   - Captured leads auto-added to pipeline as "new" status with source attribution
 
+- 2026-02-17: Added Data Breach Card to /clients detail view
+  - Breach card appears below Files & Activity panel when a consumer is selected
+  - Shows breach count, individual breach names with red warning styling
+  - Displays "selected for dispute" count when breaches are chosen
+  - "Check Breaches" button triggers existing breach lookup flow
+  - Card updates dynamically after breach lookup completes
+
+- 2026-02-17: Split billing page into tabbed layout
+  - "My Subscription" tab: CRM plan pricing grid, subscription management, saved payment method
+  - "Client Invoicing" tab: client billing hero, metrics (outstanding, next due, collected YTD), autopay, invoice history, plan builder, quick add invoice
+  - Gold tab indicator with smooth switching animation
+  - Updated guided tour steps to reference new tab structure
+
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)
