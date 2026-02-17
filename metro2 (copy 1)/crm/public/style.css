@@ -4717,6 +4717,21 @@ body.portal-layout::after {
 }
 
 /* iMessage-style Messaging */
+#messageSection:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.portal-content {
+  display: flex;
+  flex-direction: column;
+}
+.portal-main-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 .imsg-container {
   display: flex;
   flex-direction: column;
@@ -4724,7 +4739,8 @@ body.portal-layout::after {
   border: 1px solid var(--glass-brd);
   border-radius: 18px;
   overflow: hidden;
-  height: min(600px, 70vh);
+  flex: 1;
+  min-height: 0;
 }
 .imsg-header {
   display: flex;

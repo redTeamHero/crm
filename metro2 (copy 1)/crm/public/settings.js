@@ -445,9 +445,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       const data = await resp.json();
-      if (data.user?.role === 'admin') {
+      const role = data.user?.role || '';
+      if (role === 'admin' || role === 'crm_admin' || role === 'crm_agent') {
         panelEl?.classList.remove('hidden');
-        userMgrEl?.classList.remove('hidden');
+        if (role === 'admin' || role === 'crm_admin') {
+          userMgrEl?.classList.remove('hidden');
+        }
         bindSaveButton();
         await Promise.all([load(), loadUsers()]);
       } else {
