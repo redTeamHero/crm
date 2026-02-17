@@ -12,8 +12,118 @@
   <link rel="stylesheet" href="/evolv-dark.css">
 <script src="/sidebar.js" defer></script>
 <script src="/command-palette.js" defer></script>
+<style>
+  :root { color-scheme: dark; }
+  body { background: #0a0a0a; }
+
+  .company-section {
+    background: #111113;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 32px;
+  }
+  .company-section + .company-section {
+    margin-top: 24px;
+  }
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #d4a853;
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f0f0f0;
+    margin-bottom: 4px;
+  }
+  .section-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+  }
+  .form-group {
+    margin-top: 24px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #aaa;
+    margin-bottom: 8px;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #e5e5e5;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: #d4a853;
+    box-shadow: 0 0 0 2px rgba(212,168,83,0.15);
+  }
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: #444;
+  }
+  .form-group .hint {
+    font-size: 11px;
+    color: #555;
+    margin-top: 6px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) {
+    .form-row { grid-template-columns: 1fr; }
+    .company-section { padding: 24px; }
+  }
+  .team-member-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .team-member-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(212,168,83,0.12);
+    color: #d4a853;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .badge-role {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(212,168,83,0.1);
+    color: #d4a853;
+  }
+</style>
 </head>
-<body>
+<body class="text-gray-200">
 <header id="host-nav" class="p-4">
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
@@ -32,37 +142,8 @@
         <a href="/dashboard" class="btn nav-btn">Dashboard</a>
         <a href="/clients" class="btn nav-btn">Clients</a>
         <a href="/leads" class="btn nav-btn">Leads</a>
-        <div class="nav-dropdown" id="navMarketing">
-          <button type="button" id="navMarketingToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
-            <span data-i18n="nav.marketing">Marketing</span>
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          <div id="navMarketingMenu" class="nav-dropdown-menu glass card p-2">
-            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing • SMS</a>
-            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing • Email</a>
-          </div>
-        </div>
         <a href="/schedule" class="btn nav-btn">Schedule</a>
         <a href="/billing" class="btn nav-btn">Billing</a>
-        <div class="nav-dropdown" id="navSettings">
-          <button type="button" id="navSettingsToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
-            <span>Settings</span>
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          <div id="navSettingsMenu" class="nav-dropdown-menu glass card p-2">
-            <a id="navCompany" href="/my-company" class="btn text-sm">My Company</a>
-            <a href="/settings/client-portal" class="btn text-sm" data-i18n="nav.clientPortal">Client Portal</a>
-            <a href="/letters" class="btn text-sm">Letter</a>
-            <a href="/library" class="btn text-sm">Library</a>
-            <a href="/settings#api-integrations" class="btn text-sm">APIs</a>
-            <a href="/workflows" class="btn text-sm">Workflows</a>
-            <button id="btnInvite" class="btn text-sm" style="background: var(--green-bg);">Add Team Member</button>
-          </div>
-        </div>
         <a href="/tradelines" class="btn nav-btn">Tradelines</a>
         <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
         <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
@@ -73,210 +154,135 @@
     </nav>
   </div>
 </header>
-<main class="page-shell">
-  <section id="myCompanyHero" class="page-hero glass card" aria-labelledby="pageTitle">
-    <div class="hero-header">
-      <div>
-        <p class="eyebrow">Operations HQ</p>
-        <h1 id="pageTitle" class="page-title">My Company</h1>
-        <p class="hero-subtitle">Build trust with a brand system that feels premium while keeping every disclosure compliance-friendly.</p>
-      </div>
-      <div class="hero-actions">
-        <button type="button" class="btn" data-action="launch-onboarding">Launch guided onboarding</button>
-        <button type="button" class="btn-outline" data-action="download-checklist">Brand kit checklist</button>
-      </div>
-    </div>
-    <div class="hero-metrics" aria-label="Key metrics">
-      <div class="metric">
-        <div class="metric-label">Lead → Consult</div>
-        <div class="metric-value">32%</div>
-        <div class="metric-context">Demo data · Track Consult conversion (Meta)</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Consult → Purchase</div>
-        <div class="metric-value">58%</div>
-        <div class="metric-context">Focus on clarity + NEPQ follow-up cadence</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Average Order Value</div>
-        <div class="metric-value">$897</div>
-        <div class="metric-context">Bundle audit + concierge automation upsell</div>
-      </div>
-    </div>
-    <div id="myCompanyUpsell" class="hero-upsell">
-      <div>
-        <h2 class="hero-upsell-title">Concierge Ops Upgrade</h2>
-        <p class="hero-upsell-copy">Scale faster with concierge onboarding, certified mail automation, and Metro-2 QA reviews built into every client journey.</p>
-      </div>
-      <a class="btn" href="mailto:sales@revolv.ai?subject=Concierge%20Ops%20Consult">Book strategy consult</a>
-    </div>
-  </section>
+<main class="max-w-3xl mx-auto px-4 py-8 space-y-0">
+  <div class="mb-10">
+    <h1 class="text-2xl font-bold text-white">My Company</h1>
+    <p class="text-sm text-gray-500 mt-1">Brand profile, team access, and compliance settings</p>
+  </div>
 
-  <section class="glass card company-card" aria-labelledby="companyInfoHeading">
-    <div class="section-heading">
-      <div>
-          <p class="eyebrow">Brand Profile</p>
-        <h2 id="companyInfoHeading" class="section-title">Company Information</h2>
-        <p class="section-description">Keep your legal entity, contact info, and mailing address aligned across letters, billing, and client portals.</p>
+  <div class="company-section">
+    <div class="section-label">Brand Profile</div>
+    <div class="section-title">Company Information</div>
+    <div class="section-desc">Your legal entity info appears on dispute letters, invoices, and client portals.</div>
+
+    <form id="companyForm">
+      <div class="form-row" style="margin-top:24px;">
+        <div class="form-group" style="margin-top:0;">
+          <label for="companyName">Company Name</label>
+          <input id="companyName" placeholder="Revolv Automation" />
+          <div class="hint">Appears on dispute letters and invoices</div>
+        </div>
+        <div class="form-group" style="margin-top:0;">
+          <label for="companyPhone">Phone</label>
+          <input id="companyPhone" placeholder="(555) 123-4567" />
+          <div class="hint">Use a recorded line with disclosure</div>
+        </div>
       </div>
-      <div class="section-side">
-        <span class="badge bg-subtle">Local only</span>
-          <span class="section-note">Stored securely on this device</span>
+      <div class="form-group">
+        <label for="companyEmail">Email</label>
+        <input id="companyEmail" type="email" placeholder="team@revolv.ai" />
+        <div class="hint">Client-facing inbox with SPF/DKIM set</div>
       </div>
-    </div>
-    <form id="companyForm" class="company-form" aria-describedby="companyInfoHelper">
-      <label class="form-field">
-        <span class="form-label">Company Name</span>
-        <input id="companyName" class="input" placeholder="Revolv Automation" />
-        <span class="helper-text">Appears on dispute letters and invoices.</span>
-      </label>
-      <label class="form-field">
-        <span class="form-label">Phone</span>
-        <input id="companyPhone" class="input" placeholder="(555) 123-4567" />
-        <span class="helper-text">Use a recorded line with disclosure.</span>
-      </label>
-      <label class="form-field">
-        <span class="form-label">Email</span>
-        <input id="companyEmail" class="input" type="email" placeholder="team@revolv.ai" />
-        <span class="helper-text">Client-facing inbox with SPF/DKIM set.</span>
-      </label>
-      <label class="form-field form-field-wide">
-        <span class="form-label">Address</span>
-        <textarea id="companyAddress" class="input input-textarea" rows="3" placeholder="123 Trust Lane&#10;Suite 200&#10;Austin, TX 78701"></textarea>
-        <span class="helper-text">Match certified mail sender details.</span>
-      </label>
-      <div class="form-actions">
-        <button id="saveCompany" type="submit" class="btn">Save company profile</button>
-        <p id="companyInfoHelper" class="helper-text">Data stays in your browser storage so PII stays private.</p>
+      <div class="form-group">
+        <label for="companyAddress">Mailing Address</label>
+        <textarea id="companyAddress" rows="3" placeholder="123 Trust Lane&#10;Suite 200&#10;Austin, TX 78701"></textarea>
+        <div class="hint">Match certified mail sender details</div>
+      </div>
+      <div class="flex items-center justify-between mt-6">
+        <p class="text-xs text-gray-600">Data stays in your browser storage</p>
+        <button id="saveCompany" type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,#d4a853,#c4973e);color:#0a0a0a;">Save Profile</button>
       </div>
     </form>
-  </section>
+  </div>
 
-  <section id="myCompanyTeam" class="glass card team-card" aria-labelledby="teamHeading">
-    <div class="section-heading">
+  <div class="company-section" id="myCompanyTeam">
+    <div class="flex items-start justify-between gap-4">
       <div>
-          <p class="eyebrow">Team Workspace</p>
-        <h2 id="teamHeading" class="section-title">Team Members</h2>
-        <p class="section-description">Invite analysts, closers, and attorneys so they can collaborate on Metro-2 workflows.</p>
+        <div class="section-label">Team Workspace</div>
+        <div class="section-title">Team Members</div>
+        <div class="section-desc">Invite analysts, closers, and attorneys to collaborate on Metro-2 workflows.</div>
       </div>
-      <div class="section-side">
-        <button id="btnInviteTeam" data-action="invite-team" class="btn text-sm self-start sm:self-auto">Add Team Member</button>
-        <span class="section-note">Send secure login tokens with automatic password rotation.</span>
-      </div>
+      <button id="btnInviteTeam" data-action="invite-team" class="px-4 py-2 rounded-xl text-sm font-medium border border-[#d4a853]/30 text-[#d4a853] hover:bg-[#d4a853]/10 transition-colors flex-shrink-0">+ Invite</button>
     </div>
 
-    <div class="team-insights" role="list">
-      <div class="team-insight" role="listitem">
-        <span class="badge">Analysts</span>
-        <span class="team-insight-value">Focus on Metro-2 QC before letters are generated.</span>
-      </div>
-      <div class="team-insight" role="listitem">
-        <span class="badge">Sales</span>
-        <span class="team-insight-value">Layer NEPQ notes directly into the CRM timeline.</span>
-      </div>
-      <div class="team-insight" role="listitem">
-        <span class="badge">Attorneys</span>
-        <span class="team-insight-value">Audit FCRA/FDCPA escalations with clear audit trails.</span>
-      </div>
-    </div>
-
-    <p id="teamLoading" class="text-sm muted flex items-center gap-2">
+    <p id="teamLoading" class="text-sm text-gray-500 mt-6 flex items-center gap-2">
       <span class="loader" aria-hidden="true"></span>
-      Loading team…
+      Loading team...
     </p>
-    <p id="teamError" class="hidden text-sm text-red-600"></p>
-    <p id="teamEmpty" class="hidden text-sm muted">No team members yet. Start by inviting a teammate.</p>
+    <p id="teamError" class="hidden text-sm text-red-400 mt-4"></p>
+    <p id="teamEmpty" class="hidden text-sm text-gray-500 mt-6">No team members yet. Start by inviting a teammate.</p>
 
-    <div id="teamTableWrap" class="hidden table-wrapper">
-      <table class="data-table" aria-describedby="teamHelper">
+    <div id="teamTableWrap" class="hidden mt-6">
+      <table class="w-full text-sm">
         <thead>
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Role</th>
-            <th scope="col">Email</th>
-            <th scope="col">Last Login</th>
-            <th scope="col">Invited</th>
-            <th scope="col" class="sr-only">Actions</th>
+          <tr class="text-left text-xs text-gray-500 uppercase tracking-wider">
+            <th class="pb-3 font-medium">Name</th>
+            <th class="pb-3 font-medium">Role</th>
+            <th class="pb-3 font-medium">Email</th>
+            <th class="pb-3 font-medium">Last Login</th>
+            <th class="pb-3 font-medium">Invited</th>
+            <th class="pb-3 font-medium sr-only">Actions</th>
           </tr>
         </thead>
-        <tbody id="teamTable" class="divide-y divide-gray-800 bg-[#111113]/30"></tbody>
+        <tbody id="teamTable" class="divide-y divide-gray-800"></tbody>
       </table>
     </div>
-    <p id="teamHelper" class="helper-text">Roles inherit Metro-2 permissions without exposing client SSNs.</p>
-  </section>
-
-  <section class="cta-banner glass card" aria-labelledby="ctaHeading">
-    <div>
-      <p class="eyebrow">Next Revenue Win</p>
-      <h2 id="ctaHeading" class="section-title">Offer a paid onboarding bundle</h2>
-      <p class="section-description">Package a 30-minute welcome call + Metro-2 scan for $197 to increase AOV and time-to-value.</p>
-    </div>
-    <div class="cta-actions">
-      <a class="btn" href="/billing">Launch bundle in Billing</a>
-      <a class="btn-outline" href="/marketing/email">Add to landing page</a>
-    </div>
-  </section>
+  </div>
 </main>
+
 <dialog id="inviteDialog" class="team-dialog">
-  <div class="dialog-panel glass card p-6 space-y-5" role="document">
-    <div class="dialog-header">
+  <div class="dialog-panel glass card p-6 space-y-5" role="document" style="background:#111113;border:1px solid rgba(255,255,255,0.06);border-radius:16px;max-width:480px;">
+    <div class="dialog-header flex items-start justify-between gap-4">
       <div>
-        <p class="eyebrow">Secure Invite</p>
-        <h2 class="section-title">Invite a teammate</h2>
-        <p class="section-description">Send a secure login link and temporary password.</p>
+        <div class="section-label">Secure Invite</div>
+        <div class="section-title">Invite a teammate</div>
+        <div class="section-desc">Send a secure login link and temporary password.</div>
       </div>
-      <button type="button" class="btn-icon" data-close aria-label="Close">✕</button>
+      <button type="button" class="text-gray-500 hover:text-white text-xl leading-none" data-close aria-label="Close">&#x2715;</button>
     </div>
     <form id="inviteForm" class="space-y-4">
-      <label class="form-field">
-        <span class="form-label">Teammate Name</span>
-        <input id="inviteName" name="name" class="input" placeholder="e.g. Maria Lopez" required />
-        <span class="helper-text">Used on invites and audit logs.</span>
-      </label>
-      <label class="form-field">
-        <span class="form-label">Work Email</span>
-        <input id="inviteEmail" name="email" type="email" class="input" placeholder="team@revolv.ai" required />
-        <span class="helper-text">We recommend SSO or enforced MFA.</span>
-      </label>
-      <label class="form-field">
-        <span class="form-label">Role</span>
-        <select id="inviteRole" name="teamRole" class="input input-select">
+      <div class="form-group" style="margin-top:0;">
+        <label>Teammate Name</label>
+        <input id="inviteName" name="name" placeholder="e.g. Maria Lopez" required />
+      </div>
+      <div class="form-group" style="margin-top:0;">
+        <label>Work Email</label>
+        <input id="inviteEmail" name="email" type="email" placeholder="team@revolv.ai" required />
+      </div>
+      <div class="form-group" style="margin-top:0;">
+        <label>Role</label>
+        <select id="inviteRole" name="teamRole">
           <option value="analyst">Credit Analyst</option>
           <option value="closer">Sales Closer</option>
           <option value="attorney">Attorney</option>
           <option value="success">Client Success</option>
         </select>
-        <span class="helper-text">Assign permissions now—update anytime under Team Members.</span>
-      </label>
-      <p id="inviteError" class="hidden text-sm text-red-600"></p>
-      <div class="form-actions justify-end">
-        <button type="button" class="btn-outline" data-close>Cancel</button>
-        <button id="inviteSubmit" type="submit" class="btn text-sm">Send Invite</button>
+      </div>
+      <p id="inviteError" class="hidden text-sm text-red-400"></p>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button type="button" class="px-4 py-2 rounded-xl text-sm text-gray-400 border border-gray-700 hover:bg-white/5 transition-colors" data-close>Cancel</button>
+        <button id="inviteSubmit" type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,#d4a853,#c4973e);color:#0a0a0a;">Send Invite</button>
       </div>
     </form>
     <div id="inviteSuccess" class="hidden space-y-4">
-      <div>
-        <p class="section-description">Share this secure access with your teammate.</p>
-      </div>
-      <div class="token-panel">
-        <div class="token-header">Invite Link Token</div>
-        <div class="token-body">
-          <code id="inviteToken" class="token-chip"></code>
-          <button type="button" class="btn text-xs" data-copy="token">Copy token</button>
+      <div class="section-desc">Share this secure access with your teammate.</div>
+      <div class="p-4 rounded-xl" style="background:#0a0a0a;border:1px solid rgba(255,255,255,0.06);">
+        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Invite Link Token</div>
+        <div class="flex items-center gap-3">
+          <code id="inviteToken" class="text-sm text-[#d4a853] font-mono flex-1 break-all"></code>
+          <button type="button" class="px-3 py-1 rounded-lg text-xs border border-gray-700 text-gray-400 hover:text-[#d4a853] hover:border-[#d4a853]/30 transition-colors" data-copy="token">Copy</button>
         </div>
-        <p class="helper-text">Send along with the temporary password below.</p>
       </div>
-      <div class="token-panel">
-        <div class="token-header">Temporary Password</div>
-        <div class="token-body">
-          <code id="invitePassword" class="token-chip"></code>
-          <button type="button" class="btn text-xs" data-copy="password">Copy password</button>
+      <div class="p-4 rounded-xl" style="background:#0a0a0a;border:1px solid rgba(255,255,255,0.06);">
+        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Temporary Password</div>
+        <div class="flex items-center gap-3">
+          <code id="invitePassword" class="text-sm text-[#d4a853] font-mono flex-1 break-all"></code>
+          <button type="button" class="px-3 py-1 rounded-lg text-xs border border-gray-700 text-gray-400 hover:text-[#d4a853] hover:border-[#d4a853]/30 transition-colors" data-copy="password">Copy</button>
         </div>
-        <p class="helper-text">Ask them to change it after first login.</p>
       </div>
-      <div class="form-actions justify-end">
-        <button type="button" class="btn-outline" data-close>Done</button>
-        <button type="button" class="btn text-sm" id="inviteAnother">Invite another teammate</button>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button type="button" class="px-4 py-2 rounded-xl text-sm text-gray-400 border border-gray-700 hover:bg-white/5 transition-colors" data-close>Done</button>
+        <button type="button" class="px-4 py-2 rounded-xl text-sm font-medium border border-[#d4a853]/30 text-[#d4a853] hover:bg-[#d4a853]/10 transition-colors" id="inviteAnother">Invite another</button>
       </div>
     </div>
   </div>

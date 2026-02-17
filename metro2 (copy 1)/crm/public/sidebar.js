@@ -28,6 +28,7 @@
     code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
     zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
     help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
     sms: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
     emailIcon: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/>',
     chevronDown: '<polyline points="6 9 12 15 18 9"/>'
@@ -528,10 +529,25 @@
     html += '<div class="evolv-sb-tier"><span>📄</span><span>' + tierText + '</span></div>';
   }
 
-  html += '<div class="evolv-sb-item" style="cursor:default;" data-tooltip="Account">';
-  html += '<div class="evolv-sb-avatar">U</div>';
-  html += '<span class="evolv-sb-item-label" style="font-size:12px;color:#888;">Account</span>';
+  var tok = localStorage.getItem('token');
+  var initials = 'U';
+  var displayName = 'Account';
+  if (tok) {
+    try {
+      var p = JSON.parse(atob(tok.split('.')[1]));
+      if (p.username) {
+        displayName = p.username;
+        initials = p.username.charAt(0).toUpperCase();
+      }
+    } catch(e) {}
+  }
+
+  html += '<div class="evolv-sb-item" style="cursor:default;" data-tooltip="' + displayName + '">';
+  html += '<div class="evolv-sb-avatar">' + initials + '</div>';
+  html += '<span class="evolv-sb-item-label" style="font-size:12px;color:#888;">' + displayName + '</span>';
   html += '</div>';
+
+  html += '<a href="#" class="evolv-sb-item" data-tooltip="Sign Out" id="evolv-sb-logout" style="color:#888;">' + svg('logout', 20) + '<span class="evolv-sb-item-label" style="color:#888;">Sign Out</span></a>';
   html += '</div>';
 
   sidebar.innerHTML = html;
@@ -607,6 +623,15 @@
       e.preventDefault();
       var originalHelp = document.getElementById('btnHelp');
       if (originalHelp) originalHelp.click();
+    });
+  }
+
+  var logoutBtn = sidebar.querySelector('#evolv-sb-logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      localStorage.clear();
+      location.href = '/login.html';
     });
   }
 
