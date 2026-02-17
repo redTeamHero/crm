@@ -217,7 +217,7 @@
       position: relative;
       border-radius: 18px;
       padding: 1.1rem;
-      background: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(241, 245, 249, 0.9));
+      background: linear-gradient(160deg, rgba(18, 18, 22, 0.9), rgba(14, 14, 18, 0.85));
       border: 1px solid rgba(148, 163, 184, 0.28);
       box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
       display: flex;
@@ -451,7 +451,7 @@
         </div>
         <a href="/tradelines" class="btn nav-btn">Tradelines</a>
         <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
-        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="You've started your journey.">
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
           <span class="text-xl">📄</span>
           <span class="font-semibold text-sm">Rookie</span>
         </div>
@@ -467,7 +467,7 @@
         <span class="library-eyebrow">Template Library</span>
         <div class="space-y-2">
   <h1 id="library-hero-heading">Craft premium dispute packs and contracts that convert.</h1>
-          <p class="text-sm text-slate-600">Blend trust, clarity, and empowerment. Keep playbooks one click away so your team can upsell compliance retainers without slowing delivery.</p>
+          <p class="text-sm text-gray-400">Blend trust, clarity, and empowerment. Keep playbooks one click away so your team can upsell compliance retainers without slowing delivery.</p>
         </div>
       </div>
       <div class="library-hero__metrics md:max-w-xs">
@@ -492,12 +492,12 @@
       <section id="libraryContracts" class="glass card space-y-4" aria-labelledby="contracts-heading">
         <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
           <div class="space-y-1">
-            <h2 id="contracts-heading" class="text-lg font-semibold text-slate-800">Compliance Contracts</h2>
-            <p class="text-sm text-slate-500">Draft premium agreements, upsell compliance retainers, and store them via <code>POST /api/contracts</code>.</p>
+            <h2 id="contracts-heading" class="text-lg font-semibold text-white">Compliance Contracts</h2>
+            <p class="text-sm text-gray-500">Draft premium agreements, upsell compliance retainers, and store them via <code>POST /api/contracts</code>.</p>
           </div>
           <button id="btnNewContract" class="btn text-sm self-start">New Contract</button>
         </div>
-        <p id="contractStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+        <p id="contractStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]"></p>
         <ul id="contractList" class="space-y-3 text-sm"></ul>
         <p id="contractEmpty" class="library-empty">No saved contracts yet. Offer a compliance upgrade with a premium agreement.</p>
       </section>
@@ -505,12 +505,12 @@
       <section id="libraryPlaybooks" class="glass card space-y-4" aria-labelledby="sequence-heading">
         <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
           <div class="space-y-1">
-            <h2 id="sequence-heading" class="text-lg font-semibold text-slate-800">Playbooks</h2>
-            <p class="text-sm text-slate-500">Package Metro-2 dispute steps into premium playbooks your reps can follow step by step.</p>
+            <h2 id="sequence-heading" class="text-lg font-semibold text-white">Playbooks</h2>
+            <p class="text-sm text-gray-500">Package Metro-2 dispute steps into premium playbooks your reps can follow step by step.</p>
           </div>
           <button id="newSequence" class="btn text-sm self-start">New Playbook</button>
         </div>
-        <p id="sequenceListStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+        <p id="sequenceListStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]"></p>
         <div id="sequenceList" class="space-y-3"></div>
         <p id="sequenceEmpty" class="library-empty">No playbooks yet. Convert your best dispute flows into a reusable sequence.</p>
       </section>
@@ -520,7 +520,7 @@
       <div class="library-sidebar__header">
         <div class="space-y-1">
           <span class="library-eyebrow">Letters</span>
-          <h2 class="text-slate-800">Letter Templates</h2>
+          <h2 class="text-white">Letter Templates</h2>
           <p class="library-sidebar__description">Click to edit, drag into sequences, or copy for automation flows.</p>
         </div>
         <button id="newTemplate" class="btn text-sm">New Template</button>
@@ -567,14 +567,14 @@
       </div>
     </header>
     <div class="body space-y-4">
-      <p id="sequenceStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+      <p id="sequenceStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]"></p>
       <div class="space-y-2">
-        <label for="seqName" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Playbook Name</label>
+        <label for="seqName" class="text-xs font-semibold uppercase tracking-wide text-gray-500">Playbook Name</label>
         <input id="seqName" class="input w-full text-sm" placeholder="Metro 2 compliance sequence" />
       </div>
       <div class="space-y-2">
         <div class="flex items-center justify-between">
-          <label for="seqTemplatePicker" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Steps</label>
+          <label for="seqTemplatePicker" class="text-xs font-semibold uppercase tracking-wide text-gray-500">Steps</label>
           <div class="flex items-center gap-2">
             <select id="seqTemplatePicker" class="input text-sm">
               <option value="">Select template</option>
@@ -583,7 +583,7 @@
           </div>
         </div>
         <ul id="seqSelectedList" class="library-seq-steps" aria-live="polite"></ul>
-        <p class="text-[11px] text-slate-500">Order matters. We update filenames automatically for each step (e.g. <span class="font-semibold text-slate-700">step 1</span>, <span class="font-semibold text-slate-700">step 2</span>).</p>
+        <p class="text-[11px] text-gray-500">Order matters. We update filenames automatically for each step (e.g. <span class="font-semibold text-gray-300">step 1</span>, <span class="font-semibold text-gray-300">step 2</span>).</p>
       </div>
     </div>
   </div>
@@ -593,7 +593,7 @@
     <header>
       <div>
         <div class="font-medium">Contract Editor</div>
-        <p class="text-xs text-slate-500">English copy, ready for e-sign or PDF export.</p>
+        <p class="text-xs text-gray-500">English copy, ready for e-sign or PDF export.</p>
       </div>
       <div class="flex gap-2">
         <button class="btn text-sm" type="button" data-close-contract>Close</button>
@@ -602,10 +602,10 @@
     <form id="contractForm" class="body space-y-3">
       <input id="contractName" name="name" class="input w-full text-sm" placeholder="Service Agreement Title" required />
       <div class="space-y-2">
-        <label class="text-xs font-semibold text-slate-500" for="contractEnglish">Contract Body</label>
+        <label class="text-xs font-semibold text-gray-500" for="contractEnglish">Contract Body</label>
         <textarea id="contractEnglish" name="english" class="input w-full h-48 text-sm" placeholder="Scope, guarantees (compliance-safe), payment schedule, cancellation window." required></textarea>
       </div>
-      <div class="flex items-center justify-between text-xs text-slate-500">
+      <div class="flex items-center justify-between text-xs text-gray-500">
         <span>Tip: Mention Metro-2 compliance and optional certified mail concierge.</span>
         <div class="flex gap-2">
           <button class="btn text-sm" type="submit">Save</button>

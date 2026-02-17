@@ -35,9 +35,9 @@
 <script src="/sidebar.js" defer></script>
 <script src="/command-palette.js" defer></script>
 </head>
-<body class="text-slate-800">
+<body class="text-gray-200">
 <header id="host-nav" class="p-4">
-  <div class="max-w-7xl mx-auto glass card nav-shell bg-white/80 backdrop-blur">
+  <div class="max-w-7xl mx-auto glass card nav-shell backdrop-blur">
     <div class="nav-brand-row">
       <div class="text-xl font-semibold tracking-tight">Metro 2 CRM</div>
       <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
@@ -87,7 +87,7 @@
         </div>
         <a href="/tradelines" class="btn nav-btn">Tradelines</a>
         <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
-        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="You've started your journey.">
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[#d4a853]/15 px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
           <span class="text-xl">📄</span>
           <span class="font-semibold text-sm">Rookie</span>
         </div>
@@ -98,37 +98,37 @@
 <main class="max-w-7xl mx-auto p-4 space-y-8">
   <section class="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
     <div class="glass card relative overflow-hidden p-6 md:p-8 text-left">
-      <div class="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-tr from-emerald-300/50 to-cyan-300/40 blur-3xl animate-blob"></div>
-      <div class="pointer-events-none absolute -bottom-20 -left-12 h-64 w-64 rounded-full bg-gradient-to-tr from-sky-200/60 to-emerald-200/40 blur-3xl"></div>
+      <div class="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-tr from-[#d4a853]/10 to-[#d4a853]/5 blur-3xl animate-blob"></div>
+      <div class="pointer-events-none absolute -bottom-20 -left-12 h-64 w-64 rounded-full bg-gradient-to-tr from-[#d4a853]/10 to-[#d4a853]/5 blur-3xl"></div>
       <div class="relative z-10 space-y-6">
         <div class="space-y-2">
-          <p class="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-500">Daily Command Center</p>
-          <h2 class="text-3xl md:text-4xl font-bold leading-tight text-slate-900">Welcome back! Let’s turn disputes into premium experiences.</h2>
-          <p class="text-sm text-slate-600">Prioritize the next 3 consults, keep promises compliance-safe, and spotlight upsell-ready accounts.</p>
+          <p class="text-sm font-semibold uppercase tracking-[0.22em] text-[#d4a853]">Daily Command Center</p>
+          <h2 class="text-3xl md:text-4xl font-bold leading-tight text-white">Welcome back! Let’s turn disputes into premium experiences.</h2>
+          <p class="text-sm text-gray-400">Prioritize the next 3 consults, keep promises compliance-safe, and spotlight upsell-ready accounts.</p>
         </div>
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div class="flex flex-wrap gap-3">
-          <button id="btnGoal" class="rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">Mark Today’s Goal Done</button>
-          <a href="/leads" class="rounded-full border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50">Open Lead Playbook</a>
-          <a href="/billing" class="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Review Revenue</a>
+          <button id="btnGoal" class="rounded-full bg-[#d4a853] px-5 py-2.5 font-semibold text-white shadow hover:brightness-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4a853]">Mark Today’s Goal Done</button>
+          <a href="/leads" class="rounded-full border border-[#d4a853]/30 px-4 py-2 text-sm font-semibold text-[#d4a853] hover:bg-[#d4a853]/10">Open Lead Playbook</a>
+          <a href="/billing" class="rounded-full border border-gray-700 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-800">Review Revenue</a>
         </div>
-        <div id="goalKpiLabel" class="text-xs text-slate-500">Goal KPI: Lead → Consult ≥ 32% · Track consult follow-ups.</div>
+        <div id="goalKpiLabel" class="text-xs text-gray-500">Goal KPI: Lead → Consult ≥ 32% · Track consult follow-ups.</div>
         </div>
         <div class="grid gap-4 sm:grid-cols-3">
-          <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
-            <p class="text-xs uppercase tracking-widest text-slate-500">Today’s consult slots</p>
-            <p id="heroConsultMetric" class="mt-1 text-2xl font-semibold text-slate-900">3 of 5 filled</p>
-            <p id="heroConsultCaption" class="mt-2 text-xs text-slate-500">Hold 2 for concierge support · Offer certified mail upgrade.</p>
+          <div class="rounded-2xl border border-[#1a1a1a] bg-[#111113] p-4 shadow-sm">
+            <p class="text-xs uppercase tracking-widest text-gray-500">Today’s consult slots</p>
+            <p id="heroConsultMetric" class="mt-1 text-2xl font-semibold text-white">3 of 5 filled</p>
+            <p id="heroConsultCaption" class="mt-2 text-xs text-gray-500">Hold 2 for concierge support · Offer certified mail upgrade.</p>
           </div>
-          <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
-            <p class="text-xs uppercase tracking-widest text-slate-500">Automation queue</p>
-            <p id="heroAutomationMetric" class="mt-1 text-2xl font-semibold text-slate-900">5 live flows</p>
-            <p id="heroAutomationCaption" class="mt-2 text-xs text-slate-500">Check dispute letters ↔ certified mail webhook.</p>
+          <div class="rounded-2xl border border-[#1a1a1a] bg-[#111113] p-4 shadow-sm">
+            <p class="text-xs uppercase tracking-widest text-gray-500">Automation queue</p>
+            <p id="heroAutomationMetric" class="mt-1 text-2xl font-semibold text-white">5 live flows</p>
+            <p id="heroAutomationCaption" class="mt-2 text-xs text-gray-500">Check dispute letters ↔ certified mail webhook.</p>
           </div>
-          <div class="rounded-2xl border border-white/60 bg-white/60 p-4 shadow-sm">
-            <p class="text-xs uppercase tracking-widest text-slate-500">Upsell spotlight</p>
-            <p id="heroUpsellMetric" class="mt-1 text-2xl font-semibold text-slate-900">$2.4k pipeline</p>
-            <p id="heroUpsellCaption" class="mt-2 text-xs text-slate-500">Anchor “premium audit + Metro-2 monitoring” bundle.</p>
+          <div class="rounded-2xl border border-[#1a1a1a] bg-[#111113] p-4 shadow-sm">
+            <p class="text-xs uppercase tracking-widest text-gray-500">Upsell spotlight</p>
+            <p id="heroUpsellMetric" class="mt-1 text-2xl font-semibold text-white">$2.4k pipeline</p>
+            <p id="heroUpsellCaption" class="mt-2 text-xs text-gray-500">Anchor “premium audit + Metro-2 monitoring” bundle.</p>
           </div>
         </div>
       </div>
@@ -136,24 +136,24 @@
     </div>
     <aside class="glass card h-full p-6 space-y-6">
       <div>
-        <h3 class="text-lg font-semibold text-slate-900">Daily Focus</h3>
-        <p class="mt-1 text-sm text-slate-600">Keep the team aligned on one revenue move and one compliance promise.</p>
+        <h3 class="text-lg font-semibold text-white">Daily Focus</h3>
+        <p class="mt-1 text-sm text-gray-400">Keep the team aligned on one revenue move and one compliance promise.</p>
       </div>
-      <ul id="focusList" class="space-y-4 text-sm text-slate-600">
+      <ul id="focusList" class="space-y-4 text-sm text-gray-400">
         <li class="flex items-start gap-3">
-          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 font-semibold text-emerald-600">1</span>
+          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#d4a853]/20 font-semibold text-[#d4a853]">1</span>
           <span>Loading focus priorities…</span>
         </li>
         <li class="flex items-start gap-3">
-          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 font-semibold text-sky-600">2</span>
+          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#d4a853]/15 font-semibold text-[#d4a853]/80">2</span>
           <span>Check reminders and consult follow-ups once metrics load.</span>
         </li>
         <li class="flex items-start gap-3">
-          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 font-semibold text-amber-600">3</span>
+          <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#d4a853]/10 font-semibold text-[#d4a853]/60">3</span>
           <span>Revisit upsell opportunities after the dashboard syncs.</span>
         </li>
       </ul>
-      <div id="nextRevenueWin" class="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-700">
+      <div id="nextRevenueWin" class="rounded-2xl border border-dashed border-[#d4a853]/20 bg-[#d4a853]/5 p-4 text-sm text-[#d4a853]">
         Next revenue win: bundle report parsing + dispute letter automation at $149 setup. Use Stripe Checkout link in Billing.
       </div>
     </aside>
@@ -161,30 +161,30 @@
 
   <section class="space-y-4">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <h3 class="text-lg font-semibold text-slate-900">Pipeline Pulse</h3>
+      <h3 class="text-lg font-semibold text-white">Pipeline Pulse</h3>
       <div class="flex flex-wrap gap-2 text-sm">
-        <span class="rounded-full bg-slate-900/90 px-3 py-1 text-white">Lead → Consult% primary KPI</span>
-        <span class="rounded-full bg-slate-200 px-3 py-1 text-slate-600">Track Refund% weekly</span>
+        <span class="rounded-full bg-[#d4a853] px-3 py-1 text-black">Lead → Consult% primary KPI</span>
+        <span class="rounded-full bg-[#1a1a1a] px-3 py-1 text-gray-400">Track Refund% weekly</span>
       </div>
     </div>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-3 md:auto-rows-fr">
-      <div class="glass card h-full flex flex-col border border-white/80 shadow-sm">
-        <div class="font-medium mb-2 text-slate-900">News</div>
-        <div id="newsFeed" class="text-sm space-y-1 flex-1 text-slate-600">Loading...</div>
+      <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="font-medium mb-2 text-white">News</div>
+        <div id="newsFeed" class="text-sm space-y-1 flex-1 text-gray-400">Loading...</div>
       </div>
 
-      <div class="glass card h-full flex flex-col border border-white/80 shadow-sm">
+      <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
         <div class="flex items-center justify-between mb-2">
-          <div class="font-medium text-slate-900">Messages</div>
-          <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Respond in &lt;2h</span>
+          <div class="font-medium text-white">Messages</div>
+          <span class="rounded-full bg-[#d4a853]/20 px-2 py-0.5 text-xs font-semibold text-[#d4a853]">Respond in &lt;2h</span>
         </div>
         <div id="msgList" class="text-sm space-y-1 min-h-[96px] max-h-48 overflow-y-auto muted flex-1">No messages.</div>
       </div>
 
-      <div class="glass card h-full flex flex-col border border-white/80 shadow-sm">
+      <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
         <div class="flex items-center justify-between mb-2">
-          <div class="font-medium text-slate-900">Upcoming Events</div>
-          <a href="/schedule" class="text-xs font-semibold text-emerald-600 hover:underline">Add consult</a>
+          <div class="font-medium text-white">Upcoming Events</div>
+          <a href="/schedule" class="text-xs font-semibold text-[#d4a853] hover:underline">Add consult</a>
         </div>
         <div id="eventList" class="text-sm space-y-1 min-h-[96px] max-h-48 overflow-y-auto muted flex-1">No events.</div>
       </div>
@@ -193,156 +193,156 @@
 
   <section class="space-y-4">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <h3 class="text-lg font-semibold text-slate-900">Key KPIs</h3>
-      <p class="text-sm text-slate-500">Watch consult velocity, revenue collected, and payment health. Highlight green cells during sales calls.</p>
+      <h3 class="text-lg font-semibold text-white">Key KPIs</h3>
+      <p class="text-sm text-gray-500">Watch consult velocity, revenue collected, and payment health. Highlight green cells during sales calls.</p>
     </div>
     <div id="tourKpiSection" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:auto-rows-fr">
-      <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+      <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
         <div class="flex items-start justify-between">
           <div>
             <div class="text-sm muted">Total Leads</div>
-            <div id="dashLeads" class="text-3xl font-semibold text-slate-900">0</div>
+            <div id="dashLeads" class="text-3xl font-semibold text-white">0</div>
           </div>
           <a href="#" class="btn text-xs detail-trigger" data-detail="leads">Details</a>
         </div>
-        <p class="mt-4 text-xs text-emerald-600">Weekly target: 35. Trigger quiz automation at 60% completion.</p>
+        <p class="mt-4 text-xs text-[#d4a853]">Weekly target: 35. Trigger quiz automation at 60% completion.</p>
       </div>
 
-      <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+      <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
         <div class="flex items-start justify-between">
           <div>
             <div class="text-sm muted">Total Clients</div>
-            <div id="dashClients" class="text-3xl font-semibold text-slate-900">0</div>
+            <div id="dashClients" class="text-3xl font-semibold text-white">0</div>
           </div>
           <a href="#" class="btn text-xs detail-trigger" data-detail="clients">Details</a>
         </div>
-        <p class="mt-4 text-xs text-slate-500">Promote dispute concierge for premium onboarding. Track churn monthly.</p>
+        <p class="mt-4 text-xs text-gray-500">Promote dispute concierge for premium onboarding. Track churn monthly.</p>
       </div>
 
-      <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+      <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
         <div class="flex items-start justify-between">
           <div>
             <div class="text-sm muted">Sales</div>
-            <div id="dashSales" class="text-3xl font-semibold text-slate-900">$0.00</div>
+            <div id="dashSales" class="text-3xl font-semibold text-white">$0.00</div>
           </div>
           <a href="#" class="btn text-xs detail-trigger" data-detail="sales">Details</a>
         </div>
-        <p class="mt-4 text-xs text-slate-500">Layer Stripe Checkout with 1-click certified mail add-on.</p>
+        <p class="mt-4 text-xs text-gray-500">Layer Stripe Checkout with 1-click certified mail add-on.</p>
       </div>
 
-      <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
+      <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
         <div class="flex items-start justify-between">
           <div>
             <div class="text-sm muted">Payments</div>
-            <div id="dashPayments" class="text-3xl font-semibold text-slate-900">$0.00</div>
+            <div id="dashPayments" class="text-3xl font-semibold text-white">$0.00</div>
           </div>
           <a href="#" class="btn text-xs detail-trigger" data-detail="payments">Details</a>
         </div>
-        <p class="mt-4 text-xs text-slate-500">Monitor failed payments. Trigger compliance reminder + NEPQ reframe.</p>
+        <p class="mt-4 text-xs text-gray-500">Monitor failed payments. Trigger compliance reminder + NEPQ reframe.</p>
       </div>
     </div>
   </section>
 
   <section class="space-y-4">
     <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
-      <div id="tourNotepadCard" class="glass card xl:flex-1 h-full flex flex-col border border-slate-100 shadow-sm">
+      <div id="tourNotepadCard" class="glass card xl:flex-1 h-full flex flex-col border border-[#1a1a1a] shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
           <div>
-            <div class="font-medium text-slate-900">Notepad</div>
-            <p class="text-xs text-slate-500">Capture next steps + Metro-2 facts during calls.</p>
+            <div class="font-medium text-white">Notepad</div>
+            <p class="text-xs text-gray-500">Capture next steps + Metro-2 facts during calls.</p>
           </div>
           <button id="dashSaveNote" class="btn text-sm">Save</button>
         </div>
-        <input id="dashNoteTitle" class="w-full border rounded-xl border-slate-200 px-3 py-2 text-sm mb-3 focus:border-emerald-400 focus:outline-none" placeholder="Note title" />
-        <select id="noteSelect" class="w-full border rounded-xl border-slate-200 px-3 py-2 text-sm mb-3 focus:border-emerald-400 focus:outline-none"><option value="">Select saved note...</option></select>
-        <textarea id="dashNote" class="w-full h-40 border rounded-xl border-slate-200 p-3 text-sm focus:border-emerald-400 focus:outline-none" placeholder="Document talking points"></textarea>
+        <input id="dashNoteTitle" class="w-full border rounded-xl border-gray-700 bg-[#0a0a0a] text-white px-3 py-2 text-sm mb-3 focus:border-[#d4a853] focus:outline-none" placeholder="Note title" />
+        <select id="noteSelect" class="w-full border rounded-xl border-gray-700 bg-[#0a0a0a] text-white px-3 py-2 text-sm mb-3 focus:border-[#d4a853] focus:outline-none"><option value="">Select saved note...</option></select>
+        <textarea id="dashNote" class="w-full h-40 border rounded-xl border-gray-700 bg-[#0a0a0a] text-white p-3 text-sm focus:border-[#d4a853] focus:outline-none" placeholder="Document talking points"></textarea>
         <div id="noteList" class="mt-3 space-y-2 text-sm"></div>
       </div>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:w-[360px]">
-        <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
-          <div class="font-medium mb-1 text-slate-900">Retention Rate</div>
-          <div id="dashRetention" class="text-3xl font-semibold text-slate-900">0.0%</div>
-          <p class="mt-3 text-xs text-slate-500">Aim for 92%+. Schedule check-ins post letter delivery.</p>
+        <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+          <div class="font-medium mb-1 text-white">Retention Rate</div>
+          <div id="dashRetention" class="text-3xl font-semibold text-white">0.0%</div>
+          <p class="mt-3 text-xs text-gray-500">Aim for 92%+. Schedule check-ins post letter delivery.</p>
         </div>
 
-        <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm">
-          <div class="font-medium mb-1 text-slate-900">Lead Conversion</div>
-          <div id="dashConversion" class="text-3xl font-semibold text-slate-900">0.0%</div>
-          <p class="mt-3 text-xs text-slate-500">Insert NEPQ close question in the consult flow.</p>
+        <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+          <div class="font-medium mb-1 text-white">Lead Conversion</div>
+          <div id="dashConversion" class="text-3xl font-semibold text-white">0.0%</div>
+          <p class="mt-3 text-xs text-gray-500">Insert NEPQ close question in the consult flow.</p>
         </div>
 
-        <div class="glass card h-full flex flex-col border border-slate-100 shadow-sm sm:col-span-2">
-          <div class="font-medium mb-1 text-slate-900">Company Deletion Statistics</div>
+        <div class="glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm sm:col-span-2">
+          <div class="font-medium mb-1 text-white">Company Deletion Statistics</div>
           <div id="dashDeletion" class="text-sm muted">No data</div>
-          <p class="mt-3 text-xs text-slate-500">Track removals without guaranteeing outcomes. Highlight disputes resolved per bureau.</p>
+          <p class="mt-3 text-xs text-gray-500">Track removals without guaranteeing outcomes. Highlight disputes resolved per bureau.</p>
         </div>
 
-        <div class="glass card relative overflow-hidden border border-emerald-100 bg-gradient-to-br from-emerald-50/90 via-white to-emerald-100/70 text-slate-900 shadow-lg sm:col-span-2">
-          <div class="pointer-events-none absolute -top-10 -right-20 h-56 w-56 rounded-full bg-emerald-200/40 blur-3xl"></div>
+        <div class="glass card relative overflow-hidden border border-[#d4a853]/20 bg-gradient-to-br from-[#111113] via-[#111113] to-[#111113] text-white shadow-lg sm:col-span-2">
+          <div class="pointer-events-none absolute -top-10 -right-20 h-56 w-56 rounded-full bg-[#d4a853]/5 blur-3xl"></div>
           <div class="relative z-10 flex flex-col gap-3">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600">Growth Navigator</p>
-                <h3 id="ladderTitle" class="text-lg font-semibold">Revenue Ladder to 7 Figures</h3>
-                <p id="ladderSubtitle" class="text-[11px] text-slate-500">Premium dispute services roadmap. No guaranteed timelines or deletions.</p>
+                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d4a853]">Growth Navigator</p>
+                <h3 id="ladderTitle" class="text-lg font-semibold text-white">Revenue Ladder to 7 Figures</h3>
+                <p id="ladderSubtitle" class="text-[11px] text-gray-500">Premium dispute services roadmap. No guaranteed timelines or deletions.</p>
               </div>
               <div class="flex flex-col items-end gap-2 text-right text-xs">
                 <div>
-                  <span id="ladderGoalLabel" class="font-semibold text-emerald-600">Goal</span>
-                  <div id="ladderGoalAmount" class="text-sm font-bold text-slate-900">$84k&nbsp;mo</div>
-                  <div id="ladderGoalCaption" class="text-[10px] text-slate-500">Monthly objective</div>
+                  <span id="ladderGoalLabel" class="font-semibold text-[#d4a853]">Goal</span>
+                  <div id="ladderGoalAmount" class="text-sm font-bold text-white">$84k&nbsp;mo</div>
+                  <div id="ladderGoalCaption" class="text-[10px] text-gray-500">Monthly objective</div>
                 </div>
-                <button id="ladderEditButton" type="button" class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white/80 px-3 py-1.5 font-semibold text-emerald-600 shadow-sm transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-1">
+                <button id="ladderEditButton" type="button" class="inline-flex items-center gap-1 rounded-full border border-[#d4a853]/30 bg-[#1a1a1a] px-3 py-1.5 font-semibold text-[#d4a853] shadow-sm transition hover:bg-[#d4a853]/10 focus:outline-none focus:ring-2 focus:ring-[#d4a853]/30 focus:ring-offset-1">
                   <span class="text-[11px]">Edit Card</span>
                 </button>
               </div>
             </div>
 
-            <div class="grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
-              <div class="rounded-lg border border-emerald-100 bg-white/80 p-3 shadow-inner">
+            <div class="grid gap-3 text-sm text-gray-400 sm:grid-cols-3">
+              <div class="rounded-lg border border-gray-800 bg-[#0a0a0a] p-3 shadow-inner">
                 <div class="flex items-center justify-between text-xs">
                   <span>Monthly Recurring</span>
-                  <span class="font-semibold text-slate-900" id="ladderMrr">Sync billing</span>
+                  <span class="font-semibold text-white" id="ladderMrr">Sync billing</span>
                 </div>
-                <p id="ladderMrrCaption" class="mt-2 text-[11px] text-slate-500">Keep churn &lt; 5% and auto-schedule retention consults.</p>
+                <p id="ladderMrrCaption" class="mt-2 text-[11px] text-gray-500">Keep churn &lt; 5% and auto-schedule retention consults.</p>
               </div>
-              <div class="rounded-lg border border-emerald-100 bg-white/70 p-3">
+              <div class="rounded-lg border border-gray-800 bg-[#0a0a0a] p-3">
                 <div class="flex items-center justify-between text-xs">
                   <span>Pipeline Forecast</span>
-                  <span class="font-semibold text-slate-900" id="ladderPipeline">Load CRM</span>
+                  <span class="font-semibold text-white" id="ladderPipeline">Load CRM</span>
                 </div>
-                <p id="ladderPipelineCaption" class="mt-2 text-[11px] text-slate-500">Daily KPI: Consult → Purchase 35%.</p>
+                <p id="ladderPipelineCaption" class="mt-2 text-[11px] text-gray-500">Daily KPI: Consult → Purchase 35%.</p>
               </div>
-              <div class="rounded-lg border border-emerald-100 bg-white/70 p-3">
+              <div class="rounded-lg border border-gray-800 bg-[#0a0a0a] p-3">
                 <div class="flex items-center justify-between text-xs">
                   <span>Average Order Value</span>
-                  <span class="font-semibold text-slate-900" id="ladderAov">Link Stripe</span>
+                  <span class="font-semibold text-white" id="ladderAov">Link Stripe</span>
                 </div>
-                <p id="ladderAovCaption" class="mt-2 text-[11px] text-slate-500">Bundle certified mail credits for premium feel.</p>
+                <p id="ladderAovCaption" class="mt-2 text-[11px] text-gray-500">Bundle certified mail credits for premium feel.</p>
               </div>
 
               <div class="sm:col-span-3">
-                <div class="flex items-center justify-between text-[11px] uppercase tracking-wide text-slate-500">
+                <div class="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-500">
                   <span id="ladderProgressBaseline">$0</span>
                   <span id="ladderProgressGoal">Goal $84k</span>
                 </div>
-                <div class="mt-2 h-3 w-full overflow-hidden rounded-full bg-white/70 shadow-inner">
-                  <div id="ladderProgressBar" class="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-teal-400 transition-all duration-700" style="width: 38%;"></div>
+                <div class="mt-2 h-3 w-full overflow-hidden rounded-full bg-[#1a1a1a] shadow-inner">
+                  <div id="ladderProgressBar" class="h-full rounded-full bg-gradient-to-r from-[#d4a853] via-[#e5c77d] to-[#d4a853] transition-all duration-700" style="width: 38%;"></div>
                 </div>
-                <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-500">
                   <span id="ladderMilestone">Next milestone: $25k/mo unlocks concierge onboarding.</span>
                   <span id="ladderMilestoneCaption">Next milestone target</span>
                 </div>
               </div>
 
-              <div class="sm:col-span-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-white/80 p-3 text-xs">
-                <div id="ladderUpsellCopy" class="max-w-xs text-slate-600">
-                  <span class="font-semibold text-slate-900">Upsell idea:</span> Automation bundle at $249/mo with certified mail credits + NEPQ scripts.
+              <div class="sm:col-span-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-800 bg-[#0a0a0a] p-3 text-xs">
+                <div id="ladderUpsellCopy" class="max-w-xs text-gray-400">
+                  <span class="font-semibold text-white">Upsell idea:</span> Automation bundle at $249/mo with certified mail credits + NEPQ scripts.
                 </div>
                 <div class="flex flex-wrap items-center gap-2 text-xs">
-                  <a id="ladderPlaybookButton" href="#" class="btn bg-emerald-500 px-4 py-2 text-white shadow-sm">View Playbook</a>
-                  <a id="ladderSummaryLink" href="#" class="font-semibold text-emerald-600 hover:underline">View summary details</a>
+                  <a id="ladderPlaybookButton" href="#" class="btn bg-[#d4a853] px-4 py-2 text-black shadow-sm">View Playbook</a>
+                  <a id="ladderSummaryLink" href="#" class="font-semibold text-[#d4a853] hover:underline">View summary details</a>
                 </div>
               </div>
             </div>
@@ -353,37 +353,37 @@
   </section>
 
   <section class="space-y-4">
-    <div class="glass card relative overflow-hidden border border-emerald-100/70 bg-gradient-to-br from-white/95 via-emerald-50/80 to-white shadow-xl ring-1 ring-emerald-100/40" id="tourMapCard">
-      <div class="pointer-events-none absolute -top-32 -right-24 h-72 w-72 rounded-full bg-emerald-200/40 blur-3xl"></div>
-      <div class="pointer-events-none absolute -bottom-36 -left-20 h-80 w-80 rounded-full bg-sky-200/40 blur-3xl"></div>
+    <div class="glass card relative overflow-hidden border border-[#d4a853]/10 bg-gradient-to-br from-[#111113] via-[#111113] to-[#111113] shadow-xl ring-1 ring-[#d4a853]/10" id="tourMapCard">
+      <div class="pointer-events-none absolute -top-32 -right-24 h-72 w-72 rounded-full bg-[#d4a853]/5 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-36 -left-20 h-80 w-80 rounded-full bg-[#d4a853]/5 blur-3xl"></div>
       <div class="relative z-10 flex flex-col gap-6">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div class="max-w-xl space-y-2">
-            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-500">
-              <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#d4a853]">
+              <span class="h-2 w-2 rounded-full bg-[#d4a853] animate-pulse"></span>
               <span>Coverage Intelligence</span>
             </div>
             <div class="flex flex-col gap-2">
-              <div class="text-lg font-semibold text-slate-900">Client Locations</div>
-              <p class="text-sm text-slate-600">Spot coverage gaps, launch geo-targeted upsells, and brief team leads before outreach. Toggle between a state heat mix and your top city clusters.</p>
+              <div class="text-lg font-semibold text-white">Client Locations</div>
+              <p class="text-sm text-gray-400">Spot coverage gaps, launch geo-targeted upsells, and brief team leads before outreach. Toggle between a state heat mix and your top city clusters.</p>
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2 text-xs">
-            <button id="clientLocationModeState" type="button" class="rounded-full bg-emerald-500 px-4 py-1.5 font-semibold text-white shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">State Mix</button>
-            <button id="clientLocationModeCity" type="button" class="rounded-full border border-emerald-200/60 bg-white/70 px-4 py-1.5 font-semibold text-emerald-600 shadow-sm transition hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Top Cities</button>
-            <a href="/workflows" class="rounded-full border border-transparent bg-emerald-600/10 px-4 py-1.5 font-semibold text-emerald-700 transition hover:bg-emerald-600/20 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">Build automation</a>
+            <button id="clientLocationModeState" type="button" class="rounded-full bg-[#d4a853] px-4 py-1.5 font-semibold text-black shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#d4a853] focus:ring-offset-2">State Mix</button>
+            <button id="clientLocationModeCity" type="button" class="rounded-full border border-[#d4a853]/30 bg-[#1a1a1a] px-4 py-1.5 font-semibold text-[#d4a853] shadow-sm transition hover:bg-[#d4a853]/10 focus:outline-none focus:ring-2 focus:ring-[#d4a853] focus:ring-offset-2">Top Cities</button>
+            <a href="/workflows" class="rounded-full border border-transparent bg-[#d4a853]/10 px-4 py-1.5 font-semibold text-[#d4a853] transition hover:bg-[#d4a853]/20 focus:outline-none focus:ring-2 focus:ring-[#d4a853] focus:ring-offset-2">Build automation</a>
           </div>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          <div class="rounded-3xl border border-white/80 bg-white/70 p-4 shadow-inner backdrop-blur">
-            <div class="relative h-[20rem] w-full overflow-hidden rounded-2xl border border-emerald-100/70 bg-gradient-to-br from-emerald-100/50 via-white to-slate-100">
+          <div class="rounded-3xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-inner backdrop-blur">
+            <div class="relative h-[20rem] w-full overflow-hidden rounded-2xl border border-gray-800 bg-gradient-to-br from-[#0a0a0a] via-[#0a0a0a] to-[#0a0a0a]">
               <div id="clientMap" class="h-full w-full"></div>
-              <div class="client-map-overlay pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-white/80 text-center text-[11px] text-slate-500">
+              <div class="client-map-overlay pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-[#0a0a0a]/80 text-center text-[11px] text-gray-500">
                 Loading client map… Sync client addresses to visualize coverage.
               </div>
             </div>
-            <div class="mt-4 grid grid-cols-2 gap-3 text-[11px] text-slate-500 sm:grid-cols-3">
+            <div class="mt-4 grid grid-cols-2 gap-3 text-[11px] text-gray-500 sm:grid-cols-3">
               <div class="flex items-center gap-2">
                 <span class="h-2.5 w-2.5 rounded-full bg-indigo-500"></span>
                 <span>Active</span>
@@ -405,149 +405,149 @@
                 <span>Lost</span>
               </div>
               <div class="flex items-center gap-2">
-                <span class="h-2.5 w-2.5 rounded-full border border-dashed border-slate-300"></span>
+                <span class="h-2.5 w-2.5 rounded-full border border-dashed border-gray-600"></span>
                 <span>Needs review</span>
               </div>
             </div>
           </div>
 
           <div class="flex flex-col gap-4">
-            <div class="rounded-3xl border border-white/80 bg-white/70 p-4 shadow-inner backdrop-blur">
+            <div class="rounded-3xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-inner backdrop-blur">
               <div class="flex items-start justify-between gap-2">
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Geo mix snapshot</p>
-                  <p class="text-sm text-slate-600">Overlay consult-ready clusters and coordinate concierge outreach when needed.</p>
+                  <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Geo mix snapshot</p>
+                  <p class="text-sm text-gray-400">Overlay consult-ready clusters and coordinate concierge outreach when needed.</p>
                 </div>
-                <span class="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold text-emerald-700">Sync weekly</span>
+                <span class="rounded-full bg-[#d4a853]/20 px-3 py-1 text-[11px] font-semibold text-[#d4a853]">Sync weekly</span>
               </div>
               <div class="relative mt-4">
                 <canvas id="clientLocationChart" class="h-64 w-full"></canvas>
-                <div id="clientLocationEmpty" class="client-map-overlay pointer-events-none absolute inset-0 hidden items-center justify-center rounded-2xl border border-dashed border-emerald-200 bg-white/85 text-center text-[11px] text-slate-500">
+                <div id="clientLocationEmpty" class="client-map-overlay pointer-events-none absolute inset-0 hidden items-center justify-center rounded-2xl border border-dashed border-gray-700 bg-[#0a0a0a]/85 text-center text-[11px] text-gray-500">
                   Log client addresses to unlock territory insights.
                 </div>
               </div>
             </div>
-            <dl id="clientLocationLegend" class="grid grid-cols-1 gap-3 rounded-3xl border border-white/80 bg-white/70 p-4 text-xs text-slate-600 shadow-inner backdrop-blur sm:grid-cols-2"></dl>
+            <dl id="clientLocationLegend" class="grid grid-cols-1 gap-3 rounded-3xl border border-gray-800 bg-[#0a0a0a] p-4 text-xs text-gray-400 shadow-inner backdrop-blur sm:grid-cols-2"></dl>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <div id="ladderEditor" class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-slate-900/40 px-4 py-10 backdrop-blur-sm">
-    <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
+  <div id="ladderEditor" class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/60 px-4 py-10 backdrop-blur-sm">
+    <div class="w-full max-w-xl rounded-2xl bg-[#111113] p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h3 class="text-lg font-semibold text-slate-900">Edit Growth Navigator</h3>
-          <p class="text-sm text-slate-500">Refresh revenue ladder copy, CTA labels, and your monthly target.</p>
+          <h3 class="text-lg font-semibold text-white">Edit Growth Navigator</h3>
+          <p class="text-sm text-gray-400">Refresh revenue ladder copy, CTA labels, and your monthly target.</p>
         </div>
         <button id="ladderEditorClose" type="button" class="btn text-sm" aria-label="Close editor">×</button>
       </div>
       <form id="ladderEditorForm" class="mt-4 space-y-5">
         <div class="grid gap-4">
-          <label class="space-y-2 text-sm font-medium text-slate-700">
+          <label class="space-y-2 text-sm font-medium text-gray-300">
             <span>Title</span>
-            <input name="title" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="title" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-2 text-sm font-medium text-slate-700">
+          <label class="space-y-2 text-sm font-medium text-gray-300">
             <span>Subtitle</span>
-            <textarea name="subtitle" rows="2" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"></textarea>
+            <textarea name="subtitle" rows="2" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none"></textarea>
           </label>
         </div>
         <div class="grid gap-4 sm:grid-cols-3">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Goal label</span>
-            <input name="goalLabel" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="goalLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Goal amount label</span>
-            <input name="goalAmountLabel" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="goalAmountLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Goal caption</span>
-            <input name="goalCaption" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="goalCaption" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
         </div>
         <div class="grid gap-4 sm:grid-cols-3">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Monthly target (USD)</span>
-            <input name="monthlyRecurringTarget" type="number" min="0" step="1" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="monthlyRecurringTarget" type="number" min="0" step="1" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500 sm:col-span-2">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400 sm:col-span-2">
             <span>Monthly caption</span>
-            <input name="mrrCaption" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="mrrCaption" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Pipeline value</span>
-            <input name="pipelineValue" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="pipelineValue" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Pipeline caption</span>
-            <textarea name="pipelineCaption" rows="2" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"></textarea>
+            <textarea name="pipelineCaption" rows="2" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none"></textarea>
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>AOV value</span>
-            <input name="aovValue" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="aovValue" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>AOV caption</span>
-            <textarea name="aovCaption" rows="2" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"></textarea>
+            <textarea name="aovCaption" rows="2" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none"></textarea>
           </label>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Milestone headline</span>
-            <input name="milestone" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="milestone" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Milestone caption</span>
-            <input name="milestoneCaption" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="milestoneCaption" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Progress baseline label</span>
-            <input name="progressBaselineLabel" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="progressBaselineLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Progress goal label</span>
-            <input name="progressGoalLabel" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="progressGoalLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
         </div>
         <div class="grid gap-4">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Upsell heading</span>
-            <input name="upsellHeading" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="upsellHeading" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Upsell body</span>
-            <textarea name="upsellBody" rows="3" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"></textarea>
+            <textarea name="upsellBody" rows="3" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none"></textarea>
           </label>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Playbook label</span>
-            <input name="playbookLabel" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="playbookLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Playbook URL</span>
-            <input name="playbookUrl" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="playbookUrl" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Summary link label</span>
-            <input name="summaryLinkLabel" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="summaryLinkLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
             <span>Summary link URL</span>
-            <input name="summaryLinkUrl" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none" />
+            <input name="summaryLinkUrl" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
           </label>
         </div>
-        <p id="ladderEditorStatus" class="text-sm text-emerald-600"></p>
+        <p id="ladderEditorStatus" class="text-sm text-[#d4a853]"></p>
         <div class="flex items-center justify-end gap-3">
           <button id="ladderEditorCancel" type="button" class="btn">Cancel</button>
-          <button id="ladderEditorSubmit" type="submit" class="btn bg-emerald-500 px-4 py-2 text-white shadow-sm">Save changes</button>
+          <button id="ladderEditorSubmit" type="submit" class="btn bg-[#d4a853] px-4 py-2 text-black shadow-sm">Save changes</button>
         </div>
       </form>
     </div>
@@ -573,51 +573,51 @@
   </div>
 </main>
 <section id="growthNavigatorPanel" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Growth Navigator summary" aria-hidden="true">
-  <div class="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-gradient-to-b from-emerald-50 via-white to-white shadow-2xl ring-1 ring-emerald-100/80">
-    <button id="growthNavigatorClose" class="absolute right-4 top-4 rounded-full bg-white/80 px-3 py-1 text-sm font-semibold text-slate-600 shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300" aria-label="Close Growth Navigator">×</button>
+  <div class="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-gradient-to-b from-[#111113] via-[#111113] to-[#111113] shadow-2xl ring-1 ring-[#d4a853]/20">
+    <button id="growthNavigatorClose" class="absolute right-4 top-4 rounded-full bg-[#1a1a1a] px-3 py-1 text-sm font-semibold text-gray-400 shadow hover:bg-[#d4a853]/10 focus:outline-none focus:ring-2 focus:ring-[#d4a853]/30" aria-label="Close Growth Navigator">×</button>
     <div class="grid gap-6 p-6 md:p-8">
       <div class="space-y-1">
-        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600">Growth Navigator</p>
-        <h3 class="text-2xl font-bold text-slate-900">Revenue Ladder to 7 Figures</h3>
-        <p class="text-sm text-slate-600">Premium dispute services roadmap. No guaranteed timelines or deletions.</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-[#d4a853]">Growth Navigator</p>
+        <h3 class="text-2xl font-bold text-white">Revenue Ladder to 7 Figures</h3>
+        <p class="text-sm text-gray-400">Premium dispute services roadmap. No guaranteed timelines or deletions.</p>
       </div>
-      <div class="grid gap-4 rounded-2xl border border-white/80 bg-white/70 p-4 shadow-sm md:grid-cols-[1fr_auto] md:items-center">
+      <div class="grid gap-4 rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm md:grid-cols-[1fr_auto] md:items-center">
         <div class="space-y-1">
-          <p class="text-xs uppercase tracking-widest text-slate-500">Goal</p>
-          <p class="text-3xl font-semibold text-emerald-700">$84k mo</p>
-          <p class="text-sm text-slate-600">Monthly objective</p>
+          <p class="text-xs uppercase tracking-widest text-gray-500">Goal</p>
+          <p class="text-3xl font-semibold text-[#d4a853]">$84k mo</p>
+          <p class="text-sm text-gray-400">Monthly objective</p>
         </div>
-        <a href="#" class="inline-flex items-center justify-center rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-inner hover:bg-emerald-200" role="button">View Playbook</a>
+        <a href="#" class="inline-flex items-center justify-center rounded-full bg-[#d4a853]/20 px-4 py-2 text-sm font-semibold text-[#d4a853] shadow-inner hover:bg-[#d4a853]/30" role="button">View Playbook</a>
       </div>
       <div class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-2xl border border-emerald-100 bg-white/80 p-4 shadow-sm">
-          <p class="text-xs uppercase tracking-widest text-slate-500">Monthly Recurring</p>
-          <p class="mt-1 text-lg font-semibold text-slate-900">$0.00 · Goal $84,000.00</p>
-          <p class="mt-2 text-xs text-slate-600">Keep churn &lt; 5% and auto-schedule retention consults.</p>
+        <div class="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm">
+          <p class="text-xs uppercase tracking-widest text-gray-500">Monthly Recurring</p>
+          <p class="mt-1 text-lg font-semibold text-white">$0.00 · Goal $84,000.00</p>
+          <p class="mt-2 text-xs text-gray-400">Keep churn &lt; 5% and auto-schedule retention consults.</p>
         </div>
-        <div class="rounded-2xl border border-emerald-100 bg-white/80 p-4 shadow-sm">
-          <p class="text-xs uppercase tracking-widest text-slate-500">Pipeline Forecast</p>
-          <p class="mt-1 text-lg font-semibold text-slate-900">Load CRM</p>
-          <p class="mt-2 text-xs text-slate-600">Daily KPI: Consult → Purchase 35%.</p>
+        <div class="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm">
+          <p class="text-xs uppercase tracking-widest text-gray-500">Pipeline Forecast</p>
+          <p class="mt-1 text-lg font-semibold text-white">Load CRM</p>
+          <p class="mt-2 text-xs text-gray-400">Daily KPI: Consult → Purchase 35%.</p>
         </div>
-        <div class="rounded-2xl border border-emerald-100 bg-white/80 p-4 shadow-sm">
-          <p class="text-xs uppercase tracking-widest text-slate-500">Average Order Value</p>
-          <p class="mt-1 text-lg font-semibold text-slate-900">Link Stripe</p>
-          <p class="mt-2 text-xs text-slate-600">Bundle certified mail credits for premium feel.</p>
+        <div class="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm">
+          <p class="text-xs uppercase tracking-widest text-gray-500">Average Order Value</p>
+          <p class="mt-1 text-lg font-semibold text-white">Link Stripe</p>
+          <p class="mt-2 text-xs text-gray-400">Bundle certified mail credits for premium feel.</p>
         </div>
       </div>
-      <div class="rounded-2xl border border-white/80 bg-white/70 p-4 shadow-sm">
-        <div class="flex flex-wrap items-center gap-3 text-sm font-semibold text-slate-800">
-          <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">$0</span>
-          <span class="text-slate-500">Goal</span>
-          <span class="rounded-full bg-slate-900 px-3 py-1 text-white">$84k</span>
+      <div class="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm">
+        <div class="flex flex-wrap items-center gap-3 text-sm font-semibold text-gray-200">
+          <span class="rounded-full bg-[#d4a853]/20 px-3 py-1 text-[#d4a853]">$0</span>
+          <span class="text-gray-500">Goal</span>
+          <span class="rounded-full bg-[#d4a853] px-3 py-1 text-white">$84k</span>
         </div>
-        <p class="mt-3 text-sm text-slate-700">Next milestone: $25k/mo unlocks concierge onboarding. Next milestone target</p>
-        <p class="mt-2 text-sm text-slate-700">Upsell idea: Automation bundle at $249/mo with certified mail credits + NEPQ scripts.</p>
+        <p class="mt-3 text-sm text-gray-300">Next milestone: $25k/mo unlocks concierge onboarding. Next milestone target</p>
+        <p class="mt-2 text-sm text-gray-300">Upsell idea: Automation bundle at $249/mo with certified mail credits + NEPQ scripts.</p>
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <button class="btn bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow hover:brightness-110" type="button">View summary details</button>
-        <p class="text-sm text-slate-600">This card only appears when you tap the moneybag shortcut.</p>
+        <p class="text-sm text-gray-400">This card only appears when you tap the moneybag shortcut.</p>
       </div>
     </div>
   </div>

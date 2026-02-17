@@ -130,6 +130,17 @@ npm run dev
   - Final frame: EVOLV logo, "Your Financial Evolution Starts Here" tagline, CTA buttons for CRM/DIY paths
   - Responsive canvas with DPR scaling, mobile-friendly text sizing
 
+- 2026-02-17: Premium CRM UI redesign - dark theme with gold accents
+  - Design system: Apple minimalism + Nike bold energy + Yeezy futuristic aesthetic
+  - Created evolv-dark.css (1830+ lines): near-black backgrounds (#0a0a0a), gold accents (#d4a853), glassmorphism cards
+  - Built sidebar.js: collapsible icon-based sidebar (72px → 260px), gold hover states, active page detection, keyboard shortcut ([), localStorage persistence
+  - Built command-palette.js: Spotlight-style Cmd+K/Ctrl+K overlay, fuzzy search, 16 commands for navigation and actions
+  - Redesigned login page: dark glass card, gold buttons, gold role selector, dark inputs
+  - Dark-themed all 15 CRM pages: dashboard, clients, leads, billing, tradelines, letters, library, settings, client-portal-settings, my-company, schedule, marketing, workflows, quiz
+  - Dashboard: gold hero section, dark metric cards, dark growth navigator, dark map section, dark modals
+  - Added micro-animations: page fade-in, card hover lift, counter animations, shimmer loading, button press effects, staggered grid entrance, gold glow pulse, custom scrollbars
+  - Excluded from dark theme: client-portal-template.html, DIY pages, welcome.html (these keep their own styles)
+
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)

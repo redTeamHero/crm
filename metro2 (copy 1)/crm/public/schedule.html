@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="/evolv-dark.css">
 <style>
   .calendar-shell {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.75));
+    background: linear-gradient(145deg, rgba(18, 18, 22, 0.96), rgba(17, 17, 19, 0.85));
     border: 1px solid var(--border-soft);
   }
   .calendar-grid {
@@ -60,7 +60,7 @@
   }
   .calendar-cell .event-text {
     font-size: 12px;
-    color: #1f2937;
+    color: #e0e0e0;
     font-weight: 500;
   }
   .calendar-cell.is-today {
@@ -68,7 +68,7 @@
   }
   .calendar-cell.is-selected {
     border-color: var(--accent);
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(212, 168, 83, 0.08);
   }
   .summary-tile {
     display: flex;
@@ -96,7 +96,7 @@
     height: 12px;
     border-radius: 999px;
     margin-top: 6px;
-    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.3);
+    box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.2);
     flex-shrink: 0;
   }
   .timeline-item:not(:last-child)::after {
@@ -105,15 +105,15 @@
     left: 6px;
     top: 24px;
     bottom: 0;
-    border-left: 2px dashed rgba(148, 163, 184, 0.4);
+    border-left: 2px dashed rgba(255, 255, 255, 0.1);
   }
   .empty-state {
-    border: 1px dashed rgba(148, 163, 184, 0.5);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 16px;
     text-align: center;
-    background: rgba(255, 255, 255, 0.55);
-    color: #475569;
+    background: rgba(18, 18, 22, 0.6);
+    color: #888888;
   }
   #eventModal {
     z-index: 120;
@@ -121,8 +121,8 @@
   #eventModal .modal-panel {
     max-height: calc(100vh - 4rem);
     overflow-y: auto;
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 255, 0.94) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: linear-gradient(180deg, rgba(18, 18, 22, 0.98) 0%, rgba(14, 14, 18, 0.96) 100%);
     box-shadow: 0 40px 80px rgba(15, 23, 42, 0.18);
     backdrop-filter: blur(18px);
   }
@@ -204,8 +204,8 @@
   }
   #eventModal .modal-card {
     border-radius: 24px;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(18, 18, 22, 0.95);
     padding: 20px;
     box-shadow: 0 24px 45px rgba(15, 23, 42, 0.08);
   }
@@ -220,7 +220,7 @@
     letter-spacing: 0.2em;
     text-transform: uppercase;
     font-weight: 700;
-    color: #475569;
+    color: #888888;
   }
   #eventModal .modal-card.accent .section-label {
     color: rgba(255, 255, 255, 0.78);
@@ -234,17 +234,17 @@
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: #64748b;
+    color: #888888;
   }
   #eventModal .modal-card label input {
     margin-top: 6px;
   }
   #eventModal .modal-actions {
-    border-top: 1px solid rgba(148, 163, 184, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding-top: 1rem;
   }
   #eventModal .modal-card.accent .slot-button {
-    background: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.32);
     color: #fff;
   }
@@ -280,8 +280,8 @@
     gap: 6px;
     padding: 14px 16px;
     border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(18, 18, 22, 0.95);
     min-width: 168px;
     text-align: left;
     transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
@@ -303,13 +303,13 @@
     font-size: 1.05rem;
     font-weight: 700;
     letter-spacing: 0.03em;
-    color: #1f2937;
+    color: #e0e0e0;
   }
   .slot-meta {
     font-size: 0.75rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #475569;
+    color: #888888;
   }
   .slot-status {
     margin-top: 4px;
@@ -325,11 +325,11 @@
   }
   .slot-status-open {
     background: rgba(34, 197, 94, 0.16);
-    color: #047857;
+    color: #22c55e;
   }
   .slot-status-busy {
     background: rgba(239, 68, 68, 0.16);
-    color: #b91c1c;
+    color: #ef4444;
   }
   .slot-remove-button {
     position: absolute;
@@ -339,8 +339,8 @@
     height: 22px;
     border-radius: 999px;
     border: none;
-    background: rgba(15, 23, 42, 0.12);
-    color: #475569;
+    background: rgba(255, 255, 255, 0.08);
+    color: #888888;
     font-size: 12px;
     line-height: 1;
     display: inline-flex;
@@ -351,7 +351,7 @@
   }
   .slot-remove-button:hover {
     background: rgba(239, 68, 68, 0.2);
-    color: #b91c1c;
+    color: #ef4444;
     transform: translateY(-1px);
   }
   @media (max-width: 640px) {
@@ -425,7 +425,7 @@
         </div>
         <a href="/tradelines" class="btn nav-btn">Tradelines</a>
         <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
-        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="You've started your journey.">
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
           <span class="text-xl">📄</span>
           <span class="font-semibold text-sm">Rookie</span>
         </div>
@@ -436,9 +436,9 @@
 <main class="max-w-7xl mx-auto p-4 space-y-6">
   <section id="scheduleHero" class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
     <div class="space-y-2">
-      <p class="text-sm uppercase tracking-[0.25em] text-slate-500">Pipeline Ops</p>
-      <h1 class="text-3xl font-semibold leading-tight text-slate-900">Schedule &amp; Timeline</h1>
-      <p class="text-sm text-slate-600 max-w-xl">Give prospects a premium touchpoint: keep consults, dispute work, and billing nudges in one conversion-first view.</p>
+      <p class="text-sm uppercase tracking-[0.25em] text-gray-500">Pipeline Ops</p>
+      <h1 class="text-3xl font-semibold leading-tight text-white">Schedule &amp; Timeline</h1>
+      <p class="text-sm text-gray-400 max-w-xl">Give prospects a premium touchpoint: keep consults, dispute work, and billing nudges in one conversion-first view.</p>
     </div>
     <div class="flex flex-col gap-3 md:items-end">
       <button id="newEvent" class="btn w-full md:w-auto">New Event</button>
@@ -450,27 +450,27 @@
     <aside class="space-y-6">
       <div id="scheduleUpcoming" class="glass card space-y-4">
         <div>
-          <p class="text-xs uppercase tracking-wide text-slate-500">Upcoming Pipeline</p>
-          <h2 class="text-xl font-semibold text-slate-900">Next Touchpoints</h2>
+          <p class="text-xs uppercase tracking-wide text-gray-500">Upcoming Pipeline</p>
+          <h2 class="text-xl font-semibold text-white">Next Touchpoints</h2>
         </div>
         <div id="appointmentList" class="space-y-3"></div>
       </div>
       <div id="bookedCallsSection" class="glass card space-y-4">
         <div>
-          <p class="text-xs uppercase tracking-wide text-slate-500">Client Bookings</p>
-          <h2 class="text-xl font-semibold text-slate-900">Booked Calls</h2>
+          <p class="text-xs uppercase tracking-wide text-gray-500">Client Bookings</p>
+          <h2 class="text-xl font-semibold text-white">Booked Calls</h2>
         </div>
         <div id="bookedCallsList" class="space-y-3">
-          <p class="text-sm text-slate-400">Loading...</p>
+          <p class="text-sm text-gray-500">Loading...</p>
         </div>
       </div>
       <div id="scheduleDaily" class="glass card space-y-3">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-xs uppercase tracking-wide text-slate-500">Focus</p>
-            <h3 class="text-lg font-semibold text-slate-900">Daily Gameplan</h3>
+            <p class="text-xs uppercase tracking-wide text-gray-500">Focus</p>
+            <h3 class="text-lg font-semibold text-white">Daily Gameplan</h3>
           </div>
-          <span class="text-xs text-slate-500" id="focusTitle"></span>
+          <span class="text-xs text-gray-500" id="focusTitle"></span>
         </div>
         <div id="dayStrip" class="space-y-4"></div>
       </div>
@@ -479,15 +479,15 @@
     <div id="scheduleCalendar" class="glass card calendar-shell space-y-4">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 id="calTitle" class="text-2xl font-semibold text-slate-900"></h2>
-          <p id="calSubtitle" class="text-xs uppercase tracking-wide text-slate-500"></p>
+          <h2 id="calTitle" class="text-2xl font-semibold text-white"></h2>
+          <p id="calSubtitle" class="text-xs uppercase tracking-wide text-gray-500"></p>
         </div>
         <div class="flex items-center gap-2">
           <button id="prevMonth" class="btn h-10 w-10 rounded-full" aria-label="Previous Month">&#x2039;</button>
           <button id="nextMonth" class="btn h-10 w-10 rounded-full" aria-label="Next Month">&#x203A;</button>
         </div>
       </div>
-      <div class="grid grid-cols-7 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div class="grid grid-cols-7 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
         <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
       </div>
       <div id="calendar" class="calendar-grid"></div>
@@ -497,7 +497,7 @@
 
 <div id="eventModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/50">
   <div class="flex min-h-full items-center justify-center px-4 py-8">
-    <div class="modal-panel w-full max-w-4xl space-y-6 rounded-3xl bg-white/95 p-6 shadow-2xl">
+    <div class="modal-panel w-full max-w-4xl space-y-6 rounded-3xl bg-[#111113] p-6 shadow-2xl">
       <div class="modal-hero">
         <div class="space-y-3">
           <p id="eventModalMode" class="modal-hero-mode">Book premium touchpoint</p>
@@ -517,7 +517,7 @@
           <div class="modal-card space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="section-label">Date &amp; time</p>
-              <span id="eventModalTypeBadge" class="hidden rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-600"></span>
+              <span id="eventModalTypeBadge" class="hidden rounded-full border border-[rgba(212,168,83,0.25)] bg-[rgba(212,168,83,0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d4a853]"></span>
             </div>
             <div class="space-y-3">
               <label class="block">
@@ -547,7 +547,7 @@
                 <span>Details</span>
                 <input id="eventText" type="text" class="input mt-1 w-full" placeholder="Client + goal (ex. Perez - FCRA timeline)">
               </label>
-              <p class="text-[11px] text-slate-500">State the objective without promising outcomes.</p>
+              <p class="text-[11px] text-gray-500">State the objective without promising outcomes.</p>
             </div>
           </div>
         </section>
@@ -566,22 +566,22 @@
               <input id="customSlotLabel" type="text" class="input flex-1" placeholder="Label your slot (optional)">
               <button id="saveCustomSlot" type="button" class="btn btn-outline whitespace-nowrap">Save custom slot</button>
             </div>
-            <p id="customSlotNotice" class="text-[11px] text-slate-500">Use the start/end fields above to define your own slot—we'll remember it on this browser.</p>
+            <p id="customSlotNotice" class="text-[11px] text-gray-500">Use the start/end fields above to define your own slot—we'll remember it on this browser.</p>
           </div>
           <div class="modal-card space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="section-label">Curated quick slots</p>
-              <button id="toggleSlotPresetEditor" type="button" class="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-600 transition hover:bg-violet-100" aria-expanded="false">Customize quick slots</button>
+              <button id="toggleSlotPresetEditor" type="button" class="inline-flex items-center rounded-full border border-[rgba(212,168,83,0.25)] bg-[rgba(212,168,83,0.08)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#d4a853] transition hover:bg-violet-100" aria-expanded="false">Customize quick slots</button>
             </div>
-            <p class="text-[11px] text-slate-500">Tune the preset times to match your consult cadence.</p>
+            <p class="text-[11px] text-gray-500">Tune the preset times to match your consult cadence.</p>
             <div id="slotPresetEditor" class="hidden space-y-3">
               <div id="slotPresetList" class="space-y-2"></div>
               <div class="flex flex-wrap gap-2">
-                <button id="addSlotPreset" type="button" class="btn-ghost text-xs font-semibold text-violet-600">Add slot</button>
+                <button id="addSlotPreset" type="button" class="btn-ghost text-xs font-semibold text-[#d4a853]">Add slot</button>
                 <button id="resetSlotPresets" type="button" class="btn-outline text-xs font-semibold">Reset defaults</button>
                 <button id="saveSlotPresets" type="button" class="btn text-xs font-semibold">Save quick slots</button>
               </div>
-              <p id="slotPresetNotice" class="text-[11px] text-slate-500">Saved per browser; type keywords (consult/follow-up/dispute/billing) drive colors.</p>
+              <p id="slotPresetNotice" class="text-[11px] text-gray-500">Saved per browser; type keywords (consult/follow-up/dispute/billing) drive colors.</p>
             </div>
           </div>
         </section>

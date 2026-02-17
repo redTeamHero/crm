@@ -70,7 +70,7 @@
         </div>
         <a href="/tradelines" class="btn nav-btn">Tradelines</a>
         <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
-        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="You've started your journey.">
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
           <span class="text-xl">📄</span>
           <span class="font-semibold text-sm">Rookie</span>
         </div>
@@ -84,11 +84,11 @@
       <span class="text-3xl">🚀</span>
       <div>
         <h1 class="text-2xl font-bold" data-i18n="marketing.hero.title">Marketing Launchpad</h1>
-        <p class="text-sm text-slate-600" data-i18n="marketing.hero.subtitle">Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.</p>
+        <p class="text-sm text-gray-400" data-i18n="marketing.hero.subtitle">Plan premium credit-repair journeys, nurture leads, and prep conversion-focused automations before you wire them into Twilio, SendGrid, or any integration.</p>
         <span id="marketingChannelBadge" class="chip hidden text-xs font-semibold uppercase tracking-wide"></span>
       </div>
     </div>
-    <p class="text-xs text-slate-500" data-i18n="marketing.hero.tip">Tip: document every touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.</p>
+    <p class="text-xs text-gray-500" data-i18n="marketing.hero.tip">Tip: document every touchpoint to stay compliant, boost trust, and prime upsells. Once the backend hooks are live, these tiles can push payloads directly to your automation queue.</p>
   </header>
 
   <!-- SMS Campaign Builder -->
@@ -98,17 +98,17 @@
         <span class="text-2xl">📱</span>
         <div>
           <h2 id="sms-builder-heading" class="text-xl font-semibold" data-i18n="marketing.smsBuilder.heading">SMS Campaign Builder</h2>
-          <p class="text-sm text-slate-600" data-i18n="marketing.smsBuilder.description">Craft compliant outreach, personalize with merge fields, and preview the mobile experience before launch.</p>
+          <p class="text-sm text-gray-400" data-i18n="marketing.smsBuilder.description">Craft compliant outreach, personalize with merge fields, and preview the mobile experience before launch.</p>
         </div>
       </div>
-      <div class="flex flex-wrap gap-2 text-xs text-slate-500">
-        <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.kpi">Suggested KPI: Reply Rate</span>
-        <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.upsell">Upsell: SMS Concierge Follow-up</span>
-        <span class="chip bg-white/60" data-i18n="marketing.smsBuilder.experiment">A/B Test: CTA “Book Call” vs “Explore your plan”</span>
+      <div class="flex flex-wrap gap-2 text-xs text-gray-500">
+        <span class="chip bg-[rgba(18,18,22,0.95)]" data-i18n="marketing.smsBuilder.kpi">Suggested KPI: Reply Rate</span>
+        <span class="chip bg-[rgba(18,18,22,0.95)]" data-i18n="marketing.smsBuilder.upsell">Upsell: SMS Concierge Follow-up</span>
+        <span class="chip bg-[rgba(18,18,22,0.95)]" data-i18n="marketing.smsBuilder.experiment">A/B Test: CTA “Book Call” vs “Explore your plan”</span>
       </div>
     </div>
     <div class="grid gap-6 lg:grid-cols-2">
-      <form class="glass card bg-white/70 shadow-inner space-y-4" id="smsForm">
+      <form class="glass card bg-[rgba(18,18,22,0.7)] shadow-inner space-y-4" id="smsForm">
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium" for="smsCampaignName" data-i18n="marketing.smsBuilder.campaignName">Campaign Name</label>
           <input id="smsCampaignName" class="input" type="text" placeholder="Fall Promo Launch" data-i18n-placeholder="marketing.smsBuilder.campaignPlaceholder" />
@@ -125,7 +125,7 @@
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-between gap-2">
             <label class="text-sm font-medium" for="smsMessage" data-i18n="marketing.smsBuilder.messageLabel">Message</label>
-            <div class="flex items-center gap-2 text-xs text-slate-500">
+            <div class="flex items-center gap-2 text-xs text-gray-500">
               <label class="sr-only" for="mergeFieldSelect" data-i18n="marketing.smsBuilder.insertMerge">Insert Merge Field</label>
               <select id="mergeFieldSelect" class="input text-xs py-1 px-2">
                 <option value="" data-i18n="marketing.smsBuilder.personalize">+ Personalize</option>
@@ -138,7 +138,7 @@
             </div>
           </div>
           <textarea id="smsMessage" class="input min-h-[140px]" placeholder="Hi {{first_name}}, we spotted a dispute update ready for review. Tap to confirm your next step." data-i18n-placeholder="marketing.smsBuilder.messagePlaceholder"></textarea>
-          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
             <span><span data-i18n="marketing.smsBuilder.characterLabel">Character Count:</span> <span id="smsCharCount">0/160</span></span>
             <div class="flex items-center gap-1" aria-label="Quick merge fields">
               <button type="button" class="chip" data-token="{{first_name}}">{{first_name}}</button>
@@ -149,21 +149,21 @@
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <button id="smsPreviewBtn" class="btn" type="button" data-i18n="marketing.smsBuilder.previewButton">Preview SMS</button>
-          <button id="smsTestBtn" class="btn bg-slate-900" type="button" data-i18n="marketing.smsBuilder.sendTestButton">Send Test</button>
-          <span class="text-xs text-slate-500" data-i18n="marketing.smsBuilder.guardrails">Guardrails: opt-out copy auto-appended, rate-limited when live.</span>
+          <button id="smsTestBtn" class="btn bg-[#0a0a0a]" type="button" data-i18n="marketing.smsBuilder.sendTestButton">Send Test</button>
+          <span class="text-xs text-gray-500" data-i18n="marketing.smsBuilder.guardrails">Guardrails: opt-out copy auto-appended, rate-limited when live.</span>
         </div>
       </form>
       <aside class="flex justify-center">
-        <div class="relative w-[280px] max-w-full rounded-[30px] border border-slate-900/10 bg-slate-900 text-white shadow-[0_0_0_8px_rgba(255,255,255,0.2)]">
+        <div class="relative w-[280px] max-w-full rounded-[30px] border border-gray-800 bg-[#0a0a0a] text-white shadow-[0_0_0_8px_rgba(255,255,255,0.2)]">
           <div class="absolute inset-x-12 top-3 h-6 rounded-full bg-black/50"></div>
           <div class="p-6 pt-14 space-y-4">
-            <div class="text-sm text-slate-300" data-i18n="marketing.smsBuilder.previewBadge">Preview • Twilio Ready</div>
+            <div class="text-sm text-gray-400" data-i18n="marketing.smsBuilder.previewBadge">Preview • Twilio Ready</div>
             <div class="rounded-2xl bg-gradient-to-br from-violet-600 to-fuchsia-500 p-4 text-sm leading-6" id="smsPreviewBubble">
               Hi Alex 👋🏻
               Revolv.AI spotted a Metro-2 update for your {{dispute_stage}}.
               Tap here to review → https://go.revolv.ai/next
             </div>
-            <div class="rounded-2xl border border-white/10 bg-white/5 p-3 text-[11px] text-slate-200" data-i18n="marketing.smsBuilder.previewNote">
+            <div class="rounded-2xl border border-white/10 bg-[rgba(255,255,255,0.03)] p-3 text-[11px] text-gray-400" data-i18n="marketing.smsBuilder.previewNote">
               Personalization sample uses demo data. Final send will use live CRM fields.
             </div>
           </div>
@@ -179,21 +179,21 @@
         <span class="text-2xl">💌</span>
         <div>
           <h2 id="email-builder-heading" class="text-xl font-semibold" data-i18n="marketing.emailBuilder.heading">Email Template Designer</h2>
-          <p class="text-sm text-slate-600" data-i18n="marketing.emailBuilder.description">Organize nurture flows, automate onboarding, and prep branded sends before you connect SendGrid or Postalytics.</p>
+          <p class="text-sm text-gray-400" data-i18n="marketing.emailBuilder.description">Organize nurture flows, automate onboarding, and prep branded sends before you connect SendGrid or Postalytics.</p>
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-        <span class="chip bg-white/60" data-i18n="marketing.emailBuilder.metricChip">Metric: Open → Consult %</span>
-        <span class="chip bg-white/60" data-i18n="marketing.emailBuilder.automationChip">Automation idea: 7-day roadmap drip</span>
-        <span class="chip bg-white/60" data-i18n="marketing.emailBuilder.experimentChip">CTA Test: “Schedule Strategy Call” vs “Explore your plan”</span>
+      <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+        <span class="chip bg-[rgba(18,18,22,0.95)]" data-i18n="marketing.emailBuilder.metricChip">Metric: Open → Consult %</span>
+        <span class="chip bg-[rgba(18,18,22,0.95)]" data-i18n="marketing.emailBuilder.automationChip">Automation idea: 7-day roadmap drip</span>
+        <span class="chip bg-[rgba(18,18,22,0.95)]" data-i18n="marketing.emailBuilder.experimentChip">CTA Test: “Schedule Strategy Call” vs “Explore your plan”</span>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2 text-sm">
           <button class="btn" id="btnAddTemplate" type="button" data-i18n="marketing.emailBuilder.newTemplate">New Template</button>
-          <button class="btn bg-slate-900" id="btnImportHtml" type="button" data-i18n="marketing.emailBuilder.importHtml">Import HTML</button>
+          <button class="btn bg-[#0a0a0a]" id="btnImportHtml" type="button" data-i18n="marketing.emailBuilder.importHtml">Import HTML</button>
           <input class="hidden" id="htmlImportInput" type="file" accept=".html,text/html" aria-hidden="true" tabindex="-1" />
         </div>
-        <div class="flex items-center gap-2 text-xs text-slate-500">
+        <div class="flex items-center gap-2 text-xs text-gray-500">
           <label class="sr-only" for="templateFilter" data-i18n="marketing.emailBuilder.filterLabel">Segment</label>
           <select id="templateFilter" class="input text-xs py-1 px-2">
             <option value="all" data-i18n="marketing.emailBuilder.filters.all">All Segments</option>
@@ -206,7 +206,7 @@
       </div>
     </div>
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3" id="emailTemplateGrid">
-      <p id="templatesEmpty" class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-4 text-sm text-slate-500" data-i18n="marketing.emailBuilder.emptyState">Templates load from the backend. Use “New Template” to save your first design.</p>
+      <p id="templatesEmpty" class="rounded-lg border border-dashed border-gray-700 bg-[rgba(18,18,22,0.6)] p-4 text-sm text-gray-500" data-i18n="marketing.emailBuilder.emptyState">Templates load from the backend. Use “New Template” to save your first design.</p>
     </div>
   </section>
 
@@ -216,7 +216,7 @@
       <span class="text-2xl">🤖</span>
       <div>
         <h2 id="automation-center-heading" class="text-xl font-semibold">Automation Control Center</h2>
-        <p class="text-sm text-slate-600">Wire SMS templates, email sequences, and dispatch schedules to monetize automated follow-ups. Automate campaigns and flag vendors as ready.</p>
+        <p class="text-sm text-gray-400">Wire SMS templates, email sequences, and dispatch schedules to monetize automated follow-ups. Automate campaigns and flag vendors as ready.</p>
       </div>
     </div>
 
@@ -224,9 +224,9 @@
       <div class="space-y-4" data-channel="sms">
         <header class="flex flex-col gap-1">
           <h3 class="text-lg font-semibold">SMS Template Manager</h3>
-          <p class="text-xs text-slate-500">Draft compliant copy, store via <code>POST /api/marketing/sms-templates</code>, upsell concierge follow-ups.</p>
+          <p class="text-xs text-gray-500">Draft compliant copy, store via <code>POST /api/marketing/sms-templates</code>, upsell concierge follow-ups.</p>
         </header>
-        <form id="smsTemplateForm" class="glass card bg-white/80 p-4 space-y-3">
+        <form id="smsTemplateForm" class="glass card p-4 space-y-3">
           <div class="grid gap-2">
           <label class="text-sm font-medium" for="smsTemplateTitle">Template Title</label>
             <input id="smsTemplateTitle" name="title" class="input" placeholder="Re-activation Nurture" required />
@@ -244,20 +244,20 @@
             <label class="text-sm font-medium" for="smsTemplateBody">Message Body</label>
             <textarea id="smsTemplateBody" name="body" class="input h-32" placeholder="Hey {{first_name}}, your Metro-2 audit is ready. Schedule your consult here → {{cta_link}}" required></textarea>
           </div>
-            <div class="flex items-center justify-between text-xs text-slate-500">
+            <div class="flex items-center justify-between text-xs text-gray-500">
               <span>Include opt-out language. Add “Reply STOP” when this goes live.</span>
               <button class="btn" type="submit">Save Template</button>
             </div>
-          <p id="smsTemplateStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+          <p id="smsTemplateStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]"></p>
         </form>
-        <ul id="smsTemplateList" class="space-y-3 text-sm text-slate-600"></ul>
+        <ul id="smsTemplateList" class="space-y-3 text-sm text-gray-400"></ul>
       </div>
       <div class="space-y-4" data-channel="email">
         <header class="flex flex-col gap-1">
           <h3 class="text-lg font-semibold">Email Sequence Builder</h3>
-          <p class="text-xs text-slate-500">Log nurture flows and push to <code>POST /api/marketing/email/sequences</code>. Document your value ladders.</p>
+          <p class="text-xs text-gray-500">Log nurture flows and push to <code>POST /api/marketing/email/sequences</code>. Document your value ladders.</p>
         </header>
-        <form id="emailSequenceForm" class="glass card bg-white/80 p-4 space-y-3">
+        <form id="emailSequenceForm" class="glass card p-4 space-y-3">
             <div class="grid gap-2">
               <label class="text-sm font-medium" for="sequenceTitle">Sequence Name</label>
               <input id="sequenceTitle" name="title" class="input" placeholder="7-Day Dispute Warm-Up" required />
@@ -290,15 +290,15 @@
                 <button id="addSequenceStep" class="btn text-xs" type="button">Add Step</button>
               </div>
               <div id="sequenceSteps" class="space-y-3"></div>
-              <p class="text-xs text-slate-500">Tip: tie at least one step to Stripe checkout or compliance doc delivery.</p>
+              <p class="text-xs text-gray-500">Tip: tie at least one step to Stripe checkout or compliance doc delivery.</p>
             </div>
-            <div class="flex items-center justify-between text-xs text-slate-500">
+            <div class="flex items-center justify-between text-xs text-gray-500">
               <span>Preview before live send.</span>
               <button class="btn" type="submit">Save Sequence</button>
             </div>
-          <p id="emailSequenceStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+          <p id="emailSequenceStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]"></p>
         </form>
-        <ul id="emailSequenceList" class="space-y-3 text-sm text-slate-600"></ul>
+        <ul id="emailSequenceList" class="space-y-3 text-sm text-gray-400"></ul>
       </div>
     </div>
 
@@ -306,9 +306,9 @@
       <div class="space-y-4">
         <header class="flex flex-col gap-1">
           <h3 class="text-lg font-semibold">Dispatch Scheduler</h3>
-          <p class="text-xs text-slate-500">Queue campaigns via <code>POST /api/marketing/email/dispatches</code>. Perfect for consult reminders and upsell drops.</p>
+          <p class="text-xs text-gray-500">Queue campaigns via <code>POST /api/marketing/email/dispatches</code>. Perfect for consult reminders and upsell drops.</p>
         </header>
-        <form id="dispatchForm" class="glass card bg-white/80 p-4 space-y-3">
+        <form id="dispatchForm" class="glass card p-4 space-y-3">
           <div class="grid gap-2 md:grid-cols-2">
             <div class="flex flex-col gap-2">
               <label class="text-sm font-medium" for="dispatchType">Target</label>
@@ -350,32 +350,32 @@
               <label class="text-sm font-medium" for="dispatchNotes">Notes</label>
             <textarea id="dispatchNotes" name="notes" class="input h-20" placeholder="Record CTA, compliance disclaimers, premium promise."></textarea>
           </div>
-            <div class="flex items-center justify-between text-xs text-slate-500">
+            <div class="flex items-center justify-between text-xs text-gray-500">
               <span>Track consult set % and refunds to iterate.</span>
               <button class="btn" type="submit">Schedule</button>
             </div>
-          <p id="dispatchStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
+          <p id="dispatchStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]"></p>
         </form>
       </div>
       <div class="space-y-4">
           <header class="flex items-center justify-between">
             <h3 class="text-lg font-semibold">Upcoming Dispatches</h3>
-            <span class="text-[10px] uppercase text-slate-400">Auto-refresh ready</span>
+            <span class="text-[10px] uppercase text-gray-500">Auto-refresh ready</span>
           </header>
-        <ul id="dispatchList" class="space-y-3 text-sm text-slate-600"></ul>
+        <ul id="dispatchList" class="space-y-3 text-sm text-gray-400"></ul>
       </div>
     </div>
   </section>
 
-  <div id="templateEditorModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4" data-channel="email">
-    <div class="glass card w-full max-w-3xl space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="templateEditorHeading">
+  <div id="templateEditorModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/60 p-4" data-channel="email">
+    <div class="glass card w-full max-w-3xl space-y-4" role="dialog" aria-modal="true" aria-labelledby="templateEditorHeading">
       <header class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 id="templateEditorHeading" class="text-lg font-semibold" data-i18n="marketing.emailBuilder.editor.title">Email Template Editor</h3>
-          <p class="text-xs text-slate-500" data-i18n="marketing.emailBuilder.editor.subtitle">Edit conversion journeys, update CTA copy, and sync with automations.</p>
+          <p class="text-xs text-gray-500" data-i18n="marketing.emailBuilder.editor.subtitle">Edit conversion journeys, update CTA copy, and sync with automations.</p>
         </div>
         <div class="flex flex-wrap gap-2 text-xs">
-          <button class="btn bg-slate-900" type="button" data-close-template-editor data-i18n="marketing.emailBuilder.editor.close">Close</button>
+          <button class="btn bg-[#0a0a0a]" type="button" data-close-template-editor data-i18n="marketing.emailBuilder.editor.close">Close</button>
         </div>
       </header>
       <form id="templateEditorForm" class="space-y-4">
@@ -409,16 +409,16 @@
               <textarea id="templateEditorHtml" name="html" class="input min-h-[200px] font-mono text-xs" placeholder="<h1>Welcome</h1>"></textarea>
             </div>
           </div>
-          <aside class="flex flex-col gap-2 rounded-xl border border-dashed border-slate-300 bg-white/70 p-4">
-            <div class="flex items-center justify-between text-xs text-slate-500">
+          <aside class="flex flex-col gap-2 rounded-xl border border-dashed border-gray-700 bg-[#111113] p-4">
+            <div class="flex items-center justify-between text-xs text-gray-500">
               <span data-i18n="marketing.emailBuilder.editor.previewLabel">Live Preview</span>
               <span id="templateEditorMeta" class="text-[10px] uppercase"></span>
             </div>
-            <div id="templateEditorPreview" class="min-h-[240px] overflow-auto rounded-lg bg-white p-3 text-sm text-slate-700 shadow-inner"></div>
-            <p class="text-[11px] text-slate-500" data-i18n="marketing.emailBuilder.editor.previewHint">Merge fields render with sample data. Final send pulls CRM values.</p>
+            <div id="templateEditorPreview" class="min-h-[240px] overflow-auto rounded-lg bg-[#1a1a1a] p-3 text-sm text-gray-300 shadow-inner"></div>
+            <p class="text-[11px] text-gray-500" data-i18n="marketing.emailBuilder.editor.previewHint">Merge fields render with sample data. Final send pulls CRM values.</p>
           </aside>
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
           <span data-i18n="marketing.emailBuilder.editor.guardrail">No promises of guaranteed results. Track consult conversion % and Stripe upsell.</span>
           <div class="flex flex-wrap gap-2">
             <button class="btn" type="submit" data-i18n="marketing.emailBuilder.editor.save">Save Template</button>
@@ -430,14 +430,14 @@
     </div>
   </div>
 
-  <div id="campaignModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
-    <div class="glass card w-full max-w-3xl space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="campaignModalHeading">
+  <div id="campaignModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/60 p-4">
+    <div class="glass card w-full max-w-3xl space-y-4" role="dialog" aria-modal="true" aria-labelledby="campaignModalHeading">
       <header class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 id="campaignModalHeading" class="text-lg font-semibold">Campaign Planner</h3>
-          <p class="text-xs text-slate-500">Map segments, KPIs, and next touch so automations stay compliant.</p>
+          <p class="text-xs text-gray-500">Map segments, KPIs, and next touch so automations stay compliant.</p>
         </div>
-        <button class="btn bg-slate-900" type="button" data-close-campaign>Close</button>
+        <button class="btn bg-[#0a0a0a]" type="button" data-close-campaign>Close</button>
       </header>
       <form id="campaignForm" class="space-y-4">
         <div class="grid gap-3 md:grid-cols-2">
@@ -470,7 +470,7 @@
             <label class="text-sm font-medium" for="campaignProgress">Progress</label>
             <div class="flex items-center gap-3">
               <input id="campaignProgress" name="progress" class="flex-1" type="range" min="0" max="100" step="1" value="0" />
-              <span id="campaignProgressValue" class="w-12 text-right text-xs text-slate-600">0%</span>
+              <span id="campaignProgressValue" class="w-12 text-right text-xs text-gray-400">0%</span>
             </div>
           </div>
         </div>
@@ -488,7 +488,7 @@
           <label class="text-sm font-medium" for="campaignSummary">Summary / CTA notes</label>
           <textarea id="campaignSummary" name="summary" class="input h-28" placeholder="Outline the offer, CTA, and compliance promise."></textarea>
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+        <div class="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
           <span>No guaranteed score promises; log opt-out guardrails.</span>
           <div class="flex flex-wrap gap-2">
             <button class="btn" type="submit">Save Campaign</button>
@@ -506,7 +506,7 @@
       <span class="text-2xl">📊</span>
       <div>
         <h2 id="campaign-dashboard-heading" class="text-xl font-semibold" data-i18n="marketing.campaignDashboard.heading">Campaign Dashboard Preview</h2>
-        <p class="text-sm text-slate-600" data-i18n="marketing.campaignDashboard.description">Visual placeholders ready to display Twilio/SendGrid metrics, pipeline revenue, and compliance alerts.</p>
+        <p class="text-sm text-gray-400" data-i18n="marketing.campaignDashboard.description">Visual placeholders ready to display Twilio/SendGrid metrics, pipeline revenue, and compliance alerts.</p>
       </div>
     </div>
     <div class="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -519,27 +519,27 @@
           </div>
         </header>
         <div class="space-y-3" id="campaignList"></div>
-        <p id="campaignEmpty" class="hidden text-xs text-slate-500">Log your first campaign to sync metrics and upsell paths.</p>
+        <p id="campaignEmpty" class="hidden text-xs text-gray-500">Log your first campaign to sync metrics and upsell paths.</p>
       </section>
       <aside class="space-y-4">
-        <div class="glass card bg-white/80 p-4 space-y-3">
+        <div class="glass card p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="text-base font-semibold" data-i18n="marketing.campaignDashboard.metrics.heading">Metrics Placeholder</h3>
-            <span class="text-xs text-slate-500" data-i18n="marketing.campaignDashboard.metrics.badge">API ready</span>
+            <span class="text-xs text-gray-500" data-i18n="marketing.campaignDashboard.metrics.badge">API ready</span>
           </div>
-          <div class="h-36 rounded-xl border border-dashed border-slate-300 bg-white/60 flex flex-col items-center justify-center text-xs text-slate-400" data-i18n-html="marketing.campaignDashboard.metrics.placeholder">
+          <div class="h-36 rounded-xl border border-dashed border-gray-700 bg-[rgba(18,18,22,0.95)] flex flex-col items-center justify-center text-xs text-gray-500" data-i18n-html="marketing.campaignDashboard.metrics.placeholder">
             <span>Drop chart.js or Recharts here.</span>
             <span>Map open %, click %, revenue per send.</span>
           </div>
-          <ul class="space-y-2 text-xs text-slate-500">
+          <ul class="space-y-2 text-xs text-gray-500">
             <li data-i18n="marketing.campaignDashboard.metrics.bullets.track">• Track: Lead → Consult %, Consult → Paid %, Refund %</li>
             <li data-i18n="marketing.campaignDashboard.metrics.bullets.alerts">• Alerts: Opt-out spikes, deliverability drops</li>
             <li data-i18n="marketing.campaignDashboard.metrics.bullets.next">• Next: Slack webhook for at-risk campaigns</li>
           </ul>
         </div>
-        <div class="glass card bg-white/80 p-4 space-y-3">
+        <div class="glass card p-4 space-y-3">
           <h3 class="text-base font-semibold" data-i18n="marketing.campaignDashboard.experiments.heading">Experiments Queue</h3>
-          <ul class="space-y-2 text-xs text-slate-500" id="experimentIdeas">
+          <ul class="space-y-2 text-xs text-gray-500" id="experimentIdeas">
             <li data-i18n="marketing.campaignDashboard.experiments.item1">1️⃣ Pricing anchor: “$49 Strategy Session” vs “$0 Discovery”</li>
             <li data-i18n="marketing.campaignDashboard.experiments.item2">2️⃣ CTA microcopy: “Start audit” vs “Start your audit”</li>
             <li data-i18n="marketing.campaignDashboard.experiments.item3">3️⃣ Social proof position: testimonials vs score visualizer</li>
@@ -555,19 +555,19 @@
       <span class="text-2xl">🧩</span>
       <div>
         <h2 id="integration-checklist-heading" class="text-xl font-semibold" data-i18n="marketing.integration.heading">Integration Checklist</h2>
-        <p class="text-sm text-slate-600" data-i18n="marketing.integration.description">Wire this UI to Twilio, SendGrid, and other services without losing compliance.</p>
+        <p class="text-sm text-gray-400" data-i18n="marketing.integration.description">Wire this UI to Twilio, SendGrid, and other services without losing compliance.</p>
       </div>
     </div>
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
       <div class="space-y-4">
         <h3 class="text-base font-semibold" data-i18n="marketing.integration.stepsTitle">Steps to Activate</h3>
-        <ol class="list-decimal list-inside space-y-2 text-sm text-slate-600" id="integrationSteps">
+        <ol class="list-decimal list-inside space-y-2 text-sm text-gray-400" id="integrationSteps">
           <li data-i18n-html="marketing.integration.steps.collect">Collect API keys and SIDs; store them in <code>.env</code> or Settings → Integrations.</li>
           <li data-i18n-html="marketing.integration.steps.providers">Call <code>PATCH /api/marketing/providers/:id</code> to mark providers as <span class="font-semibold">ready</span>.</li>
           <li data-i18n-html="marketing.integration.steps.tests">Trigger <code>POST /api/marketing/tests</code> from “Send Test” to validate payloads.</li>
           <li data-i18n="marketing.integration.steps.worker">Connect a worker that consumes the queue and triggers Twilio/SendGrid with logs.</li>
         </ol>
-        <div class="rounded-xl bg-slate-900 text-white p-4 space-y-2 text-xs">
+        <div class="rounded-xl bg-[#0a0a0a] text-white p-4 space-y-2 text-xs">
           <div class="flex items-center justify-between text-sm">
             <span class="font-semibold" data-i18n="marketing.integration.curl.heading">cURL Smoke Test</span>
             <span class="uppercase tracking-wide text-[10px] text-violet-200" data-i18n="marketing.integration.curl.badge">Dev only</span>
@@ -579,23 +579,23 @@
         </div>
       </div>
       <div class="space-y-4">
-        <div class="glass card bg-white/80 p-4 space-y-3">
+        <div class="glass card p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="text-base font-semibold" data-i18n="marketing.integration.queue.heading">Queued Test Sends</h3>
             <button class="btn text-xs" id="refreshQueueBtn" type="button" data-i18n="marketing.integration.queue.refresh">Refresh</button>
           </div>
-          <ul id="testQueueList" class="space-y-2 text-xs text-slate-600">
-            <li class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-3" data-i18n="marketing.integration.queue.empty">Run “Send Test” to see items here.</li>
+          <ul id="testQueueList" class="space-y-2 text-xs text-gray-400">
+            <li class="rounded-lg border border-dashed border-gray-700 bg-[rgba(18,18,22,0.6)] p-3" data-i18n="marketing.integration.queue.empty">Run “Send Test” to see items here.</li>
           </ul>
         </div>
-        <div class="glass card bg-white/80 p-4 space-y-3">
+        <div class="glass card p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="text-base font-semibold" data-i18n="marketing.integration.providers.heading">Provider Status</h3>
-            <span class="text-[10px] uppercase text-slate-400" data-i18n="marketing.integration.providers.badge">Live sync</span>
+            <span class="text-[10px] uppercase text-gray-500" data-i18n="marketing.integration.providers.badge">Live sync</span>
           </div>
-          <p id="providerStatusStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700"></p>
-          <ul id="providerStatusList" class="space-y-2 text-xs text-slate-600">
-            <li class="rounded-lg border border-dashed border-slate-300 bg-white/50 p-3" data-i18n="marketing.integration.providers.empty">Use the API to register Twilio/SendGrid credentials.</li>
+          <p id="providerStatusStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]"></p>
+          <ul id="providerStatusList" class="space-y-2 text-xs text-gray-400">
+            <li class="rounded-lg border border-dashed border-gray-700 bg-[rgba(18,18,22,0.6)] p-3" data-i18n="marketing.integration.providers.empty">Use the API to register Twilio/SendGrid credentials.</li>
           </ul>
         </div>
       </div>
@@ -604,14 +604,14 @@
 
 </main>
 
-<div id="testModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
-  <div class="glass card max-w-md w-full space-y-4 bg-white/90" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
+<div id="testModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/60 p-4">
+  <div class="glass card max-w-md w-full space-y-4 bg-[#111113]" role="dialog" aria-modal="true" aria-labelledby="testModalTitle">
     <div class="flex items-center justify-between">
       <div>
         <h3 id="testModalTitle" class="text-lg font-semibold" data-i18n="marketing.testModal.title">Send Test Message</h3>
-        <p class="text-xs text-slate-500" data-i18n="marketing.testModal.subtitle">Simulate a Twilio/SendGrid call. No live sends.</p>
+        <p class="text-xs text-gray-500" data-i18n="marketing.testModal.subtitle">Simulate a Twilio/SendGrid call. No live sends.</p>
       </div>
-      <button class="btn bg-slate-900" type="button" data-close-test data-i18n="marketing.testModal.close">Close</button>
+      <button class="btn bg-[#0a0a0a]" type="button" data-close-test data-i18n="marketing.testModal.close">Close</button>
     </div>
     <form class="space-y-3" id="testForm">
       <div class="flex flex-col gap-2">
@@ -629,11 +629,11 @@
         <label class="text-sm font-medium" for="testNotes" data-i18n="marketing.testModal.notesLabel">Notes</label>
         <textarea id="testNotes" name="testNotes" class="input" rows="3" placeholder="Log what you’re validating: tone, CTA, render checks." data-i18n-placeholder="marketing.testModal.notesPlaceholder"></textarea>
       </div>
-      <div class="flex items-center justify-between text-xs text-slate-500">
+      <div class="flex items-center justify-between text-xs text-gray-500">
         <span data-i18n="marketing.testModal.footerHint">Preview payload is queued via the marketing API for QA.</span>
         <button class="btn" type="submit" data-i18n="marketing.testModal.queueButton">Queue Test</button>
       </div>
-      <p id="testStatus" class="hidden rounded-lg bg-emerald-100 px-3 py-2 text-xs text-emerald-700" data-i18n="marketing.testModal.success">Queued via marketing API — list updates below.</p>
+      <p id="testStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]" data-i18n="marketing.testModal.success">Queued via marketing API — list updates below.</p>
     </form>
   </div>
 </div>

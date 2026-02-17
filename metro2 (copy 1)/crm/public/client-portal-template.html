@@ -9,14 +9,14 @@
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
   <style>
-    :root { color-scheme: light; }
+    :root { color-scheme: dark; }
     body {
       min-height: 100vh;
       background: var(--portal-background, radial-gradient(circle at top, rgba(0, 122, 255, 0.08), rgba(255, 255, 255, 0.96) 55%));
     }
   </style>
 </head>
-<body class="text-slate-900">
+<body class="text-white">
   <script>
     window.__PORTAL_BOOTSTRAP__ = {{portalBootstrap}};
     window.__PORTAL_ENHANCED__ = {{portalEnhanced}};
@@ -28,8 +28,8 @@
       <div id="mascot" class="h-10 w-10 flex-shrink-0"></div>
       <div class="min-w-0">
         <div id="companyName" class="text-sm font-semibold tracking-tight truncate">Your Client Portal</div>
-        <div id="companyTaglinePrimary" class="text-xs text-slate-500 truncate">Track disputes, uploads, and approvals in one place.</div>
-        <div id="companyTaglineSecondary" class="text-xs text-slate-500 hidden truncate">Stay on top of disputes, uploads, and approvals from one hub.</div>
+        <div id="companyTaglinePrimary" class="text-xs text-gray-500 truncate">Track disputes, uploads, and approvals in one place.</div>
+        <div id="companyTaglineSecondary" class="text-xs text-gray-500 hidden truncate">Stay on top of disputes, uploads, and approvals from one hub.</div>
       </div>
     </div>
     <nav class="sidebar-nav">
@@ -82,14 +82,14 @@
 
   <div class="portal-main-wrapper">
     <header class="portal-topbar">
-      <button id="mobileMenuBtn" class="p-2 rounded-lg hover:bg-slate-100 transition-colors" type="button" aria-label="Open menu">
+      <button id="mobileMenuBtn" class="p-2 rounded-lg hover:bg-[#111113] transition-colors" type="button" aria-label="Open menu">
         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div class="topbar-desktop-only">
-        <div class="text-sm font-semibold text-slate-700">Client Portal</div>
+        <div class="text-sm font-semibold text-gray-300">Client Portal</div>
       </div>
       <div class="flex items-center gap-3">
-        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-emerald-700 shadow-sm" title="Welcome to your portal.">
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="Welcome to your portal.">
           <span class="text-xl">✅</span>
           <span class="font-semibold text-sm">Portal Ready</span>
         </div>
@@ -104,9 +104,9 @@
 
         <section id="overview" class="space-y-6">
           <div class="flex flex-col gap-1">
-            <h2 class="text-2xl font-bold text-slate-900">Welcome back</h2>
-            <p class="text-sm text-slate-500">Your credit restoration progress at a glance.</p>
-            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
+            <h2 class="text-2xl font-bold text-white">Welcome back</h2>
+            <p class="text-sm text-gray-500">Your credit restoration progress at a glance.</p>
+            <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-1">
               <span id="currentStep">Loading tracker...</span>
               <button id="btnGoal" class="btn text-xs" type="button">Mark Today's Goal Done</button>
             </div>
@@ -126,7 +126,7 @@
               <div class="eq score-card-value">—</div>
             </div>
             <div id="scoreConfetti" class="col-span-full"></div>
-            <div id="creditScoreUpdated" class="col-span-full text-xs text-slate-500 hidden">Updated: —</div>
+            <div id="creditScoreUpdated" class="col-span-full text-xs text-gray-500 hidden">Updated: —</div>
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -135,11 +135,11 @@
                 <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-slate-700">Next Step</div>
+                <div class="text-sm font-semibold text-gray-300">Next Step</div>
               </div>
               <div id="nextStepTitle" class="text-base font-semibold">Loading your next step...</div>
-              <div id="nextStepDue" class="text-xs text-slate-500"></div>
-              <div id="nextStepNote" class="text-sm text-slate-600"></div>
+              <div id="nextStepDue" class="text-xs text-gray-500"></div>
+              <div id="nextStepNote" class="text-sm text-gray-400"></div>
               <button id="nextStepAction" class="btn text-sm hidden" type="button">View Details</button>
             </div>
             <div id="milestonesCard" class="glass card p-5 lg:col-span-1">
@@ -147,18 +147,18 @@
                 <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-slate-700">Milestones</div>
+                <div class="text-sm font-semibold text-gray-300">Milestones</div>
               </div>
-              <div id="milestones" class="text-sm text-slate-600">Milestones will appear here.</div>
+              <div id="milestones" class="text-sm text-gray-400">Milestones will appear here.</div>
             </div>
             <div id="reportSnapshotCard" class="glass card p-5 lg:col-span-1">
               <div class="flex items-center gap-2 mb-2">
                 <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-slate-700">Report Snapshot</div>
+                <div class="text-sm font-semibold text-gray-300">Report Snapshot</div>
               </div>
-              <div id="reportSnapshot" class="text-sm text-slate-600">Snapshot will load after data sync.</div>
+              <div id="reportSnapshot" class="text-sm text-gray-400">Snapshot will load after data sync.</div>
             </div>
           </div>
 
@@ -168,29 +168,29 @@
                 <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-slate-700">Your Team</div>
+                <div class="text-sm font-semibold text-gray-300">Your Team</div>
               </div>
-              <div id="teamList" class="space-y-2 text-sm text-slate-600">Team details will load here.</div>
+              <div id="teamList" class="space-y-2 text-sm text-gray-400">Team details will load here.</div>
             </div>
             <div id="newsCard" class="glass card p-5">
               <div class="flex items-center gap-2 mb-2">
                 <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-slate-700">Industry News</div>
+                <div class="text-sm font-semibold text-gray-300">Industry News</div>
               </div>
-              <div id="newsFeed" class="space-y-2 text-sm text-slate-600">Loading news...</div>
+              <div id="newsFeed" class="space-y-2 text-sm text-gray-400">Loading news...</div>
             </div>
           </div>
 
           <div id="documentsCard" class="glass card p-5">
             <div class="flex items-center gap-2 mb-3">
-              <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                <svg class="w-4 h-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <div class="w-8 h-8 rounded-lg bg-[#111113] flex items-center justify-center">
+                <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               </div>
-              <div class="text-sm font-semibold text-slate-700">Document Vault</div>
+              <div class="text-sm font-semibold text-gray-300">Document Vault</div>
             </div>
-            <div id="docListPreview" class="space-y-2 text-sm text-slate-600">Loading documents...</div>
+            <div id="docListPreview" class="space-y-2 text-sm text-gray-400">Loading documents...</div>
           </div>
 
           <div id="debtCalculatorCard" class="glass card p-5 space-y-3">
@@ -198,7 +198,7 @@
               <div class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
                 <svg class="w-4 h-4 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
               </div>
-              <div class="text-sm font-semibold text-slate-700">Debt Paydown Calculator</div>
+              <div class="text-sm font-semibold text-gray-300">Debt Paydown Calculator</div>
             </div>
             <form id="debtForm" class="grid gap-3 sm:grid-cols-4">
               <input id="debtAmount" type="number" class="input text-sm" placeholder="Balance ($)">
@@ -206,7 +206,7 @@
               <input id="debtMonths" type="number" class="input text-sm" placeholder="Months">
               <button class="btn text-sm" type="submit">Calculate</button>
             </form>
-            <div id="debtResult" class="text-sm text-slate-600"></div>
+            <div id="debtResult" class="text-sm text-gray-400"></div>
           </div>
         </section>
       </main>
@@ -217,7 +217,7 @@
           <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <div class="text-sm font-semibold">Negative Items in Dispute</div>
-              <div id="itemsSummary" class="text-xs text-slate-500">Summary will update after loading.</div>
+              <div id="itemsSummary" class="text-xs text-gray-500">Summary will update after loading.</div>
             </div>
             <div class="flex items-center gap-2">
               <input id="negativeItemSearch" class="w-full rounded border px-3 py-2 text-sm" placeholder="Search items">
@@ -230,9 +230,9 @@
           <div class="space-y-3">
             <div id="negativeItemList" class="space-y-3"></div>
           </div>
-          <div id="itemsInDispute" class="space-y-2 text-sm text-slate-600"></div>
-          <div id="itemsInDisputeEmpty" class="text-sm text-slate-500"></div>
-          <div id="itemsInDisputeText" class="text-xs text-slate-500"></div>
+          <div id="itemsInDispute" class="space-y-2 text-sm text-gray-400"></div>
+          <div id="itemsInDisputeEmpty" class="text-sm text-gray-500"></div>
+          <div id="itemsInDisputeText" class="text-xs text-gray-500"></div>
         </div>
       </section>
 
@@ -269,19 +269,19 @@
           <div class="flex items-center gap-3 mb-1">
             <div class="edu-header-icon">🎓</div>
             <div>
-              <h2 class="text-xl font-bold text-slate-900">Credit Academy</h2>
-              <p class="text-sm text-slate-500">Master your credit, one lesson at a time.</p>
+              <h2 class="text-xl font-bold text-white">Credit Academy</h2>
+              <p class="text-sm text-gray-500">Master your credit, one lesson at a time.</p>
             </div>
           </div>
           <div class="edu-xp-bar">
             <div class="edu-xp-label">
               <span class="edu-level-badge">Level 1</span>
-              <span class="text-xs text-slate-500">200 / 800 XP</span>
+              <span class="text-xs text-gray-500">200 / 800 XP</span>
             </div>
             <div class="edu-xp-track">
               <div class="edu-xp-fill" style="width:25%"></div>
             </div>
-            <div class="flex items-center gap-3 text-xs text-slate-500">
+            <div class="flex items-center gap-3 text-xs text-gray-500">
               <span>🔥 2 day streak</span>
               <span>✅ 2 of 8 complete</span>
             </div>
@@ -294,17 +294,17 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-bold text-slate-800">Document Vault</h2>
-              <p id="docCountLabel" class="text-sm text-slate-500">Your uploaded files</p>
+              <h2 class="text-lg font-bold text-white">Document Vault</h2>
+              <p id="docCountLabel" class="text-sm text-gray-500">Your uploaded files</p>
             </div>
             <div class="flex items-center gap-2">
-              <input id="docSearchInput" type="text" placeholder="Search files..." class="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-200 w-40">
+              <input id="docSearchInput" type="text" placeholder="Search files..." class="text-sm border border-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[rgba(212,168,83,0.3)] w-40">
             </div>
           </div>
           <div id="docList" class="doc-vault-grid"></div>
           <div id="docEmpty" class="hidden glass card p-8 text-center">
-            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <p class="text-sm text-slate-500">No documents uploaded yet.</p>
+            <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p class="text-sm text-gray-500">No documents uploaded yet.</p>
           </div>
         </div>
       </section>
@@ -313,8 +313,8 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-bold text-slate-800">Mail Activity</h2>
-              <p class="text-sm text-slate-500">Track your dispute letters and mailing status.</p>
+              <h2 class="text-lg font-bold text-white">Mail Activity</h2>
+              <p class="text-sm text-gray-500">Track your dispute letters and mailing status.</p>
             </div>
           </div>
           <div class="flex gap-2">
@@ -330,9 +330,9 @@
           <div id="mailWaiting" class="space-y-3"></div>
           <div id="mailMailed" class="space-y-3 hidden"></div>
           <div id="mailEmptyState" class="hidden glass card p-8 text-center">
-            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <p class="text-sm text-slate-500">No letters in this category yet.</p>
-            <p class="text-xs text-slate-400 mt-1">Generated dispute letters will appear here.</p>
+            <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <p class="text-sm text-gray-500">No letters in this category yet.</p>
+            <p class="text-xs text-gray-500 mt-1">Generated dispute letters will appear here.</p>
           </div>
         </div>
       </section>
@@ -341,25 +341,25 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-bold text-slate-800">Payments</h2>
-              <p class="text-sm text-slate-500">View and manage your invoices.</p>
+              <h2 class="text-lg font-bold text-white">Payments</h2>
+              <p class="text-sm text-gray-500">View and manage your invoices.</p>
             </div>
           </div>
           <div id="paymentSummaryCard" class="glass card p-5 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-              <svg class="w-6 h-6 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <div class="w-12 h-12 rounded-xl bg-[rgba(212,168,83,0.12)] flex items-center justify-center flex-shrink-0">
+              <svg class="w-6 h-6 text-[#d4a853]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
             <div>
-              <div class="text-xs text-slate-500 font-medium">Outstanding Balance</div>
-              <div id="paymentTotal" class="text-2xl font-bold text-slate-800">$0.00</div>
+              <div class="text-xs text-gray-500 font-medium">Outstanding Balance</div>
+              <div id="paymentTotal" class="text-2xl font-bold text-white">$0.00</div>
             </div>
           </div>
           <div id="paymentError" class="hidden glass card p-4 border-l-4 border-rose-400 text-sm text-rose-600"></div>
           <div id="paymentList" class="space-y-3"></div>
           <div id="paymentEmpty" class="hidden glass card p-8 text-center">
-            <svg class="w-12 h-12 mx-auto text-slate-300 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-            <p class="text-sm text-slate-500">No invoices yet.</p>
-            <p class="text-xs text-slate-400 mt-1">Your billing history will appear here.</p>
+            <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            <p class="text-sm text-gray-500">No invoices yet.</p>
+            <p class="text-xs text-gray-500 mt-1">Your billing history will appear here.</p>
           </div>
           <div id="payments"></div>
         </div>
@@ -370,9 +370,9 @@
           <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <div class="text-sm font-semibold">Tradeline Storefront</div>
-              <div id="tradelineMeta" class="text-xs text-slate-500">Browse authorized-user tradelines and build a cart.</div>
+              <div id="tradelineMeta" class="text-xs text-gray-500">Browse authorized-user tradelines and build a cart.</div>
             </div>
-            <div class="text-xs text-slate-500">Cart items: <span id="tradelineCartCount">0</span></div>
+            <div class="text-xs text-gray-500">Cart items: <span id="tradelineCartCount">0</span></div>
           </div>
           <div class="grid gap-4 lg:grid-cols-[2fr_1fr]">
             <div class="space-y-3">
@@ -382,18 +382,18 @@
                 <input id="tradelineSearch" class="flex-1 rounded border px-2 py-2 text-sm" placeholder="Search bank or notes">
               </div>
               <div id="tradelineList" class="grid gap-3 md:grid-cols-2"></div>
-              <div id="tradelineEmpty" class="text-sm text-slate-500"></div>
+              <div id="tradelineEmpty" class="text-sm text-gray-500"></div>
             </div>
             <div class="glass card p-3 space-y-3">
               <div class="text-sm font-semibold">Your Cart</div>
-              <div id="tradelineCartList" class="space-y-2 text-sm text-slate-700"></div>
-              <div id="tradelineCartEmpty" class="text-sm text-slate-500"></div>
+              <div id="tradelineCartList" class="space-y-2 text-sm text-gray-300"></div>
+              <div id="tradelineCartEmpty" class="text-sm text-gray-500"></div>
               <div class="flex items-center justify-between text-sm font-semibold">
                 <span>Total</span>
                 <span id="tradelineCartTotal">$0.00</span>
               </div>
               <button id="tradelineCartClear" class="btn text-xs" type="button">Clear cart</button>
-              <div class="text-xs text-slate-500">Checkout links open in a new tab and are saved per client.</div>
+              <div class="text-xs text-gray-500">Checkout links open in a new tab and are saved per client.</div>
             </div>
           </div>
         </div>
@@ -403,8 +403,8 @@
         <div id="uploads"></div>
         <div class="space-y-4">
           <div>
-            <h2 class="text-lg font-bold text-slate-800">Secure Uploads</h2>
-            <p class="text-sm text-slate-500">Upload required documents to verify your identity and start your credit repair.</p>
+            <h2 class="text-lg font-bold text-white">Secure Uploads</h2>
+            <p class="text-sm text-gray-500">Upload required documents to verify your identity and start your credit repair.</p>
           </div>
           <div id="uploadStatus" class="hidden text-sm p-3 rounded-xl"></div>
           <div class="upload-grid" id="uploadGrid">
@@ -592,8 +592,8 @@
 
         <div id="bookingStep3" class="booking-step hidden">
           <div class="p-8 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center">
-              <svg class="w-8 h-8 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[rgba(212,168,83,0.12)] flex items-center justify-center">
+              <svg class="w-8 h-8 text-[#d4a853]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <h2 class="text-xl font-bold text-gray-900 mb-2">You're All Set!</h2>
             <p id="bookingConfirmText" class="text-sm text-gray-500 mb-6"></p>
