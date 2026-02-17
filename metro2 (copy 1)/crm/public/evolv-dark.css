@@ -1832,3 +1832,171 @@ input:focus, textarea:focus, select:focus {
 canvas {
   filter: brightness(0.95) !important;
 }
+
+/* ── Lead hero dark overrides ── */
+.lead-hero {
+  background: linear-gradient(135deg, #0d0d0f 0%, #111113 55%, #0d0d0f 100%) !important;
+  border-color: rgba(212, 168, 83, 0.12) !important;
+}
+.lead-hero::after {
+  background:
+    radial-gradient(circle at 80% 20%, rgba(212, 168, 83, 0.08), transparent 60%),
+    radial-gradient(circle at 15% 75%, rgba(212, 168, 83, 0.04), transparent 65%) !important;
+}
+.lead-hero__eyebrow {
+  color: #d4a853 !important;
+}
+.lead-hero__subtitle {
+  color: rgba(200, 200, 200, 0.7) !important;
+}
+.lead-hero__stat,
+.lead-hero__kpi {
+  background: #111113 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
+.lead-hero__stat-label {
+  color: #888 !important;
+}
+.lead-hero__stat-meta {
+  color: #888 !important;
+}
+.lead-hero__kpi-label {
+  color: #d4a853 !important;
+}
+.lead-hero__kpi-copy {
+  color: rgba(200, 200, 200, 0.75) !important;
+}
+
+/* ── Metric card dark overrides ── */
+.metric-card {
+  background: #111113 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+.metric-card__label {
+  color: #888 !important;
+}
+.metric-card__value {
+  color: #f0f0f0 !important;
+}
+.metric-card__hint {
+  color: #666 !important;
+}
+
+/* ── Library page dark overrides ── */
+.library-hero {
+  background: linear-gradient(135deg, #0d0d0f 0%, #111113 55%, #0d0d0f 100%) !important;
+  border-color: rgba(212, 168, 83, 0.12) !important;
+}
+.library-hero::after {
+  background:
+    radial-gradient(circle at 20% -10%, rgba(212, 168, 83, 0.06), transparent 55%),
+    radial-gradient(circle at 80% 120%, rgba(212, 168, 83, 0.04), transparent 55%) !important;
+}
+.library-eyebrow {
+  background: rgba(212, 168, 83, 0.12) !important;
+  color: #d4a853 !important;
+}
+.library-metric {
+  background: #111113 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
+.library-metric dt {
+  color: #888 !important;
+}
+.library-metric dd {
+  color: #f0f0f0 !important;
+}
+.library-sidebar {
+  background: #111113 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+.library-sidebar__description {
+  color: #888 !important;
+}
+.library-sequence-card {
+  background: #111113 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+}
+.library-sequence-card__title {
+  color: #f0f0f0 !important;
+}
+.library-sequence-card__meta {
+  color: #888 !important;
+}
+.library-pack-card {
+  background: #111113 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+.library-pack-card__title {
+  color: #f0f0f0 !important;
+}
+.library-pack-card__body {
+  color: #888 !important;
+}
+.library-tag {
+  background: rgba(212, 168, 83, 0.1) !important;
+  color: #d4a853 !important;
+  border-color: rgba(212, 168, 83, 0.2) !important;
+}
+.library-tag--neutral {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #aaa !important;
+}
+.library-seq-step {
+  background: rgba(212, 168, 83, 0.08) !important;
+  border-color: rgba(212, 168, 83, 0.12) !important;
+  color: #d4a853 !important;
+}
+
+/* Template list items (library page letter templates) */
+.library-template-list > *,
+#templatePanel .rounded-xl,
+#templatePanel [class*="border-slate"],
+#templatePanel [class*="bg-white"] {
+  background: #111113 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  color: #e5e5e5 !important;
+}
+#templatePanel .text-slate-800,
+#templatePanel .text-slate-700,
+#templatePanel .text-slate-600,
+#templatePanel .text-gray-700,
+#templatePanel .text-gray-800 {
+  color: #e5e5e5 !important;
+}
+#templatePanel .text-slate-500,
+#templatePanel .text-gray-500 {
+  color: #888 !important;
+}
+
+.library-pill {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #e5e5e5 !important;
+}
+.library-pill:hover {
+  background: rgba(212, 168, 83, 0.1) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+}
+.library-pill--ghost {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.library-seq-option {
+  color: #ccc !important;
+}
+.library-seq-option:hover {
+  background: rgba(212, 168, 83, 0.08) !important;
+}
+
+/* Library page hero content text */
+.library-hero__content h1 {
+  color: #f0f0f0 !important;
+}
+.library-hero p,
+.library-hero .library-hero__content p {
+  color: #aaa !important;
+}

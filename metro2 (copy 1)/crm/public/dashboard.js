@@ -1941,10 +1941,83 @@ function initDashboard() {
   })();
 }
 
+function initFocusEditor() {
+  const LS_KEY = 'dashboard.dailyFocus';
+  const editBtn = document.getElementById('focusEditButton');
+  const editor = document.getElementById('focusEditor');
+  const form = document.getElementById('focusEditorForm');
+  const closeBtn = document.getElementById('focusEditorClose');
+  const cancelBtn = document.getElementById('focusEditorCancel');
+  if (!editBtn || !editor || !form) return;
+
+  function getSavedFocus() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+  }
+  function saveFocus(data) {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }
+  function applySavedFocus() {
+    const saved = getSavedFocus();
+    if (!saved.focus1 && !saved.focus2 && !saved.focus3) return;
+    const container = document.getElementById('focusList');
+    if (!container) return;
+    const items = [saved.focus1, saved.focus2, saved.focus3].filter(Boolean);
+    if (!items.length) return;
+    const opacities = ['bg-[#d4a853]/20', 'bg-[#d4a853]/15', 'bg-[#d4a853]/10'];
+    container.innerHTML = items.map((text, i) => `
+      <li class="flex items-start gap-3">
+        <span class="mt-1 flex h-6 w-6 items-center justify-center rounded-full ${opacities[i] || opacities[2]} font-semibold text-[#d4a853]">${i + 1}</span>
+        <span>${escapeHtml(text)}</span>
+      </li>
+    `).join('');
+    const revenueEl = document.getElementById('nextRevenueWin');
+    if (revenueEl && saved.revenueWin) {
+      revenueEl.textContent = saved.revenueWin;
+    }
+  }
+
+  function openEditor() {
+    const saved = getSavedFocus();
+    const focusList = document.getElementById('focusList');
+    const currentItems = focusList ? Array.from(focusList.querySelectorAll('li span:last-child')).map(s => s.textContent.trim()) : [];
+    form.elements.focus1.value = saved.focus1 || currentItems[0] || '';
+    form.elements.focus2.value = saved.focus2 || currentItems[1] || '';
+    form.elements.focus3.value = saved.focus3 || currentItems[2] || '';
+    const revenueEl = document.getElementById('nextRevenueWin');
+    form.elements.revenueWin.value = saved.revenueWin || (revenueEl ? revenueEl.textContent.trim() : '');
+    editor.classList.remove('hidden');
+    editor.classList.add('flex');
+  }
+  function closeEditor() {
+    editor.classList.add('hidden');
+    editor.classList.remove('flex');
+  }
+
+  editBtn.addEventListener('click', openEditor);
+  closeBtn?.addEventListener('click', closeEditor);
+  cancelBtn?.addEventListener('click', closeEditor);
+  editor.addEventListener('click', (e) => { if (e.target === editor) closeEditor(); });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const data = {
+      focus1: form.elements.focus1.value.trim(),
+      focus2: form.elements.focus2.value.trim(),
+      focus3: form.elements.focus3.value.trim(),
+      revenueWin: form.elements.revenueWin.value.trim()
+    };
+    saveFocus(data);
+    applySavedFocus();
+    closeEditor();
+  });
+
+  setTimeout(applySavedFocus, 500);
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initDashboard);
+  document.addEventListener('DOMContentLoaded', () => { initDashboard(); initFocusEditor(); });
 } else {
   initDashboard();
+  initFocusEditor();
 }
 
 window.addEventListener('crm:tutorial-request', (event) => {

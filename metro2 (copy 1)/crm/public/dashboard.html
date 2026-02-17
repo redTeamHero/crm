@@ -135,9 +135,12 @@
       <div id="confetti" class="pointer-events-none absolute inset-0"></div>
     </div>
     <aside class="glass card h-full p-6 space-y-6">
-      <div>
-        <h3 class="text-lg font-semibold text-white">Daily Focus</h3>
-        <p class="mt-1 text-sm text-gray-400">Keep the team aligned on one revenue move and one compliance promise.</p>
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold text-white">Daily Focus</h3>
+          <p class="mt-1 text-sm text-gray-400">Keep the team aligned on one revenue move and one compliance promise.</p>
+        </div>
+        <button id="focusEditButton" type="button" class="inline-flex items-center gap-1 rounded-full border border-[#d4a853]/30 bg-[#1a1a1a] px-3 py-1.5 text-[11px] font-semibold text-[#d4a853] shadow-sm transition hover:bg-[#d4a853]/10 focus:outline-none focus:ring-2 focus:ring-[#d4a853]/30 focus:ring-offset-1 flex-shrink-0">Edit</button>
       </div>
       <ul id="focusList" class="space-y-4 text-sm text-gray-400">
         <li class="flex items-start gap-3">
@@ -433,6 +436,41 @@
       </div>
     </div>
   </section>
+
+  <div id="focusEditor" class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/60 px-4 py-10 backdrop-blur-sm">
+    <div class="w-full max-w-lg rounded-2xl bg-[#111113] p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-semibold text-white">Edit Daily Focus</h3>
+          <p class="text-sm text-gray-400">Set your top 3 priorities for the day.</p>
+        </div>
+        <button id="focusEditorClose" type="button" class="btn text-sm" aria-label="Close editor">&times;</button>
+      </div>
+      <form id="focusEditorForm" class="mt-4 space-y-4">
+        <label class="space-y-2 text-sm font-medium text-gray-300">
+          <span>Priority 1</span>
+          <input name="focus1" class="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-gray-200 focus:border-[#d4a853] focus:outline-none" placeholder="e.g. Follow up with 3 leads" />
+        </label>
+        <label class="space-y-2 text-sm font-medium text-gray-300">
+          <span>Priority 2</span>
+          <input name="focus2" class="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-gray-200 focus:border-[#d4a853] focus:outline-none" placeholder="e.g. Send dispute letters for Smith account" />
+        </label>
+        <label class="space-y-2 text-sm font-medium text-gray-300">
+          <span>Priority 3</span>
+          <input name="focus3" class="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-gray-200 focus:border-[#d4a853] focus:outline-none" placeholder="e.g. Review consult recap emails" />
+        </label>
+        <label class="space-y-2 text-sm font-medium text-gray-300">
+          <span>Revenue Win (bottom card)</span>
+          <textarea name="revenueWin" rows="2" class="w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2 text-sm text-gray-200 focus:border-[#d4a853] focus:outline-none" placeholder="e.g. Bundle report parsing + dispute letter at $149 setup"></textarea>
+        </label>
+        <p id="focusEditorStatus" class="text-sm text-[#d4a853]"></p>
+        <div class="flex items-center justify-end gap-3">
+          <button id="focusEditorCancel" type="button" class="btn">Cancel</button>
+          <button id="focusEditorSubmit" type="submit" class="btn bg-[#d4a853] px-4 py-2 text-black shadow-sm">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <div id="ladderEditor" class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/60 px-4 py-10 backdrop-blur-sm">
     <div class="w-full max-w-xl rounded-2xl bg-[#111113] p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
