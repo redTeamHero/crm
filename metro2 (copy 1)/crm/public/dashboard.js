@@ -852,6 +852,8 @@ function createTour(){
 }
 
 async function startTour({ resume = false } = {}){
+  if (window.EvolvTour) { window.EvolvTour.start('dashboard'); }
+  return;
   if(!window.Shepherd && !tourLoadingMessageShown){
     pendingChatOpen = true;
     openChatCoach({ focusInput: false });
@@ -901,13 +903,7 @@ async function startTour({ resume = false } = {}){
 }
 
 function handleTutorialReset(){
-  if(tourInstance && typeof tourInstance.cancel === 'function'){
-    tourInstance.cancel();
-  }
-  activeTourStepId = null;
-  localStorage.removeItem(TOUR_STEP_KEY);
-  localStorage.removeItem(TOUR_COMPLETE_KEY);
-  refreshHelpGuideState();
+  if (window.EvolvTour) { window.EvolvTour.reset(); }
 }
 
 function appendChatMessage(role, content, { html = false } = {}){

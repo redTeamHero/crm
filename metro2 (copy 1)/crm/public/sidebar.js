@@ -517,6 +517,9 @@
   html += '</div>';
 
   html += '<div class="evolv-sb-bottom">';
+  html += '<a href="#" class="evolv-sb-item" data-tooltip="Guided Tour" id="evolv-sb-tour" style="color:#d4a853;">';
+  html += '<svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(50,50)"><g><path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="#c49a45" opacity="0.85"/></g><g><path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="#c49a45" opacity="0.85"/></g><ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#1a1a1a"/></g></svg>';
+  html += '<span class="evolv-sb-item-label" style="color:#d4a853;">Guided Tour</span></a>';
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Help" id="evolv-sb-help">' + svg('help', 20) + '<span class="evolv-sb-item-label">Help</span></a>';
 
   var tierBadge = document.getElementById('tierBadge');
@@ -615,6 +618,16 @@
         }
       });
     })(parentToggles[p]);
+  }
+
+  var tourBtn = sidebar.querySelector('#evolv-sb-tour');
+  if (tourBtn) {
+    tourBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (window.EvolvTour && window.EvolvTour.showMenu) {
+        window.EvolvTour.showMenu();
+      }
+    });
   }
 
   var helpBtn = sidebar.querySelector('#evolv-sb-help');

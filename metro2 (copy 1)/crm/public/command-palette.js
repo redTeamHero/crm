@@ -254,7 +254,10 @@
     { cat: 'Navigation', label: 'APIs', desc: 'API integrations', icon: 'code', action: function () { window.location.href = '/settings#api-integrations'; } },
     { cat: 'Navigation', label: 'Workflows', desc: 'Automation workflows', icon: 'zap', action: function () { window.location.href = '/workflows'; } },
     { cat: 'Action', label: 'Add Client', desc: 'Create a new client', icon: 'userPlus', action: function () { window.location.href = '/clients?action=add'; } },
-    { cat: 'Action', label: 'Help', desc: 'Open help panel', icon: 'help', action: function () { var b = document.getElementById('btnHelp'); if (b) b.click(); } }
+    { cat: 'Action', label: 'Help', desc: 'Open help panel', icon: 'help', action: function () { var b = document.getElementById('btnHelp'); if (b) b.click(); } },
+    { cat: 'Action', label: 'Guided Tour', desc: 'Butterfly mascot walks you through this page', icon: 'help', action: function () { if (window.EvolvTour) window.EvolvTour.showMenu(); } },
+    { cat: 'Action', label: 'Tour This Page', desc: 'Quick tour of the current page', icon: 'help', action: function () { if (window.EvolvTour) window.EvolvTour.start(); } },
+    { cat: 'Action', label: 'Reset Tours', desc: 'Reset all tour progress', icon: 'help', action: function () { if (window.EvolvTour) { window.EvolvTour.reset(); alert('All tour progress has been reset!'); } } }
   ];
 
   var backdrop = document.createElement('div');
