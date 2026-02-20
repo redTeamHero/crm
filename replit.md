@@ -176,6 +176,13 @@ npm run dev
   - #clientsNegativePanel now programmatically shows when a consumer is selected
   - Portal Invite and Client Portal buttons visible when consumer is active
 
+- 2026-02-20: Deployment and registration improvements
+  - Configured autoscale deployment (port 3000, node server.js)
+  - Added Stripe email validation: regex check before passing customer_email to checkout sessions (payment + subscription)
+  - Built Create Account modal on login page: full name, email, phone, company name, username, password, confirm password
+  - Server-side /api/register validation: required fields (name, email, username, password), email format, password length, username uniqueness, email uniqueness
+  - Modal uses dark glass theme consistent with existing design system
+
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)
