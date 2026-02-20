@@ -4731,6 +4731,7 @@ app.post("/api/register", async (req,res)=>{
   const db = await loadUsersDB();
   if(db.users.find(u=>u.username===username)) return res.status(400).json({ ok:false, error:"Username already taken" });
   if(db.users.find(u=>u.email && u.email === email)) return res.status(400).json({ ok:false, error:"Email already registered" });
+  const newTenantId = `tenant_${nanoid(12)}`;
   const user = normalizeUser({
     id: nanoid(10),
     username: req.body.username || "",
@@ -4739,9 +4740,9 @@ app.post("/api/register", async (req,res)=>{
     phone: req.body.phone || "",
     company: req.body.company || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
-    role: "member",
-    tenantId: req.body.tenantId || DEFAULT_TENANT_ID,
-    permissions: Array.isArray(req.body.permissions) ? req.body.permissions : []
+    role: "admin",
+    tenantId: newTenantId,
+    permissions: []
   });
   db.users.push(user);
   await saveUsersDB(db);
