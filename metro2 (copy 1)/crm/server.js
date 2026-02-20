@@ -990,7 +990,7 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
       payment_method_types: ["card"],
       success_url: success,
       cancel_url: cancel,
-      customer_email: consumer?.email || undefined,
+      customer_email: (consumer?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(consumer.email)) ? consumer.email : undefined,
       metadata,
       line_items: [
         {
@@ -4724,12 +4724,20 @@ app.put("/api/invoices/:id", async (req,res)=>{
 
 // =================== Users ===================
 app.post("/api/register", async (req,res)=>{
+  const { username, password, name, email } = req.body;
+  if (!username || !password || !name || !email) return res.status(400).json({ ok:false, error:"Name, email, username, and password are required" });
+  if (password.length < 6) return res.status(400).json({ ok:false, error:"Password must be at least 6 characters" });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ ok:false, error:"A valid email is required" });
   const db = await loadUsersDB();
-  if(db.users.find(u=>u.username===req.body.username)) return res.status(400).json({ ok:false, error:"User exists" });
+  if(db.users.find(u=>u.username===username)) return res.status(400).json({ ok:false, error:"Username already taken" });
+  if(db.users.find(u=>u.email && u.email === email)) return res.status(400).json({ ok:false, error:"Email already registered" });
   const user = normalizeUser({
     id: nanoid(10),
     username: req.body.username || "",
     name: req.body.name || "",
+    email: req.body.email || "",
+    phone: req.body.phone || "",
+    company: req.body.company || "",
     password: bcrypt.hashSync(req.body.password || "", 10),
     role: "member",
     tenantId: req.body.tenantId || DEFAULT_TENANT_ID,
@@ -8849,7 +8857,7 @@ app.post('/api/stripe/checkout', async (req, res) => {
 
     if (customerId) {
       sessionParams.customer = customerId;
-    } else if (email) {
+    } else if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       sessionParams.customer_email = email;
     }
 

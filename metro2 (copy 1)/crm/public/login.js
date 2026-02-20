@@ -125,14 +125,48 @@ document.getElementById('btnLogin').addEventListener('click', ()=>{
   handleAuth(endpoint, body, options);
 });
 
-document.getElementById('btnRegister').addEventListener('click', ()=>{
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value;
-  if(!username || !password){
-    showError('Username and password required');
-    return;
-  }
-  handleAuth('/api/register', { username, password }, { basicAuth: btoa(`${username}:${password}`) });
+function openRegisterModal() {
+  const modal = document.getElementById('registerModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  document.getElementById('registerErr').classList.add('hidden');
+  const loginUser = document.getElementById('username').value.trim();
+  if (loginUser) document.getElementById('regUsername').value = loginUser;
+}
+
+function closeRegisterModal() {
+  const modal = document.getElementById('registerModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function showRegisterError(msg) {
+  const el = document.getElementById('registerErr');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+document.getElementById('btnRegister').addEventListener('click', openRegisterModal);
+document.getElementById('closeRegisterModal').addEventListener('click', closeRegisterModal);
+document.getElementById('backToLogin').addEventListener('click', (e) => { e.preventDefault(); closeRegisterModal(); });
+document.getElementById('registerModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeRegisterModal(); });
+
+document.getElementById('btnSubmitRegister').addEventListener('click', () => {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const company = document.getElementById('regCompany').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const confirm = document.getElementById('regPasswordConfirm').value;
+
+  if (!name) { showRegisterError('Full name is required'); return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showRegisterError('A valid email is required'); return; }
+  if (!username) { showRegisterError('Username is required'); return; }
+  if (!password || password.length < 6) { showRegisterError('Password must be at least 6 characters'); return; }
+  if (password !== confirm) { showRegisterError('Passwords do not match'); return; }
+
+  handleAuth('/api/register', { name, email, phone, company, username, password }, { basicAuth: btoa(`${username}:${password}`) });
 });
 
 // simple password reset flow using prompts
