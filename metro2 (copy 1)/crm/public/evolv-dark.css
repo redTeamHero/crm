@@ -2002,16 +2002,53 @@ canvas {
   color: #aaa !important;
 }
 
-/* Theme-aware overrides for Tailwind utility classes using hardcoded gold */
-[class*="text-[#d4a853]"],
-[class*="text-\\[\\#d4a853\\]"] {
+/* Theme-aware overrides for hardcoded gold (#d4a853) across Tailwind and inline styles */
+[class*="text-[#d4a853]"] {
   color: var(--accent) !important;
 }
 [class*="bg-[#d4a853]"] {
   background-color: var(--accent) !important;
 }
+[class*="bg-[#d4a853]/5"] {
+  background-color: rgba(var(--accent-rgb), 0.05) !important;
+}
+[class*="bg-[#d4a853]/10"],
+[class*="hover:bg-[#d4a853]/10"] {
+  background-color: rgba(var(--accent-rgb), 0.1) !important;
+}
+[class*="bg-[#d4a853]/12"] {
+  background-color: rgba(var(--accent-rgb), 0.12) !important;
+}
+[class*="bg-[#d4a853]/15"],
+[class*="bg-[#d4a853]/20"] {
+  background-color: rgba(var(--accent-rgb), 0.15) !important;
+}
 [class*="border-[#d4a853]"] {
   border-color: var(--accent) !important;
+}
+[class*="border-[#d4a853]/"] {
+  border-color: rgba(var(--accent-rgb), 0.25) !important;
+}
+[class*="ring-[#d4a853]"] {
+  --tw-ring-color: var(--accent) !important;
+}
+[class*="ring-[#d4a853]/"] {
+  --tw-ring-color: rgba(var(--accent-rgb), 0.3) !important;
+}
+[class*="from-[#d4a853]"] {
+  --tw-gradient-from: var(--accent) !important;
+}
+[class*="to-[#d4a853]"] {
+  --tw-gradient-to: var(--accent) !important;
+}
+[class*="focus:border-[#d4a853]"]:focus {
+  border-color: var(--accent) !important;
+}
+[class*="focus:ring-[#d4a853]"]:focus {
+  --tw-ring-color: var(--accent) !important;
+}
+[class*="focus:ring-[#d4a853]/"]:focus {
+  --tw-ring-color: rgba(var(--accent-rgb), 0.3) !important;
 }
 [style*="color: #d4a853"],
 [style*="color:#d4a853"] {
