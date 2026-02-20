@@ -176,18 +176,6 @@ npm run dev
   - #clientsNegativePanel now programmatically shows when a consumer is selected
   - Portal Invite and Client Portal buttons visible when consumer is active
 
-- 2026-02-20: Added customizable accent color theme picker
-  - 7 premium dark-mode accent colors: Gold (default), Rose, Sapphire, Emerald, Amethyst, Ruby, Ice
-  - Theme picker: colored dots in sidebar bottom section, responsive for collapsed/expanded states
-  - CSS variable system: --accent, --accent-hover, --accent-rgb for rgba() opacity support
-  - Converted ~87 hardcoded #d4a853 in evolv-dark.css to var(--accent)
-  - Converted all rgba(212,168,83,...) patterns to rgba(var(--accent-rgb),...)
-  - Added Tailwind utility class overrides for text/bg/border/ring/gradient gold patterns
-  - Updated sidebar.js, tour-guide.css, command-palette.js, login.html with CSS vars
-  - Theme persists via localStorage, syncs across tabs via storage event
-  - Fixed butterfly SVG visibility: body fill changed from #1a1a1a to #e0e0e0, wing highlights use white with opacity
-  - Butterfly wings and accents now follow selected theme color via var(--accent)
-
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)

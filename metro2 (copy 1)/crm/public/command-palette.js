@@ -57,7 +57,7 @@
       outline: none;
       font-size: 18px;
       color: #f0f0f0;
-      caret-color: var(--accent, #d4a853);
+      caret-color: #d4a853;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     .cmd-palette-input::placeholder {
@@ -107,11 +107,11 @@
     }
     .cmd-palette-item:hover,
     .cmd-palette-item.active {
-      background: rgba(var(--accent-rgb, 212,168,83),0.08);
+      background: rgba(212,168,83,0.08);
     }
     .cmd-palette-item.active {
-      border-left-color: var(--accent, #d4a853);
-      background: rgba(var(--accent-rgb, 212,168,83),0.1);
+      border-left-color: #d4a853;
+      background: rgba(212,168,83,0.1);
     }
     .cmd-palette-item-icon {
       width: 32px;
@@ -126,9 +126,9 @@
       color: #888;
     }
     .cmd-palette-item.active .cmd-palette-item-icon {
-      color: var(--accent, #d4a853);
-      border-color: rgba(var(--accent-rgb, 212,168,83),0.2);
-      background: rgba(var(--accent-rgb, 212,168,83),0.08);
+      color: #d4a853;
+      border-color: rgba(212,168,83,0.2);
+      background: rgba(212,168,83,0.08);
     }
     .cmd-palette-item-text {
       flex: 1;

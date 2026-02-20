@@ -21,7 +21,7 @@
   position: absolute;
   z-index: 99992;
   border-radius: 8px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 20px 4px rgba(var(--accent-rgb, 212, 168, 83), 0.3);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 20px 4px rgba(212, 168, 83, 0.3);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
@@ -44,11 +44,11 @@
 
 .tour-bubble {
   background: #111113;
-  border: 1px solid rgba(var(--accent-rgb, 212, 168, 83), 0.3);
+  border: 1px solid rgba(212, 168, 83, 0.3);
   border-radius: 16px;
   padding: 24px;
   color: #e5e5e5;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(var(--accent-rgb, 212, 168, 83), 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(212, 168, 83, 0.08);
   flex: 1;
   position: relative;
 }
@@ -59,7 +59,7 @@
   width: 14px;
   height: 14px;
   background: #111113;
-  border: 1px solid rgba(var(--accent-rgb, 212, 168, 83), 0.3);
+  border: 1px solid rgba(212, 168, 83, 0.3);
   transform: rotate(45deg);
 }
 
@@ -94,7 +94,7 @@
 .tour-bubble__title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: var(--accent, #d4a853);
+  color: #d4a853;
   margin-bottom: 8px;
   line-height: 1.3;
 }
@@ -147,13 +147,13 @@
 }
 
 .tour-bubble__dot--active {
-  background: var(--accent, #d4a853);
+  background: #d4a853;
   width: 18px;
   border-radius: 3px;
 }
 
 .tour-bubble__dot--done {
-  background: rgba(var(--accent-rgb, 212, 168, 83), 0.4);
+  background: rgba(212, 168, 83, 0.4);
 }
 
 .tour-bubble__actions {
@@ -190,23 +190,23 @@
 }
 
 .tour-btn--next {
-  background: var(--accent, #d4a853);
+  background: #d4a853;
   color: #0a0a0a;
 }
 .tour-btn--next:hover {
   background: #e0b96a;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--accent-rgb, 212, 168, 83), 0.3);
+  box-shadow: 0 4px 12px rgba(212, 168, 83, 0.3);
 }
 
 .tour-btn--finish {
-  background: linear-gradient(135deg, var(--accent, #d4a853), #c49a45);
+  background: linear-gradient(135deg, #d4a853, #c49a45);
   color: #0a0a0a;
 }
 .tour-btn--finish:hover {
-  background: linear-gradient(135deg, #e0b96a, var(--accent, #d4a853));
+  background: linear-gradient(135deg, #e0b96a, #d4a853);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(var(--accent-rgb, 212, 168, 83), 0.4);
+  box-shadow: 0 4px 16px rgba(212, 168, 83, 0.4);
 }
 
 /* Butterfly Mascot */
@@ -216,7 +216,7 @@
   flex-shrink: 0;
   position: relative;
   animation: butterflyFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 12px rgba(var(--accent-rgb, 212, 168, 83), 0.3));
+  filter: drop-shadow(0 4px 12px rgba(212, 168, 83, 0.3));
 }
 
 @keyframes butterflyFloat {
@@ -287,7 +287,7 @@
 
 .tour-menu {
   background: #111113;
-  border: 1px solid rgba(var(--accent-rgb, 212, 168, 83), 0.2);
+  border: 1px solid rgba(212, 168, 83, 0.2);
   border-radius: 20px;
   padding: 32px;
   max-width: 480px;
@@ -307,7 +307,7 @@
 .tour-menu__title {
   font-size: 1.3rem;
   font-weight: 700;
-  color: var(--accent, #d4a853);
+  color: #d4a853;
 }
 
 .tour-menu__subtitle {
@@ -338,15 +338,15 @@
 }
 
 .tour-menu__item:hover {
-  background: rgba(var(--accent-rgb, 212, 168, 83), 0.08);
-  border-color: rgba(var(--accent-rgb, 212, 168, 83), 0.2);
+  background: rgba(212, 168, 83, 0.08);
+  border-color: rgba(212, 168, 83, 0.2);
   color: #fff;
   transform: translateX(4px);
 }
 
 .tour-menu__item--full {
-  border-color: rgba(var(--accent-rgb, 212, 168, 83), 0.2);
-  background: rgba(var(--accent-rgb, 212, 168, 83), 0.05);
+  border-color: rgba(212, 168, 83, 0.2);
+  background: rgba(212, 168, 83, 0.05);
 }
 
 .tour-menu__item-icon {
@@ -356,8 +356,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  background: rgba(var(--accent-rgb, 212, 168, 83), 0.1);
-  color: var(--accent, #d4a853);
+  background: rgba(212, 168, 83, 0.1);
+  color: #d4a853;
   font-size: 1rem;
   flex-shrink: 0;
 }
@@ -441,7 +441,7 @@
   max-width: 420px;
   padding: 48px 40px;
   background: #111113;
-  border: 1px solid rgba(var(--accent-rgb, 212, 168, 83), 0.2);
+  border: 1px solid rgba(212, 168, 83, 0.2);
   border-radius: 24px;
   box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
   animation: tourPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -452,13 +452,13 @@
   height: 100px;
   margin: 0 auto 20px;
   animation: butterflyFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 6px 20px rgba(var(--accent-rgb, 212, 168, 83), 0.4));
+  filter: drop-shadow(0 6px 20px rgba(212, 168, 83, 0.4));
 }
 
 .tour-welcome__title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--accent, #d4a853);
+  color: #d4a853;
   margin-bottom: 12px;
 }
 
@@ -486,13 +486,13 @@
 }
 
 .tour-welcome__btn--start {
-  background: var(--accent, #d4a853);
+  background: #d4a853;
   color: #0a0a0a;
 }
 .tour-welcome__btn--start:hover {
   background: #e0b96a;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(var(--accent-rgb, 212, 168, 83), 0.35);
+  box-shadow: 0 6px 20px rgba(212, 168, 83, 0.35);
 }
 
 .tour-welcome__btn--skip {

@@ -29,7 +29,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: var(--accent, #d4a853);
+    color: #d4a853;
     margin-bottom: 6px;
   }
   .section-title {
@@ -69,8 +69,8 @@
   .form-group input:focus,
   .form-group textarea:focus,
   .form-group select:focus {
-    border-color: var(--accent, #d4a853);
-    box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 212,168,83),0.15);
+    border-color: #d4a853;
+    box-shadow: 0 0 0 2px rgba(212,168,83,0.15);
   }
   .form-group input::placeholder,
   .form-group textarea::placeholder {
@@ -103,8 +103,8 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(var(--accent-rgb, 212,168,83),0.12);
-    color: var(--accent, #d4a853);
+    background: rgba(212,168,83,0.12);
+    color: #d4a853;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -117,8 +117,8 @@
     font-weight: 500;
     padding: 3px 10px;
     border-radius: 20px;
-    background: rgba(var(--accent-rgb, 212,168,83),0.1);
-    color: var(--accent, #d4a853);
+    background: rgba(212,168,83,0.1);
+    color: #d4a853;
   }
 </style>
 </head>
@@ -145,7 +145,7 @@
         <a href="/billing" class="btn nav-btn">Billing</a>
         <a href="/tradelines" class="btn nav-btn">Tradelines</a>
         <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
-        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(var(--accent-rgb, 212,168,83),0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
           <span class="text-xl">📄</span>
           <span class="font-semibold text-sm">Rookie</span>
         </div>
@@ -189,7 +189,7 @@
       </div>
       <div class="flex items-center justify-between mt-6">
         <p class="text-xs text-gray-600">Data stays in your browser storage</p>
-        <button id="saveCompany" type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,var(--accent, #d4a853),var(--accent-hover, #c4973e));color:#0a0a0a;">Save Profile</button>
+        <button id="saveCompany" type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,#d4a853,#c4973e);color:#0a0a0a;">Save Profile</button>
       </div>
     </form>
   </div>
@@ -260,7 +260,7 @@
       <p id="inviteError" class="hidden text-sm text-red-400"></p>
       <div class="flex items-center justify-end gap-3 pt-2">
         <button type="button" class="px-4 py-2 rounded-xl text-sm text-gray-400 border border-gray-700 hover:bg-white/5 transition-colors" data-close>Cancel</button>
-        <button id="inviteSubmit" type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,var(--accent, #d4a853),var(--accent-hover, #c4973e));color:#0a0a0a;">Send Invite</button>
+        <button id="inviteSubmit" type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,#d4a853,#c4973e);color:#0a0a0a;">Send Invite</button>
       </div>
     </form>
     <div id="inviteSuccess" class="hidden space-y-4">
