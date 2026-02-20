@@ -1036,7 +1036,16 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
 
 const app = express();
 
-app.get("/healthz", (_req, res) => res.status(200).json({ status: "ok" }));
+app.get("/healthz", async (_req, res) => {
+  try {
+    const { testConnection } = await import("./db/connection.js");
+    const dbOk = await testConnection();
+    const status = dbOk ? "ok" : "degraded";
+    res.status(dbOk ? 200 : 503).json({ status, db: dbOk ? "connected" : "unreachable" });
+  } catch {
+    res.status(200).json({ status: "ok", db: "unknown" });
+  }
+});
 app.get("/health", (_req, res) => res.status(200).json({ status: "ok" }));
 app.get("/ping", (_req, res) => res.status(200).send("pong"));
 
@@ -9169,8 +9178,14 @@ if (shouldStartServer) {
     }
     const dbClient = (process.env.DATABASE_CLIENT || (process.env.NODE_ENV === "production" ? "pg" : "sqlite3")).toString();
     console.log(`DB client    ${dbClient}`);
+    console.log(`DB URL host  ${(process.env.DATABASE_URL || "").replace(/\/\/.*@/, "//***@").split("/")[2] || "n/a"}`);
     console.log(`Tenant mode  ${(process.env.DB_TENANT_STRATEGY || "partitioned").toString()}`);
     console.log(`Letters dir  ${LETTERS_DIR}`);
+    import("./db/connection.js").then(({ testConnection }) => {
+      testConnection().then(ok => {
+        console.log(`DB connected  ${ok ? "YES" : "NO — database is unreachable"}`);
+      });
+    }).catch(() => {});
     initStripeSubscriptions().catch(err => console.error('Stripe init error:', err));
   });
 }

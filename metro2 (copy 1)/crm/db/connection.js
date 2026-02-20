@@ -55,7 +55,15 @@ function buildConnectionConfig() {
   const poolMax = Number.parseInt(process.env.DATABASE_POOL_MAX || "10", 10) || 10;
   const baseConfig = {
     client,
-    pool: { min: poolMin, max: poolMax },
+    pool: {
+      min: poolMin,
+      max: poolMax,
+      acquireTimeoutMillis: 10000,
+      createTimeoutMillis: 10000,
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      propagateCreateError: false,
+    },
     migrations: {
       directory: MIGRATIONS_DIR,
       tableName: "schema_versions",
@@ -90,7 +98,6 @@ function buildConnectionConfig() {
     
     console.log('Using database file:', filename);
     
-    // Attempt to ensure file exists and is writable
     try {
       const targetPath = path.isAbsolute(filename) ? filename : path.join(PROJECT_ROOT, filename);
       if (!fs.existsSync(targetPath)) {
@@ -113,9 +120,17 @@ function buildConnectionConfig() {
   if (!connectionUrl) {
     throw new Error("DATABASE_URL is required for PostgreSQL/MySQL connections.");
   }
+
+  const pgConnection = {
+    connectionString: connectionUrl,
+  };
+  if (process.env.NODE_ENV === "production" || connectionUrl.includes("sslmode=require")) {
+    pgConnection.ssl = { rejectUnauthorized: false };
+  }
+
   return {
     ...baseConfig,
-    connection: connectionUrl,
+    connection: pgConnection,
   };
 }
 
@@ -130,9 +145,24 @@ export function getDatabase() {
 export async function runMigrations() {
   if (!migrationPromise) {
     const db = getDatabase();
-    migrationPromise = db.migrate.latest();
+    migrationPromise = db.migrate.latest().catch((err) => {
+      migrationPromise = null;
+      console.error("[db] Migration failed:", err.message);
+      throw err;
+    });
   }
   return migrationPromise;
+}
+
+export async function testConnection() {
+  try {
+    const db = getDatabase();
+    await db.raw("SELECT 1");
+    return true;
+  } catch (err) {
+    console.error("[db] Connection test failed:", err.message);
+    return false;
+  }
 }
 
 export async function closeDatabase() {

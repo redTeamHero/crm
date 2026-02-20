@@ -183,6 +183,15 @@ npm run dev
   - Server-side /api/register validation: required fields (name, email, username, password), email format, password length, username uniqueness, email uniqueness
   - Modal uses dark glass theme consistent with existing design system
 
+- 2026-02-20: Production database and error handling fixes
+  - Fixed db/connection.js: added SSL support for production PostgreSQL (rejectUnauthorized: false)
+  - Added connection pool timeouts (acquireTimeoutMillis, createTimeoutMillis, idleTimeoutMillis)
+  - Added testConnection() function for startup health check
+  - Server now logs database host and connection status on startup
+  - Improved DIY signup.js and login.js error handling: separate network vs parse vs server error messages
+  - Added client-side email format validation on DIY signup page
+  - Users see friendly error messages instead of raw database errors
+
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)

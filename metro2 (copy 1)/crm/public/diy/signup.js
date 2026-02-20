@@ -39,6 +39,10 @@
       showError('Please enter your email address');
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      showError('Please enter a valid email address');
+      return;
+    }
     if (passVal.length < 8) {
       showError('Password must be at least 8 characters');
       return;
@@ -52,21 +56,32 @@
     btnSignup.textContent = 'Creating account...';
 
     try {
-      const res = await fetch('/api/diy/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: firstVal,
-          lastName: lastVal,
-          email: emailVal,
-          password: passVal,
-          plan
-        })
-      });
-      const data = await res.json();
+      let res;
+      try {
+        res = await fetch('/api/diy/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: firstVal,
+            lastName: lastVal,
+            email: emailVal,
+            password: passVal,
+            plan
+          })
+        });
+      } catch (networkErr) {
+        throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
+      }
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        throw new Error('Something went wrong. Please try again in a moment.');
+      }
 
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Signup failed');
+        throw new Error(data.error || 'Signup failed. Please try again.');
       }
 
       if (data.token) {
@@ -76,7 +91,7 @@
     } catch (e) {
       showError(e.message);
       btnSignup.disabled = false;
-      btnSignup.textContent = 'Create Account';
+      btnSignup.textContent = 'Create My Account';
     }
   });
 

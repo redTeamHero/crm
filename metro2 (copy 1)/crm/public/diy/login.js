@@ -27,15 +27,26 @@
     btnLogin.textContent = 'Signing in...';
 
     try {
-      const res = await fetch('/api/diy/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailVal, password: passVal })
-      });
-      const data = await res.json();
+      let res;
+      try {
+        res = await fetch('/api/diy/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailVal, password: passVal })
+        });
+      } catch (networkErr) {
+        throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
+      }
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        throw new Error('Something went wrong. Please try again in a moment.');
+      }
 
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(data.error || 'Login failed. Please try again.');
       }
 
       if (data.token) {
