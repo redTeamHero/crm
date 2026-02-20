@@ -5,6 +5,28 @@
   <title>Evolve.Ai - Transform Your Credit</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#7C3AED" />
+  <script>
+    (function(){
+      var t = localStorage.getItem('token') || localStorage.getItem('auth');
+      if (t) {
+        try {
+          var p = JSON.parse(atob(t.split('.')[1]));
+          if (p && (!p.exp || p.exp * 1000 > Date.now())) {
+            var role = p.role || '';
+            if (role === 'diy_user') {
+              window.location.replace('/diy/dashboard.html');
+            } else {
+              window.location.replace('/dashboard');
+            }
+            return;
+          }
+        } catch(e) {
+          window.location.replace('/dashboard');
+          return;
+        }
+      }
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
