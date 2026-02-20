@@ -390,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const resp = await fetch('/api/settings', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeader() },
           body: JSON.stringify({ hotkeys: normalized })
         });
         const result = await resp.json().catch(() => ({}));
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function load() {
     try {
-      const resp = await fetch('/api/settings');
+      const resp = await fetch('/api/settings', { headers: authHeader() });
       const data = await resp.json();
       currentSettings = data.settings || {};
       if (hibpEl) hibpEl.value = currentSettings.hibpApiKey || '';
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const resp = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify(body)
       });
       const result = await resp.json().catch(() => ({}));
