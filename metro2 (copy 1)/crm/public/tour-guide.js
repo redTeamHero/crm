@@ -167,24 +167,54 @@ const PAGE_TOURS = {
 };
 
 const PAGE_MAP = {
+  'dashboard': 'dashboard',
   'dashboard.html': 'dashboard',
+  'clients': 'clients',
   'index.html': 'clients',
+  'leads': 'leads',
   'leads.html': 'leads',
+  'library': 'library',
   'library.html': 'library',
+  'billing': 'billing',
   'billing.html': 'billing',
+  'settings': 'settings',
   'settings.html': 'settings',
+  'letters': 'letters',
   'letters.html': 'letters',
+  'tradelines': 'tradelines',
   'tradelines.html': 'tradelines',
+  'schedule': 'schedule',
   'schedule.html': 'schedule',
+  'marketing': 'marketing',
   'marketing.html': 'marketing',
+  'workflows': 'workflows',
   'workflows.html': 'workflows',
-  'my-company.html': 'my-company'
+  'my-company': 'my-company',
+  'my-company.html': 'my-company',
+  'client-invoicing': 'client-invoicing',
+  'client-invoicing.html': 'client-invoicing'
+};
+
+const ROUTE_MAP = {
+  'dashboard': '/dashboard',
+  'clients': '/clients',
+  'leads': '/leads',
+  'library': '/library',
+  'billing': '/billing',
+  'settings': '/settings',
+  'letters': '/letters',
+  'tradelines': '/tradelines',
+  'schedule': '/schedule',
+  'marketing': '/marketing',
+  'workflows': '/workflows',
+  'my-company': '/my-company',
+  'client-invoicing': '/client-invoicing'
 };
 
 function getCurrentPageKey() {
   const path = window.location.pathname;
-  const filename = path.split('/').pop() || 'dashboard.html';
-  return PAGE_MAP[filename] || null;
+  const segment = path.split('/').filter(Boolean).pop() || 'dashboard';
+  return PAGE_MAP[segment] || null;
 }
 
 class EvolvTourEngine {
@@ -573,10 +603,10 @@ function showTourMenu() {
     if (key === getCurrentPageKey()) {
       tourEngine.start(key);
     } else {
-      const pageFile = Object.entries(PAGE_MAP).find(([, v]) => v === key);
-      if (pageFile) {
+      const route = ROUTE_MAP[key];
+      if (route) {
         sessionStorage.setItem('evolv.tour.autostart', key);
-        window.location.href = `/${pageFile[0]}`;
+        window.location.href = route;
       }
     }
   });
