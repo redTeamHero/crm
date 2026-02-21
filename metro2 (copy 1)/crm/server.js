@@ -8878,7 +8878,13 @@ app.post('/api/stripe/checkout', async (req, res) => {
     res.json({ ok: true, url: session.url, sessionId: session.id });
   } catch (err) {
     logError('STRIPE_CHECKOUT_ERROR', err);
-    res.status(500).json({ ok: false, error: 'Checkout failed' });
+    let userMessage = 'Checkout failed. Please try again.';
+    if (err?.type === 'StripeAuthenticationError') {
+      userMessage = 'Payment system configuration error. Please contact support.';
+    } else if (err?.type === 'StripeConnectionError') {
+      userMessage = 'Unable to reach the payment processor. Please try again in a moment.';
+    }
+    res.status(500).json({ ok: false, error: userMessage });
   }
 });
 
@@ -9145,6 +9151,9 @@ async function initStripeSubscriptions() {
       .then(() => console.log('Stripe data synced'))
       .catch((err) => console.error('Error syncing Stripe data:', err));
   } catch (error) {
+    if (error?.type === 'StripeAuthenticationError' || (error?.message || '').includes('Invalid API Key')) {
+      console.error('STRIPE KEY ERROR: The Stripe API key is invalid. In production, update your live Stripe keys in the Publish settings.');
+    }
     console.error('Failed to initialize Stripe subscriptions:', error.message);
   }
 }
