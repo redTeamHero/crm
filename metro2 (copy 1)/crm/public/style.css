@@ -5201,7 +5201,7 @@ button.edu-step.align-right { text-align: right; }
   width: 100%; padding: 14px 16px; border-radius: 12px;
   background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08);
   cursor: pointer; transition: all 0.2s; text-align: left;
-  color: #ddd; font-size: 0.85rem;
+  color: #ddd; font-size: 0.85rem; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
 .lesson-option:hover:not(:disabled) { border-color: rgba(212,168,83,0.4); background: rgba(212,168,83,0.06); }
 .lesson-option-letter {
@@ -5247,7 +5247,7 @@ button.edu-step.align-right { text-align: right; }
 }
 .lesson-btn {
   padding: 10px 24px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;
-  border: none; cursor: pointer; transition: all 0.2s;
+  border: none; cursor: pointer; transition: all 0.2s; -webkit-tap-highlight-color: transparent; touch-action: manipulation; position: relative; z-index: 2;
 }
 .lesson-btn-back {
   background: rgba(255,255,255,0.06); color: #ccc;
@@ -5261,9 +5261,10 @@ button.edu-step.align-right { text-align: right; }
   opacity: 0.3; cursor: not-allowed; pointer-events: none;
 }
 .lesson-btn-complete {
-  background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff;
+  background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; position: relative; z-index: 2; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
 .lesson-btn-complete:hover { filter: brightness(1.1); }
+.lesson-btn-complete:active { transform: scale(0.97); }
 
 /* Completion screen */
 .lesson-completion {
@@ -5271,7 +5272,7 @@ button.edu-step.align-right { text-align: right; }
   padding: 48px 32px; text-align: center; position: relative; overflow: hidden;
 }
 .lesson-completion-burst {
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(circle at center, rgba(212,168,83,0.15) 0%, transparent 70%);
   animation: burstPulse 2s ease-in-out infinite;
 }
