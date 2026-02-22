@@ -2,204 +2,448 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Dashboard - Fix My Credit</title>
+  <title>Dashboard - Evolve.Ai</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#059669" />
+  <meta name="theme-color" content="#0a0a0a" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css">
   <style>
-    body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    :root {
+      --diy-bg: #f5f5f7;
+      --diy-sidebar: #1a1a2e;
+      --diy-accent: #6366f1;
+      --diy-accent-bg: rgba(99,102,241,0.12);
+      --diy-gold: #d4a853;
+      --diy-card: #ffffff;
+      --diy-muted: #9ca3af;
+      --diy-border: rgba(0,0,0,0.06);
+      --diy-text: #1a1a2e;
+      --diy-text-sub: #6b7280;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; background: var(--diy-bg); }
+    .diy-sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
+      background: var(--diy-sidebar);
+      display: flex; flex-direction: column; z-index: 40;
+      transition: transform 0.3s ease;
+      overflow-y: auto;
+    }
+    .diy-sidebar-brand {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .diy-sidebar-brand .brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--diy-accent), #818cf8);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .diy-sidebar-brand .brand-text { color: #fff; font-size: 14px; font-weight: 600; }
+    .diy-sidebar-brand .brand-sub { color: rgba(255,255,255,0.45); font-size: 11px; line-height: 1.3; margin-top: 2px; }
+    .diy-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+    .diy-nav-link {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 500;
+      text-decoration: none; transition: all 0.15s ease; border: 1px solid transparent; cursor: pointer;
+    }
+    .diy-nav-link:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+    .diy-nav-link.active {
+      background: var(--diy-accent-bg); color: #818cf8; font-weight: 600;
+      border-color: rgba(99,102,241,0.2);
+    }
+    .diy-nav-link svg { width: 20px; height: 20px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+    .diy-sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .diy-sidebar-footer .diy-user-info { padding: 8px 0; margin-bottom: 8px; }
+    .diy-sidebar-footer .diy-user-email { color: rgba(255,255,255,0.5); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .diy-sidebar-footer .diy-user-plan { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; margin-top: 4px; }
+    .diy-book-call-btn {
+      width: 100%; padding: 10px; border-radius: 12px; font-size: 14px; font-weight: 600;
+      background: linear-gradient(135deg, var(--diy-accent), #818cf8); color: #fff; border: none;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
       transition: all 0.2s ease;
     }
-    .btn-primary:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    .diy-book-call-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+    .diy-main { margin-left: 240px; min-height: 100vh; display: flex; flex-direction: column; }
+    .diy-topbar {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(255,255,255,0.88); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--diy-border); padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    .diy-topbar-title { font-size: 14px; color: var(--diy-text-sub); font-weight: 500; }
+    .diy-secured-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+      background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 99px; font-size: 13px; font-weight: 600; color: #10b981;
     }
-    .card {
-      background: white;
-      border-radius: 1rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    .diy-content { flex: 1; padding: 24px; max-width: 900px; width: 100%; margin: 0 auto; }
+    .diy-card {
+      background: var(--diy-card); border-radius: 16px; padding: 20px;
+      border: 1px solid var(--diy-border); margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    .upload-zone {
+    .diy-card-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .diy-card-icon {
+      width: 32px; height: 32px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+    }
+    .diy-card-title { font-size: 15px; font-weight: 500; color: var(--diy-text-sub); }
+    .diy-card-body { color: var(--diy-text-sub); font-size: 14px; }
+    .bureau-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .bureau-card {
+      background: var(--diy-card); border-radius: 14px; padding: 16px; text-align: center;
+      border: 1px solid var(--diy-border); position: relative; overflow: hidden;
+    }
+    .bureau-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .bureau-card.tu::before { background: #3b82f6; }
+    .bureau-card.ex::before { background: #6366f1; }
+    .bureau-card.eq::before { background: #10b981; }
+    .bureau-name { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--diy-text-sub); margin-bottom: 8px; }
+    .bureau-score { font-size: 28px; font-weight: 700; color: var(--diy-text); }
+    .bureau-dash { font-size: 28px; font-weight: 300; color: #d1d5db; }
+    .welcome-section { margin-bottom: 20px; }
+    .welcome-title { font-size: 22px; font-weight: 700; color: var(--diy-text); }
+    .welcome-sub { font-size: 14px; color: var(--diy-text-sub); margin-top: 4px; }
+    .step-badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px;
+      background: var(--diy-accent); color: #fff; border-radius: 99px;
+      font-size: 13px; font-weight: 600; cursor: pointer; border: none;
       transition: all 0.2s ease;
     }
-    .upload-zone:hover {
-      border-color: #10b981;
-      background: #f0fdf4;
+    .step-badge:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+    .step-info { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .step-text { font-size: 14px; color: var(--diy-text-sub); }
+    .upload-zone-diy {
+      border: 2px dashed #d1d5db; border-radius: 14px; padding: 32px; text-align: center;
+      cursor: pointer; transition: all 0.2s ease; background: #fafafa;
     }
-    .upload-zone.dragover {
-      border-color: #10b981;
-      background: #ecfdf5;
-      transform: scale(1.01);
+    .upload-zone-diy:hover { border-color: var(--diy-accent); background: rgba(99,102,241,0.03); }
+    .upload-zone-diy.dragover { border-color: var(--diy-accent); background: rgba(99,102,241,0.06); transform: scale(1.01); }
+    .diy-btn {
+      padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
+      border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+      transition: all 0.2s ease;
     }
-    .step-complete {
-      background: #10b981;
-      color: white;
+    .diy-btn-primary { background: var(--diy-accent); color: #fff; }
+    .diy-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+    .diy-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .diy-btn-secondary { background: #f3f4f6; color: var(--diy-text); }
+    .diy-btn-secondary:hover { background: #e5e7eb; }
+    .diy-section-page { display: none; }
+    .diy-section-page.active { display: block; }
+    .specialist-card {
+      background: var(--diy-card); border-radius: 16px; padding: 20px;
+      border: 1px solid var(--diy-border); margin-bottom: 12px;
+      transition: all 0.2s ease; cursor: pointer;
     }
-    .step-active {
-      background: #10b981;
-      color: white;
+    .specialist-card:hover { border-color: var(--diy-accent); box-shadow: 0 4px 16px rgba(99,102,241,0.08); transform: translateY(-2px); }
+    .specialist-header { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .specialist-avatar {
+      width: 48px; height: 48px; border-radius: 12px; display: flex;
+      align-items: center; justify-content: center; font-size: 20px; font-weight: 700;
+      color: #fff; flex-shrink: 0;
     }
-    .step-pending {
-      background: #e5e7eb;
-      color: #6b7280;
+    .specialist-name { font-size: 16px; font-weight: 700; color: var(--diy-text); }
+    .specialist-location { font-size: 12px; color: var(--diy-text-sub); margin-top: 2px; }
+    .specialist-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+    .specialist-stat {
+      text-align: center; padding: 10px 8px; background: #f9fafb; border-radius: 10px;
+    }
+    .specialist-stat-value { font-size: 18px; font-weight: 700; color: var(--diy-text); }
+    .specialist-stat-label { font-size: 11px; color: var(--diy-text-sub); margin-top: 2px; }
+    .specialist-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .specialist-badge {
+      font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 600;
+    }
+    .badge-verified { background: rgba(16,185,129,0.1); color: #10b981; }
+    .badge-fast { background: rgba(59,130,246,0.1); color: #3b82f6; }
+    .badge-top { background: rgba(245,158,11,0.1); color: #f59e0b; }
+    .badge-boosted { background: rgba(168,85,247,0.1); color: #a855f7; }
+    .specialist-rating { display: flex; align-items: center; gap: 4px; }
+    .star-filled { color: #f59e0b; }
+    .star-empty { color: #e5e7eb; }
+    .specialist-reviews { font-size: 12px; color: var(--diy-text-sub); margin-left: 4px; }
+    .trust-bar {
+      display: flex; align-items: center; gap: 16px; padding: 12px 16px;
+      background: rgba(16,185,129,0.04); border: 1px solid rgba(16,185,129,0.1);
+      border-radius: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .trust-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+    .trust-item svg { width: 14px; height: 14px; color: #10b981; }
+    .violation-item {
+      padding: 14px; background: rgba(239,68,68,0.04); border: 1px solid rgba(239,68,68,0.12);
+      border-radius: 12px; margin-bottom: 8px;
+    }
+    .letter-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; background: #f9fafb; border-radius: 10px; margin-bottom: 8px;
+    }
+    .mobile-menu-btn { display: none; }
+    .diy-sidebar-overlay { display: none; }
+
+    @media (max-width: 768px) {
+      .diy-sidebar { transform: translateX(-100%); width: 280px; }
+      .diy-sidebar.open { transform: translateX(0); }
+      .diy-main { margin-left: 0; }
+      .mobile-menu-btn { display: flex; }
+      .diy-sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 35; backdrop-filter: blur(2px); }
+      .diy-sidebar-overlay.active { display: block; }
+      .bureau-grid { grid-template-columns: 1fr; }
+      .specialist-stats { grid-template-columns: 1fr; }
     }
   </style>
 </head>
-<body class="min-h-screen bg-gray-50">
-  <header class="bg-white border-b border-gray-200 sticky top-0 z-30">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+<body>
+  <div id="sidebarOverlay" class="diy-sidebar-overlay"></div>
+
+  <aside id="diySidebar" class="diy-sidebar">
+    <div class="diy-sidebar-brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      </div>
+      <div class="min-w-0">
+        <div class="brand-text">Evolve.Ai</div>
+        <div class="brand-sub">Your credit repair assistant</div>
+      </div>
+    </div>
+
+    <nav class="diy-nav">
+      <a href="#overview" class="diy-nav-link active" data-section="overview">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Overview
+      </a>
+      <a href="#upload" class="diy-nav-link" data-section="upload">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload Report
+      </a>
+      <a href="#violations" class="diy-nav-link" data-section="violations">
+        <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+        Violations
+      </a>
+      <a href="#letters" class="diy-nav-link" data-section="letters">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Dispute Letters
+      </a>
+      <a href="#education" class="diy-nav-link" data-section="education">
+        <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Education
+      </a>
+      <a href="#specialists" class="diy-nav-link" data-section="specialists">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Find Specialist
+      </a>
+    </nav>
+
+    <div class="diy-sidebar-footer">
+      <div class="diy-user-info">
+        <div id="userEmail" class="diy-user-email"></div>
+        <div id="planBadge" class="diy-user-plan" style="background:rgba(99,102,241,0.15);color:#818cf8;">Free</div>
+      </div>
+      <button id="btnLogout" class="diy-book-call-btn" style="background:transparent;border:1px solid rgba(255,255,255,0.12);font-size:13px;font-weight:500;" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <div class="diy-main">
+    <header class="diy-topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button id="mobileMenuBtn" class="mobile-menu-btn" style="background:none;border:none;cursor:pointer;padding:4px;" type="button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a1a2e" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="diy-topbar-title">Credit Dashboard</span>
+      </div>
+      <div class="diy-secured-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981" stroke="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Secured Start
+      </div>
+    </header>
+
+    <main class="diy-content">
+      <!-- OVERVIEW SECTION -->
+      <div id="sectionOverview" class="diy-section-page active">
+        <div class="welcome-section">
+          <div class="welcome-title" id="welcomeText">Welcome Back</div>
+          <div class="welcome-sub">Your credit restoration progress at a glance.</div>
+          <div class="step-info" style="margin-top:12px;">
+            <span class="step-text" id="stepProgress">Step 1 of 4: Upload Report</span>
+            <button class="step-badge" id="btnMarkGoal" type="button">Mark Today's Goal Done</button>
           </div>
-          <span class="font-bold text-gray-900">Fix My Credit</span>
         </div>
-        <span id="planBadge" class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">Free</span>
-      </div>
-      <div class="flex items-center gap-4">
-        <span id="userEmail" class="text-sm text-gray-600 hidden md:block"></span>
-        <button id="btnLogout" class="text-sm text-gray-500 hover:text-gray-700 font-medium">Sign out</button>
-      </div>
-    </div>
-  </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-8">
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">Your Credit Dashboard</h1>
-      <p class="text-gray-600 mt-1">Upload your credit report, find violations, and generate dispute letters.</p>
-    </div>
+        <div class="bureau-grid">
+          <div class="bureau-card tu">
+            <div class="bureau-name">TransUnion</div>
+            <div id="scoreTU" class="bureau-dash">&mdash;</div>
+          </div>
+          <div class="bureau-card ex">
+            <div class="bureau-name">Experian</div>
+            <div id="scoreEX" class="bureau-dash">&mdash;</div>
+          </div>
+          <div class="bureau-card eq">
+            <div class="bureau-name">Equifax</div>
+            <div id="scoreEQ" class="bureau-dash">&mdash;</div>
+          </div>
+        </div>
 
-    <div class="grid lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 space-y-6">
-        <section class="card p-6">
-          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        <div class="diy-card">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(245,158,11,0.1);">
+              <span>&#9200;</span>
             </div>
-            Upload Credit Report
-          </h2>
-          <div id="uploadArea" class="upload-zone border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer">
-            <input type="file" id="fileInput" accept=".pdf,.html,.htm" class="hidden" />
-            <div class="text-gray-500">
-              <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              <p class="font-medium text-gray-700">Drop your credit report here or click to browse</p>
-              <p class="text-sm mt-1 text-gray-500">Supports PDF and HTML formats from all 3 bureaus</p>
-            </div>
+            <div class="diy-card-title">Next Step</div>
           </div>
-          <div id="uploadProgress" class="hidden mt-4">
-            <div class="flex items-center gap-3">
-              <div class="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div id="progressBar" class="h-full bg-emerald-500 transition-all duration-300" style="width:0%"></div>
-              </div>
-              <span id="progressText" class="text-sm text-gray-600 font-medium">0%</span>
-            </div>
+          <div class="diy-card-body" id="nextStepContent">
+            Upload your credit report to get started with your audit.
           </div>
-        </section>
+        </div>
 
-        <section id="violationsSection" class="card p-6 hidden">
-          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <div class="diy-card">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(16,185,129,0.1);">
+              <span>&#10004;&#65039;</span>
             </div>
-            Violations Found
-          </h2>
-          <div id="violationsList" class="space-y-3"></div>
-          <div id="noViolations" class="hidden text-center py-8 text-gray-500">
-            <svg class="w-12 h-12 mx-auto mb-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <p class="font-medium">No violations detected</p>
-            <p class="text-sm">Your credit report looks clean!</p>
+            <div class="diy-card-title">Milestones</div>
           </div>
-        </section>
+          <div class="diy-card-body" id="milestonesContent">
+            Milestones will appear here.
+          </div>
+        </div>
 
-        <section id="lettersSection" class="card p-6 hidden">
-          <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+        <div class="diy-card">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(59,130,246,0.1);">
+              <span>&#128203;</span>
             </div>
-            Your Dispute Letters
-          </h2>
-          <div id="lettersList" class="space-y-3"></div>
-          <div id="noLetters" class="text-center py-6 text-gray-500">
-            <p>No letters generated yet. Run an audit to find violations first.</p>
+            <div class="diy-card-title">Report Snapshot</div>
           </div>
-        </section>
+          <div class="diy-card-body" id="reportSnapshot">
+            No negative items detected.
+          </div>
+        </div>
+
+        <div class="diy-card">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(168,85,247,0.1);">
+              <span>&#128101;</span>
+            </div>
+            <div class="diy-card-title">Your Specialist</div>
+          </div>
+          <div class="diy-card-body" id="companyMatch">
+            <span style="color:var(--diy-text-sub);">No specialist selected.</span>
+            <a href="#specialists" class="diy-nav-trigger" data-section="specialists" style="color:var(--diy-accent);font-weight:600;margin-left:8px;text-decoration:none;">Find one &rarr;</a>
+          </div>
+        </div>
       </div>
 
-      <aside class="space-y-6">
-        <section class="card p-6">
-          <h3 class="font-semibold text-gray-900 mb-4">Your Progress</h3>
-          <div class="space-y-4">
-            <div class="flex items-center gap-3">
-              <div id="step1" class="step-pending w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">1</div>
-              <span class="text-sm text-gray-700">Upload credit report</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <div id="step2" class="step-pending w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">2</div>
-              <span class="text-sm text-gray-700">Review violations</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <div id="step3" class="step-pending w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">3</div>
-              <span class="text-sm text-gray-700">Generate letters</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <div id="step4" class="step-pending w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">4</div>
-              <span class="text-sm text-gray-700">Send disputes</span>
-            </div>
+      <!-- UPLOAD SECTION -->
+      <div id="sectionUpload" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Upload Credit Report</h2>
+        <div class="trust-bar">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Bank-level encryption
           </div>
-        </section>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            Files never shared
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Private &amp; secure
+          </div>
+        </div>
+        <div id="uploadArea" class="upload-zone-diy">
+          <input type="file" id="fileInput" accept=".pdf,.html,.htm" class="hidden" style="display:none;" />
+          <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          <p style="font-weight:600;color:var(--diy-text);font-size:15px;">Drop your credit report here or click to browse</p>
+          <p style="font-size:13px;color:var(--diy-text-sub);margin-top:4px;">Supports PDF and HTML formats from all 3 bureaus</p>
+        </div>
+        <div id="uploadProgress" class="hidden" style="margin-top:16px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="flex:1;height:6px;background:#e5e7eb;border-radius:99px;overflow:hidden;">
+              <div id="progressBar" style="height:100%;background:var(--diy-accent);transition:width 0.3s;width:0%;border-radius:99px;"></div>
+            </div>
+            <span id="progressText" style="font-size:13px;color:var(--diy-text-sub);font-weight:600;">0%</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:16px;">
+          <button id="btnRunAudit" class="diy-btn diy-btn-primary" disabled type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            Run Audit
+          </button>
+          <button id="btnGenerateLetters" class="diy-btn diy-btn-secondary" disabled type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Generate Letters
+          </button>
+        </div>
+      </div>
 
-        <section class="card p-6">
-          <h3 class="font-semibold text-gray-900 mb-3">Quick Actions</h3>
-          <div class="space-y-3">
-            <button id="btnRunAudit" class="btn-primary w-full py-3 px-4 rounded-xl text-white font-semibold flex items-center justify-center gap-2" disabled>
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-              Run Audit
-            </button>
-            <button id="btnGenerateLetters" class="w-full py-3 px-4 rounded-xl text-white font-semibold flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-              Generate Letters
-            </button>
-          </div>
-        </section>
+      <!-- VIOLATIONS SECTION -->
+      <div id="sectionViolations" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Violations Found</h2>
+        <div id="violationsList"></div>
+        <div id="noViolations" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+          <svg style="width:48px;height:48px;margin:0 auto 12px;color:#10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p style="font-weight:600;">No violations detected yet</p>
+          <p style="font-size:13px;margin-top:4px;">Upload a report and run an audit to find issues.</p>
+        </div>
+      </div>
 
-        <section class="card p-6">
-          <div class="flex items-start justify-between gap-4 mb-3">
-            <h3 class="font-semibold text-gray-900">Your Credit Company</h3>
-            <a href="/diy/upgrade" class="text-sm text-emerald-600 font-medium hover:text-emerald-700">Change company</a>
-          </div>
-          <div id="companyMatch" class="text-sm text-gray-600 space-y-2">
-            <p>Loading selection...</p>
-          </div>
-        </section>
+      <!-- LETTERS SECTION -->
+      <div id="sectionLetters" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Your Dispute Letters</h2>
+        <div id="lettersList"></div>
+        <div id="noLetters" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+          <p style="font-weight:500;">No letters generated yet.</p>
+          <p style="font-size:13px;margin-top:4px;">Run an audit first to find violations, then generate letters.</p>
+        </div>
+      </div>
 
-        <section class="card p-6 bg-gradient-to-br from-emerald-50 to-white border border-emerald-100">
-          <h3 class="font-semibold text-gray-900 mb-2">Why This Matters</h3>
-          <p class="text-sm text-gray-600 leading-relaxed">Credit bureaus must follow Metro 2 standards. When they don't, you have the legal right to dispute inaccurate information. Our engine finds these violations automatically.</p>
-          <a href="#" class="inline-block mt-3 text-sm text-emerald-600 hover:text-emerald-700 font-medium">Learn more &rarr;</a>
-        </section>
-
-        <section id="upgradeCard" class="card p-6 border-2 border-emerald-200 bg-emerald-50 hidden">
-          <div class="text-center">
-            <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
-              <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            </div>
-            <p class="font-semibold text-gray-900 mb-1">Unlock more features</p>
-            <p class="text-sm text-gray-600 mb-4">Generate unlimited dispute letters and access automation tools.</p>
-            <a href="/diy/upgrade" class="inline-block btn-primary py-2 px-6 rounded-xl text-white font-semibold text-sm">View Plans</a>
+      <!-- EDUCATION SECTION -->
+      <div id="sectionEducation" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Credit Education</h2>
+        <div class="diy-card">
+          <div class="diy-card-body">
+            <p style="font-size:15px;font-weight:500;color:var(--diy-text);">Coming soon</p>
+            <p style="margin-top:4px;">Interactive credit education modules will be available here.</p>
           </div>
-        </section>
-      </aside>
-    </div>
-  </main>
+        </div>
+      </div>
+
+      <!-- FIND SPECIALIST SECTION -->
+      <div id="sectionSpecialists" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">Find Your Specialist</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Browse verified credit repair companies and choose the best match for your needs.</p>
+
+        <div class="trust-bar">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Verified companies only
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            Real deletion stats
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            Client reviews
+          </div>
+        </div>
+
+        <div id="specialistsList">
+          <div style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <p style="font-weight:500;">Loading specialists...</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
 
   <script src="/diy/dashboard.js"></script>
 </body>

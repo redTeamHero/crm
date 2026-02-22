@@ -9,11 +9,13 @@
 
   function showError(msg) {
     err.textContent = msg;
-    err.classList.remove('hidden');
+    err.classList.add('visible');
+    err.style.display = 'block';
   }
 
   function hideError() {
-    err.classList.add('hidden');
+    err.classList.remove('visible');
+    err.style.display = 'none';
   }
 
   function getSelectedPlan() {
