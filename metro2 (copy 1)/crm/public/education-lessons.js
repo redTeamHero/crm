@@ -695,5 +695,203 @@ window.EDUCATION_LESSONS = [
         visual: { type: 'tip', text: 'Pro Tip: Set calendar reminders for credit check-ups. January = TransUnion, May = Experian, September = Equifax. This way you\'re reviewing a full bureau report every 4 months for free, giving you year-round coverage at zero cost.' }
       }
     ]
+  },
+  {
+    id: 'identity-theft-recovery',
+    title: 'Identity Theft Recovery',
+    subtitle: 'Step-by-step guide for victims',
+    icon: '🔐',
+    xp: 100,
+    sections: [
+      {
+        type: 'content',
+        title: 'Recognizing Identity Theft',
+        body: 'Identity theft happens when someone uses your personal information — name, Social Security number, credit card numbers, or other identifying data — without your permission to commit fraud or other crimes.\n\n<strong>Warning Signs:</strong>\n• Bills for accounts you didn\'t open\n• Calls from debt collectors about debts you don\'t owe\n• Unfamiliar accounts on your credit report\n• Denied credit for no clear reason\n• IRS notice that multiple tax returns were filed under your SSN\n• Medical bills for procedures you didn\'t have\n• Missing mail or redirected mail\n\n<strong>Types of Identity Theft:</strong>\n• <strong>Financial:</strong> Someone opens credit cards, loans, or bank accounts in your name\n• <strong>Medical:</strong> Someone uses your insurance for healthcare\n• <strong>Tax:</strong> Someone files a tax return using your SSN\n• <strong>Criminal:</strong> Someone gives your name during an arrest\n• <strong>Synthetic:</strong> Thieves combine real and fake information to create a new identity',
+        visual: { type: 'cards', items: [
+          { title: 'Financial ID Theft', desc: 'Most common type. Credit cards, loans, and bank accounts opened in your name.', icon: '💳' },
+          { title: 'Medical ID Theft', desc: 'Your insurance used fraudulently. Can create dangerous false medical records.', icon: '🏥' },
+          { title: 'Tax ID Theft', desc: 'Fraudulent tax returns filed using your SSN to steal refunds.', icon: '📋' },
+          { title: 'Synthetic ID Theft', desc: 'Mix of your real SSN with a fake name. Hardest to detect.', icon: '🎭' }
+        ]}
+      },
+      {
+        type: 'content',
+        title: 'Step 1: Place a Fraud Alert',
+        body: 'The FIRST thing you should do when you discover identity theft is place a fraud alert with one of the three credit bureaus. By law, whichever bureau you contact must notify the other two.\n\n<strong>Types of Fraud Alerts:</strong>\n\n<strong>Initial Fraud Alert (1 year):</strong>\n• Free, lasts 1 year\n• Requires businesses to verify your identity before granting credit\n• You only need to contact ONE bureau — they notify the other two\n• Can be placed by phone or online in minutes\n\n<strong>Extended Fraud Alert (7 years):</strong>\n• Free, lasts 7 years\n• Requires an FTC Identity Theft Report (see Step 2)\n• Removes you from pre-approved credit offer lists for 5 years\n• Two free credit reports from each bureau per year\n\n<strong>Active Duty Military Alert (1 year):</strong>\n• For active duty service members\n• Similar protections to initial fraud alert\n\n<strong>Contact any ONE bureau:</strong>\n• Equifax: 1-800-525-6285\n• Experian: 1-888-397-3742\n• TransUnion: 1-800-680-7289',
+        visual: { type: 'steps', items: [
+          { title: 'Call One Bureau', desc: 'Contact Equifax, Experian, or TransUnion. They must notify the other two within 1 business day.' },
+          { title: 'Request Initial Alert', desc: 'An initial fraud alert lasts 1 year and is placed immediately.' },
+          { title: 'Confirm All Three', desc: 'Verify all three bureaus received the alert within a few days by checking your reports.' },
+          { title: 'Upgrade Later', desc: 'After filing your FTC report, upgrade to an extended 7-year alert.' }
+        ]}
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Mysterious Credit Card',
+        story: 'Maria receives a call from a collection agency about a $4,200 credit card balance from a card she never opened. She checks her credit reports and finds two accounts she doesn\'t recognize — a credit card and a personal loan.',
+        question: 'What should Maria do FIRST?',
+        options: [
+          { text: 'Pay the $4,200 to make it go away', correct: false, explanation: 'Never pay a debt that isn\'t yours. Paying it could be interpreted as acknowledging the debt and make it harder to dispute later.' },
+          { text: 'Place a fraud alert with one credit bureau, then proceed to file an FTC report and police report', correct: true, explanation: 'Correct! The immediate priority is stopping further damage. A fraud alert prevents new accounts from being opened without identity verification. Then Maria should: 1) File an FTC Identity Theft Report at IdentityTheft.gov, 2) File a police report with her local department, 3) Dispute the fraudulent accounts with all three bureaus using the FTC report as evidence, 4) Consider placing a credit freeze for maximum protection.' },
+          { text: 'Call the collection agency and argue with them', correct: false, explanation: 'While Maria should eventually address the collection, arguing won\'t solve the problem. She needs to establish the identity theft through proper channels first.' },
+          { text: 'Close all her legitimate credit cards', correct: false, explanation: 'Closing legitimate accounts would damage her credit score and doesn\'t stop the thief from opening new ones. A fraud alert or freeze is the right approach.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Step 2: File Your FTC Identity Theft Report',
+        body: 'Go to <strong>IdentityTheft.gov</strong> — this is the FTC\'s official recovery portal. It creates a personalized recovery plan and generates your Identity Theft Report.\n\n<strong>What the FTC Report Does:</strong>\n• Serves as your official identity theft affidavit\n• Required for extended fraud alerts (7 years)\n• Required for credit bureaus to block fraudulent accounts within 4 business days\n• Proves to creditors that you\'re a victim of identity theft\n• Creates a legal record of the theft\n\n<strong>What You\'ll Need:</strong>\n• Your personal information (name, SSN, date of birth, address)\n• Details about the fraudulent accounts (creditor names, account numbers, amounts)\n• When you discovered the theft\n• Any suspect information (if known)\n\n<strong>After Filing:</strong>\nThe FTC generates a personalized recovery plan with pre-filled letters you can send to:\n• Credit bureaus (to dispute fraudulent accounts)\n• Creditors (to close fraudulent accounts)\n• Debt collectors (to stop collection on fraudulent debts)\n• The IRS (if tax fraud occurred)',
+        visual: { type: 'tip', text: 'Critical: Save your FTC report number and print copies of the report. You\'ll need it for every step of the recovery process — bureau disputes, police reports, creditor communications, and potentially court proceedings. Keep both digital and physical copies in a safe place.' }
+      },
+      {
+        type: 'content',
+        title: 'Step 3: Credit Freezes',
+        body: 'A <strong>credit freeze</strong> (also called a security freeze) is the strongest protection available. It prevents anyone — including you — from opening new credit in your name until you lift the freeze.\n\n<strong>How Freezes Work:</strong>\n• Each bureau gives you a PIN or password to manage your freeze\n• No one can access your credit report for new credit applications\n• Does NOT affect your credit score\n• Does NOT prevent you from using existing accounts\n• Free to place and lift since 2018 (Economic Growth Act)\n\n<strong>Freeze vs. Fraud Alert:</strong>\n• Fraud Alert = asks creditors to verify your identity (they don\'t have to)\n• Freeze = completely blocks access to your report (much stronger)\n• You can have BOTH active simultaneously\n\n<strong>When to Temporarily Lift:</strong>\n• Applying for a new credit card or loan\n• Applying for an apartment\n• Setting up new utilities\n• Getting a new cell phone plan\n• You can lift for a specific creditor or for a specific time period\n\n<strong>Freeze All Three Bureaus:</strong>\n• Equifax: equifax.com/personal/credit-report-services/credit-freeze/\n• Experian: experian.com/freeze/\n• TransUnion: transunion.com/credit-freeze',
+        visual: { type: 'cards', items: [
+          { title: 'Freeze', desc: 'Completely blocks report access. Strongest protection. Must be lifted for new applications.', icon: '🔒' },
+          { title: 'Fraud Alert', desc: 'Asks creditors to verify identity. Easier to manage. Doesn\'t block access.', icon: '⚠️' },
+          { title: 'Credit Lock', desc: 'Bureau-specific service (often paid). Similar to freeze but may have fewer legal protections.', icon: '🔑' },
+          { title: 'Credit Monitoring', desc: 'Alerts you to changes. Doesn\'t prevent anything. Good as an additional layer.', icon: '👁️' }
+        ]}
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Job Application Freeze',
+        story: 'David placed credit freezes after identity theft 6 months ago. Now he\'s applying for a new job and the employer wants to run a background check that includes a credit check. David is worried he\'ll have to remove his freeze entirely.',
+        question: 'What should David do?',
+        options: [
+          { text: 'Remove the freeze permanently — he doesn\'t need it anymore', correct: false, explanation: 'Removing the freeze entirely would leave David unprotected again. There are better options that maintain his security.' },
+          { text: 'Temporarily lift the freeze for only the specific bureau the employer\'s background check company uses, for a limited time period', correct: true, explanation: 'Correct! David can temporarily lift his freeze at just one bureau (whichever the background check company uses — they\'ll tell him which one). He can set it for a specific date range (e.g., 1 week) and it automatically re-freezes after that period. This allows the check while maintaining protection at the other two bureaus and re-freezing automatically.' },
+          { text: 'Tell the employer he can\'t do a credit check', correct: false, explanation: 'Refusing could cost David the job opportunity. A temporary lift is quick, free, and solves the problem.' },
+          { text: 'Give the employer his freeze PIN so they can lift it themselves', correct: false, explanation: 'Never share your freeze PIN with anyone. Only YOU should control your freeze. Lift it yourself for the specific time period needed.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Step 4: Dispute Fraudulent Accounts',
+        body: 'With your FTC Identity Theft Report in hand, dispute every fraudulent account with all three credit bureaus:\n\n<strong>Under FCRA §605B, bureaus MUST block fraudulent accounts within 4 business days</strong> when you provide:\n1. Your FTC Identity Theft Report\n2. Proof of your identity\n3. A clear statement identifying the fraudulent accounts\n\n<strong>How to Dispute:</strong>\n• Send disputes via certified mail to each bureau\n• Include your FTC Identity Theft Report\n• Include a copy of your government-issued ID\n• Include a utility bill or bank statement proving your address\n• List each fraudulent account specifically (creditor name, account number)\n• Request blocking under §605B\n\n<strong>Also Contact the Creditors Directly:</strong>\n• Call each creditor where fraudulent accounts were opened\n• Ask for their fraud/identity theft department\n• Provide your FTC report and police report\n• Request the account be closed and reported as fraudulent\n• Ask for copies of the application and transaction records (you have a right to these under §609(e))',
+        visual: { type: 'tip', text: 'Key Difference: §605B blocking is DIFFERENT from a regular §611 dispute. With a regular dispute, the bureau has 30 days and might verify the account. With §605B identity theft blocking, the bureau must block the account within 4 business days. Always cite §605B when disputing identity theft accounts — it\'s much faster and more powerful.' }
+      },
+      {
+        type: 'content',
+        title: 'Recovery Timeline and Checklist',
+        body: '<strong>Your Identity Theft Recovery Timeline:</strong>\n\n<strong>Day 1 (Immediately):</strong>\n• Place fraud alert with one bureau\n• File FTC report at IdentityTheft.gov\n• Place credit freeze at all three bureaus\n• Change passwords on all financial accounts\n• Enable two-factor authentication everywhere\n\n<strong>Week 1:</strong>\n• File police report with local department\n• Dispute all fraudulent accounts with bureaus (cite §605B)\n• Contact each creditor\'s fraud department\n• Request copies of fraudulent applications under §609(e)\n• Notify your bank and existing credit card companies\n\n<strong>Month 1:</strong>\n• Follow up on bureau disputes (should be blocked within 4 days)\n• Follow up with creditors on account closures\n• Check for fraudulent tax returns (IRS Identity Protection PIN)\n• Check for fraudulent utility or phone accounts\n• Set up ongoing credit monitoring\n\n<strong>Ongoing:</strong>\n• Monitor credit reports monthly for 12+ months\n• Keep freeze in place (lift temporarily as needed)\n• Maintain your documentation file\n• Report any new fraudulent activity immediately',
+        visual: { type: 'timeline', items: [
+          { label: 'Day 1', duration: 'Immediate', severity: 'severe', desc: 'Fraud alert + FTC report + Credit freeze + Password changes' },
+          { label: 'Week 1', duration: '7 days', severity: 'high', desc: 'Police report + Bureau disputes + Creditor fraud departments' },
+          { label: 'Month 1', duration: '30 days', severity: 'medium', desc: 'Follow up on disputes + Check for tax/utility fraud + Set up monitoring' },
+          { label: 'Months 2-12', duration: 'Ongoing', severity: 'medium', desc: 'Monthly monitoring + Keep freeze active + Document everything' }
+        ]}
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Repeat Victim',
+        story: 'Three months after resolving her identity theft case, Jessica notices a new fraudulent account on her Equifax report — a store credit card she didn\'t open. She already has fraud alerts and had frozen her credit, but she temporarily lifted the freeze 2 weeks ago to apply for an apartment.',
+        question: 'What likely happened and what should Jessica do?',
+        options: [
+          { text: 'The identity thief must have her freeze PIN — she should call the police', correct: false, explanation: 'While possible, it\'s more likely the thief used the window when the freeze was temporarily lifted. She should re-freeze immediately.' },
+          { text: 'She should just dispute it and move on', correct: false, explanation: 'While she should dispute it, she also needs to investigate the vulnerability and take additional protective steps.' },
+          { text: 'The thief likely exploited the temporary freeze lift. Jessica should immediately re-freeze all bureaus, file a new FTC report supplement, dispute the new account under §605B, and consider an extended fraud alert', correct: true, explanation: 'Correct! The temporary freeze lift created a window of vulnerability. Jessica should: 1) Immediately confirm all three freezes are back in place, 2) File a supplement to her existing FTC Identity Theft Report, 3) Dispute the new fraudulent account under §605B at all three bureaus, 4) File an updated police report, 5) In the future, lift freezes for the shortest possible period and only at the specific bureau needed, 6) Consider placing an extended 7-year fraud alert for additional protection.' },
+          { text: 'Identity theft can\'t happen if you have a freeze — she must be mistaken about the account', correct: false, explanation: 'Freezes only work when they\'re active. When Jessica temporarily lifted her freeze, her report was accessible. This is why temporary lifts should be as short as possible.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Key Takeaways',
+        body: '<strong>Identity Theft Recovery Checklist:</strong>\n\n• Act immediately — the faster you respond, the less damage occurs\n• Place a fraud alert with ONE bureau (they notify all three)\n• File your FTC report at IdentityTheft.gov — this is your key document\n• File a police report — some creditors and bureaus require it\n• Place credit freezes at ALL three bureaus (free since 2018)\n• Dispute fraudulent accounts under §605B for 4-day blocking (not the standard 30-day §611)\n• Contact creditors\' fraud departments directly and close fraudulent accounts\n• Request copies of fraudulent applications under §609(e)\n• Monitor your credit reports monthly for at least 12 months\n• Keep freezes in place permanently — lift temporarily only when needed\n• Save ALL documentation — FTC report, police report, dispute letters, correspondence\n• Consider an IRS Identity Protection PIN to prevent tax identity theft\n• Change passwords and enable two-factor authentication on all financial accounts',
+        visual: { type: 'tip', text: 'Prevention Tip: Even after recovery, keep these habits forever: credit freezes at all three bureaus (lift only when needed), two-factor authentication on all financial accounts, unique passwords for each account (use a password manager), and regular credit monitoring. Prevention is always easier than recovery.' }
+      }
+    ]
+  },
+  {
+    id: 'credit-building',
+    title: 'Credit Building Strategies',
+    subtitle: 'Build and grow your credit score',
+    icon: '📈',
+    xp: 100,
+    sections: [
+      {
+        type: 'content',
+        title: 'Starting from Zero — Building Credit from Scratch',
+        body: 'Whether you\'re building credit for the first time or rebuilding after damage, the fundamentals are the same. You need to establish a history of responsible credit use.\n\n<strong>The Credit Building Pyramid:</strong>\n\nThink of credit building as a pyramid with four levels:\n\n<strong>Level 1: Foundation (0-6 months)</strong>\nGet your first credit account open and start building payment history.\n\n<strong>Level 2: Growth (6-12 months)</strong>\nAdd a second account type and optimize utilization.\n\n<strong>Level 3: Expansion (12-24 months)</strong>\nStrategically add accounts, manage credit mix, and maintain low utilization.\n\n<strong>Level 4: Optimization (24+ months)</strong>\nFine-tune your profile for the highest possible score.',
+        visual: { type: 'steps', items: [
+          { title: 'Level 1: Foundation', desc: 'Secured card or credit builder loan. Make on-time payments. Wait 6 months for score to develop.' },
+          { title: 'Level 2: Growth', desc: 'Add a second account (different type). Keep utilization under 30%. Never miss a payment.' },
+          { title: 'Level 3: Expansion', desc: 'Apply for an unsecured card. Request credit limit increases. Diversify account types.' },
+          { title: 'Level 4: Optimization', desc: 'Target <10% utilization. Maximize age of accounts. Minimize inquiries. Hit 750+ score.' }
+        ]}
+      },
+      {
+        type: 'content',
+        title: 'Secured Credit Cards — Your Starting Point',
+        body: '<strong>What Is a Secured Card?</strong>\nA secured credit card requires a refundable security deposit (typically $200-$500) that becomes your credit limit. You use it like a regular card — the deposit is just collateral.\n\n<strong>Best Secured Card Strategy:</strong>\n• Choose a card that reports to ALL THREE bureaus (essential)\n• Put 1-2 small recurring charges on it (like a streaming subscription)\n• Set up autopay for full balance each month\n• Keep utilization under 30% (under 10% is even better)\n• Never carry a balance — you\'ll pay high interest\n• After 6-12 months, ask about graduating to an unsecured card\n\n<strong>Top Tips:</strong>\n• Some cards offer automatic graduation (your deposit is returned and limit increased)\n• Discover it Secured and Capital One Platinum Secured are popular options that report to all three bureaus\n• Don\'t apply for multiple secured cards — one is enough to start\n• Your secured card is a TOOL, not for everyday spending. Use it for one small bill and autopay it.',
+        visual: { type: 'tip', text: 'Strategy: Put your Netflix or Spotify subscription ($10-15/month) on your secured card and set up autopay. This creates a perfect payment pattern: low utilization, consistent payments, zero effort. Your credit builds on autopilot.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Secured Card Decision',
+        story: 'Alex has no credit history and wants to start building credit. He\'s considering two secured cards: Card A requires a $200 deposit, has a $49 annual fee, and reports to all three bureaus. Card B requires a $200 deposit, has no annual fee, but only reports to Experian and TransUnion.',
+        question: 'Which card should Alex choose?',
+        options: [
+          { text: 'Card B — no annual fee means it\'s free', correct: false, explanation: 'The annual fee savings is small ($49), but missing one bureau means Alex won\'t build an Equifax history. Many lenders pull Equifax specifically.' },
+          { text: 'Card A — reporting to all three bureaus is critical for building a complete credit profile, even with the small annual fee', correct: true, explanation: 'Correct! Reporting to all three bureaus is the single most important feature of a starter card. If Card B doesn\'t report to Equifax, any lender that pulls Equifax will see no credit history at all. The $49 annual fee is a small investment in building a complete credit profile across all three bureaus. After 6-12 months of history, Alex can apply for a no-fee card and potentially cancel Card A.' },
+          { text: 'He should get both cards to build credit faster', correct: false, explanation: 'Two secured cards isn\'t necessary and the two hard inquiries could hurt his thin file. One card reporting to all three bureaus is sufficient.' },
+          { text: 'He shouldn\'t get a secured card — he should wait until he can get an unsecured card', correct: false, explanation: 'Without any credit history, Alex likely won\'t qualify for an unsecured card. A secured card is specifically designed for people building from scratch.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Credit Builder Loans',
+        body: '<strong>What Is a Credit Builder Loan?</strong>\nUnlike a traditional loan where you get money upfront, a credit builder loan works in reverse — you make payments into a savings account, and the lender reports your payments to the credit bureaus. At the end of the term, you get the money.\n\n<strong>How It Works:</strong>\n1. You "borrow" $300-$1,000 (the money goes into a locked savings account)\n2. You make monthly payments for 6-24 months\n3. Each payment is reported to the credit bureaus as an installment loan payment\n4. When you finish, the locked savings (minus fees/interest) are released to you\n\n<strong>Why They\'re Valuable:</strong>\n• Adds an installment loan to your credit mix (different from revolving credit cards)\n• Creates a forced savings habit\n• Low risk — if you can\'t pay, you just lose the locked funds\n• Popular through credit unions, Self (formerly Self Lender), and community banks\n\n<strong>Best Strategy:</strong>\n• Use a credit builder loan ALONGSIDE a secured card\n• This creates two account types (installment + revolving) which improves your credit mix\n• Choose the smallest loan amount to minimize cost\n• Set up autopay to ensure perfect payment history',
+        visual: { type: 'cards', items: [
+          { title: 'Self (App)', desc: 'Loans from $25-$150/month for 12-24 months. Reports to all 3 bureaus. No hard inquiry to apply.', icon: '📱' },
+          { title: 'Credit Unions', desc: 'Many credit unions offer credit builder loans at low interest. Worth checking local options.', icon: '🏦' },
+          { title: 'Credit Strong', desc: 'Another app option. Various loan amounts. Can close early without penalty.', icon: '💪' },
+          { title: 'Secured Loan', desc: 'Some banks offer loans secured by your savings account balance. Very low rates.', icon: '🔒' }
+        ]}
+      },
+      {
+        type: 'content',
+        title: 'The Authorized User Strategy',
+        body: '<strong>What Is an Authorized User?</strong>\nWhen someone adds you as an authorized user on their credit card, the card\'s entire history appears on YOUR credit report. You don\'t even need to use the card — just being listed gives you the benefit.\n\n<strong>How to Use It Effectively:</strong>\n\n<strong>Choose the Right Account:</strong>\n• The account should have perfect payment history (no late payments ever)\n• Low utilization (under 10% is ideal)\n• Old age (the longer the history, the more it helps your average age)\n• The card must report authorized users to the bureaus (most major banks do)\n\n<strong>Best Practices:</strong>\n• Ask a trusted family member or close friend\n• You DON\'T need to have or use the physical card\n• The primary cardholder remains responsible for all charges\n• Both parties should agree that you won\'t make charges\n• Check after 30 days to confirm it appeared on your report\n\n<strong>Impact:</strong>\n• Can add years of credit history instantly\n• Can significantly boost your score if the account is old, high-limit, and low-utilization\n• Most effective when you have a thin file (few accounts of your own)',
+        visual: { type: 'tip', text: 'Power Move: A family member\'s 15-year-old credit card with $20,000 limit, 3% utilization, and perfect payment history can appear on your report within 30 days. This single action can add years of history and dramatically improve your score — legally and for free. The key is finding someone with a pristine account who trusts you.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Utilization Trap',
+        story: 'Brittany has been building credit for 8 months with a secured card ($500 limit). She typically charges about $400/month and pays the full balance by the due date. Her score is 640 and isn\'t improving. She never misses a payment.',
+        question: 'Why isn\'t Brittany\'s score improving despite perfect payments?',
+        options: [
+          { text: 'She needs to wait longer — 8 months isn\'t enough', correct: false, explanation: 'While time helps, the main issue is her utilization ratio. She should see improvement by addressing that.' },
+          { text: 'Her utilization ratio is too high — $400/$500 = 80%. She should keep her balance under $50 (10%) when the statement closes, not just by the due date', correct: true, explanation: 'Correct! Brittany is making a common mistake. Even though she pays in full by the due date, the balance that gets REPORTED to the bureaus is the statement balance — and her statement is showing 80% utilization ($400/$500). She should either: 1) Pay down the balance BEFORE the statement closes (not the due date), 2) Only charge $25-$50 per month ($500 × 10% = $50 max), 3) Request a credit limit increase to lower her ratio. The statement closing date and the payment due date are different. What matters for your score is what\'s on the statement.' },
+          { text: 'She should close the card and get a new one', correct: false, explanation: 'Closing the card would eliminate her only credit history. The solution is fixing her utilization, not starting over.' },
+          { text: 'Secured cards don\'t actually build credit', correct: false, explanation: 'Secured cards absolutely build credit — they report the same as unsecured cards. Brittany\'s issue is utilization, not the card type.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Advanced Credit Optimization',
+        body: '<strong>Techniques for Maximizing Your Score:</strong>\n\n<strong>1. The Statement Balance Trick</strong>\nPay down your balance BEFORE the statement closing date, not just the due date. The statement balance is what gets reported. Aim for 1-3% utilization on the statement (not zero — a small balance shows active use).\n\n<strong>2. Request Credit Limit Increases</strong>\nAfter 6 months of on-time payments, request a limit increase. Higher limits mean lower utilization ratios. Ask if it\'s a "soft pull" — some issuers do a hard inquiry for limit increases.\n\n<strong>3. The 2/3/4 Rule for Applications</strong>\n• Wait at least 6 months between credit card applications\n• No more than 2-3 hard inquiries per year\n• Keep 3-4 credit accounts total (mix of types)\n\n<strong>4. Never Close Old Accounts</strong>\nOld accounts increase your average age of credit. If you have an old card with an annual fee, ask to downgrade to a no-fee version rather than closing it.\n\n<strong>5. The AZEO Method (All Zero Except One)</strong>\nKeep all cards at $0 balance except one card with a small balance (1-3%). This is the optimal utilization pattern for maximum score impact.\n\n<strong>6. Rate Shopping Window</strong>\nWhen shopping for a mortgage, auto loan, or student loan, multiple inquiries within a 14-45 day window count as a single inquiry for scoring purposes.',
+        visual: { type: 'tip', text: 'AZEO Method Example: If you have 3 credit cards, pay all three to $0 before statement closing dates. On ONE card, leave a small balance ($5-$20). This shows all three accounts are responsibly managed while demonstrating active credit use. This single change can boost your score 20-40 points.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Rebuilder\'s Path',
+        story: 'James completed bankruptcy 2 years ago and currently has no credit accounts. His score is 520. He wants to buy a home in 3 years. He has $500 available for credit building.',
+        question: 'What is James\'s optimal 3-year credit building strategy?',
+        options: [
+          { text: 'Apply for as many credit cards as possible to build history quickly', correct: false, explanation: 'Multiple applications will generate hard inquiries that hurt his score, and he\'ll likely be denied for most cards post-bankruptcy. Quality over quantity.' },
+          { text: 'Wait until the bankruptcy falls off his report', correct: false, explanation: 'Chapter 7 bankruptcy stays for 10 years. Waiting 8 more years isn\'t necessary — James can build credit now alongside the bankruptcy record.' },
+          { text: 'Month 1: Get a secured card ($300 deposit) reporting to all 3 bureaus + credit builder loan ($200). Month 6: Request limit increase. Month 12: Apply for unsecured card. Months 1-36: Perfect payments, under 10% utilization, build authorized user history', correct: true, explanation: 'Correct! This systematic approach builds a strong credit profile: 1) Secured card ($300) + credit builder loan ($200) = $500 budget used, two account types reporting, 2) Perfect payment history from day 1 — this is the #1 scoring factor, 3) Keep utilization under 10% ($30 max on secured card), 4) At 6 months, request limit increase on secured card, 5) At 12 months, apply for an unsecured card (Discover or Capital One are bankruptcy-friendly), 6) If possible, get added as authorized user on a family member\'s old, clean card. With this strategy, James could realistically reach 680-720+ within 2-3 years — enough for many mortgage programs.' },
+          { text: 'Only use debit cards — they\'re safer than credit', correct: false, explanation: 'Debit cards are NOT reported to credit bureaus and do nothing to build credit history. James needs credit accounts to build a score.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Key Takeaways',
+        body: '<strong>Credit Building Strategy Checklist:</strong>\n\n• Start with a secured credit card that reports to ALL THREE bureaus\n• Add a credit builder loan for installment loan history (improves credit mix)\n• Consider becoming an authorized user on a trusted person\'s old, clean account\n• Keep utilization under 10% — pay before the STATEMENT closing date, not just the due date\n• Never miss a payment — set up autopay on every account\n• Request credit limit increases every 6 months (ask for soft pull)\n• Don\'t close old accounts — downgrade annual fee cards to no-fee versions\n• Apply for new credit sparingly — no more than 2-3 inquiries per year\n• Use the AZEO method: All Zero Except One card with a small balance\n• Be patient — meaningful credit building takes 12-24 months\n• Monitor your progress monthly through free credit monitoring apps\n• Remember: payment history (35%) and utilization (30%) are 65% of your score',
+        visual: { type: 'tip', text: 'The Golden Rule of Credit Building: The best credit building strategy is boring. Small recurring charges, autopay, low utilization, and time. No tricks, no shortcuts. Consistency beats complexity every time. Set it up once and let it work for you on autopilot.' }
+      }
+    ]
   }
 ];

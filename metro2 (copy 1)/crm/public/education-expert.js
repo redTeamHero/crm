@@ -257,5 +257,137 @@ window.EDUCATION_EXPERT = [
         visual: { type: 'tip', text: 'Final Expert Tip: Credit repair is a legal process, not a mystery. Every tool in this course — FCRA, FDCPA, CFPB, AG, BBB, attorneys — is publicly available to every consumer. The difference between success and failure is: 1) Knowing which tool to use when, 2) Documenting everything, and 3) Being persistent and strategic. You now have the knowledge. Apply it systematically.' }
       }
     ]
+  },
+  {
+    id: 'metro2-format',
+    title: 'Understanding Metro 2 Format',
+    subtitle: 'How your data is actually reported',
+    icon: '📡',
+    xp: 200,
+    tier: 'expert',
+    sections: [
+      {
+        type: 'content',
+        title: 'What Is Metro 2?',
+        body: 'Metro 2 is the standardized data format that creditors and collectors use to report your account information to the credit bureaus. Understanding Metro 2 gives you a massive advantage in disputes because you can identify specific data fields that are wrong.\n\n<strong>Think of Metro 2 like a spreadsheet row.</strong> Each account you have is reported as a single record with dozens of specific data fields — account number, balance, payment status, dates, and more. When a furnisher sends your data to the bureaus, every field must follow exact formatting rules.\n\n<strong>Why This Matters for Disputes:</strong>\n\n1. <strong>Specific field errors are powerful.</strong> Instead of saying "this account is wrong," you can say "the Date of First Delinquency in field 25 is incorrect."\n\n2. <strong>Compliance codes reveal the story.</strong> Every account has a status code and compliance condition code that tells you exactly how the furnisher categorized the account.\n\n3. <strong>Bureau-specific reporting.</strong> Furnishers can report different data to different bureaus — or fail to report to all three. Inconsistencies are disputable.\n\n4. <strong>Metro 2 has strict rules.</strong> If a furnisher doesn\'t follow the format guidelines, the data shouldn\'t be on your report.',
+        visual: { type: 'cards', items: [
+          { title: 'Base Segment', desc: 'Core account data: account number, type, status, dates, balance, payment history. Every record has this.', icon: '📋' },
+          { title: 'J1/J2 Segments', desc: 'Additional borrower data. Used for joint accounts, co-signers, and authorized users.', icon: '👥' },
+          { title: 'K Segments', desc: 'Original creditor information. Appears when the current reporter isn\'t the original creditor (collections).', icon: '🔗' },
+          { title: 'L Segments', desc: 'Address information. Your name and address data as reported by the furnisher.', icon: '📍' }
+        ]}
+      },
+      {
+        type: 'content',
+        title: 'Critical Metro 2 Fields for Disputes',
+        body: '<strong>These are the most commonly incorrect fields — and the most powerful to dispute:</strong>\n\n<strong>Account Status (Field 17):</strong>\nA 2-digit code showing the current state of the account.\n• 11 = Current\n• 71 = 30 days late\n• 78 = 60 days late\n• 80 = 90 days late\n• 82 = 120 days late\n• 83 = 150 days late\n• 84 = 180+ days late\n• 93 = Account assigned to collections\n• 97 = Unpaid, charged off\n• 05 = Account transferred\n• DA = Deleted by consumer dispute\n\n<strong>Date of First Delinquency (DOFD — Field 25):</strong>\nThis is the date you first fell behind and never caught up. It controls the 7-year reporting clock under FCRA §605. If this date is wrong, the entire reporting timeline is wrong.\n\n<strong>Payment Rating (Field 17A):</strong>\nIndicates the worst delinquency level:\n• 0 = Current\n• 1 = 30 days\n• 2 = 60 days\n• 3 = 90 days\n• 4 = 120 days\n• 5 = 150 days\n• 6 = 180+ days\n\n<strong>Balance (Field 21):</strong>\nThe current balance. If this is wrong, it affects your utilization ratio and overall debt load.\n\n<strong>Date Reported (Field 5):</strong>\nWhen the furnisher last reported. Stale data (not updated in months) may indicate the furnisher isn\'t maintaining accurate records.',
+        visual: { type: 'tip', text: 'Dispute Power: When you dispute a Metro 2 field error, be specific. Instead of "this account is inaccurate," write: "The Account Status code shows 97 (charged off) but this account was settled in full on [date]. The correct Account Status should be 13 (paid/closed). Additionally, the current balance of $X should be $0." Specific field-level disputes are harder for furnishers to dismiss.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Compliance Condition Code',
+        story: 'While reviewing his Metro 2 data, Derek notices that a credit card account that was included in his Chapter 7 bankruptcy 3 years ago shows:\n• Account Status: 97 (charged off)\n• Compliance Condition Code: blank\n• Balance: $4,800\n\nDerek\'s bankruptcy attorney confirms the account was discharged.',
+        question: 'What Metro 2 errors should Derek dispute?',
+        options: [
+          { text: 'Only the balance — it should be $0', correct: false, explanation: 'The balance is one error, but there are multiple Metro 2 field errors here that need correction.' },
+          { text: 'All three: the Compliance Condition Code should show "XH" (discharged through bankruptcy), the balance should be $0, and the Account Status should reflect the discharge — not a charge-off', correct: true, explanation: 'Correct! Three distinct Metro 2 errors: 1) Compliance Condition Code should be "XH" (discharged in bankruptcy under Chapter 7) — this code is required for any account included in a bankruptcy, 2) Balance MUST be reported as $0 for discharged accounts — reporting a balance on a discharged debt violates the bankruptcy discharge injunction, 3) Account Status should be updated to reflect the discharge, not an active charge-off. Derek should dispute with all three bureaus citing these specific Metro 2 field errors AND contact the furnisher under §623(b) citing the bankruptcy discharge order. Reporting a balance on a discharged debt can also be a violation of the bankruptcy discharge injunction — worth mentioning to a consumer rights attorney.' },
+          { text: 'There are no errors — bankruptcy accounts always show as charged off', correct: false, explanation: 'Bankruptcy accounts must be properly coded with the correct Compliance Condition Code and a $0 balance. The way this account is currently reported is inaccurate.' },
+          { text: 'Derek should just wait for it to fall off his report', correct: false, explanation: 'The inaccurate balance and missing compliance code are actively damaging Derek\'s credit now. These are correctable errors that should be disputed immediately.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Common Metro 2 Reporting Errors to Spot',
+        body: '<strong>Error 1: Wrong DOFD (Date of First Delinquency)</strong>\nThe DOFD should reflect when you FIRST became delinquent on the original account. If a collector reports a later date, they\'re illegally re-aging the debt under §605(c). Compare the DOFD across all three bureaus — they should match.\n\n<strong>Error 2: Missing or Wrong Compliance Codes</strong>\n• Bankruptcy: Should show XA (Ch.7 filing), XH (Ch.7 discharge), XE (Ch.13 filing), XF (Ch.13 discharge)\n• Identity theft: Should show XB (account disputed by consumer as ID theft)\n• If these codes are missing, the account isn\'t being reported correctly\n\n<strong>Error 3: Balance Reported on Closed/Paid Accounts</strong>\nPaid, settled, and discharged accounts should show $0 balance. Any remaining balance inflates your debt-to-income ratio and hurts your score.\n\n<strong>Error 4: Inconsistent Reporting Across Bureaus</strong>\nThe same account should show the same data at all three bureaus. If TransUnion shows 60 days late but Experian shows current — one is wrong. Dispute the inaccurate one.\n\n<strong>Error 5: Payment History Errors</strong>\nThe 24-month payment history string should accurately reflect your payments. A single wrong "late" marker in this field can cost you 50-100+ points.\n\n<strong>Error 6: Wrong Account Type</strong>\nRevolving (credit cards) vs. installment (loans) vs. mortgage — wrong categorization affects your credit mix calculation.',
+        visual: { type: 'tip', text: 'How to See Metro 2 Data: Your regular credit report is a consumer-friendly version of the Metro 2 data. To see the raw data, request your full file disclosure under FCRA §609. Some credit monitoring services also show account-level detail that reveals Metro 2 field values. Compare data across all three bureaus to spot inconsistencies.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Cross-Bureau Discrepancy',
+        story: 'Elena pulls her reports from all three bureaus and finds her auto loan reported differently:\n• TransUnion: Balance $12,400, Current, opened Jan 2022\n• Experian: Balance $12,400, Current, opened Jan 2022\n• Equifax: Balance $14,200, 30 days late (June 2024), opened Mar 2022\n\nElena has never been late on this account and her statements confirm she\'s current with a balance of $12,400. She opened the account in January 2022.',
+        question: 'How should Elena approach this dispute?',
+        options: [
+          { text: 'Dispute with Equifax only — they\'re the only ones with wrong data', correct: false, explanation: 'While Equifax has the errors, Elena should also involve the furnisher to ensure the data is corrected at the source and prevent future re-reporting of wrong data.' },
+          { text: 'Dispute with Equifax citing three specific Metro 2 field errors (wrong balance, false late payment, wrong open date), AND send a §623 direct dispute to the auto lender\'s compliance department with her payment records and original contract', correct: true, explanation: 'Correct! Elena has three provable Metro 2 errors on Equifax that are verifiable against the other two bureaus: 1) Balance: $14,200 vs. confirmed $12,400 — wrong by $1,800, 2) Payment Status: Shows 30 days late in June 2024, but TransUnion and Experian show current AND Elena has payment records proving she was never late, 3) Account Open Date: March 2022 vs. January 2022 on the other two bureaus. She should: 1) Dispute with Equifax citing all three field errors with supporting documentation, 2) Send §623 direct dispute to the auto lender\'s compliance department requesting they correct Equifax reporting, 3) Include copies of her loan contract (showing Jan 2022 open date) and payment statements. Cross-bureau discrepancies are among the strongest disputes because the correct data already exists at the other bureaus.' },
+          { text: 'Call Equifax customer service and ask them to fix it', correct: false, explanation: 'Phone disputes are poorly documented. Written disputes via certified mail create a paper trail and trigger the formal §611 investigation process.' },
+          { text: 'Dispute with all three bureaus to be safe', correct: false, explanation: 'TransUnion and Experian are reporting correctly. Disputing accurate data at those bureaus is unnecessary and could actually cause problems if it triggers unnecessary reinvestigation.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Key Takeaways',
+        body: '<strong>Metro 2 Format Mastery:</strong>\n\n• Metro 2 is the data format furnishers use to report your accounts to credit bureaus\n• Every account is a record with specific fields: status codes, dates, balances, payment history\n• Understanding field-level data lets you make specific, powerful disputes instead of vague challenges\n• Date of First Delinquency (DOFD) controls the 7-year reporting clock — wrong DOFDs are common and highly disputable\n• Compliance Condition Codes must be set for bankruptcy, identity theft, and special situations\n• Always compare account data across all three bureaus — cross-bureau discrepancies prove errors\n• Balance on paid/settled/discharged accounts must be $0\n• Payment history errors (false lates) are among the most score-damaging and most disputable errors\n• Request full file disclosure under §609 to see detailed account data\n• When disputing, cite specific fields and codes rather than vague "inaccurate" claims',
+        visual: { type: 'tip', text: 'Expert Tip: When you cite specific Metro 2 field errors in your disputes, it signals to the bureau and furnisher that you understand the data format. This often leads to faster resolution because they know you can escalate to a CFPB complaint or attorney with specific, documented violations.' }
+      }
+    ]
+  },
+  {
+    id: 'state-specific-laws',
+    title: 'State-Specific Laws',
+    subtitle: 'Your state\'s extra protections',
+    icon: '🗺️',
+    xp: 200,
+    tier: 'expert',
+    sections: [
+      {
+        type: 'content',
+        title: 'Why State Laws Matter',
+        body: 'Federal laws like the FCRA and FDCPA set a FLOOR for consumer protection — but many states go significantly further. Some states offer:\n\n• <strong>Higher damages</strong> (treble/triple damages for violations)\n• <strong>Longer statutes of limitations</strong> for filing lawsuits\n• <strong>Additional prohibited practices</strong> beyond federal law\n• <strong>Stronger enforcement</strong> through active Attorney General offices\n• <strong>Additional consumer rights</strong> not found in federal law\n\n<strong>Key Principle:</strong>\nFederal law preempts state law ONLY where it specifically says so. The FCRA and FDCPA both have savings clauses that preserve stronger state protections. This means you can use BOTH federal and state law in your disputes and lawsuits.',
+        visual: { type: 'cards', items: [
+          { title: 'Treble Damages States', desc: 'Texas (DTPA), Massachusetts (93A), and others allow 3x actual damages for willful violations.', icon: '💰' },
+          { title: 'Mini-FCRA States', desc: 'California (CCRAA), New York (GBL §380), and others have additional credit reporting requirements.', icon: '📜' },
+          { title: 'Mini-FDCPA States', desc: 'Many states have their own debt collection acts that cover original creditors too (not just 3rd party).', icon: '🛡️' },
+          { title: 'Private Right of Action', desc: 'Most state consumer protection laws allow individuals to sue — with attorney fee shifting.', icon: '⚖️' }
+        ]}
+      },
+      {
+        type: 'content',
+        title: 'California — The Gold Standard',
+        body: '<strong>California Consumer Credit Reporting Agencies Act (CCRAA) — Civil Code §1785:</strong>\n\nCalifornia has the strongest credit reporting protections in the nation:\n\n<strong>Key Protections Beyond FCRA:</strong>\n• Bureaus must provide reports in the consumer\'s preferred language\n• Additional restrictions on who can pull your credit\n• Stronger identity theft protections\n• Security freeze rights (CA was the first state to require free freezes)\n• Additional requirements for accuracy and dispute handling\n\n<strong>Rosenthal Fair Debt Collection Practices Act — Civil Code §1788:</strong>\nCalifornia\'s mini-FDCPA that ALSO covers original creditors (unlike the federal FDCPA which only covers third-party collectors). This means if Chase or Bank of America is harassing you about your own debt, the Rosenthal Act protects you.\n\n<strong>CCPA/CPRA (Privacy):</strong>\nCalifornia\'s privacy laws give you the right to know what data companies collect about you and request deletion. While not specifically a credit law, it can be used to challenge data broker information that feeds into credit reports.\n\n<strong>Damages:</strong>\n• Statutory damages up to $5,000 per violation under CCRAA\n• Actual damages (uncapped)\n• Attorney fees',
+        visual: { type: 'tip', text: 'California Strategy: If you live in California, always cite BOTH the FCRA AND the CCRAA in your disputes and complaints. The CCRAA provides up to $5,000 per violation (vs. $1,000 under FCRA) and covers additional practices. Many consumer rights attorneys in California prefer filing under state law because the damages are higher.' }
+      },
+      {
+        type: 'content',
+        title: 'Texas — Triple Damages',
+        body: '<strong>Texas Deceptive Trade Practices Act (DTPA) — Bus. & Com. Code §17.41:</strong>\n\nTexas has one of the most consumer-friendly laws in the country for one reason: <strong>treble (triple) damages.</strong>\n\n<strong>How the DTPA Helps with Credit Issues:</strong>\n• Applies to any "deceptive" practice in trade or commerce\n• Covers false or misleading reporting by furnishers and collectors\n• Covers unfair debt collection practices\n• Covers false advertising of credit repair services\n\n<strong>Damages Under DTPA:</strong>\n• <strong>Knowing violations:</strong> Up to 3x actual damages\n• <strong>Intentional violations:</strong> Up to 3x actual damages\n• Attorney fees for prevailing consumers\n• No minimum amount in controversy (can sue for any amount)\n\n<strong>Texas Finance Code — Chapter 392 (Debt Collection):</strong>\n• Covers BOTH third-party collectors AND original creditors\n• Prohibits threatening actions that cannot legally be taken\n• Prohibits misrepresenting the amount or status of a debt\n• Provides for actual damages, statutory damages, and injunctive relief\n\n<strong>Example:</strong> If a collector in Texas causes you $5,000 in actual damages through knowing DTPA violations, you could recover up to $15,000 (3x) plus attorney fees.',
+        visual: { type: 'tip', text: 'Texas Strategy: When dealing with collectors or inaccurate credit reporting in Texas, mention the DTPA in addition to federal claims. The threat of treble damages gets corporate attention fast. Many Texas consumer protection attorneys are experienced with DTPA claims alongside FCRA/FDCPA cases.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: Using State Law Advantage',
+        story: 'Patricia lives in Massachusetts and has documented that a collection agency has been calling her 4-5 times per day for 3 weeks despite her written cease and desist letter. She\'s also documented that they told her she would be arrested if she didn\'t pay — a false threat. She has voicemail recordings of 8 calls that include threats.',
+        question: 'What are Patricia\'s options under both federal AND Massachusetts state law?',
+        options: [
+          { text: 'Federal FDCPA only — state law doesn\'t add anything', correct: false, explanation: 'Massachusetts has one of the strongest consumer protection laws in the nation (Chapter 93A) that provides significantly higher damages than federal law alone.' },
+          { text: 'FDCPA violations (up to $1,000 statutory + actuals) PLUS Massachusetts Chapter 93A claims with automatic treble damages for willful violations — potentially tripling her total recovery', correct: true, explanation: 'Correct! Patricia has a powerful dual-track case: FEDERAL (FDCPA): 1) §1692d — harassment through repeated calls (3 weeks, 4-5x daily), 2) §1692c — continued contact after cease and desist, 3) §1692e — false threats of arrest. Up to $1,000 statutory + actual damages + attorney fees. MASSACHUSETTS (93A): Chapter 93A considers FDCPA violations to be unfair practices under state law. The critical advantage: 93A provides AUTOMATIC treble damages for willful or knowing violations. If Patricia\'s actual damages are $5,000, she could recover $15,000 under 93A plus attorney fees. The combination of federal and state claims makes this a very strong case. Her voicemail recordings are powerful evidence of willful violations.' },
+          { text: 'She can only use one law — federal or state, not both', correct: false, explanation: 'Consumers can and should pursue claims under BOTH federal and state law when both apply. They protect different rights and provide different remedies.' },
+          { text: 'She needs to file a complaint before she can sue', correct: false, explanation: 'While filing complaints is recommended (CFPB, AG), it\'s not a prerequisite for a lawsuit. Patricia can consult an attorney and file suit immediately if she has the evidence.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Other Notable State Protections',
+        body: '<strong>New York (General Business Law §380):</strong>\n• Additional credit reporting requirements\n• Must provide reports in consumer\'s preferred language\n• Active AG consumer protection bureau\n• NYC has additional local consumer protection laws\n\n<strong>Illinois (Consumer Fraud Act — 815 ILCS 505):</strong>\n• Broad consumer fraud coverage\n• Private right of action with attorney fees\n• Active AG enforcement (large volume of consumer cases)\n• Covers practices not specifically addressed by federal law\n\n<strong>Connecticut (CUTPA — §42-110a):</strong>\n• Unfair Trade Practices Act with broad coverage\n• Attorney fee shifting\n• Punitive damages for egregious conduct\n• Active AG enforcement\n\n<strong>Washington State (CPA — RCW 19.86):</strong>\n• Consumer Protection Act covers deceptive credit practices\n• Treble damages up to $25,000\n• Attorney fees for prevailing consumers\n• Very consumer-friendly courts\n\n<strong>Florida (FCCPA — §559.55):</strong>\n• Florida Consumer Collection Practices Act\n• Covers original creditors (like CA and TX)\n• Statutory damages up to $1,000 per violation\n• Attorney fees\n\n<strong>New Jersey (CFA — §56:8-1):</strong>\n• Consumer Fraud Act with treble damages\n• No need to prove intent — strict liability\n• Very broad coverage of consumer practices\n• Active AG enforcement',
+        visual: { type: 'tip', text: 'Research Your State: Search "[Your State] consumer protection act credit reporting" or "[Your State] debt collection practices act." Many states have free legal guides on their AG websites. Also check if your state covers original creditors (not just third-party collectors) — this is a huge advantage that the federal FDCPA doesn\'t provide.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: Choosing the Right Law',
+        story: 'Kevin lives in Illinois and has three different credit issues:\n1. A debt collector has been calling his cell phone with a robocaller despite being on the Do Not Call list\n2. His bank (original creditor) is reporting a wrong balance on his credit card\n3. A debt buyer is reporting a collection with an illegally re-aged Date of First Delinquency',
+        question: 'Which laws apply to each of Kevin\'s three issues?',
+        options: [
+          { text: 'Just use the FCRA for all three — it covers everything', correct: false, explanation: 'Different issues are covered by different laws. Using all applicable laws maximizes Kevin\'s leverage and potential recovery.' },
+          { text: 'Issue 1: TCPA + FDCPA + Illinois Consumer Fraud Act. Issue 2: FCRA §623 + Illinois Consumer Fraud Act (covers original creditors). Issue 3: FCRA §605(c) + FDCPA §1692e + Illinois Consumer Fraud Act', correct: true, explanation: 'Correct! Each issue has multiple applicable laws: ISSUE 1 (Robocalls): TCPA (Telephone Consumer Protection Act) — $500-$1,500 per robocall without consent, FDCPA §1692d — harassment, Illinois CFA — unfair consumer practice. ISSUE 2 (Bank\'s wrong balance): FCRA §623 — furnisher duty to report accurately, Illinois Consumer Fraud Act — covers original creditors (unlike FDCPA which doesn\'t). This is a KEY advantage of Illinois law. ISSUE 3 (Re-aged DOFD): FCRA §605(c) — illegal re-aging, FDCPA §1692e — false/misleading representation, Illinois CFA — deceptive practice. By layering federal AND state claims, Kevin maximizes both his leverage for settlement and his potential damages at trial.' },
+          { text: 'Kevin should just file CFPB complaints for all three', correct: false, explanation: 'CFPB complaints are great for regulatory pressure, but Kevin should also pursue legal claims. The combination of complaints + legal action is the most effective approach.' },
+          { text: 'State law only applies if federal law doesn\'t cover the issue', correct: false, explanation: 'State and federal law can apply simultaneously to the same issue. Consumers should use all available legal tools, not choose between them.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Key Takeaways',
+        body: '<strong>State Law Strategy Mastery:</strong>\n\n• Federal law (FCRA, FDCPA) sets the FLOOR — many states provide STRONGER protections\n• Always research your specific state\'s consumer protection laws and credit reporting acts\n• Several states offer treble (3x) damages: Texas (DTPA), Massachusetts (93A), Washington, New Jersey\n• Some state laws cover ORIGINAL CREDITORS — a critical advantage since federal FDCPA only covers third-party collectors (California, Texas, Florida, and others)\n• California (CCRAA) provides up to $5,000 statutory damages per violation (vs. $1,000 FCRA)\n• Layer federal AND state claims in disputes and lawsuits for maximum leverage\n• State AG complaints carry weight because AGs have independent enforcement authority\n• Many state consumer protection laws have attorney fee provisions (loser pays winner\'s fees)\n• Check your state bar association for consumer rights attorneys experienced with state-specific claims\n• Some states have no-fault liability — you don\'t need to prove the company intended to violate the law',
+        visual: { type: 'tip', text: 'Ultimate Strategy: When consulting a consumer rights attorney, ask: "What state law claims can we add to the federal claims?" The best consumer rights attorneys always layer state and federal claims because: 1) It increases settlement pressure, 2) It can dramatically increase damages (especially in treble-damage states), 3) Some violations are only covered by state law.' }
+      }
+    ]
   }
 ];

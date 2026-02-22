@@ -36,11 +36,14 @@
     return all;
   }
 
+  function isQuizKey(key){ return key.indexOf('_quiz_') === 0; }
+
   function getTotalXP(){
     var p = getProgress();
     var all = getAllLessons();
     var xp = 0;
     for(var key in p){
+      if(isQuizKey(key)) continue;
       if(p[key] && p[key].completed){
         var lesson = all.find(function(l){ return l.id === key; });
         xp += (lesson && lesson.xp) ? lesson.xp : XP_PER_LESSON;
@@ -52,7 +55,7 @@
   function getCompletedCount(){
     var p = getProgress();
     var count = 0;
-    for(var key in p){ if(p[key] && p[key].completed) count++; }
+    for(var key in p){ if(!isQuizKey(key) && p[key] && p[key].completed) count++; }
     return count;
   }
 
@@ -393,6 +396,420 @@
     return '<p>' + s + '</p>';
   }
 
+  function getQuizProgress(){
+    try { return JSON.parse(localStorage.getItem('edu_quiz_progress') || '{}'); } catch { return {}; }
+  }
+
+  function saveQuizProgress(qp){
+    try { localStorage.setItem('edu_quiz_progress', JSON.stringify(qp)); } catch {}
+  }
+
+  function isTierComplete(tierKey){
+    var tierData = getTierData(tierKey);
+    if(!tierData || !tierData.length) return false;
+    var p = getProgress();
+    for(var i = 0; i < tierData.length; i++){
+      if(!p[tierData[i].id] || !p[tierData[i].id].completed) return false;
+    }
+    return true;
+  }
+
+  function isTierQuizPassed(tierKey){
+    var qp = getQuizProgress();
+    return qp[tierKey] && qp[tierKey].passed;
+  }
+
+  function getTierData(tierKey){
+    if(tierKey === 'beginner') return window.EDUCATION_LESSONS || [];
+    if(tierKey === 'intermediate') return window.EDUCATION_INTERMEDIATE || [];
+    if(tierKey === 'expert') return window.EDUCATION_EXPERT || [];
+    return [];
+  }
+
+  function buildQuizQuestions(tierKey){
+    var tierData = getTierData(tierKey);
+    var scenarios = [];
+    tierData.forEach(function(lesson){
+      if(!lesson.sections) return;
+      lesson.sections.forEach(function(sec){
+        if(sec.type === 'scenario'){
+          scenarios.push({ lessonTitle: lesson.title, title: sec.title, question: sec.question, options: sec.options, story: sec.story });
+        }
+      });
+    });
+    for(var i = scenarios.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = scenarios[i]; scenarios[i] = scenarios[j]; scenarios[j] = tmp;
+    }
+    var quizSize = { beginner: 8, intermediate: 5, expert: 5 };
+    var count = quizSize[tierKey] || 5;
+    return scenarios.slice(0, Math.min(count, scenarios.length));
+  }
+
+  var QUIZ_TIME_LIMITS = { beginner: 600, intermediate: 480, expert: 420 };
+  var QUIZ_PASS_SCORES = { beginner: 0.7, intermediate: 0.75, expert: 0.8 };
+  var QUIZ_BONUS_XP = { beginner: 300, intermediate: 500, expert: 800 };
+
+  function openTierQuiz(tierKey){
+    if(!isTierComplete(tierKey)) return;
+    var questions = buildQuizQuestions(tierKey);
+    if(!questions.length) return;
+
+    var overlay = createOverlay();
+    var currentQ = 0;
+    var answers = {};
+    var timeLimit = QUIZ_TIME_LIMITS[tierKey] || 480;
+    var timeLeft = timeLimit;
+    var timer = null;
+    var quizFinished = false;
+    var tierLabels = { beginner: 'Beginner', intermediate: 'Intermediate', expert: 'Expert' };
+    var tierColors = { beginner: '#22c55e', intermediate: '#f59e0b', expert: '#ef4444' };
+
+    function startTimer(){
+      timer = setInterval(function(){
+        timeLeft--;
+        var el = overlay.querySelector('#quizTimer');
+        if(el) el.textContent = formatTime(timeLeft);
+        if(timeLeft <= 60){
+          var tw = overlay.querySelector('.quiz-timer');
+          if(tw) tw.classList.add('warning');
+        }
+        if(timeLeft <= 0){
+          clearInterval(timer);
+          finishQuiz();
+        }
+      }, 1000);
+    }
+
+    function formatTime(s){
+      var m = Math.floor(s / 60);
+      var sec = s % 60;
+      return m + ':' + (sec < 10 ? '0' : '') + sec;
+    }
+
+    function renderQuestion(){
+      if(quizFinished) return;
+      var q = questions[currentQ];
+      var progressPct = ((currentQ + 1) / questions.length) * 100;
+
+      var html = '<div class="lesson-player quiz-player">';
+      html += '<div class="lesson-player-header quiz-header">';
+      html += '<button class="lesson-close-btn" id="quizClose" type="button" aria-label="Close">';
+      html += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      html += '</button>';
+      html += '<div class="lesson-header-info">';
+      html += '<div class="lesson-header-title"><span class="lesson-tier-badge" style="background:' + tierColors[tierKey] + '20;color:' + tierColors[tierKey] + '">' + tierLabels[tierKey] + ' Final Exam</span></div>';
+      html += '<div class="lesson-header-step">Question ' + (currentQ + 1) + ' of ' + questions.length + '</div>';
+      html += '</div>';
+      html += '<div class="quiz-timer' + (timeLeft <= 60 ? ' warning' : '') + '"><span class="quiz-timer-icon">⏱</span><span id="quizTimer">' + formatTime(timeLeft) + '</span></div>';
+      html += '<div class="lesson-progress-bar"><div class="lesson-progress-fill" style="width:' + progressPct + '%;background:' + tierColors[tierKey] + '"></div></div>';
+      html += '</div>';
+
+      html += '<div class="lesson-player-body">';
+      html += '<div class="lesson-scenario">';
+      html += '<div class="lesson-scenario-badge">📝 Exam Question</div>';
+      html += '<h2 class="lesson-section-title">' + esc(q.title) + '</h2>';
+      html += '<div class="lesson-scenario-story">' + formatBody(q.story) + '</div>';
+      html += '<div class="lesson-scenario-question">' + esc(q.question) + '</div>';
+      html += '<div class="lesson-options" id="quizOptions">';
+      q.options.forEach(function(opt, oi){
+        var isAnswered = answers[currentQ] !== undefined;
+        var isSelected = answers[currentQ] === oi;
+        var optClass = 'lesson-option';
+        if(isAnswered){
+          if(opt.correct) optClass += ' correct';
+          else if(isSelected) optClass += ' incorrect';
+          else optClass += ' dimmed';
+        }
+        html += '<button class="' + optClass + '" data-oi="' + oi + '" type="button"' + (isAnswered ? ' disabled' : '') + '>';
+        html += '<span class="lesson-option-letter">' + String.fromCharCode(65 + oi) + '</span>';
+        html += '<span class="lesson-option-text">' + esc(opt.text) + '</span>';
+        if(isAnswered && (opt.correct || isSelected)){
+          html += '<span class="lesson-option-icon">' + (opt.correct ? '✓' : '✗') + '</span>';
+        }
+        html += '</button>';
+      });
+      html += '</div>';
+      if(answers[currentQ] !== undefined){
+        var chosen = q.options[answers[currentQ]];
+        var fbClass = chosen.correct ? 'correct' : 'incorrect';
+        html += '<div class="lesson-feedback ' + fbClass + '">';
+        html += '<div class="lesson-feedback-header">' + (chosen.correct ? '✅ Correct!' : '❌ Not quite') + '</div>';
+        html += '<div class="lesson-feedback-text">' + esc(chosen.explanation) + '</div>';
+        html += '</div>';
+      }
+      html += '</div></div>';
+
+      html += '<div class="lesson-player-footer">';
+      if(currentQ > 0){
+        html += '<button class="lesson-btn lesson-btn-back" id="quizBack" type="button">← Back</button>';
+      } else { html += '<div></div>'; }
+      var canProceed = answers[currentQ] !== undefined;
+      if(currentQ < questions.length - 1){
+        html += '<button class="lesson-btn lesson-btn-next' + (!canProceed ? ' disabled' : '') + '" id="quizNext" type="button"' + (!canProceed ? ' disabled' : '') + '>Next →</button>';
+      } else {
+        html += '<button class="lesson-btn lesson-btn-complete' + (!canProceed ? ' disabled' : '') + '" id="quizFinish" type="button"' + (!canProceed ? ' disabled' : '') + '>Finish Exam</button>';
+      }
+      html += '</div></div>';
+
+      overlay.innerHTML = html;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      overlay.querySelector('#quizClose').addEventListener('click', function(){
+        if(confirm('Are you sure you want to leave? Your progress will be lost.')) closeQuiz();
+      });
+      var backBtn = overlay.querySelector('#quizBack');
+      if(backBtn) backBtn.addEventListener('click', function(){ currentQ--; renderQuestion(); });
+      var nextBtn = overlay.querySelector('#quizNext');
+      if(nextBtn && canProceed) nextBtn.addEventListener('click', function(){ currentQ++; renderQuestion(); });
+      var finishBtn = overlay.querySelector('#quizFinish');
+      if(finishBtn && canProceed) finishBtn.addEventListener('click', finishQuiz);
+
+      if(answers[currentQ] === undefined){
+        overlay.querySelectorAll('.lesson-option').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            answers[currentQ] = parseInt(btn.getAttribute('data-oi'));
+            renderQuestion();
+          });
+        });
+      }
+
+      var body = overlay.querySelector('.lesson-player-body');
+      if(body) body.scrollTop = 0;
+    }
+
+    function finishQuiz(){
+      quizFinished = true;
+      if(timer) clearInterval(timer);
+
+      var correct = 0;
+      var total = questions.length;
+      for(var i = 0; i < total; i++){
+        if(answers[i] !== undefined){
+          var q = questions[i];
+          if(q.options[answers[i]] && q.options[answers[i]].correct) correct++;
+        }
+      }
+
+      var pct = total > 0 ? correct / total : 0;
+      var passThreshold = QUIZ_PASS_SCORES[tierKey] || 0.75;
+      var passed = pct >= passThreshold;
+      var bonusXP = passed ? (QUIZ_BONUS_XP[tierKey] || 300) : 0;
+
+      if(passed){
+        var qp = getQuizProgress();
+        qp[tierKey] = { passed: true, score: correct, total: total, pct: Math.round(pct * 100), bonusXP: bonusXP, completedAt: Date.now() };
+        saveQuizProgress(qp);
+        var p = getProgress();
+        var quizKey = '_quiz_' + tierKey;
+        if(!p[quizKey]) p[quizKey] = {};
+        p[quizKey].completed = true;
+        p[quizKey].completedAt = Date.now();
+        p[quizKey].bonusXP = bonusXP;
+        saveProgress(p);
+      }
+
+      var timeTaken = timeLimit - timeLeft;
+      var resultIcon = passed ? '🎓' : '📝';
+      var resultTitle = passed ? 'Exam Passed!' : 'Keep Studying';
+      var resultColor = passed ? '#22c55e' : '#f59e0b';
+
+      var html = '<div class="lesson-player quiz-player">';
+      html += '<div class="lesson-completion quiz-result">';
+      html += '<div class="lesson-completion-burst" style="background:radial-gradient(circle, ' + resultColor + '22 0%, transparent 70%)"></div>';
+      html += '<div class="lesson-completion-icon">' + resultIcon + '</div>';
+      html += '<h2 class="lesson-completion-title" style="color:' + resultColor + '">' + resultTitle + '</h2>';
+      html += '<p class="lesson-completion-subtitle">' + tierLabels[tierKey] + ' Final Exam</p>';
+      html += '<div class="quiz-result-score">';
+      html += '<div class="quiz-score-circle" style="--score-pct:' + Math.round(pct * 100) + '%;--score-color:' + resultColor + '">';
+      html += '<span class="quiz-score-num">' + Math.round(pct * 100) + '%</span>';
+      html += '</div>';
+      html += '<div class="quiz-score-detail">' + correct + ' of ' + total + ' correct</div>';
+      html += '<div class="quiz-score-time">Time: ' + formatTime(timeTaken) + '</div>';
+      html += '<div class="quiz-score-threshold">Passing: ' + Math.round(passThreshold * 100) + '%</div>';
+      html += '</div>';
+
+      if(passed){
+        html += '<div class="lesson-completion-stats">';
+        html += '<div class="lesson-stat"><div class="lesson-stat-value">+' + bonusXP + '</div><div class="lesson-stat-label">Bonus XP</div></div>';
+        html += '<div class="lesson-stat"><div class="lesson-stat-value">🎓</div><div class="lesson-stat-label">' + tierLabels[tierKey] + ' Graduate</div></div>';
+        html += '</div>';
+        html += '<div class="quiz-actions">';
+        html += '<button class="lesson-btn lesson-btn-complete" id="quizCert" type="button">Download Certificate 📜</button>';
+        html += '<button class="lesson-btn lesson-btn-next" id="quizDone" type="button">Continue</button>';
+        html += '</div>';
+      } else {
+        html += '<div class="quiz-retry-msg">Review the lessons and try again. You need ' + Math.round(passThreshold * 100) + '% to pass.</div>';
+        html += '<button class="lesson-btn lesson-btn-complete" id="quizDone" type="button">Back to Lessons</button>';
+      }
+
+      html += '</div></div>';
+
+      overlay.innerHTML = html;
+
+      var certBtn = overlay.querySelector('#quizCert');
+      if(certBtn) certBtn.addEventListener('click', function(){ generateCertificate(tierKey); });
+      overlay.querySelector('#quizDone').addEventListener('click', function(){
+        closeQuiz();
+        if(typeof window.refreshEducation === 'function') window.refreshEducation();
+      });
+    }
+
+    function closeQuiz(){
+      if(timer) clearInterval(timer);
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+      setTimeout(function(){ overlay.remove(); }, 300);
+      if(typeof window.refreshEducation === 'function') window.refreshEducation();
+    }
+
+    startTimer();
+    renderQuestion();
+  }
+
+  function generateCertificate(tierKey){
+    var tierLabels = { beginner: 'Beginner', intermediate: 'Intermediate', expert: 'Expert' };
+    var tierColors = { beginner: '#22c55e', intermediate: '#f59e0b', expert: '#ef4444' };
+    var qp = getQuizProgress();
+    var quizData = qp[tierKey];
+    if(!quizData || !quizData.passed) return;
+
+    var completedDate = new Date(quizData.completedAt);
+    var dateStr = completedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    var userName = 'Credit Education Graduate';
+    try {
+      var portalUser = JSON.parse(localStorage.getItem('portal_user') || '{}');
+      if(portalUser.first_name) userName = portalUser.first_name + (portalUser.last_name ? ' ' + portalUser.last_name : '');
+      else if(portalUser.name) userName = portalUser.name;
+    } catch {}
+
+    var canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 850;
+    var ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, 1200, 850);
+
+    ctx.strokeStyle = '#d4a853';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(30, 30, 1140, 790);
+    ctx.strokeStyle = '#d4a85366';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(45, 45, 1110, 760);
+
+    for(var ci = 0; ci < 4; ci++){
+      var cx = [60, 1140, 60, 1140][ci];
+      var cy = [60, 60, 790, 790][ci];
+      ctx.beginPath();
+      ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+      ctx.fillStyle = '#d4a853';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#d4a853';
+    ctx.font = '16px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('EVOLV.AI CREDIT EDUCATION ACADEMY', 600, 110);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '42px Georgia, serif';
+    ctx.fillText('Certificate of Completion', 600, 175);
+
+    ctx.fillStyle = '#999';
+    ctx.font = '18px Arial, sans-serif';
+    ctx.fillText('This certifies that', 600, 240);
+
+    ctx.fillStyle = '#d4a853';
+    ctx.font = 'bold 36px Georgia, serif';
+    ctx.fillText(userName, 600, 295);
+
+    ctx.strokeStyle = '#d4a85366';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(250, 310);
+    ctx.lineTo(950, 310);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ccc';
+    ctx.font = '18px Arial, sans-serif';
+    ctx.fillText('has successfully completed the', 600, 360);
+
+    var tierColor = tierColors[tierKey];
+    ctx.fillStyle = tierColor;
+    ctx.font = 'bold 38px Georgia, serif';
+    ctx.fillText(tierLabels[tierKey] + ' Tier', 600, 415);
+
+    ctx.fillStyle = '#ccc';
+    ctx.font = '18px Arial, sans-serif';
+    ctx.fillText('Credit Education Program and passed the Final Examination', 600, 460);
+
+    ctx.fillStyle = '#999';
+    ctx.font = '16px Arial, sans-serif';
+    ctx.fillText('Score: ' + quizData.pct + '% (' + quizData.score + '/' + quizData.total + ' correct)', 600, 510);
+
+    ctx.font = '62px serif';
+    ctx.fillText('🎓', 600, 590);
+
+    ctx.fillStyle = '#d4a853';
+    ctx.font = '14px Georgia, serif';
+    ctx.fillText('EVOLV.AI', 350, 700);
+    ctx.strokeStyle = '#d4a85366';
+    ctx.beginPath();
+    ctx.moveTo(250, 710);
+    ctx.lineTo(450, 710);
+    ctx.stroke();
+    ctx.fillStyle = '#999';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.fillText('Evolv.AI Credit Education', 350, 730);
+
+    ctx.fillStyle = '#d4a853';
+    ctx.font = '14px Georgia, serif';
+    ctx.fillText(dateStr, 850, 700);
+    ctx.strokeStyle = '#d4a85366';
+    ctx.beginPath();
+    ctx.moveTo(750, 710);
+    ctx.lineTo(950, 710);
+    ctx.stroke();
+    ctx.fillStyle = '#999';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.fillText('Date of Completion', 850, 730);
+
+    ctx.fillStyle = '#33333366';
+    ctx.font = '10px monospace';
+    ctx.fillText('ID: EVOLV-' + tierKey.toUpperCase() + '-' + Date.now().toString(36).toUpperCase(), 600, 780);
+
+    canvas.toBlob(function(blob){
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'Evolv_Certificate_' + tierLabels[tierKey] + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    }, 'image/png');
+  }
+
+  function getTierQuizXP(){
+    var qp = getQuizProgress();
+    var total = 0;
+    for(var key in qp){
+      if(qp[key] && qp[key].passed && qp[key].bonusXP) total += qp[key].bonusXP;
+    }
+    return total;
+  }
+
+  var origGetTotalXP = getTotalXP;
+  getTotalXP = function(){
+    return origGetTotalXP() + getTierQuizXP();
+  };
+
   window.openLesson = openLesson;
   window.getLessonStatus = getLessonStatus;
   window.getTotalXP = getTotalXP;
@@ -403,4 +820,8 @@
   window.getActiveTier = getActiveTier;
   window.setActiveTier = setActiveTier;
   window.getAllLessons = getAllLessons;
+  window.openTierQuiz = openTierQuiz;
+  window.isTierComplete = isTierComplete;
+  window.isTierQuizPassed = isTierQuizPassed;
+  window.generateCertificate = generateCertificate;
 })();

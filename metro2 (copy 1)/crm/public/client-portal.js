@@ -1759,7 +1759,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    container.innerHTML = tabsHtml + tierInfoHtml + mapHtml;
+    var quizHtml = '';
+    var tierAllComplete = typeof window.isTierComplete === 'function' && window.isTierComplete(activeTier);
+    var tierQuizPassed = typeof window.isTierQuizPassed === 'function' && window.isTierQuizPassed(activeTier);
+
+    if(tierAllComplete){
+      quizHtml += '<div class="edu-tier-quiz-section">';
+      if(tierQuizPassed){
+        quizHtml += '<div class="edu-quiz-passed">';
+        quizHtml += '<span class="edu-quiz-passed-icon">🎓</span>';
+        quizHtml += '<span class="edu-quiz-passed-text">' + currentTier.label + ' Tier Complete — Exam Passed!</span>';
+        quizHtml += '</div>';
+        quizHtml += '<button class="edu-cert-btn" data-cert-tier="' + activeTier + '" type="button">Download Certificate 📜</button>';
+      } else {
+        quizHtml += '<div class="edu-quiz-available">';
+        quizHtml += '<span class="edu-quiz-icon">📝</span>';
+        quizHtml += '<div class="edu-quiz-info">';
+        quizHtml += '<div class="edu-quiz-title">' + currentTier.label + ' Final Exam Available!</div>';
+        quizHtml += '<div class="edu-quiz-desc">Pass the timed exam to earn bonus XP and your graduation certificate.</div>';
+        quizHtml += '</div>';
+        quizHtml += '</div>';
+        quizHtml += '<button class="edu-quiz-btn" data-quiz-tier="' + activeTier + '" type="button">Take Final Exam</button>';
+      }
+      quizHtml += '</div>';
+    }
+
+    container.innerHTML = tabsHtml + tierInfoHtml + mapHtml + quizHtml;
 
     container.querySelectorAll('.edu-tier-tab').forEach(function(tab){
       tab.addEventListener('click', function(){
@@ -1773,6 +1798,20 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', function(){
         var lid = btn.getAttribute('data-lesson-id');
         if(typeof window.openLesson === 'function') window.openLesson(lid);
+      });
+    });
+
+    container.querySelectorAll('[data-quiz-tier]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var tier = btn.getAttribute('data-quiz-tier');
+        if(typeof window.openTierQuiz === 'function') window.openTierQuiz(tier);
+      });
+    });
+
+    container.querySelectorAll('[data-cert-tier]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var tier = btn.getAttribute('data-cert-tier');
+        if(typeof window.generateCertificate === 'function') window.generateCertificate(tier);
       });
     });
   }

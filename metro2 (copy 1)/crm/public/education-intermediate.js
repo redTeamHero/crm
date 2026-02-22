@@ -278,5 +278,143 @@ window.EDUCATION_INTERMEDIATE = [
         visual: { type: 'tip', text: 'Pro Tip: When you file a CFPB complaint, you can choose whether to make your narrative public (with personal info removed) or keep it private. Making it public puts additional reputational pressure on the company and helps other consumers with similar issues.' }
       }
     ]
+  },
+  {
+    id: 'debt-negotiation',
+    title: 'Debt Negotiation Tactics',
+    subtitle: 'Pay-for-delete, settlements & scripts',
+    icon: '🤝',
+    xp: 150,
+    tier: 'intermediate',
+    sections: [
+      {
+        type: 'content',
+        title: 'Understanding Your Negotiation Power',
+        body: 'Before negotiating any debt, understand the leverage you have:\n\n<strong>Why Creditors and Collectors Negotiate:</strong>\n\n1. <strong>Debt buyers purchase debt for pennies.</strong> Collection agencies typically buy debt portfolios for 4-10 cents on the dollar. A $5,000 debt may have been purchased for $200-$500. They profit on ANYTHING above their purchase price.\n\n2. <strong>The debt ages out.</strong> Collectors know the FCRA 7-year clock is ticking. As the debt gets older, their leverage decreases and the likelihood of collection drops.\n\n3. <strong>Litigation is expensive.</strong> Suing you costs $1,000-$5,000+ in attorney fees and court costs. For smaller debts, it\'s not worth it.\n\n4. <strong>Something is better than nothing.</strong> Creditors would rather collect 40-60% now than risk getting 0% if you file bankruptcy or simply wait out the statute of limitations.\n\n<strong>Your Leverage Points:</strong>\n• You can offer a lump sum (immediate cash is attractive)\n• You can dispute the debt (costing them time and resources)\n• You can file regulatory complaints (costing them reputation)\n• You can wait out the clock (FCRA 7-year limit, SOL for lawsuits)',
+        visual: { type: 'cards', items: [
+          { title: 'Debt Age', desc: 'Older debts have less leverage for collectors. After 3-4 years, settlement offers drop significantly.', icon: '📅' },
+          { title: 'Debt Amount', desc: 'Smaller debts (<$1,000) are rarely worth suing over. Collectors are more flexible.', icon: '💰' },
+          { title: 'Your Cash', desc: 'Having cash ready for a lump sum gives you maximum negotiating power.', icon: '💵' },
+          { title: 'Documentation', desc: 'If the collector can\'t validate the debt properly, they have zero leverage.', icon: '📋' }
+        ]}
+      },
+      {
+        type: 'content',
+        title: 'Pay-for-Delete (PFD) Explained',
+        body: '<strong>What Is Pay-for-Delete?</strong>\nA pay-for-delete agreement is when you offer to pay a collection account (in full or settled amount) in exchange for the collector REMOVING the account from your credit reports entirely — not just marking it as "paid."\n\n<strong>Why It Matters:</strong>\n• A "paid collection" still damages your score (especially under FICO 8)\n• A deleted collection is as if it never existed\n• FICO 9 and VantageScore 3.0 ignore paid collections, but most lenders still use FICO 8\n\n<strong>Important Reality Check:</strong>\n• PFD is NOT required by law — it\'s a voluntary agreement\n• Large creditors (Chase, Amex, etc.) rarely agree to PFD\n• Collection agencies are MORE likely to agree, especially debt buyers\n• Get the PFD agreement IN WRITING before sending any payment\n• Some collectors verbally agree but don\'t follow through — written agreement is essential\n\n<strong>The Process:</strong>\n1. Send a written PFD offer letter via certified mail\n2. State the amount you\'re willing to pay\n3. Specify the condition: payment in exchange for complete deletion from all three bureaus\n4. Wait for their written agreement before paying\n5. Pay via cashier\'s check or money order (not personal check or debit card)\n6. Verify deletion on all three reports within 30-45 days\n7. If not deleted, follow up with copies of the agreement',
+        visual: { type: 'steps', items: [
+          { title: 'Send PFD Letter', desc: 'Written offer via certified mail. State your payment amount and the deletion condition.' },
+          { title: 'Wait for Written Agreement', desc: 'Do NOT pay until you have their written acceptance of the pay-for-delete terms.' },
+          { title: 'Pay Securely', desc: 'Use cashier\'s check or money order. Keep copies of everything.' },
+          { title: 'Verify Deletion', desc: 'Check all three credit reports 30-45 days after payment. Dispute if not removed.' },
+          { title: 'Escalate if Needed', desc: 'If they don\'t honor the agreement, file CFPB complaint with copies of the PFD agreement.' }
+        ]}
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Settlement Offer',
+        story: 'Marcus has a $3,200 collection from a debt buyer called National Recoveries. The original debt was a credit card from 2021. He has $1,500 in savings. The collection is 3 years old. Marcus calls National Recoveries and they immediately offer a 50% settlement ($1,600) to "resolve the account."',
+        question: 'Should Marcus accept the 50% offer?',
+        options: [
+          { text: 'Yes — 50% is a great deal, pay it right away', correct: false, explanation: '50% is a decent starting offer, but as a 3-year-old debt purchased by a debt buyer, there\'s room to negotiate lower. Also, paying without a deletion agreement means the collection stays on his report as "settled" which still hurts his score.' },
+          { text: 'No — Marcus should counter with a lower amount AND require pay-for-delete in writing before sending any payment', correct: true, explanation: 'Correct! Marcus has leverage: 1) The debt is 3 years old and aging, 2) National Recoveries likely bought it for $160-$320 (5-10 cents per dollar), 3) A 3-year-old debt buyer collection suggests they\'ve already tried to collect and failed. Marcus should counter with 25-30% ($800-$960) AND require written pay-for-delete agreement. His script: "I can offer $900 as a lump sum settlement, paid within 7 days, on the condition that you provide written confirmation that the account will be deleted from all three credit bureau reports upon receipt of payment." If they say no, he can negotiate up slightly — but never pay without the deletion agreement.' },
+          { text: 'Marcus should ignore them and wait for the debt to expire', correct: false, explanation: 'While waiting is a valid strategy, the collection will continue damaging his credit for 4 more years. If he can settle for a reasonable amount with deletion, it\'s worth considering.' },
+          { text: 'He should pay the full $3,200 to show good faith', correct: false, explanation: 'Paying the full amount on a debt purchased for pennies is unnecessary. Debt buyers profit on anything above their purchase price. There\'s no "good faith" benefit in overpaying.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Negotiation Scripts That Work',
+        body: '<strong>Script 1: Initial PFD Letter (Mail)</strong>\n\n"Dear [Collection Agency],\n\nRe: Account #[XXXX]\n\nI am writing regarding the above-referenced account with a reported balance of $[amount]. Without admitting to the validity of this debt, I am prepared to offer a settlement of $[offer amount] as payment in full, contingent upon the following condition:\n\nUpon receipt and clearance of my payment, [Collection Agency] agrees to request deletion of all references to this account from my credit files at Equifax, Experian, and TransUnion within 30 calendar days.\n\nPlease respond in writing to confirm acceptance of these terms. Upon receipt of your written agreement, I will submit payment within 7 business days via certified funds.\n\nSincerely, [Your Name]"\n\n<strong>Script 2: Phone Negotiation</strong>\n"I\'m calling about account #[XXXX]. I\'d like to resolve this today. I can offer $[amount] as a lump sum, paid within 48 hours, if you can agree to delete the account from all three credit reports. Can you put that in writing for me?"\n\n<strong>Key Phrases:</strong>\n• "Without admitting to the validity of this debt" — protects you legally\n• "Contingent upon deletion" — makes payment conditional\n• "Certified funds" — shows you\'re serious and have the money ready\n• "Written agreement" — never trust verbal promises',
+        visual: { type: 'tip', text: 'Negotiation Timing Tip: The best time to negotiate is at the end of the month or end of the quarter. Collection agents have quotas and are more likely to accept lower offers to hit their numbers. Also, debts over 2 years old are significantly easier to settle for less — collectors know their collection probability drops each year.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Validation-First Strategy',
+        story: 'Tanya has a $1,800 medical collection on her report. She\'s not sure if the amount is correct because the original medical bill was complicated with insurance adjustments. She wants to settle, but she also wants to make sure she\'s not paying more than she actually owes.',
+        question: 'What should Tanya do before negotiating a settlement?',
+        options: [
+          { text: 'Just pay whatever they\'re asking — medical debt is always accurate', correct: false, explanation: 'Medical billing errors are extremely common. Up to 80% of medical bills contain errors according to some estimates. Tanya should verify before paying anything.' },
+          { text: 'Send a debt validation request first under FDCPA §1692g. If the collector can\'t provide proper documentation showing the correct amount after insurance, Tanya has strong grounds for deletion or a significantly reduced settlement', correct: true, explanation: 'Correct! The validation-first strategy: 1) Send a debt validation request within 30 days of first contact (§1692g), 2) The collector must provide documentation proving the debt amount is correct, 3) Medical debts are notoriously poorly documented during the collection process — insurance adjustments, write-offs, and billing errors frequently get lost in transfers, 4) If they can\'t validate properly, demand deletion, 5) If they DO validate, compare against your insurance EOBs and original bills, 6) Only THEN negotiate, armed with knowledge of the true amount owed. Many medical collections are reduced or deleted entirely through the validation process because collectors can\'t produce proper documentation.' },
+          { text: 'Call the original hospital and pay them directly', correct: false, explanation: 'Once the debt has been sold to a collector, the hospital may no longer accept payment. Even if they do, the collection may remain on the credit report. Tanya needs to deal with the collector and get deletion.' },
+          { text: 'Ignore it — medical debt doesn\'t affect credit anymore', correct: false, explanation: 'While recent changes removed SOME medical debt from credit reports (paid medical collections and those under $500), unpaid medical collections over $500 that are 12+ months old still appear and affect your score.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Settlement Percentages by Debt Type',
+        body: '<strong>Typical Settlement Ranges (approximate):</strong>\n\n<strong>Credit Card Debt:</strong>\n• Original creditor: 40-60% of balance\n• Debt buyer (1-2 years old): 25-40%\n• Debt buyer (3+ years old): 15-30%\n\n<strong>Medical Debt:</strong>\n• Hospital/provider directly: 30-50% (many have financial hardship programs)\n• Collection agency: 20-40%\n• Debt buyer: 15-30%\n\n<strong>Personal Loans:</strong>\n• Original lender: 50-70%\n• Collection agency: 30-50%\n\n<strong>Auto Deficiency (after repossession):</strong>\n• Original lender: 40-60%\n• Collection agency: 25-45%\n\n<strong>Factors That Lower Settlement Amounts:</strong>\n• Age of the debt (older = cheaper)\n• Your financial hardship (documented unemployment, medical issues)\n• Approaching the statute of limitations\n• Multiple debts with the same collector (bundle deal)\n• Lump sum vs. payment plan (lump sum gets better terms)\n• End of month/quarter timing',
+        visual: { type: 'tip', text: 'Warning: Any forgiven debt over $600 may be reported to the IRS as taxable income on Form 1099-C. If you settle a $5,000 debt for $2,000, the forgiven $3,000 could be taxable. Exceptions exist for insolvency (your debts exceed your assets) — consult a tax professional if you settle large amounts.' }
+      },
+      {
+        type: 'content',
+        title: 'Key Takeaways',
+        body: '<strong>Debt Negotiation Mastery:</strong>\n\n• Always request debt validation BEFORE negotiating — verify the amount and that the collector has the right to collect\n• Pay-for-delete should be your standard condition — never settle without requiring deletion\n• Get EVERYTHING in writing before sending payment\n• Start low — offer 20-30% and negotiate up from there\n• Debt buyers paid 4-10 cents per dollar — they profit on anything above that\n• Lump sum offers always get better terms than payment plans\n• Use cashier\'s checks or money orders — never give collectors access to your bank account\n• Time your offers strategically — end of month and end of quarter are best\n• "Without admitting to the validity of this debt" should be in every communication\n• Keep copies of all agreements and payment confirmation\n• Verify deletion on all three reports within 30-45 days after payment\n• Forgiven debt over $600 may be taxable — plan accordingly',
+        visual: { type: 'tip', text: 'Golden Rule: Never pay a collection without a written pay-for-delete agreement. A "paid collection" on your credit report still damages your score under FICO 8 (the most commonly used model). The only payment that helps your score is one that results in complete deletion.' }
+      }
+    ]
+  },
+  {
+    id: 'medical-debt-rules',
+    title: 'Medical Debt Special Rules',
+    subtitle: 'HIPAA disputes & new protections',
+    icon: '🏥',
+    xp: 150,
+    tier: 'intermediate',
+    sections: [
+      {
+        type: 'content',
+        title: 'Medical Debt — A Different Beast',
+        body: 'Medical debt has its own special rules that are different from other types of debt. Recent changes have dramatically improved protections for consumers with medical collections.\n\n<strong>Key Differences from Other Debt:</strong>\n\n1. <strong>You rarely choose medical debt.</strong> Unlike credit card debt, medical expenses are often unexpected and not within your control.\n\n2. <strong>Billing is incredibly complex.</strong> Insurance adjustments, co-pays, deductibles, out-of-network charges, and billing errors make medical debt uniquely confusing.\n\n3. <strong>HIPAA creates special protections.</strong> Your medical information is protected health information (PHI), and collectors have limited rights to discuss it.\n\n4. <strong>Recent law changes favor consumers.</strong> Major changes in 2023 and beyond have reduced the impact of medical debt on credit reports.\n\n5. <strong>Many hospitals have charity care programs.</strong> Nonprofit hospitals are legally required to have financial assistance policies.',
+        visual: { type: 'cards', items: [
+          { title: '2023 Bureau Changes', desc: 'All three bureaus removed paid medical collections. Collections under $500 are no longer reported.', icon: '📰' },
+          { title: 'No Surprises Act', desc: 'Protects against surprise out-of-network billing for emergency care and certain other situations.', icon: '🛡️' },
+          { title: 'HIPAA Protections', desc: 'Limits what medical information collectors can access and discuss. Creates dispute leverage.', icon: '🔒' },
+          { title: 'Charity Care', desc: 'Nonprofit hospitals must offer financial assistance. Many will reduce or eliminate bills based on income.', icon: '💛' }
+        ]}
+      },
+      {
+        type: 'content',
+        title: 'Current Medical Debt Credit Reporting Rules',
+        body: '<strong>As of 2023, all three bureaus implemented major changes:</strong>\n\n<strong>1. Paid Medical Collections Are Removed</strong>\nOnce a medical collection is paid, it must be removed from your credit report. This is a bureau policy change (not a law), but it\'s enforced across all three.\n\n<strong>2. Collections Under $500 Are Not Reported</strong>\nMedical collections with a balance under $500 are no longer included on credit reports, regardless of payment status.\n\n<strong>3. 12-Month Grace Period</strong>\nNew medical debt cannot appear on your credit report until at least 12 months after the original billing date. This gives you time to resolve insurance disputes and negotiate with providers.\n\n<strong>4. FICO 9 Treats Medical Debt Differently</strong>\nFICO 9 weighs medical collections less heavily than other collections. VantageScore 4.0 also reduces the impact of medical debt.\n\n<strong>What This Means for You:</strong>\n• If you have a paid medical collection on your report — dispute it. It should be removed.\n• If your medical collection is under $500 — dispute it. It shouldn\'t be there.\n• If your medical collection is less than 12 months old — dispute it. It was reported too early.\n• These rules apply to ALL medical collections, not just new ones.',
+        visual: { type: 'tip', text: 'Action Item: Right now, check all three of your credit reports for medical collections. If ANY are paid, under $500, or less than 12 months from the original billing date, dispute them immediately. The bureaus are required to remove them under their own policies.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Surprise Medical Bill',
+        story: 'Angela went to the ER for chest pains. Her in-network hospital treated her, but the anesthesiologist who was called in was out-of-network. Two months later, Angela received a $4,200 bill from the anesthesiologist\'s practice. Her insurance paid the in-network portion, but the out-of-network provider is demanding the remaining $3,100 from Angela.',
+        question: 'Does Angela have protection under the No Surprises Act?',
+        options: [
+          { text: 'No — Angela chose to go to that hospital', correct: false, explanation: 'The No Surprises Act specifically covers emergency services AND situations where an out-of-network provider treats you at an in-network facility without your consent.' },
+          { text: 'Yes — the No Surprises Act protects patients from out-of-network billing when they receive emergency care or are treated by out-of-network providers at in-network facilities without their prior consent', correct: true, explanation: 'Correct! The No Surprises Act (effective January 2022) directly covers Angela\'s situation: 1) She received emergency care — emergency services are always protected regardless of network status, 2) The out-of-network anesthesiologist treated her at an in-network facility without her prior consent, 3) Under the Act, Angela can only be charged the in-network cost-sharing amount (copay, coinsurance, deductible), 4) The out-of-network provider must work with her insurance to resolve the balance — they cannot "balance bill" Angela for the difference. Angela should: File a complaint at cms.gov/nosurprises if the provider continues billing her, and notify her insurance company about the surprise bill.' },
+          { text: 'Only if Angela has government insurance (Medicare/Medicaid)', correct: false, explanation: 'The No Surprises Act applies to ALL private health insurance plans, not just government insurance. It covers commercial plans through employers and the marketplace.' },
+          { text: 'She should just pay it — fighting medical bills is too hard', correct: false, explanation: 'Angela has strong legal protections here. The No Surprises Act was specifically created for situations like this. Fighting it is straightforward.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'The HIPAA Dispute Strategy',
+        body: '<strong>How HIPAA Helps with Medical Debt:</strong>\n\nHIPAA (Health Insurance Portability and Accountability Act) protects your medical information. When a medical provider sends your account to collections, HIPAA limits what information the collector can have.\n\n<strong>What Collectors Can Know:</strong>\n• Your name and contact information\n• The amount owed\n• The name of the medical provider\n• The dates of service\n\n<strong>What Collectors Should NOT Have:</strong>\n• Your medical diagnosis or condition\n• Treatment details\n• Medical records\n• Detailed procedure codes (CPT codes)\n\n<strong>The HIPAA Dispute Approach:</strong>\n1. Request debt validation under FDCPA §1692g\n2. Ask the collector to provide an itemized statement showing all charges\n3. If they provide medical details they shouldn\'t have, this may indicate a HIPAA violation by the provider\n4. Dispute any charges that don\'t match your insurance Explanation of Benefits (EOB)\n5. Contact the original provider\'s billing department for an itemized bill\n6. Compare the collector\'s claims against your EOB and the provider\'s records\n\n<strong>Common Medical Billing Errors:</strong>\n• Duplicate charges for the same service\n• Charges for services not received\n• Insurance payments not applied\n• Wrong procedure codes (upcoding)\n• Charges above the negotiated insurance rate',
+        visual: { type: 'tip', text: 'Strategy: Request an itemized bill from the original provider AND the collector. Compare them. Medical billing errors are found in up to 80% of bills according to medical billing advocates. If the amounts don\'t match, you have a strong dispute. If the collector has medical details they shouldn\'t, report the HIPAA violation to HHS.gov/hipaa/filing-a-complaint.' }
+      },
+      {
+        type: 'scenario',
+        title: 'Scenario: The Charity Care Discovery',
+        story: 'Robert has a $12,000 hospital bill from surgery at a nonprofit hospital. He earns $35,000/year and has no insurance. The bill went to collections after 6 months. Robert didn\'t know the hospital was nonprofit or that financial assistance might be available.',
+        question: 'What option does Robert have that could eliminate this debt entirely?',
+        options: [
+          { text: 'File for bankruptcy — it\'s the only way to eliminate $12,000', correct: false, explanation: 'Bankruptcy is a drastic step. Robert has a much simpler option available through the hospital itself.' },
+          { text: 'Apply for the hospital\'s financial assistance (charity care) program — nonprofit hospitals are legally required to offer financial assistance, and at Robert\'s income level, he likely qualifies for significant reduction or complete forgiveness', correct: true, explanation: 'Correct! Under IRS regulations (Section 501(r)), nonprofit hospitals must: 1) Have a written financial assistance policy, 2) Make the policy widely available, 3) Not take extraordinary collection actions before making reasonable efforts to determine FAP eligibility. At $35,000/year income, Robert likely qualifies for significant reduction (50-100% discount) under most hospital FAP policies. Even though the bill went to collections, he can: 1) Contact the hospital\'s financial counseling department, 2) Request a Financial Assistance Application, 3) Provide proof of income, 4) If approved, the hospital must recall the debt from collections and adjust the bill. Many hospitals will retroactively apply charity care to bills already in collections.' },
+          { text: 'Negotiate a payment plan with the collector', correct: false, explanation: 'While a payment plan is an option, it doesn\'t address the fact that Robert may qualify for the bill to be reduced or eliminated entirely through the hospital\'s financial assistance program.' },
+          { text: 'The hospital is required to forgive all debt for uninsured patients', correct: false, explanation: 'Hospitals aren\'t required to forgive all uninsured debt, but nonprofit hospitals must have financial assistance policies based on income. Robert needs to apply and see what he qualifies for.' }
+        ]
+      },
+      {
+        type: 'content',
+        title: 'Key Takeaways',
+        body: '<strong>Medical Debt Strategy Checklist:</strong>\n\n• Check if your medical collection is: paid (should be removed), under $500 (should not be reported), or under 12 months old (shouldn\'t be on your report yet)\n• Always get an itemized bill from the original provider — compare against your insurance EOB\n• Request debt validation from collectors — medical debts are often poorly documented\n• Check if the hospital is nonprofit — apply for financial assistance (charity care) if you qualify\n• The No Surprises Act protects against balance billing from out-of-network providers at in-network facilities and emergency services\n• HIPAA limits what medical information collectors can access — they should not have your diagnosis or treatment details\n• Medical billing errors are extremely common (up to 80%) — always verify charges\n• Negotiate directly with the provider\'s billing department before dealing with collectors\n• Many providers offer interest-free payment plans if you negotiate before the account goes to collections\n• Paid medical collections must be removed from credit reports under current bureau policies\n• File CFPB complaints for medical debt reporting violations — this is one of the highest complaint categories',
+        visual: { type: 'tip', text: 'Pro Tip: If you have any medical procedure coming up, ALWAYS get a written cost estimate and verify network status of ALL providers (not just the facility) before treatment. Ask: "Will any out-of-network providers be involved in my care?" This one question can save you thousands in surprise bills.' }
+      }
+    ]
   }
 ];
