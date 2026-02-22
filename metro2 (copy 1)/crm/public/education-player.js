@@ -28,17 +28,38 @@
     saveProgress(p);
   }
 
+  function getAllLessons(){
+    var all = [];
+    if(window.EDUCATION_LESSONS) all = all.concat(window.EDUCATION_LESSONS);
+    if(window.EDUCATION_INTERMEDIATE) all = all.concat(window.EDUCATION_INTERMEDIATE);
+    if(window.EDUCATION_EXPERT) all = all.concat(window.EDUCATION_EXPERT);
+    return all;
+  }
+
   function getTotalXP(){
     var p = getProgress();
-    var count = 0;
-    for(var key in p){ if(p[key] && p[key].completed) count++; }
-    return count * XP_PER_LESSON;
+    var all = getAllLessons();
+    var xp = 0;
+    for(var key in p){
+      if(p[key] && p[key].completed){
+        var lesson = all.find(function(l){ return l.id === key; });
+        xp += (lesson && lesson.xp) ? lesson.xp : XP_PER_LESSON;
+      }
+    }
+    return xp;
   }
 
   function getCompletedCount(){
     var p = getProgress();
     var count = 0;
     for(var key in p){ if(p[key] && p[key].completed) count++; }
+    return count;
+  }
+
+  function getCompletedCountForTier(tierLessons){
+    var p = getProgress();
+    var count = 0;
+    tierLessons.forEach(function(l){ if(p[l.id] && p[l.id].completed) count++; });
     return count;
   }
 
@@ -78,6 +99,14 @@
       if(!foundFirst){ foundFirst = true; return 'current'; }
       return 'locked';
     });
+  }
+
+  function getActiveTier(){
+    try { return localStorage.getItem('edu_active_tier') || 'beginner'; } catch { return 'beginner'; }
+  }
+
+  function setActiveTier(tier){
+    try { localStorage.setItem('edu_active_tier', tier); } catch {}
   }
 
   function renderMeter(visual){
@@ -183,14 +212,14 @@
   }
 
   function openLesson(lessonId){
-    var lessons = window.EDUCATION_LESSONS;
-    if(!lessons) return;
+    var all = getAllLessons();
     var lesson = null;
-    for(var i = 0; i < lessons.length; i++){
-      if(lessons[i].id === lessonId){ lesson = lessons[i]; break; }
+    for(var i = 0; i < all.length; i++){
+      if(all[i].id === lessonId){ lesson = all[i]; break; }
     }
     if(!lesson) return;
 
+    var lessonXP = lesson.xp || XP_PER_LESSON;
     var overlay = createOverlay();
     var currentStep = 0;
     var answered = {};
@@ -200,13 +229,17 @@
       var section = lesson.sections[currentStep];
       var progressPct = ((currentStep + 1) / totalSections) * 100;
 
+      var tierLabel = '';
+      if(lesson.tier === 'intermediate') tierLabel = '<span class="lesson-tier-badge tier-intermediate">Intermediate</span>';
+      else if(lesson.tier === 'expert') tierLabel = '<span class="lesson-tier-badge tier-expert">Expert</span>';
+
       var html = '<div class="lesson-player">';
       html += '<div class="lesson-player-header">';
       html += '<button class="lesson-close-btn" id="lessonClose" type="button" aria-label="Close">';
       html += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
       html += '</button>';
       html += '<div class="lesson-header-info">';
-      html += '<div class="lesson-header-title">' + esc(lesson.title) + '</div>';
+      html += '<div class="lesson-header-title">' + tierLabel + esc(lesson.title) + '</div>';
       html += '<div class="lesson-header-step">Step ' + (currentStep + 1) + ' of ' + totalSections + '</div>';
       html += '</div>';
       html += '<div class="lesson-progress-bar"><div class="lesson-progress-fill" style="width:' + progressPct + '%"></div></div>';
@@ -311,7 +344,7 @@
     function showCompletionScreen(){
       var xp = getTotalXP();
       var completed = getCompletedCount();
-      var total = (window.EDUCATION_LESSONS || []).length;
+      var total = getAllLessons().length;
       var streak = getStreak();
       var level = Math.floor(xp / 800) + 1;
 
@@ -322,7 +355,7 @@
       html += '<h2 class="lesson-completion-title">Lesson Complete!</h2>';
       html += '<p class="lesson-completion-subtitle">' + esc(lesson.title) + '</p>';
       html += '<div class="lesson-completion-stats">';
-      html += '<div class="lesson-stat"><div class="lesson-stat-value">+' + XP_PER_LESSON + '</div><div class="lesson-stat-label">XP Earned</div></div>';
+      html += '<div class="lesson-stat"><div class="lesson-stat-value">+' + lessonXP + '</div><div class="lesson-stat-label">XP Earned</div></div>';
       html += '<div class="lesson-stat"><div class="lesson-stat-value">' + streak.days + '</div><div class="lesson-stat-label">Day Streak 🔥</div></div>';
       html += '<div class="lesson-stat"><div class="lesson-stat-value">' + completed + '/' + total + '</div><div class="lesson-stat-label">Complete</div></div>';
       html += '</div>';
@@ -364,6 +397,10 @@
   window.getLessonStatus = getLessonStatus;
   window.getTotalXP = getTotalXP;
   window.getCompletedCount = getCompletedCount;
+  window.getCompletedCountForTier = getCompletedCountForTier;
   window.getStreak = getStreak;
   window.resolveStatuses = resolveStatuses;
+  window.getActiveTier = getActiveTier;
+  window.setActiveTier = setActiveTier;
+  window.getAllLessons = getAllLessons;
 })();

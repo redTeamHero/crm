@@ -1671,11 +1671,22 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderEducation(){
     var container = document.getElementById('education');
     if(!container) return;
-    var lessonData = window.EDUCATION_LESSONS || [];
+    var activeTier = typeof window.getActiveTier === 'function' ? window.getActiveTier() : 'beginner';
+
+    var tiers = {
+      beginner: { data: window.EDUCATION_LESSONS || [], label: 'Beginner', icon: '📗', xpEach: 100, desc: 'Credit fundamentals', color: '#22c55e' },
+      intermediate: { data: window.EDUCATION_INTERMEDIATE || [], label: 'Intermediate', icon: '📙', xpEach: 150, desc: 'FCRA, FDCPA, CFPB', color: '#f59e0b' },
+      expert: { data: window.EDUCATION_EXPERT || [], label: 'Expert', icon: '📕', xpEach: 200, desc: 'Legal & regulatory', color: '#ef4444' }
+    };
+
+    var currentTier = tiers[activeTier] || tiers.beginner;
+    var lessonData = currentTier.data;
     var statuses = typeof window.resolveStatuses === 'function' ? window.resolveStatuses(lessonData) : [];
     var lessons = lessonData.map(function(l, i){
       return { id: l.id, title: l.title, subtitle: l.subtitle, icon: l.icon, status: statuses[i] || 'locked' };
     });
+
+    var allLessons = typeof window.getAllLessons === 'function' ? window.getAllLessons() : lessonData;
     var completedCount = typeof window.getCompletedCount === 'function' ? window.getCompletedCount() : 0;
     var totalXP = typeof window.getTotalXP === 'function' ? window.getTotalXP() : 0;
     var streak = typeof window.getStreak === 'function' ? window.getStreak() : { days: 0 };
@@ -1693,10 +1704,32 @@ document.addEventListener('DOMContentLoaded', () => {
       var xpFill = header.querySelector('.edu-xp-fill');
       if(xpFill) xpFill.style.width = xpPct + '%';
       var statsLine = header.querySelector('.edu-xp-bar .flex');
-      if(statsLine) statsLine.innerHTML = '<span>\uD83D\uDD25 ' + (streak.days || 0) + ' day streak</span><span>\u2705 ' + completedCount + ' of ' + lessons.length + ' complete</span>';
+      if(statsLine) statsLine.innerHTML = '<span>\uD83D\uDD25 ' + (streak.days || 0) + ' day streak</span><span>\u2705 ' + completedCount + ' of ' + allLessons.length + ' complete</span>';
     }
 
-    var html = '';
+    var tierCompleted = typeof window.getCompletedCountForTier === 'function' ? window.getCompletedCountForTier(lessonData) : 0;
+    var tabsHtml = '<div class="edu-tier-tabs">';
+    ['beginner','intermediate','expert'].forEach(function(key){
+      var t = tiers[key];
+      var isActive = key === activeTier;
+      var tc = typeof window.getCompletedCountForTier === 'function' ? window.getCompletedCountForTier(t.data) : 0;
+      tabsHtml += '<button class="edu-tier-tab' + (isActive ? ' active' : '') + '" data-tier="' + key + '" type="button" style="--tier-color:' + t.color + '">';
+      tabsHtml += '<span class="edu-tier-tab-icon">' + t.icon + '</span>';
+      tabsHtml += '<span class="edu-tier-tab-info">';
+      tabsHtml += '<span class="edu-tier-tab-label">' + t.label + '</span>';
+      tabsHtml += '<span class="edu-tier-tab-desc">' + t.desc + '</span>';
+      tabsHtml += '</span>';
+      tabsHtml += '<span class="edu-tier-tab-progress">' + tc + '/' + t.data.length + '</span>';
+      tabsHtml += '</button>';
+    });
+    tabsHtml += '</div>';
+
+    var tierInfoHtml = '<div class="edu-tier-info">';
+    tierInfoHtml += '<span class="edu-tier-xp-badge" style="background:' + currentTier.color + '20;color:' + currentTier.color + '">' + currentTier.xpEach + ' XP per lesson</span>';
+    tierInfoHtml += '<span class="edu-tier-count">' + tierCompleted + ' of ' + lessonData.length + ' complete</span>';
+    tierInfoHtml += '</div>';
+
+    var mapHtml = '';
     lessons.forEach(function(lesson, i){
       var align = i % 2 === 0 ? 'align-left' : 'align-right';
       var nodeClass = 'edu-node ' + lesson.status;
@@ -1712,7 +1745,7 @@ document.addEventListener('DOMContentLoaded', () => {
       var clickable = lesson.status !== 'locked';
       var tag = clickable ? 'button' : 'div';
       var extra = clickable ? ' data-lesson-id="' + lesson.id + '" type="button"' : '';
-      html += '<' + tag + ' class="' + stepClass + '"' + extra + '>' +
+      mapHtml += '<' + tag + ' class="' + stepClass + '"' + extra + '>' +
         '<div class="' + nodeClass + '">' + inner + '</div>' +
         '<div class="edu-lesson-info">' +
           '<div class="edu-lesson-title">' + esc(lesson.title) + '</div>' +
@@ -1722,10 +1755,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if(i < lessons.length - 1){
         var connClass = 'edu-connector';
         if(lesson.status === 'completed' && (statuses[i+1] === 'completed' || statuses[i+1] === 'current')) connClass += ' completed';
-        html += '<div class="' + connClass + '"></div>';
+        mapHtml += '<div class="' + connClass + '"></div>';
       }
     });
-    container.innerHTML = html;
+
+    container.innerHTML = tabsHtml + tierInfoHtml + mapHtml;
+
+    container.querySelectorAll('.edu-tier-tab').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        var tier = tab.getAttribute('data-tier');
+        if(typeof window.setActiveTier === 'function') window.setActiveTier(tier);
+        renderEducation();
+      });
+    });
 
     container.querySelectorAll('[data-lesson-id]').forEach(function(btn){
       btn.addEventListener('click', function(){
