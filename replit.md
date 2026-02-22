@@ -192,6 +192,16 @@ npm run dev
   - Added client-side email format validation on DIY signup page
   - Users see friendly error messages instead of raw database errors
 
+- 2026-02-22: Added Intermediate and Expert education tiers
+  - Three-tier education system: Beginner (8 lessons, 100 XP), Intermediate (3 lessons, 150 XP), Expert (4 lessons, 200 XP)
+  - Intermediate tier: FCRA Deep Dive (§611, §623, §605, §609), FDCPA Mastery (collector rights/violations), CFPB as a Weapon (complaint strategy)
+  - Expert tier: Attorney General Complaints, BBB Leverage, Building a Legal Case, Advanced Regulatory Toolkit
+  - Total: 15 lessons, 48 sections, 18 interactive scenarios with detailed legal explanations
+  - Tier tab UI with progress tracking per tier, XP badges, and completion counts
+  - Education player updated to find lessons across all three data arrays
+  - Files: education-intermediate.js, education-expert.js (loaded in client-portal-template.html)
+  - CSS: tier tabs, tier badges, responsive mobile layout
+
 ## Dependencies
 - Node.js 20
 - Python 3.12 (for AI agent and Metro 2 parsers)
