@@ -1669,46 +1669,72 @@ document.addEventListener('DOMContentLoaded', () => {
   function esc(str){ return String(str).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
   function renderEducation(){
-    const container = document.getElementById('education');
+    var container = document.getElementById('education');
     if(!container) return;
-    const lessons = [
-      { title: 'Understanding Your Credit Score', subtitle: 'Learn what makes up your score', icon: '📊', status: 'completed' },
-      { title: 'Reading Your Credit Report', subtitle: 'Navigate the 3 bureau reports', icon: '📄', status: 'completed' },
-      { title: 'Types of Negative Items', subtitle: 'Collections, charge-offs & more', icon: '⚠️', status: 'current' },
-      { title: 'The Dispute Process', subtitle: 'How to challenge inaccuracies', icon: '📝', status: 'locked' },
-      { title: 'Writing Effective Disputes', subtitle: 'Craft letters that get results', icon: '✍️', status: 'locked' },
-      { title: 'Building Positive Credit', subtitle: 'Strategies for credit growth', icon: '🌱', status: 'locked' },
-      { title: 'Advanced Strategies', subtitle: 'Goodwill letters & pay-for-delete', icon: '🚀', status: 'locked' },
-      { title: 'Maintaining Your Score', subtitle: 'Keep your credit strong forever', icon: '🛡️', status: 'locked' },
-    ];
-    let html = '';
+    var lessonData = window.EDUCATION_LESSONS || [];
+    var statuses = typeof window.resolveStatuses === 'function' ? window.resolveStatuses(lessonData) : [];
+    var lessons = lessonData.map(function(l, i){
+      return { id: l.id, title: l.title, subtitle: l.subtitle, icon: l.icon, status: statuses[i] || 'locked' };
+    });
+    var completedCount = typeof window.getCompletedCount === 'function' ? window.getCompletedCount() : 0;
+    var totalXP = typeof window.getTotalXP === 'function' ? window.getTotalXP() : 0;
+    var streak = typeof window.getStreak === 'function' ? window.getStreak() : { days: 0 };
+    var level = Math.floor(totalXP / 800) + 1;
+    var xpInLevel = totalXP % 800;
+    var xpNeeded = 800;
+    var xpPct = Math.min((xpInLevel / xpNeeded) * 100, 100);
+
+    var header = document.querySelector('.edu-header');
+    if(header){
+      var levelBadge = header.querySelector('.edu-level-badge');
+      if(levelBadge) levelBadge.textContent = 'Level ' + level;
+      var xpLabel = header.querySelector('.edu-xp-label .text-xs');
+      if(xpLabel) xpLabel.textContent = totalXP + ' / ' + (level * xpNeeded) + ' XP';
+      var xpFill = header.querySelector('.edu-xp-fill');
+      if(xpFill) xpFill.style.width = xpPct + '%';
+      var statsLine = header.querySelector('.edu-xp-bar .flex');
+      if(statsLine) statsLine.innerHTML = '<span>\uD83D\uDD25 ' + (streak.days || 0) + ' day streak</span><span>\u2705 ' + completedCount + ' of ' + lessons.length + ' complete</span>';
+    }
+
+    var html = '';
     lessons.forEach(function(lesson, i){
       var align = i % 2 === 0 ? 'align-left' : 'align-right';
       var nodeClass = 'edu-node ' + lesson.status;
       var stepClass = 'edu-step ' + align + (lesson.status === 'locked' ? ' locked' : '');
       var inner = '';
       if(lesson.status === 'completed'){
-        inner = '<span class="edu-check">✓</span>';
+        inner = '<span class="edu-check">\u2713</span>';
       } else if(lesson.status === 'current'){
         inner = lesson.icon;
       } else {
-        inner = '<span class="edu-lock">🔒</span>';
+        inner = '<span class="edu-lock">\uD83D\uDD12</span>';
       }
-      html += '<div class="' + stepClass + '">' +
+      var clickable = lesson.status !== 'locked';
+      var tag = clickable ? 'button' : 'div';
+      var extra = clickable ? ' data-lesson-id="' + lesson.id + '" type="button"' : '';
+      html += '<' + tag + ' class="' + stepClass + '"' + extra + '>' +
         '<div class="' + nodeClass + '">' + inner + '</div>' +
         '<div class="edu-lesson-info">' +
           '<div class="edu-lesson-title">' + esc(lesson.title) + '</div>' +
           '<div class="edu-lesson-subtitle">' + esc(lesson.subtitle) + '</div>' +
         '</div>' +
-      '</div>';
+      '</' + tag + '>';
       if(i < lessons.length - 1){
         var connClass = 'edu-connector';
-        if(lesson.status === 'completed' && lessons[i+1].status !== 'locked') connClass += ' completed';
+        if(lesson.status === 'completed' && (statuses[i+1] === 'completed' || statuses[i+1] === 'current')) connClass += ' completed';
         html += '<div class="' + connClass + '"></div>';
       }
     });
     container.innerHTML = html;
+
+    container.querySelectorAll('[data-lesson-id]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var lid = btn.getAttribute('data-lesson-id');
+        if(typeof window.openLesson === 'function') window.openLesson(lid);
+      });
+    });
   }
+  window.refreshEducation = renderEducation;
   renderEducation();
 
   function updateMailEmptyState(){
