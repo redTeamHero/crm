@@ -5415,6 +5415,31 @@ button.edu-step.align-right { text-align: right; }
   border-radius: 12px;
   text-align: center;
 }
+.edu-tier-quiz-section.locked {
+  opacity: 0.55;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.edu-quiz-locked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+.edu-quiz-locked-icon {
+  font-size: 2rem;
+}
+.edu-quiz-btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #333;
+  color: #666;
+}
+.edu-quiz-btn.disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
 .edu-quiz-available {
   display: flex;
   align-items: center;

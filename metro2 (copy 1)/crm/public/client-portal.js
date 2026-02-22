@@ -1763,26 +1763,34 @@ document.addEventListener('DOMContentLoaded', () => {
     var tierAllComplete = typeof window.isTierComplete === 'function' && window.isTierComplete(activeTier);
     var tierQuizPassed = typeof window.isTierQuizPassed === 'function' && window.isTierQuizPassed(activeTier);
 
-    if(tierAllComplete){
-      quizHtml += '<div class="edu-tier-quiz-section">';
-      if(tierQuizPassed){
-        quizHtml += '<div class="edu-quiz-passed">';
-        quizHtml += '<span class="edu-quiz-passed-icon">🎓</span>';
-        quizHtml += '<span class="edu-quiz-passed-text">' + currentTier.label + ' Tier Complete — Exam Passed!</span>';
-        quizHtml += '</div>';
-        quizHtml += '<button class="edu-cert-btn" data-cert-tier="' + activeTier + '" type="button">Download Certificate 📜</button>';
-      } else {
-        quizHtml += '<div class="edu-quiz-available">';
-        quizHtml += '<span class="edu-quiz-icon">📝</span>';
-        quizHtml += '<div class="edu-quiz-info">';
-        quizHtml += '<div class="edu-quiz-title">' + currentTier.label + ' Final Exam Available!</div>';
-        quizHtml += '<div class="edu-quiz-desc">Pass the timed exam to earn bonus XP and your graduation certificate.</div>';
-        quizHtml += '</div>';
-        quizHtml += '</div>';
-        quizHtml += '<button class="edu-quiz-btn" data-quiz-tier="' + activeTier + '" type="button">Take Final Exam</button>';
-      }
+    quizHtml += '<div class="edu-tier-quiz-section' + (!tierAllComplete ? ' locked' : '') + '">';
+    if(tierQuizPassed){
+      quizHtml += '<div class="edu-quiz-passed">';
+      quizHtml += '<span class="edu-quiz-passed-icon">🎓</span>';
+      quizHtml += '<span class="edu-quiz-passed-text">' + currentTier.label + ' Tier Complete — Exam Passed!</span>';
       quizHtml += '</div>';
+      quizHtml += '<button class="edu-cert-btn" data-cert-tier="' + activeTier + '" type="button">Download Certificate 📜</button>';
+    } else if(tierAllComplete){
+      quizHtml += '<div class="edu-quiz-available">';
+      quizHtml += '<span class="edu-quiz-icon">📝</span>';
+      quizHtml += '<div class="edu-quiz-info">';
+      quizHtml += '<div class="edu-quiz-title">' + currentTier.label + ' Final Exam Available!</div>';
+      quizHtml += '<div class="edu-quiz-desc">Pass the timed exam to earn bonus XP and your graduation certificate.</div>';
+      quizHtml += '</div>';
+      quizHtml += '</div>';
+      quizHtml += '<button class="edu-quiz-btn" data-quiz-tier="' + activeTier + '" type="button">Take Final Exam</button>';
+    } else {
+      var remaining = lessonData.length - tierCompleted;
+      quizHtml += '<div class="edu-quiz-locked">';
+      quizHtml += '<span class="edu-quiz-locked-icon">🔒</span>';
+      quizHtml += '<div class="edu-quiz-info">';
+      quizHtml += '<div class="edu-quiz-title">' + currentTier.label + ' Final Exam</div>';
+      quizHtml += '<div class="edu-quiz-desc">Complete all ' + lessonData.length + ' lessons to unlock the final exam. ' + remaining + ' lesson' + (remaining !== 1 ? 's' : '') + ' remaining.</div>';
+      quizHtml += '</div>';
+      quizHtml += '</div>';
+      quizHtml += '<button class="edu-quiz-btn disabled" disabled type="button">Take Final Exam</button>';
     }
+    quizHtml += '</div>';
 
     container.innerHTML = tabsHtml + tierInfoHtml + mapHtml + quizHtml;
 
