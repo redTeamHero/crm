@@ -183,6 +183,34 @@
     .mobile-menu-btn { display: none; }
     .diy-sidebar-overlay { display: none; }
 
+    .tradeline-card {
+      background: var(--diy-card); border-radius: 14px; padding: 16px;
+      border: 1px solid var(--diy-border); margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      transition: all 0.2s ease;
+    }
+    .tradeline-card:hover { border-color: var(--diy-accent); box-shadow: 0 2px 12px rgba(99,102,241,0.06); }
+    .tradeline-meta { display: flex; gap: 16px; flex-wrap: wrap; flex: 1; }
+    .tradeline-field { font-size: 12px; color: var(--diy-text-sub); }
+    .tradeline-field strong { display: block; font-size: 14px; color: var(--diy-text); font-weight: 600; }
+    .news-card {
+      background: var(--diy-card); border-radius: 14px; padding: 16px;
+      border: 1px solid var(--diy-border); margin-bottom: 10px;
+      transition: all 0.2s ease; cursor: pointer;
+    }
+    .news-card:hover { border-color: var(--diy-accent); box-shadow: 0 2px 12px rgba(99,102,241,0.06); }
+    .news-title { font-size: 15px; font-weight: 600; color: var(--diy-text); margin-bottom: 6px; }
+    .news-desc { font-size: 13px; color: var(--diy-text-sub); line-height: 1.5; }
+    .news-date { font-size: 11px; color: var(--diy-muted); margin-top: 8px; }
+    .page-btn {
+      padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--diy-border); background: #fff; color: var(--diy-text);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .page-btn:hover { border-color: var(--diy-accent); color: var(--diy-accent); }
+    .page-btn.active { background: var(--diy-accent); color: #fff; border-color: var(--diy-accent); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
     @media (max-width: 768px) {
       .diy-sidebar { transform: translateX(-100%); width: 280px; }
       .diy-sidebar.open { transform: translateX(0); }
@@ -192,6 +220,8 @@
       .diy-sidebar-overlay.active { display: block; }
       .bureau-grid { grid-template-columns: 1fr; }
       .specialist-stats { grid-template-columns: 1fr; }
+      #billingPlansGrid { grid-template-columns: 1fr !important; }
+      .tradeline-card { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
@@ -233,6 +263,22 @@
       <a href="#specialists" class="diy-nav-link" data-section="specialists">
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Find Specialist
+      </a>
+      <a href="#tradelines" class="diy-nav-link" data-section="tradelines">
+        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Trade Lines
+      </a>
+      <a href="#news" class="diy-nav-link" data-section="news">
+        <svg viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg>
+        News & Tips
+      </a>
+      <a href="#billing" class="diy-nav-link" data-section="billing">
+        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="7" y1="15" x2="13" y2="15"/></svg>
+        Upgrade & Billing
+      </a>
+      <a href="#settings" class="diy-nav-link" data-section="settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
       </a>
     </nav>
 
@@ -395,11 +441,37 @@
 
       <!-- LETTERS SECTION -->
       <div id="sectionLetters" class="diy-section-page">
-        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Your Dispute Letters</h2>
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">Your Dispute Letters</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Manage your generated dispute letters. Download PDFs to print and mail to credit bureaus.</p>
+
+        <div class="trust-bar" style="margin-bottom:16px;">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            Ready to mail
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            PDF format
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            FCRA compliant
+          </div>
+        </div>
+
+        <div id="lettersActions" style="margin-bottom:16px;display:none;">
+          <button id="btnGenerateMoreLetters" class="diy-btn diy-btn-primary" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+            Generate New Letters
+          </button>
+        </div>
+
         <div id="lettersList"></div>
         <div id="noLetters" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
-          <p style="font-weight:500;">No letters generated yet.</p>
-          <p style="font-size:13px;margin-top:4px;">Run an audit first to find violations, then generate letters.</p>
+          <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" stroke-width="1.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <p style="font-weight:500;">No letters generated yet</p>
+          <p style="font-size:13px;margin-top:4px;">Upload a report and run an audit first, then generate dispute letters.</p>
+          <button class="diy-btn diy-btn-primary diy-nav-trigger" data-section="upload" style="margin-top:12px;" type="button">Upload Report</button>
         </div>
       </div>
 
@@ -439,6 +511,196 @@
             <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <p style="font-weight:500;">Loading specialists...</p>
           </div>
+        </div>
+      </div>
+
+      <!-- TRADE LINES SECTION -->
+      <div id="sectionTradelines" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">Trade Lines</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Browse authorized user tradelines from TradelineSupply. Boost your credit profile with seasoned accounts.</p>
+
+        <div class="trust-bar">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Verified tradelines
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            Real-time pricing
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            All major banks
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+          <select id="tradelineRange" class="diy-select" style="padding:8px 14px;border-radius:10px;border:1px solid var(--diy-border);font-size:13px;background:#fff;color:var(--diy-text);min-width:160px;">
+            <option value="">Select price range</option>
+          </select>
+          <select id="tradelineBank" class="diy-select" style="padding:8px 14px;border-radius:10px;border:1px solid var(--diy-border);font-size:13px;background:#fff;color:var(--diy-text);min-width:160px;">
+            <option value="">All banks</option>
+          </select>
+        </div>
+
+        <div id="tradelinesList"></div>
+        <div id="noTradelines" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+          <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-width="1.5"/><line x1="1" y1="10" x2="23" y2="10" stroke-width="1.5"/></svg>
+          <p style="font-weight:500;">Select a price range to browse available tradelines</p>
+          <p style="font-size:13px;margin-top:4px;">Filter by bank and price to find the best match for your needs.</p>
+        </div>
+        <div id="tradelinePagination" style="display:flex;justify-content:center;gap:8px;margin-top:16px;"></div>
+      </div>
+
+      <!-- NEWS SECTION -->
+      <div id="sectionNews" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">News & Tips</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Stay informed with the latest credit repair news, tips, and industry updates.</p>
+        <div id="newsFeed">
+          <div style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+            <p style="font-weight:500;">Loading news feed...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPGRADE & BILLING SECTION -->
+      <div id="sectionBilling" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">Upgrade & Billing</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Manage your subscription plan and billing details.</p>
+
+        <div class="diy-card" style="margin-bottom:20px;">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(99,102,241,0.1);">
+              <span>&#128179;</span>
+            </div>
+            <div class="diy-card-title">Current Plan</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span id="billingCurrentPlan" style="font-size:24px;font-weight:700;color:var(--diy-text);">Free</span>
+            <span id="billingPlanStatus" style="font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(16,185,129,0.1);color:#10b981;font-weight:600;">Active</span>
+          </div>
+          <div id="billingPeriod" style="font-size:13px;color:var(--diy-text-sub);margin-top:8px;"></div>
+          <button id="btnManageBilling" class="diy-btn diy-btn-secondary" style="margin-top:12px;display:none;" type="button">
+            Manage Billing
+          </button>
+        </div>
+
+        <h3 style="font-size:16px;font-weight:600;color:var(--diy-text);margin-bottom:12px;">Available Plans</h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;" id="billingPlansGrid">
+          <div class="diy-card" style="text-align:center;position:relative;" data-plan="free">
+            <div style="font-size:13px;font-weight:600;color:var(--diy-text-sub);text-transform:uppercase;letter-spacing:0.5px;">Free</div>
+            <div style="font-size:28px;font-weight:700;color:var(--diy-text);margin:8px 0;">$0</div>
+            <div style="font-size:12px;color:var(--diy-text-sub);margin-bottom:12px;">/month</div>
+            <ul style="text-align:left;font-size:13px;color:var(--diy-text-sub);list-style:none;padding:0;margin:0 0 16px;">
+              <li style="padding:4px 0;">&#10003; Upload credit reports</li>
+              <li style="padding:4px 0;">&#10003; Basic audit</li>
+              <li style="padding:4px 0;">&#10003; Education access</li>
+            </ul>
+            <button class="diy-btn diy-btn-secondary billing-plan-btn" data-plan="free" style="width:100%;" type="button" disabled>Current Plan</button>
+          </div>
+          <div class="diy-card" style="text-align:center;position:relative;border-color:var(--diy-accent);" data-plan="basic">
+            <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--diy-accent);color:#fff;font-size:11px;padding:2px 12px;border-radius:99px;font-weight:600;">Popular</div>
+            <div style="font-size:13px;font-weight:600;color:var(--diy-text-sub);text-transform:uppercase;letter-spacing:0.5px;">Basic</div>
+            <div style="font-size:28px;font-weight:700;color:var(--diy-text);margin:8px 0;">$29</div>
+            <div style="font-size:12px;color:var(--diy-text-sub);margin-bottom:12px;">/month</div>
+            <ul style="text-align:left;font-size:13px;color:var(--diy-text-sub);list-style:none;padding:0;margin:0 0 16px;">
+              <li style="padding:4px 0;">&#10003; Everything in Free</li>
+              <li style="padding:4px 0;">&#10003; Dispute letter generation</li>
+              <li style="padding:4px 0;">&#10003; Specialist matching</li>
+              <li style="padding:4px 0;">&#10003; Advanced audit</li>
+            </ul>
+            <button class="diy-btn diy-btn-primary billing-plan-btn" data-plan="basic" style="width:100%;" type="button">Upgrade to Basic</button>
+          </div>
+          <div class="diy-card" style="text-align:center;position:relative;" data-plan="pro">
+            <div style="font-size:13px;font-weight:600;color:var(--diy-text-sub);text-transform:uppercase;letter-spacing:0.5px;">Pro</div>
+            <div style="font-size:28px;font-weight:700;color:var(--diy-text);margin:8px 0;">$79</div>
+            <div style="font-size:12px;color:var(--diy-text-sub);margin-bottom:12px;">/month</div>
+            <ul style="text-align:left;font-size:13px;color:var(--diy-text-sub);list-style:none;padding:0;margin:0 0 16px;">
+              <li style="padding:4px 0;">&#10003; Everything in Basic</li>
+              <li style="padding:4px 0;">&#10003; Priority specialist access</li>
+              <li style="padding:4px 0;">&#10003; Unlimited letters</li>
+              <li style="padding:4px 0;">&#10003; Tradeline recommendations</li>
+            </ul>
+            <button class="diy-btn diy-btn-primary billing-plan-btn" data-plan="pro" style="width:100%;" type="button">Upgrade to Pro</button>
+          </div>
+        </div>
+        <div id="billingStatus" style="display:none;padding:10px 16px;border-radius:10px;font-size:14px;margin-bottom:16px;"></div>
+      </div>
+
+      <!-- SETTINGS SECTION -->
+      <div id="sectionSettings" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Settings</h2>
+
+        <div class="diy-card">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(99,102,241,0.1);">
+              <span>&#128100;</span>
+            </div>
+            <div class="diy-card-title">Personal Information</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">First Name</label>
+              <input type="text" id="settingsFirstName" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Last Name</label>
+              <input type="text" id="settingsLastName" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" />
+            </div>
+            <div style="grid-column:span 2;">
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Email</label>
+              <input type="email" id="settingsEmail" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);background:#f9fafb;box-sizing:border-box;" disabled />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Phone</label>
+              <input type="tel" id="settingsPhone" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="(555) 555-5555" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">State</label>
+              <input type="text" id="settingsState" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="CA" />
+            </div>
+            <div style="grid-column:span 2;">
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Address</label>
+              <input type="text" id="settingsAddress" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="123 Main St" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">City</label>
+              <input type="text" id="settingsCity" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="Los Angeles" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">ZIP Code</label>
+              <input type="text" id="settingsZip" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="90001" />
+            </div>
+          </div>
+          <div id="settingsMsg" style="display:none;margin-top:12px;padding:8px 14px;border-radius:8px;font-size:13px;"></div>
+          <button id="btnSaveSettings" class="diy-btn diy-btn-primary" style="margin-top:16px;" type="button">Save Changes</button>
+        </div>
+
+        <div class="diy-card" style="margin-top:16px;">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(239,68,68,0.1);">
+              <span>&#128274;</span>
+            </div>
+            <div class="diy-card-title">Change Password</div>
+          </div>
+          <div style="display:grid;gap:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Current Password</label>
+              <input type="password" id="settingsCurrentPass" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">New Password</label>
+              <input type="password" id="settingsNewPass" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="At least 8 characters" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Confirm New Password</label>
+              <input type="password" id="settingsConfirmPass" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" />
+            </div>
+          </div>
+          <div id="passwordMsg" style="display:none;margin-top:12px;padding:8px 14px;border-radius:8px;font-size:13px;"></div>
+          <button id="btnChangePassword" class="diy-btn diy-btn-secondary" style="margin-top:16px;" type="button">
+            Update Password
+          </button>
         </div>
       </div>
 

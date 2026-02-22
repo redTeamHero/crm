@@ -9158,6 +9158,102 @@ async function initStripeSubscriptions() {
   }
 }
 
+// DIY Update Profile
+app.put('/api/diy/profile', diyAuthenticate, async (req, res) => {
+  try {
+    const { firstName, lastName, phone, address, city, state, zip } = req.body || {};
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+
+    if (firstName !== undefined) user.firstName = sanitizeSettingString(String(firstName).trim());
+    if (lastName !== undefined) user.lastName = sanitizeSettingString(String(lastName).trim());
+    if (phone !== undefined) user.phone = sanitizeSettingString(String(phone).trim());
+    if (address !== undefined) user.address = sanitizeSettingString(String(address).trim());
+    if (city !== undefined) user.city = sanitizeSettingString(String(city).trim());
+    if (state !== undefined) user.state = sanitizeSettingString(String(state).trim());
+    if (zip !== undefined) user.zip = sanitizeSettingString(String(zip).trim());
+
+    await saveDiyUsersDB(db);
+    res.json({ ok: true, user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone || '', address: user.address || '', city: user.city || '', state: user.state || '', zip: user.zip || '', plan: user.plan } });
+  } catch (err) {
+    logError('DIY_UPDATE_PROFILE_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to update profile' });
+  }
+});
+
+// DIY Change Password
+app.post('/api/diy/change-password', diyAuthenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) return res.status(400).json({ ok: false, error: 'Both current and new password are required' });
+    if (newPassword.length < 8) return res.status(400).json({ ok: false, error: 'New password must be at least 8 characters' });
+
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+
+    const bcrypt = await import('bcryptjs');
+    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValid) return res.status(400).json({ ok: false, error: 'Current password is incorrect' });
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await saveDiyUsersDB(db);
+    res.json({ ok: true });
+  } catch (err) {
+    logError('DIY_CHANGE_PASSWORD_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to change password' });
+  }
+});
+
+// DIY News Feed (RSS Proxy)
+app.get('/api/diy/news', diyAuthenticate, async (req, res) => {
+  try {
+    const settings = await loadSettings();
+    const feedUrl = settings.rssFeedUrl || 'https://hnrss.org/frontpage';
+    const response = await fetchFn(feedUrl, { timeout: 8000 });
+    if (!response || !response.ok) throw new Error('Failed to fetch news feed');
+    const xml = await response.text();
+
+    const items = [];
+    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null && items.length < 20) {
+      const itemXml = match[1];
+      const title = (itemXml.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/) || [])[1] || (itemXml.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/) || [])[2] || '';
+      const link = (itemXml.match(/<link>(.*?)<\/link>/) || [])[1] || '';
+      const description = (itemXml.match(/<description><!\[CDATA\[(.*?)\]\]>|<description>(.*?)<\/description>/) || [])[1] || (itemXml.match(/<description><!\[CDATA\[(.*?)\]\]>|<description>(.*?)<\/description>/) || [])[2] || '';
+      const pubDate = (itemXml.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
+      if (title) items.push({ title: title.replace(/<[^>]+>/g, ''), link, description: description.replace(/<[^>]+>/g, '').slice(0, 200), pubDate });
+    }
+    res.json({ ok: true, items });
+  } catch (err) {
+    logError('DIY_NEWS_FEED_ERROR', err);
+    res.json({ ok: true, items: [] });
+  }
+});
+
+// DIY Get full profile (with extended fields)
+app.get('/api/diy/profile', diyAuthenticate, async (req, res) => {
+  try {
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    res.json({
+      ok: true,
+      user: {
+        id: user.id, email: user.email, firstName: user.firstName || '', lastName: user.lastName || '',
+        phone: user.phone || '', address: user.address || '', city: user.city || '',
+        state: user.state || '', zip: user.zip || '', plan: user.plan, createdAt: user.createdAt,
+        stripeCustomerId: user.stripeCustomerId || null
+      }
+    });
+  } catch (err) {
+    logError('DIY_PROFILE_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to load profile' });
+  }
+});
+
 let pgPool = null;
 try {
   if (process.env.DATABASE_URL) {
