@@ -935,6 +935,16 @@ function buildInvoicePayUrl(invoice, req){
   return `${base}/pay/${safeId}`;
 }
 
+async function recordCheckoutStage({ tenantId: tid, invoiceId, stage, success, sessionId, amountCents, metadata } = {}){
+  try {
+    const ts = new Date().toISOString();
+    const entry = { ts, tenantId: tid || "unknown", invoiceId, stage, success, sessionId, amountCents, metadata };
+    if(!success){
+      console.warn("[checkout-stage]", JSON.stringify(entry));
+    }
+  } catch(_){}
+}
+
 async function createStripeCheckoutSession({ invoice, consumer = {}, company = {}, req, stripeClient = null } = {}){
   if(!invoice) return null;
   const tenantId = resolveRequestTenant(req);

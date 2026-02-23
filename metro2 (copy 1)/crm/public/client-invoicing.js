@@ -127,6 +127,10 @@ const selectedClientLabelEl = document.getElementById('selectedClientLabel');
 billingClientFilterEl?.addEventListener('change', (event) => {
   applyInvoiceFilter(event?.target?.value || 'all', { updateSelect: false });
   updateSelectedClientLabel();
+  const newClient = event?.target?.value;
+  if(newClient && newClient !== 'all'){
+    loadPlans(newClient);
+  }
 });
 
 function updateSelectedClientLabel(){
@@ -324,14 +328,15 @@ document.getElementById('invAdd')?.addEventListener('click', async ()=>{
   const desc = $('#invDesc').value.trim();
   const amount = parseFloat($('#invAmount').value) || 0;
   const due = $('#invDue').value;
-  if(!consumerId){
-    alert('Select a client in Clients before adding an invoice.');
+  const targetClient = (activeClientFilter && activeClientFilter !== 'all') ? activeClientFilter : consumerId;
+  if(!targetClient){
+    alert('Select a client from the dropdown before adding an invoice.');
     return;
   }
   if(!desc || !amount) return;
   const company = JSON.parse(localStorage.getItem('companyInfo')||'{}');
-  await api('/api/invoices', { method:'POST', body: JSON.stringify({ consumerId, desc, amount, due, company }) });
-  trackEvent('invoice_created', { amount, consumerId });
+  await api('/api/invoices', { method:'POST', body: JSON.stringify({ consumerId: targetClient, desc, amount, due, company }) });
+  trackEvent('invoice_created', { amount, consumerId: targetClient });
   $('#invDesc').value='';
   $('#invAmount').value='';
   $('#invDue').value='';
@@ -379,9 +384,10 @@ function formatDueDate(date){
   return dateFormatter.format(date);
 }
 
-async function loadPlans(){
-  if(!consumerId) return;
-  const res = await api(`/api/billing/plans/${consumerId}`);
+async function loadPlans(clientId){
+  const target = clientId || ((activeClientFilter && activeClientFilter !== 'all') ? activeClientFilter : consumerId);
+  if(!target) return;
+  const res = await api(`/api/billing/plans/${target}`);
   if(!res.ok){
     console.error('Failed to load plans', res.error || res.data);
     planState.plans = [];
@@ -392,9 +398,10 @@ async function loadPlans(){
 }
 
 function collectPlanPayload(){
-  if(!consumerId) return null;
+  const targetClient = (activeClientFilter && activeClientFilter !== 'all') ? activeClientFilter : consumerId;
+  if(!targetClient) return null;
   const payload = {
-    consumerId,
+    consumerId: targetClient,
     name: planNameInput?.value?.trim() || '',
     amount: Number.parseFloat(planAmountInput?.value || '0') || 0,
     startDate: planStartInput?.value || null,
@@ -509,7 +516,8 @@ async function handlePlanSave(){
 }
 
 async function handlePlanSend(){
-  if(!consumerId) return;
+  const targetClient = (activeClientFilter && activeClientFilter !== 'all') ? activeClientFilter : consumerId;
+  if(!targetClient) return;
   const company = JSON.parse(localStorage.getItem('companyInfo') || '{}');
   if(planState.editingId){
     await handlePlanTriggerSend(planState.editingId, { company });
