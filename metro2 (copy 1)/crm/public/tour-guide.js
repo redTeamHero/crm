@@ -429,6 +429,7 @@ class EvolvTourEngine {
         ${BUTTERFLY_SVG}
       </div>
       <div class="tour-bubble">
+        <button class="tour-bubble__close" data-action="skip" aria-label="Close" title="Close">✕</button>
         <div class="tour-bubble__title">${step.title}</div>
         <div class="tour-bubble__body">${step.body}</div>
         <div class="tour-bubble__footer">
