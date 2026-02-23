@@ -937,6 +937,7 @@ function buildInvoicePayUrl(invoice, req){
 
 async function createStripeCheckoutSession({ invoice, consumer = {}, company = {}, req, stripeClient = null } = {}){
   if(!invoice) return null;
+  const tenantId = resolveRequestTenant(req);
   const stripe = stripeClient || await getStripeClient(req);
   if(!stripe) return null;
   const amount = Number(invoice.amount) || 0;
