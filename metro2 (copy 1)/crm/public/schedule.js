@@ -6,35 +6,35 @@ setupPageTour('schedule', {
       id: 'schedule-nav',
       title: 'Navigation',
       text: `<p class="font-semibold">Jump between fulfillment, marketing, and billing.</p>
-             <p class="mt-1 text-xs text-slate-600">Keep the schedule aligned with KPIs across the rest of the platform.</p>`,
+             <p class="mt-1 text-xs" style="color:#999;">Keep the schedule aligned with KPIs across the rest of the platform.</p>`,
       attachTo: { element: '#primaryNav', on: 'bottom' }
     },
     {
       id: 'schedule-hero',
       title: 'Set the tone',
       text: `<p class="font-semibold">Use the hero to frame pipeline ops.</p>
-             <p class="mt-1 text-xs text-slate-600">Remind the team this calendar backs premium consults.</p>`,
+             <p class="mt-1 text-xs" style="color:#999;">Remind the team this calendar backs premium consults.</p>`,
       attachTo: { element: '#scheduleHero', on: 'top' }
     },
     {
       id: 'schedule-summary',
       title: 'Daily summary',
       text: `<p class="font-semibold">Track slots, consults, and commitments here.</p>
-             <p class="mt-1 text-xs text-slate-600">Update the summary before morning stand-up.</p>`,
+             <p class="mt-1 text-xs" style="color:#999;">Update the summary before morning stand-up.</p>`,
       attachTo: { element: '#calendarSummary', on: 'left' }
     },
     {
       id: 'schedule-calendar',
       title: 'Calendar grid',
       text: `<p class="font-semibold">Drag and click to manage every touchpoint.</p>
-             <p class="mt-1 text-xs text-slate-600">Keep consults, dispute work, and billing nudges on one timeline.</p>`,
+             <p class="mt-1 text-xs" style="color:#999;">Keep consults, dispute work, and billing nudges on one timeline.</p>`,
       attachTo: { element: '#scheduleCalendar', on: 'top' }
     },
     {
       id: 'schedule-new-event',
       title: 'Book new events',
       text: `<p class="font-semibold">Use quick slots to reserve premium time.</p>
-             <p class="mt-1 text-xs text-slate-600">Capture consult type, details, and reminders without leaving the CRM.</p>`,
+             <p class="mt-1 text-xs" style="color:#999;">Capture consult type, details, and reminders without leaving the CRM.</p>`,
       attachTo: { element: '#newEvent', on: 'left' }
     }
   ]
@@ -328,18 +328,20 @@ document.addEventListener('DOMContentLoaded', () => {
     slotPresetList.innerHTML = '';
     if (!slotPresetDrafts.length) {
       const empty = document.createElement('p');
-      empty.className = 'rounded-2xl border border-dashed border-violet-200 bg-white/70 p-3 text-xs text-slate-500';
+      empty.className = 'empty-state text-xs';
     empty.textContent = 'No quick slots yet. Add one to keep curated options ready.';
       slotPresetList.appendChild(empty);
       return;
     }
     slotPresetDrafts.forEach((slot, index) => {
       const row = document.createElement('div');
-      row.className = 'flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white/70 p-3';
+      row.className = 'flex flex-wrap items-end gap-3 rounded-2xl p-3';
+      row.style.cssText = 'border:1px solid rgba(212,168,83,0.15);background:rgba(18,18,22,0.9);';
 
       const makeField = (labelText, input) => {
         const wrapper = document.createElement('label');
-        wrapper.className = 'flex flex-col text-xs font-semibold text-slate-500';
+        wrapper.className = 'flex flex-col text-xs font-semibold';
+        wrapper.style.color = '#888';
         const label = document.createElement('span');
         label.className = 'mb-1';
         label.textContent = labelText;
@@ -352,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
       startInput.type = 'time';
       startInput.step = '300';
       startInput.value = typeof slot.start === 'string' ? slot.start : '';
-      startInput.className = 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60';
+      startInput.className = 'input rounded-lg px-3 py-2 text-sm';
       startInput.addEventListener('change', (event) => updateSlotPresetDraft(index, 'start', event.target.value));
       startInput.addEventListener('input', (event) => updateSlotPresetDraft(index, 'start', event.target.value));
 
@@ -367,14 +369,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return Number.isFinite(parsed) ? parsed : defaultDurationMinutes;
           })();
       durationInput.value = durationValue;
-      durationInput.className = 'w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60';
+      durationInput.className = 'input w-24 rounded-lg px-3 py-2 text-sm';
       durationInput.addEventListener('input', (event) => updateSlotPresetDraft(index, 'duration', event.target.value));
 
       const titleInput = document.createElement('input');
       titleInput.type = 'text';
       titleInput.value = typeof slot.title === 'string' ? slot.title : '';
       titleInput.placeholder = 'Strategy Consult';
-      titleInput.className = 'flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60';
+      titleInput.className = 'input flex-1 rounded-lg px-3 py-2 text-sm';
       titleInput.style.minWidth = '140px';
       titleInput.addEventListener('input', (event) => updateSlotPresetDraft(index, 'title', event.target.value));
 
@@ -382,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
       typeInputEl.type = 'text';
       typeInputEl.value = typeof slot.type === 'string' ? slot.type : '';
       typeInputEl.placeholder = 'Consult or follow-up';
-      typeInputEl.className = 'flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60';
+      typeInputEl.className = 'input flex-1 rounded-lg px-3 py-2 text-sm';
       typeInputEl.style.minWidth = '140px';
       typeInputEl.addEventListener('input', (event) => updateSlotPresetDraft(index, 'type', event.target.value));
 
@@ -551,15 +553,15 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const getDueMeta = (dateStr) => {
-    if (!dateStr) return { label: '', cls: 'text-slate-500' };
+    if (!dateStr) return { label: '', cls: '', style: 'color:#777;' };
     const target = new Date(dateStr);
     target.setHours(0, 0, 0, 0);
     const diff = Math.round((target - todayMidnight()) / dayMs);
-    if (diff === 0) return { label: 'Today', cls: 'text-emerald-600' };
-    if (diff === 1) return { label: 'In 1 day', cls: 'text-emerald-600' };
-    if (diff > 1) return { label: `In ${diff} days`, cls: 'text-slate-500' };
+    if (diff === 0) return { label: 'Today', cls: '', style: 'color:#10b981;' };
+    if (diff === 1) return { label: 'In 1 day', cls: '', style: 'color:#10b981;' };
+    if (diff > 1) return { label: `In ${diff} days`, cls: '', style: 'color:#777;' };
     const days = Math.abs(diff);
-    return { label: `${days} day${days > 1 ? 's' : ''} past due`, cls: 'text-rose-600' };
+    return { label: `${days} day${days > 1 ? 's' : ''} past due`, cls: '', style: 'color:#f43f5e;' };
   };
 
   const titleCase = (value = '') => {
@@ -577,34 +579,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (normalized.includes('consult') || normalized.includes('strategy')) {
       return {
         label: 'Consult',
-        badge: 'bg-violet-100 text-violet-700 border border-violet-200',
+        badge: '',
+        badgeStyle: 'background:rgba(124,58,237,0.15);color:#a78bfa;border:1px solid rgba(124,58,237,0.25);',
         dot: '#7c3aed'
       };
     }
     if (normalized.includes('follow') || normalized.includes('touch') || normalized.includes('check')) {
       return {
         label: 'Follow-up',
-        badge: 'bg-amber-100 text-amber-700 border border-amber-200',
-        dot: '#d97706'
+        badge: '',
+        badgeStyle: 'background:rgba(212,168,83,0.15);color:#d4a853;border:1px solid rgba(212,168,83,0.25);',
+        dot: '#d4a853'
       };
     }
     if (normalized.includes('dispute') || normalized.includes('letter') || normalized.includes('metro')) {
       return {
         label: 'Dispute Work',
-        badge: 'bg-rose-100 text-rose-700 border border-rose-200',
+        badge: '',
+        badgeStyle: 'background:rgba(244,63,94,0.15);color:#fb7185;border:1px solid rgba(244,63,94,0.25);',
         dot: '#f43f5e'
       };
     }
     if (normalized.includes('bill') || normalized.includes('pay') || normalized.includes('invoice')) {
       return {
         label: 'Billing',
-        badge: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+        badge: '',
+        badgeStyle: 'background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.25);',
         dot: '#10b981'
       };
     }
     return {
       label: raw ? titleCase(raw) : 'General',
-      badge: 'bg-slate-100 text-slate-700 border border-slate-200',
+      badge: '',
+      badgeStyle: 'background:rgba(100,116,139,0.15);color:#94a3b8;border:1px solid rgba(100,116,139,0.25);',
       dot: '#64748b'
     };
   };
@@ -991,12 +998,12 @@ document.addEventListener('DOMContentLoaded', () => {
     listEl.innerHTML = '';
     if (calendarError) {
       const warn = document.createElement('div');
-      warn.className = 'rounded-2xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-700';
+      warn.className = 'gcal-notice';
       warn.textContent = calendarError;
       listEl.appendChild(warn);
     } else if (calendarNotice) {
       const info = document.createElement('div');
-      info.className = 'rounded-2xl border border-sky-200 bg-sky-50/80 p-3 text-xs text-sky-700';
+      info.className = 'gcal-notice';
       info.textContent = calendarNotice;
       listEl.appendChild(info);
     }
@@ -1011,10 +1018,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     upcoming.forEach((ev) => {
       const theme = getTypeTheme(ev.type);
-      const { label, cls } = getDueMeta(ev.date);
+      const dueMeta = getDueMeta(ev.date);
       const card = document.createElement('button');
       card.type = 'button';
-      card.className = 'w-full text-left rounded-2xl border border-white/40 bg-white/70 p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]';
+      card.className = 'w-full text-left rounded-2xl p-4 transition hover:-translate-y-0.5 focus:outline-none';
+      card.style.cssText = 'border:1px solid rgba(212,168,83,0.12);background:rgba(18,18,22,0.9);box-shadow:0 8px 20px rgba(0,0,0,0.2);';
 
       const layout = document.createElement('div');
       layout.className = 'flex items-start justify-between gap-4';
@@ -1023,14 +1031,17 @@ document.addEventListener('DOMContentLoaded', () => {
       details.className = 'space-y-1';
 
       const title = document.createElement('p');
-      title.className = 'text-sm font-semibold text-slate-800';
+      title.className = 'text-sm font-semibold';
+      title.style.color = '#e0e0e0';
       title.textContent = ev.text || 'Untitled event';
 
       const meta = document.createElement('div');
-      meta.className = 'flex flex-wrap items-center gap-2 text-xs text-slate-500';
+      meta.className = 'flex flex-wrap items-center gap-2 text-xs';
+      meta.style.color = '#777';
 
       const badge = document.createElement('span');
-      badge.className = `inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase ${theme.badge}`;
+      badge.className = 'inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase';
+      badge.style.cssText = theme.badgeStyle || '';
       badge.textContent = theme.label;
 
       const date = document.createElement('span');
@@ -1049,8 +1060,9 @@ document.addEventListener('DOMContentLoaded', () => {
       details.append(title, meta);
 
       const due = document.createElement('span');
-      due.className = `text-xs font-semibold ${cls}`;
-      due.textContent = label;
+      due.className = 'text-xs font-semibold';
+      due.style.cssText = dueMeta.style || '';
+      due.textContent = dueMeta.label;
 
       layout.append(details, due);
       card.appendChild(layout);
@@ -1066,9 +1078,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (calendarError) {
       summaryEl.innerHTML = `
         <div class="summary-tile">
-          <span class="text-xs font-semibold uppercase tracking-wide text-amber-600">Calendar Sync Needed</span>
-          <strong class="text-slate-900">--</strong>
-          <span class="text-xs text-slate-500">Connect Google Calendar in Settings to unlock live metrics.</span>
+          <span class="tile-label">Calendar Sync Needed</span>
+          <strong>--</strong>
+          <span class="tile-helper">Connect Google Calendar in Settings to unlock live metrics.</span>
         </div>
       `;
       return;
@@ -1077,9 +1089,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (calendarNotice) {
       summaryContent += `
         <div class="summary-tile">
-          <span class="text-xs font-semibold uppercase tracking-wide text-sky-600">Local Calendar Active</span>
-          <strong class="text-slate-900">CRM</strong>
-          <span class="text-xs text-slate-500">${calendarNotice}</span>
+          <span class="tile-label">Local Calendar Active</span>
+          <strong>CRM</strong>
+          <span class="tile-helper">${calendarNotice}</span>
         </div>
       `;
     }
@@ -1125,9 +1137,9 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(
         (metric) => `
         <div class="summary-tile">
-          <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">${metric.label}</span>
-          <strong class="text-slate-900">${metric.value}</strong>
-          <span class="text-xs text-slate-500">${metric.helper}</span>
+          <span class="tile-label">${metric.label}</span>
+          <strong>${metric.value}</strong>
+          <span class="tile-helper">${metric.helper}</span>
         </div>
       `
       )
@@ -1173,15 +1185,15 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="timeline-bullet" style="background:${theme.dot};"></span>
         <div class="flex-1 space-y-1">
           <div class="flex items-center justify-between gap-3">
-            <p class="text-sm font-semibold text-slate-800">${ev.text || 'Untitled event'}</p>
-            <span class="text-xs text-slate-500">${whenLabel || 'All day'}</span>
+            <p class="text-sm font-semibold" style="color:#e0e0e0;">${ev.text || 'Untitled event'}</p>
+            <span class="text-xs" style="color:#777;">${whenLabel || 'All day'}</span>
           </div>
-          <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase ${theme.badge}">${theme.label}</span>
+          <div class="flex flex-wrap items-center gap-2 text-xs" style="color:#777;">
+            <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase" style="${theme.badgeStyle || ''}">${theme.label}</span>
             <span>${formatDateLabel(ev.date)}</span>
           </div>
         </div>
-        <button class="text-xs font-semibold text-[color:var(--accent)] hover:underline">Edit slot</button>
+        <button class="text-xs font-semibold hover:underline" style="color:#d4a853;">Edit</button>
       `;
       item.querySelector('button').addEventListener('click', () => openModal(ev.date, ev));
       focusEl.appendChild(item);
@@ -1221,13 +1233,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const header = document.createElement('div');
       header.className = 'flex items-start justify-between gap-2';
       const dayNum = document.createElement('span');
-      dayNum.className = 'text-sm font-semibold text-slate-900';
+      dayNum.className = 'day-number';
       dayNum.textContent = d;
       header.appendChild(dayNum);
       const todays = events.filter((e) => e.date === dateStr).sort(compareEvents);
       if (todays.length) {
         const badge = document.createElement('span');
-        badge.className = 'text-[10px] font-semibold uppercase tracking-wide text-slate-500';
+        badge.className = 'touchpoint-count';
         badge.textContent = `${todays.length} ${todays.length === 1 ? 'touchpoint' : 'touchpoints'}`;
         header.appendChild(badge);
       }
@@ -1240,7 +1252,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = document.createElement('div');
         item.className = 'event-chip';
         const pill = document.createElement('span');
-        pill.className = `event-pill ${theme.badge}`;
+        pill.className = 'event-pill';
+        pill.style.cssText = theme.badgeStyle || '';
         pill.textContent = theme.label;
         const content = document.createElement('div');
         content.className = 'flex flex-col overflow-hidden';
@@ -1251,7 +1264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const rangeLabel = formatEventTimeRange(ev);
         if (rangeLabel) {
           const timeRow = document.createElement('span');
-          timeRow.className = 'text-[10px] uppercase tracking-wide text-slate-400';
+          timeRow.style.cssText = 'font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#777;';
           timeRow.textContent = rangeLabel;
           content.appendChild(timeRow);
         }
@@ -1265,7 +1278,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (todays.length > 3) {
         const more = document.createElement('span');
-        more.className = 'text-[10px] uppercase tracking-wide text-slate-400';
+        more.style.cssText = 'font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#d4a853;opacity:0.7;';
         more.textContent = `+${todays.length - 3} more`;
         list.appendChild(more);
       }
@@ -1544,14 +1557,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const resp = await fetch('/api/booking/bookings');
       const data = await resp.json();
       if (!data.ok || !data.bookings.length) {
-        listEl.innerHTML = '<p class="text-sm text-slate-400">No upcoming booked calls</p>';
+        listEl.innerHTML = '<p class="text-sm" style="color:#666;">No upcoming booked calls</p>';
         return;
       }
       const now = new Date();
       const todayStr = now.toISOString().split('T')[0];
       const upcoming = data.bookings.filter(b => b.date >= todayStr);
       if (!upcoming.length) {
-        listEl.innerHTML = '<p class="text-sm text-slate-400">No upcoming booked calls</p>';
+        listEl.innerHTML = '<p class="text-sm" style="color:#666;">No upcoming booked calls</p>';
         return;
       }
       listEl.innerHTML = upcoming.slice(0, 10).map(b => {
@@ -1562,14 +1575,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const d = new Date(b.date + 'T12:00:00');
         const niceDate = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const contactInfo = [b.phone, b.email].filter(Boolean).join(' · ') || '';
-        return `<div class="p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+        return `<div class="p-3 rounded-lg" style="background:rgba(212,168,83,0.08);border:1px solid rgba(212,168,83,0.15);">
           <div class="flex items-center justify-between mb-1">
-            <span class="text-sm font-semibold text-indigo-900">${esc(b.name)}</span>
-            <span class="text-xs text-indigo-600 font-medium">${esc(niceTime)}</span>
+            <span class="text-sm font-semibold" style="color:#e0e0e0;">${esc(b.name)}</span>
+            <span class="text-xs font-medium" style="color:#d4a853;">${esc(niceTime)}</span>
           </div>
-          <p class="text-xs text-indigo-700">${esc(niceDate)}</p>
-          ${contactInfo ? `<p class="text-xs text-slate-500 mt-1">${esc(contactInfo)}</p>` : ''}
-          ${b.notes ? `<p class="text-xs text-slate-400 mt-1 italic">${esc(b.notes)}</p>` : ''}
+          <p class="text-xs" style="color:#999;">${esc(niceDate)}</p>
+          ${contactInfo ? `<p class="text-xs mt-1" style="color:#777;">${esc(contactInfo)}</p>` : ''}
+          ${b.notes ? `<p class="text-xs mt-1 italic" style="color:#666;">${esc(b.notes)}</p>` : ''}
         </div>`;
       }).join('');
     } catch (e) {
