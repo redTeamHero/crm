@@ -253,15 +253,17 @@ function renderInvoices(invoices = []){
 
   invoices.forEach(inv=>{
     const tr = document.createElement('tr');
-    tr.className = 'border-b border-white/40 last:border-0';
+    tr.className = 'border-b border-white/10 last:border-0';
     const amount = Number(inv.amount) || 0;
     const dueDate = parseDate(inv.due);
     const dueLabel = dueDate ? formatDueDate(dueDate) : '—';
     const dueSoon = Boolean(!inv.paid && dueDate && (dueDate - now) <= 1000*60*60*24*7);
-    const statusText = inv.paid ? translate('billing.invoices.status.paid') : translate('billing.invoices.status.unpaid');
-    const statusBadge = `<span class="badge ${inv.paid ? 'badge-paid' : 'badge-unpaid'}">${escapeHtml(statusText) || ''}</span>`;
-    const dueSoonText = translate('billing.invoices.badges.dueSoon');
-    const dueBadge = dueSoon ? `<span class="badge badge-unpaid ml-2">${escapeHtml(dueSoonText) || ''}</span>` : '';
+    const statusText = inv.paid ? (translate('billing.invoices.status.paid') || 'Paid') : (translate('billing.invoices.status.unpaid') || 'Unpaid');
+    const paidStyle = 'display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3)';
+    const unpaidStyle = 'display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3)';
+    const statusBadge = `<span style="${inv.paid ? paidStyle : unpaidStyle}">${escapeHtml(statusText)}</span>`;
+    const dueSoonText = translate('billing.invoices.badges.dueSoon') || 'Due soon';
+    const dueBadge = dueSoon ? `<span style="${unpaidStyle};margin-left:6px">${escapeHtml(dueSoonText)}</span>` : '';
 
     if(inv.paid) collected += amount; else outstanding += amount;
     if(!inv.paid && dueDate){
@@ -273,19 +275,22 @@ function renderInvoices(invoices = []){
     const invoiceConsumerId = inv.consumerId || consumerId;
     const clientLabel = getConsumerDisplayName(invoiceConsumerId);
 
+    const actionBtnStyle = 'display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;border:1px solid rgba(212,168,83,0.4);background:rgba(212,168,83,0.12);color:#d4a853;transition:background 0.2s';
+    const markPaidBtnStyle = 'display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.12);color:#10b981;transition:background 0.2s';
+
     tr.innerHTML = `
-      <td class="px-4 py-4 align-top">
-        <div class="font-medium text-slate-900">${escapeHtml(inv.desc)}</div>
-        <div class="mt-1 text-xs text-slate-500">${escapeHtml(clientLabel)}</div>
+      <td class="px-4 py-3 align-top">
+        <div style="font-weight:600;color:#f0f0f0">${escapeHtml(inv.desc)}</div>
+        <div style="margin-top:3px;font-size:12px;color:#9ca3af">${escapeHtml(clientLabel)}</div>
         ${dueBadge}
       </td>
-      <td class="px-4 py-4 font-semibold text-slate-900">${formatCurrency(amount)}</td>
-      <td class="px-4 py-4 text-slate-700">${dueLabel}</td>
-      <td class="px-4 py-4">${statusBadge}</td>
-      <td class="px-4 py-4">
-        <div class="flex flex-wrap gap-2">
-          ${inv.pdf ? `<a class="btn text-sm" target="_blank" href="/api/consumers/${invoiceConsumerId}/state/files/${inv.pdf}">${escapeHtml(translate('billing.invoices.actions.pdf') || 'PDF')}</a>` : ''}
-          ${inv.paid ? '' : `<button class="btn text-sm mark-paid" data-id="${inv.id}">${escapeHtml(translate('billing.invoices.actions.markPaid'))}</button>`}
+      <td class="px-4 py-3" style="font-weight:600;color:#e5e5e5">${formatCurrency(amount)}</td>
+      <td class="px-4 py-3" style="color:#9ca3af">${dueLabel}</td>
+      <td class="px-4 py-3">${statusBadge}</td>
+      <td class="px-4 py-3">
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${inv.pdf ? `<a style="${actionBtnStyle}" target="_blank" href="/api/consumers/${invoiceConsumerId}/state/files/${inv.pdf}">${escapeHtml(translate('billing.invoices.actions.pdf') || 'PDF')}</a>` : ''}
+          ${inv.paid ? '' : `<button style="${markPaidBtnStyle}" class="mark-paid" data-id="${inv.id}">${escapeHtml(translate('billing.invoices.actions.markPaid') || 'Mark paid')}</button>`}
         </div>
       </td>`;
     const btn = tr.querySelector('.mark-paid');
