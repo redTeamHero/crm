@@ -122,9 +122,22 @@ planSummaryCta?.addEventListener('click', ()=>{
   }
 });
 
+const selectedClientLabelEl = document.getElementById('selectedClientLabel');
+
 billingClientFilterEl?.addEventListener('change', (event) => {
   applyInvoiceFilter(event?.target?.value || 'all', { updateSelect: false });
+  updateSelectedClientLabel();
 });
+
+function updateSelectedClientLabel(){
+  if(!selectedClientLabelEl) return;
+  if(activeClientFilter && activeClientFilter !== 'all'){
+    const name = getConsumerDisplayName(activeClientFilter);
+    selectedClientLabelEl.textContent = `Viewing invoices for ${name}`;
+  } else {
+    selectedClientLabelEl.textContent = 'Viewing invoices across all clients.';
+  }
+}
 
 loadInvoices();
 if(consumerId){
@@ -163,6 +176,7 @@ async function loadInvoices(options = {}){
 
   const targetFilter = billingClientFilterEl?.value || activeClientFilter || consumerId || 'all';
   applyInvoiceFilter(targetFilter, { updateSelect: true });
+  updateSelectedClientLabel();
 }
 
 function renderClientFilterOptions(){

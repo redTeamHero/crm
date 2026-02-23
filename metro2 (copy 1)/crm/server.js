@@ -972,7 +972,7 @@ async function createStripeCheckoutSession({ invoice, consumer = {}, company = {
   if(company?.name){
     metadata.companyName = company.name.toString().slice(0, 120);
   }
-  const stripeMeta = stripeClientMeta.get(stripe) || { tenantId, cacheHit: !!stripeClient };
+  const stripeMeta = { tenantId, cacheHit: !!stripeClient };
   await recordCheckoutStage({
     tenantId,
     invoiceId: invoice.id,
