@@ -283,43 +283,48 @@
       specialistsList.innerHTML = companies.map(function(company, idx) {
         var color = avatarColors[idx % avatarColors.length];
         var initial = (company.name || 'C').charAt(0).toUpperCase();
-        var rating = company.rating || (3.5 + Math.random() * 1.5);
-        var reviewCount = company.reviewCount || Math.floor(10 + Math.random() * 90);
-        var deletions = company.totalDeletions || Math.floor(50 + Math.random() * 500);
-        var avgDays = company.avgDaysToDelete || Math.floor(20 + Math.random() * 40);
-        var successRate = company.successRate || Math.floor(70 + Math.random() * 25);
+        var m = company.metrics || {};
+        var hasMetrics = Object.keys(m).length > 0;
+        var rating = hasMetrics && m.reviewScore ? parseFloat(m.reviewScore.toFixed(1)) : null;
+        var activeClients = hasMetrics && m.activeClients ? m.activeClients : null;
+        var avgDays = hasMetrics && m.avgResponseTimeDays ? parseFloat(m.avgResponseTimeDays.toFixed(1)) : null;
+        var successRate = hasMetrics && m.disputeSuccessRate ? Math.round(m.disputeSuccessRate * 100) : null;
         var badges = '';
-        if (successRate > 85) badges += '<span class="specialist-badge badge-verified">High Success</span>';
-        if (avgDays < 30) badges += '<span class="specialist-badge badge-fast">Fast Response</span>';
-        if (company.boosted) badges += '<span class="specialist-badge badge-boosted">Featured</span>';
+        if (successRate !== null && successRate > 85) badges += '<span class="specialist-badge badge-verified">High Success</span>';
+        if (avgDays !== null && avgDays < 3) badges += '<span class="specialist-badge badge-fast">Fast Response</span>';
+        if (company.isBoosted) badges += '<span class="specialist-badge badge-boosted">Featured</span>';
         if (idx === 0) badges += '<span class="specialist-badge badge-top">Top Pick</span>';
 
-        return '<div class="specialist-card" data-company-id="' + (company.id || idx) + '">' +
+        var ratingDisplay = rating !== null ? renderStars(Math.round(rating)) + '<span class="specialist-reviews">(' + rating + ')</span>' : '<span class="specialist-reviews">New</span>';
+        var clientsDisplay = activeClients !== null ? activeClients : 'New';
+        var avgDaysDisplay = avgDays !== null ? avgDays + 'd' : 'N/A';
+        var successDisplay = successRate !== null ? successRate + '%' : 'New';
+
+        return '<div class="specialist-card" data-company-id="' + (company.companyId || company.id || idx) + '">' +
           '<div class="specialist-header">' +
           '<div class="specialist-avatar" style="background:' + color + ';">' + initial + '</div>' +
           '<div style="flex:1;">' +
           '<div class="specialist-name">' + (company.name || 'Credit Company') + '</div>' +
           '<div class="specialist-location">' + (company.serviceArea || 'Nationwide') + '</div>' +
           '<div class="specialist-rating" style="margin-top:4px;">' +
-          renderStars(Math.round(rating)) +
-          '<span class="specialist-reviews">(' + reviewCount + ' reviews)</span>' +
+          ratingDisplay +
           '</div>' +
           '</div>' +
           '</div>' +
           '<div class="specialist-stats">' +
-          '<div class="specialist-stat"><div class="specialist-stat-value">' + deletions + '</div><div class="specialist-stat-label">Total Deletions</div></div>' +
-          '<div class="specialist-stat"><div class="specialist-stat-value">' + avgDays + 'd</div><div class="specialist-stat-label">Avg. Time</div></div>' +
-          '<div class="specialist-stat"><div class="specialist-stat-value">' + successRate + '%</div><div class="specialist-stat-label">Success Rate</div></div>' +
+          '<div class="specialist-stat"><div class="specialist-stat-value">' + clientsDisplay + '</div><div class="specialist-stat-label">Active Clients</div></div>' +
+          '<div class="specialist-stat"><div class="specialist-stat-value">' + avgDaysDisplay + '</div><div class="specialist-stat-label">Avg. Response</div></div>' +
+          '<div class="specialist-stat"><div class="specialist-stat-value">' + successDisplay + '</div><div class="specialist-stat-label">Success Rate</div></div>' +
           '</div>' +
           (badges ? '<div class="specialist-badges">' + badges + '</div>' : '') +
-          '<button class="diy-btn diy-btn-primary" style="width:100%;margin-top:12px;" type="button" data-select-company="' + (company.id || idx) + '">Choose This Specialist</button>' +
+          '<button class="diy-btn diy-btn-primary" style="width:100%;margin-top:12px;" type="button" data-select-company="' + (company.companyId || company.id || idx) + '">Choose This Specialist</button>' +
           '</div>';
       }).join('');
 
       specialistsList.querySelectorAll('[data-select-company]').forEach(function(btn) {
         btn.addEventListener('click', function() {
           var companyId = btn.getAttribute('data-select-company');
-          var company = companies.find(function(c) { return String(c.id) === companyId; }) || companies[0];
+          var company = companies.find(function(c) { return String(c.companyId || c.id) === companyId; }) || companies[0];
           selectCompany(company);
         });
       });
@@ -341,7 +346,7 @@
           'Authorization': 'Bearer ' + token,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ companyId: company.id })
+        body: JSON.stringify({ companyId: company.companyId || company.id })
       });
     } catch (e) {}
     localStorage.setItem(LOCAL_COMPANY_SELECTION_KEY, JSON.stringify(company));
