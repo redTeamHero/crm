@@ -1759,6 +1759,59 @@ app.post("/api/credit-companies", authenticate, requirePermission("admin"), asyn
   }
 });
 
+app.delete("/api/credit-companies/:id", authenticate, requirePermission("admin"), async (req, res) => {
+  try {
+    const requestTenantId = sanitizeTenantId(
+      req.user?.tenantId || getCurrentTenantId() || DEFAULT_TENANT_ID,
+      DEFAULT_TENANT_ID
+    );
+    const companiesDb = await loadCreditCompaniesDB();
+    const idx = companiesDb.companies.findIndex(c => c.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ ok: false, error: "Company not found" });
+    const company = companiesDb.companies[idx];
+    if (company.tenantId && company.tenantId !== requestTenantId) {
+      return res.status(403).json({ ok: false, error: "Not authorized to delete this company" });
+    }
+    companiesDb.companies.splice(idx, 1);
+    await saveCreditCompaniesDB(companiesDb);
+    const metricsDb = await loadCreditCompanyMetricsDB();
+    metricsDb.metrics = metricsDb.metrics.filter(m => m.companyId !== req.params.id);
+    await saveCreditCompanyMetricsDB(metricsDb);
+    res.json({ ok: true });
+  } catch (err) {
+    logError("CREDIT_COMPANY_DELETE_ERROR", err);
+    res.status(500).json({ ok: false, error: "Failed to delete credit company" });
+  }
+});
+
+app.put("/api/credit-companies/:id/metrics", authenticate, requirePermission("admin"), async (req, res) => {
+  try {
+    const requestTenantId = sanitizeTenantId(
+      req.user?.tenantId || getCurrentTenantId() || DEFAULT_TENANT_ID,
+      DEFAULT_TENANT_ID
+    );
+    const companiesDb = await loadCreditCompaniesDB();
+    const company = companiesDb.companies.find(c => c.id === req.params.id);
+    if (!company) return res.status(404).json({ ok: false, error: "Company not found" });
+    if (company.tenantId && company.tenantId !== requestTenantId) {
+      return res.status(403).json({ ok: false, error: "Not authorized to update this company's metrics" });
+    }
+    const metricsDb = await loadCreditCompanyMetricsDB();
+    const existing = metricsDb.metrics.find(m => m.companyId === req.params.id);
+    if (!existing) return res.status(404).json({ ok: false, error: "Company metrics not found" });
+    const allowed = ['disputeSuccessRate', 'caseCloseRate', 'avgResponseTimeDays', 'activeClients', 'reviewScore'];
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) existing[key] = Number(req.body[key]) || 0;
+    }
+    existing.updatedAt = new Date().toISOString();
+    await saveCreditCompanyMetricsDB(metricsDb);
+    res.json({ ok: true, metrics: existing });
+  } catch (err) {
+    logError("CREDIT_COMPANY_METRICS_UPDATE_ERROR", err);
+    res.status(500).json({ ok: false, error: "Failed to update metrics" });
+  }
+});
+
 app.use("/api/marketing", marketingKeyAuth, authenticate, forbidMember, marketingRoutes);
 
 app.get("/api/calendar/events", async (_req, res) => {
@@ -7838,58 +7891,7 @@ async function saveDiyLettersDB(db) {
 async function loadCreditCompaniesDB() {
   let db = await readKey('credit_companies', null);
   if (!db) {
-    db = {
-      companies: [
-        {
-          id: nanoid(),
-          name: 'ClearPath Credit',
-          serviceArea: 'Nationwide',
-          minPlan: 'basic',
-          isActive: true,
-          focus: 'Fast dispute turnaround'
-        },
-        {
-          id: nanoid(),
-          name: 'Northstar Credit Lab',
-          serviceArea: 'West & Midwest',
-          minPlan: 'free',
-          isActive: true,
-          focus: 'High success rate on bureau disputes'
-        },
-        {
-          id: nanoid(),
-          name: 'Summit Credit Partners',
-          serviceArea: 'South & Southeast',
-          minPlan: 'basic',
-          isActive: true,
-          focus: 'Hands-on monitoring & coaching'
-        },
-        {
-          id: nanoid(),
-          name: 'Brightline Credit Co.',
-          serviceArea: 'Northeast',
-          minPlan: 'pro',
-          isActive: true,
-          focus: 'Complex case specialists'
-        },
-        {
-          id: nanoid(),
-          name: 'Evergreen Credit Studio',
-          serviceArea: 'Nationwide',
-          minPlan: 'free',
-          isActive: true,
-          focus: 'Balanced performance & responsiveness'
-        },
-        {
-          id: nanoid(),
-          name: 'Atlas Credit Guild',
-          serviceArea: 'Southwest',
-          minPlan: 'basic',
-          isActive: true,
-          focus: 'Great for high utilization disputes'
-        }
-      ]
-    };
+    db = { companies: [] };
     await writeKey('credit_companies', db);
   }
   return db;
@@ -7926,13 +7928,13 @@ async function syncCreditCompanyMetrics(metricsDb, companiesDb) {
   const now = new Date().toISOString();
   const additions = companiesDb.companies
     .filter(company => !metricsByCompany.has(company.id))
-    .map((company, index) => ({
+    .map(company => ({
       companyId: company.id,
-      disputeSuccessRate: 0.7 + (index % 4) * 0.05,
-      caseCloseRate: 0.6 + (index % 3) * 0.08,
-      avgResponseTimeDays: 2.5 + (index % 4) * 0.7,
-      activeClients: 120 + index * 40,
-      reviewScore: 4 + (index % 3) * 0.3,
+      disputeSuccessRate: 0,
+      caseCloseRate: 0,
+      avgResponseTimeDays: 0,
+      activeClients: 0,
+      reviewScore: 0,
       dissatisfiedCount: 0,
       updatedAt: now
     }));
@@ -7945,19 +7947,7 @@ async function syncCreditCompanyMetrics(metricsDb, companiesDb) {
 async function loadCreditCompanyMetricsDB() {
   let db = await readKey('credit_company_metrics', null);
   if (!db) {
-    const companiesDb = await loadCreditCompaniesDB();
-    db = {
-      metrics: companiesDb.companies.map((company, index) => ({
-        companyId: company.id,
-        disputeSuccessRate: 0.72 + (index % 4) * 0.06,
-        caseCloseRate: 0.65 + (index % 3) * 0.08,
-        avgResponseTimeDays: 2.4 + (index % 5) * 0.6,
-        activeClients: 140 + index * 45,
-        reviewScore: 4.1 + (index % 3) * 0.3,
-        dissatisfiedCount: index % 2 === 0 ? 1 : 0,
-        updatedAt: new Date().toISOString()
-      }))
-    };
+    db = { metrics: [] };
     await writeKey('credit_company_metrics', db);
   }
   try {
@@ -7976,18 +7966,7 @@ async function saveCreditCompanyMetricsDB(db) {
 async function loadCreditCompanyBoostsDB() {
   let db = await readKey('credit_company_boosts', null);
   if (!db) {
-    const companiesDb = await loadCreditCompaniesDB();
-    db = {
-      boosts: [
-        {
-          companyId: companiesDb.companies[0]?.id,
-          tier: 'starter',
-          amount: 0.15,
-          startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          endDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ]
-    };
+    db = { boosts: [] };
     await writeKey('credit_company_boosts', db);
   }
   return db;
@@ -9316,6 +9295,29 @@ if (shouldStartServer) {
       });
     }).catch(() => {});
     initStripeSubscriptions().catch(err => console.error('Stripe init error:', err));
+    (async () => {
+      try {
+        const migrated = await readKey('_migration_purge_fake_companies', null);
+        if (!migrated) {
+          const companiesDb = await loadCreditCompaniesDB();
+          const realCompanies = companiesDb.companies.filter(c => c.tenantId);
+          const removedIds = new Set(companiesDb.companies.filter(c => !c.tenantId).map(c => c.id));
+          await writeKey('credit_companies', { companies: realCompanies });
+          if (removedIds.size > 0) {
+            const metricsDb = await readKey('credit_company_metrics', { metrics: [] });
+            metricsDb.metrics = (metricsDb.metrics || []).filter(m => !removedIds.has(m.companyId));
+            await writeKey('credit_company_metrics', metricsDb);
+            const boostsDb = await readKey('credit_company_boosts', { boosts: [] });
+            boostsDb.boosts = (boostsDb.boosts || []).filter(b => !removedIds.has(b.companyId));
+            await writeKey('credit_company_boosts', boostsDb);
+          }
+          await writeKey('_migration_purge_fake_companies', { done: true, at: new Date().toISOString(), removed: removedIds.size });
+          console.log(`Purged ${removedIds.size} fake seed companies from specialist directory (kept ${realCompanies.length} real)`);
+        }
+      } catch (err) {
+        console.error('Migration purge error:', err);
+      }
+    })();
   });
 }
 
