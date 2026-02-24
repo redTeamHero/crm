@@ -19,7 +19,7 @@ Key technical implementations include:
 - Performance optimizations for PDF parsing and audit processing, including regex pre-compilation and parallel bureau processing.
 - A client portal invitation system with unique, time-limited tokens and a lead capture form with source tracking.
 - A data breach card integrated into the client detail view.
-- A comprehensive education system with 21 lessons across three tiers (Beginner, Intermediate, Expert), featuring timed quizzes, bonus XP, and downloadable personalized certificates.
+- A comprehensive education system with 21 lessons across three tiers (Beginner, Intermediate, Expert), featuring timed quizzes, bonus XP, and downloadable personalized certificates. The education layout is shared between the client portal and DIY dashboard, using the same `education-player.js`, `education-lessons.js`, `education-intermediate.js`, and `education-expert.js` scripts. Both render the Credit Academy with tier tabs, zigzag lesson paths, XP tracking, and final exams.
 - A call booking system for clients, including availability management, time slot selection, and conflict detection.
 
 ## External Dependencies

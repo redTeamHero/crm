@@ -477,13 +477,29 @@
 
       <!-- EDUCATION SECTION -->
       <div id="sectionEducation" class="diy-section-page">
-        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Credit Education</h2>
-        <div class="diy-card">
-          <div class="diy-card-body">
-            <p style="font-size:15px;font-weight:500;color:var(--diy-text);">Coming soon</p>
-            <p style="margin-top:4px;">Interactive credit education modules will be available here.</p>
+        <div class="edu-header" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+            <div class="edu-header-icon">🎓</div>
+            <div>
+              <h2 style="font-size:20px;font-weight:700;color:var(--diy-text,#fff);">Credit Academy</h2>
+              <p style="font-size:13px;color:var(--diy-text-sub,#9ca3af);">Master your credit, one lesson at a time.</p>
+            </div>
+          </div>
+          <div class="edu-xp-bar">
+            <div class="edu-xp-label" style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="edu-level-badge">Level 1</span>
+              <span style="font-size:12px;color:var(--diy-text-sub,#9ca3af);">0 / 800 XP</span>
+            </div>
+            <div class="edu-xp-track">
+              <div class="edu-xp-fill" style="width:0%"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--diy-text-sub,#9ca3af);">
+              <span>🔥 0 day streak</span>
+              <span>✅ 0 of 0 complete</span>
+            </div>
           </div>
         </div>
+        <div id="education" class="edu-path"></div>
       </div>
 
       <!-- FIND SPECIALIST SECTION -->
@@ -707,6 +723,10 @@
     </main>
   </div>
 
+  <script src="/education-lessons.js"></script>
+  <script src="/education-intermediate.js"></script>
+  <script src="/education-expert.js"></script>
+  <script src="/education-player.js"></script>
   <script src="/diy/dashboard.js"></script>
 </body>
 </html>
