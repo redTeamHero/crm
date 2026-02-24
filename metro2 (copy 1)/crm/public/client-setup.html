@@ -235,7 +235,7 @@
 
         <div class="form-group">
           <label>Email</label>
-          <input type="email" id="emailField" readonly />
+          <input type="email" id="emailField" placeholder="your@email.com" />
         </div>
 
         <div class="form-group">
@@ -298,7 +298,11 @@
         }
 
         document.getElementById('clientName').textContent = 'Welcome, ' + (data.name || 'Client') + '!';
-        document.getElementById('emailField').value = data.email || '';
+        const emailField = document.getElementById('emailField');
+        emailField.value = data.email || '';
+        if (data.email) {
+          emailField.readOnly = true;
+        }
         document.getElementById('setupForm').style.display = 'block';
       } catch (err) {
         document.getElementById('loadingScreen').style.display = 'none';
@@ -332,10 +336,15 @@
 
     confirmField.addEventListener('input', validate);
 
+    const emailField = document.getElementById('emailField');
+    emailField.addEventListener('input', validate);
+
     function validate() {
       const pw = passwordField.value;
       const cf = confirmField.value;
-      submitBtn.disabled = !(pw.length >= 6 && pw === cf);
+      const em = emailField.value.trim();
+      const emailOk = /\S+@\S+\.\S+/.test(em);
+      submitBtn.disabled = !(pw.length >= 6 && pw === cf && emailOk);
     }
 
     submitBtn.addEventListener('click', async () => {
@@ -348,7 +357,7 @@
         const res = await fetch('/api/client-setup/complete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, password: passwordField.value })
+          body: JSON.stringify({ token, password: passwordField.value, email: document.getElementById('emailField').value.trim() })
         });
         const data = await res.json();
 

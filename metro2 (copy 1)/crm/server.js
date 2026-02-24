@@ -4792,8 +4792,9 @@ app.post("/api/client/login", async (req,res)=>{
     logInfo("CLIENT_LOGIN_ATTEMPT", "Client login with token", { tokenPrefix: req.body.token.slice(0,4) });
     client = db.consumers.find(c=>c.portalToken===req.body.token);
   } else if(req.body.email){
-    logInfo("CLIENT_LOGIN_ATTEMPT", "Client login with email", { email: req.body.email });
-    client = db.consumers.find(c=>c.email===req.body.email);
+    const loginEmail = (req.body.email || "").trim().toLowerCase();
+    logInfo("CLIENT_LOGIN_ATTEMPT", "Client login with email", { email: loginEmail });
+    client = db.consumers.find(c=>(c.email||"").trim().toLowerCase()===loginEmail);
     if(!client || !client.password || !bcrypt.compareSync(req.body.password || "", client.password)){
       logWarn("CLIENT_LOGIN_FAIL", "Client login failed: invalid password", { email: req.body.email });
       return res.status(401).json({ ok:false, error:"Invalid credentials" });
@@ -4848,12 +4849,24 @@ app.get("/api/client-setup/validate", async (req, res) => {
 });
 
 app.post("/api/client-setup/complete", async (req, res) => {
-  const { token, password } = req.body;
+  const { token, password, email: submittedEmail } = req.body;
   if (!token || !password) return res.status(400).json({ ok: false, error: "Token and password required" });
   if (password.length < 6) return res.status(400).json({ ok: false, error: "Password must be at least 6 characters" });
   const db = await loadDB();
   const consumer = findConsumerByInviteToken(db, token);
   if (!consumer) return res.status(410).json({ ok: false, error: "This link is invalid or has expired. Please request a new one." });
+  if (!consumer.email && submittedEmail) {
+    const normalizedEmail = submittedEmail.trim().toLowerCase();
+    if (!/\S+@\S+\.\S+/.test(normalizedEmail)) return res.status(400).json({ ok: false, error: "Please enter a valid email address" });
+    const emailTaken = db.consumers.find(c => c.id !== consumer.id && (c.email || "").trim().toLowerCase() === normalizedEmail);
+    if (emailTaken) return res.status(409).json({ ok: false, error: "This email is already associated with another account" });
+    consumer.email = normalizedEmail;
+  } else if (!consumer.email && !submittedEmail) {
+    return res.status(400).json({ ok: false, error: "Email address is required to create your account" });
+  }
+  if (consumer.email) {
+    consumer.email = consumer.email.trim().toLowerCase();
+  }
   consumer.password = bcrypt.hashSync(password, 10);
   consumer.portalSetupCompletedAt = new Date().toISOString();
   delete consumer.portalInviteToken;
