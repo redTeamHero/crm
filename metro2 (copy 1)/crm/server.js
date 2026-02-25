@@ -602,6 +602,49 @@ async function buildClientPortalPayload(consumer){
         }
         return { ...item, creditor: name || (item.type === "personal_info" ? "Personal Information" : "Unknown Creditor") };
       });
+      const deduped = new Map();
+      for (const item of negativeItems) {
+        let acctKey = Object.entries(item.account_numbers || {})
+          .map(([, v]) => String(v || "").replace(/[•\s*]+/g, ""))
+          .filter(Boolean)
+          .sort()
+          .join(",");
+        if (!acctKey && Array.isArray(item.tradelineKeys) && item.tradelineKeys.length) {
+          acctKey = item.tradelineKeys
+            .map(tk => { const p = tk.split("|"); return p.length >= 3 ? p.slice(2).join("|").replace(/\*+/g, "") : ""; })
+            .filter(Boolean)
+            .sort()
+            .join(",");
+        }
+        if (!acctKey) acctKey = `__idx_${item.index}`;
+        const credKey = (item.creditor || "").toUpperCase();
+        const key = `${credKey}|${acctKey}`;
+        if (deduped.has(key)) {
+          const existing = deduped.get(key);
+          const mergedBureaus = [...new Set([...(existing.bureaus || []), ...(item.bureaus || [])])];
+          const vKey = v => v.id || v.code || `${v.title || ""}|${v.detail || ""}|${(v.bureaus || []).join(",")}`;
+          const existingViolationIds = new Set((existing.violations || []).map(vKey));
+          const newViolations = (item.violations || []).filter(v => !existingViolationIds.has(vKey(v)));
+          const mergedViolations = [...(existing.violations || []), ...newViolations];
+          const mergedAcctNums = { ...(existing.account_numbers || {}), ...(item.account_numbers || {}) };
+          const mergedKeys = [...new Set([...(existing.tradelineKeys || []), ...(item.tradelineKeys || [])])];
+          const mergedBd = { ...(existing.bureau_details || {}), ...(item.bureau_details || {}) };
+          const bestCreditor = (existing.creditor && existing.creditor !== "Unknown Creditor") ? existing.creditor : item.creditor;
+          deduped.set(key, {
+            ...existing,
+            creditor: bestCreditor,
+            bureaus: mergedBureaus,
+            violations: mergedViolations,
+            account_numbers: mergedAcctNums,
+            tradelineKeys: mergedKeys,
+            bureau_details: mergedBd,
+            severity: Math.max(existing.severity || 0, item.severity || 0),
+          });
+        } else {
+          deduped.set(key, item);
+        }
+      }
+      negativeItems = [...deduped.values()];
     } else if(Array.isArray(latestReport.data.tradelines)){
       try {
         const { items } = prepareNegativeItems(latestReport.data.tradelines, {
