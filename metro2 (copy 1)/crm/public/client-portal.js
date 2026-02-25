@@ -1490,7 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="flex items-center gap-3">
             ${statusIcon}
             <div class="flex-1 min-w-0">
-              <div class="font-semibold text-sm">${esc(inv.desc || 'Invoice')}</div>
+              <div class="font-semibold text-sm text-slate-800">${esc(inv.desc || 'Invoice')}</div>
               <div class="text-xs text-slate-400">${esc(dueText)}</div>
             </div>
             <div class="text-right">
@@ -1991,7 +1991,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="negative-item-header p-3" role="button" tabindex="0" aria-expanded="false">
             <div class="flex items-start justify-between gap-3 w-full">
               <div>
-                <div class="font-semibold text-base">${escape(item.creditor || 'Unknown Creditor')}</div>
+                <div class="font-semibold text-base text-slate-800">${escape(item.creditor || 'Unknown Creditor')}</div>
                 <div class="text-xs muted mt-1">${bureaus || '—'}</div>
               </div>
               <div class="flex flex-col items-end gap-1 text-right">

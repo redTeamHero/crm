@@ -21,6 +21,7 @@ Key technical implementations include:
 - A data breach card integrated into the client detail view.
 - A comprehensive education system with 21 lessons across three tiers (Beginner, Intermediate, Expert), featuring timed quizzes, bonus XP, and downloadable personalized certificates. The education layout is shared between the client portal and DIY dashboard, using the same `education-player.js`, `education-lessons.js`, `education-intermediate.js`, and `education-expert.js` scripts. Both render the Credit Academy with tier tabs, zigzag lesson paths, XP tracking, and final exams.
 - A call booking system for clients, including availability management, time slot selection, and conflict detection.
+- Client portal uses a light theme (`portal-layout` class on body, `background: #f8f9ff`). Text defaults to dark via `body { color: var(--text-primary) }`. Section headings that need white text use explicit `text-white` Tailwind classes. The `--fg` CSS variable (`#0f172a`) is defined in `:root` for elements like `.doc-card-name`, `.mail-card-name`, `.imsg-header-name`, and `.upload-card-title`. Negative item creditor names and invoice descriptions use explicit `text-slate-800` for defensive visibility.
 
 ## External Dependencies
 - **Node.js**: Runtime environment for the backend.
