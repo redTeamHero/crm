@@ -604,9 +604,9 @@ async function buildClientPortalPayload(consumer){
       });
       const deduped = new Map();
       for (const item of negativeItems) {
-        let acctKey = Object.entries(item.account_numbers || {})
-          .map(([, v]) => String(v || "").replace(/[•\s*]+/g, ""))
-          .filter(Boolean)
+        let acctKey = [...new Set(Object.values(item.account_numbers || {})
+          .map(v => String(v || "").replace(/[•\s*]+/g, ""))
+          .filter(Boolean))]
           .sort()
           .join(",");
         if (!acctKey && Array.isArray(item.tradelineKeys) && item.tradelineKeys.length) {
@@ -617,8 +617,7 @@ async function buildClientPortalPayload(consumer){
             .join(",");
         }
         if (!acctKey) acctKey = `__idx_${item.index}`;
-        const credKey = (item.creditor || "").toUpperCase();
-        const key = `${credKey}|${acctKey}`;
+        const key = acctKey;
         if (deduped.has(key)) {
           const existing = deduped.get(key);
           const mergedBureaus = [...new Set([...(existing.bureaus || []), ...(item.bureaus || [])])];
@@ -629,10 +628,12 @@ async function buildClientPortalPayload(consumer){
           const mergedAcctNums = { ...(existing.account_numbers || {}), ...(item.account_numbers || {}) };
           const mergedKeys = [...new Set([...(existing.tradelineKeys || []), ...(item.tradelineKeys || [])])];
           const mergedBd = { ...(existing.bureau_details || {}), ...(item.bureau_details || {}) };
-          const bestCreditor = (existing.creditor && existing.creditor !== "Unknown Creditor") ? existing.creditor : item.creditor;
+          const eCred = existing.creditor || "";
+          const iCred = item.creditor || "";
+          const bestCreditor = eCred.length >= iCred.length ? eCred : iCred;
           deduped.set(key, {
             ...existing,
-            creditor: bestCreditor,
+            creditor: bestCreditor || "Unknown Creditor",
             bureaus: mergedBureaus,
             violations: mergedViolations,
             account_numbers: mergedAcctNums,
