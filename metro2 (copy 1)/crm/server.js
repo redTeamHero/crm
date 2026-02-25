@@ -545,19 +545,59 @@ async function buildClientPortalPayload(consumer){
   let negativeItems = [];
   if(latestReport?.data){
     if(Array.isArray(latestReport.data.negative_items)){
+      const acctToCreditor = new Map();
+      if (Array.isArray(latestReport.data.tradelines)) {
+        for (const tl of latestReport.data.tradelines) {
+          const name = tl?.meta?.creditor || tl?.creditor || tl?.creditor_name || "";
+          if (!name || name === "Unknown Creditor") continue;
+          if (tl.meta?.account_numbers && typeof tl.meta.account_numbers === "object") {
+            for (const acctNum of Object.values(tl.meta.account_numbers)) {
+              if (acctNum) acctToCreditor.set(acctNum.replace(/\*+/g, ""), name);
+            }
+          }
+          const perBureau = tl.per_bureau || {};
+          for (const bd of Object.values(perBureau)) {
+            if (bd?.account_number) acctToCreditor.set(bd.account_number.replace(/\*+/g, ""), name);
+            if (bd?.account_number_raw) acctToCreditor.set(bd.account_number_raw.replace(/\*+/g, ""), name);
+          }
+        }
+      }
       negativeItems = latestReport.data.negative_items.map(item => {
         if (item.creditor && item.creditor !== "Unknown Creditor") return item;
-        let name = item.creditor || item.creditor_name || item.account_name || item.subscriber_name || item.furnisher_name || "";
+        let name = "";
+        if (item.tradelineKeys && Array.isArray(item.tradelineKeys)) {
+          for (const tk of item.tradelineKeys) {
+            const parts = tk.split("|");
+            if (parts.length >= 3) {
+              const acctRaw = parts.slice(2).join("|").replace(/\*+/g, "");
+              if (acctRaw && acctToCreditor.has(acctRaw)) { name = acctToCreditor.get(acctRaw); break; }
+            }
+          }
+        }
+        if (!name && item.account_numbers && typeof item.account_numbers === "object") {
+          for (const acctNum of Object.values(item.account_numbers)) {
+            const cleaned = String(acctNum || "").replace(/[•\s*]+/g, "");
+            if (cleaned) {
+              for (const [key, cred] of acctToCreditor) {
+                if (key.includes(cleaned) || cleaned.includes(key)) { name = cred; break; }
+              }
+            }
+            if (name) break;
+          }
+        }
+        if (!name) {
+          const tl = Array.isArray(latestReport.data.tradelines) ? latestReport.data.tradelines[item.index] : null;
+          if (tl) {
+            name = tl?.meta?.creditor || tl?.creditor || tl?.creditor_name || "";
+            if (name === "Unknown Creditor") name = "";
+          }
+        }
         if (!name && item.bureau_details && typeof item.bureau_details === "object") {
           for (const bd of Object.values(item.bureau_details)) {
             if (!bd || typeof bd !== "object") continue;
             name = bd.creditor_name || bd.creditor || bd.subscriber_name || bd.company_name || bd.account_name || "";
-            if (name) break;
-          }
-        }
-        if (!name && item.violations && Array.isArray(item.violations)) {
-          for (const v of item.violations) {
-            if (v.creditor || v.creditor_name) { name = v.creditor || v.creditor_name; break; }
+            if (name && name !== "Unknown Creditor") break;
+            name = "";
           }
         }
         return { ...item, creditor: name || (item.type === "personal_info" ? "Personal Information" : "Unknown Creditor") };
