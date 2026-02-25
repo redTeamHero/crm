@@ -545,7 +545,23 @@ async function buildClientPortalPayload(consumer){
   let negativeItems = [];
   if(latestReport?.data){
     if(Array.isArray(latestReport.data.negative_items)){
-      negativeItems = latestReport.data.negative_items;
+      negativeItems = latestReport.data.negative_items.map(item => {
+        if (item.creditor && item.creditor !== "Unknown Creditor") return item;
+        let name = item.creditor || item.creditor_name || item.account_name || item.subscriber_name || item.furnisher_name || "";
+        if (!name && item.bureau_details && typeof item.bureau_details === "object") {
+          for (const bd of Object.values(item.bureau_details)) {
+            if (!bd || typeof bd !== "object") continue;
+            name = bd.creditor_name || bd.creditor || bd.subscriber_name || bd.company_name || bd.account_name || "";
+            if (name) break;
+          }
+        }
+        if (!name && item.violations && Array.isArray(item.violations)) {
+          for (const v of item.violations) {
+            if (v.creditor || v.creditor_name) { name = v.creditor || v.creditor_name; break; }
+          }
+        }
+        return { ...item, creditor: name || (item.type === "personal_info" ? "Personal Information" : "Unknown Creditor") };
+      });
     } else if(Array.isArray(latestReport.data.tradelines)){
       try {
         const { items } = prepareNegativeItems(latestReport.data.tradelines, {
