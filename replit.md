@@ -16,6 +16,7 @@ UI/UX for the CRM features a premium dark theme with gold accents, inspired by A
 Key technical implementations include:
 - Server-side plan gating for DIY users based on subscription tiers.
 - Cross-bureau violation detection to identify discrepancies across credit bureaus.
+- Tradeline deduplication runs in two places: server-side in `buildClientPortalPayload` (server.js) for the client portal, and client-side in `dedupeTradelines` (index.js) for the CRM client detail page. Both normalize account numbers to handle bureau-specific formatting differences (e.g., TransUnion `A0000000001785****` vs Experian `CBA0000000001785****` → `1785`). The server-side dedup keys by normalized account number only; the client-side keys by `creditorName|normalizedAccounts`.
 - Performance optimizations for PDF parsing and audit processing, including regex pre-compilation and parallel bureau processing.
 - A client portal invitation system with unique, time-limited tokens and a lead capture form with source tracking.
 - A data breach card integrated into the client detail view.

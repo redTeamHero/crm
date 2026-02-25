@@ -1155,8 +1155,14 @@ export function dedupeTradelines(lines){
         : metaNumbersRaw
           ? [metaNumbersRaw]
           : [];
+    const normalizeAcct = s => {
+      let v = String(s).trim().toUpperCase().replace(/[*]+$/g, '');
+      const m = v.match(/^[A-Z]+0{4,}(\d+)$/);
+      if (m) return m[1];
+      return v;
+    };
     const normalizedNumbers = [...bureauNumbers, ...metaNumbers]
-      .map(n => String(n).trim().toUpperCase())
+      .map(normalizeAcct)
       .filter(n => n.length > 0);
     const uniqueNumbers = Array.from(new Set(normalizedNumbers)).sort();
 
