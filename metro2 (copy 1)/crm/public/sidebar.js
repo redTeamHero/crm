@@ -14,7 +14,6 @@
 
   const icons = {
     menu: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>',
-    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
     grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
     users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
@@ -62,20 +61,8 @@
     { label: 'My Company', icon: 'building', href: '/my-company', match: ['/my-company'] },
     { label: 'Client Portal', icon: 'settings', href: '/settings/client-portal', match: ['/settings/client-portal'] },
     { label: 'APIs', icon: 'code', href: '/settings', match: ['/settings'] },
-    { label: 'Workflows', icon: 'zap', href: '/workflows', match: ['/workflows'] },
-    { group: 'ADMIN', adminOnly: true },
-    { label: 'Platform', icon: 'shield', href: '/master', match: ['/master'], adminOnly: true }
+    { label: 'Workflows', icon: 'zap', href: '/workflows', match: ['/workflows'] }
   ];
-
-  var userRole = null;
-  var tokStr = localStorage.getItem('token');
-  if (tokStr) {
-    try {
-      var payload = JSON.parse(atob(tokStr.split('.')[1]));
-      userRole = payload.role || null;
-    } catch(e) {}
-  }
-  var isAdmin = userRole === 'admin' || userRole === 'host';
 
   function isActive(item) {
     if (!item.match) return false;
@@ -509,8 +496,6 @@
 
   for (var i = 0; i < navItems.length; i++) {
     var item = navItems[i];
-
-    if (item.adminOnly && !isAdmin) continue;
 
     if (item.group) {
       html += '<div class="evolv-sb-group"><div class="evolv-sb-group-line"></div><div class="evolv-sb-group-label">' + item.group + '</div></div>';
