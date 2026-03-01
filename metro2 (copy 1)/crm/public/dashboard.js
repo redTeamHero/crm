@@ -2009,11 +2009,46 @@ function initFocusEditor() {
   setTimeout(applySavedFocus, 500);
 }
 
+function loadPlatformAnnouncements() {
+  var tok = localStorage.getItem('token');
+  if (!tok) return;
+  fetch('/api/master/news', { headers: { 'Authorization': 'Bearer ' + tok } })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.ok || !data.announcements || data.announcements.length === 0) return;
+      var section = document.getElementById('platformAnnouncementsSection');
+      var list = document.getElementById('platformAnnouncementsList');
+      if (!section || !list) return;
+      section.classList.remove('hidden');
+      var html = '';
+      var items = data.announcements.slice(0, 5);
+      for (var i = 0; i < items.length; i++) {
+        var a = items[i];
+        var d = new Date(a.createdAt);
+        var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        var urgentCls = a.priority === 'urgent' ? ' border-red-500/30' : ' border-[#1a1a1a]';
+        var urgentBadge = a.priority === 'urgent' ? '<span class="ml-2 rounded-full bg-red-500/20 text-red-400 px-2 py-0.5 text-[10px] font-semibold uppercase">Urgent</span>' : '';
+        html += '<div class="rounded-lg border p-3' + urgentCls + '">';
+        html += '<div class="flex items-center gap-2 flex-wrap"><span class="font-semibold text-white text-sm">' + escapeHtmlSafe(a.title) + '</span>' + urgentBadge + '<span class="text-[11px] text-gray-600 ml-auto">' + dateStr + '</span></div>';
+        html += '<p class="mt-1 text-gray-400 text-xs">' + escapeHtmlSafe(a.body) + '</p>';
+        html += '</div>';
+      }
+      list.innerHTML = html;
+    })
+    .catch(function () {});
+}
+
+function escapeHtmlSafe(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => { initDashboard(); initFocusEditor(); });
+  document.addEventListener('DOMContentLoaded', () => { initDashboard(); initFocusEditor(); loadPlatformAnnouncements(); });
 } else {
   initDashboard();
   initFocusEditor();
+  loadPlatformAnnouncements();
 }
 
 window.addEventListener('crm:tutorial-request', (event) => {

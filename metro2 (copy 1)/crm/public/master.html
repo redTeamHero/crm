@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Platform Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/evolv-dark.css">
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      min-height: 100vh;
+      background: #0a0a0a;
+    }
+    @keyframes blob{0%,100%{transform:translate(0,0);}33%{transform:translate(15px,-10px);}66%{transform:translate(-10px,10px);}}
+    .animate-blob{animation:blob 10s ease-in-out infinite;}
+    @keyframes fadeInUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+    .animate-fadeInUp{animation:fadeInUp .6s ease-out both;}
+    @keyframes counterUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .counter-animate { animation: counterUp 0.6s ease-out both; }
+    @keyframes pulse-gold { 0%, 100% { box-shadow: 0 0 8px rgba(212,168,83,0.2); } 50% { box-shadow: 0 0 20px rgba(212,168,83,0.4); } }
+    .pulse-gold { animation: pulse-gold 2s ease-in-out infinite; }
+    .stat-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .news-item {
+      transition: background 0.2s ease;
+    }
+    .news-item:hover {
+      background: rgba(255,255,255,0.03);
+    }
+  </style>
+  <script src="/sidebar.js" defer></script>
+  <script src="/command-palette.js" defer></script>
+</head>
+<body class="text-gray-200">
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell backdrop-blur">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold tracking-tight">Metro 2 CRM</div>
+    </div>
+  </div>
+</header>
+<main class="max-w-7xl mx-auto p-4 space-y-8">
+
+  <section class="glass card relative overflow-hidden p-6 md:p-8 text-left">
+    <div class="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-tr from-[#d4a853]/10 to-[#d4a853]/5 blur-3xl animate-blob"></div>
+    <div class="pointer-events-none absolute -bottom-20 -left-12 h-64 w-64 rounded-full bg-gradient-to-tr from-[#d4a853]/10 to-[#d4a853]/5 blur-3xl"></div>
+    <div class="relative z-10 space-y-6">
+      <div class="space-y-2">
+        <p class="text-sm font-semibold uppercase tracking-[0.22em] text-[#d4a853]">Master Admin</p>
+        <h2 class="text-3xl md:text-4xl font-bold leading-tight text-white">Platform Command Center</h2>
+        <p class="text-sm text-gray-400">System-wide overview of users, revenue, and platform announcements.</p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl border border-[#1a1a1a] bg-[#111113] p-4 shadow-sm pulse-gold">
+          <p class="text-xs uppercase tracking-widest text-gray-500">Total Users</p>
+          <p id="heroTotalUsers" class="mt-1 text-2xl font-semibold text-white">—</p>
+          <p class="mt-2 text-xs text-gray-500">CRM + DIY combined</p>
+        </div>
+        <div class="rounded-2xl border border-[#1a1a1a] bg-[#111113] p-4 shadow-sm">
+          <p class="text-xs uppercase tracking-widest text-gray-500">Monthly Revenue</p>
+          <p id="heroMrr" class="mt-1 text-2xl font-semibold text-white">—</p>
+          <p class="mt-2 text-xs text-gray-500">Total MRR across plans</p>
+        </div>
+        <div class="rounded-2xl border border-[#1a1a1a] bg-[#111113] p-4 shadow-sm">
+          <p class="text-xs uppercase tracking-widest text-gray-500">Active Tenants</p>
+          <p id="heroActiveTenants" class="mt-1 text-2xl font-semibold text-white">—</p>
+          <p class="mt-2 text-xs text-gray-500">Active CRM tenants</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h3 class="text-lg font-semibold text-white">User Statistics</h3>
+      <p class="text-sm text-gray-500">Platform-wide user breakdown</p>
+    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">CRM Users</div>
+        <div id="statCrmUsers" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">Total registered CRM users across all tenants</p>
+      </div>
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">DIY Users</div>
+        <div id="statDiyUsers" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">Self-service credit repair users</p>
+      </div>
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">Total Consumers</div>
+        <div id="statConsumers" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">Consumers managed across all tenants</p>
+      </div>
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">New Signups (30d)</div>
+        <div id="statNewSignups" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">Growth over the last 30 days</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="h-2 w-2 rounded-full bg-green-500"></span>
+          <div class="text-sm text-gray-500">Active Users</div>
+        </div>
+        <div id="statActiveUsers" class="text-3xl font-semibold text-white">—</div>
+        <p class="mt-3 text-xs text-gray-500">Users with active status</p>
+      </div>
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="h-2 w-2 rounded-full bg-red-500"></span>
+          <div class="text-sm text-gray-500">Inactive Users</div>
+        </div>
+        <div id="statInactiveUsers" class="text-3xl font-semibold text-white">—</div>
+        <p class="mt-3 text-xs text-gray-500">Users with inactive or suspended status</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h3 class="text-lg font-semibold text-white">Revenue Overview</h3>
+      <p class="text-sm text-gray-500">Financial health at a glance</p>
+    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">MRR</div>
+        <div id="revMrr" class="text-3xl font-semibold text-[#d4a853] mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">Monthly Recurring Revenue</p>
+      </div>
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">Total Revenue</div>
+        <div id="revTotal" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">All-time collected revenue</p>
+      </div>
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">CRM Revenue</div>
+        <div id="revCrm" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">Revenue from CRM subscriptions</p>
+      </div>
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">DIY Revenue</div>
+        <div id="revDiy" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">Revenue from DIY subscriptions</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">Subscription Count</div>
+        <div id="revSubCount" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p class="mt-3 text-xs text-gray-500">Total active subscriptions across plans</p>
+      </div>
+      <div class="stat-card glass card h-full flex flex-col border border-[#1a1a1a] shadow-sm">
+        <div class="text-sm text-gray-500">Profit / Loss</div>
+        <div id="revProfitLoss" class="text-3xl font-semibold text-white mt-1">—</div>
+        <p id="revProfitLossLabel" class="mt-3 text-xs text-gray-500">Net profit or loss indicator</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h3 class="text-lg font-semibold text-white">News Feed Manager</h3>
+      <p class="text-sm text-gray-500">Broadcast announcements to all platform users</p>
+    </div>
+
+    <div class="glass card border border-[#1a1a1a] shadow-sm">
+      <h4 class="text-sm font-semibold text-[#d4a853] uppercase tracking-widest mb-4">Create Announcement</h4>
+      <form id="newsForm" class="space-y-3">
+        <input id="newsTitle" type="text" class="w-full border rounded-xl border-gray-700 bg-[#0a0a0a] text-white px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" placeholder="Announcement title" required />
+        <textarea id="newsBody" class="w-full h-24 border rounded-xl border-gray-700 bg-[#0a0a0a] text-white p-3 text-sm focus:border-[#d4a853] focus:outline-none" placeholder="Announcement body" required></textarea>
+        <div class="flex flex-wrap items-center gap-3">
+          <select id="newsPriority" class="border rounded-xl border-gray-700 bg-[#0a0a0a] text-white px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none">
+            <option value="normal">Normal Priority</option>
+            <option value="urgent">Urgent Priority</option>
+          </select>
+          <button type="submit" class="rounded-full bg-[#d4a853] px-5 py-2.5 font-semibold text-black shadow hover:brightness-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4a853]">Publish Announcement</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="glass card border border-[#1a1a1a] shadow-sm">
+      <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Published Announcements</h4>
+      <div id="newsList" class="space-y-3 text-sm text-gray-400">
+        <p class="text-gray-500">Loading announcements...</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+<script src="/master.js"></script>
+</body>
+</html>

@@ -79,11 +79,45 @@
     });
   }
 
+  function loadDiyAnnouncements() {
+    fetch('/api/diy/news')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.ok || !data.announcements || data.announcements.length === 0) return;
+        var section = document.getElementById('diyAnnouncementsSection');
+        var list = document.getElementById('diyAnnouncementsList');
+        if (!section || !list) return;
+        section.classList.remove('hidden');
+        var html = '';
+        var items = data.announcements.slice(0, 3);
+        for (var i = 0; i < items.length; i++) {
+          var a = items[i];
+          var d = new Date(a.createdAt);
+          var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          var urgentStyle = a.priority === 'urgent' ? 'border-color:rgba(239,68,68,0.3);' : 'border-color:rgba(255,255,255,0.06);';
+          var urgentBadge = a.priority === 'urgent' ? '<span style="margin-left:6px;font-size:10px;font-weight:600;color:#f87171;background:rgba(239,68,68,0.15);padding:2px 8px;border-radius:20px;text-transform:uppercase;">Urgent</span>' : '';
+          html += '<div style="border:1px solid;border-radius:10px;padding:10px 12px;' + urgentStyle + '">';
+          html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-weight:600;color:#fff;font-size:13px;">' + escHtml(a.title) + '</span>' + urgentBadge + '<span style="font-size:10px;color:#666;margin-left:auto;">' + dateStr + '</span></div>';
+          html += '<p style="margin-top:4px;color:#999;font-size:12px;">' + escHtml(a.body) + '</p>';
+          html += '</div>';
+        }
+        list.innerHTML = html;
+      })
+      .catch(function() {});
+  }
+
+  function escHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   async function init() {
     if (!token) {
       window.location.href = '/diy/login';
       return;
     }
+
+    loadDiyAnnouncements();
 
     try {
       const res = await fetch('/api/diy/me', {
