@@ -544,10 +544,50 @@
     color: #ef4444;
     transform: translateY(-1px);
   }
+  .slot-edit-button {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(212, 168, 83, 0.12);
+    color: #d4a853;
+    font-size: 12px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .2s ease, background .2s ease, transform .2s ease;
+  }
+  .slot-chip-wrapper:hover .slot-edit-button {
+    opacity: 1;
+  }
+  .slot-edit-button:hover {
+    background: rgba(212, 168, 83, 0.25);
+    transform: translateY(-1px);
+  }
+  #eventModal .modal-card.accent .slot-edit-button {
+    background: rgba(212, 168, 83, 0.12);
+    color: #d4a853;
+  }
+  #eventModal .modal-card.accent .slot-edit-button:hover {
+    background: rgba(212, 168, 83, 0.3);
+  }
+  .slot-preset-highlight {
+    border-color: rgba(212, 168, 83, 0.6) !important;
+    box-shadow: 0 0 16px rgba(212, 168, 83, 0.2) !important;
+  }
   @media (max-width: 640px) {
     #eventModal .modal-panel {
       max-height: calc(100vh - 2rem);
       padding: 1.25rem;
+    }
+    .slot-edit-button {
+      opacity: 1;
     }
   }
   @media (max-width: 768px) {

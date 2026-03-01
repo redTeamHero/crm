@@ -335,8 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     slotPresetDrafts.forEach((slot, index) => {
       const row = document.createElement('div');
-      row.className = 'flex flex-wrap items-end gap-3 rounded-2xl p-3';
-      row.style.cssText = 'border:1px solid rgba(212,168,83,0.15);background:rgba(18,18,22,0.9);';
+      row.className = 'slot-preset-row flex flex-wrap items-end gap-3 rounded-2xl p-3';
+      row.dataset.slotId = slot.id || '';
+      row.style.cssText = 'border:1px solid rgba(212,168,83,0.15);background:rgba(18,18,22,0.9);transition:box-shadow .3s ease,border-color .3s ease;';
 
       const makeField = (labelText, input) => {
         const wrapper = document.createElement('label');
@@ -813,6 +814,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const wrapper = document.createElement('div');
       wrapper.className = 'slot-chip-wrapper';
       wrapper.appendChild(button);
+      if (!slot.custom) {
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'slot-edit-button';
+        editBtn.setAttribute('aria-label', 'Edit quick slot');
+        editBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+        editBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (slotPresetEditor && slotPresetEditor.classList.contains('hidden')) {
+            slotPresetEditor.classList.remove('hidden');
+            updateSlotPresetToggleLabel(true);
+            ensureSlotPresetDrafts();
+            renderSlotPresetEditor();
+          }
+          requestAnimationFrame(() => {
+            const targetRow = slotPresetList
+              ? slotPresetList.querySelector(`.slot-preset-row[data-slot-id="${slot.id}"]`)
+              : null;
+            if (targetRow) {
+              targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              targetRow.classList.add('slot-preset-highlight');
+              setTimeout(() => targetRow.classList.remove('slot-preset-highlight'), 1500);
+              const firstInput = targetRow.querySelector('input');
+              if (firstInput) firstInput.focus();
+            }
+          });
+        });
+        wrapper.appendChild(editBtn);
+      }
       if (slot.custom) {
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
