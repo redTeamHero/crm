@@ -1429,6 +1429,10 @@ body::after {
 
 #portalMain {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .brand-orb {
@@ -4727,6 +4731,8 @@ body.portal-layout::after {
 .portal-content {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 .portal-main-wrapper {
   margin-left: 260px;
