@@ -902,8 +902,135 @@ async function loadReportJSON(){
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines);
   renderCollectors(CURRENT_REPORT.creditor_contacts || []);
-
+  loadReportDiff();
 }
+
+async function loadReportDiff() {
+  const panel = document.getElementById("reportDiffPanel");
+  if (!panel) return;
+  panel.classList.add("hidden");
+  if (!currentConsumerId || !currentReportId) return;
+  try {
+    const data = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}/diff`);
+    if (!data?.ok || !data.diff) return;
+    renderReportDiff(data.diff);
+  } catch (e) {
+    console.warn("Failed to load report diff:", e);
+  }
+}
+
+function renderReportDiff(diff) {
+  const panel = document.getElementById("reportDiffPanel");
+  if (!panel || !diff) return;
+
+  const { deleted = [], added = [], changed = [], summary = {} } = diff;
+  const { deletedCount = 0, addedCount = 0, changedCount = 0 } = summary;
+
+  if (deletedCount === 0 && addedCount === 0 && changedCount === 0) return;
+
+  panel.classList.remove("hidden");
+
+  const subtitleEl = document.getElementById("diffSummaryText");
+  if (subtitleEl) {
+    const parts = [];
+    if (deletedCount > 0) parts.push(`${deletedCount} deletion${deletedCount !== 1 ? "s" : ""}`);
+    if (addedCount > 0) parts.push(`${addedCount} new item${addedCount !== 1 ? "s" : ""}`);
+    if (changedCount > 0) parts.push(`${changedCount} change${changedCount !== 1 ? "s" : ""}`);
+    subtitleEl.textContent = parts.join(" · ");
+  }
+
+  const banner = document.getElementById("diffBanner");
+  if (banner) {
+    banner.innerHTML = "";
+    if (deletedCount > 0) banner.insertAdjacentHTML("beforeend",
+      `<span style="background:#064e3b;color:#4ade80;padding:4px 12px;border-radius:6px;font-weight:600;">✓ ${deletedCount} Deleted</span>`);
+    if (addedCount > 0) banner.insertAdjacentHTML("beforeend",
+      `<span style="background:#7f1d1d;color:#f87171;padding:4px 12px;border-radius:6px;font-weight:600;">+ ${addedCount} New</span>`);
+    if (changedCount > 0) banner.insertAdjacentHTML("beforeend",
+      `<span style="background:#78350f;color:#fbbf24;padding:4px 12px;border-radius:6px;font-weight:600;">⟳ ${changedCount} Changed</span>`);
+  }
+
+  const deletedSection = document.getElementById("diffDeleted");
+  const deletedList = document.getElementById("diffDeletedList");
+  if (deletedSection && deletedList) {
+    if (deletedCount > 0) {
+      deletedSection.classList.remove("hidden");
+      deletedList.innerHTML = deleted.map(d => `
+        <div class="glass" style="padding:8px 12px;border-radius:8px;border-left:3px solid #4ade80;">
+          <div style="font-weight:600;">${esc(d.creditor)}</div>
+          <div style="color:var(--muted);font-size:.8rem;">
+            Removed from: ${(d.removedFromBureaus || d.bureaus || []).join(", ")}
+            ${Object.values(d.accountNumbers || {}).filter(Boolean).length ? ` · Acct: ${esc(Object.values(d.accountNumbers)[0])}` : ""}
+          </div>
+        </div>`).join("");
+    } else {
+      deletedSection.classList.add("hidden");
+    }
+  }
+
+  const addedSection = document.getElementById("diffAdded");
+  const addedListEl = document.getElementById("diffAddedList");
+  if (addedSection && addedListEl) {
+    if (addedCount > 0) {
+      addedSection.classList.remove("hidden");
+      addedListEl.innerHTML = added.map(a => `
+        <div class="glass" style="padding:8px 12px;border-radius:8px;border-left:3px solid #f87171;">
+          <div style="font-weight:600;">${esc(a.creditor)}</div>
+          <div style="color:var(--muted);font-size:.8rem;">
+            Bureaus: ${(a.addedOnBureaus || a.bureaus || []).join(", ")}
+            · ${a.violationCount || 0} violation${(a.violationCount || 0) !== 1 ? "s" : ""}
+          </div>
+        </div>`).join("");
+    } else {
+      addedSection.classList.add("hidden");
+    }
+  }
+
+  const changedSection = document.getElementById("diffChanged");
+  const changedListEl = document.getElementById("diffChangedList");
+  if (changedSection && changedListEl) {
+    if (changedCount > 0) {
+      changedSection.classList.remove("hidden");
+      changedListEl.innerHTML = changed.map(c => {
+        const fieldRows = (c.fieldChanges || []).slice(0, 5).map(fc =>
+          `<div style="display:flex;gap:8px;font-size:.75rem;color:var(--muted);">
+            <span style="min-width:80px;">${esc(fc.bureau)}</span>
+            <span style="min-width:100px;">${esc(fc.field)}</span>
+            <span style="color:#f87171;">${esc(fc.oldValue)}</span>
+            <span>→</span>
+            <span style="color:#4ade80;">${esc(fc.newValue)}</span>
+          </div>`
+        ).join("");
+        const extra = (c.fieldChanges || []).length > 5
+          ? `<div style="font-size:.75rem;color:var(--muted);">+ ${c.fieldChanges.length - 5} more changes</div>` : "";
+        const bureauInfo = [];
+        if (c.bureausRemoved?.length) bureauInfo.push(`Removed from: ${c.bureausRemoved.join(", ")}`);
+        if (c.bureausAdded?.length) bureauInfo.push(`Added to: ${c.bureausAdded.join(", ")}`);
+        return `
+          <div class="glass" style="padding:8px 12px;border-radius:8px;border-left:3px solid #fbbf24;">
+            <div style="font-weight:600;">${esc(c.creditor)}</div>
+            ${bureauInfo.length ? `<div style="color:var(--muted);font-size:.8rem;">${bureauInfo.join(" · ")}</div>` : ""}
+            ${fieldRows ? `<div style="margin-top:4px;">${fieldRows}${extra}</div>` : ""}
+          </div>`;
+      }).join("");
+    } else {
+      changedSection.classList.add("hidden");
+    }
+  }
+
+  const toggle = document.getElementById("diffPanelToggle");
+  const body = document.getElementById("diffPanelBody");
+  const chevron = document.getElementById("diffChevron");
+  if (toggle && body && chevron) {
+    toggle.onclick = () => {
+      const isHidden = body.style.display === "none";
+      body.style.display = isHidden ? "" : "none";
+      chevron.style.transform = isHidden ? "" : "rotate(-90deg)";
+    };
+  }
+}
+
+function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
 
 // ===================== Filters (unchanged) =====================
 const ALL_TAGS = ["Collections","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];

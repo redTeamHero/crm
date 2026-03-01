@@ -38,6 +38,7 @@ import {
 } from "./tradelineBuckets.js";
 import marketingRoutes from "./marketingRoutes.js";
 import { prepareNegativeItems } from "../../shared/lib/format/negativeItems.js";
+import { diffReports } from "../../shared/lib/format/reportDiff.js";
 import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID, resolveTenantId } from "./tenantLimits.js";
 import {
   listTeamRoles,
@@ -716,6 +717,19 @@ async function buildClientPortalPayload(consumer){
       null,
     negativeItems,
     snapshot: buildPortalSnapshot(negativeItems),
+    reportProgress: (() => {
+      let totalDeletions = 0;
+      let totalAdded = 0;
+      let totalChanged = 0;
+      for (const r of consumer.reports || []) {
+        if (r.diff?.summary) {
+          totalDeletions += r.diff.summary.deletedCount || 0;
+          totalAdded += r.diff.summary.addedCount || 0;
+          totalChanged += r.diff.summary.changedCount || 0;
+        }
+      }
+      return { totalDeletions, totalAdded, totalChanged, reportCount: (consumer.reports || []).length };
+    })(),
     portalSettings,
     timeline: events,
     documents,
@@ -1617,6 +1631,7 @@ async function renderClientPortalForConsumer(req, res, consumerId) {
       creditScore: payload.creditScore,
       portalSettings: payload.portalSettings,
       snapshot: payload.snapshot,
+      reportProgress: payload.reportProgress,
     },
     portalEnhanced: {
       reminders: payload.reminders,
@@ -5790,11 +5805,24 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       },
       data: analyzed
     });
+    if (consumer.reports.length >= 2) {
+      try {
+        const previousReport = consumer.reports[1];
+        if (previousReport?.data?.tradelines) {
+          const diff = diffReports(previousReport.data, analyzed);
+          consumer.reports[0].diff = diff;
+          logInfo("REPORT_DIFF", `Report diff computed: ${diff.summary.deletedCount} deleted, ${diff.summary.addedCount} added, ${diff.summary.changedCount} changed`, { consumerId: consumer.id, reportId: rid, previousReportId: previousReport.id });
+        }
+      } catch (e) {
+        logError("REPORT_DIFF_ERROR", "Failed to compute report diff", e, { consumerId: consumer.id, reportId: rid });
+      }
+    }
     await saveDB(db);
     await addEvent(consumer.id, "report_uploaded", {
       reportId: rid,
       filename: req.file.originalname,
-      size: req.file.size
+      size: req.file.size,
+      ...(consumer.reports[0].diff?.summary || {}),
     });
     const totalViolations = (analyzed.tradelines || []).reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
       + (analyzed.personal_mismatches?.length || 0)
@@ -5916,6 +5944,29 @@ app.get("/api/consumers/:id/report/:rid", async (req,res)=>{
   res.json({ ok:true, report:r.data, consumer:{
     id:c.id,name:c.name,email:c.email,phone:c.phone,addr1:c.addr1,addr2:c.addr2,city:c.city,state:c.state,zip:c.zip,ssn_last4:c.ssn_last4,dob:c.dob
   }});
+});
+
+app.get("/api/consumers/:id/report/:rid/diff", async (req, res) => {
+  const db = await loadDB();
+  const c = db.consumers.find(x => x.id === req.params.id);
+  if (!c) return res.status(404).json({ ok: false, error: "Consumer not found" });
+  const rIdx = c.reports.findIndex(x => x.id === req.params.rid);
+  if (rIdx === -1) return res.status(404).json({ ok: false, error: "Report not found" });
+  const r = c.reports[rIdx];
+  if (r.diff) return res.json({ ok: true, diff: r.diff });
+  const prevReport = c.reports[rIdx + 1];
+  if (!prevReport?.data?.tradelines) {
+    return res.json({ ok: true, diff: null, reason: "No previous report to compare against" });
+  }
+  try {
+    const diff = diffReports(prevReport.data, r.data);
+    r.diff = diff;
+    await saveDB(db);
+    res.json({ ok: true, diff });
+  } catch (e) {
+    logError("REPORT_DIFF_ERROR", "Failed to compute report diff on demand", e, { consumerId: c.id, reportId: r.id });
+    res.status(500).json({ ok: false, error: "Failed to compute diff" });
+  }
 });
 
 app.delete("/api/consumers/:id/report/:rid", async (req,res)=>{

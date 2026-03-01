@@ -252,6 +252,35 @@
           </div>
         </article>
 
+        <article id="reportDiffPanel" class="glass panel hidden">
+          <div class="panel-header" style="cursor:pointer;" id="diffPanelToggle">
+            <div>
+              <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
+                <span style="color:#d4a853;">📊</span> Report Changes
+              </div>
+              <p class="panel-subtitle" id="diffSummaryText">Comparing against previous report…</p>
+            </div>
+            <div class="panel-actions">
+              <span id="diffChevron" style="font-size:1.2rem;color:var(--muted);transition:transform .2s;">▼</span>
+            </div>
+          </div>
+          <div id="diffPanelBody" class="space-y-3 text-sm" style="max-height:500px;overflow-y:auto;">
+            <div id="diffBanner" class="flex gap-3 flex-wrap" style="padding:0 .75rem;"></div>
+            <div id="diffDeleted" class="hidden" style="padding:0 .75rem;">
+              <div style="font-weight:600;color:#4ade80;margin-bottom:.5rem;">Deletions</div>
+              <div id="diffDeletedList" class="space-y-2"></div>
+            </div>
+            <div id="diffAdded" class="hidden" style="padding:0 .75rem;">
+              <div style="font-weight:600;color:#f87171;margin-bottom:.5rem;">New Items</div>
+              <div id="diffAddedList" class="space-y-2"></div>
+            </div>
+            <div id="diffChanged" class="hidden" style="padding:0 .75rem;">
+              <div style="font-weight:600;color:#fbbf24;margin-bottom:.5rem;">Changes</div>
+              <div id="diffChangedList" class="space-y-2"></div>
+            </div>
+          </div>
+        </article>
+
         <article class="glass panel">
           <div class="panel-header panel-header--centered">
             <div class="panel-header-text">
