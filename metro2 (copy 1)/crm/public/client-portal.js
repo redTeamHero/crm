@@ -37,6 +37,7 @@ const PORTAL_MODULE_CONFIG = Object.freeze({
   mail: { nav: '#navMail', sections: ['#mailSection'] },
   payments: { nav: '#navPayments', sections: ['#paymentSection'] },
   tradelines: { nav: '#navTradelines', sections: ['#tradelinesSection'] },
+  primaries: { nav: '#navPrimaries', sections: ['#primariesSection'] },
   uploads: { nav: '#navUploads', sections: ['#uploadSection'] },
 });
 
@@ -48,6 +49,7 @@ const HASH_TO_PORTAL_MODULE = Object.freeze({
   '#mailSection': 'mail',
   '#payments': 'payments',
   '#tradelines': 'tradelines',
+  '#primaries': 'primaries',
   '#negative-items': 'negativeItems',
 });
 
@@ -2222,6 +2224,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (negativeItemsSection) negativeItemsSection.classList.add('hidden');
     if (paymentSection) paymentSection.classList.add('hidden');
     if (tradelineSection) tradelineSection.classList.add('hidden');
+    const primariesSec = document.getElementById('primariesSection');
+    if (primariesSec) primariesSec.classList.add('hidden');
 
     const moduleKey = HASH_TO_PORTAL_MODULE[hash] || 'overview';
     
@@ -2251,6 +2255,8 @@ document.addEventListener('DOMContentLoaded', () => {
       loadInvoices({ force: true });
     } else if (hash === '#tradelines' && tradelineSection) {
       tradelineSection.classList.remove('hidden');
+    } else if (hash === '#primaries' && primariesSec) {
+      primariesSec.classList.remove('hidden');
     } else if (hash === '#negative-items' && negativeItemsSection) {
       negativeItemsSection.classList.remove('hidden');
       initNegativeItems();
