@@ -2389,38 +2389,43 @@ document.addEventListener('DOMContentLoaded', () => {
       const sentDate = formatDisputeDate(round.sentAt);
       const followUp = formatDisputeDate(round.followUpDate);
       const statusBadge = getDisputeStatusBadge(round.status);
+      const roundLetters = round.letters || [];
       const items = (round.items || []).map(item => {
         const itemBadge = getDisputeStatusBadge(item.status || item.outcome || 'awaiting');
-        const creditorName = item.creditor && item.creditor !== item.bureau && item.creditor !== 'Unknown' ? item.creditor : null;
+        let creditorName = item.creditor && item.creditor !== item.bureau && item.creditor !== 'Unknown' ? item.creditor : null;
+        if (!creditorName) {
+          const matchLetter = roundLetters.find(l => l.bureau === item.bureau && l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown');
+          if (matchLetter) creditorName = matchLetter.creditor;
+        }
         const acctLabel = item.accountNumber ? ` (${esc(item.accountNumber)})` : '';
         const displayName = creditorName ? esc(creditorName) + acctLabel : (item.bureau ? esc(item.bureau) + acctLabel : 'Unknown Item');
-        const bureauLabel = creditorName && item.bureau ? ` <span class="text-xs text-gray-500">${esc(item.bureau)}</span>` : '';
-        return `<div class="dispute-item-row">
+        const bureauLabel = creditorName && item.bureau ? `<span class="text-xs text-gray-500 ml-1">${esc(item.bureau)}</span>` : '';
+        return `<div class="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg bg-gray-50 border border-gray-100">
           <div class="flex items-center gap-2 flex-1 min-w-0">
-            <span class="text-sm font-medium truncate">${displayName}</span>
+            <span class="text-sm font-medium text-slate-800 truncate">${displayName}</span>
             ${bureauLabel}
           </div>
           ${itemBadge}
         </div>`;
       }).join('');
 
-      const letters = (round.letters || []).map(l => {
+      const letters = roundLetters.map(l => {
         const lCreditor = l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown' ? l.creditor : '';
         const lLabel = lCreditor ? `${esc(lCreditor)} (${esc(l.bureau || '')})` : esc(l.bureau || l.letterType || '');
-        return `<span class="text-xs text-gray-500">${lLabel}</span>`;
+        return `<span class="text-xs text-gray-600">${lLabel}</span>`;
       }).join(', ');
 
-      return `<div class="glass card p-4 space-y-3 dispute-round-card">
+      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
         <div class="flex items-center justify-between gap-2">
           <div>
-            <div class="text-sm font-semibold text-white">Round ${round.round || '—'}</div>
+            <div class="text-sm font-semibold text-slate-800">Round ${round.round || '—'}</div>
             <div class="text-xs text-gray-500">${sentDate ? 'Sent ' + sentDate : 'Pending'}</div>
           </div>
           <div class="flex items-center gap-2">
             ${statusBadge}
           </div>
         </div>
-        ${letters ? `<div class="text-xs text-gray-400">Letters: ${letters}</div>` : ''}
+        ${letters ? `<div class="text-xs text-gray-600">Letters: ${letters}</div>` : ''}
         ${followUp ? `<div class="text-xs text-gray-500">Follow-up due: ${followUp}</div>` : ''}
         <div class="space-y-1">${items || '<div class="text-xs text-gray-500">No items tracked.</div>'}</div>
       </div>`;
@@ -2457,23 +2462,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const items = activeRound.items || [];
+    const roundLetters = activeRound.letters || [];
     itemsEl.innerHTML = items.map((item, idx) => {
       const rawCreditor = item.creditor || 'Unknown';
       const bureau = item.bureau || '';
-      const creditorIsUseful = rawCreditor !== bureau && rawCreditor !== 'Unknown';
+      let creditorIsUseful = rawCreditor !== bureau && rawCreditor !== 'Unknown';
+      let resolvedCreditor = rawCreditor;
+      if (!creditorIsUseful) {
+        const matchLetter = roundLetters.find(l => l.bureau === bureau && l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown');
+        if (matchLetter) {
+          resolvedCreditor = matchLetter.creditor;
+          creditorIsUseful = true;
+        }
+      }
       const acctLabel = item.accountNumber ? ` (${esc(item.accountNumber)})` : '';
-      const displayName = creditorIsUseful ? esc(rawCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
-      const bureauTag = creditorIsUseful && bureau ? `<span class="text-xs text-gray-500 ml-1">• ${esc(bureau)}</span>` : '';
+      const displayName = creditorIsUseful ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
+      const bureauTag = creditorIsUseful && bureau ? `<span class="text-xs text-gray-500 ml-1">${esc(bureau)}</span>` : '';
       const creditor = esc(rawCreditor);
-      return `<div class="glass card p-3 space-y-2 dispute-questionnaire-item" data-idx="${idx}">
+      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 space-y-2 dispute-questionnaire-item" data-idx="${idx}">
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm font-medium text-white">${displayName} ${bureauTag}</div>
+            <div class="text-sm font-medium text-slate-800">${displayName} ${bureauTag}</div>
           </div>
         </div>
         <div>
-          <label class="text-xs text-gray-400">What happened with this item?</label>
-          <select class="dispute-outcome-select input text-sm w-full mt-1" data-creditor="${creditor}" data-bureau="${bureau}">
+          <label class="text-xs text-gray-600">What happened with this item?</label>
+          <select class="dispute-outcome-select input text-sm w-full mt-1" data-creditor="${creditor}" data-bureau="${esc(bureau)}">
             <option value="">Select outcome...</option>
             <option value="removed">Removed / Deleted</option>
             <option value="verified">Verified (still reporting)</option>
@@ -2483,12 +2497,12 @@ document.addEventListener('DOMContentLoaded', () => {
           </select>
         </div>
         <div>
-          <label class="text-xs text-gray-400">Upload evidence (response letter, updated report)</label>
-          <input type="file" class="dispute-evidence-input text-sm mt-1" data-creditor="${creditor}" data-bureau="${bureau}" accept="image/*,.pdf,.html,.htm">
+          <label class="text-xs text-gray-600">Upload evidence (response letter, updated report)</label>
+          <input type="file" class="dispute-evidence-input text-sm mt-1" data-creditor="${creditor}" data-bureau="${esc(bureau)}" accept="image/*,.pdf,.html,.htm">
         </div>
         <div>
-          <label class="text-xs text-gray-400">Notes</label>
-          <textarea class="dispute-notes-input input text-sm w-full mt-1" rows="2" data-creditor="${creditor}" data-bureau="${bureau}" placeholder="Any additional details..."></textarea>
+          <label class="text-xs text-gray-600">Notes</label>
+          <textarea class="dispute-notes-input input text-sm w-full mt-1 border border-gray-200 rounded-lg" rows="2" data-creditor="${creditor}" data-bureau="${esc(bureau)}" placeholder="Any additional details..."></textarea>
         </div>
       </div>`;
     }).join('');
@@ -2506,13 +2520,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     wrapper.classList.remove('hidden');
     list.innerHTML = recommendations.map(rec => {
-      const urgencyClass = rec.urgency === 'high' ? 'border-rose-400' : rec.urgency === 'medium' ? 'border-amber-400' : 'border-gray-600';
-      return `<div class="glass card p-3 space-y-1 border-l-4 ${urgencyClass}">
+      const urgencyClass = rec.urgency === 'high' ? 'border-rose-400' : rec.urgency === 'medium' ? 'border-amber-400' : 'border-gray-300';
+      const urgencyTextClass = rec.urgency === 'high' ? 'text-rose-600' : rec.urgency === 'medium' ? 'text-amber-600' : 'text-gray-500';
+      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 space-y-1 border-l-4 ${urgencyClass}">
         <div class="flex items-center justify-between">
-          <div class="text-sm font-medium text-white">${esc(rec.creditor || '')} ${rec.bureau ? '(' + esc(rec.bureau) + ')' : ''}</div>
-          ${rec.urgency ? `<span class="text-xs text-gray-500">${esc(rec.urgency)} priority</span>` : ''}
+          <div class="text-sm font-medium text-slate-800">${esc(rec.creditor || '')} ${rec.bureau ? '<span class="text-gray-500">(' + esc(rec.bureau) + ')</span>' : ''}</div>
+          ${rec.urgency ? `<span class="text-xs font-medium ${urgencyTextClass}">${esc(rec.urgency)} priority</span>` : ''}
         </div>
-        <div class="text-sm text-gray-300">${esc(rec.recommendedTemplate || rec.recommended || '')}</div>
+        <div class="text-sm text-slate-700">${esc(rec.recommendedTemplate || rec.recommended || '')}</div>
         <div class="text-xs text-gray-500">${esc(rec.reason || '')}</div>
       </div>`;
     }).join('');
