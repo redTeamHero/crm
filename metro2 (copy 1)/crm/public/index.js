@@ -2672,6 +2672,7 @@ function disputeStatusBadge(status) {
 
 let currentDisputeData = null;
 let disputePollTimer = null;
+const disputeTemplateOverrides = {};
 
 function startDisputePolling() {
   stopDisputePolling();
@@ -2904,21 +2905,40 @@ function renderDisputeTracker(data) {
         const notes = item.notes ? escapeHtml(item.notes) : '';
         const iDays = item.followUpDays || 30;
         const iDate = item.followUpDate ? new Date(item.followUpDate).toLocaleDateString() : '';
+        const overrideKey = `${jobId}__${itemIdx}`;
+        const currentOverride = disputeTemplateOverrides[overrideKey] || '';
+        const currentLetterType = item.letterType || '';
 
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;color:#fff;font-size:12px;">${creditor}</div>
-            <div style="font-size:11px;color:#888;">${bureau}${notes ? ' • ' + notes : ''}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-            <input type="number" class="dispute-item-followup-days" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" value="${iDays}" min="1" max="180" style="width:44px;padding:1px 4px;border-radius:4px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:10px;text-align:center;" title="Follow-up days for this item" />
-            <span style="font-size:10px;color:#666;">${iDate ? iDate : 'd'}</span>
-          </div>
-          ${disputeStatusBadge(status)}
-        </div>`;
+        html += `<div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;color:#fff;font-size:12px;">${creditor}</div>
+              <div style="font-size:11px;color:#888;">${bureau}${currentLetterType ? ' • <span style="color:#60a5fa;">' + escapeHtml(currentLetterType) + '</span>' : ''}${notes ? ' • ' + notes : ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+              <input type="number" class="dispute-item-followup-days" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" value="${iDays}" min="1" max="180" style="width:44px;padding:1px 4px;border-radius:4px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:10px;text-align:center;" title="Follow-up days for this item" />
+              <span style="font-size:10px;color:#666;">${iDate ? iDate : 'd'}</span>
+            </div>
+            ${disputeStatusBadge(status)}
+          </div>`;
+
+        if (round.status !== 'resolved') {
+          const tplOptions = (CUSTOM_TEMPLATES || []).map(t => {
+            const tid = escapeHtml(t.id || '');
+            const tname = escapeHtml(t.name || t.id || '');
+            const selected = currentOverride === t.id ? ' selected' : '';
+            return `<option value="${tid}"${selected}>${tname}</option>`;
+          }).join('');
+          html += `<div style="margin-top:4px;">
+            <select class="dispute-template-override" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" style="width:100%;padding:2px 6px;border-radius:4px;border:1px solid rgba(96,165,250,0.2);background:#1a1a1e;color:#9ca3af;font-size:10px;">
+              <option value="">Auto (use recommendation)</option>
+              ${tplOptions}
+            </select>
+          </div>`;
+        }
 
         if (item.evidence && item.evidence.length > 0) {
-          html += `<div style="padding-left:18px;">`;
+          html += `<div style="padding-left:18px;margin-top:4px;">`;
           item.evidence.forEach(ev => {
             const name = escapeHtml(ev.name || ev.originalName || 'Evidence');
             const url = ev.url ? escapeHtml(ev.url) : '#';
@@ -2931,11 +2951,15 @@ function renderDisputeTracker(data) {
           const rec = item.recommendation;
           const tpl = escapeHtml(rec.recommendedTemplate || 'None');
           const reason = escapeHtml(rec.reason || '');
-          html += `<div style="padding-left:18px;margin-top:4px;padding:4px 8px;background:rgba(96,165,250,0.06);border-radius:4px;border:1px solid rgba(96,165,250,0.1);">
-            <div style="font-size:11px;color:#60a5fa;font-weight:600;">Next: ${tpl}</div>
+          const altTemplates = (rec.alternativeTemplates || []).map(t => escapeHtml(t)).join(', ');
+          html += `<div style="margin-top:4px;padding:4px 8px;background:rgba(96,165,250,0.06);border-radius:4px;border:1px solid rgba(96,165,250,0.1);">
+            <div style="font-size:11px;color:#60a5fa;font-weight:600;">Recommended: ${tpl}</div>
             <div style="font-size:10px;color:#888;">${reason}</div>
+            ${altTemplates ? `<div style="font-size:10px;color:#666;">Alternatives: ${altTemplates}</div>` : ''}
           </div>`;
         }
+
+        html += `</div>`;
       });
       html += `</div>`;
     }
@@ -3001,6 +3025,19 @@ function renderDisputeTracker(data) {
     });
   });
 
+  timeline.querySelectorAll('.dispute-template-override').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const key = `${e.target.dataset.jobId}__${e.target.dataset.itemIndex}`;
+      if (e.target.value) {
+        disputeTemplateOverrides[key] = e.target.value;
+        e.target.style.color = '#60a5fa';
+      } else {
+        delete disputeTemplateOverrides[key];
+        e.target.style.color = '#9ca3af';
+      }
+    });
+  });
+
   timeline.querySelectorAll('.dispute-generate-next').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const jobId = e.target.dataset.jobId;
@@ -3028,13 +3065,16 @@ function renderDisputeTracker(data) {
         recs.forEach(r => {
           const tlIdx = r.tradelineIndex ?? null;
           if (tlIdx === null) return;
-          if (!selMap[tlIdx]) {
-            selMap[tlIdx] = { tradelineIndex: tlIdx, bureaus: [], templateId: r.recommendedTemplate || null };
+          const itemIdx = r.itemIndex ?? null;
+          const overrideKey = itemIdx !== null ? `${jobId}__${itemIdx}` : null;
+          const templateId = (overrideKey && disputeTemplateOverrides[overrideKey]) || r.recommendedTemplate || null;
+          const groupKey = `${tlIdx}__${templateId || 'default'}`;
+          if (!selMap[groupKey]) {
+            selMap[groupKey] = { tradelineIndex: tlIdx, bureaus: [], templateId };
           }
-          if (r.bureau && !selMap[tlIdx].bureaus.includes(r.bureau)) {
-            selMap[tlIdx].bureaus.push(r.bureau);
+          if (r.bureau && !selMap[groupKey].bureaus.includes(r.bureau)) {
+            selMap[groupKey].bureaus.push(r.bureau);
           }
-          if (r.recommendedTemplate) selMap[tlIdx].templateId = r.recommendedTemplate;
         });
         const selections = Object.values(selMap);
         selections.forEach(sel => {

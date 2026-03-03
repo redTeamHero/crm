@@ -8502,9 +8502,11 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
     }
 
     const recommendations = [];
-    for (const item of (roundEvent.payload.items || [])) {
+    const payloadItems = roundEvent.payload.items || [];
+    for (let idx = 0; idx < payloadItems.length; idx++) {
+      const item = payloadItems[idx];
       if (["removed", "deleted", "corrected"].includes(item.status)) {
-        recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, resolved: true });
+        recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, itemIndex: idx, resolved: true });
         continue;
       }
       const letterInfo = (roundEvent.payload.letters || []).find(l => l.creditor === item.creditor && l.bureau === item.bureau);
@@ -8514,7 +8516,7 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
         outcome: item.status === "awaiting" ? "no_response" : item.status,
         violations: [],
       });
-      recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, resolved: false, ...rec });
+      recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, itemIndex: idx, resolved: false, ...rec });
     }
 
     res.json({ ok: true, jobId, round: roundEvent.payload.round, recommendations });
