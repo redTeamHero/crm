@@ -6872,14 +6872,26 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
         return null;
       }
 
-      const roundItems = letters.map(L => ({
-        creditor: resolveCreditorName(L),
-        bureau: L.bureau || null,
-        letterType: L.templateId || L.filename || null,
-        tradelineIndex: L.tradelineIndex ?? null,
-        accountNumber: resolveAccountNumber(L),
-        status: "awaiting",
-      }));
+      const now = new Date();
+      const roundItems = letters.map(L => {
+        const itemFollowUpDays = getResponseWindowDays(L.templateId);
+        const itemFollowUpDate = new Date(now);
+        itemFollowUpDate.setDate(itemFollowUpDate.getDate() + itemFollowUpDays);
+        return {
+          creditor: resolveCreditorName(L),
+          bureau: L.bureau || null,
+          letterType: L.templateId || L.filename || null,
+          tradelineIndex: L.tradelineIndex ?? null,
+          accountNumber: resolveAccountNumber(L),
+          followUpDays: itemFollowUpDays,
+          followUpDate: itemFollowUpDate.toISOString(),
+          status: "awaiting",
+        };
+      });
+
+      const maxFollowUpDays = Math.max(...roundItems.map(i => i.followUpDays), followUpDays);
+      const maxFollowUpDate = new Date(now);
+      maxFollowUpDate.setDate(maxFollowUpDate.getDate() + maxFollowUpDays);
 
       await addEvent(consumer.id, "dispute_round", {
         jobId,
@@ -6893,9 +6905,9 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
           filename: L.filename,
           accountNumber: resolveAccountNumber(L),
         })),
-        sentAt: new Date().toISOString(),
-        followUpDays,
-        followUpDate: followUpDate.toISOString(),
+        sentAt: now.toISOString(),
+        followUpDays: maxFollowUpDays,
+        followUpDate: maxFollowUpDate.toISOString(),
         status: "awaiting_response",
         items: roundItems,
       });
@@ -8262,7 +8274,7 @@ app.get("/api/consumers/:id/disputes", authenticate, async (req, res) => {
 app.put("/api/consumers/:id/disputes/:jobId/settings", authenticate, async (req, res) => {
   try {
     const { id: consumerId, jobId } = req.params;
-    const { followUpDays } = req.body || {};
+    const { followUpDays, itemIndex } = req.body || {};
     if (!followUpDays || typeof followUpDays !== "number" || followUpDays < 1 || followUpDays > 180) {
       return res.status(400).json({ ok: false, error: "followUpDays must be a number between 1 and 180" });
     }
@@ -8273,12 +8285,66 @@ app.put("/api/consumers/:id/disputes/:jobId/settings", authenticate, async (req,
       return res.status(404).json({ ok: false, error: "Dispute round not found" });
     }
 
-    const newFollowUpDate = new Date(roundEvent.payload.sentAt);
+    const sentAt = roundEvent.payload.sentAt;
+
+    if (typeof itemIndex === "number" && itemIndex >= 0) {
+      const items = roundEvent.payload.items || [];
+      if (itemIndex >= items.length) {
+        return res.status(400).json({ ok: false, error: "Invalid item index" });
+      }
+      const itemFollowUpDate = new Date(sentAt);
+      itemFollowUpDate.setDate(itemFollowUpDate.getDate() + followUpDays);
+
+      await updateEventPayload(consumerId, "dispute_round",
+        e => e.payload?.jobId === jobId,
+        p => {
+          if (p.items && p.items[itemIndex]) {
+            p.items[itemIndex].followUpDays = followUpDays;
+            p.items[itemIndex].followUpDate = itemFollowUpDate.toISOString();
+          }
+          const maxDays = Math.max(...(p.items || []).map(i => i.followUpDays || 30));
+          const maxDate = new Date(sentAt);
+          maxDate.setDate(maxDate.getDate() + maxDays);
+          p.followUpDays = maxDays;
+          p.followUpDate = maxDate.toISOString();
+        }
+      );
+
+      const updatedState = await listConsumerState(consumerId);
+      const updatedRound = (updatedState.events || []).find(e => e.type === "dispute_round" && e.payload?.jobId === jobId);
+      const newRoundFollowUp = updatedRound?.payload?.followUpDate;
+
+      const existingReminder = (state.reminders || []).find(r => r.payload?.type === "dispute_followup" && r.payload?.jobId === jobId);
+      if (existingReminder) {
+        await removeReminder(consumerId, existingReminder.id);
+      }
+      if (newRoundFollowUp) {
+        await addReminder(consumerId, {
+          id: `dispute_followup_${jobId}_${Date.now()}`,
+          due: newRoundFollowUp,
+          payload: { type: "dispute_followup", jobId, round: roundEvent.payload.round, followUpDays: updatedRound.payload.followUpDays, itemCount: (updatedRound.payload.items || []).length },
+        });
+      }
+
+      await addEvent(consumerId, "dispute_settings_updated", { jobId, itemIndex, followUpDays, followUpDate: itemFollowUpDate.toISOString() });
+      return res.json({ ok: true, itemIndex, followUpDays, followUpDate: itemFollowUpDate.toISOString() });
+    }
+
+    const newFollowUpDate = new Date(sentAt);
     newFollowUpDate.setDate(newFollowUpDate.getDate() + followUpDays);
 
     await updateEventPayload(consumerId, "dispute_round",
       e => e.payload?.jobId === jobId,
-      p => { p.followUpDays = followUpDays; p.followUpDate = newFollowUpDate.toISOString(); }
+      p => {
+        p.followUpDays = followUpDays;
+        p.followUpDate = newFollowUpDate.toISOString();
+        (p.items || []).forEach(item => {
+          item.followUpDays = followUpDays;
+          const d = new Date(sentAt);
+          d.setDate(d.getDate() + followUpDays);
+          item.followUpDate = d.toISOString();
+        });
+      }
     );
 
     const existingReminder = (state.reminders || []).find(r => r.payload?.type === "dispute_followup" && r.payload?.jobId === jobId);
@@ -8438,7 +8504,7 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
     const recommendations = [];
     for (const item of (roundEvent.payload.items || [])) {
       if (["removed", "deleted", "corrected"].includes(item.status)) {
-        recommendations.push({ creditor: item.creditor, bureau: item.bureau, resolved: true });
+        recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, resolved: true });
         continue;
       }
       const letterInfo = (roundEvent.payload.letters || []).find(l => l.creditor === item.creditor && l.bureau === item.bureau);
@@ -8448,7 +8514,7 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
         outcome: item.status === "awaiting" ? "no_response" : item.status,
         violations: [],
       });
-      recommendations.push({ creditor: item.creditor, bureau: item.bureau, resolved: false, ...rec });
+      recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, resolved: false, ...rec });
     }
 
     res.json({ ok: true, jobId, round: roundEvent.payload.round, recommendations });

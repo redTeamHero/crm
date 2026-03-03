@@ -2694,6 +2694,103 @@ async function loadDisputeTracker() {
   }
 }
 
+function openLetterPreviewModal(letterJobId, letters, roundNum) {
+  let existing = document.getElementById('letterPreviewModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'letterPreviewModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);';
+
+  const tokenParam = authHeader()?.Authorization ? `?token=${encodeURIComponent(authHeader().Authorization.replace('Bearer ',''))}` : '';
+
+  let cardsHtml = letters.map((l, i) => {
+    const creditor = escapeHtml(l.creditor || l.creditorName || 'Letter');
+    const bureau = escapeHtml(l.bureau || '');
+    const idx = l.index ?? i;
+    const htmlUrl = `/api/letters/${encodeURIComponent(letterJobId)}/${idx}.html${tokenParam}`;
+    const pdfUrl = `/api/letters/${encodeURIComponent(letterJobId)}/${idx}.pdf${tokenParam}`;
+    return `<div class="glass card" style="padding:12px;border:1px solid rgba(212,168,83,0.15);border-radius:8px;cursor:pointer;" data-html-url="${escapeHtml(htmlUrl)}">
+      <div style="font-weight:600;color:#fff;font-size:13px;">${creditor}</div>
+      <div style="font-size:11px;color:#888;margin-bottom:8px;">${bureau}</div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-outline text-xs lpm-view" data-url="${escapeHtml(htmlUrl)}">View</button>
+        <a class="btn btn-outline text-xs" href="${escapeHtml(pdfUrl)}" target="_blank" style="text-decoration:none;">PDF</a>
+      </div>
+    </div>`;
+  }).join('');
+
+  modal.innerHTML = `
+    <div style="background:#1a1a1e;border:1px solid rgba(212,168,83,0.2);border-radius:12px;width:90%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-weight:700;color:#fff;font-size:16px;">Generated Letters — Round ${escapeHtml(String(roundNum))}</div>
+          <div style="font-size:12px;color:#888;">${letters.length} letter${letters.length !== 1 ? 's' : ''} generated</div>
+        </div>
+        <button id="lpmClose" style="background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:4px 8px;">&times;</button>
+      </div>
+      <div style="padding:16px 20px;overflow-y:auto;flex:1;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">${cardsHtml}</div>
+      </div>
+      <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn btn-outline text-xs" href="/api/letters/${encodeURIComponent(letterJobId)}/all.zip${tokenParam}" style="text-decoration:none;">Download All (ZIP)</a>
+        <button class="btn btn-outline text-xs" id="lpmSendPortal">Send to Portal</button>
+        <a class="btn btn-outline text-xs" href="/letters?job=${encodeURIComponent(letterJobId)}" target="_blank" style="text-decoration:none;">Open Full View</a>
+        <button class="btn text-xs" id="lpmDone" style="margin-left:auto;">Done</button>
+      </div>
+    </div>
+    <div id="lpmIframeOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);flex-direction:column;">
+      <div style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);">
+        <span id="lpmIframeTitle" style="color:#fff;font-weight:600;font-size:14px;">Letter Preview</span>
+        <button id="lpmIframeClose" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;">&times;</button>
+      </div>
+      <iframe id="lpmIframe" style="flex:1;width:100%;border:none;background:#fff;"></iframe>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const closeModal = () => { modal.remove(); loadDisputeTracker(); };
+  modal.querySelector('#lpmClose').addEventListener('click', closeModal);
+  modal.querySelector('#lpmDone').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+  modal.querySelectorAll('.lpm-view').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const url = btn.dataset.url;
+      const overlay = modal.querySelector('#lpmIframeOverlay');
+      const iframe = modal.querySelector('#lpmIframe');
+      iframe.src = url;
+      overlay.style.display = 'flex';
+    });
+  });
+
+  const iframeOverlay = modal.querySelector('#lpmIframeOverlay');
+  modal.querySelector('#lpmIframeClose').addEventListener('click', () => {
+    iframeOverlay.style.display = 'none';
+    modal.querySelector('#lpmIframe').src = '';
+  });
+
+  modal.querySelector('#lpmSendPortal').addEventListener('click', async () => {
+    const btn = modal.querySelector('#lpmSendPortal');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    try {
+      const res = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
+      if (res?.ok) {
+        btn.textContent = 'Sent to Portal';
+        btn.style.color = '#4ade80';
+      } else {
+        btn.textContent = 'Failed';
+        showErr(res?.error || 'Failed to send to portal.');
+      }
+    } catch (err) {
+      btn.textContent = 'Failed';
+      showErr(String(err));
+    }
+  });
+}
+
 function renderDisputeTracker(data) {
   const subtitle = $("#disputeTrackerSubtitle");
   const analysisCard = $("#disputeAnalysisCard");
@@ -2781,16 +2878,22 @@ function renderDisputeTracker(data) {
     const items = round.items || [];
     if (items.length > 0) {
       html += `<div class="space-y-2" style="margin-bottom:8px;">`;
-      items.forEach(item => {
+      items.forEach((item, itemIdx) => {
         const creditor = escapeHtml(item.creditor || 'Unknown');
         const bureau = escapeHtml(item.bureau || '');
         const status = item.status || 'awaiting';
         const notes = item.notes ? escapeHtml(item.notes) : '';
+        const iDays = item.followUpDays || 30;
+        const iDate = item.followUpDate ? new Date(item.followUpDate).toLocaleDateString() : '';
 
         html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
           <div style="flex:1;min-width:0;">
             <div style="font-weight:600;color:#fff;font-size:12px;">${creditor}</div>
             <div style="font-size:11px;color:#888;">${bureau}${notes ? ' • ' + notes : ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+            <input type="number" class="dispute-item-followup-days" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" value="${iDays}" min="1" max="180" style="width:44px;padding:1px 4px;border-radius:4px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:10px;text-align:center;" title="Follow-up days for this item" />
+            <span style="font-size:10px;color:#666;">${iDate ? iDate : 'd'}</span>
           </div>
           ${disputeStatusBadge(status)}
         </div>`;
@@ -2856,37 +2959,111 @@ function renderDisputeTracker(data) {
     });
   });
 
+  timeline.querySelectorAll('.dispute-item-followup-days').forEach(input => {
+    input.addEventListener('change', async (e) => {
+      const jobId = e.target.dataset.jobId;
+      const itemIndex = parseInt(e.target.dataset.itemIndex, 10);
+      const days = parseInt(e.target.value, 10);
+      if (!days || days < 1 || isNaN(itemIndex) || !jobId || !currentConsumerId) return;
+      try {
+        const res = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ followUpDays: days, itemIndex })
+        });
+        if (res?.ok) {
+          await loadDisputeTracker();
+        } else {
+          showErr(res?.error || 'Failed to update item follow-up.');
+        }
+      } catch (err) {
+        showErr(String(err));
+      }
+    });
+  });
+
   timeline.querySelectorAll('.dispute-generate-next').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const jobId = e.target.dataset.jobId;
       const roundNum = parseInt(e.target.dataset.round, 10) || 1;
       if (!jobId || !currentConsumerId) return;
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
       try {
         const recData = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/recommendation`);
-        if (recData?.ok && recData.recommendations) {
-          const items = recData.recommendations;
-          items.forEach(item => {
-            if (item.tradelineIndex !== undefined && item.recommendedTemplate) {
-              const card = document.querySelector(`.tl-card[data-index="${item.tradelineIndex}"]`);
-              if (card) {
-                setCardSelected(card, true);
-                const letterSel = card.querySelector('.tl-letter-select');
-                if (letterSel) {
-                  const tplVal = `tpl:${item.recommendedTemplate}`;
-                  const hasOpt = Array.from(letterSel.options).some(o => o.value === tplVal || o.value === item.recommendedTemplate);
-                  if (hasOpt) {
-                    letterSel.value = Array.from(letterSel.options).find(o => o.value === tplVal)?.value || item.recommendedTemplate;
-                  }
-                }
-              }
-            }
-          });
-          alert(`${items.length} item${items.length !== 1 ? 's' : ''} pre-selected with recommended templates. Review and click "Generate Letters" when ready.`);
-        } else {
+        if (!recData?.ok || !recData.recommendations || !recData.recommendations.length) {
           showErr(recData?.error || 'No recommendations available.');
+          btn.disabled = false;
+          btn.textContent = origText;
+          return;
         }
+        const recs = recData.recommendations.filter(r => !r.resolved);
+        if (!recs.length) {
+          showErr('All items are already resolved — no next round needed.');
+          btn.disabled = false;
+          btn.textContent = origText;
+          return;
+        }
+        const selMap = {};
+        recs.forEach(r => {
+          const tlIdx = r.tradelineIndex ?? null;
+          if (tlIdx === null) return;
+          if (!selMap[tlIdx]) {
+            selMap[tlIdx] = { tradelineIndex: tlIdx, bureaus: [], templateId: r.recommendedTemplate || null };
+          }
+          if (r.bureau && !selMap[tlIdx].bureaus.includes(r.bureau)) {
+            selMap[tlIdx].bureaus.push(r.bureau);
+          }
+          if (r.recommendedTemplate) selMap[tlIdx].templateId = r.recommendedTemplate;
+        });
+        const selections = Object.values(selMap);
+        selections.forEach(sel => {
+          if (!sel.bureaus.length) sel.bureaus = ['TransUnion', 'Experian', 'Equifax'];
+        });
+        if (!selections.length) {
+          showErr('Could not determine tradeline selections from recommendations. Please generate letters manually.');
+          btn.disabled = false;
+          btn.textContent = origText;
+          return;
+        }
+        btn.textContent = 'Sending to server...';
+        const genResp = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-idempotency-key": buildIdempotencyKey('dispute-next-round'), ...authHeader() },
+          body: JSON.stringify({
+            consumerId: currentConsumerId,
+            reportId: currentReportId,
+            selections,
+            personalInfo: false,
+            collectors: [],
+          })
+        });
+        if (!genResp.ok) {
+          const txt = await genResp.text().catch(() => "");
+          throw new Error(`Generation failed: HTTP ${genResp.status} ${txt}`.trim());
+        }
+        const genData = await genResp.json().catch(() => ({}));
+        if (!genData?.ok || !genData?.jobId) throw new Error(genData?.error || "Server did not return a job ID.");
+        const letterJobId = genData.jobId;
+        btn.textContent = 'Processing letters...';
+        let jobDone = false;
+        for (let i = 0; i < 60; i++) {
+          await new Promise(r => setTimeout(r, 1500));
+          const statusResp = await api(`/api/jobs/${encodeURIComponent(letterJobId)}`);
+          const jobStatus = statusResp?.job?.status || statusResp?.status;
+          if (jobStatus === 'completed' || jobStatus === 'done') { jobDone = true; break; }
+          if (jobStatus === 'failed') throw new Error(statusResp?.job?.error || statusResp?.error || 'Letter generation job failed.');
+        }
+        if (!jobDone) throw new Error('Letter generation timed out.');
+        const lettersData = await api(`/api/letters/${encodeURIComponent(letterJobId)}`);
+        if (!lettersData?.letters || !lettersData.letters.length) throw new Error('No letters were generated.');
+        openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1);
       } catch (err) {
-        showErr(String(err));
+        showErr(String(err.message || err));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origText;
       }
     });
   });
