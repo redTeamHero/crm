@@ -68,8 +68,18 @@ function futureISO(offsetDays) {
   });
 }
 
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[c]);
+}
+
 function safe(val, fallback = "") {
-  return val == null ? fallback : String(val);
+  return val == null ? fallback : escapeHtml(String(val));
 }
 
 function fieldVal(pb, key) {

@@ -12,6 +12,7 @@ import os from "os";
 import archiver from "archiver";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import helmet from "helmet";
 import { PassThrough } from "stream";
 import { JSDOM } from "jsdom";
 
@@ -384,7 +385,11 @@ function applyIntegrationSettings(settings = {}) {
 }
 
 function getJwtSecret(){
-  return process.env.JWT_SECRET || "dev-secret";
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not configured. Please set JWT_SECRET before starting the server.');
+  }
+  return secret;
 }
 
 const TOKEN_EXPIRES_IN = "1h";
@@ -1196,6 +1201,11 @@ app.post(
     }
   }
 );
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 
 app.use(express.json({ limit: "10mb" }));
 
@@ -2811,6 +2821,15 @@ if (process.env.NODE_ENV !== "test") {
   setInterval(processTasks, 60_000);
 }
 
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[c]);
+}
 
 function renderInvoiceHtml(inv, company = {}, consumer = {}) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
@@ -2821,11 +2840,11 @@ function renderInvoiceHtml(inv, company = {}, consumer = {}) {
     th, td { padding:8px; border-bottom:1px solid #ddd; text-align:left; }
   </style>
   </head><body>
-  <h1>${company.name || 'Invoice'}</h1>
-  <p><strong>Bill To:</strong> ${consumer.name || ''}</p>
+  <h1>${escapeHtml(company.name || 'Invoice')}</h1>
+  <p><strong>Bill To:</strong> ${escapeHtml(consumer.name || '')}</p>
   <table>
     <thead><tr><th>Description</th><th>Amount</th><th>Due</th></tr></thead>
-    <tbody><tr><td>${inv.desc}</td><td>$${Number(inv.amount).toFixed(2)}</td><td>${inv.due || ''}</td></tr></tbody>
+    <tbody><tr><td>${escapeHtml(inv.desc || '')}</td><td>$${Number(inv.amount).toFixed(2)}</td><td>${escapeHtml(inv.due || '')}</td></tr></tbody>
   </table>
   </body></html>`;
 }
@@ -5675,6 +5694,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
 
   const parseMode = normalizeParseMode(req.query?.parseMode);
   const errors = [];
+  const sanitizedOriginalName = path.basename(req.file.originalname || "");
   const diagnostics = {
     llmTradelineCount: 0,
     llmViolationCount: 0,
@@ -5685,7 +5705,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     parseMode,
   };
   try{
-    const isPdf = req.file.mimetype === "application/pdf" || /\.pdf$/i.test(req.file.originalname || "");
+    const isPdf = req.file.mimetype === "application/pdf" || /\.pdf$/i.test(sanitizedOriginalName || "");
     const htmlText = isPdf ? "" : req.file.buffer.toString("utf-8");
     let analyzed = { tradelines: [], status: "analyzing" };
     let llmResult = null;
@@ -5694,7 +5714,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       try {
         llmResult = await runLLMAnalyzer({
           buffer: req.file.buffer,
-          filename: req.file.originalname,
+          filename: sanitizedOriginalName,
         });
         diagnostics.llmTradelineCount = llmResult.tradelines.length;
         diagnostics.llmViolationCount = llmResult.violations.length;
@@ -5742,7 +5762,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       try {
         const pyResult = await runPythonAnalyzer({
           buffer: req.file.buffer,
-          filename: req.file.originalname,
+          filename: sanitizedOriginalName,
         });
         const pyData = pyResult?.data || {};
         const personalInformation = pyData.personal_information || {};
@@ -5770,7 +5790,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       if (isPdf) {
         scoreText = llmResult?.reportText || "";
         if (!scoreText) {
-          const extracted = await extractReportText({ buffer: req.file.buffer, filename: req.file.originalname });
+          const extracted = await extractReportText({ buffer: req.file.buffer, filename: sanitizedOriginalName });
           scoreText = extracted.text || "";
         }
       } else {
@@ -5828,12 +5848,12 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     const rid = nanoid(8);
     // store original uploaded file so clients can access it from document center
     const uploadDir = consumerUploadsDir(consumer.id);
-    const ext = (req.file.originalname.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
+    const ext = (sanitizedOriginalName.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
     const storedName = `${rid}${ext}`;
     await fs.promises.writeFile(path.join(uploadDir, storedName), req.file.buffer);
     await addFileMeta(consumer.id, {
       id: rid,
-      originalName: req.file.originalname,
+      originalName: sanitizedOriginalName,
       storedName,
       size: req.file.size,
       mimetype: req.file.mimetype,
@@ -5844,7 +5864,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       id: rid,
       status: analyzed.status || "analyzed",
       uploadedAt: new Date().toISOString(),
-      filename: req.file.originalname,
+      filename: sanitizedOriginalName,
       size: req.file.size,
       summary: {
         tradelines: analyzed?.tradelines?.length || 0,
@@ -5868,7 +5888,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     await saveDB(db);
     await addEvent(consumer.id, "report_uploaded", {
       reportId: rid,
-      filename: req.file.originalname,
+      filename: sanitizedOriginalName,
       size: req.file.size,
       ...(consumer.reports[0].diff?.summary || {}),
     });
@@ -6210,16 +6230,6 @@ async function hibpLookup(email) {
     console.error("HIBP check failed", e);
     return { ok: false, status: 500, error: "HIBP request failed" };
   }
-}
-
-function escapeHtml(str) {
-  return String(str || "").replace(/[&<>"']/g, c => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[c]);
 }
 
 function renderBreachAuditHtml(consumer) {
@@ -8021,7 +8031,8 @@ app.post("/api/consumers/:id/state/upload", fileUpload.single("file"), async (re
 
   const dir = consumerUploadsDir(consumer.id);
   const id = nanoid(10);
-  const ext = (req.file.originalname.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
+  const sanitizedOriginalName = path.basename(req.file.originalname || "");
+  const ext = (sanitizedOriginalName.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
   const type = (req.body.type || '').toLowerCase().replace(/[^a-z0-9]+/g, '_') || 'doc';
   const safeName = (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g, '_');
   const date = new Date().toISOString().slice(0,10);
@@ -8244,7 +8255,15 @@ async function ensureDiyClientForCompany({ company, diyUser, diyPlan } = {}) {
 }
 
 // DIY Authentication Middleware - uses separate secret to prevent token confusion
-const DIY_JWT_SECRET = process.env.DIY_JWT_SECRET || (process.env.JWT_SECRET ? process.env.JWT_SECRET + '-diy' : 'diy-secret-key-isolated');
+function getDiyJwtSecret() {
+  const secret = process.env.DIY_JWT_SECRET;
+  if (!secret) {
+    throw new Error('DIY_JWT_SECRET environment variable is not configured. Please set DIY_JWT_SECRET before starting the server.');
+  }
+  return secret;
+}
+
+const DIY_JWT_SECRET = getDiyJwtSecret();
 
 function diyAuthenticate(req, res, next) {
   const auth = req.headers.authorization;
@@ -8762,13 +8781,15 @@ const diyUploadStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
+    const sanitizedOriginalName = path.basename(file.originalname || "");
+    const ext = path.extname(sanitizedOriginalName).toLowerCase();
     cb(null, `${nanoid(10)}${ext}`);
   }
 });
 
 const diyUploadFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname).toLowerCase();
+  const sanitizedOriginalName = path.basename(file.originalname || "");
+  const ext = path.extname(sanitizedOriginalName).toLowerCase();
   if (!ALLOWED_DIY_EXTENSIONS.includes(ext)) {
     return cb(new Error('Only PDF and HTML files are allowed'), false);
   }
@@ -8788,10 +8809,11 @@ app.post('/api/diy/reports/upload', diyAuthenticate, diyUpload.single('report'),
     }
 
     const db = await loadDiyReportsDB();
+    const sanitizedOriginalName = path.basename(req.file.originalname || "");
     const report = {
       id: nanoid(12),
       userId: req.diyUser.id,
-      originalName: req.file.originalname,
+      originalName: sanitizedOriginalName,
       storedName: req.file.filename,
       size: req.file.size,
       mimeType: req.file.mimetype,

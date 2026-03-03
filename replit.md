@@ -29,6 +29,11 @@ Key technical implementations include:
 ## Security Hardening
 - All frontend `esc()` / `escapeHtml()` helpers escape all 5 HTML-significant characters (`&`, `<`, `>`, `"`, `'`). The canonical implementation lives in `public/common.js` and is exposed globally as `window.escapeHtml`.
 - All `innerHTML` assignments across 22 frontend JS files have been audited and wrapped with `esc()` / `escapeHtml()` for any dynamic or API-derived data.
+- Server-side `renderInvoiceHtml` escapes `company.name`, `consumer.name`, `inv.desc`, and `inv.due` via a server-side `escapeHtml()` helper before HTML rendering.
+- `letterEngine.js` `safe()` function includes HTML escaping via `escapeHtml()`, protecting all consumer PII and credit bureau data injected into dispute letter HTML templates.
+- `helmet` middleware is enabled globally (CSP and COEP disabled for compatibility) providing X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy, and other security headers.
+- `JWT_SECRET` and `DIY_JWT_SECRET` environment variables are **required** at startup — the server throws if either is missing. No hardcoded fallback secrets.
+- All file upload handlers sanitize `req.file.originalname` via `path.basename()` to prevent path traversal attacks.
 - Server-side prototype pollution is mitigated by a global `stripDangerousKeys` middleware that removes `__proto__`, `constructor`, and `prototype` from all incoming `req.body` payloads.
 - `PUT /api/booking/availability` validates and whitelists input properties.
 - SQL queries in `scripts/html_ingest/ingest.py` use parameterized `IN` clauses via the `_in_clause()` helper.
