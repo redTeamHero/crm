@@ -719,6 +719,7 @@ async function selectConsumer(id){
   await loadConsumerState();
   await loadMessages();
   await loadTracker();
+  await loadDisputeTracker();
 }
 
 function restoreSelectedConsumer(){
@@ -2158,6 +2159,7 @@ $("#fileInput").addEventListener("change", async (e)=>{
     await loadReportJSON();
     await refreshReports();
     await loadConsumerState();
+    await loadDisputeTracker();
   }catch(err){
     showErr(String(err));
   }finally{
@@ -2644,6 +2646,286 @@ if (btnCardView && btnListView) {
   const savedView = localStorage.getItem("tlViewMode");
   if (savedView === "list") setViewMode("list");
 }
+
+// ===================== Dispute Tracker =====================
+const DISPUTE_STATUS_LABELS = {
+  awaiting: { label: 'Awaiting', color: '#d4a853' },
+  removed: { label: 'Removed', color: '#4ade80' },
+  deleted: { label: 'Deleted', color: '#4ade80' },
+  corrected: { label: 'Corrected', color: '#4ade80' },
+  resolved: { label: 'Resolved', color: '#4ade80' },
+  verified: { label: 'Verified', color: '#60a5fa' },
+  no_response: { label: 'No Response', color: '#6b7280' },
+  stalled: { label: 'Stalled', color: '#f87171' },
+  escalated: { label: 'Escalated', color: '#f87171' },
+  partial: { label: 'Partial', color: '#fbbf24' }
+};
+
+function disputeStatusBadge(status) {
+  const info = DISPUTE_STATUS_LABELS[status] || { label: status || 'Unknown', color: '#6b7280' };
+  return `<span class="dispute-status-badge" style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;background:${info.color}22;color:${info.color};border:1px solid ${info.color}44;">${escapeHtml(info.label)}</span>`;
+}
+
+let currentDisputeData = null;
+
+async function loadDisputeTracker() {
+  const panel = $("#disputeTrackerPanel");
+  if (!panel) return;
+  if (!currentConsumerId) {
+    panel.classList.add("hidden");
+    currentDisputeData = null;
+    return;
+  }
+
+  try {
+    const data = await api(`/api/consumers/${currentConsumerId}/disputes`);
+    if (!data || data.ok === false) {
+      panel.classList.add("hidden");
+      currentDisputeData = null;
+      return;
+    }
+    currentDisputeData = data;
+    panel.classList.remove("hidden");
+    renderDisputeTracker(data);
+  } catch (err) {
+    console.error('Failed to load dispute tracker', err);
+    panel.classList.add("hidden");
+    currentDisputeData = null;
+  }
+}
+
+function renderDisputeTracker(data) {
+  const subtitle = $("#disputeTrackerSubtitle");
+  const analysisCard = $("#disputeAnalysisCard");
+  const analysisBody = $("#disputeAnalysisBody");
+  const analysisTitle = $("#disputeAnalysisTitle");
+  const timeline = $("#disputeTimeline");
+
+  const activation = data.activation;
+  const rounds = data.rounds || [];
+
+  if (activation && activation.items && activation.items.length > 0) {
+    analysisCard.classList.remove("hidden");
+    analysisTitle.textContent = `Report Analysis — ${activation.items.length} negative item${activation.items.length !== 1 ? 's' : ''} found`;
+    let html = '';
+    activation.items.forEach(item => {
+      const creditor = escapeHtml(item.creditor || 'Unknown');
+      const bureaus = (item.bureaus || []).map(b => escapeHtml(b)).join(', ') || 'N/A';
+      const vCount = item.violationCount || 0;
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(212,168,83,0.06);border:1px solid rgba(212,168,83,0.15);border-radius:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;color:#fff;font-size:13px;">${creditor}</div>
+          <div style="font-size:11px;color:#888;">${bureaus} • ${vCount} violation${vCount !== 1 ? 's' : ''}</div>
+        </div>
+      </div>`;
+    });
+
+    if (activation.recommendations && activation.recommendations.length > 0) {
+      html += `<div style="margin-top:8px;font-weight:600;color:#d4a853;font-size:12px;">Initial Letter Recommendations</div>`;
+      activation.recommendations.forEach(rec => {
+        const creditor = escapeHtml(rec.creditor || '');
+        const template = escapeHtml(rec.recommendedTemplate || '');
+        const reason = escapeHtml(rec.reason || '');
+        const urgencyColor = rec.urgency === 'high' ? '#f87171' : rec.urgency === 'medium' ? '#fbbf24' : '#4ade80';
+        html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 10px;background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.12);border-radius:6px;">
+          <div style="flex:1;">
+            <div style="font-size:12px;font-weight:600;color:#fff;">${creditor}: <span style="color:#60a5fa;">${template}</span></div>
+            <div style="font-size:11px;color:#888;">${reason}</div>
+          </div>
+          <span style="font-size:10px;font-weight:600;color:${urgencyColor};text-transform:uppercase;">${escapeHtml(rec.urgency || '')}</span>
+        </div>`;
+      });
+    }
+    analysisBody.innerHTML = html;
+  } else {
+    analysisCard.classList.add("hidden");
+  }
+
+  if (rounds.length === 0 && !activation) {
+    subtitle.textContent = 'No active disputes.';
+    timeline.innerHTML = `<div class="muted text-center" style="padding:16px;">No dispute rounds recorded yet. Upload a credit report and generate letters to begin tracking.</div>`;
+    return;
+  }
+
+  const totalItems = rounds.reduce((sum, r) => sum + (r.items || []).length, 0);
+  const activeRounds = rounds.filter(r => r.status !== 'resolved').length;
+  subtitle.textContent = `${rounds.length} round${rounds.length !== 1 ? 's' : ''} • ${totalItems} item${totalItems !== 1 ? 's' : ''} tracked${activeRounds > 0 ? ` • ${activeRounds} active` : ''}`;
+
+  let html = '';
+  rounds.forEach((round, rIdx) => {
+    const roundNum = round.round || (rIdx + 1);
+    const sentDate = round.sentAt ? new Date(round.sentAt).toLocaleDateString() : 'N/A';
+    const followUpDate = round.followUpDate ? new Date(round.followUpDate).toLocaleDateString() : 'N/A';
+    const followUpDays = round.followUpDays || 30;
+    const questionnaireCompleted = round.questionnaireCompleted || false;
+    const jobId = round.jobId || '';
+
+    html += `<div class="glass card" style="border-left:3px solid ${round.status === 'resolved' ? '#4ade80' : '#d4a853'};padding:12px;">`;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div>
+        <span style="font-weight:700;color:#fff;font-size:14px;">Round ${escapeHtml(String(roundNum))}</span>
+        <span style="font-size:12px;color:#888;margin-left:8px;">Sent ${sentDate}</span>
+        ${disputeStatusBadge(round.status || 'awaiting')}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:11px;color:#888;">Follow-up:</span>
+        <input type="number" class="dispute-followup-days" data-job-id="${escapeHtml(jobId)}" value="${followUpDays}" min="1" max="365" style="width:60px;padding:2px 6px;border-radius:6px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:12px;text-align:center;" />
+        <span style="font-size:11px;color:#888;">days (${followUpDate})</span>
+      </div>
+    </div>`;
+
+    html += `<div style="font-size:11px;color:${questionnaireCompleted ? '#4ade80' : '#888'};margin-bottom:8px;">
+      ${questionnaireCompleted ? '✓ Client questionnaire completed' : '○ Awaiting client questionnaire'}
+    </div>`;
+
+    const items = round.items || [];
+    if (items.length > 0) {
+      html += `<div class="space-y-2" style="margin-bottom:8px;">`;
+      items.forEach(item => {
+        const creditor = escapeHtml(item.creditor || 'Unknown');
+        const bureau = escapeHtml(item.bureau || '');
+        const status = item.status || 'awaiting';
+        const notes = item.notes ? escapeHtml(item.notes) : '';
+
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;color:#fff;font-size:12px;">${creditor}</div>
+            <div style="font-size:11px;color:#888;">${bureau}${notes ? ' • ' + notes : ''}</div>
+          </div>
+          ${disputeStatusBadge(status)}
+        </div>`;
+
+        if (item.evidence && item.evidence.length > 0) {
+          html += `<div style="padding-left:18px;">`;
+          item.evidence.forEach(ev => {
+            const name = escapeHtml(ev.name || ev.originalName || 'Evidence');
+            const url = ev.url ? escapeHtml(ev.url) : '#';
+            html += `<div style="font-size:11px;color:#60a5fa;"><a href="${url}" target="_blank" style="color:#60a5fa;text-decoration:underline;">📎 ${name}</a></div>`;
+          });
+          html += `</div>`;
+        }
+
+        if (item.recommendation) {
+          const rec = item.recommendation;
+          const tpl = escapeHtml(rec.recommendedTemplate || 'None');
+          const reason = escapeHtml(rec.reason || '');
+          html += `<div style="padding-left:18px;margin-top:4px;padding:4px 8px;background:rgba(96,165,250,0.06);border-radius:4px;border:1px solid rgba(96,165,250,0.1);">
+            <div style="font-size:11px;color:#60a5fa;font-weight:600;">Next: ${tpl}</div>
+            <div style="font-size:10px;color:#888;">${reason}</div>
+          </div>`;
+        }
+      });
+      html += `</div>`;
+    }
+
+    if (round.letters && round.letters.length > 0) {
+      html += `<div style="font-size:11px;color:#888;margin-bottom:4px;">Letters sent: ${round.letters.length}</div>`;
+    }
+
+    html += `<div style="display:flex;gap:6px;margin-top:8px;">`;
+    if (round.status !== 'resolved') {
+      html += `<button class="btn btn-outline text-xs dispute-generate-next" data-job-id="${escapeHtml(jobId)}" data-round="${roundNum}">Generate Next Round</button>`;
+      html += `<button class="btn btn-outline text-xs dispute-mark-resolved" data-job-id="${escapeHtml(jobId)}">Mark Resolved</button>`;
+    }
+    html += `</div>`;
+
+    html += `</div>`;
+  });
+
+  timeline.innerHTML = html;
+
+  timeline.querySelectorAll('.dispute-followup-days').forEach(input => {
+    input.addEventListener('change', async (e) => {
+      const jobId = e.target.dataset.jobId;
+      const days = parseInt(e.target.value, 10);
+      if (!days || days < 1 || !jobId || !currentConsumerId) return;
+      try {
+        const res = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ followUpDays: days })
+        });
+        if (res?.ok) {
+          await loadDisputeTracker();
+        } else {
+          showErr(res?.error || 'Failed to update follow-up timing.');
+        }
+      } catch (err) {
+        showErr(String(err));
+      }
+    });
+  });
+
+  timeline.querySelectorAll('.dispute-generate-next').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const jobId = e.target.dataset.jobId;
+      const roundNum = parseInt(e.target.dataset.round, 10) || 1;
+      if (!jobId || !currentConsumerId) return;
+      try {
+        const recData = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/recommendation`);
+        if (recData?.ok && recData.recommendations) {
+          const items = recData.recommendations;
+          items.forEach(item => {
+            if (item.tradelineIndex !== undefined && item.recommendedTemplate) {
+              const card = document.querySelector(`.tl-card[data-index="${item.tradelineIndex}"]`);
+              if (card) {
+                setCardSelected(card, true);
+                const letterSel = card.querySelector('.tl-letter-select');
+                if (letterSel) {
+                  const tplVal = `tpl:${item.recommendedTemplate}`;
+                  const hasOpt = Array.from(letterSel.options).some(o => o.value === tplVal || o.value === item.recommendedTemplate);
+                  if (hasOpt) {
+                    letterSel.value = Array.from(letterSel.options).find(o => o.value === tplVal)?.value || item.recommendedTemplate;
+                  }
+                }
+              }
+            }
+          });
+          alert(`${items.length} item${items.length !== 1 ? 's' : ''} pre-selected with recommended templates. Review and click "Generate Letters" when ready.`);
+        } else {
+          showErr(recData?.error || 'No recommendations available.');
+        }
+      } catch (err) {
+        showErr(String(err));
+      }
+    });
+  });
+
+  timeline.querySelectorAll('.dispute-mark-resolved').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const jobId = e.target.dataset.jobId;
+      if (!jobId || !currentConsumerId) return;
+      if (!confirm('Mark this dispute round as resolved?')) return;
+      try {
+        const round = currentDisputeData?.rounds?.find(r => r.jobId === jobId);
+        if (round && round.items) {
+          const items = round.items.map(item => ({
+            creditor: item.creditor,
+            bureau: item.bureau,
+            outcome: 'removed',
+            notes: 'Marked resolved by CRM user'
+          }));
+          const res = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/response`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items })
+          });
+          if (res?.ok) {
+            await loadDisputeTracker();
+          } else {
+            showErr(res?.error || 'Failed to mark resolved.');
+          }
+        }
+      } catch (err) {
+        showErr(String(err));
+      }
+    });
+  });
+}
+
+$("#btnRefreshDisputes")?.addEventListener("click", () => {
+  loadDisputeTracker();
+});
 
 // ===================== Init =====================
 loadConsumers(true, true);

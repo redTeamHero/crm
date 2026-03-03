@@ -68,6 +68,10 @@
         <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         Primaries
       </a>
+      <a id="navDisputes" href="#disputes" class="sidebar-nav-link">
+        <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+        Disputes
+      </a>
       <a id="navUploads" href="#uploads" class="sidebar-nav-link">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Uploads
@@ -573,6 +577,49 @@
         </div>
       </section>
 
+      <section id="disputeSection" class="hidden space-y-4">
+        <div id="disputes"></div>
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-white">Dispute Tracker</h2>
+            <p class="text-sm text-gray-500">Track your dispute rounds, responses, and next steps.</p>
+          </div>
+        </div>
+
+        <div id="disputeFollowupCard" class="hidden glass card p-5 space-y-4 border-l-4 border-amber-400">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+              <svg class="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="text-sm font-semibold text-white">Follow-Up Questionnaire Due</div>
+              <div id="disputeFollowupDue" class="text-xs text-gray-500"></div>
+            </div>
+          </div>
+          <p class="text-sm text-gray-400">Please report the outcome for each disputed item below and upload any response letters you received.</p>
+          <div id="disputeQuestionnaireItems" class="space-y-4"></div>
+          <div class="flex gap-2">
+            <button id="disputeSubmitResponses" class="btn text-sm" type="button">Submit Responses</button>
+          </div>
+          <div id="disputeSubmitStatus" class="hidden text-sm"></div>
+        </div>
+
+        <div id="disputeRecommendations" class="hidden space-y-3">
+          <h3 class="text-sm font-semibold text-white">Recommended Next Steps</h3>
+          <div id="disputeRecommendationList" class="space-y-2"></div>
+        </div>
+
+        <div id="disputeTimeline" class="space-y-3">
+          <h3 class="text-sm font-semibold text-white">Dispute Rounds</h3>
+          <div id="disputeRoundList" class="space-y-3"></div>
+          <div id="disputeEmpty" class="hidden glass card p-8 text-center">
+            <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+            <p class="text-sm text-gray-500">No dispute rounds yet.</p>
+            <p class="text-xs text-gray-500 mt-1">Dispute tracking begins when letters are generated for your account.</p>
+          </div>
+        </div>
+      </section>
+
       <section id="uploadSection" class="hidden">
         <div id="uploads"></div>
         <div class="space-y-4">
@@ -673,6 +720,10 @@
           <a href="#primaries">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
             Primaries
+          </a>
+          <a href="#disputes">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+            Disputes
           </a>
           <a href="#uploads">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>

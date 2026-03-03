@@ -41,6 +41,7 @@ const PORTAL_MODULE_CONFIG = Object.freeze({
   tradelines: { nav: '#navTradelines', sections: ['#tradelinesSection'] },
   primaries: { nav: '#navPrimaries', sections: ['#primariesSection'] },
   uploads: { nav: '#navUploads', sections: ['#uploadSection'] },
+  disputes: { nav: '#navDisputes', sections: ['#disputeSection'] },
 });
 
 const HASH_TO_PORTAL_MODULE = Object.freeze({
@@ -53,6 +54,7 @@ const HASH_TO_PORTAL_MODULE = Object.freeze({
   '#tradelines': 'tradelines',
   '#primaries': 'primaries',
   '#negative-items': 'negativeItems',
+  '#disputes': 'disputes',
 });
 
 const DATA_REGION_EXPERIMENT_KEY = 'portal-data-region';
@@ -982,6 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const uploadSection = document.getElementById('uploadSection');
   const educationSection = document.getElementById('educationSection');
   const documentSection = document.getElementById('documentSection');
+  const disputeSection = document.getElementById('disputeSection');
 
   if (isPortalModuleEnabled(portalSettings.modules, 'tradelines')) {
     initTradelineStorefront(consumerId);
@@ -2218,6 +2221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (negativeItemsSection) negativeItemsSection.classList.add('hidden');
     if (paymentSection) paymentSection.classList.add('hidden');
     if (tradelineSection) tradelineSection.classList.add('hidden');
+    if (disputeSection) disputeSection.classList.add('hidden');
     const primariesSec = document.getElementById('primariesSection');
     if (primariesSec) primariesSec.classList.add('hidden');
 
@@ -2254,6 +2258,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (hash === '#negative-items' && negativeItemsSection) {
       negativeItemsSection.classList.remove('hidden');
       initNegativeItems();
+    } else if (hash === '#disputes' && disputeSection) {
+      disputeSection.classList.remove('hidden');
+      loadDisputes();
     } else if (portalMain) {
       portalMain.classList.remove('hidden');
     }
@@ -2338,6 +2345,275 @@ document.addEventListener('DOMContentLoaded', () => {
       invoiceRefreshTimer = null;
     }
   });
+
+  let disputeData = null;
+  let disputeLoading = false;
+
+  function getDisputeStatusBadge(status) {
+    const map = {
+      awaiting: { cls: 'badge-awaiting', label: 'Awaiting' },
+      awaiting_response: { cls: 'badge-awaiting', label: 'Awaiting Response' },
+      removed: { cls: 'badge-removed', label: 'Removed' },
+      deleted: { cls: 'badge-removed', label: 'Deleted' },
+      verified: { cls: 'badge-verified', label: 'Verified' },
+      no_response: { cls: 'badge-no-response', label: 'No Response' },
+      stalled: { cls: 'badge-no-response', label: 'Stalled' },
+      partial: { cls: 'badge-verified', label: 'Partial' },
+      resolved: { cls: 'badge-removed', label: 'Resolved' },
+      escalated: { cls: 'badge-escalated', label: 'Escalated' },
+    };
+    const info = map[status] || { cls: 'badge-awaiting', label: status || 'Unknown' };
+    return `<span class="dispute-badge ${info.cls}">${esc(info.label)}</span>`;
+  }
+
+  function formatDisputeDate(d) {
+    if (!d) return '';
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function renderDisputeRounds(rounds) {
+    const roundList = document.getElementById('disputeRoundList');
+    const emptyEl = document.getElementById('disputeEmpty');
+    if (!roundList) return;
+
+    if (!rounds || !rounds.length) {
+      roundList.innerHTML = '';
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      return;
+    }
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    roundList.innerHTML = rounds.map(round => {
+      const sentDate = formatDisputeDate(round.sentAt);
+      const followUp = formatDisputeDate(round.followUpDate);
+      const statusBadge = getDisputeStatusBadge(round.status);
+      const items = (round.items || []).map(item => {
+        const itemBadge = getDisputeStatusBadge(item.status || item.outcome || 'awaiting');
+        return `<div class="dispute-item-row">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <span class="text-sm font-medium truncate">${esc(item.creditor || 'Unknown')}</span>
+            <span class="text-xs text-gray-500">${esc(item.bureau || '')}</span>
+          </div>
+          ${itemBadge}
+        </div>`;
+      }).join('');
+
+      const letters = (round.letters || []).map(l =>
+        `<span class="text-xs text-gray-500">${esc(l.bureau || '')} - ${esc(l.letterType || l.creditor || '')}</span>`
+      ).join(', ');
+
+      return `<div class="glass card p-4 space-y-3 dispute-round-card">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <div class="text-sm font-semibold text-white">Round ${round.round || '—'}</div>
+            <div class="text-xs text-gray-500">${sentDate ? 'Sent ' + sentDate : 'Pending'}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${statusBadge}
+          </div>
+        </div>
+        ${letters ? `<div class="text-xs text-gray-400">Letters: ${letters}</div>` : ''}
+        ${followUp ? `<div class="text-xs text-gray-500">Follow-up due: ${followUp}</div>` : ''}
+        <div class="space-y-1">${items || '<div class="text-xs text-gray-500">No items tracked.</div>'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderDisputeFollowup(rounds) {
+    const card = document.getElementById('disputeFollowupCard');
+    const itemsEl = document.getElementById('disputeQuestionnaireItems');
+    const dueEl = document.getElementById('disputeFollowupDue');
+    if (!card || !itemsEl) return;
+
+    const dueRound = rounds.find(r => {
+      if (r.status === 'resolved' || r.status === 'completed') return false;
+      if (!r.followUpDate) return false;
+      return new Date(r.followUpDate).getTime() <= Date.now();
+    });
+
+    if (!dueRound) {
+      card.classList.add('hidden');
+      return;
+    }
+
+    card.classList.remove('hidden');
+    card.dataset.jobId = dueRound.jobId || '';
+    if (dueEl) dueEl.textContent = 'Due: ' + formatDisputeDate(dueRound.followUpDate);
+
+    const items = dueRound.items || [];
+    itemsEl.innerHTML = items.map((item, idx) => {
+      const creditor = esc(item.creditor || 'Unknown');
+      const bureau = esc(item.bureau || '');
+      return `<div class="glass card p-3 space-y-2 dispute-questionnaire-item" data-idx="${idx}">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-medium text-white">${creditor}</div>
+            <div class="text-xs text-gray-500">${bureau}</div>
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400">What happened with this item?</label>
+          <select class="dispute-outcome-select input text-sm w-full mt-1" data-creditor="${creditor}" data-bureau="${bureau}">
+            <option value="">Select outcome...</option>
+            <option value="removed">Removed / Deleted</option>
+            <option value="verified">Verified (still reporting)</option>
+            <option value="no_response">No Response</option>
+            <option value="partial">Partially corrected</option>
+            <option value="stalled">Stalled / No progress</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400">Upload evidence (response letter, updated report)</label>
+          <input type="file" class="dispute-evidence-input text-sm mt-1" data-creditor="${creditor}" data-bureau="${bureau}" accept="image/*,.pdf,.html,.htm">
+        </div>
+        <div>
+          <label class="text-xs text-gray-400">Notes</label>
+          <textarea class="dispute-notes-input input text-sm w-full mt-1" rows="2" data-creditor="${creditor}" data-bureau="${bureau}" placeholder="Any additional details..."></textarea>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderDisputeRecommendations(recommendations) {
+    const wrapper = document.getElementById('disputeRecommendations');
+    const list = document.getElementById('disputeRecommendationList');
+    if (!wrapper || !list) return;
+
+    if (!recommendations || !recommendations.length) {
+      wrapper.classList.add('hidden');
+      return;
+    }
+
+    wrapper.classList.remove('hidden');
+    list.innerHTML = recommendations.map(rec => {
+      const urgencyClass = rec.urgency === 'high' ? 'border-rose-400' : rec.urgency === 'medium' ? 'border-amber-400' : 'border-gray-600';
+      return `<div class="glass card p-3 space-y-1 border-l-4 ${urgencyClass}">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-medium text-white">${esc(rec.creditor || '')} ${rec.bureau ? '(' + esc(rec.bureau) + ')' : ''}</div>
+          ${rec.urgency ? `<span class="text-xs text-gray-500">${esc(rec.urgency)} priority</span>` : ''}
+        </div>
+        <div class="text-sm text-gray-300">${esc(rec.recommendedTemplate || rec.recommended || '')}</div>
+        <div class="text-xs text-gray-500">${esc(rec.reason || '')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadDisputes() {
+    if (!consumerId || disputeLoading) return;
+    disputeLoading = true;
+    try {
+      const resp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes`);
+      if (!resp.ok) throw new Error('Failed to load disputes');
+      const data = await resp.json();
+      disputeData = data;
+      const rounds = data.rounds || [];
+      renderDisputeRounds(rounds);
+      renderDisputeFollowup(rounds);
+
+      if (rounds.length) {
+        const latestWithResponses = [...rounds].reverse().find(r => r.status !== 'awaiting_response' && r.status !== 'awaiting');
+        if (latestWithResponses) {
+          try {
+            const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(latestWithResponses.jobId)}/recommendation`);
+            if (recResp.ok) {
+              const recData = await recResp.json();
+              renderDisputeRecommendations(recData.recommendations || []);
+            }
+          } catch {}
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load disputes', err);
+      const roundList = document.getElementById('disputeRoundList');
+      if (roundList) roundList.innerHTML = '<div class="text-sm text-rose-500">Failed to load dispute data. Please try again.</div>';
+    } finally {
+      disputeLoading = false;
+    }
+  }
+
+  const disputeSubmitBtn = document.getElementById('disputeSubmitResponses');
+  if (disputeSubmitBtn) {
+    disputeSubmitBtn.addEventListener('click', async () => {
+      const card = document.getElementById('disputeFollowupCard');
+      const statusEl = document.getElementById('disputeSubmitStatus');
+      const jobId = card?.dataset.jobId;
+      if (!jobId || !consumerId) return;
+
+      const itemEls = document.querySelectorAll('.dispute-questionnaire-item');
+      const items = [];
+      const evidenceFiles = [];
+
+      itemEls.forEach(el => {
+        const select = el.querySelector('.dispute-outcome-select');
+        const notes = el.querySelector('.dispute-notes-input');
+        const fileInput = el.querySelector('.dispute-evidence-input');
+        items.push({
+          creditor: select?.dataset.creditor || '',
+          bureau: select?.dataset.bureau || '',
+          outcome: select?.value || 'no_response',
+          notes: notes?.value || '',
+        });
+        if (fileInput?.files?.length) {
+          evidenceFiles.push({
+            file: fileInput.files[0],
+            creditor: select?.dataset.creditor || '',
+            bureau: select?.dataset.bureau || '',
+          });
+        }
+      });
+
+      disputeSubmitBtn.disabled = true;
+      disputeSubmitBtn.textContent = 'Submitting...';
+      if (statusEl) { statusEl.classList.add('hidden'); }
+
+      try {
+        const respResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/response`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items }),
+        });
+        if (!respResp.ok) throw new Error('Failed to submit responses');
+
+        for (const ev of evidenceFiles) {
+          const fd = new FormData();
+          fd.append('file', ev.file);
+          fd.append('creditor', ev.creditor);
+          fd.append('bureau', ev.bureau);
+          await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/evidence`, {
+            method: 'POST',
+            body: fd,
+          });
+        }
+
+        if (statusEl) {
+          statusEl.textContent = 'Responses submitted successfully!';
+          statusEl.className = 'text-sm p-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200';
+          statusEl.classList.remove('hidden');
+        }
+
+        try {
+          const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/recommendation`);
+          if (recResp.ok) {
+            const recData = await recResp.json();
+            renderDisputeRecommendations(recData.recommendations || []);
+          }
+        } catch {}
+
+        await loadDisputes();
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = 'Failed to submit responses. Please try again.';
+          statusEl.className = 'text-sm p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200';
+          statusEl.classList.remove('hidden');
+        }
+      } finally {
+        disputeSubmitBtn.disabled = false;
+        disputeSubmitBtn.textContent = 'Submit Responses';
+      }
+    });
+  }
 
   document.querySelectorAll('.upload-file-input').forEach(input => {
     if (!consumerId) return;

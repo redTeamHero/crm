@@ -66,4 +66,25 @@ export const LETTER_TEMPLATES = [
   }
 ];
 
+export const LETTER_RESPONSE_WINDOWS = {
+  'bankruptcy-misreporting': 30,
+  'obsolete-debt': 30,
+  'second-round-dispute': 15,
+  'ag-cfpb-escalation': 15,
+  '623-direct-dispute': 30,
+  '611-general-dispute': 30,
+  'reinsertion-dispute': 5,
+  '609-disclosure': 15,
+  'personal-info-update': 30,
+  'debt-validation': 30,
+  'cease-and-desist': 15,
+  'arbitration-election': 30,
+};
+
+export const DEFAULT_RESPONSE_WINDOW_DAYS = 30;
+
+export function getResponseWindowDays(templateId) {
+  return LETTER_RESPONSE_WINDOWS[templateId] || DEFAULT_RESPONSE_WINDOW_DAYS;
+}
+
 export default LETTER_TEMPLATES;

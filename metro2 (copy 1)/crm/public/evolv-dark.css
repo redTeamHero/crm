@@ -2030,3 +2030,396 @@ canvas {
 .glass.card table th {
   border-color: rgba(255, 255, 255, 0.08) !important;
 }
+
+/* ── IntelliFeats Dispute Tracker ── */
+
+#disputeTrackerPanel {
+  background: rgba(18, 18, 22, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: #f0f0f0 !important;
+}
+
+#disputeTrackerPanel .panel-title,
+#disputeSection h2 {
+  color: #f0f0f0 !important;
+}
+
+#disputeTrackerPanel .panel-subtitle,
+#disputeTrackerSubtitle {
+  color: #888 !important;
+}
+
+#disputeAnalysisCard {
+  background: rgba(212, 168, 83, 0.06) !important;
+  border-color: rgba(212, 168, 83, 0.18) !important;
+}
+
+#disputeAnalysisCard #disputeAnalysisTitle {
+  color: #d4a853 !important;
+}
+
+#disputeAnalysisBody,
+#disputeTimeline {
+  color: #f0f0f0 !important;
+}
+
+.dispute-round-card {
+  background: rgba(18, 18, 22, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 10px !important;
+  color: #f0f0f0 !important;
+}
+
+.dispute-round-card:hover {
+  border-color: rgba(212, 168, 83, 0.2) !important;
+}
+
+.dispute-round-header {
+  color: #f0f0f0 !important;
+}
+
+.dispute-round-header .text-xs,
+.dispute-round-header .text-sm {
+  color: #888 !important;
+}
+
+.dispute-status-badge {
+  display: inline-block !important;
+  padding: 2px 8px !important;
+  border-radius: 9999px !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+.dispute-status-badge.status-awaiting {
+  background: rgba(212, 168, 83, 0.15) !important;
+  color: #d4a853 !important;
+  border: 1px solid rgba(212, 168, 83, 0.3) !important;
+}
+
+.dispute-status-badge.status-removed,
+.dispute-status-badge.status-deleted,
+.dispute-status-badge.status-corrected,
+.dispute-status-badge.status-resolved {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.dispute-status-badge.status-verified {
+  background: rgba(96, 165, 250, 0.15) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(96, 165, 250, 0.3) !important;
+}
+
+.dispute-status-badge.status-no_response,
+.dispute-status-badge.status-no-response {
+  background: rgba(156, 163, 175, 0.12) !important;
+  color: #9ca3af !important;
+  border: 1px solid rgba(156, 163, 175, 0.25) !important;
+}
+
+.dispute-status-badge.status-stalled {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #f97316 !important;
+  border: 1px solid rgba(249, 115, 22, 0.3) !important;
+}
+
+.dispute-status-badge.status-escalated {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.dispute-status-badge.status-partial,
+.dispute-status-badge.status-updated {
+  background: rgba(234, 179, 8, 0.15) !important;
+  color: #eab308 !important;
+  border: 1px solid rgba(234, 179, 8, 0.3) !important;
+}
+
+.dispute-status-badge.status-awaiting_response {
+  background: rgba(212, 168, 83, 0.12) !important;
+  color: #d4a853 !important;
+  border: 1px solid rgba(212, 168, 83, 0.25) !important;
+}
+
+.dispute-status-badge.status-response_received {
+  background: rgba(96, 165, 250, 0.12) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(96, 165, 250, 0.25) !important;
+}
+
+.dispute-item-row {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  color: #f0f0f0 !important;
+}
+
+.dispute-item-row:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(212, 168, 83, 0.15) !important;
+}
+
+.dispute-item-creditor {
+  color: #f0f0f0 !important;
+  font-weight: 600 !important;
+}
+
+.dispute-item-bureau {
+  color: #d4a853 !important;
+  font-size: 0.75rem !important;
+}
+
+.dispute-item-notes {
+  color: #888 !important;
+  font-size: 0.75rem !important;
+  font-style: italic !important;
+}
+
+.dispute-rec-card {
+  background: rgba(212, 168, 83, 0.04) !important;
+  border: 1px solid rgba(212, 168, 83, 0.12) !important;
+  border-radius: 10px !important;
+  padding: 12px !important;
+  color: #f0f0f0 !important;
+}
+
+.dispute-rec-card .rec-template {
+  color: #d4a853 !important;
+  font-weight: 600 !important;
+}
+
+.dispute-rec-card .rec-reason {
+  color: #aaa !important;
+  font-size: 0.8rem !important;
+}
+
+.dispute-rec-urgency {
+  display: inline-block !important;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+}
+
+.dispute-rec-urgency.urgency-high {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+}
+
+.dispute-rec-urgency.urgency-medium {
+  background: rgba(234, 179, 8, 0.15) !important;
+  color: #eab308 !important;
+}
+
+.dispute-rec-urgency.urgency-low {
+  background: rgba(156, 163, 175, 0.12) !important;
+  color: #9ca3af !important;
+}
+
+.dispute-rec-urgency.urgency-none {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+}
+
+.dispute-followup-timing input[type="number"] {
+  background: #1a1a1a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f0f0f0 !important;
+  border-radius: 6px !important;
+  padding: 4px 8px !important;
+  width: 60px !important;
+}
+
+.dispute-followup-timing input[type="number"]:focus {
+  border-color: #d4a853 !important;
+  box-shadow: 0 0 0 2px rgba(212, 168, 83, 0.15) !important;
+}
+
+.dispute-followup-timing label {
+  color: #888 !important;
+  font-size: 0.8rem !important;
+}
+
+.dispute-action-btn {
+  background: rgba(212, 168, 83, 0.1) !important;
+  color: #d4a853 !important;
+  border: 1px solid rgba(212, 168, 83, 0.25) !important;
+  border-radius: 6px !important;
+  padding: 6px 14px !important;
+  font-size: 0.8rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.dispute-action-btn:hover {
+  background: rgba(212, 168, 83, 0.2) !important;
+  border-color: rgba(212, 168, 83, 0.4) !important;
+}
+
+.dispute-action-btn.resolve-btn {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #10b981 !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+.dispute-action-btn.resolve-btn:hover {
+  background: rgba(16, 185, 129, 0.2) !important;
+}
+
+#disputeFollowupCard {
+  background: rgba(18, 18, 22, 0.9) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-left: 4px solid #d4a853 !important;
+  color: #f0f0f0 !important;
+}
+
+#disputeFollowupCard h3 {
+  color: #f0f0f0 !important;
+}
+
+#disputeFollowupCard .text-gray-500,
+#disputeFollowupDue {
+  color: #888 !important;
+}
+
+#disputeSection {
+  color: #f0f0f0 !important;
+}
+
+#disputeSection .text-gray-500,
+#disputeSection .text-gray-600 {
+  color: #888 !important;
+}
+
+#disputeEmpty {
+  background: rgba(18, 18, 22, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: #888 !important;
+}
+
+#disputeRecommendations {
+  color: #f0f0f0 !important;
+}
+
+.dispute-questionnaire-item {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 10px !important;
+  padding: 14px !important;
+  color: #f0f0f0 !important;
+}
+
+.dispute-questionnaire-item label {
+  color: #aaa !important;
+  font-size: 0.8rem !important;
+}
+
+.dispute-questionnaire-item select {
+  background: #1a1a1a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f0f0f0 !important;
+}
+
+.dispute-questionnaire-item textarea {
+  background: #1a1a1a !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f0f0f0 !important;
+}
+
+.dispute-evidence-upload {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 2px dashed rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  text-align: center !important;
+  color: #888 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.dispute-evidence-upload:hover {
+  border-color: rgba(212, 168, 83, 0.3) !important;
+  background: rgba(212, 168, 83, 0.04) !important;
+  color: #d4a853 !important;
+}
+
+.dispute-evidence-upload input[type="file"] {
+  color: #888 !important;
+}
+
+.dispute-timeline-connector {
+  border-left: 2px solid rgba(212, 168, 83, 0.2) !important;
+  margin-left: 16px !important;
+  padding-left: 16px !important;
+}
+
+.dispute-round-number {
+  background: rgba(212, 168, 83, 0.15) !important;
+  color: #d4a853 !important;
+  border: 1px solid rgba(212, 168, 83, 0.3) !important;
+  border-radius: 50% !important;
+  width: 28px !important;
+  height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+}
+
+.dispute-questionnaire-complete {
+  color: #10b981 !important;
+  font-size: 0.75rem !important;
+}
+
+.dispute-questionnaire-pending {
+  color: #d4a853 !important;
+  font-size: 0.75rem !important;
+}
+
+.dispute-badge {
+  display: inline-block !important;
+  padding: 2px 8px !important;
+  border-radius: 9999px !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+.dispute-badge.badge-awaiting {
+  background: rgba(212, 168, 83, 0.15) !important;
+  color: #d4a853 !important;
+  border: 1px solid rgba(212, 168, 83, 0.3) !important;
+}
+
+.dispute-badge.badge-removed {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.dispute-badge.badge-verified {
+  background: rgba(96, 165, 250, 0.15) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(96, 165, 250, 0.3) !important;
+}
+
+.dispute-badge.badge-no-response {
+  background: rgba(156, 163, 175, 0.12) !important;
+  color: #9ca3af !important;
+  border: 1px solid rgba(156, 163, 175, 0.25) !important;
+}
+
+.dispute-badge.badge-escalated {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}

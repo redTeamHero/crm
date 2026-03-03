@@ -134,6 +134,20 @@ export async function addEvent(consumerId, type, payload = {}) {
   }
 }
 
+export async function updateEventPayload(consumerId, eventType, matchFn, updater) {
+  const st = await loadState();
+  const c = ensureConsumer(st, consumerId);
+  const ev = c.events.find(e => e.type === eventType && (!matchFn || matchFn(e)));
+  if (!ev) return null;
+  if (typeof updater === "function") {
+    updater(ev.payload);
+  } else if (updater && typeof updater === "object") {
+    Object.assign(ev.payload, updater);
+  }
+  await saveState(st);
+  return ev;
+}
+
 export async function addFileMeta(consumerId, fileRec) {
   const st = await loadState();
   const c = ensureConsumer(st, consumerId);

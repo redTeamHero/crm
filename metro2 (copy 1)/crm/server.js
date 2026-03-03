@@ -789,7 +789,10 @@ function toInlineJson(data){
 
 
 import { generateLetters, generatePersonalInfoLetters, generateInquiryLetters, generateDebtCollectorLetters, modeCopy } from "./letterEngine.js";
-import LETTER_TEMPLATES from "./letterTemplates.js";
+import LETTER_TEMPLATES, { getResponseWindowDays } from "./letterTemplates.js";
+import { scanResponseLetter } from "./disputeAI.js";
+import { recommendFirstLetter, recommendNextLetter } from "./disputeRecommend.js";
+import { updateEventPayload } from "./state.js";
 import { loadPlaybooks } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
@@ -5914,6 +5917,44 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       size: req.file.size,
       ...(consumer.reports[0].diff?.summary || {}),
     });
+
+    try {
+      const disputableItems = (analyzed.tradelines || [])
+        .map((tl, idx) => {
+          const violations = tl?.violations || [];
+          if (!violations.length) return null;
+          const bureaus = Object.keys(tl?.per_bureau || {});
+          return {
+            tradelineIndex: idx,
+            creditor: tl?.meta?.creditor || tl?.creditor || "Unknown",
+            bureaus,
+            violationCount: violations.length,
+            violations: violations.map(v => ({ field: v.field, description: v.description || v.reason, bureau: v.bureau })),
+            accountType: tl?.meta?.accountType || tl?.account_type || null,
+            accountStatus: tl?.meta?.accountStatus || tl?.account_status || null,
+          };
+        })
+        .filter(Boolean);
+      if (disputableItems.length) {
+        const recommendations = disputableItems.map(item => {
+          const rec = recommendFirstLetter({
+            violations: item.violations || [],
+            accountType: item.accountType || "",
+            accountStatus: item.accountStatus || "",
+          });
+          return { tradelineIndex: item.tradelineIndex, creditor: item.creditor, ...rec };
+        });
+        await addEvent(consumer.id, "dispute_activated", {
+          reportId: rid,
+          totalDisputableItems: disputableItems.length,
+          items: disputableItems,
+          recommendations,
+        });
+      }
+    } catch (e) {
+      logError("DISPUTE_ACTIVATE_ERROR", "Failed to auto-activate dispute tracking", e, { consumerId: consumer.id, reportId: rid });
+    }
+
     const totalViolations = (analyzed.tradelines || []).reduce((sum, tl) => sum + ((tl?.violations || []).length), 0)
       + (analyzed.personal_mismatches?.length || 0)
       + (analyzed.inquiry_violations?.length || 0);
@@ -6795,6 +6836,58 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       collectors: Array.isArray(collectors) ? collectors.length : 0,
       bureaus: requestedBureaus,
     });
+
+    try {
+      const consumerState = await listConsumerState(consumer.id);
+      const previousRounds = (consumerState.events || []).filter(e => e.type === "dispute_round");
+      const roundNumber = previousRounds.length + 1;
+
+      const firstTemplateId = normalizedSelections[0]?.templateId || null;
+      const followUpDays = getResponseWindowDays(firstTemplateId);
+      const followUpDate = new Date();
+      followUpDate.setDate(followUpDate.getDate() + followUpDays);
+
+      const roundItems = letters.map(L => ({
+        creditor: L.creditor || L.creditorName || "Unknown",
+        bureau: L.bureau || null,
+        letterType: L.templateId || L.filename || null,
+        tradelineIndex: L.tradelineIndex ?? null,
+        status: "awaiting",
+      }));
+
+      await addEvent(consumer.id, "dispute_round", {
+        jobId,
+        round: roundNumber,
+        requestType: jobRequestType,
+        letters: letters.map(L => ({
+          bureau: L.bureau || null,
+          creditor: L.creditor || L.creditorName || "Unknown",
+          letterType: L.templateId || null,
+          tradelineIndex: L.tradelineIndex ?? null,
+          filename: L.filename,
+        })),
+        sentAt: new Date().toISOString(),
+        followUpDays,
+        followUpDate: followUpDate.toISOString(),
+        status: "awaiting_response",
+        items: roundItems,
+      });
+
+      const followUpReminderId = `dispute_followup_${jobId}_${Date.now()}`;
+      await addReminder(consumer.id, {
+        id: followUpReminderId,
+        due: followUpDate.toISOString(),
+        payload: {
+          type: "dispute_followup",
+          jobId,
+          round: roundNumber,
+          followUpDays,
+          itemCount: roundItems.length,
+        },
+      });
+    } catch (e) {
+      logError("DISPUTE_ROUND_ERROR", "Failed to create dispute round tracking", e, { consumerId: consumer.id, jobId });
+    }
 
     for (const sel of normalizedSelections) {
       const play = sel.playbook && playbooks[sel.playbook];
@@ -8084,6 +8177,258 @@ app.get("/api/consumers/:id/state/files/:stored", (req,res)=>{
   const full = path.join(dir, path.basename(req.params.stored));
   if (!fs.existsSync(full)) return res.status(404).send("File not found");
   res.sendFile(full);
+});
+
+// ============================================================================
+// DISPUTE TRACKER ENDPOINTS (IntelliFeats)
+// ============================================================================
+
+app.get("/api/consumers/:id/disputes", authenticate, async (req, res) => {
+  try {
+    const consumerId = req.params.id;
+    const state = await listConsumerState(consumerId);
+    const events = state.events || [];
+
+    const activated = events.filter(e => e.type === "dispute_activated");
+    const rounds = events
+      .filter(e => e.type === "dispute_round")
+      .map(e => {
+        const responses = events.filter(r => r.type === "dispute_response" && r.payload?.jobId === e.payload?.jobId);
+        const recommendations = events.filter(r => r.type === "dispute_recommendation" && r.payload?.jobId === e.payload?.jobId);
+        const items = (e.payload?.items || []).map(item => {
+          const resp = responses.find(r =>
+            r.payload?.items?.some(ri => ri.creditor === item.creditor && ri.bureau === item.bureau)
+          );
+          const respItem = resp?.payload?.items?.find(ri => ri.creditor === item.creditor && ri.bureau === item.bureau);
+          const rec = recommendations.find(r => r.payload?.creditor === item.creditor && r.payload?.bureau === item.bureau);
+          return {
+            ...item,
+            outcome: respItem?.outcome || item.status,
+            notes: respItem?.notes || null,
+            evidenceFiles: respItem?.evidenceFiles || [],
+            recommendation: rec?.payload || null,
+          };
+        });
+        return {
+          jobId: e.payload?.jobId,
+          round: e.payload?.round,
+          requestType: e.payload?.requestType,
+          sentAt: e.payload?.sentAt,
+          followUpDays: e.payload?.followUpDays,
+          followUpDate: e.payload?.followUpDate,
+          status: e.payload?.status,
+          letters: e.payload?.letters || [],
+          items,
+          createdAt: e.at,
+        };
+      });
+
+    const pendingFollowups = (state.reminders || []).filter(r => r.payload?.type === "dispute_followup");
+
+    res.json({ ok: true, activated, rounds, pendingFollowups });
+  } catch (e) {
+    logError("DISPUTE_LIST_ERROR", "Failed to list disputes", e, { consumerId: req.params.id });
+    res.status(500).json({ ok: false, error: "Failed to load dispute data" });
+  }
+});
+
+app.put("/api/consumers/:id/disputes/:jobId/settings", authenticate, async (req, res) => {
+  try {
+    const { id: consumerId, jobId } = req.params;
+    const { followUpDays } = req.body || {};
+    if (!followUpDays || typeof followUpDays !== "number" || followUpDays < 1 || followUpDays > 180) {
+      return res.status(400).json({ ok: false, error: "followUpDays must be a number between 1 and 180" });
+    }
+
+    const state = await listConsumerState(consumerId);
+    const roundEvent = (state.events || []).find(e => e.type === "dispute_round" && e.payload?.jobId === jobId);
+    if (!roundEvent) {
+      return res.status(404).json({ ok: false, error: "Dispute round not found" });
+    }
+
+    const newFollowUpDate = new Date(roundEvent.payload.sentAt);
+    newFollowUpDate.setDate(newFollowUpDate.getDate() + followUpDays);
+
+    await updateEventPayload(consumerId, "dispute_round",
+      e => e.payload?.jobId === jobId,
+      p => { p.followUpDays = followUpDays; p.followUpDate = newFollowUpDate.toISOString(); }
+    );
+
+    const existingReminder = (state.reminders || []).find(r => r.payload?.type === "dispute_followup" && r.payload?.jobId === jobId);
+    if (existingReminder) {
+      await removeReminder(consumerId, existingReminder.id);
+    }
+    await addReminder(consumerId, {
+      id: `dispute_followup_${jobId}_${Date.now()}`,
+      due: newFollowUpDate.toISOString(),
+      payload: {
+        type: "dispute_followup",
+        jobId,
+        round: roundEvent.payload.round,
+        followUpDays,
+        itemCount: (roundEvent.payload.items || []).length,
+      },
+    });
+
+    await addEvent(consumerId, "dispute_settings_updated", { jobId, followUpDays, followUpDate: newFollowUpDate.toISOString() });
+    res.json({ ok: true, followUpDays, followUpDate: newFollowUpDate.toISOString() });
+  } catch (e) {
+    logError("DISPUTE_SETTINGS_ERROR", "Failed to update dispute settings", e, { consumerId: req.params.id, jobId: req.params.jobId });
+    res.status(500).json({ ok: false, error: "Failed to update settings" });
+  }
+});
+
+app.post("/api/consumers/:id/disputes/:jobId/response", authenticate, async (req, res) => {
+  try {
+    const { id: consumerId, jobId } = req.params;
+    const { items } = req.body || {};
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ ok: false, error: "items array is required" });
+    }
+
+    const state = await listConsumerState(consumerId);
+    const roundEvent = (state.events || []).find(e => e.type === "dispute_round" && e.payload?.jobId === jobId);
+    if (!roundEvent) {
+      return res.status(404).json({ ok: false, error: "Dispute round not found" });
+    }
+
+    const validOutcomes = ["removed", "verified", "no_response", "stalled", "partial", "updated", "deleted", "corrected"];
+    const normalizedItems = items.map(item => ({
+      creditor: item.creditor || "Unknown",
+      bureau: item.bureau || null,
+      outcome: validOutcomes.includes(item.outcome) ? item.outcome : "no_response",
+      notes: item.notes || null,
+      evidenceFiles: item.evidenceFiles || [],
+    }));
+
+    await updateEventPayload(consumerId, "dispute_round",
+      e => e.payload?.jobId === jobId,
+      p => {
+        for (const ri of normalizedItems) {
+          const roundItem = (p.items || []).find(i => i.creditor === ri.creditor && i.bureau === ri.bureau);
+          if (roundItem) roundItem.status = ri.outcome;
+        }
+        const allResolved = (p.items || []).every(i => ["removed", "deleted", "corrected"].includes(i.status));
+        p.status = allResolved ? "resolved" : "response_received";
+      }
+    );
+
+    await addEvent(consumerId, "dispute_response", {
+      jobId,
+      round: roundEvent.payload.round,
+      items: normalizedItems,
+      respondedAt: new Date().toISOString(),
+    });
+
+    const recommendations = [];
+    for (const ri of normalizedItems) {
+      if (["removed", "deleted", "corrected"].includes(ri.outcome)) continue;
+      const letterInfo = (roundEvent.payload.letters || []).find(l => l.creditor === ri.creditor && l.bureau === ri.bureau);
+      const rec = recommendNextLetter({
+        letterType: letterInfo?.letterType || null,
+        round: roundEvent.payload.round,
+        outcome: ri.outcome,
+        violations: [],
+      });
+      recommendations.push({ creditor: ri.creditor, bureau: ri.bureau, ...rec });
+      await addEvent(consumerId, "dispute_recommendation", {
+        jobId,
+        creditor: ri.creditor,
+        bureau: ri.bureau,
+        round: roundEvent.payload.round,
+        ...rec,
+      });
+    }
+
+    const existingReminder = (state.reminders || []).find(r => r.payload?.type === "dispute_followup" && r.payload?.jobId === jobId);
+    if (existingReminder) {
+      await removeReminder(consumerId, existingReminder.id);
+    }
+
+    res.json({ ok: true, items: normalizedItems, recommendations });
+  } catch (e) {
+    logError("DISPUTE_RESPONSE_ERROR", "Failed to record dispute response", e, { consumerId: req.params.id, jobId: req.params.jobId });
+    res.status(500).json({ ok: false, error: "Failed to record response" });
+  }
+});
+
+const evidenceUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+app.post("/api/consumers/:id/disputes/:jobId/evidence", authenticate, evidenceUpload.single("file"), async (req, res) => {
+  try {
+    const { id: consumerId, jobId } = req.params;
+    const { creditor, bureau } = req.body || {};
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: "File is required" });
+    }
+
+    const uploadsDir = consumerUploadsDir(consumerId);
+    const ext = path.extname(req.file.originalname) || ".pdf";
+    const storedName = `evidence_${jobId}_${Date.now()}${ext}`;
+    await fs.promises.writeFile(path.join(uploadsDir, storedName), req.file.buffer);
+
+    let aiScanResult = null;
+    try {
+      aiScanResult = await scanResponseLetter(req.file.buffer, req.file.mimetype);
+    } catch (e) {
+      logError("DISPUTE_AI_SCAN_ERROR", "Failed to scan evidence with AI", e, { consumerId, jobId });
+    }
+
+    await addFileMeta(consumerId, {
+      id: `evidence_${Date.now()}`,
+      originalName: req.file.originalname,
+      storedName,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      uploadedAt: new Date().toISOString(),
+      context: { type: "dispute_evidence", jobId, creditor, bureau },
+    });
+
+    await addEvent(consumerId, "dispute_evidence_uploaded", {
+      jobId,
+      creditor: creditor || null,
+      bureau: bureau || null,
+      filename: req.file.originalname,
+      storedName,
+      aiScan: aiScanResult,
+    });
+
+    res.json({ ok: true, storedName, aiScan: aiScanResult });
+  } catch (e) {
+    logError("DISPUTE_EVIDENCE_ERROR", "Failed to upload evidence", e, { consumerId: req.params.id, jobId: req.params.jobId });
+    res.status(500).json({ ok: false, error: "Failed to upload evidence" });
+  }
+});
+
+app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async (req, res) => {
+  try {
+    const { id: consumerId, jobId } = req.params;
+    const state = await listConsumerState(consumerId);
+    const roundEvent = (state.events || []).find(e => e.type === "dispute_round" && e.payload?.jobId === jobId);
+    if (!roundEvent) {
+      return res.status(404).json({ ok: false, error: "Dispute round not found" });
+    }
+
+    const recommendations = [];
+    for (const item of (roundEvent.payload.items || [])) {
+      if (["removed", "deleted", "corrected"].includes(item.status)) {
+        recommendations.push({ creditor: item.creditor, bureau: item.bureau, resolved: true });
+        continue;
+      }
+      const letterInfo = (roundEvent.payload.letters || []).find(l => l.creditor === item.creditor && l.bureau === item.bureau);
+      const rec = recommendNextLetter({
+        letterType: letterInfo?.letterType || null,
+        round: roundEvent.payload.round,
+        outcome: item.status === "awaiting" ? "no_response" : item.status,
+        violations: [],
+      });
+      recommendations.push({ creditor: item.creditor, bureau: item.bureau, resolved: false, ...rec });
+    }
+
+    res.json({ ok: true, jobId, round: roundEvent.payload.round, recommendations });
+  } catch (e) {
+    logError("DISPUTE_RECOMMEND_ERROR", "Failed to get recommendations", e, { consumerId: req.params.id, jobId: req.params.jobId });
+    res.status(500).json({ ok: false, error: "Failed to get recommendations" });
+  }
 });
 
 // ============================================================================
