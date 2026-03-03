@@ -2427,22 +2427,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const dueEl = document.getElementById('disputeFollowupDue');
     if (!card || !itemsEl) return;
 
-    const dueRound = rounds.find(r => {
-      if (r.status === 'resolved' || r.status === 'completed') return false;
-      if (!r.followUpDate) return false;
-      return new Date(r.followUpDate).getTime() <= Date.now();
+    const activeRound = [...rounds].reverse().find(r => {
+      return r.status !== 'resolved' && r.status !== 'completed';
     });
 
-    if (!dueRound) {
+    if (!activeRound) {
       card.classList.add('hidden');
       return;
     }
 
     card.classList.remove('hidden');
-    card.dataset.jobId = dueRound.jobId || '';
-    if (dueEl) dueEl.textContent = 'Due: ' + formatDisputeDate(dueRound.followUpDate);
+    card.dataset.jobId = activeRound.jobId || '';
+    if (dueEl) {
+      if (activeRound.followUpDate) {
+        const due = new Date(activeRound.followUpDate);
+        const isPast = due.getTime() <= Date.now();
+        dueEl.textContent = isPast
+          ? 'Follow-up was due ' + formatDisputeDate(activeRound.followUpDate) + ' \u2014 please respond'
+          : 'You can respond now, or follow-up recommended by ' + formatDisputeDate(activeRound.followUpDate);
+      } else {
+        dueEl.textContent = 'You can respond at any time';
+      }
+    }
 
-    const items = dueRound.items || [];
+    const items = activeRound.items || [];
     itemsEl.innerHTML = items.map((item, idx) => {
       const creditor = esc(item.creditor || 'Unknown');
       const bureau = esc(item.bureau || '');
