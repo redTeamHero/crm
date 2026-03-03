@@ -2391,18 +2391,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const statusBadge = getDisputeStatusBadge(round.status);
       const items = (round.items || []).map(item => {
         const itemBadge = getDisputeStatusBadge(item.status || item.outcome || 'awaiting');
+        const creditorName = item.creditor && item.creditor !== item.bureau && item.creditor !== 'Unknown' ? item.creditor : null;
+        const acctLabel = item.accountNumber ? ` (${esc(item.accountNumber)})` : '';
+        const displayName = creditorName ? esc(creditorName) + acctLabel : (item.bureau ? esc(item.bureau) + acctLabel : 'Unknown Item');
+        const bureauLabel = creditorName && item.bureau ? ` <span class="text-xs text-gray-500">${esc(item.bureau)}</span>` : '';
         return `<div class="dispute-item-row">
           <div class="flex items-center gap-2 flex-1 min-w-0">
-            <span class="text-sm font-medium truncate">${esc(item.creditor || 'Unknown')}</span>
-            <span class="text-xs text-gray-500">${esc(item.bureau || '')}</span>
+            <span class="text-sm font-medium truncate">${displayName}</span>
+            ${bureauLabel}
           </div>
           ${itemBadge}
         </div>`;
       }).join('');
 
-      const letters = (round.letters || []).map(l =>
-        `<span class="text-xs text-gray-500">${esc(l.bureau || '')} - ${esc(l.letterType || l.creditor || '')}</span>`
-      ).join(', ');
+      const letters = (round.letters || []).map(l => {
+        const lCreditor = l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown' ? l.creditor : '';
+        const lLabel = lCreditor ? `${esc(lCreditor)} (${esc(l.bureau || '')})` : esc(l.bureau || l.letterType || '');
+        return `<span class="text-xs text-gray-500">${lLabel}</span>`;
+      }).join(', ');
 
       return `<div class="glass card p-4 space-y-3 dispute-round-card">
         <div class="flex items-center justify-between gap-2">
@@ -2452,13 +2458,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const items = activeRound.items || [];
     itemsEl.innerHTML = items.map((item, idx) => {
-      const creditor = esc(item.creditor || 'Unknown');
-      const bureau = esc(item.bureau || '');
+      const rawCreditor = item.creditor || 'Unknown';
+      const bureau = item.bureau || '';
+      const creditorIsUseful = rawCreditor !== bureau && rawCreditor !== 'Unknown';
+      const acctLabel = item.accountNumber ? ` (${esc(item.accountNumber)})` : '';
+      const displayName = creditorIsUseful ? esc(rawCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
+      const bureauTag = creditorIsUseful && bureau ? `<span class="text-xs text-gray-500 ml-1">• ${esc(bureau)}</span>` : '';
+      const creditor = esc(rawCreditor);
       return `<div class="glass card p-3 space-y-2 dispute-questionnaire-item" data-idx="${idx}">
         <div class="flex items-center justify-between">
           <div>
-            <div class="text-sm font-medium text-white">${creditor}</div>
-            <div class="text-xs text-gray-500">${bureau}</div>
+            <div class="text-sm font-medium text-white">${displayName} ${bureauTag}</div>
           </div>
         </div>
         <div>

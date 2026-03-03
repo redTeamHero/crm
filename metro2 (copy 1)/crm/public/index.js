@@ -2736,7 +2736,33 @@ function renderDisputeTracker(data) {
         </div>`;
       });
     }
+    html += `<div style="margin-top:10px;">
+      <button class="btn btn-outline text-xs" id="disputeGenerateFromAnalysis">Generate Dispute Letters</button>
+    </div>`;
     analysisBody.innerHTML = html;
+
+    const genBtn = analysisBody.querySelector('#disputeGenerateFromAnalysis');
+    if (genBtn && activation.recommendations) {
+      genBtn.addEventListener('click', () => {
+        activation.recommendations.forEach(rec => {
+          if (rec.tradelineIndex === undefined || rec.tradelineIndex === null) return;
+          const card = document.querySelector(`.tl-card[data-index="${rec.tradelineIndex}"]`);
+          if (!card) return;
+          if (typeof setCardSelected === 'function') setCardSelected(card, true);
+          const letterSel = card.querySelector('.tl-letter-select');
+          if (letterSel && rec.recommendedTemplate) {
+            const tplVal = `tpl:${rec.recommendedTemplate}`;
+            const opt = Array.from(letterSel.options).find(o => o.value === tplVal || o.value === rec.recommendedTemplate);
+            if (opt) letterSel.value = opt.value;
+          }
+          const bureauChecks = card.querySelectorAll('.tl-bureau-option input[type="checkbox"]');
+          bureauChecks.forEach(cb => { cb.checked = true; });
+        });
+        const generateBtn = document.querySelector('#generateLettersBtn') || document.querySelector('.generate-letters-btn');
+        if (generateBtn) generateBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        alert(`${activation.recommendations.length} item${activation.recommendations.length !== 1 ? 's' : ''} pre-selected with recommended templates. Review selections and click "Generate Letters" when ready.`);
+      });
+    }
   } else {
     analysisCard.classList.add("hidden");
   }

@@ -6847,11 +6847,37 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       const followUpDate = new Date();
       followUpDate.setDate(followUpDate.getDate() + followUpDays);
 
+      function resolveCreditorName(L) {
+        let name = L.creditor || L.creditorName || null;
+        if (!name || name === L.bureau || name === "Unknown") {
+          const tl = reportWrap?.data?.tradelines?.[L.tradelineIndex];
+          if (tl) {
+            name = tl.meta?.creditor || tl.creditor || name;
+          }
+        }
+        return name || "Unknown";
+      }
+      function resolveAccountNumber(L) {
+        const tl = reportWrap?.data?.tradelines?.[L.tradelineIndex];
+        if (!tl) return null;
+        const accts = [];
+        for (const [, bd] of Object.entries(tl.per_bureau || {})) {
+          const acct = bd.account_number || bd.accountNumber || bd["Account Number"] || null;
+          if (acct) accts.push(acct);
+        }
+        if (accts.length) {
+          const raw = accts[0].replace(/[^0-9A-Za-z]/g, "");
+          return raw.length > 4 ? "••••" + raw.slice(-4) : raw;
+        }
+        return null;
+      }
+
       const roundItems = letters.map(L => ({
-        creditor: L.creditor || L.creditorName || "Unknown",
+        creditor: resolveCreditorName(L),
         bureau: L.bureau || null,
         letterType: L.templateId || L.filename || null,
         tradelineIndex: L.tradelineIndex ?? null,
+        accountNumber: resolveAccountNumber(L),
         status: "awaiting",
       }));
 
@@ -6861,10 +6887,11 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
         requestType: jobRequestType,
         letters: letters.map(L => ({
           bureau: L.bureau || null,
-          creditor: L.creditor || L.creditorName || "Unknown",
+          creditor: resolveCreditorName(L),
           letterType: L.templateId || null,
           tradelineIndex: L.tradelineIndex ?? null,
           filename: L.filename,
+          accountNumber: resolveAccountNumber(L),
         })),
         sentAt: new Date().toISOString(),
         followUpDays,
