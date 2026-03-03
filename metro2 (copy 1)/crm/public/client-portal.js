@@ -2353,6 +2353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const map = {
       awaiting: { cls: 'badge-awaiting', label: 'Awaiting' },
       awaiting_response: { cls: 'badge-awaiting', label: 'Awaiting Response' },
+      response_received: { cls: 'badge-response-received', label: 'Response Received' },
       removed: { cls: 'badge-removed', label: 'Removed' },
       deleted: { cls: 'badge-removed', label: 'Deleted' },
       verified: { cls: 'badge-verified', label: 'Verified' },
@@ -2439,7 +2440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!card || !itemsEl) return;
 
     const activeRound = [...rounds].reverse().find(r => {
-      return r.status !== 'resolved' && r.status !== 'completed';
+      return r.status !== 'resolved' && r.status !== 'completed' && r.status !== 'response_received';
     });
 
     if (!activeRound) {

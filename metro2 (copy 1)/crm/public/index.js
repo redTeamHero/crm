@@ -700,6 +700,7 @@ $("#btnSelectNegative")?.addEventListener("click", ()=>{
 });
 
 async function selectConsumer(id){
+  stopDisputePolling();
   currentConsumerId = id;
   const c = DB.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
@@ -720,6 +721,7 @@ async function selectConsumer(id){
   await loadMessages();
   await loadTracker();
   await loadDisputeTracker();
+  startDisputePolling();
 }
 
 function restoreSelectedConsumer(){
@@ -2650,6 +2652,8 @@ if (btnCardView && btnListView) {
 // ===================== Dispute Tracker =====================
 const DISPUTE_STATUS_LABELS = {
   awaiting: { label: 'Awaiting', color: '#d4a853' },
+  awaiting_response: { label: 'Awaiting Response', color: '#d4a853' },
+  response_received: { label: 'Response Received', color: '#8b5cf6' },
   removed: { label: 'Removed', color: '#4ade80' },
   deleted: { label: 'Deleted', color: '#4ade80' },
   corrected: { label: 'Corrected', color: '#4ade80' },
@@ -2667,6 +2671,21 @@ function disputeStatusBadge(status) {
 }
 
 let currentDisputeData = null;
+let disputePollTimer = null;
+
+function startDisputePolling() {
+  stopDisputePolling();
+  disputePollTimer = setInterval(() => {
+    if (currentConsumerId) loadDisputeTracker();
+  }, 30000);
+}
+
+function stopDisputePolling() {
+  if (disputePollTimer) {
+    clearInterval(disputePollTimer);
+    disputePollTimer = null;
+  }
+}
 
 async function loadDisputeTracker() {
   const panel = $("#disputeTrackerPanel");

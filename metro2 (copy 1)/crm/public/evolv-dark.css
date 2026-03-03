@@ -2423,3 +2423,21 @@ canvas {
   color: #ef4444 !important;
   border: 1px solid rgba(239, 68, 68, 0.3) !important;
 }
+
+.dispute-badge.badge-response-received {
+  background: rgba(139, 92, 246, 0.15) !important;
+  color: #8b5cf6 !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+.dispute-status-badge.status-response_received {
+  background: rgba(139, 92, 246, 0.15) !important;
+  color: #8b5cf6 !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+.dispute-status-badge.status-awaiting_response {
+  background: rgba(212, 168, 83, 0.12) !important;
+  color: #d4a853 !important;
+  border: 1px solid rgba(212, 168, 83, 0.3) !important;
+}
