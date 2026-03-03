@@ -43,6 +43,9 @@ export default {
   "Company Name":             { key: "creditor_name" },
   "Subscriber Name":          { key: "creditor_name" },
   "Furnisher Name":           { key: "creditor_name" },
+  "Account Name":             { key: "creditor_name" },
+  "Original Creditor":        { key: "creditor_name" },
+  "Reported By":              { key: "creditor_name" },
 };
 
 function isBlank(value){

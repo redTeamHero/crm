@@ -224,7 +224,19 @@ export function buildTradeline(bureaus, rows, meta = {}){
     tl.violations.push(...v.map(x=>({ ...x, bureau:b })));
   }
   if(!tl.meta.creditor){
-    tl.meta.creditor = inferCreditorFromPerBureau(tl.per_bureau) || 'Unknown Creditor';
+    tl.meta.creditor = inferCreditorFromPerBureau(tl.per_bureau) || null;
+  }
+  if(!tl.meta.creditor){
+    for(const bureau of bureaus){
+      const data = tl.per_bureau[bureau];
+      if(!data) continue;
+      const raw = data.creditor_name_raw || data.creditor_raw || data.company_name_raw || data.subscriber_name_raw || data.account_name_raw || data.furnisher_name_raw;
+      const cleaned = sanitizeCreditor(raw);
+      if(cleaned){ tl.meta.creditor = cleaned; break; }
+    }
+  }
+  if(!tl.meta.creditor){
+    tl.meta.creditor = 'Unknown Creditor';
   }
   for(const bureau of bureaus){
     const data = tl.per_bureau[bureau];
@@ -996,7 +1008,7 @@ export function __test_inferTradelineMeta(adapter, table){
 
 function findNearestHeader(adapter, node){
   let current = node;
-  const headerSelector = 'div.sub_header, div.section_header, div.section-title, div.section_header_title, h2, h3, h4';
+  const headerSelector = 'div.sub_header, div.section_header, div.section-title, div.section_header_title, div.account-header, div.account_header, div.tradeline-header, div.tradeline_header, div.account-name, span.sub_header, p.sub_header, h2, h3, h4';
   while(current){
     let sibling = adapter.previous(current);
     while(sibling){
@@ -1069,7 +1081,7 @@ function inferCreditorFromPerBureau(perBureau = {}){
   for(const bureau of BUREAU_PRIORITY){
     const data = perBureau[bureau];
     if(!data || typeof data !== 'object') continue;
-    const candidate = data.creditor_name || data.creditor || data.company_name;
+    const candidate = data.creditor_name || data.creditor || data.company_name || data.subscriber_name || data.account_name || data.furnisher_name;
     const cleaned = sanitizeCreditor(candidate);
     if(cleaned) return cleaned;
   }
