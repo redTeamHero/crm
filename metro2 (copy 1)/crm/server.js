@@ -1198,6 +1198,25 @@ app.post(
 );
 
 app.use(express.json({ limit: "10mb" }));
+
+function stripDangerousKeys(obj) {
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(stripDangerousKeys);
+  const cleaned = {};
+  for (const key of Object.keys(obj)) {
+    if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+    cleaned[key] = stripDangerousKeys(obj[key]);
+  }
+  return cleaned;
+}
+
+app.use((req, _res, next) => {
+  if (req.body && typeof req.body === "object") {
+    req.body = stripDangerousKeys(req.body);
+  }
+  next();
+});
+
 let mailer = null;
 if(nodemailer && process.env.SMTP_HOST){
   mailer = nodemailer.createTransport({
@@ -2054,8 +2073,37 @@ app.get("/api/booking/availability", async (req, res) => {
 
 app.put("/api/booking/availability", authenticate, forbidMember, async (req, res) => {
   try {
-    const updates = req.body || {};
+    const raw = req.body || {};
     const current = await readKey("call_availability", DEFAULT_AVAILABILITY);
+    const ALLOWED_AVAILABILITY_KEYS = new Set(["timezone", "slotDuration", "slots"]);
+    const updates = {};
+    for (const key of Object.keys(raw)) {
+      if (ALLOWED_AVAILABILITY_KEYS.has(key)) {
+        updates[key] = raw[key];
+      }
+    }
+    if (updates.timezone !== undefined) {
+      updates.timezone = sanitizeSettingString(updates.timezone).slice(0, 64);
+    }
+    if (updates.slotDuration !== undefined) {
+      const dur = Number(updates.slotDuration);
+      updates.slotDuration = Number.isFinite(dur) && dur > 0 && dur <= 480 ? dur : current.slotDuration || 30;
+    }
+    if (updates.slots !== undefined && typeof updates.slots === "object" && !Array.isArray(updates.slots)) {
+      const sanitizedSlots = {};
+      for (const dayKey of Object.keys(updates.slots)) {
+        const dayNum = Number(dayKey);
+        if (!Number.isInteger(dayNum) || dayNum < 0 || dayNum > 6) continue;
+        const daySlots = updates.slots[dayKey];
+        if (!Array.isArray(daySlots)) continue;
+        sanitizedSlots[dayNum] = daySlots
+          .filter(s => s && typeof s === "object" && typeof s.start === "string" && typeof s.end === "string")
+          .map(s => ({ start: s.start.slice(0, 5), end: s.end.slice(0, 5) }));
+      }
+      updates.slots = sanitizedSlots;
+    } else {
+      delete updates.slots;
+    }
     const merged = { ...current, ...updates };
     await writeKey("call_availability", merged);
     res.json({ ok: true, availability: merged });

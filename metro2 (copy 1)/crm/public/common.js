@@ -2,7 +2,7 @@
 
 // Escape HTML entities for safe DOM insertion
 export function escapeHtml(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
     '&': '&amp;',
     '<': '&lt;',
     '>': '&gt;',
@@ -10,6 +10,7 @@ export function escapeHtml(s) {
     "'": '&#39;'
   }[c]));
 }
+if (typeof window !== 'undefined') window.escapeHtml = escapeHtml;
 
 // Consistent currency formatter used across UI modules
 export function formatCurrency(val) {
@@ -1008,7 +1009,7 @@ function initPalette(){
   const bubbles = Object.entries(THEMES)
     .map(([name, t]) => {
       const label = (THEME_LABELS[name] || name.replace(/([A-Z])/g, ' $1').replace(/[-_]/g, ' ')).replace(/^./, c => c.toUpperCase());
-      return `<div class="bubble" role="button" tabindex="0" aria-pressed="false" data-theme="${name}" data-label="${label}" aria-label="${label}" style="background:${t.accent}"></div>`;
+      return `<div class="bubble" role="button" tabindex="0" aria-pressed="false" data-theme="${escapeHtml(name)}" data-label="${escapeHtml(label)}" aria-label="${escapeHtml(label)}" style="background:${escapeHtml(t.accent)}"></div>`;
     })
     .join('');
 
@@ -1019,7 +1020,7 @@ function initPalette(){
     <button class="toggle" type="button" aria-expanded="false">
       <span class="toggle-icon" aria-hidden="true">🎨</span>
       <span class="toggle-label">Theme</span>
-      <span class="toggle-active">${savedLabel}</span>
+      <span class="toggle-active">${escapeHtml(savedLabel)}</span>
     </button>
     <div class="palette-controls" aria-hidden="true">
       <div class="palette-header">
@@ -1289,7 +1290,7 @@ function ensureTierBadge(){
   const tooltip = getTranslation('tiers.messages.rookie') || getTranslation('badges.tooltip') || "You've started your journey.";
   const label = getTranslation('tiers.names.rookie') || 'Rookie';
   div.title = tooltip;
-  div.innerHTML = `<span class="text-xl">📄</span><span class="font-semibold text-sm">${label}</span>`;
+  div.innerHTML = `<span class="text-xl">📄</span><span class="font-semibold text-sm">${escapeHtml(label)}</span>`;
   nav.appendChild(div);
 }
 
@@ -1301,7 +1302,7 @@ function renderDeletionTier(){
   const label = getTranslation(`tiers.names.${tier.key}`) || tier.name;
   const message = getTranslation(`tiers.messages.${tier.key}`) || tier.message;
   el.className = `hidden sm:flex items-center gap-2 rounded-full px-4 py-2 shadow-sm animate-fadeInUp ${tier.class}`;
-  el.innerHTML = `<span class="text-xl">${tier.icon}</span><span class="font-semibold text-sm">${label}</span>`;
+  el.innerHTML = `<span class="text-xl">${escapeHtml(tier.icon)}</span><span class="font-semibold text-sm">${escapeHtml(label)}</span>`;
   el.title = message;
 }
 

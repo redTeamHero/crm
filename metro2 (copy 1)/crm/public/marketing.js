@@ -1,4 +1,4 @@
-import { api, getTranslation, getCurrentLanguage } from "./common.js";
+import { api, getTranslation, getCurrentLanguage, escapeHtml } from "./common.js";
 import { setupPageTour } from "./tour-guide.js";
 
 const API_BASE = "/api/marketing";
@@ -729,10 +729,10 @@ function resetTemplateEditor() {
     templateEditorBadgeInput.value = segment.toUpperCase();
   }
   if (templateEditorPreview) {
-    templateEditorPreview.innerHTML = `<p class="text-xs text-slate-400">${t(
+    templateEditorPreview.innerHTML = `<p class="text-xs text-slate-400">${escapeHtml(t(
       "marketing.emailBuilder.editor.previewEmpty",
       "Add HTML to render preview."
-    )}</p>`;
+    ))}</p>`;
   }
   if (templateEditorMeta) {
     templateEditorMeta.textContent = "";
@@ -762,10 +762,10 @@ function updateTemplatePreview() {
   if (raw.trim()) {
     templateEditorPreview.innerHTML = applyMergeFields(raw);
   } else {
-    templateEditorPreview.innerHTML = `<p class="text-xs text-slate-400">${t(
+    templateEditorPreview.innerHTML = `<p class="text-xs text-slate-400">${escapeHtml(t(
       "marketing.emailBuilder.editor.previewEmpty",
       "Add HTML to render preview."
-    )}</p>`;
+    ))}</p>`;
   }
   if (templateEditorMeta) {
     const parts = [];

@@ -110,7 +110,7 @@ function syncInviteRoleOptions() {
   if (!inviteRole) return;
   const roles = getRoles();
   const current = inviteRole.value;
-  inviteRole.innerHTML = roles.map(role => `<option value="${role.id}">${escapeHtml(role.label)}</option>`).join('');
+  inviteRole.innerHTML = roles.map(role => `<option value="${escapeHtml(role.id)}">${escapeHtml(role.label)}</option>`).join('');
   const preferred = roles.some(role => role.id === current) ? current : (getDefaultRole()?.id || '');
   if (preferred) {
     inviteRole.value = preferred;
@@ -339,7 +339,7 @@ function renderTeamMembers() {
       : '';
     const selectId = `role-${String(member.id || credentialKey || 'member').replace(/[^a-z0-9_-]/gi, '')}`;
     const roleOptions = roles.map(role => `
-        <option value="${role.id}" ${role.id === member.teamRole ? 'selected' : ''}>${escapeHtml(role.label)}</option>
+        <option value="${escapeHtml(role.id)}" ${role.id === member.teamRole ? 'selected' : ''}>${escapeHtml(role.label)}</option>
       `).join('');
     const roleDescriptions = [
       member.roleDescription ? `<div class="role-hint">${escapeHtml(member.roleDescription)}</div>` : '',
@@ -359,7 +359,7 @@ function renderTeamMembers() {
         <td class="px-4 py-3 role-cell">
           <div class="role-select-wrap">
             <label class="sr-only" for="${selectId}">Assign role for ${name}</label>
-            <select id="${selectId}" class="role-select input input-select" data-role-select data-member-id="${member.id}" data-current-role="${member.teamRole}" aria-label="Assign role for ${name}">
+            <select id="${selectId}" class="role-select input input-select" data-role-select data-member-id="${escapeHtml(String(member.id))}" data-current-role="${escapeHtml(member.teamRole)}" aria-label="Assign role for ${name}">
               ${roleOptions}
             </select>
           </div>
@@ -375,7 +375,7 @@ function renderTeamMembers() {
         <td class="px-4 py-3 text-sm">${escapeHtml(lastLogin)}</td>
         <td class="px-4 py-3 text-sm">${escapeHtml(invited)}</td>
         <td class="px-4 py-3 text-right">
-          <button type="button" class="btn-destructive text-xs" data-remove="${member.id}" data-name="${name}">Remove</button>
+          <button type="button" class="btn-destructive text-xs" data-remove="${escapeHtml(String(member.id))}" data-name="${name}">Remove</button>
         </td>
       </tr>
     `;

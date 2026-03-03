@@ -1,4 +1,5 @@
 // public/quiz.js
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 const Q = (s) => document.querySelector(s);
 const quizEl = Q("#quiz");
 const resultEl = Q("#result");
@@ -42,12 +43,12 @@ function render(){
     const block = document.createElement("div");
     block.className = "border rounded-xl p-4 bg-slate-50";
     block.innerHTML = `
-      <div class="font-medium mb-2">${idx+1}. ${item.q}</div>
+      <div class="font-medium mb-2">${idx+1}. ${esc(item.q)}</div>
       <div class="grid md:grid-cols-2 gap-2">
         ${item.a.map((opt,i)=>`
           <label class="flex items-center gap-2 border rounded p-2 bg-white">
             <input type="radio" name="q${idx}" value="${i}" />
-            <span>${opt}</span>
+            <span>${esc(opt)}</span>
           </label>
         `).join("")}
       </div>

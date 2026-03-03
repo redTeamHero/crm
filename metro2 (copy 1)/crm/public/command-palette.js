@@ -213,6 +213,12 @@
   `;
   document.head.appendChild(styleEl);
 
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
   function svgIcon(paths, size) {
     size = size || 18;
     return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>';
@@ -308,13 +314,13 @@
       var cmd = filtered[j];
       if (cmd.cat !== lastCat) {
         lastCat = cmd.cat;
-        html += '<div class="cmd-palette-category">' + cmd.cat + '</div>';
+        html += '<div class="cmd-palette-category">' + esc(cmd.cat) + '</div>';
       }
       html += '<div class="cmd-palette-item' + (j === activeIndex ? ' active' : '') + '" data-index="' + j + '">';
       html += '<div class="cmd-palette-item-icon">' + svgIcon(icons[cmd.icon] || icons.grid, 16) + '</div>';
       html += '<div class="cmd-palette-item-text">';
-      html += '<div class="cmd-palette-item-label">' + cmd.label + '</div>';
-      if (cmd.desc) html += '<div class="cmd-palette-item-desc">' + cmd.desc + '</div>';
+      html += '<div class="cmd-palette-item-label">' + esc(cmd.label) + '</div>';
+      if (cmd.desc) html += '<div class="cmd-palette-item-desc">' + esc(cmd.desc) + '</div>';
       html += '</div>';
       html += '</div>';
     }

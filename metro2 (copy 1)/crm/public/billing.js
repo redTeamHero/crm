@@ -116,7 +116,7 @@ function updatePricingFromStripe(products) {
     const priceEl = card.querySelector('p.text-3xl');
     if (priceEl) {
       const dollars = Math.round(price.unit_amount / 100);
-      priceEl.innerHTML = `$${dollars}<span class="text-base font-normal text-slate-500">/${price.interval}</span>`;
+      priceEl.innerHTML = `$${escapeHtml(String(dollars))}<span class="text-base font-normal text-slate-500">/${escapeHtml(price.interval)}</span>`;
     }
 
     const btn = card.querySelector('.subscribe-btn');

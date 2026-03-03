@@ -289,8 +289,8 @@ function renderInvoices(invoices = []){
       <td class="px-4 py-3">${statusBadge}</td>
       <td class="px-4 py-3">
         <div style="display:flex;flex-wrap:wrap;gap:6px">
-          ${inv.pdf ? `<a style="${actionBtnStyle}" target="_blank" href="/api/consumers/${invoiceConsumerId}/state/files/${inv.pdf}">${escapeHtml(translate('billing.invoices.actions.pdf') || 'PDF')}</a>` : ''}
-          ${inv.paid ? '' : `<button style="${markPaidBtnStyle}" class="mark-paid" data-id="${inv.id}">${escapeHtml(translate('billing.invoices.actions.markPaid') || 'Mark paid')}</button>`}
+          ${inv.pdf ? `<a style="${actionBtnStyle}" target="_blank" href="/api/consumers/${encodeURIComponent(invoiceConsumerId)}/state/files/${encodeURIComponent(inv.pdf)}">${escapeHtml(translate('billing.invoices.actions.pdf') || 'PDF')}</a>` : ''}
+          ${inv.paid ? '' : `<button style="${markPaidBtnStyle}" class="mark-paid" data-id="${escapeHtml(inv.id)}">${escapeHtml(translate('billing.invoices.actions.markPaid') || 'Mark paid')}</button>`}
         </div>
       </td>`;
     const btn = tr.querySelector('.mark-paid');
@@ -614,8 +614,8 @@ function renderPlansList(){
           ${cyclesCopy ? `<p class="text-xs text-slate-500">${escapeHtml(cyclesCopy)}</p>` : ''}
         </div>
         <div class="flex flex-col gap-2">
-          <button type="button" class="btn text-xs font-semibold plan-edit" data-id="${plan.id}">${escapeHtml(translate('billing.plans.list.editCta') || 'Edit')}</button>
-          <button type="button" class="btn text-xs font-semibold plan-send" data-id="${plan.id}" ${plan.active ? '' : 'disabled'}>${escapeHtml(translate('billing.plans.list.sendCta') || 'Send invoice')}</button>
+          <button type="button" class="btn text-xs font-semibold plan-edit" data-id="${escapeHtml(plan.id)}">${escapeHtml(translate('billing.plans.list.editCta') || 'Edit')}</button>
+          <button type="button" class="btn text-xs font-semibold plan-send" data-id="${escapeHtml(plan.id)}" ${plan.active ? '' : 'disabled'}>${escapeHtml(translate('billing.plans.list.sendCta') || 'Send invoice')}</button>
         </div>
       </div>
     `;

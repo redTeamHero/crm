@@ -12,13 +12,29 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-VULTURE_BIN = os.environ.get("VULTURE_BIN", "vulture")
+_ALLOWED_VULTURE_NAMES = {"vulture"}
+
+
+def _resolve_vulture_bin() -> str:
+    raw = os.environ.get("VULTURE_BIN", "vulture")
+    if os.path.basename(raw) not in _ALLOWED_VULTURE_NAMES:
+        raise SystemExit(
+            f"VULTURE_BIN must resolve to one of {_ALLOWED_VULTURE_NAMES}, got: {raw!r}"
+        )
+    resolved = shutil.which(raw)
+    if resolved is None:
+        raise SystemExit(f"Could not find vulture executable on PATH: {raw!r}")
+    return resolved
+
+
+VULTURE_BIN = _resolve_vulture_bin()
 DEFAULT_EXCLUDES = [
     "node_modules",
     "metro2 (copy 1)/crm/node_modules",

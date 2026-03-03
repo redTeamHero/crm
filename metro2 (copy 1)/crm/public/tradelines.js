@@ -40,6 +40,8 @@ setupPageTour('tradelines', {
   ]
 });
 
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 /* public/tradelines.js */
 document.addEventListener('DOMContentLoaded', () => {
   const priceRangeGrid = document.getElementById('price-range-grid');
@@ -243,11 +245,11 @@ function renderRanges() {
       }`;
       button.dataset.rangeId = range.id;
       button.innerHTML = `
-        <div class="text-sm uppercase tracking-wide mb-1">${copy.rangeHeading.split('.')[0]}</div>
-        <div class="text-2xl font-semibold">${range.label}</div>
-        <div class="text-sm mt-2 opacity-80">${copy.rangeCount(range.count || 0)}</div>
+        <div class="text-sm uppercase tracking-wide mb-1">${esc(copy.rangeHeading.split('.')[0])}</div>
+        <div class="text-2xl font-semibold">${esc(range.label)}</div>
+        <div class="text-sm mt-2 opacity-80">${esc(copy.rangeCount(range.count || 0))}</div>
         <div class="mt-3 inline-flex items-center gap-2 text-sm font-semibold">
-          ${copy.rangeCta}
+          ${esc(copy.rangeCta)}
           <span aria-hidden="true">➜</span>
         </div>
       `;
@@ -405,7 +407,8 @@ function renderRanges() {
       }
 
       const cta = document.createElement('a');
-      cta.href = item.buy_link || '#';
+      const buyLink = item.buy_link || '#';
+      cta.href = /^https?:\/\//i.test(buyLink) ? buyLink : '#';
       cta.className = 'inline-flex items-center justify-center gap-2 mt-3 bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 transition';
       cta.textContent = copy.mobileBuy;
       cta.target = '_blank';
@@ -417,8 +420,9 @@ function renderRanges() {
     prevBtn.disabled = state.page <= 1;
     nextBtn.disabled = state.page >= totalPages;
     pageIndicator.textContent = `${state.page}/${totalPages}`;
-    mobileBuy.href = paginated[0]?.buy_link || '#';
-    if (paginated[0]?.buy_link) {
+    const firstBuyLink = paginated[0]?.buy_link || '';
+    mobileBuy.href = /^https?:\/\//i.test(firstBuyLink) ? firstBuyLink : '#';
+    if (firstBuyLink && /^https?:\/\//i.test(firstBuyLink)) {
       mobileBuy.classList.remove('hidden');
     } else {
       mobileBuy.classList.add('hidden');

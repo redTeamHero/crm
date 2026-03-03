@@ -189,7 +189,7 @@ function renderReasonOptions(filter=""){
   const f = filter.toLowerCase();
   const opts = metro2Violations.filter(r => r.toLowerCase().includes(f));
   sel.innerHTML = '<option value="">Select reason</option>' +
-    opts.map(r => `<option value="${r}">${r}</option>`).join('');
+    opts.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
 }
 async function loadMetro2Violations(){
   try{
@@ -835,7 +835,7 @@ function renderTrackerSteps(){
   trackerSteps.forEach((step,i)=>{
     const div = document.createElement("div");
     div.className = "flex items-center gap-1 step-item";
-    div.innerHTML = `<label class="flex items-center gap-2"><input type="checkbox" data-step="${step}" /> <span>${step}</span></label><button class="remove-step" data-index="${i}" aria-label="Remove step">&times;</button>`;
+    div.innerHTML = `<label class="flex items-center gap-2"><input type="checkbox" data-step="${escapeHtml(step)}" /> <span>${escapeHtml(step)}</span></label><button class="remove-step" data-index="${i}" aria-label="Remove step">&times;</button>`;
     wrap.appendChild(div);
   });
   wrap.querySelectorAll("input[type=checkbox]").forEach(cb=>{
@@ -943,11 +943,11 @@ function renderReportDiff(diff) {
   if (banner) {
     banner.innerHTML = "";
     if (deletedCount > 0) banner.insertAdjacentHTML("beforeend",
-      `<span style="background:#064e3b;color:#4ade80;padding:4px 12px;border-radius:6px;font-weight:600;">✓ ${deletedCount} Deleted</span>`);
+      `<span style="background:#064e3b;color:#4ade80;padding:4px 12px;border-radius:6px;font-weight:600;">✓ ${Number(deletedCount) || 0} Deleted</span>`);
     if (addedCount > 0) banner.insertAdjacentHTML("beforeend",
-      `<span style="background:#7f1d1d;color:#f87171;padding:4px 12px;border-radius:6px;font-weight:600;">+ ${addedCount} New</span>`);
+      `<span style="background:#7f1d1d;color:#f87171;padding:4px 12px;border-radius:6px;font-weight:600;">+ ${Number(addedCount) || 0} New</span>`);
     if (changedCount > 0) banner.insertAdjacentHTML("beforeend",
-      `<span style="background:#78350f;color:#fbbf24;padding:4px 12px;border-radius:6px;font-weight:600;">⟳ ${changedCount} Changed</span>`);
+      `<span style="background:#78350f;color:#fbbf24;padding:4px 12px;border-radius:6px;font-weight:600;">⟳ ${Number(changedCount) || 0} Changed</span>`);
   }
 
   const deletedSection = document.getElementById("diffDeleted");
@@ -959,7 +959,7 @@ function renderReportDiff(diff) {
         <div class="glass" style="padding:8px 12px;border-radius:8px;border-left:3px solid #4ade80;">
           <div style="font-weight:600;">${esc(d.creditor)}</div>
           <div style="color:var(--muted);font-size:.8rem;">
-            Removed from: ${(d.removedFromBureaus || d.bureaus || []).join(", ")}
+            Removed from: ${(d.removedFromBureaus || d.bureaus || []).map(b => esc(b)).join(", ")}
             ${Object.values(d.accountNumbers || {}).filter(Boolean).length ? ` · Acct: ${esc(Object.values(d.accountNumbers)[0])}` : ""}
           </div>
         </div>`).join("");
@@ -977,8 +977,8 @@ function renderReportDiff(diff) {
         <div class="glass" style="padding:8px 12px;border-radius:8px;border-left:3px solid #f87171;">
           <div style="font-weight:600;">${esc(a.creditor)}</div>
           <div style="color:var(--muted);font-size:.8rem;">
-            Bureaus: ${(a.addedOnBureaus || a.bureaus || []).join(", ")}
-            · ${a.violationCount || 0} violation${(a.violationCount || 0) !== 1 ? "s" : ""}
+            Bureaus: ${(a.addedOnBureaus || a.bureaus || []).map(b => esc(b)).join(", ")}
+            · ${Number(a.violationCount) || 0} violation${(Number(a.violationCount) || 0) !== 1 ? "s" : ""}
           </div>
         </div>`).join("");
     } else {
@@ -1004,8 +1004,8 @@ function renderReportDiff(diff) {
         const extra = (c.fieldChanges || []).length > 5
           ? `<div style="font-size:.75rem;color:var(--muted);">+ ${c.fieldChanges.length - 5} more changes</div>` : "";
         const bureauInfo = [];
-        if (c.bureausRemoved?.length) bureauInfo.push(`Removed from: ${c.bureausRemoved.join(", ")}`);
-        if (c.bureausAdded?.length) bureauInfo.push(`Added to: ${c.bureausAdded.join(", ")}`);
+        if (c.bureausRemoved?.length) bureauInfo.push(`Removed from: ${c.bureausRemoved.map(b => esc(b)).join(", ")}`);
+        if (c.bureausAdded?.length) bureauInfo.push(`Added to: ${c.bureausAdded.map(b => esc(b)).join(", ")}`);
         return `
           <div class="glass" style="padding:8px 12px;border-radius:8px;border-left:3px solid #fbbf24;">
             <div style="font-weight:600;">${esc(c.creditor)}</div>
@@ -1030,7 +1030,7 @@ function renderReportDiff(diff) {
   }
 }
 
-function esc(s) { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // ===================== Filters (unchanged) =====================
 const ALL_TAGS = ["Collections","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
@@ -2393,7 +2393,7 @@ async function loadConsumerState(){
         <div class="glass card flex items-center justify-between p-2">
           <div class="wrap-anywhere">
             <div>${escapeHtml(f.originalName)}</div>
-            <div class="text-xs muted">${(f.mimetype||"").split("/").pop() || ""} • ${(f.size/1024).toFixed(1)} KB • ${new Date(f.uploadedAt).toLocaleString()}</div>
+            <div class="text-xs muted">${escapeHtml((f.mimetype||"").split("/").pop() || "")} • ${(f.size/1024).toFixed(1)} KB • ${new Date(f.uploadedAt).toLocaleString()}</div>
           </div>
           <a class="btn text-sm" href="/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(f.storedName)}" target="_blank">Open</a>
         </div>

@@ -802,9 +802,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const statusClass = isBusy ? 'slot-status-busy' : 'slot-status-open';
       const statusLabel = isBusy ? 'Booked' : slot.custom ? 'Custom' : 'Open';
       button.innerHTML = `
-        <span class="slot-time">${formatTimeLabel(slot.start)}</span>
-        <span class="slot-meta">${metaLabel}</span>
-        <span class="slot-status ${statusClass}">${statusLabel}</span>
+        <span class="slot-time">${esc(formatTimeLabel(slot.start))}</span>
+        <span class="slot-meta">${esc(metaLabel)}</span>
+        <span class="slot-status ${esc(statusClass)}">${esc(statusLabel)}</span>
       `;
       if (!isBusy) {
         button.addEventListener('click', () => {
@@ -830,7 +830,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           requestAnimationFrame(() => {
             const targetRow = slotPresetList
-              ? slotPresetList.querySelector(`.slot-preset-row[data-slot-id="${slot.id}"]`)
+              ? slotPresetList.querySelector(`.slot-preset-row[data-slot-id="${CSS.escape(slot.id)}"]`)
               : null;
             if (targetRow) {
               targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1121,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="summary-tile">
           <span class="tile-label">Local Calendar Active</span>
           <strong>CRM</strong>
-          <span class="tile-helper">${calendarNotice}</span>
+          <span class="tile-helper">${esc(calendarNotice)}</span>
         </div>
       `;
     }
@@ -1212,15 +1212,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const item = document.createElement('div');
       item.className = 'timeline-item';
       item.innerHTML = `
-        <span class="timeline-bullet" style="background:${theme.dot};"></span>
+        <span class="timeline-bullet" style="background:${esc(theme.dot)};"></span>
         <div class="flex-1 space-y-1">
           <div class="flex items-center justify-between gap-3">
-            <p class="text-sm font-semibold" style="color:#e0e0e0;">${ev.text || 'Untitled event'}</p>
-            <span class="text-xs" style="color:#777;">${whenLabel || 'All day'}</span>
+            <p class="text-sm font-semibold" style="color:#e0e0e0;">${esc(ev.text || 'Untitled event')}</p>
+            <span class="text-xs" style="color:#777;">${esc(whenLabel || 'All day')}</span>
           </div>
           <div class="flex flex-wrap items-center gap-2 text-xs" style="color:#777;">
-            <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase" style="${theme.badgeStyle || ''}">${theme.label}</span>
-            <span>${formatDateLabel(ev.date)}</span>
+            <span class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-semibold uppercase" style="${esc(theme.badgeStyle || '')}">${esc(theme.label)}</span>
+            <span>${esc(formatDateLabel(ev.date))}</span>
           </div>
         </div>
         <button class="text-xs font-semibold hover:underline" style="color:#d4a853;">Edit</button>
@@ -1621,10 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function esc(s) {
-    if (!s) return '';
-    const el = document.createElement('span');
-    el.textContent = s;
-    return el.innerHTML;
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
   (async function init() {

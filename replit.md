@@ -26,6 +26,16 @@ Key technical implementations include:
 - A report change detection system (`shared/lib/format/reportDiff.js`) that automatically compares newly uploaded credit reports against previous ones, detecting deletions, new items, and field-level changes per bureau. Diffs are computed during upload and stored on each report as `report.diff`. The CRM client detail page shows a collapsible "Report Changes" panel with color-coded sections (green deletions, red new items, yellow changes). An on-demand diff API endpoint (`GET /api/consumers/:id/report/:rid/diff`) computes diffs retroactively for legacy reports. Cumulative deletion counts are surfaced in the client portal via `reportProgress`.
 - Client portal uses a light theme (`portal-layout` class on body, `background: #f8f9ff`). Text defaults to dark via `body { color: var(--text-primary) }`. Section headings that need white text use explicit `text-white` Tailwind classes. The `--fg` CSS variable (`#0f172a`) is defined in `:root` for elements like `.doc-card-name`, `.mail-card-name`, `.imsg-header-name`, and `.upload-card-title`. Negative item creditor names and invoice descriptions use explicit `text-slate-800` for defensive visibility.
 
+## Security Hardening
+- All frontend `esc()` / `escapeHtml()` helpers escape all 5 HTML-significant characters (`&`, `<`, `>`, `"`, `'`). The canonical implementation lives in `public/common.js` and is exposed globally as `window.escapeHtml`.
+- All `innerHTML` assignments across 22 frontend JS files have been audited and wrapped with `esc()` / `escapeHtml()` for any dynamic or API-derived data.
+- Server-side prototype pollution is mitigated by a global `stripDangerousKeys` middleware that removes `__proto__`, `constructor`, and `prototype` from all incoming `req.body` payloads.
+- `PUT /api/booking/availability` validates and whitelists input properties.
+- SQL queries in `scripts/html_ingest/ingest.py` use parameterized `IN` clauses via the `_in_clause()` helper.
+- Subprocess calls in `scripts/unused_code_audit.py` and `scripts/webhook/server.py` validate executable paths against whitelists.
+- npm dependency overrides for `minimatch`, `tar`, `tar-fs`, `jws`, and `js-yaml` are set in root `package.json` to resolve known CVEs.
+- `nodemailer` upgraded to v7.x as a direct dependency.
+
 ## External Dependencies
 - **Node.js**: Runtime environment for the backend.
 - **Python**: Used for the AI agent and Metro 2 parsers.

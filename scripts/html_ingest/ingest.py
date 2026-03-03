@@ -173,18 +173,31 @@ def save_documents(connection, documents: Sequence[ParsedDocument]) -> None:
         link_cursor.close()
 
 
+def _in_clause(values: Sequence) -> tuple[str, list]:
+    """Build a safe parameterized IN clause.
+
+    Returns a tuple of ``(placeholder_sql, params)`` where
+    ``placeholder_sql`` is e.g. ``"(%s, %s, %s)"`` and ``params`` is a
+    plain list copy of *values* suitable for passing to ``cursor.execute``.
+    """
+    params = [int(v) for v in values]
+    placeholder_sql = "(" + ", ".join(["%s"] * len(params)) + ")"
+    return placeholder_sql, params
+
+
 def export_documents(connection, document_ids: Sequence[int] | None = None) -> str:
     """Return normalized JSON for the requested documents."""
 
     cursor = connection.cursor(dictionary=True)
     try:
-        query = "SELECT * FROM html_documents"
-        params: Sequence = []
         if document_ids:
-            placeholders = ",".join(["%s"] * len(document_ids))
-            query += f" WHERE id IN ({placeholders})"
-            params = document_ids
-        cursor.execute(query, params)
+            in_sql, params = _in_clause(document_ids)
+            cursor.execute(
+                "SELECT * FROM html_documents WHERE id IN " + in_sql,
+                params,
+            )
+        else:
+            cursor.execute("SELECT * FROM html_documents")
         documents = cursor.fetchall()
 
         if not documents:
@@ -192,28 +205,24 @@ def export_documents(connection, document_ids: Sequence[int] | None = None) -> s
 
         document_map = {doc["id"]: doc for doc in documents}
         ids = list(document_map.keys())
-        placeholders = ",".join(["%s"] * len(ids))
+        in_sql, id_params = _in_clause(ids)
 
         meta_cursor = connection.cursor(dictionary=True)
         heading_cursor = connection.cursor(dictionary=True)
         link_cursor = connection.cursor(dictionary=True)
         try:
             meta_cursor.execute(
-                f"SELECT document_id, meta_name, meta_content FROM html_meta WHERE document_id IN ({placeholders})",
-                ids,
+                "SELECT document_id, meta_name, meta_content FROM html_meta WHERE document_id IN " + in_sql,
+                id_params,
             )
             heading_cursor.execute(
-                (
-                    "SELECT document_id, heading_level, heading_text, heading_order "
-                    "FROM html_headings WHERE document_id IN ("
-                    + placeholders
-                    + ") ORDER BY heading_order"
-                ),
-                ids,
+                "SELECT document_id, heading_level, heading_text, heading_order "
+                "FROM html_headings WHERE document_id IN " + in_sql + " ORDER BY heading_order",
+                id_params,
             )
             link_cursor.execute(
-                f"SELECT document_id, link_href, link_text, rel FROM html_links WHERE document_id IN ({placeholders})",
-                ids,
+                "SELECT document_id, link_href, link_text, rel FROM html_links WHERE document_id IN " + in_sql,
+                id_params,
             )
 
             meta_rows = meta_cursor.fetchall()

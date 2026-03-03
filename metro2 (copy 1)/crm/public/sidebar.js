@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
   const hostNav = document.getElementById('host-nav');
   if (!hostNav) return;
 
@@ -545,7 +547,7 @@
     if (tierSpan) tierText = tierSpan.textContent.trim();
   }
   if (tierText) {
-    html += '<div class="evolv-sb-tier"><span>📄</span><span>' + tierText + '</span></div>';
+    html += '<div class="evolv-sb-tier"><span>📄</span><span>' + esc(tierText) + '</span></div>';
   }
 
   var tok = localStorage.getItem('token');
@@ -561,9 +563,9 @@
     } catch(e) {}
   }
 
-  html += '<div class="evolv-sb-item" style="cursor:default;" data-tooltip="' + displayName + '">';
-  html += '<div class="evolv-sb-avatar">' + initials + '</div>';
-  html += '<span class="evolv-sb-item-label" style="font-size:12px;color:#888;">' + displayName + '</span>';
+  html += '<div class="evolv-sb-item" style="cursor:default;" data-tooltip="' + esc(displayName) + '">';
+  html += '<div class="evolv-sb-avatar">' + esc(initials) + '</div>';
+  html += '<span class="evolv-sb-item-label" style="font-size:12px;color:#888;">' + esc(displayName) + '</span>';
   html += '</div>';
 
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Sign Out" id="evolv-sb-logout" style="color:#888;">' + svg('logout', 20) + '<span class="evolv-sb-item-label" style="color:#888;">Sign Out</span></a>';

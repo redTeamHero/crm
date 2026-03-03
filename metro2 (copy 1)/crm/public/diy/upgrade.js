@@ -1,4 +1,14 @@
 (() => {
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[c]));
+  }
+
   const token = localStorage.getItem('diy_token');
   let currentUser = null;
   let currentCompanyId = null;
@@ -75,7 +85,7 @@
         button.addEventListener('click', () => handleSelectCompany(button.dataset.companyId));
       });
     } catch (e) {
-      companyList.innerHTML = `<div class="text-sm text-red-500">${e.message}</div>`;
+      companyList.innerHTML = `<div class="text-sm text-red-500">${escapeHtml(e.message)}</div>`;
     }
   }
 
@@ -90,8 +100,8 @@
         if (localSelection) {
           currentCompanyId = localSelection.companyId;
           currentCompany.innerHTML = `
-            <p class="font-semibold text-gray-900">${localSelection.name}</p>
-            <p class="text-xs text-gray-500">${localSelection.serviceArea} · Min plan: ${formatPlan(localSelection.minPlan)}</p>
+            <p class="font-semibold text-gray-900">${escapeHtml(localSelection.name)}</p>
+            <p class="text-xs text-gray-500">${escapeHtml(localSelection.serviceArea)} · Min plan: ${escapeHtml(formatPlan(localSelection.minPlan))}</p>
           `;
           return;
         }
@@ -102,8 +112,8 @@
       clearLocalCompanySelection();
       currentCompanyId = data.company.id;
       currentCompany.innerHTML = `
-        <p class="font-semibold text-gray-900">${data.company.name}</p>
-        <p class="text-xs text-gray-500">${data.company.serviceArea} · Min plan: ${formatPlan(data.company.minPlan)}</p>
+        <p class="font-semibold text-gray-900">${escapeHtml(data.company.name)}</p>
+        <p class="text-xs text-gray-500">${escapeHtml(data.company.serviceArea)} · Min plan: ${escapeHtml(formatPlan(data.company.minPlan))}</p>
       `;
     } catch (e) {
       currentCompany.textContent = 'Unable to load current selection.';
@@ -139,13 +149,13 @@
       <div class="card p-5 border border-gray-100">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold">Rank ${company.rank}</p>
-            <h3 class="text-lg font-semibold text-gray-900 mt-1">${company.name}</h3>
-            <p class="text-sm text-gray-600 mt-1">${company.focus}</p>
-            <p class="text-xs text-gray-500 mt-2">${company.serviceArea} · Min plan: ${formatPlan(company.minPlan)}</p>
+            <p class="text-xs uppercase tracking-wide text-gray-400 font-semibold">Rank ${escapeHtml(company.rank)}</p>
+            <h3 class="text-lg font-semibold text-gray-900 mt-1">${escapeHtml(company.name)}</h3>
+            <p class="text-sm text-gray-600 mt-1">${escapeHtml(company.focus)}</p>
+            <p class="text-xs text-gray-500 mt-2">${escapeHtml(company.serviceArea)} · Min plan: ${escapeHtml(formatPlan(company.minPlan))}</p>
           </div>
-          <button class="select-company btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed" data-company-id="${company.companyId}" ${buttonDisabled ? 'disabled' : ''}>
-            ${buttonLabel}
+          <button class="select-company btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed" data-company-id="${escapeHtml(company.companyId)}" ${buttonDisabled ? 'disabled' : ''}>
+            ${escapeHtml(buttonLabel)}
           </button>
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
@@ -175,7 +185,7 @@
       blue: 'bg-blue-100 text-blue-700',
       amber: 'bg-amber-100 text-amber-700'
     };
-    return `<span class="inline-flex items-center rounded-full ${styles[tone]} px-2 py-0.5 text-xs font-medium">${label}</span>`;
+    return `<span class="inline-flex items-center rounded-full ${styles[tone] || ''} px-2 py-0.5 text-xs font-medium">${escapeHtml(label)}</span>`;
   }
 
   function formatPlan(plan) {
@@ -236,8 +246,8 @@
       setLocalCompanySelection(localCompany);
       currentCompanyId = localCompany.companyId;
       currentCompany.innerHTML = `
-        <p class="font-semibold text-gray-900">${localCompany.name}</p>
-        <p class="text-xs text-gray-500">${localCompany.serviceArea} · Min plan: ${formatPlan(localCompany.minPlan)}</p>
+        <p class="font-semibold text-gray-900">${escapeHtml(localCompany.name)}</p>
+        <p class="text-xs text-gray-500">${escapeHtml(localCompany.serviceArea)} · Min plan: ${escapeHtml(formatPlan(localCompany.minPlan))}</p>
       `;
       return;
     }

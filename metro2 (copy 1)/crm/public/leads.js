@@ -1,5 +1,7 @@
 import { setupPageTour } from './tour-guide.js';
 
+function esc(str){ return String(str ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 setupPageTour('leads', {
   steps: [
     {
@@ -160,12 +162,12 @@ function initPipelineBoard(){
       <div class="lead-column__header">
         <div>
           <span class="lead-column__eyebrow">Stage</span>
-          <h3 class="lead-column__title">${stage.label}</h3>
-          <p class="lead-column__subtitle">${stage.description}</p>
+          <h3 class="lead-column__title">${esc(stage.label)}</h3>
+          <p class="lead-column__subtitle">${esc(stage.description)}</p>
         </div>
-        <span class="lead-column__count" data-stage-count="${stage.id}">0</span>
+        <span class="lead-column__count" data-stage-count="${esc(stage.id)}">0</span>
       </div>
-      <div class="lead-column__body" data-stage-list="${stage.id}"></div>
+      <div class="lead-column__body" data-stage-list="${esc(stage.id)}"></div>
     `;
     const list = column.querySelector('[data-stage-list]');
     pipelineBoard.appendChild(column);
@@ -295,7 +297,7 @@ function renderSourceFilter(){
   if(!select) return;
   const sources = Array.from(new Set(state.leads.map(lead => lead.sourceLabel))).filter(Boolean).sort((a,b)=>a.localeCompare(b));
   const previous = state.filterSource;
-  select.innerHTML = '<option value="all">All sources</option>' + sources.map(src => `<option value="${src}">${src}</option>`).join('');
+  select.innerHTML = '<option value="all">All sources</option>' + sources.map(src => `<option value="${esc(src)}">${esc(src)}</option>`).join('');
   if(previous !== 'all' && !sources.includes(previous)){
     state.filterSource = 'all';
   }
@@ -329,7 +331,7 @@ function renderSourceBreakdown(){
       row.className = 'lead-source-row';
       row.innerHTML = `
         <div class="lead-source-row__meta">
-          <span>${index === 0 ? '⭐ ' : ''}${source}</span>
+          <span>${index === 0 ? '⭐ ' : ''}${esc(source)}</span>
           <span>${count} • ${percent}%</span>
         </div>
         <div class="lead-source-row__bar">
@@ -371,19 +373,19 @@ function renderHighlights(){
     li.className = 'lead-highlight';
     li.innerHTML = `
       <div class="lead-highlight__row">
-        <span class="lead-highlight__name">${lead.displayName}</span>
+        <span class="lead-highlight__name">${esc(lead.displayName)}</span>
         <span class="lead-highlight__idle">${idleDays}d idle</span>
       </div>
-      <div class="lead-highlight__stage">Stage: ${stageInfo.label}</div>
-      <div class="lead-highlight__time">Last touch: ${formatRelativeTime(lead.updatedAt)}</div>
-      <div class="lead-highlight__next">Next step: ${stageInfo.nextAction}</div>
+      <div class="lead-highlight__stage">Stage: ${esc(stageInfo.label)}</div>
+      <div class="lead-highlight__time">Last touch: ${esc(formatRelativeTime(lead.updatedAt))}</div>
+      <div class="lead-highlight__next">Next step: ${esc(stageInfo.nextAction)}</div>
     `;
     list.appendChild(li);
   });
 }
 
 function stageSelectMarkup(current){
-  return PIPELINE_STAGES.map(stage => `<option value="${stage.id}" ${current === stage.id ? 'selected' : ''}>${stage.label}</option>`).join('');
+  return PIPELINE_STAGES.map(stage => `<option value="${esc(stage.id)}" ${current === stage.id ? 'selected' : ''}>${esc(stage.label)}</option>`).join('');
 }
 
 function createLeadCard(lead){
@@ -393,20 +395,20 @@ function createLeadCard(lead){
   card.innerHTML = `
     <header class="lead-card__header">
       <div>
-        <h3 class="lead-card__name">${lead.displayName}</h3>
-        <p class="lead-card__meta">${lead.sourceLabel} • Added ${formatDateDisplay(lead.createdAt)}</p>
+        <h3 class="lead-card__name">${esc(lead.displayName)}</h3>
+        <p class="lead-card__meta">${esc(lead.sourceLabel)} • Added ${esc(formatDateDisplay(lead.createdAt))}</p>
       </div>
-      <span class="lead-card__badge ${stageInfo.badgeClass}">${stageInfo.label}</span>
+      <span class="lead-card__badge ${esc(stageInfo.badgeClass)}">${esc(stageInfo.label)}</span>
     </header>
     <div class="lead-card__details">
-      ${lead.email ? `<div class="lead-card__detail"><span>Email</span><span>${lead.email}</span></div>` : ''}
-      ${lead.phone ? `<div class="lead-card__detail"><span>Phone</span><span>${lead.phone}</span></div>` : ''}
-      ${(lead.locationSummary || lead.zip) ? `<div class="lead-card__detail"><span>Location</span><span>${[lead.locationSummary, lead.zip].filter(Boolean).join(' ')}</span></div>` : ''}
+      ${lead.email ? `<div class="lead-card__detail"><span>Email</span><span>${esc(lead.email)}</span></div>` : ''}
+      ${lead.phone ? `<div class="lead-card__detail"><span>Phone</span><span>${esc(lead.phone)}</span></div>` : ''}
+      ${(lead.locationSummary || lead.zip) ? `<div class="lead-card__detail"><span>Location</span><span>${esc([lead.locationSummary, lead.zip].filter(Boolean).join(' '))}</span></div>` : ''}
     </div>
-    ${lead.notes ? `<div class="lead-card__notes">${lead.notes}</div>` : ''}
+    ${lead.notes ? `<div class="lead-card__notes">${esc(lead.notes)}</div>` : ''}
     <div class="lead-card__status">
-      <span>Last touch: ${formatRelativeTime(lead.updatedAt)}</span>
-      <span>ID • ${lead.id.slice(-4).toUpperCase()}</span>
+      <span>Last touch: ${esc(formatRelativeTime(lead.updatedAt))}</span>
+      <span>ID • ${esc(lead.id.slice(-4).toUpperCase())}</span>
     </div>
     <div class="lead-card__actions">
       <label class="lead-card__stage">
@@ -419,7 +421,7 @@ function createLeadCard(lead){
       ${lead.status !== 'lost' ? '<button data-action="drop" class="btn-outline text-xs px-3 py-1">Drop</button>' : ''}
       <button data-action="delete" class="btn-destructive text-xs">Delete</button>
     </div>
-    <div class="lead-card__next">Next step: ${stageInfo.nextAction}</div>
+    <div class="lead-card__next">Next step: ${esc(stageInfo.nextAction)}</div>
   `;
 
   const stageSelector = card.querySelector('[data-stage-selector]');
@@ -477,7 +479,7 @@ function renderPipeline(){
     if(list && list.children.length === 0){
       const empty = document.createElement('div');
       empty.className = 'lead-column__empty';
-      empty.innerHTML = `<p>${stage.empty}</p><p class="lead-column__empty-hint">Sin leads en esta etapa.</p>`;
+      empty.innerHTML = `<p>${esc(stage.empty)}</p><p class="lead-column__empty-hint">Sin leads en esta etapa.</p>`;
       list.appendChild(empty);
     }
   });

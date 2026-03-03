@@ -51,21 +51,22 @@ test('hydrates stored env overrides on startup', () => {
 });
 
 test('saving env overrides normalizes keys and hydrates process.env', async () => {
+  const testTwilioToken = process.env.TEST_TWILIO_AUTH_TOKEN || 'test-only-placeholder';
   const res = await request(app)
     .post('/api/settings')
     .send({
       envOverrides: {
         'scm api key': 'runtime-key',
-        'twilio.auth-token': 'abc123',
+        'twilio.auth-token': testTwilioToken,
       },
     });
 
   assert.equal(res.status, 200);
   assert.equal(res.body.ok, true);
   assert.equal(res.body.settings.envOverrides.SCM_API_KEY, 'runtime-key');
-  assert.equal(res.body.settings.envOverrides.TWILIO_AUTH_TOKEN, 'abc123');
+  assert.equal(res.body.settings.envOverrides.TWILIO_AUTH_TOKEN, testTwilioToken);
   assert.equal(process.env.SCM_API_KEY, 'runtime-key');
-  assert.equal(process.env.TWILIO_AUTH_TOKEN, 'abc123');
+  assert.equal(process.env.TWILIO_AUTH_TOKEN, testTwilioToken);
 });
 
 test('saving integration keys trims whitespace and hydrates process.env', async () => {

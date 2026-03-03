@@ -1682,7 +1682,7 @@ function initDashboard() {
           return;
         }
         feedEl.innerHTML = items.slice(0,5).map(item => {
-          return `<div class="news-item"><a href="${item.link}" target="_blank" class="text-accent underline">${item.title}</a></div>`;
+          return `<div class="news-item"><a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" class="text-accent underline">${escapeHtml(item.title)}</a></div>`;
         }).join('');
       })
       .catch(err => {

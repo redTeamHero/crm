@@ -22,6 +22,12 @@ const BUTTERFLY_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/
   </g>
 </svg>`;
 
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
 const TOUR_STORAGE_KEY = 'evolv.tours';
 
 function getTourState() {
@@ -430,7 +436,7 @@ class EvolvTourEngine {
       </div>
       <div class="tour-bubble">
         <button class="tour-bubble__close" data-action="skip" aria-label="Close" title="Close">✕</button>
-        <div class="tour-bubble__title">${step.title}</div>
+        <div class="tour-bubble__title">${esc(step.title)}</div>
         <div class="tour-bubble__body">${step.body}</div>
         <div class="tour-bubble__footer">
           <div class="tour-bubble__progress">${dots}</div>
@@ -587,11 +593,11 @@ function showTourMenu() {
     const done = state[key]?.completed;
     const isCurrent = key === currentPage;
     return `
-      <div class="tour-menu__item" data-tour-key="${key}">
-        <div class="tour-menu__item-icon">${tour.icon}</div>
+      <div class="tour-menu__item" data-tour-key="${esc(key)}">
+        <div class="tour-menu__item-icon">${esc(tour.icon)}</div>
         <div class="tour-menu__item-text">
-          <div class="tour-menu__item-label">${tour.label}${isCurrent ? ' (current page)' : ''}</div>
-          <div class="tour-menu__item-desc">${tour.desc}</div>
+          <div class="tour-menu__item-label">${esc(tour.label)}${isCurrent ? ' (current page)' : ''}</div>
+          <div class="tour-menu__item-desc">${esc(tour.desc)}</div>
         </div>
         ${done ? '<span class="tour-menu__item-badge">✓ Done</span>' : ''}
       </div>

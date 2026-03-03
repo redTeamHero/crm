@@ -90,9 +90,7 @@
   }
 
   function esc(s){
-    var d = document.createElement('div');
-    d.textContent = s || '';
-    return d.innerHTML;
+    return String(s ?? '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
   }
 
   function resolveStatuses(lessons){
@@ -620,7 +618,7 @@
       html += '<div class="lesson-completion-burst" style="background:radial-gradient(circle, ' + resultColor + '22 0%, transparent 70%)"></div>';
       html += '<div class="lesson-completion-icon">' + resultIcon + '</div>';
       html += '<h2 class="lesson-completion-title" style="color:' + resultColor + '">' + resultTitle + '</h2>';
-      html += '<p class="lesson-completion-subtitle">' + tierLabels[tierKey] + ' Final Exam</p>';
+      html += '<p class="lesson-completion-subtitle">' + esc(tierLabels[tierKey]) + ' Final Exam</p>';
       html += '<div class="quiz-result-score">';
       html += '<div class="quiz-score-circle" style="--score-pct:' + Math.round(pct * 100) + '%;--score-color:' + resultColor + '">';
       html += '<span class="quiz-score-num">' + Math.round(pct * 100) + '%</span>';
@@ -633,7 +631,7 @@
       if(passed){
         html += '<div class="lesson-completion-stats">';
         html += '<div class="lesson-stat"><div class="lesson-stat-value">+' + bonusXP + '</div><div class="lesson-stat-label">Bonus XP</div></div>';
-        html += '<div class="lesson-stat"><div class="lesson-stat-value">🎓</div><div class="lesson-stat-label">' + tierLabels[tierKey] + ' Graduate</div></div>';
+        html += '<div class="lesson-stat"><div class="lesson-stat-value">🎓</div><div class="lesson-stat-label">' + esc(tierLabels[tierKey]) + ' Graduate</div></div>';
         html += '</div>';
         html += '<div class="quiz-actions">';
         html += '<button class="lesson-btn lesson-btn-complete" id="quizCert" type="button">Download Certificate 📜</button>';

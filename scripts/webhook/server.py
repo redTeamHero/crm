@@ -3,12 +3,32 @@ import hmac
 import hashlib
 import os
 import subprocess
+from pathlib import Path
 from typing import Tuple
 
 app = Flask(__name__)
 
 SECRET = os.environ.get("GITHUB_WEBHOOK_SECRET", "").encode()
-WEBHOOK_SCRIPT = os.environ.get("GIT_PULL_SCRIPT", "/home/admin/webhook/gitpull.sh")
+
+_ALLOWED_WEBHOOK_DIRS = {
+    "/home/admin/webhook",
+    "/home/runner/workspace/scripts/webhook",
+}
+
+
+def _validate_webhook_script(raw: str) -> str:
+    resolved = str(Path(raw).resolve())
+    if not any(resolved.startswith(d + "/") or resolved == d for d in _ALLOWED_WEBHOOK_DIRS):
+        raise RuntimeError(
+            f"GIT_PULL_SCRIPT must reside in one of {_ALLOWED_WEBHOOK_DIRS}, got: {resolved!r}"
+        )
+    if not os.path.isfile(resolved):
+        raise RuntimeError(f"Webhook script does not exist: {resolved!r}")
+    return resolved
+
+
+_raw_webhook_script = os.environ.get("GIT_PULL_SCRIPT", "/home/admin/webhook/gitpull.sh")
+WEBHOOK_SCRIPT: str | None = None
 
 
 def _verify_signature(req: Request) -> Tuple[bool, str]:
@@ -35,7 +55,10 @@ def github_webhook():
         return error_message, 403
 
     try:
-        subprocess.run([WEBHOOK_SCRIPT], check=True)
+        validated_script = _validate_webhook_script(_raw_webhook_script)
+        subprocess.run([validated_script], check=True)
+    except RuntimeError as exc:
+        return f"Webhook script validation failed: {exc}", 500
     except (FileNotFoundError, subprocess.CalledProcessError) as exc:
         return f"Failed to run webhook script: {exc}", 500
 

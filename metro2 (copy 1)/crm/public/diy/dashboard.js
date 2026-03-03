@@ -187,13 +187,13 @@
               '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>' +
               '</div>' +
               '<div>' +
-              '<p style="font-weight:600;color:var(--diy-text);font-size:14px;">' + (letter.bureau || 'Dispute Letter') + '</p>' +
-              '<p style="font-size:12px;color:var(--diy-text-sub);">' + dateStr + '</p>' +
+              '<p style="font-weight:600;color:var(--diy-text);font-size:14px;">' + esc(letter.bureau || 'Dispute Letter') + '</p>' +
+              '<p style="font-size:12px;color:var(--diy-text-sub);">' + esc(dateStr) + '</p>' +
               '</div>' +
               '</div>' +
               '<div style="display:flex;gap:8px;align-items:center;">' +
               '<span style="font-size:11px;padding:3px 10px;border-radius:99px;background:rgba(16,185,129,0.1);color:#10b981;font-weight:600;">Ready to Mail</span>' +
-              '<a href="/api/diy/letters/' + letter.id + '/download" class="diy-btn diy-btn-primary" style="padding:6px 14px;font-size:12px;text-decoration:none;">Download PDF</a>' +
+              '<a href="/api/diy/letters/' + encodeURIComponent(letter.id) + '/download" class="diy-btn diy-btn-primary" style="padding:6px 14px;font-size:12px;text-decoration:none;">Download PDF</a>' +
               '</div>' +
               '</div>' +
               '</div>';
@@ -221,8 +221,8 @@
         var localSelection = getLocalCompanySelection();
         if (localSelection) {
           companyMatch.innerHTML =
-            '<span style="font-weight:600;color:var(--diy-text);">' + localSelection.name + '</span>' +
-            '<span style="font-size:12px;color:var(--diy-text-sub);margin-left:8px;">' + (localSelection.serviceArea || '') + '</span>';
+            '<span style="font-weight:600;color:var(--diy-text);">' + esc(localSelection.name) + '</span>' +
+            '<span style="font-size:12px;color:var(--diy-text-sub);margin-left:8px;">' + esc(localSelection.serviceArea || '') + '</span>';
           return;
         }
         companyMatch.innerHTML =
@@ -231,8 +231,8 @@
         return;
       }
       companyMatch.innerHTML =
-        '<span style="font-weight:600;color:var(--diy-text);">' + data.company.name + '</span>' +
-        '<span style="font-size:12px;color:var(--diy-text-sub);margin-left:8px;">' + (data.company.serviceArea || '') + '</span>';
+        '<span style="font-weight:600;color:var(--diy-text);">' + esc(data.company.name) + '</span>' +
+        '<span style="font-size:12px;color:var(--diy-text-sub);margin-left:8px;">' + esc(data.company.serviceArea || '') + '</span>';
     } catch (e) {
       companyMatch.innerHTML = '<span style="color:#ef4444;font-size:13px;">Unable to load company details.</span>';
     }
@@ -295,29 +295,29 @@
         if (company.isBoosted) badges += '<span class="specialist-badge badge-boosted">Featured</span>';
         if (idx === 0) badges += '<span class="specialist-badge badge-top">Top Pick</span>';
 
-        var ratingDisplay = rating !== null ? renderStars(Math.round(rating)) + '<span class="specialist-reviews">(' + rating + ')</span>' : '<span class="specialist-reviews">New</span>';
+        var ratingDisplay = rating !== null ? renderStars(Math.round(rating)) + '<span class="specialist-reviews">(' + esc(rating) + ')</span>' : '<span class="specialist-reviews">New</span>';
         var clientsDisplay = activeClients !== null ? activeClients : 'New';
         var avgDaysDisplay = avgDays !== null ? avgDays + 'd' : 'N/A';
         var successDisplay = successRate !== null ? successRate + '%' : 'New';
 
-        return '<div class="specialist-card" data-company-id="' + (company.companyId || company.id || idx) + '">' +
+        return '<div class="specialist-card" data-company-id="' + esc(company.companyId || company.id || idx) + '">' +
           '<div class="specialist-header">' +
-          '<div class="specialist-avatar" style="background:' + color + ';">' + initial + '</div>' +
+          '<div class="specialist-avatar" style="background:' + esc(color) + ';">' + esc(initial) + '</div>' +
           '<div style="flex:1;">' +
-          '<div class="specialist-name">' + (company.name || 'Credit Company') + '</div>' +
-          '<div class="specialist-location">' + (company.serviceArea || 'Nationwide') + '</div>' +
+          '<div class="specialist-name">' + esc(company.name || 'Credit Company') + '</div>' +
+          '<div class="specialist-location">' + esc(company.serviceArea || 'Nationwide') + '</div>' +
           '<div class="specialist-rating" style="margin-top:4px;">' +
           ratingDisplay +
           '</div>' +
           '</div>' +
           '</div>' +
           '<div class="specialist-stats">' +
-          '<div class="specialist-stat"><div class="specialist-stat-value">' + clientsDisplay + '</div><div class="specialist-stat-label">Active Clients</div></div>' +
-          '<div class="specialist-stat"><div class="specialist-stat-value">' + avgDaysDisplay + '</div><div class="specialist-stat-label">Avg. Response</div></div>' +
-          '<div class="specialist-stat"><div class="specialist-stat-value">' + successDisplay + '</div><div class="specialist-stat-label">Success Rate</div></div>' +
+          '<div class="specialist-stat"><div class="specialist-stat-value">' + esc(clientsDisplay) + '</div><div class="specialist-stat-label">Active Clients</div></div>' +
+          '<div class="specialist-stat"><div class="specialist-stat-value">' + esc(avgDaysDisplay) + '</div><div class="specialist-stat-label">Avg. Response</div></div>' +
+          '<div class="specialist-stat"><div class="specialist-stat-value">' + esc(successDisplay) + '</div><div class="specialist-stat-label">Success Rate</div></div>' +
           '</div>' +
           (badges ? '<div class="specialist-badges">' + badges + '</div>' : '') +
-          '<button class="diy-btn diy-btn-primary" style="width:100%;margin-top:12px;" type="button" data-select-company="' + (company.companyId || company.id || idx) + '">Choose This Specialist</button>' +
+          '<button class="diy-btn diy-btn-primary" style="width:100%;margin-top:12px;" type="button" data-select-company="' + esc(company.companyId || company.id || idx) + '">Choose This Specialist</button>' +
           '</div>';
       }).join('');
 
@@ -377,7 +377,7 @@
           if (tradelineRangeSelect) {
             tradelineRangeSelect.innerHTML = '<option value="">Select price range</option>' +
               data.ranges.map(function(r) {
-                return '<option value="' + r.id + '">' + r.label + ' (' + r.count + ')</option>';
+                return '<option value="' + esc(r.id) + '">' + esc(r.label) + ' (' + esc(r.count) + ')</option>';
               }).join('');
           }
         }
@@ -404,7 +404,7 @@
         var currentBank = tradelineBankSelect.value;
         tradelineBankSelect.innerHTML = '<option value="">All banks</option>' +
           data.banks.map(function(b) {
-            return '<option value="' + b + '"' + (b === currentBank ? ' selected' : '') + '>' + b + '</option>';
+            return '<option value="' + esc(b) + '"' + (b === currentBank ? ' selected' : '') + '>' + esc(b) + '</option>';
           }).join('');
       }
 
@@ -419,13 +419,13 @@
         var limitDisplay = tl.limit ? '$' + Number(tl.limit).toLocaleString() : '—';
         return '<div class="tradeline-card">' +
           '<div class="tradeline-meta">' +
-          '<div class="tradeline-field"><strong>' + (tl.bank || 'Unknown') + '</strong>Bank</div>' +
-          '<div class="tradeline-field"><strong>' + priceDisplay + '</strong>Price</div>' +
-          '<div class="tradeline-field"><strong>' + limitDisplay + '</strong>Credit Limit</div>' +
-          '<div class="tradeline-field"><strong>' + (tl.age || '—') + '</strong>Age</div>' +
-          (tl.reporting ? '<div class="tradeline-field"><strong>' + tl.reporting + '</strong>Reports To</div>' : '') +
+          '<div class="tradeline-field"><strong>' + esc(tl.bank || 'Unknown') + '</strong>Bank</div>' +
+          '<div class="tradeline-field"><strong>' + esc(priceDisplay) + '</strong>Price</div>' +
+          '<div class="tradeline-field"><strong>' + esc(limitDisplay) + '</strong>Credit Limit</div>' +
+          '<div class="tradeline-field"><strong>' + esc(tl.age || '—') + '</strong>Age</div>' +
+          (tl.reporting ? '<div class="tradeline-field"><strong>' + esc(tl.reporting) + '</strong>Reports To</div>' : '') +
           '</div>' +
-          (tl.buy_link ? '<a href="' + tl.buy_link + '" target="_blank" rel="noopener" class="diy-btn diy-btn-primary" style="padding:8px 16px;font-size:12px;text-decoration:none;white-space:nowrap;">View Details</a>' : '') +
+          (tl.buy_link ? '<a href="' + esc(tl.buy_link) + '" target="_blank" rel="noopener" class="diy-btn diy-btn-primary" style="padding:8px 16px;font-size:12px;text-decoration:none;white-space:nowrap;">View Details</a>' : '') +
           '</div>';
       }).join('');
 
@@ -479,10 +479,10 @@
 
       newsFeedEl.innerHTML = data.items.map(function(item) {
         var dateStr = item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-        return '<a href="' + (item.link || '#') + '" target="_blank" rel="noopener" class="news-card" style="display:block;text-decoration:none;">' +
-          '<div class="news-title">' + (item.title || 'Untitled') + '</div>' +
-          (item.description ? '<div class="news-desc">' + item.description + '</div>' : '') +
-          (dateStr ? '<div class="news-date">' + dateStr + '</div>' : '') +
+        return '<a href="' + esc(item.link || '#') + '" target="_blank" rel="noopener" class="news-card" style="display:block;text-decoration:none;">' +
+          '<div class="news-title">' + esc(item.title || 'Untitled') + '</div>' +
+          (item.description ? '<div class="news-desc">' + esc(item.description) + '</div>' : '') +
+          (dateStr ? '<div class="news-date">' + esc(dateStr) + '</div>' : '') +
           '</a>';
       }).join('');
     } catch (e) {
@@ -903,9 +903,9 @@
                 '<div style="display:flex;align-items:start;gap:10px;">' +
                 '<span style="color:#ef4444;margin-top:2px;">&#9888;</span>' +
                 '<div style="flex:1;">' +
-                '<p style="font-weight:600;color:var(--diy-text);font-size:14px;">' + (v.title || v.ruleId) + '</p>' +
-                '<p style="font-size:13px;color:var(--diy-text-sub);margin-top:4px;">' + (v.explanation || v.description || '') + '</p>' +
-                (v.bureau ? '<span style="display:inline-block;margin-top:6px;font-size:11px;padding:2px 8px;background:#f3f4f6;border-radius:6px;color:var(--diy-text-sub);">' + v.bureau + '</span>' : '') +
+                '<p style="font-weight:600;color:var(--diy-text);font-size:14px;">' + esc(v.title || v.ruleId) + '</p>' +
+                '<p style="font-size:13px;color:var(--diy-text-sub);margin-top:4px;">' + esc(v.explanation || v.description || '') + '</p>' +
+                (v.bureau ? '<span style="display:inline-block;margin-top:6px;font-size:11px;padding:2px 8px;background:#f3f4f6;border-radius:6px;color:var(--diy-text-sub);">' + esc(v.bureau) + '</span>' : '') +
                 '</div></div></div>';
             }).join('');
           }
@@ -999,7 +999,7 @@
     });
   }
 
-  function esc(str){ return String(str).replace(/[&<>]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+  function esc(str){ return String(str ?? '').replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
   function renderEducation(){
     var container = document.getElementById('education');
@@ -1038,7 +1038,7 @@
       if(xpFill) xpFill.style.width = xpPct + '%';
       var statsLine = header.querySelector('.edu-xp-bar > div:last-child');
       if(statsLine && !statsLine.classList.contains('edu-xp-label') && !statsLine.classList.contains('edu-xp-track')) {
-        statsLine.innerHTML = '<span>\uD83D\uDD25 ' + (streak.days || 0) + ' day streak</span><span>\u2705 ' + completedCount + ' of ' + allLessons.length + ' complete</span>';
+        statsLine.innerHTML = '<span>\uD83D\uDD25 ' + esc(streak.days || 0) + ' day streak</span><span>\u2705 ' + esc(completedCount) + ' of ' + esc(allLessons.length) + ' complete</span>';
       }
     }
 

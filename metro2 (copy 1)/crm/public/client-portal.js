@@ -1,4 +1,6 @@
 /* public/client-portal.js */
+function esc(str){ return String(str ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
 const productTiers = [
   { deletions:150, score:780, name:'Wealth Builder', icon:'👑', class:'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message:'Legendary status — mortgages, lines, and cards all bend in your favor. You’ve built true financial freedom.' },
   { deletions:125, score:760, name:'Elite Borrower', icon:'🦸', class:'bg-red-100 text-red-700', message:'You’ve achieved elite borrower status — lenders see you as top-tier.' },
@@ -396,8 +398,8 @@ function renderTeamList(){
     teamList.textContent = 'No team members added.';
   } else {
     teamList.innerHTML = team.map(m => {
-      const role = m.role ? `<div class="text-xs muted">${m.role}${m.email? ' - ' + m.email : ''}</div>` : (m.email ? `<div class="text-xs muted">${m.email}</div>` : '');
-      return `<div class="news-item"><div class="font-medium">${m.name}</div>${role}</div>`;
+      const role = m.role ? `<div class="text-xs muted">${esc(m.role)}${m.email? ' - ' + esc(m.email) : ''}</div>` : (m.email ? `<div class="text-xs muted">${esc(m.email)}</div>` : '');
+      return `<div class="news-item"><div class="font-medium">${esc(m.name)}</div>${role}</div>`;
     }).join('');
   }
 }
@@ -793,7 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         feedEl.innerHTML = items.slice(0,5).map(item => `
-          <div class="news-item"><a href="${item.link}" target="_blank" class="flex items-center gap-1">${item.title}<span class="wiggle-arrow">↗</span></a></div>
+          <div class="news-item"><a href="${esc(item.link)}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1">${esc(item.title)}<span class="wiggle-arrow">↗</span></a></div>
         `).join('');
       })
       .catch(err => {
@@ -829,13 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (key === 'teamMembers') renderTeamList();
   };
 
-  const escape = window.escapeHtml || ((value) => String(value ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  }[c] || c)));
+  const escape = window.escapeHtml || esc;
 
   const items = JSON.parse(localStorage.getItem('itemsInDispute') || localStorage.getItem('disputeTimeline') || '[]');
   const itemsEl = document.getElementById('itemsInDispute');
@@ -916,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (eduEl) {
     const edu = JSON.parse(localStorage.getItem('educationItems') || '[]');
     if (!edu.length) eduEl.textContent = 'No educational items.';
-    else eduEl.innerHTML = edu.map(e => `<div class="news-item"><div class="font-medium">${e.account}</div><div>${e.text}</div></div>`).join('');
+    else eduEl.innerHTML = edu.map(e => `<div class="news-item"><div class="font-medium">${esc(e.account)}</div><div>${esc(e.text)}</div></div>`).join('');
   }
 
   const docEl = document.getElementById('docList');
@@ -1569,7 +1565,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : '';
     const metaParts = [ext.toUpperCase(), dateStr].filter(Boolean).join(' · ');
     const safeName = esc(d.originalName);
-    return `<a class="doc-card" href="/api/consumers/${consumerId}/state/files/${d.storedName}" target="_blank" title="${safeName}">
+    return `<a class="doc-card" href="/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(d.storedName)}" target="_blank" title="${safeName}">
       <div class="doc-card-icon ${iconClass}">${iconLabel}</div>
       <div class="doc-card-info">
         <div class="doc-card-name">${safeName}</div>
@@ -1667,8 +1663,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mailMailed.textContent='Failed to load letters.';
       });
   }
-
-  function esc(str){ return String(str).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
   function renderEducation(){
     var container = document.getElementById('education');
@@ -1853,7 +1847,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const svgIcon = allowMail
       ? '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
       : '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    el.innerHTML = items.map(it=>`<div class="mail-card"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status">${statusText}</div></div><div class="flex gap-2"><a class="btn text-xs" href="${it.url}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${it.jobId}" data-file="${it.file}">Mail</button>`:''}</div></div>`).join('');
+    el.innerHTML = items.map(it=>`<div class="mail-card"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status">${statusText}</div></div><div class="flex gap-2"><a class="btn text-xs" href="${esc(it.url)}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}">Mail</button>`:''}</div></div>`).join('');
     updateMailEmptyState();
     if(allowMail){
       el.querySelectorAll('.mail-act').forEach(btn=>{
