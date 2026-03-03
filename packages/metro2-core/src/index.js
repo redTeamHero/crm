@@ -46,11 +46,22 @@ const NON_CREDITOR_HEADERS = new Set([
   'risk factor',
   'key factors',
   'score factors',
+  'personal information',
+  'account history',
+  'account summary',
+  'summary',
+  'customer statement',
+  'public records',
+  'public record',
+  'inquiries',
+  'credit inquiries',
+  'collections',
 ]);
 
 const NON_CREDITOR_HEADER_PATTERNS = [
   'credit report',
   'reference #',
+  'back to top',
 ];
 
 const BUREAU_PRIORITY = ['TransUnion', 'Experian', 'Equifax'];
@@ -776,6 +787,8 @@ function collectTradelineTables(adapter){
   primaryTables.forEach(pushTable);
   for(const table of fallbackTables){
     if(seen.has(table)) continue;
+    const childTables = adapter.find(table, 'table');
+    if(childTables.some(child => seen.has(child))) continue;
     if(hasTradelineLabels(adapter, table)){
       pushTable(table);
     }
@@ -1089,7 +1102,6 @@ function inferCreditorFromPerBureau(perBureau = {}){
 }
 
 function buildTradelineKey(tradeline){
-  const creditor = sanitizeCreditor(tradeline.meta?.creditor || '').toLowerCase();
   const parts = BUREAU_PRIORITY.map(bureau => {
     const data = tradeline.per_bureau?.[bureau] || {};
     const fields = [
@@ -1103,5 +1115,5 @@ function buildTradelineKey(tradeline){
     ];
     return `${bureau}:${fields.map(f => sanitizeCreditor(f).toLowerCase()).join('|')}`;
   });
-  return [creditor, ...parts].join('||');
+  return parts.join('||');
 }
