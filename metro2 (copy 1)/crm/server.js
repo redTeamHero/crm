@@ -158,6 +158,28 @@ const STRING_SETTING_KEYS = [
   "gmailRefreshToken"
 ];
 
+const SECRET_SETTING_KEYS = new Set([
+  "hibpApiKey",
+  "stripeApiKey",
+  "marketingApiKey",
+  "sendCertifiedMailApiKey",
+  "googleCalendarToken",
+  "gmailClientSecret",
+  "gmailRefreshToken",
+]);
+
+function maskSecrets(settings) {
+  if (!settings || typeof settings !== "object") return settings;
+  const masked = { ...settings };
+  for (const key of SECRET_SETTING_KEYS) {
+    if (masked[key] && typeof masked[key] === "string" && masked[key].length > 0) {
+      const val = masked[key];
+      masked[key] = val.length > 4 ? "••••" + val.slice(-4) : "••••";
+    }
+  }
+  return masked;
+}
+
 function resolveRequestTenant(req, fallback = DEFAULT_TENANT_ID) {
   if (!req) return fallback;
   return resolveTenantId(req, fallback);
@@ -1734,7 +1756,7 @@ app.get("/buy", async (req, res) => {
 
 app.get("/api/settings", optionalAuth, async (req, res) => {
   const settings = await loadSettings(req);
-  res.json({ ok: true, settings });
+  res.json({ ok: true, settings: maskSecrets(settings) });
 });
 
 app.get("/api/settings/hotkeys", optionalAuth, async (req, res) => {
@@ -1793,7 +1815,7 @@ app.post("/api/experiments/portal-data-region/convert", optionalAuth, async (req
   }
 });
 
-app.post("/api/settings", optionalAuth, async (req, res) => {
+app.post("/api/settings", authenticate, requireRole("admin"), async (req, res) => {
   const payload = req && req.body && typeof req.body === "object" ? req.body : {};
   const updates = {};
 
@@ -1958,7 +1980,7 @@ app.put("/api/credit-companies/:id/metrics", authenticate, requirePermission("ad
 
 app.use("/api/marketing", marketingKeyAuth, authenticate, forbidMember, marketingRoutes);
 
-app.get("/api/calendar/events", async (_req, res) => {
+app.get("/api/calendar/events", authenticate, async (_req, res) => {
   try {
     const { events, mode, notice } = await listCalendarEvents();
     res.json({ ok: true, events, mode, notice });
@@ -1967,7 +1989,7 @@ app.get("/api/calendar/events", async (_req, res) => {
   }
 });
 
-app.post("/api/calendar/events", async (req, res) => {
+app.post("/api/calendar/events", authenticate, forbidMember, async (req, res) => {
   try {
     const { event, mode, notice } = await createCalendarEvent(req.body);
     res.json({ ok: true, event, mode, notice });
@@ -1976,7 +1998,7 @@ app.post("/api/calendar/events", async (req, res) => {
   }
 });
 
-app.put("/api/calendar/events/:id", async (req, res) => {
+app.put("/api/calendar/events/:id", authenticate, forbidMember, async (req, res) => {
   try {
     const { event, mode, notice } = await updateCalendarEvent(req.params.id, req.body);
     res.json({ ok: true, event, mode, notice });
@@ -1985,7 +2007,7 @@ app.put("/api/calendar/events/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/calendar/events/:id", async (req, res) => {
+app.delete("/api/calendar/events/:id", authenticate, forbidMember, async (req, res) => {
   try {
     const { mode, notice } = await deleteCalendarEvent(req.params.id);
     res.json({ ok: true, mode, notice });
@@ -4668,10 +4690,10 @@ app.delete("/api/consumers/:id", authenticate, requirePermission("consumers"), a
 });
 
 // =================== Leads ===================
-app.get("/api/leads", async (_req,res)=> res.json({ ok:true, ...(await loadLeadsDB()) }));
+app.get("/api/leads", authenticate, async (_req,res)=> res.json({ ok:true, ...(await loadLeadsDB()) }));
 
 
-app.post("/api/leads", async (req,res)=>{
+app.post("/api/leads", authenticate, forbidMember, async (req,res)=>{
   const db = await loadLeadsDB();
   const id = nanoid(10);
   const lead = {
@@ -4695,7 +4717,7 @@ app.post("/api/leads", async (req,res)=>{
   res.json({ ok:true, lead });
 });
 
-app.put("/api/leads/:id", async (req,res)=>{
+app.put("/api/leads/:id", authenticate, forbidMember, async (req,res)=>{
   const db = await loadLeadsDB();
   const lead = db.leads.find(l=>l.id===req.params.id);
   if(!lead) return res.status(404).json({ error:"Not found" });
@@ -4717,7 +4739,7 @@ app.put("/api/leads/:id", async (req,res)=>{
   res.json({ ok:true, lead });
 });
 
-app.delete("/api/leads/:id", async (req,res)=>{
+app.delete("/api/leads/:id", authenticate, forbidMember, async (req,res)=>{
   const db = await loadLeadsDB();
   const idx = db.leads.findIndex(l=>l.id===req.params.id);
   if(idx === -1) return res.status(404).json({ error:"Not found" });
@@ -4727,13 +4749,13 @@ app.delete("/api/leads/:id", async (req,res)=>{
 });
 
 // =================== Invoices ===================
-app.get("/api/invoices/:consumerId", async (req,res)=>{
+app.get("/api/invoices/:consumerId", authenticate, async (req,res)=>{
   const db = await loadInvoicesDB();
   const list = db.invoices.filter(inv => inv.consumerId === req.params.consumerId);
   res.json({ ok:true, invoices: list });
 });
 
-app.post("/api/invoices", async (req,res)=>{
+app.post("/api/invoices", authenticate, forbidMember, async (req,res)=>{
   try {
     const consumerId = req.body?.consumerId;
     if(!consumerId){
@@ -4770,13 +4792,13 @@ app.post("/api/invoices", async (req,res)=>{
 });
 
 // =================== Billing Plans ===================
-app.get("/api/billing/plans/:consumerId", async (req,res)=>{
+app.get("/api/billing/plans/:consumerId", authenticate, async (req,res)=>{
   const plansDb = await loadBillingPlansDB();
   const plans = plansDb.plans.filter(plan => plan.consumerId === req.params.consumerId);
   res.json({ ok:true, plans: plans.map(clonePlan) });
 });
 
-app.post("/api/billing/plans", async (req,res)=>{
+app.post("/api/billing/plans", authenticate, forbidMember, async (req,res)=>{
   try {
     const payload = req.body || {};
     if(!payload.consumerId){
@@ -4825,7 +4847,7 @@ app.post("/api/billing/plans", async (req,res)=>{
   }
 });
 
-app.put("/api/billing/plans/:id", async (req,res)=>{
+app.put("/api/billing/plans/:id", authenticate, forbidMember, async (req,res)=>{
   try {
     const plansDb = await loadBillingPlansDB();
     const plan = plansDb.plans.find(p => p.id === req.params.id);
@@ -4847,7 +4869,7 @@ app.put("/api/billing/plans/:id", async (req,res)=>{
   }
 });
 
-app.post("/api/billing/plans/:id/send", async (req,res)=>{
+app.post("/api/billing/plans/:id/send", authenticate, forbidMember, async (req,res)=>{
   try {
     const plansDb = await loadBillingPlansDB();
     const plan = plansDb.plans.find(p => p.id === req.params.id);
@@ -4879,7 +4901,7 @@ app.post("/api/billing/plans/:id/send", async (req,res)=>{
   }
 });
 
-app.post("/api/invoices/:id/checkout", async (req, res) => {
+app.post("/api/invoices/:id/checkout", authenticate, async (req, res) => {
   const stripeClient = await getStripeClient(req);
   if(!stripeClient){
     return res.status(400).json({ ok:false, error: "Stripe is not configured" });
@@ -4935,7 +4957,7 @@ app.get("/pay/:id", async (req, res) => {
   res.redirect(303, checkout.url);
 });
 
-app.put("/api/invoices/:id", async (req,res)=>{
+app.put("/api/invoices/:id", authenticate, forbidMember, async (req,res)=>{
   const db = await loadInvoicesDB();
   const inv = db.invoices.find(i=>i.id===req.params.id);
   if(!inv) return res.status(404).json({ ok:false, error:"Not found" });
@@ -4984,8 +5006,8 @@ app.post("/api/register", async (req,res)=>{
   if (password.length < 6) return res.status(400).json({ ok:false, error:"Password must be at least 6 characters" });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ ok:false, error:"A valid email is required" });
   const db = await loadUsersDB();
-  if(db.users.find(u=>u.username===username)) return res.status(400).json({ ok:false, error:"Username already taken" });
-  if(db.users.find(u=>u.email && u.email === email)) return res.status(400).json({ ok:false, error:"Email already registered" });
+  if(db.users.find(u=>u.username===username)) return res.status(400).json({ ok:false, error:"Registration failed. Please try a different username and email." });
+  if(db.users.find(u=>u.email && u.email === email)) return res.status(400).json({ ok:false, error:"Registration failed. Please try a different username and email." });
   const newTenantId = `tenant_${nanoid(12)}`;
   const user = normalizeUser({
     id: nanoid(10),
@@ -5464,7 +5486,7 @@ app.get("/api/reports/:id/debug", authenticate, requirePermission("admin"), asyn
 });
 
 // =================== Messages ===================
-app.get("/api/messages", async (_req, res) => {
+app.get("/api/messages", authenticate, async (_req, res) => {
   const db = await loadDB();
   const all = [];
   for (const c of db.consumers || []) {
@@ -5478,7 +5500,7 @@ app.get("/api/messages", async (_req, res) => {
   res.json({ ok: true, messages: all });
 });
 
-app.get("/api/messages/:consumerId", async (req,res)=>{
+app.get("/api/messages/:consumerId", authenticate, async (req,res)=>{
   const cstate = await listConsumerState(req.params.consumerId);
   const msgs = (cstate.events || []).filter(e=>e.type === "message");
   res.json({ ok:true, messages: msgs });

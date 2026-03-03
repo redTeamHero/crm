@@ -34,6 +34,9 @@ Key technical implementations include:
 - `helmet` middleware is enabled globally (CSP and COEP disabled for compatibility) providing X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy, and other security headers.
 - `JWT_SECRET` and `DIY_JWT_SECRET` environment variables are **required** at startup — the server throws if either is missing. No hardcoded fallback secrets.
 - All file upload handlers sanitize `req.file.originalname` via `path.basename()` to prevent path traversal attacks.
+- API authentication enforced: Leads, Invoices, Billing Plans, Messages (GET), and Calendar CRUD endpoints all require `authenticate` middleware. Write/delete operations additionally use `forbidMember`.
+- `POST /api/settings` requires `authenticate` + `requireRole("admin")`. `GET /api/settings` masks secret values (API keys, tokens, client secrets) using `maskSecrets()` — only the last 4 characters are exposed.
+- Registration endpoint (`/api/register`) returns a generic error to prevent account enumeration (no distinct "username taken" vs "email registered" messages).
 - Server-side prototype pollution is mitigated by a global `stripDangerousKeys` middleware that removes `__proto__`, `constructor`, and `prototype` from all incoming `req.body` payloads.
 - `PUT /api/booking/availability` validates and whitelists input properties.
 - SQL queries in `scripts/html_ingest/ingest.py` use parameterized `IN` clauses via the `_in_clause()` helper.
