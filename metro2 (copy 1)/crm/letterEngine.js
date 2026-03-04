@@ -1,6 +1,7 @@
 // letterEngine.js
 import { enrichTradeline } from './pullTradelineData.js';
 import { loadMetro2Violations } from './utils.js';
+import { LETTER_TEMPLATES } from './letterTemplates.js';
 
 // Load Metro 2 violation definitions from shared metadata
 const VIOLATION_DEFS = await loadMetro2Violations();
@@ -532,6 +533,74 @@ function buildLetterHTML(opts) {
     ? `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>${safe(manualReason)}</strong></li></ol>`
     : buildViolationListHTML(tl.violations, selectedViolationIdxs);
 
+  if (template && template.english) {
+    const accountNum = tl.per_bureau?.[bureau]?.account_number
+      || tl.meta?.account_numbers?.[bureau]
+      || tl.meta?.account_number
+      || '****';
+    const creditorName = tl.meta?.creditor || 'Unknown';
+    const personalized = template.english
+      .replace(/\[Your Name\]/g, safe(consumer.name))
+      .replace(/\[Address\]/g, safe(consumer.addr1 || ''))
+      .replace(/\[City, State ZIP\]/g, [consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', '))
+      .replace(/\[Phone\]/g, safe(consumer.phone || ''))
+      .replace(/\[Email\]/g, safe(consumer.email || ''))
+      .replace(/\[Date\]/g, dateStr)
+      .replace(/\[Credit Bureau Name\]/g, safe(bureauMeta.name))
+      .replace(/\[Credit Bureau or Creditor Name\]/g, safe(bureauMeta.name))
+      .replace(/\[Creditor or Debt Collector Name\]/g, safe(creditorName))
+      .replace(/\[Debt Collector Name\]/g, safe(creditorName))
+      .replace(/\[Account Number\]/g, safe(accountNum))
+      .replace(/\[Bureau\]/g, safe(bureauMeta.name))
+      .replace(/\[List Accounts\]/g, safe(`${creditorName} #${accountNum}`));
+
+    const lines = personalized.split('\n');
+    const bodyHtml = lines.map(l => l.trim() === '' ? '<br>' : `<p class="ocr" style="margin:4px 0;">${colorize(l)}</p>`).join('\n');
+
+    const letterBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${bureau} – ${safe(template.name)}</title>
+  <style>
+    @media print { @page { margin: 1in; } }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
+    * { word-break:break-word; }
+    .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
+    .muted{ color:#6b7280; }
+    h1{ font-size:20px; margin-bottom:8px; }
+    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
+    table { table-layout: fixed; width:100%; border-collapse:collapse; }
+    td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  ${buildLetterHeader(consumer, bureauMeta)}
+  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+
+  ${bodyHtml}
+
+  <h2>Comparison (All Available Bureaus)</h2>
+  ${compTable}
+
+  <h2>Bureau-Specific Details (${bureau})</h2>
+  ${tlBlock}
+
+  <h2>Specific Issues (Selected)</h2>
+  ${chosenList}
+</body>
+</html>`.trim();
+
+    const fnSafeCred = safe(tl.meta.creditor, "Unknown")
+      .replace(/[^a-z0-9]+/gi, "_")
+      .replace(/^_+|_+$/g, "");
+    const tplSuffix = `_${template.id}`;
+    const filename = `${bureau}_${fnSafeCred}${tplSuffix}_dispute_${new Date().toISOString().slice(0, 10)}.html`;
+
+    return { filename, html: letterBody, letterType: template.id };
+  }
+
   const mc = template
     ? {
         heading: template.heading || "",
@@ -818,7 +887,10 @@ function generateDebtCollectorLetters({ consumer, collectors = [] }) {
 function generateLetters({ report, selections, consumer, requestType = "correct", templates = [], playbooks = {} }) {
   const SPECIAL_ONE_BUREAU = new Set(["identity", "breach", "assault"]);
   const letters = [];
-  const templateMap = Object.fromEntries((templates || []).map(t => [t.id, t]));
+  const templateMap = Object.fromEntries((LETTER_TEMPLATES || []).map(t => [t.id, t]));
+  for (const t of (templates || [])) {
+    templateMap[t.id] = t;
+  }
 
   for (const sel of selections || []) {
     const tl = report.tradelines?.[sel.tradelineIndex];
