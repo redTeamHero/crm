@@ -205,6 +205,7 @@ async function loadMetro2Violations(){
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
+let DISPUTE_LETTER_TEMPLATES = [];
 
 async function loadTemplates(){
   try{
@@ -215,6 +216,15 @@ async function loadTemplates(){
   }catch{}
 }
 loadTemplates();
+
+async function loadDisputeLetterTemplates(){
+  try{
+    const res = await fetch('/api/sample-letters');
+    const data = await res.json().catch(()=>({}));
+    DISPUTE_LETTER_TEMPLATES = data.templates || [];
+  }catch{}
+}
+loadDisputeLetterTemplates();
 
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2923,7 +2933,7 @@ function renderDisputeTracker(data) {
           </div>`;
 
         if (round.status !== 'resolved') {
-          const tplOptions = (CUSTOM_TEMPLATES || []).map(t => {
+          const tplOptions = (DISPUTE_LETTER_TEMPLATES || []).map(t => {
             const tid = escapeHtml(t.id || '');
             const tname = escapeHtml(t.name || t.id || '');
             const selected = currentOverride === t.id ? ' selected' : '';
