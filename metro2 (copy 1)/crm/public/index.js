@@ -262,6 +262,12 @@ function updatePortalLink(){
     if(currentConsumerId) inviteBtn.classList.remove("hidden");
     else inviteBtn.classList.add("hidden");
   }
+  const auditBtn = $("#btnRunClientAudit");
+  if(auditBtn){
+    const c = currentConsumerId ? DB.find(x=>x.id===currentConsumerId) : null;
+    if(c && Array.isArray(c.reports) && c.reports.length > 0) auditBtn.classList.remove("hidden");
+    else auditBtn.classList.add("hidden");
+  }
 }
 
 // ----- UI helpers -----
@@ -2385,6 +2391,43 @@ $("#btnAuditReport").addEventListener("click", async ()=>{
     if(!response?.ok) return showErr(response?.error || "Failed to run audit.");
     if(response.url) window.open(response.url, "_blank");
     if(response.warning) showErr(response.warning);
+  }catch(err){
+    showErr(String(err));
+  }finally{
+    btn.textContent = old;
+    btn.disabled = false;
+  }
+});
+
+// Client-level audit (audits latest report, stores PDF for portal)
+$("#btnRunClientAudit")?.addEventListener("click", async ()=>{
+  if(!currentConsumerId) return showErr("Select a client first.");
+  const c = DB.find(x=>x.id===currentConsumerId);
+  if(!c || !Array.isArray(c.reports) || !c.reports.length) return showErr("This client has no uploaded credit reports to audit.");
+  const latestReport = c.reports.reduce((a, b) => new Date(b.uploadedAt || 0) > new Date(a.uploadedAt || 0) ? b : a, c.reports[0]);
+  if(!latestReport?.id) return showErr("Could not find the latest report.");
+  const btn = $("#btnRunClientAudit");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Auditing...";
+  try{
+    const response = await api(`/api/consumers/${currentConsumerId}/report/${latestReport.id}/audit`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "x-idempotency-key": buildIdempotencyKey('client-audit') },
+      body: JSON.stringify({})
+    });
+    if(response.status === 202 && response.jobId){
+      const job = await waitForJobCompletion(response.jobId);
+      const target = job?.result?.storedFile?.url || job?.result?.url;
+      if(target) window.open(target, "_blank");
+      if(job?.result?.warning) showErr(job.result.warning);
+      await loadConsumerState();
+      return;
+    }
+    if(!response?.ok) return showErr(response?.error || "Failed to generate audit.");
+    if(response.url) window.open(response.url, "_blank");
+    if(response.warning) showErr(response.warning);
+    await loadConsumerState();
   }catch(err){
     showErr(String(err));
   }finally{
