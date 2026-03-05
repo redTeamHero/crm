@@ -74,14 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const panelEl = document.getElementById('adminPanel');
   const userMgrEl = document.getElementById('userManager');
   const userListEl = document.getElementById('userList');
-  const hibpEl = document.getElementById('hibpKey');
-  const rssEl = document.getElementById('rssFeedUrl');
   const gcalTokenEl = document.getElementById('gcalToken');
   const gcalIdEl = document.getElementById('gcalId');
-  const stripeEl = document.getElementById('stripeKey');
   const marketingBaseEl = document.getElementById('marketingApiBaseUrl');
   const marketingKeyEl = document.getElementById('marketingApiKey');
-  const sendCertifiedMailEl = document.getElementById('sendCertifiedMailKey');
   const gmailClientIdEl = document.getElementById('gmailClientId');
   const gmailClientSecretEl = document.getElementById('gmailClientSecret');
   const gmailRefreshTokenEl = document.getElementById('gmailRefreshToken');
@@ -412,19 +408,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function applyStatusBadge(el, connected) {
+    if (!el) return;
+    el.textContent = connected ? 'Connected' : 'Not Connected';
+    el.className = 'system-status-badge ' + (connected ? 'connected' : 'not-connected');
+  }
+
+  async function loadSystemStatus() {
+    try {
+      const resp = await fetch('/api/system-status', { headers: authHeader() });
+      const data = await resp.json();
+      if (!data.ok) return;
+      const s = data.services || {};
+      applyStatusBadge(document.getElementById('sysStatusStripe'), s.stripe?.connected);
+      applyStatusBadge(document.getElementById('sysStatusEmail'), s.email?.connected);
+      if (s.email?.from) {
+        const fromEl = document.getElementById('sysEmailFrom');
+        if (fromEl) fromEl.textContent = s.email.from;
+      }
+      applyStatusBadge(document.getElementById('sysStatusCertMail'), s.certifiedMail?.connected);
+      applyStatusBadge(document.getElementById('sysStatusHibp'), s.hibp?.connected);
+      const rssConnected = s.rssFeed?.connected;
+      applyStatusBadge(document.getElementById('sysStatusRss'), rssConnected);
+      const rssUrlEl = document.getElementById('sysRssUrl');
+      if (rssUrlEl && s.rssFeed?.url) {
+        rssUrlEl.textContent = s.rssFeed.isDefault ? 'Using default feed' : s.rssFeed.url;
+      }
+    } catch (e) {
+      console.warn('Failed to load system status', e);
+    }
+  }
+
   async function load() {
     try {
       const resp = await fetch('/api/settings', { headers: authHeader() });
       const data = await resp.json();
       currentSettings = data.settings || {};
-      if (hibpEl) hibpEl.value = currentSettings.hibpApiKey || '';
-      if (rssEl) rssEl.value = currentSettings.rssFeedUrl || '';
       if (gcalTokenEl) gcalTokenEl.value = currentSettings.googleCalendarToken || '';
       if (gcalIdEl) gcalIdEl.value = currentSettings.googleCalendarId || '';
-      if (stripeEl) stripeEl.value = currentSettings.stripeApiKey || '';
       if (marketingBaseEl) marketingBaseEl.value = currentSettings.marketingApiBaseUrl || '';
       if (marketingKeyEl) marketingKeyEl.value = currentSettings.marketingApiKey || '';
-      if (sendCertifiedMailEl) sendCertifiedMailEl.value = currentSettings.sendCertifiedMailApiKey || '';
       if (gmailClientIdEl) gmailClientIdEl.value = currentSettings.gmailClientId || '';
       if (gmailClientSecretEl) gmailClientSecretEl.value = currentSettings.gmailClientSecret || '';
       if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = currentSettings.gmailRefreshToken || '';
@@ -452,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
           userMgrEl?.classList.remove('hidden');
         }
         bindSaveButton();
-        await Promise.all([load(), loadUsers()]);
+        await Promise.all([load(), loadUsers(), loadSystemStatus()]);
       } else {
         showAdminNotice();
       }
@@ -469,14 +492,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const body = {
-      hibpApiKey: readSettingValue(hibpEl, 'hibpApiKey'),
-      rssFeedUrl: readSettingValue(rssEl, 'rssFeedUrl'),
       googleCalendarToken: readSettingValue(gcalTokenEl, 'googleCalendarToken'),
       googleCalendarId: readSettingValue(gcalIdEl, 'googleCalendarId'),
-      stripeApiKey: readSettingValue(stripeEl, 'stripeApiKey'),
       marketingApiBaseUrl: readSettingValue(marketingBaseEl, 'marketingApiBaseUrl'),
       marketingApiKey: readSettingValue(marketingKeyEl, 'marketingApiKey'),
-      sendCertifiedMailApiKey: readSettingValue(sendCertifiedMailEl, 'sendCertifiedMailApiKey'),
       gmailClientId: readSettingValue(gmailClientIdEl, 'gmailClientId'),
       gmailClientSecret: readSettingValue(gmailClientSecretEl, 'gmailClientSecret'),
       gmailRefreshToken: readSettingValue(gmailRefreshTokenEl, 'gmailRefreshToken'),
@@ -508,14 +527,10 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(result?.error || 'Failed to save settings');
       }
       currentSettings = result.settings || currentSettings;
-      if (hibpEl) hibpEl.value = currentSettings.hibpApiKey || '';
-      if (rssEl) rssEl.value = currentSettings.rssFeedUrl || '';
       if (gcalTokenEl) gcalTokenEl.value = currentSettings.googleCalendarToken || '';
       if (gcalIdEl) gcalIdEl.value = currentSettings.googleCalendarId || '';
-      if (stripeEl) stripeEl.value = currentSettings.stripeApiKey || '';
       if (marketingBaseEl) marketingBaseEl.value = currentSettings.marketingApiBaseUrl || '';
       if (marketingKeyEl) marketingKeyEl.value = currentSettings.marketingApiKey || '';
-      if (sendCertifiedMailEl) sendCertifiedMailEl.value = currentSettings.sendCertifiedMailApiKey || '';
       if (gmailClientIdEl) gmailClientIdEl.value = currentSettings.gmailClientId || '';
       if (gmailClientSecretEl) gmailClientSecretEl.value = currentSettings.gmailClientSecret || '';
       if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = currentSettings.gmailRefreshToken || '';

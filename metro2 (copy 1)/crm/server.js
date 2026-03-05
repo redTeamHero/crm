@@ -144,25 +144,25 @@ const DEFAULT_SETTINGS = {
   hotkeys: {},
 };
 
-const STRING_SETTING_KEYS = [
+const SYSTEM_SETTING_KEYS = new Set([
+  "stripeApiKey",
   "hibpApiKey",
   "rssFeedUrl",
+  "sendCertifiedMailApiKey",
+]);
+
+const STRING_SETTING_KEYS = [
   "googleCalendarToken",
   "googleCalendarId",
-  "stripeApiKey",
   "marketingApiBaseUrl",
   "marketingApiKey",
-  "sendCertifiedMailApiKey",
   "gmailClientId",
   "gmailClientSecret",
   "gmailRefreshToken"
 ];
 
 const SECRET_SETTING_KEYS = new Set([
-  "hibpApiKey",
-  "stripeApiKey",
   "marketingApiKey",
-  "sendCertifiedMailApiKey",
   "googleCalendarToken",
   "gmailClientSecret",
   "gmailRefreshToken",
@@ -252,14 +252,11 @@ function collectRequestedBureaus({ selections = [], personalInfo = [], inquiries
 }
 
 const INTEGRATION_SETTING_TO_ENV = {
-  hibpApiKey: "HIBP_API_KEY",
   marketingApiBaseUrl: "MARKETING_API_BASE_URL",
   marketingApiKey: "MARKETING_API_KEY",
-  sendCertifiedMailApiKey: "SCM_API_KEY",
   gmailClientId: "GMAIL_CLIENT_ID",
   gmailClientSecret: "GMAIL_CLIENT_SECRET",
   gmailRefreshToken: "GMAIL_REFRESH_TOKEN",
-  stripeApiKey: "STRIPE_API_KEY",
 };
 
 function normalizeEnvOverrides(raw){
@@ -1728,13 +1725,14 @@ app.get("/api/portal/:id", async (req, res) => {
 app.get("/buy", async (req, res) => {
   const { bank = "", price = "" } = req.query || {};
   const settings = await loadSettings();
-  if (!StripeLib || !settings.stripeApiKey) {
+  const stripeKey = process.env.STRIPE_API_KEY || settings.stripeApiKey;
+  if (!StripeLib || !stripeKey) {
     return res.status(500).json({ ok:false, error:'Stripe not configured' });
   }
   const amt = Math.round(parseFloat(price) * 100);
   if (!amt) return res.status(400).send("Invalid price");
   try {
-    const stripe = new StripeLib(settings.stripeApiKey);
+    const stripe = new StripeLib(stripeKey);
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [
@@ -1754,6 +1752,49 @@ app.get("/buy", async (req, res) => {
   } catch (e) {
     console.error("Stripe checkout error", e);
     res.status(500).json({ ok:false, error:'Checkout failed' });
+  }
+});
+
+app.get("/api/system-status", authenticate, requireRole("admin"), async (_req, res) => {
+  try {
+    let stripeConnected = false;
+    try {
+      const { getStripeSecretKey } = await import("./stripeClient.js");
+      const sk = await getStripeSecretKey();
+      stripeConnected = !!sk;
+    } catch (_e) {
+      stripeConnected = !!process.env.STRIPE_API_KEY;
+    }
+
+    const smtpHost = process.env.SMTP_HOST || "";
+    const smtpFrom = process.env.SMTP_FROM || process.env.SMTP_USER || "";
+    const smtpConnected = !!smtpHost;
+
+    const scmKey = process.env.SCM_API_KEY || "";
+    const certifiedMailConnected = !!scmKey;
+
+    const hibpKey = process.env.HIBP_API_KEY || "";
+    const hibpConnected = !!hibpKey;
+
+    const rssUrl = process.env.RSS_FEED_URL || "";
+    const rssDefault = "https://hnrss.org/frontpage";
+
+    res.json({
+      ok: true,
+      services: {
+        stripe: { connected: stripeConnected },
+        email: {
+          connected: smtpConnected,
+          from: smtpConnected && smtpFrom ? smtpFrom.replace(/(.{2}).*(@.*)/, "$1••••$2") : "",
+        },
+        certifiedMail: { connected: certifiedMailConnected },
+        hibp: { connected: hibpConnected },
+        rssFeed: { connected: !!rssUrl, url: rssUrl || rssDefault, isDefault: !rssUrl },
+      },
+    });
+  } catch (err) {
+    logWarn("SYSTEM_STATUS_ERROR", err?.message || String(err));
+    res.status(500).json({ ok: false, error: "Failed to load system status" });
   }
 });
 
@@ -1823,6 +1864,7 @@ app.post("/api/settings", authenticate, requireRole("admin"), async (req, res) =
   const updates = {};
 
   for (const key of STRING_SETTING_KEYS) {
+    if (SYSTEM_SETTING_KEYS.has(key)) continue;
     if (Object.prototype.hasOwnProperty.call(payload, key)) {
       updates[key] = payload[key];
     }
@@ -6313,7 +6355,7 @@ app.post(
 // Check consumer email against Have I Been Pwned
 // Use POST so email isn't logged in query string
 async function hibpLookup(email) {
-  const apiKey = (await loadSettings()).hibpApiKey || process.env.HIBP_API_KEY;
+  const apiKey = process.env.HIBP_API_KEY || (await loadSettings()).hibpApiKey;
   if (!apiKey) return { ok: false, status: 500, error: "HIBP API key not configured" };
   try {
     const hibpRes = await fetchFn(
@@ -10008,7 +10050,7 @@ app.post('/api/diy/change-password', diyAuthenticate, async (req, res) => {
 app.get('/api/diy/news', diyAuthenticate, async (req, res) => {
   try {
     const settings = await loadSettings();
-    const feedUrl = settings.rssFeedUrl || 'https://hnrss.org/frontpage';
+    const feedUrl = process.env.RSS_FEED_URL || settings.rssFeedUrl || 'https://hnrss.org/frontpage';
     const response = await fetchFn(feedUrl, { timeout: 8000 });
     if (!response || !response.ok) throw new Error('Failed to fetch news feed');
     const xml = await response.text();

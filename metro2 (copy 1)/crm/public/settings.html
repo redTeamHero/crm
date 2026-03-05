@@ -131,6 +131,33 @@
   .hotkey-item input:focus {
     border-color: #d4a853;
   }
+
+  .system-status-card {
+    background: #111113;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .system-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .system-status-badge.connected {
+    background: rgba(34,197,94,0.12);
+    color: #4ade80;
+  }
+  .system-status-badge.not-connected {
+    background: rgba(245,158,11,0.12);
+    color: #fbbf24;
+  }
 </style>
 </head>
 <body class="text-gray-200">
@@ -171,34 +198,100 @@
   </div>
 
   <div id="adminPanel" class="space-y-8 hidden">
+
+    <div id="systemServicesPanel">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-white">System Services</h2>
+          <p class="text-xs text-gray-500">Platform-wide integrations managed via environment configuration</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-2" id="systemStatusGrid">
+        <div class="system-status-card" data-service="stripe">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(99,102,241,0.12)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-white">Stripe</div>
+              <div class="text-xs text-gray-500">Payments &amp; subscriptions</div>
+            </div>
+            <span class="system-status-badge" id="sysStatusStripe">...</span>
+          </div>
+        </div>
+
+        <div class="system-status-card" data-service="email">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(239,68,68,0.12)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-white">System Email</div>
+              <div class="text-xs text-gray-500 truncate" id="sysEmailFrom">SMTP transactional mail</div>
+            </div>
+            <span class="system-status-badge" id="sysStatusEmail">...</span>
+          </div>
+        </div>
+
+        <div class="system-status-card" data-service="certifiedMail">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(212,168,83,0.12)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-white">Certified Mail</div>
+              <div class="text-xs text-gray-500">USPS certified dispatch</div>
+            </div>
+            <span class="system-status-badge" id="sysStatusCertMail">...</span>
+          </div>
+        </div>
+
+        <div class="system-status-card" data-service="hibp">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(168,85,247,0.12)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-white">HIBP</div>
+              <div class="text-xs text-gray-500">Breach monitoring</div>
+            </div>
+            <span class="system-status-badge" id="sysStatusHibp">...</span>
+          </div>
+        </div>
+
+        <div class="system-status-card" data-service="rssFeed">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:rgba(59,130,246,0.12)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M6 4h12l3 5-9 11L3 9z"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-white">RSS Feed</div>
+              <div class="text-xs text-gray-500 truncate" id="sysRssUrl">Industry news</div>
+            </div>
+            <span class="system-status-badge" id="sysStatusRss">...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider" style="border-top:1px solid rgba(255,255,255,0.06);margin:24px 0"></div>
+
     <div>
       <div class="flex items-center gap-3 mb-6" id="api-integrations">
         <div class="w-8 h-8 rounded-lg bg-[#d4a853]/15 flex items-center justify-center">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d4a853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         </div>
         <div>
-          <h2 class="text-lg font-semibold text-white">API Integrations</h2>
-          <p class="text-xs text-gray-500">Connect your services to power automation</p>
+          <h2 class="text-lg font-semibold text-white">Your API Integrations</h2>
+          <p class="text-xs text-gray-500">Tenant-level services you can configure</p>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div class="api-card">
-          <div class="api-card-header">
-            <div class="api-card-icon" style="background:rgba(99,102,241,0.12)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-            </div>
-            <div>
-              <div class="api-card-title">Stripe</div>
-              <div class="api-card-desc">Payment processing and subscriptions</div>
-            </div>
-          </div>
-          <div class="input-row">
-            <label>API Key</label>
-            <input id="stripeKey" placeholder="sk_live_..." />
-          </div>
-        </div>
-
         <div class="api-card">
           <div class="api-card-header">
             <div class="api-card-icon" style="background:rgba(34,197,94,0.12)">
@@ -240,54 +333,6 @@
           <div class="input-row">
             <label>Refresh Token</label>
             <input id="gmailRefreshToken" placeholder="Refresh Token" />
-          </div>
-        </div>
-
-        <div class="api-card">
-          <div class="api-card-header">
-            <div class="api-card-icon" style="background:rgba(212,168,83,0.12)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4a853" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            </div>
-            <div>
-              <div class="api-card-title">Certified Mail</div>
-              <div class="api-card-desc">USPS certified mail for dispute letters</div>
-            </div>
-          </div>
-          <div class="input-row">
-            <label>SimpleCertifiedMail API Key</label>
-            <input id="sendCertifiedMailKey" placeholder="API Key" />
-          </div>
-        </div>
-
-        <div class="api-card">
-          <div class="api-card-header">
-            <div class="api-card-icon" style="background:rgba(168,85,247,0.12)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <div>
-              <div class="api-card-title">HIBP (Breach Monitor)</div>
-              <div class="api-card-desc">Have I Been Pwned breach checking</div>
-            </div>
-          </div>
-          <div class="input-row">
-            <label>API Key</label>
-            <input id="hibpKey" placeholder="HIBP API Key" />
-          </div>
-        </div>
-
-        <div class="api-card">
-          <div class="api-card-header">
-            <div class="api-card-icon" style="background:rgba(59,130,246,0.12)">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M6 4h12l3 5-9 11L3 9z"/></svg>
-            </div>
-            <div>
-              <div class="api-card-title">RSS Feed</div>
-              <div class="api-card-desc">Industry news feed for dashboard</div>
-            </div>
-          </div>
-          <div class="input-row">
-            <label>Feed URL</label>
-            <input id="rssFeedUrl" placeholder="https://..." />
           </div>
         </div>
 
