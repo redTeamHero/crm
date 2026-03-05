@@ -5185,21 +5185,70 @@ app.post("/api/lead-capture/generate-link", authenticate, async (req, res) => {
   res.json({ ok: true, link });
 });
 
+const _resetRateMap = new Map();
+function checkResetRateLimit(key, maxAttempts = 5, windowMs = 15 * 60 * 1000) {
+  const now = Date.now();
+  const entry = _resetRateMap.get(key);
+  if (entry && now - entry.start < windowMs) {
+    if (entry.count >= maxAttempts) return false;
+    entry.count++;
+    return true;
+  }
+  _resetRateMap.set(key, { start: now, count: 1 });
+  return true;
+}
+
 app.post("/api/request-password-reset", async (req,res)=>{
+  const email = (req.body.email || "").trim().toLowerCase();
+  if(!email) return res.status(400).json({ ok:false, error:"Email is required" });
+  if(!checkResetRateLimit("req:" + email, 5)) return res.status(429).json({ ok:false, error:"Too many reset requests. Please try again later." });
   const db = await loadUsersDB();
-  const user = db.users.find(u=>u.username===req.body.username);
-  if(!user) return res.status(404).json({ ok:false, error:"Not found" });
-  const token = nanoid(12);
-  user.resetToken = token;
+  const user = db.users.find(u=> (u.email || "").toLowerCase() === email);
+  if(!user){
+    return res.json({ ok:true });
+  }
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  user.resetCode = code;
+  user.resetCodeExpires = Date.now() + 15 * 60 * 1000;
+  delete user.resetToken;
   await saveUsersDB(db);
-  res.json({ ok:true, token });
+  if(mailer){
+    try{
+      await mailer.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@evolv.ai",
+        to: user.email,
+        subject: "Your Evolv.Ai Password Reset Code",
+        text: `Your password reset code is: ${code}\n\nThis code expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`,
+        html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:16px"><h2 style="margin:0 0 8px;color:#d4a853">Password Reset</h2><p style="color:rgba(255,255,255,0.6);margin:0 0 24px">Use the code below to reset your password.</p><div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;letter-spacing:8px;font-size:32px;font-weight:700;color:#d4a853">${code}</div><p style="color:rgba(255,255,255,0.4);font-size:13px;margin:20px 0 0">This code expires in 15 minutes. If you did not request this, ignore this email.</p></div>`
+      });
+    }catch(emailErr){
+      logError("RESET_EMAIL_FAIL", emailErr);
+    }
+  }else{
+    logWarn("RESET_NO_MAILER", "No SMTP configured; reset code generated for user but could not be delivered");
+  }
+  res.json({ ok:true });
 });
 
 app.post("/api/reset-password", async (req,res)=>{
+  const email = (req.body.email || "").trim().toLowerCase();
+  const code = (req.body.code || "").trim();
+  const password = req.body.password || "";
+  if(!email || !code || !password) return res.status(400).json({ ok:false, error:"Email, code, and new password are required" });
+  if(!checkResetRateLimit("verify:" + email, 10)) return res.status(429).json({ ok:false, error:"Too many attempts. Please request a new code." });
+  if(password.length < 6) return res.status(400).json({ ok:false, error:"Password must be at least 6 characters" });
   const db = await loadUsersDB();
-  const user = db.users.find(u=>u.username===req.body.username && u.resetToken===req.body.token);
-  if(!user) return res.status(400).json({ ok:false, error:"Invalid token" });
-  user.password = bcrypt.hashSync(req.body.password || "", 10);
+  const user = db.users.find(u=> (u.email || "").toLowerCase() === email && u.resetCode === code);
+  if(!user) return res.status(400).json({ ok:false, error:"Invalid or expired code" });
+  if(user.resetCodeExpires && Date.now() > user.resetCodeExpires) {
+    delete user.resetCode;
+    delete user.resetCodeExpires;
+    await saveUsersDB(db);
+    return res.status(400).json({ ok:false, error:"Code has expired. Please request a new one." });
+  }
+  user.password = bcrypt.hashSync(password, 10);
+  delete user.resetCode;
+  delete user.resetCodeExpires;
   delete user.resetToken;
   await saveUsersDB(db);
   res.json({ ok:true });
@@ -9865,6 +9914,69 @@ app.put('/api/diy/profile', diyAuthenticate, async (req, res) => {
   } catch (err) {
     logError('DIY_UPDATE_PROFILE_ERROR', err);
     res.status(500).json({ ok: false, error: 'Failed to update profile' });
+  }
+});
+
+// DIY Forgot Password
+app.post('/api/diy/request-password-reset', async (req, res) => {
+  try {
+    const email = (req.body.email || "").trim().toLowerCase();
+    if (!email) return res.status(400).json({ ok: false, error: "Email is required" });
+    if (!checkResetRateLimit("diy-req:" + email, 5)) return res.status(429).json({ ok: false, error: "Too many reset requests. Please try again later." });
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => (u.email || "").toLowerCase() === email);
+    if (!user) return res.json({ ok: true });
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    user.resetCode = code;
+    user.resetCodeExpires = Date.now() + 15 * 60 * 1000;
+    await saveDiyUsersDB(db);
+    if (mailer) {
+      try {
+        await mailer.sendMail({
+          from: process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@evolv.ai",
+          to: user.email,
+          subject: "Your Evolv.Ai Password Reset Code",
+          text: `Your password reset code is: ${code}\n\nThis code expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`,
+          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:16px"><h2 style="margin:0 0 8px;color:#818cf8">Password Reset</h2><p style="color:rgba(255,255,255,0.6);margin:0 0 24px">Use the code below to reset your password.</p><div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;letter-spacing:8px;font-size:32px;font-weight:700;color:#818cf8">${code}</div><p style="color:rgba(255,255,255,0.4);font-size:13px;margin:20px 0 0">This code expires in 15 minutes. If you did not request this, ignore this email.</p></div>`
+        });
+      } catch (emailErr) {
+        logError("DIY_RESET_EMAIL_FAIL", emailErr);
+      }
+    } else {
+      logWarn("DIY_RESET_NO_MAILER", "No SMTP configured; DIY reset code generated but could not be delivered");
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    logError("DIY_REQUEST_RESET_ERROR", err);
+    res.status(500).json({ ok: false, error: "Reset request failed" });
+  }
+});
+
+app.post('/api/diy/reset-password', async (req, res) => {
+  try {
+    const email = (req.body.email || "").trim().toLowerCase();
+    const code = (req.body.code || "").trim();
+    const password = req.body.password || "";
+    if (!email || !code || !password) return res.status(400).json({ ok: false, error: "Email, code, and new password are required" });
+    if (!checkResetRateLimit("diy-verify:" + email, 10)) return res.status(429).json({ ok: false, error: "Too many attempts. Please request a new code." });
+    if (password.length < 8) return res.status(400).json({ ok: false, error: "Password must be at least 8 characters" });
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => (u.email || "").toLowerCase() === email && u.resetCode === code);
+    if (!user) return res.status(400).json({ ok: false, error: "Invalid or expired code" });
+    if (user.resetCodeExpires && Date.now() > user.resetCodeExpires) {
+      delete user.resetCode;
+      delete user.resetCodeExpires;
+      await saveDiyUsersDB(db);
+      return res.status(400).json({ ok: false, error: "Code has expired. Please request a new one." });
+    }
+    user.password = bcrypt.hashSync(password, 10);
+    delete user.resetCode;
+    delete user.resetCodeExpires;
+    await saveDiyUsersDB(db);
+    res.json({ ok: true });
+  } catch (err) {
+    logError("DIY_RESET_PASSWORD_ERROR", err);
+    res.status(500).json({ ok: false, error: "Password reset failed" });
   }
 });
 

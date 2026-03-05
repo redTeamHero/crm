@@ -177,6 +177,10 @@
 
           <button id="btnLogin" class="auth-btn" type="button">Sign In</button>
 
+          <div style="text-align:center;margin-top:12px">
+            <a href="#" id="btnForgot" style="color:#818cf8;font-size:13px;font-weight:500;text-decoration:none">Forgot your password?</a>
+          </div>
+
           <div class="auth-divider">
             <p>New to credit repair? <a href="/diy/signup">Create your free account</a></p>
           </div>
@@ -197,6 +201,67 @@
       </div>
     </main>
   </div>
+
+  <div id="resetModal" style="display:none;position:fixed;inset:0;z-index:50;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px)">
+    <div class="auth-card" style="width:100%;max-width:420px;margin:0 16px;position:relative">
+      <button id="closeResetModal" style="position:absolute;top:16px;right:16px;background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;padding:4px">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+
+      <div id="diyResetStep1">
+        <div style="text-align:center;margin-bottom:24px">
+          <div class="auth-brand-icon" style="display:inline-flex;margin-bottom:12px">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+          </div>
+          <h2 style="font-size:20px;font-weight:700;color:#fff;margin:0">Reset Password</h2>
+          <p style="font-size:14px;color:rgba(255,255,255,0.5);margin:6px 0 0">Enter the email on your account</p>
+        </div>
+        <div id="diyResetErr1" class="auth-error"></div>
+        <div class="auth-field">
+          <label class="auth-label">Email Address</label>
+          <input id="diyResetEmail" type="email" placeholder="you@example.com" class="auth-input" />
+        </div>
+        <button id="diyBtnSendCode" class="auth-btn" type="button">Send Reset Code</button>
+      </div>
+
+      <div id="diyResetStep2" style="display:none">
+        <div style="text-align:center;margin-bottom:24px">
+          <div class="auth-brand-icon" style="display:inline-flex;margin-bottom:12px">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </div>
+          <h2 style="font-size:20px;font-weight:700;color:#fff;margin:0">Check Your Email</h2>
+          <p style="font-size:14px;color:rgba(255,255,255,0.5);margin:6px 0 0">Enter the 6-digit code we sent you</p>
+        </div>
+        <div id="diyResetErr2" class="auth-error"></div>
+        <div class="auth-field">
+          <label class="auth-label">Reset Code</label>
+          <input id="diyResetCode" type="text" maxlength="6" placeholder="000000" class="auth-input" style="text-align:center;font-size:24px;letter-spacing:8px;font-family:monospace" inputmode="numeric" autocomplete="one-time-code" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">New Password</label>
+          <input id="diyResetNewPass" type="password" placeholder="Enter new password (min 8 chars)" class="auth-input" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Confirm Password</label>
+          <input id="diyResetConfirmPass" type="password" placeholder="Confirm new password" class="auth-input" />
+        </div>
+        <button id="diyBtnResetPassword" class="auth-btn" type="button">Reset Password</button>
+        <p style="text-align:center;font-size:12px;color:rgba(255,255,255,0.4);margin-top:12px">Didn't get the code? <a href="#" id="diyBtnResend" style="color:#818cf8;font-weight:600;text-decoration:none">Resend</a></p>
+      </div>
+
+      <div id="diyResetStep3" style="display:none">
+        <div style="text-align:center;padding:16px 0">
+          <div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,0.15);margin-bottom:16px">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <h2 style="font-size:20px;font-weight:700;color:#fff;margin:0 0 8px">Password Reset</h2>
+          <p style="font-size:14px;color:rgba(255,255,255,0.5);margin:0 0 24px">Your password has been updated. You can now sign in.</p>
+          <button id="diyBtnBackToLogin" class="auth-btn" type="button">Back to Login</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/diy/login.js"></script>
 </body>
 </html>

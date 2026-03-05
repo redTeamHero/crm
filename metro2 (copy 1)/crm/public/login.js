@@ -169,26 +169,107 @@ document.getElementById('btnSubmitRegister').addEventListener('click', () => {
   handleAuth('/api/register', { name, email, phone, company, username, password }, { basicAuth: btoa(`${username}:${password}`) });
 });
 
-// simple password reset flow using prompts
- document.getElementById('btnReset').addEventListener('click', async ()=>{
-  const username = prompt('Enter username for reset:');
-  if(!username) return;
-  try{
-    const res = await fetch('/api/request-password-reset',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username})
-    });
-    const data = await res.json();
-    if(!res.ok || !data.ok){ throw new Error(data.error || 'Request failed'); }
-    const token = data.token;
-    const newPass = prompt('Enter new password:');
-    if(!newPass) return;
-    const res2 = await fetch('/api/reset-password',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username, token, password:newPass})
-    });
-    const data2 = await res2.json();
-    if(!res2.ok || !data2.ok){ throw new Error(data2.error || 'Reset failed'); }
-    showError('Password reset. Please login with new password.');
-  }catch(err){
-    showError(err.message);
+// Forgot password modal flow
+(function initResetModal(){
+  var modal = document.getElementById('resetModal');
+  var step1 = document.getElementById('resetStep1');
+  var step2 = document.getElementById('resetStep2');
+  var step3 = document.getElementById('resetStep3');
+  var err1 = document.getElementById('resetErr1');
+  var err2 = document.getElementById('resetErr2');
+  var emailInput = document.getElementById('resetEmail');
+  var codeInput = document.getElementById('resetCode');
+  var newPassInput = document.getElementById('resetNewPass');
+  var confirmPassInput = document.getElementById('resetConfirmPass');
+  var btnSend = document.getElementById('btnSendCode');
+  var btnReset = document.getElementById('btnResetPassword');
+  var btnResend = document.getElementById('btnResendCode');
+  var btnBack = document.getElementById('btnBackToLogin');
+  var resetEmailAddr = '';
+
+  function showResetErr(el, msg){ el.textContent = msg; el.classList.remove('hidden'); }
+  function hideResetErr(el){ el.classList.add('hidden'); }
+  function showStep(n){
+    step1.classList.toggle('hidden', n !== 1);
+    step2.classList.toggle('hidden', n !== 2);
+    step3.classList.toggle('hidden', n !== 3);
+    hideResetErr(err1); hideResetErr(err2);
   }
-});
+  function openResetModal(){
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+    showStep(1);
+    emailInput.value = ''; codeInput.value = ''; newPassInput.value = ''; confirmPassInput.value = '';
+    emailInput.focus();
+  }
+  function closeResetModal(){
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+  }
+
+  document.getElementById('btnReset').addEventListener('click', openResetModal);
+  document.getElementById('closeResetModal').addEventListener('click', closeResetModal);
+  modal.addEventListener('click', function(e){ if(e.target === modal) closeResetModal(); });
+
+  btnSend.addEventListener('click', async function(){
+    hideResetErr(err1);
+    var email = emailInput.value.trim();
+    if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      showResetErr(err1, 'Please enter a valid email address'); return;
+    }
+    btnSend.disabled = true; btnSend.textContent = 'Sending...';
+    try{
+      var res = await fetch('/api/request-password-reset', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:email})
+      });
+      var data = await res.json();
+      if(!res.ok || !data.ok) throw new Error(data.error || 'Request failed');
+      resetEmailAddr = email;
+      showStep(2);
+      codeInput.focus();
+    }catch(e){
+      showResetErr(err1, e.message);
+    }finally{
+      btnSend.disabled = false; btnSend.textContent = 'Send Reset Code';
+    }
+  });
+
+  btnResend.addEventListener('click', async function(e){
+    e.preventDefault();
+    if(!resetEmailAddr) return;
+    btnResend.textContent = 'Sending...';
+    try{
+      await fetch('/api/request-password-reset', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:resetEmailAddr})
+      });
+      btnResend.textContent = 'Code sent!';
+      setTimeout(function(){ btnResend.textContent = 'Resend'; }, 3000);
+    }catch(e){
+      btnResend.textContent = 'Resend';
+    }
+  });
+
+  btnReset.addEventListener('click', async function(){
+    hideResetErr(err2);
+    var code = codeInput.value.trim();
+    var pass = newPassInput.value;
+    var confirm = confirmPassInput.value;
+    if(!code || code.length !== 6){ showResetErr(err2, 'Please enter the 6-digit code'); return; }
+    if(!pass || pass.length < 6){ showResetErr(err2, 'Password must be at least 6 characters'); return; }
+    if(pass !== confirm){ showResetErr(err2, 'Passwords do not match'); return; }
+    btnReset.disabled = true; btnReset.textContent = 'Resetting...';
+    try{
+      var res = await fetch('/api/reset-password', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email:resetEmailAddr, code:code, password:pass})
+      });
+      var data = await res.json();
+      if(!res.ok || !data.ok) throw new Error(data.error || 'Reset failed');
+      showStep(3);
+    }catch(e){
+      showResetErr(err2, e.message);
+    }finally{
+      btnReset.disabled = false; btnReset.textContent = 'Reset Password';
+    }
+  });
+
+  btnBack.addEventListener('click', closeResetModal);
+})();

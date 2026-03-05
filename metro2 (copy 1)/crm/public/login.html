@@ -184,6 +184,70 @@
     </div>
   </div>
 
+  <div id="resetModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px)">
+    <div class="glass-card rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 relative" style="max-height:90vh;overflow-y:auto">
+      <button id="closeResetModal" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+
+      <div id="resetStep1">
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3" style="background:linear-gradient(135deg,#d4a853,#c4973e)">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+          </div>
+          <h2 class="text-xl font-bold text-white">Reset Password</h2>
+          <p class="text-sm text-gray-400 mt-1">Enter the email on your account</p>
+        </div>
+        <div id="resetErr1" class="hidden mb-4 p-3 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-xl"></div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
+            <input id="resetEmail" type="email" placeholder="you@company.com" class="input-focus w-full border border-gray-700 bg-[#0a0a0a] rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:border-[#d4a853] outline-none transition-all" />
+          </div>
+          <button id="btnSendCode" class="btn-primary w-full py-3 px-4 rounded-xl text-white font-semibold text-base">Send Reset Code</button>
+        </div>
+      </div>
+
+      <div id="resetStep2" class="hidden">
+        <div class="text-center mb-6">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3" style="background:linear-gradient(135deg,#d4a853,#c4973e)">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+          </div>
+          <h2 class="text-xl font-bold text-white">Check Your Email</h2>
+          <p class="text-sm text-gray-400 mt-1">Enter the 6-digit code we sent to your email</p>
+        </div>
+        <div id="resetErr2" class="hidden mb-4 p-3 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded-xl"></div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">Reset Code</label>
+            <input id="resetCode" type="text" maxlength="6" placeholder="000000" class="input-focus w-full border border-gray-700 bg-[#0a0a0a] rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:border-[#d4a853] outline-none transition-all text-center text-2xl tracking-widest font-mono" inputmode="numeric" autocomplete="one-time-code" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">New Password</label>
+            <input id="resetNewPass" type="password" placeholder="Enter new password" class="input-focus w-full border border-gray-700 bg-[#0a0a0a] rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:border-[#d4a853] outline-none transition-all" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">Confirm Password</label>
+            <input id="resetConfirmPass" type="password" placeholder="Confirm new password" class="input-focus w-full border border-gray-700 bg-[#0a0a0a] rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:border-[#d4a853] outline-none transition-all" />
+          </div>
+          <button id="btnResetPassword" class="btn-primary w-full py-3 px-4 rounded-xl text-white font-semibold text-base">Reset Password</button>
+          <p class="text-center text-xs text-gray-500">Didn't get the code? <a href="#" id="btnResendCode" class="text-[#d4a853] hover:underline">Resend</a></p>
+        </div>
+      </div>
+
+      <div id="resetStep3" class="hidden">
+        <div class="text-center py-4">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4" style="background:rgba(16,185,129,0.15)">
+            <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          </div>
+          <h2 class="text-xl font-bold text-white mb-2">Password Reset</h2>
+          <p class="text-sm text-gray-400 mb-6">Your password has been updated successfully. You can now sign in with your new password.</p>
+          <button id="btnBackToLogin" class="btn-primary w-full py-3 px-4 rounded-xl text-white font-semibold text-base">Back to Login</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/common.js"></script>
   <script>
     document.querySelectorAll('input[name="role"]').forEach(radio => {
