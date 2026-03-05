@@ -1667,13 +1667,7 @@ function initDashboard() {
 
   const feedEl = document.getElementById('newsFeed');
   if (feedEl) {
-    fetch('/api/settings')
-      .then(r => r.json())
-      .then(cfg => {
-        const rssUrl = cfg.settings?.rssFeedUrl || 'https://hnrss.org/frontpage';
-        const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
-        return fetch(apiUrl);
-      })
+    fetch('/api/news')
       .then(r => r.json())
       .then(data => {
         const items = data.items || [];

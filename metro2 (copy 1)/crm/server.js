@@ -1807,6 +1807,49 @@ app.get("/api/settings", optionalAuth, async (req, res) => {
   res.json({ ok: true, settings: masked });
 });
 
+function decodeXmlEntities(str) {
+  return str.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/<[^>]+>/g, '');
+}
+
+app.get("/api/news", optionalAuth, async (req, res) => {
+  try {
+    const settings = await loadSettings(req);
+    const feedUrl = process.env.RSS_FEED_URL || settings.rssFeedUrl || 'https://hnrss.org/frontpage';
+    const response = await fetchFn(feedUrl, { timeout: 8000 });
+    if (!response || !response.ok) throw new Error('Failed to fetch news feed');
+    const xml = await response.text();
+    const items = [];
+    const isAtom = xml.includes('<feed') && xml.includes('<entry>');
+    if (isAtom) {
+      const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
+      let match;
+      while ((match = entryRegex.exec(xml)) !== null && items.length < 20) {
+        const entryXml = match[1];
+        const title = (entryXml.match(/<title[^>]*><!\[CDATA\[(.*?)\]\]>|<title[^>]*>(.*?)<\/title>/) || [])[1] || (entryXml.match(/<title[^>]*><!\[CDATA\[(.*?)\]\]>|<title[^>]*>(.*?)<\/title>/) || [])[2] || '';
+        const link = (entryXml.match(/<link[^>]+href="([^"]*)"/) || [])[1] || '';
+        const summary = (entryXml.match(/<content[^>]*>([\s\S]*?)<\/content>|<summary[^>]*>([\s\S]*?)<\/summary>/) || [])[1] || (entryXml.match(/<content[^>]*>([\s\S]*?)<\/content>|<summary[^>]*>([\s\S]*?)<\/summary>/) || [])[2] || '';
+        const updated = (entryXml.match(/<updated>(.*?)<\/updated>|<published>(.*?)<\/published>/) || [])[1] || (entryXml.match(/<updated>(.*?)<\/updated>|<published>(.*?)<\/published>/) || [])[2] || '';
+        if (title) items.push({ title: decodeXmlEntities(title), link, description: decodeXmlEntities(summary).slice(0, 200), pubDate: updated });
+      }
+    } else {
+      const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+      let match;
+      while ((match = itemRegex.exec(xml)) !== null && items.length < 20) {
+        const itemXml = match[1];
+        const title = (itemXml.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/) || [])[1] || (itemXml.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/) || [])[2] || '';
+        const link = (itemXml.match(/<link>(.*?)<\/link>/) || [])[1] || '';
+        const description = (itemXml.match(/<description><!\[CDATA\[(.*?)\]\]>|<description>(.*?)<\/description>/) || [])[1] || (itemXml.match(/<description><!\[CDATA\[(.*?)\]\]>|<description>(.*?)<\/description>/) || [])[2] || '';
+        const pubDate = (itemXml.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
+        if (title) items.push({ title: decodeXmlEntities(title), link, description: decodeXmlEntities(description).slice(0, 200), pubDate });
+      }
+    }
+    res.json({ ok: true, items });
+  } catch (err) {
+    logError('CRM_NEWS_FEED_ERROR', err);
+    res.json({ ok: true, items: [] });
+  }
+});
+
 app.get("/api/settings/hotkeys", optionalAuth, async (req, res) => {
   try {
     const settings = await loadSettings(req);
@@ -10060,15 +10103,29 @@ app.get('/api/diy/news', diyAuthenticate, async (req, res) => {
     const xml = await response.text();
 
     const items = [];
-    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-    let match;
-    while ((match = itemRegex.exec(xml)) !== null && items.length < 20) {
-      const itemXml = match[1];
-      const title = (itemXml.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/) || [])[1] || (itemXml.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/) || [])[2] || '';
-      const link = (itemXml.match(/<link>(.*?)<\/link>/) || [])[1] || '';
-      const description = (itemXml.match(/<description><!\[CDATA\[(.*?)\]\]>|<description>(.*?)<\/description>/) || [])[1] || (itemXml.match(/<description><!\[CDATA\[(.*?)\]\]>|<description>(.*?)<\/description>/) || [])[2] || '';
-      const pubDate = (itemXml.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
-      if (title) items.push({ title: title.replace(/<[^>]+>/g, ''), link, description: description.replace(/<[^>]+>/g, '').slice(0, 200), pubDate });
+    const isAtom = xml.includes('<feed') && xml.includes('<entry>');
+    if (isAtom) {
+      const entryRegex = /<entry>([\s\S]*?)<\/entry>/gi;
+      let match;
+      while ((match = entryRegex.exec(xml)) !== null && items.length < 20) {
+        const entryXml = match[1];
+        const title = (entryXml.match(/<title[^>]*><!\[CDATA\[(.*?)\]\]>|<title[^>]*>(.*?)<\/title>/) || [])[1] || (entryXml.match(/<title[^>]*><!\[CDATA\[(.*?)\]\]>|<title[^>]*>(.*?)<\/title>/) || [])[2] || '';
+        const link = (entryXml.match(/<link[^>]+href="([^"]*)"/) || [])[1] || '';
+        const summary = (entryXml.match(/<content[^>]*>([\s\S]*?)<\/content>|<summary[^>]*>([\s\S]*?)<\/summary>/) || [])[1] || (entryXml.match(/<content[^>]*>([\s\S]*?)<\/content>|<summary[^>]*>([\s\S]*?)<\/summary>/) || [])[2] || '';
+        const updated = (entryXml.match(/<updated>(.*?)<\/updated>|<published>(.*?)<\/published>/) || [])[1] || (entryXml.match(/<updated>(.*?)<\/updated>|<published>(.*?)<\/published>/) || [])[2] || '';
+        if (title) items.push({ title: decodeXmlEntities(title), link, description: decodeXmlEntities(summary).slice(0, 200), pubDate: updated });
+      }
+    } else {
+      const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+      let match;
+      while ((match = itemRegex.exec(xml)) !== null && items.length < 20) {
+        const itemXml = match[1];
+        const title = (itemXml.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/) || [])[1] || (itemXml.match(/<title><!\[CDATA\[(.*?)\]\]>|<title>(.*?)<\/title>/) || [])[2] || '';
+        const link = (itemXml.match(/<link>(.*?)<\/link>/) || [])[1] || '';
+        const description = (itemXml.match(/<description><!\[CDATA\[(.*?)\]\]>|<description>(.*?)<\/description>/) || [])[1] || (itemXml.match(/<description><!\[CDATA\[(.*?)\]\]>|<description>(.*?)<\/description>/) || [])[2] || '';
+        const pubDate = (itemXml.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
+        if (title) items.push({ title: decodeXmlEntities(title), link, description: decodeXmlEntities(description).slice(0, 200), pubDate });
+      }
     }
     res.json({ ok: true, items });
   } catch (err) {
