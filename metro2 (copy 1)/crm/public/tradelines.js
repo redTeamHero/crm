@@ -422,7 +422,7 @@ function renderRanges() {
 
       const cta = document.createElement('a');
       const buyLink = item.buy_link || '#';
-      cta.href = /^https?:\/\//i.test(buyLink) ? buyLink : '#';
+      cta.href = (/^https?:\/\//i.test(buyLink) || /^\/buy\b/i.test(buyLink)) ? buyLink : '#';
       cta.className = 'inline-flex items-center justify-center gap-2 mt-3 bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700 transition';
       cta.textContent = copy.mobileBuy;
       cta.target = '_blank';
@@ -435,8 +435,9 @@ function renderRanges() {
     nextBtn.disabled = state.page >= totalPages;
     pageIndicator.textContent = `${state.page}/${totalPages}`;
     const firstBuyLink = paginated[0]?.buy_link || '';
-    mobileBuy.href = /^https?:\/\//i.test(firstBuyLink) ? firstBuyLink : '#';
-    if (firstBuyLink && /^https?:\/\//i.test(firstBuyLink)) {
+    const validBuyLink = /^https?:\/\//i.test(firstBuyLink) || /^\/buy\b/i.test(firstBuyLink);
+    mobileBuy.href = validBuyLink ? firstBuyLink : '#';
+    if (firstBuyLink && validBuyLink) {
       mobileBuy.classList.remove('hidden');
     } else {
       mobileBuy.classList.add('hidden');

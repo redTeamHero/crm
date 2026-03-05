@@ -437,12 +437,7 @@ function parseDataAttributeRows($) {
       record.statement_date = statementFromText;
     }
 
-    const $row = productTd.closest('tr');
     let buyLink = tidyText(getAttribute(productTd, ['checkouturl', 'checkout-url', 'checkout', 'buy', 'buy-url', 'url']));
-    if (!buyLink && $row.length) {
-      const trRel = $row.attr('data-rel');
-      if (trRel && /^https?:\/\//i.test(trRel)) buyLink = trRel;
-    }
     if (!buyLink) {
       buyLink = productTd.find('a[href]').attr('href') || priceTd.find('a[href]').attr('href') || null;
     }
