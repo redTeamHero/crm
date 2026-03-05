@@ -1018,6 +1018,14 @@ async function getStripeClient(context){
       logError("STRIPE_SETTINGS_LOAD_FAILED", "Unable to read settings for Stripe", err);
     }
   }
+  if(!apiKey){
+    try {
+      const { getStripeSecretKey: getConnectorKey } = await import("./stripeClient.js");
+      apiKey = await getConnectorKey();
+    } catch (err) {
+      logError("STRIPE_CONNECTOR_FALLBACK", "Replit Stripe connector fallback failed", err);
+    }
+  }
   if(!apiKey) return null;
   if(stripeClientCache.client && stripeClientCache.key === apiKey && stripeClientCache.tenantId === tenantId){
     return stripeClientCache.client;
