@@ -2187,6 +2187,16 @@ $("#fileInput").addEventListener("change", async (e)=>{
 // Data breach lookup
 $("#btnDataBreach").addEventListener("click", async ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
+  try {
+    const freshData = await api("/api/consumers");
+    if (freshData?.consumers) {
+      const fresh = freshData.consumers.find(x => x.id === currentConsumerId);
+      if (fresh) {
+        const idx = DB.findIndex(x => x.id === currentConsumerId);
+        if (idx !== -1) Object.assign(DB[idx], fresh);
+      }
+    }
+  } catch(_){}
   const c = DB.find(x=>x.id===currentConsumerId);
   if(!c?.email) return showErr("This client has no email address. Add one in the client details to run a breach check.");
   const btn = $("#btnDataBreach");
