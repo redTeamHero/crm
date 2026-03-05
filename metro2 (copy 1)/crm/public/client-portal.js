@@ -707,11 +707,32 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedDate = null;
       selectedTime = null;
       slotsWrapper.classList.add('hidden');
-      document.getElementById('bookingName').value = '';
-      document.getElementById('bookingEmail').value = '';
-      document.getElementById('bookingPhone').value = '';
+      ['bookingName','bookingEmail','bookingPhone'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) { el.value = ''; el.readOnly = false; el.classList.remove('booking-autofilled'); }
+      });
       document.getElementById('bookingNotes').value = '';
       document.getElementById('bookingError')?.classList.add('hidden');
+    }
+
+    function autofillBookingFields() {
+      var c = (window.__PORTAL_BOOTSTRAP__ || {}).consumer;
+      if (!c) return;
+      var nameEl = document.getElementById('bookingName');
+      var emailEl = document.getElementById('bookingEmail');
+      var phoneEl = document.getElementById('bookingPhone');
+      var notesEl = document.getElementById('bookingNotes');
+      var fullName = [c.firstName, c.lastName].filter(Boolean).join(' ');
+      function fillField(el, val) {
+        if (!el || !val) return;
+        el.value = val;
+        el.readOnly = true;
+        el.classList.add('booking-autofilled');
+      }
+      fillField(nameEl, fullName);
+      fillField(emailEl, c.email);
+      fillField(phoneEl, c.phone);
+      if (notesEl) notesEl.focus();
     }
 
     window.openBookingModal = function() {
@@ -721,6 +742,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.classList.remove('hidden');
       showStep(0);
       renderCalendar();
+      autofillBookingFields();
     };
   })();
 
@@ -2297,6 +2319,27 @@ document.addEventListener('DOMContentLoaded', () => {
     else openSidebar();
   });
   if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+  // --- Desktop sidebar collapse toggle ---
+  var collapseBtn = document.getElementById('sidebarCollapseBtn');
+  function applySidebarCollapsed(collapsed) {
+    if (!portalSidebar) return;
+    portalSidebar.classList.toggle('collapsed', collapsed);
+    try { localStorage.setItem('portal.sidebar.collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  }
+  (function restoreSidebarState() {
+    if (window.innerWidth <= 768) return;
+    try {
+      var saved = localStorage.getItem('portal.sidebar.collapsed');
+      if (saved === '1') applySidebarCollapsed(true);
+    } catch(e) {}
+  })();
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', function() {
+      var isCollapsed = portalSidebar && portalSidebar.classList.contains('collapsed');
+      applySidebarCollapsed(!isCollapsed);
+    });
+  }
 
   // --- Mobile more menu ---
   const mobileMoreBtn = document.getElementById('mobileMoreBtn');

@@ -26,62 +26,65 @@
   <aside id="portalSidebar" class="portal-sidebar">
     <div class="sidebar-brand">
       <div id="mascot" class="h-10 w-10 flex-shrink-0"></div>
-      <div class="min-w-0">
+      <div class="min-w-0 sidebar-label">
         <div id="companyName" class="text-sm font-semibold tracking-tight truncate">Your Client Portal</div>
         <div id="companyTaglinePrimary" class="text-xs text-gray-500 truncate">Track disputes, uploads, and approvals in one place.</div>
         <div id="companyTaglineSecondary" class="text-xs text-gray-500 hidden truncate">Stay on top of disputes, uploads, and approvals from one hub.</div>
       </div>
     </div>
     <nav class="sidebar-nav">
-      <a href="#overview" class="sidebar-nav-link active">
+      <a href="#overview" class="sidebar-nav-link active" data-tooltip="Overview">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-        Overview
+        <span class="sidebar-label">Overview</span>
       </a>
-      <a id="navNegativeItems" href="#negative-items" class="sidebar-nav-link">
+      <a id="navNegativeItems" href="#negative-items" class="sidebar-nav-link" data-tooltip="Negative Items">
         <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
-        Negative Items
+        <span class="sidebar-label">Negative Items</span>
       </a>
-      <a id="navMessages" href="#messages" class="sidebar-nav-link">
+      <a id="navMessages" href="#messages" class="sidebar-nav-link" data-tooltip="Messages">
         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Messages
+        <span class="sidebar-label">Messages</span>
       </a>
-      <a id="navEducation" href="#educationSection" class="sidebar-nav-link">
+      <a id="navEducation" href="#educationSection" class="sidebar-nav-link" data-tooltip="Education">
         <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        Education
+        <span class="sidebar-label">Education</span>
       </a>
-      <a id="navDocuments" href="#documentSection" class="sidebar-nav-link">
+      <a id="navDocuments" href="#documentSection" class="sidebar-nav-link" data-tooltip="Documents">
         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Documents
+        <span class="sidebar-label">Documents</span>
       </a>
-      <a id="navMail" href="#mailSection" class="sidebar-nav-link">
+      <a id="navMail" href="#mailSection" class="sidebar-nav-link" data-tooltip="Mail">
         <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        Mail
+        <span class="sidebar-label">Mail</span>
       </a>
-      <a id="navPayments" href="#payments" class="sidebar-nav-link">
+      <a id="navPayments" href="#payments" class="sidebar-nav-link" data-tooltip="Payments">
         <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        Payments
+        <span class="sidebar-label">Payments</span>
       </a>
-      <a id="navTradelines" href="#tradelines" class="sidebar-nav-link">
+      <a id="navTradelines" href="#tradelines" class="sidebar-nav-link" data-tooltip="Tradelines">
         <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        Tradelines
+        <span class="sidebar-label">Tradelines</span>
       </a>
-      <a id="navPrimaries" href="#primaries" class="sidebar-nav-link">
+      <a id="navPrimaries" href="#primaries" class="sidebar-nav-link" data-tooltip="Primaries">
         <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        Primaries
+        <span class="sidebar-label">Primaries</span>
       </a>
-      <a id="navDisputes" href="#disputes" class="sidebar-nav-link">
+      <a id="navDisputes" href="#disputes" class="sidebar-nav-link" data-tooltip="Disputes">
         <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-        Disputes
+        <span class="sidebar-label">Disputes</span>
       </a>
-      <a id="navUploads" href="#uploads" class="sidebar-nav-link">
+      <a id="navUploads" href="#uploads" class="sidebar-nav-link" data-tooltip="Uploads">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Uploads
+        <span class="sidebar-label">Uploads</span>
       </a>
     </nav>
     <div class="sidebar-footer">
       <button id="bookCall" class="btn text-sm w-full" type="button">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        Book a Call
+        <span class="sidebar-label">Book a Call</span>
+      </button>
+      <button id="sidebarCollapseBtn" class="sidebar-collapse-btn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <svg class="sidebar-collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
       </button>
     </div>
   </aside>
