@@ -336,7 +336,14 @@ function buildRecord(base) {
     age: tidyText(base.age),
     statement_date: statement,
     reporting: tidyText(base.reporting),
+    purchase_by: tidyText(base.purchase_by),
+    availability: tidyText(base.availability),
   };
+}
+
+function shortHeader(raw) {
+  const firstLine = raw.split(/\n/)[0] || raw;
+  return normalizeHeader(firstLine).replace(/\s+/g, ' ').trim().split(' ').slice(0, 4).join(' ');
 }
 
 function dedupe(records) {
@@ -404,6 +411,17 @@ function parseDataAttributeRows($) {
 
     if (chosenPrice == null) return;
 
+    let purchaseBy = tidyText(getAttribute(productTd, ['purchasebydate', 'purchase-by-date', 'purchasedeadline', 'purchase-deadline', 'addbydate', 'add-by-date', 'cutoffdate', 'cutoff-date']));
+    if (!purchaseBy) {
+      purchaseBy = extractLabeledText(segments, ['purchase by', 'purchase deadline', 'add by', 'cutoff', 'deadline']);
+    }
+
+    let availability = tidyText(getAttribute(productTd, ['availability', 'available', 'stock', 'spots', 'seats', 'instock', 'in-stock']));
+    if (!availability) {
+      availability = extractLabeledText(segments, ['availability', 'available', 'in stock', 'spots', 'seats'])
+        || pickFallbackByPattern(segments, /(\d+\s*in\s*stock|\d+\s*spots?|\d+\s*seats?|\d+\s*available)/i);
+    }
+
     const record = {
       bank: rawBank,
       price: Math.round(chosenPrice * 100) / 100,
@@ -411,6 +429,8 @@ function parseDataAttributeRows($) {
       age: dateOpened,
       reporting: reportingPeriod,
       statement_date: statement,
+      purchase_by: purchaseBy,
+      availability,
     };
 
     if (!record.statement_date && statementFromText) {
@@ -467,9 +487,10 @@ function parseTableLayouts($) {
     const headerCells = $table.find('thead tr').first().find('th');
     if (!headerCells.length) return;
 
-    const headers = headerCells
-      .map((__, th) => normalizeHeader($(th).text()))
+    const rawHeaders = headerCells
+      .map((__, th) => $(th).text())
       .get();
+    const headers = rawHeaders.map(h => shortHeader(h));
 
     const hasBankColumn = headers.some((h) => h.includes('bank') || h.includes('tradeline') || h.includes('card'));
     const hasPriceColumn = headers.some((h) => h.includes('price') || h.includes('investment'));
@@ -478,6 +499,8 @@ function parseTableLayouts($) {
     $table.find('tbody tr').each((__, tr) => {
       const cells = $(tr).find('td');
       if (!cells.length) return;
+
+      if ($(tr).find('td.product_data').length) return;
 
       const record = {};
       let wholesalePrice = null;
@@ -492,19 +515,27 @@ function parseTableLayouts($) {
 
         if (!text && !$td.find('a[href]').length) return;
 
-        if (header.includes('bank') || header.includes('tradeline') || header.includes('card')) {
+        if (header.includes('bank') || header.includes('tradeline') || header.includes('card name')) {
           const { bank, statement } = extractBankAndStatement($td, segments);
           if (bank) record.bank = bank;
           if (!record.statement_date && statement) record.statement_date = statement;
           return;
         }
-        if (header.includes('age') || header.includes('seasoning')) {
+        if (header.includes('age') || header.includes('seasoning') || header.includes('date opened') || header.includes('opened')) {
           record.age = text || pickFallbackByPattern(segments, /(year|month|week|season)/i);
           return;
         }
-        if (header.includes('limit') || header.includes('credit')) {
+        if (header.includes('limit') || header.includes('credit limit')) {
           const limit = parseCurrency(text);
           if (limit != null) record.limit = limit;
+          return;
+        }
+        if (header.includes('purchase') || header.includes('deadline') || header.includes('add by') || header.includes('cutoff')) {
+          record.purchase_by = text;
+          return;
+        }
+        if (header.includes('availab') || header.includes('stock') || header.includes('spots') || header.includes('seats')) {
+          record.availability = text;
           return;
         }
         if (header.includes('wholesale')) {

@@ -399,11 +399,25 @@ function renderRanges() {
         card.appendChild(stmt);
       }
 
+      if (item.purchase_by) {
+        const pbd = document.createElement('p');
+        pbd.className = 'text-xs text-gray-500';
+        pbd.textContent = `Purchase by: ${item.purchase_by}`;
+        card.appendChild(pbd);
+      }
+
       if (item.reporting) {
         const rep = document.createElement('p');
         rep.className = 'text-xs text-gray-500';
         rep.textContent = `Reports to: ${item.reporting}`;
         card.appendChild(rep);
+      }
+
+      if (item.availability) {
+        const avail = document.createElement('span');
+        avail.className = 'inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700';
+        avail.textContent = item.availability;
+        card.appendChild(avail);
       }
 
       const cta = document.createElement('a');
