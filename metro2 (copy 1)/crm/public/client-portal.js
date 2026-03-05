@@ -1574,21 +1574,96 @@ document.addEventListener('DOMContentLoaded', () => {
     if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(ext)) return 'IMG';
     return 'FILE';
   }
+  function friendlyFileName(raw) {
+    if (!raw) return 'Document';
+    var n = raw;
+    var dateMatch = n.match(/(\d{4})-(\d{2})-(\d{2})/);
+    var dateStr = '';
+    if (dateMatch) {
+      var d = new Date(dateMatch[1] + '-' + dateMatch[2] + '-' + dateMatch[3] + 'T12:00:00');
+      if (!isNaN(d.getTime())) dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    var lower = n.toLowerCase();
+    var label = '';
+    var category = '';
+    if (lower.includes('breach_audit')) {
+      label = 'Data Breach Audit Report';
+      category = 'Audit';
+    } else if (lower.includes('_audit')) {
+      label = 'Credit Report Audit';
+      category = 'Audit';
+    } else if (lower.includes('_letters.zip') || lower.includes('letters_')) {
+      label = 'Dispute Letters Package';
+      category = 'Letters';
+    } else if (lower.includes('_personal_info_dispute_')) {
+      var pBureau = extractBureau(n);
+      label = pBureau ? pBureau + ' Personal Info Dispute' : 'Personal Info Dispute';
+      category = 'Dispute';
+    } else if (lower.includes('_inquiry_dispute_')) {
+      var iBureau = extractBureau(n);
+      label = iBureau ? iBureau + ' Inquiry Dispute' : 'Inquiry Dispute';
+      category = 'Dispute';
+    } else if (lower.includes('_collector_letter_')) {
+      label = 'Debt Collector Letter';
+      category = 'Letter';
+    } else if (lower.includes('_dispute_') || lower.includes('dispute')) {
+      var dBureau = extractBureau(n);
+      var creditor = extractCreditor(n);
+      if (dBureau && creditor) {
+        label = dBureau + ' Dispute – ' + creditor;
+      } else if (dBureau) {
+        label = dBureau + ' Dispute Letter';
+      } else {
+        label = 'Dispute Letter';
+      }
+      category = 'Dispute';
+    } else if (/\.(html?)$/i.test(n) && (lower.includes('report') || lower.includes('ldreport') || /^m\d+/i.test(n))) {
+      label = 'Credit Report';
+      category = 'Report';
+    } else {
+      label = cleanupFallback(n);
+      category = '';
+    }
+    return { label: label, date: dateStr, category: category, full: label + (dateStr ? ' · ' + dateStr : '') };
+  }
+  function extractBureau(name) {
+    if (/experian/i.test(name)) return 'Experian';
+    if (/transunion/i.test(name)) return 'TransUnion';
+    if (/equifax/i.test(name)) return 'Equifax';
+    return '';
+  }
+  function extractCreditor(name) {
+    var m = name.match(/(?:Experian|TransUnion|Equifax)[_\s]+(.+?)(?:_dispute_|_\d{4})/i);
+    if (!m) return '';
+    var raw = m[1].replace(/_/g, ' ').trim();
+    if (raw.length > 30) raw = raw.substring(0, 27) + '...';
+    return raw;
+  }
+  function cleanupFallback(name) {
+    var s = name.replace(/\.\w+$/, '');
+    s = s.replace(/^[a-z_]+__\d{4}-\d{2}-\d{2}_?/i, '');
+    s = s.replace(/^[a-z_]+__/i, '');
+    s = s.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    if (s.length > 40) s = s.substring(0, 37) + '...';
+    return s || 'Document';
+  }
+  function getDocCategory(name) {
+    var info = friendlyFileName(name);
+    return info.category || '';
+  }
   function renderDocCard(d) {
     const ext = getFileExt(d.originalName);
     const iconClass = getDocIconClass(ext);
     const iconLabel = getDocIconLabel(ext);
-    const created = d.createdAt ? new Date(d.createdAt) : null;
-    const dateStr = created && !Number.isNaN(created.getTime())
-      ? created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : '';
-    const metaParts = [ext.toUpperCase(), dateStr].filter(Boolean).join(' · ');
+    const friendly = friendlyFileName(d.originalName);
+    const categoryBadge = friendly.category ? `<span class="doc-card-badge doc-badge-${friendly.category.toLowerCase()}">${friendly.category}</span>` : '';
+    const metaParts = [ext.toUpperCase(), friendly.date].filter(Boolean).join(' · ');
     const safeName = esc(d.originalName);
     return `<a class="doc-card" href="/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(d.storedName)}" target="_blank" title="${safeName}">
       <div class="doc-card-icon ${iconClass}">${iconLabel}</div>
       <div class="doc-card-info">
-        <div class="doc-card-name">${safeName}</div>
-        <div class="doc-card-meta">${metaParts}</div>
+        <div class="doc-card-name">${esc(friendly.label)}</div>
+        <div class="doc-card-meta">${categoryBadge}${metaParts}</div>
       </div>
       <div class="doc-card-action"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
     </a>`;
@@ -1625,11 +1700,9 @@ document.addEventListener('DOMContentLoaded', () => {
               const ext = getFileExt(d.originalName);
               const iconClass = getDocIconClass(ext);
               const iconLabel = getDocIconLabel(ext);
-              const created = d.createdAt ? new Date(d.createdAt) : null;
-              const timestamp = created && !Number.isNaN(created.getTime())
-                ? created.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                : 'Ready to view';
-              return `<div class="doc-card" style="cursor:default;"><div class="doc-card-icon ${iconClass}">${iconLabel}</div><div class="doc-card-info"><div class="doc-card-name">${esc(d.originalName)}</div><div class="doc-card-meta">${timestamp}</div></div></div>`;
+              const friendly = friendlyFileName(d.originalName);
+              const timestamp = friendly.date || 'Ready to view';
+              return `<div class="doc-card" style="cursor:default;" title="${esc(d.originalName)}"><div class="doc-card-icon ${iconClass}">${iconLabel}</div><div class="doc-card-info"><div class="doc-card-name">${esc(friendly.label)}</div><div class="doc-card-meta">${timestamp}</div></div></div>`;
             }).join('');
             const overflow = allDocs.length > 3 ? `<div class="text-xs text-slate-500 mt-2">+${allDocs.length - 3} more in your library</div>` : '';
             docPreviewEl.innerHTML = previewDocs + overflow;
@@ -1646,7 +1719,11 @@ document.addEventListener('DOMContentLoaded', () => {
     docSearchInput.addEventListener('input', () => {
       const q = docSearchInput.value.toLowerCase().trim();
       if (!q) { renderDocList(allDocs); return; }
-      renderDocList(allDocs.filter(d => (d.originalName || '').toLowerCase().includes(q)));
+      renderDocList(allDocs.filter(d => {
+        var raw = (d.originalName || '').toLowerCase();
+        var friendly = friendlyFileName(d.originalName);
+        return raw.includes(q) || friendly.label.toLowerCase().includes(q) || friendly.full.toLowerCase().includes(q);
+      }));
     });
   }
   loadDocs();
@@ -1670,8 +1747,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const jobId = ev.payload?.jobId || '';
           const stored = (ev.payload?.file||'').split('/').pop();
           const meta = files.find(f=>f.storedName===stored);
-          const name = meta?.originalName || `Letters ${jobId}`;
-          const rec = { jobId, name, url: ev.payload?.file || '#', file: stored };
+          const rawName = meta?.originalName || `Letters ${jobId}`;
+          const friendly = friendlyFileName(rawName);
+          const name = friendly.full || friendly.label;
+          const rec = { jobId, name, rawName, url: ev.payload?.file || '#', file: stored };
           if(mailedSet.has(stored)) mailed.push(rec); else waiting.push(rec);
         }
         renderMailList(mailWaiting, waiting, true);
@@ -1866,7 +1945,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const svgIcon = allowMail
       ? '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
       : '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    el.innerHTML = items.map(it=>`<div class="mail-card"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status">${statusText}</div></div><div class="flex gap-2"><a class="btn text-xs" href="${esc(it.url)}" target="_blank">View</a>${allowMail?`<button class="btn text-xs mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}">Mail</button>`:''}</div></div>`).join('');
+    el.innerHTML = items.map(it=>`<div class="mail-card mail-card-${iconClass}"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div></div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`).join('');
     updateMailEmptyState();
     if(allowMail){
       el.querySelectorAll('.mail-act').forEach(btn=>{
