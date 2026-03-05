@@ -2188,7 +2188,7 @@ $("#fileInput").addEventListener("change", async (e)=>{
 $("#btnDataBreach").addEventListener("click", async ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
   const c = DB.find(x=>x.id===currentConsumerId);
-  if(!c?.email) return showErr("Selected consumer has no email.");
+  if(!c?.email) return showErr("This client has no email address. Add one in the client details to run a breach check.");
   const btn = $("#btnDataBreach");
   const old = btn.textContent;
   btn.disabled = true;

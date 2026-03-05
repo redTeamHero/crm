@@ -162,6 +162,7 @@ const STRING_SETTING_KEYS = [
 ];
 
 const SECRET_SETTING_KEYS = new Set([
+  "hibpApiKey",
   "marketingApiKey",
   "googleCalendarToken",
   "gmailClientSecret",
@@ -1800,7 +1801,10 @@ app.get("/api/system-status", authenticate, requireRole("admin"), async (_req, r
 
 app.get("/api/settings", optionalAuth, async (req, res) => {
   const settings = await loadSettings(req);
-  res.json({ ok: true, settings: maskSecrets(settings) });
+  const masked = maskSecrets(settings);
+  if (process.env.RSS_FEED_URL) masked.rssFeedUrl = process.env.RSS_FEED_URL;
+  if (process.env.HIBP_API_KEY && !masked.hibpApiKey) masked.hibpApiKey = "••••";
+  res.json({ ok: true, settings: masked });
 });
 
 app.get("/api/settings/hotkeys", optionalAuth, async (req, res) => {
