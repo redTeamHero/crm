@@ -361,10 +361,19 @@ function renderBreachCard(consumer){
   const breaches = Array.isArray(consumer.breaches) ? consumer.breaches : [];
   if(!breaches.length){
     subtitle.textContent = "No breaches found yet. Click 'Check Breaches' to scan.";
-    body.innerHTML = `<div style="padding:12px; text-align:center; color:#666; border:1px dashed rgba(212,168,83,0.2); border-radius:10px; background:rgba(212,168,83,0.03);">
-      <div style="font-size:24px; margin-bottom:8px;">🔒</div>
-      <div>No breach records on file</div>
-      <div style="font-size:11px; margin-top:4px; color:#555;">Run a breach lookup to check if this client's data was exposed</div>
+    body.innerHTML = `<div style="padding:14px; border:1px dashed rgba(212,168,83,0.2); border-radius:10px; background:rgba(212,168,83,0.03);">
+      <div style="text-align:center; margin-bottom:10px;">
+        <div style="font-size:24px; margin-bottom:6px;">🔒</div>
+        <div style="color:#ccc; font-weight:600;">No breach records on file</div>
+      </div>
+      <div style="font-size:11px; color:#888; line-height:1.5; border-top:1px solid rgba(212,168,83,0.1); padding-top:10px; margin-top:6px;">
+        <strong style="color:#d4a853;">What is a data breach check?</strong><br/>
+        A data breach occurs when personal information (names, SSNs, account numbers) is exposed in a security incident. If your client's data was compromised, it may affect the accuracy of their credit file — giving you strong grounds to dispute inaccurate items under the FCRA.
+      </div>
+      <div style="font-size:11px; color:#888; line-height:1.5; margin-top:8px;">
+        <strong style="color:#d4a853;">How to use in disputes:</strong><br/>
+        Click "Check Breaches" to scan. If breaches are found, you can reference them in dispute letters to challenge data accuracy, request method of verification, and argue that compromised data cannot be reliably used to verify reported information.
+      </div>
     </div>`;
     return;
   }
@@ -388,6 +397,11 @@ function renderBreachCard(consumer){
       ${selected.length} breach${selected.length!==1?'es':''} selected for dispute letters
     </div>`;
   }
+  html += `<div style="margin-top:10px; padding:10px 12px; background:rgba(212,168,83,0.04); border:1px solid rgba(212,168,83,0.12); border-radius:8px; font-size:11px; color:#999; line-height:1.5;">
+    <strong style="color:#d4a853;">Dispute Strategy:</strong> These breaches indicate your client's personal data was compromised. Use this in dispute letters to:
+    <span style="color:#bbb;">challenge data accuracy, demand method of verification under FCRA Section 611, and argue that breached data cannot reliably verify reported information.</span>
+    Generate a Breach Audit report for full details and documentation.
+  </div>`;
   body.innerHTML = html;
 }
 

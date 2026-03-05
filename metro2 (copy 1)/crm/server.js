@@ -6435,12 +6435,10 @@ async function hibpLookup(email) {
 
 function renderBreachAuditHtml(consumer) {
   const allBreaches = Array.isArray(consumer.breaches) ? consumer.breaches : [];
+  const details = Array.isArray(consumer.breachDetails) ? consumer.breachDetails : [];
   const selectedBreaches = Array.isArray(consumer.breachSelections) && consumer.breachSelections.length
     ? consumer.breachSelections
     : allBreaches;
-  const list = selectedBreaches.length
-    ? selectedBreaches.map(b => `<li>${escapeHtml(b)}</li>`).join("")
-    : "<li>No breaches found.</li>";
   const notes = escapeHtml(consumer.breachEvidenceNotes || "");
   const files = Array.isArray(consumer.breachEvidenceFiles) ? consumer.breachEvidenceFiles : [];
   const filesList = files.length
@@ -6453,9 +6451,77 @@ function renderBreachAuditHtml(consumer) {
     : "";
   const dateStr = new Date().toLocaleString();
   const evidenceSection = notes || filesList
-    ? `<h2>Breach Evidence</h2>${notes ? `<p>${notes}</p>` : ""}${filesList ? `<ul>${filesList}</ul>` : ""}`
+    ? `<h2 style="color:#1a1a2e;border-bottom:2px solid #d4a853;padding-bottom:6px;">Supporting Evidence</h2>${notes ? `<p>${notes}</p>` : ""}${filesList ? `<ul>${filesList}</ul>` : ""}`
     : "";
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>body{font-family:Arial, sans-serif;margin:20px;}h1{text-align:center;}ul{margin-top:10px;}</style></head><body><h1>${escapeHtml(consumer.name || "Consumer")}</h1><h2>Data Breach Audit</h2><p>Email: ${escapeHtml(consumer.email || "")}</p><ul>${list}</ul>${evidenceSection}<footer><hr/><div style="font-size:0.8em;color:#555;margin-top:20px;">Generated ${escapeHtml(dateStr)}</div></footer></body></html>`;
+
+  let breachListHtml = "";
+  if (selectedBreaches.length) {
+    breachListHtml = selectedBreaches.map(bName => {
+      const detail = details.find(d => d.name === bName);
+      if (detail && (detail.breachDate || detail.dataClasses?.length)) {
+        const dataExposed = detail.dataClasses.length ? detail.dataClasses.map(d => escapeHtml(d)).join(", ") : "Unknown";
+        const affected = detail.pwnCount ? detail.pwnCount.toLocaleString() : "Unknown";
+        return `<div style="background:#f8f4ee;border:1px solid #e8dcc8;border-radius:8px;padding:14px;margin-bottom:10px;">
+          <div style="font-weight:700;font-size:15px;color:#1a1a2e;">${escapeHtml(bName)}</div>
+          ${detail.breachDate ? `<div style="font-size:12px;color:#666;margin-top:2px;">Breach Date: ${escapeHtml(detail.breachDate)} &bull; ${affected} accounts affected</div>` : ""}
+          <div style="font-size:12px;color:#444;margin-top:6px;"><strong>Data Exposed:</strong> ${dataExposed}</div>
+          ${detail.description ? `<div style="font-size:12px;color:#555;margin-top:4px;">${escapeHtml(detail.description)}</div>` : ""}
+        </div>`;
+      }
+      return `<div style="background:#f8f4ee;border:1px solid #e8dcc8;border-radius:8px;padding:14px;margin-bottom:10px;">
+        <div style="font-weight:700;font-size:15px;color:#1a1a2e;">${escapeHtml(bName)}</div>
+        <div style="font-size:12px;color:#666;margin-top:2px;">Data breach exposure confirmed</div>
+      </div>`;
+    }).join("");
+  } else {
+    breachListHtml = `<p style="color:#666;">No breaches found for this email address.</p>`;
+  }
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 30px; color: #1a1a2e; line-height: 1.6; }
+  h1 { text-align: center; color: #1a1a2e; font-size: 22px; margin-bottom: 4px; }
+  h2 { color: #1a1a2e; font-size: 16px; margin-top: 24px; border-bottom: 2px solid #d4a853; padding-bottom: 6px; }
+  .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+  .info-box { background: #f0f4ff; border: 1px solid #c8d6f0; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 13px; }
+  .strategy-box { background: #f0faf0; border: 1px solid #b8ddb8; border-radius: 8px; padding: 16px; margin: 16px 0; font-size: 13px; }
+  .strategy-box ul { margin: 8px 0 0 0; padding-left: 20px; }
+  .strategy-box li { margin-bottom: 6px; }
+  footer { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 12px; font-size: 11px; color: #888; }
+</style></head><body>
+<h1>Credit Repair Audit</h1>
+<div class="subtitle">Data Breach Analysis for ${escapeHtml(consumer.name || "Consumer")}</div>
+
+<h2>What Is a Data Breach?</h2>
+<div class="info-box">
+  <p style="margin:0 0 8px 0;">A <strong>data breach</strong> occurs when sensitive personal information — such as names, Social Security numbers, dates of birth, account numbers, or financial records — is accessed, stolen, or exposed without authorization. When a consumer's data is compromised in a breach, the accuracy and integrity of their credit file may be affected.</p>
+  <p style="margin:0;">Under the <strong>Fair Credit Reporting Act (FCRA)</strong>, credit bureaus and data furnishers are required to report only accurate information. If a consumer's personal data was exposed in a breach, any account information linked to that compromised data may be inaccurate, unverifiable, or the result of identity theft — all of which are valid grounds for dispute.</p>
+</div>
+
+<h2>Breach Findings</h2>
+<p><strong>Email Analyzed:</strong> ${escapeHtml(consumer.email || "N/A")}</p>
+<p><strong>Breaches Found:</strong> ${selectedBreaches.length}</p>
+${breachListHtml}
+
+<h2>How to Use Breach Data in Disputes</h2>
+<div class="strategy-box">
+  <p style="margin:0 0 8px 0;"><strong>Dispute Strategy:</strong> Data breach exposure provides strong grounds to challenge the accuracy of reported information on a consumer's credit file. Here is how to leverage these findings:</p>
+  <ul>
+    <li><strong>Question Data Accuracy:</strong> If a creditor or bureau was involved in a breach, the consumer's account data may have been altered, corrupted, or fabricated. Dispute the accuracy of account details (balances, dates, account numbers) citing the breach.</li>
+    <li><strong>Request Method of Verification:</strong> Under FCRA Section 611, demand that the bureau explain exactly how they verified the disputed information, especially given known data compromise. Breached data cannot be reliably used for verification.</li>
+    <li><strong>Identity Theft Angle:</strong> If personal identifiers (SSN, DOB, addresses) were exposed, any unfamiliar or suspicious accounts may be the result of identity theft. File an identity theft dispute with an FTC affidavit referencing the specific breach.</li>
+    <li><strong>Heightened Scrutiny Argument:</strong> Courts have held that bureaus must use "reasonable procedures" to ensure accuracy (FCRA Section 607). When a consumer's data has been compromised, the standard of reasonable verification is higher.</li>
+    <li><strong>Reference in Dispute Letters:</strong> Include the breach name, date, and types of data exposed in your dispute letter. This creates a documented paper trail showing the bureau was put on notice that the consumer's data integrity is compromised.</li>
+  </ul>
+</div>
+
+${evidenceSection}
+
+<footer>
+  <div>Generated ${escapeHtml(dateStr)}</div>
+  <div style="margin-top:4px;">This report is for informational purposes and should be used in conjunction with professional credit repair guidance. Data breach information sourced from Have I Been Pwned (haveibeenpwned.com).</div>
+</footer>
+</body></html>`;
 }
 
 async function handleDataBreach(email, consumerId, res) {
@@ -6466,6 +6532,14 @@ async function handleDataBreach(email, consumerId, res) {
       const c = db.consumers.find(x => x.id === consumerId);
       if (c) {
         c.breaches = (result.breaches || []).map(b => b.Name || b.name || "");
+        c.breachDetails = (result.breaches || []).map(b => ({
+          name: b.Name || b.name || "",
+          domain: b.Domain || b.domain || "",
+          breachDate: b.BreachDate || b.breachDate || "",
+          description: (b.Description || b.description || "").replace(/<[^>]+>/g, ""),
+          dataClasses: b.DataClasses || b.dataClasses || [],
+          pwnCount: b.PwnCount || b.pwnCount || 0,
+        }));
         await saveDB(db);
         await addEvent(consumerId, "breach_lookup", { count: c.breaches.length, email });
       }
