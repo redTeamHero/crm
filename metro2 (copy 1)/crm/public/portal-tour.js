@@ -187,6 +187,14 @@
     '#uploads': 'uploads'
   };
 
+  var SECTION_ORDER = ['overview', 'negativeItems', 'messages', 'education', 'documents', 'mail', 'payments', 'tradelines', 'primaries', 'disputes', 'uploads'];
+
+  function getNextTourKey(currentKey) {
+    var idx = SECTION_ORDER.indexOf(currentKey);
+    if (idx === -1 || idx >= SECTION_ORDER.length - 1) return null;
+    return SECTION_ORDER[idx + 1];
+  }
+
   function getCurrentSectionKey() {
     var hash = window.location.hash || '#overview';
     return HASH_MAP[hash] || 'overview';
@@ -492,16 +500,102 @@
       this._keyHandler = null;
     }
 
-    if (completed && this.tourKey) {
+    var finishedKey = this.tourKey;
+
+    if (completed && finishedKey) {
       var state = getState();
-      state[this.tourKey] = { completed: true, date: new Date().toISOString() };
+      state[finishedKey] = { completed: true, date: new Date().toISOString() };
       saveState(state);
       this.showConfetti();
     }
 
     this.cleanup();
+
+    if (completed && finishedKey) {
+      var nextKey = getNextTourKey(finishedKey);
+      this.showContinuePrompt(finishedKey, nextKey);
+    }
+
     if (this.onComplete) this.onComplete(completed);
   };
+
+  PortalTourEngine.prototype.showContinuePrompt = function(finishedKey, nextKey) {
+    var self = this;
+    var finishedTour = PORTAL_TOURS[finishedKey];
+    var nextTour = nextKey ? PORTAL_TOURS[nextKey] : null;
+
+    var existing = document.querySelector('.ptour-continue-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'ptour-continue-overlay';
+
+    var content;
+    if (nextTour) {
+      content =
+        '<div class="ptour-continue__card">' +
+          '<div class="ptour-continue__butterfly">' + BUTTERFLY_SVG + '</div>' +
+          '<div class="ptour-continue__title">Section Complete!</div>' +
+          '<div class="ptour-continue__body">' +
+            'Great job! You\'ve finished the <strong>' + esc(finishedTour.label) + '</strong> tour. ' +
+            'Up next is <strong>' + esc(nextTour.label) + '</strong> — ' + esc(nextTour.desc) + '. ' +
+            'Want to keep going?' +
+          '</div>' +
+          '<div class="ptour-continue__actions">' +
+            '<button class="ptour-continue__btn ptour-continue__btn--next" data-action="continue">' +
+              'Continue to ' + esc(nextTour.label) + ' ' + esc(nextTour.icon) +
+            '</button>' +
+            '<button class="ptour-continue__btn ptour-continue__btn--end" data-action="end">End Tour</button>' +
+          '</div>' +
+          '<div class="ptour-continue__progress">' + buildSectionProgress() + '</div>' +
+        '</div>';
+    } else {
+      content =
+        '<div class="ptour-continue__card">' +
+          '<div class="ptour-continue__butterfly ptour-butterfly--celebrate">' + BUTTERFLY_SVG + '</div>' +
+          '<div class="ptour-continue__title">Tour Complete!</div>' +
+          '<div class="ptour-continue__body">' +
+            'Amazing! You\'ve toured every section of your portal. You\'re all set to make the most of your credit restoration journey. ' +
+            'Remember, you can always click the tour button to revisit any section.' +
+          '</div>' +
+          '<div class="ptour-continue__actions">' +
+            '<button class="ptour-continue__btn ptour-continue__btn--next" data-action="end">Got It!</button>' +
+          '</div>' +
+          '<div class="ptour-continue__progress">' + buildSectionProgress() + '</div>' +
+        '</div>';
+    }
+
+    overlay.innerHTML = content;
+
+    overlay.addEventListener('click', function(e) {
+      var action = e.target.closest('[data-action]');
+      if (!action) {
+        if (e.target === overlay) {
+          overlay.remove();
+        }
+        return;
+      }
+      var act = action.dataset.action;
+      overlay.remove();
+      if (act === 'continue' && nextKey) {
+        self.start(nextKey);
+      }
+    });
+
+    document.body.appendChild(overlay);
+  };
+
+  function buildSectionProgress() {
+    var state = getState();
+    var items = SECTION_ORDER.map(function(key) {
+      var tour = PORTAL_TOURS[key];
+      var done = state[key] && state[key].completed;
+      return '<span class="ptour-section-pip' + (done ? ' ptour-section-pip--done' : '') + '" title="' + esc(tour.label) + '">' +
+        esc(tour.icon) +
+      '</span>';
+    });
+    return items.join('');
+  }
 
   PortalTourEngine.prototype.cleanup = function() {
     if (this.overlay && this.overlay.parentNode) {
