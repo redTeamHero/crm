@@ -121,7 +121,11 @@ function pushTextBlocks(blocks, html){
       let cleaned = inner
         .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, (__, t) => stripTags(t))
         .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (__, t) => stripTags(t))
-        .replace(/<[^>]+>/g, '');
+        .replace(/<[^>]+>/g, '')
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      if (!cleaned) return '\n';
       return '\n##LI##' + cleaned + '##/LI##\n';
     })
     .replace(/<\s*br\s*\/?\s*>/gi, '\n')

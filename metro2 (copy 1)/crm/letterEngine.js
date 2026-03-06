@@ -459,10 +459,13 @@ function buildViolationListHTML(
         v.fcraSection && cleanDetail && !cleanDetail.includes(v.fcraSection)
           ? `Per FCRA §${v.fcraSection}, ${cleanDetail}`
           : cleanDetail;
+      const primaryText = violationLabel || fcraText || '';
+      const secondaryText = violationLabel && fcraText ? fcraText : '';
+      if (!primaryText && !secondaryText && !evHTML) return '';
       return `
         <li style="margin-bottom:12px;">
-          <strong>${safe(violationLabel)}</strong>
-          ${fcraText ? `<div style="margin-top:4px;">${safe(fcraText)}</div>` : ''}
+          <strong>${safe(primaryText)}</strong>
+          ${secondaryText ? `<div style="margin-top:4px;">${safe(secondaryText)}</div>` : ''}
           ${evHTML ? `<div style="margin-top:6px;">${evHTML}</div>` : ''}
         </li>`;
     })
