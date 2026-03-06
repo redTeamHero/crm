@@ -7,21 +7,37 @@ import { createEvent as createCalendarEvent } from "./googleCalendar.js";
 import { readKey, writeKey } from "./kvdb.js";
 
 const DATA_DIR = path.resolve("./data");
-// Old JSON state path (kept for migration only)
 const STATE_PATH = path.join(DATA_DIR, "state.json");
 
 function ensureDirs() {
-  // Ensure base data dir exists for uploads; state is kept in SQLite
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+class AsyncMutex {
+  constructor() { this._queue = []; this._locked = false; }
+  acquire() {
+    return new Promise(resolve => {
+      if (!this._locked) { this._locked = true; resolve(); }
+      else this._queue.push(resolve);
+    });
+  }
+  release() {
+    if (this._queue.length > 0) this._queue.shift()();
+    else this._locked = false;
+  }
+}
+
+const stateMutex = new AsyncMutex();
+
 async function loadState() {
   ensureDirs();
-  // Try loading from SQLite first
   let st = await readKey("consumer_state", null);
   if (st) return st;
 
-  // Fallback: migrate from legacy JSON file if present
+  await new Promise(r => setTimeout(r, 500));
+  st = await readKey("consumer_state", null);
+  if (st) return st;
+
   if (fs.existsSync(STATE_PATH)) {
     try {
       const raw = fs.readFileSync(STATE_PATH, "utf-8");
@@ -31,8 +47,16 @@ async function loadState() {
     } catch {}
   }
 
+  const sentinel = await readKey("_state_seeded", null);
+  if (sentinel) {
+    console.warn("[state] DB was previously seeded but consumer_state is missing — returning empty state without overwriting");
+    return { consumers: {}, trackerSteps: [] };
+  }
+
+  console.warn("[state] Initializing fresh consumer_state (first-time setup)");
   st = { consumers: {}, trackerSteps: [] };
   await writeKey("consumer_state", st);
+  await writeKey("_state_seeded", { at: new Date().toISOString() });
   return st;
 }
 
@@ -109,25 +133,36 @@ function processReminders(st) {
 }
 
 // ---- Public API ----
+async function withStateLock(fn) {
+  await stateMutex.acquire();
+  try { return await fn(); }
+  finally { stateMutex.release(); }
+}
+
 export async function listConsumerState(consumerId) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  processReminders(st);
-  await saveState(st);
-  return c;
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    processReminders(st);
+    await saveState(st);
+    return c;
+  });
 }
 
 export async function addEvent(consumerId, type, payload = {}) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  const ev = {
-    id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-    type,
-    payload,
-    at: new Date().toISOString(),
-  };
-  c.events.unshift(ev);
-  await saveState(st);
+  const ev = await withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    const ev = {
+      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      type,
+      payload,
+      at: new Date().toISOString(),
+    };
+    c.events.unshift(ev);
+    await saveState(st);
+    return ev;
+  });
   await emitStateEvent(consumerId, ev);
   if (payload?.calendar) {
     createCalendarEvent(payload.calendar).catch(() => {});
@@ -135,88 +170,106 @@ export async function addEvent(consumerId, type, payload = {}) {
 }
 
 export async function updateEventPayload(consumerId, eventType, matchFn, updater) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  const ev = c.events.find(e => e.type === eventType && (!matchFn || matchFn(e)));
-  if (!ev) return null;
-  if (typeof updater === "function") {
-    updater(ev.payload);
-  } else if (updater && typeof updater === "object") {
-    Object.assign(ev.payload, updater);
-  }
-  await saveState(st);
-  return ev;
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    const ev = c.events.find(e => e.type === eventType && (!matchFn || matchFn(e)));
+    if (!ev) return null;
+    if (typeof updater === "function") {
+      updater(ev.payload);
+    } else if (updater && typeof updater === "object") {
+      Object.assign(ev.payload, updater);
+    }
+    await saveState(st);
+    return ev;
+  });
 }
 
 export async function addFileMeta(consumerId, fileRec) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  c.files.unshift(fileRec); // newest first
-  await saveState(st);
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    c.files.unshift(fileRec);
+    await saveState(st);
+  });
 }
 
 export async function removeEventsByMatch(consumerId, type, matchFn) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  const before = c.events.length;
-  c.events = c.events.filter(e => !(e.type === type && (!matchFn || matchFn(e))));
-  if (c.events.length < before) await saveState(st);
-  return before - c.events.length;
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    const before = c.events.length;
+    c.events = c.events.filter(e => !(e.type === type && (!matchFn || matchFn(e))));
+    if (c.events.length < before) await saveState(st);
+    return before - c.events.length;
+  });
 }
 
 export async function removeFileMetaByMatch(consumerId, matchFn) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  const removed = [];
-  c.files = c.files.filter(f => {
-    if (matchFn(f)) { removed.push(f); return false; }
-    return true;
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    const removed = [];
+    c.files = c.files.filter(f => {
+      if (matchFn(f)) { removed.push(f); return false; }
+      return true;
+    });
+    if (removed.length) await saveState(st);
+    return removed;
   });
-  if (removed.length) await saveState(st);
-  return removed;
 }
 
 export async function addReminder(consumerId, reminder) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  c.reminders.push(reminder);
-  await saveState(st);
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    c.reminders.push(reminder);
+    await saveState(st);
+  });
 }
 
 export async function removeReminder(consumerId, reminderId) {
   if (!consumerId || !reminderId) return;
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  if (!Array.isArray(c.reminders) || !c.reminders.length) return;
-  const next = c.reminders.filter((reminder) => reminder?.id !== reminderId);
-  if (next.length === c.reminders.length) return;
-  c.reminders = next;
-  await saveState(st);
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    if (!Array.isArray(c.reminders) || !c.reminders.length) return;
+    const next = c.reminders.filter((reminder) => reminder?.id !== reminderId);
+    if (next.length === c.reminders.length) return;
+    c.reminders = next;
+    await saveState(st);
+  });
 }
 
 export async function setCreditScore(consumerId, score) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  if (score && typeof score === "object" && Object.keys(score).length) {
-    c.creditScore = score;
-  } else {
-    c.creditScore = null;
-  }
-  await saveState(st);
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    if (score && typeof score === "object" && Object.keys(score).length) {
+      c.creditScore = score;
+    } else {
+      c.creditScore = null;
+    }
+    await saveState(st);
+  });
 }
 
 export async function processAllReminders() {
-  const st = await loadState();
-  processReminders(st);
-  await saveState(st);
+  return withStateLock(async () => {
+    const st = await loadState();
+    processReminders(st);
+    await saveState(st);
+  });
 }
 
 export async function listTracker(consumerId) {
-  const st = await loadState();
-  const steps = st.trackerSteps || [];
-  const c = ensureConsumer(st, consumerId);
-  await saveState(st);
-  return { steps, completed: c.tracker || {} };
+  return withStateLock(async () => {
+    const st = await loadState();
+    const steps = st.trackerSteps || [];
+    const c = ensureConsumer(st, consumerId);
+    await saveState(st);
+    return { steps, completed: c.tracker || {} };
+  });
 }
 
 export async function getTrackerSteps() {
@@ -225,74 +278,80 @@ export async function getTrackerSteps() {
 }
 
 export async function setTrackerSteps(steps = []) {
-  const st = await loadState();
-  st.trackerSteps = steps;
-  await saveState(st);
+  return withStateLock(async () => {
+    const st = await loadState();
+    st.trackerSteps = steps;
+    await saveState(st);
+  });
 }
 
 export async function markTrackerStep(consumerId, step, done = true) {
-  const st = await loadState();
-  const c = ensureConsumer(st, consumerId);
-  c.tracker ??= {};
-  if (done) c.tracker[step] = true; else delete c.tracker[step];
-  await saveState(st);
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    c.tracker ??= {};
+    if (done) c.tracker[step] = true; else delete c.tracker[step];
+    await saveState(st);
+  });
 }
 
 export async function listAllConsumerStates({ includeEvents = true } = {}) {
-  const st = await loadState();
-  const now = Date.now();
-  const entries = [];
-  for (const [consumerId] of Object.entries(st.consumers || {})) {
-    const consumer = ensureConsumer(st, consumerId);
-    const reminders = Array.isArray(consumer.reminders)
-      ? consumer.reminders.map((reminder) => {
-          const dueRaw = reminder?.due || reminder?.payload?.due || null;
-          const dueTs = dueRaw ? Date.parse(dueRaw) : NaN;
-          const status = Number.isFinite(dueTs)
-            ? (dueTs < now ? "overdue" : "upcoming")
-            : "unscheduled";
-          return {
-            id: reminder.id || `${consumerId}_${Math.random().toString(16).slice(2)}`,
-            due: dueRaw,
-            status,
-            payload: reminder.payload ? { ...reminder.payload } : {},
-            notes: reminder.notes || "",
-            dueTs: Number.isFinite(dueTs) ? dueTs : null,
-          };
-        })
-      : [];
-    entries.push({
-      id: consumerId,
-      creditScore: consumer.creditScore ?? null,
-      reminders,
-      events: [],
-    });
-  }
-
-  processReminders(st);
-  await saveState(st);
-
-  if (includeEvents) {
-    for (const entry of entries) {
-      const consumer = ensureConsumer(st, entry.id);
-      entry.events = Array.isArray(consumer.events)
-        ? consumer.events.slice(0, 50).map((event) => ({
-            id: event.id || `${entry.id}_${Math.random().toString(16).slice(2)}`,
-            type: event.type || "event",
-            at: event.at || null,
-            payload: event.payload ? { ...event.payload } : {},
-          }))
+  return withStateLock(async () => {
+    const st = await loadState();
+    const now = Date.now();
+    const entries = [];
+    for (const [consumerId] of Object.entries(st.consumers || {})) {
+      const consumer = ensureConsumer(st, consumerId);
+      const reminders = Array.isArray(consumer.reminders)
+        ? consumer.reminders.map((reminder) => {
+            const dueRaw = reminder?.due || reminder?.payload?.due || null;
+            const dueTs = dueRaw ? Date.parse(dueRaw) : NaN;
+            const status = Number.isFinite(dueTs)
+              ? (dueTs < now ? "overdue" : "upcoming")
+              : "unscheduled";
+            return {
+              id: reminder.id || `${consumerId}_${Math.random().toString(16).slice(2)}`,
+              due: dueRaw,
+              status,
+              payload: reminder.payload ? { ...reminder.payload } : {},
+              notes: reminder.notes || "",
+              dueTs: Number.isFinite(dueTs) ? dueTs : null,
+            };
+          })
         : [];
+      entries.push({
+        id: consumerId,
+        creditScore: consumer.creditScore ?? null,
+        reminders,
+        events: [],
+      });
     }
-  }
 
-  return entries.map((entry) => ({
-    ...entry,
-    overdueCount: entry.reminders.filter((r) => r.status === "overdue").length,
-  }));
+    processReminders(st);
+    await saveState(st);
+
+    if (includeEvents) {
+      for (const entry of entries) {
+        const consumer = ensureConsumer(st, entry.id);
+        entry.events = Array.isArray(consumer.events)
+          ? consumer.events.slice(0, 50).map((event) => ({
+              id: event.id || `${entry.id}_${Math.random().toString(16).slice(2)}`,
+              type: event.type || "event",
+              at: event.at || null,
+              payload: event.payload ? { ...event.payload } : {},
+            }))
+          : [];
+      }
+    }
+
+    return entries.map((entry) => ({
+      ...entry,
+      overdueCount: entry.reminders.filter((r) => r.status === "overdue").length,
+    }));
+  });
 }
 
-export { registerStateEventListener };
+export { registerStateEventListener, AsyncMutex };
 
 // Paths for storing/serving files for a consumer
 export function consumerUploadsDir(consumerId) {

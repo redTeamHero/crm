@@ -2509,51 +2509,79 @@ async function buildSeedReport(existing) {
   };
 }
 
+const dbMutex = new (await import("./state.js")).AsyncMutex();
+
 async function loadDB(context){
-  const scope = tenantScope(resolveTenantContextInput(context));
-  let db = await readKey('consumers', null, scope);
-  let changed = false;
-  if(!db){
-    db = JSON.parse(JSON.stringify(DEFAULT_DB));
-    changed = true;
-  }
-  db.consumers = Array.isArray(db.consumers) ? db.consumers : [];
-  if(db.consumers.length === 0){
-    db.consumers.push({ id: nanoid(10), name: "Sample Consumer", reports: [] });
-    changed = true;
-  }
-  let seededSample = false;
-  for(const c of db.consumers){
-    c.reports = Array.isArray(c.reports) ? c.reports : [];
-    if (!seededSample) {
-      const firstReport = c.reports[0];
-      if (!reportHasTradelines(firstReport)) {
-        const seeded = await buildSeedReport(firstReport);
-        if (firstReport) {
-          c.reports[0] = { ...firstReport, ...seeded };
-        } else {
-          c.reports.push(seeded);
-        }
-        seededSample = reportHasTradelines(c.reports[0]);
+  await dbMutex.acquire();
+  try {
+    const scope = tenantScope(resolveTenantContextInput(context));
+    let db = await readKey('consumers', null, scope);
+    let changed = false;
+    if(!db){
+      await new Promise(r => setTimeout(r, 500));
+      db = await readKey('consumers', null, scope);
+    }
+    if(!db){
+      const sentinel = await readKey('_db_seeded', null, scope);
+      if (sentinel) {
+        console.warn("[loadDB] DB was previously seeded but consumers key is missing — using empty default without overwriting");
+        db = JSON.parse(JSON.stringify(DEFAULT_DB));
+        db.consumers = [];
+        return db;
+      }
+      console.warn("[loadDB] Initializing fresh consumers DB (first-time setup)");
+      db = JSON.parse(JSON.stringify(DEFAULT_DB));
+      changed = true;
+    }
+    db.consumers = Array.isArray(db.consumers) ? db.consumers : [];
+    if(db.consumers.length === 0){
+      const sentinel = await readKey('_db_seeded', null, scope);
+      if (!sentinel) {
+        db.consumers.push({ id: nanoid(10), name: "Sample Consumer", reports: [] });
         changed = true;
-      } else {
-        seededSample = true;
       }
     }
+    let seededSample = false;
+    for(const c of db.consumers){
+      c.reports = Array.isArray(c.reports) ? c.reports : [];
+      if (!seededSample) {
+        const firstReport = c.reports[0];
+        if (!reportHasTradelines(firstReport)) {
+          const seeded = await buildSeedReport(firstReport);
+          if (firstReport) {
+            c.reports[0] = { ...firstReport, ...seeded };
+          } else {
+            c.reports.push(seeded);
+          }
+          seededSample = reportHasTradelines(c.reports[0]);
+          changed = true;
+        } else {
+          seededSample = true;
+        }
+      }
+    }
+    const hasReports = db.consumers.some(c => c.reports.length > 0);
+    if(!hasReports && db.consumers.length){
+      const seeded = await buildSeedReport();
+      db.consumers[0].reports.push(seeded);
+      changed = true;
+    }
+    if(changed){
+      await writeKey('consumers', db, scope);
+      await writeKey('_db_seeded', { at: new Date().toISOString() }, scope);
+    }
+    return db;
+  } finally {
+    dbMutex.release();
   }
-  const hasReports = db.consumers.some(c => c.reports.length > 0);
-  if(!hasReports && db.consumers.length){
-    const seeded = await buildSeedReport();
-    db.consumers[0].reports.push(seeded);
-    changed = true;
-  }
-  if(changed){
-    await writeKey('consumers', db, scope);
-  }
-  return db;
 }
 async function saveDB(db, context){
-  await writeKey('consumers', db, tenantScope(resolveTenantContextInput(context)));
+  await dbMutex.acquire();
+  try {
+    await writeKey('consumers', db, tenantScope(resolveTenantContextInput(context)));
+  } finally {
+    dbMutex.release();
+  }
 }
 const LETTERS_DEFAULT = { jobs: [], templates: [], sequences: [], contracts: [], mainTemplates: defaultTemplates().map(t=>t.id) };
 function normalizeLettersDB(db){
