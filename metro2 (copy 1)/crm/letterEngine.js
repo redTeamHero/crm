@@ -24,7 +24,7 @@ function filterViolationsBySeverity(violations = [], minSeverity = 1, locale = '
       return {
         ...v,
         ...meta,
-        detail: meta.snippets?.[locale] || v.detail || meta.violation,
+        detail: meta.snippets?.[locale] || v.detail || meta.violation || v.title,
         severity: getSeverity(v),
       };
     });
@@ -452,7 +452,7 @@ function buildViolationListHTML(
   const items = enriched
     .map((v) => {
       const evHTML = renderEvidenceHTML(v.evidence);
-      const violationLabel = cleanViolationText(v.violation || v.category || '');
+      const violationLabel = cleanViolationText(v.violation || v.category || v.title || '');
       const rawDetail = v.detail || '';
       const cleanDetail = cleanViolationText(rawDetail);
       const fcraText =
@@ -460,7 +460,7 @@ function buildViolationListHTML(
           ? `Per FCRA §${v.fcraSection}, ${cleanDetail}`
           : cleanDetail;
       const primaryText = violationLabel || fcraText || '';
-      const secondaryText = violationLabel && fcraText ? fcraText : '';
+      const secondaryText = violationLabel && fcraText && fcraText !== violationLabel ? fcraText : '';
       if (!primaryText && !secondaryText && !evHTML) return '';
       return `
         <li style="margin-bottom:12px;">
