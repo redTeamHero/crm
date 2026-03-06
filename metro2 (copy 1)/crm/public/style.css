@@ -4322,6 +4322,9 @@ header#host-nav {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Mobile bottom tab bar */
@@ -4849,6 +4852,7 @@ header#host-nav {
 /* Override the old portal body background for sidebar layout */
 body.portal-layout {
   background: #f8f9ff;
+  overflow-x: hidden;
 }
 
 body.portal-layout::before,
@@ -5071,18 +5075,6 @@ body.portal-layout::after {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-}
-.portal-content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-.portal-main-wrapper {
-  margin-left: 260px;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
 }
 .imsg-container {
   display: flex;
