@@ -791,6 +791,7 @@ import LETTER_TEMPLATES, { getResponseWindowDays } from "./letterTemplates.js";
 import { scanResponseLetter } from "./disputeAI.js";
 import { recommendFirstLetter, recommendNextLetter } from "./disputeRecommend.js";
 import { updateEventPayload } from "./state.js";
+import * as objStore from "./objectStore.js";
 import { loadPlaybooks } from "./playbook.js";
 import { normalizeReport, renderHtml, savePdf } from "./creditAuditTool.js";
 import {
@@ -3058,18 +3059,18 @@ async function createInvoice({
     }
     const mime = ext === ".pdf" ? "application/pdf" : "text/html";
 
-    const uploadsDir = consumerUploadsDir(inv.consumerId);
     const fid = nanoid(10);
     const storedName = `${fid}${ext}`;
-    const dest = path.join(uploadsDir, storedName);
-    await fs.promises.copyFile(pdfResult.path, dest);
-    const stat = await fs.promises.stat(dest);
+    const objectKey = objStore.consumerFileKey(inv.consumerId, storedName);
+    const pdfBuf = fs.readFileSync(pdfResult.path);
+    await objStore.uploadFile(objectKey, pdfBuf, mime);
     await addFileMeta(inv.consumerId, {
       id: fid,
       originalName: `invoice_${inv.id}${ext}`,
       storedName,
+      objectKey,
       type: "invoice",
-      size: stat.size,
+      size: pdfBuf.length,
       mimetype: mime,
       uploadedAt: new Date().toISOString(),
     });
@@ -6047,15 +6048,15 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
     }
 
     const rid = nanoid(8);
-    // store original uploaded file so clients can access it from document center
-    const uploadDir = consumerUploadsDir(consumer.id);
     const ext = (sanitizedOriginalName.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
     const storedName = `${rid}${ext}`;
-    await fs.promises.writeFile(path.join(uploadDir, storedName), req.file.buffer);
+    const objectKey = objStore.consumerFileKey(consumer.id, storedName);
+    await objStore.uploadFile(objectKey, req.file.buffer, req.file.mimetype || "application/octet-stream");
     await addFileMeta(consumer.id, {
       id: rid,
       originalName: sanitizedOriginalName,
       storedName,
+      objectKey,
       size: req.file.size,
       mimetype: req.file.mimetype,
       uploadedAt: new Date().toISOString(),
@@ -6172,17 +6173,26 @@ app.get("/api/consumers/:id/report/:rid", async (req,res)=>{
     const unknownRatio = unknownCount / r.data.tradelines.length;
     if (unknownRatio > 0.5) {
       try {
-        const uploadsDir = consumerUploadsDir(c.id);
-        let htmlPath = null;
+        let html = null;
         for (const ext of [".html", ".htm"]) {
-          const candidate = path.join(uploadsDir, `${r.id}${ext}`);
-          if (fs.existsSync(candidate)) { htmlPath = candidate; break; }
+          const key = objStore.consumerFileKey(c.id, `${r.id}${ext}`);
+          try {
+            const buf = await objStore.downloadFile(key);
+            html = buf.toString("utf-8");
+            break;
+          } catch {}
         }
-        if (!htmlPath) {
+        if (!html) {
+          const uploadsDir = consumerUploadsDir(c.id);
+          for (const ext of [".html", ".htm"]) {
+            const candidate = path.join(uploadsDir, `${r.id}${ext}`);
+            if (fs.existsSync(candidate)) { html = await fs.promises.readFile(candidate, "utf-8"); break; }
+          }
+        }
+        if (!html) {
           logWarn("CREDITOR_BACKFILL_SKIP", `No HTML file found for report ${r.id}`, { consumerId: c.id, reportId: r.id });
         }
-        if (htmlPath) {
-          const html = await fs.promises.readFile(htmlPath, "utf-8");
+        if (html) {
           const $ = cheerio.load(html);
           const parsed = metro2ParseReport($);
           if (parsed.tradelines && parsed.tradelines.length > 0) {
@@ -6598,21 +6608,21 @@ async function generateBreachAudit(consumer) {
   }
   const mime = ext === ".pdf" ? "application/pdf" : "text/html";
   try {
-    const uploadsDir = consumerUploadsDir(consumer.id);
     const id = nanoid(10);
     const storedName = `${id}${ext}`;
+    const objectKey = objStore.consumerFileKey(consumer.id, storedName);
     const safe = (consumer.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
     const date = new Date().toISOString().slice(0, 10);
     const originalName = `${safe}_${date}_breach_audit${ext}`;
-    const dest = path.join(uploadsDir, storedName);
-    await fs.promises.copyFile(result.path, dest);
-    const stat = await fs.promises.stat(dest);
+    const pdfBuf = fs.readFileSync(result.path);
+    await objStore.uploadFile(objectKey, pdfBuf, mime);
     await addFileMeta(consumer.id, {
       id,
       originalName,
       storedName,
+      objectKey,
       type: "breach-audit",
-      size: stat.size,
+      size: pdfBuf.length,
       mimetype: mime,
       uploadedAt: new Date().toISOString(),
     });
@@ -6736,7 +6746,18 @@ async function persistJobToDisk(jobId, letters){
   console.log(`Job ${jobId} saved to index`);
 }
 
-// Load job from disk (returns { letters: [{... , htmlPath}]})
+async function loadLetterHtml(jobId, filename) {
+  const key = objStore.letterFileKey(jobId, filename);
+  try {
+    const buf = await objStore.downloadFile(key);
+    return buf.toString("utf-8");
+  } catch {
+    const localPath = path.join(LETTERS_DIR, jobId, filename);
+    if (fs.existsSync(localPath)) return fs.readFileSync(localPath, "utf-8");
+    return null;
+  }
+}
+
 async function loadJobFromDisk(jobId){
   console.log(`Loading job ${jobId} from disk`);
   const idx = await loadJobsIndex();
@@ -6748,6 +6769,7 @@ async function loadJobFromDisk(jobId){
   const jobDir = meta.dir || jobId;
   const letters = (meta.letters || []).map(item => ({
     ...item,
+    objectKey: objStore.letterFileKey(jobId, item.filename),
     htmlPath: path.join(LETTERS_DIR, jobDir, item.filename),
   }));
   console.log(`Loaded job ${jobId} with ${letters.length} letters from disk`);
@@ -6759,6 +6781,9 @@ async function deleteJob(jobId){
   const idx = await loadJobsIndex();
   const meta = idx.jobs?.[jobId];
   if(meta){
+    for (const item of (meta.letters || [])) {
+      try { await objStore.deleteFile(objStore.letterFileKey(jobId, item.filename)); } catch {}
+    }
     const dir = path.join(LETTERS_DIR, meta.dir || jobId);
     try{ fs.rmSync(dir, { recursive:true, force:true }); }catch{}
     delete idx.jobs[jobId];
@@ -7061,10 +7086,9 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       if (sel && sel.useOcr !== undefined) L.useOcr = !!sel.useOcr;
     }
 
-    const jobDir = path.join(LETTERS_DIR, jobId);
-    fs.mkdirSync(jobDir, { recursive: true });
     for (const L of letters) {
-      fs.writeFileSync(path.join(jobDir, L.filename), L.html, "utf-8");
+      const lKey = objStore.letterFileKey(jobId, L.filename);
+      await objStore.uploadFile(lKey, Buffer.from(L.html, "utf-8"), "text/html");
     }
 
     const requestUserId = userId || "guest";
@@ -7352,21 +7376,21 @@ async function executeLettersPdfJob({ jobId, tenantId, userId, payload }) {
         const db = await loadDB();
         const consumer = db.consumers.find((c) => c.id === meta.consumerId);
         if (consumer) {
-          const uploadsDir = consumerUploadsDir(consumer.id);
           const id = nanoid(10);
           const storedName = `${id}.zip`;
+          const objectKey = objStore.consumerFileKey(consumer.id, storedName);
           const safe = (consumer.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
           const date = new Date().toISOString().slice(0, 10);
           const originalName = `${safe}_${date}_letters.zip`;
-          const dest = path.join(uploadsDir, storedName);
-          await fs.promises.copyFile(zipPath, dest);
-          const stat = await fs.promises.stat(dest);
+          const zipBuf = fs.readFileSync(zipPath);
+          await objStore.uploadFile(objectKey, zipBuf, "application/zip");
           await addFileMeta(consumer.id, {
             id,
             originalName,
             storedName,
+            objectKey,
             type: "letters_zip",
-            size: stat.size,
+            size: zipBuf.length,
             mimetype: "application/zip",
             uploadedAt: new Date().toISOString(),
           });
@@ -7482,21 +7506,21 @@ async function executeAuditJob({ jobId, tenantId, userId, payload }) {
 
     let storedRecord = null;
     try {
-      const uploadsDir = consumerUploadsDir(consumer.id);
       const id = nanoid(10);
       const storedName = `${id}${ext}`;
+      const objectKey = objStore.consumerFileKey(consumer.id, storedName);
       const safe = (consumer.name || "client").toLowerCase().replace(/[^a-z0-9]+/g, "_");
       const date = new Date().toISOString().slice(0, 10);
       const originalName = `${safe}_${date}_audit${ext}`;
-      const dest = path.join(uploadsDir, storedName);
-      await fs.promises.copyFile(pdfResult.path, dest);
-      const stat = await fs.promises.stat(dest);
+      const pdfBuf = fs.readFileSync(pdfResult.path);
+      await objStore.uploadFile(objectKey, pdfBuf, mime);
       await addFileMeta(consumer.id, {
         id,
         originalName,
         storedName,
+        objectKey,
         type: "audit",
-        size: stat.size,
+        size: pdfBuf.length,
         mimetype: mime,
         uploadedAt: new Date().toISOString(),
       });
@@ -7504,7 +7528,7 @@ async function executeAuditJob({ jobId, tenantId, userId, payload }) {
         storedName,
         originalName,
         url: `/api/consumers/${consumer.id}/state/files/${storedName}`,
-        size: stat.size,
+        size: pdfBuf.length,
         mimetype: mime,
       };
     } catch (err) {
@@ -7943,9 +7967,9 @@ app.delete("/api/letters/:jobId", authenticate, requirePermission("letters", { a
         }
 
         if (storedNames.size) {
-          const dir = consumerUploadsDir(consumerId);
           for (const sn of storedNames) {
-            try { fs.unlinkSync(path.join(dir, sn)); } catch {}
+            try { await objStore.deleteFile(objStore.consumerFileKey(consumerId, sn)); } catch {}
+            try { fs.unlinkSync(path.join(consumerUploadsDir(consumerId), sn)); } catch {}
           }
           await removeFileMetaByMatch(consumerId, f => storedNames.has(f.storedName));
         }
@@ -8042,7 +8066,7 @@ app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, enforceTenantQuota("letter
   if(!job) return res.status(404).send("Job not found or expired.");
   const L = job.letters[Number(idx)];
   if(!L) return res.status(404).send("Letter not found.");
-  let html = L.html;
+  let html = L.html || await loadLetterHtml(jobId, L.filename);
   let filenameBase = (L.filename||"letter").replace(/\.html?$/i,"");
   let useOcr = !!L.useOcr;
 
@@ -8103,20 +8127,18 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
     }
   }catch{}
 
+  const zipChunks = [];
   if(consumer){
     const pass = new PassThrough();
     archive.pipe(pass);
     pass.pipe(res);
 
-    const dir = consumerUploadsDir(consumer.id);
     id = nanoid(10);
     storedName = `${id}.zip`;
     const safe = (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g,'_');
     const date = new Date().toISOString().slice(0,10);
     originalName = `${safe}_${date}_letters.zip`;
-    const fullPath = path.join(dir, storedName);
-    fileStream = fs.createWriteStream(fullPath);
-    pass.pipe(fileStream);
+    pass.on('data', chunk => zipChunks.push(chunk));
   } else {
     archive.pipe(res);
   }
@@ -8148,7 +8170,7 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
         continue;
       }
 
-      const htmlSource = L.html || (L.htmlPath && fs.existsSync(L.htmlPath) ? fs.readFileSync(L.htmlPath, 'utf-8') : '');
+      const htmlSource = L.html || await loadLetterHtml(jobId, L.filename) || '';
       if(!htmlSource){
         logError('ZIP_APPEND_FAILED', 'Letter HTML missing for archive', null, { jobId, letter: pdfName });
         throw new Error('Letter HTML missing');
@@ -8168,16 +8190,18 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
     }
     await archive.finalize();
 
-    if(fileStream && consumer){
-      await new Promise(resolve => fileStream.on('close', resolve));
+    if(consumer && zipChunks.length){
       try{
-        const stat = await fs.promises.stat(path.join(consumerUploadsDir(consumer.id), storedName));
+        const zipBuf = Buffer.concat(zipChunks);
+        const objectKey = objStore.consumerFileKey(consumer.id, storedName);
+        await objStore.uploadFile(objectKey, zipBuf, "application/zip");
         await addFileMeta(consumer.id, {
           id,
           originalName,
           storedName,
+          objectKey,
           type: 'letters_zip',
-          size: stat.size,
+          size: zipBuf.length,
           mimetype: 'application/zip',
           uploadedAt: new Date().toISOString(),
         });
@@ -8210,7 +8234,16 @@ app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"),
   const cstate = await listConsumerState(consumerId);
   const ev = cstate.events.find(e=>e.type==='letters_portal_sent' && e.payload?.jobId===jobId && e.payload?.file?.endsWith(`/state/files/${file}`));
   if(!ev) return res.status(404).json({ ok:false, error:"Letter not found" });
-  const filePath = path.join(consumerUploadsDir(consumerId), file);
+  let filePath;
+  const objectKey = objStore.consumerFileKey(consumerId, file);
+  try {
+    const buf = await objStore.downloadFile(objectKey);
+    const tmpPath = path.join(os.tmpdir(), `mail_${nanoid(8)}_${file}`);
+    fs.writeFileSync(tmpPath, buf);
+    filePath = tmpPath;
+  } catch {
+    filePath = path.join(consumerUploadsDir(consumerId), file);
+  }
   try{
     const result = await sendCertifiedMail({
       filePath,
@@ -8226,6 +8259,8 @@ app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"),
   }catch(e){
     logError('SCM_MAIL_FAILED', 'Failed to mail via SimpleCertifiedMail', e, { jobId, consumerId, file });
     res.status(500).json({ ok:false, errorCode:'SCM_MAIL_FAILED', message:String(e) });
+  }finally{
+    if(filePath && filePath.startsWith(os.tmpdir())) try{ fs.unlinkSync(filePath); }catch{}
   }
 });
 
@@ -8243,7 +8278,16 @@ app.post("/api/portal/:consumerId/mail", async (req,res)=>{
   const cstate = await listConsumerState(consumerId);
   const ev = cstate.events.find(e=>e.type==='letters_portal_sent' && e.payload?.jobId===jobId && e.payload?.file?.endsWith(`/state/files/${file}`));
   if(!ev) return res.status(404).json({ ok:false, error:"Letter not found" });
-  const filePath = path.join(consumerUploadsDir(consumerId), file);
+  let filePath;
+  const portalObjKey = objStore.consumerFileKey(consumerId, file);
+  try {
+    const buf = await objStore.downloadFile(portalObjKey);
+    const tmpPath = path.join(os.tmpdir(), `mail_${nanoid(8)}_${file}`);
+    fs.writeFileSync(tmpPath, buf);
+    filePath = tmpPath;
+  } catch {
+    filePath = path.join(consumerUploadsDir(consumerId), file);
+  }
   try{
     const result = await sendCertifiedMail({
       filePath,
@@ -8259,6 +8303,8 @@ app.post("/api/portal/:consumerId/mail", async (req,res)=>{
   }catch(e){
     logError('SCM_MAIL_FAILED', 'Failed to mail via SimpleCertifiedMail (portal)', e, { jobId, consumerId, file });
     res.status(500).json({ ok:false, errorCode:'SCM_MAIL_FAILED', message:String(e) });
+  }finally{
+    if(filePath && filePath.startsWith(os.tmpdir())) try{ fs.unlinkSync(filePath); }catch{}
   }
 });
 
@@ -8289,7 +8335,7 @@ app.post("/api/letters/:jobId/email", authenticate, requirePermission("letters")
     const attachments = [];
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
-      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, "utf-8") : fs.readFileSync(path.join(LETTERS_DIR, jobId, L.filename), "utf-8"));
+      const html = L.html || await loadLetterHtml(jobId, L.filename) || "";
 
       let pdfBuffer;
       if (L.useOcr) {
@@ -8363,13 +8409,12 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
       }
     }
 
-    const dir = consumerUploadsDir(consumer.id);
     const safe = (consumer.name || 'client').toLowerCase().replace(/[^a-z0-9]+/g,'_');
     const date = new Date().toISOString().slice(0,10);
 
     for(let i=0;i<job.letters.length;i++){
       const L = job.letters[i];
-      const html = L.html || (L.htmlPath ? fs.readFileSync(L.htmlPath, 'utf-8') : fs.readFileSync(path.join(LETTERS_DIR, jobId, L.filename), 'utf-8'));
+      const html = L.html || await loadLetterHtml(jobId, L.filename) || '';
 
       let pdfBuffer;
       if (L.useOcr || !browserAvailable) {
@@ -8386,15 +8431,15 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
       const storedName = `${id}.pdf`;
       const base = (L.filename||`letter${i}`).replace(/\.html?$/i,"");
       const originalName = `${safe}_${date}_${base}.pdf`;
-      const fullPath = path.join(dir, storedName);
-      await fs.promises.writeFile(fullPath, pdfBuffer);
-      const stat = await fs.promises.stat(fullPath);
+      const objectKey = objStore.consumerFileKey(consumer.id, storedName);
+      await objStore.uploadFile(objectKey, pdfBuffer, "application/pdf");
       await addFileMeta(consumer.id, {
         id,
         originalName,
         storedName,
+        objectKey,
         type: 'letter_pdf',
-        size: stat.size,
+        size: pdfBuffer.length,
         mimetype: 'application/pdf',
         uploadedAt: new Date().toISOString(),
       });
@@ -8472,7 +8517,6 @@ app.post("/api/consumers/:id/state/upload", fileUpload.single("file"), async (re
   if(!consumer) return res.status(404).json({ ok:false, error:"Consumer not found" });
   if(!req.file) return res.status(400).json({ ok:false, error:"No file uploaded" });
 
-  const dir = consumerUploadsDir(consumer.id);
   const id = nanoid(10);
   const sanitizedOriginalName = path.basename(req.file.originalname || "");
   const ext = (sanitizedOriginalName.match(/\.[a-z0-9]+$/i)||[""])[0] || "";
@@ -8481,13 +8525,14 @@ app.post("/api/consumers/:id/state/upload", fileUpload.single("file"), async (re
   const date = new Date().toISOString().slice(0,10);
   const storedName = `${id}${ext}`;
   const originalName = `${safeName}_${date}_${type}${ext}`;
-  const fullPath = path.join(dir, storedName);
-  await fs.promises.writeFile(fullPath, req.file.buffer);
+  const objectKey = objStore.consumerFileKey(consumer.id, storedName);
+  await objStore.uploadFile(objectKey, req.file.buffer, req.file.mimetype || "application/octet-stream");
 
   const rec = {
     id,
     originalName,
     storedName,
+    objectKey,
     type,
     size: req.file.size,
     mimetype: req.file.mimetype,
@@ -8499,12 +8544,16 @@ app.post("/api/consumers/:id/state/upload", fileUpload.single("file"), async (re
   res.json({ ok:true, file: { ...rec, url: `/api/consumers/${consumer.id}/state/files/${storedName}` } });
 });
 
-// Serve a consumer file
-app.get("/api/consumers/:id/state/files/:stored", (req,res)=>{
-  const dir = consumerUploadsDir(req.params.id);
-  const full = path.join(dir, path.basename(req.params.stored));
-  if (!fs.existsSync(full)) return res.status(404).send("File not found");
-  res.sendFile(full);
+app.get("/api/consumers/:id/state/files/:stored", async (req,res)=>{
+  const stored = path.basename(req.params.stored);
+  const objectKey = objStore.consumerFileKey(req.params.id, stored);
+  const served = await objStore.streamToResponse(objectKey, res);
+  if (!served) {
+    const localDir = consumerUploadsDir(req.params.id);
+    const localPath = path.join(localDir, stored);
+    if (fs.existsSync(localPath)) return res.sendFile(localPath);
+    return res.status(404).send("File not found");
+  }
 });
 
 // ============================================================================
@@ -8743,10 +8792,10 @@ app.post("/api/consumers/:id/disputes/:jobId/evidence", authenticate, evidenceUp
       return res.status(400).json({ ok: false, error: "File is required" });
     }
 
-    const uploadsDir = consumerUploadsDir(consumerId);
     const ext = path.extname(req.file.originalname) || ".pdf";
     const storedName = `evidence_${jobId}_${Date.now()}${ext}`;
-    await fs.promises.writeFile(path.join(uploadsDir, storedName), req.file.buffer);
+    const objectKey = objStore.consumerFileKey(consumerId, storedName);
+    await objStore.uploadFile(objectKey, req.file.buffer, req.file.mimetype || "application/octet-stream");
 
     let aiScanResult = null;
     try {
@@ -8759,6 +8808,7 @@ app.post("/api/consumers/:id/disputes/:jobId/evidence", authenticate, evidenceUp
       id: `evidence_${Date.now()}`,
       originalName: req.file.originalname,
       storedName,
+      objectKey,
       size: req.file.size,
       mimetype: req.file.mimetype,
       uploadedAt: new Date().toISOString(),
@@ -9126,9 +9176,18 @@ async function runDiyAudit({ reportId, userId }) {
     return { status: 400, error: 'Unsupported file format. Please upload PDF or HTML credit reports.' };
   }
 
-  const filePath = path.join(__dirname, 'diy_uploads', userId, report.storedName);
-  if (!fs.existsSync(filePath)) {
-    return { status: 404, error: 'Report file not found' };
+  let filePath;
+  const diyObjKey = report.objectKey || objStore.diyFileKey(userId, report.storedName);
+  try {
+    const buf = await objStore.downloadFile(diyObjKey);
+    const tmpPath = path.join(os.tmpdir(), `diy_${nanoid(8)}_${report.storedName}`);
+    fs.writeFileSync(tmpPath, buf);
+    filePath = tmpPath;
+  } catch {
+    filePath = path.join(__dirname, 'diy_uploads', userId, report.storedName);
+    if (!fs.existsSync(filePath)) {
+      return { status: 404, error: 'Report file not found' };
+    }
   }
 
   let violations = [];
@@ -9159,8 +9218,11 @@ async function runDiyAudit({ reportId, userId }) {
     report.auditError = auditDetails.error;
     report.auditedAt = new Date().toISOString();
     await saveDiyReportsDB(db);
+    if(filePath && filePath.startsWith(os.tmpdir())) try{ fs.unlinkSync(filePath); }catch{}
     return { status: 500, error: 'Audit failed. Please try again later.' };
   }
+
+  if(filePath && filePath.startsWith(os.tmpdir())) try{ fs.unlinkSync(filePath); }catch{}
 
   report.auditStatus = 'completed';
   report.violations = violations;
@@ -9525,19 +9587,6 @@ app.post('/api/diy/credit-companies/select', diyAuthenticate, async (req, res) =
 const ALLOWED_DIY_EXTENSIONS = ['.pdf', '.html', '.htm'];
 const ALLOWED_DIY_MIMETYPES = ['application/pdf', 'text/html', 'application/xhtml+xml'];
 
-const diyUploadStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, 'diy_uploads', req.diyUser.id);
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const sanitizedOriginalName = path.basename(file.originalname || "");
-    const ext = path.extname(sanitizedOriginalName).toLowerCase();
-    cb(null, `${nanoid(10)}${ext}`);
-  }
-});
-
 const diyUploadFilter = (req, file, cb) => {
   const sanitizedOriginalName = path.basename(file.originalname || "");
   const ext = path.extname(sanitizedOriginalName).toLowerCase();
@@ -9548,8 +9597,8 @@ const diyUploadFilter = (req, file, cb) => {
 };
 
 const diyUpload = multer({
-  storage: diyUploadStorage,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: diyUploadFilter
 });
 
@@ -9559,13 +9608,19 @@ app.post('/api/diy/reports/upload', diyAuthenticate, diyUpload.single('report'),
       return res.status(400).json({ ok: false, error: 'No file uploaded' });
     }
 
-    const db = await loadDiyReportsDB();
     const sanitizedOriginalName = path.basename(req.file.originalname || "");
+    const ext = path.extname(sanitizedOriginalName).toLowerCase();
+    const storedName = `${nanoid(10)}${ext}`;
+    const objectKey = objStore.diyFileKey(req.diyUser.id, storedName);
+    await objStore.uploadFile(objectKey, req.file.buffer, req.file.mimetype || "application/octet-stream");
+
+    const db = await loadDiyReportsDB();
     const report = {
       id: nanoid(12),
       userId: req.diyUser.id,
       originalName: sanitizedOriginalName,
-      storedName: req.file.filename,
+      storedName,
+      objectKey,
       size: req.file.size,
       mimeType: req.file.mimetype,
       uploadedAt: new Date().toISOString(),

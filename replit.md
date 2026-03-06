@@ -64,3 +64,4 @@ Key technical implementations include:
 - **Stripe**: For subscription payments, product management, checkout, and customer portal. Integrated using the Replit connector for credentials and webhooks for data synchronization.
 - **OpenAI**: Integrated for various AI functionalities.
 - **Google Calendar**: For syncing booked calls.
+- **Replit App Storage (Object Storage)**: Persistent file storage via `@google-cloud/storage` for consumer uploads, generated letters, and DIY uploads. Wrapper module at `metro2 (copy 1)/crm/objectStore.js` provides `uploadFile`, `downloadFile`, `streamToResponse`, `fileExists`, `deleteFile` with key conventions: `consumers/{id}/uploads/{file}`, `letters/{jobId}/{file}`, `diy/{userId}/{file}`. All file write paths in server.js use object storage with local-disk fallback for pre-migration files.

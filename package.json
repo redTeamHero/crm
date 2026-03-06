@@ -7,6 +7,12 @@
     "metro2 (copy 1)/crm"
   ],
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
+    "@uppy/aws-s3": "^5.1.0",
+    "@uppy/core": "^5.2.0",
+    "@uppy/dashboard": "^5.1.1",
+    "@uppy/react": "^5.2.0",
+    "google-auth-library": "^10.6.1",
     "helmet": "^8.1.0",
     "stripe-replit-sync": "^1.0.0"
   },
