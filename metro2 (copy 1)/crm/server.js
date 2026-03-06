@@ -2449,13 +2449,13 @@ async function loadJobForUser(jobId, userId){
   if(!job){
     const disk = await loadJobFromDisk(jobId);
     if(disk){
-      putJobMem(jobId, disk.letters.map(d => ({
-        filename: path.basename(d.htmlPath),
-        bureau: d.bureau,
-        creditor: d.creditor,
-        html: fs.existsSync(d.htmlPath) ? fs.readFileSync(d.htmlPath,"utf-8") : "<html><body>Missing file.</body></html>",
-        useOcr: d.useOcr
-      })));
+      const hydratedLetters = [];
+      for (const d of disk.letters) {
+        const fname = d.filename || path.basename(d.htmlPath);
+        const html = await loadLetterHtml(jobId, fname) || "<html><body>Missing file.</body></html>";
+        hydratedLetters.push({ filename: fname, bureau: d.bureau, creditor: d.creditor, html, useOcr: d.useOcr });
+      }
+      putJobMem(jobId, hydratedLetters);
       job = getJobMem(jobId);
     }
   }
@@ -6692,10 +6692,12 @@ async function loadJobAny(jobId){
   if(job) return job;
   const disk = await loadJobFromDisk(jobId);
   if(!disk) return null;
-  const letters = disk.letters.map(item => ({
-    ...item,
-    html: fs.existsSync(item.htmlPath) ? fs.readFileSync(item.htmlPath, "utf-8") : "<html><body>Letter unavailable.</body></html>",
-  }));
+  const letters = [];
+  for (const item of disk.letters) {
+    const fname = item.filename || path.basename(item.htmlPath);
+    const html = await loadLetterHtml(jobId, fname) || "<html><body>Letter unavailable.</body></html>";
+    letters.push({ ...item, html });
+  }
   putJobMem(jobId, letters);
   return getJobMem(jobId);
 }
