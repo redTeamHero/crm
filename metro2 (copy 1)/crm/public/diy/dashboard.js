@@ -117,13 +117,13 @@
   function updatePlanBadge(plan) {
     var colors = {
       free: { bg: 'rgba(99,102,241,0.15)', color: '#818cf8' },
-      basic: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
-      pro: { bg: 'rgba(16,185,129,0.15)', color: '#34d399' }
+      basic: { bg: 'rgba(16,185,129,0.15)', color: '#34d399', label: 'DIY' },
+      pro: { bg: 'rgba(16,185,129,0.15)', color: '#34d399', label: 'DIY' }
     };
     var c = colors[plan] || colors.free;
     planBadge.style.background = c.bg;
     planBadge.style.color = c.color;
-    planBadge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+    planBadge.textContent = (c.label) ? c.label : plan.charAt(0).toUpperCase() + plan.slice(1);
   }
 
   function updateStep(step, total) {
@@ -522,7 +522,7 @@
         btn.disabled = true;
         btn.className = 'diy-btn diy-btn-secondary billing-plan-btn';
       } else {
-        btn.textContent = 'Upgrade to ' + btnPlan.charAt(0).toUpperCase() + btnPlan.slice(1);
+        btn.textContent = btnPlan === 'basic' ? 'Upgrade to DIY' : 'Upgrade to ' + btnPlan.charAt(0).toUpperCase() + btnPlan.slice(1);
         btn.disabled = false;
         btn.className = 'diy-btn diy-btn-primary billing-plan-btn';
       }

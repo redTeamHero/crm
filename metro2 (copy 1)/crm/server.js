@@ -9089,8 +9089,8 @@ function diyAuthenticate(req, res, next) {
 // DIY Plan limits
 const DIY_PLAN_LIMITS = {
   free: { canAudit: false, lettersPerMonth: 0 },
-  basic: { canAudit: true, lettersPerMonth: 5 },
-  pro: { canAudit: true, lettersPerMonth: -1 } // unlimited
+  basic: { canAudit: true, lettersPerMonth: -1 },
+  pro: { canAudit: true, lettersPerMonth: -1 }
 };
 
 function diyRequirePlan(allowedPlans) {

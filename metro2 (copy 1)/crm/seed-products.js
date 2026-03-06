@@ -23,16 +23,10 @@ const CRM_PRODUCTS = [
 
 const DIY_PRODUCTS = [
   {
-    name: 'DIY Basic',
-    description: 'Upload credit reports, run audits, and generate up to 5 dispute letters per month.',
-    metadata: { tier: 'basic', type: 'diy', letterLimit: '5' },
-    price: { amount: 2900, interval: 'month' }
-  },
-  {
-    name: 'DIY Pro',
-    description: 'Unlimited audits, AI-powered dispute letters, cross-bureau analysis, and priority processing.',
-    metadata: { tier: 'pro', type: 'diy', letterLimit: 'unlimited' },
-    price: { amount: 7900, interval: 'month' }
+    name: 'DIY',
+    description: 'AI-powered credit audits, unlimited dispute letters, specialist matching, and email support.',
+    metadata: { tier: 'basic', type: 'diy', letterLimit: 'unlimited' },
+    price: { amount: 999, interval: 'month' }
   }
 ];
 
