@@ -39,8 +39,12 @@ body {
 
 body::before {
   content: "";
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  min-height: 100%;
+  height: 100vh;
   z-index: -2;
   background: url('/revolv-bg.png') center/cover no-repeat;
   opacity: 0.25;
@@ -50,8 +54,12 @@ body::before {
 
 body::after {
   content: "";
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  min-height: 100%;
+  height: 100vh;
   z-index: -1;
   background:
     radial-gradient(circle at 20% 80%, rgba(34, 197, 94, 0.12), transparent 55%),
@@ -697,6 +705,8 @@ body::after {
   gap: 12px;
   max-height: 240px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding: 12px;
   border-radius: 18px;
   background: rgba(248, 250, 255, 0.9);
@@ -1013,6 +1023,8 @@ body::after {
   border: 1px solid rgba(148, 163, 184, 0.12);
   max-height: 200px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .tradeline-grid.list-view .tl-card.lv-violations-open .tl-violations {
@@ -4129,6 +4141,8 @@ header#host-nav {
   z-index: 40;
   transition: transform 0.3s ease;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .sidebar-brand {

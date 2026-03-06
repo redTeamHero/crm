@@ -181,6 +181,8 @@
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       padding: 4px 0;
       scrollbar-width: thin;
       scrollbar-color: rgba(255,255,255,0.08) transparent;

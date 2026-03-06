@@ -1486,3 +1486,25 @@ if (typeof document !== 'undefined') {
 if (typeof window !== 'undefined') {
   Object.assign(window, { escapeHtml, formatCurrency, trackEvent, authHeader, api, setLanguage, getCurrentLanguage, applyLanguage, getTranslation });
 }
+
+(function initScrollUnlock() {
+  if (typeof document === 'undefined') return;
+  var MODAL_SELECTORS = '.modal-overlay, .modal-backdrop, .evolv-sb-backdrop.visible, .lesson-overlay, #lessonPlayerOverlay, #navOverlay, #generatingOverlay, .command-palette-overlay, .tour-overlay--active, .ptour-overlay--active, #lpmIframeOverlay, #zoomModal, #newModal, #editModal, #tlEditModal, #previewModal, #contractModal, #templateModal, #sequenceModal';
+  function hasVisibleModal() {
+    var els = document.querySelectorAll(MODAL_SELECTORS);
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.classList.contains('hidden')) continue;
+      var st = window.getComputedStyle(el);
+      if (st.display !== 'none' && st.visibility !== 'hidden' && parseFloat(st.opacity) > 0) return true;
+    }
+    return false;
+  }
+  function check() {
+    if (document.body && document.body.style.overflow === 'hidden' && !hasVisibleModal()) {
+      document.body.style.overflow = '';
+    }
+  }
+  setInterval(check, 800);
+})();
+
