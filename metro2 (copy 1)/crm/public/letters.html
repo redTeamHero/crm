@@ -143,7 +143,28 @@
     <div id="workflowNotice" class="alert alert-warn hidden"></div>
     <div id="err" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg"></div>
 
-    <div class="glass card text-center">
+    <div id="generatingOverlay" class="hidden" style="display:none;">
+      <div class="glass card" style="text-align:center;padding:3rem 2rem;max-width:480px;margin:2rem auto;">
+        <div style="margin-bottom:1.5rem;">
+          <svg width="48" height="48" viewBox="0 0 48 48" style="margin:0 auto;animation:spin 1.2s linear infinite;">
+            <circle cx="24" cy="24" r="20" fill="none" stroke="var(--border-soft, #333)" stroke-width="4"/>
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#d4a853" stroke-width="4" stroke-dasharray="80 45" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="font-size:1.125rem;font-weight:600;color:var(--text, #fff);margin-bottom:0.5rem;">Generating Letters</div>
+        <div id="generatingStatus" style="font-size:0.875rem;color:var(--text-muted, #999);">Preparing your dispute letters...</div>
+        <div style="margin-top:1.25rem;width:100%;height:6px;border-radius:99px;background:var(--border-soft, #222);overflow:hidden;">
+          <div id="generatingBar" style="height:100%;width:10%;border-radius:99px;background:linear-gradient(90deg,#d4a853,#f5d590);transition:width 0.5s ease;animation:barPulse 2s ease-in-out infinite;"></div>
+        </div>
+        <div id="generatingElapsed" style="font-size:0.75rem;color:var(--text-muted, #777);margin-top:0.75rem;">Elapsed: 0s</div>
+      </div>
+    </div>
+    <style>
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes barPulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+    </style>
+
+    <div id="lettersCard" class="glass card text-center">
       <div id="lettersActions" class="flex flex-col items-center gap-2">
         <div class="font-medium">Letters</div>
         <div class="flex flex-wrap items-center justify-center gap-2">

@@ -494,6 +494,41 @@ async function loadJobs(){
   }
 }
 
+function showGenerating() {
+  const overlay = document.getElementById('generatingOverlay');
+  const lettersCard = document.getElementById('lettersCard');
+  if (overlay) { overlay.classList.remove('hidden'); overlay.style.display = ''; }
+  if (lettersCard) lettersCard.style.display = 'none';
+  window._genStart = Date.now();
+  window._genTimer = setInterval(() => {
+    const elapsed = Math.round((Date.now() - window._genStart) / 1000);
+    const elEl = document.getElementById('generatingElapsed');
+    if (elEl) elEl.textContent = 'Elapsed: ' + elapsed + 's';
+    const bar = document.getElementById('generatingBar');
+    if (bar) {
+      const pct = Math.min(90, 10 + elapsed * 3);
+      bar.style.width = pct + '%';
+    }
+    const statusEl = document.getElementById('generatingStatus');
+    if (statusEl) {
+      if (elapsed < 5) statusEl.textContent = 'Preparing your dispute letters...';
+      else if (elapsed < 15) statusEl.textContent = 'Analyzing violations and building letters...';
+      else if (elapsed < 30) statusEl.textContent = 'Almost there, finalizing documents...';
+      else statusEl.textContent = 'Still working, large batches take a moment...';
+    }
+  }, 1000);
+}
+
+function hideGenerating() {
+  const overlay = document.getElementById('generatingOverlay');
+  const lettersCard = document.getElementById('lettersCard');
+  if (overlay) { overlay.classList.add('hidden'); overlay.style.display = 'none'; }
+  if (lettersCard) lettersCard.style.display = '';
+  if (window._genTimer) { clearInterval(window._genTimer); window._genTimer = null; }
+  const bar = document.getElementById('generatingBar');
+  if (bar) bar.style.width = '100%';
+}
+
 async function waitForJobCompletion(jobId, { timeoutMs = 120000, intervalMs = 1500 } = {}) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
@@ -517,7 +552,9 @@ async function loadLetters(jobId){
   try {
     const resp = await api(`/api/letters/${encodeURIComponent(jobId)}`);
     if (resp?.status === 202) {
+      showGenerating();
       await waitForJobCompletion(jobId);
+      hideGenerating();
       return loadLetters(jobId);
     }
     if (!resp?.ok) throw new Error(resp?.error || "Failed to load letters for this job.");
@@ -532,6 +569,7 @@ async function loadLetters(jobId){
     page = 1;
     renderCards();
   } catch (e) {
+    hideGenerating();
     showErr(e.message || String(e));
   }
 }
