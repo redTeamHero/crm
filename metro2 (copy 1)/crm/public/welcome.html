@@ -111,6 +111,11 @@
       .hero-paths { flex-direction:column; align-items:center; }
     }
 
+    .cost-input-wrap { display:inline-flex; align-items:center; justify-content:center; gap:2px; margin-bottom:0.5rem; }
+    .cost-input-prefix { color:#c4b5fd; font-size:0.85rem; font-weight:600; }
+    .cost-input { background:transparent; border:none; border-bottom:1px dashed rgba(196,181,253,0.4); color:#fff; font-size:0.85rem; font-weight:600; text-align:center; width:5.5rem; padding:2px 0; outline:none; font-family:inherit; }
+    .cost-input:focus { border-bottom-color:#a78bfa; border-bottom-style:solid; }
+
     .choice-card {
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -366,17 +371,35 @@
 
       <div class="grid md:grid-cols-3 gap-6 mb-10">
         <div class="cost-card text-center">
-          <div class="text-violet-300 text-sm mb-1">Auto Loan (5yr, $30K)</div>
+          <div class="text-violet-300 text-sm mb-1">
+            Auto Loan (5yr)
+          </div>
+          <div class="cost-input-wrap">
+            <span class="cost-input-prefix">$</span>
+            <input id="amt-auto" type="text" class="cost-input" value="30,000" inputmode="numeric">
+          </div>
           <div id="cost-auto" class="cost-highlight">$4,680</div>
           <div class="text-violet-400 text-xs mt-1">extra in interest</div>
         </div>
         <div class="cost-card text-center">
-          <div class="text-violet-300 text-sm mb-1">Mortgage (30yr, $300K)</div>
+          <div class="text-violet-300 text-sm mb-1">
+            Mortgage (30yr)
+          </div>
+          <div class="cost-input-wrap">
+            <span class="cost-input-prefix">$</span>
+            <input id="amt-mortgage" type="text" class="cost-input" value="300,000" inputmode="numeric">
+          </div>
           <div id="cost-mortgage" class="cost-highlight">$76,500</div>
           <div class="text-violet-400 text-xs mt-1">extra over loan life</div>
         </div>
         <div class="cost-card text-center">
-          <div class="text-violet-300 text-sm mb-1">Credit Cards (avg $8K)</div>
+          <div class="text-violet-300 text-sm mb-1">
+            Credit Cards
+          </div>
+          <div class="cost-input-wrap">
+            <span class="cost-input-prefix">$</span>
+            <input id="amt-cc" type="text" class="cost-input" value="8,000" inputmode="numeric">
+          </div>
           <div id="cost-cc" class="cost-highlight">$2,160</div>
           <div class="text-violet-400 text-xs mt-1">extra per year</div>
         </div>
@@ -1616,9 +1639,24 @@
     var costMortgage = document.getElementById('cost-mortgage');
     var costCC = document.getElementById('cost-cc');
     var costTotal = document.getElementById('cost-total');
+    var amtAuto = document.getElementById('amt-auto');
+    var amtMortgage = document.getElementById('amt-mortgage');
+    var amtCC = document.getElementById('amt-cc');
+
+    function parseAmt(el){ return parseInt(el.value.replace(/[^0-9]/g,''),10) || 0; }
+
+    function fmtInput(el){
+      var raw = el.value.replace(/[^0-9]/g,'');
+      var num = parseInt(raw,10) || 0;
+      var pos = el.selectionStart;
+      var oldLen = el.value.length;
+      el.value = num > 0 ? num.toLocaleString() : '';
+      var newLen = el.value.length;
+      var newPos = Math.max(0, pos + (newLen - oldLen));
+      el.setSelectionRange(newPos, newPos);
+    }
 
     function calcCosts(score){
-      var goodRate = { auto: 4.5, mortgage: 6.5, cc: 16.0 };
       var penalty = 0;
       if(score < 580) penalty = 1.0;
       else if(score < 620) penalty = 0.85;
@@ -1627,13 +1665,17 @@
       else if(score < 740) penalty = 0.15;
       else penalty = 0;
 
+      var autoAmt = parseAmt(amtAuto);
+      var mortAmt = parseAmt(amtMortgage);
+      var ccAmt = parseAmt(amtCC);
+
       var autoExtra = penalty * 4.5;
       var mortExtra = penalty * 3.0;
       var ccExtra = penalty * 10.0;
 
-      var autoTotal = Math.round(30000 * (autoExtra/100) * 5);
-      var mortTotal = Math.round(300000 * (mortExtra/100) * 30);
-      var ccTotal = Math.round(8000 * (ccExtra/100));
+      var autoTotal = Math.round(autoAmt * (autoExtra/100) * 5);
+      var mortTotal = Math.round(mortAmt * (mortExtra/100) * 30);
+      var ccTotal = Math.round(ccAmt * (ccExtra/100));
       var total = autoTotal + mortTotal + ccTotal;
 
       return { auto: autoTotal, mortgage: mortTotal, cc: ccTotal, total: total };
@@ -1653,6 +1695,9 @@
 
     if(slider){
       slider.addEventListener('input', update);
+      [amtAuto, amtMortgage, amtCC].forEach(function(el){
+        el.addEventListener('input', function(){ fmtInput(el); update(); });
+      });
       update();
     }
   })();
