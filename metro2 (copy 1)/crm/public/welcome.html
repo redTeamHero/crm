@@ -111,6 +111,22 @@
       .hero-paths { flex-direction:column; align-items:center; }
     }
 
+    .proof-gallery { display:flex; gap:1.25rem; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; padding:0 0 1.5rem 0; scrollbar-width:thin; scrollbar-color:rgba(139,92,246,0.3) transparent; }
+    .proof-gallery::-webkit-scrollbar { height:6px; }
+    .proof-gallery::-webkit-scrollbar-track { background:transparent; }
+    .proof-gallery::-webkit-scrollbar-thumb { background:rgba(139,92,246,0.3); border-radius:3px; }
+    .proof-card { flex:0 0 280px; scroll-snap-align:start; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:1rem; overflow:hidden; transition:transform 0.2s, border-color 0.2s; }
+    .proof-card:hover { transform:translateY(-4px); border-color:rgba(139,92,246,0.4); }
+    .proof-img-wrap { position:relative; width:100%; max-height:420px; overflow:hidden; background:#0a0a1a; display:flex; align-items:center; justify-content:center; }
+    .proof-img-wrap img { width:100%; height:auto; display:block; object-fit:contain; }
+    .proof-img-wrap video { width:100%; height:auto; display:block; max-height:420px; object-fit:contain; background:#000; }
+    .proof-caption { padding:0.875rem 1rem; font-size:0.8rem; color:rgba(255,255,255,0.75); line-height:1.4; }
+    .proof-tag { display:inline-block; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:9999px; margin-right:0.4rem; text-transform:uppercase; letter-spacing:0.04em; }
+    .proof-tag-score { background:rgba(16,185,129,0.15); color:#6ee7b7; }
+    .proof-tag-removed { background:rgba(139,92,246,0.15); color:#c4b5fd; }
+    .proof-tag-video { background:rgba(212,168,83,0.15); color:#f5d590; }
+    @media(max-width:640px){ .proof-card { flex:0 0 260px; } .proof-img-wrap { max-height:360px; } }
+
     .cost-input-wrap { display:inline-flex; align-items:center; justify-content:center; gap:2px; margin-bottom:0.5rem; }
     .cost-input-prefix { color:#c4b5fd; font-size:0.85rem; font-weight:600; }
     .cost-input { background:transparent; border:none; border-bottom:1px dashed rgba(196,181,253,0.4); color:#fff; font-size:0.85rem; font-weight:600; text-align:center; width:5.5rem; padding:2px 0; outline:none; font-family:inherit; }
@@ -420,80 +436,159 @@
   </section>
 
   <section id="transformations" class="section-dark py-20 px-4">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-6xl mx-auto">
       <div class="text-center mb-12">
         <h2 class="text-3xl md:text-4xl font-bold mb-4">Real Transformations</h2>
         <p class="text-violet-200 max-w-2xl mx-auto">
-          See how people like you took control of their credit and changed their financial future.
+          Real screenshots. Real clients. Real results. Swipe through the proof.
         </p>
       </div>
 
-      <div class="grid md:grid-cols-3 gap-6 mb-10">
-        <div class="transform-card">
-          <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-emerald-500 flex items-center justify-center text-white font-bold text-lg">S</div>
-            <div>
-              <div class="font-semibold text-white">Sarah M.</div>
-              <div class="text-xs text-violet-400">Single mom, Austin TX</div>
-            </div>
+      <div class="proof-gallery" id="proof-gallery">
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/score-jump-726.png" alt="Equifax score 726, up 205 points" loading="lazy">
           </div>
-          <div class="flex items-center gap-3 mb-4">
-            <div class="score-badge score-before">520</div>
-            <svg class="w-8 h-4 text-violet-500" viewBox="0 0 32 16"><path d="M2 8h20l-6-6M22 8l-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
-            <div class="score-badge score-after">742</div>
-            <span class="text-xs text-violet-400 ml-auto">90 days</span>
-          </div>
-          <p class="text-violet-200 text-sm leading-relaxed">"I found 14 violations on my report I never knew existed. Three collections were removed in the first round. I just got approved for a mortgage."</p>
-          <div class="mt-3 flex gap-2">
-            <span class="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full">3 collections removed</span>
-            <span class="text-xs bg-violet-500/15 text-violet-400 px-2 py-0.5 rounded-full">+222 points</span>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+205 pts</span>
+            Equifax jumped from 484 to 726
           </div>
         </div>
 
-        <div class="transform-card">
-          <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-lg">J</div>
-            <div>
-              <div class="font-semibold text-white">James R.</div>
-              <div class="text-xs text-violet-400">Small business owner, Atlanta GA</div>
-            </div>
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/score-678-677.png" alt="TransUnion 678, Equifax 677" loading="lazy">
           </div>
-          <div class="flex items-center gap-3 mb-4">
-            <div class="score-badge score-before">485</div>
-            <svg class="w-8 h-4 text-violet-500" viewBox="0 0 32 16"><path d="M2 8h20l-6-6M22 8l-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
-            <div class="score-badge score-after">695</div>
-            <span class="text-xs text-violet-400 ml-auto">120 days</span>
-          </div>
-          <p class="text-violet-200 text-sm leading-relaxed">"The AI found Metro 2 violations my previous credit repair company missed for months. Saved me thousands compared to hiring a lawyer."</p>
-          <div class="mt-3 flex gap-2">
-            <span class="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full">5 items removed</span>
-            <span class="text-xs bg-violet-500/15 text-violet-400 px-2 py-0.5 rounded-full">+210 points</span>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+37 pts</span>
+            TransUnion 678 &amp; Equifax 677
           </div>
         </div>
 
-        <div class="transform-card">
-          <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg">M</div>
-            <div>
-              <div class="font-semibold text-white">Maria L.</div>
-              <div class="text-xs text-violet-400">Nurse, Miami FL</div>
-            </div>
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/score-643-640.png" alt="TransUnion 643, Equifax 640" loading="lazy">
           </div>
-          <div class="flex items-center gap-3 mb-4">
-            <div class="score-badge score-before">548</div>
-            <svg class="w-8 h-4 text-violet-500" viewBox="0 0 32 16"><path d="M2 8h20l-6-6M22 8l-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
-            <div class="score-badge score-after">781</div>
-            <span class="text-xs text-violet-400 ml-auto">60 days</span>
-          </div>
-          <p class="text-violet-200 text-sm leading-relaxed">"Two rounds of disputes and my score jumped 233 points. The dispute letters were so professional the bureaus responded within 2 weeks."</p>
-          <div class="mt-3 flex gap-2">
-            <span class="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full">7 violations found</span>
-            <span class="text-xs bg-violet-500/15 text-violet-400 px-2 py-0.5 rounded-full">+233 points</span>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+52 pts</span>
+            TransUnion 643 &amp; Equifax 640
           </div>
         </div>
+
+        <div class="proof-card proof-card-video">
+          <div class="proof-img-wrap">
+            <video src="/testimonials/video1.mp4" controls preload="metadata" playsinline></video>
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-video">Video</span>
+            Client result walkthrough
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/experian-deleted.png" alt="Experian dispute results, 3 items deleted" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">3 deleted</span>
+            Collection Pro, Transworld &amp; Midland removed from Experian
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/accounts-removed-nelnet.png" alt="6 accounts removed from TransUnion" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">6 removed</span>
+            JPMCB, Indigo &amp; 4 Dept of Ed/Nelnet accounts removed
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/accounts-removed-amex.png" alt="Multiple accounts removed" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">5 removed</span>
+            AMEX, Navy Federal, Discover &amp; more removed
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/more-removals.png" alt="Apple Card, GS Bank, American Express removed" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">5 removed</span>
+            Apple Card, GS Bank &amp; American Express removed
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/inquiries-removed.png" alt="Inquiries and accounts removed" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">3 removed</span>
+            BK of Amer inquiry, FST Premier &amp; CB Indigo removed
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/experian-changes.png" alt="Experian report changes" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">7 late accts</span>
+            Late accounts decreased by 7, collections by 6
+          </div>
+        </div>
+
+        <div class="proof-card proof-card-video">
+          <div class="proof-img-wrap">
+            <video src="/testimonials/video2.mp4" controls preload="metadata" playsinline></video>
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-video">Video</span>
+            Client success story
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/client-chat-score-up.png" alt="Client text showing score increase" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+21 pts</span>
+            Equifax up, Omni account closed off TransUnion
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/client-chat-tradeline.png" alt="Client text about tradeline hitting" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+35 pts</span>
+            Tradeline hit TransUnion, score jumped to 678
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/testimonials/score-636-642.png" alt="TransUnion 636, Equifax 642" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+33 pts</span>
+            Equifax up 33 pts to 642
+          </div>
+        </div>
+
       </div>
 
-      <div class="text-center">
+      <div class="text-center mt-10">
         <a href="/diy" class="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-emerald-500 hover:from-violet-600 hover:to-emerald-600 text-white font-medium px-8 py-3 rounded-xl transition-all text-sm">
           Start Your Transformation
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
