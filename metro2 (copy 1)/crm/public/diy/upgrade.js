@@ -53,11 +53,11 @@
   function updatePlanBadge(plan) {
     const colors = {
       free: 'bg-slate-100 text-slate-600',
-      basic: 'bg-blue-100 text-blue-700',
+      basic: 'bg-emerald-100 text-emerald-700',
       pro: 'bg-emerald-100 text-emerald-700'
     };
     planBadge.className = `text-xs px-2 py-0.5 rounded-full ${colors[plan] || colors.free}`;
-    planBadge.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+    planBadge.textContent = (plan === 'basic' || plan === 'pro') ? 'DIY' : plan.charAt(0).toUpperCase() + plan.slice(1);
   }
 
   async function loadCompanies() {

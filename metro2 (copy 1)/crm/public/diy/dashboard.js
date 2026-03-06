@@ -512,7 +512,7 @@
 
     if (currentUser && currentPlanEl) {
       var plan = currentUser.plan || 'free';
-      currentPlanEl.textContent = plan.charAt(0).toUpperCase() + plan.slice(1);
+      currentPlanEl.textContent = (plan === 'basic' || plan === 'pro') ? 'DIY' : plan.charAt(0).toUpperCase() + plan.slice(1);
     }
 
     document.querySelectorAll('.billing-plan-btn').forEach(function(btn) {
@@ -625,7 +625,7 @@
       currentUser = data.user;
       updatePlanBadge(currentUser.plan);
       if (statusEl) {
-        statusEl.textContent = 'Plan updated to ' + plan.charAt(0).toUpperCase() + plan.slice(1) + '!';
+        statusEl.textContent = 'Plan updated to ' + ((plan === 'basic' || plan === 'pro') ? 'DIY' : plan.charAt(0).toUpperCase() + plan.slice(1)) + '!';
         statusEl.style.background = 'rgba(16,185,129,0.1)';
         statusEl.style.color = '#10b981';
       }
@@ -936,7 +936,7 @@
   function handleGenerateLetters() {
     if (violations.length === 0) return;
     if (currentUser && currentUser.plan === 'free') {
-      alert('Please upgrade to Basic or Pro plan to generate dispute letters.');
+      alert('Please upgrade to the DIY plan to generate dispute letters.');
       switchSection('billing');
       return;
     }

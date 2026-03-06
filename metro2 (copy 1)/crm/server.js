@@ -9272,7 +9272,7 @@ async function generateDiyLetters({ reportId, userId, violations }) {
   if (limits.lettersPerMonth !== -1 && user.lettersGeneratedThisMonth >= limits.lettersPerMonth) {
     return {
       status: 403,
-      error: `You have reached your monthly limit of ${limits.lettersPerMonth} letters. Upgrade to Pro for unlimited letters.`
+      error: `You have reached your monthly letter limit. Upgrade to the DIY plan for unlimited letters.`
     };
   }
 
