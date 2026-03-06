@@ -1668,7 +1668,7 @@ registerStaticPage({
   file: "settings.html",
   middlewares: [optionalAuth, forbidMember],
 });
-app.get(["/client-portal", "/client-portal.html"], async (_req, res) => {
+app.get(["/client-portal", "/client-portal.html", "/portal"], async (_req, res) => {
   const settings = await loadSettings().catch(() => null);
   const portalSettings = exportClientPortalSettings(settings?.clientPortal);
   const html = renderClientPortalHtml({
