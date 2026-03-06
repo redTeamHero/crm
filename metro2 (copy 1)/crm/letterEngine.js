@@ -379,6 +379,31 @@ function buildTradelineBlockHTML(tl, bureau) {
 }
 
 // Evidence / violations
+function stripPdfMarkers(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  return text
+    .replace(/##\/?BOLD##/g, '')
+    .replace(/##\/?LI##/g, '')
+    .replace(/##\|[^|]*\|##/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function stripBureauFromText(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  return text
+    .replace(/\b(Experian|TransUnion|Equifax)\s*[-–—:,;.]\s*/gi, '')
+    .replace(/\b(on|at|for|from|with|per|via)\s+(Experian|TransUnion|Equifax)\b/gi, '')
+    .replace(/\b(Experian|TransUnion|Equifax)\s+(reports?|shows?|lists?|has|file)\b/gi, '')
+    .replace(/\(\s*(Experian|TransUnion|Equifax)\s*\)/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function cleanViolationText(text) {
+  return stripBureauFromText(stripPdfMarkers(text));
+}
+
 function isByBureauMap(obj) {
   if (!obj || typeof obj !== "object") return false;
   return Object.keys(obj).some(k => ["TransUnion","Experian","Equifax"].includes(k));
@@ -387,11 +412,11 @@ function isByBureauMap(obj) {
 function renderByBureauTable(title, map) {
   const rows = Object.entries(map)
     .filter(([k]) => ["TransUnion","Experian","Equifax"].includes(k))
-    .map(([k, v]) => `<tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;width:160px;">${k}</td><td style="padding:6px;border:1px solid #e5e7eb;word-break:break-word;">${safe(v, "—")}</td></tr>`)
+    .map(([k, v]) => `<tr><td style="padding:6px;border:1px solid #e5e7eb;background:#f9fafb;width:160px;">${k}</td><td style="padding:6px;border:1px solid #e5e7eb;word-break:break-word;">${safe(stripPdfMarkers(String(v ?? '')) || '—')}</td></tr>`)
     .join("");
   return `
     <div style="margin:8px 0;">
-      <div style="font-weight:600;margin-bottom:4px;">${safe(title.replace(/_/g, " "))}</div>
+      <div style="font-weight:600;margin-bottom:4px;">${safe(stripPdfMarkers(title.replace(/_/g, " ")))}</div>
       <table style="width:100%;border-collapse:collapse;font-size:12px;"><tbody>${rows}</tbody></table>
     </div>`;
 }
@@ -427,16 +452,18 @@ function buildViolationListHTML(
   const items = enriched
     .map((v) => {
       const evHTML = renderEvidenceHTML(v.evidence);
+      const violationLabel = cleanViolationText(v.violation || v.category || '');
+      const rawDetail = v.detail || '';
+      const cleanDetail = cleanViolationText(rawDetail);
       const fcraText =
-        v.fcraSection && v.detail && !v.detail.includes(v.fcraSection)
-          ? `Per FCRA §${v.fcraSection}, ${v.detail}`
-          : v.detail;
+        v.fcraSection && cleanDetail && !cleanDetail.includes(v.fcraSection)
+          ? `Per FCRA §${v.fcraSection}, ${cleanDetail}`
+          : cleanDetail;
       return `
         <li style="margin-bottom:12px;">
-          <strong>${safe(v.violation || v.category || '')}</strong>
-          ${v.severity ? ` <span class=\\"severity-tag severity-${v.severity}\\">S${v.severity}</span>` : ''}
-          ${fcraText ? `<div style=\\"margin-top:4px;\\">${safe(fcraText)}</div>` : ''}
-          ${evHTML ? `<div style=\\"margin-top:6px;\\">${evHTML}</div>` : ''}
+          <strong>${safe(violationLabel)}</strong>
+          ${fcraText ? `<div style="margin-top:4px;">${safe(fcraText)}</div>` : ''}
+          ${evHTML ? `<div style="margin-top:6px;">${evHTML}</div>` : ''}
         </li>`;
     })
     .join("");
@@ -525,10 +552,11 @@ function buildLetterHTML(opts) {
     errorMap
   );
   const tlBlock = buildTradelineBlockHTML(tl, bureau);
-  const manualReason =
+  const rawManualReason =
     typeof specificDisputeReason === 'string' && specificDisputeReason.trim()
       ? specificDisputeReason.trim()
       : null;
+  const manualReason = rawManualReason ? cleanViolationText(rawManualReason) : null;
   const chosenList = manualReason
     ? `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>${safe(manualReason)}</strong></li></ol>`
     : buildViolationListHTML(tl.violations, selectedViolationIdxs);

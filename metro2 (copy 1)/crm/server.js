@@ -6953,6 +6953,8 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       if (sel.specialMode && !sel.specificDisputeReason && specialReasonMap[sel.specialMode]) {
         sel.specificDisputeReason = specialReasonMap[sel.specialMode];
       }
+      console.log(`[generate] TL#${sel.tradelineIndex} specificDisputeReason=${JSON.stringify(sel.specificDisputeReason || null)}, specialMode=${sel.specialMode || 'none'}, violationIdxs=${JSON.stringify(sel.violationIdxs || [])}`);
+
       if (!Array.isArray(sel.bureaus) || sel.bureaus.length === 0) {
         const err = new Error("Selection missing bureaus");
         err.status = 400;
