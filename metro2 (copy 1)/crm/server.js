@@ -2542,30 +2542,32 @@ async function loadDB(context){
         changed = true;
       }
     }
-    let seededSample = false;
     for(const c of db.consumers){
       c.reports = Array.isArray(c.reports) ? c.reports : [];
-      if (!seededSample) {
-        const firstReport = c.reports[0];
-        if (!reportHasTradelines(firstReport)) {
-          const seeded = await buildSeedReport(firstReport);
-          if (firstReport) {
-            c.reports[0] = { ...firstReport, ...seeded };
+    }
+    if (changed) {
+      let seededSample = false;
+      for(const c of db.consumers){
+        if (!seededSample) {
+          const firstReport = c.reports[0];
+          if (!reportHasTradelines(firstReport)) {
+            const seeded = await buildSeedReport(firstReport);
+            if (firstReport) {
+              c.reports[0] = { ...firstReport, ...seeded };
+            } else {
+              c.reports.push(seeded);
+            }
+            seededSample = reportHasTradelines(c.reports[0]);
           } else {
-            c.reports.push(seeded);
+            seededSample = true;
           }
-          seededSample = reportHasTradelines(c.reports[0]);
-          changed = true;
-        } else {
-          seededSample = true;
         }
       }
-    }
-    const hasReports = db.consumers.some(c => c.reports.length > 0);
-    if(!hasReports && db.consumers.length){
-      const seeded = await buildSeedReport();
-      db.consumers[0].reports.push(seeded);
-      changed = true;
+      const hasReports = db.consumers.some(c => c.reports.length > 0);
+      if(!hasReports && db.consumers.length){
+        const seeded = await buildSeedReport();
+        db.consumers[0].reports.push(seeded);
+      }
     }
     if(changed){
       await writeKey('consumers', db, scope);
@@ -10390,7 +10392,7 @@ if (shouldStartServer) {
     if (LAN_IP && (HOST === "0.0.0.0" || HOST === "::" || HOST === "localhost" || HOST === "127.0.0.1")) {
       console.log(`CRM LAN URL  http://${LAN_IP}:${PORT}`);
     }
-    const dbClient = (process.env.DATABASE_CLIENT || (process.env.NODE_ENV === "production" ? "pg" : "sqlite3")).toString();
+    const dbClient = (process.env.DATABASE_CLIENT || (process.env.DATABASE_URL ? "pg" : "sqlite3")).toString();
     console.log(`DB client    ${dbClient}`);
     console.log(`DB URL host  ${(process.env.DATABASE_URL || "").replace(/\/\/.*@/, "//***@").split("/")[2] || "n/a"}`);
     console.log(`Tenant mode  ${(process.env.DB_TENANT_STRATEGY || "partitioned").toString()}`);

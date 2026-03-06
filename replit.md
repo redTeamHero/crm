@@ -60,7 +60,7 @@ Key technical implementations include:
 ## External Dependencies
 - **Node.js**: Runtime environment for the backend.
 - **Python**: Used for the AI agent and Metro 2 parsers.
-- **PostgreSQL**: Utilized for Stripe data synchronization via `stripe-replit-sync`.
+- **PostgreSQL**: Primary data store for all environments (dev and production). Both dev and production connect to the same Replit-provisioned PostgreSQL database via `DATABASE_URL`. The `db/connection.js` `normalizeClient()` function defaults to `pg` when `DATABASE_URL` is set, falling back to `sqlite3` only when no database URL is available. Data is stored in the `tenant_kv` table via `kvdb.js` key-value abstraction. The seed logic in `loadDB()` only runs on first-time setup (guarded by `_db_seeded` sentinel) to prevent overwriting real client data on server restarts or deploys.
 - **Stripe**: For subscription payments, product management, checkout, and customer portal. Integrated using the Replit connector for credentials and webhooks for data synchronization.
 - **OpenAI**: Integrated for various AI functionalities.
 - **Google Calendar**: For syncing booked calls.

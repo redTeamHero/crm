@@ -34,7 +34,7 @@ function ensureDataDir() {
 function normalizeClient(input) {
   const raw = (input || "").toString().trim().toLowerCase();
   if (!raw) {
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.DATABASE_URL) {
       return "pg";
     }
     return "sqlite3";
