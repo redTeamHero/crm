@@ -155,6 +155,27 @@ export async function addFileMeta(consumerId, fileRec) {
   await saveState(st);
 }
 
+export async function removeEventsByMatch(consumerId, type, matchFn) {
+  const st = await loadState();
+  const c = ensureConsumer(st, consumerId);
+  const before = c.events.length;
+  c.events = c.events.filter(e => !(e.type === type && (!matchFn || matchFn(e))));
+  if (c.events.length < before) await saveState(st);
+  return before - c.events.length;
+}
+
+export async function removeFileMetaByMatch(consumerId, matchFn) {
+  const st = await loadState();
+  const c = ensureConsumer(st, consumerId);
+  const removed = [];
+  c.files = c.files.filter(f => {
+    if (matchFn(f)) { removed.push(f); return false; }
+    return true;
+  });
+  if (removed.length) await saveState(st);
+  return removed;
+}
+
 export async function addReminder(consumerId, reminder) {
   const st = await loadState();
   const c = ensureConsumer(st, consumerId);

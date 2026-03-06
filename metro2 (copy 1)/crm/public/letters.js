@@ -182,10 +182,33 @@ function buildJobCard(job){
           <span class="font-semibold text-slate-600">Job ID</span>
           <span class="font-mono text-sm text-slate-700 truncate" title="${escapeHtml(job.jobId)}">${escapeHtml(job.jobId)}</span>
         </div>
-        <a class="btn text-sm px-4 py-2" href="/letters?job=${encodeURIComponent(job.jobId)}">Open</a>
+        <div class="flex items-center gap-2">
+          <button class="btn text-xs px-3 py-2 delete-job-btn" style="background:rgba(239,68,68,0.1);color:#ef4444;border-color:rgba(239,68,68,0.3);" title="Delete round">Delete</button>
+          <a class="btn text-sm px-4 py-2" href="/letters?job=${encodeURIComponent(job.jobId)}">Open</a>
+        </div>
       </div>
     </div>
   `;
+
+  const delBtn = article.querySelector('.delete-job-btn');
+  if (delBtn) {
+    delBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm(`Delete this letter round and all associated portal files for ${consumerName}?`)) return;
+      delBtn.disabled = true;
+      delBtn.textContent = 'Deleting…';
+      const cid = job.consumerId ? `?consumerId=${encodeURIComponent(job.consumerId)}` : '';
+      const resp = await api(`/api/letters/${encodeURIComponent(job.jobId)}${cid}`, { method: 'DELETE' });
+      if (resp.ok) {
+        JOBS = JOBS.filter(j => j.jobId !== job.jobId);
+        renderJobList();
+      } else {
+        alert('Failed to delete round: ' + (resp.error || 'Unknown error'));
+        delBtn.disabled = false;
+        delBtn.textContent = 'Delete';
+      }
+    });
+  }
 
   const openJob = () => {
     location.href = `/letters?job=${encodeURIComponent(job.jobId)}`;

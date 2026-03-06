@@ -797,6 +797,8 @@ import {
   listConsumerState,
   addEvent,
   addFileMeta,
+  removeEventsByMatch,
+  removeFileMetaByMatch,
   consumerUploadsDir,
   addReminder,
   removeReminder,
@@ -7891,12 +7893,49 @@ app.get("/api/letters", authenticate, requirePermission("letters", { allowGuest:
 
 app.delete("/api/letters/:jobId", authenticate, requirePermission("letters", { allowGuest: true }), async (req,res)=>{
   const { jobId } = req.params;
+  const consumerId = req.query.consumerId || null;
   try{
     deleteJob(jobId);
     const ldb = await loadLettersDB();
     const userId = req.user?.id || "guest";
     ldb.jobs = ldb.jobs.filter(j => !(j.jobId === jobId && j.userId === userId));
     await saveLettersDB(ldb);
+
+    if (consumerId) {
+      const st = await listConsumerState(consumerId);
+      if (st) {
+        const portalEvents = (st.events || []).filter(
+          e => e.type === 'letters_portal_sent' && e.payload?.jobId === jobId
+        );
+        const storedNames = new Set();
+        for (const ev of portalEvents) {
+          const file = ev.payload?.file || '';
+          const m = file.match(/\/([^/]+)$/);
+          if (m) storedNames.add(m[1]);
+        }
+
+        if (storedNames.size) {
+          const dir = consumerUploadsDir(consumerId);
+          for (const sn of storedNames) {
+            try { fs.unlinkSync(path.join(dir, sn)); } catch {}
+          }
+          await removeFileMetaByMatch(consumerId, f => storedNames.has(f.storedName));
+        }
+
+        await removeEventsByMatch(consumerId, 'letters_portal_sent', e => e.payload?.jobId === jobId);
+        await removeEventsByMatch(consumerId, 'dispute_round', e => e.payload?.jobId === jobId);
+
+        const reminderSt = await listConsumerState(consumerId);
+        if (reminderSt?.reminders?.length) {
+          for (const r of reminderSt.reminders) {
+            if (r.jobId === jobId || r.payload?.jobId === jobId) {
+              await removeReminder(consumerId, r.id);
+            }
+          }
+        }
+      }
+    }
+
     res.json({ ok:true });
   }catch(e){
     res.status(500).json({ ok:false, error:String(e) });

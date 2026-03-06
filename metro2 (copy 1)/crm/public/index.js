@@ -3050,6 +3050,7 @@ function renderDisputeTracker(data) {
       html += `<button class="btn btn-outline text-xs dispute-generate-next" data-job-id="${escapeHtml(jobId)}" data-round="${roundNum}">Generate Next Round</button>`;
       html += `<button class="btn btn-outline text-xs dispute-mark-resolved" data-job-id="${escapeHtml(jobId)}">Mark Resolved</button>`;
     }
+    html += `<button class="btn btn-outline text-xs dispute-delete-round" data-job-id="${escapeHtml(jobId)}" style="color:#ef4444;border-color:rgba(239,68,68,0.3);">Delete Round</button>`;
     html += `</div>`;
 
     html += `</div>`;
@@ -3231,6 +3232,31 @@ function renderDisputeTracker(data) {
         }
       } catch (err) {
         showErr(String(err));
+      }
+    });
+  });
+
+  timeline.querySelectorAll('.dispute-delete-round').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const jobId = e.target.dataset.jobId;
+      if (!jobId || !currentConsumerId) return;
+      if (!confirm('Delete this dispute round and all associated portal files? This cannot be undone.')) return;
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Deleting…';
+      try {
+        const res = await api(`/api/letters/${encodeURIComponent(jobId)}?consumerId=${encodeURIComponent(currentConsumerId)}`, { method: 'DELETE' });
+        if (res?.ok) {
+          await loadDisputeTracker();
+        } else {
+          showErr(res?.error || 'Failed to delete round.');
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
+      } catch (err) {
+        showErr(String(err));
+        btn.disabled = false;
+        btn.textContent = origText;
       }
     });
   });
