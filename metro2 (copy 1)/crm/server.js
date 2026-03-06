@@ -8006,7 +8006,7 @@ app.get("/api/letters/:jobId", authenticate, requirePermission("letters", { allo
   if (jobRecord && jobRecord.status !== "completed") {
     return res.status(202).json({
       ok: false,
-      status: jobRecord.status,
+      jobStatus: jobRecord.status,
       job: sanitizeJobForResponse(jobRecord),
     });
   }
@@ -8029,7 +8029,7 @@ app.get("/api/letters/:jobId/:idx.html", optionalAuth, async (req,res)=>{
   const tenantId = resolveRequestTenant(req);
   const jobRecord = await getJobRecord(tenantId, jobId);
   if (jobRecord && jobRecord.status !== "completed") {
-    return res.status(202).json({ ok:false, status: jobRecord.status });
+    return res.status(202).json({ ok:false, jobStatus: jobRecord.status });
   }
   let job = null;
   if(req.user){
@@ -8056,7 +8056,7 @@ app.get("/api/letters/:jobId/:idx.pdf", optionalAuth, enforceTenantQuota("letter
   const tenantId = resolveRequestTenant(req);
   const jobRecord = await getJobRecord(tenantId, jobId);
   if (jobRecord && jobRecord.status !== "completed") {
-    return res.status(202).json({ ok:false, status: jobRecord.status });
+    return res.status(202).json({ ok:false, jobStatus: jobRecord.status });
   }
   let job = null;
   if(req.user){
