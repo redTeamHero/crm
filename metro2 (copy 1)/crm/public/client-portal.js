@@ -1678,7 +1678,64 @@ document.addEventListener('DOMContentLoaded', () => {
         if (docEmpty) docEmpty.classList.remove('hidden');
       } else {
         if (docEmpty) docEmpty.classList.add('hidden');
-        docEl.innerHTML = docs.map(renderDocCard).join('');
+        const groups = {};
+        const groupOrder = [];
+        for (const d of docs) {
+          const friendly = friendlyFileName(d.originalName);
+          const cat = (friendly.category || '').toLowerCase();
+          const isReport = cat === 'audit' || cat === 'report';
+          const groupKey = isReport ? '__reports__' : (friendly.date || 'Other');
+          if (!groups[groupKey]) {
+            groups[groupKey] = { label: isReport ? 'Reports & Audits' : friendly.date || 'Other Files', items: [], isReport, dateSort: '' };
+            if (!isReport && friendly.date) {
+              try {
+                const match = (d.originalName || '').match(/(\d{4}-\d{2}-\d{2})/);
+                groups[groupKey].dateSort = match ? match[1] : '';
+              } catch {}
+            }
+            groupOrder.push(groupKey);
+          }
+          groups[groupKey].items.push(d);
+        }
+        groupOrder.sort((a, b) => {
+          if (a === '__reports__') return -1;
+          if (b === '__reports__') return 1;
+          return (groups[b].dateSort || '').localeCompare(groups[a].dateSort || '');
+        });
+        if (groupOrder.length <= 1) {
+          docEl.innerHTML = `<div class="doc-vault-grid">${docs.map(renderDocCard).join('')}</div>`;
+        } else {
+          let html = '';
+          groupOrder.forEach((key, gi) => {
+            const g = groups[key];
+            const isFirst = gi === 0;
+            const count = g.items.length;
+            const chevronSvg = '<svg class="doc-group-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+            html += `<div class="doc-date-group${isFirst ? ' open' : ''}">`;
+            html += `<div class="doc-group-header" role="button" tabindex="0">`;
+            html += `<div class="doc-group-header-info"><span class="doc-group-label">${esc(g.label)}</span>`;
+            html += `<span class="doc-group-count">${count} file${count !== 1 ? 's' : ''}</span>`;
+            html += `</div>${chevronSvg}</div>`;
+            html += `<div class="doc-group-body"${isFirst ? '' : ' style="display:none"'}>`;
+            html += `<div class="doc-vault-grid">${g.items.map(renderDocCard).join('')}</div>`;
+            html += `</div></div>`;
+          });
+          docEl.innerHTML = html;
+          docEl.querySelectorAll('.doc-group-header').forEach(hdr => {
+            hdr.addEventListener('click', () => {
+              const group = hdr.closest('.doc-date-group');
+              const body = group.querySelector('.doc-group-body');
+              const isOpen = group.classList.contains('open');
+              if (isOpen) {
+                group.classList.remove('open');
+                body.style.display = 'none';
+              } else {
+                group.classList.add('open');
+                body.style.display = '';
+              }
+            });
+          });
+        }
       }
     }
   }
@@ -1740,6 +1797,12 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data=>{
         const events = data.state?.events || [];
         const files = data.state?.files || [];
+        const roundEvents = events.filter(e=>e.type==='dispute_round');
+        const roundMap = {};
+        for(const re of roundEvents){
+          const p = re.payload || {};
+          roundMap[p.jobId] = { round: p.round || 0, sentAt: p.sentAt || '', items: p.letters || p.items || [] };
+        }
         const mailEvents = events.filter(e=>e.type==='letters_portal_sent');
         const mailedSet = new Set(JSON.parse(localStorage.getItem('mailedLetters')||'[]'));
         const waiting=[], mailed=[];
@@ -1750,7 +1813,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const rawName = meta?.originalName || `Letters ${jobId}`;
           const friendly = friendlyFileName(rawName);
           const name = friendly.full || friendly.label;
-          const rec = { jobId, name, rawName, url: ev.payload?.file || '#', file: stored };
+          const roundInfo = roundMap[jobId];
+          const rec = { jobId, name, rawName, url: ev.payload?.file || '#', file: stored, round: roundInfo?.round || 0, sentAt: roundInfo?.sentAt || '' };
           if(mailedSet.has(stored)) mailed.push(rec); else waiting.push(rec);
         }
         renderMailList(mailWaiting, waiting, true);
@@ -1933,6 +1997,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function formatRoundDate(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return ''; }
+  }
+
+  function renderMailCard(it, iconClass, statusText, svgIcon, allowMail) {
+    return `<div class="mail-card mail-card-${iconClass}"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div></div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`;
+  }
+
   function renderMailList(el, items, allowMail){
     if(!el) return;
     if(!items.length){
@@ -1945,7 +2021,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const svgIcon = allowMail
       ? '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
       : '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
-    el.innerHTML = items.map(it=>`<div class="mail-card mail-card-${iconClass}"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div></div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`).join('');
+    const groups = {};
+    const groupOrder = [];
+    for (const it of items) {
+      const key = it.jobId || 'ungrouped';
+      if (!groups[key]) {
+        groups[key] = { round: it.round, sentAt: it.sentAt, items: [] };
+        groupOrder.push(key);
+      }
+      groups[key].items.push(it);
+    }
+    groupOrder.sort((a, b) => (groups[b].round || 0) - (groups[a].round || 0));
+    let html = '';
+    groupOrder.forEach((key, gi) => {
+      const g = groups[key];
+      const isFirst = gi === 0;
+      const roundLabel = g.round ? `Round ${g.round}` : 'Letters';
+      const dateLabel = formatRoundDate(g.sentAt);
+      const count = g.items.length;
+      const chevronSvg = '<svg class="mail-round-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+      html += `<div class="mail-round-group${isFirst ? ' open' : ''}">`;
+      html += `<div class="mail-round-header" role="button" tabindex="0">`;
+      html += `<div class="mail-round-header-info"><span class="mail-round-label">${esc(roundLabel)}</span>`;
+      if (dateLabel) html += `<span class="mail-round-date">${esc(dateLabel)}</span>`;
+      html += `<span class="mail-round-count">${count} letter${count !== 1 ? 's' : ''}</span>`;
+      html += `</div>${chevronSvg}</div>`;
+      html += `<div class="mail-round-body"${isFirst ? '' : ' style="display:none"'}>`;
+      html += g.items.map(it => renderMailCard(it, iconClass, statusText, svgIcon, allowMail)).join('');
+      html += `</div></div>`;
+    });
+    el.innerHTML = html;
+    el.querySelectorAll('.mail-round-header').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const group = hdr.closest('.mail-round-group');
+        const body = group.querySelector('.mail-round-body');
+        const isOpen = group.classList.contains('open');
+        if (isOpen) {
+          group.classList.remove('open');
+          body.style.display = 'none';
+        } else {
+          group.classList.add('open');
+          body.style.display = '';
+        }
+      });
+    });
     updateMailEmptyState();
     if(allowMail){
       el.querySelectorAll('.mail-act').forEach(btn=>{

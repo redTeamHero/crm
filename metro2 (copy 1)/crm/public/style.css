@@ -4605,6 +4605,113 @@ header#host-nav {
   }
 }
 
+.mail-round-group {
+  margin-bottom: 8px;
+}
+.mail-round-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.06));
+  border: 1px solid var(--glass-brd);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.mail-round-header:hover {
+  background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
+  border-color: rgba(99,102,241,0.2);
+}
+.mail-round-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.mail-round-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.mail-round-date {
+  font-size: 13px;
+  color: var(--muted);
+}
+.mail-round-count {
+  font-size: 12px;
+  color: white;
+  background: rgba(99,102,241,0.7);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.mail-round-chevron {
+  color: var(--muted);
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+.mail-round-group.open .mail-round-chevron {
+  transform: rotate(180deg);
+}
+.mail-round-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0 0 0;
+}
+
+.doc-date-group {
+  margin-bottom: 8px;
+}
+.doc-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.06));
+  border: 1px solid var(--glass-brd);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.doc-group-header:hover {
+  background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.1));
+  border-color: rgba(99,102,241,0.2);
+}
+.doc-group-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.doc-group-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.doc-group-count {
+  font-size: 12px;
+  color: white;
+  background: rgba(99,102,241,0.7);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.doc-group-chevron {
+  color: var(--muted);
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+.doc-date-group.open .doc-group-chevron {
+  transform: rotate(180deg);
+}
+.doc-group-body {
+  padding: 8px 0 0 0;
+}
+
 /* Invoice card styles */
 .invoice-card {
   background: rgba(255,255,255,0.85);

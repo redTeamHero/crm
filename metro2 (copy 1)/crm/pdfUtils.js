@@ -108,12 +108,22 @@ function htmlToStructuredBlocks(markup = ''){
   return blocks;
 }
 
+function stripAllMarkers(text) {
+  return (text || '').replace(/##\/?(?:HEADING|BOLD|LI)##/g, '').trim();
+}
+
 function pushTextBlocks(blocks, html){
   let text = html
     .replace(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi, (_, inner) => '\n##HEADING##' + stripTags(inner) + '##/HEADING##\n')
     .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, (_, inner) => '##BOLD##' + stripTags(inner) + '##/BOLD##')
     .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (_, inner) => '##BOLD##' + stripTags(inner) + '##/BOLD##')
-    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, inner) => '\n##LI##' + inner + '##/LI##\n')
+    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, inner) => {
+      let cleaned = inner
+        .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, (__, t) => stripTags(t))
+        .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (__, t) => stripTags(t))
+        .replace(/<[^>]+>/g, '');
+      return '\n##LI##' + cleaned + '##/LI##\n';
+    })
     .replace(/<\s*br\s*\/?\s*>/gi, '\n')
     .replace(/<\/(p|div|section|h[1-6])\s*>/gi, '\n')
     .replace(/<[^>]+>/g, '');
@@ -123,19 +133,18 @@ function pushTextBlocks(blocks, html){
     const line = raw.trim();
     if(!line) continue;
     if(line.startsWith('##HEADING##')){
-      blocks.push({ type: 'heading', text: line.replace(/##\/?HEADING##/g, '').trim() });
+      blocks.push({ type: 'heading', text: stripAllMarkers(line) });
     } else if(line.startsWith('##LI##')){
-      const inner = line.replace(/##\/?LI##/g, '').trim();
-      const cleaned = inner.replace(/##\/?BOLD##/g, '');
-      blocks.push({ type: 'listitem', text: cleaned });
+      blocks.push({ type: 'listitem', text: stripAllMarkers(line) });
     } else {
       const segments = [];
       const parts = line.split(/(##BOLD##[\s\S]*?##\/BOLD##)/);
       for(const part of parts){
         if(part.startsWith('##BOLD##')){
-          segments.push({ bold: true, text: part.replace(/##\/?BOLD##/g, '').trim() });
+          const t = stripAllMarkers(part);
+          if(t) segments.push({ bold: true, text: t });
         } else {
-          const t = part.trim();
+          const t = stripAllMarkers(part);
           if(t) segments.push({ bold: false, text: t });
         }
       }
