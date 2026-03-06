@@ -139,7 +139,9 @@ function pushTextBlocks(blocks, html){
     if(line.startsWith('##HEADING##')){
       blocks.push({ type: 'heading', text: stripAllMarkers(line) });
     } else if(line.startsWith('##LI##')){
-      blocks.push({ type: 'listitem', text: stripAllMarkers(line) });
+      const liText = stripAllMarkers(line);
+      if (!liText) continue;
+      blocks.push({ type: 'listitem', text: liText });
     } else {
       const segments = [];
       const parts = line.split(/(##BOLD##[\s\S]*?##\/BOLD##)/);

@@ -469,7 +469,9 @@ function buildViolationListHTML(
           ${evHTML ? `<div style="margin-top:6px;">${evHTML}</div>` : ''}
         </li>`;
     })
+    .filter(Boolean)
     .join("");
+  if (!items) return "<p>No specific violations were selected.</p>";
   return `<ol class="ocr" style="margin:0;padding-left:18px;">${items}</ol>`;
 }
 
