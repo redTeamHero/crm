@@ -2977,37 +2977,74 @@ document.addEventListener('DOMContentLoaded', () => {
 
   var portalAffLoaded = false;
   var portalAffAvailableBalance = 0;
+  var portalAffJoinBound = false;
+
+  function showPortalAffNotJoined() {
+    var notJoined = document.getElementById('portalAffNotJoined');
+    var dashboard = document.getElementById('portalAffDashboard');
+    if (notJoined) notJoined.classList.remove('hidden');
+    if (dashboard) dashboard.classList.add('hidden');
+  }
+
   function loadPortalAffiliate() {
     if (portalAffLoaded) return;
-    portalAffLoaded = true;
     var token = getPortalToken();
-    if (!token) return;
+    if (!token) {
+      showPortalAffNotJoined();
+      return;
+    }
+    portalAffLoaded = true;
     var hdrs = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
     function reloadPortalAff() {
+      showPortalAffNotJoined();
       fetch('/api/affiliate/me', { headers: hdrs })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
         .then(function(data) {
           if (data.ok && data.affiliate) {
             renderPortalAffDashboard(data.affiliate, data.stats);
             loadPortalPayoutHistory();
+          } else {
+            portalAffLoaded = false;
+            showPortalAffNotJoined();
           }
-        }).catch(function() {});
+        }).catch(function(err) {
+          console.warn('[Portal Affiliate] Failed to load:', err.message || err);
+          portalAffLoaded = false;
+          showPortalAffNotJoined();
+        });
     }
 
     reloadPortalAff();
 
-    var joinBtn = document.getElementById('portalJoinAffiliate');
-    if (joinBtn) {
-      joinBtn.addEventListener('click', function() {
-        fetch('/api/affiliate/join', { method: 'POST', headers: hdrs })
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            if (data.ok && data.affiliate) {
-              reloadPortalAff();
-            }
-          }).catch(function() {});
-      });
+    if (!portalAffJoinBound) {
+      portalAffJoinBound = true;
+      var joinBtn = document.getElementById('portalJoinAffiliate');
+      if (joinBtn) {
+        joinBtn.addEventListener('click', function() {
+          joinBtn.disabled = true;
+          joinBtn.textContent = 'Joining...';
+          fetch('/api/affiliate/join', { method: 'POST', headers: hdrs })
+            .then(function(r) {
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return r.json();
+            })
+            .then(function(data) {
+              if (data.ok && data.affiliate) {
+                portalAffLoaded = false;
+                reloadPortalAff();
+              }
+            }).catch(function(err) {
+              console.warn('[Portal Affiliate] Join failed:', err.message || err);
+            }).finally(function() {
+              joinBtn.disabled = false;
+              joinBtn.textContent = 'Join Affiliate Program';
+            });
+        });
+      }
     }
 
     var copyBtn = document.getElementById('portalAffCopy');
