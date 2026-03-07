@@ -2966,6 +2966,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   var portalAffLoaded = false;
+  var portalAffAvailableBalance = 0;
   function loadPortalAffiliate() {
     if (portalAffLoaded) return;
     portalAffLoaded = true;
@@ -2973,13 +2974,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!token) return;
     var hdrs = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
 
-    fetch('/api/affiliate/me', { headers: hdrs })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (data.ok && data.affiliate) {
-          renderPortalAffDashboard(data.affiliate, data.stats);
-        }
-      }).catch(function() {});
+    function reloadPortalAff() {
+      fetch('/api/affiliate/me', { headers: hdrs })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok && data.affiliate) {
+            renderPortalAffDashboard(data.affiliate, data.stats);
+            loadPortalPayoutHistory();
+          }
+        }).catch(function() {});
+    }
+
+    reloadPortalAff();
 
     var joinBtn = document.getElementById('portalJoinAffiliate');
     if (joinBtn) {
@@ -2988,11 +2994,7 @@ document.addEventListener('DOMContentLoaded', () => {
           .then(function(r) { return r.json(); })
           .then(function(data) {
             if (data.ok && data.affiliate) {
-              fetch('/api/affiliate/me', { headers: hdrs })
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                  if (d.ok && d.affiliate) renderPortalAffDashboard(d.affiliate, d.stats);
-                });
+              reloadPortalAff();
             }
           }).catch(function() {});
       });
@@ -3008,6 +3010,133 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
           });
         }
+      });
+    }
+
+    function loadPortalPayoutHistory() {
+      fetch('/api/affiliate/payouts', { headers: hdrs })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var tbody = document.getElementById('portalPayoutTable');
+          if (!tbody) return;
+          if (data.ok && data.payouts && data.payouts.length > 0) {
+            tbody.innerHTML = data.payouts.slice().reverse().map(function(p) {
+              var date = new Date(p.requestedAt).toLocaleDateString();
+              var statusColors = {
+                pending: 'background:rgba(250,204,21,0.15);color:#facc15',
+                approved: 'background:rgba(96,165,250,0.15);color:#60a5fa',
+                paid: 'background:rgba(74,222,128,0.15);color:#4ade80',
+                rejected: 'background:rgba(248,113,113,0.15);color:#f87171',
+                cancelled: 'background:rgba(156,163,175,0.15);color:#9ca3af'
+              };
+              var badgeStyle = statusColors[p.status] || statusColors.cancelled;
+              var cancelBtn = p.status === 'pending'
+                ? '<button class="portal-btn-cancel-payout text-xs px-2 py-1 rounded" style="background:rgba(248,113,113,0.15);color:#f87171;" data-id="' + p.id + '">Cancel</button>'
+                : '';
+              return '<tr class="border-b border-white/5"><td class="p-2">' + date + '</td><td class="p-2" style="color:#4ade80">$' + (p.amount || 0).toFixed(2) + '</td><td class="p-2" style="text-transform:capitalize">' + (p.method || '-') + '</td><td class="p-2"><span style="padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;' + badgeStyle + '">' + p.status + '</span></td><td class="p-2">' + cancelBtn + '</td></tr>';
+            }).join('');
+            tbody.querySelectorAll('.portal-btn-cancel-payout').forEach(function(btn) {
+              btn.addEventListener('click', function() {
+                var payoutId = btn.getAttribute('data-id');
+                fetch('/api/affiliate/payout/' + payoutId + '/cancel', { method: 'POST', headers: hdrs })
+                  .then(function(r) { return r.json(); })
+                  .then(function(d) {
+                    if (d.ok) {
+                      reloadPortalAff();
+                    } else {
+                      alert(d.error || 'Failed to cancel payout');
+                    }
+                  }).catch(function() { alert('Failed to cancel payout'); });
+              });
+            });
+          } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500">No payout requests yet.</td></tr>';
+          }
+        }).catch(function() {});
+    }
+
+    var portalPayoutModal = document.getElementById('portalPayoutModal');
+    var portalPayoutMethodSelect = document.getElementById('portalPayoutMethod');
+    var portalPayoutEmailLabel = document.getElementById('portalPayoutEmailLabel');
+    var portalPayoutEmailInput = document.getElementById('portalPayoutEmail');
+    var portalPayoutEmailGroup = document.getElementById('portalPayoutEmailGroup');
+    var portalPayoutError = document.getElementById('portalPayoutError');
+
+    function openPortalPayoutModal() {
+      var balEl = document.getElementById('portalPayoutModalBalance');
+      if (balEl) balEl.textContent = '$' + portalAffAvailableBalance.toFixed(2);
+      if (portalPayoutMethodSelect) portalPayoutMethodSelect.value = 'paypal';
+      if (portalPayoutEmailInput) portalPayoutEmailInput.value = '';
+      if (portalPayoutError) portalPayoutError.classList.add('hidden');
+      updatePortalPayoutMethodLabel();
+      if (portalPayoutModal) {
+        portalPayoutModal.style.display = 'flex';
+        portalPayoutModal.classList.remove('hidden');
+      }
+    }
+
+    function closePortalPayoutModal() {
+      if (portalPayoutModal) {
+        portalPayoutModal.style.display = 'none';
+        portalPayoutModal.classList.add('hidden');
+      }
+    }
+
+    function updatePortalPayoutMethodLabel() {
+      if (!portalPayoutMethodSelect) return;
+      var method = portalPayoutMethodSelect.value;
+      if (method === 'paypal') {
+        if (portalPayoutEmailLabel) portalPayoutEmailLabel.textContent = 'PayPal Email';
+        if (portalPayoutEmailInput) portalPayoutEmailInput.placeholder = 'you@example.com';
+      } else if (method === 'venmo') {
+        if (portalPayoutEmailLabel) portalPayoutEmailLabel.textContent = 'Venmo Username or Phone';
+        if (portalPayoutEmailInput) portalPayoutEmailInput.placeholder = '@username or phone number';
+      } else if (method === 'check') {
+        if (portalPayoutEmailLabel) portalPayoutEmailLabel.textContent = 'Mailing Address';
+        if (portalPayoutEmailInput) portalPayoutEmailInput.placeholder = '123 Main St, City, State ZIP';
+      }
+      if (portalPayoutEmailGroup) portalPayoutEmailGroup.classList.remove('hidden');
+    }
+
+    var reqPayoutBtn = document.getElementById('portalBtnRequestPayout');
+    if (reqPayoutBtn) reqPayoutBtn.addEventListener('click', openPortalPayoutModal);
+    var closePayoutBtn = document.getElementById('portalPayoutModalClose');
+    if (closePayoutBtn) closePayoutBtn.addEventListener('click', closePortalPayoutModal);
+    if (portalPayoutModal) {
+      portalPayoutModal.addEventListener('click', function(e) { if (e.target === portalPayoutModal) closePortalPayoutModal(); });
+    }
+    if (portalPayoutMethodSelect) portalPayoutMethodSelect.addEventListener('change', updatePortalPayoutMethodLabel);
+
+    var submitPayoutBtn = document.getElementById('portalPayoutSubmit');
+    if (submitPayoutBtn) {
+      submitPayoutBtn.addEventListener('click', function() {
+        if (portalPayoutError) portalPayoutError.classList.add('hidden');
+        var method = portalPayoutMethodSelect ? portalPayoutMethodSelect.value : 'paypal';
+        var payoutEmail = portalPayoutEmailInput ? portalPayoutEmailInput.value.trim() : '';
+        if (!payoutEmail) {
+          if (portalPayoutError) { portalPayoutError.textContent = 'Please enter your payout details.'; portalPayoutError.classList.remove('hidden'); }
+          return;
+        }
+        if (portalAffAvailableBalance <= 0) {
+          if (portalPayoutError) { portalPayoutError.textContent = 'No available balance to request a payout.'; portalPayoutError.classList.remove('hidden'); }
+          return;
+        }
+        fetch('/api/affiliate/payout', {
+          method: 'POST',
+          headers: hdrs,
+          body: JSON.stringify({ method: method, payoutEmail: payoutEmail })
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok) {
+              closePortalPayoutModal();
+              reloadPortalAff();
+            } else {
+              if (portalPayoutError) { portalPayoutError.textContent = data.error || 'Failed to submit payout request.'; portalPayoutError.classList.remove('hidden'); }
+            }
+          }).catch(function() {
+            if (portalPayoutError) { portalPayoutError.textContent = 'Failed to submit payout request.'; portalPayoutError.classList.remove('hidden'); }
+          });
       });
     }
   }
@@ -3027,6 +3156,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el('portalStatSignups')) el('portalStatSignups').textContent = stats.conversions || 0;
     if (el('portalStatEarned')) el('portalStatEarned').textContent = '$' + (stats.totalEarned || 0).toFixed(2);
     if (el('portalStatRate')) el('portalStatRate').textContent = (stats.conversionRate || '0.0') + '%';
+
+    var totalEarned = stats.totalEarned || 0;
+    var totalPaid = stats.totalPaid || 0;
+    var pendingPayouts = stats.pendingPayoutTotal || 0;
+    var availableBalance = stats.availableBalance != null ? stats.availableBalance : (totalEarned - totalPaid - pendingPayouts);
+    portalAffAvailableBalance = availableBalance;
+
+    if (el('portalEarningsTotalEarned')) el('portalEarningsTotalEarned').textContent = '$' + totalEarned.toFixed(2);
+    if (el('portalEarningsPaidOut')) el('portalEarningsPaidOut').textContent = '$' + totalPaid.toFixed(2);
+    if (el('portalEarningsPending')) el('portalEarningsPending').textContent = '$' + pendingPayouts.toFixed(2);
+    if (el('portalEarningsAvailable')) el('portalEarningsAvailable').textContent = '$' + availableBalance.toFixed(2);
 
     var tbody = document.getElementById('portalAffTable');
     if (tbody && aff.referrals && aff.referrals.length > 0) {

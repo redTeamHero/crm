@@ -683,11 +683,69 @@
                 <div class="text-xs text-gray-400">Conv. Rate</div>
               </div>
             </div>
+            <div class="p-3 rounded-xl mb-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-sm">Earnings Breakdown</h3>
+                <button id="portalBtnRequestPayout" class="btn px-3 py-1 text-xs" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">💸 Request Payout</button>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="text-center">
+                  <div class="text-lg font-bold text-green-400" id="portalEarningsTotalEarned">$0.00</div>
+                  <div class="text-xs text-gray-400 mt-1">Total Earned</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-lg font-bold text-blue-400" id="portalEarningsPaidOut">$0.00</div>
+                  <div class="text-xs text-gray-400 mt-1">Paid Out</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-lg font-bold text-yellow-400" id="portalEarningsPending">$0.00</div>
+                  <div class="text-xs text-gray-400 mt-1">Pending Payouts</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-lg font-bold text-emerald-400" id="portalEarningsAvailable">$0.00</div>
+                  <div class="text-xs text-gray-400 mt-1">Available Balance</div>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-xl overflow-hidden mb-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+              <div class="p-3 font-semibold text-sm border-b border-white/10">Payout History</div>
+              <table class="w-full text-xs">
+                <thead><tr class="text-left text-gray-400 border-b border-white/10"><th class="p-2">Date</th><th class="p-2">Amount</th><th class="p-2">Method</th><th class="p-2">Status</th><th class="p-2">Actions</th></tr></thead>
+                <tbody id="portalPayoutTable"><tr><td colspan="5" class="p-4 text-center text-gray-500">No payout requests yet.</td></tr></tbody>
+              </table>
+            </div>
             <div class="rounded-xl overflow-hidden" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+              <div class="p-3 font-semibold text-sm border-b border-white/10">Referral History</div>
               <table class="w-full text-xs">
                 <thead><tr class="text-left text-gray-400 border-b border-white/10"><th class="p-2">Date</th><th class="p-2">Type</th><th class="p-2">Plan</th><th class="p-2">Commission</th><th class="p-2">Status</th></tr></thead>
                 <tbody id="portalAffTable"><tr><td colspan="5" class="p-4 text-center text-gray-500">No referrals yet</td></tr></tbody>
               </table>
+            </div>
+          </div>
+          <div id="portalPayoutModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(0,0,0,0.6);display:none;">
+            <div class="glass card p-6 w-full max-w-md mx-4">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold">Request Payout</h2>
+                <button id="portalPayoutModalClose" class="text-gray-400 hover:text-white text-xl">&times;</button>
+              </div>
+              <div class="mb-4">
+                <p class="text-sm text-gray-400 mb-1">Available Balance</p>
+                <p class="text-2xl font-bold text-emerald-400" id="portalPayoutModalBalance">$0.00</p>
+              </div>
+              <div class="mb-4">
+                <label class="text-sm text-gray-400 block mb-1">Payout Method</label>
+                <select id="portalPayoutMethod" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm">
+                  <option value="paypal">PayPal</option>
+                  <option value="venmo">Venmo</option>
+                  <option value="check">Check</option>
+                </select>
+              </div>
+              <div class="mb-4" id="portalPayoutEmailGroup">
+                <label class="text-sm text-gray-400 block mb-1" id="portalPayoutEmailLabel">PayPal Email</label>
+                <input id="portalPayoutEmail" type="text" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm" placeholder="you@example.com" />
+              </div>
+              <div id="portalPayoutError" class="text-red-400 text-sm mb-3 hidden"></div>
+              <button id="portalPayoutSubmit" class="btn w-full py-2" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">Submit Payout Request</button>
             </div>
           </div>
         </div>

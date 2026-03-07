@@ -63,6 +63,7 @@ Key technical implementations include:
 - API endpoints: `POST /api/affiliate/join`, `GET /api/affiliate/me`, `GET /api/affiliate/track/:refCode` (click tracking + redirect).
 - Referral tracking wired into `POST /api/diy/signup` — credits the affiliate when a `ref` param is present.
 - Commission structure: DIY Basic $10, DIY Pro $25, Tradeline 10%, CRM Starter $25, Business $50, Enterprise $100.
+- Payout system: Affiliates can request payouts via PayPal, Venmo, or Check. Backend tracks `payouts` array on each affiliate record with status lifecycle: pending → approved/paid/rejected/cancelled. `calcAffiliateBalance()` computes available balance as `totalEarned - totalPaid - pendingPayoutTotal`. Endpoints: `POST /api/affiliate/payout`, `GET /api/affiliate/payouts`, `POST /api/affiliate/payout/:id/cancel`. All three UIs (CRM, client portal, DIY) show earnings breakdown cards (Total Earned, Paid Out, Pending Payouts, Available Balance), a payout request modal, and payout history table with cancel buttons for pending payouts.
 - Files: `public/affiliate.html`, `public/affiliate.js` (CRM page), affiliate section in `client-portal-template.html` + `client-portal.js`, affiliate section in `diy/dashboard.html` + `diy/dashboard.js`, sidebar entry in `sidebar.js`.
 
 ## External Dependencies

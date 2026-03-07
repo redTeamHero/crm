@@ -10507,6 +10507,13 @@ app.post('/api/affiliate/join', affiliateAuth, async (req, res) => {
   }
 });
 
+function calcAffiliateBalance(aff) {
+  const payouts = aff.payouts || [];
+  const pendingPayoutTotal = payouts.filter(p => p.status === 'pending').reduce((s, p) => s + p.amount, 0);
+  const availableBalance = Math.max(0, (aff.totalEarned || 0) - (aff.totalPaid || 0) - pendingPayoutTotal);
+  return { pendingPayoutTotal, availableBalance, pendingPayoutCount: payouts.filter(p => p.status === 'pending').length };
+}
+
 app.get('/api/affiliate/me', affiliateAuth, async (req, res) => {
   try {
     const db = await loadAffiliateDB();
@@ -10514,10 +10521,82 @@ app.get('/api/affiliate/me', affiliateAuth, async (req, res) => {
     if (!aff) return res.json({ ok: true, affiliate: null });
     const conversions = aff.referrals.length;
     const conversionRate = aff.clicks > 0 ? ((conversions / aff.clicks) * 100).toFixed(1) : '0.0';
-    res.json({ ok: true, affiliate: aff, stats: { clicks: aff.clicks, conversions, conversionRate, totalEarned: aff.totalEarned, totalPaid: aff.totalPaid } });
+    const bal = calcAffiliateBalance(aff);
+    res.json({ ok: true, affiliate: aff, stats: { clicks: aff.clicks, conversions, conversionRate, totalEarned: aff.totalEarned, totalPaid: aff.totalPaid, availableBalance: bal.availableBalance, pendingPayoutTotal: bal.pendingPayoutTotal, pendingPayoutCount: bal.pendingPayoutCount } });
   } catch (err) {
     logError('AFFILIATE_ME_ERROR', err);
     res.status(500).json({ ok: false, error: 'Failed to load' });
+  }
+});
+
+app.post('/api/affiliate/payout', affiliateAuth, async (req, res) => {
+  try {
+    const db = await loadAffiliateDB();
+    const aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
+    const { method, payoutEmail, details } = req.body;
+    if (!method || !['paypal', 'venmo', 'check'].includes(method)) {
+      return res.status(400).json({ ok: false, error: 'Invalid payout method. Choose paypal, venmo, or check.' });
+    }
+    if ((method === 'paypal' || method === 'venmo') && !payoutEmail) {
+      return res.status(400).json({ ok: false, error: 'Payout email/username is required for ' + method });
+    }
+    const bal = calcAffiliateBalance(aff);
+    if (bal.availableBalance <= 0) {
+      return res.status(400).json({ ok: false, error: 'No available balance for payout' });
+    }
+    const amount = parseFloat(req.body.amount) || bal.availableBalance;
+    const finalAmount = Math.min(amount, bal.availableBalance);
+    if (finalAmount <= 0) {
+      return res.status(400).json({ ok: false, error: 'Invalid payout amount' });
+    }
+    if (!aff.payouts) aff.payouts = [];
+    const payout = {
+      id: nanoid(10),
+      amount: Math.round(finalAmount * 100) / 100,
+      status: 'pending',
+      method,
+      payoutEmail: payoutEmail || '',
+      details: details || '',
+      requestedAt: new Date().toISOString(),
+      processedAt: null
+    };
+    aff.payouts.push(payout);
+    await saveAffiliateDB(db);
+    res.json({ ok: true, payout });
+  } catch (err) {
+    logError('AFFILIATE_PAYOUT_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to request payout' });
+  }
+});
+
+app.get('/api/affiliate/payouts', affiliateAuth, async (req, res) => {
+  try {
+    const db = await loadAffiliateDB();
+    const aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
+    res.json({ ok: true, payouts: aff.payouts || [] });
+  } catch (err) {
+    logError('AFFILIATE_PAYOUTS_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to load payouts' });
+  }
+});
+
+app.post('/api/affiliate/payout/:id/cancel', affiliateAuth, async (req, res) => {
+  try {
+    const db = await loadAffiliateDB();
+    const aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
+    const payout = (aff.payouts || []).find(p => p.id === req.params.id);
+    if (!payout) return res.status(404).json({ ok: false, error: 'Payout not found' });
+    if (payout.status !== 'pending') return res.status(400).json({ ok: false, error: 'Only pending payouts can be cancelled' });
+    payout.status = 'cancelled';
+    payout.processedAt = new Date().toISOString();
+    await saveAffiliateDB(db);
+    res.json({ ok: true, payout });
+  } catch (err) {
+    logError('AFFILIATE_PAYOUT_CANCEL_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to cancel payout' });
   }
 });
 

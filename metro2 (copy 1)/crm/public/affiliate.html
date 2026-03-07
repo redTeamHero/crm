@@ -107,6 +107,53 @@
       </div>
     </div>
 
+    <div class="glass card p-4 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold">Earnings Breakdown</h2>
+        <button id="btnRequestPayout" class="btn px-4 py-2 text-sm" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">
+          💸 Request Payout
+        </button>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="text-center">
+          <div class="text-xl font-bold text-green-400" id="earningsTotalEarned">$0.00</div>
+          <div class="text-xs text-gray-400 mt-1">Total Earned</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold text-blue-400" id="earningsPaidOut">$0.00</div>
+          <div class="text-xs text-gray-400 mt-1">Paid Out</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold text-yellow-400" id="earningsPending">$0.00</div>
+          <div class="text-xs text-gray-400 mt-1">Pending Payouts</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold text-emerald-400" id="earningsAvailable">$0.00</div>
+          <div class="text-xs text-gray-400 mt-1">Available Balance</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass card p-4 mb-6">
+      <h2 class="font-semibold mb-3">Payout History</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-400 border-b border-white/10">
+              <th class="pb-2">Date</th>
+              <th class="pb-2">Amount</th>
+              <th class="pb-2">Method</th>
+              <th class="pb-2">Status</th>
+              <th class="pb-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="payoutTableBody">
+            <tr><td colspan="5" class="py-8 text-center text-gray-500">No payout requests yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="glass card p-4">
       <h2 class="font-semibold mb-3">Referral History</h2>
       <div class="overflow-x-auto">
@@ -125,6 +172,35 @@
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <div id="payoutModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(0,0,0,0.6);display:none;">
+    <div class="glass card p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">Request Payout</h2>
+        <button id="payoutModalClose" class="text-gray-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="mb-4">
+        <p class="text-sm text-gray-400 mb-1">Available Balance</p>
+        <p class="text-2xl font-bold text-emerald-400" id="payoutModalBalance">$0.00</p>
+      </div>
+      <div class="mb-4">
+        <label class="text-sm text-gray-400 block mb-1">Payout Method</label>
+        <select id="payoutMethod" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="paypal">PayPal</option>
+          <option value="venmo">Venmo</option>
+          <option value="check">Check</option>
+        </select>
+      </div>
+      <div class="mb-4" id="payoutEmailGroup">
+        <label class="text-sm text-gray-400 block mb-1" id="payoutEmailLabel">PayPal Email</label>
+        <input id="payoutEmail" type="text" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm" placeholder="you@example.com" />
+      </div>
+      <div id="payoutError" class="text-red-400 text-sm mb-3 hidden"></div>
+      <button id="payoutSubmit" class="btn w-full py-2" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">
+        Submit Payout Request
+      </button>
     </div>
   </div>
 </main>

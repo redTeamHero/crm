@@ -1163,6 +1163,8 @@
   renderEducation();
 
   var diyAffLoaded = false;
+  var diyAffAvailableBalance = 0;
+
   function loadDiyAffiliate() {
     if (diyAffLoaded) return;
     diyAffLoaded = true;
@@ -1205,6 +1207,133 @@
         }
       });
     }
+
+    var payoutBtn = document.getElementById('diyBtnRequestPayout');
+    var payoutModal = document.getElementById('diyPayoutModal');
+    var payoutModalClose = document.getElementById('diyPayoutModalClose');
+    var payoutMethod = document.getElementById('diyPayoutMethod');
+    var payoutEmailLabel = document.getElementById('diyPayoutEmailLabel');
+    var payoutEmailGroup = document.getElementById('diyPayoutEmailGroup');
+    var payoutEmail = document.getElementById('diyPayoutEmail');
+    var payoutError = document.getElementById('diyPayoutError');
+    var payoutSubmit = document.getElementById('diyPayoutSubmit');
+
+    if (payoutBtn && payoutModal) {
+      payoutBtn.addEventListener('click', function() {
+        var balEl = document.getElementById('diyPayoutModalBalance');
+        if (balEl) balEl.textContent = '$' + diyAffAvailableBalance.toFixed(2);
+        if (payoutError) { payoutError.style.display = 'none'; payoutError.textContent = ''; }
+        if (payoutEmail) payoutEmail.value = '';
+        if (payoutMethod) payoutMethod.value = 'paypal';
+        if (payoutEmailLabel) payoutEmailLabel.textContent = 'PayPal Email';
+        if (payoutEmailGroup) payoutEmailGroup.style.display = '';
+        if (payoutEmail) payoutEmail.placeholder = 'you@example.com';
+        payoutModal.style.display = 'flex';
+      });
+    }
+
+    if (payoutModalClose && payoutModal) {
+      payoutModalClose.addEventListener('click', function() {
+        payoutModal.style.display = 'none';
+      });
+    }
+
+    if (payoutModal) {
+      payoutModal.addEventListener('click', function(e) {
+        if (e.target === payoutModal) payoutModal.style.display = 'none';
+      });
+    }
+
+    if (payoutMethod) {
+      payoutMethod.addEventListener('change', function() {
+        var val = payoutMethod.value;
+        if (val === 'paypal') {
+          if (payoutEmailLabel) payoutEmailLabel.textContent = 'PayPal Email';
+          if (payoutEmailGroup) payoutEmailGroup.style.display = '';
+          if (payoutEmail) payoutEmail.placeholder = 'you@example.com';
+        } else if (val === 'venmo') {
+          if (payoutEmailLabel) payoutEmailLabel.textContent = 'Venmo Username or Phone';
+          if (payoutEmailGroup) payoutEmailGroup.style.display = '';
+          if (payoutEmail) payoutEmail.placeholder = '@username or phone';
+        } else {
+          if (payoutEmailLabel) payoutEmailLabel.textContent = 'Mailing Address';
+          if (payoutEmailGroup) payoutEmailGroup.style.display = '';
+          if (payoutEmail) payoutEmail.placeholder = '123 Main St, City, ST 12345';
+        }
+      });
+    }
+
+    if (payoutSubmit) {
+      payoutSubmit.addEventListener('click', function() {
+        var method = payoutMethod ? payoutMethod.value : 'paypal';
+        var details = payoutEmail ? payoutEmail.value.trim() : '';
+        if (!details) {
+          if (payoutError) { payoutError.textContent = 'Please enter your payout details.'; payoutError.style.display = ''; }
+          return;
+        }
+        if (diyAffAvailableBalance <= 0) {
+          if (payoutError) { payoutError.textContent = 'No available balance to request a payout.'; payoutError.style.display = ''; }
+          return;
+        }
+        payoutSubmit.disabled = true;
+        payoutSubmit.textContent = 'Submitting...';
+        var body = { method: method };
+        body.payoutEmail = details;
+
+        fetch('/api/affiliate/payout', {
+          method: 'POST',
+          headers: hdrs,
+          body: JSON.stringify(body)
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            payoutSubmit.disabled = false;
+            payoutSubmit.textContent = 'Submit Payout Request';
+            if (data.ok) {
+              if (payoutModal) payoutModal.style.display = 'none';
+              diyAffLoaded = false;
+              loadDiyAffiliate();
+            } else {
+              if (payoutError) { payoutError.textContent = data.error || 'Failed to submit payout request.'; payoutError.style.display = ''; }
+            }
+          })
+          .catch(function() {
+            payoutSubmit.disabled = false;
+            payoutSubmit.textContent = 'Submit Payout Request';
+            if (payoutError) { payoutError.textContent = 'Network error. Please try again.'; payoutError.style.display = ''; }
+          });
+      });
+    }
+  }
+
+  function diyPayoutStatusBadge(status) {
+    var colors = {
+      pending: 'background:rgba(250,204,21,0.15);color:#facc15;',
+      approved: 'background:rgba(96,165,250,0.15);color:#60a5fa;',
+      paid: 'background:rgba(74,222,128,0.15);color:#4ade80;',
+      rejected: 'background:rgba(239,68,68,0.15);color:#ef4444;',
+      cancelled: 'background:rgba(156,163,175,0.15);color:#9ca3af;'
+    };
+    var s = colors[status] || colors.pending;
+    return '<span style="display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;' + s + '">' + esc(status) + '</span>';
+  }
+
+  function cancelDiyPayout(payoutId) {
+    var diyToken = localStorage.getItem('diy_token');
+    if (!diyToken) return;
+    var hdrs = { 'Authorization': 'Bearer ' + diyToken, 'Content-Type': 'application/json' };
+    fetch('/api/affiliate/payout/' + encodeURIComponent(payoutId) + '/cancel', {
+      method: 'POST',
+      headers: hdrs
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          diyAffLoaded = false;
+          loadDiyAffiliate();
+        }
+      })
+      .catch(function() {});
   }
 
   function renderDiyAffDashboard(aff, stats) {
@@ -1223,6 +1352,30 @@
     if (el('diyStatEarned')) el('diyStatEarned').textContent = '$' + (stats.totalEarned || 0).toFixed(2);
     if (el('diyStatRate')) el('diyStatRate').textContent = (stats.conversionRate || '0.0') + '%';
 
+    var totalEarned = stats.totalEarned || 0;
+    var totalPaid = stats.totalPaid || 0;
+    var pendingPayouts = stats.pendingPayoutTotal || 0;
+    diyAffAvailableBalance = stats.availableBalance != null ? stats.availableBalance : (totalEarned - totalPaid - pendingPayouts);
+
+    if (el('diyEarningsTotalEarned')) el('diyEarningsTotalEarned').textContent = '$' + totalEarned.toFixed(2);
+    if (el('diyEarningsPaidOut')) el('diyEarningsPaidOut').textContent = '$' + totalPaid.toFixed(2);
+    if (el('diyEarningsPending')) el('diyEarningsPending').textContent = '$' + pendingPayouts.toFixed(2);
+    if (el('diyEarningsAvailable')) el('diyEarningsAvailable').textContent = '$' + diyAffAvailableBalance.toFixed(2);
+
+    var payoutTbody = document.getElementById('diyPayoutTable');
+    if (payoutTbody) {
+      var payouts = aff.payouts || [];
+      if (payouts.length > 0) {
+        payoutTbody.innerHTML = payouts.slice().reverse().map(function(p) {
+          var date = new Date(p.requestedAt || p.date).toLocaleDateString();
+          var cancelBtn = p.status === 'pending' ? '<button onclick="cancelDiyPayout(\'' + esc(p.id) + '\')" style="background:none;border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Cancel</button>' : '';
+          return '<tr style="border-bottom:1px solid var(--diy-border);"><td style="padding:8px;">' + date + '</td><td style="padding:8px;">$' + (p.amount || 0).toFixed(2) + '</td><td style="padding:8px;text-transform:capitalize;">' + esc(p.method || 'paypal') + '</td><td style="padding:8px;">' + diyPayoutStatusBadge(p.status || 'pending') + '</td><td style="padding:8px;">' + cancelBtn + '</td></tr>';
+        }).join('');
+      } else {
+        payoutTbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--diy-text-sub);">No payout requests yet.</td></tr>';
+      }
+    }
+
     var tbody = document.getElementById('diyAffTable');
     if (tbody && aff.referrals && aff.referrals.length > 0) {
       tbody.innerHTML = aff.referrals.slice().reverse().map(function(r) {
@@ -1232,6 +1385,8 @@
       }).join('');
     }
   }
+
+  window.cancelDiyPayout = cancelDiyPayout;
 
   init();
 })();
