@@ -6523,18 +6523,34 @@ function renderBreachAuditHtml(consumer) {
     breachListHtml = selectedBreaches.map(bName => {
       const detail = details.find(d => d.name === bName);
       if (detail && (detail.breachDate || detail.dataClasses?.length)) {
-        const dataExposed = detail.dataClasses.length ? detail.dataClasses.map(d => escapeHtml(d)).join(", ") : "Unknown";
+        const classes = Array.isArray(detail.dataClasses) ? detail.dataClasses : [];
+        const dataTags = classes.length
+          ? classes.map(d => {
+              const cls = escapeHtml(d);
+              const sensitive = /password|social|ssn|credit|financial|security.question|phone/i.test(d);
+              const bg = sensitive ? "#fde8e8" : "#eef2ff";
+              const border = sensitive ? "#f5c6c6" : "#c8d6f0";
+              const color = sensitive ? "#991b1b" : "#3730a3";
+              return `<span style="display:inline-block;padding:3px 10px;margin:3px 4px 3px 0;border-radius:20px;font-size:11px;font-weight:600;background:${bg};border:1px solid ${border};color:${color};">${cls}</span>`;
+            }).join("")
+          : '<span style="display:inline-block;padding:3px 10px;margin:3px 4px 3px 0;border-radius:20px;font-size:11px;font-weight:600;background:#f5f5f5;border:1px solid #ddd;color:#666;">Unknown</span>';
         const affected = detail.pwnCount ? detail.pwnCount.toLocaleString() : "Unknown";
-        return `<div style="background:#f8f4ee;border:1px solid #e8dcc8;border-radius:8px;padding:14px;margin-bottom:10px;">
-          <div style="font-weight:700;font-size:15px;color:#1a1a2e;">${escapeHtml(bName)}</div>
-          ${detail.breachDate ? `<div style="font-size:12px;color:#666;margin-top:2px;">Breach Date: ${escapeHtml(detail.breachDate)} &bull; ${affected} accounts affected</div>` : ""}
-          <div style="font-size:12px;color:#444;margin-top:6px;"><strong>Data Exposed:</strong> ${dataExposed}</div>
-          ${detail.description ? `<div style="font-size:12px;color:#555;margin-top:4px;">${escapeHtml(detail.description)}</div>` : ""}
+        return `<div style="background:#f8f4ee;border:1px solid #e8dcc8;border-radius:8px;padding:16px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;">
+            <div style="font-weight:700;font-size:15px;color:#1a1a2e;">${escapeHtml(bName)}</div>
+            ${detail.breachDate ? `<div style="font-size:11px;color:#888;white-space:nowrap;">${escapeHtml(detail.breachDate)}</div>` : ""}
+          </div>
+          <div style="font-size:11px;color:#666;margin-top:2px;">${affected} accounts affected</div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e8dcc8;">
+            <div style="font-size:11px;font-weight:700;color:#1a1a2e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Data Exposed</div>
+            <div style="line-height:1.8;">${dataTags}</div>
+          </div>
+          ${detail.description ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e0d6c4;font-size:11px;color:#777;line-height:1.5;">${escapeHtml(detail.description)}</div>` : ""}
         </div>`;
       }
-      return `<div style="background:#f8f4ee;border:1px solid #e8dcc8;border-radius:8px;padding:14px;margin-bottom:10px;">
+      return `<div style="background:#f8f4ee;border:1px solid #e8dcc8;border-radius:8px;padding:16px;margin-bottom:12px;">
         <div style="font-weight:700;font-size:15px;color:#1a1a2e;">${escapeHtml(bName)}</div>
-        <div style="font-size:12px;color:#666;margin-top:2px;">Data breach exposure confirmed</div>
+        <div style="font-size:12px;color:#666;margin-top:4px;">Data breach exposure confirmed</div>
       </div>`;
     }).join("");
   } else {
