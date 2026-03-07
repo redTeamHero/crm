@@ -5237,6 +5237,7 @@ app.post("/api/consumers/:id/portal-invite", authenticate, async (req, res) => {
 function findConsumerByInviteToken(db, token) {
   const consumer = db.consumers.find(c => c.portalInviteToken === token);
   if (!consumer) return null;
+  if (consumer.password && consumer.portalSetupCompletedAt) return consumer;
   const created = new Date(consumer.portalInviteCreatedAt).getTime();
   if (Date.now() - created > PORTAL_INVITE_TTL_MS) return null;
   return consumer;
@@ -5259,6 +5260,9 @@ app.post("/api/client-setup/complete", async (req, res) => {
   const db = await loadDB();
   const consumer = findConsumerByInviteToken(db, token);
   if (!consumer) return res.status(410).json({ ok: false, error: "This link is invalid or has expired. Please request a new one." });
+  if (consumer.password && consumer.portalSetupCompletedAt) {
+    return res.status(409).json({ ok: false, error: "Your account is already set up. Please use the login page.", alreadySetup: true });
+  }
   if (!consumer.email && submittedEmail) {
     const normalizedEmail = submittedEmail.trim().toLowerCase();
     if (!/\S+@\S+\.\S+/.test(normalizedEmail)) return res.status(400).json({ ok: false, error: "Please enter a valid email address" });
@@ -5273,8 +5277,6 @@ app.post("/api/client-setup/complete", async (req, res) => {
   }
   consumer.password = bcrypt.hashSync(password, 10);
   consumer.portalSetupCompletedAt = new Date().toISOString();
-  delete consumer.portalInviteToken;
-  delete consumer.portalInviteCreatedAt;
   await saveDB(db);
   const clientTenant = sanitizeTenantId(consumer?.tenantId || consumer?.ownerTenantId || DEFAULT_TENANT_ID);
   const u = { id: consumer.id, username: consumer.email || consumer.name || "client", role: "client", tenantId: clientTenant, permissions: [] };
