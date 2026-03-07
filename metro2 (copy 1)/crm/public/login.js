@@ -52,9 +52,7 @@ async function handleAuth(endpoint, body, options = {}){
       throw new Error(data.error || 'Request failed');
     }
     if(data.token){
-      // start a fresh local state for the newly authenticated user
-      // so previous user data doesn't leak between accounts
-      localStorage.clear();
+      ['token','auth','clientId','teamMembers','companyInfo','cta_variant','creditScore','negativeItems','creditSnapshot','itemsInDispute','disputeTimeline','mailedLetters','educationItems','deletions','portal_user'].forEach(k => localStorage.removeItem(k));
 
       localStorage.setItem('token', data.token);
       // legacy basic auth support for host/client

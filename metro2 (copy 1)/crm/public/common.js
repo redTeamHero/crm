@@ -853,10 +853,7 @@ if (navContainer) {
   btnLogout.className = 'btn nav-btn';
   btnLogout.textContent = getTranslation('buttons.logout');
   btnLogout.addEventListener('click', () => {
-    // clear all locally stored state when logging out to avoid
-    // carrying data between different user sessions
-    localStorage.clear();
-
+    ['token','auth','clientId','teamMembers','companyInfo','cta_variant','creditScore','negativeItems','creditSnapshot','itemsInDispute','disputeTimeline','mailedLetters','educationItems','deletions','portal_user'].forEach(k => localStorage.removeItem(k));
     location.href = '/login.html';
   });
   navContainer.appendChild(btnLogout);

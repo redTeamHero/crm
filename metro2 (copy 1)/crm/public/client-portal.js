@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
   var signOutBtn = document.getElementById('portalSignOut');
   if (signOutBtn) {
     signOutBtn.addEventListener('click', function () {
-      localStorage.clear();
+      ['token','auth','clientId','teamMembers','companyInfo','cta_variant','creditScore','negativeItems','creditSnapshot','itemsInDispute','disputeTimeline','mailedLetters','educationItems','deletions','portal_user'].forEach(function(k){ localStorage.removeItem(k); });
       location.href = '/login.html';
     });
   }
