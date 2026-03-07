@@ -212,11 +212,11 @@
     .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     @media (max-width: 768px) {
-      .diy-sidebar { transform: translateX(-100%); width: 280px; }
+      .diy-sidebar { transform: translateX(-100%); width: 280px; z-index: 50; }
       .diy-sidebar.open { transform: translateX(0); }
-      .diy-main { margin-left: 0; }
+      .diy-main { margin-left: 0; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
       .mobile-menu-btn { display: flex; }
-      .diy-sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 35; backdrop-filter: blur(2px); }
+      .diy-sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 45; backdrop-filter: blur(2px); touch-action: none; }
       .diy-sidebar-overlay.active { display: block; }
       .bureau-grid { grid-template-columns: 1fr; }
       .specialist-stats { grid-template-columns: 1fr; }

@@ -4305,8 +4305,9 @@ header#host-nav {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.3);
-  z-index: 35;
+  z-index: 45;
   backdrop-filter: blur(2px);
+  touch-action: none;
 }
 
 .portal-main-wrapper {
@@ -4429,6 +4430,7 @@ header#host-nav {
     visibility: hidden;
     width: 280px;
     box-shadow: var(--shadow-card);
+    z-index: 50;
   }
   .portal-sidebar.open {
     transform: translateX(0);
@@ -4438,6 +4440,8 @@ header#host-nav {
     margin-left: 0 !important;
     padding-bottom: 72px;
     width: 100%;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
   .portal-content {
     padding: 16px;

@@ -39,6 +39,8 @@
     var overlay = document.getElementById('sidebarOverlay');
     if (sidebar) sidebar.classList.remove('open');
     if (overlay) overlay.classList.remove('active');
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
 
     if (sectionId === 'tradelines') loadTradelines();
     if (sectionId === 'news') loadNews();
@@ -67,18 +69,33 @@
   var mobileMenuBtn = document.getElementById('mobileMenuBtn');
   var sidebarOverlay = document.getElementById('sidebarOverlay');
   var diySidebar = document.getElementById('diySidebar');
+  function lockBodyScroll(lock) {
+    document.body.style.overflow = lock ? 'hidden' : '';
+    document.body.style.touchAction = lock ? 'none' : '';
+  }
   if (mobileMenuBtn) {
     mobileMenuBtn.addEventListener('click', function() {
+      var opening = !diySidebar.classList.contains('open');
       diySidebar.classList.toggle('open');
       sidebarOverlay.classList.toggle('active');
+      lockBodyScroll(opening);
     });
   }
   if (sidebarOverlay) {
     sidebarOverlay.addEventListener('click', function() {
       diySidebar.classList.remove('open');
       sidebarOverlay.classList.remove('active');
+      lockBodyScroll(false);
     });
   }
+
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768 && diySidebar && diySidebar.classList.contains('open')) {
+      diySidebar.classList.remove('open');
+      if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+      lockBodyScroll(false);
+    }
+  });
 
   async function init() {
     if (!token) {

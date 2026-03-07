@@ -425,6 +425,7 @@
       background: rgba(0,0,0,0.5);
       backdrop-filter: blur(4px);
       z-index: 9998;
+      touch-action: none;
     }
     .evolv-sb-backdrop.visible {
       display: block;
@@ -433,9 +434,11 @@
     @media (max-width: 767px) {
       body.evolv-sidebar-active {
         padding-left: 0 !important;
+        padding-top: 64px !important;
       }
       body.evolv-sidebar-expanded {
         padding-left: 0 !important;
+        padding-top: 64px !important;
       }
       .evolv-sidebar {
         transform: translateX(-100%);
@@ -581,8 +584,8 @@
   document.body.appendChild(backdrop);
   document.body.appendChild(mobileBtn);
 
+  document.body.classList.add('evolv-sidebar-active');
   if (!isMobile()) {
-    document.body.classList.add('evolv-sidebar-active');
     if (expanded) document.body.classList.add('evolv-sidebar-expanded');
   }
 
@@ -601,6 +604,13 @@
     mobileOpen = !mobileOpen;
     sidebar.classList.toggle('mobile-open', mobileOpen);
     backdrop.classList.toggle('visible', mobileOpen);
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
   }
 
   toggleBtn.addEventListener('click', function () {
@@ -684,18 +694,24 @@
   });
 
   window.addEventListener('resize', function () {
+    document.body.classList.add('evolv-sidebar-active');
     if (isMobile()) {
-      document.body.classList.remove('evolv-sidebar-active', 'evolv-sidebar-expanded');
+      document.body.classList.remove('evolv-sidebar-expanded');
       sidebar.classList.remove('expanded');
       if (!mobileOpen) {
         sidebar.classList.remove('mobile-open');
         backdrop.classList.remove('visible');
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
       }
     } else {
-      mobileOpen = false;
+      if (mobileOpen) {
+        mobileOpen = false;
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
+      }
       sidebar.classList.remove('mobile-open');
       backdrop.classList.remove('visible');
-      document.body.classList.add('evolv-sidebar-active');
       sidebar.classList.toggle('expanded', expanded);
       document.body.classList.toggle('evolv-sidebar-expanded', expanded);
     }

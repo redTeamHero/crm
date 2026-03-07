@@ -2516,16 +2516,26 @@ document.addEventListener('DOMContentLoaded', () => {
   function openSidebar() {
     if (portalSidebar) portalSidebar.classList.add('open');
     if (sidebarOverlay) sidebarOverlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
   }
   function closeSidebar() {
     if (portalSidebar) portalSidebar.classList.remove('open');
     if (sidebarOverlay) sidebarOverlay.classList.add('hidden');
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
   }
   if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', () => {
     if (portalSidebar && portalSidebar.classList.contains('open')) closeSidebar();
     else openSidebar();
   });
   if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768) {
+      closeSidebar();
+    }
+  });
 
   // --- Desktop sidebar collapse toggle ---
   var collapseBtn = document.getElementById('sidebarCollapseBtn');
