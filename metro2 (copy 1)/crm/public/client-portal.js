@@ -482,6 +482,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  var signOutBtn = document.getElementById('portalSignOut');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', function () {
+      localStorage.clear();
+      location.href = '/login.html';
+    });
+  }
+
   // ---------- Booking Modal ----------
   (function initBookingModal() {
     const modal = document.getElementById('bookingModal');
