@@ -498,7 +498,7 @@
 
   var html = '';
 
-  html += '<div class="evolv-sb-brand" title="EVOLV.AI"><div class="evolv-sb-brand-inner"><div class="evolv-sb-logo">E</div><div class="evolv-sb-brand-text">EVOLV.AI</div></div></div>';
+  html += '<div class="evolv-sb-brand" title="EVOLV"><div class="evolv-sb-brand-inner"><div class="evolv-sb-logo">E</div><div class="evolv-sb-brand-text">EVOLV</div></div></div>';
 
   html += '<div class="evolv-sb-toggle"><button type="button" aria-label="Toggle sidebar">' + svg('menu', 20) + '</button></div>';
 

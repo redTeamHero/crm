@@ -713,7 +713,7 @@
     ctx.fillStyle = '#d4a853';
     ctx.font = '16px Georgia, serif';
     ctx.textAlign = 'center';
-    ctx.fillText('EVOLV.AI CREDIT EDUCATION ACADEMY', 600, 110);
+    ctx.fillText('EVOLV CREDIT EDUCATION ACADEMY', 600, 110);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '42px Georgia, serif';
@@ -756,7 +756,7 @@
 
     ctx.fillStyle = '#d4a853';
     ctx.font = '14px Georgia, serif';
-    ctx.fillText('EVOLV.AI', 350, 700);
+    ctx.fillText('EVOLV', 350, 700);
     ctx.strokeStyle = '#d4a85366';
     ctx.beginPath();
     ctx.moveTo(250, 710);
@@ -764,7 +764,7 @@
     ctx.stroke();
     ctx.fillStyle = '#999';
     ctx.font = '12px Arial, sans-serif';
-    ctx.fillText('Evolv.AI Credit Education', 350, 730);
+    ctx.fillText('Evolv Credit Education', 350, 730);
 
     ctx.fillStyle = '#d4a853';
     ctx.font = '14px Georgia, serif';

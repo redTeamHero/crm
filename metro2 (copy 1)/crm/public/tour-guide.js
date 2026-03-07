@@ -610,7 +610,7 @@ function showTourMenu() {
       <div class="tour-menu__header">
         <div class="tour-butterfly" style="width:56px;height:56px;">${BUTTERFLY_SVG}</div>
         <div>
-          <div class="tour-menu__title">Explore Evolv.AI</div>
+          <div class="tour-menu__title">Explore Evolv</div>
           <div class="tour-menu__subtitle">Choose a section to learn about</div>
         </div>
       </div>

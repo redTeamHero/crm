@@ -5361,7 +5361,7 @@ app.post("/api/request-password-reset", async (req,res)=>{
       await mailer.sendMail({
         from: process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@evolv.ai",
         to: user.email,
-        subject: "Your Evolv.Ai Password Reset Code",
+        subject: "Your Evolv Password Reset Code",
         text: `Your password reset code is: ${code}\n\nThis code expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`,
         html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:16px"><h2 style="margin:0 0 8px;color:#d4a853">Password Reset</h2><p style="color:rgba(255,255,255,0.6);margin:0 0 24px">Use the code below to reset your password.</p><div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;letter-spacing:8px;font-size:32px;font-weight:700;color:#d4a853">${code}</div><p style="color:rgba(255,255,255,0.4);font-size:13px;margin:20px 0 0">This code expires in 15 minutes. If you did not request this, ignore this email.</p></div>`
       });
@@ -10262,7 +10262,7 @@ app.post('/api/diy/request-password-reset', async (req, res) => {
         await mailer.sendMail({
           from: process.env.SMTP_FROM || process.env.SMTP_USER || "noreply@evolv.ai",
           to: user.email,
-          subject: "Your Evolv.Ai Password Reset Code",
+          subject: "Your Evolv Password Reset Code",
           text: `Your password reset code is: ${code}\n\nThis code expires in 15 minutes.\n\nIf you did not request this, please ignore this email.`,
           html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0a0a0a;color:#fff;border-radius:16px"><h2 style="margin:0 0 8px;color:#818cf8">Password Reset</h2><p style="color:rgba(255,255,255,0.6);margin:0 0 24px">Use the code below to reset your password.</p><div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;letter-spacing:8px;font-size:32px;font-weight:700;color:#818cf8">${code}</div><p style="color:rgba(255,255,255,0.4);font-size:13px;margin:20px 0 0">This code expires in 15 minutes. If you did not request this, ignore this email.</p></div>`
         });

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Evolve.Ai - Transform Your Credit</title>
+  <title>Evolv - Transform Your Credit</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#7C3AED" />
   <script>
@@ -64,21 +64,21 @@
       background: #0f172a;
     }
     
-    .nav-butterfly { display: inline-block; width: 28px; height: 28px; position: relative; }
-    .nav-butterfly .bfly-body { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 3px; height: 16px; background: linear-gradient(to bottom, #d4a853, #b8942e); border-radius: 2px; z-index: 2; }
-    .nav-butterfly .bfly-wing-l, .nav-butterfly .bfly-wing-r { position: absolute; top: 3px; width: 12px; height: 18px; border-radius: 50% 50% 50% 0; z-index: 1; }
-    .nav-butterfly .bfly-wing-l { right: 50%; transform-origin: right center; background: linear-gradient(135deg, #d4a853 0%, #8b5cf6 60%, #6d28d9 100%); animation: flapL 0.6s ease-in-out infinite; border-radius: 50% 0 50% 50%; }
-    .nav-butterfly .bfly-wing-r { left: 50%; transform-origin: left center; background: linear-gradient(225deg, #d4a853 0%, #8b5cf6 60%, #6d28d9 100%); animation: flapR 0.6s ease-in-out infinite; border-radius: 0 50% 50% 50%; }
-    .nav-butterfly .bfly-wing-l::after, .nav-butterfly .bfly-wing-r::after { content: ''; position: absolute; bottom: -4px; width: 8px; height: 10px; }
-    .nav-butterfly .bfly-wing-l::after { right: 0; transform-origin: right center; background: linear-gradient(135deg, #d4a853 0%, #8b5cf6 100%); border-radius: 50% 0 50% 50%; animation: flapL 0.6s ease-in-out infinite; }
-    .nav-butterfly .bfly-wing-r::after { left: 0; transform-origin: left center; background: linear-gradient(225deg, #d4a853 0%, #8b5cf6 100%); border-radius: 0 50% 50% 50%; animation: flapR 0.6s ease-in-out infinite; }
-    @keyframes flapL { 0%, 100% { transform: rotateY(0deg) skewY(-5deg); } 50% { transform: rotateY(60deg) skewY(5deg); } }
-    @keyframes flapR { 0%, 100% { transform: rotateY(0deg) skewY(5deg); } 50% { transform: rotateY(-60deg) skewY(-5deg); } }
-    .nav-butterfly .bfly-antenna { position: absolute; top: 0; width: 1px; height: 8px; z-index: 3; }
-    .nav-butterfly .bfly-antenna-l { left: 10px; transform: rotate(-25deg); background: linear-gradient(to top, #d4a853, transparent); }
-    .nav-butterfly .bfly-antenna-l::after { content: ''; position: absolute; top: -2px; left: -1.5px; width: 4px; height: 4px; border-radius: 50%; background: #d4a853; }
-    .nav-butterfly .bfly-antenna-r { right: 10px; transform: rotate(25deg); background: linear-gradient(to top, #d4a853, transparent); }
-    .nav-butterfly .bfly-antenna-r::after { content: ''; position: absolute; top: -2px; right: -1.5px; width: 4px; height: 4px; border-radius: 50%; background: #d4a853; }
+    .nav-butterfly { display: inline-block; width: 28px; height: 28px; position: relative; animation: flutter 2s ease-in-out infinite; }
+    .nav-butterfly .bfly-body { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 14px; background: linear-gradient(to bottom, #d4a853, #b8942e); border-radius: 1px; z-index: 2; }
+    .nav-butterfly .bfly-upper-l, .nav-butterfly .bfly-upper-r { position: absolute; top: 4px; width: 11px; height: 11px; z-index: 1; }
+    .nav-butterfly .bfly-upper-l { right: 50%; transform-origin: right center; background: linear-gradient(135deg, #d4a853 0%, #8b5cf6 50%, #6d28d9 100%); border-radius: 70% 10% 50% 50%; animation: flapL 1.2s ease-in-out infinite; }
+    .nav-butterfly .bfly-upper-r { left: 50%; transform-origin: left center; background: linear-gradient(225deg, #d4a853 0%, #8b5cf6 50%, #6d28d9 100%); border-radius: 10% 70% 50% 50%; animation: flapR 1.2s ease-in-out infinite; }
+    .nav-butterfly .bfly-lower-l, .nav-butterfly .bfly-lower-r { position: absolute; top: 14px; width: 8px; height: 8px; z-index: 1; }
+    .nav-butterfly .bfly-lower-l { right: 50%; transform-origin: right top; background: linear-gradient(160deg, #8b5cf6 0%, #d4a853 100%); border-radius: 50% 10% 50% 50%; animation: flapL 1.2s ease-in-out infinite; }
+    .nav-butterfly .bfly-lower-r { left: 50%; transform-origin: left top; background: linear-gradient(200deg, #8b5cf6 0%, #d4a853 100%); border-radius: 10% 50% 50% 50%; animation: flapR 1.2s ease-in-out infinite; }
+    @keyframes flapL { 0%, 100% { transform: rotateY(0deg); } 50% { transform: rotateY(55deg); } }
+    @keyframes flapR { 0%, 100% { transform: rotateY(0deg); } 50% { transform: rotateY(-55deg); } }
+    .nav-butterfly .bfly-antenna { position: absolute; top: 1px; width: 1px; height: 6px; z-index: 3; }
+    .nav-butterfly .bfly-antenna-l { left: 10px; transform: rotate(-30deg); background: linear-gradient(to top, #d4a853, transparent); }
+    .nav-butterfly .bfly-antenna-l::after { content: ''; position: absolute; top: -2px; left: -1px; width: 3px; height: 3px; border-radius: 50%; background: #d4a853; }
+    .nav-butterfly .bfly-antenna-r { right: 10px; transform: rotate(30deg); background: linear-gradient(to top, #d4a853, transparent); }
+    .nav-butterfly .bfly-antenna-r::after { content: ''; position: absolute; top: -2px; right: -1px; width: 3px; height: 3px; border-radius: 50%; background: #d4a853; }
     @keyframes flutter { 0%,100%{transform:translateY(0) rotate(0deg)} 25%{transform:translateY(-4px) rotate(2deg)} 75%{transform:translateY(2px) rotate(-2deg)} }
     #hero-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; }
     .skip-intro { position:absolute; bottom:2rem; left:50%; transform:translateX(-50%); z-index:10; background:rgba(212,168,83,0.12); border:1px solid rgba(212,168,83,0.3); color:rgba(212,168,83,0.7); padding:0.5rem 1.5rem; border-radius:2rem; font-size:0.8rem; font-weight:500; cursor:pointer; letter-spacing:0.05em; transition:opacity 0.5s ease, background 0.2s ease; }
@@ -262,12 +262,14 @@
             <div class="nav-butterfly">
               <div class="bfly-antenna bfly-antenna-l"></div>
               <div class="bfly-antenna bfly-antenna-r"></div>
-              <div class="bfly-wing-l"></div>
-              <div class="bfly-wing-r"></div>
+              <div class="bfly-upper-l"></div>
+              <div class="bfly-upper-r"></div>
+              <div class="bfly-lower-l"></div>
+              <div class="bfly-lower-r"></div>
               <div class="bfly-body"></div>
             </div>
           </div>
-          <span class="text-lg font-bold">Evolve<span class="text-emerald-400">.Ai</span></span>
+          <span class="text-lg font-bold">Evolv</span>
         </div>
         <nav class="hidden md:flex items-center gap-5 text-sm text-violet-200">
           <a href="#how-it-works" class="hover:text-white transition-colors">How it Works</a>
@@ -615,7 +617,7 @@
           <thead>
             <tr>
               <th></th>
-              <th class="evolv-col head text-center">Evolv.Ai</th>
+              <th class="evolv-col head text-center">Evolv</th>
               <th class="text-center">DIY (Alone)</th>
               <th class="text-center">Credit Lawyer</th>
             </tr>
@@ -1590,7 +1592,7 @@
   <section id="about" class="section-dark py-20 px-4">
     <div class="max-w-4xl mx-auto">
       <div class="text-center mb-12">
-        <h2 class="text-3xl md:text-4xl font-bold mb-4">About Evolve.Ai</h2>
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">About Evolv</h2>
         <p class="text-violet-200 max-w-2xl mx-auto">
           We're on a mission to make credit repair accessible to everyone.
         </p>
@@ -1603,7 +1605,7 @@
             Millions of Americans have errors on their credit reports. These mistakes can cost you thousands in higher interest rates, denied loans, and missed opportunities.
           </p>
           <p class="text-violet-200 mb-4 leading-relaxed">
-            Traditional credit repair is expensive, confusing, and slow. We built Evolve.Ai to change that. Our AI understands the Metro 2 format that credit bureaus use, finding violations that humans often miss.
+            Traditional credit repair is expensive, confusing, and slow. We built Evolv to change that. Our AI understands the Metro 2 format that credit bureaus use, finding violations that humans often miss.
           </p>
           <p class="text-violet-200 leading-relaxed">
             Whether you're fixing your own credit or running a credit repair business, our platform gives you the tools to get real results - faster and more affordably than ever before.
@@ -1727,7 +1729,7 @@
         <span class="inline-block bg-emerald-500/20 text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full mb-4">Earn Money</span>
         <h2 class="text-3xl md:text-4xl font-bold mb-4">Affiliate Program</h2>
         <p class="text-violet-200 max-w-2xl mx-auto">
-          Earn money by sharing Evolve.Ai with your audience. Get paid for every referral that signs up.
+          Earn money by sharing Evolv with your audience. Get paid for every referral that signs up.
         </p>
       </div>
 
@@ -1819,7 +1821,7 @@
             <path d="M12 2C9.5 2 7 4 7 7c0 2 1 3.5 2 4.5-2.5.5-5 2.5-5 5.5 0 2 1.5 4 4 4 1.5 0 3-.5 4-2 1 1.5 2.5 2 4 2 2.5 0 4-2 4-4 0-3-2.5-5-5-5.5 1-1 2-2.5 2-4.5 0-3-2.5-5-5-5zm0 2c1.5 0 3 1.5 3 3s-1.5 3-3 3-3-1.5-3-3 1.5-3 3-3z"/>
           </svg>
         </div>
-        <span class="font-semibold text-white">Evolve<span class="text-emerald-400">.Ai</span></span>
+        <span class="font-semibold text-white">Evolv</span>
       </div>
       <p class="text-violet-400/60 text-xs text-center">
         Powered by Metro 2 AI Compliance Engine
