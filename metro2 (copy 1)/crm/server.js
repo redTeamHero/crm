@@ -9342,6 +9342,20 @@ app.post('/api/diy/signup', async (req, res) => {
     db.users.push(user);
     await saveDiyUsersDB(db);
 
+    const refCode = req.body.ref || req.query.ref;
+    if (refCode) {
+      try {
+        const affDb = await loadAffiliateDB();
+        const aff = affDb.affiliates.find(a => a.refCode === refCode);
+        if (aff) {
+          const commission = AFFILIATE_COMMISSIONS['diy_' + plan] || 0;
+          aff.referrals.push({ id: nanoid(8), type: 'diy', plan, email: email.toLowerCase(), earned: commission, status: 'pending', date: new Date().toISOString() });
+          aff.totalEarned = (aff.totalEarned || 0) + commission;
+          await saveAffiliateDB(affDb);
+        }
+      } catch (e) { logWarn('AFFILIATE_CREDIT_ERROR', e.message); }
+    }
+
     const token = jwt.sign(
       { id: user.id, email: user.email, plan: user.plan, mode: 'diy' },
       DIY_JWT_SECRET,
@@ -10428,6 +10442,101 @@ if (shouldStartServer) {
     })();
   });
 }
+
+async function loadAffiliateDB() {
+  let db = await readKey('affiliates', null);
+  if (!db) db = { affiliates: [] };
+  return db;
+}
+async function saveAffiliateDB(db) {
+  await writeKey('affiliates', db);
+}
+
+const AFFILIATE_COMMISSIONS = {
+  diy_basic: 10, diy_pro: 25, diy_tradeline: 0.10,
+  crm_starter: 25, crm_business: 50, crm_enterprise: 100
+};
+
+function affiliateAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+  const token = auth.slice(7);
+  try {
+    const payload = jwt.verify(token, DIY_JWT_SECRET, { issuer: 'metro2-diy', audience: 'diy-users' });
+    req.affUser = { id: payload.id, type: 'diy' };
+    return next();
+  } catch {}
+  try {
+    const payload = jwt.verify(token, getJwtSecret());
+    if (payload.role === 'client') {
+      req.affUser = { id: payload.id, type: 'client' };
+    } else {
+      req.affUser = { id: payload.id || payload.username, type: 'crm' };
+    }
+    return next();
+  } catch {}
+  return res.status(401).json({ ok: false, error: 'Unauthorized' });
+}
+
+app.post('/api/affiliate/join', affiliateAuth, async (req, res) => {
+  try {
+    const db = await loadAffiliateDB();
+    let aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    if (aff) {
+      return res.json({ ok: true, affiliate: aff });
+    }
+    aff = {
+      id: nanoid(12),
+      userId: req.affUser.id,
+      userType: req.affUser.type,
+      refCode: nanoid(8),
+      clicks: 0,
+      referrals: [],
+      totalEarned: 0,
+      totalPaid: 0,
+      createdAt: new Date().toISOString()
+    };
+    db.affiliates.push(aff);
+    await saveAffiliateDB(db);
+    res.json({ ok: true, affiliate: aff });
+  } catch (err) {
+    logError('AFFILIATE_JOIN_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to join' });
+  }
+});
+
+app.get('/api/affiliate/me', affiliateAuth, async (req, res) => {
+  try {
+    const db = await loadAffiliateDB();
+    const aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    if (!aff) return res.json({ ok: true, affiliate: null });
+    const conversions = aff.referrals.length;
+    const conversionRate = aff.clicks > 0 ? ((conversions / aff.clicks) * 100).toFixed(1) : '0.0';
+    res.json({ ok: true, affiliate: aff, stats: { clicks: aff.clicks, conversions, conversionRate, totalEarned: aff.totalEarned, totalPaid: aff.totalPaid } });
+  } catch (err) {
+    logError('AFFILIATE_ME_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to load' });
+  }
+});
+
+app.get('/api/affiliate/track/:refCode', async (req, res) => {
+  try {
+    const db = await loadAffiliateDB();
+    const aff = db.affiliates.find(a => a.refCode === req.params.refCode);
+    if (aff) {
+      aff.clicks = (aff.clicks || 0) + 1;
+      await saveAffiliateDB(db);
+    }
+    const dest = req.query.dest === 'crm' ? '/crm/login' : '/diy/signup';
+    res.redirect(`${dest}?ref=${req.params.refCode}`);
+  } catch (err) {
+    res.redirect('/');
+  }
+});
+
+registerStaticPage({ paths: "/affiliate", file: "affiliate.html", middlewares: [optionalAuth] });
 
 export default app;
 

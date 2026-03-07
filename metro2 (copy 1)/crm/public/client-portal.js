@@ -42,6 +42,7 @@ const PORTAL_MODULE_CONFIG = Object.freeze({
   primaries: { nav: '#navPrimaries', sections: ['#primariesSection'] },
   uploads: { nav: '#navUploads', sections: ['#uploadSection'] },
   disputes: { nav: '#navDisputes', sections: ['#disputeSection'] },
+  affiliate: { nav: '#navAffiliate', sections: ['#affiliateSection'] },
 });
 
 const HASH_TO_PORTAL_MODULE = Object.freeze({
@@ -55,6 +56,7 @@ const HASH_TO_PORTAL_MODULE = Object.freeze({
   '#primaries': 'primaries',
   '#negative-items': 'negativeItems',
   '#disputes': 'disputes',
+  '#affiliate': 'affiliate',
 });
 
 const DATA_REGION_EXPERIMENT_KEY = 'portal-data-region';
@@ -2444,6 +2446,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (paymentSection) paymentSection.classList.add('hidden');
     if (tradelineSection) tradelineSection.classList.add('hidden');
     if (disputeSection) disputeSection.classList.add('hidden');
+    var affiliateSec = document.getElementById('affiliateSection');
+    if (affiliateSec) affiliateSec.classList.add('hidden');
     const primariesSec = document.getElementById('primariesSection');
     if (primariesSec) primariesSec.classList.add('hidden');
 
@@ -2483,6 +2487,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (hash === '#disputes' && disputeSection) {
       disputeSection.classList.remove('hidden');
       loadDisputes();
+    } else if (hash === '#affiliate' && affiliateSec) {
+      affiliateSec.classList.remove('hidden');
+      loadPortalAffiliate();
     } else if (portalMain) {
       portalMain.classList.remove('hidden');
     }
@@ -2953,5 +2960,82 @@ document.addEventListener('DOMContentLoaded', () => {
       this.value = '';
     });
   });
+
+  function getPortalToken() {
+    return localStorage.getItem('token') || localStorage.getItem('auth') || '';
+  }
+
+  var portalAffLoaded = false;
+  function loadPortalAffiliate() {
+    if (portalAffLoaded) return;
+    portalAffLoaded = true;
+    var token = getPortalToken();
+    if (!token) return;
+    var hdrs = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+
+    fetch('/api/affiliate/me', { headers: hdrs })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok && data.affiliate) {
+          renderPortalAffDashboard(data.affiliate, data.stats);
+        }
+      }).catch(function() {});
+
+    var joinBtn = document.getElementById('portalJoinAffiliate');
+    if (joinBtn) {
+      joinBtn.addEventListener('click', function() {
+        fetch('/api/affiliate/join', { method: 'POST', headers: hdrs })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok && data.affiliate) {
+              fetch('/api/affiliate/me', { headers: hdrs })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                  if (d.ok && d.affiliate) renderPortalAffDashboard(d.affiliate, d.stats);
+                });
+            }
+          }).catch(function() {});
+      });
+    }
+
+    var copyBtn = document.getElementById('portalAffCopy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function() {
+        var input = document.getElementById('portalAffLink');
+        if (input) {
+          navigator.clipboard.writeText(input.value).then(function() {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+          });
+        }
+      });
+    }
+  }
+
+  function renderPortalAffDashboard(aff, stats) {
+    var notJoined = document.getElementById('portalAffNotJoined');
+    var dashboard = document.getElementById('portalAffDashboard');
+    if (notJoined) notJoined.classList.add('hidden');
+    if (dashboard) dashboard.classList.remove('hidden');
+
+    var link = location.origin + '/api/affiliate/track/' + aff.refCode;
+    var linkInput = document.getElementById('portalAffLink');
+    if (linkInput) linkInput.value = link;
+
+    var el = function(id) { return document.getElementById(id); };
+    if (el('portalStatClicks')) el('portalStatClicks').textContent = stats.clicks || 0;
+    if (el('portalStatSignups')) el('portalStatSignups').textContent = stats.conversions || 0;
+    if (el('portalStatEarned')) el('portalStatEarned').textContent = '$' + (stats.totalEarned || 0).toFixed(2);
+    if (el('portalStatRate')) el('portalStatRate').textContent = (stats.conversionRate || '0.0') + '%';
+
+    var tbody = document.getElementById('portalAffTable');
+    if (tbody && aff.referrals && aff.referrals.length > 0) {
+      tbody.innerHTML = aff.referrals.slice().reverse().map(function(r) {
+        var date = new Date(r.date).toLocaleDateString();
+        var sc = r.status === 'paid' ? 'color:#4ade80' : 'color:#facc15';
+        return '<tr class="border-b border-white/5"><td class="p-2">' + date + '</td><td class="p-2 uppercase font-semibold">' + (r.type || 'diy') + '</td><td class="p-2">' + (r.plan || '-') + '</td><td class="p-2" style="color:#4ade80">$' + (r.earned || 0).toFixed(2) + '</td><td class="p-2" style="' + sc + '">' + (r.status || 'pending') + '</td></tr>';
+      }).join('');
+    }
+  }
 
 });

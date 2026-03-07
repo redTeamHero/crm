@@ -77,6 +77,10 @@
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <span class="sidebar-label">Uploads</span>
       </a>
+      <a id="navAffiliate" href="#affiliate" class="sidebar-nav-link" data-tooltip="Affiliate">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <span class="sidebar-label">Affiliate</span>
+      </a>
     </nav>
     <div class="sidebar-footer">
       <button id="bookCall" class="btn text-sm w-full" type="button">
@@ -624,6 +628,67 @@
             <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
             <p class="text-sm text-gray-600">No dispute rounds yet.</p>
             <p class="text-xs text-gray-500 mt-1">Dispute tracking begins when letters are generated for your account.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="affiliateSection" class="hidden">
+        <div class="space-y-4">
+          <div id="portalAffNotJoined">
+            <div class="text-center py-8">
+              <div style="font-size:40px;margin-bottom:12px;">🔗</div>
+              <h2 class="text-xl font-bold mb-2">Affiliate Program</h2>
+              <p class="text-sm text-gray-400 mb-4 max-w-md mx-auto">Earn money by sharing Evolv.Ai. Get paid for every referral that signs up.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto text-left mb-4" style="font-size:14px;">
+                <div class="p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="font-semibold mb-2">DIY Referrals</div>
+                  <div class="flex justify-between py-1"><span>Basic Plan</span><span class="text-green-400 font-semibold">$10</span></div>
+                  <div class="flex justify-between py-1"><span>Pro Plan</span><span class="text-green-400 font-semibold">$25</span></div>
+                  <div class="flex justify-between py-1"><span>Tradeline</span><span class="text-yellow-400 font-semibold">10%</span></div>
+                </div>
+                <div class="p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                  <div class="font-semibold mb-2">CRM Referrals</div>
+                  <div class="flex justify-between py-1"><span>Starter</span><span class="text-green-400 font-semibold">$25</span></div>
+                  <div class="flex justify-between py-1"><span>Business</span><span class="text-green-400 font-semibold">$50</span></div>
+                  <div class="flex justify-between py-1"><span>Enterprise</span><span class="text-green-400 font-semibold">$100</span></div>
+                </div>
+              </div>
+              <button id="portalJoinAffiliate" class="btn px-6 py-2" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:10px;">Join Affiliate Program</button>
+            </div>
+          </div>
+          <div id="portalAffDashboard" class="hidden">
+            <h2 class="text-lg font-bold mb-3">Your Affiliate Dashboard</h2>
+            <div class="p-3 rounded-xl mb-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+              <label class="text-xs text-gray-400 block mb-1">Your Referral Link</label>
+              <div class="flex gap-2 mb-1">
+                <input id="portalAffLink" readonly class="flex-1 bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono" />
+                <button id="portalAffCopy" class="btn px-3 py-1 text-xs">Copy</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div class="text-xl font-bold" id="portalStatClicks">0</div>
+                <div class="text-xs text-gray-400">Clicks</div>
+              </div>
+              <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div class="text-xl font-bold" id="portalStatSignups">0</div>
+                <div class="text-xs text-gray-400">Signups</div>
+              </div>
+              <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div class="text-xl font-bold text-green-400" id="portalStatEarned">$0</div>
+                <div class="text-xs text-gray-400">Earned</div>
+              </div>
+              <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div class="text-xl font-bold" id="portalStatRate">0%</div>
+                <div class="text-xs text-gray-400">Conv. Rate</div>
+              </div>
+            </div>
+            <div class="rounded-xl overflow-hidden" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+              <table class="w-full text-xs">
+                <thead><tr class="text-left text-gray-400 border-b border-white/10"><th class="p-2">Date</th><th class="p-2">Type</th><th class="p-2">Plan</th><th class="p-2">Commission</th><th class="p-2">Status</th></tr></thead>
+                <tbody id="portalAffTable"><tr><td colspan="5" class="p-4 text-center text-gray-500">No referrals yet</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>

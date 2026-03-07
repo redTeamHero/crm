@@ -57,6 +57,14 @@ Key technical implementations include:
 - npm dependency overrides for `minimatch`, `tar`, `tar-fs`, `jws`, and `js-yaml` are set in root `package.json` to resolve known CVEs.
 - `nodemailer` upgraded to v7.x as a direct dependency.
 
+## Affiliate Marketing System
+- Full affiliate program accessible from CRM (`/affiliate` page), client portal (`#affiliate` hash section), and DIY dashboard (`#affiliate` section).
+- Backend: `loadAffiliateDB()`/`saveAffiliateDB()` using `kvdb.js` key `affiliates`. `affiliateAuth` middleware accepts both CRM JWT and DIY JWT tokens.
+- API endpoints: `POST /api/affiliate/join`, `GET /api/affiliate/me`, `GET /api/affiliate/track/:refCode` (click tracking + redirect).
+- Referral tracking wired into `POST /api/diy/signup` — credits the affiliate when a `ref` param is present.
+- Commission structure: DIY Basic $10, DIY Pro $25, Tradeline 10%, CRM Starter $25, Business $50, Enterprise $100.
+- Files: `public/affiliate.html`, `public/affiliate.js` (CRM page), affiliate section in `client-portal-template.html` + `client-portal.js`, affiliate section in `diy/dashboard.html` + `diy/dashboard.js`, sidebar entry in `sidebar.js`.
+
 ## External Dependencies
 - **Node.js**: Runtime environment for the backend.
 - **Python**: Used for the AI agent and Metro 2 parsers.

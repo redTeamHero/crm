@@ -276,6 +276,10 @@
         <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="7" y1="15" x2="13" y2="15"/></svg>
         Upgrade & Billing
       </a>
+      <a href="#affiliate" class="diy-nav-link" data-section="affiliate">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Affiliate
+      </a>
       <a href="#settings" class="diy-nav-link" data-section="settings">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
@@ -635,6 +639,68 @@
           </a>
         </div>
         <div id="billingStatus" style="display:none;padding:10px 16px;border-radius:10px;font-size:14px;margin-bottom:16px;"></div>
+      </div>
+
+      <!-- AFFILIATE SECTION -->
+      <div id="sectionAffiliate" class="diy-section-page">
+        <div id="diyAffNotJoined">
+          <div class="diy-card" style="text-align:center;padding:32px 20px;">
+            <div style="font-size:40px;margin-bottom:12px;">🔗</div>
+            <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Affiliate Program</h2>
+            <p style="color:var(--diy-text-sub);font-size:14px;margin-bottom:16px;max-width:400px;margin-left:auto;margin-right:auto;">Earn money by sharing Evolv.Ai. Get paid for every referral that signs up.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:400px;margin:0 auto 16px;text-align:left;font-size:13px;">
+              <div style="padding:12px;border-radius:12px;background:rgba(0,0,0,0.15);border:1px solid var(--diy-border);">
+                <div style="font-weight:600;margin-bottom:8px;">DIY Referrals</div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Basic Plan</span><span style="color:#4ade80;font-weight:600;">$10</span></div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Pro Plan</span><span style="color:#4ade80;font-weight:600;">$25</span></div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Tradeline</span><span style="color:#facc15;font-weight:600;">10%</span></div>
+              </div>
+              <div style="padding:12px;border-radius:12px;background:rgba(0,0,0,0.15);border:1px solid var(--diy-border);">
+                <div style="font-weight:600;margin-bottom:8px;">CRM Referrals</div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Starter</span><span style="color:#4ade80;font-weight:600;">$25</span></div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Business</span><span style="color:#4ade80;font-weight:600;">$50</span></div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Enterprise</span><span style="color:#4ade80;font-weight:600;">$100</span></div>
+              </div>
+            </div>
+            <button id="diyJoinAffiliate" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">Join Affiliate Program</button>
+          </div>
+        </div>
+        <div id="diyAffDashboard" style="display:none;">
+          <div class="diy-card" style="margin-bottom:12px;">
+            <div class="diy-card-header"><div class="diy-card-icon" style="background:rgba(99,102,241,0.15);">🔗</div><div class="diy-card-title">Your Referral Link</div></div>
+            <div style="display:flex;gap:8px;">
+              <input id="diyAffLink" readonly style="flex:1;background:rgba(0,0,0,0.2);border:1px solid var(--diy-border);border-radius:8px;padding:8px 10px;font-size:12px;font-family:monospace;color:var(--diy-text);" />
+              <button id="diyAffCopy" style="background:var(--diy-accent);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Copy</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
+            <div class="diy-card" style="text-align:center;padding:16px;margin:0;">
+              <div style="font-size:22px;font-weight:700;" id="diyStatClicks">0</div>
+              <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Clicks</div>
+            </div>
+            <div class="diy-card" style="text-align:center;padding:16px;margin:0;">
+              <div style="font-size:22px;font-weight:700;" id="diyStatSignups">0</div>
+              <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Signups</div>
+            </div>
+            <div class="diy-card" style="text-align:center;padding:16px;margin:0;">
+              <div style="font-size:22px;font-weight:700;color:#4ade80;" id="diyStatEarned">$0</div>
+              <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Earned</div>
+            </div>
+            <div class="diy-card" style="text-align:center;padding:16px;margin:0;">
+              <div style="font-size:22px;font-weight:700;" id="diyStatRate">0%</div>
+              <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Conv. Rate</div>
+            </div>
+          </div>
+          <div class="diy-card">
+            <div class="diy-card-header"><div class="diy-card-icon" style="background:rgba(16,185,129,0.15);">📋</div><div class="diy-card-title">Referral History</div></div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                <thead><tr style="text-align:left;color:var(--diy-text-sub);border-bottom:1px solid var(--diy-border);"><th style="padding:8px;">Date</th><th style="padding:8px;">Type</th><th style="padding:8px;">Plan</th><th style="padding:8px;">Commission</th><th style="padding:8px;">Status</th></tr></thead>
+                <tbody id="diyAffTable"><tr><td colspan="5" style="padding:20px;text-align:center;color:var(--diy-text-sub);">No referrals yet. Share your link to start earning!</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- SETTINGS SECTION -->

@@ -68,7 +68,8 @@
             lastName: lastVal,
             email: emailVal,
             password: passVal,
-            plan
+            plan,
+            ref: new URLSearchParams(window.location.search).get('ref') || undefined
           })
         });
       } catch (networkErr) {

@@ -34,7 +34,8 @@
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
     sms: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
     emailIcon: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/>',
-    chevronDown: '<polyline points="6 9 12 15 18 9"/>'
+    chevronDown: '<polyline points="6 9 12 15 18 9"/>',
+    share2: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>'
   };
 
   function svg(name, size) {
@@ -58,6 +59,7 @@
     { label: 'Invoicing', icon: 'fileText', href: '/client-invoicing', match: ['/client-invoicing'] },
     { group: 'TOOLS' },
     { label: 'Tradelines', icon: 'dollarSign', href: '/tradelines', match: ['/tradelines'] },
+    { label: 'Affiliate', icon: 'share2', href: '/affiliate', match: ['/affiliate'] },
     { group: 'SETTINGS' },
     { label: 'Letters', icon: 'mail', href: '/letters', match: ['/letters'] },
     { label: 'Library', icon: 'book', href: '/library', match: ['/library'] },

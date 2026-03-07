@@ -44,6 +44,7 @@
     if (sectionId === 'news') loadNews();
     if (sectionId === 'billing') loadBilling();
     if (sectionId === 'settings') loadSettings();
+    if (sectionId === 'affiliate') loadDiyAffiliate();
   }
 
   document.querySelectorAll('.diy-nav-link[data-section]').forEach(function(link) {
@@ -1160,6 +1161,77 @@
   }
   window.refreshEducation = renderEducation;
   renderEducation();
+
+  var diyAffLoaded = false;
+  function loadDiyAffiliate() {
+    if (diyAffLoaded) return;
+    diyAffLoaded = true;
+    var diyToken = localStorage.getItem('diy_token');
+    if (!diyToken) return;
+    var hdrs = { 'Authorization': 'Bearer ' + diyToken, 'Content-Type': 'application/json' };
+
+    fetch('/api/affiliate/me', { headers: hdrs })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok && data.affiliate) renderDiyAffDashboard(data.affiliate, data.stats);
+      }).catch(function() {});
+
+    var joinBtn = document.getElementById('diyJoinAffiliate');
+    if (joinBtn) {
+      joinBtn.addEventListener('click', function() {
+        fetch('/api/affiliate/join', { method: 'POST', headers: hdrs })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.ok) {
+              fetch('/api/affiliate/me', { headers: hdrs })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                  if (d.ok && d.affiliate) renderDiyAffDashboard(d.affiliate, d.stats);
+                });
+            }
+          }).catch(function() {});
+      });
+    }
+
+    var copyBtn = document.getElementById('diyAffCopy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function() {
+        var input = document.getElementById('diyAffLink');
+        if (input) {
+          navigator.clipboard.writeText(input.value).then(function() {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+          });
+        }
+      });
+    }
+  }
+
+  function renderDiyAffDashboard(aff, stats) {
+    var notJoined = document.getElementById('diyAffNotJoined');
+    var dashboard = document.getElementById('diyAffDashboard');
+    if (notJoined) notJoined.style.display = 'none';
+    if (dashboard) dashboard.style.display = '';
+
+    var link = location.origin + '/api/affiliate/track/' + aff.refCode;
+    var linkInput = document.getElementById('diyAffLink');
+    if (linkInput) linkInput.value = link;
+
+    var el = function(id) { return document.getElementById(id); };
+    if (el('diyStatClicks')) el('diyStatClicks').textContent = stats.clicks || 0;
+    if (el('diyStatSignups')) el('diyStatSignups').textContent = stats.conversions || 0;
+    if (el('diyStatEarned')) el('diyStatEarned').textContent = '$' + (stats.totalEarned || 0).toFixed(2);
+    if (el('diyStatRate')) el('diyStatRate').textContent = (stats.conversionRate || '0.0') + '%';
+
+    var tbody = document.getElementById('diyAffTable');
+    if (tbody && aff.referrals && aff.referrals.length > 0) {
+      tbody.innerHTML = aff.referrals.slice().reverse().map(function(r) {
+        var date = new Date(r.date).toLocaleDateString();
+        var sc = r.status === 'paid' ? 'color:#4ade80' : 'color:#facc15';
+        return '<tr style="border-bottom:1px solid var(--diy-border);"><td style="padding:8px;">' + date + '</td><td style="padding:8px;text-transform:uppercase;font-weight:600;font-size:11px;">' + (r.type || 'diy') + '</td><td style="padding:8px;">' + (r.plan || '-') + '</td><td style="padding:8px;color:#4ade80;">$' + (r.earned || 0).toFixed(2) + '</td><td style="padding:8px;' + sc + '">' + (r.status || 'pending') + '</td></tr>';
+      }).join('');
+    }
+  }
 
   init();
 })();
