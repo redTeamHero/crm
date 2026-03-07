@@ -1344,8 +1344,22 @@ async function getAuthUser(req){
     try{
       const payload = jwt.verify(auth.slice(7), getJwtSecret());
       const found = db.users.find(u=>u.id===payload.id);
-      if(!found) return null;
-      return { ...found, permissions: found.permissions || [] };
+      if(found) return { ...found, permissions: found.permissions || [] };
+      if(payload.role === "client"){
+        const mainDb = await loadDB();
+        const consumer = mainDb.consumers.find(c=>c.id===payload.id);
+        if(consumer){
+          return {
+            id: consumer.id,
+            username: consumer.email || consumer.name || "client",
+            name: consumer.name || "",
+            role: "client",
+            tenantId: sanitizeTenantId(consumer.tenantId || consumer.ownerTenantId || DEFAULT_TENANT_ID),
+            permissions: []
+          };
+        }
+      }
+      return null;
     }catch{
       return null;
     }
