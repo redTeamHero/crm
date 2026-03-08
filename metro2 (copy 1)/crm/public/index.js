@@ -856,11 +856,52 @@ function renderTrackerSteps(){
   trackerSteps.forEach((step,i)=>{
     const div = document.createElement("div");
     div.className = "flex items-center gap-1 step-item";
-    div.innerHTML = `<label class="flex items-center gap-2"><input type="checkbox" data-step="${escapeHtml(step)}" /> <span>${escapeHtml(step)}</span></label><button class="remove-step" data-index="${i}" aria-label="Remove step">&times;</button>`;
+    div.innerHTML = `<label class="flex items-center gap-2"><input type="checkbox" data-step="${escapeHtml(step)}" /> <span class="step-name" data-index="${i}" title="Double-click to edit">${escapeHtml(step)}</span></label><button class="remove-step" data-index="${i}" aria-label="Remove step">&times;</button>`;
     wrap.appendChild(div);
   });
   wrap.querySelectorAll("input[type=checkbox]").forEach(cb=>{
     cb.addEventListener("change", toggleTracker);
+  });
+  wrap.querySelectorAll(".step-name").forEach(span=>{
+    span.style.cursor = "text";
+    span.addEventListener("dblclick", (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = parseInt(span.dataset.index);
+      const oldName = trackerSteps[idx];
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.value = oldName;
+      inp.className = "border rounded px-2 py-1";
+      inp.style.cssText = "width:100%;font-size:inherit;background:#1a1a1e;color:#fff;border:1px solid rgba(212,168,83,0.3);border-radius:4px;padding:2px 6px;";
+      span.replaceWith(inp);
+      inp.focus();
+      inp.select();
+      let saved = false;
+      const finish = ()=>{
+        if(saved) return;
+        saved = true;
+        const newName = (inp.value || "").trim();
+        if(newName && newName !== oldName){
+          Object.values(trackerData).forEach(obj=>{
+            if(obj[oldName] !== undefined){
+              obj[newName] = obj[oldName];
+              delete obj[oldName];
+            }
+          });
+          trackerSteps[idx] = newName;
+          syncTrackerSteps();
+          if(currentConsumerId) saveTracker();
+        }
+        renderTrackerSteps();
+        loadTracker();
+      };
+      inp.addEventListener("keydown", ev=>{
+        if(ev.key === "Enter"){ ev.preventDefault(); finish(); }
+        if(ev.key === "Escape"){ saved = true; renderTrackerSteps(); loadTracker(); }
+      });
+      inp.addEventListener("blur", finish);
+    });
   });
   wrap.querySelectorAll(".remove-step").forEach(btn=>{
     btn.addEventListener("click", async e=>{
