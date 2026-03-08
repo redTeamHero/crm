@@ -176,6 +176,9 @@
               <button id="btnAuditReport" class="chip" data-tip="Run audit on current report">Audit</button>
               <button id="btnDeleteReport" class="chip" data-tip="Remove current report (click)">Remove Report</button>
               <button id="breachStatus" class="chip" type="button">Breaches: —</button>
+              <a id="activityPortalLink" class="chip hidden" href="#" target="_blank" data-tip="Open client portal">Client Portal</a>
+              <button id="btnPortalInvite" class="chip hidden" data-tip="Generate portal login link for this client">Portal Invite Link</button>
+              <button id="btnRunClientAudit" class="chip hidden" data-tip="Audit negative items and generate PDF for client portal">PDF Audit</button>
               <input id="fileInput" type="file" accept=".html,.htm,.pdf,application/pdf,text/html" class="hidden" />
             </div>
           </div>
@@ -300,21 +303,7 @@
         </article>
 
         <article id="clientsNegativePanel" class="glass panel hidden">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">Files & Activity</div>
-              <p class="panel-subtitle">Track deliverables & portal drops.</p>
-            </div>
-            <div class="panel-actions">
-              <input id="activityFile" type="file" class="hidden" />
-              <button id="btnAddFile" class="btn text-sm" data-tip="Upload file to this consumer">+ Add File</button>
-              <button id="btnRunClientAudit" class="btn text-sm hidden" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Audit negative items and generate PDF for client portal">Audit</button>
-              <a id="activityPortalLink" class="btn btn-outline text-sm hidden" href="#" target="_blank">Client Portal</a>
-              <button id="btnPortalInvite" class="btn text-sm hidden" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Generate portal login link for this client">Portal Invite Link</button>
-            </div>
-          </div>
-          <div id="activityList" class="activity-list text-sm"></div>
-          <div id="breachSection" class="hidden" style="border-top:1px solid rgba(255,255,255,0.06);margin-top:12px;padding-top:12px;">
+          <div id="breachSection" class="hidden">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <div>
                 <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px;"><span style="color:#d4a853;">🛡</span> Data Breaches</div>
@@ -324,6 +313,9 @@
             </div>
             <div id="breachCardBody" class="space-y-2 text-sm" style="max-height:280px; overflow-y:auto;"></div>
           </div>
+          <button id="btnAddFile" class="hidden"></button>
+          <input id="activityFile" type="file" class="hidden" />
+          <div id="activityList" class="activity-list text-sm hidden"></div>
         </article>
 
         <article class="glass panel hidden">
