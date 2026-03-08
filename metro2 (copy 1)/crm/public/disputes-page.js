@@ -8,6 +8,7 @@ let currentDisputeData = null;
 let disputePollTimer = null;
 const disputeTemplateOverrides = {};
 const selectedItems = new Set();
+const collapsedRounds = new Set();
 
 function getSelectionKey(jobId, itemIdx) {
   return `${jobId}__${itemIdx}`;
@@ -363,26 +364,34 @@ function renderDisputeTracker(data) {
     const followUpDays = round.followUpDays || 30;
     const questionnaireCompleted = round.questionnaireCompleted || false;
     const jobId = round.jobId || '';
+    const items = round.items || [];
 
-    html += `<div class="glass card" style="border-left:3px solid ${round.status === 'resolved' ? '#4ade80' : '#d4a853'};padding:12px;">`;
-    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div>
+    const isResolved = round.status === 'resolved';
+    const isCollapsed = collapsedRounds.has(jobId) || (isResolved && !collapsedRounds.has(`${jobId}__expanded`));
+    const chevron = isCollapsed ? '▶' : '▼';
+
+    html += `<div class="glass card" style="border-left:3px solid ${isResolved ? '#4ade80' : '#d4a853'};padding:0;overflow:hidden;">`;
+    html += `<div class="dispute-round-header" data-job-id="${escapeHtml(jobId)}" data-resolved="${isResolved}" style="display:flex;align-items:center;justify-content:space-between;padding:12px;cursor:pointer;user-select:none;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+        <span class="round-chevron" style="font-size:10px;color:#888;transition:transform .2s;flex-shrink:0;">${chevron}</span>
         <span style="font-weight:700;color:#fff;font-size:14px;">Round ${escapeHtml(String(roundNum))}</span>
-        <span style="font-size:12px;color:#888;margin-left:8px;">Sent ${sentDate}</span>
+        <span style="font-size:12px;color:#888;">Sent ${sentDate}</span>
         ${disputeStatusBadge(round.status || 'awaiting')}
+        <span style="font-size:11px;color:#666;margin-left:auto;">${items.length} item${items.length !== 1 ? 's' : ''}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;">
+      <div style="display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation()">
         <span style="font-size:11px;color:#888;">Follow-up:</span>
         <input type="number" class="dispute-followup-days" data-job-id="${escapeHtml(jobId)}" value="${followUpDays}" min="1" max="365" style="width:60px;padding:2px 6px;border-radius:6px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:12px;text-align:center;" />
         <span style="font-size:11px;color:#888;">days (${followUpDate})</span>
       </div>
     </div>`;
 
+    html += `<div class="dispute-round-body" data-job-id="${escapeHtml(jobId)}" style="padding:0 12px 12px;${isCollapsed ? 'display:none;' : ''}">`;
+
     html += `<div style="font-size:11px;color:${questionnaireCompleted ? '#4ade80' : '#888'};margin-bottom:8px;">
       ${questionnaireCompleted ? '✓ Client questionnaire completed' : '○ Awaiting client questionnaire'}
     </div>`;
 
-    const items = round.items || [];
     if (items.length > 0) {
       html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#888;">
@@ -473,9 +482,39 @@ function renderDisputeTracker(data) {
     html += `</div>`;
 
     html += `</div>`;
+    html += `</div>`;
   });
 
   timeline.innerHTML = html;
+
+  timeline.querySelectorAll('.dispute-round-header').forEach(header => {
+    header.addEventListener('click', (e) => {
+      if (e.target.closest('input, select, button')) return;
+      const jid = header.dataset.jobId;
+      const isResolved = header.dataset.resolved === 'true';
+      const body = timeline.querySelector(`.dispute-round-body[data-job-id="${jid}"]`);
+      const chevron = header.querySelector('.round-chevron');
+      if (!body) return;
+      const isHidden = body.style.display === 'none';
+      body.style.display = isHidden ? '' : 'none';
+      if (chevron) chevron.textContent = isHidden ? '▼' : '▶';
+      if (isResolved) {
+        if (isHidden) {
+          collapsedRounds.delete(jid);
+          collapsedRounds.add(`${jid}__expanded`);
+        } else {
+          collapsedRounds.add(jid);
+          collapsedRounds.delete(`${jid}__expanded`);
+        }
+      } else {
+        if (isHidden) {
+          collapsedRounds.delete(jid);
+        } else {
+          collapsedRounds.add(jid);
+        }
+      }
+    });
+  });
 
   timeline.querySelectorAll('.dispute-item-check').forEach(cb => {
     cb.addEventListener('change', (e) => {
