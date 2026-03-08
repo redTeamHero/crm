@@ -697,6 +697,27 @@ $("#tlPageSize").addEventListener("change", (e)=>{
   renderTradelines(CURRENT_REPORT?.tradelines || []);
 });
 
+document.querySelectorAll(".ni-dropdown-trigger").forEach(btn => {
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const dd = btn.closest(".ni-dropdown");
+    const wasOpen = dd.classList.contains("open");
+    document.querySelectorAll(".ni-dropdown.open").forEach(d => d.classList.remove("open"));
+    if (!wasOpen) dd.classList.add("open");
+  });
+});
+document.addEventListener("click", () => {
+  document.querySelectorAll(".ni-dropdown.open").forEach(d => d.classList.remove("open"));
+});
+document.querySelectorAll(".ni-dropdown-menu").forEach(menu => {
+  menu.addEventListener("click", (e) => e.stopPropagation());
+});
+document.querySelectorAll(".ni-dropdown-action").forEach(btn => {
+  btn.addEventListener("click", () => {
+    btn.closest(".ni-dropdown")?.classList.remove("open");
+  });
+});
+
 $("#btnSelectAll").addEventListener("click", ()=>{
   const cards = Array.from(document.querySelectorAll(".tl-card"));
   if (!cards.length) return;

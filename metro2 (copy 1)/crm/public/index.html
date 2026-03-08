@@ -236,20 +236,22 @@
               <div class="panel-title">Negative Items</div>
             </div>
             <div class="panel-actions" style="gap:6px;flex-wrap:wrap;align-items:center;">
-              <label class="text-xs flex items-center gap-1" title="Generate debt collector letters">
-                <input type="checkbox" id="cbCollectors" /> Collectors
-              </label>
-              <label class="text-xs flex items-center gap-1" title="Generate personal information letters">
-                <input type="checkbox" id="cbPersonalInfo" /> Personal Info
-              </label>
-              <label class="text-xs flex items-center gap-1" title="Use AI to reword letters">
-                <input type="checkbox" id="cbUseGpt" /> AI
-              </label>
-              <label class="text-xs flex items-center gap-1" title="Render OCR-resistant PDFs">
-                <input type="checkbox" id="cbUseOcr" /> OCR
-              </label>
-              <button id="btnSelectAll" class="btn btn-outline text-xs" data-tip="Select or deselect all negative items">Select All</button>
-              <button id="btnSelectNegative" class="btn btn-outline text-xs" data-tip="Select or deselect high-priority negative items">Select Negative</button>
+              <div class="ni-dropdown">
+                <button class="btn btn-outline text-xs ni-dropdown-trigger">Options ▾</button>
+                <div class="ni-dropdown-menu">
+                  <label class="ni-dropdown-item"><input type="checkbox" id="cbCollectors" /> Collectors</label>
+                  <label class="ni-dropdown-item"><input type="checkbox" id="cbPersonalInfo" /> Personal Info</label>
+                  <label class="ni-dropdown-item"><input type="checkbox" id="cbUseGpt" /> AI Reword</label>
+                  <label class="ni-dropdown-item"><input type="checkbox" id="cbUseOcr" /> OCR Resistant</label>
+                </div>
+              </div>
+              <div class="ni-dropdown">
+                <button class="btn btn-outline text-xs ni-dropdown-trigger">Select ▾</button>
+                <div class="ni-dropdown-menu">
+                  <button id="btnSelectAll" class="ni-dropdown-item ni-dropdown-action" data-tip="Select or deselect all negative items">Select All</button>
+                  <button id="btnSelectNegative" class="ni-dropdown-item ni-dropdown-action" data-tip="Select or deselect high-priority negative items">Select Negative</button>
+                </div>
+              </div>
               <button id="btnGenerate" class="btn text-xs" data-tip="Generate Letters (G)">Generate Letters</button>
               <div class="view-toggle">
                 <button id="btnCardView" class="view-toggle-btn active" title="Card View">
