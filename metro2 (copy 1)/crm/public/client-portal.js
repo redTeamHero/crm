@@ -3172,6 +3172,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dashboard) dashboard.classList.add('hidden');
   }
 
+  function getPortalConsumerId() {
+    var m = location.pathname.match(/\/portal\/(.+)$/);
+    return m ? decodeURIComponent(m[1]) : (localStorage.getItem('clientId') || '');
+  }
+
   function loadPortalAffiliate() {
     if (portalAffLoaded) return;
     var token = getPortalToken();
@@ -3181,10 +3186,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     portalAffLoaded = true;
     var hdrs = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+    var portalCid = getPortalConsumerId();
+    var cidQuery = portalCid ? '?consumerId=' + encodeURIComponent(portalCid) : '';
 
     function reloadPortalAff() {
       showPortalAffNotJoined();
-      fetch('/api/affiliate/me', { headers: hdrs })
+      fetch('/api/affiliate/me' + cidQuery, { headers: hdrs })
         .then(function(r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.json();
@@ -3213,7 +3220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         joinBtn.addEventListener('click', function() {
           joinBtn.disabled = true;
           joinBtn.textContent = 'Joining...';
-          fetch('/api/affiliate/join', { method: 'POST', headers: hdrs })
+          fetch('/api/affiliate/join', { method: 'POST', headers: hdrs, body: JSON.stringify({ consumerId: portalCid }) })
             .then(function(r) {
               if (!r.ok) throw new Error('HTTP ' + r.status);
               return r.json();
@@ -3247,7 +3254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadPortalPayoutHistory() {
-      fetch('/api/affiliate/payouts', { headers: hdrs })
+      fetch('/api/affiliate/payouts' + cidQuery, { headers: hdrs })
         .then(function(r) { return r.json(); })
         .then(function(data) {
           var tbody = document.getElementById('portalPayoutTable');
@@ -3271,7 +3278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.querySelectorAll('.portal-btn-cancel-payout').forEach(function(btn) {
               btn.addEventListener('click', function() {
                 var payoutId = btn.getAttribute('data-id');
-                fetch('/api/affiliate/payout/' + payoutId + '/cancel', { method: 'POST', headers: hdrs })
+                fetch('/api/affiliate/payout/' + payoutId + '/cancel' + cidQuery, { method: 'POST', headers: hdrs })
                   .then(function(r) { return r.json(); })
                   .then(function(d) {
                     if (d.ok) {
@@ -3357,7 +3364,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/affiliate/payout', {
           method: 'POST',
           headers: hdrs,
-          body: JSON.stringify({ method: method, payoutEmail: payoutEmail })
+          body: JSON.stringify({ method: method, payoutEmail: payoutEmail, consumerId: portalCid })
         })
           .then(function(r) { return r.json(); })
           .then(function(data) {

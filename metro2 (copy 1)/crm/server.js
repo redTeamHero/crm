@@ -10534,18 +10534,35 @@ function affiliateAuth(req, res, next) {
   try {
     const payload = jwt.verify(token, getJwtSecret());
     if (payload.role === 'client') {
-      req.affUser = { id: payload.id, type: 'client' };
+      req.affUser = { id: payload.id, type: 'client', tenantId: payload.tenantId };
     } else {
-      req.affUser = { id: payload.id || payload.username, type: 'crm' };
+      req.affUser = { id: payload.id || payload.username, type: 'crm', tenantId: payload.tenantId };
     }
     return next();
   } catch {}
   return res.status(401).json({ ok: false, error: 'Unauthorized' });
 }
 
+async function resolveAffTarget(req) {
+  const cid = req.body?.consumerId || req.query?.consumerId;
+  if (cid && (req.affUser.type === 'crm' || req.affUser.type === 'client')) {
+    if (req.affUser.type === 'crm' && req.affUser.tenantId) {
+      const db = await loadDB(req.affUser.tenantId);
+      const consumer = db.consumers.find(c => c.id === cid);
+      if (!consumer) return null;
+      const consTenant = sanitizeTenantId(consumer.tenantId || consumer.ownerTenantId || DEFAULT_TENANT_ID);
+      if (consTenant !== sanitizeTenantId(req.affUser.tenantId)) return null;
+    }
+    return { id: cid, type: 'client' };
+  }
+  return { id: req.affUser.id, type: req.affUser.type };
+}
+
 const affJoinLocks = new Map();
 app.post('/api/affiliate/join', affiliateAuth, async (req, res) => {
-  const lockKey = `${req.affUser.type}:${req.affUser.id}`;
+  const target = await resolveAffTarget(req);
+  if (!target) return res.status(403).json({ ok: false, error: 'Access denied' });
+  const lockKey = `${target.type}:${target.id}`;
   if (affJoinLocks.has(lockKey)) {
     try { await affJoinLocks.get(lockKey); } catch {}
   }
@@ -10553,7 +10570,7 @@ app.post('/api/affiliate/join', affiliateAuth, async (req, res) => {
   const lockPromise = new Promise(r => { resolve = r; });
   affJoinLocks.set(lockKey, lockPromise);
   try {
-    let aff = await loadAffiliate(req.affUser.id, req.affUser.type);
+    let aff = await loadAffiliate(target.id, target.type);
     if (aff) {
       if (aff.refCode) {
         const refIndex = await readKey(`aff_ref:${aff.refCode}`, null);
@@ -10563,8 +10580,8 @@ app.post('/api/affiliate/join', affiliateAuth, async (req, res) => {
     }
     aff = {
       id: nanoid(12),
-      userId: req.affUser.id,
-      userType: req.affUser.type,
+      userId: target.id,
+      userType: target.type,
       refCode: nanoid(8),
       clicks: 0,
       referrals: [],
@@ -10593,7 +10610,9 @@ function calcAffiliateBalance(aff) {
 
 app.get('/api/affiliate/me', affiliateAuth, async (req, res) => {
   try {
-    const aff = await loadAffiliate(req.affUser.id, req.affUser.type);
+    const target = await resolveAffTarget(req);
+    if (!target) return res.status(403).json({ ok: false, error: 'Access denied' });
+    const aff = await loadAffiliate(target.id, target.type);
     if (!aff) return res.json({ ok: true, affiliate: null });
     const conversions = (aff.referrals || []).length;
     const conversionRate = aff.clicks > 0 ? ((conversions / aff.clicks) * 100).toFixed(1) : '0.0';
@@ -10607,7 +10626,9 @@ app.get('/api/affiliate/me', affiliateAuth, async (req, res) => {
 
 app.post('/api/affiliate/payout', affiliateAuth, async (req, res) => {
   try {
-    const aff = await loadAffiliate(req.affUser.id, req.affUser.type);
+    const target = await resolveAffTarget(req);
+    if (!target) return res.status(403).json({ ok: false, error: 'Access denied' });
+    const aff = await loadAffiliate(target.id, target.type);
     if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
     const { method, payoutEmail, details } = req.body;
     if (!method || !['paypal', 'venmo', 'check'].includes(method)) {
@@ -10647,7 +10668,9 @@ app.post('/api/affiliate/payout', affiliateAuth, async (req, res) => {
 
 app.get('/api/affiliate/payouts', affiliateAuth, async (req, res) => {
   try {
-    const aff = await loadAffiliate(req.affUser.id, req.affUser.type);
+    const target = await resolveAffTarget(req);
+    if (!target) return res.status(403).json({ ok: false, error: 'Access denied' });
+    const aff = await loadAffiliate(target.id, target.type);
     if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
     res.json({ ok: true, payouts: aff.payouts || [] });
   } catch (err) {
@@ -10658,7 +10681,9 @@ app.get('/api/affiliate/payouts', affiliateAuth, async (req, res) => {
 
 app.post('/api/affiliate/payout/:id/cancel', affiliateAuth, async (req, res) => {
   try {
-    const aff = await loadAffiliate(req.affUser.id, req.affUser.type);
+    const target = await resolveAffTarget(req);
+    if (!target) return res.status(403).json({ ok: false, error: 'Access denied' });
+    const aff = await loadAffiliate(target.id, target.type);
     if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
     const payout = (aff.payouts || []).find(p => p.id === req.params.id);
     if (!payout) return res.status(404).json({ ok: false, error: 'Payout not found' });
