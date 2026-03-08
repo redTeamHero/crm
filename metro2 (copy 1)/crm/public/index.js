@@ -1457,23 +1457,40 @@ function renderFilterBar(){
   const bar = $("#filterBar");
   bar.innerHTML = "";
   ALL_TAGS.forEach(tag=>{
-    const btn = document.createElement("button");
-    btn.className = "chip" + (activeFilters.has(tag) ? " active":"");
-    btn.textContent = tag;
-    btn.addEventListener("click", ()=>{
-      if (activeFilters.has(tag)) activeFilters.delete(tag); else activeFilters.add(tag);
+    const label = document.createElement("label");
+    label.className = "ni-dropdown-item";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = activeFilters.has(tag);
+    cb.style.cssText = "accent-color:#d4a853;width:14px;height:14px;cursor:pointer;";
+    cb.addEventListener("change", ()=>{
+      if (cb.checked) activeFilters.add(tag); else activeFilters.delete(tag);
       tlPage = 1;
-      renderFilterBar();
       renderTradelines(CURRENT_REPORT?.tradelines || []);
+      updateFilterTrigger();
     });
-    bar.appendChild(btn);
+    const span = document.createElement("span");
+    span.textContent = tag;
+    label.appendChild(cb);
+    label.appendChild(span);
+    bar.appendChild(label);
   });
   $("#btnClearFilters").onclick = () => {
     activeFilters.clear();
     tlPage = 1;
     renderFilterBar();
     renderTradelines(CURRENT_REPORT?.tradelines || []);
+    updateFilterTrigger();
   };
+  updateFilterTrigger();
+}
+function updateFilterTrigger(){
+  const triggers = document.querySelectorAll(".ni-dropdown-trigger");
+  triggers.forEach(t => {
+    if (t.textContent.startsWith("Filters")) {
+      t.textContent = activeFilters.size > 0 ? `Filters (${activeFilters.size}) ▾` : "Filters ▾";
+    }
+  });
 }
 function passesFilter(tags){ if (activeFilters.size === 0) return true; return tags.some(t => activeFilters.has(t)); }
 

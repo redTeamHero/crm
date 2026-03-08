@@ -252,6 +252,13 @@
                   <button id="btnSelectNegative" class="ni-dropdown-item ni-dropdown-action" data-tip="Select or deselect high-priority negative items">Select Negative</button>
                 </div>
               </div>
+              <div class="ni-dropdown">
+                <button class="btn btn-outline text-xs ni-dropdown-trigger">Filters ▾</button>
+                <div class="ni-dropdown-menu" style="min-width:180px;">
+                  <div id="filterBar" style="display:flex;flex-direction:column;padding:4px 0;"></div>
+                  <button id="btnClearFilters" class="ni-dropdown-item ni-dropdown-action" style="color:#d4a853;font-size:11px;border-top:1px solid rgba(255,255,255,0.06);">Clear Filters</button>
+                </div>
+              </div>
               <button id="btnGenerate" class="btn text-xs" data-tip="Generate Letters (G)">Generate Letters</button>
               <div class="view-toggle">
                 <button id="btnCardView" class="view-toggle-btn active" title="Card View">
@@ -263,11 +270,7 @@
               </div>
             </div>
           </div>
-          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;">
-            <div id="modeBar" class="mode-bar" style="margin:0;gap:6px;"></div>
-            <div id="filterBar" class="filter-bar" style="gap:6px;"></div>
-            <button id="btnClearFilters" class="btn-link text-xs" data-tip="Clear Filters (C)" style="color:#d4a853;background:none;border:none;cursor:pointer;padding:2px 6px;font-size:11px;">Clear Filters</button>
-          </div>
+          <div id="modeBar" style="display:none;"></div>
           <div id="tlList" class="tradeline-grid mt-2"></div>
           <div id="tlPager" class="panel-footer mt-3">
             <button id="tlPrev" class="btn btn-outline text-sm">Prev</button>
