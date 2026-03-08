@@ -181,6 +181,20 @@
             </div>
           </div>
 
+          <div id="portalJourneyCard" class="portal-journey-tracker">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(212,168,83,0.12)">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#d4a853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                </div>
+                <span class="text-sm font-semibold text-gray-300">Your Journey</span>
+              </div>
+              <span id="portalJourneyProgress" class="text-xs" style="color:rgba(255,255,255,0.35)"></span>
+            </div>
+            <div id="portalJourneyBar" class="tracker-progress-bar" style="margin-bottom:12px"><div class="tracker-progress-fill" style="width:0%"></div></div>
+            <div id="portalJourneySteps" class="tracker-steps"></div>
+          </div>
+
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div id="teamCard" class="glass card p-5">
               <div class="flex items-center gap-2 mb-2">

@@ -813,21 +813,10 @@ async function loadTracker(){
     trackerData[currentConsumerId] = data.completed || {};
   }
   renderTrackerSteps();
-  if(currentConsumerId){
-    trackerSteps.forEach(step=>{
-      const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
-      if(cb) cb.checked = !!trackerData[currentConsumerId][step];
-    });
-  }
 }
 async function saveTracker(){
   if(!currentConsumerId) return;
-  const completed = {};
-  trackerSteps.forEach(step=>{
-    const cb = document.querySelector(`#trackerSteps input[data-step="${step}"]`);
-    if(cb) completed[step] = cb.checked;
-  });
-  trackerData[currentConsumerId] = completed;
+  const completed = trackerData[currentConsumerId] || {};
   try{
     const resp = await fetch(`/api/consumers/${currentConsumerId}/tracker`, {
       method:'POST',
@@ -869,23 +858,65 @@ function renderTrackerSteps(){
   const wrap = document.querySelector("#trackerSteps");
   if(!wrap) return;
   wrap.innerHTML = "";
+  const existingProgEarly = document.querySelector("#trackerProgressWrap");
+  if(existingProgEarly) existingProgEarly.remove();
   if(trackerSteps.length === 0){
-    wrap.innerHTML = '<div class="muted">No steps yet. Add one below.</div>';
+    wrap.innerHTML = '<div style="color:rgba(255,255,255,0.35);font-size:0.85rem;padding:8px 0;">No steps yet — click + to add one.</div>';
     return;
   }
 
-  trackerSteps.forEach((step,i)=>{
+  const completed = currentConsumerId ? (trackerData[currentConsumerId] || {}) : {};
+  const completedCount = trackerSteps.filter(s => completed[s]).length;
+  const pct = Math.round((completedCount / trackerSteps.length) * 100);
+  const progressHtml = `<div class="tracker-progress-label">${completedCount} of ${trackerSteps.length} completed</div><div class="tracker-progress-bar"><div class="tracker-progress-fill" style="width:${pct}%"></div></div>`;
+  wrap.insertAdjacentHTML("beforebegin", "");
+  const progWrap = document.createElement("div");
+  progWrap.id = "trackerProgressWrap";
+  progWrap.innerHTML = progressHtml;
+  const existingProg = document.querySelector("#trackerProgressWrap");
+  if(existingProg) existingProg.remove();
+  wrap.parentNode.insertBefore(progWrap, wrap);
+
+  let foundCurrent = false;
+  trackerSteps.forEach((step, i) => {
+    const isCompleted = !!completed[step];
+    const isCurrent = !isCompleted && !foundCurrent;
+    if(isCurrent) foundCurrent = true;
+
     const div = document.createElement("div");
-    div.className = "flex items-center gap-1 step-item";
-    div.innerHTML = `<label class="flex items-center gap-2"><input type="checkbox" data-step="${escapeHtml(step)}" /> <span class="step-name" data-index="${i}" title="Double-click to edit">${escapeHtml(step)}</span></label><button class="remove-step" data-index="${i}" aria-label="Remove step">&times;</button>`;
+    div.className = "tracker-step" + (isCompleted ? " completed" : "") + (isCurrent ? " current" : "");
+    div.dataset.index = i;
+
+    const checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+
+    div.innerHTML =
+      '<div class="tracker-step-rail">' +
+        '<div class="tracker-step-circle" data-step="' + escapeHtml(step) + '">' +
+          (isCompleted ? checkSvg : (i + 1)) +
+        '</div>' +
+        '<div class="tracker-step-line"></div>' +
+      '</div>' +
+      '<div class="tracker-step-content">' +
+        '<span class="tracker-step-name" data-index="' + i + '" title="Double-click to edit">' + escapeHtml(step) + '</span>' +
+        '<button class="tracker-step-remove" data-index="' + i + '" aria-label="Remove step">&times;</button>' +
+      '</div>';
     wrap.appendChild(div);
   });
-  wrap.querySelectorAll("input[type=checkbox]").forEach(cb=>{
-    cb.addEventListener("change", toggleTracker);
+
+  wrap.querySelectorAll(".tracker-step-circle").forEach(circle => {
+    circle.addEventListener("click", () => {
+      const stepName = circle.dataset.step;
+      if(!stepName || !currentConsumerId) return;
+      const cur = completed[stepName];
+      completed[stepName] = !cur;
+      trackerData[currentConsumerId] = completed;
+      renderTrackerSteps();
+      toggleTracker();
+    });
   });
-  wrap.querySelectorAll(".step-name").forEach(span=>{
-    span.style.cursor = "text";
-    span.addEventListener("dblclick", (e)=>{
+
+  wrap.querySelectorAll(".tracker-step-name").forEach(span => {
+    span.addEventListener("dblclick", (e) => {
       e.preventDefault();
       e.stopPropagation();
       const idx = parseInt(span.dataset.index);
@@ -893,18 +924,17 @@ function renderTrackerSteps(){
       const inp = document.createElement("input");
       inp.type = "text";
       inp.value = oldName;
-      inp.className = "border rounded px-2 py-1";
-      inp.style.cssText = "width:100%;font-size:inherit;background:#1a1a1e;color:#fff;border:1px solid rgba(212,168,83,0.3);border-radius:4px;padding:2px 6px;";
+      inp.style.cssText = "width:100%;font-size:inherit;background:#1a1a1e;color:#fff;border:1px solid rgba(212,168,83,0.3);border-radius:6px;padding:3px 8px;outline:none;";
       span.replaceWith(inp);
       inp.focus();
       inp.select();
       let saved = false;
-      const finish = ()=>{
+      const finish = () => {
         if(saved) return;
         saved = true;
         const newName = (inp.value || "").trim();
         if(newName && newName !== oldName){
-          Object.values(trackerData).forEach(obj=>{
+          Object.values(trackerData).forEach(obj => {
             if(obj[oldName] !== undefined){
               obj[newName] = obj[oldName];
               delete obj[oldName];
@@ -917,20 +947,20 @@ function renderTrackerSteps(){
         renderTrackerSteps();
         loadTracker();
       };
-      inp.addEventListener("keydown", ev=>{
+      inp.addEventListener("keydown", ev => {
         if(ev.key === "Enter"){ ev.preventDefault(); finish(); }
         if(ev.key === "Escape"){ saved = true; renderTrackerSteps(); loadTracker(); }
       });
       inp.addEventListener("blur", finish);
     });
   });
-  wrap.querySelectorAll(".remove-step").forEach(btn=>{
-    btn.addEventListener("click", async e=>{
-      const idx = parseInt(e.target.dataset.index);
-      const removed = trackerSteps.splice(idx,1)[0];
-      Object.values(trackerData).forEach(obj=>{ delete obj[removed]; });
-      syncTrackerSteps();
 
+  wrap.querySelectorAll(".tracker-step-remove").forEach(btn => {
+    btn.addEventListener("click", async e => {
+      const idx = parseInt(e.target.dataset.index);
+      const removed = trackerSteps.splice(idx, 1)[0];
+      Object.values(trackerData).forEach(obj => { delete obj[removed]; });
+      syncTrackerSteps();
       renderTrackerSteps();
       loadTracker();
     });

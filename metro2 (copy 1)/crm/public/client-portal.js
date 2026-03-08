@@ -797,6 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(({ steps = [], completed = {} }) => {
           if (!Array.isArray(steps) || !steps.length) {
             stepEl.textContent = 'No steps assigned yet.';
+            renderPortalJourney([], {});
             return;
           }
           const idx = steps.findIndex(s => !completed[s]);
@@ -805,11 +806,53 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             stepEl.textContent = `Step ${idx + 1} of ${steps.length}: ${steps[idx]}`;
           }
+          renderPortalJourney(steps, completed);
         })
         .catch(() => { stepEl.textContent = 'Unknown'; });
     };
     fetchStep();
     setInterval(fetchStep, 30000);
+  }
+
+  function renderPortalJourney(steps, completed) {
+    var stepsEl = document.getElementById('portalJourneySteps');
+    var barEl = document.getElementById('portalJourneyBar');
+    var progEl = document.getElementById('portalJourneyProgress');
+    var cardEl = document.getElementById('portalJourneyCard');
+    if (!stepsEl) return;
+    if (!steps.length) {
+      if (cardEl) cardEl.style.display = 'none';
+      return;
+    }
+    if (cardEl) cardEl.style.display = '';
+    var doneCount = 0;
+    steps.forEach(function(s) { if (completed[s]) doneCount++; });
+    var pct = Math.round((doneCount / steps.length) * 100);
+    if (progEl) progEl.textContent = doneCount + ' of ' + steps.length + ' completed';
+    if (barEl) {
+      var fill = barEl.querySelector('.tracker-progress-fill');
+      if (fill) fill.style.width = pct + '%';
+    }
+    stepsEl.innerHTML = '';
+    var foundCurrent = false;
+    var checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+    steps.forEach(function(step, i) {
+      var isDone = !!completed[step];
+      var isCur = !isDone && !foundCurrent;
+      if (isCur) foundCurrent = true;
+      var cls = 'tracker-step' + (isDone ? ' completed' : '') + (isCur ? ' current' : '');
+      var html =
+        '<div class="' + cls + '">' +
+          '<div class="tracker-step-rail">' +
+            '<div class="tracker-step-circle">' + (isDone ? checkSvg : (i + 1)) + '</div>' +
+            '<div class="tracker-step-line"></div>' +
+          '</div>' +
+          '<div class="tracker-step-content">' +
+            '<span class="tracker-step-name">' + step.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>' +
+          '</div>' +
+        '</div>';
+      stepsEl.insertAdjacentHTML('beforeend', html);
+    });
   }
 
   const feedEl = document.getElementById('newsFeed');
