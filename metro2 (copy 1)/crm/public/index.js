@@ -1111,6 +1111,33 @@ function renderReportDiff(diff) {
       chevron.style.transform = isHidden ? "" : "rotate(-90deg)";
     };
   }
+
+  const dc = document.getElementById("diffDeletedCount");
+  if (dc) dc.textContent = deletedCount > 0 ? `(${deletedCount})` : "";
+  const ac = document.getElementById("diffAddedCount");
+  if (ac) ac.textContent = addedCount > 0 ? `(${addedCount})` : "";
+  const cc = document.getElementById("diffChangedCount");
+  if (cc) cc.textContent = changedCount > 0 ? `(${changedCount})` : "";
+
+  panel.querySelectorAll(".diff-section-header").forEach(header => {
+    const targetId = header.dataset.target;
+    const list = document.getElementById(targetId);
+    const chev = header.querySelector(".diff-chevron");
+    if (list) list.style.display = "";
+    if (chev) chev.textContent = "▼";
+  });
+
+  panel.querySelectorAll(".diff-section-header").forEach(header => {
+    header.onclick = () => {
+      const targetId = header.dataset.target;
+      const list = document.getElementById(targetId);
+      const chev = header.querySelector(".diff-chevron");
+      if (!list) return;
+      const isHidden = list.style.display === "none";
+      list.style.display = isHidden ? "" : "none";
+      if (chev) chev.textContent = isHidden ? "▼" : "▶";
+    };
+  });
 }
 
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
