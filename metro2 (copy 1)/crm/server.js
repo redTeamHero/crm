@@ -1641,6 +1641,7 @@ registerStaticPage({
   middlewares: [optionalAuth, forbidMember],
 });
 registerStaticPage({ paths: "/billing", file: "billing.html" });
+registerStaticPage({ paths: "/disputes", file: "disputes.html" });
 registerStaticPage({ paths: "/client-invoicing", file: "client-invoicing.html" });
 registerStaticPage({
   paths: ["/letters", "/letters/:jobId"],

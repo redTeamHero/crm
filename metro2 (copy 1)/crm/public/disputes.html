@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dispute Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/tour-guide.css">
+<script src="/theme.js"></script>
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/evolv-dark.css">
+<script src="/sidebar.js" defer></script>
+<script src="/command-palette.js" defer></script>
+</head>
+<body>
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+    </div>
+  </div>
+</header>
+
+<main class="workspace px-4 pb-12">
+  <div class="workspace-inner max-w-5xl mx-auto space-y-6">
+
+    <section class="workspace-hero glass card">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <p class="eyebrow">IntelliFeats</p>
+          <h1 class="hero-title">Dispute Tracker</h1>
+          <p class="hero-description">Track every dispute round, monitor bureau responses, and generate follow-up letters — all in one place.</p>
+        </div>
+      </div>
+    </section>
+
+    <div id="err" class="alert alert-error hidden"></div>
+
+    <article class="glass panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Select Client</div>
+          <p class="panel-subtitle">Choose a consumer to view their dispute history.</p>
+        </div>
+        <div class="panel-actions">
+          <select id="consumerPicker" class="input input-select text-sm" style="min-width:220px;">
+            <option value="">— Select a consumer —</option>
+          </select>
+        </div>
+      </div>
+    </article>
+
+    <article id="disputeTrackerPanel" class="glass panel hidden">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
+            <span style="color:#d4a853;">⚖</span> Dispute Tracker
+          </div>
+          <p class="panel-subtitle" id="disputeTrackerSubtitle">No active disputes.</p>
+        </div>
+        <div class="panel-actions">
+          <button id="btnRefreshDisputes" class="btn btn-outline text-sm" data-tip="Refresh dispute data">Refresh</button>
+        </div>
+      </div>
+
+      <div id="disputeAnalysisCard" class="hidden" style="padding:12px;border:1px solid rgba(212,168,83,0.15);border-radius:10px;background:rgba(212,168,83,0.03);margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-weight:600;color:#d4a853;" id="disputeAnalysisTitle">Report Analysis</div>
+        </div>
+        <div id="disputeAnalysisBody" class="space-y-2 text-sm"></div>
+      </div>
+
+      <div id="disputeTimeline" class="space-y-3 text-sm" style="max-height:600px;overflow-y:auto;"></div>
+    </article>
+
+  </div>
+</main>
+
+<script type="module" src="common.js"></script>
+<script type="module" src="disputes-page.js"></script>
+</body>
+</html>

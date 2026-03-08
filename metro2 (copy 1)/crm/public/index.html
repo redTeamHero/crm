@@ -247,18 +247,10 @@
               <p class="panel-subtitle" id="disputeTrackerSubtitle">No active disputes.</p>
             </div>
             <div class="panel-actions">
-              <button id="btnRefreshDisputes" class="btn btn-outline text-sm" data-tip="Refresh dispute data">Refresh</button>
+              <a id="disputeTrackerLink" href="/disputes" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600; text-decoration: none;">View Full Tracker →</a>
             </div>
           </div>
-
-          <div id="disputeAnalysisCard" class="hidden" style="padding:12px;border:1px solid rgba(212,168,83,0.15);border-radius:10px;background:rgba(212,168,83,0.03);margin-bottom:12px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div style="font-weight:600;color:#d4a853;" id="disputeAnalysisTitle">Report Analysis</div>
-            </div>
-            <div id="disputeAnalysisBody" class="space-y-2 text-sm"></div>
-          </div>
-
-          <div id="disputeTimeline" class="space-y-3 text-sm" style="max-height:600px;overflow-y:auto;"></div>
+          <div id="disputeSummaryBody" class="text-sm" style="padding:4px 0;"></div>
         </article>
 
         <article class="glass panel">

@@ -205,8 +205,6 @@ async function loadMetro2Violations(){
 const ocrCb = $("#cbUseOcr");
 
 let CUSTOM_TEMPLATES = [];
-let DISPUTE_LETTER_TEMPLATES = [];
-
 async function loadTemplates(){
   try{
     const res = await fetch('/api/templates');
@@ -217,14 +215,6 @@ async function loadTemplates(){
 }
 loadTemplates();
 
-async function loadDisputeLetterTemplates(){
-  try{
-    const res = await fetch('/api/sample-letters');
-    const data = await res.json().catch(()=>({}));
-    DISPUTE_LETTER_TEMPLATES = data.templates || [];
-  }catch{}
-}
-loadDisputeLetterTemplates();
 
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -730,7 +720,6 @@ $("#btnSelectNegative")?.addEventListener("click", ()=>{
 });
 
 async function selectConsumer(id){
-  stopDisputePolling();
   currentConsumerId = id;
   const c = DB.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
@@ -751,7 +740,6 @@ async function selectConsumer(id){
   await loadMessages();
   await loadTracker();
   await loadDisputeTracker();
-  startDisputePolling();
 }
 
 function restoreSelectedConsumer(){
@@ -2726,51 +2714,13 @@ if (btnCardView && btnListView) {
   if (savedView === "list") setViewMode("list");
 }
 
-// ===================== Dispute Tracker =====================
-const DISPUTE_STATUS_LABELS = {
-  awaiting: { label: 'Awaiting', color: '#d4a853' },
-  awaiting_response: { label: 'Awaiting Response', color: '#d4a853' },
-  response_received: { label: 'Response Received', color: '#8b5cf6' },
-  removed: { label: 'Removed', color: '#4ade80' },
-  deleted: { label: 'Deleted', color: '#4ade80' },
-  corrected: { label: 'Corrected', color: '#4ade80' },
-  resolved: { label: 'Resolved', color: '#4ade80' },
-  verified: { label: 'Verified', color: '#60a5fa' },
-  no_response: { label: 'No Response', color: '#6b7280' },
-  stalled: { label: 'Stalled', color: '#f87171' },
-  escalated: { label: 'Escalated', color: '#f87171' },
-  partial: { label: 'Partial', color: '#fbbf24' }
-};
-
-function disputeStatusBadge(status) {
-  const info = DISPUTE_STATUS_LABELS[status] || { label: status || 'Unknown', color: '#6b7280' };
-  return `<span class="dispute-status-badge" style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;background:${info.color}22;color:${info.color};border:1px solid ${info.color}44;">${escapeHtml(info.label)}</span>`;
-}
-
-let currentDisputeData = null;
-let disputePollTimer = null;
-const disputeTemplateOverrides = {};
-
-function startDisputePolling() {
-  stopDisputePolling();
-  disputePollTimer = setInterval(() => {
-    if (currentConsumerId) loadDisputeTracker();
-  }, 30000);
-}
-
-function stopDisputePolling() {
-  if (disputePollTimer) {
-    clearInterval(disputePollTimer);
-    disputePollTimer = null;
-  }
-}
+// ===================== Dispute Tracker (Summary Card) =====================
 
 async function loadDisputeTracker() {
   const panel = $("#disputeTrackerPanel");
   if (!panel) return;
   if (!currentConsumerId) {
     panel.classList.add("hidden");
-    currentDisputeData = null;
     return;
   }
 
@@ -2778,498 +2728,39 @@ async function loadDisputeTracker() {
     const data = await api(`/api/consumers/${currentConsumerId}/disputes`);
     if (!data || data.ok === false) {
       panel.classList.add("hidden");
-      currentDisputeData = null;
       return;
     }
-    currentDisputeData = data;
     panel.classList.remove("hidden");
-    renderDisputeTracker(data);
-  } catch (err) {
-    console.error('Failed to load dispute tracker', err);
-    panel.classList.add("hidden");
-    currentDisputeData = null;
-  }
-}
-
-function openLetterPreviewModal(letterJobId, letters, roundNum) {
-  let existing = document.getElementById('letterPreviewModal');
-  if (existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'letterPreviewModal';
-  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);';
-
-  const tokenParam = authHeader()?.Authorization ? `?token=${encodeURIComponent(authHeader().Authorization.replace('Bearer ',''))}` : '';
-
-  let cardsHtml = letters.map((l, i) => {
-    const creditor = escapeHtml(l.creditor || l.creditorName || 'Letter');
-    const bureau = escapeHtml(l.bureau || '');
-    const idx = l.index ?? i;
-    const htmlUrl = `/api/letters/${encodeURIComponent(letterJobId)}/${idx}.html${tokenParam}`;
-    const pdfUrl = `/api/letters/${encodeURIComponent(letterJobId)}/${idx}.pdf${tokenParam}`;
-    return `<div class="glass card" style="padding:12px;border:1px solid rgba(212,168,83,0.15);border-radius:8px;cursor:pointer;" data-html-url="${escapeHtml(htmlUrl)}">
-      <div style="font-weight:600;color:#fff;font-size:13px;">${creditor}</div>
-      <div style="font-size:11px;color:#888;margin-bottom:8px;">${bureau}</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-outline text-xs lpm-view" data-url="${escapeHtml(htmlUrl)}">View</button>
-        <a class="btn btn-outline text-xs" href="${escapeHtml(pdfUrl)}" target="_blank" style="text-decoration:none;">PDF</a>
-      </div>
-    </div>`;
-  }).join('');
-
-  modal.innerHTML = `
-    <div style="background:#1a1a1e;border:1px solid rgba(212,168,83,0.2);border-radius:12px;width:90%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
-      <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-weight:700;color:#fff;font-size:16px;">Generated Letters — Round ${escapeHtml(String(roundNum))}</div>
-          <div style="font-size:12px;color:#888;">${letters.length} letter${letters.length !== 1 ? 's' : ''} generated</div>
-        </div>
-        <button id="lpmClose" style="background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:4px 8px;">&times;</button>
-      </div>
-      <div style="padding:16px 20px;overflow-y:auto;flex:1;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">${cardsHtml}</div>
-      </div>
-      <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;flex-wrap:wrap;">
-        <a class="btn btn-outline text-xs" href="/api/letters/${encodeURIComponent(letterJobId)}/all.zip${tokenParam}" style="text-decoration:none;">Download All (ZIP)</a>
-        <button class="btn btn-outline text-xs" id="lpmSendPortal">Send to Portal</button>
-        <a class="btn btn-outline text-xs" href="/letters?job=${encodeURIComponent(letterJobId)}" target="_blank" style="text-decoration:none;">Open Full View</a>
-        <button class="btn text-xs" id="lpmDone" style="margin-left:auto;">Done</button>
-      </div>
-    </div>
-    <div id="lpmIframeOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(4px);flex-direction:column;">
-      <div style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.1);">
-        <span id="lpmIframeTitle" style="color:#fff;font-weight:600;font-size:14px;">Letter Preview</span>
-        <button id="lpmIframeClose" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;">&times;</button>
-      </div>
-      <iframe id="lpmIframe" style="flex:1;width:100%;border:none;background:#fff;"></iframe>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  const closeModal = () => { modal.remove(); loadDisputeTracker(); };
-  modal.querySelector('#lpmClose').addEventListener('click', closeModal);
-  modal.querySelector('#lpmDone').addEventListener('click', closeModal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
-  modal.querySelectorAll('.lpm-view').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const url = btn.dataset.url;
-      const overlay = modal.querySelector('#lpmIframeOverlay');
-      const iframe = modal.querySelector('#lpmIframe');
-      iframe.src = url;
-      overlay.style.display = 'flex';
-    });
-  });
-
-  const iframeOverlay = modal.querySelector('#lpmIframeOverlay');
-  modal.querySelector('#lpmIframeClose').addEventListener('click', () => {
-    iframeOverlay.style.display = 'none';
-    modal.querySelector('#lpmIframe').src = '';
-  });
-
-  modal.querySelector('#lpmSendPortal').addEventListener('click', async () => {
-    const btn = modal.querySelector('#lpmSendPortal');
-    btn.disabled = true;
-    btn.textContent = 'Sending...';
-    try {
-      const res = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
-      if (res?.ok) {
-        btn.textContent = 'Sent to Portal';
-        btn.style.color = '#4ade80';
-      } else {
-        btn.textContent = 'Failed';
-        showErr(res?.error || 'Failed to send to portal.');
-      }
-    } catch (err) {
-      btn.textContent = 'Failed';
-      showErr(String(err));
-    }
-  });
-}
-
-function renderDisputeTracker(data) {
-  const subtitle = $("#disputeTrackerSubtitle");
-  const analysisCard = $("#disputeAnalysisCard");
-  const analysisBody = $("#disputeAnalysisBody");
-  const analysisTitle = $("#disputeAnalysisTitle");
-  const timeline = $("#disputeTimeline");
-
-  const activation = data.activation;
-  const rounds = data.rounds || [];
-
-  if (activation && activation.items && activation.items.length > 0) {
-    analysisCard.classList.remove("hidden");
-    analysisTitle.textContent = `Report Analysis — ${activation.items.length} negative item${activation.items.length !== 1 ? 's' : ''} found`;
-    let html = '';
-    activation.items.forEach(item => {
-      const creditor = escapeHtml(item.creditor || 'Unknown');
-      const bureaus = (item.bureaus || []).map(b => escapeHtml(b)).join(', ') || 'N/A';
-      const vCount = item.violationCount || 0;
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(212,168,83,0.06);border:1px solid rgba(212,168,83,0.15);border-radius:8px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;color:#fff;font-size:13px;">${creditor}</div>
-          <div style="font-size:11px;color:#888;">${bureaus} • ${vCount} violation${vCount !== 1 ? 's' : ''}</div>
-        </div>
+    const rounds = data.rounds || [];
+    const totalItems = rounds.reduce((sum, r) => sum + (r.items || []).length, 0);
+    const activeRounds = rounds.filter(r => r.status !== 'resolved').length;
+    const resolved = rounds.filter(r => r.status === 'resolved').length;
+    const subtitle = $("#disputeTrackerSubtitle");
+    const body = $("#disputeSummaryBody");
+    const link = $("#disputeTrackerLink");
+    if (link) link.href = `/disputes?client=${encodeURIComponent(currentConsumerId)}`;
+    if (rounds.length === 0) {
+      if (subtitle) subtitle.textContent = 'No active disputes.';
+      if (body) body.innerHTML = '<div class="muted" style="padding:4px 0;">No dispute rounds recorded yet.</div>';
+    } else {
+      if (subtitle) subtitle.textContent = `${rounds.length} round${rounds.length !== 1 ? 's' : ''} • ${totalItems} item${totalItems !== 1 ? 's' : ''} tracked`;
+      if (body) body.innerHTML = `<div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 0;">
+        <div><span style="font-weight:600;color:#d4a853;font-size:18px;">${activeRounds}</span> <span class="muted">active</span></div>
+        <div><span style="font-weight:600;color:#4ade80;font-size:18px;">${resolved}</span> <span class="muted">resolved</span></div>
+        <div><span style="font-weight:600;color:#fff;font-size:18px;">${totalItems}</span> <span class="muted">items</span></div>
       </div>`;
-    });
-
-    if (activation.recommendations && activation.recommendations.length > 0) {
-      html += `<div style="margin-top:8px;font-weight:600;color:#d4a853;font-size:12px;">Initial Letter Recommendations</div>`;
-      activation.recommendations.forEach(rec => {
-        const creditor = escapeHtml(rec.creditor || '');
-        const template = escapeHtml(rec.recommendedTemplate || '');
-        const reason = escapeHtml(rec.reason || '');
-        const urgencyColor = rec.urgency === 'high' ? '#f87171' : rec.urgency === 'medium' ? '#fbbf24' : '#4ade80';
-        html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 10px;background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.12);border-radius:6px;">
-          <div style="flex:1;">
-            <div style="font-size:12px;font-weight:600;color:#fff;">${creditor}: <span style="color:#60a5fa;">${template}</span></div>
-            <div style="font-size:11px;color:#888;">${reason}</div>
-          </div>
-          <span style="font-size:10px;font-weight:600;color:${urgencyColor};text-transform:uppercase;">${escapeHtml(rec.urgency || '')}</span>
-        </div>`;
-      });
     }
-    analysisBody.innerHTML = html;
-  } else {
-    analysisCard.classList.add("hidden");
+  } catch (err) {
+    console.error('Failed to load dispute tracker summary', err);
+    panel.classList.add("hidden");
   }
-
-  if (rounds.length === 0 && !activation) {
-    subtitle.textContent = 'No active disputes.';
-    timeline.innerHTML = `<div class="muted text-center" style="padding:16px;">No dispute rounds recorded yet. Upload a credit report and generate letters to begin tracking.</div>`;
-    return;
-  }
-
-  const totalItems = rounds.reduce((sum, r) => sum + (r.items || []).length, 0);
-  const activeRounds = rounds.filter(r => r.status !== 'resolved').length;
-  subtitle.textContent = `${rounds.length} round${rounds.length !== 1 ? 's' : ''} • ${totalItems} item${totalItems !== 1 ? 's' : ''} tracked${activeRounds > 0 ? ` • ${activeRounds} active` : ''}`;
-
-  let html = '';
-  rounds.forEach((round, rIdx) => {
-    const roundNum = round.round || (rIdx + 1);
-    const sentDate = round.sentAt ? new Date(round.sentAt).toLocaleDateString() : 'N/A';
-    const followUpDate = round.followUpDate ? new Date(round.followUpDate).toLocaleDateString() : 'N/A';
-    const followUpDays = round.followUpDays || 30;
-    const questionnaireCompleted = round.questionnaireCompleted || false;
-    const jobId = round.jobId || '';
-
-    html += `<div class="glass card" style="border-left:3px solid ${round.status === 'resolved' ? '#4ade80' : '#d4a853'};padding:12px;">`;
-    html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div>
-        <span style="font-weight:700;color:#fff;font-size:14px;">Round ${escapeHtml(String(roundNum))}</span>
-        <span style="font-size:12px;color:#888;margin-left:8px;">Sent ${sentDate}</span>
-        ${disputeStatusBadge(round.status || 'awaiting')}
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:11px;color:#888;">Follow-up:</span>
-        <input type="number" class="dispute-followup-days" data-job-id="${escapeHtml(jobId)}" value="${followUpDays}" min="1" max="365" style="width:60px;padding:2px 6px;border-radius:6px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:12px;text-align:center;" />
-        <span style="font-size:11px;color:#888;">days (${followUpDate})</span>
-      </div>
-    </div>`;
-
-    html += `<div style="font-size:11px;color:${questionnaireCompleted ? '#4ade80' : '#888'};margin-bottom:8px;">
-      ${questionnaireCompleted ? '✓ Client questionnaire completed' : '○ Awaiting client questionnaire'}
-    </div>`;
-
-    const items = round.items || [];
-    if (items.length > 0) {
-      html += `<div class="space-y-2" style="margin-bottom:8px;">`;
-      items.forEach((item, itemIdx) => {
-        const creditor = escapeHtml(item.creditor || 'Unknown');
-        const bureau = escapeHtml(item.bureau || '');
-        const status = item.status || 'awaiting';
-        const notes = item.notes ? escapeHtml(item.notes) : '';
-        const iDays = item.followUpDays || 30;
-        const iDate = item.followUpDate ? new Date(item.followUpDate).toLocaleDateString() : '';
-        const overrideKey = `${jobId}__${itemIdx}`;
-        const currentOverride = disputeTemplateOverrides[overrideKey] || '';
-        const currentLetterType = item.letterType || '';
-
-        html += `<div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;color:#fff;font-size:12px;">${creditor}</div>
-              <div style="font-size:11px;color:#888;">${bureau}${currentLetterType ? ' • <span style="color:#60a5fa;">' + escapeHtml(currentLetterType) + '</span>' : ''}${notes ? ' • ' + notes : ''}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-              <input type="number" class="dispute-item-followup-days" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" value="${iDays}" min="1" max="180" style="width:44px;padding:1px 4px;border-radius:4px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:10px;text-align:center;" title="Follow-up days for this item" />
-              <span style="font-size:10px;color:#666;">${iDate ? iDate : 'd'}</span>
-            </div>
-            ${disputeStatusBadge(status)}
-          </div>`;
-
-        if (round.status !== 'resolved') {
-          const tplOptions = (DISPUTE_LETTER_TEMPLATES || []).map(t => {
-            const tid = escapeHtml(t.id || '');
-            const tname = escapeHtml(t.name || t.id || '');
-            const selected = currentOverride === t.id ? ' selected' : '';
-            return `<option value="${tid}"${selected}>${tname}</option>`;
-          }).join('');
-          html += `<div style="margin-top:4px;">
-            <select class="dispute-template-override" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" style="width:100%;padding:2px 6px;border-radius:4px;border:1px solid rgba(96,165,250,0.2);background:#1a1a1e;color:#9ca3af;font-size:10px;">
-              <option value="">Auto (use recommendation)</option>
-              ${tplOptions}
-            </select>
-          </div>`;
-        }
-
-        if (item.evidence && item.evidence.length > 0) {
-          html += `<div style="padding-left:18px;margin-top:4px;">`;
-          item.evidence.forEach(ev => {
-            const name = escapeHtml(ev.name || ev.originalName || 'Evidence');
-            const url = ev.url ? escapeHtml(ev.url) : '#';
-            html += `<div style="font-size:11px;color:#60a5fa;"><a href="${url}" target="_blank" style="color:#60a5fa;text-decoration:underline;">📎 ${name}</a></div>`;
-          });
-          html += `</div>`;
-        }
-
-        if (item.recommendation) {
-          const rec = item.recommendation;
-          const tpl = escapeHtml(rec.recommendedTemplate || 'None');
-          const reason = escapeHtml(rec.reason || '');
-          const altTemplates = (rec.alternativeTemplates || []).map(t => escapeHtml(t)).join(', ');
-          html += `<div style="margin-top:4px;padding:4px 8px;background:rgba(96,165,250,0.06);border-radius:4px;border:1px solid rgba(96,165,250,0.1);">
-            <div style="font-size:11px;color:#60a5fa;font-weight:600;">Recommended: ${tpl}</div>
-            <div style="font-size:10px;color:#888;">${reason}</div>
-            ${altTemplates ? `<div style="font-size:10px;color:#666;">Alternatives: ${altTemplates}</div>` : ''}
-          </div>`;
-        }
-
-        html += `</div>`;
-      });
-      html += `</div>`;
-    }
-
-    if (round.letters && round.letters.length > 0) {
-      html += `<div style="font-size:11px;color:#888;margin-bottom:4px;">Letters sent: ${round.letters.length}</div>`;
-    }
-
-    html += `<div style="display:flex;gap:6px;margin-top:8px;">`;
-    if (round.status !== 'resolved') {
-      html += `<button class="btn btn-outline text-xs dispute-generate-next" data-job-id="${escapeHtml(jobId)}" data-round="${roundNum}">Generate Next Round</button>`;
-      html += `<button class="btn btn-outline text-xs dispute-mark-resolved" data-job-id="${escapeHtml(jobId)}">Mark Resolved</button>`;
-    }
-    html += `<button class="btn btn-outline text-xs dispute-delete-round" data-job-id="${escapeHtml(jobId)}" style="color:#ef4444;border-color:rgba(239,68,68,0.3);">Delete Round</button>`;
-    html += `</div>`;
-
-    html += `</div>`;
-  });
-
-  timeline.innerHTML = html;
-
-  timeline.querySelectorAll('.dispute-followup-days').forEach(input => {
-    input.addEventListener('change', async (e) => {
-      const jobId = e.target.dataset.jobId;
-      const days = parseInt(e.target.value, 10);
-      if (!days || days < 1 || !jobId || !currentConsumerId) return;
-      try {
-        const res = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/settings`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ followUpDays: days })
-        });
-        if (res?.ok) {
-          await loadDisputeTracker();
-        } else {
-          showErr(res?.error || 'Failed to update follow-up timing.');
-        }
-      } catch (err) {
-        showErr(String(err));
-      }
-    });
-  });
-
-  timeline.querySelectorAll('.dispute-item-followup-days').forEach(input => {
-    input.addEventListener('change', async (e) => {
-      const jobId = e.target.dataset.jobId;
-      const itemIndex = parseInt(e.target.dataset.itemIndex, 10);
-      const days = parseInt(e.target.value, 10);
-      if (!days || days < 1 || isNaN(itemIndex) || !jobId || !currentConsumerId) return;
-      try {
-        const res = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/settings`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ followUpDays: days, itemIndex })
-        });
-        if (res?.ok) {
-          await loadDisputeTracker();
-        } else {
-          showErr(res?.error || 'Failed to update item follow-up.');
-        }
-      } catch (err) {
-        showErr(String(err));
-      }
-    });
-  });
-
-  timeline.querySelectorAll('.dispute-template-override').forEach(sel => {
-    sel.addEventListener('change', (e) => {
-      const key = `${e.target.dataset.jobId}__${e.target.dataset.itemIndex}`;
-      if (e.target.value) {
-        disputeTemplateOverrides[key] = e.target.value;
-        e.target.style.color = '#60a5fa';
-      } else {
-        delete disputeTemplateOverrides[key];
-        e.target.style.color = '#9ca3af';
-      }
-    });
-  });
-
-  timeline.querySelectorAll('.dispute-generate-next').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const jobId = e.target.dataset.jobId;
-      const roundNum = parseInt(e.target.dataset.round, 10) || 1;
-      if (!jobId || !currentConsumerId) return;
-      const origText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Generating...';
-      try {
-        const recData = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/recommendation`);
-        if (!recData?.ok || !recData.recommendations || !recData.recommendations.length) {
-          showErr(recData?.error || 'No recommendations available.');
-          btn.disabled = false;
-          btn.textContent = origText;
-          return;
-        }
-        const recs = recData.recommendations.filter(r => !r.resolved);
-        if (!recs.length) {
-          showErr('All items are already resolved — no next round needed.');
-          btn.disabled = false;
-          btn.textContent = origText;
-          return;
-        }
-        const selMap = {};
-        recs.forEach(r => {
-          const tlIdx = r.tradelineIndex ?? null;
-          if (tlIdx === null) return;
-          const itemIdx = r.itemIndex ?? null;
-          const overrideKey = itemIdx !== null ? `${jobId}__${itemIdx}` : null;
-          const templateId = (overrideKey && disputeTemplateOverrides[overrideKey]) || r.recommendedTemplate || null;
-          const groupKey = `${tlIdx}__${templateId || 'default'}`;
-          if (!selMap[groupKey]) {
-            selMap[groupKey] = { tradelineIndex: tlIdx, bureaus: [], templateId };
-          }
-          if (r.bureau && !selMap[groupKey].bureaus.includes(r.bureau)) {
-            selMap[groupKey].bureaus.push(r.bureau);
-          }
-        });
-        const selections = Object.values(selMap);
-        selections.forEach(sel => {
-          if (!sel.bureaus.length) sel.bureaus = ['TransUnion', 'Experian', 'Equifax'];
-        });
-        if (!selections.length) {
-          showErr('Could not determine tradeline selections from recommendations. Please generate letters manually.');
-          btn.disabled = false;
-          btn.textContent = origText;
-          return;
-        }
-        btn.textContent = 'Sending to server...';
-        const genResp = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-idempotency-key": buildIdempotencyKey('dispute-next-round'), ...authHeader() },
-          body: JSON.stringify({
-            consumerId: currentConsumerId,
-            reportId: currentReportId,
-            selections,
-            personalInfo: false,
-            collectors: [],
-          })
-        });
-        if (!genResp.ok) {
-          const txt = await genResp.text().catch(() => "");
-          throw new Error(`Generation failed: HTTP ${genResp.status} ${txt}`.trim());
-        }
-        const genData = await genResp.json().catch(() => ({}));
-        if (!genData?.ok || !genData?.jobId) throw new Error(genData?.error || "Server did not return a job ID.");
-        const letterJobId = genData.jobId;
-        btn.textContent = 'Processing letters...';
-        let jobDone = false;
-        for (let i = 0; i < 60; i++) {
-          await new Promise(r => setTimeout(r, 1500));
-          const statusResp = await api(`/api/jobs/${encodeURIComponent(letterJobId)}`);
-          const jobStatus = statusResp?.job?.status || statusResp?.status;
-          if (jobStatus === 'completed' || jobStatus === 'done') { jobDone = true; break; }
-          if (jobStatus === 'failed') throw new Error(statusResp?.job?.error || statusResp?.error || 'Letter generation job failed.');
-        }
-        if (!jobDone) throw new Error('Letter generation timed out.');
-        const lettersData = await api(`/api/letters/${encodeURIComponent(letterJobId)}`);
-        if (!lettersData?.letters || !lettersData.letters.length) throw new Error('No letters were generated.');
-        openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1);
-      } catch (err) {
-        showErr(String(err.message || err));
-      } finally {
-        btn.disabled = false;
-        btn.textContent = origText;
-      }
-    });
-  });
-
-  timeline.querySelectorAll('.dispute-mark-resolved').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const jobId = e.target.dataset.jobId;
-      if (!jobId || !currentConsumerId) return;
-      if (!confirm('Mark this dispute round as resolved?')) return;
-      try {
-        const round = currentDisputeData?.rounds?.find(r => r.jobId === jobId);
-        if (round && round.items) {
-          const items = round.items.map(item => ({
-            creditor: item.creditor,
-            bureau: item.bureau,
-            outcome: 'removed',
-            notes: 'Marked resolved by CRM user'
-          }));
-          const res = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/response`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items })
-          });
-          if (res?.ok) {
-            await loadDisputeTracker();
-          } else {
-            showErr(res?.error || 'Failed to mark resolved.');
-          }
-        }
-      } catch (err) {
-        showErr(String(err));
-      }
-    });
-  });
-
-  timeline.querySelectorAll('.dispute-delete-round').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const jobId = e.target.dataset.jobId;
-      if (!jobId || !currentConsumerId) return;
-      if (!confirm('Delete this dispute round and all associated portal files? This cannot be undone.')) return;
-      const origText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Deleting…';
-      try {
-        const res = await api(`/api/letters/${encodeURIComponent(jobId)}?consumerId=${encodeURIComponent(currentConsumerId)}`, { method: 'DELETE' });
-        if (res?.ok) {
-          await loadDisputeTracker();
-        } else {
-          showErr(res?.error || 'Failed to delete round.');
-          btn.disabled = false;
-          btn.textContent = origText;
-        }
-      } catch (err) {
-        showErr(String(err));
-        btn.disabled = false;
-        btn.textContent = origText;
-      }
-    });
-  });
 }
-
-$("#btnRefreshDisputes")?.addEventListener("click", () => {
-  loadDisputeTracker();
-});
 
 // ===================== Init =====================
 loadConsumers(true, true);
 loadTracker();
 updatePortalLink();
+
 
 const companyName = localStorage.getItem("companyName");
 if (companyName) {
