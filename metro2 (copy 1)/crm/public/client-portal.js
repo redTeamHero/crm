@@ -1973,6 +1973,40 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    var testsHtml = '';
+    if(activeTier === 'beginner' && window.BEGINNER_TESTS){
+      var testProgress = typeof window.getBeginnerTestProgress === 'function' ? window.getBeginnerTestProgress() : null;
+      testsHtml += '<div class="edu-beginner-tests">';
+      testsHtml += '<div class="edu-tests-header">Beginner Tests</div>';
+      testsHtml += '<div class="edu-tests-grid">';
+      window.BEGINNER_TESTS.forEach(function(t){
+        var lessonsReady = typeof window.areTestLessonsComplete === 'function' && window.areTestLessonsComplete(t.subjects);
+        var passed = testProgress && testProgress.isTestPassed(t.index);
+        var cardClass = 'edu-test-card';
+        if(passed) cardClass += ' passed';
+        else if(!lessonsReady) cardClass += ' locked';
+        testsHtml += '<div class="' + cardClass + '">';
+        testsHtml += '<div class="edu-test-card-header">';
+        testsHtml += '<span class="edu-test-label">' + t.label + '</span>';
+        if(passed) testsHtml += '<span class="edu-test-passed-badge">\u2713 Passed</span>';
+        else if(!lessonsReady) testsHtml += '<span class="edu-test-locked-badge">\uD83D\uDD12</span>';
+        testsHtml += '</div>';
+        testsHtml += '<div class="edu-test-subjects">';
+        t.names.forEach(function(n){ testsHtml += '<div class="edu-test-subject">' + esc(n) + '</div>'; });
+        testsHtml += '</div>';
+        testsHtml += '<div class="edu-test-meta">' + t.count + ' questions \u00B7 15 min \u00B7 70% to pass</div>';
+        if(lessonsReady && !passed){
+          testsHtml += '<button class="edu-test-btn" data-test-index="' + t.index + '" type="button">Take Test</button>';
+        } else if(passed){
+          testsHtml += '<button class="edu-test-btn retake" data-test-index="' + t.index + '" type="button">Retake</button>';
+        } else {
+          testsHtml += '<button class="edu-test-btn disabled" disabled type="button">Complete Lessons First</button>';
+        }
+        testsHtml += '</div>';
+      });
+      testsHtml += '</div></div>';
+    }
+
     var quizHtml = '';
     var tierAllComplete = typeof window.isTierComplete === 'function' && window.isTierComplete(activeTier);
     var tierQuizPassed = typeof window.isTierQuizPassed === 'function' && window.isTierQuizPassed(activeTier);
@@ -2006,7 +2040,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     quizHtml += '</div>';
 
-    container.innerHTML = tabsHtml + tierInfoHtml + mapHtml + quizHtml;
+    container.innerHTML = tabsHtml + tierInfoHtml + mapHtml + testsHtml + quizHtml;
 
     container.querySelectorAll('.edu-tier-tab').forEach(function(tab){
       tab.addEventListener('click', function(){
@@ -2034,6 +2068,13 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', function(){
         var tier = btn.getAttribute('data-cert-tier');
         if(typeof window.generateCertificate === 'function') window.generateCertificate(tier);
+      });
+    });
+
+    container.querySelectorAll('[data-test-index]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.getAttribute('data-test-index'), 10);
+        if(typeof window.openBeginnerTest === 'function') window.openBeginnerTest(idx);
       });
     });
   }

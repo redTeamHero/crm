@@ -798,6 +798,7 @@
     var qp = getQuizProgress();
     var total = 0;
     for(var key in qp){
+      if(key.indexOf('beginner_test_') === 0) continue;
       if(qp[key] && qp[key].passed && qp[key].bonusXP) total += qp[key].bonusXP;
     }
     return total;
@@ -806,6 +807,283 @@
   var origGetTotalXP = getTotalXP;
   getTotalXP = function(){
     return origGetTotalXP() + getTierQuizXP();
+  };
+
+  var BEGINNER_TESTS = [
+    { index: 0, label: 'Test 1', subjects: ['negative-items', 'dispute-process'], names: ['Types of Negative Items', 'The Dispute Process'], count: 25 },
+    { index: 1, label: 'Test 2', subjects: ['writing-disputes', 'building-credit'], names: ['Writing Effective Disputes', 'Building Positive Credit'], count: 25 },
+    { index: 2, label: 'Test 3', subjects: ['advanced-strategies', 'maintaining-score'], names: ['Advanced Strategies', 'Maintaining Your Score'], count: 25 },
+    { index: 3, label: 'Test 4', subjects: ['identity-theft-recovery', 'credit-building'], names: ['Identity Theft Recovery', 'Credit Building Strategies'], count: 25 }
+  ];
+
+  var BEGINNER_TEST_TIME = 900;
+  var BEGINNER_TEST_PASS = 0.7;
+  var BEGINNER_TEST_XP = 100;
+
+  function getBeginnerTestProgress(){
+    var qp = getQuizProgress();
+    return {
+      isTestPassed: function(idx){ var k = 'beginner_test_' + idx; return qp[k] && qp[k].passed; },
+      saveTestResult: function(idx, result){
+        var qp2 = getQuizProgress();
+        qp2['beginner_test_' + idx] = result;
+        saveQuizProgress(qp2);
+        if(result.passed){
+          var p = getProgress();
+          var quizKey = '_quiz_beginner_test_' + idx;
+          if(!p[quizKey]) p[quizKey] = {};
+          p[quizKey].completed = true;
+          p[quizKey].completedAt = Date.now();
+          p[quizKey].bonusXP = BEGINNER_TEST_XP;
+          saveProgress(p);
+        }
+      }
+    };
+  }
+
+  function areTestLessonsComplete(subjects){
+    var p = getProgress();
+    for(var i = 0; i < subjects.length; i++){
+      if(!p[subjects[i]] || !p[subjects[i]].completed) return false;
+    }
+    return true;
+  }
+
+  function buildTestQuestions(subjects, count){
+    var lessons = window.EDUCATION_LESSONS || [];
+    var scenarios = [];
+    lessons.forEach(function(lesson){
+      if(subjects.indexOf(lesson.id) === -1) return;
+      if(!lesson.sections) return;
+      lesson.sections.forEach(function(sec){
+        if(sec.type === 'scenario'){
+          scenarios.push({ lessonTitle: lesson.title, title: sec.title, question: sec.question, options: sec.options, story: sec.story });
+        }
+      });
+    });
+    for(var i = scenarios.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = scenarios[i]; scenarios[i] = scenarios[j]; scenarios[j] = tmp;
+    }
+    return scenarios.slice(0, Math.min(count, scenarios.length));
+  }
+
+  function openBeginnerTest(testIndex){
+    var test = BEGINNER_TESTS[testIndex];
+    if(!test) return;
+    if(!areTestLessonsComplete(test.subjects)) return;
+
+    var questions = buildTestQuestions(test.subjects, test.count);
+    if(!questions.length) return;
+
+    var overlay = createOverlay();
+    var currentQ = 0;
+    var answers = {};
+    var timeLimit = BEGINNER_TEST_TIME;
+    var timeLeft = timeLimit;
+    var timer = null;
+    var quizFinished = false;
+    var testProgress = getBeginnerTestProgress();
+
+    function startTimer(){
+      timer = setInterval(function(){
+        timeLeft--;
+        var el = overlay.querySelector('#quizTimer');
+        if(el) el.textContent = formatTestTime(timeLeft);
+        if(timeLeft <= 60){
+          var tw = overlay.querySelector('.quiz-timer');
+          if(tw) tw.classList.add('warning');
+        }
+        if(timeLeft <= 0){
+          clearInterval(timer);
+          finishTest();
+        }
+      }, 1000);
+    }
+
+    function formatTestTime(s){
+      var m = Math.floor(s / 60);
+      var sec = s % 60;
+      return m + ':' + (sec < 10 ? '0' : '') + sec;
+    }
+
+    function renderQuestion(){
+      if(quizFinished) return;
+      var q = questions[currentQ];
+      var progressPct = ((currentQ + 1) / questions.length) * 100;
+
+      var html = '<div class="lesson-player quiz-player">';
+      html += '<div class="lesson-player-header quiz-header">';
+      html += '<button class="lesson-close-btn" id="quizClose" type="button" aria-label="Close">';
+      html += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      html += '</button>';
+      html += '<div class="lesson-header-info">';
+      html += '<div class="lesson-header-title"><span class="lesson-tier-badge" style="background:#d4a85320;color:#d4a853">Beginner ' + test.label + '</span></div>';
+      html += '<div class="lesson-header-step">Question ' + (currentQ + 1) + ' of ' + questions.length + '</div>';
+      html += '</div>';
+      html += '<div class="quiz-timer' + (timeLeft <= 60 ? ' warning' : '') + '"><span class="quiz-timer-icon">\u23F1</span><span id="quizTimer">' + formatTestTime(timeLeft) + '</span></div>';
+      html += '<div class="lesson-progress-bar"><div class="lesson-progress-fill" style="width:' + progressPct + '%;background:#d4a853"></div></div>';
+      html += '</div>';
+
+      html += '<div class="lesson-player-body">';
+      html += '<div class="lesson-scenario">';
+      html += '<div class="lesson-scenario-badge">\uD83D\uDCDD ' + test.label + ' Question</div>';
+      html += '<h2 class="lesson-section-title">' + esc(q.title) + '</h2>';
+      html += '<div class="lesson-scenario-story">' + formatBody(q.story) + '</div>';
+      html += '<div class="lesson-scenario-question">' + esc(q.question) + '</div>';
+      html += '<div class="lesson-options" id="quizOptions">';
+      q.options.forEach(function(opt, oi){
+        var isAnswered = answers[currentQ] !== undefined;
+        var isSelected = answers[currentQ] === oi;
+        var optClass = 'lesson-option';
+        if(isAnswered){
+          if(opt.correct) optClass += ' correct';
+          else if(isSelected) optClass += ' incorrect';
+          else optClass += ' dimmed';
+        }
+        html += '<button class="' + optClass + '" data-oi="' + oi + '" type="button"' + (isAnswered ? ' disabled' : '') + '>';
+        html += '<span class="lesson-option-letter">' + String.fromCharCode(65 + oi) + '</span>';
+        html += '<span class="lesson-option-text">' + esc(opt.text) + '</span>';
+        if(isAnswered && (opt.correct || isSelected)){
+          html += '<span class="lesson-option-icon">' + (opt.correct ? '\u2713' : '\u2717') + '</span>';
+        }
+        html += '</button>';
+      });
+      html += '</div>';
+      if(answers[currentQ] !== undefined){
+        var chosen = q.options[answers[currentQ]];
+        var fbClass = chosen.correct ? 'correct' : 'incorrect';
+        html += '<div class="lesson-feedback ' + fbClass + '">';
+        html += '<div class="lesson-feedback-header">' + (chosen.correct ? '\u2705 Correct!' : '\u274C Not quite') + '</div>';
+        html += '<div class="lesson-feedback-text">' + esc(chosen.explanation) + '</div>';
+        html += '</div>';
+      }
+      html += '</div></div>';
+
+      html += '<div class="lesson-player-footer">';
+      if(currentQ > 0){
+        html += '<button class="lesson-btn lesson-btn-back" id="quizBack" type="button">\u2190 Back</button>';
+      } else { html += '<div></div>'; }
+      var canProceed = answers[currentQ] !== undefined;
+      if(currentQ < questions.length - 1){
+        html += '<button class="lesson-btn lesson-btn-next' + (!canProceed ? ' disabled' : '') + '" id="quizNext" type="button"' + (!canProceed ? ' disabled' : '') + '>Next \u2192</button>';
+      } else {
+        html += '<button class="lesson-btn lesson-btn-complete' + (!canProceed ? ' disabled' : '') + '" id="quizFinish" type="button"' + (!canProceed ? ' disabled' : '') + '>Finish Test</button>';
+      }
+      html += '</div></div>';
+
+      overlay.innerHTML = html;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+
+      overlay.querySelector('#quizClose').addEventListener('click', function(){
+        if(confirm('Are you sure you want to leave? Your progress will be lost.')) closeTest();
+      });
+      var backBtn = overlay.querySelector('#quizBack');
+      if(backBtn) backBtn.addEventListener('click', function(){ currentQ--; renderQuestion(); });
+      var nextBtn = overlay.querySelector('#quizNext');
+      if(nextBtn && canProceed) nextBtn.addEventListener('click', function(){ currentQ++; renderQuestion(); });
+      var finishBtn = overlay.querySelector('#quizFinish');
+      if(finishBtn && canProceed) finishBtn.addEventListener('click', finishTest);
+
+      if(answers[currentQ] === undefined){
+        overlay.querySelectorAll('.lesson-option').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            answers[currentQ] = parseInt(btn.getAttribute('data-oi'));
+            renderQuestion();
+          });
+        });
+      }
+
+      var body = overlay.querySelector('.lesson-player-body');
+      if(body) body.scrollTop = 0;
+    }
+
+    function finishTest(){
+      quizFinished = true;
+      if(timer) clearInterval(timer);
+
+      var correct = 0;
+      var total = questions.length;
+      for(var i = 0; i < total; i++){
+        if(answers[i] !== undefined){
+          var q = questions[i];
+          if(q.options[answers[i]] && q.options[answers[i]].correct) correct++;
+        }
+      }
+
+      var pct = total > 0 ? correct / total : 0;
+      var passed = pct >= BEGINNER_TEST_PASS;
+      var bonusXP = passed ? BEGINNER_TEST_XP : 0;
+
+      if(passed){
+        testProgress.saveTestResult(testIndex, { passed: true, score: correct, total: total, pct: Math.round(pct * 100), bonusXP: bonusXP, completedAt: Date.now() });
+      }
+
+      var timeTaken = timeLimit - timeLeft;
+      var resultIcon = passed ? '\uD83C\uDF89' : '\uD83D\uDCDD';
+      var resultTitle = passed ? 'Test Passed!' : 'Keep Studying';
+      var resultColor = passed ? '#22c55e' : '#f59e0b';
+
+      var html = '<div class="lesson-player quiz-player">';
+      html += '<div class="lesson-completion quiz-result">';
+      html += '<div class="lesson-completion-burst" style="background:radial-gradient(circle, ' + resultColor + '22 0%, transparent 70%)"></div>';
+      html += '<div class="lesson-completion-icon">' + resultIcon + '</div>';
+      html += '<h2 class="lesson-completion-title" style="color:' + resultColor + '">' + resultTitle + '</h2>';
+      html += '<p class="lesson-completion-subtitle">Beginner ' + test.label + ': ' + test.names.join(' + ') + '</p>';
+      html += '<div class="quiz-result-score">';
+      html += '<div class="quiz-score-circle" style="--score-pct:' + Math.round(pct * 100) + '%;--score-color:' + resultColor + '">';
+      html += '<span class="quiz-score-num">' + Math.round(pct * 100) + '%</span>';
+      html += '</div>';
+      html += '<div class="quiz-score-detail">' + correct + ' of ' + total + ' correct</div>';
+      html += '<div class="quiz-score-time">Time: ' + formatTestTime(timeTaken) + '</div>';
+      html += '<div class="quiz-score-threshold">Passing: ' + Math.round(BEGINNER_TEST_PASS * 100) + '%</div>';
+      html += '</div>';
+
+      if(passed){
+        html += '<div class="lesson-completion-stats">';
+        html += '<div class="lesson-stat"><div class="lesson-stat-value">+' + bonusXP + '</div><div class="lesson-stat-label">Bonus XP</div></div>';
+        html += '<div class="lesson-stat"><div class="lesson-stat-value">\u2705</div><div class="lesson-stat-label">' + test.label + ' Passed</div></div>';
+        html += '</div>';
+      } else {
+        html += '<div class="quiz-retry-msg">Review the lessons and try again. You need ' + Math.round(BEGINNER_TEST_PASS * 100) + '% to pass.</div>';
+      }
+
+      html += '<button class="lesson-btn lesson-btn-complete" id="quizDone" type="button">' + (passed ? 'Continue' : 'Back to Lessons') + '</button>';
+      html += '</div></div>';
+
+      overlay.innerHTML = html;
+      overlay.querySelector('#quizDone').addEventListener('click', function(){
+        closeTest();
+        if(typeof window.refreshEducation === 'function') window.refreshEducation();
+      });
+    }
+
+    function closeTest(){
+      if(timer) clearInterval(timer);
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+      setTimeout(function(){ overlay.remove(); }, 300);
+      if(typeof window.refreshEducation === 'function') window.refreshEducation();
+    }
+
+    startTimer();
+    renderQuestion();
+  }
+
+  function getBeginnerTestXP(){
+    var qp = getQuizProgress();
+    var total = 0;
+    for(var i = 0; i < 4; i++){
+      var k = 'beginner_test_' + i;
+      if(qp[k] && qp[k].passed && qp[k].bonusXP) total += qp[k].bonusXP;
+    }
+    return total;
+  }
+
+  var prevGetTotalXP = getTotalXP;
+  getTotalXP = function(){
+    return prevGetTotalXP() + getBeginnerTestXP();
   };
 
   window.openLesson = openLesson;
@@ -822,4 +1100,8 @@
   window.isTierComplete = isTierComplete;
   window.isTierQuizPassed = isTierQuizPassed;
   window.generateCertificate = generateCertificate;
+  window.openBeginnerTest = openBeginnerTest;
+  window.BEGINNER_TESTS = BEGINNER_TESTS;
+  window.areTestLessonsComplete = areTestLessonsComplete;
+  window.getBeginnerTestProgress = getBeginnerTestProgress;
 })();
