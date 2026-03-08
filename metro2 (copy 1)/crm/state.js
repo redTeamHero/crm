@@ -262,10 +262,30 @@ export async function processAllReminders() {
   });
 }
 
+const DEFAULT_TRACKER_STEPS = [
+  "Initial Consultation",
+  "Credit Report Pulled",
+  "Audit Completed",
+  "Dispute Letters Sent (Round 1)",
+  "Follow-Up & Tracking",
+  "Results Reviewed",
+  "Additional Rounds (if needed)",
+  "Final Review & Graduation"
+];
+
+function seedDefaultSteps(st) {
+  if (!Array.isArray(st.trackerSteps) || st.trackerSteps.length === 0) {
+    st.trackerSteps = [...DEFAULT_TRACKER_STEPS];
+    return true;
+  }
+  return false;
+}
+
 export async function listTracker(consumerId) {
   return withStateLock(async () => {
     const st = await loadState();
-    const steps = st.trackerSteps || [];
+    seedDefaultSteps(st);
+    const steps = st.trackerSteps;
     const c = ensureConsumer(st, consumerId);
     await saveState(st);
     return { steps, completed: c.tracker || {} };
@@ -273,8 +293,12 @@ export async function listTracker(consumerId) {
 }
 
 export async function getTrackerSteps() {
-  const st = await loadState();
-  return st.trackerSteps || [];
+  return withStateLock(async () => {
+    const st = await loadState();
+    seedDefaultSteps(st);
+    await saveState(st);
+    return st.trackerSteps;
+  });
 }
 
 export async function setTrackerSteps(steps = []) {
