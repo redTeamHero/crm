@@ -7,6 +7,67 @@ let currentReportId = null;
 let currentDisputeData = null;
 let disputePollTimer = null;
 const disputeTemplateOverrides = {};
+const selectedItems = new Set();
+
+function getSelectionKey(jobId, itemIdx) {
+  return `${jobId}__${itemIdx}`;
+}
+
+function updateSelectionToolbar() {
+  const toolbar = $('#selectionToolbar');
+  if (!toolbar) return;
+  if (selectedItems.size > 0) {
+    toolbar.style.display = 'flex';
+    const countEl = toolbar.querySelector('#selCount');
+    if (countEl) countEl.textContent = selectedItems.size;
+  } else {
+    toolbar.style.display = 'none';
+  }
+}
+
+function toggleItemSelection(jobId, itemIdx, checkbox) {
+  const key = getSelectionKey(jobId, itemIdx);
+  if (checkbox.checked) {
+    selectedItems.add(key);
+  } else {
+    selectedItems.delete(key);
+  }
+  const row = checkbox.closest('.dispute-item-row');
+  if (row) row.style.background = checkbox.checked ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.03)';
+  updateSelectionToolbar();
+}
+
+async function batchUpdateStatus(newStatus) {
+  if (!selectedItems.size || !currentConsumerId || !currentDisputeData) return;
+  const byJob = {};
+  selectedItems.forEach(key => {
+    const [jobId, idx] = key.split('__');
+    if (!byJob[jobId]) byJob[jobId] = [];
+    byJob[jobId].push(parseInt(idx, 10));
+  });
+  for (const [jobId, indices] of Object.entries(byJob)) {
+    const round = currentDisputeData.rounds?.find(r => r.jobId === jobId);
+    if (!round || !round.items) continue;
+    const items = indices.map(idx => {
+      const item = round.items[idx];
+      if (!item) return null;
+      return { creditor: item.creditor, bureau: item.bureau, outcome: newStatus, notes: `Batch ${newStatus} by CRM user` };
+    }).filter(Boolean);
+    if (!items.length) continue;
+    try {
+      await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/response`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
+    } catch (err) {
+      showErr(String(err));
+    }
+  }
+  selectedItems.clear();
+  updateSelectionToolbar();
+  await loadDisputeTracker();
+}
 
 let DISPUTE_LETTER_TEMPLATES = [];
 
@@ -93,6 +154,8 @@ async function selectConsumer(id) {
   stopDisputePolling();
   currentConsumerId = id || null;
   currentReportId = null;
+  selectedItems.clear();
+  updateSelectionToolbar();
 
   if (!currentConsumerId) {
     const panel = $('#disputeTrackerPanel');
@@ -321,6 +384,12 @@ function renderDisputeTracker(data) {
 
     const items = round.items || [];
     if (items.length > 0) {
+      html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#888;">
+          <input type="checkbox" class="dispute-select-all" data-job-id="${escapeHtml(jobId)}" style="accent-color:#d4a853;width:14px;height:14px;cursor:pointer;" />
+          Select All (${items.length})
+        </label>
+      </div>`;
       html += `<div class="space-y-2" style="margin-bottom:8px;">`;
       items.forEach((item, itemIdx) => {
         const creditor = escapeHtml(item.creditor || 'Unknown');
@@ -332,9 +401,12 @@ function renderDisputeTracker(data) {
         const overrideKey = `${jobId}__${itemIdx}`;
         const currentOverride = disputeTemplateOverrides[overrideKey] || '';
         const currentLetterType = item.letterType || '';
+        const selKey = getSelectionKey(jobId, itemIdx);
+        const isChecked = selectedItems.has(selKey);
 
-        html += `<div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid rgba(255,255,255,0.06);">
+        html += `<div class="dispute-item-row" data-sel-key="${escapeHtml(selKey)}" style="padding:6px 10px;background:${isChecked ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.03)'};border-radius:6px;border:1px solid ${isChecked ? 'rgba(212,168,83,0.3)' : 'rgba(255,255,255,0.06)'};cursor:pointer;transition:background .15s,border-color .15s;">
           <div style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" class="dispute-item-check" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" ${isChecked ? 'checked' : ''} style="accent-color:#d4a853;width:15px;height:15px;cursor:pointer;flex-shrink:0;" />
             <div style="flex:1;min-width:0;">
               <div style="font-weight:600;color:#fff;font-size:12px;">${creditor}</div>
               <div style="font-size:11px;color:#888;">${bureau}${currentLetterType ? ' • <span style="color:#60a5fa;">' + escapeHtml(currentLetterType) + '</span>' : ''}${notes ? ' • ' + notes : ''}</div>
@@ -404,6 +476,49 @@ function renderDisputeTracker(data) {
   });
 
   timeline.innerHTML = html;
+
+  timeline.querySelectorAll('.dispute-item-check').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      e.stopPropagation();
+      toggleItemSelection(e.target.dataset.jobId, parseInt(e.target.dataset.itemIndex, 10), e.target);
+    });
+  });
+
+  timeline.querySelectorAll('.dispute-item-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('input, select, button, a')) return;
+      const cb = row.querySelector('.dispute-item-check');
+      if (cb) {
+        cb.checked = !cb.checked;
+        toggleItemSelection(cb.dataset.jobId, parseInt(cb.dataset.itemIndex, 10), cb);
+      }
+    });
+  });
+
+  timeline.querySelectorAll('.dispute-select-all').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const jobId = e.target.dataset.jobId;
+      const round = currentDisputeData?.rounds?.find(r => r.jobId === jobId);
+      if (!round || !round.items) return;
+      round.items.forEach((_, idx) => {
+        const key = getSelectionKey(jobId, idx);
+        if (e.target.checked) {
+          selectedItems.add(key);
+        } else {
+          selectedItems.delete(key);
+        }
+      });
+      const container = e.target.closest('.glass.card') || e.target.closest('.panel');
+      if (container) {
+        container.querySelectorAll('.dispute-item-check').forEach(itemCb => {
+          itemCb.checked = e.target.checked;
+          const row = itemCb.closest('.dispute-item-row');
+          if (row) row.style.background = e.target.checked ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.03)';
+        });
+      }
+      updateSelectionToolbar();
+    });
+  });
 
   timeline.querySelectorAll('.dispute-followup-days').forEach(input => {
     input.addEventListener('change', async (e) => {
@@ -615,6 +730,23 @@ $('#consumerPicker')?.addEventListener('change', (e) => {
 
 $('#btnRefreshDisputes')?.addEventListener('click', () => {
   loadDisputeTracker();
+});
+
+$('#batchResolve')?.addEventListener('click', () => {
+  if (!confirm(`Mark ${selectedItems.size} item(s) as resolved?`)) return;
+  batchUpdateStatus('removed');
+});
+
+$('#batchAwaiting')?.addEventListener('click', () => {
+  batchUpdateStatus('awaiting_response');
+});
+
+$('#batchClear')?.addEventListener('click', () => {
+  selectedItems.clear();
+  document.querySelectorAll('.dispute-item-check').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('.dispute-select-all').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('.dispute-item-row').forEach(row => { row.style.background = 'rgba(255,255,255,0.03)'; });
+  updateSelectionToolbar();
 });
 
 loadConsumers();
