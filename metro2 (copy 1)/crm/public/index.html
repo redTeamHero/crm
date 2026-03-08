@@ -231,45 +231,42 @@
         </article>
 
         <article class="glass panel">
-          <div class="panel-header panel-header--centered">
+          <div class="panel-header" style="align-items:center;">
             <div class="panel-header-text">
               <div class="panel-title">Negative Items</div>
-              <p class="panel-subtitle">Select tradelines to dispute.</p>
             </div>
-            <div class="panel-actions negative-options">
-              <label class="text-sm flex items-center gap-2" title="Generate debt collector letters">
+            <div class="panel-actions" style="gap:6px;flex-wrap:wrap;align-items:center;">
+              <label class="text-xs flex items-center gap-1" title="Generate debt collector letters">
                 <input type="checkbox" id="cbCollectors" /> Collectors
               </label>
-              <label class="text-sm flex items-center gap-2" title="Generate personal information letters">
+              <label class="text-xs flex items-center gap-1" title="Generate personal information letters">
                 <input type="checkbox" id="cbPersonalInfo" /> Personal Info
               </label>
-              <label class="text-sm flex items-center gap-2" title="Use AI to reword letters">
+              <label class="text-xs flex items-center gap-1" title="Use AI to reword letters">
                 <input type="checkbox" id="cbUseGpt" /> AI
               </label>
-              <label class="text-sm flex items-center gap-2" title="Render OCR-resistant PDFs">
+              <label class="text-xs flex items-center gap-1" title="Render OCR-resistant PDFs">
                 <input type="checkbox" id="cbUseOcr" /> OCR
               </label>
-              <button id="btnSelectAll" class="btn btn-outline text-sm" data-tip="Select or deselect all negative items">Select All</button>
-              <button id="btnSelectNegative" class="btn btn-outline text-sm" data-tip="Select or deselect high-priority negative items">Select Negative Items</button>
-              <button id="btnGenerate" class="btn" data-tip="Generate Letters (G)">Generate Letters</button>
+              <button id="btnSelectAll" class="btn btn-outline text-xs" data-tip="Select or deselect all negative items">Select All</button>
+              <button id="btnSelectNegative" class="btn btn-outline text-xs" data-tip="Select or deselect high-priority negative items">Select Negative</button>
+              <button id="btnGenerate" class="btn text-xs" data-tip="Generate Letters (G)">Generate Letters</button>
               <div class="view-toggle">
                 <button id="btnCardView" class="view-toggle-btn active" title="Card View">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
                 </button>
                 <button id="btnListView" class="view-toggle-btn" title="List View">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="14" height="3" rx="1"/><rect x="1" y="6.5" width="14" height="3" rx="1"/><rect x="1" y="12" width="14" height="3" rx="1"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="14" height="3" rx="1"/><rect x="1" y="6.5" width="14" height="3" rx="1"/><rect x="1" y="12" width="14" height="3" rx="1"/></svg>
                 </button>
               </div>
             </div>
           </div>
-          <div id="modeBar" class="mode-bar"></div>
-          <div class="filters">
-            <div class="filters-header">Filters</div>
-            <div id="filterBar" class="filter-bar"></div>
-            <button id="btnClearFilters" class="btn btn-outline mt-2" data-tip="Clear Filters (C)">Clear Filters</button>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;">
+            <div id="modeBar" class="mode-bar" style="margin:0;gap:6px;"></div>
+            <div id="filterBar" class="filter-bar" style="gap:6px;"></div>
+            <button id="btnClearFilters" class="btn-link text-xs" data-tip="Clear Filters (C)" style="color:#d4a853;background:none;border:none;cursor:pointer;padding:2px 6px;font-size:11px;">Clear Filters</button>
           </div>
-          <div class="text-xs muted mt-1 text-center">Tip: Click any card to zoom for full detail.</div>
-          <div id="tlList" class="tradeline-grid mt-3"></div>
+          <div id="tlList" class="tradeline-grid mt-2"></div>
           <div id="tlPager" class="panel-footer mt-3">
             <button id="tlPrev" class="btn btn-outline text-sm">Prev</button>
             <div class="panel-pagination text-sm muted">Page <span id="tlPage">1</span> / <span id="tlPages">1</span></div>

@@ -766,21 +766,21 @@ body::after {
 }
 
 .mode-bar {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  padding: 12px;
-  border-radius: 16px;
-  background: rgba(248, 250, 255, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  gap: 6px;
+  justify-content: flex-start;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  border: none;
 }
 
 .filters {
-  margin-top: 18px;
+  margin-top: 6px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
 .filters-header {
@@ -792,10 +792,10 @@ body::after {
 }
 
 .filter-bar {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
+  gap: 6px;
+  justify-content: flex-start;
 }
 
 .chip-row {
@@ -804,7 +804,7 @@ body::after {
 }
 
 .negative-options {
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
