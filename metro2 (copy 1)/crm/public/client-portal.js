@@ -1661,6 +1661,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var info = friendlyFileName(name);
     return info.category || '';
   }
+  var docSelectMode = false;
   function renderDocCard(d) {
     const ext = getFileExt(d.originalName);
     const iconClass = getDocIconClass(ext);
@@ -1669,7 +1670,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const categoryBadge = friendly.category ? `<span class="doc-card-badge doc-badge-${friendly.category.toLowerCase()}">${friendly.category}</span>` : '';
     const metaParts = [ext.toUpperCase(), friendly.date].filter(Boolean).join(' · ');
     const safeName = esc(d.originalName);
-    return `<a class="doc-card" href="/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(d.storedName)}" target="_blank" title="${safeName}">
+    const fileUrl = `/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(d.storedName)}`;
+    return `<a class="doc-card" href="${fileUrl}" target="_blank" title="${safeName}" data-file-url="${esc(fileUrl)}">
+      <input type="checkbox" class="batch-cb" tabindex="-1">
       <div class="doc-card-icon ${iconClass}">${iconLabel}</div>
       <div class="doc-card-info">
         <div class="doc-card-name">${esc(friendly.label)}</div>
@@ -2015,8 +2018,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch { return ''; }
   }
 
+  var mailSelectMode = false;
   function renderMailCard(it, iconClass, statusText, svgIcon, allowMail) {
-    return `<div class="mail-card mail-card-${iconClass}"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div></div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`;
+    return `<div class="mail-card mail-card-${iconClass}" data-file-url="${esc(it.url)}"><input type="checkbox" class="batch-cb" tabindex="-1"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div></div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`;
   }
 
   function renderMailList(el, items, allowMail){
@@ -2119,6 +2123,188 @@ document.addEventListener('DOMContentLoaded', () => {
       updateMailEmptyState();
     });
   }
+
+  (function initBatchSelect() {
+    var docToolbar = null;
+    var mailToolbar = null;
+
+    function createToolbar(id) {
+      var tb = document.createElement('div');
+      tb.className = 'batch-toolbar';
+      tb.id = id;
+      tb.innerHTML = '<label class="select-all-label"><input type="checkbox" class="batch-select-all"> Select All</label><span class="batch-count">0 selected</span><button class="batch-download-btn" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Selected</button>';
+      document.body.appendChild(tb);
+      return tb;
+    }
+
+    function getVisibleCards(container, selector) {
+      if (!container) return [];
+      return Array.from(container.querySelectorAll(selector)).filter(function(card) {
+        return card.offsetParent !== null;
+      });
+    }
+
+    function updateToolbarCount(toolbar, container, selector) {
+      if (!toolbar || !container) return;
+      var cards = getVisibleCards(container, selector);
+      var checked = cards.filter(function(c) { return c.querySelector('.batch-cb')?.checked; });
+      var countEl = toolbar.querySelector('.batch-count');
+      var dlBtn = toolbar.querySelector('.batch-download-btn');
+      var allCb = toolbar.querySelector('.batch-select-all');
+      if (countEl) countEl.textContent = checked.length + ' selected';
+      if (dlBtn) dlBtn.disabled = checked.length === 0;
+      if (allCb) allCb.checked = cards.length > 0 && checked.length === cards.length;
+    }
+
+    function batchDownload(urls) {
+      var i = 0;
+      function next() {
+        if (i >= urls.length) return;
+        var a = document.createElement('a');
+        a.href = urls[i];
+        a.download = '';
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        i++;
+        setTimeout(next, 350);
+      }
+      next();
+    }
+
+    function wireCardClicks(container, selector, toolbar) {
+      if (!container) return;
+      container.addEventListener('click', function(e) {
+        var card = e.target.closest(selector);
+        if (!card) return;
+        var isDocCard = selector === '.doc-card';
+        var selectActive = isDocCard ? docSelectMode : mailSelectMode;
+        if (!selectActive) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var cb = card.querySelector('.batch-cb');
+        if (!cb) return;
+        cb.checked = !cb.checked;
+        card.classList.toggle('batch-selected', cb.checked);
+        updateToolbarCount(toolbar, container, selector);
+      }, true);
+    }
+
+    var docSection = document.getElementById('documentSection');
+    var docSelectBtn = document.getElementById('docSelectToggle');
+    if (docSelectBtn && docSection) {
+      docToolbar = createToolbar('docBatchToolbar');
+      wireCardClicks(docSection, '.doc-card', docToolbar);
+
+      docSelectBtn.addEventListener('click', function() {
+        docSelectMode = !docSelectMode;
+        docSelectBtn.classList.toggle('active', docSelectMode);
+        docSection.classList.toggle('select-mode', docSelectMode);
+        if (docSelectMode) {
+          docToolbar.classList.add('visible');
+        } else {
+          docToolbar.classList.remove('visible');
+          docSection.querySelectorAll('.doc-card .batch-cb').forEach(function(cb) { cb.checked = false; });
+          docSection.querySelectorAll('.doc-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
+        }
+        updateToolbarCount(docToolbar, docSection, '.doc-card');
+      });
+
+      docToolbar.querySelector('.batch-select-all').addEventListener('change', function(e) {
+        var checked = e.target.checked;
+        getVisibleCards(docSection, '.doc-card').forEach(function(card) {
+          var cb = card.querySelector('.batch-cb');
+          if (cb) cb.checked = checked;
+          card.classList.toggle('batch-selected', checked);
+        });
+        updateToolbarCount(docToolbar, docSection, '.doc-card');
+      });
+
+      docToolbar.querySelector('.batch-download-btn').addEventListener('click', function() {
+        var urls = [];
+        getVisibleCards(docSection, '.doc-card.batch-selected').forEach(function(c) {
+          var u = c.getAttribute('data-file-url');
+          if (u) urls.push(u);
+        });
+        if (urls.length) batchDownload(urls);
+      });
+    }
+
+    var mailSection = document.getElementById('mailSection');
+    var mailSelectBtn = document.getElementById('mailSelectToggle');
+    if (mailSelectBtn && mailSection) {
+      mailToolbar = createToolbar('mailBatchToolbar');
+
+      function getActiveMailContainer() {
+        var waitingEl = document.getElementById('mailWaiting');
+        var mailedEl = document.getElementById('mailMailed');
+        if (waitingEl && !waitingEl.classList.contains('hidden')) return waitingEl;
+        if (mailedEl && !mailedEl.classList.contains('hidden')) return mailedEl;
+        return waitingEl;
+      }
+
+      wireCardClicks(mailSection, '.mail-card', mailToolbar);
+
+      mailSelectBtn.addEventListener('click', function() {
+        mailSelectMode = !mailSelectMode;
+        mailSelectBtn.classList.toggle('active', mailSelectMode);
+        mailSection.classList.toggle('select-mode', mailSelectMode);
+        if (mailSelectMode) {
+          mailToolbar.classList.add('visible');
+        } else {
+          mailToolbar.classList.remove('visible');
+          mailSection.querySelectorAll('.mail-card .batch-cb').forEach(function(cb) { cb.checked = false; });
+          mailSection.querySelectorAll('.mail-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
+        }
+        updateToolbarCount(mailToolbar, getActiveMailContainer(), '.mail-card');
+      });
+
+      mailToolbar.querySelector('.batch-select-all').addEventListener('change', function(e) {
+        var checked = e.target.checked;
+        var container = getActiveMailContainer();
+        if (!container) return;
+        getVisibleCards(container, '.mail-card').forEach(function(card) {
+          var cb = card.querySelector('.batch-cb');
+          if (cb) cb.checked = checked;
+          card.classList.toggle('batch-selected', checked);
+        });
+        updateToolbarCount(mailToolbar, container, '.mail-card');
+      });
+
+      mailToolbar.querySelector('.batch-download-btn').addEventListener('click', function() {
+        var container = getActiveMailContainer();
+        if (!container) return;
+        var urls = [];
+        getVisibleCards(container, '.mail-card.batch-selected').forEach(function(c) {
+          var u = c.getAttribute('data-file-url');
+          if (u) urls.push(u);
+        });
+        if (urls.length) batchDownload(urls);
+      });
+
+      if (mailTabWaiting) {
+        mailTabWaiting.addEventListener('click', function() {
+          if (mailSelectMode) {
+            mailSection.querySelectorAll('.mail-card .batch-cb').forEach(function(cb) { cb.checked = false; });
+            mailSection.querySelectorAll('.mail-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
+            updateToolbarCount(mailToolbar, getActiveMailContainer(), '.mail-card');
+          }
+        });
+      }
+      if (mailTabMailed) {
+        mailTabMailed.addEventListener('click', function() {
+          if (mailSelectMode) {
+            mailSection.querySelectorAll('.mail-card .batch-cb').forEach(function(cb) { cb.checked = false; });
+            mailSection.querySelectorAll('.mail-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
+            updateToolbarCount(mailToolbar, getActiveMailContainer(), '.mail-card');
+          }
+        });
+      }
+    }
+  })();
 
   function pickHeadline(item){
     if (!item) return null;

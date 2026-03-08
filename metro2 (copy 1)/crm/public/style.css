@@ -6051,3 +6051,137 @@ a.primaries-card {
     opacity: 1;
   }
 }
+
+.select-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid rgba(148,163,184,0.18);
+  background: rgba(30,41,59,0.7);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.select-toggle-btn:hover {
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.3);
+  color: #e2e8f0;
+}
+.select-toggle-btn.active {
+  background: rgba(99,102,241,0.2);
+  border-color: rgba(99,102,241,0.5);
+  color: #a5b4fc;
+}
+
+.select-mode .doc-card,
+.select-mode .mail-card {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+.select-mode .doc-card { text-decoration: none; }
+
+.batch-cb {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  accent-color: #6366f1;
+  cursor: pointer;
+  z-index: 2;
+  display: none;
+}
+.select-mode .batch-cb { display: block; }
+.select-mode .doc-card-icon,
+.select-mode .mail-card-icon { margin-left: 28px; }
+.select-mode .doc-card-action,
+.select-mode .mail-card-actions { opacity: 0.3; pointer-events: none; }
+
+.select-mode .doc-card.batch-selected,
+.select-mode .mail-card.batch-selected {
+  border-color: rgba(99,102,241,0.5);
+  background: rgba(99,102,241,0.08);
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.25);
+}
+
+.batch-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: rgba(15,23,42,0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(99,102,241,0.25);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+}
+.batch-toolbar.visible {
+  transform: translateY(0);
+}
+.batch-toolbar .select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.batch-toolbar .select-all-label input {
+  width: 18px;
+  height: 18px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+.batch-toolbar .batch-count {
+  font-size: 13px;
+  color: #cbd5e1;
+  font-weight: 500;
+  min-width: 90px;
+  text-align: center;
+}
+.batch-toolbar .batch-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.batch-toolbar .batch-download-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.batch-toolbar .batch-download-btn:not(:disabled):hover {
+  opacity: 0.85;
+}
+@media (max-width: 640px) {
+  .batch-toolbar {
+    gap: 10px;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  .batch-toolbar .batch-count { min-width: auto; }
+}
