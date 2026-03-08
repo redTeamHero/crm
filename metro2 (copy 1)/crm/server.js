@@ -9377,13 +9377,13 @@ app.post('/api/diy/signup', async (req, res) => {
     const refCode = req.body.ref || req.query.ref;
     if (refCode) {
       try {
-        const affDb = await loadAffiliateDB();
-        const aff = affDb.affiliates.find(a => a.refCode === refCode);
+        const aff = await findAffiliateByRefCode(refCode);
         if (aff) {
           const commission = AFFILIATE_COMMISSIONS['diy_' + plan] || 0;
+          if (!aff.referrals) aff.referrals = [];
           aff.referrals.push({ id: nanoid(8), type: 'diy', plan, email: email.toLowerCase(), earned: commission, status: 'pending', date: new Date().toISOString() });
           aff.totalEarned = (aff.totalEarned || 0) + commission;
-          await saveAffiliateDB(affDb);
+          await saveAffiliate(aff);
         }
       } catch (e) { logWarn('AFFILIATE_CREDIT_ERROR', e.message); }
     }
@@ -10475,13 +10475,43 @@ if (shouldStartServer) {
   });
 }
 
-async function loadAffiliateDB() {
-  let db = await readKey('affiliates', null);
-  if (!db) db = { affiliates: [] };
-  return db;
+async function migrateAffiliatesIfNeeded() {
+  const legacy = await readKey('affiliates', null);
+  if (!legacy || !Array.isArray(legacy.affiliates) || legacy.affiliates.length === 0) return;
+  for (const aff of legacy.affiliates) {
+    const key = `aff:${aff.userType}:${aff.userId}`;
+    const existing = await readKey(key, null);
+    if (!existing) {
+      await writeKey(key, aff);
+    }
+    if (aff.refCode) {
+      await writeKey(`aff_ref:${aff.refCode}`, { userId: aff.userId, userType: aff.userType });
+    }
+  }
+  await writeKey('affiliates', { affiliates: [], migrated: true });
 }
-async function saveAffiliateDB(db) {
-  await writeKey('affiliates', db);
+
+let affMigrationDone = false;
+async function ensureAffMigration() {
+  if (affMigrationDone) return;
+  affMigrationDone = true;
+  try { await migrateAffiliatesIfNeeded(); } catch (e) { logWarn('AFFILIATE_MIGRATION_ERROR', e.message); affMigrationDone = false; }
+}
+
+async function loadAffiliate(userId, userType) {
+  await ensureAffMigration();
+  return readKey(`aff:${userType}:${userId}`, null);
+}
+
+async function saveAffiliate(aff) {
+  await writeKey(`aff:${aff.userType}:${aff.userId}`, aff);
+}
+
+async function findAffiliateByRefCode(refCode) {
+  await ensureAffMigration();
+  const ref = await readKey(`aff_ref:${refCode}`, null);
+  if (!ref) return null;
+  return loadAffiliate(ref.userId, ref.userType);
 }
 
 const AFFILIATE_COMMISSIONS = {
@@ -10512,11 +10542,22 @@ function affiliateAuth(req, res, next) {
   return res.status(401).json({ ok: false, error: 'Unauthorized' });
 }
 
+const affJoinLocks = new Map();
 app.post('/api/affiliate/join', affiliateAuth, async (req, res) => {
+  const lockKey = `${req.affUser.type}:${req.affUser.id}`;
+  if (affJoinLocks.has(lockKey)) {
+    try { await affJoinLocks.get(lockKey); } catch {}
+  }
+  let resolve;
+  const lockPromise = new Promise(r => { resolve = r; });
+  affJoinLocks.set(lockKey, lockPromise);
   try {
-    const db = await loadAffiliateDB();
-    let aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    let aff = await loadAffiliate(req.affUser.id, req.affUser.type);
     if (aff) {
+      if (aff.refCode) {
+        const refIndex = await readKey(`aff_ref:${aff.refCode}`, null);
+        if (!refIndex) await writeKey(`aff_ref:${aff.refCode}`, { userId: aff.userId, userType: aff.userType });
+      }
       return res.json({ ok: true, affiliate: aff });
     }
     aff = {
@@ -10530,12 +10571,15 @@ app.post('/api/affiliate/join', affiliateAuth, async (req, res) => {
       totalPaid: 0,
       createdAt: new Date().toISOString()
     };
-    db.affiliates.push(aff);
-    await saveAffiliateDB(db);
+    await saveAffiliate(aff);
+    await writeKey(`aff_ref:${aff.refCode}`, { userId: aff.userId, userType: aff.userType });
     res.json({ ok: true, affiliate: aff });
   } catch (err) {
     logError('AFFILIATE_JOIN_ERROR', err);
     res.status(500).json({ ok: false, error: 'Failed to join' });
+  } finally {
+    resolve();
+    affJoinLocks.delete(lockKey);
   }
 });
 
@@ -10548,10 +10592,9 @@ function calcAffiliateBalance(aff) {
 
 app.get('/api/affiliate/me', affiliateAuth, async (req, res) => {
   try {
-    const db = await loadAffiliateDB();
-    const aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    const aff = await loadAffiliate(req.affUser.id, req.affUser.type);
     if (!aff) return res.json({ ok: true, affiliate: null });
-    const conversions = aff.referrals.length;
+    const conversions = (aff.referrals || []).length;
     const conversionRate = aff.clicks > 0 ? ((conversions / aff.clicks) * 100).toFixed(1) : '0.0';
     const bal = calcAffiliateBalance(aff);
     res.json({ ok: true, affiliate: aff, stats: { clicks: aff.clicks, conversions, conversionRate, totalEarned: aff.totalEarned, totalPaid: aff.totalPaid, availableBalance: bal.availableBalance, pendingPayoutTotal: bal.pendingPayoutTotal, pendingPayoutCount: bal.pendingPayoutCount } });
@@ -10563,8 +10606,7 @@ app.get('/api/affiliate/me', affiliateAuth, async (req, res) => {
 
 app.post('/api/affiliate/payout', affiliateAuth, async (req, res) => {
   try {
-    const db = await loadAffiliateDB();
-    const aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    const aff = await loadAffiliate(req.affUser.id, req.affUser.type);
     if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
     const { method, payoutEmail, details } = req.body;
     if (!method || !['paypal', 'venmo', 'check'].includes(method)) {
@@ -10594,7 +10636,7 @@ app.post('/api/affiliate/payout', affiliateAuth, async (req, res) => {
       processedAt: null
     };
     aff.payouts.push(payout);
-    await saveAffiliateDB(db);
+    await saveAffiliate(aff);
     res.json({ ok: true, payout });
   } catch (err) {
     logError('AFFILIATE_PAYOUT_ERROR', err);
@@ -10604,8 +10646,7 @@ app.post('/api/affiliate/payout', affiliateAuth, async (req, res) => {
 
 app.get('/api/affiliate/payouts', affiliateAuth, async (req, res) => {
   try {
-    const db = await loadAffiliateDB();
-    const aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    const aff = await loadAffiliate(req.affUser.id, req.affUser.type);
     if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
     res.json({ ok: true, payouts: aff.payouts || [] });
   } catch (err) {
@@ -10616,15 +10657,14 @@ app.get('/api/affiliate/payouts', affiliateAuth, async (req, res) => {
 
 app.post('/api/affiliate/payout/:id/cancel', affiliateAuth, async (req, res) => {
   try {
-    const db = await loadAffiliateDB();
-    const aff = db.affiliates.find(a => a.userId === req.affUser.id && a.userType === req.affUser.type);
+    const aff = await loadAffiliate(req.affUser.id, req.affUser.type);
     if (!aff) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
     const payout = (aff.payouts || []).find(p => p.id === req.params.id);
     if (!payout) return res.status(404).json({ ok: false, error: 'Payout not found' });
     if (payout.status !== 'pending') return res.status(400).json({ ok: false, error: 'Only pending payouts can be cancelled' });
     payout.status = 'cancelled';
     payout.processedAt = new Date().toISOString();
-    await saveAffiliateDB(db);
+    await saveAffiliate(aff);
     res.json({ ok: true, payout });
   } catch (err) {
     logError('AFFILIATE_PAYOUT_CANCEL_ERROR', err);
@@ -10634,11 +10674,10 @@ app.post('/api/affiliate/payout/:id/cancel', affiliateAuth, async (req, res) => 
 
 app.get('/api/affiliate/track/:refCode', async (req, res) => {
   try {
-    const db = await loadAffiliateDB();
-    const aff = db.affiliates.find(a => a.refCode === req.params.refCode);
+    const aff = await findAffiliateByRefCode(req.params.refCode);
     if (aff) {
       aff.clicks = (aff.clicks || 0) + 1;
-      await saveAffiliateDB(db);
+      await saveAffiliate(aff);
     }
     const dest = req.query.dest === 'crm' ? '/crm/login' : '/diy/signup';
     res.redirect(`${dest}?ref=${req.params.refCode}`);
