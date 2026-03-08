@@ -87,56 +87,46 @@
 
 <main class="workspace px-4 pb-12">
   <div class="workspace-inner max-w-7xl mx-auto space-y-6">
-    <section class="workspace-hero glass card">
+    <section class="workspace-hero glass card hero-compact">
       <div class="hero-top">
         <div class="hero-copy">
           <p class="eyebrow">Client Command Center</p>
-          <h1 class="hero-title">Guide every credit dispute with premium clarity.</h1>
-          <p class="hero-description">Keep advisors, clients, and Metro-2 workflows aligned at every touchpoint.</p>
-        </div>
-        <div class="hero-actions">
-          <a href="/marketing/sms" class="btn hero-btn">Launch Lead Magnet</a>
-          <div class="hero-support">
-            <span>Need a Metro-2 second opinion?</span>
-            <a href="/schedule" class="btn btn-outline hero-support-link">Book a Clarity Call</a>
-          </div>
+          <h1 class="hero-title">Credit Dispute Management</h1>
         </div>
       </div>
       <div id="clientsMetrics" class="hero-metrics-grid">
         <div class="metric-card">
-          <span class="metric-title">Active Clients</span>
+          <span class="metric-title">Active</span>
           <span class="metric-value" id="metricActiveConsumers">0</span>
           <span class="metric-subtitle">of <span id="metricTotalConsumers">0</span> total</span>
         </div>
         <div class="metric-card">
-          <span class="metric-title">Paid to Date</span>
-          <span class="metric-value" id="metricRevenue">$0.00</span>
-          <span class="metric-subtitle">Collected across all engagements</span>
+          <span class="metric-title">Revenue</span>
+          <span class="metric-value" id="metricRevenue">$0</span>
+          <span class="metric-subtitle">Collected</span>
         </div>
         <div class="metric-card">
-          <span class="metric-title">Pipeline Remaining</span>
-          <span class="metric-value" id="metricPipeline">$0.00</span>
-          <span class="metric-subtitle">Open balances + upsells</span>
+          <span class="metric-title">Pipeline</span>
+          <span class="metric-value" id="metricPipeline">$0</span>
+          <span class="metric-subtitle">Open balances</span>
         </div>
         <div class="metric-card metric-progress">
-          <span class="metric-title">Fulfillment Progress</span>
+          <span class="metric-title">Fulfillment</span>
           <span class="metric-value" id="metricProgress">0%</span>
           <div class="progress-track">
             <div class="progress-fill" id="metricProgressBar"></div>
           </div>
-          <span class="metric-subtitle">Keep letters & calls in sync</span>
         </div>
         <div class="metric-card">
-          <span class="metric-title">Reports Uploaded</span>
+          <span class="metric-title">Reports</span>
           <span class="metric-value" id="metricReportsUploaded">0</span>
-          <span class="metric-subtitle">Auto-tracked last 30 days</span>
+          <span class="metric-subtitle">Uploaded</span>
         </div>
       </div>
       <div id="clientsJourneyTracker" class="hero-tracker">
         <div class="hero-tracker-header">
           <div class="hero-tracker-copy">
             <div class="hero-tracker-title">Client Journey Tracker</div>
-            <p class="hero-tracker-description">Map the next best action from onboarding to dispute delivery.</p>
           </div>
           <div id="stepControls" class="step-controls">
             <button id="addStep" class="btn btn-ghost" title="Add step">+</button>
@@ -170,101 +160,29 @@
         </div>
       </aside>
 
-      <section class="workspace-panels space-y-4">
-        <div class="panel-grid panel-grid-balanced">
-          <article class="glass panel">
-            <div class="panel-header">
-              <div>
-                <div class="panel-title">Messages</div>
-                <p class="panel-subtitle">Keep clients updated.</p>
-              </div>
-              <button id="btnSendMsg" class="btn text-sm">Send</button>
-            </div>
-            <div id="msgList" class="messages-list text-sm"></div>
-            <textarea id="msgInput" class="input input-textarea text-sm" rows="2" placeholder="Type message..."></textarea>
-          </article>
-
-          <article class="glass panel">
-            <div class="panel-header">
-              <div>
-                <div class="panel-title">Selected Consumer: <span id="selConsumer">—</span></div>
-                <p class="panel-subtitle">Report: <select id="reportPicker" class="input input-select text-sm"></select></p>
-                <div class="mt-2">
-                  <button id="breachStatus" class="btn btn-outline text-xs" type="button">Breaches: —</button>
-                </div>
-              </div>
-              <div class="panel-actions chip-row">
-                <button id="btnToggleParseMode" class="chip" type="button" data-tip="Toggle LLM parsing">Parse: LLM</button>
-                <button id="btnUpload" class="chip" data-tip="Upload HTML (U)">Upload HTML</button>
-                <button id="btnUploadPdf" class="chip" data-tip="Upload PDF report">Upload PDF</button>
-                <button id="btnDataBreach" class="chip" data-tip="Databreach options">Databreach</button>
-                <button id="btnAuditReport" class="chip" data-tip="Run audit on current report">Audit</button>
-                <button id="btnDeleteReport" class="chip" data-tip="Remove current report (click)">Remove Report</button>
-                <input id="fileInput" type="file" accept=".html,.htm,.pdf,application/pdf,text/html" class="hidden" />
-              </div>
-            </div>
-          </article>
-        </div>
-
-        <article id="clientsNegativePanel" class="glass panel hidden">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">Files & Activity</div>
-              <p class="panel-subtitle">Track deliverables & portal drops.</p>
-            </div>
-            <div class="panel-actions">
-              <input id="activityFile" type="file" class="hidden" />
-              <button id="btnAddFile" class="btn text-sm" data-tip="Upload file to this consumer">+ Add File</button>
-              <button id="btnRunClientAudit" class="btn text-sm hidden" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Audit negative items and generate PDF for client portal">Audit</button>
-              <a id="activityPortalLink" class="btn btn-outline text-sm hidden" href="#" target="_blank">Client Portal</a>
-              <button id="btnPortalInvite" class="btn text-sm hidden" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Generate portal login link for this client">🔗 Portal Invite Link</button>
-            </div>
-          </div>
-          <div id="activityList" class="activity-list text-sm"></div>
-        </article>
-
-        <article id="breachCard" class="glass panel hidden">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
-                <span style="color:#d4a853;">🛡</span> Data Breaches
-              </div>
-              <p class="panel-subtitle" id="breachCardSubtitle">No breach data available.</p>
-            </div>
-            <div class="panel-actions">
-              <button id="btnBreachLookup" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Check for data breaches">🔍 Check Breaches</button>
-            </div>
-          </div>
-          <div id="breachCardBody" class="space-y-2 text-sm" style="max-height:280px; overflow-y:auto;"></div>
-        </article>
-
-        <article id="disputeTrackerPanel" class="glass panel hidden">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
-                <span style="color:#d4a853;">⚖</span> Dispute Tracker
-              </div>
-              <p class="panel-subtitle" id="disputeTrackerSubtitle">No active disputes.</p>
-            </div>
-            <div class="panel-actions">
-              <a id="disputeTrackerLink" href="/disputes" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600; text-decoration: none;">View Full Tracker →</a>
-            </div>
-          </div>
-          <div id="disputeSummaryBody" class="text-sm" style="padding:4px 0;"></div>
-        </article>
+      <section class="workspace-panels space-y-3">
 
         <article class="glass panel">
-          <div class="panel-header panel-header--centered">
-            <div class="panel-header-text">
-              <div class="panel-title">Quick Actions</div>
-              <p class="panel-subtitle">Click a mode to tag tradelines.</p>
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Client: <span id="selConsumer">—</span></div>
+              <p class="panel-subtitle">Report: <select id="reportPicker" class="input input-select text-sm"></select></p>
+            </div>
+            <div class="panel-actions chip-row">
+              <button id="btnToggleParseMode" class="chip" type="button" data-tip="Toggle LLM parsing">Parse: LLM</button>
+              <button id="btnUpload" class="chip" data-tip="Upload HTML (U)">Upload HTML</button>
+              <button id="btnUploadPdf" class="chip" data-tip="Upload PDF report">Upload PDF</button>
+              <button id="btnDataBreach" class="chip" data-tip="Databreach options">Databreach</button>
+              <button id="btnAuditReport" class="chip" data-tip="Run audit on current report">Audit</button>
+              <button id="btnDeleteReport" class="chip" data-tip="Remove current report (click)">Remove Report</button>
+              <button id="breachStatus" class="chip" type="button">Breaches: —</button>
+              <input id="fileInput" type="file" accept=".html,.htm,.pdf,application/pdf,text/html" class="hidden" />
             </div>
           </div>
-          <div id="modeBar" class="mode-bar"></div>
-          <div class="filters">
-            <div class="filters-header">Filters</div>
-            <div id="filterBar" class="filter-bar"></div>
-            <button id="btnClearFilters" class="btn btn-outline mt-2" data-tip="Clear Filters (C)">Clear Filters</button>
+          <div id="msgList" class="messages-list text-sm"></div>
+          <div style="display:flex;gap:6px;align-items:flex-end;">
+            <textarea id="msgInput" class="input input-textarea text-sm" rows="2" placeholder="Type message..." style="flex:1;"></textarea>
+            <button id="btnSendMsg" class="btn text-sm" style="flex-shrink:0;">Send</button>
           </div>
         </article>
 
@@ -294,6 +212,36 @@
               <div style="font-weight:600;color:#fbbf24;margin-bottom:.5rem;">Changes</div>
               <div id="diffChangedList" class="space-y-2"></div>
             </div>
+          </div>
+        </article>
+
+        <article id="disputeTrackerPanel" class="glass panel hidden">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
+                <span style="color:#d4a853;">⚖</span> Dispute Tracker
+              </div>
+              <p class="panel-subtitle" id="disputeTrackerSubtitle">No active disputes.</p>
+            </div>
+            <div class="panel-actions">
+              <a id="disputeTrackerLink" href="/disputes" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600; text-decoration: none;">View Full Tracker →</a>
+            </div>
+          </div>
+          <div id="disputeSummaryBody" class="text-sm" style="padding:4px 0;"></div>
+        </article>
+
+        <article class="glass panel">
+          <div class="panel-header panel-header--centered">
+            <div class="panel-header-text">
+              <div class="panel-title">Quick Actions</div>
+              <p class="panel-subtitle">Click a mode to tag tradelines.</p>
+            </div>
+          </div>
+          <div id="modeBar" class="mode-bar"></div>
+          <div class="filters">
+            <div class="filters-header">Filters</div>
+            <div id="filterBar" class="filter-bar"></div>
+            <button id="btnClearFilters" class="btn btn-outline mt-2" data-tip="Clear Filters (C)">Clear Filters</button>
           </div>
         </article>
 
@@ -343,6 +291,33 @@
               <option value="all">All</option>
             </select>
             <button id="tlNext" class="btn btn-outline text-sm">Next</button>
+          </div>
+        </article>
+
+        <article id="clientsNegativePanel" class="glass panel hidden">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Files & Activity</div>
+              <p class="panel-subtitle">Track deliverables & portal drops.</p>
+            </div>
+            <div class="panel-actions">
+              <input id="activityFile" type="file" class="hidden" />
+              <button id="btnAddFile" class="btn text-sm" data-tip="Upload file to this consumer">+ Add File</button>
+              <button id="btnRunClientAudit" class="btn text-sm hidden" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Audit negative items and generate PDF for client portal">Audit</button>
+              <a id="activityPortalLink" class="btn btn-outline text-sm hidden" href="#" target="_blank">Client Portal</a>
+              <button id="btnPortalInvite" class="btn text-sm hidden" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Generate portal login link for this client">Portal Invite Link</button>
+            </div>
+          </div>
+          <div id="activityList" class="activity-list text-sm"></div>
+          <div id="breachSection" class="hidden" style="border-top:1px solid rgba(255,255,255,0.06);margin-top:12px;padding-top:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div>
+                <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px;"><span style="color:#d4a853;">🛡</span> Data Breaches</div>
+                <p class="panel-subtitle" id="breachCardSubtitle" style="font-size:11px;">No breach data available.</p>
+              </div>
+              <button id="btnBreachLookup" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600;" data-tip="Check for data breaches">Check Breaches</button>
+            </div>
+            <div id="breachCardBody" class="space-y-2 text-sm" style="max-height:280px; overflow-y:auto;"></div>
           </div>
         </article>
 

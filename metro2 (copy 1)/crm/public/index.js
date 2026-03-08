@@ -345,7 +345,7 @@ function updateBreachStatus(consumer){
   el.disabled = false;
 }
 function renderBreachCard(consumer){
-  const card = $("#breachCard");
+  const card = $("#breachSection");
   const body = $("#breachCardBody");
   const subtitle = $("#breachCardSubtitle");
   if(!card || !body) return;
