@@ -5198,7 +5198,6 @@ header#host-nav {
 /* Override the old portal body background for sidebar layout */
 html:has(body.portal-layout),
 body.portal-layout {
-  background: #f8f9ff;
   overflow-x: hidden;
   max-width: 100vw;
 }
