@@ -202,7 +202,7 @@ async function loadDisputeTracker() {
   }
 }
 
-function openLetterPreviewModal(letterJobId, letters, roundNum) {
+function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent) {
   let existing = document.getElementById('letterPreviewModal');
   if (existing) existing.remove();
 
@@ -242,7 +242,9 @@ function openLetterPreviewModal(letterJobId, letters, roundNum) {
       </div>
       <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn btn-outline text-xs" href="/api/letters/${encodeURIComponent(letterJobId)}/all.zip${tokenParam}" style="text-decoration:none;">Download All (ZIP)</a>
-        <button class="btn btn-outline text-xs" id="lpmSendPortal">Send to Portal</button>
+        <button class="btn btn-outline text-xs" id="lpmSendPortal"${portalSent ? ' disabled style="color:#4ade80;border-color:#4ade80;"' : ''}>
+          ${portalSent ? '\u2713 Sent to Portal' : 'Send to Portal'}
+        </button>
         <a class="btn btn-outline text-xs" href="/letters?job=${encodeURIComponent(letterJobId)}" target="_blank" style="text-decoration:none;">Open Full View</a>
         <button class="btn text-xs" id="lpmDone" style="margin-left:auto;">Done</button>
       </div>
@@ -696,7 +698,13 @@ function renderDisputeTracker(data) {
         if (!jobDone) throw new Error('Letter generation timed out.');
         const lettersData = await api(`/api/letters/${encodeURIComponent(letterJobId)}`);
         if (!lettersData?.letters || !lettersData.letters.length) throw new Error('No letters were generated.');
-        openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1);
+        btn.textContent = 'Sending to portal...';
+        let portalSent = false;
+        try {
+          const portalRes = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
+          portalSent = !!(portalRes?.ok);
+        } catch {}
+        openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1, portalSent);
       } catch (err) {
         showErr(String(err.message || err));
       } finally {
