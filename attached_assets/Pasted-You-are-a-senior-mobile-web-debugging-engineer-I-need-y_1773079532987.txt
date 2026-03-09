@@ -1,0 +1,95 @@
+You are a senior mobile web debugging engineer. I need you to fully diagnose and fix a mobile scrolling bug in my web app, especially on iPhone/Safari.
+
+BUG BEHAVIOR:
+When the user tries to scroll upward by dragging/pulling, the page feels stuck, snaps back to its original position, or requires multiple drags before it actually scrolls. It feels like touch scrolling is being intercepted or fighting another layout/gesture system.
+
+YOUR GOALS:
+1. Find the root cause of the scroll issue
+2. Fix it in a robust way for iPhone Safari and mobile browsers
+3. Prevent similar scroll/gesture bugs elsewhere in the app
+4. Keep the UI visually the same unless a change is required for correct mobile behavior
+5. Explain what was wrong and what you changed
+
+CHECK FOR ALL LIKELY CAUSES:
+- `overflow: hidden` on `html`, `body`, root layout, wrappers, modals, drawers, sheets, carts, panels, or page containers
+- nested scroll containers
+- containers using `height: 100vh` instead of safer mobile units like `100dvh`
+- `position: fixed` wrappers that trap scroll
+- `touchmove`, `wheel`, pointer, swipe, drag, or pan handlers that call `preventDefault()`
+- gesture libraries, bottom sheets, drawers, carousels, sliders, swipe-to-close panels
+- `touch-action: none`
+- `overscroll-behavior: none`
+- z-index overlays intercepting touches
+- sticky/fixed navbars, floating widgets, chat/help bubbles, bottom navs, carts, drawers
+- scroll lock logic when opening cart, modal, checkout, support widget, or mobile menu
+- React/Next layout issues where scrolling is attached to an inner div instead of the page
+- any JS that resets scroll position during rerender/navigation
+- `-webkit-overflow-scrolling`
+- iOS Safari viewport bugs caused by `100vh`
+
+REQUIRED DEBUG PROCESS:
+1. Inspect the full layout tree from `html, body` down to the page wrapper and card list containers
+2. Identify which element is actually scrolling
+3. Identify which element is blocking, resetting, or competing with that scroll
+4. Search the codebase for:
+   - `overflow: hidden`
+   - `100vh`
+   - `touchmove`
+   - `preventDefault`
+   - `touch-action`
+   - `overscroll-behavior`
+   - `position: fixed`
+   - modal/drawer/cart/sheet logic
+5. Determine whether the problem is CSS, JS, or both
+6. Implement the cleanest fix, not a hack
+7. Test mentally against:
+   - iPhone Safari
+   - mobile Chrome
+   - pages with long product lists
+   - cart open/closed
+   - support widget visible
+   - bottom navigation visible
+8. Then list every file changed and why
+
+IMPLEMENTATION PREFERENCES:
+- Prefer native page scroll over nested scrolling containers
+- Use `100dvh` instead of `100vh` where appropriate
+- Avoid locking body scroll unless absolutely necessary
+- If a modal/cart/drawer must lock background scroll, make sure the lock is applied only while open and removed cleanly
+- Only call `preventDefault()` for real custom gestures, never for normal page scrolling
+- Keep momentum scrolling working on iOS
+- Preserve accessibility and responsiveness
+
+SAFE CSS GUIDELINES TO APPLY WHERE APPROPRIATE:
+- `html, body { overflow-x: hidden; overflow-y: auto; }`
+- `min-height: 100dvh` instead of `height: 100vh` where needed
+- `-webkit-overflow-scrolling: touch` on intentional scroll containers
+- remove unnecessary `overflow: hidden`
+- remove unnecessary `touch-action: none` from broad containers
+- avoid fixed full-screen wrappers unless required
+
+SAFE JS GUIDELINES:
+- remove or narrow any global `touchmove` prevention
+- do not intercept scrolling unless interacting with an actual draggable component
+- ensure cart/modal/drawer cleanup restores body scroll correctly
+- avoid rerenders that reset scroll position
+- do not create double-scroll systems unless truly necessary
+
+DELIVERABLES:
+A. Root cause summary
+B. Exact code changes
+C. Why the fix works on iPhone Safari
+D. Any follow-up improvements to prevent future mobile scroll bugs
+
+IMPORTANT:
+- Do not just describe the issue—actually patch the code
+- Search broadly across layout, global CSS, components, cart, modals, widgets, and navigation
+- If multiple issues exist, fix all contributing causes
+- Prefer production-quality fixes over temporary workarounds
+
+If the support/help widget, floating action button, cart drawer, or bottom nav is intercepting touches, fix that too.
+If there is a nested scroll container, simplify it.
+If there is body scroll lock leakage, repair it.
+If there is any `100vh` mobile Safari issue, migrate it to `100dvh`.
+
+At the end, provide a concise changelog with file names and a short explanation for each.
