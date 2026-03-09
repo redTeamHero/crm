@@ -1486,7 +1486,7 @@ if (typeof window !== 'undefined') {
 
 (function initScrollUnlock() {
   if (typeof document === 'undefined') return;
-  var MODAL_SELECTORS = '.modal-overlay, .modal-backdrop, .evolv-sb-backdrop.visible, .lesson-overlay, #lessonPlayerOverlay, #navOverlay, #generatingOverlay, .command-palette-overlay, .tour-overlay--active, .ptour-overlay--active, #lpmIframeOverlay, #zoomModal, #newModal, #editModal, #tlEditModal, #previewModal, #contractModal, #templateModal, #sequenceModal';
+  var MODAL_SELECTORS = '.modal-overlay, .modal-backdrop, .evolv-sb-backdrop.visible, .lesson-overlay, #lessonPlayerOverlay, #navOverlay, #generatingOverlay, .command-palette-overlay, .tour-overlay--active, .ptour-overlay--active, #lpmIframeOverlay, #zoomModal, #newModal, #editModal, #tlEditModal, #previewModal, #contractModal, #templateModal, #sequenceModal, .portal-sidebar.open, .evolv-sidebar.mobile-open, #letterPreviewModal';
   function hasVisibleModal() {
     var els = document.querySelectorAll(MODAL_SELECTORS);
     for (var i = 0; i < els.length; i++) {
@@ -1497,11 +1497,15 @@ if (typeof window !== 'undefined') {
     }
     return false;
   }
-  function check() {
-    if (document.body && document.body.style.overflow === 'hidden' && !hasVisibleModal()) {
+  function clearScrollLock() {
+    if (!document.body) return;
+    if ((document.body.style.overflow === 'hidden' || document.body.style.touchAction === 'none') && !hasVisibleModal()) {
       document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     }
   }
-  setInterval(check, 800);
+  setInterval(clearScrollLock, 800);
+  window.addEventListener('pageshow', clearScrollLock);
+  window.addEventListener('popstate', clearScrollLock);
 })();
 
