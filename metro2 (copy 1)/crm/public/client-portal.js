@@ -2918,7 +2918,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ? 'Follow-up was due ' + formatDisputeDate(round.followUpDate) + ' \u2014 please respond'
         : 'You can respond now, or follow-up recommended by ' + formatDisputeDate(round.followUpDate);
     }
-    const itemsHTML = items.map((item, idx) => {
+    const grouped = [];
+    const groupMap = {};
+    items.forEach((item, idx) => {
       const rawCreditor = item.creditor || 'Unknown';
       const bureau = item.bureau || '';
       let creditorIsUseful = rawCreditor !== bureau && rawCreditor !== 'Unknown';
@@ -2927,38 +2929,49 @@ document.addEventListener('DOMContentLoaded', () => {
         const matchLetter = roundLetters.find(l => l.bureau === bureau && l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown');
         if (matchLetter) { resolvedCreditor = matchLetter.creditor; creditorIsUseful = true; }
       }
-      const acctLabel = item.accountNumber ? ` (${esc(item.accountNumber)})` : '';
+      const acctKey = (rawCreditor || '') + '||' + (item.accountNumber || '');
+      const acctLabel = item.accountNumber ? ` (\u2022\u2022\u2022\u2022${esc(item.accountNumber)})` : '';
       const displayName = creditorIsUseful ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
-      const bureauTag = creditorIsUseful && bureau ? `<span class="text-xs text-gray-500 ml-1">${esc(bureau)}</span>` : '';
-      const creditor = esc(rawCreditor);
-      return `<div class="bg-gray-50 rounded-lg border border-gray-100 dispute-questionnaire-item" data-idx="${idx}">
+      if (!groupMap[acctKey]) {
+        groupMap[acctKey] = { displayName, bureaus: [] };
+        grouped.push(groupMap[acctKey]);
+      }
+      groupMap[acctKey].bureaus.push({ rawCreditor, bureau, idx, item });
+    });
+
+    const itemsHTML = grouped.map(group => {
+      const bureauRows = group.bureaus.map(b => {
+        const creditor = esc(b.rawCreditor);
+        const bureau = esc(b.bureau);
+        return `<div class="dispute-questionnaire-item border-t border-gray-100 pt-2 first:border-0 first:pt-0" data-idx="${b.idx}">
+          <div class="text-xs font-medium text-slate-600 mb-1">${bureau || 'Bureau'}</div>
+          <select class="dispute-outcome-select input text-sm w-full" data-creditor="${creditor}" data-bureau="${bureau}">
+            <option value="">Select outcome...</option>
+            <option value="removed">Removed / Deleted</option>
+            <option value="verified">Verified (still reporting)</option>
+            <option value="no_response">No Response</option>
+            <option value="partial">Partially corrected</option>
+            <option value="stalled">Stalled / No progress</option>
+          </select>
+          <div class="flex items-center gap-3 mt-1.5">
+            <input type="file" class="dispute-evidence-input text-xs flex-1" data-creditor="${creditor}" data-bureau="${bureau}" accept="image/*,.pdf,.html,.htm">
+          </div>
+          <textarea class="dispute-notes-input input text-xs w-full mt-1 border border-gray-200 rounded-lg" rows="1" data-creditor="${creditor}" data-bureau="${bureau}" placeholder="Notes (optional)"></textarea>
+        </div>`;
+      }).join('');
+
+      const bureauList = group.bureaus.map(b => esc(b.bureau)).join(', ');
+
+      return `<div class="bg-gray-50 rounded-lg border border-gray-100 dispute-questionnaire-group">
         <div class="flex items-center justify-between px-3 py-2.5 cursor-pointer select-none dispute-accordion-header" onclick="(function(el){var body=el.parentElement.querySelector('.dispute-accordion-body');var chev=el.querySelector('.dispute-accordion-chevron');var isOpen=body.style.display!=='none';if(!isOpen){el.parentElement.parentElement.querySelectorAll('.dispute-accordion-body').forEach(function(b){b.style.display='none';});el.parentElement.parentElement.querySelectorAll('.dispute-accordion-chevron').forEach(function(c){c.style.transform='rotate(0deg)';});body.style.display='block';chev.style.transform='rotate(180deg)';}else{body.style.display='none';chev.style.transform='rotate(0deg)';}})(this)">
-          <div class="flex items-center gap-2 min-w-0 flex-1">
-            <div class="text-sm font-medium text-slate-800 truncate">${displayName}</div>
-            ${bureauTag}
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-slate-800 truncate">${group.displayName}</div>
+            <div class="text-xs text-gray-400">${bureauList}</div>
           </div>
           <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 dispute-accordion-chevron" style="transform:rotate(0deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="dispute-accordion-body px-3 pb-3 space-y-2" style="display:none">
-          <div>
-            <label class="text-xs text-gray-600">What happened with this item?</label>
-            <select class="dispute-outcome-select input text-sm w-full mt-1" data-creditor="${creditor}" data-bureau="${esc(bureau)}">
-              <option value="">Select outcome...</option>
-              <option value="removed">Removed / Deleted</option>
-              <option value="verified">Verified (still reporting)</option>
-              <option value="no_response">No Response</option>
-              <option value="partial">Partially corrected</option>
-              <option value="stalled">Stalled / No progress</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-600">Upload evidence (response letter, updated report)</label>
-            <input type="file" class="dispute-evidence-input text-sm mt-1" data-creditor="${creditor}" data-bureau="${esc(bureau)}" accept="image/*,.pdf,.html,.htm">
-          </div>
-          <div>
-            <label class="text-xs text-gray-600">Notes</label>
-            <textarea class="dispute-notes-input input text-sm w-full mt-1 border border-gray-200 rounded-lg" rows="2" data-creditor="${creditor}" data-bureau="${esc(bureau)}" placeholder="Any additional details..."></textarea>
-          </div>
+          ${bureauRows}
         </div>
       </div>`;
     }).join('');
