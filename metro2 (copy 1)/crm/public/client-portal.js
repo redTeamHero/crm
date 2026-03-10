@@ -2224,7 +2224,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function getVisibleCards(container, selector) {
       if (!container) return [];
       return Array.from(container.querySelectorAll(selector)).filter(function(card) {
-        return card.offsetParent !== null;
+        return card.offsetWidth > 0 || card.offsetHeight > 0;
       });
     }
 
