@@ -5193,27 +5193,6 @@ header#host-nav {
   }
 }
 
-/* Override the old portal body background for sidebar layout */
-body.portal-layout {
-  --glass-bg: rgba(255, 255, 255, 0.04);
-  --glass-brd: rgba(255, 255, 255, 0.08);
-  --surface: rgba(18, 18, 22, 0.95);
-  --surface-strong: #111111;
-  --surface-muted: rgba(26, 26, 46, 0.38);
-  --border-soft: rgba(212, 168, 83, 0.14);
-  --border-strong: rgba(212, 168, 83, 0.24);
-  --muted: #888888;
-  --text-primary: #f0f0f0;
-  --text-strong: #f0f0f0;
-  --shadow-card: 0 30px 50px rgba(0, 0, 0, 0.4);
-  --accent: #d4a853;
-  --accent-hover: #c4973e;
-  --accent-bg: rgba(212, 168, 83, 0.12);
-  --accent-soft: rgba(212, 168, 83, 0.2);
-  color-scheme: dark;
-  color: #f0f0f0;
-}
-
 html:has(body.portal-layout),
 body.portal-layout {
   overflow-x: hidden;
