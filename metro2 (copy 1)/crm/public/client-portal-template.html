@@ -101,11 +101,11 @@
 
   <div class="portal-main-wrapper">
     <header class="portal-topbar">
-      <button id="mobileMenuBtn" class="p-2 rounded-lg hover:bg-[#111113] transition-colors" type="button" aria-label="Open menu">
+      <button id="mobileMenuBtn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" type="button" aria-label="Open menu">
         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div class="topbar-desktop-only">
-        <div class="text-sm font-semibold text-gray-300">Client Portal</div>
+        <div class="text-sm font-semibold text-gray-700">Client Portal</div>
       </div>
       <div class="flex items-center gap-3">
         <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="Welcome to your portal.">
@@ -123,7 +123,7 @@
 
         <section id="overview" class="space-y-6">
           <div class="flex flex-col gap-1">
-            <h2 class="text-2xl font-bold text-white">Welcome back</h2>
+            <h2 class="text-2xl font-bold text-gray-800">Welcome back</h2>
             <p class="text-sm text-gray-500">Your credit restoration progress at a glance.</p>
             <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 mt-1">
               <span id="currentStep">Loading tracker...</span>
@@ -154,7 +154,7 @@
                 <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-gray-300">Next Step</div>
+                <div class="text-sm font-semibold text-gray-700">Next Step</div>
               </div>
               <div id="nextStepTitle" class="text-base font-semibold">Loading your next step...</div>
               <div id="nextStepDue" class="text-xs text-gray-500"></div>
@@ -166,7 +166,7 @@
                 <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-gray-300">Milestones</div>
+                <div class="text-sm font-semibold text-gray-700">Milestones</div>
               </div>
               <div id="milestones" class="text-sm text-gray-400">Milestones will appear here.</div>
             </div>
@@ -175,7 +175,7 @@
                 <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-gray-300">Report Snapshot</div>
+                <div class="text-sm font-semibold text-gray-700">Report Snapshot</div>
               </div>
               <div id="reportSnapshot" class="text-sm text-gray-400">Snapshot will load after data sync.</div>
             </div>
@@ -187,9 +187,9 @@
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(212,168,83,0.12)">
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#d4a853" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
                 </div>
-                <span class="text-sm font-semibold text-gray-300">Your Journey</span>
+                <span class="text-sm font-semibold text-gray-700">Your Journey</span>
               </div>
-              <span id="portalJourneyProgress" class="text-xs" style="color:rgba(255,255,255,0.35)"></span>
+              <span id="portalJourneyProgress" class="text-xs" style="color:#6b7280"></span>
             </div>
             <div id="portalJourneyBar" class="tracker-progress-bar" style="margin-bottom:12px"><div class="tracker-progress-fill" style="width:0%"></div></div>
             <div id="portalJourneySteps" class="tracker-steps"></div>
@@ -201,7 +201,7 @@
                 <div class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-gray-300">Your Team</div>
+                <div class="text-sm font-semibold text-gray-700">Your Team</div>
               </div>
               <div id="teamList" class="space-y-2 text-sm text-gray-400">Team details will load here.</div>
             </div>
@@ -210,7 +210,7 @@
                 <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
                   <svg class="w-4 h-4 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
                 </div>
-                <div class="text-sm font-semibold text-gray-300">Industry News</div>
+                <div class="text-sm font-semibold text-gray-700">Industry News</div>
               </div>
               <div id="newsFeed" class="space-y-2 text-sm text-gray-400">Loading news...</div>
             </div>
@@ -218,10 +218,10 @@
 
           <div id="documentsCard" class="glass card p-5">
             <div class="flex items-center gap-2 mb-3">
-              <div class="w-8 h-8 rounded-lg bg-[#111113] flex items-center justify-center">
-                <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               </div>
-              <div class="text-sm font-semibold text-gray-300">Document Vault</div>
+              <div class="text-sm font-semibold text-gray-700">Document Vault</div>
             </div>
             <div id="docListPreview" class="space-y-2 text-sm text-gray-400">Loading documents...</div>
           </div>
@@ -231,7 +231,7 @@
               <div class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
                 <svg class="w-4 h-4 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
               </div>
-              <div class="text-sm font-semibold text-gray-300">Debt Paydown Calculator</div>
+              <div class="text-sm font-semibold text-gray-700">Debt Paydown Calculator</div>
             </div>
             <form id="debtForm" class="grid gap-3 sm:grid-cols-4">
               <input id="debtAmount" type="number" class="input text-sm" placeholder="Balance ($)">
@@ -302,7 +302,7 @@
           <div class="flex items-center gap-3 mb-1">
             <div class="edu-header-icon">🎓</div>
             <div>
-              <h2 class="text-xl font-bold text-white">Credit Academy</h2>
+              <h2 class="text-xl font-bold text-gray-800">Credit Academy</h2>
               <p class="text-sm text-gray-500">Master your credit, one lesson at a time.</p>
             </div>
           </div>
@@ -327,11 +327,11 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-bold text-white">Document Vault</h2>
+              <h2 class="text-lg font-bold text-gray-800">Document Vault</h2>
               <p id="docCountLabel" class="text-sm text-gray-500">Your uploaded files</p>
             </div>
             <div class="flex items-center gap-2">
-              <input id="docSearchInput" type="text" placeholder="Search files..." class="text-sm border border-gray-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[rgba(212,168,83,0.3)] w-40">
+              <input id="docSearchInput" type="text" placeholder="Search files..." class="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[rgba(212,168,83,0.3)] w-40">
               <button id="docSelectToggle" class="select-toggle-btn" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 Select
@@ -350,7 +350,7 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-bold text-white">Mail Activity</h2>
+              <h2 class="text-lg font-bold text-gray-800">Mail Activity</h2>
               <p class="text-sm text-gray-500">Track your dispute letters and mailing status.</p>
             </div>
           </div>
@@ -382,7 +382,7 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-lg font-bold text-white">Payments</h2>
+              <h2 class="text-lg font-bold text-gray-800">Payments</h2>
               <p class="text-sm text-gray-500">View and manage your invoices.</p>
             </div>
           </div>
@@ -392,7 +392,7 @@
             </div>
             <div>
               <div class="text-xs text-gray-500 font-medium">Outstanding Balance</div>
-              <div id="paymentTotal" class="text-2xl font-bold text-white">$0.00</div>
+              <div id="paymentTotal" class="text-2xl font-bold text-gray-800">$0.00</div>
             </div>
           </div>
           <div id="paymentError" class="hidden glass card p-4 border-l-4 border-rose-400 text-sm text-rose-600"></div>
@@ -427,7 +427,7 @@
             </div>
             <div class="glass card p-3 space-y-3">
               <div class="text-sm font-semibold">Your Cart</div>
-              <div id="tradelineCartList" class="space-y-2 text-sm text-gray-300"></div>
+              <div id="tradelineCartList" class="space-y-2 text-sm text-gray-600"></div>
               <div id="tradelineCartEmpty" class="text-sm text-gray-500"></div>
               <div class="flex items-center justify-between text-sm font-semibold">
                 <span>Total</span>
@@ -662,17 +662,17 @@
               <h2 class="text-xl font-bold mb-2">Affiliate Program</h2>
               <p class="text-sm text-gray-400 mb-4 max-w-md mx-auto">Earn money by sharing Evolv. Get paid for every referral that signs up.</p>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto text-left mb-4" style="font-size:14px;">
-                <div class="p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div class="p-3 rounded-xl" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
                   <div class="font-semibold mb-2">DIY Referrals</div>
-                  <div class="flex justify-between py-1"><span>Basic Plan</span><span class="text-green-400 font-semibold">$10</span></div>
-                  <div class="flex justify-between py-1"><span>Pro Plan</span><span class="text-green-400 font-semibold">$25</span></div>
-                  <div class="flex justify-between py-1"><span>Tradeline</span><span class="text-yellow-400 font-semibold">10%</span></div>
+                  <div class="flex justify-between py-1"><span>Basic Plan</span><span class="text-green-600 font-semibold">$10</span></div>
+                  <div class="flex justify-between py-1"><span>Pro Plan</span><span class="text-green-600 font-semibold">$25</span></div>
+                  <div class="flex justify-between py-1"><span>Tradeline</span><span class="text-yellow-600 font-semibold">10%</span></div>
                 </div>
-                <div class="p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                <div class="p-3 rounded-xl" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
                   <div class="font-semibold mb-2">CRM Referrals</div>
-                  <div class="flex justify-between py-1"><span>Starter</span><span class="text-green-400 font-semibold">$25</span></div>
-                  <div class="flex justify-between py-1"><span>Business</span><span class="text-green-400 font-semibold">$50</span></div>
-                  <div class="flex justify-between py-1"><span>Enterprise</span><span class="text-green-400 font-semibold">$100</span></div>
+                  <div class="flex justify-between py-1"><span>Starter</span><span class="text-green-600 font-semibold">$25</span></div>
+                  <div class="flex justify-between py-1"><span>Business</span><span class="text-green-600 font-semibold">$50</span></div>
+                  <div class="flex justify-between py-1"><span>Enterprise</span><span class="text-green-600 font-semibold">$100</span></div>
                 </div>
               </div>
               <button id="portalJoinAffiliate" class="btn px-6 py-2" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:10px;">Join Affiliate Program</button>
@@ -680,66 +680,66 @@
           </div>
           <div id="portalAffDashboard" class="hidden">
             <h2 class="text-lg font-bold mb-3">Your Affiliate Dashboard</h2>
-            <div class="p-3 rounded-xl mb-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
-              <label class="text-xs text-gray-400 block mb-1">Your Referral Link</label>
+            <div class="p-3 rounded-xl mb-3" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
+              <label class="text-xs text-gray-500 block mb-1">Your Referral Link</label>
               <div class="flex gap-2 mb-1">
-                <input id="portalAffLink" readonly class="flex-1 bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-xs font-mono" />
+                <input id="portalAffLink" readonly class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-xs font-mono" />
                 <button id="portalAffCopy" class="btn px-3 py-1 text-xs">Copy</button>
               </div>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-              <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+              <div class="text-center p-3 rounded-xl" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
                 <div class="text-xl font-bold" id="portalStatClicks">0</div>
-                <div class="text-xs text-gray-400">Clicks</div>
+                <div class="text-xs text-gray-500">Clicks</div>
               </div>
-              <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+              <div class="text-center p-3 rounded-xl" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
                 <div class="text-xl font-bold" id="portalStatSignups">0</div>
-                <div class="text-xs text-gray-400">Signups</div>
+                <div class="text-xs text-gray-500">Signups</div>
               </div>
-              <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
-                <div class="text-xl font-bold text-green-400" id="portalStatEarned">$0</div>
-                <div class="text-xs text-gray-400">Earned</div>
+              <div class="text-center p-3 rounded-xl" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
+                <div class="text-xl font-bold text-green-600" id="portalStatEarned">$0</div>
+                <div class="text-xs text-gray-500">Earned</div>
               </div>
-              <div class="text-center p-3 rounded-xl" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+              <div class="text-center p-3 rounded-xl" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
                 <div class="text-xl font-bold" id="portalStatRate">0%</div>
-                <div class="text-xs text-gray-400">Conv. Rate</div>
+                <div class="text-xs text-gray-500">Conv. Rate</div>
               </div>
             </div>
-            <div class="p-3 rounded-xl mb-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+            <div class="p-3 rounded-xl mb-3" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="font-semibold text-sm">Earnings Breakdown</h3>
                 <button id="portalBtnRequestPayout" class="btn px-3 py-1 text-xs" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">💸 Request Payout</button>
               </div>
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="text-center">
-                  <div class="text-lg font-bold text-green-400" id="portalEarningsTotalEarned">$0.00</div>
-                  <div class="text-xs text-gray-400 mt-1">Total Earned</div>
+                  <div class="text-lg font-bold text-green-600" id="portalEarningsTotalEarned">$0.00</div>
+                  <div class="text-xs text-gray-500 mt-1">Total Earned</div>
                 </div>
                 <div class="text-center">
-                  <div class="text-lg font-bold text-blue-400" id="portalEarningsPaidOut">$0.00</div>
-                  <div class="text-xs text-gray-400 mt-1">Paid Out</div>
+                  <div class="text-lg font-bold text-blue-600" id="portalEarningsPaidOut">$0.00</div>
+                  <div class="text-xs text-gray-500 mt-1">Paid Out</div>
                 </div>
                 <div class="text-center">
-                  <div class="text-lg font-bold text-yellow-400" id="portalEarningsPending">$0.00</div>
-                  <div class="text-xs text-gray-400 mt-1">Pending Payouts</div>
+                  <div class="text-lg font-bold text-yellow-600" id="portalEarningsPending">$0.00</div>
+                  <div class="text-xs text-gray-500 mt-1">Pending Payouts</div>
                 </div>
                 <div class="text-center">
-                  <div class="text-lg font-bold text-emerald-400" id="portalEarningsAvailable">$0.00</div>
-                  <div class="text-xs text-gray-400 mt-1">Available Balance</div>
+                  <div class="text-lg font-bold text-emerald-600" id="portalEarningsAvailable">$0.00</div>
+                  <div class="text-xs text-gray-500 mt-1">Available Balance</div>
                 </div>
               </div>
             </div>
-            <div class="rounded-xl overflow-hidden mb-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
-              <div class="p-3 font-semibold text-sm border-b border-white/10">Payout History</div>
+            <div class="rounded-xl overflow-hidden mb-3" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
+              <div class="p-3 font-semibold text-sm border-b border-gray-200">Payout History</div>
               <table class="w-full text-xs">
-                <thead><tr class="text-left text-gray-400 border-b border-white/10"><th class="p-2">Date</th><th class="p-2">Amount</th><th class="p-2">Method</th><th class="p-2">Status</th><th class="p-2">Actions</th></tr></thead>
+                <thead><tr class="text-left text-gray-500 border-b border-gray-200"><th class="p-2">Date</th><th class="p-2">Amount</th><th class="p-2">Method</th><th class="p-2">Status</th><th class="p-2">Actions</th></tr></thead>
                 <tbody id="portalPayoutTable"><tr><td colspan="5" class="p-4 text-center text-gray-500">No payout requests yet.</td></tr></tbody>
               </table>
             </div>
-            <div class="rounded-xl overflow-hidden" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
-              <div class="p-3 font-semibold text-sm border-b border-white/10">Referral History</div>
+            <div class="rounded-xl overflow-hidden" style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.08);">
+              <div class="p-3 font-semibold text-sm border-b border-gray-200">Referral History</div>
               <table class="w-full text-xs">
-                <thead><tr class="text-left text-gray-400 border-b border-white/10"><th class="p-2">Date</th><th class="p-2">Type</th><th class="p-2">Plan</th><th class="p-2">Commission</th><th class="p-2">Status</th></tr></thead>
+                <thead><tr class="text-left text-gray-500 border-b border-gray-200"><th class="p-2">Date</th><th class="p-2">Type</th><th class="p-2">Plan</th><th class="p-2">Commission</th><th class="p-2">Status</th></tr></thead>
                 <tbody id="portalAffTable"><tr><td colspan="5" class="p-4 text-center text-gray-500">No referrals yet</td></tr></tbody>
               </table>
             </div>
@@ -748,25 +748,25 @@
             <div class="glass card p-6 w-full max-w-md mx-4">
               <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-bold">Request Payout</h2>
-                <button id="portalPayoutModalClose" class="text-gray-400 hover:text-white text-xl">&times;</button>
+                <button id="portalPayoutModalClose" class="text-gray-400 hover:text-gray-700 text-xl">&times;</button>
               </div>
               <div class="mb-4">
-                <p class="text-sm text-gray-400 mb-1">Available Balance</p>
-                <p class="text-2xl font-bold text-emerald-400" id="portalPayoutModalBalance">$0.00</p>
+                <p class="text-sm text-gray-500 mb-1">Available Balance</p>
+                <p class="text-2xl font-bold text-emerald-600" id="portalPayoutModalBalance">$0.00</p>
               </div>
               <div class="mb-4">
-                <label class="text-sm text-gray-400 block mb-1">Payout Method</label>
-                <select id="portalPayoutMethod" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm">
+                <label class="text-sm text-gray-500 block mb-1">Payout Method</label>
+                <select id="portalPayoutMethod" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
                   <option value="paypal">PayPal</option>
                   <option value="venmo">Venmo</option>
                   <option value="check">Check</option>
                 </select>
               </div>
               <div class="mb-4" id="portalPayoutEmailGroup">
-                <label class="text-sm text-gray-400 block mb-1" id="portalPayoutEmailLabel">PayPal Email</label>
-                <input id="portalPayoutEmail" type="text" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm" placeholder="you@example.com" />
+                <label class="text-sm text-gray-500 block mb-1" id="portalPayoutEmailLabel">PayPal Email</label>
+                <input id="portalPayoutEmail" type="text" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="you@example.com" />
               </div>
-              <div id="portalPayoutError" class="text-red-400 text-sm mb-3 hidden"></div>
+              <div id="portalPayoutError" class="text-red-500 text-sm mb-3 hidden"></div>
               <button id="portalPayoutSubmit" class="btn w-full py-2" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">Submit Payout Request</button>
             </div>
           </div>
@@ -777,7 +777,7 @@
         <div id="uploads"></div>
         <div class="space-y-4">
           <div>
-            <h2 class="text-lg font-bold text-white">Secure Uploads</h2>
+            <h2 class="text-lg font-bold text-gray-800">Secure Uploads</h2>
             <p class="text-sm text-gray-500">Upload required documents to verify your identity and start your credit repair.</p>
           </div>
           <div id="uploadStatus" class="hidden text-sm p-3 rounded-xl"></div>

@@ -813,18 +813,60 @@ body::after {
 }
 
 .portal-journey-tracker {
-  background: rgba(15, 15, 20, 0.6);
-  border: 1px solid rgba(212, 168, 83, 0.12);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 14px;
   padding: 20px 24px;
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .portal-journey-tracker .tracker-step-circle {
   cursor: default;
+  border-color: rgba(0, 0, 0, 0.12);
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.portal-journey-tracker .tracker-step.completed .tracker-step-circle {
+  background: linear-gradient(135deg, #d4a853, #c9952e);
+  border-color: #d4a853;
+  color: #1a1a1e;
+}
+
+.portal-journey-tracker .tracker-step.current .tracker-step-circle {
+  border-color: #d4a853;
+  color: #d4a853;
+  background: #fffbf0;
+}
+
+.portal-journey-tracker .tracker-step-line {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.portal-journey-tracker .tracker-step.completed .tracker-step-line {
+  background: rgba(212, 168, 83, 0.35);
 }
 
 .portal-journey-tracker .tracker-step-name {
   cursor: default;
+  color: #374151;
+}
+
+.portal-journey-tracker .tracker-step.completed .tracker-step-name {
+  color: #9ca3af;
+}
+
+.portal-journey-tracker .tracker-step.current .tracker-step-name {
+  color: #111827;
+}
+
+.portal-journey-tracker .tracker-progress-bar {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.portal-journey-tracker .tracker-progress-label {
+  color: #6b7280;
 }
 
 .workspace-grid {
