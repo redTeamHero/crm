@@ -2923,13 +2923,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const roundLetters = round.letters || [];
       const itemCount = (round.items || []).length;
 
-      const letters = roundLetters.map(l => {
-        const lCreditor = l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown' ? l.creditor : '';
-        const lLabel = lCreditor ? `${esc(lCreditor)} (${esc(l.bureau || '')})` : esc(l.bureau || l.letterType || '');
-        return `<span class="text-xs text-gray-600">${lLabel}</span>`;
-      }).join(', ');
+      const letterCount = roundLetters.length;
+      const uniqueBureaus = [...new Set(roundLetters.map(l => l.bureau).filter(Boolean))];
+      const bureauSummary = uniqueBureaus.length ? uniqueBureaus.map(b => esc(b)).join(', ') : '';
 
-      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-3">
+      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-2">
         <div class="flex items-center justify-between gap-2">
           <div>
             <div class="text-sm font-semibold text-slate-800">Round ${round.round || '—'}</div>
@@ -2939,9 +2937,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ${statusBadge}
           </div>
         </div>
-        ${letters ? `<div class="text-xs text-gray-600">Letters: ${letters}</div>` : ''}
-        ${followUp ? `<div class="text-xs text-gray-500">Follow-up due: ${followUp}</div>` : ''}
-        ${itemCount > 0 ? `<div class="text-xs text-gray-500">${itemCount} item${itemCount !== 1 ? 's' : ''} in dispute</div>` : ''}
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dispute-round-meta">
+          ${letterCount > 0 ? `<span>${letterCount} letter${letterCount !== 1 ? 's' : ''} sent${bureauSummary ? ' to ' + bureauSummary : ''}</span>` : ''}
+          ${itemCount > 0 ? `<span>${itemCount} item${itemCount !== 1 ? 's' : ''} disputed</span>` : ''}
+          ${followUp ? `<span>Follow-up: ${followUp}</span>` : ''}
+        </div>
       </div>`;
     }).join('');
   }
@@ -2993,30 +2993,34 @@ document.addEventListener('DOMContentLoaded', () => {
       const displayName = creditorIsUseful ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
       const bureauTag = creditorIsUseful && bureau ? `<span class="text-xs text-gray-500 ml-1">${esc(bureau)}</span>` : '';
       const creditor = esc(rawCreditor);
-      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 space-y-2 dispute-questionnaire-item" data-idx="${idx}">
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="text-sm font-medium text-slate-800">${displayName} ${bureauTag}</div>
+      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 dispute-questionnaire-item" data-idx="${idx}">
+        <div class="flex items-center justify-between p-3 cursor-pointer select-none dispute-accordion-header" onclick="(function(el){var body=el.parentElement.querySelector('.dispute-accordion-body');var chev=el.querySelector('.dispute-accordion-chevron');var isOpen=body.style.display!=='none';if(!isOpen){el.parentElement.parentElement.querySelectorAll('.dispute-accordion-body').forEach(function(b){b.style.display='none';});el.parentElement.parentElement.querySelectorAll('.dispute-accordion-chevron').forEach(function(c){c.style.transform='rotate(0deg)';});body.style.display='block';chev.style.transform='rotate(180deg)';}else{body.style.display='none';chev.style.transform='rotate(0deg)';}})(this)">
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <div class="text-sm font-medium text-slate-800 truncate">${displayName}</div>
+            ${bureauTag}
           </div>
+          <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 dispute-accordion-chevron" style="transform:rotate(0deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <div>
-          <label class="text-xs text-gray-600">What happened with this item?</label>
-          <select class="dispute-outcome-select input text-sm w-full mt-1" data-creditor="${creditor}" data-bureau="${esc(bureau)}">
-            <option value="">Select outcome...</option>
-            <option value="removed">Removed / Deleted</option>
-            <option value="verified">Verified (still reporting)</option>
-            <option value="no_response">No Response</option>
-            <option value="partial">Partially corrected</option>
-            <option value="stalled">Stalled / No progress</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-gray-600">Upload evidence (response letter, updated report)</label>
-          <input type="file" class="dispute-evidence-input text-sm mt-1" data-creditor="${creditor}" data-bureau="${esc(bureau)}" accept="image/*,.pdf,.html,.htm">
-        </div>
-        <div>
-          <label class="text-xs text-gray-600">Notes</label>
-          <textarea class="dispute-notes-input input text-sm w-full mt-1 border border-gray-200 rounded-lg" rows="2" data-creditor="${creditor}" data-bureau="${esc(bureau)}" placeholder="Any additional details..."></textarea>
+        <div class="dispute-accordion-body px-3 pb-3 space-y-2" style="display:none">
+          <div>
+            <label class="text-xs text-gray-600">What happened with this item?</label>
+            <select class="dispute-outcome-select input text-sm w-full mt-1" data-creditor="${creditor}" data-bureau="${esc(bureau)}">
+              <option value="">Select outcome...</option>
+              <option value="removed">Removed / Deleted</option>
+              <option value="verified">Verified (still reporting)</option>
+              <option value="no_response">No Response</option>
+              <option value="partial">Partially corrected</option>
+              <option value="stalled">Stalled / No progress</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-600">Upload evidence (response letter, updated report)</label>
+            <input type="file" class="dispute-evidence-input text-sm mt-1" data-creditor="${creditor}" data-bureau="${esc(bureau)}" accept="image/*,.pdf,.html,.htm">
+          </div>
+          <div>
+            <label class="text-xs text-gray-600">Notes</label>
+            <textarea class="dispute-notes-input input text-sm w-full mt-1 border border-gray-200 rounded-lg" rows="2" data-creditor="${creditor}" data-bureau="${esc(bureau)}" placeholder="Any additional details..."></textarea>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -3033,16 +3037,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     wrapper.classList.remove('hidden');
-    list.innerHTML = recommendations.map(rec => {
-      const urgencyClass = rec.urgency === 'high' ? 'border-rose-400' : rec.urgency === 'medium' ? 'border-amber-400' : 'border-gray-300';
-      const urgencyTextClass = rec.urgency === 'high' ? 'text-rose-600' : rec.urgency === 'medium' ? 'text-amber-600' : 'text-gray-500';
-      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 space-y-1 border-l-4 ${urgencyClass}">
-        <div class="flex items-center justify-between">
-          <div class="text-sm font-medium text-slate-800">${esc(rec.creditor || '')} ${rec.bureau ? '<span class="text-gray-500">(' + esc(rec.bureau) + ')</span>' : ''}</div>
-          ${rec.urgency ? `<span class="text-xs font-medium ${urgencyTextClass}">${esc(rec.urgency)} priority</span>` : ''}
+    const urgencyRank = { high: 3, medium: 2, low: 1 };
+    const grouped = {};
+    recommendations.forEach(rec => {
+      const key = rec.creditor || 'Unknown';
+      if (!grouped[key]) grouped[key] = { creditor: key, items: [], maxUrgency: null };
+      grouped[key].items.push(rec);
+      if (rec.urgency && (!grouped[key].maxUrgency || (urgencyRank[rec.urgency] || 0) > (urgencyRank[grouped[key].maxUrgency] || 0))) {
+        grouped[key].maxUrgency = rec.urgency;
+      }
+    });
+    list.innerHTML = Object.values(grouped).map(group => {
+      const urgencyClass = group.maxUrgency === 'high' ? 'border-rose-400' : group.maxUrgency === 'medium' ? 'border-amber-400' : 'border-gray-300';
+      const urgencyTextClass = group.maxUrgency === 'high' ? 'text-rose-600' : group.maxUrgency === 'medium' ? 'text-amber-600' : 'text-gray-500';
+      const bureauDetails = group.items.map(rec => {
+        const recUrgencyClass = rec.urgency === 'high' ? 'text-rose-600' : rec.urgency === 'medium' ? 'text-amber-600' : 'text-gray-500';
+        return `<div class="flex items-start gap-2 py-1.5 ${rec !== group.items[group.items.length - 1] ? 'border-b border-gray-100' : ''}">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-slate-700">${esc(rec.bureau || '')}</span>
+              ${rec.urgency ? `<span class="text-xs ${recUrgencyClass}">${esc(rec.urgency)}</span>` : ''}
+            </div>
+            <div class="text-xs text-slate-600">${esc(rec.recommendedTemplate || rec.recommended || '')}</div>
+            <div class="text-xs text-gray-400">${esc(rec.reason || '')}</div>
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 ${urgencyClass} overflow-hidden">
+        <div class="p-3">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-medium text-slate-800">${esc(group.creditor)}</div>
+            ${group.maxUrgency ? `<span class="text-xs font-medium ${urgencyTextClass}">${esc(group.maxUrgency)} priority</span>` : ''}
+          </div>
+          <div class="divide-y divide-gray-100">${bureauDetails}</div>
         </div>
-        <div class="text-sm text-slate-700">${esc(rec.recommendedTemplate || rec.recommended || '')}</div>
-        <div class="text-xs text-gray-500">${esc(rec.reason || '')}</div>
       </div>`;
     }).join('');
   }
@@ -3091,11 +3119,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const itemEls = document.querySelectorAll('.dispute-questionnaire-item');
       const items = [];
       const evidenceFiles = [];
+      let unanswered = 0;
 
       itemEls.forEach(el => {
         const select = el.querySelector('.dispute-outcome-select');
         const notes = el.querySelector('.dispute-notes-input');
         const fileInput = el.querySelector('.dispute-evidence-input');
+        if (!select?.value) unanswered++;
         items.push({
           creditor: select?.dataset.creditor || '',
           bureau: select?.dataset.bureau || '',
@@ -3110,6 +3140,18 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
       });
+
+      if (unanswered === itemEls.length) {
+        if (statusEl) {
+          statusEl.classList.remove('hidden');
+          statusEl.className = 'text-sm text-amber-600';
+          statusEl.textContent = 'Please select an outcome for at least one item before submitting.';
+        }
+        return;
+      }
+      if (unanswered > 0) {
+        if (!confirm(`${unanswered} item${unanswered !== 1 ? 's have' : ' has'} no outcome selected and will be marked as "No Response". Continue?`)) return;
+      }
 
       disputeSubmitBtn.disabled = true;
       disputeSubmitBtn.textContent = 'Submitting...';
