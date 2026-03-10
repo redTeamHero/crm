@@ -3155,11 +3155,12 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>`;
   }
 
-  function renderDisputeRounds(rounds, activeRoundRecs) {
+  function renderDisputeRounds(rounds, activeRoundRecs, portalLettersByJobId) {
     const roundList = document.getElementById('disputeRoundList');
     const emptyEl = document.getElementById('disputeEmpty');
     if (!roundList) return;
     activeRoundRecs = activeRoundRecs || [];
+    portalLettersByJobId = portalLettersByJobId || {};
 
     if (!rounds || !rounds.length) {
       roundList.innerHTML = '';
@@ -3189,6 +3190,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const followupSection = (round.jobId === activeJobId) ? buildFollowupHTML(round, activeRoundRecs) : '';
       const responseSummary = !isActive ? buildResponseSummaryHTML(round) : '';
 
+      const pLetters = portalLettersByJobId[round.jobId] || [];
+      let lettersSection = '';
+      if (pLetters.length) {
+        const letterItems = pLetters.map(l => {
+          const raw = l.name || 'Letter';
+          const clean = raw.replace(/\.pdf$/i, '').replace(/^[a-z0-9_]+_\d{4}-\d{2}-\d{2}_/i, '').replace(/_/g, ' ');
+          return `<a href="${esc(l.url)}" target="_blank" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-100 hover:bg-indigo-50 hover:border-indigo-200 transition-colors group">
+            <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-indigo-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span class="text-xs text-slate-700 group-hover:text-indigo-700 truncate">${esc(clean)}</span>
+          </a>`;
+        }).join('');
+        lettersSection = `<div class="border-t border-gray-200 mt-3 pt-3 space-y-2">
+          <div class="flex items-center justify-between cursor-pointer select-none dispute-letters-toggle">
+            <div class="text-xs font-semibold text-slate-700">Your Letters (${pLetters.length})</div>
+            <svg class="w-4 h-4 text-gray-400 transition-transform duration-200 dispute-letters-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="dispute-letters-body grid gap-1.5" style="display:none">${letterItems}</div>
+        </div>`;
+      }
+
       return `<div class="bg-white rounded-xl shadow-sm border ${borderClass} p-4 space-y-2">
         <div class="flex items-center justify-between gap-2">
           <div>
@@ -3204,6 +3225,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${itemCount > 0 ? `<span>${itemCount} item${itemCount !== 1 ? 's' : ''} disputed</span>` : ''}
           ${followUp && !isActive ? `<span>Follow-up: ${followUp}</span>` : ''}
         </div>
+        ${lettersSection}
         ${followupSection}
         ${responseSummary}
       </div>`;
@@ -3211,6 +3233,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     roundList.querySelectorAll('.dispute-submit-btn').forEach(btn => {
       btn.addEventListener('click', handleDisputeSubmit);
+    });
+
+    roundList.querySelectorAll('.dispute-letters-toggle').forEach(toggle => {
+      toggle.addEventListener('click', function() {
+        const body = toggle.parentElement.querySelector('.dispute-letters-body');
+        const chev = toggle.querySelector('.dispute-letters-chevron');
+        if (!body) return;
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : '';
+        if (chev) chev.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+      });
     });
 
     roundList.querySelectorAll('.dispute-edit-btn').forEach(btn => {
@@ -3333,20 +3366,42 @@ document.addEventListener('DOMContentLoaded', () => {
       const rounds = data.rounds || [];
 
       let activeRoundRecs = [];
+      let portalLettersByJobId = {};
       if (rounds.length) {
+        const fetches = [];
         const latestWithResponses = [...rounds].reverse().find(r => r.status !== 'awaiting_response' && r.status !== 'awaiting');
         if (latestWithResponses) {
-          try {
-            const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(latestWithResponses.jobId)}/recommendation`);
-            if (recResp.ok) {
-              const recData = await recResp.json();
-              activeRoundRecs = recData.recommendations || [];
-            }
-          } catch {}
+          fetches.push(
+            fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(latestWithResponses.jobId)}/recommendation`)
+              .then(r => r.ok ? r.json() : null)
+              .then(d => { activeRoundRecs = d?.recommendations || []; })
+              .catch(() => {})
+          );
         }
+        fetches.push(
+          fetch(`/api/consumers/${encodeURIComponent(consumerId)}/state`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+              const events = d?.state?.events || [];
+              const files = d?.state?.files || [];
+              events.filter(e => e.type === 'letters_portal_sent').forEach(e => {
+                const jobId = e.payload?.jobId || '';
+                const stored = (e.payload?.file || '').split('/').pop();
+                const meta = files.find(f => f.storedName === stored);
+                if (!portalLettersByJobId[jobId]) portalLettersByJobId[jobId] = [];
+                portalLettersByJobId[jobId].push({
+                  url: e.payload?.file || '#',
+                  name: meta?.originalName || stored || 'Letter',
+                  stored
+                });
+              });
+            })
+            .catch(() => {})
+        );
+        await Promise.all(fetches);
       }
 
-      renderDisputeRounds(rounds, activeRoundRecs);
+      renderDisputeRounds(rounds, activeRoundRecs, portalLettersByJobId);
     } catch (err) {
       console.error('Failed to load disputes', err);
       const roundList = document.getElementById('disputeRoundList');

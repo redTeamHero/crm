@@ -202,7 +202,7 @@ async function loadDisputeTracker() {
   }
 }
 
-function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent) {
+function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, portalError) {
   let existing = document.getElementById('letterPreviewModal');
   if (existing) existing.remove();
 
@@ -242,9 +242,10 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent) {
       </div>
       <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;flex-wrap:wrap;">
         <a class="btn btn-outline text-xs" href="/api/letters/${encodeURIComponent(letterJobId)}/all.zip${tokenParam}" style="text-decoration:none;">Download All (ZIP)</a>
-        <button class="btn btn-outline text-xs" id="lpmSendPortal"${portalSent ? ' disabled style="color:#4ade80;border-color:#4ade80;"' : ''}>
-          ${portalSent ? '\u2713 Sent to Portal' : 'Send to Portal'}
+        <button class="btn btn-outline text-xs" id="lpmSendPortal"${portalSent ? ' disabled style="color:#4ade80;border-color:#4ade80;"' : portalError ? ' style="color:#fbbf24;border-color:#fbbf24;"' : ''}>
+          ${portalSent ? '\u2713 Sent to Portal' : portalError ? '\u26A0 Retry Send to Portal' : 'Send to Portal'}
         </button>
+        ${portalError ? `<span id="lpmPortalError" style="font-size:11px;color:#fbbf24;max-width:200px;display:inline-block;">${escapeHtml(portalError)}</span>` : ''}
         <a class="btn btn-outline text-xs" href="/letters?job=${encodeURIComponent(letterJobId)}" target="_blank" style="text-decoration:none;">Open Full View</a>
         <button class="btn text-xs" id="lpmDone" style="margin-left:auto;">Done</button>
       </div>
@@ -283,20 +284,40 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent) {
 
   modal.querySelector('#lpmSendPortal').addEventListener('click', async () => {
     const btn = modal.querySelector('#lpmSendPortal');
+    let errEl = modal.querySelector('#lpmPortalError');
     btn.disabled = true;
     btn.textContent = 'Sending...';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    function showInlineErr(msg) {
+      if (!errEl) {
+        errEl = document.createElement('span');
+        errEl.id = 'lpmPortalError';
+        errEl.style.cssText = 'font-size:11px;color:#fbbf24;max-width:200px;display:inline-block;';
+        btn.parentElement.insertBefore(errEl, btn.nextSibling);
+      }
+      errEl.textContent = msg;
+    }
     try {
       const res = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
       if (res?.ok) {
-        btn.textContent = 'Sent to Portal';
+        btn.textContent = '\u2713 Sent to Portal';
         btn.style.color = '#4ade80';
+        btn.style.borderColor = '#4ade80';
+        if (errEl) errEl.remove();
       } else {
-        btn.textContent = 'Failed';
-        showErr(res?.error || 'Failed to send to portal.');
+        btn.disabled = false;
+        btn.textContent = '\u26A0 Retry Send to Portal';
+        btn.style.color = '#fbbf24';
+        btn.style.borderColor = '#fbbf24';
+        showInlineErr(res?.error || res?.message || 'Failed to send to portal.');
       }
     } catch (err) {
-      btn.textContent = 'Failed';
-      showErr(String(err));
+      btn.disabled = false;
+      btn.textContent = '\u26A0 Retry Send to Portal';
+      btn.style.color = '#fbbf24';
+      btn.style.borderColor = '#fbbf24';
+      showInlineErr(String(err.message || err));
     }
   });
 }
@@ -700,11 +721,18 @@ function renderDisputeTracker(data) {
         if (!lettersData?.letters || !lettersData.letters.length) throw new Error('No letters were generated.');
         btn.textContent = 'Sending to portal...';
         let portalSent = false;
+        let portalError = '';
         try {
           const portalRes = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
           portalSent = !!(portalRes?.ok);
-        } catch {}
-        openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1, portalSent);
+          if (!portalSent) portalError = portalRes?.error || portalRes?.message || 'Portal upload returned an error.';
+        } catch (portalErr) {
+          portalError = String(portalErr.message || portalErr);
+        }
+        if (!portalSent && portalError) {
+          console.warn('Portal send failed:', portalError);
+        }
+        openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1, portalSent, portalError);
       } catch (err) {
         showErr(String(err.message || err));
       } finally {
