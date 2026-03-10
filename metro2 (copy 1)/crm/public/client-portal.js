@@ -3006,11 +3006,70 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>`;
   }
 
-  function renderDisputeRounds(rounds, recommendationsByJobId) {
+  function buildResponseSummaryHTML(round) {
+    const hasResponses = round.status === 'response_received' || round.status === 'resolved' || round.status === 'completed';
+    if (!hasResponses) return '';
+    const items = round.items || [];
+    const respondedItems = items.filter(i => i.status && i.status !== 'awaiting' && i.status !== 'awaiting_response');
+    if (!respondedItems.length) return '';
+
+    const outcomeLabels = {
+      removed: { label: 'Removed', cls: 'text-emerald-700 bg-emerald-50' },
+      deleted: { label: 'Deleted', cls: 'text-emerald-700 bg-emerald-50' },
+      corrected: { label: 'Corrected', cls: 'text-emerald-700 bg-emerald-50' },
+      verified: { label: 'Verified', cls: 'text-rose-700 bg-rose-50' },
+      no_response: { label: 'No Response', cls: 'text-amber-700 bg-amber-50' },
+      partial: { label: 'Partial Correction', cls: 'text-slate-700 bg-slate-100' },
+      stalled: { label: 'Stalled', cls: 'text-slate-700 bg-slate-100' },
+      updated: { label: 'Updated', cls: 'text-blue-700 bg-blue-50' },
+    };
+
+    const roundLetters = round.letters || [];
+    const grouped = [];
+    const groupMap = {};
+    respondedItems.forEach(item => {
+      const rawCreditor = item.creditor || 'Unknown';
+      const bureau = item.bureau || '';
+      let resolvedCreditor = rawCreditor;
+      if (rawCreditor === bureau || rawCreditor === 'Unknown') {
+        const matchLetter = roundLetters.find(l => l.bureau === bureau && l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown');
+        if (matchLetter) resolvedCreditor = matchLetter.creditor;
+      }
+      const acctKey = (rawCreditor || '') + '||' + (item.accountNumber || '');
+      const acctLabel = item.accountNumber ? ` (\u2022\u2022\u2022\u2022${esc(item.accountNumber)})` : '';
+      const displayName = (resolvedCreditor !== bureau && resolvedCreditor !== 'Unknown') ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown');
+      if (!groupMap[acctKey]) {
+        groupMap[acctKey] = { displayName, bureaus: [] };
+        grouped.push(groupMap[acctKey]);
+      }
+      groupMap[acctKey].bureaus.push({ bureau, status: item.status });
+    });
+
+    const groupsHTML = grouped.map(group => {
+      const rows = group.bureaus.map(b => {
+        const info = outcomeLabels[b.status] || { label: b.status || 'Unknown', cls: 'text-gray-700 bg-gray-100' };
+        return `<div class="flex items-center justify-between py-1">
+          <span class="text-xs text-slate-600">${esc(b.bureau)}</span>
+          <span class="text-xs font-medium px-1.5 py-0.5 rounded ${info.cls}">${info.label}</span>
+        </div>`;
+      }).join('');
+      return `<div class="bg-gray-50 rounded-lg border border-gray-100 px-3 py-2">
+        <div class="text-xs font-medium text-slate-800 mb-1">${group.displayName}</div>
+        ${rows}
+      </div>`;
+    }).join('');
+
+    return `<div class="border-t border-gray-200 mt-3 pt-3 space-y-2">
+      <div class="text-xs font-semibold text-slate-700">Your Responses</div>
+      <div class="space-y-1.5">${groupsHTML}</div>
+    </div>`;
+  }
+
+  function renderDisputeRounds(rounds, activeRoundRecs) {
     const roundList = document.getElementById('disputeRoundList');
     const emptyEl = document.getElementById('disputeEmpty');
     if (!roundList) return;
-    recommendationsByJobId = recommendationsByJobId || {};
+    activeRoundRecs = activeRoundRecs || [];
 
     if (!rounds || !rounds.length) {
       roundList.innerHTML = '';
@@ -3037,8 +3096,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const isActive = round.status !== 'resolved' && round.status !== 'completed' && round.status !== 'response_received';
       const borderClass = isActive ? 'border-amber-300' : 'border-gray-200';
 
-      const roundRecs = recommendationsByJobId[round.jobId] || [];
-      const followupSection = (round.jobId === activeJobId) ? buildFollowupHTML(round, roundRecs) : '';
+      const followupSection = (round.jobId === activeJobId) ? buildFollowupHTML(round, activeRoundRecs) : '';
+      const responseSummary = !isActive ? buildResponseSummaryHTML(round) : '';
 
       return `<div class="bg-white rounded-xl shadow-sm border ${borderClass} p-4 space-y-2">
         <div class="flex items-center justify-between gap-2">
@@ -3056,6 +3115,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${followUp && !isActive ? `<span>Follow-up: ${followUp}</span>` : ''}
         </div>
         ${followupSection}
+        ${responseSummary}
       </div>`;
     }).join('');
 
@@ -3161,28 +3221,21 @@ document.addEventListener('DOMContentLoaded', () => {
       disputeData = data;
       const rounds = data.rounds || [];
 
-      const recommendationsByJobId = {};
+      let activeRoundRecs = [];
       if (rounds.length) {
-        const jobIdsToFetch = new Set();
         const latestWithResponses = [...rounds].reverse().find(r => r.status !== 'awaiting_response' && r.status !== 'awaiting');
-        if (latestWithResponses) jobIdsToFetch.add(latestWithResponses.jobId);
-        const activeRound = [...rounds].reverse().find(r => r.status !== 'resolved' && r.status !== 'completed' && r.status !== 'response_received');
-        if (activeRound) jobIdsToFetch.add(activeRound.jobId);
-
-        await Promise.all([...jobIdsToFetch].map(async (jobId) => {
+        if (latestWithResponses) {
           try {
-            const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/recommendation`);
+            const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(latestWithResponses.jobId)}/recommendation`);
             if (recResp.ok) {
               const recData = await recResp.json();
-              if (recData.recommendations && recData.recommendations.length) {
-                recommendationsByJobId[jobId] = recData.recommendations;
-              }
+              activeRoundRecs = recData.recommendations || [];
             }
           } catch {}
-        }));
+        }
       }
 
-      renderDisputeRounds(rounds, recommendationsByJobId);
+      renderDisputeRounds(rounds, activeRoundRecs);
     } catch (err) {
       console.error('Failed to load disputes', err);
       const roundList = document.getElementById('disputeRoundList');
