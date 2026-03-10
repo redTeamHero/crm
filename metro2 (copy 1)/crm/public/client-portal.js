@@ -3010,8 +3010,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hasResponses = round.status === 'response_received' || round.status === 'resolved' || round.status === 'completed';
     if (!hasResponses) return '';
     const items = round.items || [];
-    const respondedItems = items.filter(i => i.status && i.status !== 'awaiting' && i.status !== 'awaiting_response');
-    if (!respondedItems.length) return '';
+    if (!items.length) return '';
 
     const outcomeLabels = {
       removed: { label: 'Removed', cls: 'text-emerald-700 bg-emerald-50' },
@@ -3019,6 +3018,8 @@ document.addEventListener('DOMContentLoaded', () => {
       corrected: { label: 'Corrected', cls: 'text-emerald-700 bg-emerald-50' },
       verified: { label: 'Verified', cls: 'text-rose-700 bg-rose-50' },
       no_response: { label: 'No Response', cls: 'text-amber-700 bg-amber-50' },
+      awaiting: { label: 'No Response', cls: 'text-amber-700 bg-amber-50' },
+      awaiting_response: { label: 'No Response', cls: 'text-amber-700 bg-amber-50' },
       partial: { label: 'Partial Correction', cls: 'text-slate-700 bg-slate-100' },
       stalled: { label: 'Stalled', cls: 'text-slate-700 bg-slate-100' },
       updated: { label: 'Updated', cls: 'text-blue-700 bg-blue-50' },
@@ -3027,7 +3028,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roundLetters = round.letters || [];
     const grouped = [];
     const groupMap = {};
-    respondedItems.forEach(item => {
+    items.forEach(item => {
       const rawCreditor = item.creditor || 'Unknown';
       const bureau = item.bureau || '';
       let resolvedCreditor = rawCreditor;
