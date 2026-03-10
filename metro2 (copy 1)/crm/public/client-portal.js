@@ -3043,7 +3043,7 @@ document.addEventListener('DOMContentLoaded', () => {
         groupMap[acctKey] = { displayName, bureaus: [] };
         grouped.push(groupMap[acctKey]);
       }
-      groupMap[acctKey].bureaus.push({ bureau, status: item.status });
+      groupMap[acctKey].bureaus.push({ bureau, status: item.outcome || item.status });
     });
 
     const groupsHTML = grouped.map(group => {
