@@ -2921,24 +2921,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const followUp = formatDisputeDate(round.followUpDate);
       const statusBadge = getDisputeStatusBadge(round.status);
       const roundLetters = round.letters || [];
-      const items = (round.items || []).map(item => {
-        const itemBadge = getDisputeStatusBadge(item.status || item.outcome || 'awaiting');
-        let creditorName = item.creditor && item.creditor !== item.bureau && item.creditor !== 'Unknown' ? item.creditor : null;
-        if (!creditorName) {
-          const matchLetter = roundLetters.find(l => l.bureau === item.bureau && l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown');
-          if (matchLetter) creditorName = matchLetter.creditor;
-        }
-        const acctLabel = item.accountNumber ? ` (${esc(item.accountNumber)})` : '';
-        const displayName = creditorName ? esc(creditorName) + acctLabel : (item.bureau ? esc(item.bureau) + acctLabel : 'Unknown Item');
-        const bureauLabel = creditorName && item.bureau ? `<span class="text-xs text-gray-500 ml-1">${esc(item.bureau)}</span>` : '';
-        return `<div class="flex items-center justify-between gap-2 py-1.5 px-2 rounded-lg bg-gray-50 border border-gray-100">
-          <div class="flex items-center gap-2 flex-1 min-w-0">
-            <span class="text-sm font-medium text-slate-800 truncate">${displayName}</span>
-            ${bureauLabel}
-          </div>
-          ${itemBadge}
-        </div>`;
-      }).join('');
+      const itemCount = (round.items || []).length;
 
       const letters = roundLetters.map(l => {
         const lCreditor = l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown' ? l.creditor : '';
@@ -2958,7 +2941,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         ${letters ? `<div class="text-xs text-gray-600">Letters: ${letters}</div>` : ''}
         ${followUp ? `<div class="text-xs text-gray-500">Follow-up due: ${followUp}</div>` : ''}
-        <div class="space-y-1">${items || '<div class="text-xs text-gray-500">No items tracked.</div>'}</div>
+        ${itemCount > 0 ? `<div class="text-xs text-gray-500">${itemCount} item${itemCount !== 1 ? 's' : ''} in dispute</div>` : ''}
       </div>`;
     }).join('');
   }
