@@ -3060,9 +3060,98 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`;
     }).join('');
 
-    return `<div class="border-t border-gray-200 mt-3 pt-3 space-y-2">
-      <div class="text-xs font-semibold text-slate-700">Your Responses</div>
+    return `<div class="border-t border-gray-200 mt-3 pt-3 space-y-2 dispute-response-summary" data-job-id="${esc(round.jobId || '')}">
+      <div class="flex items-center justify-between">
+        <div class="text-xs font-semibold text-slate-700">Your Responses</div>
+        <button type="button" class="dispute-edit-btn text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors">Edit Responses</button>
+      </div>
       <div class="space-y-1.5">${groupsHTML}</div>
+    </div>`;
+  }
+
+  function buildEditableFollowupHTML(round) {
+    const items = round.items || [];
+    if (!items.length) return '';
+    const roundLetters = round.letters || [];
+    const grouped = [];
+    const groupMap = {};
+    items.forEach((item, idx) => {
+      const rawCreditor = item.creditor || 'Unknown';
+      const bureau = item.bureau || '';
+      let creditorIsUseful = rawCreditor !== bureau && rawCreditor !== 'Unknown';
+      let resolvedCreditor = rawCreditor;
+      if (!creditorIsUseful) {
+        const matchLetter = roundLetters.find(l => l.bureau === bureau && l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown');
+        if (matchLetter) { resolvedCreditor = matchLetter.creditor; creditorIsUseful = true; }
+      }
+      const acctKey = (rawCreditor || '') + '||' + (item.accountNumber || '');
+      const acctLabel = item.accountNumber ? ` (\u2022\u2022\u2022\u2022${esc(item.accountNumber)})` : '';
+      const displayName = creditorIsUseful ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
+      if (!groupMap[acctKey]) {
+        groupMap[acctKey] = { displayName, bureaus: [] };
+        grouped.push(groupMap[acctKey]);
+      }
+      groupMap[acctKey].bureaus.push({ rawCreditor, bureau, idx, item });
+    });
+
+    const outcomeMap = { removed: 'Removed / Deleted', verified: 'Verified (still reporting)', no_response: 'No Response', partial: 'Partially corrected', stalled: 'Stalled / No progress', updated: 'Updated / Changed' };
+    const outcomeKeys = ['removed', 'verified', 'no_response', 'partial', 'stalled', 'updated'];
+
+    const itemsHTML = grouped.map(group => {
+      const bureauRows = group.bureaus.map(b => {
+        const creditor = esc(b.rawCreditor);
+        const bureau = esc(b.bureau);
+        const currentOutcome = b.item.outcome || b.item.status || '';
+        const normalizedOutcome = (currentOutcome === 'awaiting' || currentOutcome === 'awaiting_response') ? '' : currentOutcome;
+        const optionsHTML = outcomeKeys.map(k => {
+          const sel = (normalizedOutcome === k || (k === 'removed' && (normalizedOutcome === 'deleted' || normalizedOutcome === 'corrected'))) ? ' selected' : '';
+          return `<option value="${k}"${sel}>${outcomeMap[k]}</option>`;
+        }).join('');
+        const notesVal = b.item.notes ? esc(b.item.notes) : '';
+        return `<div class="dispute-questionnaire-item border-t border-gray-100 pt-2 first:border-0 first:pt-0" data-idx="${b.idx}">
+          <div class="text-xs font-medium text-slate-600 mb-1">${bureau || 'Bureau'}</div>
+          <select class="dispute-outcome-select input text-sm w-full" data-creditor="${creditor}" data-bureau="${bureau}">
+            <option value="">Select outcome...</option>
+            ${optionsHTML}
+          </select>
+          <div class="flex items-center gap-3 mt-1.5">
+            <input type="file" class="dispute-evidence-input text-xs flex-1" data-creditor="${creditor}" data-bureau="${bureau}" accept="image/*,.pdf,.html,.htm">
+          </div>
+          <textarea class="dispute-notes-input input text-xs w-full mt-1 border border-gray-200 rounded-lg" rows="1" data-creditor="${creditor}" data-bureau="${bureau}" placeholder="Notes (optional)">${notesVal}</textarea>
+        </div>`;
+      }).join('');
+      const bureauList = group.bureaus.map(b => esc(b.bureau)).join(', ');
+      return `<div class="bg-gray-50 rounded-lg border border-gray-100 dispute-questionnaire-group">
+        <div class="flex items-center justify-between px-3 py-2.5 cursor-pointer select-none dispute-accordion-header" onclick="(function(el){var body=el.parentElement.querySelector('.dispute-accordion-body');var chev=el.querySelector('.dispute-accordion-chevron');var isOpen=body.style.display!=='none';if(!isOpen){el.parentElement.parentElement.querySelectorAll('.dispute-accordion-body').forEach(function(b){b.style.display='none';});el.parentElement.parentElement.querySelectorAll('.dispute-accordion-chevron').forEach(function(c){c.style.transform='rotate(0deg)';});body.style.display='block';chev.style.transform='rotate(180deg)';}else{body.style.display='none';chev.style.transform='rotate(0deg)';}})(this)">
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-slate-800 truncate">${group.displayName}</div>
+            <div class="text-xs text-gray-400">${bureauList}</div>
+          </div>
+          <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 dispute-accordion-chevron" style="transform:rotate(0deg)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="dispute-accordion-body px-3 pb-3 space-y-2" style="display:none">
+          ${bureauRows}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="border-t border-indigo-200 mt-3 pt-3 space-y-3 dispute-followup-section dispute-edit-section" data-job-id="${esc(round.jobId || '')}">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-indigo-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-3.5 h-3.5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-slate-800">Edit Your Responses</div>
+          <div class="text-xs text-gray-500">Update your selections and re-submit.</div>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500">Tap an item to update its outcome.</p>
+      <div class="space-y-1.5">${itemsHTML}</div>
+      <div class="flex items-center gap-3">
+        <button class="btn text-sm dispute-submit-btn" type="button">Update Responses</button>
+        <button class="text-sm text-gray-500 hover:text-gray-700 dispute-edit-cancel-btn" type="button">Cancel</button>
+        <div class="dispute-submit-status hidden text-sm"></div>
+      </div>
     </div>`;
   }
 
@@ -3123,6 +3212,26 @@ document.addEventListener('DOMContentLoaded', () => {
     roundList.querySelectorAll('.dispute-submit-btn').forEach(btn => {
       btn.addEventListener('click', handleDisputeSubmit);
     });
+
+    roundList.querySelectorAll('.dispute-edit-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const summaryEl = btn.closest('.dispute-response-summary');
+        if (!summaryEl) return;
+        const jobId = summaryEl.dataset.jobId;
+        const round = rounds.find(r => r.jobId === jobId);
+        if (!round) return;
+        const cardEl = summaryEl.closest('.bg-white');
+        if (!cardEl) return;
+        const editHTML = buildEditableFollowupHTML(round);
+        summaryEl.outerHTML = editHTML;
+        cardEl.querySelectorAll('.dispute-submit-btn').forEach(b => {
+          b.addEventListener('click', handleDisputeSubmit);
+        });
+        cardEl.querySelectorAll('.dispute-edit-cancel-btn').forEach(b => {
+          b.addEventListener('click', function() { loadDisputes(); });
+        });
+      });
+    });
   }
 
   async function handleDisputeSubmit(e) {
@@ -3170,6 +3279,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirm(`${unanswered} item${unanswered !== 1 ? 's have' : ' has'} no outcome selected and will be marked as "No Response". Continue?`)) return;
     }
 
+    const originalLabel = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Submitting...';
     if (statusEl) { statusEl.classList.add('hidden'); }
@@ -3208,7 +3318,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Submit Responses';
+      btn.textContent = originalLabel;
     }
   }
 
