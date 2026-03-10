@@ -2904,97 +2904,35 @@ document.addEventListener('DOMContentLoaded', () => {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  function renderDisputeRounds(rounds) {
-    const roundList = document.getElementById('disputeRoundList');
-    const emptyEl = document.getElementById('disputeEmpty');
-    if (!roundList) return;
-
-    if (!rounds || !rounds.length) {
-      roundList.innerHTML = '';
-      if (emptyEl) emptyEl.classList.remove('hidden');
-      return;
+  function buildFollowupHTML(round) {
+    const isActive = round.status !== 'resolved' && round.status !== 'completed' && round.status !== 'response_received';
+    if (!isActive) return '';
+    const items = round.items || [];
+    if (!items.length) return '';
+    const roundLetters = round.letters || [];
+    let dueText = 'You can respond at any time';
+    if (round.followUpDate) {
+      const due = new Date(round.followUpDate);
+      const isPast = due.getTime() <= Date.now();
+      dueText = isPast
+        ? 'Follow-up was due ' + formatDisputeDate(round.followUpDate) + ' \u2014 please respond'
+        : 'You can respond now, or follow-up recommended by ' + formatDisputeDate(round.followUpDate);
     }
-    if (emptyEl) emptyEl.classList.add('hidden');
-
-    roundList.innerHTML = rounds.map(round => {
-      const sentDate = formatDisputeDate(round.sentAt);
-      const followUp = formatDisputeDate(round.followUpDate);
-      const statusBadge = getDisputeStatusBadge(round.status);
-      const roundLetters = round.letters || [];
-      const itemCount = (round.items || []).length;
-
-      const letterCount = roundLetters.length;
-      const uniqueBureaus = [...new Set(roundLetters.map(l => l.bureau).filter(Boolean))];
-      const bureauSummary = uniqueBureaus.length ? uniqueBureaus.map(b => esc(b)).join(', ') : '';
-
-      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-2">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <div class="text-sm font-semibold text-slate-800">Round ${round.round || '—'}</div>
-            <div class="text-xs text-gray-500">${sentDate ? 'Sent ' + sentDate : 'Pending'}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            ${statusBadge}
-          </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dispute-round-meta">
-          ${letterCount > 0 ? `<span>${letterCount} letter${letterCount !== 1 ? 's' : ''} sent${bureauSummary ? ' to ' + bureauSummary : ''}</span>` : ''}
-          ${itemCount > 0 ? `<span>${itemCount} item${itemCount !== 1 ? 's' : ''} disputed</span>` : ''}
-          ${followUp ? `<span>Follow-up: ${followUp}</span>` : ''}
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  function renderDisputeFollowup(rounds) {
-    const card = document.getElementById('disputeFollowupCard');
-    const itemsEl = document.getElementById('disputeQuestionnaireItems');
-    const dueEl = document.getElementById('disputeFollowupDue');
-    if (!card || !itemsEl) return;
-
-    const activeRound = [...rounds].reverse().find(r => {
-      return r.status !== 'resolved' && r.status !== 'completed' && r.status !== 'response_received';
-    });
-
-    if (!activeRound) {
-      card.classList.add('hidden');
-      return;
-    }
-
-    card.classList.remove('hidden');
-    card.dataset.jobId = activeRound.jobId || '';
-    if (dueEl) {
-      if (activeRound.followUpDate) {
-        const due = new Date(activeRound.followUpDate);
-        const isPast = due.getTime() <= Date.now();
-        dueEl.textContent = isPast
-          ? 'Follow-up was due ' + formatDisputeDate(activeRound.followUpDate) + ' \u2014 please respond'
-          : 'You can respond now, or follow-up recommended by ' + formatDisputeDate(activeRound.followUpDate);
-      } else {
-        dueEl.textContent = 'You can respond at any time';
-      }
-    }
-
-    const items = activeRound.items || [];
-    const roundLetters = activeRound.letters || [];
-    itemsEl.innerHTML = items.map((item, idx) => {
+    const itemsHTML = items.map((item, idx) => {
       const rawCreditor = item.creditor || 'Unknown';
       const bureau = item.bureau || '';
       let creditorIsUseful = rawCreditor !== bureau && rawCreditor !== 'Unknown';
       let resolvedCreditor = rawCreditor;
       if (!creditorIsUseful) {
         const matchLetter = roundLetters.find(l => l.bureau === bureau && l.creditor && l.creditor !== l.bureau && l.creditor !== 'Unknown');
-        if (matchLetter) {
-          resolvedCreditor = matchLetter.creditor;
-          creditorIsUseful = true;
-        }
+        if (matchLetter) { resolvedCreditor = matchLetter.creditor; creditorIsUseful = true; }
       }
       const acctLabel = item.accountNumber ? ` (${esc(item.accountNumber)})` : '';
       const displayName = creditorIsUseful ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
       const bureauTag = creditorIsUseful && bureau ? `<span class="text-xs text-gray-500 ml-1">${esc(bureau)}</span>` : '';
       const creditor = esc(rawCreditor);
-      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 dispute-questionnaire-item" data-idx="${idx}">
-        <div class="flex items-center justify-between p-3 cursor-pointer select-none dispute-accordion-header" onclick="(function(el){var body=el.parentElement.querySelector('.dispute-accordion-body');var chev=el.querySelector('.dispute-accordion-chevron');var isOpen=body.style.display!=='none';if(!isOpen){el.parentElement.parentElement.querySelectorAll('.dispute-accordion-body').forEach(function(b){b.style.display='none';});el.parentElement.parentElement.querySelectorAll('.dispute-accordion-chevron').forEach(function(c){c.style.transform='rotate(0deg)';});body.style.display='block';chev.style.transform='rotate(180deg)';}else{body.style.display='none';chev.style.transform='rotate(0deg)';}})(this)">
+      return `<div class="bg-gray-50 rounded-lg border border-gray-100 dispute-questionnaire-item" data-idx="${idx}">
+        <div class="flex items-center justify-between px-3 py-2.5 cursor-pointer select-none dispute-accordion-header" onclick="(function(el){var body=el.parentElement.querySelector('.dispute-accordion-body');var chev=el.querySelector('.dispute-accordion-chevron');var isOpen=body.style.display!=='none';if(!isOpen){el.parentElement.parentElement.querySelectorAll('.dispute-accordion-body').forEach(function(b){b.style.display='none';});el.parentElement.parentElement.querySelectorAll('.dispute-accordion-chevron').forEach(function(c){c.style.transform='rotate(0deg)';});body.style.display='block';chev.style.transform='rotate(180deg)';}else{body.style.display='none';chev.style.transform='rotate(0deg)';}})(this)">
           <div class="flex items-center gap-2 min-w-0 flex-1">
             <div class="text-sm font-medium text-slate-800 truncate">${displayName}</div>
             ${bureauTag}
@@ -3024,19 +2962,27 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>`;
     }).join('');
+    return `<div class="border-t border-amber-200 mt-3 pt-3 space-y-3 dispute-followup-section" data-job-id="${esc(round.jobId || '')}">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-md bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <svg class="w-3.5 h-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-slate-800">Report Your Results</div>
+          <div class="text-xs text-gray-500">${esc(dueText)}</div>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500">Tap an item to report its outcome.</p>
+      <div class="space-y-1.5">${itemsHTML}</div>
+      <div class="flex items-center gap-3">
+        <button class="btn text-sm dispute-submit-btn" type="button">Submit Responses</button>
+        <div class="dispute-submit-status hidden text-sm"></div>
+      </div>
+    </div>`;
   }
 
-  function renderDisputeRecommendations(recommendations) {
-    const wrapper = document.getElementById('disputeRecommendations');
-    const list = document.getElementById('disputeRecommendationList');
-    if (!wrapper || !list) return;
-
-    if (!recommendations || !recommendations.length) {
-      wrapper.classList.add('hidden');
-      return;
-    }
-
-    wrapper.classList.remove('hidden');
+  function buildRecommendationsHTML(recommendations) {
+    if (!recommendations || !recommendations.length) return '';
     const urgencyRank = { high: 3, medium: 2, low: 1 };
     const grouped = {};
     recommendations.forEach(rec => {
@@ -3047,32 +2993,178 @@ document.addEventListener('DOMContentLoaded', () => {
         grouped[key].maxUrgency = rec.urgency;
       }
     });
-    list.innerHTML = Object.values(grouped).map(group => {
-      const urgencyClass = group.maxUrgency === 'high' ? 'border-rose-400' : group.maxUrgency === 'medium' ? 'border-amber-400' : 'border-gray-300';
+    const cards = Object.values(grouped).map(group => {
+      const urgencyClass = group.maxUrgency === 'high' ? 'border-l-rose-400' : group.maxUrgency === 'medium' ? 'border-l-amber-400' : 'border-l-gray-300';
       const urgencyTextClass = group.maxUrgency === 'high' ? 'text-rose-600' : group.maxUrgency === 'medium' ? 'text-amber-600' : 'text-gray-500';
-      const bureauDetails = group.items.map(rec => {
+      const bureauDetails = group.items.map((rec, i) => {
         const recUrgencyClass = rec.urgency === 'high' ? 'text-rose-600' : rec.urgency === 'medium' ? 'text-amber-600' : 'text-gray-500';
-        return `<div class="flex items-start gap-2 py-1.5 ${rec !== group.items[group.items.length - 1] ? 'border-b border-gray-100' : ''}">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-medium text-slate-700">${esc(rec.bureau || '')}</span>
-              ${rec.urgency ? `<span class="text-xs ${recUrgencyClass}">${esc(rec.urgency)}</span>` : ''}
-            </div>
-            <div class="text-xs text-slate-600">${esc(rec.recommendedTemplate || rec.recommended || '')}</div>
-            <div class="text-xs text-gray-400">${esc(rec.reason || '')}</div>
+        return `<div class="py-1.5 ${i < group.items.length - 1 ? 'border-b border-gray-100' : ''}">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-slate-700">${esc(rec.bureau || '')}</span>
+            ${rec.urgency ? `<span class="text-xs ${recUrgencyClass}">${esc(rec.urgency)}</span>` : ''}
           </div>
+          <div class="text-xs text-slate-600">${esc(rec.recommendedTemplate || rec.recommended || '')}</div>
+          <div class="text-xs text-gray-400">${esc(rec.reason || '')}</div>
         </div>`;
       }).join('');
-      return `<div class="bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 ${urgencyClass} overflow-hidden">
-        <div class="p-3">
-          <div class="flex items-center justify-between mb-2">
-            <div class="text-sm font-medium text-slate-800">${esc(group.creditor)}</div>
-            ${group.maxUrgency ? `<span class="text-xs font-medium ${urgencyTextClass}">${esc(group.maxUrgency)} priority</span>` : ''}
-          </div>
-          <div class="divide-y divide-gray-100">${bureauDetails}</div>
+      return `<div class="bg-gray-50 rounded-lg border border-gray-100 border-l-4 ${urgencyClass} overflow-hidden p-2.5">
+        <div class="flex items-center justify-between mb-1">
+          <div class="text-xs font-medium text-slate-800">${esc(group.creditor)}</div>
+          ${group.maxUrgency ? `<span class="text-xs font-medium ${urgencyTextClass}">${esc(group.maxUrgency)} priority</span>` : ''}
         </div>
+        <div>${bureauDetails}</div>
       </div>`;
     }).join('');
+    return `<div class="border-t border-indigo-200 mt-3 pt-3 space-y-2">
+      <div class="text-xs font-semibold text-slate-800">Recommended Next Steps</div>
+      <div class="space-y-1.5">${cards}</div>
+    </div>`;
+  }
+
+  function renderDisputeRounds(rounds, recommendationsByJobId) {
+    const roundList = document.getElementById('disputeRoundList');
+    const emptyEl = document.getElementById('disputeEmpty');
+    if (!roundList) return;
+    recommendationsByJobId = recommendationsByJobId || {};
+
+    if (!rounds || !rounds.length) {
+      roundList.innerHTML = '';
+      if (emptyEl) emptyEl.classList.remove('hidden');
+      return;
+    }
+    if (emptyEl) emptyEl.classList.add('hidden');
+
+    const activeRound = [...rounds].reverse().find(r =>
+      r.status !== 'resolved' && r.status !== 'completed' && r.status !== 'response_received'
+    );
+    const activeJobId = activeRound ? activeRound.jobId : null;
+
+    roundList.innerHTML = rounds.map(round => {
+      const sentDate = formatDisputeDate(round.sentAt);
+      const followUp = formatDisputeDate(round.followUpDate);
+      const statusBadge = getDisputeStatusBadge(round.status);
+      const roundLetters = round.letters || [];
+      const itemCount = (round.items || []).length;
+      const letterCount = roundLetters.length;
+      const uniqueBureaus = [...new Set(roundLetters.map(l => l.bureau).filter(Boolean))];
+      const bureauSummary = uniqueBureaus.length ? uniqueBureaus.map(b => esc(b)).join(', ') : '';
+
+      const isActive = round.status !== 'resolved' && round.status !== 'completed' && round.status !== 'response_received';
+      const borderClass = isActive ? 'border-amber-300' : 'border-gray-200';
+
+      const followupSection = (round.jobId === activeJobId) ? buildFollowupHTML(round) : '';
+      const recsSection = buildRecommendationsHTML(recommendationsByJobId[round.jobId] || []);
+
+      return `<div class="bg-white rounded-xl shadow-sm border ${borderClass} p-4 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <div class="text-sm font-semibold text-slate-800">Round ${round.round || '\u2014'}</div>
+            <div class="text-xs text-gray-500">${sentDate ? 'Sent ' + sentDate : 'Pending'}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${statusBadge}
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dispute-round-meta">
+          ${letterCount > 0 ? `<span>${letterCount} letter${letterCount !== 1 ? 's' : ''} sent${bureauSummary ? ' to ' + bureauSummary : ''}</span>` : ''}
+          ${itemCount > 0 ? `<span>${itemCount} item${itemCount !== 1 ? 's' : ''} disputed</span>` : ''}
+          ${followUp && !isActive ? `<span>Follow-up: ${followUp}</span>` : ''}
+        </div>
+        ${followupSection}
+        ${recsSection}
+      </div>`;
+    }).join('');
+
+    roundList.querySelectorAll('.dispute-submit-btn').forEach(btn => {
+      btn.addEventListener('click', handleDisputeSubmit);
+    });
+  }
+
+  async function handleDisputeSubmit(e) {
+    const btn = e.currentTarget;
+    const section = btn.closest('.dispute-followup-section');
+    if (!section) return;
+    const jobId = section.dataset.jobId;
+    const statusEl = section.querySelector('.dispute-submit-status');
+    if (!jobId || !consumerId) return;
+
+    const itemEls = section.querySelectorAll('.dispute-questionnaire-item');
+    const items = [];
+    const evidenceFiles = [];
+    let unanswered = 0;
+
+    itemEls.forEach(el => {
+      const select = el.querySelector('.dispute-outcome-select');
+      const notes = el.querySelector('.dispute-notes-input');
+      const fileInput = el.querySelector('.dispute-evidence-input');
+      if (!select?.value) unanswered++;
+      items.push({
+        creditor: select?.dataset.creditor || '',
+        bureau: select?.dataset.bureau || '',
+        outcome: select?.value || 'no_response',
+        notes: notes?.value || '',
+      });
+      if (fileInput?.files?.length) {
+        evidenceFiles.push({
+          file: fileInput.files[0],
+          creditor: select?.dataset.creditor || '',
+          bureau: select?.dataset.bureau || '',
+        });
+      }
+    });
+
+    if (unanswered === itemEls.length) {
+      if (statusEl) {
+        statusEl.classList.remove('hidden');
+        statusEl.className = 'dispute-submit-status text-sm text-amber-600';
+        statusEl.textContent = 'Please select an outcome for at least one item before submitting.';
+      }
+      return;
+    }
+    if (unanswered > 0) {
+      if (!confirm(`${unanswered} item${unanswered !== 1 ? 's have' : ' has'} no outcome selected and will be marked as "No Response". Continue?`)) return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    if (statusEl) { statusEl.classList.add('hidden'); }
+
+    try {
+      const respResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/response`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      if (!respResp.ok) throw new Error('Failed to submit responses');
+
+      for (const ev of evidenceFiles) {
+        const fd = new FormData();
+        fd.append('file', ev.file);
+        fd.append('creditor', ev.creditor);
+        fd.append('bureau', ev.bureau);
+        await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/evidence`, {
+          method: 'POST',
+          body: fd,
+        });
+      }
+
+      if (statusEl) {
+        statusEl.textContent = 'Responses submitted successfully!';
+        statusEl.className = 'dispute-submit-status text-sm p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200';
+        statusEl.classList.remove('hidden');
+      }
+
+      await loadDisputes();
+    } catch (err) {
+      if (statusEl) {
+        statusEl.textContent = 'Failed to submit responses. Please try again.';
+        statusEl.className = 'dispute-submit-status text-sm p-2 rounded-lg bg-rose-50 text-rose-700 border border-rose-200';
+        statusEl.classList.remove('hidden');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Submit Responses';
+    }
   }
 
   async function loadDisputes() {
@@ -3084,9 +3176,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await resp.json();
       disputeData = data;
       const rounds = data.rounds || [];
-      renderDisputeRounds(rounds);
-      renderDisputeFollowup(rounds);
 
+      const recommendationsByJobId = {};
       if (rounds.length) {
         const latestWithResponses = [...rounds].reverse().find(r => r.status !== 'awaiting_response' && r.status !== 'awaiting');
         if (latestWithResponses) {
@@ -3094,11 +3185,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(latestWithResponses.jobId)}/recommendation`);
             if (recResp.ok) {
               const recData = await recResp.json();
-              renderDisputeRecommendations(recData.recommendations || []);
+              if (recData.recommendations && recData.recommendations.length) {
+                recommendationsByJobId[latestWithResponses.jobId] = recData.recommendations;
+              }
             }
           } catch {}
         }
       }
+
+      renderDisputeRounds(rounds, recommendationsByJobId);
     } catch (err) {
       console.error('Failed to load disputes', err);
       const roundList = document.getElementById('disputeRoundList');
@@ -3106,102 +3201,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       disputeLoading = false;
     }
-  }
-
-  const disputeSubmitBtn = document.getElementById('disputeSubmitResponses');
-  if (disputeSubmitBtn) {
-    disputeSubmitBtn.addEventListener('click', async () => {
-      const card = document.getElementById('disputeFollowupCard');
-      const statusEl = document.getElementById('disputeSubmitStatus');
-      const jobId = card?.dataset.jobId;
-      if (!jobId || !consumerId) return;
-
-      const itemEls = document.querySelectorAll('.dispute-questionnaire-item');
-      const items = [];
-      const evidenceFiles = [];
-      let unanswered = 0;
-
-      itemEls.forEach(el => {
-        const select = el.querySelector('.dispute-outcome-select');
-        const notes = el.querySelector('.dispute-notes-input');
-        const fileInput = el.querySelector('.dispute-evidence-input');
-        if (!select?.value) unanswered++;
-        items.push({
-          creditor: select?.dataset.creditor || '',
-          bureau: select?.dataset.bureau || '',
-          outcome: select?.value || 'no_response',
-          notes: notes?.value || '',
-        });
-        if (fileInput?.files?.length) {
-          evidenceFiles.push({
-            file: fileInput.files[0],
-            creditor: select?.dataset.creditor || '',
-            bureau: select?.dataset.bureau || '',
-          });
-        }
-      });
-
-      if (unanswered === itemEls.length) {
-        if (statusEl) {
-          statusEl.classList.remove('hidden');
-          statusEl.className = 'text-sm text-amber-600';
-          statusEl.textContent = 'Please select an outcome for at least one item before submitting.';
-        }
-        return;
-      }
-      if (unanswered > 0) {
-        if (!confirm(`${unanswered} item${unanswered !== 1 ? 's have' : ' has'} no outcome selected and will be marked as "No Response". Continue?`)) return;
-      }
-
-      disputeSubmitBtn.disabled = true;
-      disputeSubmitBtn.textContent = 'Submitting...';
-      if (statusEl) { statusEl.classList.add('hidden'); }
-
-      try {
-        const respResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/response`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items }),
-        });
-        if (!respResp.ok) throw new Error('Failed to submit responses');
-
-        for (const ev of evidenceFiles) {
-          const fd = new FormData();
-          fd.append('file', ev.file);
-          fd.append('creditor', ev.creditor);
-          fd.append('bureau', ev.bureau);
-          await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/evidence`, {
-            method: 'POST',
-            body: fd,
-          });
-        }
-
-        if (statusEl) {
-          statusEl.textContent = 'Responses submitted successfully!';
-          statusEl.className = 'text-sm p-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200';
-          statusEl.classList.remove('hidden');
-        }
-
-        try {
-          const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/recommendation`);
-          if (recResp.ok) {
-            const recData = await recResp.json();
-            renderDisputeRecommendations(recData.recommendations || []);
-          }
-        } catch {}
-
-        await loadDisputes();
-      } catch (err) {
-        if (statusEl) {
-          statusEl.textContent = 'Failed to submit responses. Please try again.';
-          statusEl.className = 'text-sm p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200';
-          statusEl.classList.remove('hidden');
-        }
-      } finally {
-        disputeSubmitBtn.disabled = false;
-        disputeSubmitBtn.textContent = 'Submit Responses';
-      }
-    });
   }
 
   document.querySelectorAll('.upload-file-input').forEach(input => {
