@@ -3006,46 +3006,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>`;
   }
 
-  function buildRecommendationsHTML(recommendations) {
-    if (!recommendations || !recommendations.length) return '';
-    const urgencyRank = { high: 3, medium: 2, low: 1 };
-    const grouped = {};
-    recommendations.forEach(rec => {
-      const key = rec.creditor || 'Unknown';
-      if (!grouped[key]) grouped[key] = { creditor: key, items: [], maxUrgency: null };
-      grouped[key].items.push(rec);
-      if (rec.urgency && (!grouped[key].maxUrgency || (urgencyRank[rec.urgency] || 0) > (urgencyRank[grouped[key].maxUrgency] || 0))) {
-        grouped[key].maxUrgency = rec.urgency;
-      }
-    });
-    const cards = Object.values(grouped).map(group => {
-      const urgencyClass = group.maxUrgency === 'high' ? 'border-l-rose-400' : group.maxUrgency === 'medium' ? 'border-l-amber-400' : 'border-l-gray-300';
-      const urgencyTextClass = group.maxUrgency === 'high' ? 'text-rose-600' : group.maxUrgency === 'medium' ? 'text-amber-600' : 'text-gray-500';
-      const bureauDetails = group.items.map((rec, i) => {
-        const recUrgencyClass = rec.urgency === 'high' ? 'text-rose-600' : rec.urgency === 'medium' ? 'text-amber-600' : 'text-gray-500';
-        return `<div class="py-1.5 ${i < group.items.length - 1 ? 'border-b border-gray-100' : ''}">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-medium text-slate-700">${esc(rec.bureau || '')}</span>
-            ${rec.urgency ? `<span class="text-xs ${recUrgencyClass}">${esc(rec.urgency)}</span>` : ''}
-          </div>
-          <div class="text-xs text-slate-600">${esc(rec.recommendedTemplate || rec.recommended || '')}</div>
-          <div class="text-xs text-gray-400">${esc(rec.reason || '')}</div>
-        </div>`;
-      }).join('');
-      return `<div class="bg-gray-50 rounded-lg border border-gray-100 border-l-4 ${urgencyClass} overflow-hidden p-2.5">
-        <div class="flex items-center justify-between mb-1">
-          <div class="text-xs font-medium text-slate-800">${esc(group.creditor)}</div>
-          ${group.maxUrgency ? `<span class="text-xs font-medium ${urgencyTextClass}">${esc(group.maxUrgency)} priority</span>` : ''}
-        </div>
-        <div>${bureauDetails}</div>
-      </div>`;
-    }).join('');
-    return `<div class="border-t border-indigo-200 mt-3 pt-3 space-y-2">
-      <div class="text-xs font-semibold text-slate-800">Recommended Next Steps</div>
-      <div class="space-y-1.5">${cards}</div>
-    </div>`;
-  }
-
   function renderDisputeRounds(rounds, recommendationsByJobId) {
     const roundList = document.getElementById('disputeRoundList');
     const emptyEl = document.getElementById('disputeEmpty');
@@ -3079,7 +3039,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const roundRecs = recommendationsByJobId[round.jobId] || [];
       const followupSection = (round.jobId === activeJobId) ? buildFollowupHTML(round, roundRecs) : '';
-      const recsSection = followupSection ? '' : buildRecommendationsHTML(roundRecs);
 
       return `<div class="bg-white rounded-xl shadow-sm border ${borderClass} p-4 space-y-2">
         <div class="flex items-center justify-between gap-2">
@@ -3097,7 +3056,6 @@ document.addEventListener('DOMContentLoaded', () => {
           ${followUp && !isActive ? `<span>Follow-up: ${followUp}</span>` : ''}
         </div>
         ${followupSection}
-        ${recsSection}
       </div>`;
     }).join('');
 
