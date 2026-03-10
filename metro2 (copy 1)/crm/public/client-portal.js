@@ -2904,7 +2904,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  function buildFollowupHTML(round) {
+  function buildFollowupHTML(round, recommendations) {
     const isActive = round.status !== 'resolved' && round.status !== 'completed' && round.status !== 'response_received';
     if (!isActive) return '';
     const items = round.items || [];
@@ -2939,12 +2939,24 @@ document.addEventListener('DOMContentLoaded', () => {
       groupMap[acctKey].bureaus.push({ rawCreditor, bureau, idx, item });
     });
 
+    const recs = recommendations || [];
+
     const itemsHTML = grouped.map(group => {
       const bureauRows = group.bureaus.map(b => {
         const creditor = esc(b.rawCreditor);
         const bureau = esc(b.bureau);
+        const rec = recs.find(r => r.creditor === b.rawCreditor && r.bureau === b.bureau);
+        let recHint = '';
+        if (rec) {
+          const urgClass = rec.urgency === 'high' ? 'text-rose-600 bg-rose-50 border-rose-200' : rec.urgency === 'medium' ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-gray-600 bg-gray-50 border-gray-200';
+          recHint = `<div class="mt-1 mb-1.5 px-2 py-1.5 rounded-md border text-xs ${urgClass}">
+            <span class="font-medium">${rec.urgency ? esc(rec.urgency) + ' priority' : 'Suggested'}:</span> ${esc(rec.recommendedTemplate || rec.recommended || '')}
+            ${rec.reason ? `<span class="opacity-75">\u2014 ${esc(rec.reason)}</span>` : ''}
+          </div>`;
+        }
         return `<div class="dispute-questionnaire-item border-t border-gray-100 pt-2 first:border-0 first:pt-0" data-idx="${b.idx}">
           <div class="text-xs font-medium text-slate-600 mb-1">${bureau || 'Bureau'}</div>
+          ${recHint}
           <select class="dispute-outcome-select input text-sm w-full" data-creditor="${creditor}" data-bureau="${bureau}">
             <option value="">Select outcome...</option>
             <option value="removed">Removed / Deleted</option>
@@ -3065,8 +3077,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const isActive = round.status !== 'resolved' && round.status !== 'completed' && round.status !== 'response_received';
       const borderClass = isActive ? 'border-amber-300' : 'border-gray-200';
 
-      const followupSection = (round.jobId === activeJobId) ? buildFollowupHTML(round) : '';
-      const recsSection = buildRecommendationsHTML(recommendationsByJobId[round.jobId] || []);
+      const roundRecs = recommendationsByJobId[round.jobId] || [];
+      const followupSection = (round.jobId === activeJobId) ? buildFollowupHTML(round, roundRecs) : '';
+      const recsSection = followupSection ? '' : buildRecommendationsHTML(roundRecs);
 
       return `<div class="bg-white rounded-xl shadow-sm border ${borderClass} p-4 space-y-2">
         <div class="flex items-center justify-between gap-2">
@@ -3192,18 +3205,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const recommendationsByJobId = {};
       if (rounds.length) {
+        const jobIdsToFetch = new Set();
         const latestWithResponses = [...rounds].reverse().find(r => r.status !== 'awaiting_response' && r.status !== 'awaiting');
-        if (latestWithResponses) {
+        if (latestWithResponses) jobIdsToFetch.add(latestWithResponses.jobId);
+        const activeRound = [...rounds].reverse().find(r => r.status !== 'resolved' && r.status !== 'completed' && r.status !== 'response_received');
+        if (activeRound) jobIdsToFetch.add(activeRound.jobId);
+
+        await Promise.all([...jobIdsToFetch].map(async (jobId) => {
           try {
-            const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(latestWithResponses.jobId)}/recommendation`);
+            const recResp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(jobId)}/recommendation`);
             if (recResp.ok) {
               const recData = await recResp.json();
               if (recData.recommendations && recData.recommendations.length) {
-                recommendationsByJobId[latestWithResponses.jobId] = recData.recommendations;
+                recommendationsByJobId[jobId] = recData.recommendations;
               }
             }
           } catch {}
-        }
+        }));
       }
 
       renderDisputeRounds(rounds, recommendationsByJobId);
