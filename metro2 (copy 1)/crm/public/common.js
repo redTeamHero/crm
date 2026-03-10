@@ -1492,6 +1492,7 @@ if (typeof window !== 'undefined') {
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.classList.contains('hidden')) continue;
+      if (el.offsetWidth === 0 && el.offsetHeight === 0) continue;
       var st = window.getComputedStyle(el);
       if (st.display !== 'none' && st.visibility !== 'hidden' && parseFloat(st.opacity) > 0) return true;
     }
@@ -1504,8 +1505,16 @@ if (typeof window !== 'undefined') {
       document.body.style.touchAction = '';
     }
   }
-  setInterval(clearScrollLock, 800);
   window.addEventListener('pageshow', clearScrollLock);
   window.addEventListener('popstate', clearScrollLock);
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) setTimeout(clearScrollLock, 100);
+  });
+  document.addEventListener('click', function() {
+    setTimeout(clearScrollLock, 350);
+  });
+  document.addEventListener('touchend', function() {
+    setTimeout(clearScrollLock, 350);
+  });
 })();
 
