@@ -8731,7 +8731,61 @@ app.get("/api/consumers/:id/disputes", authenticate, async (req, res) => {
 app.put("/api/consumers/:id/disputes/:jobId/settings", authenticate, async (req, res) => {
   try {
     const { id: consumerId, jobId } = req.params;
-    const { followUpDays, itemIndex } = req.body || {};
+    const { followUpDays, itemIndex, sentAt: sentAtInput } = req.body || {};
+
+    if (sentAtInput) {
+      const parts = String(sentAtInput).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!parts) {
+        return res.status(400).json({ ok: false, error: "Invalid sentAt date format (expected YYYY-MM-DD)" });
+      }
+      const newSentAt = new Date(Date.UTC(parseInt(parts[1]), parseInt(parts[2]) - 1, parseInt(parts[3]), 12, 0, 0));
+      if (isNaN(newSentAt.getTime())) {
+        return res.status(400).json({ ok: false, error: "Invalid sentAt date" });
+      }
+      const state = await listConsumerState(consumerId);
+      const roundEvent = (state.events || []).find(e => e.type === "dispute_round" && e.payload?.jobId === jobId);
+      if (!roundEvent) {
+        return res.status(404).json({ ok: false, error: "Dispute round not found" });
+      }
+
+      const newSentISO = newSentAt.toISOString();
+
+      await updateEventPayload(consumerId, "dispute_round",
+        e => e.payload?.jobId === jobId,
+        p => {
+          p.sentAt = newSentISO;
+          const roundDays = p.followUpDays || 30;
+          const roundFollowUp = new Date(newSentAt);
+          roundFollowUp.setDate(roundFollowUp.getDate() + roundDays);
+          p.followUpDate = roundFollowUp.toISOString();
+          (p.items || []).forEach(item => {
+            const itemDays = item.followUpDays || 30;
+            const itemFollowUp = new Date(newSentAt);
+            itemFollowUp.setDate(itemFollowUp.getDate() + itemDays);
+            item.followUpDate = itemFollowUp.toISOString();
+          });
+        }
+      );
+
+      const existingReminder = (state.reminders || []).find(r => r.payload?.type === "dispute_followup" && r.payload?.jobId === jobId);
+      if (existingReminder) {
+        await removeReminder(consumerId, existingReminder.id);
+      }
+      const updatedState = await listConsumerState(consumerId);
+      const updatedRound = (updatedState.events || []).find(e => e.type === "dispute_round" && e.payload?.jobId === jobId);
+      const newFollowUpDate = updatedRound?.payload?.followUpDate;
+      if (newFollowUpDate) {
+        await addReminder(consumerId, {
+          id: `dispute_followup_${jobId}_${Date.now()}`,
+          due: newFollowUpDate,
+          payload: { type: "dispute_followup", jobId, round: updatedRound.payload.round, followUpDays: updatedRound.payload.followUpDays, itemCount: (updatedRound.payload.items || []).length },
+        });
+      }
+
+      await addEvent(consumerId, "dispute_settings_updated", { jobId, sentAt: newSentISO });
+      return res.json({ ok: true, sentAt: newSentISO, followUpDate: newFollowUpDate });
+    }
+
     if (!followUpDays || typeof followUpDays !== "number" || followUpDays < 1 || followUpDays > 180) {
       return res.status(400).json({ ok: false, error: "followUpDays must be a number between 1 and 180" });
     }

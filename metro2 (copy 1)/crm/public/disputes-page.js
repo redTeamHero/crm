@@ -383,6 +383,7 @@ function renderDisputeTracker(data) {
   rounds.forEach((round, rIdx) => {
     const roundNum = round.round || (rIdx + 1);
     const sentDate = round.sentAt ? new Date(round.sentAt).toLocaleDateString() : 'N/A';
+    const sentDateISO = round.sentAt ? (() => { const d = new Date(round.sentAt); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })() : '';
     const followUpDate = round.followUpDate ? new Date(round.followUpDate).toLocaleDateString() : 'N/A';
     const followUpDays = round.followUpDays || 30;
     const questionnaireCompleted = round.questionnaireCompleted || false;
@@ -398,7 +399,7 @@ function renderDisputeTracker(data) {
       <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
         <span class="round-chevron" style="font-size:10px;color:#888;transition:transform .2s;flex-shrink:0;">${chevron}</span>
         <span style="font-weight:700;color:#fff;font-size:14px;">Round ${escapeHtml(String(roundNum))}</span>
-        <span style="font-size:12px;color:#888;">Sent ${sentDate}</span>
+        <span class="dispute-sent-date" data-job-id="${escapeHtml(jobId)}" data-sent-iso="${sentDateISO}" style="font-size:12px;color:#888;cursor:pointer;border-bottom:1px dashed rgba(136,136,136,0.4);padding-bottom:1px;" title="Click to edit sent date" onclick="event.stopPropagation()">Sent ${sentDate}</span>
         ${disputeStatusBadge(round.status || 'awaiting')}
         <span style="font-size:11px;color:#666;margin-left:auto;">${items.length} item${items.length !== 1 ? 's' : ''}</span>
       </div>
@@ -522,7 +523,7 @@ function renderDisputeTracker(data) {
 
   timeline.querySelectorAll('.dispute-round-header').forEach(header => {
     header.addEventListener('click', (e) => {
-      if (e.target.closest('input, select, button')) return;
+      if (e.target.closest('input, select, button, .dispute-sent-date')) return;
       const jid = header.dataset.jobId;
       const isResolved = header.dataset.resolved === 'true';
       const body = timeline.querySelector(`.dispute-round-body[data-job-id="${jid}"]`);
@@ -566,6 +567,48 @@ function renderDisputeTracker(data) {
         details.style.display = isOpen ? 'none' : '';
         if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
       }
+    });
+  });
+
+  timeline.querySelectorAll('.dispute-sent-date').forEach(span => {
+    span.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (span.querySelector('input')) return;
+      const jobId = span.dataset.jobId;
+      const currentISO = span.dataset.sentIso || '';
+      const originalText = span.textContent;
+      const input = document.createElement('input');
+      input.type = 'date';
+      input.value = currentISO;
+      input.style.cssText = 'font-size:12px;padding:2px 6px;border-radius:4px;border:1px solid rgba(212,168,83,0.3);background:#1a1a1e;color:#fff;cursor:pointer;';
+      span.textContent = '';
+      span.appendChild(input);
+      input.focus();
+      const finish = async () => {
+        const newVal = input.value;
+        if (newVal && newVal !== currentISO && currentConsumerId) {
+          try {
+            const res = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/settings`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sentAt: newVal })
+            });
+            if (res?.ok) {
+              await loadDisputeTracker();
+              return;
+            } else {
+              showErr(res?.error || 'Failed to update sent date.');
+            }
+          } catch (err) {
+            showErr(String(err));
+          }
+        }
+        span.textContent = originalText;
+      };
+      input.addEventListener('change', finish);
+      input.addEventListener('blur', () => {
+        setTimeout(() => { if (span.contains(input)) span.textContent = originalText; }, 200);
+      });
     });
   });
 

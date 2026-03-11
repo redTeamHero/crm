@@ -255,11 +255,19 @@
     .evolv-sb-item.active svg {
       color: #d4a853;
     }
-    .evolv-sb-item svg {
+    .evolv-sb-item svg,
+    .evolv-sb-parent-toggle svg {
       flex-shrink: 0;
+      width: 20px !important;
+      height: 20px !important;
+      min-width: 20px;
+      min-height: 20px;
       transition: color 0.15s ease;
       stroke: currentColor !important;
       fill: none !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      display: inline-block !important;
     }
     .evolv-sb-item-label {
       font-size: 14px;
