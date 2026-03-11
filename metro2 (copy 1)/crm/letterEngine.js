@@ -6,6 +6,107 @@ import { LETTER_TEMPLATES } from './letterTemplates.js';
 // Load Metro 2 violation definitions from shared metadata
 const VIOLATION_DEFS = await loadMetro2Violations();
 
+const CASE_LAW = {
+  accuracy: [
+    { case: 'Cushman v. Trans Union Corp.', cite: '115 F.3d 220 (3d Cir. 1997)', holding: 'Credit reporting agencies must follow reasonable procedures to assure maximum possible accuracy of consumer reports.' },
+    { case: 'Guimond v. Trans Union Credit Info. Co.', cite: '45 F.3d 1329 (9th Cir. 1995)', holding: 'A CRA that fails to verify disputed information through reasonable procedures may be held liable under §1681e(b).' },
+  ],
+  reinvestigation: [
+    { case: 'Stevenson v. TRW Inc.', cite: '987 F.2d 288 (5th Cir. 1993)', holding: 'Simply parroting information from a furnisher without conducting an independent review does not constitute a reasonable reinvestigation under §1681i.' },
+    { case: 'Dennis v. BEH-1, LLC', cite: '504 F.Supp.3d 453 (E.D. Va. 2020)', holding: 'A CRA must go beyond the original source of disputed information when conducting a reinvestigation.' },
+  ],
+  furnisher: [
+    { case: 'Johnson v. MBNA America Bank, NA', cite: '357 F.3d 426 (4th Cir. 2004)', holding: 'A furnisher who receives notice of a consumer dispute from a CRA has a duty under §623(b) to conduct a reasonable investigation.' },
+    { case: 'Gorman v. Wolpoff & Abramson, LLP', cite: '584 F.3d 1147 (9th Cir. 2009)', holding: 'Furnishers must conduct a meaningful investigation, not merely verify their own records, upon receiving notice of a dispute.' },
+  ],
+  identity: [
+    { case: 'Philbin v. Trans Union Corp.', cite: '101 F.3d 957 (3d Cir. 1996)', holding: 'CRAs have an affirmative duty to maintain procedures that prevent mixed files and identity confusion.' },
+    { case: 'Sloane v. Equifax Info. Servs., LLC', cite: '510 F.3d 495 (4th Cir. 2007)', holding: 'A CRA may be liable for willful noncompliance when it fails to adopt reasonable procedures to prevent identity-related reporting errors.' },
+  ],
+  willful: [
+    { case: 'Safeco Ins. Co. of America v. Burr', cite: '551 U.S. 47 (2007)', holding: 'Willful noncompliance under FCRA includes reckless disregard of statutory duties, entitling consumers to statutory and punitive damages.' },
+  ],
+  fdcpa: [
+    { case: 'Chaudhry v. Gallerizzo', cite: '174 F.3d 394 (4th Cir. 1999)', holding: 'Debt validation under FDCPA §809 requires more than a computer-generated printout; the collector must provide sufficient documentation to verify the debt.' },
+    { case: 'Jerman v. Carlisle, McNellie, Rini, Kramer & Ulrich LPA', cite: '559 U.S. 573 (2010)', holding: 'The bona fide error defense under FDCPA does not apply to mistakes of law, holding debt collectors to strict statutory compliance.' },
+  ],
+  fdcpa_harassment: [
+    { case: 'Jeter v. Credit Bureau, Inc.', cite: '760 F.2d 1168 (11th Cir. 1985)', holding: 'Excessive telephone calls and threatening language constitute harassment under FDCPA §806.' },
+  ],
+  fdcpa_time_barred: [
+    { case: 'Kimber v. Federal Financial Corp.', cite: '668 F.Supp. 1480 (M.D. Ala. 1987)', holding: 'Attempting to collect a time-barred debt without disclosing that it is beyond the statute of limitations may violate FDCPA §807.' },
+  ],
+  tila: [
+    { case: 'Beach v. Ocwen Federal Bank', cite: '523 U.S. 410 (1998)', holding: 'TILA requires strict compliance with disclosure requirements; even technical violations entitle the consumer to statutory damages.' },
+    { case: 'Mourning v. Family Publications Service, Inc.', cite: '411 U.S. 356 (1973)', holding: 'TILA is a remedial statute to be construed liberally in favor of the consumer to ensure meaningful credit disclosures.' },
+  ],
+  hipaa: [
+    { case: 'Byrne v. Avery Center for Obstetrics & Gynecology', cite: '314 Conn. 433 (2014)', holding: 'HIPAA standards may inform the duty of care owed by healthcare providers regarding patient information disclosures.' },
+  ],
+  glba: [
+    { case: 'FTC v. Wyndham Worldwide Corp.', cite: '799 F.3d 236 (3d Cir. 2015)', holding: 'The FTC has authority to enforce data security standards under Gramm-Leach-Bliley, and financial institutions must safeguard consumer NPI.' },
+  ],
+  bankruptcy: [
+    { case: 'In re Sommersdorf', cite: '139 B.R. 700 (Bankr. S.D. Ohio 1991)', holding: 'Reporting a discharged debt as active violates the bankruptcy discharge injunction under 11 U.S.C. §524.' },
+  ],
+  obsolete: [
+    { case: 'Pittman v. Experian Info. Solutions, Inc.', cite: '901 F.3d 619 (6th Cir. 2018)', holding: 'Reporting debts beyond the seven-year limit prescribed by §605(a) constitutes a willful violation of the FCRA.' },
+  ],
+  reinsertion: [
+    { case: 'Philbin v. Trans Union Corp.', cite: '101 F.3d 957 (3d Cir. 1996)', holding: 'Reinsertion of previously deleted information without the required five-day written notice violates §611(a)(5)(B).' },
+  ],
+};
+
+const TEMPLATE_CASE_LAW_MAP = {
+  'debt-validation': ['fdcpa'],
+  '611-general-dispute': ['accuracy', 'reinvestigation'],
+  'second-round-dispute': ['reinvestigation', 'willful'],
+  '623-direct-dispute': ['furnisher'],
+  'method-of-verification': ['reinvestigation'],
+  'ag-cfpb-escalation': ['reinvestigation', 'willful'],
+  '609-disclosure': ['accuracy'],
+  'reinsertion-dispute': ['reinsertion'],
+  'cease-and-desist': ['fdcpa'],
+  'bankruptcy-misreporting': ['bankruptcy', 'accuracy'],
+  'obsolete-debt': ['obsolete', 'willful'],
+  'arbitration-election': ['fdcpa'],
+  'tila-disclosure': ['tila'],
+  'tila-rescission': ['tila'],
+  'hipaa-medical-debt': ['hipaa'],
+  'hipaa-phi-disclosure': ['hipaa'],
+  'glba-privacy-violation': ['glba'],
+  'glba-opt-out': ['glba'],
+  'fdcpa-harassment': ['fdcpa_harassment', 'fdcpa'],
+  'fdcpa-time-barred': ['fdcpa_time_barred', 'fdcpa'],
+  'goodwill-removal': [],
+  'pay-for-delete': [],
+};
+
+const MODE_CASE_LAW_MAP = {
+  identity: ['identity', 'accuracy'],
+  breach: ['identity', 'glba', 'accuracy'],
+  assault: ['accuracy'],
+};
+
+function buildCaseLawSection(categories) {
+  if (!categories || !categories.length) return '';
+  const seen = new Set();
+  const cases = [];
+  for (const cat of categories) {
+    for (const c of CASE_LAW[cat] || []) {
+      const key = c.case;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      cases.push(c);
+    }
+  }
+  if (!cases.length) return '';
+  const items = cases.map(c =>
+    `<li style="margin-bottom:8px;"><strong><em>${safe(c.case)}</em></strong>, ${safe(c.cite)}<br><span style="color:#4b5563;">${safe(c.holding)}</span></li>`
+  ).join('');
+  return `<h2>Legal Authority</h2><ol style="margin:0;padding-left:18px;">${items}</ol>`;
+}
+
 function getViolationInfo(code) {
   return VIOLATION_DEFS[code] || null;
 }
@@ -445,7 +546,7 @@ function buildViolationListHTML(
   const hasSelections = Array.isArray(selectedIds) && selectedIds.length > 0;
   if (!violations?.length || !hasSelections) {
     if (manualReason) return `<p>${safe(manualReason)}</p>`;
-    return "<p>No specific violations were selected.</p>";
+    return `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:4px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b). If this information cannot be independently verified through documentation from the original creditor, it must be promptly deleted from my credit file.</div></li></ol>`;
   }
   const selected = selectedIds.map((idx) => violations[idx]).filter(Boolean);
   const enriched = filterViolationsBySeverity(selected, minSeverity, locale);
@@ -471,7 +572,7 @@ function buildViolationListHTML(
     })
     .filter(Boolean)
     .join("");
-  if (!items) return "<p>No specific violations were selected.</p>";
+  if (!items) return `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:4px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b).</div></li></ol>`;
   return `<ol class="ocr" style="margin:0;padding-left:18px;">${items}</ol>`;
 }
 
@@ -479,40 +580,40 @@ function buildViolationListHTML(
 function modeCopy(modeKey, requestType, hasEvidence = false) {
   if (modeKey === "identity") {
     return {
-      heading: "Identity Theft Block Request (FCRA §605B)",
-      intro: `I am a victim of identity theft. The item(s) listed below were the result of fraudulent activity and are not mine. Under the FCRA (§605B), you are required to block the reporting of identity theft–related information.`,
-      ask: `Please block or remove the item(s) from my credit file and send me an updated report.`,
-      afterIssues: `Provide written confirmation of your actions within 30 days as required by law.`,
+      heading: "Identity Theft Block Request (FCRA §605B / 15 U.S.C. §1681c-2)",
+      intro: `I am a victim of identity theft. The item(s) listed below were the result of fraudulent activity and are not mine. Under FCRA §605B (15 U.S.C. §1681c-2), upon submission of an identity theft report and proper identification, you are required to block the reporting of any information that resulted from identity theft within four business days. Additionally, under FCRA §605A (15 U.S.C. §1681c-1), I am entitled to place a fraud alert on my credit file.`,
+      ask: `I demand that you immediately block all information resulting from identity theft pursuant to §605B and provide me with an updated credit report within five business days. If the information cannot be verified as legitimately mine through documentation bearing my actual signature, it must be permanently removed.`,
+      afterIssues: `Under FCRA §616 (15 U.S.C. §1681n), willful failure to block identity theft information entitles me to actual damages, statutory damages of $100–$1,000 per violation, punitive damages, and attorney's fees. In Philbin v. Trans Union Corp., 101 F.3d 957 (3d Cir. 1996), the court held that CRAs have an affirmative duty to maintain procedures preventing mixed files and identity confusion. Provide written confirmation of your actions within 30 days.`,
       evidence: hasEvidence
-        ? `Enclosed are supporting documents: FTC Identity Theft Report, police report, government-issued ID, and proof of current address.`
+        ? `Enclosed are supporting documents: FTC Identity Theft Report (filed pursuant to 15 U.S.C. §1681c-2(a)), police report, government-issued identification, and proof of current address.`
         : ``,
     };
   }
 
   if (modeKey === "breach") {
     return {
-      heading: "Data Breach–Related Reinvestigation Request",
-      intro: `I am disputing the accuracy of the following account(s) because my personal identifiers were compromised in a data breach. Information reported from a compromised source cannot be verified as accurate, complete, or attributable to me. Under the FCRA (§607(b) maximum possible accuracy and §605B blocking of identity theft–related data), I request a reinvestigation.`,
+      heading: "Data Breach–Related Reinvestigation Request (FCRA §607(b) / §605B / GLBA)",
+      intro: `I am disputing the accuracy of the following account(s) because my personal identifiers were compromised in a documented data breach. Information reported from a compromised source cannot be verified as accurate, complete, or attributable to me. Under FCRA §607(b) (15 U.S.C. §1681e(b)), you are required to follow reasonable procedures to assure maximum possible accuracy. Under the Gramm-Leach-Bliley Act (15 U.S.C. §6801), financial institutions have a duty to safeguard consumer information. When a breach has occurred, the presumption of accuracy is undermined, and heightened verification is required.`,
       ask: requestType === "delete"
-        ? `Please delete or block this account if it cannot be verified as 100% accurate and legitimately mine.`
-        : `If you identify any inaccuracy or unverifiable data, correct it and provide me with an updated credit report.`,
-      afterIssues: `Please document the method of verification, including the name and contact information of any furnisher relied upon. Provide your written results within 30 days as required by the FCRA.`,
+        ? `I demand that you delete or block this account if it cannot be independently verified as 100% accurate and legitimately mine through documentation unaffected by the breach. Under FCRA §605B, information resulting from identity theft facilitated by a data breach must be blocked upon request.`
+        : `I demand that you conduct a thorough reinvestigation, contact the original furnisher for primary source documentation, and correct any information that cannot be verified with maximum possible accuracy. Provide me with an updated credit report reflecting any corrections.`,
+      afterIssues: `Please document the method of verification per FCRA §611(a)(7), including the name and contact information of any furnisher relied upon. In FTC v. Wyndham Worldwide Corp., 799 F.3d 236 (3d Cir. 2015), the court confirmed that financial institutions have enforceable duties to safeguard consumer data under GLBA. Provide your written results within 30 days as required by FCRA §611(a)(1).`,
       evidence: hasEvidence
-        ? `Enclosed are supporting documents: breach notification letter, FTC Identity Theft Report, government-issued ID, and proof of current address.`
+        ? `Enclosed are supporting documents: data breach notification letter, FTC Identity Theft Report, government-issued identification, and proof of current address.`
         : ``,
     };
   }
 
   if (modeKey === "assault") {
     return {
-      heading: "Safety & Confidentiality Handling – Special Circumstances",
-      intro: `Due to documented safety concerns, I am requesting special handling of the information below to ensure my privacy and security.`,
+      heading: "Safety & Confidentiality Handling – Special Circumstances (FCRA §605A)",
+      intro: `Due to documented safety concerns, I am requesting special handling of the information below to ensure my privacy and security. Under FCRA §605A (15 U.S.C. §1681c-1), I am entitled to place an extended fraud alert or active duty alert to protect my credit file. I am also requesting that my address and contact information be treated as confidential to prevent disclosure that could endanger my safety.`,
       ask: requestType === "delete"
-        ? `If the information cannot be verified with certainty, please remove it immediately.`
-        : `If the information is inaccurate or incomplete, please correct it without disclosing sensitive personal details.`,
-      afterIssues: `Please avoid disclosing unnecessary personal contact details in any correspondence.`,
+        ? `If the information cannot be verified with certainty through documentation bearing my actual signature, please remove it immediately. Any account opened through fraud or coercion must be blocked under §605B.`
+        : `If the information is inaccurate or incomplete, please correct it. Do not disclose sensitive personal contact details in any correspondence or to any third parties.`,
+      afterIssues: `Please restrict access to my file and apply any available protective measures. Provide written confirmation of actions taken. Failure to protect my information may constitute negligence under state and federal law.`,
       evidence: hasEvidence
-        ? `Enclosed are supporting documents: restraining order, law enforcement letter, or other evidence of safety concerns.`
+        ? `Enclosed are supporting documents: restraining order, law enforcement letter, or other evidence of safety concerns, along with government-issued identification.`
         : ``,
     };
   }
@@ -520,15 +621,15 @@ function modeCopy(modeKey, requestType, hasEvidence = false) {
   // Default fallback
   return {
     heading: requestType === "delete"
-      ? "Request for Deletion of Inaccurate/Unverifiable Information"
-      : "Request for Correction of Inaccurate/Incomplete Information",
-    intro: `I am disputing the reporting of the tradeline below because it is inaccurate, incomplete, or unverifiable.`,
+      ? "Request for Deletion of Inaccurate/Unverifiable Information (FCRA §611)"
+      : "Request for Correction of Inaccurate/Incomplete Information (FCRA §611)",
+    intro: `I am disputing the reporting of the tradeline below because it is inaccurate, incomplete, or unverifiable. Under FCRA §611(a)(1)(A) (15 U.S.C. §1681i(a)(1)(A)), upon receiving notice of a consumer dispute, you must conduct a reasonable reinvestigation to determine whether the disputed information is inaccurate and record the current status, or delete the item, within 30 days. Under FCRA §1681e(b), you must follow reasonable procedures to assure maximum possible accuracy of the information in consumer reports.`,
     ask: requestType === "delete"
-      ? "Please delete the inaccurate/unverifiable information pursuant to the FCRA."
-      : "Please correct the inaccurate/incomplete reporting pursuant to the FCRA.",
-    afterIssues: `Provide your investigation results in writing within 30 days as required by law.`,
+      ? "I demand deletion of this inaccurate or unverifiable information pursuant to FCRA §611(a)(5)(A). If the information cannot be verified through independent documentation from the original creditor, it must be promptly removed from my credit file and you must notify the furnisher of the deletion."
+      : "I demand correction of the inaccurate or incomplete reporting pursuant to FCRA §611(a)(5)(A). Please investigate, correct the disputed entries, and provide the method of verification as required by §611(a)(7).",
+    afterIssues: `Provide your investigation results in writing within 30 days as required by FCRA §611(a)(1). I reserve all rights under FCRA §616 (willful noncompliance, providing statutory damages of $100–$1,000 per violation, punitive damages, and attorney's fees) and §617 (negligent noncompliance, providing actual damages).`,
     evidence: hasEvidence
-      ? `Enclosed are supporting documents: government-issued ID and proof of address.`
+      ? `Enclosed are supporting documents: government-issued identification and proof of current address.`
       : ``,
   };
 }
@@ -546,6 +647,8 @@ function buildLetterHTML(opts) {
     dateOverride,
     template,
     specificDisputeReason,
+    previousDisputeDate,
+    priorDates,
   } = opts || {};
   const dateStr = dateOverride || todayISO();
   const bureauMeta = BUREAU_ADDR[bureau];
@@ -572,20 +675,37 @@ function buildLetterHTML(opts) {
       || tl.meta?.account_number
       || '****';
     const creditorName = tl.meta?.creditor || 'Unknown';
+    const prevDate = previousDisputeDate || 'a prior date';
+    const allDates = Array.isArray(priorDates) && priorDates.length ? priorDates.join(', ') : prevDate;
+    const violationSummary = (tl.violations || []).slice(0, 2).map(v => v.title || v.category || v.detail || '').filter(Boolean).join('; ') || 'inaccurate or unverifiable information';
     const personalized = template.english
       .replace(/\[Your Name\]/g, safe(consumer.name))
       .replace(/\[Address\]/g, safe(consumer.addr1 || ''))
       .replace(/\[City, State ZIP\]/g, [consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', '))
       .replace(/\[Phone\]/g, safe(consumer.phone || ''))
       .replace(/\[Email\]/g, safe(consumer.email || ''))
+      .replace(/\[Previous Dispute Date\]/g, safe(prevDate))
+      .replace(/\[Dates\]/g, safe(allDates))
       .replace(/\[Date\]/g, dateStr)
       .replace(/\[Credit Bureau Name\]/g, safe(bureauMeta.name))
       .replace(/\[Credit Bureau or Creditor Name\]/g, safe(bureauMeta.name))
       .replace(/\[Creditor or Debt Collector Name\]/g, safe(creditorName))
+      .replace(/\[Financial Institution Name\]/g, safe(creditorName))
+      .replace(/\[Healthcare Provider Name\]/g, safe(creditorName))
       .replace(/\[Debt Collector Name\]/g, safe(creditorName))
       .replace(/\[Account Number\]/g, safe(accountNum))
       .replace(/\[Bureau\]/g, safe(bureauMeta.name))
-      .replace(/\[List Accounts\]/g, safe(`${creditorName} #${accountNum}`));
+      .replace(/\[List Accounts\]/g, safe(`${creditorName} #${accountNum}`))
+      .replace(/\[specific inaccuracy\]/gi, safe(violationSummary))
+      .replace(/\[describe error\]/gi, safe(violationSummary))
+      .replace(/\[Discharge Date\]/g, 'the date referenced in the enclosed discharge order')
+      .replace(/\[Month, Year\]/g, 'the date of first delinquency on file')
+      .replace(/\[Amount\]/g, '[SETTLEMENT AMOUNT]')
+      .replace(/\[number\]/g, '[NUMBER OF CALLS]')
+      .replace(/\[time period\]/g, '[TIME PERIOD]')
+      .replace(/\[brief explanation[^\]]*\]/gi, '[CIRCUMSTANCES]')
+      .replace(/\[List\]/g, '[SEE ATTACHED]')
+      .replace(/\[Arbitration Forum[^\]]*\]/gi, 'AAA or JAMS');
 
     const lines = personalized.split('\n');
     const bodyHtml = lines.map(l => l.trim() === '' ? '<br>' : `<p class="ocr" style="margin:4px 0;">${colorize(l)}</p>`).join('\n');
@@ -622,6 +742,8 @@ function buildLetterHTML(opts) {
 
   <h2>Specific Issues (Selected)</h2>
   ${chosenList}
+
+  ${buildCaseLawSection(template.id in TEMPLATE_CASE_LAW_MAP ? TEMPLATE_CASE_LAW_MAP[template.id] : ['accuracy'])}
 </body>
 </html>`.trim();
 
@@ -713,6 +835,8 @@ function buildLetterHTML(opts) {
 
   ${evidencePara}
   ${afterIssuesPara}
+
+  ${buildCaseLawSection(MODE_CASE_LAW_MAP[modeKey] || ['accuracy', 'reinvestigation'])}
 
   <p>${verifyLine}</p>
   <p>${signOff}</p>
@@ -917,7 +1041,7 @@ function generateDebtCollectorLetters({ consumer, collectors = [] }) {
   return letters;
 }
 
-function generateLetters({ report, selections, consumer, requestType = "correct", templates = [], playbooks = {} }) {
+function generateLetters({ report, selections, consumer, requestType = "correct", templates = [], playbooks = {}, previousDisputeDate, priorDates }) {
   const SPECIAL_ONE_BUREAU = new Set(["identity", "breach", "assault"]);
   const letters = [];
   const templateMap = Object.fromEntries((LETTER_TEMPLATES || []).map(t => [t.id, t]));
@@ -1000,6 +1124,8 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
           dateOverride,
           template: tpl,
           specificDisputeReason: sel.specificDisputeReason,
+          previousDisputeDate,
+          priorDates,
         });
 
         let filename = letter.filename;

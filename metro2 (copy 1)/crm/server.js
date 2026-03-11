@@ -7092,6 +7092,23 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
 
     const lettersDb = await loadLettersDB();
     const playbooks = await loadPlaybooks();
+
+    let previousDisputeDate = null;
+    let priorDates = [];
+    try {
+      const cstate = await listConsumerState(consumer.id);
+      const genEvents = (cstate?.events || []).filter(e => e.type === 'letters_generated').sort((a, b) => {
+        const ta = new Date(a.payload?.generatedAt || a.at || a.timestamp || 0).getTime();
+        const tb = new Date(b.payload?.generatedAt || b.at || b.timestamp || 0).getTime();
+        return ta - tb;
+      });
+      priorDates = genEvents.map(e => {
+        const ts = e.payload?.generatedAt || e.at || e.timestamp;
+        return ts ? new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : null;
+      }).filter(Boolean);
+      if (priorDates.length) previousDisputeDate = priorDates[priorDates.length - 1];
+    } catch {}
+
     const letters = generateLetters({
       report: reportWrap.data,
       selections: normalizedSelections,
@@ -7099,6 +7116,8 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       requestType,
       templates: lettersDb.templates || [],
       playbooks,
+      previousDisputeDate,
+      priorDates,
     });
     if (Array.isArray(personalInfo) && personalInfo.length) {
       letters.push(
