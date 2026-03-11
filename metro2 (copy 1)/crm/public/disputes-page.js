@@ -436,20 +436,17 @@ function renderDisputeTracker(data) {
         const iDate = item.followUpDate ? new Date(item.followUpDate).toLocaleDateString() : '';
         const overrideKey = `${jobId}__${itemIdx}`;
         const currentOverride = disputeTemplateOverrides[overrideKey] || '';
-        const currentLetterType = item.letterType || '';
         const selKey = getSelectionKey(jobId, itemIdx);
         const isChecked = selectedItems.has(selKey);
+        const acctNum = item.accountNumber ? escapeHtml(item.accountNumber) : '';
+        const disputeReason = item.specificDisputeReason ? escapeHtml(item.specificDisputeReason) : '';
 
         html += `<div class="dispute-item-row" data-sel-key="${escapeHtml(selKey)}" style="padding:6px 10px;background:${isChecked ? 'rgba(212,168,83,0.1)' : 'rgba(255,255,255,0.03)'};border-radius:6px;border:1px solid ${isChecked ? 'rgba(212,168,83,0.3)' : 'rgba(255,255,255,0.06)'};cursor:pointer;transition:background .15s,border-color .15s;">
-          <div style="display:flex;align-items:center;gap:8px;">
+          <div class="dispute-item-header" style="display:flex;align-items:center;gap:8px;">
             <input type="checkbox" class="dispute-item-check" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" ${isChecked ? 'checked' : ''} style="accent-color:#d4a853;width:15px;height:15px;cursor:pointer;flex-shrink:0;" />
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;color:#fff;font-size:12px;">${creditor}</div>
-              <div style="font-size:11px;color:#888;">${bureau}${currentLetterType ? ' • <span style="color:#60a5fa;">' + escapeHtml(currentLetterType) + '</span>' : ''}${notes ? ' • ' + notes : ''}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-              <input type="number" class="dispute-item-followup-days" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" value="${iDays}" min="1" max="180" style="width:44px;padding:1px 4px;border-radius:4px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:10px;text-align:center;" title="Follow-up days for this item" />
-              <span style="font-size:10px;color:#666;">${iDate ? iDate : 'd'}</span>
+              <div style="font-weight:600;color:#fff;font-size:12px;">${creditor}${acctNum ? ` <span style="color:#666;font-weight:400;">(····${acctNum})</span>` : ''}</div>
+              <div style="font-size:11px;color:#888;">${bureau}</div>
             </div>
             <div class="dispute-item-status-wrap" style="position:relative;" onclick="event.stopPropagation()">
               ${disputeStatusBadge(status)}
@@ -465,7 +462,14 @@ function renderDisputeTracker(data) {
                 <option value="partial"${status==='partial'?' selected':''}>Partial</option>
               </select>
             </div>
-          </div>`;
+            <svg class="dispute-item-chevron" style="width:14px;height:14px;color:#666;flex-shrink:0;transition:transform .2s;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="dispute-item-details" style="display:none;margin-top:6px;padding:6px 0 2px 23px;border-top:1px solid rgba(255,255,255,0.05);">
+            <div style="display:flex;flex-wrap:wrap;gap:8px 16px;font-size:11px;color:#aaa;margin-bottom:6px;">
+              <span>Follow-up: <input type="number" class="dispute-item-followup-days" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" value="${iDays}" min="1" max="180" onclick="event.stopPropagation()" style="width:44px;padding:1px 4px;border-radius:4px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:10px;text-align:center;" /> days${iDate ? ` (${iDate})` : ''}</span>
+            </div>
+            ${disputeReason ? `<div style="font-size:11px;color:#ccc;margin-bottom:4px;"><span style="color:#888;">Reason:</span> ${disputeReason}</div>` : ''}
+            ${notes ? `<div style="font-size:11px;color:#ccc;margin-bottom:4px;"><span style="color:#888;">Notes:</span> ${notes}</div>` : ''}`;
 
         if (round.status !== 'resolved') {
           const tplOptions = (DISPUTE_LETTER_TEMPLATES || []).map(t => {
@@ -474,7 +478,8 @@ function renderDisputeTracker(data) {
             const selected = currentOverride === t.id ? ' selected' : '';
             return `<option value="${tid}"${selected}>${tname}</option>`;
           }).join('');
-          html += `<div style="margin-top:4px;">
+          html += `<div style="margin-top:4px;" onclick="event.stopPropagation()">
+            <div style="font-size:10px;color:#888;margin-bottom:2px;">Next round template:</div>
             <select class="dispute-template-override" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" style="width:100%;padding:2px 6px;border-radius:4px;border:1px solid rgba(96,165,250,0.2);background:#1a1a1e;color:#9ca3af;font-size:10px;">
               <option value="">Auto (use recommendation)</option>
               ${tplOptions}
@@ -483,11 +488,11 @@ function renderDisputeTracker(data) {
         }
 
         if (item.evidence && item.evidence.length > 0) {
-          html += `<div style="padding-left:18px;margin-top:4px;">`;
+          html += `<div style="margin-top:4px;">`;
           item.evidence.forEach(ev => {
             const name = escapeHtml(ev.name || ev.originalName || 'Evidence');
             const url = ev.url ? escapeHtml(ev.url) : '#';
-            html += `<div style="font-size:11px;color:#60a5fa;"><a href="${url}" target="_blank" style="color:#60a5fa;text-decoration:underline;">📎 ${name}</a></div>`;
+            html += `<div style="font-size:11px;color:#60a5fa;"><a href="${url}" target="_blank" onclick="event.stopPropagation()" style="color:#60a5fa;text-decoration:underline;">📎 ${name}</a></div>`;
           });
           html += `</div>`;
         }
@@ -504,7 +509,7 @@ function renderDisputeTracker(data) {
           </div>`;
         }
 
-        html += `</div>`;
+        html += `</div></div>`;
       });
       html += `</div>`;
     }
@@ -553,11 +558,13 @@ function renderDisputeTracker(data) {
 
   timeline.querySelectorAll('.dispute-item-row').forEach(row => {
     row.addEventListener('click', (e) => {
-      if (e.target.closest('input, select, button, a')) return;
-      const cb = row.querySelector('.dispute-item-check');
-      if (cb) {
-        cb.checked = !cb.checked;
-        toggleItemSelection(cb.dataset.jobId, parseInt(cb.dataset.itemIndex, 10), cb);
+      if (e.target.closest('input, select, button, a, .dispute-item-status-wrap')) return;
+      const details = row.querySelector('.dispute-item-details');
+      const chevron = row.querySelector('.dispute-item-chevron');
+      if (details) {
+        const isOpen = details.style.display !== 'none';
+        details.style.display = isOpen ? 'none' : '';
+        if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
       }
     });
   });
