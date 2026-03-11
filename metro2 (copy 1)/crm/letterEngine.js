@@ -560,9 +560,13 @@ function buildViolationListHTML(
         v.fcraSection && cleanDetail && !cleanDetail.includes(v.fcraSection)
           ? `Per FCRA §${v.fcraSection}, ${cleanDetail}`
           : cleanDetail;
-      const primaryText = violationLabel || fcraText || '';
+      let primaryText = violationLabel || fcraText || '';
       const secondaryText = violationLabel && fcraText && fcraText !== violationLabel ? fcraText : '';
-      if (!primaryText && !secondaryText && !evHTML) return '';
+      if (!primaryText && !secondaryText && !evHTML) {
+        primaryText = v.code
+          ? `Reporting violation (${v.code}) — the data furnished for this account does not comply with Metro 2 accuracy requirements.`
+          : 'The information reported for this account is inaccurate and does not match my records.';
+      }
       return `
         <li style="margin-bottom:12px;">
           <strong>${safe(primaryText)}</strong>
@@ -570,7 +574,7 @@ function buildViolationListHTML(
           ${evHTML ? `<div style="margin-top:6px;">${evHTML}</div>` : ''}
         </li>`;
     })
-    .filter(Boolean)
+    .filter(s => s && s.trim())
     .join("");
   if (!items) return `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:4px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b).</div></li></ol>`;
   return `<ol class="ocr" style="margin:0;padding-left:18px;">${items}</ol>`;

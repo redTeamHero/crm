@@ -1987,6 +1987,28 @@ function collectSelections(){
     if (data.violationIdxs && data.violationIdxs.length){
       sel.violationIdxs = data.violationIdxs;
     }
+    if (!sel.specificDisputeReason && (!sel.violationIdxs || !sel.violationIdxs.length)) {
+      const creditorName = tl?.meta?.creditor || '';
+      let acctStatus = '';
+      let pmtStatus = '';
+      const bureaus = data.bureaus || [];
+      for (let bi = 0; bi < bureaus.length; bi++) {
+        const bd = tl?.per_bureau?.[bureaus[bi]];
+        if (!acctStatus) acctStatus = String(bd?.account_status || '').trim();
+        if (!pmtStatus) pmtStatus = String(bd?.payment_status || '').trim();
+        if (acctStatus && pmtStatus) break;
+      }
+      if (!acctStatus) acctStatus = String(tl?.meta?.account_status || '').trim();
+      if (!pmtStatus) pmtStatus = String(tl?.meta?.payment_status || '').trim();
+      const negIndicators = [];
+      if (pmtStatus && pmtStatus.toLowerCase() !== 'current') negIndicators.push(pmtStatus);
+      if (acctStatus && /collection|charge.?off|derog/i.test(acctStatus)) negIndicators.push(acctStatus);
+      if (negIndicators.length && creditorName) {
+        sel.specificDisputeReason = `The reporting on my ${creditorName} account is inaccurate — ${negIndicators.join(', ')} does not reflect my records. I request a full investigation under FCRA §611.`;
+      } else if (creditorName) {
+        sel.specificDisputeReason = `The information reported on my ${creditorName} account is inaccurate and does not correspond to my records. I request a full reinvestigation under FCRA §611.`;
+      }
+    }
     if (card){
       const creditor = card.querySelector('.tl-creditor')?.textContent?.trim();
       const accountNumbers = {
