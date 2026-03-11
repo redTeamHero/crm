@@ -40,7 +40,7 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["bash", "-c", "cd 'metro2 (copy 1)/crm' && node server.js"]
+run = ["bash", "-c", "cd 'metro2 (copy 1)/crm' && NODE_ENV=production node server.js"]
 build = ["bash", "-c", "cd 'metro2 (copy 1)/crm' && npm install"]
 
 [userenv]

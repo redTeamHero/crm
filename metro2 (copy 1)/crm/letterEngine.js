@@ -104,7 +104,7 @@ function buildCaseLawSection(categories) {
   const items = cases.map(c =>
     `<li style="margin-bottom:12px;"><strong><em>${safe(c.case)}</em></strong>, ${safe(c.cite)}<br><span style="color:#4b5563;">${safe(c.holding)}</span></li>`
   ).join('');
-  return `<h2>Legal Authority</h2><ol style="margin:10px 0 0;padding-left:18px;">${items}</ol>`;
+  return `<h2>Legal Authority</h2><ol style="margin:10px 0 0;padding-left:8px;">${items}</ol>`;
 }
 
 function getViolationInfo(code) {
@@ -546,7 +546,7 @@ function buildViolationListHTML(
   const hasSelections = Array.isArray(selectedIds) && selectedIds.length > 0;
   if (!violations?.length || !hasSelections) {
     if (manualReason) return `<p>${safe(manualReason)}</p>`;
-    return `<ol class="ocr" style="margin:10px 0 0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:6px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b). If this information cannot be independently verified through documentation from the original creditor, it must be promptly deleted from my credit file.</div></li></ol>`;
+    return `<ol class="ocr" style="margin:10px 0 0;padding-left:8px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:6px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b). If this information cannot be independently verified through documentation from the original creditor, it must be promptly deleted from my credit file.</div></li></ol>`;
   }
   const selected = selectedIds.map((idx) => violations[idx]).filter(Boolean);
   const enriched = filterViolationsBySeverity(selected, minSeverity, locale);
@@ -576,8 +576,8 @@ function buildViolationListHTML(
     })
     .filter(s => s && s.trim())
     .join("");
-  if (!items) return `<ol class="ocr" style="margin:10px 0 0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:6px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b).</div></li></ol>`;
-  return `<ol class="ocr" style="margin:10px 0 0;padding-left:18px;">${items}</ol>`;
+  if (!items) return `<ol class="ocr" style="margin:10px 0 0;padding-left:8px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:6px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b).</div></li></ol>`;
+  return `<ol class="ocr" style="margin:10px 0 0;padding-left:8px;">${items}</ol>`;
 }
 
 // Mode-based copy
@@ -670,7 +670,7 @@ function buildLetterHTML(opts) {
       : null;
   const manualReason = rawManualReason ? cleanViolationText(rawManualReason) : null;
   const chosenList = manualReason
-    ? `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>${safe(manualReason)}</strong></li></ol>`
+    ? `<ol class="ocr" style="margin:0;padding-left:8px;"><li style="margin-bottom:12px;"><strong>${safe(manualReason)}</strong></li></ol>`
     : buildViolationListHTML(tl.violations, selectedViolationIdxs);
 
   if (template && template.english) {
@@ -711,15 +711,37 @@ function buildLetterHTML(opts) {
       .replace(/\[List\]/g, '[SEE ATTACHED]')
       .replace(/\[Arbitration Forum[^\]]*\]/gi, 'AAA or JAMS');
 
-    const lines = personalized.split('\n');
+    let cleaned = personalized;
+    const consName = (consumer.name || '').trim();
+    const consAddr = (consumer.addr1 || '').trim();
+    const consCityLine = [consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', ');
+    if (consName) {
+      cleaned = cleaned.replace(new RegExp('^\\s*' + consName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\n', 'i'), '');
+    }
+    cleaned = cleaned.replace(/^\s*\[?Address\]?[^\n]*\n?/im, '');
+    cleaned = cleaned.replace(/^\s*\[?City[^\n]*\n?/im, '');
+    cleaned = cleaned.replace(/^\s*\[?Phone\]?[^\n]*\n?/im, '');
+    cleaned = cleaned.replace(/^\s*\[?Email\]?[^\n]*\n?/im, '');
+    if (consAddr) {
+      cleaned = cleaned.replace(new RegExp('^\\s*' + consAddr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[^\\n]*\\n', 'i'), '');
+    }
+    if (consCityLine) {
+      cleaned = cleaned.replace(new RegExp('^\\s*' + consCityLine.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[^\\n]*\\n', 'i'), '');
+    }
+    const hasSig = /sincerely[,.]?\s*(\n\s*\S.*)?$/im.test(cleaned.trim());
+    if (hasSig) {
+      cleaned = cleaned.replace(/\n?\s*Sincerely[,.]?\s*(\n\s*[^\n]+)?\s*$/i, '');
+    }
+    const lines = cleaned.split('\n');
     const bodyHtml = lines.map(l => l.trim() === '' ? '<br>' : `<p class="ocr">${colorize(l)}</p>`).join('\n');
 
+    const creditorForTitle = safe(tl.meta?.creditor || 'Dispute');
     const letterBody = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${bureau} – ${safe(template.name)}</title>
+  <title>${bureau} Dispute – ${creditorForTitle}</title>
   <style>
     @media print { @page { margin: 1in; } }
     body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; line-height:1.55; }
@@ -753,9 +775,7 @@ function buildLetterHTML(opts) {
   ${buildCaseLawSection(template.id in TEMPLATE_CASE_LAW_MAP ? TEMPLATE_CASE_LAW_MAP[template.id] : ['accuracy'])}
 
   <p style="margin-top:24px;">Please provide the method of verification, including the name and contact information of any furnisher relied upon. If you cannot verify the information with maximum possible accuracy, delete the item and send me an updated report.</p>
-  <div class="sig-block">
-    <p>Sincerely,<br>${safe(consumer.name)}</p>
-  </div>
+  ${hasSig ? '' : `<div class="sig-block"><p>Sincerely,<br>${safe(consumer.name)}</p></div>`}
   ${opts._enclosuresHtml || ''}
 </body>
 </html>`.trim();
@@ -814,7 +834,7 @@ function buildLetterHTML(opts) {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${bureau} – ${mc.heading}</title>
+  <title>${bureau} Dispute – ${safe(tl.meta?.creditor || 'Account')}</title>
   <style>
     @media print { @page { margin: 1in; } }
     body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; line-height:1.55; }

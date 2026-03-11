@@ -415,6 +415,18 @@ function renderDisputeTracker(data) {
       ${questionnaireCompleted ? '✓ Client questionnaire completed' : '○ Awaiting client questionnaire'}
     </div>`;
 
+    if (round.letters && round.letters.length > 0) {
+      html += `<div style="font-size:11px;color:#888;margin-bottom:4px;">Letters sent: ${round.letters.length}</div>`;
+    }
+
+    html += `<div style="display:flex;gap:6px;margin-bottom:8px;">`;
+    if (round.status !== 'resolved') {
+      html += `<button class="btn btn-outline text-xs dispute-generate-next" data-job-id="${escapeHtml(jobId)}" data-round="${roundNum}">Generate Next Round</button>`;
+      html += `<button class="btn btn-outline text-xs dispute-mark-resolved" data-job-id="${escapeHtml(jobId)}">Mark Resolved</button>`;
+    }
+    html += `<button class="btn btn-outline text-xs dispute-delete-round" data-job-id="${escapeHtml(jobId)}" style="color:#ef4444;border-color:rgba(239,68,68,0.3);">Delete Round</button>`;
+    html += `</div>`;
+
     if (items.length > 0) {
       html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#888;">
@@ -504,18 +516,6 @@ function renderDisputeTracker(data) {
       });
       html += `</div>`;
     }
-
-    if (round.letters && round.letters.length > 0) {
-      html += `<div style="font-size:11px;color:#888;margin-bottom:4px;">Letters sent: ${round.letters.length}</div>`;
-    }
-
-    html += `<div style="display:flex;gap:6px;margin-top:8px;">`;
-    if (round.status !== 'resolved') {
-      html += `<button class="btn btn-outline text-xs dispute-generate-next" data-job-id="${escapeHtml(jobId)}" data-round="${roundNum}">Generate Next Round</button>`;
-      html += `<button class="btn btn-outline text-xs dispute-mark-resolved" data-job-id="${escapeHtml(jobId)}">Mark Resolved</button>`;
-    }
-    html += `<button class="btn btn-outline text-xs dispute-delete-round" data-job-id="${escapeHtml(jobId)}" style="color:#ef4444;border-color:rgba(239,68,68,0.3);">Delete Round</button>`;
-    html += `</div>`;
 
     html += `</div>`;
     html += `</div>`;

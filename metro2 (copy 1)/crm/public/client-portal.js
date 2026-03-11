@@ -3314,6 +3314,48 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`;
     }).join('');
 
+    const OUTCOME_COLORS = {
+      removed: { border: 'border-green-300', bg: 'bg-green-50', rank: 1 },
+      deleted: { border: 'border-green-300', bg: 'bg-green-50', rank: 1 },
+      corrected: { border: 'border-green-300', bg: 'bg-green-50', rank: 1 },
+      no_response: { border: 'border-gray-200', bg: 'bg-gray-50', rank: 3 },
+      partial: { border: 'border-amber-300', bg: 'bg-amber-50', rank: 4 },
+      verified: { border: 'border-blue-300', bg: 'bg-blue-50', rank: 5 },
+      stalled: { border: 'border-red-300', bg: 'bg-red-50', rank: 6 },
+    };
+    const DEFAULT_COLORS = { border: 'border-gray-100', bg: 'bg-gray-50', rank: 0 };
+    const ALL_BORDER_CLS = Object.values(OUTCOME_COLORS).map(c => c.border).filter((v, i, a) => a.indexOf(v) === i).concat(['border-gray-100']);
+    const ALL_BG_CLS = Object.values(OUTCOME_COLORS).map(c => c.bg).filter((v, i, a) => a.indexOf(v) === i).concat(['bg-gray-50']);
+
+    function updateDisputeCardColors(selectEl) {
+      const item = selectEl.closest('.dispute-questionnaire-item');
+      const group = selectEl.closest('.dispute-questionnaire-group');
+      if (!group) return;
+      const val = selectEl.value;
+      const colors = OUTCOME_COLORS[val] || DEFAULT_COLORS;
+      if (item) {
+        ALL_BORDER_CLS.forEach(c => item.classList.remove(c));
+        ALL_BG_CLS.forEach(c => item.classList.remove(c));
+        if (val) { item.classList.add(colors.bg); }
+      }
+      const selects = group.querySelectorAll('.dispute-outcome-select');
+      let worstRank = 0;
+      let worstColors = DEFAULT_COLORS;
+      selects.forEach(s => {
+        const c = OUTCOME_COLORS[s.value] || DEFAULT_COLORS;
+        if (c.rank > worstRank) { worstRank = c.rank; worstColors = c; }
+      });
+      ALL_BORDER_CLS.forEach(c => group.classList.remove(c));
+      ALL_BG_CLS.forEach(c => group.classList.remove(c));
+      group.classList.add(worstRank > 0 ? worstColors.border : DEFAULT_COLORS.border);
+      group.classList.add(worstRank > 0 ? worstColors.bg : DEFAULT_COLORS.bg);
+    }
+
+    roundList.querySelectorAll('.dispute-outcome-select').forEach(sel => {
+      sel.addEventListener('change', () => updateDisputeCardColors(sel));
+      if (sel.value) updateDisputeCardColors(sel);
+    });
+
     roundList.querySelectorAll('.dispute-submit-btn').forEach(btn => {
       btn.addEventListener('click', handleDisputeSubmit);
     });
