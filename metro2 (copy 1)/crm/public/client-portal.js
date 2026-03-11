@@ -3016,10 +3016,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const acctLabel = item.accountNumber ? ` (\u2022\u2022\u2022\u2022${esc(item.accountNumber)})` : '';
       const displayName = creditorIsUseful ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
       if (!groupMap[acctKey]) {
-        groupMap[acctKey] = { displayName, bureaus: [] };
+        groupMap[acctKey] = { displayName, bureaus: [], _bureauSeen: {} };
         grouped.push(groupMap[acctKey]);
       }
-      groupMap[acctKey].bureaus.push({ rawCreditor, bureau, idx, item });
+      const bKey = (bureau || '').toLowerCase().trim();
+      if (groupMap[acctKey]._bureauSeen[bKey]) {
+        groupMap[acctKey]._bureauSeen[bKey].indices.push(idx);
+      } else {
+        const entry = { rawCreditor, bureau, idx, item, indices: [idx] };
+        groupMap[acctKey]._bureauSeen[bKey] = entry;
+        groupMap[acctKey].bureaus.push(entry);
+      }
     });
 
     const recs = recommendations || [];
@@ -3028,6 +3035,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const bureauRows = group.bureaus.map(b => {
         const creditor = esc(b.rawCreditor);
         const bureau = esc(b.bureau);
+        const idxList = b.indices.join(',');
         const rec = recs.find(r => r.creditor === b.rawCreditor && r.bureau === b.bureau);
         let recHint = '';
         if (rec) {
@@ -3037,7 +3045,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${rec.reason ? `<span class="opacity-75">\u2014 ${esc(rec.reason)}</span>` : ''}
           </div>`;
         }
-        return `<div class="dispute-questionnaire-item border-t border-gray-100 pt-2 first:border-0 first:pt-0" data-idx="${b.idx}">
+        return `<div class="dispute-questionnaire-item border-t border-gray-100 pt-2 first:border-0 first:pt-0" data-idx="${idxList}">
           <div class="text-xs font-medium text-slate-600 mb-1">${bureau || 'Bureau'}</div>
           ${recHint}
           <select class="dispute-outcome-select input text-sm w-full" data-creditor="${creditor}" data-bureau="${bureau}">
@@ -3055,7 +3063,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`;
       }).join('');
 
-      const bureauList = group.bureaus.map(b => esc(b.bureau)).join(', ');
+      const bureauList = [...new Set(group.bureaus.map(b => b.bureau))].map(b => esc(b)).join(', ');
 
       return `<div class="bg-gray-50 rounded-lg border border-gray-100 dispute-questionnaire-group">
         <div class="flex items-center justify-between px-3 py-2.5 cursor-pointer select-none dispute-accordion-header" onclick="(function(el){var body=el.parentElement.querySelector('.dispute-accordion-body');var chev=el.querySelector('.dispute-accordion-chevron');var isOpen=body.style.display!=='none';if(!isOpen){el.parentElement.parentElement.querySelectorAll('.dispute-accordion-body').forEach(function(b){b.style.display='none';});el.parentElement.parentElement.querySelectorAll('.dispute-accordion-chevron').forEach(function(c){c.style.transform='rotate(0deg)';});body.style.display='block';chev.style.transform='rotate(180deg)';}else{body.style.display='none';chev.style.transform='rotate(0deg)';}})(this)">
@@ -3123,10 +3131,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const acctLabel = item.accountNumber ? ` (\u2022\u2022\u2022\u2022${esc(item.accountNumber)})` : '';
       const displayName = (resolvedCreditor !== bureau && resolvedCreditor !== 'Unknown') ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown');
       if (!groupMap[acctKey]) {
-        groupMap[acctKey] = { displayName, bureaus: [] };
+        groupMap[acctKey] = { displayName, bureaus: [], _bureauSeen: {} };
         grouped.push(groupMap[acctKey]);
       }
-      groupMap[acctKey].bureaus.push({ bureau, status: item.outcome || item.status });
+      const bKey = (bureau || '').toLowerCase().trim();
+      if (groupMap[acctKey]._bureauSeen[bKey]) {
+        const existing = groupMap[acctKey]._bureauSeen[bKey];
+        const newStatus = item.outcome || item.status || '';
+        if (newStatus && newStatus !== 'awaiting' && newStatus !== 'awaiting_response' && (!existing.status || existing.status === 'awaiting' || existing.status === 'awaiting_response')) {
+          existing.status = newStatus;
+        }
+      } else {
+        const entry = { bureau, status: item.outcome || item.status };
+        groupMap[acctKey]._bureauSeen[bKey] = entry;
+        groupMap[acctKey].bureaus.push(entry);
+      }
     });
 
     const groupsHTML = grouped.map(group => {
@@ -3171,10 +3190,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const acctLabel = item.accountNumber ? ` (\u2022\u2022\u2022\u2022${esc(item.accountNumber)})` : '';
       const displayName = creditorIsUseful ? esc(resolvedCreditor) + acctLabel : (bureau ? esc(bureau) + acctLabel : 'Unknown Item');
       if (!groupMap[acctKey]) {
-        groupMap[acctKey] = { displayName, bureaus: [] };
+        groupMap[acctKey] = { displayName, bureaus: [], _bureauSeen: {} };
         grouped.push(groupMap[acctKey]);
       }
-      groupMap[acctKey].bureaus.push({ rawCreditor, bureau, idx, item });
+      const bKey = (bureau || '').toLowerCase().trim();
+      if (groupMap[acctKey]._bureauSeen[bKey]) {
+        const existing = groupMap[acctKey]._bureauSeen[bKey];
+        existing.indices.push(idx);
+        const existingOutcome = existing.item.outcome || existing.item.status || '';
+        const newOutcome = item.outcome || item.status || '';
+        if ((!existingOutcome || existingOutcome === 'awaiting' || existingOutcome === 'awaiting_response') && newOutcome && newOutcome !== 'awaiting' && newOutcome !== 'awaiting_response') {
+          existing.item = item;
+        }
+        if (!existing.item.notes && item.notes) existing.item = item;
+      } else {
+        const entry = { rawCreditor, bureau, idx, item, indices: [idx] };
+        groupMap[acctKey]._bureauSeen[bKey] = entry;
+        groupMap[acctKey].bureaus.push(entry);
+      }
     });
 
     const outcomeMap = { removed: 'Removed / Deleted', verified: 'Verified (still reporting)', no_response: 'No Response', partial: 'Partially corrected', stalled: 'Stalled / No progress', updated: 'Updated / Changed' };
@@ -3184,6 +3217,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const bureauRows = group.bureaus.map(b => {
         const creditor = esc(b.rawCreditor);
         const bureau = esc(b.bureau);
+        const idxList = b.indices.join(',');
         const currentOutcome = b.item.outcome || b.item.status || '';
         const normalizedOutcome = (currentOutcome === 'awaiting' || currentOutcome === 'awaiting_response') ? '' : currentOutcome;
         const optionsHTML = outcomeKeys.map(k => {
@@ -3191,7 +3225,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return `<option value="${k}"${sel}>${outcomeMap[k]}</option>`;
         }).join('');
         const notesVal = b.item.notes ? esc(b.item.notes) : '';
-        return `<div class="dispute-questionnaire-item border-t border-gray-100 pt-2 first:border-0 first:pt-0" data-idx="${b.idx}">
+        return `<div class="dispute-questionnaire-item border-t border-gray-100 pt-2 first:border-0 first:pt-0" data-idx="${idxList}">
           <div class="text-xs font-medium text-slate-600 mb-1">${bureau || 'Bureau'}</div>
           <select class="dispute-outcome-select input text-sm w-full" data-creditor="${creditor}" data-bureau="${bureau}">
             <option value="">Select outcome...</option>
@@ -3203,7 +3237,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <textarea class="dispute-notes-input input text-xs w-full mt-1 border border-gray-200 rounded-lg" rows="1" data-creditor="${creditor}" data-bureau="${bureau}" placeholder="Notes (optional)">${notesVal}</textarea>
         </div>`;
       }).join('');
-      const bureauList = group.bureaus.map(b => esc(b.bureau)).join(', ');
+      const bureauList = [...new Set(group.bureaus.map(b => b.bureau))].map(b => esc(b)).join(', ');
       return `<div class="bg-gray-50 rounded-lg border border-gray-100 dispute-questionnaire-group">
         <div class="flex items-center justify-between px-3 py-2.5 cursor-pointer select-none dispute-accordion-header" onclick="(function(el){var body=el.parentElement.querySelector('.dispute-accordion-body');var chev=el.querySelector('.dispute-accordion-chevron');var isOpen=body.style.display!=='none';if(!isOpen){el.parentElement.parentElement.querySelectorAll('.dispute-accordion-body').forEach(function(b){b.style.display='none';});el.parentElement.parentElement.querySelectorAll('.dispute-accordion-chevron').forEach(function(c){c.style.transform='rotate(0deg)';});body.style.display='block';chev.style.transform='rotate(180deg)';}else{body.style.display='none';chev.style.transform='rotate(0deg)';}})(this)">
           <div class="min-w-0 flex-1">
@@ -3410,12 +3444,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const notes = el.querySelector('.dispute-notes-input');
       const fileInput = el.querySelector('.dispute-evidence-input');
       if (!select?.value) unanswered++;
-      items.push({
-        creditor: select?.dataset.creditor || '',
-        bureau: select?.dataset.bureau || '',
-        outcome: select?.value || 'no_response',
-        notes: notes?.value || '',
-      });
+      const idxAttr = el.dataset.idx || '';
+      const indices = idxAttr.split(',').map(s => parseInt(s, 10)).filter(n => !isNaN(n));
+      if (indices.length > 1) {
+        indices.forEach(i => {
+          items.push({
+            creditor: select?.dataset.creditor || '',
+            bureau: select?.dataset.bureau || '',
+            outcome: select?.value || 'no_response',
+            notes: notes?.value || '',
+            itemIndex: i,
+          });
+        });
+      } else {
+        items.push({
+          creditor: select?.dataset.creditor || '',
+          bureau: select?.dataset.bureau || '',
+          outcome: select?.value || 'no_response',
+          notes: notes?.value || '',
+          itemIndex: indices.length === 1 ? indices[0] : undefined,
+        });
+      }
       if (fileInput?.files?.length) {
         evidenceFiles.push({
           file: fileInput.files[0],
