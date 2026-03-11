@@ -8249,6 +8249,12 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
 
     if(consumer && zipChunks.length){
       try{
+        let zipRoundNumber = 0;
+        try {
+          const cstate = await listConsumerState(consumer.id);
+          const roundEvt = (cstate.events || []).find(e => e.type === 'dispute_round' && e.payload?.jobId === jobId);
+          if (roundEvt) zipRoundNumber = roundEvt.payload.round || 0;
+        } catch {}
         const zipBuf = Buffer.concat(zipChunks);
         const objectKey = objStore.consumerFileKey(consumer.id, storedName);
         await objStore.uploadFile(objectKey, zipBuf, "application/zip");
@@ -8261,8 +8267,10 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
           size: zipBuf.length,
           mimetype: 'application/zip',
           uploadedAt: new Date().toISOString(),
+          jobId: jobId,
+          round: zipRoundNumber || null,
         });
-        await addEvent(consumer.id, 'letters_downloaded', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
+        await addEvent(consumer.id, 'letters_downloaded', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}`, round: zipRoundNumber || null });
       }catch(err){ logError('ZIP_RECORD_FAILED', 'Failed to record zip', err, { jobId, consumerId: consumer.id }); }
     }
     logInfo('ZIP_BUILD_SUCCESS', 'Letters zip created', { jobId });
@@ -8457,6 +8465,13 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
   try{
     logInfo('PORTAL_UPLOAD_START', 'Building portal letters', { jobId, consumerId: consumer.id });
 
+    let roundNumber = 0;
+    try {
+      const cstate = await listConsumerState(consumer.id);
+      const roundEvt = (cstate.events || []).find(e => e.type === 'dispute_round' && e.payload?.jobId === jobId);
+      if (roundEvt) roundNumber = roundEvt.payload.round || 0;
+    } catch {}
+
     if (needsBrowser) {
       try {
         browserInstance = await launchBrowser();
@@ -8487,7 +8502,8 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
       const id = nanoid(10);
       const storedName = `${id}.pdf`;
       const base = (L.filename||`letter${i}`).replace(/\.html?$/i,"");
-      const originalName = `${safe}_${date}_${base}.pdf`;
+      const roundTag = roundNumber ? `round${roundNumber}_` : '';
+      const originalName = `${safe}_${date}_${roundTag}${base}.pdf`;
       const objectKey = objStore.consumerFileKey(consumer.id, storedName);
       await objStore.uploadFile(objectKey, pdfBuffer, "application/pdf");
       await addFileMeta(consumer.id, {
@@ -8499,8 +8515,10 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
         size: pdfBuffer.length,
         mimetype: 'application/pdf',
         uploadedAt: new Date().toISOString(),
+        jobId: jobId,
+        round: roundNumber || null,
       });
-      await addEvent(consumer.id, 'letters_portal_sent', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}` });
+      await addEvent(consumer.id, 'letters_portal_sent', { jobId, file: `/api/consumers/${consumer.id}/state/files/${storedName}`, round: roundNumber || null });
     }
 
     logInfo('PORTAL_UPLOAD_SUCCESS', 'Portal letters stored', { jobId, consumerId: consumer.id, count: job.letters.length });

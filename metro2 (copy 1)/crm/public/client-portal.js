@@ -1627,7 +1627,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(ext)) return 'IMG';
     return 'FILE';
   }
-  function friendlyFileName(raw) {
+  function friendlyFileName(raw, doc) {
     if (!raw) return 'Document';
     var n = raw;
     var dateMatch = n.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -1635,6 +1635,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dateMatch) {
       var d = new Date(dateMatch[1] + '-' + dateMatch[2] + '-' + dateMatch[3] + 'T12:00:00');
       if (!isNaN(d.getTime())) dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    var roundNum = 0;
+    if (doc && doc.round) {
+      roundNum = doc.round;
+    } else {
+      var roundMatch = n.match(/round(\d+)/i);
+      if (roundMatch) roundNum = parseInt(roundMatch[1], 10);
     }
     var lower = n.toLowerCase();
     var label = '';
@@ -1677,7 +1684,7 @@ document.addEventListener('DOMContentLoaded', () => {
       label = cleanupFallback(n);
       category = '';
     }
-    return { label: label, date: dateStr, category: category, full: label + (dateStr ? ' · ' + dateStr : '') };
+    return { label: label, date: dateStr, category: category, round: roundNum, full: label + (dateStr ? ' · ' + dateStr : '') };
   }
   function extractBureau(name) {
     if (/experian/i.test(name)) return 'Experian';
@@ -1709,8 +1716,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ext = getFileExt(d.originalName);
     const iconClass = getDocIconClass(ext);
     const iconLabel = getDocIconLabel(ext);
-    const friendly = friendlyFileName(d.originalName);
+    const friendly = friendlyFileName(d.originalName, d);
     const categoryBadge = friendly.category ? `<span class="doc-card-badge doc-badge-${friendly.category.toLowerCase()}">${friendly.category}</span>` : '';
+    const roundBadge = friendly.round ? `<span class="doc-card-badge doc-badge-round">Round ${friendly.round}</span>` : '';
     const metaParts = [ext.toUpperCase(), friendly.date].filter(Boolean).join(' · ');
     const safeName = esc(d.originalName);
     const fileUrl = `/api/consumers/${encodeURIComponent(consumerId)}/state/files/${encodeURIComponent(d.storedName)}`;
@@ -1719,7 +1727,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="doc-card-icon ${iconClass}">${iconLabel}</div>
       <div class="doc-card-info">
         <div class="doc-card-name">${esc(friendly.label)}</div>
-        <div class="doc-card-meta">${categoryBadge}${metaParts}</div>
+        <div class="doc-card-meta">${categoryBadge}${roundBadge}${metaParts}</div>
       </div>
       <div class="doc-card-action"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
     </a>`;
@@ -1737,26 +1745,54 @@ document.addEventListener('DOMContentLoaded', () => {
         const groups = {};
         const groupOrder = [];
         for (const d of docs) {
-          const friendly = friendlyFileName(d.originalName);
+          const friendly = friendlyFileName(d.originalName, d);
           const cat = (friendly.category || '').toLowerCase();
           const isReport = cat === 'audit' || cat === 'report';
-          const groupKey = isReport ? '__reports__' : (friendly.date || 'Other');
+          const isDispute = cat === 'dispute' || cat === 'letters' || cat === 'letter';
+          const roundNum = friendly.round || (d.round ? d.round : 0);
+
+          var groupKey;
+          if (isReport) {
+            groupKey = '__reports__';
+          } else if (isDispute && roundNum) {
+            groupKey = '__round_' + roundNum;
+          } else {
+            groupKey = friendly.date || 'Other';
+          }
+
           if (!groups[groupKey]) {
-            groups[groupKey] = { label: isReport ? 'Reports & Audits' : friendly.date || 'Other Files', items: [], isReport, dateSort: '' };
-            if (!isReport && friendly.date) {
+            var groupLabel;
+            var dateSort = '';
+            if (isReport) {
+              groupLabel = 'Reports & Audits';
+            } else if (isDispute && roundNum) {
+              groupLabel = 'Dispute Round ' + roundNum;
+              if (friendly.date) groupLabel += ' · ' + friendly.date;
+              dateSort = roundNum.toString().padStart(5, '0');
+            } else {
+              groupLabel = friendly.date || 'Other Files';
+            }
+            if (!dateSort && !isReport && friendly.date) {
               try {
-                const match = (d.originalName || '').match(/(\d{4}-\d{2}-\d{2})/);
-                groups[groupKey].dateSort = match ? match[1] : '';
+                var match = (d.originalName || '').match(/(\d{4}-\d{2}-\d{2})/);
+                dateSort = match ? match[1] : '';
               } catch {}
             }
+            groups[groupKey] = { label: groupLabel, items: [], isReport: isReport, isRound: !!(isDispute && roundNum), roundNum: roundNum, dateSort: dateSort };
             groupOrder.push(groupKey);
+          } else if (isDispute && roundNum && !groups[groupKey].dateSort && friendly.date) {
+            groups[groupKey].label = 'Dispute Round ' + roundNum + ' · ' + friendly.date;
           }
           groups[groupKey].items.push(d);
         }
         groupOrder.sort((a, b) => {
           if (a === '__reports__') return -1;
           if (b === '__reports__') return 1;
-          return (groups[b].dateSort || '').localeCompare(groups[a].dateSort || '');
+          var ga = groups[a], gb = groups[b];
+          if (ga.isRound && gb.isRound) return gb.roundNum - ga.roundNum;
+          if (ga.isRound && !gb.isRound) return -1;
+          if (!ga.isRound && gb.isRound) return 1;
+          return (gb.dateSort || '').localeCompare(ga.dateSort || '');
         });
         if (groupOrder.length <= 1) {
           docEl.innerHTML = `<div class="doc-vault-grid">${docs.map(renderDocCard).join('')}</div>`;
@@ -1767,9 +1803,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const isFirst = gi === 0;
             const count = g.items.length;
             const chevronSvg = '<svg class="doc-group-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+            const roundIcon = g.isRound ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:middle;opacity:0.7;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' : '';
             html += `<div class="doc-date-group${isFirst ? ' open' : ''}">`;
             html += `<div class="doc-group-header" role="button" tabindex="0">`;
-            html += `<div class="doc-group-header-info"><span class="doc-group-label">${esc(g.label)}</span>`;
+            html += `<div class="doc-group-header-info">${roundIcon}<span class="doc-group-label">${esc(g.label)}</span>`;
             html += `<span class="doc-group-count">${count} file${count !== 1 ? 's' : ''}</span>`;
             html += `</div>${chevronSvg}</div>`;
             html += `<div class="doc-group-body"${isFirst ? '' : ' style="display:none"'}>`;
@@ -1795,12 +1832,57 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }
+  function enrichDocsWithRoundInfo(docs, events) {
+    if (!events || !events.length) return;
+    var roundMap = {};
+    var fileJobMap = {};
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (ev.type === 'dispute_round' && ev.payload && ev.payload.jobId) {
+        roundMap[ev.payload.jobId] = ev.payload.round || 0;
+      }
+    }
+    for (var j = 0; j < events.length; j++) {
+      var ev2 = events[j];
+      if (ev2.type === 'letters_portal_sent' && ev2.payload) {
+        var jid = ev2.payload.jobId;
+        var fileUrl = ev2.payload.file || '';
+        var storedMatch = fileUrl.match(/\/files\/([^\/]+)$/);
+        if (storedMatch && jid) {
+          fileJobMap[storedMatch[1]] = { jobId: jid, round: ev2.payload.round || roundMap[jid] || 0 };
+        }
+      }
+      if (ev2.type === 'letters_downloaded' && ev2.payload) {
+        var jid2 = ev2.payload.jobId;
+        var fileUrl2 = ev2.payload.file || '';
+        var storedMatch2 = fileUrl2.match(/\/files\/([^\/]+)$/);
+        if (storedMatch2 && jid2) {
+          fileJobMap[storedMatch2[1]] = { jobId: jid2, round: ev2.payload.round || roundMap[jid2] || 0 };
+        }
+      }
+    }
+    for (var k = 0; k < docs.length; k++) {
+      var d = docs[k];
+      if (d.round) continue;
+      if (d.jobId && roundMap[d.jobId]) {
+        d.round = roundMap[d.jobId];
+        continue;
+      }
+      var info = fileJobMap[d.storedName];
+      if (info && info.round) {
+        d.round = info.round;
+        if (!d.jobId) d.jobId = info.jobId;
+      }
+    }
+  }
   function loadDocs(){
     if (!(consumerId && (docEl || docPreviewEl))) return;
     fetch(`/api/consumers/${consumerId}/state`)
       .then(r => r.json())
       .then(data => {
         allDocs = data.state?.files || [];
+        var events = data.state?.events || [];
+        enrichDocsWithRoundInfo(allDocs, events);
         if (data.state?.creditScore) {
           applyCreditScore(data.state.creditScore);
         }
