@@ -7215,6 +7215,7 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
           letterType: L.templateId || L.filename || null,
           tradelineIndex: L.tradelineIndex ?? null,
           accountNumber: resolveAccountNumber(L),
+          specificDisputeReason: L.specificDisputeReason || null,
           followUpDays: itemFollowUpDays,
           followUpDate: itemFollowUpDate.toISOString(),
           status: "awaiting",
@@ -8911,7 +8912,8 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
         outcome: item.status === "awaiting" ? "no_response" : item.status,
         violations: [],
       });
-      recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, itemIndex: idx, resolved: false, ...rec });
+      const prevReason = item.specificDisputeReason || letterInfo?.specificDisputeReason || null;
+      recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, itemIndex: idx, resolved: false, specificDisputeReason: prevReason, ...rec });
     }
 
     res.json({ ok: true, jobId, round: roundEvent.payload.round, recommendations });

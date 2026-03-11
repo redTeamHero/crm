@@ -672,10 +672,13 @@ function renderDisputeTracker(data) {
           const templateId = (overrideKey && disputeTemplateOverrides[overrideKey]) || r.recommendedTemplate || null;
           const groupKey = `${tlIdx}__${templateId || 'default'}`;
           if (!selMap[groupKey]) {
-            selMap[groupKey] = { tradelineIndex: tlIdx, bureaus: [], templateId };
+            selMap[groupKey] = { tradelineIndex: tlIdx, bureaus: [], templateId, specificDisputeReason: r.specificDisputeReason || null };
           }
           if (r.bureau && !selMap[groupKey].bureaus.includes(r.bureau)) {
             selMap[groupKey].bureaus.push(r.bureau);
+          }
+          if (!selMap[groupKey].specificDisputeReason && r.specificDisputeReason) {
+            selMap[groupKey].specificDisputeReason = r.specificDisputeReason;
           }
         });
         const selections = Object.values(selMap);
