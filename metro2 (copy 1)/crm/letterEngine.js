@@ -1127,6 +1127,13 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
     // Ensure each tradeline has complete data before letter creation
     enrichTradeline(tl);
 
+    for (const bureau of sel.bureaus || []) {
+      if (ALL_BUREAUS.includes(bureau)) {
+        tl.per_bureau = tl.per_bureau || {};
+        if (!tl.per_bureau[bureau]) tl.per_bureau[bureau] = {};
+      }
+    }
+
     const isSpecial = SPECIAL_ONE_BUREAU.has(sel.specialMode);
     const comparisonBureaus = isSpecial ? [sel.bureaus[0]] : ALL_BUREAUS;
 
@@ -1137,7 +1144,6 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
       const dateOverride = play ? futureISO(stepIdx * 30) : undefined;
       for (const bureau of sel.bureaus || []) {
         if (!ALL_BUREAUS.includes(bureau)) continue;
-        if (!bureausWithData.has(bureau)) continue;
 
         const tpl = sel.templateId ? templateMap[sel.templateId] : null;
         const req = sel.requestType || tpl?.requestType || requestType;
