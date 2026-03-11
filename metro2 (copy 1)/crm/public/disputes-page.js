@@ -419,14 +419,6 @@ function renderDisputeTracker(data) {
       html += `<div style="font-size:11px;color:#888;margin-bottom:4px;">Letters sent: ${round.letters.length}</div>`;
     }
 
-    html += `<div style="display:flex;gap:6px;margin-bottom:8px;">`;
-    if (round.status !== 'resolved') {
-      html += `<button class="btn btn-outline text-xs dispute-generate-next" data-job-id="${escapeHtml(jobId)}" data-round="${roundNum}">Generate Next Round</button>`;
-      html += `<button class="btn btn-outline text-xs dispute-mark-resolved" data-job-id="${escapeHtml(jobId)}">Mark Resolved</button>`;
-    }
-    html += `<button class="btn btn-outline text-xs dispute-delete-round" data-job-id="${escapeHtml(jobId)}" style="color:#ef4444;border-color:rgba(239,68,68,0.3);">Delete Round</button>`;
-    html += `</div>`;
-
     if (items.length > 0) {
       html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#888;">
@@ -653,166 +645,6 @@ function renderDisputeTracker(data) {
     });
   });
 
-  timeline.querySelectorAll('.dispute-generate-next').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const jobId = e.target.dataset.jobId;
-      const roundNum = parseInt(e.target.dataset.round, 10) || 1;
-      if (!jobId || !currentConsumerId) return;
-      const origText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Generating...';
-      try {
-        const recData = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/recommendation`);
-        if (!recData?.ok || !recData.recommendations || !recData.recommendations.length) {
-          showErr(recData?.error || 'No recommendations available.');
-          btn.disabled = false;
-          btn.textContent = origText;
-          return;
-        }
-        const recs = recData.recommendations.filter(r => !r.resolved);
-        if (!recs.length) {
-          showErr('All items are already resolved — no next round needed.');
-          btn.disabled = false;
-          btn.textContent = origText;
-          return;
-        }
-        const selMap = {};
-        recs.forEach(r => {
-          const tlIdx = r.tradelineIndex ?? null;
-          if (tlIdx === null) return;
-          const itemIdx = r.itemIndex ?? null;
-          const overrideKey = itemIdx !== null ? `${jobId}__${itemIdx}` : null;
-          const templateId = (overrideKey && disputeTemplateOverrides[overrideKey]) || r.recommendedTemplate || null;
-          const groupKey = `${tlIdx}__${templateId || 'default'}`;
-          if (!selMap[groupKey]) {
-            selMap[groupKey] = { tradelineIndex: tlIdx, bureaus: [], templateId, specificDisputeReason: r.specificDisputeReason || null };
-          }
-          if (r.bureau && !selMap[groupKey].bureaus.includes(r.bureau)) {
-            selMap[groupKey].bureaus.push(r.bureau);
-          }
-          if (!selMap[groupKey].specificDisputeReason && r.specificDisputeReason) {
-            selMap[groupKey].specificDisputeReason = r.specificDisputeReason;
-          }
-        });
-        const selections = Object.values(selMap);
-        selections.forEach(sel => {
-          if (!sel.bureaus.length) sel.bureaus = ['TransUnion', 'Experian', 'Equifax'];
-        });
-        if (!selections.length) {
-          showErr('Could not determine tradeline selections from recommendations. Please generate letters manually.');
-          btn.disabled = false;
-          btn.textContent = origText;
-          return;
-        }
-        btn.textContent = 'Sending to server...';
-        const genResp = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('dispute-next-round'), ...authHeader() },
-          body: JSON.stringify({
-            consumerId: currentConsumerId,
-            reportId: currentReportId,
-            selections,
-            personalInfo: false,
-            collectors: [],
-          })
-        });
-        if (!genResp.ok) {
-          const txt = await genResp.text().catch(() => '');
-          throw new Error(`Generation failed: HTTP ${genResp.status} ${txt}`.trim());
-        }
-        const genData = await genResp.json().catch(() => ({}));
-        if (!genData?.ok || !genData?.jobId) throw new Error(genData?.error || 'Server did not return a job ID.');
-        const letterJobId = genData.jobId;
-        btn.textContent = 'Processing letters...';
-        let jobDone = false;
-        for (let i = 0; i < 60; i++) {
-          await new Promise(r => setTimeout(r, 1500));
-          const statusResp = await api(`/api/jobs/${encodeURIComponent(letterJobId)}`);
-          const jobStatus = statusResp?.job?.status || statusResp?.status;
-          if (jobStatus === 'completed' || jobStatus === 'done') { jobDone = true; break; }
-          if (jobStatus === 'failed') throw new Error(statusResp?.job?.error || statusResp?.error || 'Letter generation job failed.');
-        }
-        if (!jobDone) throw new Error('Letter generation timed out.');
-        const lettersData = await api(`/api/letters/${encodeURIComponent(letterJobId)}`);
-        if (!lettersData?.letters || !lettersData.letters.length) throw new Error('No letters were generated.');
-        btn.textContent = 'Sending to portal...';
-        let portalSent = false;
-        let portalError = '';
-        try {
-          const portalRes = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
-          portalSent = !!(portalRes?.ok);
-          if (!portalSent) portalError = portalRes?.error || portalRes?.message || 'Portal upload returned an error.';
-        } catch (portalErr) {
-          portalError = String(portalErr.message || portalErr);
-        }
-        if (!portalSent && portalError) {
-          console.warn('Portal send failed:', portalError);
-        }
-        openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1, portalSent, portalError);
-      } catch (err) {
-        showErr(String(err.message || err));
-      } finally {
-        btn.disabled = false;
-        btn.textContent = origText;
-      }
-    });
-  });
-
-  timeline.querySelectorAll('.dispute-mark-resolved').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const jobId = e.target.dataset.jobId;
-      if (!jobId || !currentConsumerId) return;
-      if (!confirm('Mark this dispute round as resolved?')) return;
-      try {
-        const round = currentDisputeData?.rounds?.find(r => r.jobId === jobId);
-        if (round && round.items) {
-          const items = round.items.map(item => ({
-            creditor: item.creditor,
-            bureau: item.bureau,
-            outcome: 'removed',
-            notes: 'Marked resolved by CRM user'
-          }));
-          const res = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/response`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items })
-          });
-          if (res?.ok) {
-            await loadDisputeTracker();
-          } else {
-            showErr(res?.error || 'Failed to mark resolved.');
-          }
-        }
-      } catch (err) {
-        showErr(String(err));
-      }
-    });
-  });
-
-  timeline.querySelectorAll('.dispute-delete-round').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const jobId = e.target.dataset.jobId;
-      if (!jobId || !currentConsumerId) return;
-      if (!confirm('Delete this dispute round and all associated portal files? This cannot be undone.')) return;
-      const origText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Deleting…';
-      try {
-        const res = await api(`/api/letters/${encodeURIComponent(jobId)}?consumerId=${encodeURIComponent(currentConsumerId)}`, { method: 'DELETE' });
-        if (res?.ok) {
-          await loadDisputeTracker();
-        } else {
-          showErr(res?.error || 'Failed to delete round.');
-          btn.disabled = false;
-          btn.textContent = origText;
-        }
-      } catch (err) {
-        showErr(String(err));
-        btn.disabled = false;
-        btn.textContent = origText;
-      }
-    });
-  });
 }
 
 $('#consumerPicker')?.addEventListener('change', (e) => {
@@ -844,6 +676,98 @@ document.addEventListener('change', async (e) => {
   }
 });
 
+function getSelectedJobIds() {
+  const jobs = new Set();
+  selectedItems.forEach(key => { jobs.add(key.split('__')[0]); });
+  return [...jobs];
+}
+
+$('#batchGenerateNext')?.addEventListener('click', async () => {
+  const jobIds = getSelectedJobIds();
+  if (!jobIds.length || !currentConsumerId || !currentDisputeData) return;
+  if (jobIds.length > 1) { showErr('Please select items from a single round to generate next letters.'); return; }
+  const jobId = jobIds[0];
+  const round = currentDisputeData.rounds?.find(r => r.jobId === jobId);
+  if (!round) { showErr('Could not find the dispute round.'); return; }
+  if (round.status === 'resolved') { showErr('This round is already resolved.'); return; }
+  const roundNum = currentDisputeData.rounds.indexOf(round) + 1;
+  const btn = $('#batchGenerateNext');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  try {
+    const recData = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/recommendation`);
+    if (!recData?.ok || !recData.recommendations || !recData.recommendations.length) {
+      showErr(recData?.error || 'No recommendations available.');
+      btn.disabled = false; btn.textContent = origText; return;
+    }
+    const recs = recData.recommendations.filter(r => !r.resolved);
+    if (!recs.length) {
+      showErr('All items are already resolved — no next round needed.');
+      btn.disabled = false; btn.textContent = origText; return;
+    }
+    const selMap = {};
+    recs.forEach(r => {
+      const tlIdx = r.tradelineIndex ?? null;
+      if (tlIdx === null) return;
+      const itemIdx = r.itemIndex ?? null;
+      const overrideKey = itemIdx !== null ? `${jobId}__${itemIdx}` : null;
+      const templateId = (overrideKey && disputeTemplateOverrides[overrideKey]) || r.recommendedTemplate || null;
+      const groupKey = `${tlIdx}__${templateId || 'default'}`;
+      if (!selMap[groupKey]) {
+        selMap[groupKey] = { tradelineIndex: tlIdx, bureaus: [], templateId, specificDisputeReason: r.specificDisputeReason || null };
+      }
+      if (r.bureau && !selMap[groupKey].bureaus.includes(r.bureau)) selMap[groupKey].bureaus.push(r.bureau);
+      if (!selMap[groupKey].specificDisputeReason && r.specificDisputeReason) selMap[groupKey].specificDisputeReason = r.specificDisputeReason;
+    });
+    const selections = Object.values(selMap);
+    selections.forEach(sel => { if (!sel.bureaus.length) sel.bureaus = ['TransUnion', 'Experian', 'Equifax']; });
+    if (!selections.length) {
+      showErr('Could not determine tradeline selections from recommendations. Please generate letters manually.');
+      btn.disabled = false; btn.textContent = origText; return;
+    }
+    btn.textContent = 'Sending to server...';
+    const genResp = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('dispute-next-round'), ...authHeader() },
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, personalInfo: false, collectors: [] })
+    });
+    if (!genResp.ok) { const txt = await genResp.text().catch(() => ''); throw new Error(`Generation failed: HTTP ${genResp.status} ${txt}`.trim()); }
+    const genData = await genResp.json().catch(() => ({}));
+    if (!genData?.ok || !genData?.jobId) throw new Error(genData?.error || 'Server did not return a job ID.');
+    const letterJobId = genData.jobId;
+    btn.textContent = 'Processing letters...';
+    let jobDone = false;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 1500));
+      const statusResp = await api(`/api/jobs/${encodeURIComponent(letterJobId)}`);
+      const jobStatus = statusResp?.job?.status || statusResp?.status;
+      if (jobStatus === 'completed' || jobStatus === 'done') { jobDone = true; break; }
+      if (jobStatus === 'failed') throw new Error(statusResp?.job?.error || statusResp?.error || 'Letter generation job failed.');
+    }
+    if (!jobDone) throw new Error('Letter generation timed out.');
+    const lettersData = await api(`/api/letters/${encodeURIComponent(letterJobId)}`);
+    if (!lettersData?.letters || !lettersData.letters.length) throw new Error('No letters were generated.');
+    btn.textContent = 'Sending to portal...';
+    let portalSent = false;
+    let portalError = '';
+    try {
+      const portalRes = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
+      portalSent = !!(portalRes?.ok);
+      if (!portalSent) portalError = portalRes?.error || portalRes?.message || 'Portal upload returned an error.';
+    } catch (portalErr) { portalError = String(portalErr.message || portalErr); }
+    if (!portalSent && portalError) console.warn('Portal send failed:', portalError);
+    selectedItems.clear();
+    updateSelectionToolbar();
+    openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1, portalSent, portalError);
+  } catch (err) {
+    showErr(String(err.message || err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+});
+
 $('#batchResolve')?.addEventListener('click', () => {
   if (!confirm(`Mark ${selectedItems.size} item(s) as resolved?`)) return;
   batchUpdateStatus('removed');
@@ -851,6 +775,34 @@ $('#batchResolve')?.addEventListener('click', () => {
 
 $('#batchAwaiting')?.addEventListener('click', () => {
   batchUpdateStatus('awaiting_response');
+});
+
+$('#batchDeleteRound')?.addEventListener('click', async () => {
+  const jobIds = getSelectedJobIds();
+  if (!jobIds.length || !currentConsumerId) return;
+  if (jobIds.length > 1) { showErr('Please select items from a single round to delete.'); return; }
+  const jobId = jobIds[0];
+  if (!confirm('Delete this dispute round and all associated portal files? This cannot be undone.')) return;
+  const btn = $('#batchDeleteRound');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Deleting...';
+  try {
+    const res = await api(`/api/letters/${encodeURIComponent(jobId)}?consumerId=${encodeURIComponent(currentConsumerId)}`, { method: 'DELETE' });
+    if (res?.ok) {
+      selectedItems.clear();
+      updateSelectionToolbar();
+      await loadDisputeTracker();
+    } else {
+      showErr(res?.error || 'Failed to delete round.');
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  } catch (err) {
+    showErr(String(err));
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
 });
 
 $('#batchClear')?.addEventListener('click', () => {
