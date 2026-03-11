@@ -1750,11 +1750,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const isReport = cat === 'audit' || cat === 'report';
           const isDispute = cat === 'dispute' || cat === 'letters' || cat === 'letter';
           const roundNum = friendly.round || (d.round ? d.round : 0);
+          const hasRound = !!(roundNum && (isDispute || d.round || d.jobId));
 
           var groupKey;
           if (isReport) {
             groupKey = '__reports__';
-          } else if (isDispute && roundNum) {
+          } else if (hasRound) {
             groupKey = '__round_' + roundNum;
           } else {
             groupKey = friendly.date || 'Other';
@@ -1765,7 +1766,7 @@ document.addEventListener('DOMContentLoaded', () => {
             var dateSort = '';
             if (isReport) {
               groupLabel = 'Reports & Audits';
-            } else if (isDispute && roundNum) {
+            } else if (hasRound) {
               groupLabel = 'Dispute Round ' + roundNum;
               if (friendly.date) groupLabel += ' · ' + friendly.date;
               dateSort = roundNum.toString().padStart(5, '0');
@@ -1778,9 +1779,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 dateSort = match ? match[1] : '';
               } catch {}
             }
-            groups[groupKey] = { label: groupLabel, items: [], isReport: isReport, isRound: !!(isDispute && roundNum), roundNum: roundNum, dateSort: dateSort };
+            groups[groupKey] = { label: groupLabel, items: [], isReport: isReport, isRound: !!hasRound, roundNum: roundNum, dateSort: dateSort };
             groupOrder.push(groupKey);
-          } else if (isDispute && roundNum && !groups[groupKey].dateSort && friendly.date) {
+          } else if (hasRound && !groups[groupKey].dateSort && friendly.date) {
             groups[groupKey].label = 'Dispute Round ' + roundNum + ' · ' + friendly.date;
           }
           groups[groupKey].items.push(d);
