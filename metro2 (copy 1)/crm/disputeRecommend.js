@@ -10,7 +10,7 @@ function hasViolationType(violations, keywords) {
   if (!Array.isArray(violations) || violations.length === 0) return false;
   const lower = keywords.map(k => k.toLowerCase());
   return violations.some(v => {
-    const text = (typeof v === 'string' ? v : (v.description || v.rule || v.violation || '')).toLowerCase();
+    const text = (typeof v === 'string' ? v : [v.description, v.rule, v.violation, v.title, v.detail, v.code, v.category].filter(Boolean).join(' ')).toLowerCase();
     return lower.some(k => text.includes(k));
   });
 }
@@ -82,9 +82,15 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
   };
 }
 
-export function recommendNextLetter({ letterType = '', round = 1, outcome = '', violations = [] }) {
+export function recommendNextLetter({ letterType = '', round = 1, outcome = '', violations = [], accountType = '', accountStatus = '' }) {
   const prev = (letterType || '').toLowerCase();
   const result = (outcome || '').toLowerCase();
+  const type = (accountType || '').toLowerCase();
+  const status = (accountStatus || '').toLowerCase();
+  const isCollection = type.includes('collection') || type.includes('debt') || status.includes('collection');
+  const hasBankruptcy = status.includes('bankrupt') || type.includes('bankrupt') || hasViolationType(violations, ['bankrupt', 'discharge']);
+  const hasMetro2Issues = hasViolationType(violations, ['metro 2', 'metro2', 'compliance', 'inconsisten', 'field', 'segment', 'format']);
+  const hasObsolete = hasViolationType(violations, ['obsolete', 'expired', 'seven year', '7 year', 'time-barred', 'statute of limitation']);
 
   if (result === 'removed' || result === 'deleted' || result === 'corrected') {
     return {
@@ -95,6 +101,49 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
     };
   }
 
+  if (result === 'awaiting' || result === 'awaiting_response') {
+    if (isCollection) {
+      return {
+        recommendedTemplate: prev.includes('debt-validation') ? 'second-round-dispute' : 'debt-validation',
+        reason: isCollection && !prev.includes('debt-validation')
+          ? 'Collection account still awaiting — send debt validation request under FDCPA §809'
+          : 'Collection account awaiting response — follow up with escalated dispute',
+        urgency: 'medium',
+        alternativeTemplates: ['611-general-dispute', 'second-round-dispute']
+      };
+    }
+    if (hasBankruptcy) {
+      return {
+        recommendedTemplate: 'bankruptcy-misreporting',
+        reason: 'Bankruptcy-related item awaiting response — follow up on discharge reporting',
+        urgency: 'medium',
+        alternativeTemplates: ['611-general-dispute', 'second-round-dispute']
+      };
+    }
+    if (hasObsolete) {
+      return {
+        recommendedTemplate: 'obsolete-debt',
+        reason: 'Obsolete debt awaiting response — reiterate removal request under FCRA §1681c',
+        urgency: 'medium',
+        alternativeTemplates: ['611-general-dispute', 'second-round-dispute']
+      };
+    }
+    if (hasMetro2Issues) {
+      return {
+        recommendedTemplate: '611-general-dispute',
+        reason: 'Metro 2 compliance issues awaiting response — follow up citing specific violations',
+        urgency: 'medium',
+        alternativeTemplates: ['second-round-dispute', 'method-of-verification']
+      };
+    }
+    return {
+      recommendedTemplate: 'second-round-dispute',
+      reason: 'Item still awaiting response — send follow-up dispute demanding reinvestigation',
+      urgency: 'medium',
+      alternativeTemplates: ['611-general-dispute', 'method-of-verification']
+    };
+  }
+
   if (result === 'no_response' || result === 'no response') {
     if (round >= 3) {
       return {
@@ -102,6 +151,16 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         reason: 'No response after multiple rounds — escalate with AG/CFPB complaint threat',
         urgency: 'high',
         alternativeTemplates: ['arbitration-election']
+      };
+    }
+    if (isCollection) {
+      return {
+        recommendedTemplate: prev.includes('debt-validation') ? 'second-round-dispute' : 'debt-validation',
+        reason: isCollection && !prev.includes('debt-validation')
+          ? 'No response on collection account — demand debt validation under FDCPA §809'
+          : 'No response after debt validation — escalate with second-round dispute',
+        urgency: 'high',
+        alternativeTemplates: ['ag-cfpb-escalation', '623-direct-dispute']
       };
     }
     return {
@@ -119,6 +178,22 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         reason: 'Item verified multiple times without adequate proof — escalate to regulators',
         urgency: 'high',
         alternativeTemplates: ['arbitration-election', '623-direct-dispute']
+      };
+    }
+    if (isCollection) {
+      return {
+        recommendedTemplate: '623-direct-dispute',
+        reason: 'Collection verified — dispute directly with furnisher under FCRA §623',
+        urgency: 'medium',
+        alternativeTemplates: ['method-of-verification', 'ag-cfpb-escalation']
+      };
+    }
+    if (hasMetro2Issues) {
+      return {
+        recommendedTemplate: 'method-of-verification',
+        reason: 'Verified despite Metro 2 violations — demand method of verification under FCRA §611(a)(7)',
+        urgency: 'medium',
+        alternativeTemplates: ['623-direct-dispute', 'ag-cfpb-escalation']
       };
     }
     return {
@@ -147,11 +222,28 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   }
 
   if (result === 'partial') {
+    if (isCollection) {
+      return {
+        recommendedTemplate: '623-direct-dispute',
+        reason: 'Partial correction on collection — dispute directly with furnisher for remaining inaccuracies',
+        urgency: 'medium',
+        alternativeTemplates: ['611-general-dispute', 'method-of-verification']
+      };
+    }
     return {
       recommendedTemplate: '611-general-dispute',
       reason: 'Partial correction received — dispute remaining inaccuracies under FCRA §611',
       urgency: 'medium',
       alternativeTemplates: ['method-of-verification', '623-direct-dispute']
+    };
+  }
+
+  if (result === 'updated') {
+    return {
+      recommendedTemplate: 'method-of-verification',
+      reason: 'Item updated but may still be inaccurate — request method of verification under FCRA §611(a)(7)',
+      urgency: 'medium',
+      alternativeTemplates: ['611-general-dispute', '623-direct-dispute']
     };
   }
 
@@ -161,6 +253,17 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       reason: 'Multiple dispute rounds completed — escalate with regulatory complaint',
       urgency: 'high',
       alternativeTemplates: ['arbitration-election']
+    };
+  }
+
+  if (isCollection) {
+    return {
+      recommendedTemplate: prev.includes('debt-validation') ? '623-direct-dispute' : 'debt-validation',
+      reason: isCollection && !prev.includes('debt-validation')
+        ? 'Collection account — request debt validation under FDCPA §809'
+        : 'Follow up on collection — dispute directly with furnisher under FCRA §623',
+      urgency: 'medium',
+      alternativeTemplates: ['611-general-dispute', 'second-round-dispute']
     };
   }
 

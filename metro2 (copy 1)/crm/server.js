@@ -7235,6 +7235,15 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
         const itemFollowUpDays = getResponseWindowDays(L.templateId);
         const itemFollowUpDate = new Date(now);
         itemFollowUpDate.setDate(itemFollowUpDate.getDate() + itemFollowUpDays);
+        const tl = reportWrap?.data?.tradelines?.[L.tradelineIndex];
+        const itemViolations = (tl?.violations || []).map(v => ({
+          title: v.title || v.category || '',
+          detail: v.detail || '',
+          code: v.code || '',
+          rule: v.rule || '',
+        })).slice(0, 10);
+        const accountType = tl?.meta?.account_type || tl?.meta?.accountType || '';
+        const accountStatus = tl?.meta?.account_status || tl?.meta?.accountStatus || '';
         return {
           creditor: resolveCreditorName(L),
           bureau: L.bureau || null,
@@ -7242,6 +7251,9 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
           tradelineIndex: L.tradelineIndex ?? null,
           accountNumber: resolveAccountNumber(L),
           specificDisputeReason: L.specificDisputeReason || null,
+          violations: itemViolations,
+          accountType,
+          accountStatus,
           followUpDays: itemFollowUpDays,
           followUpDate: itemFollowUpDate.toISOString(),
           status: "awaiting",
@@ -8927,15 +8939,21 @@ app.post("/api/consumers/:id/disputes/:jobId/response", authenticate, async (req
       respondedAt: new Date().toISOString(),
     });
 
+    const roundPayloadItems = roundEvent.payload.items || [];
     const recommendations = [];
     for (const ri of normalizedItems) {
       if (["removed", "deleted", "corrected"].includes(ri.outcome)) continue;
       const letterInfo = (roundEvent.payload.letters || []).find(l => matchCreditorBureau(l, ri));
+      const matchedItem = (ri.itemIndex !== null && roundPayloadItems[ri.itemIndex])
+        ? roundPayloadItems[ri.itemIndex]
+        : roundPayloadItems.find(pi => matchCreditorBureau(pi, ri));
       const rec = recommendNextLetter({
-        letterType: letterInfo?.letterType || null,
+        letterType: matchedItem?.letterType || letterInfo?.letterType || null,
         round: roundEvent.payload.round,
         outcome: ri.outcome,
-        violations: [],
+        violations: Array.isArray(matchedItem?.violations) ? matchedItem.violations : [],
+        accountType: matchedItem?.accountType || '',
+        accountStatus: matchedItem?.accountStatus || '',
       });
       recommendations.push({ creditor: ri.creditor, bureau: ri.bureau, ...rec });
       await addEvent(consumerId, "dispute_recommendation", {
@@ -9025,11 +9043,23 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
         continue;
       }
       const letterInfo = (roundEvent.payload.letters || []).find(l => matchCreditorBureau(l, item));
+      const itemLetterType = item.letterType || letterInfo?.letterType || null;
+      const itemViolations = Array.isArray(item.violations) ? item.violations : [];
+      const itemAccountType = item.accountType || '';
+      const itemAccountStatus = item.accountStatus || '';
+
+      let outcome = item.status;
+      if (outcome === 'awaiting' || outcome === 'awaiting_response') {
+        outcome = 'awaiting';
+      }
+
       const rec = recommendNextLetter({
-        letterType: letterInfo?.letterType || null,
+        letterType: itemLetterType,
         round: roundEvent.payload.round,
-        outcome: item.status === "awaiting" ? "no_response" : item.status,
-        violations: [],
+        outcome,
+        violations: itemViolations,
+        accountType: itemAccountType,
+        accountStatus: itemAccountStatus,
       });
       const prevReason = item.specificDisputeReason || letterInfo?.specificDisputeReason || null;
       recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, itemIndex: idx, resolved: false, specificDisputeReason: prevReason, ...rec });
