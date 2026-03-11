@@ -102,9 +102,9 @@ function buildCaseLawSection(categories) {
   }
   if (!cases.length) return '';
   const items = cases.map(c =>
-    `<li style="margin-bottom:8px;"><strong><em>${safe(c.case)}</em></strong>, ${safe(c.cite)}<br><span style="color:#4b5563;">${safe(c.holding)}</span></li>`
+    `<li style="margin-bottom:12px;"><strong><em>${safe(c.case)}</em></strong>, ${safe(c.cite)}<br><span style="color:#4b5563;">${safe(c.holding)}</span></li>`
   ).join('');
-  return `<h2>Legal Authority</h2><ol style="margin:0;padding-left:18px;">${items}</ol>`;
+  return `<h2>Legal Authority</h2><ol style="margin:10px 0 0;padding-left:18px;">${items}</ol>`;
 }
 
 function getViolationInfo(code) {
@@ -546,7 +546,7 @@ function buildViolationListHTML(
   const hasSelections = Array.isArray(selectedIds) && selectedIds.length > 0;
   if (!violations?.length || !hasSelections) {
     if (manualReason) return `<p>${safe(manualReason)}</p>`;
-    return `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:4px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b). If this information cannot be independently verified through documentation from the original creditor, it must be promptly deleted from my credit file.</div></li></ol>`;
+    return `<ol class="ocr" style="margin:10px 0 0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:6px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b). If this information cannot be independently verified through documentation from the original creditor, it must be promptly deleted from my credit file.</div></li></ol>`;
   }
   const selected = selectedIds.map((idx) => violations[idx]).filter(Boolean);
   const enriched = filterViolationsBySeverity(selected, minSeverity, locale);
@@ -576,8 +576,8 @@ function buildViolationListHTML(
     })
     .filter(s => s && s.trim())
     .join("");
-  if (!items) return `<ol class="ocr" style="margin:0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:4px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b).</div></li></ol>`;
-  return `<ol class="ocr" style="margin:0;padding-left:18px;">${items}</ol>`;
+  if (!items) return `<ol class="ocr" style="margin:10px 0 0;padding-left:18px;"><li style="margin-bottom:12px;"><strong>The information reported for this account is inaccurate, incomplete, or unverifiable.</strong><div style="margin-top:6px;">Under FCRA §611 (15 U.S.C. §1681i), I request a full reinvestigation. The reported data does not correspond to my records and cannot be verified with maximum possible accuracy as required by §1681e(b).</div></li></ol>`;
+  return `<ol class="ocr" style="margin:10px 0 0;padding-left:18px;">${items}</ol>`;
 }
 
 // Mode-based copy
@@ -712,7 +712,7 @@ function buildLetterHTML(opts) {
       .replace(/\[Arbitration Forum[^\]]*\]/gi, 'AAA or JAMS');
 
     const lines = personalized.split('\n');
-    const bodyHtml = lines.map(l => l.trim() === '' ? '<br>' : `<p class="ocr" style="margin:4px 0;">${colorize(l)}</p>`).join('\n');
+    const bodyHtml = lines.map(l => l.trim() === '' ? '<br>' : `<p class="ocr">${colorize(l)}</p>`).join('\n');
 
     const letterBody = `
 <!DOCTYPE html>
@@ -722,19 +722,22 @@ function buildLetterHTML(opts) {
   <title>${bureau} – ${safe(template.name)}</title>
   <style>
     @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; line-height:1.55; }
     * { word-break:break-word; }
     .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
     .muted{ color:#6b7280; }
-    h1{ font-size:20px; margin-bottom:8px; }
-    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
+    p { margin:10px 0; }
+    h1{ font-size:20px; margin-top:18px; margin-bottom:10px; }
+    h2{ font-size:16px; margin-top:28px; margin-bottom:10px; }
     table { table-layout: fixed; width:100%; border-collapse:collapse; }
     td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+    .enclosures { margin-top:28px; font-size:13px; color:#374151; }
+    .sig-block { margin-top:32px; }
   </style>
 </head>
 <body>
   ${buildLetterHeader(consumer, bureauMeta)}
-  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  <div class="muted" style="margin-bottom:14px;">${dateStr}</div>
 
   ${bodyHtml}
 
@@ -748,6 +751,12 @@ function buildLetterHTML(opts) {
   ${chosenList}
 
   ${buildCaseLawSection(template.id in TEMPLATE_CASE_LAW_MAP ? TEMPLATE_CASE_LAW_MAP[template.id] : ['accuracy'])}
+
+  <p style="margin-top:24px;">Please provide the method of verification, including the name and contact information of any furnisher relied upon. If you cannot verify the information with maximum possible accuracy, delete the item and send me an updated report.</p>
+  <div class="sig-block">
+    <p>Sincerely,<br>${safe(consumer.name)}</p>
+  </div>
+  ${opts._enclosuresHtml || ''}
 </body>
 </html>`.trim();
 
@@ -808,19 +817,22 @@ function buildLetterHTML(opts) {
   <title>${bureau} – ${mc.heading}</title>
   <style>
     @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; line-height:1.55; }
     * { word-break:break-word; }
     .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
     .muted{ color:#6b7280; }
-    h1{ font-size:20px; margin-bottom:8px; }
-    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
+    p { margin:10px 0; }
+    h1{ font-size:20px; margin-top:18px; margin-bottom:10px; }
+    h2{ font-size:16px; margin-top:28px; margin-bottom:10px; }
     table { table-layout: fixed; width:100%; border-collapse:collapse; }
     td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+    .enclosures { margin-top:28px; font-size:13px; color:#374151; }
+    .sig-block { margin-top:32px; }
   </style>
 </head>
 <body>
   ${buildLetterHeader(consumer, bureauMeta)}
-  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  <div class="muted" style="margin-bottom:14px;">${dateStr}</div>
 
   <h1>${colorize(mc.heading)}</h1>
   <p class="ocr">${intro}</p>
@@ -842,8 +854,11 @@ function buildLetterHTML(opts) {
 
   ${buildCaseLawSection(MODE_CASE_LAW_MAP[modeKey] || ['accuracy', 'reinvestigation'])}
 
-  <p>${verifyLine}</p>
-  <p>${signOff}</p>
+  <p style="margin-top:24px;">${verifyLine}</p>
+  <div class="sig-block">
+    <p>${signOff}</p>
+  </div>
+  ${opts._enclosuresHtml || ''}
 </body>
 </html>`.trim();
 
@@ -891,19 +906,22 @@ function buildLetterTemplate({ title, bodyHtml, consumer, headerData }) {
   <title>${title}</title>
   <style>
     @media print { @page { margin: 1in; } }
-    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; line-height:1.55; }
     * { word-break:break-word; }
     .card{ border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
     .muted{ color:#6b7280; }
-    h1{ font-size:20px; margin-bottom:8px; }
-    h2{ font-size:16px; margin-top:22px; margin-bottom:8px; }
+    p { margin:10px 0; }
+    h1{ font-size:20px; margin-top:18px; margin-bottom:10px; }
+    h2{ font-size:16px; margin-top:28px; margin-bottom:10px; }
     table { table-layout: fixed; width:100%; border-collapse:collapse; }
     td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+    .enclosures { margin-top:28px; font-size:13px; color:#374151; }
+    .sig-block { margin-top:32px; }
   </style>
 </head>
 <body>
   ${buildLetterHeader(consumer, headerData)}
-  <div class="muted" style="margin-bottom:12px;">${dateStr}</div>
+  <div class="muted" style="margin-bottom:14px;">${dateStr}</div>
   ${bodyHtml}
 </body>
 </html>
@@ -1045,7 +1063,13 @@ function generateDebtCollectorLetters({ consumer, collectors = [] }) {
   return letters;
 }
 
-function generateLetters({ report, selections, consumer, requestType = "correct", templates = [], playbooks = {}, previousDisputeDate, priorDates }) {
+function buildEnclosuresHtml(enclosures) {
+  if (!enclosures || !enclosures.length) return '';
+  const items = enclosures.map(e => `<li>${safe(e.label)}</li>`).join('');
+  return `<div class="enclosures"><strong>Enclosures:</strong><ul style="margin:4px 0 0;padding-left:18px;">${items}</ul></div>`;
+}
+
+function generateLetters({ report, selections, consumer, requestType = "correct", templates = [], playbooks = {}, previousDisputeDate, priorDates, enclosures }) {
   const SPECIAL_ONE_BUREAU = new Set(["identity", "breach", "assault"]);
   const letters = [];
   const templateMap = Object.fromEntries((LETTER_TEMPLATES || []).map(t => [t.id, t]));
@@ -1130,6 +1154,7 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
           specificDisputeReason: sel.specificDisputeReason,
           previousDisputeDate,
           priorDates,
+          _enclosuresHtml: buildEnclosuresHtml(enclosures),
         });
 
         let filename = letter.filename;

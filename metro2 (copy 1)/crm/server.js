@@ -2470,7 +2470,7 @@ async function loadJobForUser(jobId, userId){
         const html = await loadLetterHtml(jobId, fname) || "<html><body>Missing file.</body></html>";
         hydratedLetters.push({ filename: fname, bureau: d.bureau, creditor: d.creditor, html, useOcr: d.useOcr });
       }
-      putJobMem(jobId, hydratedLetters);
+      putJobMem(jobId, hydratedLetters, disk.enclosures);
       job = getJobMem(jobId);
     }
   }
@@ -6715,7 +6715,7 @@ fs.mkdirSync(LETTERS_DIR,{ recursive:true });
 // in-memory jobs
 const JOB_TTL_MS = 30*60*1000;
 const jobs = new Map(); // jobId -> { letters, createdAt }
-function putJobMem(jobId, letters){ jobs.set(jobId,{ letters, createdAt: Date.now() }); }
+function putJobMem(jobId, letters, enclosures){ jobs.set(jobId,{ letters, enclosures: enclosures || [], createdAt: Date.now() }); }
 function getJobMem(jobId){
   const j = jobs.get(jobId);
   if(!j) return null;
@@ -6733,7 +6733,7 @@ async function loadJobAny(jobId){
     const html = await loadLetterHtml(jobId, fname) || "<html><body>Letter unavailable.</body></html>";
     letters.push({ ...item, html });
   }
-  putJobMem(jobId, letters);
+  putJobMem(jobId, letters, disk.enclosures);
   return getJobMem(jobId);
 }
 if (process.env.NODE_ENV !== "test") {
@@ -6766,7 +6766,7 @@ async function saveJobsIndex(idx){
 }
 
 // Create job: memory + disk
-async function persistJobToDisk(jobId, letters){
+async function persistJobToDisk(jobId, letters, enclosures){
   console.log(`Persisting job ${jobId} with ${letters.length} letters to disk`);
   const idx = await loadJobsIndex();
   idx.jobs[jobId] = {
@@ -6777,7 +6777,14 @@ async function persistJobToDisk(jobId, letters){
       bureau: L.bureau,
       creditor: L.creditor,
       useOcr: !!L.useOcr
-    }))
+    })),
+    enclosures: (enclosures || []).map(e => ({
+      type: e.type,
+      storedName: e.storedName,
+      originalName: e.originalName,
+      mimetype: e.mimetype,
+      label: e.label,
+    })),
   };
   await saveJobsIndex(idx);
   console.log(`Job ${jobId} saved to index`);
@@ -6810,7 +6817,7 @@ async function loadJobFromDisk(jobId){
     htmlPath: path.join(LETTERS_DIR, jobDir, item.filename),
   }));
   console.log(`Loaded job ${jobId} with ${letters.length} letters from disk`);
-  return { letters, createdAt: meta.createdAt || Date.now(), dir: jobDir };
+  return { letters, enclosures: meta.enclosures || [], createdAt: meta.createdAt || Date.now(), dir: jobDir };
 }
 
 async function deleteJob(jobId){
@@ -7109,6 +7116,19 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       if (priorDates.length) previousDisputeDate = priorDates[priorDates.length - 1];
     } catch {}
 
+    const cstateForFiles = await listConsumerState(consumer.id);
+    const consumerFiles = cstateForFiles?.files || [];
+    const enclosureFiles = consumerFiles.filter(f =>
+      f.type === 'id' || f.type === 'residency'
+    );
+    const enclosures = enclosureFiles.map(f => ({
+      label: f.type === 'id' ? 'Copy of government-issued photo ID' : 'Proof of current residency',
+      type: f.type,
+      storedName: f.storedName,
+      originalName: f.originalName,
+      mimetype: f.mimetype,
+    }));
+
     const letters = generateLetters({
       report: reportWrap.data,
       selections: normalizedSelections,
@@ -7118,6 +7138,7 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       playbooks,
       previousDisputeDate,
       priorDates,
+      enclosures,
     });
     if (Array.isArray(personalInfo) && personalInfo.length) {
       letters.push(
@@ -7148,8 +7169,8 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
     }
 
     const requestUserId = userId || "guest";
-    putJobMem(jobId, letters);
-    await persistJobToDisk(jobId, letters);
+    putJobMem(jobId, letters, enclosures);
+    await persistJobToDisk(jobId, letters, enclosures);
     await recordLettersJob(requestUserId, consumer.id, jobId, letters);
 
     let jobRequestType = requestType;
@@ -7413,6 +7434,24 @@ async function executeLettersPdfJob({ jobId, tenantId, userId, payload }) {
             letter: pdfName,
           });
           throw err;
+        }
+      }
+
+      const enclosureList = letterData.enclosures || [];
+      if (enclosureList.length && meta?.consumerId) {
+        const addedTypes = new Set();
+        for (const enc of enclosureList) {
+          if (addedTypes.has(enc.type)) continue;
+          try {
+            const encKey = objStore.consumerFileKey(meta.consumerId, enc.storedName);
+            const encBuf = await objStore.downloadFile(encKey);
+            const ext = path.extname(enc.originalName || enc.storedName) || '.pdf';
+            const encName = enc.type === 'id' ? `supporting_photo_id${ext}` : `supporting_proof_of_residency${ext}`;
+            archive.append(encBuf, { name: encName });
+            addedTypes.add(enc.type);
+          } catch (encErr) {
+            logWarn("ENCLOSURE_APPEND_SKIPPED", `Could not attach ${enc.type} document`, { consumerId: meta.consumerId, storedName: enc.storedName, error: encErr?.message });
+          }
         }
       }
 
