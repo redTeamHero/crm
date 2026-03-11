@@ -447,7 +447,20 @@ function renderDisputeTracker(data) {
               <input type="number" class="dispute-item-followup-days" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" value="${iDays}" min="1" max="180" style="width:44px;padding:1px 4px;border-radius:4px;border:1px solid rgba(212,168,83,0.2);background:#1a1a1e;color:#fff;font-size:10px;text-align:center;" title="Follow-up days for this item" />
               <span style="font-size:10px;color:#666;">${iDate ? iDate : 'd'}</span>
             </div>
-            ${disputeStatusBadge(status)}
+            <div class="dispute-item-status-wrap" style="position:relative;" onclick="event.stopPropagation()">
+              ${disputeStatusBadge(status)}
+              <select class="dispute-item-status-select" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" data-creditor="${creditor}" data-bureau="${bureau}" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:11px;">
+                <option value="" disabled selected>Change status…</option>
+                <option value="removed"${status==='removed'?' selected':''}>Removed</option>
+                <option value="deleted"${status==='deleted'?' selected':''}>Deleted</option>
+                <option value="corrected"${status==='corrected'?' selected':''}>Corrected</option>
+                <option value="verified"${status==='verified'?' selected':''}>Verified</option>
+                <option value="updated"${status==='updated'?' selected':''}>Updated</option>
+                <option value="stalled"${status==='stalled'?' selected':''}>Stalled</option>
+                <option value="no_response"${status==='no_response'?' selected':''}>No Response</option>
+                <option value="partial"${status==='partial'?' selected':''}>Partial</option>
+              </select>
+            </div>
           </div>`;
 
         if (round.status !== 'resolved') {
@@ -808,6 +821,27 @@ $('#consumerPicker')?.addEventListener('change', (e) => {
 
 $('#btnRefreshDisputes')?.addEventListener('click', () => {
   loadDisputeTracker();
+});
+
+document.addEventListener('change', async (e) => {
+  if (!e.target.classList.contains('dispute-item-status-select')) return;
+  const sel = e.target;
+  const newStatus = sel.value;
+  if (!newStatus || !currentConsumerId) return;
+  const jobId = sel.dataset.jobId;
+  const creditor = sel.dataset.creditor;
+  const bureau = sel.dataset.bureau;
+  try {
+    await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/response`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: [{ creditor, bureau, outcome: newStatus, itemIndex: parseInt(sel.dataset.itemIndex, 10), notes: `Status set to ${newStatus} by CRM user` }] })
+    });
+    await loadDisputeTracker();
+  } catch (err) {
+    showErr(String(err));
+    sel.value = '';
+  }
 });
 
 $('#batchResolve')?.addEventListener('click', () => {

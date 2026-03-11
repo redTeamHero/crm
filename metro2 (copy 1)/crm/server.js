@@ -206,6 +206,11 @@ function resolveTenantContextInput(context) {
   return context;
 }
 
+function matchCreditorBureau(a, b) {
+  const norm = s => (s || '').toString().trim().toLowerCase();
+  return norm(a.creditor) === norm(b.creditor) && norm(a.bureau) === norm(b.bureau);
+}
+
 function sanitizeSettingString(value = "") {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value.trim();
@@ -8688,10 +8693,10 @@ app.get("/api/consumers/:id/disputes", authenticate, async (req, res) => {
         const recommendations = events.filter(r => r.type === "dispute_recommendation" && r.payload?.jobId === e.payload?.jobId);
         const items = (e.payload?.items || []).map(item => {
           const resp = responses.find(r =>
-            r.payload?.items?.some(ri => ri.creditor === item.creditor && ri.bureau === item.bureau)
+            r.payload?.items?.some(ri => matchCreditorBureau(ri, item))
           );
-          const respItem = resp?.payload?.items?.find(ri => ri.creditor === item.creditor && ri.bureau === item.bureau);
-          const rec = recommendations.find(r => r.payload?.creditor === item.creditor && r.payload?.bureau === item.bureau);
+          const respItem = resp?.payload?.items?.find(ri => matchCreditorBureau(ri, item));
+          const rec = recommendations.find(r => matchCreditorBureau(r.payload || {}, item));
           return {
             ...item,
             outcome: respItem?.outcome || item.status,
@@ -8844,13 +8849,16 @@ app.post("/api/consumers/:id/disputes/:jobId/response", authenticate, async (req
       outcome: validOutcomes.includes(item.outcome) ? item.outcome : "no_response",
       notes: item.notes || null,
       evidenceFiles: item.evidenceFiles || [],
+      itemIndex: typeof item.itemIndex === 'number' ? item.itemIndex : null,
     }));
 
     await updateEventPayload(consumerId, "dispute_round",
       e => e.payload?.jobId === jobId,
       p => {
         for (const ri of normalizedItems) {
-          const roundItem = (p.items || []).find(i => i.creditor === ri.creditor && i.bureau === ri.bureau);
+          const roundItem = (ri.itemIndex !== null && (p.items || [])[ri.itemIndex])
+            ? (p.items || [])[ri.itemIndex]
+            : (p.items || []).find(i => matchCreditorBureau(i, ri));
           if (roundItem) roundItem.status = ri.outcome;
         }
         const allResolved = (p.items || []).every(i => ["removed", "deleted", "corrected"].includes(i.status));
@@ -8868,7 +8876,7 @@ app.post("/api/consumers/:id/disputes/:jobId/response", authenticate, async (req
     const recommendations = [];
     for (const ri of normalizedItems) {
       if (["removed", "deleted", "corrected"].includes(ri.outcome)) continue;
-      const letterInfo = (roundEvent.payload.letters || []).find(l => l.creditor === ri.creditor && l.bureau === ri.bureau);
+      const letterInfo = (roundEvent.payload.letters || []).find(l => matchCreditorBureau(l, ri));
       const rec = recommendNextLetter({
         letterType: letterInfo?.letterType || null,
         round: roundEvent.payload.round,
@@ -8962,7 +8970,7 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
         recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, itemIndex: idx, resolved: true });
         continue;
       }
-      const letterInfo = (roundEvent.payload.letters || []).find(l => l.creditor === item.creditor && l.bureau === item.bureau);
+      const letterInfo = (roundEvent.payload.letters || []).find(l => matchCreditorBureau(l, item));
       const rec = recommendNextLetter({
         letterType: letterInfo?.letterType || null,
         round: roundEvent.payload.round,
