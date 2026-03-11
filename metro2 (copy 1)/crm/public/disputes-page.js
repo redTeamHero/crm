@@ -232,8 +232,8 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
     <div style="background:#1a1a1e;border:1px solid rgba(212,168,83,0.2);border-radius:12px;width:90%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
       <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
         <div>
-          <div style="font-weight:700;color:#fff;font-size:16px;">Generated Letters — Round ${escapeHtml(String(roundNum))}</div>
-          <div style="font-size:12px;color:#888;">${letters.length} letter${letters.length !== 1 ? 's' : ''} generated</div>
+          <div style="font-weight:700;color:#fff;font-size:16px;">Generated Letters — ${new Date().toLocaleDateString()}</div>
+          <div style="font-size:12px;color:#888;">Round ${escapeHtml(String(roundNum))} • ${letters.length} letter${letters.length !== 1 ? 's' : ''} generated</div>
         </div>
         <button id="lpmClose" style="background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:4px 8px;">&times;</button>
       </div>
