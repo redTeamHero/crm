@@ -897,23 +897,31 @@ function namePrefix(consumer) {
 }
 
 function buildLetterHeader(consumer, recipient){
+  const consumerLines = [
+    `<strong>${safe(consumer.name)}</strong>`,
+    safe(consumer.addr1),
+    consumer.addr2 ? safe(consumer.addr2) : null,
+    [consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', ') || null,
+    consumer.phone ? `Phone: ${safe(consumer.phone)}` : null,
+    consumer.email ? `Email: ${safe(consumer.email)}` : null,
+    consumer.ssn_last4 ? `SSN (last 4): ${safe(consumer.ssn_last4)}` : null,
+    consumer.dob ? `DOB: ${safe(consumer.dob)}` : null,
+  ].filter(Boolean).join('<br>');
+
+  const recipientLines = [
+    `<strong>${safe(recipient.name)}</strong>`,
+    recipient.addr1 ? safe(recipient.addr1) : null,
+    recipient.addr2 ? safe(recipient.addr2) : null,
+    recipient.phone ? `Phone: ${safe(recipient.phone)}` : null,
+  ].filter(Boolean).join('<br>');
+
   return `
-  <div style="display:flex; gap:24px; margin-bottom:16px;">
-    <div class="card" style="flex:1;">
-      <strong>${safe(consumer.name)}</strong><br>
-      ${safe(consumer.addr1)}${consumer.addr2 ? "<br>"+safe(consumer.addr2) : ""}<br>
-      ${[consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', ') || ''}<br>
-      ${consumer.phone ? "Phone: "+safe(consumer.phone)+"<br>" : ""}
-      ${consumer.email ? "Email: "+safe(consumer.email)+"<br>" : ""}
-      ${consumer.ssn_last4 ? "SSN (last 4): "+safe(consumer.ssn_last4)+"<br>" : ""}
-      ${consumer.dob ? "DOB: "+safe(consumer.dob) : ""}
-    </div>
-    <div class="card" style="flex:1;">
-      <strong>${safe(recipient.name)}</strong><br>
-      ${recipient.addr1 ? safe(recipient.addr1)+"<br>" : ""}${recipient.addr2 ? safe(recipient.addr2) : ""}
-      ${recipient.phone ? `${(recipient.addr1||recipient.addr2)?"<br>" : ""}Phone: ${safe(recipient.phone)}` : ""}
-    </div>
-  </div>`;
+  <table style="width:100%; border-collapse:separate; border-spacing:12px 0; margin-bottom:16px;">
+    <tr>
+      <td style="border:1px solid #e5e7eb; border-radius:8px; padding:16px; vertical-align:top; width:50%;">${consumerLines}</td>
+      <td style="border:1px solid #e5e7eb; border-radius:8px; padding:16px; vertical-align:top; width:50%;">${recipientLines}</td>
+    </tr>
+  </table>`;
 }
 
 function buildLetterTemplate({ title, bodyHtml, consumer, headerData }) {

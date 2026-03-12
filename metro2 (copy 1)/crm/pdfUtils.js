@@ -64,6 +64,24 @@ function stripTags(str){
   return decodeEntities(String(str).replace(/<\s*br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, '')).trim();
 }
 
+function extractCellSegments(html){
+  const segments = [];
+  const parts = html
+    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+    .split(/(<strong[^>]*>[\s\S]*?<\/strong>|<b[^>]*>[\s\S]*?<\/b>)/gi);
+  for(const part of parts){
+    const boldMatch = part.match(/^<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/i);
+    if(boldMatch){
+      const t = decodeEntities(boldMatch[1].replace(/<[^>]+>/g,'').replace(/<\s*br\s*\/?\s*>/gi,'\n')).trim();
+      if(t) segments.push({ bold: true, text: t });
+    } else {
+      const t = decodeEntities(part.replace(/<[^>]+>/g,'').replace(/<\s*br\s*\/?\s*>/gi,'\n')).trim();
+      if(t) segments.push({ bold: false, text: t });
+    }
+  }
+  return segments;
+}
+
 function extractTables(html){
   const tables = [];
   const tableRx = /<table[^>]*>([\s\S]*?)<\/table>/gi;
@@ -77,7 +95,7 @@ function extractTables(html){
       const cellRx = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi;
       let td;
       while((td = cellRx.exec(tr[1])) !== null){
-        cells.push(stripTags(td[1]));
+        cells.push(extractCellSegments(td[1]));
       }
       if(cells.length) rows.push(cells);
     }
@@ -219,6 +237,13 @@ async function renderFallbackPdf(html, { title = 'Dispute Letter Preview' } = {}
   });
 }
 
+function cellPlainText(cell){
+  if(!cell) return '';
+  if(typeof cell === 'string') return cell;
+  if(Array.isArray(cell)) return cell.map(s => s.text || '').join('\n');
+  return String(cell);
+}
+
 function renderTable(doc, rows, pageWidth){
   if(!rows.length) return;
   const numCols = Math.max(...rows.map(r => r.length));
@@ -231,9 +256,10 @@ function renderTable(doc, rows, pageWidth){
   for(let ri = 0; ri < rows.length; ri++){
     const row = rows[ri];
     doc.font('Helvetica').fontSize(fontSize);
-    const cellHeights = row.map((cell, ci) => {
+    const cellHeights = row.map((cell) => {
       const w = colWidth - cellPadding * 2;
-      return doc.heightOfString(cell || '', { width: w }) + cellPadding * 2;
+      const text = cellPlainText(cell);
+      return doc.heightOfString(text || '', { width: w }) + cellPadding * 2;
     });
     const rowHeight = Math.max(16, ...cellHeights);
 
@@ -244,8 +270,8 @@ function renderTable(doc, rows, pageWidth){
     const y = doc.y;
     for(let ci = 0; ci < numCols; ci++){
       const x = startX + ci * colWidth;
-      const cellText = (row[ci] || '').trim();
-      const isLabel = ci === 0 && numCols >= 2;
+      const cell = row[ci];
+      const isLabel = ci === 0 && numCols >= 2 && rows.length > 1;
 
       doc.save();
       if(isLabel){
@@ -255,13 +281,34 @@ function renderTable(doc, rows, pageWidth){
       }
       doc.restore();
 
-      doc.font(isLabel ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize);
       doc.fillColor('#000000');
-      doc.text(cellText, x + cellPadding, y + cellPadding, {
-        width: colWidth - cellPadding * 2,
-        height: rowHeight - cellPadding * 2,
-        lineBreak: true,
-      });
+      const cellX = x + cellPadding;
+      const cellW = colWidth - cellPadding * 2;
+      const cellH = rowHeight - cellPadding * 2;
+
+      if(Array.isArray(cell) && cell.length > 0){
+        let textY = y + cellPadding;
+        for(let si = 0; si < cell.length; si++){
+          const seg = cell[si];
+          const segText = (seg.text || '').trimEnd();
+          if(!segText) continue;
+          const font = (isLabel || seg.bold) ? 'Helvetica-Bold' : 'Helvetica';
+          doc.font(font).fontSize(fontSize);
+          const lines = segText.split('\n');
+          for(let li = 0; li < lines.length; li++){
+            const line = lines[li].trimEnd();
+            if(!line && li > 0){ textY += fontSize * 0.5; continue; }
+            const lineH = doc.heightOfString(line || ' ', { width: cellW });
+            if(textY + lineH > y + cellH + cellPadding) break;
+            doc.text(line || '', cellX, textY, { width: cellW, lineBreak: false });
+            textY += lineH;
+          }
+        }
+      } else {
+        const cellText = cellPlainText(cell).trim();
+        doc.font(isLabel ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize);
+        doc.text(cellText, cellX, y + cellPadding, { width: cellW, height: cellH, lineBreak: true });
+      }
     }
     doc.y = y + rowHeight;
   }
