@@ -216,6 +216,22 @@
             </div>
           </div>
 
+          <div id="smartCreditCard" class="glass card p-5 hidden">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                <svg class="w-4 h-4 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div class="text-sm font-semibold text-gray-700">Smart Credit</div>
+            </div>
+            <div id="smartCreditContent">
+              <p id="smartCreditDesc" class="text-sm text-gray-500 mb-3">Connect your Smart Credit account to automatically import your credit report.</p>
+              <button id="btnConnectSmartCredit" class="btn text-sm" type="button">Connect Smart Credit</button>
+              <button id="btnRefreshSmartCredit" class="btn text-sm hidden" type="button">Refresh Report</button>
+              <div id="smartCreditStatus" class="text-xs text-gray-400 mt-2 hidden"></div>
+              <div id="smartCreditNotConfigured" class="text-xs text-gray-400 mt-2 hidden">Smart Credit integration is not yet configured by your advisor.</div>
+            </div>
+          </div>
+
           <div id="documentsCard" class="glass card p-5">
             <div class="flex items-center gap-2 mb-3">
               <div class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">

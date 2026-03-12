@@ -67,6 +67,16 @@ import {
 } from "./backend/services/llmAudit.js";
 import { CANONICAL_REPORT_SCHEMA } from "./backend/services/llmSchemas.js";
 import { assignExperimentVariant, recordExperimentConversion } from "./analytics/metrics.js";
+import {
+  isSmartCreditConfigured,
+  getSmartCreditConfig,
+  buildAuthorizationUrl,
+  parseOAuthState,
+  exchangeCodeForToken,
+  refreshAccessToken,
+  fetchCreditReport,
+  smartCreditReportToBuffer,
+} from "./smartCredit.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
@@ -750,7 +760,9 @@ async function buildClientPortalPayload(consumer){
       email: consumer.email || null,
       phone: consumer.phone || null,
       createdAt: safeIsoString(consumer.createdAt || consumer.enrolledAt),
+      smartCreditLinked: !!(consumer.smartCreditToken),
     },
+    smartCreditConfigured: isSmartCreditConfigured(),
     creditScore:
       consumer.creditScore ||
       (consumerState && typeof consumerState === 'object' ? consumerState.creditScore : null) ||
@@ -1726,6 +1738,7 @@ async function renderClientPortalForConsumer(req, res, consumerId) {
       portalSettings: payload.portalSettings,
       snapshot: payload.snapshot,
       reportProgress: payload.reportProgress,
+      smartCreditConfigured: payload.smartCreditConfigured,
     },
     portalEnhanced: {
       reminders: payload.reminders,
@@ -12299,6 +12312,299 @@ setInterval(async () => {
     await saveSocialDB(db);
   } catch (_) {}
 }, 60_000);
+
+async function smartCreditIngestReport(consumer, reportData, db) {
+  const reportBuffer = smartCreditReportToBuffer(reportData);
+  const filename = `smartcredit_report_${Date.now()}.json`;
+  let analyzed = { tradelines: [], status: "analyzing" };
+  let llmResult = null;
+
+  try {
+    llmResult = await runLLMAnalyzer({ buffer: reportBuffer, filename });
+    analyzed.tradelines = llmResult.tradelines;
+    analyzed.canonical_report = llmResult.canonicalReport;
+    analyzed.llm_violations = llmResult.violations;
+    analyzed.violations = llmResult.violations;
+    analyzed.required_field_violations = llmResult.requiredFieldViolations;
+    analyzed.personalInfo = llmResult.personalInfo;
+    analyzed.status = "analyzed";
+  } catch (e) {
+    logError("SMART_CREDIT_LLM_ERROR", "LLM analyzer failed for Smart Credit report", e);
+    analyzed.status = "analyzer_failed";
+  }
+
+  try {
+    const { items } = prepareNegativeItems(analyzed.tradelines || [], {
+      inquiries: analyzed.inquiries,
+      inquirySummary: analyzed.inquiry_summary,
+      personalInfo: analyzed.personalInfo || analyzed.personal_information,
+      personalInfoMismatches: analyzed.personalInfoMismatches,
+    }, { includeLegacyRules: LEGACY_ANALYZERS_ENABLED });
+    analyzed.negative_items = items;
+  } catch (e) {
+    logError("SMART_CREDIT_NEGATIVE_ITEMS_ERROR", "Failed to prepare negative items", e);
+  }
+
+  const rid = nanoid(8);
+  const objectKey = objStore.consumerFileKey(consumer.id, `${rid}.json`);
+  await objStore.uploadFile(objectKey, reportBuffer, "application/json");
+  await addFileMeta(consumer.id, {
+    id: rid,
+    originalName: filename,
+    storedName: `${rid}.json`,
+    objectKey,
+    size: reportBuffer.length,
+    mimetype: "application/json",
+    uploadedAt: new Date().toISOString(),
+    source: "smart_credit",
+  });
+
+  consumer.reports = Array.isArray(consumer.reports) ? consumer.reports : [];
+  consumer.reports.unshift({
+    id: rid,
+    status: analyzed.status || "analyzed",
+    uploadedAt: new Date().toISOString(),
+    filename,
+    size: reportBuffer.length,
+    source: "smart_credit",
+    summary: {
+      tradelines: analyzed?.tradelines?.length || 0,
+      negative_items: analyzed?.negative_items?.length || analyzed?.tradelines?.length || 0,
+    },
+    data: analyzed,
+  });
+
+  if (consumer.reports.length >= 2) {
+    try {
+      const previousReport = consumer.reports[1];
+      if (previousReport?.data?.tradelines) {
+        const diff = diffReports(previousReport.data, analyzed);
+        consumer.reports[0].diff = diff;
+      }
+    } catch (e) {
+      logError("SMART_CREDIT_DIFF_ERROR", "Failed to compute report diff", e, { consumerId: consumer.id, reportId: rid });
+    }
+  }
+
+  try {
+    const scoreText = llmResult?.reportText || JSON.stringify(reportData);
+    const extractedScores = extractCreditScores(scoreText);
+    if (Object.keys(extractedScores).length) {
+      consumer.creditScore = mergeCreditScores(consumer.creditScore, extractedScores);
+      await setCreditScore(consumer.id, consumer.creditScore);
+    }
+  } catch (e) {
+    logError("SMART_CREDIT_SCORE_EXTRACT_FAILED", "Failed to extract credit scores from Smart Credit report", e);
+  }
+
+  await saveDB(db);
+
+  await addEvent(consumer.id, "report_uploaded", {
+    reportId: rid,
+    filename,
+    size: reportBuffer.length,
+    source: "Smart Credit OAuth",
+    ...(consumer.reports[0].diff?.summary || {}),
+  });
+
+  return { reportId: rid, tradelines: analyzed.tradelines?.length || 0, status: analyzed.status };
+}
+
+async function resolveSmartCreditToken(consumer, db) {
+  const expiry = consumer.smartCreditTokenExpiry ? Date.parse(consumer.smartCreditTokenExpiry) : 0;
+  const isExpired = !expiry || Date.now() > expiry - 60000;
+
+  if (!isExpired && consumer.smartCreditToken) {
+    return consumer.smartCreditToken;
+  }
+
+  if (consumer.smartCreditRefreshToken) {
+    try {
+      const tokenData = await refreshAccessToken(consumer.smartCreditRefreshToken);
+      consumer.smartCreditToken = tokenData.accessToken;
+      consumer.smartCreditRefreshToken = tokenData.refreshToken;
+      consumer.smartCreditTokenExpiry = new Date(
+        Date.now() + (tokenData.expiresIn || 3600) * 1000
+      ).toISOString();
+      await saveDB(db);
+      logInfo("SMART_CREDIT_TOKEN_REFRESHED", "Smart Credit token refreshed", { consumerId: consumer.id });
+      return tokenData.accessToken;
+    } catch (e) {
+      logError("SMART_CREDIT_TOKEN_REFRESH_FAILED", "Failed to refresh Smart Credit token", e, { consumerId: consumer.id });
+      throw new Error("Smart Credit token expired and refresh failed. Please reconnect your Smart Credit account.");
+    }
+  }
+
+  if (consumer.smartCreditToken) {
+    return consumer.smartCreditToken;
+  }
+
+  throw new Error("No Smart Credit token available");
+}
+
+function authorizeSmartCreditAccess(req, consumerId) {
+  if (!req.user) return false;
+  if (req.user.role === "admin") return true;
+  if (req.user.role === "member" && (req.user.permissions || []).includes("consumers")) return true;
+  if (req.user.role === "client" && req.user.id === consumerId) return true;
+  return false;
+}
+
+app.get("/api/smartcredit/status", authenticate, async (req, res) => {
+  try {
+    const configured = isSmartCreditConfigured();
+    const consumerId = req.query.consumerId;
+    if (consumerId && !authorizeSmartCreditAccess(req, consumerId)) {
+      return res.status(403).json({ ok: false, error: "Unauthorized" });
+    }
+    let linked = false;
+    let tokenExpiry = null;
+    if (consumerId && configured) {
+      const db = await loadDB();
+      const consumer = db.consumers.find((c) => c.id === consumerId);
+      if (consumer && consumer.smartCreditToken) {
+        linked = true;
+        tokenExpiry = consumer.smartCreditTokenExpiry || null;
+      }
+    }
+    res.json({ ok: true, configured, linked, tokenExpiry });
+  } catch (err) {
+    logError("SMART_CREDIT_STATUS_ERROR", "Failed to check Smart Credit status", err);
+    res.status(500).json({ ok: false, error: "Failed to check Smart Credit status" });
+  }
+});
+
+app.get("/api/smartcredit/connect", authenticate, async (req, res) => {
+  try {
+    const consumerId = req.query.consumerId;
+    if (!consumerId) {
+      return res.status(400).json({ ok: false, error: "consumerId is required" });
+    }
+    if (!authorizeSmartCreditAccess(req, consumerId)) {
+      return res.status(403).json({ ok: false, error: "Unauthorized" });
+    }
+    if (!isSmartCreditConfigured()) {
+      return res.status(503).json({ ok: false, error: "Smart Credit integration is not configured" });
+    }
+    const db = await loadDB();
+    const consumer = db.consumers.find((c) => c.id === consumerId);
+    if (!consumer) {
+      return res.status(404).json({ ok: false, error: "Consumer not found" });
+    }
+    const { url, state } = buildAuthorizationUrl(consumerId);
+    consumer.smartCreditOAuthState = state;
+    await saveDB(db);
+    res.redirect(url);
+  } catch (err) {
+    logError("SMART_CREDIT_CONNECT_ERROR", "Failed to initiate Smart Credit OAuth", err);
+    res.status(500).json({ ok: false, error: "Failed to initiate Smart Credit connection" });
+  }
+});
+
+app.get("/api/smartcredit/callback", async (req, res) => {
+  let consumerId = null;
+  try {
+    const { code, state, error: oauthError } = req.query;
+
+    if (state) {
+      const stateData = parseOAuthState(state);
+      if (stateData) consumerId = stateData.consumerId;
+    }
+
+    const portalRedirect = consumerId
+      ? `/portal/${encodeURIComponent(consumerId)}`
+      : "/";
+
+    if (oauthError) {
+      logWarn("SMART_CREDIT_OAUTH_DENIED", `OAuth denied: ${oauthError}`);
+      return res.redirect(`${portalRedirect}?smartcredit=denied`);
+    }
+    if (!code || !state) {
+      return res.redirect(`${portalRedirect}?smartcredit=error`);
+    }
+    if (!consumerId) {
+      return res.status(400).json({ ok: false, error: "Invalid or expired OAuth state" });
+    }
+
+    const db = await loadDB();
+    const consumer = db.consumers.find((c) => c.id === consumerId);
+    if (!consumer) {
+      return res.status(404).json({ ok: false, error: "Consumer not found" });
+    }
+    if (!consumer.smartCreditOAuthState || consumer.smartCreditOAuthState !== state) {
+      return res.status(400).json({ ok: false, error: "OAuth state mismatch — possible CSRF" });
+    }
+
+    const tokenData = await exchangeCodeForToken(code);
+    consumer.smartCreditToken = tokenData.accessToken;
+    consumer.smartCreditRefreshToken = tokenData.refreshToken;
+    consumer.smartCreditTokenExpiry = new Date(
+      Date.now() + (tokenData.expiresIn || 3600) * 1000
+    ).toISOString();
+    delete consumer.smartCreditOAuthState;
+    await saveDB(db);
+    logInfo("SMART_CREDIT_TOKEN_SAVED", "Smart Credit token saved", { consumerId });
+
+    let reportImported = false;
+    try {
+      const reportData = await fetchCreditReport(tokenData.accessToken);
+      await smartCreditIngestReport(consumer, reportData, db);
+      logInfo("SMART_CREDIT_REPORT_IMPORTED", "Report imported via Smart Credit", { consumerId });
+      reportImported = true;
+    } catch (reportErr) {
+      logError("SMART_CREDIT_REPORT_FETCH_ERROR", "Failed to fetch/import Smart Credit report", reportErr, { consumerId });
+      await addEvent(consumer.id, "smart_credit_error", {
+        error: reportErr.message || "Failed to fetch credit report from Smart Credit",
+        source: "Smart Credit OAuth",
+      });
+    }
+
+    res.redirect(`${portalRedirect}?smartcredit=${reportImported ? "success" : "linked"}`);
+  } catch (err) {
+    logError("SMART_CREDIT_CALLBACK_ERROR", "Smart Credit OAuth callback failed", err);
+    const fallback = consumerId
+      ? `/portal/${encodeURIComponent(consumerId)}?smartcredit=error`
+      : "/?smartcredit=error";
+    res.redirect(fallback);
+  }
+});
+
+app.post("/api/smartcredit/refresh", authenticate, async (req, res) => {
+  try {
+    const { consumerId } = req.body || {};
+    if (!consumerId) {
+      return res.status(400).json({ ok: false, error: "consumerId is required" });
+    }
+    if (!authorizeSmartCreditAccess(req, consumerId)) {
+      return res.status(403).json({ ok: false, error: "Unauthorized" });
+    }
+    if (!isSmartCreditConfigured()) {
+      return res.status(503).json({ ok: false, error: "Smart Credit integration is not configured" });
+    }
+    const db = await loadDB();
+    const consumer = db.consumers.find((c) => c.id === consumerId);
+    if (!consumer) {
+      return res.status(404).json({ ok: false, error: "Consumer not found" });
+    }
+    if (!consumer.smartCreditToken) {
+      return res.status(400).json({ ok: false, error: "Consumer has not linked their Smart Credit account" });
+    }
+
+    const accessToken = await resolveSmartCreditToken(consumer, db);
+    const reportData = await fetchCreditReport(accessToken);
+    const result = await smartCreditIngestReport(consumer, reportData, db);
+
+    logInfo("SMART_CREDIT_REPORT_REFRESHED", "Report refreshed via Smart Credit", {
+      consumerId,
+      reportId: result.reportId,
+    });
+
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logError("SMART_CREDIT_REFRESH_ERROR", "Smart Credit report refresh failed", err);
+    res.status(500).json({ ok: false, error: err.message || "Failed to refresh Smart Credit report" });
+  }
+});
 
 export default app;
 

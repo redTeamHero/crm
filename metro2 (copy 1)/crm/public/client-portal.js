@@ -4050,4 +4050,149 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function initSmartCredit(consumerId) {
+    var card = document.getElementById('smartCreditCard');
+    var connectBtn = document.getElementById('btnConnectSmartCredit');
+    var refreshBtn = document.getElementById('btnRefreshSmartCredit');
+    var statusEl = document.getElementById('smartCreditStatus');
+    var notConfiguredEl = document.getElementById('smartCreditNotConfigured');
+    var descEl = document.getElementById('smartCreditDesc');
+    if (!card) return;
+
+    var bootstrap = window.__PORTAL_BOOTSTRAP__ || {};
+    var smartCreditConfigured = bootstrap.smartCreditConfigured;
+    var smartCreditLinked = bootstrap.consumer && bootstrap.consumer.smartCreditLinked;
+
+    var portalToken = getPortalToken();
+    var authHeaders = portalToken ? { 'Authorization': 'Bearer ' + portalToken } : {};
+
+    if (smartCreditConfigured === undefined) {
+      fetch('/api/smartcredit/status' + (consumerId ? '?consumerId=' + encodeURIComponent(consumerId) : ''), {
+        headers: authHeaders
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.ok) return;
+          applySmartCreditState(data.configured, data.linked, data.tokenExpiry);
+        })
+        .catch(function() {});
+    } else {
+      applySmartCreditState(smartCreditConfigured, smartCreditLinked, null);
+    }
+
+    function applySmartCreditState(configured, linked, tokenExpiry) {
+      card.classList.remove('hidden');
+
+      if (!configured) {
+        connectBtn.classList.add('hidden');
+        refreshBtn.classList.add('hidden');
+        notConfiguredEl.classList.remove('hidden');
+        descEl.textContent = 'Smart Credit integration is available but not yet set up.';
+        return;
+      }
+
+      notConfiguredEl.classList.add('hidden');
+
+      if (linked) {
+        connectBtn.classList.add('hidden');
+        refreshBtn.classList.remove('hidden');
+        descEl.textContent = 'Your Smart Credit account is connected. You can refresh your report at any time.';
+        if (tokenExpiry) {
+          statusEl.textContent = 'Token expires: ' + new Date(tokenExpiry).toLocaleDateString();
+          statusEl.classList.remove('hidden');
+        }
+      } else {
+        connectBtn.classList.remove('hidden');
+        refreshBtn.classList.add('hidden');
+        descEl.textContent = 'Connect your Smart Credit account to automatically import your credit report.';
+      }
+    }
+
+    if (connectBtn) {
+      connectBtn.addEventListener('click', function() {
+        if (!consumerId) return;
+        var connectUrl = '/api/smartcredit/connect?consumerId=' + encodeURIComponent(consumerId);
+        if (portalToken) connectUrl += '&token=' + encodeURIComponent(portalToken);
+        window.location.href = connectUrl;
+      });
+    }
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', function() {
+        if (!consumerId) return;
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Refreshing...';
+        statusEl.textContent = '';
+        statusEl.classList.add('hidden');
+
+        var refreshHeaders = { 'Content-Type': 'application/json' };
+        if (portalToken) refreshHeaders['Authorization'] = 'Bearer ' + portalToken;
+        fetch('/api/smartcredit/refresh', {
+          method: 'POST',
+          headers: refreshHeaders,
+          body: JSON.stringify({ consumerId: consumerId })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = 'Refresh Report';
+          if (data.ok) {
+            statusEl.textContent = 'Report refreshed successfully! Reloading...';
+            statusEl.classList.remove('hidden');
+            setTimeout(function() { location.reload(); }, 1500);
+          } else {
+            statusEl.textContent = 'Refresh failed: ' + (data.error || 'Unknown error');
+            statusEl.classList.remove('hidden');
+          }
+        })
+        .catch(function(err) {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = 'Refresh Report';
+          statusEl.textContent = 'Refresh failed: ' + (err.message || 'Network error');
+          statusEl.classList.remove('hidden');
+        });
+      });
+    }
+
+    var urlParams = new URLSearchParams(window.location.search);
+    var scResult = urlParams.get('smartcredit');
+    if (scResult === 'success') {
+      statusEl.textContent = 'Smart Credit report imported successfully!';
+      statusEl.style.color = '#22c55e';
+      statusEl.classList.remove('hidden');
+      descEl.textContent = 'Your Smart Credit account is connected. You can refresh your report at any time.';
+      connectBtn.classList.add('hidden');
+      refreshBtn.classList.remove('hidden');
+      try {
+        var cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, '', cleanUrl);
+      } catch(e) {}
+    } else if (scResult === 'linked') {
+      statusEl.textContent = 'Smart Credit account connected, but report import failed. Try refreshing.';
+      statusEl.style.color = '#f59e0b';
+      statusEl.classList.remove('hidden');
+      descEl.textContent = 'Your Smart Credit account is connected. You can refresh your report at any time.';
+      connectBtn.classList.add('hidden');
+      refreshBtn.classList.remove('hidden');
+      try {
+        var cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, '', cleanUrl);
+      } catch(e) {}
+    } else if (scResult === 'denied') {
+      statusEl.textContent = 'Smart Credit authorization was denied. Please try again.';
+      statusEl.style.color = '#ef4444';
+      statusEl.classList.remove('hidden');
+    } else if (scResult === 'error') {
+      statusEl.textContent = 'An error occurred connecting to Smart Credit. Please try again.';
+      statusEl.style.color = '#ef4444';
+      statusEl.classList.remove('hidden');
+    }
+  }
+
+  (function() {
+    var idMatch = location.pathname.match(/\/portal\/(.+)$/);
+    var cid = idMatch ? decodeURIComponent(idMatch[1]) : null;
+    if (cid) initSmartCredit(cid);
+  })();
+
 });

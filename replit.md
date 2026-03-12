@@ -82,6 +82,18 @@ Key technical implementations include:
 - Payout system: Affiliates can request payouts via PayPal, Venmo, or Check. Backend tracks `payouts` array on each affiliate record with status lifecycle: pending → approved/paid/rejected/cancelled. `calcAffiliateBalance()` computes available balance as `totalEarned - totalPaid - pendingPayoutTotal`. Endpoints: `POST /api/affiliate/payout`, `GET /api/affiliate/payouts`, `POST /api/affiliate/payout/:id/cancel`. All three UIs (CRM, client portal, DIY) show earnings breakdown cards (Total Earned, Paid Out, Pending Payouts, Available Balance), a payout request modal, and payout history table with cancel buttons for pending payouts.
 - Files: `public/affiliate.html`, `public/affiliate.js` (CRM page), affiliate section in `client-portal-template.html` + `client-portal.js`, affiliate section in `diy/dashboard.html` + `diy/dashboard.js`, sidebar entry in `sidebar.js`.
 
+## Smart Credit OAuth Integration
+- OAuth-based credit report import from Smart Credit's API. Module: `metro2 (copy 1)/crm/smartCredit.js`.
+- Environment variables required: `SMART_CREDIT_CLIENT_ID`, `SMART_CREDIT_CLIENT_SECRET`, `SMART_CREDIT_REDIRECT_URI`. Integration activates gracefully only when all three are set; otherwise UI shows an informational message.
+- Helper: `isSmartCreditConfigured()` checks if all env vars are present.
+- OAuth flow: `GET /api/smartcredit/connect?consumerId=X` redirects to Smart Credit OAuth with CSRF-protected state parameter (base64url-encoded JSON with consumerId, nonce, timestamp; 10-minute expiry). `GET /api/smartcredit/callback` handles the redirect, exchanges code for token, stores `smartCreditToken`/`smartCreditTokenExpiry` on consumer record, fetches credit report, and runs it through the existing LLM ingestion pipeline.
+- `POST /api/smartcredit/refresh` re-fetches a credit report using an existing stored token for consumers who have already linked their Smart Credit account.
+- `GET /api/smartcredit/status?consumerId=X` returns `{ configured, linked, tokenExpiry }` for the UI.
+- Imported reports go through the same `runLLMAnalyzer` → `prepareNegativeItems` → `diffReports` → `extractCreditScores` pipeline as manual uploads. Reports are stored with `source: "smart_credit"`.
+- Advisor notification: `report_uploaded` event emitted with `source: "Smart Credit OAuth"` label, surfacing in activity timeline and triggering workflow engine notifications.
+- Client portal UI: A "Smart Credit" card (`#smartCreditCard`) in the overview section shows "Connect Smart Credit" button (if not linked) or "Refresh Report" button (if linked). Card hidden if integration not configured. Success/error feedback via URL query params (`?smartcredit=success|denied|error`).
+- Files: `smartCredit.js` (module), `server.js` (routes), `client-portal-template.html` (UI card), `client-portal.js` (JS logic).
+
 ## External Dependencies
 - **Node.js**: Runtime environment for the backend.
 - **Python**: Used for the AI agent and Metro 2 parsers.
