@@ -12163,7 +12163,7 @@ app.get('/api/social/auth/facebook', authenticate, (req, res) => {
   const params = new URLSearchParams({
     client_id: appId,
     redirect_uri: redirectUri,
-    scope: 'pages_manage_posts,pages_read_engagement,pages_show_list,publish_to_groups',
+    scope: 'pages_manage_posts,pages_read_engagement,pages_show_list',
     response_type: 'code',
     state: nanoid(16),
   });

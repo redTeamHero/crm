@@ -168,16 +168,25 @@
                 Copy
               </button>
             </div>
-            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">After pasting, scroll to the bottom of the page and click the blue <strong style="color:#e5e7eb;">Save changes</strong> button. Then go back to the Dashboard checklist.</p>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">After pasting, scroll to the bottom of the page and click the blue <strong style="color:#e5e7eb;">Save changes</strong> button.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">3c — Add the required permissions <span style="color:#f87171;font-weight:700;">(required — skipping causes "Invalid Scopes" error)</span></div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">While still in the use case customization view, click the <strong style="color:#e5e7eb;">Permissions</strong> tab at the top of the page. You'll see a list of available permissions. Find and click <strong style="color:#e5e7eb;">Add</strong> next to each of these three:</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <span class="tag">pages_manage_posts</span>
+              <span class="tag">pages_read_engagement</span>
+              <span class="tag">pages_show_list</span>
+            </div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">After adding all three, click <strong style="color:#e5e7eb;">Save changes</strong>. These permissions let Evolv see your pages and publish posts on your behalf.</p>
           </div>
         </div>
 
         <div class="setup-step">
           <div class="step-num">4</div>
           <div style="flex:1;">
-            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:6px;">Enable the Required Permissions</div>
-            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">In the left sidebar, go to <span class="setup-path">App Review <span>›</span> Permissions and Features</span>. Search for and add these three permissions: <span class="tag">pages_manage_posts</span><span class="tag">pages_read_engagement</span><span class="tag">pages_show_list</span></p>
-            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">For each one, click <strong style="color:#e5e7eb;">"Add"</strong> and then set it to <strong style="color:#e5e7eb;">"Advanced Access"</strong>. You can test with just your own page first — full App Review is only needed if you want to manage pages owned by other people.</p>
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:6px;">Set Permissions to Development Access</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">While your app is in <strong style="color:#e5e7eb;">Development mode</strong>, the permissions you just added will automatically be available for testing with your own account — no App Review needed. If you want to manage pages owned by other Facebook users, you would need full Meta App Review, but for posting to <em>your own</em> business page, development access is enough.</p>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">To confirm: in the left sidebar go to <span class="setup-path">Use cases</span> and click <strong style="color:#e5e7eb;">Customize</strong> → <strong style="color:#e5e7eb;">Permissions</strong> tab. Each of the three permissions should show a green badge or "Added" status.</p>
           </div>
         </div>
 
