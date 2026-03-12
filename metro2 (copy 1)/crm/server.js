@@ -11084,7 +11084,7 @@ app.put('/api/affiliate/commission-rates', authenticate, forbidMember, async (re
 });
 
 registerStaticPage({ paths: "/affiliate", file: "affiliate.html", middlewares: [optionalAuth] });
-registerStaticPage({ paths: "/affiliates", file: "affiliates-admin.html", middlewares: [authenticate, forbidMember] });
+app.get('/affiliates', (req, res) => res.redirect('/affiliate'));
 
 export default app;
 

@@ -62,7 +62,6 @@
     { group: 'TOOLS' },
     { label: 'Tradelines', icon: 'dollarSign', href: '/tradelines', match: ['/tradelines'] },
     { label: 'Affiliate', icon: 'share2', href: '/affiliate', match: ['/affiliate'] },
-    { label: 'Affiliates', icon: 'users', href: '/affiliates', match: ['/affiliates'] },
     { group: 'SETTINGS' },
     { label: 'Letters', icon: 'mail', href: '/letters', match: ['/letters'] },
     { label: 'Library', icon: 'book', href: '/library', match: ['/library'] },
