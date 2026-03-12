@@ -415,13 +415,12 @@ export function openCfpbModal({ consumerId, roundData = null }) {
     const input = document.getElementById('cfpbBureauCustomItem');
     const val = input?.value?.trim();
     if (!val) return;
-    const container = document.querySelector('#cfpbBureauForm .cfpb-bureau-item-cb')?.closest('div') || document.getElementById('cfpbBureauForm');
-    const panel = container?.parentElement;
-    if (!panel) return;
+    const checkboxList = document.querySelector('#cfpbBureauForm .cfpb-bureau-item-cb')?.closest('div[style*="max-height"]');
+    if (!checkboxList) return;
     const label = document.createElement('label');
     label.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;cursor:pointer;';
     label.innerHTML = `<input type="checkbox" class="cfpb-bureau-item-cb" value="${esc(val)}" checked> ${esc(val)} <span style="color:#10b981;font-size:10px;">(custom)</span>`;
-    panel.appendChild(label);
+    checkboxList.appendChild(label);
     input.value = '';
   });
 

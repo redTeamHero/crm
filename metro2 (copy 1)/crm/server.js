@@ -10744,15 +10744,42 @@ app.get('/api/diy/negative-items', diyAuthenticate, async (req, res) => {
     const userReports = db.reports.filter(r => r.userId === req.diyUser.id).sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0));
     const latestReport = userReports[0];
     if (!latestReport) return res.json({ ok: true, items: [] });
-    const violations = latestReport.violations || [];
-    const items = violations.map((v, idx) => ({
-      id: v.id || `v_${idx}`,
-      name: v.creditorName || v.creditor || v.accountName || 'Unknown',
-      accountNumber: v.accountNumber || v.account_number || '',
-      bureaus: v.bureau ? [v.bureau] : (Array.isArray(v.bureaus) ? v.bureaus : []),
-      balance: v.balance || '',
-      status: v.status || v.remark || v.description || '',
-    }));
+    let items = [];
+    if (latestReport.data && Array.isArray(latestReport.data.negative_items)) {
+      items = latestReport.data.negative_items.map((ni, idx) => ({
+        id: ni.id || `ni_${idx}`,
+        name: ni.creditor || ni.creditor_name || 'Unknown',
+        accountNumber: ni.account_number || (ni.account_numbers ? Object.values(ni.account_numbers).filter(Boolean).join(', ') : ''),
+        bureaus: Array.isArray(ni.bureaus) ? ni.bureaus : (ni.bureau ? [ni.bureau] : []),
+        balance: ni.balance || ni.current_balance || '',
+        status: ni.status || ni.account_status || '',
+      }));
+    } else if (latestReport.data && Array.isArray(latestReport.data.tradelines)) {
+      items = latestReport.data.tradelines
+        .filter(tl => {
+          const status = (tl.account_status || tl.status || '').toLowerCase();
+          const rating = (tl.payment_rating || '').toLowerCase();
+          return status.includes('derog') || status.includes('collection') || status.includes('charge') || status.includes('late') || rating.includes('late') || rating.includes('derog');
+        })
+        .map((tl, idx) => ({
+          id: tl.id || `tl_${idx}`,
+          name: tl.meta?.creditor || tl.creditor || tl.creditor_name || 'Unknown',
+          accountNumber: tl.meta?.account_numbers ? Object.values(tl.meta.account_numbers).filter(Boolean).join(', ') : '',
+          bureaus: tl.per_bureau ? Object.keys(tl.per_bureau) : [],
+          balance: tl.balance || tl.current_balance || '',
+          status: tl.account_status || tl.status || '',
+        }));
+    } else {
+      const violations = latestReport.violations || [];
+      items = violations.map((v, idx) => ({
+        id: v.id || `v_${idx}`,
+        name: v.creditorName || v.creditor || v.accountName || 'Unknown',
+        accountNumber: v.accountNumber || v.account_number || '',
+        bureaus: v.bureau ? [v.bureau] : (Array.isArray(v.bureaus) ? v.bureaus : []),
+        balance: v.balance || '',
+        status: v.status || v.remark || v.description || '',
+      }));
+    }
     res.json({ ok: true, items });
   } catch (e) {
     logError('DIY_NEGATIVE_ITEMS_ERROR', e);
