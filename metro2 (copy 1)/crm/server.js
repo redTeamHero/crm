@@ -152,6 +152,9 @@ const DEFAULT_SETTINGS = {
   fbAppId: "",
   fbAppSecret: "",
   fbRedirectUri: "",
+  smartCreditClientId: "",
+  smartCreditClientSecret: "",
+  smartCreditRedirectUri: "",
   envOverrides: {},
   clientPortal: cloneDefaultClientPortalSettings(),
   hotkeys: {},
@@ -175,6 +178,9 @@ const STRING_SETTING_KEYS = [
   "fbAppId",
   "fbAppSecret",
   "fbRedirectUri",
+  "smartCreditClientId",
+  "smartCreditClientSecret",
+  "smartCreditRedirectUri",
 ];
 
 const SECRET_SETTING_KEYS = new Set([
@@ -184,6 +190,7 @@ const SECRET_SETTING_KEYS = new Set([
   "gmailClientSecret",
   "gmailRefreshToken",
   "fbAppSecret",
+  "smartCreditClientSecret",
 ]);
 
 function maskSecrets(settings) {
@@ -283,6 +290,9 @@ const INTEGRATION_SETTING_TO_ENV = {
   fbAppId: "FB_APP_ID",
   fbAppSecret: "FB_APP_SECRET",
   fbRedirectUri: "FB_REDIRECT_URI",
+  smartCreditClientId: "SMART_CREDIT_CLIENT_ID",
+  smartCreditClientSecret: "SMART_CREDIT_CLIENT_SECRET",
+  smartCreditRedirectUri: "SMART_CREDIT_REDIRECT_URI",
 };
 
 function normalizeEnvOverrides(raw){

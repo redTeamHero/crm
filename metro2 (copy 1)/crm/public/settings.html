@@ -384,6 +384,33 @@
           </div>
           <p class="text-xs mt-3" style="color:#6b7280;line-height:1.6;">Get these from <a href="https://developers.facebook.com/apps/" target="_blank" style="color:#818cf8;text-decoration:underline;">Meta for Developers</a>. After saving, go to <a href="/social" style="color:#818cf8;text-decoration:underline;">Social Media Manager</a> to connect your page.</p>
         </div>
+
+        <div class="api-card md:col-span-2">
+          <div class="api-card-header">
+            <div class="api-card-icon" style="background:rgba(20,184,166,0.12)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <div class="api-card-title">Smart Credit Integration</div>
+              <div class="api-card-desc">Allow clients to connect their Smart Credit account from their portal</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="input-row">
+              <label>Client ID</label>
+              <input id="smartCreditClientId" placeholder="Smart Credit Client ID" autocomplete="off" />
+            </div>
+            <div class="input-row">
+              <label>Client Secret</label>
+              <input id="smartCreditClientSecret" type="password" placeholder="Smart Credit Client Secret" autocomplete="new-password" />
+            </div>
+            <div class="input-row sm:col-span-2">
+              <label>OAuth Redirect URI <span style="color:#6b7280;font-weight:400;">(required)</span></label>
+              <input id="smartCreditRedirectUri" placeholder="https://yourdomain.com/api/smartcredit/callback" />
+            </div>
+          </div>
+          <p class="text-xs mt-3" style="color:#6b7280;line-height:1.6;">Enter credentials from your Smart Credit partner account. The redirect URI to register with Smart Credit is: <code style="background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;font-size:11px;">&lt;your-domain&gt;/api/smartcredit/callback</code>. Once saved, clients will see a "Connect Smart Credit" button in their portal.</p>
+        </div>
       </div>
 
       <div class="mt-6 flex items-center justify-end">

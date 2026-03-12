@@ -84,6 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const fbAppIdEl = document.getElementById('fbAppId');
   const fbAppSecretEl = document.getElementById('fbAppSecret');
   const fbRedirectUriEl = document.getElementById('fbRedirectUri');
+  const smartCreditClientIdEl = document.getElementById('smartCreditClientId');
+  const smartCreditClientSecretEl = document.getElementById('smartCreditClientSecret');
+  const smartCreditRedirectUriEl = document.getElementById('smartCreditRedirectUri');
   const envListEl = document.getElementById('envList');
   const addEnvBtn = document.getElementById('addEnvRow');
 
@@ -457,6 +460,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (fbAppIdEl) fbAppIdEl.value = currentSettings.fbAppId || '';
       if (fbAppSecretEl) fbAppSecretEl.value = currentSettings.fbAppSecret || '';
       if (fbRedirectUriEl) fbRedirectUriEl.value = currentSettings.fbRedirectUri || '';
+      if (smartCreditClientIdEl) smartCreditClientIdEl.value = currentSettings.smartCreditClientId || '';
+      if (smartCreditClientSecretEl) smartCreditClientSecretEl.value = currentSettings.smartCreditClientSecret || '';
+      if (smartCreditRedirectUriEl) smartCreditRedirectUriEl.value = currentSettings.smartCreditRedirectUri || '';
       renderEnvOverrides(currentSettings.envOverrides || {});
       applyPortalSettingsForm(currentSettings.clientPortal || {});
       applyHotkeySettings(currentSettings.hotkeys || {});
@@ -508,6 +514,9 @@ document.addEventListener('DOMContentLoaded', () => {
       fbAppId: readSettingValue(fbAppIdEl, 'fbAppId'),
       fbAppSecret: readSettingValue(fbAppSecretEl, 'fbAppSecret'),
       fbRedirectUri: readSettingValue(fbRedirectUriEl, 'fbRedirectUri'),
+      smartCreditClientId: readSettingValue(smartCreditClientIdEl, 'smartCreditClientId'),
+      smartCreditClientSecret: readSettingValue(smartCreditClientSecretEl, 'smartCreditClientSecret'),
+      smartCreditRedirectUri: readSettingValue(smartCreditRedirectUriEl, 'smartCreditRedirectUri'),
       envOverrides: collectEnvOverrides(),
       clientPortal: hasPortalForm
         ? {
@@ -546,6 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (fbAppIdEl) fbAppIdEl.value = currentSettings.fbAppId || '';
       if (fbAppSecretEl) fbAppSecretEl.value = currentSettings.fbAppSecret || '';
       if (fbRedirectUriEl) fbRedirectUriEl.value = currentSettings.fbRedirectUri || '';
+      if (smartCreditClientIdEl) smartCreditClientIdEl.value = currentSettings.smartCreditClientId || '';
+      if (smartCreditClientSecretEl) smartCreditClientSecretEl.value = currentSettings.smartCreditClientSecret || '';
+      if (smartCreditRedirectUriEl) smartCreditRedirectUriEl.value = currentSettings.smartCreditRedirectUri || '';
       renderEnvOverrides(currentSettings.envOverrides || {});
       applyPortalSettingsForm(currentSettings.clientPortal || {});
       applyHotkeySettings(currentSettings.hotkeys || {});
