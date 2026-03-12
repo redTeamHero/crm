@@ -657,7 +657,18 @@ function showTourMenu() {
   document.body.appendChild(overlay);
 }
 
-function checkAutoStartTour() {
+function dismissTourServer() {
+  try {
+    const tok = localStorage.getItem('token');
+    if (!tok) return;
+    fetch('/api/tour/dismiss', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + tok }
+    }).catch(() => {});
+  } catch (_) {}
+}
+
+async function checkAutoStartTour() {
   const pending = sessionStorage.getItem('evolv.tour.autostart');
   if (pending) {
     sessionStorage.removeItem('evolv.tour.autostart');
@@ -666,13 +677,30 @@ function checkAutoStartTour() {
   }
 
   const state = getTourState();
-  if (!state._welcomed) {
-    const currentPage = getCurrentPageKey();
-    if (currentPage) {
-      state._welcomed = true;
-      saveTourState(state);
-      setTimeout(() => showWelcome(), 2000);
+  if (state._welcomed) return;
+
+  try {
+    const tok = localStorage.getItem('token');
+    if (tok) {
+      const res = await fetch('/api/tour/status', {
+        headers: { 'Authorization': 'Bearer ' + tok }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.dismissed) {
+          state._welcomed = true;
+          saveTourState(state);
+          return;
+        }
+      }
     }
+  } catch (_) {}
+
+  const currentPage = getCurrentPageKey();
+  if (currentPage) {
+    state._welcomed = true;
+    saveTourState(state);
+    setTimeout(() => showWelcome(), 2000);
   }
 }
 
@@ -697,10 +725,12 @@ function showWelcome() {
     const action = e.target.closest('[data-action]')?.dataset?.action;
     if (action === 'start') {
       overlay.remove();
+      dismissTourServer();
       const current = getCurrentPageKey();
       if (current) tourEngine.start(current);
     } else if (action === 'skip' || e.target === overlay) {
       overlay.remove();
+      dismissTourServer();
     }
   });
 

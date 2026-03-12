@@ -2038,6 +2038,27 @@ app.post("/api/settings", authenticate, requireRole("admin"), async (req, res) =
   res.json({ ok: true, settings });
 });
 
+app.get("/api/tour/status", optionalAuth, async (req, res) => {
+  try {
+    const scope = tenantScope(resolveRequestTenant(req));
+    const dismissed = !!(await readKey("tour_dismissed", null, scope));
+    res.json({ ok: true, dismissed });
+  } catch (err) {
+    res.json({ ok: true, dismissed: false });
+  }
+});
+
+app.post("/api/tour/dismiss", authenticate, async (req, res) => {
+  try {
+    const scope = tenantScope(resolveRequestTenant(req));
+    await writeKey("tour_dismissed", true, scope);
+    res.json({ ok: true });
+  } catch (err) {
+    logError("TOUR_DISMISS_ERROR", err);
+    res.status(500).json({ ok: false });
+  }
+});
+
 app.get("/api/credit-companies", authenticate, requirePermission("admin"), async (_req, res) => {
   try {
     const companiesDb = await loadCreditCompaniesDB();
