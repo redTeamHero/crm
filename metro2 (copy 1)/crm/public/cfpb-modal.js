@@ -3,21 +3,48 @@ import { authHeader } from '/common.js';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const VIOLATION_OPTIONS = [
-  { value: '', label: '-- Select violation --' },
-  { value: 'no_response_30', label: '30-Day No Response (FCRA §611)' },
-  { value: 'verified_inaccurate', label: 'Verified Inaccurate Information (FCRA §611)' },
-  { value: 'reaged', label: 'Re-Aged Debt / Changed DOFD (FCRA §605(c))' },
-  { value: 'continued_after_paid', label: 'Continued Reporting After Paid/Settled (FCRA §623)' },
-  { value: 'not_mine', label: 'Account Not Mine / Identity Theft (FCRA §611, §623)' },
-  { value: 'other', label: 'Other (describe below)' },
+  { value: '', label: '-- Select violation --', group: null },
+  { value: 'no_response_30', label: '30-Day No Response (FCRA §611)', group: 'FCRA — No Response' },
+  { value: 'no_response_45', label: '45-Day No Response / Extended Period (FCRA §611)', group: 'FCRA — No Response' },
+  { value: 'verified_inaccurate', label: 'Verified Inaccurate Information (FCRA §611)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'wrong_balance', label: 'Incorrect Balance Reported (FCRA §623)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'wrong_status', label: 'Incorrect Account Status (FCRA §623)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'reaged', label: 'Re-Aged Debt / Changed DOFD (FCRA §605(c))', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'mixed_file', label: 'Mixed Credit File / Wrong Consumer Info (FCRA §611)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'duplicate_reporting', label: 'Duplicate / Multiple Reporting (FCRA §623)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'continued_after_paid', label: 'Continued Reporting After Paid/Settled (FCRA §623)', group: 'FCRA — Account Status' },
+  { value: 'paid_collection', label: 'Paid Collection Still Reporting Negative (FCRA §623)', group: 'FCRA — Account Status' },
+  { value: 'settlement_not_reflected', label: 'Settlement Not Reflected on Report (FCRA §623)', group: 'FCRA — Account Status' },
+  { value: 'obsolete_info', label: 'Reporting Obsolete / Beyond 7-Year Limit (FCRA §605)', group: 'FCRA — Account Status' },
+  { value: 'bankruptcy_discharge', label: 'Debt Discharged in Bankruptcy Still Reporting (FCRA §623)', group: 'FCRA — Account Status' },
+  { value: 'not_mine', label: 'Account Not Mine / Identity Theft (FCRA §611, §623)', group: 'FCRA — Account Status' },
+  { value: 'medical_debt', label: 'Medical Debt Under $500 Being Reported (CFPB Rule 2023)', group: 'FCRA — Special Rules' },
+  { value: 'collection_no_validation', label: 'Debt Collector Failed to Validate Debt (FDCPA §809)', group: 'FDCPA — Debt Collection' },
+  { value: 'collection_harassment', label: 'Debt Collector Harassment / Abusive Conduct (FDCPA §806)', group: 'FDCPA — Debt Collection' },
+  { value: 'collection_false_representation', label: 'Debt Collector Made False Representations (FDCPA §807)', group: 'FDCPA — Debt Collection' },
+  { value: 'collection_unfair_practices', label: 'Debt Collector Used Unfair Practices (FDCPA §808)', group: 'FDCPA — Debt Collection' },
+  { value: 'other', label: 'Other (describe below)', group: null },
 ];
 
 const TONE_OPTIONS = [
-  { value: 'professional', label: 'Professional' },
-  { value: 'firm_assertive', label: 'Firm & Assertive' },
-  { value: 'urgent', label: 'Urgent' },
-  { value: 'legal_formal', label: 'Legal Formal' },
-  { value: 'strong_aggressive', label: 'Strong & Aggressive' },
+  { value: 'professional', label: 'Professional', group: 'Formal' },
+  { value: 'firm_assertive', label: 'Firm & Assertive', group: 'Formal' },
+  { value: 'legal_formal', label: 'Legal Formal', group: 'Formal' },
+  { value: 'curious', label: 'Curious / Questioning', group: 'Emotional' },
+  { value: 'tired', label: 'Tired / Exhausted', group: 'Emotional' },
+  { value: 'hopeless', label: 'Hopeless / Despairing', group: 'Emotional' },
+  { value: 'hopeful', label: 'Hopeful / Optimistic', group: 'Emotional' },
+  { value: 'frustrated', label: 'Frustrated', group: 'Emotional' },
+  { value: 'emotional', label: 'Emotional / Personal', group: 'Emotional' },
+  { value: 'desperate', label: 'Desperate / Urgent', group: 'Emotional' },
+  { value: 'urgent', label: 'Urgent', group: 'Forceful' },
+  { value: 'strong_aggressive', label: 'Strong & Aggressive', group: 'Forceful' },
+];
+
+const GOAL_OPTIONS = [
+  { value: '', label: '-- Not specified --' },
+  { value: 'delete', label: 'Delete Item from Credit Report' },
+  { value: 'correct', label: 'Correct Inaccurate Information' },
 ];
 
 const RESPONSE_OPTIONS = [
@@ -32,12 +59,32 @@ const RESPONSE_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
+function buildGroupedOptions(options, val = '') {
+  const groups = {};
+  const noGroup = [];
+  for (const o of options) {
+    if (!o.group) { noGroup.push(o); continue; }
+    if (!groups[o.group]) groups[o.group] = [];
+    groups[o.group].push(o);
+  }
+  let html = noGroup.slice(0, 1).map(o => `<option value="${esc(o.value)}"${o.value === val ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
+  for (const [grp, opts] of Object.entries(groups)) {
+    html += `<optgroup label="${esc(grp)}">${opts.map(o => `<option value="${esc(o.value)}"${o.value === val ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</optgroup>`;
+  }
+  html += noGroup.slice(1).map(o => `<option value="${esc(o.value)}"${o.value === val ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
+  return html;
+}
+
 function buildViolationSelect(id, val = '') {
-  return `<select id="${id}" class="input-field w-full">${VIOLATION_OPTIONS.map(o => `<option value="${esc(o.value)}"${o.value === val ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`;
+  return `<select id="${id}" class="input-field w-full">${buildGroupedOptions(VIOLATION_OPTIONS, val)}</select>`;
 }
 
 function buildToneSelect(id) {
-  return `<select id="${id}" class="input-field w-full">${TONE_OPTIONS.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`;
+  return `<select id="${id}" class="input-field w-full">${buildGroupedOptions(TONE_OPTIONS)}</select>`;
+}
+
+function buildGoalSelect(id) {
+  return `<select id="${id}" class="input-field w-full">${GOAL_OPTIONS.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`;
 }
 
 function buildResponseSelect(id) {
@@ -81,10 +128,14 @@ function buildItemRow(item, idx) {
         ${buildToneSelect('cfpb-item-tone-' + idx)}
       </div>
       <div>
-        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Response Received</label>
-        ${buildResponseSelect('cfpb-item-response-' + idx)}
-        <input type="text" id="cfpb-item-response-other-${idx}" class="input-field" placeholder="Describe…" style="display:none;margin-top:4px;width:100%;font-size:12px;padding:5px 8px;">
+        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Complaint Goal</label>
+        ${buildGoalSelect('cfpb-item-goal-' + idx)}
       </div>
+    </div>
+    <div style="margin-bottom:8px;">
+      <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Response Received</label>
+      ${buildResponseSelect('cfpb-item-response-' + idx)}
+      <input type="text" id="cfpb-item-response-other-${idx}" class="input-field" placeholder="Describe…" style="display:none;margin-top:4px;width:100%;font-size:12px;padding:5px 8px;">
     </div>
     <div id="cfpb-item-result-${idx}" style="display:none;margin-top:8px;"></div>
   </div>`;
@@ -149,9 +200,15 @@ export function openCfpbModal({ consumerId, roundData = null }) {
         <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Describe Violation</label>
         <textarea id="cfpbBureauOtherText" class="input-field w-full" rows="2" placeholder="Describe…"></textarea>
       </div>
-      <div style="margin-bottom:14px;">
-        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Tone</label>
-        ${buildToneSelect('cfpbBureauTone')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div>
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Tone</label>
+          ${buildToneSelect('cfpbBureauTone')}
+        </div>
+        <div>
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Complaint Goal</label>
+          ${buildGoalSelect('cfpbBureauGoal')}
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
         <div>
@@ -304,8 +361,8 @@ export function openCfpbModal({ consumerId, roundData = null }) {
     renderBureauProofList();
   });
 
-  async function generateComplaint({ companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone }) {
-    const payload = { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional', roundJobId: roundJobId || jobId, save: false };
+  async function generateComplaint({ companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone, complaintGoal }) {
+    const payload = { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional', complaintGoal: complaintGoal || '', roundJobId: roundJobId || jobId, save: false };
     const resp = await fetch(`/api/consumers/${consumerId}/cfpb-complaint`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
@@ -479,6 +536,7 @@ export function openCfpbModal({ consumerId, roundData = null }) {
       const otherTextArea = document.querySelector(`.cfpb-item-other-text[data-idx="${idx}"]`);
       const sharedDate = document.getElementById('cfpbItemsSharedDate')?.value || '';
       const toneSelect = document.getElementById(`cfpb-item-tone-${idx}`);
+      const goalSelect = document.getElementById(`cfpb-item-goal-${idx}`);
       const responseVal = getResponseVal(`cfpb-item-response-${idx}`, `cfpb-item-response-other-${idx}`);
 
       const companyName = companyInput?.value?.trim() || item.creditorName || item.creditor || '';
@@ -499,6 +557,7 @@ export function openCfpbModal({ consumerId, roundData = null }) {
           itemsDisputed: [item.creditorName || item.creditor || ''],
           disputeSentDate: sharedDate, responseOutcome: responseVal,
           tone: toneSelect?.value || 'professional',
+          complaintGoal: goalSelect?.value || '',
         });
         if (resultDiv) {
           resultDiv.style.display = 'block';
@@ -509,14 +568,14 @@ export function openCfpbModal({ consumerId, roundData = null }) {
             <div style="background:rgba(255,255,255,0.04);border-radius:6px;padding:8px;font-size:12px;line-height:1.6;white-space:pre-wrap;max-height:100px;overflow-y:auto;">${esc(data.resolution)}</div>
             <div style="display:flex;gap:6px;margin-top:8px;">
               <button onclick="navigator.clipboard.writeText(${JSON.stringify('WHAT HAPPENED:\n' + data.narrative + '\n\nWHAT RESOLUTION I AM SEEKING:\n' + data.resolution)});this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',2000);" type="button" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;padding:3px 10px;border-radius:5px;font-size:11px;cursor:pointer;">Copy</button>
-              <button class="btn-cfpb-save-item" data-narrative="${esc(data.narrative)}" data-resolution="${esc(data.resolution)}" data-company="${esc(companyName)}" data-vtype="${esc(violationType)}" type="button" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#34d399;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;">Save</button>
+              <button class="btn-cfpb-save-item" data-narrative="${esc(data.narrative)}" data-resolution="${esc(data.resolution)}" data-company="${esc(companyName)}" data-vtype="${esc(violationType)}" data-goal="${esc(goalSelect?.value || '')}" type="button" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#34d399;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;">Save</button>
             </div>`;
           resultDiv.querySelector('.btn-cfpb-save-item')?.addEventListener('click', async function() {
             this.disabled = true; this.textContent = 'Saving…';
             try {
               const resp = await fetch(`/api/consumers/${consumerId}/cfpb-complaint`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader() },
-                body: JSON.stringify({ companyName: this.dataset.company, violationType: this.dataset.vtype, narrative: this.dataset.narrative, resolution: this.dataset.resolution, roundJobId: jobId, save: true }),
+                body: JSON.stringify({ companyName: this.dataset.company, violationType: this.dataset.vtype, narrative: this.dataset.narrative, resolution: this.dataset.resolution, complaintGoal: this.dataset.goal || '', roundJobId: jobId, save: true }),
               });
               const d = await resp.json();
               if (!d.ok) throw new Error(d.error);
@@ -550,11 +609,12 @@ export function openCfpbModal({ consumerId, roundData = null }) {
     const responseOutcome = getResponseVal('cfpbBureauResponse', 'cfpbBureauResponseOther');
     const additionalNotes = document.getElementById('cfpbBureauNotes')?.value?.trim() || '';
     const tone = document.getElementById('cfpbBureauTone')?.value || 'professional';
+    const complaintGoal = document.getElementById('cfpbBureauGoal')?.value || '';
 
     const btn = document.getElementById('btnCfpbBureauGenerate');
     btn.disabled = true; btn.textContent = 'Generating…';
     try {
-      const data = await generateComplaint({ companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone });
+      const data = await generateComplaint({ companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone, complaintGoal });
       showResult(data.narrative, data.resolution);
     } catch (e) {
       errEl.textContent = e.message || 'Generation failed'; errEl.style.display = 'block';

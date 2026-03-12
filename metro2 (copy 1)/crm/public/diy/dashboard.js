@@ -426,18 +426,19 @@
         var response = getDiyResponseValue();
         var notes = ((document.getElementById('diyNotes') || {}).value || '').trim();
         var tone = (document.getElementById('diyTone') || {}).value || 'professional';
+        var complaintGoal = (document.getElementById('diyGoal') || {}).value || '';
         var origText = genBtn.textContent;
         genBtn.disabled = true; genBtn.textContent = 'Generating…';
         try {
           var res = await fetch('/api/diy/cfpb-complaint', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes, tone: tone, save: false })
+            body: JSON.stringify({ companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes, tone: tone, complaintGoal: complaintGoal, save: false })
           });
           var data = await res.json();
           if (!data.ok) throw new Error(data.error || 'Generation failed');
           diyCfpbLastResult = { narrative: data.narrative, resolution: data.resolution };
-          diyCfpbLastPayload = { companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes, tone: tone };
+          diyCfpbLastPayload = { companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes, tone: tone, complaintGoal: complaintGoal };
           var narEl = document.getElementById('diyCfpbNarrative');
           var resEl = document.getElementById('diyCfpbResolution');
           var resultSection = document.getElementById('diyCfpbResult');

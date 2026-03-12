@@ -57,11 +57,35 @@
           <label class="block text-sm font-medium mb-1">Violation Type <span style="color:#f87171;">*</span></label>
           <select id="cfpbViolationType" class="input-field w-full">
             <option value="">-- Select violation --</option>
-            <option value="no_response_30">30-Day No Response (FCRA §611)</option>
-            <option value="verified_inaccurate">Verified Inaccurate Information (FCRA §611)</option>
-            <option value="reaged">Re-Aged Debt / Changed DOFD (FCRA §605(c))</option>
-            <option value="continued_after_paid">Continued Reporting After Paid/Settled (FCRA §623)</option>
-            <option value="not_mine">Account Not Mine / Identity Theft (FCRA §611, §623)</option>
+            <optgroup label="FCRA — No Response">
+              <option value="no_response_30">30-Day No Response (FCRA §611)</option>
+              <option value="no_response_45">45-Day No Response / Extended Period (FCRA §611)</option>
+            </optgroup>
+            <optgroup label="FCRA — Inaccurate Reporting">
+              <option value="verified_inaccurate">Verified Inaccurate Information (FCRA §611)</option>
+              <option value="wrong_balance">Incorrect Balance Reported (FCRA §623)</option>
+              <option value="wrong_status">Incorrect Account Status (FCRA §623)</option>
+              <option value="reaged">Re-Aged Debt / Changed DOFD (FCRA §605(c))</option>
+              <option value="mixed_file">Mixed Credit File / Wrong Consumer Info (FCRA §611)</option>
+              <option value="duplicate_reporting">Duplicate / Multiple Reporting (FCRA §623)</option>
+            </optgroup>
+            <optgroup label="FCRA — Account Status">
+              <option value="continued_after_paid">Continued Reporting After Paid/Settled (FCRA §623)</option>
+              <option value="paid_collection">Paid Collection Still Reporting Negative (FCRA §623)</option>
+              <option value="settlement_not_reflected">Settlement Not Reflected on Report (FCRA §623)</option>
+              <option value="obsolete_info">Reporting Obsolete / Beyond 7-Year Limit (FCRA §605)</option>
+              <option value="bankruptcy_discharge">Debt Discharged in Bankruptcy Still Reporting (FCRA §623)</option>
+              <option value="not_mine">Account Not Mine / Identity Theft (FCRA §611, §623)</option>
+            </optgroup>
+            <optgroup label="FCRA — Special Rules">
+              <option value="medical_debt">Medical Debt Under $500 Being Reported (CFPB Rule 2023)</option>
+            </optgroup>
+            <optgroup label="FDCPA — Debt Collection">
+              <option value="collection_no_validation">Debt Collector Failed to Validate Debt (FDCPA §809)</option>
+              <option value="collection_harassment">Debt Collector Harassment / Abusive Conduct (FDCPA §806)</option>
+              <option value="collection_false_representation">Debt Collector Made False Representations (FDCPA §807)</option>
+              <option value="collection_unfair_practices">Debt Collector Used Unfair Practices (FDCPA §808)</option>
+            </optgroup>
             <option value="other">Other (describe below)</option>
           </select>
         </div>
@@ -87,15 +111,39 @@
           </div>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium mb-1">Tone</label>
-          <select id="cfpbTone" class="input-field w-full">
-            <option value="professional">Professional</option>
-            <option value="firm_assertive">Firm & Assertive</option>
-            <option value="urgent">Urgent</option>
-            <option value="legal_formal">Legal Formal</option>
-            <option value="strong_aggressive">Strong & Aggressive</option>
-          </select>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Tone</label>
+            <select id="cfpbTone" class="input-field w-full">
+              <optgroup label="Formal">
+                <option value="professional">Professional</option>
+                <option value="firm_assertive">Firm &amp; Assertive</option>
+                <option value="legal_formal">Legal Formal</option>
+              </optgroup>
+              <optgroup label="Emotional">
+                <option value="curious">Curious / Questioning</option>
+                <option value="tired">Tired / Exhausted</option>
+                <option value="hopeless">Hopeless / Despairing</option>
+                <option value="hopeful">Hopeful / Optimistic</option>
+                <option value="frustrated">Frustrated</option>
+                <option value="emotional">Emotional / Personal</option>
+                <option value="desperate">Desperate / Urgent</option>
+              </optgroup>
+              <optgroup label="Forceful">
+                <option value="urgent">Urgent</option>
+                <option value="strong_aggressive">Strong &amp; Aggressive</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Complaint Goal</label>
+            <select id="cfpbGoal" class="input-field w-full">
+              <option value="">-- Not specified --</option>
+              <option value="delete">Delete Item from Credit Report</option>
+              <option value="correct">Correct Inaccurate Information</option>
+            </select>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">

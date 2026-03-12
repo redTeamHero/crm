@@ -229,6 +229,7 @@ $('btnGenerateCfpb')?.addEventListener('click', async () => {
   const responseOutcome = getResponseValue();
   const additionalNotes = $('cfpbNotes')?.value?.trim() || '';
   const tone = $('cfpbTone')?.value || 'professional';
+  const complaintGoal = $('cfpbGoal')?.value || '';
 
   const btn = $('btnGenerateCfpb');
   const orig = btn.textContent;
@@ -239,11 +240,11 @@ $('btnGenerateCfpb')?.addEventListener('click', async () => {
     const data = await fetch(`/api/consumers/${currentConsumerId}/cfpb-complaint`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
-      body: JSON.stringify({ companyName: company, violationType, otherViolationText: otherText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone, save: false }),
+      body: JSON.stringify({ companyName: company, violationType, otherViolationText: otherText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone, complaintGoal, save: false }),
     }).then(r => r.json());
 
     if (!data.ok) throw new Error(data.error || 'Generation failed');
-    lastResult = { companyName: company, violationType, otherViolationText: otherText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone, narrative: data.narrative, resolution: data.resolution };
+    lastResult = { companyName: company, violationType, otherViolationText: otherText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone, complaintGoal, narrative: data.narrative, resolution: data.resolution };
 
     $('cfpbNarrative').textContent = data.narrative || '';
     $('cfpbResolution').textContent = data.resolution || '';

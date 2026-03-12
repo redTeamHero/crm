@@ -9643,6 +9643,20 @@ const CFPB_VIOLATION_LABELS = {
   reaged: 'The creditor illegally re-aged the debt by changing the date of first delinquency, violating FCRA §605(c)',
   continued_after_paid: 'The creditor continued reporting the account after it was paid/settled, violating FCRA §623(a)(2)',
   not_mine: 'The account does not belong to the consumer and may be the result of identity theft, under FCRA §611 and §623',
+  no_response_45: 'The bureau failed to complete its investigation within 45 days (extended period for disputes submitted with new information) as required by FCRA §611(a)(1)(B)',
+  duplicate_reporting: 'The same debt is being reported multiple times by different collection agencies, constituting duplicate reporting in violation of FCRA §623(a)',
+  obsolete_info: 'The bureau is reporting information that is past the 7-year reporting period and is legally obsolete under FCRA §605(a)',
+  wrong_balance: 'The creditor is reporting an incorrect balance that does not reflect actual amounts owed, violating FCRA §623(a)(2) and Metro-2 accuracy requirements',
+  wrong_status: 'The account status is being reported inaccurately (e.g., open vs. closed, current vs. delinquent), violating FCRA §623(a)(1)',
+  mixed_file: 'The consumer\'s credit file has been mixed with another consumer\'s information, violating FCRA §611 accuracy requirements',
+  collection_no_validation: 'The debt collector failed to provide debt validation upon request as required by FDCPA §809(b)',
+  collection_harassment: 'The debt collector engaged in harassment and abusive collection practices in violation of FDCPA §806',
+  collection_false_representation: 'The debt collector made false, deceptive, or misleading representations in violation of FDCPA §807',
+  collection_unfair_practices: 'The debt collector used unfair or unconscionable means to collect a debt in violation of FDCPA §808',
+  paid_collection: 'A paid/satisfied collection account continues to be reported negatively in violation of FCRA §623(a)(2)',
+  medical_debt: 'A medical debt under $500 is being reported in violation of the CFPB\'s 2023 Medical Debt Rule and FCRA §605(a)(6)',
+  bankruptcy_discharge: 'A debt that was discharged in bankruptcy continues to be reported as owed, violating FCRA §623(a)(1)(B)',
+  settlement_not_reflected: 'A settled debt is not being reported as settled, misrepresenting the account status in violation of FCRA §623(a)(2)',
   other: null,
 };
 
@@ -9652,16 +9666,31 @@ const CFPB_TONE_MAP = {
   urgent: 'Emphasize time-sensitivity and urgency. Convey that the consumer has waited long enough and needs immediate action.',
   legal_formal: 'Use heavy legal language with extensive statute references. Write as if drafting a legal brief.',
   strong_aggressive: 'Use strong, aggressive consumer advocacy language. Be forceful and unrelenting in describing the harm done to the consumer.',
+  curious: 'Write in a genuinely curious and inquisitive tone, as if the consumer truly cannot understand how or why this error occurred and sincerely wants answers. Ask pointed questions throughout.',
+  tired: 'Write in an exhausted, worn-down tone. The consumer has been fighting this for a long time and is emotionally drained. Convey fatigue, frustration from repetition, and a sense of being ignored.',
+  hopeless: 'Write in a tone of despair and loss of faith in the system. The consumer feels powerless, as if nothing will ever be fixed. Convey the real-world damage this is causing to their life.',
+  hopeful: 'Write in a cautiously optimistic tone. The consumer still believes in the process and hopes this complaint will finally resolve the issue. Sincere, earnest, and forward-looking.',
+  frustrated: 'Write in a tone of clear frustration and exasperation. The consumer is not angry but is deeply irritated that this issue persists despite multiple attempts to resolve it.',
+  emotional: 'Write with heartfelt emotion. Describe the personal impact — stress, sleepless nights, damaged relationships, lost opportunities. Make the human cost tangible.',
+  desperate: 'Write with a sense of urgency born from desperation. The consumer is at a breaking point and needs help now. Convey that this error is seriously affecting their daily life and financial survival.',
 };
 
-function buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone }) {
+const CFPB_GOAL_MAP = {
+  delete: 'The consumer\'s primary goal is complete deletion of the disputed item(s) from all credit bureaus. In the resolution section, demand full removal and cite the bureau\'s obligation to delete unverifiable or inaccurate information.',
+  correct: 'The consumer\'s primary goal is correction of inaccurate information on the credit report. In the resolution section, demand specific corrections and that the accurate information be reported to all bureaus.',
+};
+
+function buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone, complaintGoal }) {
   const toneInstruction = CFPB_TONE_MAP[tone] || CFPB_TONE_MAP.professional;
-  const system = `You are a consumer rights attorney specializing in FCRA and FDCPA violations. Write a formal CFPB complaint on behalf of the consumer. ${toneInstruction} Write in first person from the consumer's perspective. Always cite the applicable federal law by section number. Format your response with exactly two labeled sections: "WHAT HAPPENED:" followed by 2-3 detailed paragraphs, then "WHAT RESOLUTION I AM SEEKING:" followed by 1-2 paragraphs. Do not include any other sections, headers, or extra formatting.`;
+  const goalInstruction = CFPB_GOAL_MAP[complaintGoal] || '';
+  const system = `You are a consumer rights attorney specializing in FCRA and FDCPA violations. Write a formal CFPB complaint on behalf of the consumer. ${toneInstruction}${goalInstruction ? ' ' + goalInstruction : ''} Write in first person from the consumer's perspective. Always cite the applicable federal law by section number. Format your response with exactly two labeled sections: "WHAT HAPPENED:" followed by 2-3 detailed paragraphs, then "WHAT RESOLUTION I AM SEEKING:" followed by 1-2 paragraphs. Do not include any other sections, headers, or extra formatting.`;
   const parts = [
     `Consumer: ${consumerName}${consumerState ? ', ' + consumerState : ''}`,
     `Company being complained about: ${companyName}`,
     `Violation: ${violationDesc}`,
   ];
+  if (complaintGoal === 'delete') parts.push('Complaint goal: Complete deletion of the disputed item(s) from credit reports');
+  else if (complaintGoal === 'correct') parts.push('Complaint goal: Correction of inaccurate information on the credit report');
   if (itemsList && itemsList.length > 0) parts.push(`Account(s) / item(s) disputed: ${itemsList.join(', ')}`);
   if (disputeSentDate) parts.push(`Date dispute was sent: ${disputeSentDate}`);
   if (responseOutcome) parts.push(`Bureau/creditor response received: ${responseOutcome}`);
@@ -9682,7 +9711,7 @@ function parseCfpbOutput(rawText) {
 app.post("/api/consumers/:id/cfpb-complaint", authenticate, async (req, res) => {
   try {
     const consumerId = req.params.id;
-    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone, proofFiles, save: saveRecord } = req.body || {};
+    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone, complaintGoal, proofFiles, save: saveRecord } = req.body || {};
     if (!companyName) return res.status(400).json({ ok: false, error: "companyName is required" });
     const db = await loadDB(req);
     const consumer = db.consumers.find(c => c.id === consumerId);
@@ -9691,12 +9720,12 @@ app.post("/api/consumers/:id/cfpb-complaint", authenticate, async (req, res) => 
     const consumerState = consumer.state || consumer.address?.state || '';
     const violationDesc = CFPB_VIOLATION_LABELS[violationType] || otherViolationText || 'Violation of consumer credit reporting laws (FCRA)';
     const itemsList = Array.isArray(itemsDisputed) ? itemsDisputed.filter(Boolean) : (itemsDisputed ? [itemsDisputed] : []);
-    const { system, user } = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional' });
+    const { system, user } = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional', complaintGoal: complaintGoal || '' });
     const rawText = await callOpenAiText({ system, user });
     const { narrative, resolution } = parseCfpbOutput(rawText);
     if (saveRecord) {
       const complaintId = `cfpb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-      const eventPayload = { id: complaintId, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, tone: tone || 'professional', roundJobId: roundJobId || null, generatedAt: new Date().toISOString() };
+      const eventPayload = { id: complaintId, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, tone: tone || 'professional', complaintGoal: complaintGoal || '', roundJobId: roundJobId || null, generatedAt: new Date().toISOString() };
       if (Array.isArray(proofFiles) && proofFiles.length) eventPayload.proofFiles = proofFiles;
       await addEvent(consumerId, 'cfpb_complaint', eventPayload);
     }
@@ -10836,18 +10865,18 @@ async function loadDiyCfpbDB() {
 app.post('/api/diy/cfpb-complaint', diyAuthenticate, async (req, res) => {
   try {
     const user = req.diyUser;
-    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone, proofFiles, save: saveRecord } = req.body || {};
+    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone, complaintGoal, proofFiles, save: saveRecord } = req.body || {};
     if (!companyName) return res.status(400).json({ ok: false, error: 'companyName is required' });
     const consumerName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'the consumer';
     const consumerState = user.state || '';
     const violationDesc = CFPB_VIOLATION_LABELS[violationType] || otherViolationText || 'Violation of consumer credit reporting laws (FCRA)';
     const itemsList = Array.isArray(itemsDisputed) ? itemsDisputed.filter(Boolean) : (itemsDisputed ? [itemsDisputed] : []);
-    const { system, userPrompt: userMsg } = (() => { const p = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional' }); return { system: p.system, userPrompt: p.user }; })();
+    const { system, userPrompt: userMsg } = (() => { const p = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional', complaintGoal: complaintGoal || '' }); return { system: p.system, userPrompt: p.user }; })();
     const rawText = await callOpenAiText({ system, user: userMsg });
     const { narrative, resolution } = parseCfpbOutput(rawText);
     if (saveRecord) {
       const db = await loadDiyCfpbDB();
-      const entry = { id: `cfpb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, userId: user.id, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, tone: tone || 'professional', roundJobId: roundJobId || null, generatedAt: new Date().toISOString() };
+      const entry = { id: `cfpb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, userId: user.id, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, tone: tone || 'professional', complaintGoal: complaintGoal || '', roundJobId: roundJobId || null, generatedAt: new Date().toISOString() };
       if (Array.isArray(proofFiles) && proofFiles.length) entry.proofFiles = proofFiles;
       db.complaints.push(entry);
       await writeKey('diy_cfpb_complaints', db);
