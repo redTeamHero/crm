@@ -6,6 +6,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const origin = window.location.origin;
   let currentAvailableBalance = 0;
 
+  fetch('/api/affiliate/commission-rates')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok || !d.rates) return;
+      var r = d.rates;
+      var el;
+      el = document.getElementById('affRateDiyBasic'); if (el) el.textContent = '$' + r.diy_basic;
+      el = document.getElementById('affRateDiyPro'); if (el) el.textContent = '$' + r.diy_pro;
+      el = document.getElementById('affRateDiyTradeline'); if (el) el.textContent = (r.diy_tradeline < 1 ? Math.round(r.diy_tradeline * 100) : r.diy_tradeline) + '% commission';
+      el = document.getElementById('affRateCrmStarter'); if (el) el.textContent = '$' + r.crm_starter;
+      el = document.getElementById('affRateCrmBusiness'); if (el) el.textContent = '$' + r.crm_business;
+      el = document.getElementById('affRateCrmEnterprise'); if (el) el.textContent = '$' + r.crm_enterprise;
+    }).catch(function() {});
+
   async function loadAffiliate() {
     try {
       const res = await fetch('/api/affiliate/me', { headers });

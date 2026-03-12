@@ -11033,6 +11033,56 @@ app.patch('/api/admin/affiliates/:affId', authenticate, forbidMember, async (req
   }
 });
 
+app.get('/api/affiliate/commission-rates', async (req, res) => {
+  try {
+    const saved = await readKey('affiliate_commission_settings', null);
+    const rates = {
+      diy_basic: saved?.diy_basic ?? AFFILIATE_COMMISSIONS.diy_basic,
+      diy_pro: saved?.diy_pro ?? AFFILIATE_COMMISSIONS.diy_pro,
+      diy_tradeline: saved?.diy_tradeline ?? AFFILIATE_COMMISSIONS.diy_tradeline,
+      crm_starter: saved?.crm_starter ?? AFFILIATE_COMMISSIONS.crm_starter,
+      crm_business: saved?.crm_business ?? AFFILIATE_COMMISSIONS.crm_business,
+      crm_enterprise: saved?.crm_enterprise ?? AFFILIATE_COMMISSIONS.crm_enterprise,
+    };
+    res.json({ ok: true, rates });
+  } catch (err) {
+    logError('COMMISSION_RATES_GET_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to load commission rates' });
+  }
+});
+
+app.put('/api/affiliate/commission-rates', authenticate, forbidMember, async (req, res) => {
+  try {
+    const fields = ['diy_basic', 'diy_pro', 'diy_tradeline', 'crm_starter', 'crm_business', 'crm_enterprise'];
+    const update = {};
+    for (const f of fields) {
+      if (req.body[f] !== undefined) {
+        if (req.body[f] === '' || req.body[f] === null) continue;
+        const v = Number(req.body[f]);
+        if (!isFinite(v) || v < 0 || v > 99999) {
+          return res.status(400).json({ ok: false, error: 'Invalid value for ' + f });
+        }
+        update[f] = Math.round(v * 100) / 100;
+      }
+    }
+    const existing = await readKey('affiliate_commission_settings', {});
+    const merged = { ...existing, ...update };
+    await writeKey('affiliate_commission_settings', merged);
+    const rates = {
+      diy_basic: merged.diy_basic ?? AFFILIATE_COMMISSIONS.diy_basic,
+      diy_pro: merged.diy_pro ?? AFFILIATE_COMMISSIONS.diy_pro,
+      diy_tradeline: merged.diy_tradeline ?? AFFILIATE_COMMISSIONS.diy_tradeline,
+      crm_starter: merged.crm_starter ?? AFFILIATE_COMMISSIONS.crm_starter,
+      crm_business: merged.crm_business ?? AFFILIATE_COMMISSIONS.crm_business,
+      crm_enterprise: merged.crm_enterprise ?? AFFILIATE_COMMISSIONS.crm_enterprise,
+    };
+    res.json({ ok: true, rates });
+  } catch (err) {
+    logError('COMMISSION_RATES_PUT_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to save commission rates' });
+  }
+});
+
 registerStaticPage({ paths: "/affiliate", file: "affiliate.html", middlewares: [optionalAuth] });
 registerStaticPage({ paths: "/affiliates", file: "affiliates-admin.html", middlewares: [authenticate, forbidMember] });
 

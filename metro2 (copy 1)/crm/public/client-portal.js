@@ -3703,6 +3703,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     reloadPortalAff();
 
+    fetch('/api/affiliate/commission-rates')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (!d.ok || !d.rates) return;
+        var r = d.rates;
+        var el;
+        el = document.getElementById('portalRateDiyBasic'); if (el) el.textContent = '$' + r.diy_basic;
+        el = document.getElementById('portalRateDiyPro'); if (el) el.textContent = '$' + r.diy_pro;
+        el = document.getElementById('portalRateDiyTradeline'); if (el) el.textContent = (r.diy_tradeline < 1 ? Math.round(r.diy_tradeline * 100) : r.diy_tradeline) + '%';
+        el = document.getElementById('portalRateCrmStarter'); if (el) el.textContent = '$' + r.crm_starter;
+        el = document.getElementById('portalRateCrmBusiness'); if (el) el.textContent = '$' + r.crm_business;
+        el = document.getElementById('portalRateCrmEnterprise'); if (el) el.textContent = '$' + r.crm_enterprise;
+      }).catch(function() {});
+
     if (!portalAffJoinBound) {
       portalAffJoinBound = true;
       var joinBtn = document.getElementById('portalJoinAffiliate');

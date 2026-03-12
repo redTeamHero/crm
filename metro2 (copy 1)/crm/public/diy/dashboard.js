@@ -1236,6 +1236,20 @@
         if (data.ok && data.affiliate) renderDiyAffDashboard(data.affiliate, data.stats);
       }).catch(function() {});
 
+    fetch('/api/affiliate/commission-rates')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (!d.ok || !d.rates) return;
+        var r = d.rates;
+        var el;
+        el = document.getElementById('diyRateDiyBasic'); if (el) el.textContent = '$' + r.diy_basic;
+        el = document.getElementById('diyRateDiyPro'); if (el) el.textContent = '$' + r.diy_pro;
+        el = document.getElementById('diyRateDiyTradeline'); if (el) el.textContent = (r.diy_tradeline < 1 ? Math.round(r.diy_tradeline * 100) : r.diy_tradeline) + '%';
+        el = document.getElementById('diyRateCrmStarter'); if (el) el.textContent = '$' + r.crm_starter;
+        el = document.getElementById('diyRateCrmBusiness'); if (el) el.textContent = '$' + r.crm_business;
+        el = document.getElementById('diyRateCrmEnterprise'); if (el) el.textContent = '$' + r.crm_enterprise;
+      }).catch(function() {});
+
     var joinBtn = document.getElementById('diyJoinAffiliate');
     if (joinBtn) {
       joinBtn.addEventListener('click', function() {

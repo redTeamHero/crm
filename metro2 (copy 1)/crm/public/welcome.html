@@ -1779,15 +1779,15 @@
           <div class="space-y-3">
             <div class="flex justify-between items-center py-2 border-b border-white/10">
               <span class="text-violet-200">Basic Plan signup</span>
-              <span class="text-emerald-400 font-semibold">$10</span>
+              <span id="welRateDiyBasic" class="text-emerald-400 font-semibold">$10</span>
             </div>
             <div class="flex justify-between items-center py-2 border-b border-white/10">
               <span class="text-violet-200">Pro Plan signup</span>
-              <span class="text-emerald-400 font-semibold">$25</span>
+              <span id="welRateDiyPro" class="text-emerald-400 font-semibold">$25</span>
             </div>
             <div class="flex justify-between items-center py-2">
               <span class="text-violet-200">Tradeline purchase</span>
-              <span class="text-emerald-400 font-semibold">10% commission</span>
+              <span id="welRateDiyTradeline" class="text-emerald-400 font-semibold">10% commission</span>
             </div>
           </div>
         </div>
@@ -1797,15 +1797,15 @@
           <div class="space-y-3">
             <div class="flex justify-between items-center py-2 border-b border-white/10">
               <span class="text-violet-200">Starter Plan signup</span>
-              <span class="text-emerald-400 font-semibold">$25</span>
+              <span id="welRateCrmStarter" class="text-emerald-400 font-semibold">$25</span>
             </div>
             <div class="flex justify-between items-center py-2 border-b border-white/10">
               <span class="text-violet-200">Business Plan signup</span>
-              <span class="text-emerald-400 font-semibold">$50</span>
+              <span id="welRateCrmBusiness" class="text-emerald-400 font-semibold">$50</span>
             </div>
             <div class="flex justify-between items-center py-2">
               <span class="text-violet-200">Enterprise signup</span>
-              <span class="text-emerald-400 font-semibold">$100</span>
+              <span id="welRateCrmEnterprise" class="text-emerald-400 font-semibold">$100</span>
             </div>
           </div>
         </div>
@@ -1949,6 +1949,20 @@
     }
     window.addEventListener('scroll', checkScroll, { passive:true });
     checkScroll();
+  })();
+  (function(){
+    fetch('/api/affiliate/commission-rates')
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(!d.ok||!d.rates)return;
+        var r=d.rates,el;
+        el=document.getElementById('welRateDiyBasic');if(el)el.textContent='$'+r.diy_basic;
+        el=document.getElementById('welRateDiyPro');if(el)el.textContent='$'+r.diy_pro;
+        el=document.getElementById('welRateDiyTradeline');if(el)el.textContent=(r.diy_tradeline<1?Math.round(r.diy_tradeline*100):r.diy_tradeline)+'% commission';
+        el=document.getElementById('welRateCrmStarter');if(el)el.textContent='$'+r.crm_starter;
+        el=document.getElementById('welRateCrmBusiness');if(el)el.textContent='$'+r.crm_business;
+        el=document.getElementById('welRateCrmEnterprise');if(el)el.textContent='$'+r.crm_enterprise;
+      }).catch(function(){});
   })();
   </script>
 </body>
