@@ -1,11 +1,4 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const token = localStorage.getItem('token') || localStorage.getItem('auth');
-  if (!token) return;
-
-  const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
-  const origin = window.location.origin;
-  let currentAvailableBalance = 0;
-
   fetch('/api/affiliate/commission-rates')
     .then(function(r) { return r.json(); })
     .then(function(d) {
@@ -19,6 +12,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       el = document.getElementById('affRateCrmBusiness'); if (el) el.textContent = '$' + r.crm_business;
       el = document.getElementById('affRateCrmEnterprise'); if (el) el.textContent = '$' + r.crm_enterprise;
     }).catch(function() {});
+
+  const token = localStorage.getItem('token') || localStorage.getItem('auth');
+  if (!token) return;
+
+  const headers = { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+  const origin = window.location.origin;
+  let currentAvailableBalance = 0;
 
   async function loadAffiliate() {
     try {
