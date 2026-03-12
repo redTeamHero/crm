@@ -65,8 +65,19 @@ function renderStatusBar() {
     el.innerHTML = `<span style="color:#f87171;font-weight:600;">● Not Connected</span>`;
     statsEl.style.display = 'none';
   }
+  const redirectUri = `${window.location.origin}/api/social/auth/facebook/callback`;
   const hint = $('redirectUriHint');
-  if (hint) hint.textContent = `${window.location.origin}/api/social/auth/facebook/callback`;
+  if (hint) hint.textContent = redirectUri;
+  const copyBtn = $('copyUriBtn');
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(redirectUri);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.innerHTML = '<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy'; }, 2000);
+      } catch (_) {}
+    };
+  }
 }
 
 function renderConnectTab() {
