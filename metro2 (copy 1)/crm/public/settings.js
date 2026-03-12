@@ -81,6 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const gmailClientIdEl = document.getElementById('gmailClientId');
   const gmailClientSecretEl = document.getElementById('gmailClientSecret');
   const gmailRefreshTokenEl = document.getElementById('gmailRefreshToken');
+  const fbAppIdEl = document.getElementById('fbAppId');
+  const fbAppSecretEl = document.getElementById('fbAppSecret');
+  const fbRedirectUriEl = document.getElementById('fbRedirectUri');
   const envListEl = document.getElementById('envList');
   const addEnvBtn = document.getElementById('addEnvRow');
 
@@ -451,6 +454,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gmailClientIdEl) gmailClientIdEl.value = currentSettings.gmailClientId || '';
       if (gmailClientSecretEl) gmailClientSecretEl.value = currentSettings.gmailClientSecret || '';
       if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = currentSettings.gmailRefreshToken || '';
+      if (fbAppIdEl) fbAppIdEl.value = currentSettings.fbAppId || '';
+      if (fbAppSecretEl) fbAppSecretEl.value = currentSettings.fbAppSecret || '';
+      if (fbRedirectUriEl) fbRedirectUriEl.value = currentSettings.fbRedirectUri || '';
       renderEnvOverrides(currentSettings.envOverrides || {});
       applyPortalSettingsForm(currentSettings.clientPortal || {});
       applyHotkeySettings(currentSettings.hotkeys || {});
@@ -499,6 +505,9 @@ document.addEventListener('DOMContentLoaded', () => {
       gmailClientId: readSettingValue(gmailClientIdEl, 'gmailClientId'),
       gmailClientSecret: readSettingValue(gmailClientSecretEl, 'gmailClientSecret'),
       gmailRefreshToken: readSettingValue(gmailRefreshTokenEl, 'gmailRefreshToken'),
+      fbAppId: readSettingValue(fbAppIdEl, 'fbAppId'),
+      fbAppSecret: readSettingValue(fbAppSecretEl, 'fbAppSecret'),
+      fbRedirectUri: readSettingValue(fbRedirectUriEl, 'fbRedirectUri'),
       envOverrides: collectEnvOverrides(),
       clientPortal: hasPortalForm
         ? {
@@ -534,6 +543,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (gmailClientIdEl) gmailClientIdEl.value = currentSettings.gmailClientId || '';
       if (gmailClientSecretEl) gmailClientSecretEl.value = currentSettings.gmailClientSecret || '';
       if (gmailRefreshTokenEl) gmailRefreshTokenEl.value = currentSettings.gmailRefreshToken || '';
+      if (fbAppIdEl) fbAppIdEl.value = currentSettings.fbAppId || '';
+      if (fbAppSecretEl) fbAppSecretEl.value = currentSettings.fbAppSecret || '';
+      if (fbRedirectUriEl) fbRedirectUriEl.value = currentSettings.fbRedirectUri || '';
       renderEnvOverrides(currentSettings.envOverrides || {});
       applyPortalSettingsForm(currentSettings.clientPortal || {});
       applyHotkeySettings(currentSettings.hotkeys || {});

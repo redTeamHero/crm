@@ -139,6 +139,9 @@ const DEFAULT_SETTINGS = {
   gmailClientId: "",
   gmailClientSecret: "",
   gmailRefreshToken: "",
+  fbAppId: "",
+  fbAppSecret: "",
+  fbRedirectUri: "",
   envOverrides: {},
   clientPortal: cloneDefaultClientPortalSettings(),
   hotkeys: {},
@@ -158,7 +161,10 @@ const STRING_SETTING_KEYS = [
   "marketingApiKey",
   "gmailClientId",
   "gmailClientSecret",
-  "gmailRefreshToken"
+  "gmailRefreshToken",
+  "fbAppId",
+  "fbAppSecret",
+  "fbRedirectUri",
 ];
 
 const SECRET_SETTING_KEYS = new Set([
@@ -167,6 +173,7 @@ const SECRET_SETTING_KEYS = new Set([
   "googleCalendarToken",
   "gmailClientSecret",
   "gmailRefreshToken",
+  "fbAppSecret",
 ]);
 
 function maskSecrets(settings) {
@@ -263,6 +270,9 @@ const INTEGRATION_SETTING_TO_ENV = {
   gmailClientId: "GMAIL_CLIENT_ID",
   gmailClientSecret: "GMAIL_CLIENT_SECRET",
   gmailRefreshToken: "GMAIL_REFRESH_TOKEN",
+  fbAppId: "FB_APP_ID",
+  fbAppSecret: "FB_APP_SECRET",
+  fbRedirectUri: "FB_REDIRECT_URI",
 };
 
 function normalizeEnvOverrides(raw){
@@ -11963,10 +11973,14 @@ app.get('/affiliates', (req, res) => res.redirect('/affiliate'));
 let RssParser;
 try { RssParser = require('rss-parser'); } catch (_) { RssParser = null; }
 
-const FB_APP_ID     = (process.env.FB_APP_ID || '').trim();
-const FB_APP_SECRET = (process.env.FB_APP_SECRET || '').trim();
-const FB_REDIRECT_URI = (process.env.FB_REDIRECT_URI || `${process.env.PUBLIC_BASE_URL || ''}/api/social/auth/facebook/callback`).trim();
 const FB_API = 'https://graph.facebook.com/v20.0';
+function getFbConfig() {
+  return {
+    appId:       (process.env.FB_APP_ID      || '').trim(),
+    appSecret:   (process.env.FB_APP_SECRET  || '').trim(),
+    redirectUri: (process.env.FB_REDIRECT_URI || `${process.env.PUBLIC_BASE_URL || ''}/api/social/auth/facebook/callback`).trim(),
+  };
+}
 
 async function loadSocialDB() {
   const db = await readKey('social_media_db', null);
@@ -12017,7 +12031,8 @@ registerStaticPage({ paths: '/social', file: 'facebook-manager.html', middleware
 app.get('/api/social/status', authenticate, async (req, res) => {
   try {
     const db = await loadSocialDB();
-    const fbConfigured = !!(FB_APP_ID && FB_APP_SECRET);
+    const { appId, appSecret } = getFbConfig();
+    const fbConfigured = !!(appId && appSecret);
     const connection = db.connection || null;
     const scheduledCount = (db.queue || []).filter(p => p.status === 'scheduled').length;
     const publishedCount = (db.queue || []).filter(p => p.status === 'published').length;
@@ -12028,10 +12043,11 @@ app.get('/api/social/status', authenticate, async (req, res) => {
 });
 
 app.get('/api/social/auth/facebook', authenticate, (req, res) => {
-  if (!FB_APP_ID) return res.status(400).json({ ok: false, error: 'FB_APP_ID is not configured. Add it in Settings > APIs.' });
+  const { appId, redirectUri } = getFbConfig();
+  if (!appId) return res.status(400).json({ ok: false, error: 'FB_APP_ID is not configured. Add it in Settings → Social Media / API.' });
   const params = new URLSearchParams({
-    client_id: FB_APP_ID,
-    redirect_uri: FB_REDIRECT_URI,
+    client_id: appId,
+    redirect_uri: redirectUri,
     scope: 'pages_manage_posts,pages_read_engagement,pages_show_list,publish_to_groups',
     response_type: 'code',
     state: nanoid(16),
@@ -12041,13 +12057,14 @@ app.get('/api/social/auth/facebook', authenticate, (req, res) => {
 
 app.get('/api/social/auth/facebook/callback', authenticate, async (req, res) => {
   try {
-    if (!FB_APP_ID || !FB_APP_SECRET) return res.redirect('/social?error=fb_not_configured');
+    const { appId, appSecret, redirectUri } = getFbConfig();
+    if (!appId || !appSecret) return res.redirect('/social?error=fb_not_configured');
     const { code } = req.query;
     if (!code) return res.redirect('/social?error=fb_no_code');
-    const tokenRes = await fetch(`${FB_API}/oauth/access_token?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(FB_REDIRECT_URI)}&client_secret=${FB_APP_SECRET}&code=${code}`);
+    const tokenRes = await fetch(`${FB_API}/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`);
     const tokenData = await tokenRes.json();
     if (!tokenData.access_token) return res.redirect('/social?error=fb_token_failed');
-    const longTokenRes = await fetch(`${FB_API}/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`);
+    const longTokenRes = await fetch(`${FB_API}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenData.access_token}`);
     const longToken = await longTokenRes.json();
     const userToken = longToken.access_token || tokenData.access_token;
     const pagesData = await fbGraphGet('/me/accounts', {}, userToken);

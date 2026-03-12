@@ -357,6 +357,33 @@
             </div>
           </div>
         </div>
+
+        <div class="api-card md:col-span-2">
+          <div class="api-card-header">
+            <div class="api-card-icon" style="background:rgba(24,119,242,0.12)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1877f2" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </div>
+            <div>
+              <div class="api-card-title">Facebook / Meta API</div>
+              <div class="api-card-desc">Publish posts to your Facebook Business Page via Social Media Manager</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="input-row">
+              <label>App ID</label>
+              <input id="fbAppId" placeholder="Meta App ID" autocomplete="off" />
+            </div>
+            <div class="input-row">
+              <label>App Secret</label>
+              <input id="fbAppSecret" type="password" placeholder="Meta App Secret" autocomplete="new-password" />
+            </div>
+            <div class="input-row sm:col-span-2">
+              <label>OAuth Redirect URI <span style="color:#6b7280;font-weight:400;">(leave blank to use default)</span></label>
+              <input id="fbRedirectUri" placeholder="https://yourdomain.com/api/social/auth/facebook/callback" />
+            </div>
+          </div>
+          <p class="text-xs mt-3" style="color:#6b7280;line-height:1.6;">Get these from <a href="https://developers.facebook.com/apps/" target="_blank" style="color:#818cf8;text-decoration:underline;">Meta for Developers</a>. After saving, go to <a href="/social" style="color:#818cf8;text-decoration:underline;">Social Media Manager</a> to connect your page.</p>
+        </div>
       </div>
 
       <div class="mt-6 flex items-center justify-end">
