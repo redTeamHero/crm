@@ -1092,6 +1092,103 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initTradelineStorefront(id){
     if (!tradelineSection) return;
+
+    (async function loadRecommendations() {
+      try {
+        const res = await fetch(`/api/consumers/${id}/tradeline-recommendations`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.ok || !data.recommendations || data.recommendations.length === 0) return;
+
+        const recSection = document.getElementById('tradelineRecommendations');
+        const recCards = document.getElementById('tradelineRecCards');
+        const recReason = document.getElementById('tradelineRecReason');
+        if (!recSection || !recCards) return;
+
+        const weaknessLabels = {
+          high_utilization: 'Your credit utilization appears high. These tradelines add high-limit accounts to bring it down.',
+          low_age: 'Your average account age is short. These seasoned tradelines add years of positive history.',
+          low_score: 'Based on your current score range, these tradelines offer the strongest combination of age and credit limit.',
+          low_mix: 'Your credit mix could benefit from more revolving accounts. These tradelines diversify your profile.',
+          general: 'Based on your credit profile, these tradelines offer the best overall impact.',
+        };
+        if (recReason && data.primaryWeakness) {
+          recReason.textContent = weaknessLabels[data.primaryWeakness] || weaknessLabels.general;
+        }
+
+        recCards.innerHTML = '';
+        data.recommendations.forEach(rec => {
+          const card = document.createElement('div');
+          card.className = 'rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm';
+
+          const bankEl = document.createElement('div');
+          bankEl.className = 'text-sm font-semibold';
+          bankEl.textContent = rec.bank || 'Tradeline';
+
+          const meta = document.createElement('div');
+          meta.className = 'text-xs text-slate-500';
+          meta.textContent = formatTradelineMeta(rec);
+
+          const price = document.createElement('div');
+          price.className = 'text-sm font-semibold text-emerald-600';
+          price.textContent = formatCurrency(rec.price);
+
+          const reason = document.createElement('div');
+          reason.className = 'text-xs text-blue-600 mt-1 italic';
+          reason.textContent = rec.reason || '';
+
+          const actions = document.createElement('div');
+          actions.className = 'mt-2 flex flex-wrap gap-2';
+
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.className = 'btn text-xs';
+          addBtn.textContent = 'Add to cart';
+          addBtn.addEventListener('click', () => {
+            const idValue = buildTradelineId(rec);
+            const existing = cartState.items.find(entry => entry.id === idValue);
+            if (existing) {
+              existing.qty += 1;
+            } else {
+              cartState.items.push({
+                id: idValue,
+                bank: rec.bank || '',
+                price: rec.price,
+                limit: rec.limit,
+                age: rec.age,
+                statement_date: rec.statement_date,
+                reporting: rec.reporting,
+                buy_link: rec.buy_link,
+                qty: 1,
+              });
+            }
+            saveCart(id, cartState.items);
+            renderCart();
+          });
+
+          const checkout = document.createElement('a');
+          checkout.className = 'btn text-xs';
+          checkout.textContent = 'View checkout';
+          checkout.target = '_blank';
+          checkout.rel = 'noreferrer';
+          checkout.href = rec.buy_link || '#';
+          if (!rec.buy_link) checkout.classList.add('opacity-50', 'pointer-events-none');
+
+          actions.appendChild(addBtn);
+          actions.appendChild(checkout);
+
+          card.appendChild(bankEl);
+          card.appendChild(meta);
+          card.appendChild(price);
+          card.appendChild(reason);
+          card.appendChild(actions);
+          recCards.appendChild(card);
+        });
+
+        recSection.classList.remove('hidden');
+      } catch (e) {}
+    })();
+
     const cartState = { items: loadCart(id) };
     const tradelineState = {
       ranges: [],

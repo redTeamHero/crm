@@ -2191,6 +2191,204 @@ app.get("/api/tradelines", async (req, res) => {
   }
 });
 
+app.get("/api/consumers/:id/tradeline-recommendations", async (req, res) => {
+  try {
+    const consumerId = req.params.id;
+    const db = await loadDB(req);
+    const consumer = db.consumers.find(c => c.id === consumerId);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+
+    const latestReport = consumer.reports?.[0];
+    const creditScore = consumer.creditScore;
+    let avgScore = null;
+    if (creditScore) {
+      const scores = [creditScore.current, creditScore.transunion, creditScore.experian, creditScore.equifax]
+        .map(Number).filter(v => Number.isFinite(v) && v > 0);
+      if (scores.length) avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    }
+
+    let avgAccountAgeMonths = null;
+    let estimatedUtilization = null;
+    let hasRevolvingAccounts = true;
+    let reportTradelines = [];
+
+    if (latestReport?.data?.tradelines && Array.isArray(latestReport.data.tradelines)) {
+      reportTradelines = latestReport.data.tradelines;
+    } else if (latestReport?.data && Array.isArray(latestReport.data) && latestReport.data.length > 0 && latestReport.data[0]?.byBureau) {
+      reportTradelines = latestReport.data;
+    }
+
+    if (reportTradelines.length > 0) {
+      const now = new Date();
+      const ages = [];
+      let totalBalance = 0;
+      let totalLimit = 0;
+      let revolvingCount = 0;
+
+      for (const tl of reportTradelines) {
+        const bureaus = tl.byBureau || tl.per_bureau || {};
+        for (const bureau of Object.values(bureaus)) {
+          if (!bureau || typeof bureau !== 'object') continue;
+          if (bureau.present === false) continue;
+
+          const dateOpened = bureau.dateOpened || bureau.date_opened;
+          if (dateOpened) {
+            try {
+              const openDate = new Date(dateOpened);
+              if (!isNaN(openDate.getTime())) {
+                const monthsDiff = (now.getFullYear() - openDate.getFullYear()) * 12 + (now.getMonth() - openDate.getMonth());
+                if (monthsDiff > 0) ages.push(monthsDiff);
+              }
+            } catch {}
+          }
+
+          const bal = Number(bureau.balance ?? bureau.balance_raw ?? 0);
+          const lim = Number(bureau.creditLimit ?? bureau.credit_limit ?? bureau.highCredit ?? bureau.high_credit ?? 0);
+          if (Number.isFinite(bal) && bal >= 0) totalBalance += bal;
+          if (Number.isFinite(lim) && lim > 0) totalLimit += lim;
+
+          const acctType = String(bureau.accountType || bureau.account_type || tl?.meta?.accountType || '').toLowerCase();
+          if (acctType.includes('revolv') || acctType.includes('credit card') || acctType.includes('charge')) {
+            revolvingCount++;
+          }
+          break;
+        }
+      }
+
+      if (ages.length > 0) {
+        avgAccountAgeMonths = Math.round(ages.reduce((a, b) => a + b, 0) / ages.length);
+      }
+      if (totalLimit > 0) {
+        estimatedUtilization = Math.round((totalBalance / totalLimit) * 100);
+      }
+      hasRevolvingAccounts = revolvingCount >= 2;
+    }
+
+    const hasProfileData = avgScore != null || avgAccountAgeMonths != null || estimatedUtilization != null;
+    if (!hasProfileData) {
+      return res.json({ ok: true, recommendations: [], profile: null, reason: "Insufficient credit profile data" });
+    }
+
+    const profile = {
+      score: avgScore,
+      avgAccountAgeMonths,
+      estimatedUtilization,
+      hasRevolvingAccounts,
+    };
+
+    let weaknesses = [];
+    if (estimatedUtilization != null && estimatedUtilization > 30) {
+      weaknesses.push({ type: 'high_utilization', severity: estimatedUtilization > 50 ? 3 : 2 });
+    }
+    if (avgAccountAgeMonths != null && avgAccountAgeMonths < 36) {
+      weaknesses.push({ type: 'low_age', severity: avgAccountAgeMonths < 12 ? 3 : 2 });
+    }
+    if (!hasRevolvingAccounts) {
+      weaknesses.push({ type: 'low_mix', severity: 1 });
+    }
+    if (avgScore != null && avgScore < 650) {
+      weaknesses.push({ type: 'low_score', severity: avgScore < 580 ? 3 : 2 });
+    }
+
+    if (weaknesses.length === 0) {
+      weaknesses.push({ type: 'general', severity: 1 });
+    }
+
+    weaknesses.sort((a, b) => b.severity - a.severity);
+    const primaryWeakness = weaknesses[0].type;
+
+    const scrapeImpl = req.app.get("scrapeTradelinesOverride") || scrapeTradelines;
+    const allTradelines = await scrapeImpl(fetchFn);
+
+    if (!allTradelines || allTradelines.length === 0) {
+      return res.json({ ok: true, recommendations: [], profile, reason: "No tradelines available" });
+    }
+
+    function parseAgeToMonths(ageStr) {
+      if (!ageStr) return 0;
+      const match = String(ageStr).match(/(\d{4})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
+      if (!match) return 0;
+      const year = parseInt(match[1], 10);
+      const monthMap = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+      const month = monthMap[match[2].toLowerCase()] ?? 0;
+      const opened = new Date(year, month, 1);
+      const now = new Date();
+      return Math.max(0, (now.getFullYear() - opened.getFullYear()) * 12 + (now.getMonth() - opened.getMonth()));
+    }
+
+    function parseLimitValue(limitVal) {
+      if (typeof limitVal === 'number') return limitVal;
+      if (!limitVal) return 0;
+      const cleaned = String(limitVal).replace(/[^0-9.]/g, '');
+      return parseFloat(cleaned) || 0;
+    }
+
+    const scored = allTradelines.map(tl => {
+      const ageMonths = parseAgeToMonths(tl.age);
+      const limit = parseLimitValue(tl.limit);
+      const price = typeof tl.price === 'number' ? tl.price : 0;
+      let score = 0;
+      let reason = '';
+
+      if (primaryWeakness === 'high_utilization' || primaryWeakness === 'low_score') {
+        score += Math.min(limit / 1000, 30);
+        score += Math.min(ageMonths / 12, 10);
+        if (limit >= 15000) {
+          reason = `This ${tl.bank || 'account'} has a $${limit.toLocaleString()} limit that can help lower your overall credit utilization.`;
+        } else {
+          reason = `This ${tl.bank || 'account'} adds a $${limit.toLocaleString()} limit and ${Math.floor(ageMonths / 12)}+ years of history to your profile.`;
+        }
+      } else if (primaryWeakness === 'low_age') {
+        score += Math.min(ageMonths / 6, 30);
+        score += Math.min(limit / 5000, 10);
+        const years = Math.floor(ageMonths / 12);
+        reason = `This ${tl.bank || 'account'} opened in ${tl.age || 'N/A'} adds ${years} year${years !== 1 ? 's' : ''} of seasoned history to raise your average account age.`;
+      } else if (primaryWeakness === 'low_mix') {
+        score += 10;
+        score += Math.min(ageMonths / 12, 15);
+        score += Math.min(limit / 5000, 10);
+        reason = `Adding this ${tl.bank || ''} revolving account diversifies your credit mix and adds positive payment history.`;
+      } else {
+        score += Math.min(ageMonths / 12, 15);
+        score += Math.min(limit / 5000, 15);
+        reason = `This ${tl.bank || 'account'} with a $${limit.toLocaleString()} limit and ${Math.floor(ageMonths / 12)}+ years of history strengthens your credit profile.`;
+      }
+
+      if (Number.isFinite(price) && price > 0) {
+        if (price < 600) score += 3;
+        else if (price <= 800) score += 1;
+      }
+
+      return { ...tl, _score: score, reason, _ageMonths: ageMonths, _limit: limit };
+    });
+
+    scored.sort((a, b) => b._score - a._score);
+
+    const seen = new Set();
+    const recommendations = [];
+    for (const item of scored) {
+      const key = `${item.bank}-${item._limit}-${item._ageMonths}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      recommendations.push({
+        bank: item.bank,
+        price: item.price,
+        limit: item.limit,
+        age: item.age,
+        statement_date: item.statement_date,
+        reporting: item.reporting,
+        buy_link: item.buy_link,
+        reason: item.reason,
+      });
+      if (recommendations.length >= 3) break;
+    }
+
+    res.json({ ok: true, recommendations, profile, primaryWeakness });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.post("/api/calendar/freebusy", async (req, res) => {
   try {
     const { timeMin, timeMax } = req.body || {};
