@@ -232,6 +232,9 @@
   var diyCfpbLastResult = null;
   var diyCfpbLastPayload = null;
 
+  var diyProofFiles = [];
+  var diyUploadedProofKeys = [];
+
   async function loadCfpbHistory() {
     try {
       var res = await fetch('/api/diy/cfpb-complaints', { headers: { 'Authorization': 'Bearer ' + token } });
@@ -246,6 +249,10 @@
         var dateStr = c.generatedAt ? new Date(c.generatedAt).toLocaleDateString() : '';
         var vLabels = { no_response_30: '30-Day No Response', verified_inaccurate: 'Verified Inaccurate', reaged: 'Re-Aged Debt', continued_after_paid: 'Continued After Paid', not_mine: 'Not Mine / Identity Theft', other: 'Other' };
         var vLabel = vLabels[c.violationType] || c.violationType || '';
+        var proofHtml = '';
+        if (Array.isArray(c.proofFiles) && c.proofFiles.length) {
+          proofHtml = '<div style="margin-top:6px;font-size:11px;color:#818cf8;">Proof: ' + c.proofFiles.map(function(f) { return '<a href="/api/diy/cfpb-proof/' + encodeURIComponent(f.key) + '" target="_blank" style="color:#818cf8;text-decoration:underline;margin-right:6px;">' + esc(f.name) + '</a>'; }).join('') + '</div>';
+        }
         return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;margin-bottom:8px;">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
           '<strong style="font-size:13px;color:var(--diy-text);">' + esc(c.companyName || '') + '</strong>' +
@@ -255,9 +262,80 @@
           '<details style="font-size:12px;"><summary style="cursor:pointer;color:#6b7280;">Show complaint</summary>' +
           '<div style="margin-top:6px;white-space:pre-wrap;color:var(--diy-text);line-height:1.6;">' + esc(c.narrative || '') + '</div>' +
           (c.resolution ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.07);white-space:pre-wrap;color:var(--diy-text);line-height:1.6;">' + esc(c.resolution) + '</div>' : '') +
-          '</details></div>';
+          '</details>' + proofHtml + '</div>';
       }).join('');
     } catch (e) { console.error('CFPB history load error:', e); }
+  }
+
+  async function loadDiyNegativeItems() {
+    var panel = document.getElementById('diyItemsCheckboxes');
+    var controls = document.getElementById('diyItemsControls');
+    var loading = document.getElementById('diyItemsLoading');
+    if (!panel) return;
+    panel.innerHTML = '';
+    try {
+      var res = await fetch('/api/diy/negative-items', { headers: { 'Authorization': 'Bearer ' + token } });
+      var data = await res.json();
+      var items = (data.items || []);
+      if (!items.length) {
+        loading.textContent = 'No negative items found. Use the custom field below.';
+        loading.style.display = 'block';
+        if (controls) controls.style.display = 'flex';
+        panel.style.display = 'none';
+        return;
+      }
+      loading.style.display = 'none';
+      panel.style.display = 'block';
+      if (controls) controls.style.display = 'flex';
+      panel.innerHTML = items.map(function(item, idx) {
+        var label = esc(item.name) + (item.accountNumber ? ' #' + esc(item.accountNumber) : '') + (item.bureaus && item.bureaus.length ? ' (' + esc(item.bureaus.join(', ')) + ')' : '');
+        return '<label style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;cursor:pointer;color:var(--diy-text);">' +
+          '<input type="checkbox" class="diy-item-cb" value="' + esc(item.name) + (item.accountNumber ? ' #' + esc(item.accountNumber) : '') + '"> ' + label + '</label>';
+      }).join('');
+    } catch (e) {
+      loading.textContent = 'Failed to load items. Use the custom field below.';
+      loading.style.display = 'block';
+      if (controls) controls.style.display = 'flex';
+    }
+  }
+
+  function getDiySelectedItems() {
+    var cbs = document.querySelectorAll('.diy-item-cb:checked');
+    return Array.from(cbs).map(function(cb) { return cb.value; });
+  }
+
+  function getDiyResponseValue() {
+    var sel = document.getElementById('diyResponse');
+    if (!sel) return '';
+    if (sel.value === 'other') return (document.getElementById('diyResponseOther') || {}).value || '';
+    return sel.value;
+  }
+
+  function renderDiyProofList() {
+    var list = document.getElementById('diyProofList');
+    if (!list) return;
+    if (!diyProofFiles.length) { list.innerHTML = ''; return; }
+    list.innerHTML = diyProofFiles.map(function(f, i) {
+      return '<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px;">' +
+        '<span style="color:var(--diy-text);">' + esc(f.name) + '</span>' +
+        '<span style="color:#6b7280;font-size:10px;">(' + (f.size / 1024).toFixed(1) + ' KB)</span>' +
+        '<button type="button" data-diy-pidx="' + i + '" class="rm-diy-proof" style="color:#f87171;background:none;border:none;cursor:pointer;font-size:11px;">Remove</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  async function uploadDiyProofFiles() {
+    if (!diyProofFiles.length) return [];
+    var formData = new FormData();
+    diyProofFiles.forEach(function(f) { formData.append('files', f); });
+    var res = await fetch('/api/diy/cfpb-proof', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData,
+    });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Upload failed');
+    return data.files || [];
   }
 
   (function initDiyCfpb() {
@@ -266,6 +344,68 @@
     if (violationSelect && otherBox) {
       violationSelect.addEventListener('change', function() {
         otherBox.style.display = violationSelect.value === 'other' ? 'block' : 'none';
+      });
+    }
+
+    var responseSelect = document.getElementById('diyResponse');
+    var responseOther = document.getElementById('diyResponseOther');
+    if (responseSelect && responseOther) {
+      responseSelect.addEventListener('change', function() {
+        responseOther.style.display = responseSelect.value === 'other' ? 'block' : 'none';
+      });
+    }
+
+    var selectAll = document.getElementById('diySelectAll');
+    if (selectAll) {
+      selectAll.addEventListener('change', function() {
+        document.querySelectorAll('.diy-item-cb').forEach(function(cb) { cb.checked = selectAll.checked; });
+      });
+    }
+
+    var addCustomBtn = document.getElementById('btnDiyAddCustomItem');
+    if (addCustomBtn) {
+      addCustomBtn.addEventListener('click', function() {
+        var input = document.getElementById('diyCustomItem');
+        var val = (input || {}).value;
+        if (!val || !val.trim()) return;
+        val = val.trim();
+        var panel = document.getElementById('diyItemsCheckboxes');
+        if (!panel) return;
+        panel.style.display = 'block';
+        var label = document.createElement('label');
+        label.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;cursor:pointer;color:var(--diy-text);';
+        label.innerHTML = '<input type="checkbox" class="diy-item-cb" value="' + esc(val) + '" checked> ' + esc(val) + ' <span style="color:#10b981;font-size:10px;">(custom)</span>';
+        panel.appendChild(label);
+        input.value = '';
+      });
+    }
+
+    var proofArea = document.getElementById('diyProofArea');
+    var proofInput = document.getElementById('diyProofInput');
+    if (proofArea && proofInput) {
+      proofArea.addEventListener('click', function() { proofInput.click(); });
+      proofInput.addEventListener('change', function(e) {
+        var allowed = ['.pdf', '.png', '.jpg', '.jpeg'];
+        for (var i = 0; i < e.target.files.length; i++) {
+          if (diyProofFiles.length >= 5) break;
+          var f = e.target.files[i];
+          var ext = '.' + f.name.split('.').pop().toLowerCase();
+          if (allowed.indexOf(ext) === -1 || f.size > 10 * 1024 * 1024) continue;
+          diyProofFiles.push(f);
+        }
+        e.target.value = '';
+        diyUploadedProofKeys = [];
+        renderDiyProofList();
+      });
+    }
+    var proofList = document.getElementById('diyProofList');
+    if (proofList) {
+      proofList.addEventListener('click', function(e) {
+        var btn = e.target.closest('.rm-diy-proof');
+        if (!btn) return;
+        diyProofFiles.splice(parseInt(btn.dataset.diyPidx, 10), 1);
+        diyUploadedProofKeys = [];
+        renderDiyProofList();
       });
     }
 
@@ -281,23 +421,23 @@
         if (!vtype) { errEl.textContent = 'Please select a violation type.'; errEl.style.display = 'block'; return; }
         if (vtype === 'other' && !otherText.trim()) { errEl.textContent = 'Please describe the violation.'; errEl.style.display = 'block'; return; }
         errEl.style.display = 'none';
-        var itemsRaw = (document.getElementById('diyItems') || {}).value || '';
-        var itemsDisputed = itemsRaw.trim() ? itemsRaw.trim().split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+        var itemsDisputed = getDiySelectedItems();
         var sentDate = (document.getElementById('diySentDate') || {}).value || '';
-        var response = ((document.getElementById('diyResponse') || {}).value || '').trim();
+        var response = getDiyResponseValue();
         var notes = ((document.getElementById('diyNotes') || {}).value || '').trim();
+        var tone = (document.getElementById('diyTone') || {}).value || 'professional';
         var origText = genBtn.textContent;
         genBtn.disabled = true; genBtn.textContent = 'Generating…';
         try {
           var res = await fetch('/api/diy/cfpb-complaint', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes, save: false })
+            body: JSON.stringify({ companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes, tone: tone, save: false })
           });
           var data = await res.json();
           if (!data.ok) throw new Error(data.error || 'Generation failed');
           diyCfpbLastResult = { narrative: data.narrative, resolution: data.resolution };
-          diyCfpbLastPayload = { companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes };
+          diyCfpbLastPayload = { companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes, tone: tone };
           var narEl = document.getElementById('diyCfpbNarrative');
           var resEl = document.getElementById('diyCfpbResolution');
           var resultSection = document.getElementById('diyCfpbResult');
@@ -329,10 +469,15 @@
         if (!diyCfpbLastPayload || !diyCfpbLastResult) return;
         saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
         try {
+          var savedProofFiles = diyUploadedProofKeys;
+          if (diyProofFiles.length && !diyUploadedProofKeys.length) {
+            savedProofFiles = await uploadDiyProofFiles();
+            diyUploadedProofKeys = savedProofFiles;
+          }
           var res = await fetch('/api/diy/cfpb-complaint', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify(Object.assign({}, diyCfpbLastPayload, { save: true }))
+            body: JSON.stringify(Object.assign({}, diyCfpbLastPayload, { proofFiles: savedProofFiles, save: true }))
           });
           var data = await res.json();
           if (!data.ok) throw new Error(data.error || 'Save failed');
@@ -343,6 +488,8 @@
         finally { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
       });
     }
+
+    loadDiyNegativeItems();
   })();
 
   async function loadCompanyMatch() {

@@ -34,7 +34,6 @@
       </div>
     </section>
 
-    <!-- Consumer selector -->
     <section class="glass card p-6 space-y-4">
       <div>
         <label class="block text-sm font-medium mb-1" for="consumerSelect">Select Client</label>
@@ -44,7 +43,6 @@
       </div>
     </section>
 
-    <!-- Generator form -->
     <section id="cfpbFormSection" class="glass card p-6 space-y-5" style="display:none;">
       <h2 class="text-lg font-semibold" style="margin-bottom:4px;">Generate Complaint</h2>
       <p style="font-size:13px;color:var(--text-sub,#9ca3af);margin-top:0;">Fill in the details below. The AI will draft a formal CFPB complaint using FCRA-specific language.</p>
@@ -75,7 +73,29 @@
 
         <div>
           <label class="block text-sm font-medium mb-1">Account(s) / Item(s) Disputed</label>
-          <input type="text" id="cfpbItems" class="input-field w-full" placeholder="e.g. Capital One #1234, Medical Collection $780 — separate multiple with commas">
+          <div id="cfpbItemsPanel" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+            <div id="cfpbItemsLoading" style="font-size:12px;color:#9ca3af;">Select a client to load negative items…</div>
+            <div id="cfpbItemsCheckboxes" style="display:none;max-height:180px;overflow-y:auto;"></div>
+            <div id="cfpbItemsControls" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <label style="font-size:12px;color:#818cf8;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                <input type="checkbox" id="cfpbSelectAll"> Select All
+              </label>
+              <div style="flex:1;"></div>
+              <input type="text" id="cfpbCustomItem" class="input-field" placeholder="Add custom item…" style="font-size:12px;padding:4px 8px;max-width:220px;">
+              <button type="button" id="btnAddCustomItem" style="font-size:11px;padding:3px 10px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#818cf8;border-radius:6px;cursor:pointer;font-weight:600;">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Tone</label>
+          <select id="cfpbTone" class="input-field w-full">
+            <option value="professional">Professional</option>
+            <option value="firm_assertive">Firm & Assertive</option>
+            <option value="urgent">Urgent</option>
+            <option value="legal_formal">Legal Formal</option>
+            <option value="strong_aggressive">Strong & Aggressive</option>
+          </select>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
@@ -85,13 +105,33 @@
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Response Received</label>
-            <input type="text" id="cfpbResponse" class="input-field w-full" placeholder="e.g. Verified as accurate, No response, Deleted…">
+            <select id="cfpbResponse" class="input-field w-full">
+              <option value="">-- Select --</option>
+              <option value="No Response">No Response</option>
+              <option value="Verified as Accurate">Verified as Accurate</option>
+              <option value="Deleted">Deleted</option>
+              <option value="Updated/Partially Corrected">Updated/Partially Corrected</option>
+              <option value="Account Closed">Account Closed</option>
+              <option value="Paid/Settled">Paid/Settled</option>
+              <option value="Transferred">Transferred</option>
+              <option value="other">Other</option>
+            </select>
+            <input type="text" id="cfpbResponseOther" class="input-field w-full" placeholder="Describe the response…" style="display:none;margin-top:6px;">
           </div>
         </div>
 
         <div>
           <label class="block text-sm font-medium mb-1">Additional Notes</label>
           <textarea id="cfpbNotes" class="input-field w-full" rows="3" placeholder="Any other context, timelines, or supporting details…"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Attach Proof Documents</label>
+          <div id="cfpbProofArea" style="background:rgba(255,255,255,0.03);border:2px dashed rgba(255,255,255,0.12);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.2s;">
+            <input type="file" id="cfpbProofInput" multiple accept=".pdf,.png,.jpg,.jpeg" style="display:none;">
+            <div style="font-size:13px;color:#9ca3af;">Click or drag files here (PDF, PNG, JPG — max 10 MB each, up to 5 files)</div>
+          </div>
+          <div id="cfpbProofList" style="margin-top:8px;"></div>
         </div>
 
         <div id="cfpbGenError" class="text-red-400 text-sm" style="display:none;"></div>
@@ -102,7 +142,6 @@
       </div>
     </section>
 
-    <!-- Results -->
     <section id="cfpbResultSection" class="glass card p-6 space-y-5" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
         <h2 class="text-lg font-semibold">Generated Complaint</h2>
@@ -125,7 +164,6 @@
       <div id="cfpbSaveMsg" style="font-size:13px;color:#10b981;display:none;">Saved to client record.</div>
     </section>
 
-    <!-- Saved complaints -->
     <section id="cfpbHistorySection" class="glass card p-6" style="display:none;">
       <h2 class="text-lg font-semibold mb-4">Saved Complaints</h2>
       <div id="cfpbHistoryList"></div>

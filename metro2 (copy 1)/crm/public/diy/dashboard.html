@@ -513,7 +513,26 @@
             </div>
             <div>
               <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Account(s) / Item(s) Disputed</label>
-              <input type="text" id="diyItems" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;" placeholder="e.g. Capital One #1234, Medical Collection — separate with commas">
+              <div id="diyItemsPanel" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;">
+                <div id="diyItemsLoading" style="font-size:12px;color:var(--diy-text-sub);">Loading negative items…</div>
+                <div id="diyItemsCheckboxes" style="display:none;max-height:160px;overflow-y:auto;"></div>
+                <div id="diyItemsControls" style="display:none;margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <label style="font-size:11px;color:#818cf8;cursor:pointer;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="diySelectAll"> Select All</label>
+                  <div style="flex:1;"></div>
+                  <input type="text" id="diyCustomItem" placeholder="Add custom item…" style="font-size:11px;padding:4px 6px;max-width:180px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--diy-text);outline:none;">
+                  <button type="button" id="btnDiyAddCustomItem" style="font-size:10px;padding:2px 8px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#818cf8;border-radius:5px;cursor:pointer;font-weight:600;">Add</button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Tone</label>
+              <select id="diyTone" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
+                <option value="professional">Professional</option>
+                <option value="firm_assertive">Firm & Assertive</option>
+                <option value="urgent">Urgent</option>
+                <option value="legal_formal">Legal Formal</option>
+                <option value="strong_aggressive">Strong & Aggressive</option>
+              </select>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
               <div>
@@ -522,12 +541,31 @@
               </div>
               <div>
                 <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Response Received</label>
-                <input type="text" id="diyResponse" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;" placeholder="e.g. Verified, No response…">
+                <select id="diyResponse" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
+                  <option value="">-- Select --</option>
+                  <option value="No Response">No Response</option>
+                  <option value="Verified as Accurate">Verified as Accurate</option>
+                  <option value="Deleted">Deleted</option>
+                  <option value="Updated/Partially Corrected">Updated/Partially Corrected</option>
+                  <option value="Account Closed">Account Closed</option>
+                  <option value="Paid/Settled">Paid/Settled</option>
+                  <option value="Transferred">Transferred</option>
+                  <option value="other">Other</option>
+                </select>
+                <input type="text" id="diyResponseOther" placeholder="Describe the response…" style="display:none;margin-top:6px;width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
               </div>
             </div>
             <div>
               <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Additional Notes</label>
               <textarea id="diyNotes" rows="3" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;resize:vertical;" placeholder="Any additional context, timelines, or supporting details…"></textarea>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Attach Proof Documents</label>
+              <div id="diyProofArea" style="background:rgba(255,255,255,0.03);border:2px dashed rgba(255,255,255,0.12);border-radius:8px;padding:14px;text-align:center;cursor:pointer;">
+                <input type="file" id="diyProofInput" multiple accept=".pdf,.png,.jpg,.jpeg" style="display:none;">
+                <div style="font-size:12px;color:var(--diy-text-sub);">Click to attach files (PDF, PNG, JPG — max 10 MB each, up to 5 files)</div>
+              </div>
+              <div id="diyProofList" style="margin-top:6px;"></div>
             </div>
             <div id="diyCfpbError" style="display:none;color:#f87171;font-size:13px;"></div>
             <button id="btnDiyCfpbGenerate" class="diy-btn diy-btn-primary" type="button">Generate CFPB Complaint</button>

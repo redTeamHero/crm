@@ -9646,8 +9646,17 @@ const CFPB_VIOLATION_LABELS = {
   other: null,
 };
 
-function buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes }) {
-  const system = `You are a consumer rights attorney specializing in FCRA and FDCPA violations. Write a formal CFPB complaint on behalf of the consumer. Be specific, firm, and professional. Write in first person from the consumer's perspective. Always cite the applicable federal law by section number. Format your response with exactly two labeled sections: "WHAT HAPPENED:" followed by 2-3 detailed paragraphs, then "WHAT RESOLUTION I AM SEEKING:" followed by 1-2 paragraphs. Do not include any other sections, headers, or extra formatting.`;
+const CFPB_TONE_MAP = {
+  professional: 'Use a measured, formal, and professional tone throughout.',
+  firm_assertive: 'Use a direct, firm, and assertive tone. Make clear demands without being hostile.',
+  urgent: 'Emphasize time-sensitivity and urgency. Convey that the consumer has waited long enough and needs immediate action.',
+  legal_formal: 'Use heavy legal language with extensive statute references. Write as if drafting a legal brief.',
+  strong_aggressive: 'Use strong, aggressive consumer advocacy language. Be forceful and unrelenting in describing the harm done to the consumer.',
+};
+
+function buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone }) {
+  const toneInstruction = CFPB_TONE_MAP[tone] || CFPB_TONE_MAP.professional;
+  const system = `You are a consumer rights attorney specializing in FCRA and FDCPA violations. Write a formal CFPB complaint on behalf of the consumer. ${toneInstruction} Write in first person from the consumer's perspective. Always cite the applicable federal law by section number. Format your response with exactly two labeled sections: "WHAT HAPPENED:" followed by 2-3 detailed paragraphs, then "WHAT RESOLUTION I AM SEEKING:" followed by 1-2 paragraphs. Do not include any other sections, headers, or extra formatting.`;
   const parts = [
     `Consumer: ${consumerName}${consumerState ? ', ' + consumerState : ''}`,
     `Company being complained about: ${companyName}`,
@@ -9673,7 +9682,7 @@ function parseCfpbOutput(rawText) {
 app.post("/api/consumers/:id/cfpb-complaint", authenticate, async (req, res) => {
   try {
     const consumerId = req.params.id;
-    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, save: saveRecord } = req.body || {};
+    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone, proofFiles, save: saveRecord } = req.body || {};
     if (!companyName) return res.status(400).json({ ok: false, error: "companyName is required" });
     const db = await loadDB(req);
     const consumer = db.consumers.find(c => c.id === consumerId);
@@ -9682,12 +9691,14 @@ app.post("/api/consumers/:id/cfpb-complaint", authenticate, async (req, res) => 
     const consumerState = consumer.state || consumer.address?.state || '';
     const violationDesc = CFPB_VIOLATION_LABELS[violationType] || otherViolationText || 'Violation of consumer credit reporting laws (FCRA)';
     const itemsList = Array.isArray(itemsDisputed) ? itemsDisputed.filter(Boolean) : (itemsDisputed ? [itemsDisputed] : []);
-    const { system, user } = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes });
+    const { system, user } = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional' });
     const rawText = await callOpenAiText({ system, user });
     const { narrative, resolution } = parseCfpbOutput(rawText);
     if (saveRecord) {
       const complaintId = `cfpb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-      await addEvent(consumerId, 'cfpb_complaint', { id: complaintId, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, roundJobId: roundJobId || null, generatedAt: new Date().toISOString() });
+      const eventPayload = { id: complaintId, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, tone: tone || 'professional', roundJobId: roundJobId || null, generatedAt: new Date().toISOString() };
+      if (Array.isArray(proofFiles) && proofFiles.length) eventPayload.proofFiles = proofFiles;
+      await addEvent(consumerId, 'cfpb_complaint', eventPayload);
     }
     res.json({ ok: true, narrative, resolution });
   } catch (e) {
@@ -9705,6 +9716,94 @@ app.get("/api/consumers/:id/cfpb-complaints", authenticate, async (req, res) => 
     res.json({ ok: true, complaints });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/consumers/:id/negative-items", authenticate, async (req, res) => {
+  try {
+    const db = await loadDB(req);
+    const consumer = db.consumers.find(c => c.id === req.params.id);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    const latestReport = consumer.reports?.[0];
+    if (!latestReport?.data) return res.json({ ok: true, items: [] });
+    let items = [];
+    if (Array.isArray(latestReport.data.negative_items)) {
+      items = latestReport.data.negative_items.map((ni, idx) => ({
+        id: ni.id || `ni_${idx}`,
+        name: ni.creditor || ni.creditor_name || 'Unknown',
+        accountNumber: ni.account_number || (ni.account_numbers ? Object.values(ni.account_numbers).filter(Boolean).join(', ') : ''),
+        bureaus: Array.isArray(ni.bureaus) ? ni.bureaus : (ni.bureau ? [ni.bureau] : []),
+        balance: ni.balance || ni.current_balance || '',
+        status: ni.status || ni.account_status || '',
+      }));
+    } else if (Array.isArray(latestReport.data.tradelines)) {
+      items = latestReport.data.tradelines
+        .filter(tl => {
+          const status = (tl.account_status || tl.status || '').toLowerCase();
+          const rating = (tl.payment_rating || '').toLowerCase();
+          return status.includes('derog') || status.includes('collection') || status.includes('charge') || status.includes('late') || rating.includes('late') || rating.includes('derog');
+        })
+        .map((tl, idx) => ({
+          id: tl.id || `tl_${idx}`,
+          name: tl.meta?.creditor || tl.creditor || tl.creditor_name || 'Unknown',
+          accountNumber: tl.meta?.account_numbers ? Object.values(tl.meta.account_numbers).filter(Boolean).join(', ') : '',
+          bureaus: tl.per_bureau ? Object.keys(tl.per_bureau) : [],
+          balance: tl.balance || tl.current_balance || '',
+          status: tl.account_status || tl.status || '',
+        }));
+    }
+    res.json({ ok: true, items });
+  } catch (e) {
+    logError('NEGATIVE_ITEMS_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+const cfpbProofUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+const SAFE_PROOF_MIMES = { '.pdf': 'application/pdf', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg' };
+
+app.post("/api/consumers/:id/cfpb-proof", authenticate, cfpbProofUpload.array('files', 5), async (req, res) => {
+  try {
+    if (!req.files || !req.files.length) return res.status(400).json({ ok: false, error: "No files uploaded" });
+    const consumerId = req.params.id;
+    const db = await loadDB(req);
+    const consumer = db.consumers.find(c => c.id === consumerId);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    const results = [];
+    for (const file of req.files) {
+      const ext = path.extname(file.originalname || '').toLowerCase();
+      if (!SAFE_PROOF_MIMES[ext]) continue;
+      const storedName = `cfpb_proof_${Date.now()}_${nanoid(6)}${ext}`;
+      const objectKey = objStore.consumerFileKey(consumerId, storedName);
+      await objStore.uploadFile(objectKey, file.buffer, SAFE_PROOF_MIMES[ext]);
+      results.push({ key: storedName, name: file.originalname || storedName, size: file.size });
+    }
+    res.json({ ok: true, files: results });
+  } catch (e) {
+    logError('CFPB_PROOF_UPLOAD_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/consumers/:id/cfpb-proof/:filename", authenticate, async (req, res) => {
+  try {
+    const consumerId = req.params.id;
+    const db = await loadDB(req);
+    const consumer = db.consumers.find(c => c.id === consumerId);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    const filename = path.basename(req.params.filename);
+    if (!filename.startsWith('cfpb_proof_')) return res.status(400).json({ ok: false, error: "Invalid filename" });
+    const ext = path.extname(filename).toLowerCase();
+    const safeMime = SAFE_PROOF_MIMES[ext] || 'application/octet-stream';
+    const objectKey = objStore.consumerFileKey(consumerId, filename);
+    const exists = await objStore.fileExists(objectKey);
+    if (!exists) return res.status(404).json({ ok: false, error: "File not found" });
+    res.set({ 'Content-Type': safeMime, 'Content-Disposition': `attachment; filename="${filename}"` });
+    const stream = await objStore.downloadFileStream(objectKey);
+    stream.pipe(res);
+  } catch (e) {
+    if (!res.headersSent) res.status(500).json({ ok: false, error: e.message });
   }
 });
 
@@ -10639,6 +10738,67 @@ app.get('/api/diy/letters/:id/download', diyAuthenticate, async (req, res) => {
 // CFPB COMPLAINT GENERATOR (DIY)
 // ============================================================================
 
+app.get('/api/diy/negative-items', diyAuthenticate, async (req, res) => {
+  try {
+    const db = await loadDiyReportsDB();
+    const userReports = db.reports.filter(r => r.userId === req.diyUser.id).sort((a, b) => new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0));
+    const latestReport = userReports[0];
+    if (!latestReport) return res.json({ ok: true, items: [] });
+    const violations = latestReport.violations || [];
+    const items = violations.map((v, idx) => ({
+      id: v.id || `v_${idx}`,
+      name: v.creditorName || v.creditor || v.accountName || 'Unknown',
+      accountNumber: v.accountNumber || v.account_number || '',
+      bureaus: v.bureau ? [v.bureau] : (Array.isArray(v.bureaus) ? v.bureaus : []),
+      balance: v.balance || '',
+      status: v.status || v.remark || v.description || '',
+    }));
+    res.json({ ok: true, items });
+  } catch (e) {
+    logError('DIY_NEGATIVE_ITEMS_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+const diyProofUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+app.post('/api/diy/cfpb-proof', diyAuthenticate, diyProofUpload.array('files', 5), async (req, res) => {
+  try {
+    if (!req.files || !req.files.length) return res.status(400).json({ ok: false, error: "No files uploaded" });
+    const userId = req.diyUser.id;
+    const results = [];
+    for (const file of req.files) {
+      const ext = path.extname(file.originalname || '').toLowerCase();
+      if (!SAFE_PROOF_MIMES[ext]) continue;
+      const storedName = `cfpb_proof_${Date.now()}_${nanoid(6)}${ext}`;
+      const objectKey = objStore.diyFileKey(userId, storedName);
+      await objStore.uploadFile(objectKey, file.buffer, SAFE_PROOF_MIMES[ext]);
+      results.push({ key: storedName, name: file.originalname || storedName, size: file.size });
+    }
+    res.json({ ok: true, files: results });
+  } catch (e) {
+    logError('DIY_CFPB_PROOF_UPLOAD_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/diy/cfpb-proof/:filename', diyAuthenticate, async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    if (!filename.startsWith('cfpb_proof_')) return res.status(400).json({ ok: false, error: "Invalid filename" });
+    const ext = path.extname(filename).toLowerCase();
+    const safeMime = SAFE_PROOF_MIMES[ext] || 'application/octet-stream';
+    const objectKey = objStore.diyFileKey(req.diyUser.id, filename);
+    const exists = await objStore.fileExists(objectKey);
+    if (!exists) return res.status(404).json({ ok: false, error: "File not found" });
+    res.set({ 'Content-Type': safeMime, 'Content-Disposition': `attachment; filename="${filename}"` });
+    const stream = await objStore.downloadFileStream(objectKey);
+    stream.pipe(res);
+  } catch (e) {
+    if (!res.headersSent) res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 async function loadDiyCfpbDB() {
   let db = await readKey('diy_cfpb_complaints', null);
   if (!db || typeof db !== 'object') db = { complaints: [] };
@@ -10649,18 +10809,20 @@ async function loadDiyCfpbDB() {
 app.post('/api/diy/cfpb-complaint', diyAuthenticate, async (req, res) => {
   try {
     const user = req.diyUser;
-    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, save: saveRecord } = req.body || {};
+    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone, proofFiles, save: saveRecord } = req.body || {};
     if (!companyName) return res.status(400).json({ ok: false, error: 'companyName is required' });
     const consumerName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'the consumer';
     const consumerState = user.state || '';
     const violationDesc = CFPB_VIOLATION_LABELS[violationType] || otherViolationText || 'Violation of consumer credit reporting laws (FCRA)';
     const itemsList = Array.isArray(itemsDisputed) ? itemsDisputed.filter(Boolean) : (itemsDisputed ? [itemsDisputed] : []);
-    const { system, userPrompt: userMsg } = (() => { const p = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes }); return { system: p.system, userPrompt: p.user }; })();
+    const { system, userPrompt: userMsg } = (() => { const p = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional' }); return { system: p.system, userPrompt: p.user }; })();
     const rawText = await callOpenAiText({ system, user: userMsg });
     const { narrative, resolution } = parseCfpbOutput(rawText);
     if (saveRecord) {
       const db = await loadDiyCfpbDB();
-      db.complaints.push({ id: `cfpb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, userId: user.id, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, roundJobId: roundJobId || null, generatedAt: new Date().toISOString() });
+      const entry = { id: `cfpb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, userId: user.id, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, tone: tone || 'professional', roundJobId: roundJobId || null, generatedAt: new Date().toISOString() };
+      if (Array.isArray(proofFiles) && proofFiles.length) entry.proofFiles = proofFiles;
+      db.complaints.push(entry);
       await writeKey('diy_cfpb_complaints', db);
     }
     res.json({ ok: true, narrative, resolution });

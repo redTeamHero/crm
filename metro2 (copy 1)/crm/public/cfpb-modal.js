@@ -12,8 +12,36 @@ const VIOLATION_OPTIONS = [
   { value: 'other', label: 'Other (describe below)' },
 ];
 
+const TONE_OPTIONS = [
+  { value: 'professional', label: 'Professional' },
+  { value: 'firm_assertive', label: 'Firm & Assertive' },
+  { value: 'urgent', label: 'Urgent' },
+  { value: 'legal_formal', label: 'Legal Formal' },
+  { value: 'strong_aggressive', label: 'Strong & Aggressive' },
+];
+
+const RESPONSE_OPTIONS = [
+  { value: '', label: '-- Select --' },
+  { value: 'No Response', label: 'No Response' },
+  { value: 'Verified as Accurate', label: 'Verified as Accurate' },
+  { value: 'Deleted', label: 'Deleted' },
+  { value: 'Updated/Partially Corrected', label: 'Updated/Partially Corrected' },
+  { value: 'Account Closed', label: 'Account Closed' },
+  { value: 'Paid/Settled', label: 'Paid/Settled' },
+  { value: 'Transferred', label: 'Transferred' },
+  { value: 'other', label: 'Other' },
+];
+
 function buildViolationSelect(id, val = '') {
   return `<select id="${id}" class="input-field w-full">${VIOLATION_OPTIONS.map(o => `<option value="${esc(o.value)}"${o.value === val ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`;
+}
+
+function buildToneSelect(id) {
+  return `<select id="${id}" class="input-field w-full">${TONE_OPTIONS.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`;
+}
+
+function buildResponseSelect(id) {
+  return `<select id="${id}" class="input-field w-full">${RESPONSE_OPTIONS.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('')}</select>`;
 }
 
 function buildItemRow(item, idx) {
@@ -47,6 +75,17 @@ function buildItemRow(item, idx) {
       <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Describe Violation</label>
       <textarea class="input-field cfpb-item-other-text" data-idx="${idx}" rows="2" style="width:100%;font-size:12px;resize:vertical;" placeholder="Describe…"></textarea>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div>
+        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Tone</label>
+        ${buildToneSelect('cfpb-item-tone-' + idx)}
+      </div>
+      <div>
+        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Response Received</label>
+        ${buildResponseSelect('cfpb-item-response-' + idx)}
+        <input type="text" id="cfpb-item-response-other-${idx}" class="input-field" placeholder="Describe…" style="display:none;margin-top:4px;width:100%;font-size:12px;padding:5px 8px;">
+      </div>
+    </div>
     <div id="cfpb-item-result-${idx}" style="display:none;margin-top:8px;"></div>
   </div>`;
 }
@@ -65,6 +104,11 @@ export function openCfpbModal({ consumerId, roundData = null }) {
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);';
 
   const hasRoundData = items.length > 0;
+
+  const itemCheckboxes = hasRoundData ? items.map((item, idx) => {
+    const name = item.creditorName || item.creditor || 'Unknown';
+    return `<label style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;cursor:pointer;"><input type="checkbox" class="cfpb-bureau-item-cb" value="${esc(name)}" checked> ${esc(name)}${item.bureau ? ' (' + esc(item.bureau) + ')' : ''}</label>`;
+  }).join('') : '';
 
   overlay.innerHTML = `
   <div id="cfpbModalBox" style="background:var(--bg-card,#1a1d27);border:1px solid rgba(255,255,255,0.1);border-radius:16px;width:100%;max-width:680px;padding:28px 28px 24px;position:relative;min-width:0;">
@@ -85,7 +129,6 @@ export function openCfpbModal({ consumerId, roundData = null }) {
     </div>
     ` : ''}
 
-    <!-- BY BUREAU form (default when round data) or solo form (no round data) -->
     <div id="cfpbBureauForm">
       ${hasRoundData && uniqueBureaus.length > 0 ? `
       <div style="margin-bottom:14px;">
@@ -106,6 +149,10 @@ export function openCfpbModal({ consumerId, roundData = null }) {
         <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Describe Violation</label>
         <textarea id="cfpbBureauOtherText" class="input-field w-full" rows="2" placeholder="Describe…"></textarea>
       </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Tone</label>
+        ${buildToneSelect('cfpbBureauTone')}
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
         <div>
           <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Date Dispute Sent</label>
@@ -113,22 +160,38 @@ export function openCfpbModal({ consumerId, roundData = null }) {
         </div>
         <div>
           <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Response Received</label>
-          <input type="text" id="cfpbBureauResponse" class="input-field w-full" placeholder="e.g. Verified, No response…">
+          ${buildResponseSelect('cfpbBureauResponse')}
+          <input type="text" id="cfpbBureauResponseOther" class="input-field w-full" placeholder="Describe…" style="display:none;margin-top:4px;">
         </div>
       </div>
       <div style="margin-bottom:14px;">
         <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Account(s) Disputed</label>
-        <input type="text" id="cfpbBureauItems" class="input-field w-full" value="${hasRoundData ? esc(items.map(i => i.creditorName || i.creditor || '').filter(Boolean).join(', ')) : ''}" placeholder="Comma-separated account names…">
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;max-height:140px;overflow-y:auto;">
+          ${itemCheckboxes || '<span style="font-size:12px;color:#6b7280;">No items available</span>'}
+        </div>
+        <div style="margin-top:6px;display:flex;gap:6px;align-items:center;">
+          <label style="font-size:11px;color:#818cf8;cursor:pointer;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="cfpbBureauSelectAll" checked> Select All</label>
+          <div style="flex:1;"></div>
+          <input type="text" id="cfpbBureauCustomItem" class="input-field" placeholder="Add custom…" style="font-size:11px;padding:3px 6px;max-width:160px;">
+          <button type="button" id="btnBureauAddCustom" style="font-size:10px;padding:2px 8px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#818cf8;border-radius:5px;cursor:pointer;font-weight:600;">Add</button>
+        </div>
       </div>
-      <div style="margin-bottom:18px;">
+      <div style="margin-bottom:14px;">
         <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Additional Notes</label>
         <textarea id="cfpbBureauNotes" class="input-field w-full" rows="2" placeholder="Any additional context…"></textarea>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Attach Proof Documents</label>
+        <div id="cfpbBureauProofArea" style="background:rgba(255,255,255,0.03);border:2px dashed rgba(255,255,255,0.12);border-radius:8px;padding:12px;text-align:center;cursor:pointer;">
+          <input type="file" id="cfpbBureauProofInput" multiple accept=".pdf,.png,.jpg,.jpeg" style="display:none;">
+          <div style="font-size:12px;color:#9ca3af;">Click to attach files (PDF, PNG, JPG — max 10 MB, up to 5)</div>
+        </div>
+        <div id="cfpbBureauProofList" style="margin-top:6px;"></div>
       </div>
       <div id="cfpbBureauError" style="display:none;color:#f87171;font-size:13px;margin-bottom:10px;"></div>
       <button id="btnCfpbBureauGenerate" type="button" class="btn-primary w-full" style="padding:10px;font-size:14px;font-weight:600;">Generate CFPB Complaint</button>
     </div>
 
-    <!-- INDIVIDUALLY form -->
     ${hasRoundData ? `
     <div id="cfpbIndividualForm" style="display:none;">
       <div style="margin-bottom:12px;">
@@ -141,15 +204,14 @@ export function openCfpbModal({ consumerId, roundData = null }) {
             <input type="date" id="cfpbItemsSharedDate" class="input-field w-full" style="font-size:12px;padding:5px 8px;">
           </div>
           <div>
-            <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Response Received</label>
-            <input type="text" id="cfpbItemsSharedResponse" class="input-field w-full" style="font-size:12px;padding:5px 8px;" placeholder="e.g. Verified, No response…">
+            <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Additional Notes</label>
+            <textarea id="cfpbItemsSharedNotes" class="input-field w-full" rows="1" style="font-size:12px;padding:5px 8px;" placeholder="Shared notes…"></textarea>
           </div>
         </div>
       </div>
       <div id="cfpbItemList">${items.map((item, idx) => buildItemRow(item, idx)).join('')}</div>
     </div>` : ''}
 
-    <!-- Result area -->
     <div id="cfpbModalResult" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <strong style="font-size:14px;">Generated Complaint</strong>
@@ -165,7 +227,6 @@ export function openCfpbModal({ consumerId, roundData = null }) {
       <div id="cfpbModalSaveMsg" style="display:none;margin-top:8px;font-size:13px;color:#10b981;">Saved to client record.</div>
     </div>
 
-    <!-- Past complaints -->
     <div id="cfpbPastSection" style="display:none;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
       <div style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Past Complaints</div>
       <div id="cfpbPastList" style="max-height:200px;overflow-y:auto;"></div>
@@ -176,13 +237,75 @@ export function openCfpbModal({ consumerId, roundData = null }) {
 
   let lastResult = null;
   let lastPayload = null;
+  let bureauProofFiles = [];
+  let bureauUploadedKeys = [];
 
   const closeModal = () => overlay.remove();
   document.getElementById('cfpbModalClose').addEventListener('click', closeModal);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 
-  async function generateComplaint({ companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId }) {
-    const payload = { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId: roundJobId || jobId, save: false };
+  function getResponseVal(selectId, otherId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return '';
+    if (sel.value === 'other') return document.getElementById(otherId)?.value?.trim() || '';
+    return sel.value;
+  }
+
+  function getBureauSelectedItems() {
+    const cbs = document.querySelectorAll('.cfpb-bureau-item-cb:checked');
+    return Array.from(cbs).map(cb => cb.value);
+  }
+
+  async function uploadBureauProofFiles() {
+    if (!bureauProofFiles.length) return [];
+    const formData = new FormData();
+    bureauProofFiles.forEach(f => formData.append('files', f));
+    const resp = await fetch(`/api/consumers/${consumerId}/cfpb-proof`, {
+      method: 'POST',
+      headers: authHeader(),
+      body: formData,
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Upload failed');
+    return data.files || [];
+  }
+
+  function renderBureauProofList() {
+    const list = document.getElementById('cfpbBureauProofList');
+    if (!list) return;
+    if (!bureauProofFiles.length) { list.innerHTML = ''; return; }
+    list.innerHTML = bureauProofFiles.map((f, i) => `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:12px;">
+      <span style="color:#d1d5db;">${esc(f.name)}</span>
+      <span style="color:#6b7280;font-size:10px;">(${(f.size/1024).toFixed(1)} KB)</span>
+      <button type="button" data-pidx="${i}" class="rm-bureau-proof" style="color:#f87171;background:none;border:none;cursor:pointer;font-size:11px;">Remove</button>
+    </div>`).join('');
+  }
+
+  const bureauProofArea = document.getElementById('cfpbBureauProofArea');
+  const bureauProofInput = document.getElementById('cfpbBureauProofInput');
+  bureauProofArea?.addEventListener('click', () => bureauProofInput?.click());
+  bureauProofInput?.addEventListener('change', e => {
+    const allowed = ['.pdf', '.png', '.jpg', '.jpeg'];
+    for (const f of e.target.files) {
+      if (bureauProofFiles.length >= 5) break;
+      const ext = '.' + f.name.split('.').pop().toLowerCase();
+      if (!allowed.includes(ext) || f.size > 10 * 1024 * 1024) continue;
+      bureauProofFiles.push(f);
+    }
+    e.target.value = '';
+    bureauUploadedKeys = [];
+    renderBureauProofList();
+  });
+  document.getElementById('cfpbBureauProofList')?.addEventListener('click', e => {
+    const btn = e.target.closest('.rm-bureau-proof');
+    if (!btn) return;
+    bureauProofFiles.splice(parseInt(btn.dataset.pidx, 10), 1);
+    bureauUploadedKeys = [];
+    renderBureauProofList();
+  });
+
+  async function generateComplaint({ companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, tone }) {
+    const payload = { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone: tone || 'professional', roundJobId: roundJobId || jobId, save: false };
     const resp = await fetch(`/api/consumers/${consumerId}/cfpb-complaint`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
@@ -200,10 +323,15 @@ export function openCfpbModal({ consumerId, roundData = null }) {
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
     try {
+      let savedProofFiles = bureauUploadedKeys;
+      if (bureauProofFiles.length && !bureauUploadedKeys.length) {
+        savedProofFiles = await uploadBureauProofFiles();
+        bureauUploadedKeys = savedProofFiles;
+      }
       const resp = await fetch(`/api/consumers/${consumerId}/cfpb-complaint`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ ...lastPayload, save: true }),
+        body: JSON.stringify({ ...lastPayload, proofFiles: savedProofFiles, save: true }),
       });
       const data = await resp.json();
       if (!data.ok) throw new Error(data.error || 'Save failed');
@@ -237,6 +365,10 @@ export function openCfpbModal({ consumerId, roundData = null }) {
       section.style.display = 'block';
       list.innerHTML = complaints.slice(0, 5).map(c => {
         const date = c.generatedAt ? new Date(c.generatedAt).toLocaleDateString() : '';
+        let proofHtml = '';
+        if (Array.isArray(c.proofFiles) && c.proofFiles.length) {
+          proofHtml = `<div style="margin-top:4px;font-size:11px;color:#818cf8;">Proof: ${c.proofFiles.map(f => `<a href="/api/consumers/${consumerId}/cfpb-proof/${encodeURIComponent(f.key)}" target="_blank" style="color:#818cf8;text-decoration:underline;margin-right:6px;">${esc(f.name)}</a>`).join('')}</div>`;
+        }
         return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 12px;margin-bottom:6px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <strong style="font-size:12px;">${esc(c.companyName || '')}</strong>
@@ -246,6 +378,7 @@ export function openCfpbModal({ consumerId, roundData = null }) {
             <summary style="cursor:pointer;color:#818cf8;">Show</summary>
             <div style="white-space:pre-wrap;margin-top:6px;line-height:1.6;max-height:120px;overflow-y:auto;">${esc(c.narrative || '')}</div>
           </details>
+          ${proofHtml}
         </div>`;
       }).join('');
     } catch (_) {}
@@ -269,17 +402,35 @@ export function openCfpbModal({ consumerId, roundData = null }) {
     if (box) box.style.display = bureauVtype.value === 'other' ? 'block' : 'none';
   });
 
+  document.getElementById('cfpbBureauResponse')?.addEventListener('change', e => {
+    const other = document.getElementById('cfpbBureauResponseOther');
+    if (other) other.style.display = e.target.value === 'other' ? 'block' : 'none';
+  });
+
+  document.getElementById('cfpbBureauSelectAll')?.addEventListener('change', e => {
+    document.querySelectorAll('.cfpb-bureau-item-cb').forEach(cb => { cb.checked = e.target.checked; });
+  });
+
+  document.getElementById('btnBureauAddCustom')?.addEventListener('click', () => {
+    const input = document.getElementById('cfpbBureauCustomItem');
+    const val = input?.value?.trim();
+    if (!val) return;
+    const container = document.querySelector('#cfpbBureauForm .cfpb-bureau-item-cb')?.closest('div') || document.getElementById('cfpbBureauForm');
+    const panel = container?.parentElement;
+    if (!panel) return;
+    const label = document.createElement('label');
+    label.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;cursor:pointer;';
+    label.innerHTML = `<input type="checkbox" class="cfpb-bureau-item-cb" value="${esc(val)}" checked> ${esc(val)} <span style="color:#10b981;font-size:10px;">(custom)</span>`;
+    panel.appendChild(label);
+    input.value = '';
+  });
+
   if (hasRoundData) {
     const bureauSelect = document.getElementById('cfpbBureauSelect');
     bureauSelect?.addEventListener('change', () => {
       const b = bureauSelect.value;
       const companyInput = document.getElementById('cfpbBureauCompany');
       if (companyInput && b) companyInput.value = b;
-      const itemInput = document.getElementById('cfpbBureauItems');
-      if (itemInput && b) {
-        const filteredItems = items.filter(i => i.bureau === b).map(i => i.creditorName || i.creditor || '').filter(Boolean);
-        itemInput.value = filteredItems.join(', ');
-      }
     });
 
     document.getElementById('cfpbModeByBureau')?.addEventListener('click', () => {
@@ -306,10 +457,16 @@ export function openCfpbModal({ consumerId, roundData = null }) {
 
     document.getElementById('cfpbItemList')?.addEventListener('change', e => {
       const select = e.target.closest('select');
-      if (!select || !select.id.startsWith('cfpb-item-vtype-')) return;
-      const idx = select.id.replace('cfpb-item-vtype-', '');
-      const otherBox = document.getElementById(`cfpb-item-other-${idx}`);
-      if (otherBox) otherBox.style.display = select.value === 'other' ? 'block' : 'none';
+      if (select && select.id.startsWith('cfpb-item-vtype-')) {
+        const idx = select.id.replace('cfpb-item-vtype-', '');
+        const otherBox = document.getElementById(`cfpb-item-other-${idx}`);
+        if (otherBox) otherBox.style.display = select.value === 'other' ? 'block' : 'none';
+      }
+      if (select && select.id.startsWith('cfpb-item-response-')) {
+        const idx = select.id.replace('cfpb-item-response-', '');
+        const otherInput = document.getElementById(`cfpb-item-response-other-${idx}`);
+        if (otherInput) otherInput.style.display = select.value === 'other' ? 'block' : 'none';
+      }
     });
 
     document.getElementById('cfpbItemList')?.addEventListener('click', async e => {
@@ -322,7 +479,8 @@ export function openCfpbModal({ consumerId, roundData = null }) {
       const vtypeSelect = document.getElementById(`cfpb-item-vtype-${idx}`);
       const otherTextArea = document.querySelector(`.cfpb-item-other-text[data-idx="${idx}"]`);
       const sharedDate = document.getElementById('cfpbItemsSharedDate')?.value || '';
-      const sharedResponse = document.getElementById('cfpbItemsSharedResponse')?.value?.trim() || '';
+      const toneSelect = document.getElementById(`cfpb-item-tone-${idx}`);
+      const responseVal = getResponseVal(`cfpb-item-response-${idx}`, `cfpb-item-response-other-${idx}`);
 
       const companyName = companyInput?.value?.trim() || item.creditorName || item.creditor || '';
       const violationType = vtypeSelect?.value || '';
@@ -340,7 +498,8 @@ export function openCfpbModal({ consumerId, roundData = null }) {
         const data = await generateComplaint({
           companyName, violationType, otherViolationText,
           itemsDisputed: [item.creditorName || item.creditor || ''],
-          disputeSentDate: sharedDate, responseOutcome: sharedResponse,
+          disputeSentDate: sharedDate, responseOutcome: responseVal,
+          tone: toneSelect?.value || 'professional',
         });
         if (resultDiv) {
           resultDiv.style.display = 'block';
@@ -387,16 +546,16 @@ export function openCfpbModal({ consumerId, roundData = null }) {
     if (violationType === 'other' && !otherViolationText) { errEl.textContent = 'Please describe the violation.'; errEl.style.display = 'block'; return; }
     errEl.style.display = 'none';
 
-    const itemsRaw = document.getElementById('cfpbBureauItems')?.value?.trim() || '';
-    const itemsDisputed = itemsRaw ? itemsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const itemsDisputed = getBureauSelectedItems();
     const disputeSentDate = document.getElementById('cfpbBureauSentDate')?.value || '';
-    const responseOutcome = document.getElementById('cfpbBureauResponse')?.value?.trim() || '';
+    const responseOutcome = getResponseVal('cfpbBureauResponse', 'cfpbBureauResponseOther');
     const additionalNotes = document.getElementById('cfpbBureauNotes')?.value?.trim() || '';
+    const tone = document.getElementById('cfpbBureauTone')?.value || 'professional';
 
     const btn = document.getElementById('btnCfpbBureauGenerate');
     btn.disabled = true; btn.textContent = 'Generating…';
     try {
-      const data = await generateComplaint({ companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes });
+      const data = await generateComplaint({ companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, tone });
       showResult(data.narrative, data.resolution);
     } catch (e) {
       errEl.textContent = e.message || 'Generation failed'; errEl.style.display = 'block';
