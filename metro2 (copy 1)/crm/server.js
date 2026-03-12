@@ -3222,7 +3222,17 @@ function normalizeUser(user){
 
 async function loadUsersDB(){
   let db = await readKey('users', null);
-  if(!db) db = { users: [] };
+  if(!db){
+    // Distinguish between genuine first boot vs. KV returning null under load.
+    // If a sentinel key exists, users WERE initialized before — this is data loss,
+    // not first boot. Refuse to overwrite so we don't wipe real accounts.
+    const everInit = await readKey('users_ever_initialized', null);
+    if(everInit){
+      logError('USERS_DB_MISSING', 'users key returned null but sentinel exists — KV may be under load. Aborting to prevent data loss.');
+      throw new Error('Users database temporarily unavailable — please retry.');
+    }
+    db = { users: [] };
+  }
   if(!db.users.some(u => u.username === 'ducky')){
     db.users.push({
       id: nanoid(10),
@@ -3234,7 +3244,13 @@ async function loadUsersDB(){
       permissions: []
     });
     await writeKey('users', db);
+    await writeKey('users_ever_initialized', { at: new Date().toISOString() });
   }
+  // Ensure sentinel is stamped so future null-reads are detected as data loss, not first boot.
+  readKey('users_ever_initialized', null).then(s => {
+    if(!s) writeKey('users_ever_initialized', { at: new Date().toISOString() }).catch(() => {});
+  }).catch(() => {});
+
   let changed = false;
   db.users = db.users.map(u => {
     const before = JSON.stringify({ role: u.role, permissions: u.permissions });
