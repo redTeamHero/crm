@@ -316,6 +316,7 @@ function renderTable(doc, rows, pageWidth){
     }
     doc.y = y + rowHeight;
   }
+  doc.x = doc.page.margins.left;
 }
 
 async function renderWithBrowser(browser, html){
