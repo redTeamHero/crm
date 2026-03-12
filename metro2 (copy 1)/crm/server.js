@@ -11956,7 +11956,336 @@ app.put('/api/affiliate/commission-rates', authenticate, forbidMember, async (re
 registerStaticPage({ paths: "/affiliate", file: "affiliate.html", middlewares: [optionalAuth] });
 app.get('/affiliates', (req, res) => res.redirect('/affiliate'));
 
+// ============================================================================
+// SOCIAL MEDIA MANAGER — RSS → Facebook Post Generator + Scheduler
+// ============================================================================
+
+let RssParser;
+try { RssParser = require('rss-parser'); } catch (_) { RssParser = null; }
+
+const FB_APP_ID     = (process.env.FB_APP_ID || '').trim();
+const FB_APP_SECRET = (process.env.FB_APP_SECRET || '').trim();
+const FB_REDIRECT_URI = (process.env.FB_REDIRECT_URI || `${process.env.PUBLIC_BASE_URL || ''}/api/social/auth/facebook/callback`).trim();
+const FB_API = 'https://graph.facebook.com/v20.0';
+
+async function loadSocialDB() {
+  const db = await readKey('social_media_db', null);
+  return db || { feeds: [], queue: [], connection: null };
+}
+async function saveSocialDB(db) { await writeKey('social_media_db', db); }
+
+async function fbGraphGet(path, params = {}, token) {
+  const qs = new URLSearchParams({ ...params, access_token: token }).toString();
+  const res = await fetch(`${FB_API}${path}?${qs}`);
+  return res.json();
+}
+async function fbGraphPost(path, body = {}, token) {
+  const res = await fetch(`${FB_API}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body, access_token: token }),
+  });
+  return res.json();
+}
+
+async function fbPublishPost(post, connection) {
+  const params = { message: post.content };
+  if (post.articleUrl) params.link = post.articleUrl;
+  if (post.scheduledAt && new Date(post.scheduledAt) > new Date()) {
+    params.scheduled_publish_time = Math.floor(new Date(post.scheduledAt).getTime() / 1000);
+    params.published = false;
+  }
+  return fbGraphPost(`/${connection.pageId}/feed`, params, connection.pageAccessToken);
+}
+
+async function buildSocialPostPrompt(article) {
+  const system = `You are a social media expert for a credit repair and financial empowerment company. Write a compelling, engaging Facebook post based on the article below. 
+Rules:
+- Start with a powerful hook line (question, bold statement, or shocking stat)
+- Write 2-3 concise paragraphs that provide real value
+- End with a clear call-to-action
+- Include 3-5 relevant hashtags at the end (#CreditRepair #FinancialFreedom etc.)
+- Keep the total post under 500 words
+- Write in a conversational, empowering tone — not corporate
+- Do NOT include the article title as a header`;
+  const user = `Article title: ${article.title}\nArticle description: ${article.contentSnippet || article.content || article.summary || ''}\nArticle URL: ${article.link || ''}`;
+  return { system, user };
+}
+
+registerStaticPage({ paths: '/social', file: 'facebook-manager.html', middlewares: [authenticate] });
+
+app.get('/api/social/status', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const fbConfigured = !!(FB_APP_ID && FB_APP_SECRET);
+    const connection = db.connection || null;
+    const scheduledCount = (db.queue || []).filter(p => p.status === 'scheduled').length;
+    const publishedCount = (db.queue || []).filter(p => p.status === 'published').length;
+    res.json({ ok: true, fbConfigured, connection, scheduledCount, publishedCount, rssParserAvailable: !!RssParser });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/social/auth/facebook', authenticate, (req, res) => {
+  if (!FB_APP_ID) return res.status(400).json({ ok: false, error: 'FB_APP_ID is not configured. Add it in Settings > APIs.' });
+  const params = new URLSearchParams({
+    client_id: FB_APP_ID,
+    redirect_uri: FB_REDIRECT_URI,
+    scope: 'pages_manage_posts,pages_read_engagement,pages_show_list,publish_to_groups',
+    response_type: 'code',
+    state: nanoid(16),
+  });
+  res.redirect(`https://www.facebook.com/v20.0/dialog/oauth?${params}`);
+});
+
+app.get('/api/social/auth/facebook/callback', authenticate, async (req, res) => {
+  try {
+    if (!FB_APP_ID || !FB_APP_SECRET) return res.redirect('/social?error=fb_not_configured');
+    const { code } = req.query;
+    if (!code) return res.redirect('/social?error=fb_no_code');
+    const tokenRes = await fetch(`${FB_API}/oauth/access_token?client_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(FB_REDIRECT_URI)}&client_secret=${FB_APP_SECRET}&code=${code}`);
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) return res.redirect('/social?error=fb_token_failed');
+    const longTokenRes = await fetch(`${FB_API}/oauth/access_token?grant_type=fb_exchange_token&client_id=${FB_APP_ID}&client_secret=${FB_APP_SECRET}&fb_exchange_token=${tokenData.access_token}`);
+    const longToken = await longTokenRes.json();
+    const userToken = longToken.access_token || tokenData.access_token;
+    const pagesData = await fbGraphGet('/me/accounts', {}, userToken);
+    const pages = (pagesData.data || []);
+    if (!pages.length) return res.redirect('/social?error=no_pages');
+    const page = pages[0];
+    const db = await loadSocialDB();
+    db.connection = { pageId: page.id, pageName: page.name, pageAccessToken: page.access_token, connectedAt: new Date().toISOString() };
+    await saveSocialDB(db);
+    res.redirect('/social?connected=1');
+  } catch (e) {
+    logError('FB_AUTH_CALLBACK_ERROR', e);
+    res.redirect('/social?error=fb_auth_failed');
+  }
+});
+
+app.delete('/api/social/disconnect', authenticate, forbidMember, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    db.connection = null;
+    await saveSocialDB(db);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/social/rss-feeds', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    res.json({ ok: true, feeds: db.feeds || [] });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/social/rss-feeds', authenticate, forbidMember, async (req, res) => {
+  try {
+    const { url, name } = req.body || {};
+    if (!url) return res.status(400).json({ ok: false, error: 'URL is required' });
+    const db = await loadSocialDB();
+    if ((db.feeds || []).length >= 20) return res.status(400).json({ ok: false, error: 'Maximum 20 feeds allowed' });
+    const feed = { id: nanoid(10), url: url.trim(), name: (name || '').trim() || url.trim(), addedAt: new Date().toISOString(), enabled: true };
+    db.feeds = db.feeds || [];
+    db.feeds.push(feed);
+    await saveSocialDB(db);
+    res.json({ ok: true, feed });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.delete('/api/social/rss-feeds/:id', authenticate, forbidMember, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    db.feeds = (db.feeds || []).filter(f => f.id !== req.params.id);
+    await saveSocialDB(db);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/social/rss-feeds/:id/items', authenticate, async (req, res) => {
+  try {
+    if (!RssParser) return res.status(503).json({ ok: false, error: 'RSS parser not available. Run npm install rss-parser in the crm directory.' });
+    const db = await loadSocialDB();
+    const feed = (db.feeds || []).find(f => f.id === req.params.id);
+    if (!feed) return res.status(404).json({ ok: false, error: 'Feed not found' });
+    const parser = new RssParser({ timeout: 10000, headers: { 'User-Agent': 'EvolvCRM/1.0 RSS Reader' } });
+    const parsed = await parser.parseURL(feed.url);
+    feed.lastFetched = new Date().toISOString();
+    feed.name = feed.name || parsed.title || feed.url;
+    await saveSocialDB(db);
+    const items = (parsed.items || []).slice(0, 30).map(item => ({
+      guid: item.guid || item.id || item.link,
+      title: item.title || '(no title)',
+      contentSnippet: (item.contentSnippet || item.summary || '').slice(0, 500),
+      link: item.link,
+      pubDate: item.pubDate || item.isoDate,
+      imageUrl: item.enclosure?.url || null,
+    }));
+    res.json({ ok: true, feedTitle: parsed.title, items });
+  } catch (e) {
+    logError('RSS_FETCH_ERROR', e);
+    res.status(500).json({ ok: false, error: `Failed to fetch RSS: ${e.message}` });
+  }
+});
+
+app.post('/api/social/generate-post', authenticate, async (req, res) => {
+  try {
+    const { title, contentSnippet, link, imageUrl } = req.body || {};
+    if (!title) return res.status(400).json({ ok: false, error: 'Article title is required' });
+    const article = { title, contentSnippet, content: contentSnippet, link };
+    const { system, user } = await buildSocialPostPrompt(article);
+    const content = await callOpenAiText({ system, user });
+    res.json({ ok: true, content: content.trim(), articleUrl: link, imageUrl: imageUrl || null });
+  } catch (e) {
+    logError('SOCIAL_GENERATE_POST_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/social/queue', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const posts = (db.queue || []).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    res.json({ ok: true, posts });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/social/queue', authenticate, async (req, res) => {
+  try {
+    const { content, articleUrl, articleTitle, imageUrl, scheduledAt, publishNow } = req.body || {};
+    if (!content) return res.status(400).json({ ok: false, error: 'Post content is required' });
+    const db = await loadSocialDB();
+    const post = {
+      id: nanoid(12),
+      content,
+      articleUrl: articleUrl || null,
+      articleTitle: articleTitle || null,
+      imageUrl: imageUrl || null,
+      scheduledAt: scheduledAt || null,
+      status: scheduledAt ? 'scheduled' : 'draft',
+      createdAt: new Date().toISOString(),
+      publishedAt: null,
+      fbPostId: null,
+      error: null,
+    };
+    if (publishNow && db.connection) {
+      try {
+        const result = await fbPublishPost(post, db.connection);
+        if (result.id) {
+          post.status = 'published';
+          post.publishedAt = new Date().toISOString();
+          post.fbPostId = result.id;
+        } else {
+          post.status = 'failed';
+          post.error = result.error?.message || 'Unknown error';
+        }
+      } catch (pubErr) {
+        post.status = 'failed';
+        post.error = pubErr.message;
+      }
+    }
+    db.queue = db.queue || [];
+    db.queue.unshift(post);
+    if (db.queue.length > 500) db.queue = db.queue.slice(0, 500);
+    await saveSocialDB(db);
+    res.json({ ok: true, post });
+  } catch (e) {
+    logError('SOCIAL_QUEUE_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.put('/api/social/queue/:id', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const idx = (db.queue || []).findIndex(p => p.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ ok: false, error: 'Post not found' });
+    const post = db.queue[idx];
+    const { content, scheduledAt, status } = req.body || {};
+    if (content !== undefined) post.content = content;
+    if (scheduledAt !== undefined) { post.scheduledAt = scheduledAt; if (scheduledAt && post.status === 'draft') post.status = 'scheduled'; }
+    if (status !== undefined && ['draft', 'scheduled'].includes(status)) post.status = status;
+    db.queue[idx] = post;
+    await saveSocialDB(db);
+    res.json({ ok: true, post });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.delete('/api/social/queue/:id', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    db.queue = (db.queue || []).filter(p => p.id !== req.params.id);
+    await saveSocialDB(db);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/social/queue/:id/publish-now', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const post = (db.queue || []).find(p => p.id === req.params.id);
+    if (!post) return res.status(404).json({ ok: false, error: 'Post not found' });
+    if (!db.connection) return res.status(400).json({ ok: false, error: 'No Facebook page connected' });
+    const result = await fbPublishPost({ ...post, scheduledAt: null }, db.connection);
+    if (result.id) {
+      post.status = 'published';
+      post.publishedAt = new Date().toISOString();
+      post.fbPostId = result.id;
+      post.error = null;
+    } else {
+      post.status = 'failed';
+      post.error = result.error?.message || 'Unknown error from Facebook';
+    }
+    await saveSocialDB(db);
+    res.json({ ok: true, post });
+  } catch (e) {
+    logError('SOCIAL_PUBLISH_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Background scheduler: publish due posts every 60s
+setInterval(async () => {
+  try {
+    const db = await loadSocialDB();
+    if (!db.connection) return;
+    const now = new Date();
+    const due = (db.queue || []).filter(p => p.status === 'scheduled' && p.scheduledAt && new Date(p.scheduledAt) <= now);
+    if (!due.length) return;
+    for (const post of due) {
+      try {
+        const result = await fbPublishPost({ ...post, scheduledAt: null }, db.connection);
+        if (result.id) {
+          post.status = 'published'; post.publishedAt = new Date().toISOString(); post.fbPostId = result.id; post.error = null;
+        } else {
+          post.status = 'failed'; post.error = result.error?.message || 'Facebook error';
+        }
+      } catch (err) {
+        post.status = 'failed'; post.error = err.message;
+      }
+    }
+    await saveSocialDB(db);
+  } catch (_) {}
+}, 60_000);
+
 export default app;
+
+// End of server.js
 
 
 

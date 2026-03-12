@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Social Media Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/evolv-dark.css">
+  <script src="/sidebar.js" defer></script>
+  <script src="/theme.js"></script>
+  <style>
+    .sm-tab { padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;border:1px solid transparent; }
+    .sm-tab.active { background:rgba(99,102,241,0.2);border-color:rgba(99,102,241,0.4);color:#818cf8; }
+    .sm-tab:not(.active) { color:#9ca3af; }
+    .sm-tab:not(.active):hover { background:rgba(255,255,255,0.05);color:#e5e7eb; }
+    .sm-section { display:none; }
+    .sm-section.active { display:block; }
+    .feed-card { background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px; }
+    .rss-item { background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s; }
+    .rss-item:hover { border-color:rgba(99,102,241,0.4); }
+    .rss-item.selected { border-color:#818cf8;background:rgba(99,102,241,0.1); }
+    .queue-card { background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px; }
+    .status-badge { display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em; }
+    .status-draft { background:rgba(107,114,128,0.2);color:#9ca3af; }
+    .status-scheduled { background:rgba(251,191,36,0.15);color:#fbbf24; }
+    .status-published { background:rgba(16,185,129,0.15);color:#34d399; }
+    .status-failed { background:rgba(239,68,68,0.15);color:#f87171; }
+    .fb-connect-btn { display:inline-flex;align-items:center;gap:10px;padding:12px 24px;border-radius:10px;background:#1877f2;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;transition:opacity 0.15s; }
+    .fb-connect-btn:hover { opacity:0.9; }
+    .fb-connect-btn svg { width:20px;height:20px;fill:#fff; }
+    .textarea-post { width:100%;min-height:160px;resize:vertical;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px;font-size:14px;color:var(--text-main,#e5e7eb);line-height:1.6;outline:none;transition:border-color 0.15s; }
+    .textarea-post:focus { border-color:rgba(99,102,241,0.5); }
+    .char-count { font-size:11px;color:#6b7280;text-align:right;margin-top:4px; }
+    .char-count.near { color:#fbbf24; }
+    .char-count.over { color:#f87171; }
+    .preview-card { background:#18191a;border-radius:12px;padding:16px;border:1px solid #3a3b3c;max-width:520px; }
+    .preview-page-name { font-weight:700;font-size:14px;color:#e4e6eb; }
+    .preview-time { font-size:12px;color:#b0b3b8;margin-top:1px; }
+    .preview-content { margin-top:12px;font-size:14px;color:#e4e6eb;line-height:1.5;white-space:pre-wrap; }
+    .preview-link { margin-top:12px;background:#242526;border-radius:8px;padding:10px;display:flex;align-items:flex-start;gap:10px; }
+    .setup-step { display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06); }
+    .setup-step:last-child { border-bottom:none; }
+    .step-num { width:28px;height:28px;border-radius:50%;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#818cf8;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+    .tag { display:inline-block;background:rgba(16,185,129,0.12);color:#34d399;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px;margin-top:2px; }
+  </style>
+</head>
+<body>
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+    </div>
+  </div>
+</header>
+
+<main class="workspace px-4 pb-12">
+  <div class="workspace-inner max-w-5xl mx-auto space-y-6">
+
+    <section class="workspace-hero glass card">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <p class="eyebrow">EVOLV</p>
+          <h1 class="hero-title">Social Media Manager</h1>
+          <p class="hero-sub">Pull articles from any RSS feed, generate AI-crafted Facebook posts, and schedule them to publish automatically.</p>
+        </div>
+        <div id="smStatusBadge" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:auto;">
+          <div id="fbConnectionStatus" style="font-size:12px;color:#9ca3af;">Checking connection…</div>
+          <div id="smStats" style="font-size:12px;color:#9ca3af;display:none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="smTabs">
+      <button class="sm-tab active" data-tab="connect">Facebook Connect</button>
+      <button class="sm-tab" data-tab="feeds">RSS Feeds</button>
+      <button class="sm-tab" data-tab="compose">Generate Post</button>
+      <button class="sm-tab" data-tab="queue">Post Queue</button>
+    </div>
+
+    <!-- CONNECT TAB -->
+    <section id="tab-connect" class="sm-section active glass card p-6 space-y-6">
+      <div id="connectBody"></div>
+      <div id="setupGuide">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:#e5e7eb;">How to Set Up Facebook Integration</h3>
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">Create a Meta Developer App</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.6;">Go to <a href="https://developers.facebook.com/apps/" target="_blank" style="color:#818cf8;text-decoration:underline;">developers.facebook.com/apps</a> → Create App → Choose "Business" type → Complete setup.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">Enable Pages API Permissions</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.6;">In your app dashboard, go to App Review → Permissions → Add: <span class="tag">pages_manage_posts</span><span class="tag">pages_read_engagement</span><span class="tag">pages_show_list</span>. For testing you can use your own page without review.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">Add Valid OAuth Redirect URI</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.6;">In your app settings → Facebook Login → Valid OAuth Redirect URIs, add: <code id="redirectUriHint" style="background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;font-size:11px;"></code></p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">4</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">Add Credentials to Evolv</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.6;">Go to <a href="/settings" style="color:#818cf8;text-decoration:underline;">Settings → APIs</a> and add your <strong style="color:#e5e7eb;">FB_APP_ID</strong> and <strong style="color:#e5e7eb;">FB_APP_SECRET</strong> environment variables. Once added, the Connect button above will activate.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">5</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">Connect Your Page</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.6;">Click "Connect Facebook Page" above, authorize the app, and select your Business Page. The app will securely store your page access token for publishing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RSS FEEDS TAB -->
+    <section id="tab-feeds" class="sm-section glass card p-6 space-y-5">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">RSS Feed Sources</h2>
+        <button id="btnShowAddFeed" type="button" class="btn-primary" style="font-size:13px;padding:7px 16px;">+ Add Feed</button>
+      </div>
+      <div id="addFeedBox" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px 18px;space-y-3;">
+        <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Add any RSS or Atom feed URL. Try credit repair news, your own blog, CFPB press releases, etc.</p>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div style="flex:2;min-width:200px;">
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Feed URL *</label>
+            <input type="url" id="addFeedUrl" class="input-field w-full" placeholder="https://example.com/feed.xml">
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Display Name (optional)</label>
+            <input type="text" id="addFeedName" class="input-field w-full" placeholder="e.g. CFPB News">
+          </div>
+          <button id="btnAddFeed" type="button" class="btn-primary" style="font-size:13px;padding:9px 18px;white-space:nowrap;">Add Feed</button>
+        </div>
+        <div id="addFeedErr" style="color:#f87171;font-size:12px;display:none;margin-top:6px;"></div>
+      </div>
+      <div id="feedsList">
+        <div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">Loading feeds…</div>
+      </div>
+      <div id="rssItemsSection" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 id="rssItemsTitle" style="font-size:14px;font-weight:700;color:#e5e7eb;"></h3>
+          <button id="btnRefreshItems" type="button" class="btn-secondary" style="font-size:12px;padding:5px 12px;">Refresh</button>
+        </div>
+        <p style="font-size:12px;color:#9ca3af;margin-bottom:10px;">Click an article to generate a Facebook post from it.</p>
+        <div id="rssItemsList"></div>
+      </div>
+    </section>
+
+    <!-- COMPOSE TAB -->
+    <section id="tab-compose" class="sm-section glass card p-6 space-y-5">
+      <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;margin-bottom:4px;">Compose Post</h2>
+      <p style="font-size:13px;color:#9ca3af;margin-top:0;">Select an article from your RSS feeds or write a post from scratch. The AI will generate an engaging Facebook post for you.</p>
+
+      <div id="selectedArticleBar" style="display:none;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:10px 14px;display:none;align-items:center;gap:10px;">
+        <div style="flex:1;">
+          <div style="font-size:11px;color:#818cf8;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Selected Article</div>
+          <div id="selectedArticleTitle" style="font-size:13px;color:#e5e7eb;margin-top:2px;"></div>
+        </div>
+        <button id="btnClearArticle" type="button" style="font-size:11px;color:#9ca3af;background:none;border:none;cursor:pointer;padding:0;">✕ Clear</button>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button id="btnPickArticle" type="button" class="btn-secondary" style="font-size:13px;padding:8px 16px;">Pick from RSS Feeds</button>
+        <button id="btnAiGenerate" type="button" class="btn-primary" style="font-size:13px;padding:8px 16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);">Generate with AI</button>
+      </div>
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:13px;font-weight:600;color:#e5e7eb;">Post Content</label>
+          <span id="composeCharCount" class="char-count">0 / 500</span>
+        </div>
+        <textarea id="composeContent" class="textarea-post" placeholder="Write your post here, or click Generate with AI…"></textarea>
+      </div>
+
+      <div id="composeArticleLink" style="display:none;">
+        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Article Link (will be attached to post)</label>
+        <input type="url" id="composeArticleUrl" class="input-field w-full" placeholder="https://…" style="font-size:13px;">
+      </div>
+
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#e5e7eb;display:block;margin-bottom:6px;">Live Preview</label>
+        <div class="preview-card">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;color:#818cf8;font-weight:700;font-size:16px;">E</div>
+            <div>
+              <div class="preview-page-name">Your Business Page</div>
+              <div class="preview-time">Just now · <span style="color:#b0b3b8;">🌐</span></div>
+            </div>
+          </div>
+          <div id="previewContent" class="preview-content" style="color:#b0b3b8;font-style:italic;">Your post will appear here…</div>
+          <div id="previewLink" class="preview-link" style="display:none;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:10px;color:#b0b3b8;text-transform:uppercase;margin-bottom:2px;" id="previewLinkDomain"></div>
+              <div style="font-size:13px;color:#e4e6eb;font-weight:600;" id="previewLinkTitle"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="composeErr" style="color:#f87171;font-size:13px;display:none;"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Schedule Date &amp; Time (optional)</label>
+          <input type="datetime-local" id="composeSchedule" class="input-field w-full">
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:10px;">
+          <button id="btnSaveDraft" type="button" class="btn-secondary w-full" style="font-size:13px;padding:9px 0;">Save as Draft</button>
+          <button id="btnSchedulePost" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#6366f1,#8b5cf6);">Schedule</button>
+          <button id="btnPublishNowCompose" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#10b981,#059669);">Post Now</button>
+        </div>
+      </div>
+      <div id="composeSaveMsg" style="font-size:13px;color:#10b981;display:none;"></div>
+    </section>
+
+    <!-- QUEUE TAB -->
+    <section id="tab-queue" class="sm-section glass card p-6 space-y-5">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">Post Queue</h2>
+        <div style="display:flex;gap:8px;">
+          <select id="queueFilter" class="input-field" style="font-size:13px;padding:6px 12px;">
+            <option value="">All Posts</option>
+            <option value="draft">Drafts</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="published">Published</option>
+            <option value="failed">Failed</option>
+          </select>
+          <button id="btnRefreshQueue" type="button" class="btn-secondary" style="font-size:13px;padding:6px 14px;">Refresh</button>
+        </div>
+      </div>
+      <div id="queueList">
+        <div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">Loading queue…</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- Article Picker Modal -->
+<div id="articlePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;">
+  <div style="background:#1a1b2e;border:1px solid rgba(255,255,255,0.1);border-radius:14px;width:100%;max-width:680px;padding:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="font-size:16px;font-weight:700;color:#e5e7eb;">Pick an Article from RSS</h3>
+      <button id="btnCloseArticlePicker" type="button" style="color:#9ca3af;font-size:20px;background:none;border:none;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Select Feed</label>
+      <select id="pickerFeedSelect" class="input-field w-full" style="font-size:13px;"></select>
+    </div>
+    <button id="btnLoadPickerItems" type="button" class="btn-secondary" style="font-size:13px;padding:7px 16px;margin-bottom:14px;">Load Articles</button>
+    <div id="pickerItemsList" style="max-height:400px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<script type="module" src="/facebook-manager.js"></script>
+</body>
+</html>

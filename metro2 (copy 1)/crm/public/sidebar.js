@@ -37,7 +37,8 @@
     chevronDown: '<path d="M6 9l6 6 6-6"/>',
     share2: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51l-6.82 3.98"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
-    flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>'
+    flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
+    rss: '<path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1" fill="currentColor"/>'
   };
 
   function svg(name, size) {
@@ -61,6 +62,7 @@
     { label: 'Invoicing', icon: 'fileText', href: '/client-invoicing', match: ['/client-invoicing'] },
     { label: 'Disputes', icon: 'shield', href: '/disputes', match: ['/disputes'] },
     { label: 'CFPB Complaints', icon: 'flag', href: '/cfpb', match: ['/cfpb'] },
+    { label: 'Social Media', icon: 'rss', href: '/social', match: ['/social'] },
     { group: 'TOOLS' },
     { label: 'Tradelines', icon: 'dollarSign', href: '/tradelines', match: ['/tradelines'] },
     { label: 'Affiliate', icon: 'share2', href: '/affiliate', match: ['/affiliate'] },
