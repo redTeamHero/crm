@@ -19,7 +19,7 @@ import { JSDOM } from "jsdom";
 
 import { logInfo, logError, logWarn } from "./logger.js";
 
-import { readKey, writeKey } from "./kvdb.js";
+import { readKey, writeKey, listKeys } from "./kvdb.js";
 import { sendCertifiedMail } from "./simpleCertifiedMail.js";
 import { listEvents as listCalendarEvents, createEvent as createCalendarEvent, updateEvent as updateCalendarEvent, deleteEvent as deleteCalendarEvent, freeBusy as calendarFreeBusy, clearCalendarCache } from "./googleCalendar.js";
 
@@ -9579,7 +9579,7 @@ app.post('/api/diy/signup', async (req, res) => {
       try {
         const aff = await findAffiliateByRefCode(refCode);
         if (aff) {
-          const commission = AFFILIATE_COMMISSIONS['diy_' + plan] || 0;
+          const commission = (aff.customCommissionRate != null && aff.customCommissionRate !== '') ? Number(aff.customCommissionRate) : (AFFILIATE_COMMISSIONS['diy_' + plan] || 0);
           if (!aff.referrals) aff.referrals = [];
           aff.referrals.push({ id: nanoid(8), type: 'diy', plan, email: email.toLowerCase(), earned: commission, status: 'pending', date: new Date().toISOString() });
           aff.totalEarned = (aff.totalEarned || 0) + commission;
@@ -10905,13 +10905,100 @@ app.get('/api/affiliate/track/:refCode', async (req, res) => {
       await saveAffiliate(aff);
     }
     const dest = req.query.dest === 'crm' ? '/crm/login' : '/diy/signup';
-    res.redirect(`${dest}?ref=${req.params.refCode}`);
+    const qs = new URLSearchParams({ ref: req.params.refCode });
+    if (aff && aff.customPrice != null && aff.customPrice !== '') {
+      qs.set('price', aff.customPrice);
+    }
+    res.redirect(`${dest}?${qs.toString()}`);
   } catch (err) {
     res.redirect('/');
   }
 });
 
+app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) => {
+  try {
+    const keys = await listKeys();
+    const affKeys = keys.filter(k => {
+      const key = typeof k === 'string' ? k : k.key;
+      return key.startsWith('aff:');
+    });
+    const affiliates = [];
+    for (const k of affKeys) {
+      const key = typeof k === 'string' ? k : k.key;
+      const aff = await readKey(key, null);
+      if (aff) {
+        const conversions = (aff.referrals || []).length;
+        const bal = calcAffiliateBalance(aff);
+        affiliates.push({
+          id: aff.id,
+          userId: aff.userId,
+          userType: aff.userType,
+          refCode: aff.refCode,
+          clicks: aff.clicks || 0,
+          conversions,
+          totalEarned: aff.totalEarned || 0,
+          totalPaid: aff.totalPaid || 0,
+          availableBalance: bal.availableBalance,
+          customPrice: aff.customPrice ?? '',
+          customCommissionRate: aff.customCommissionRate ?? '',
+          createdAt: aff.createdAt
+        });
+      }
+    }
+    res.json({ ok: true, affiliates });
+  } catch (err) {
+    logError('ADMIN_AFFILIATES_LIST_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to load affiliates' });
+  }
+});
+
+app.patch('/api/admin/affiliates/:affId', authenticate, forbidMember, async (req, res) => {
+  try {
+    const keys = await listKeys();
+    const affKeys = keys.filter(k => {
+      const key = typeof k === 'string' ? k : k.key;
+      return key.startsWith('aff:');
+    });
+    let found = null;
+    let foundKey = null;
+    for (const k of affKeys) {
+      const key = typeof k === 'string' ? k : k.key;
+      const aff = await readKey(key, null);
+      if (aff && aff.id === req.params.affId) {
+        found = aff;
+        foundKey = key;
+        break;
+      }
+    }
+    if (!found) return res.status(404).json({ ok: false, error: 'Affiliate not found' });
+    if (req.body.customPrice !== undefined) {
+      if (req.body.customPrice === '' || req.body.customPrice === null) {
+        found.customPrice = '';
+      } else {
+        const p = Number(req.body.customPrice);
+        if (!isFinite(p) || p < 0 || p > 99999) return res.status(400).json({ ok: false, error: 'Invalid price value' });
+        found.customPrice = Math.round(p * 100) / 100;
+      }
+    }
+    if (req.body.customCommissionRate !== undefined) {
+      if (req.body.customCommissionRate === '' || req.body.customCommissionRate === null) {
+        found.customCommissionRate = '';
+      } else {
+        const c = Number(req.body.customCommissionRate);
+        if (!isFinite(c) || c < 0 || c > 99999) return res.status(400).json({ ok: false, error: 'Invalid commission rate' });
+        found.customCommissionRate = Math.round(c * 100) / 100;
+      }
+    }
+    await writeKey(foundKey, found);
+    res.json({ ok: true, affiliate: found });
+  } catch (err) {
+    logError('ADMIN_AFFILIATE_UPDATE_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to update affiliate' });
+  }
+});
+
 registerStaticPage({ paths: "/affiliate", file: "affiliate.html", middlewares: [optionalAuth] });
+registerStaticPage({ paths: "/affiliates", file: "affiliates-admin.html", middlewares: [authenticate] });
 
 export default app;
 

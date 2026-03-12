@@ -185,6 +185,19 @@
         if (radio) radio.checked = true;
       });
     });
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var customPrice = params.get('price');
+      if (customPrice && !isNaN(parseFloat(customPrice))) {
+        var priceNum = parseFloat(customPrice).toFixed(2);
+        var priceLabels = document.querySelectorAll('.plan-price');
+        for (var i = 0; i < priceLabels.length; i++) {
+          if (priceLabels[i].textContent.indexOf('$9.99') !== -1) {
+            priceLabels[i].textContent = '$' + priceNum + '/mo';
+          }
+        }
+      }
+    })();
   </script>
   <script src="/diy/signup.js"></script>
 </body>
