@@ -6047,8 +6047,10 @@ app.get("/api/templates", async (_req,res)=>{
     db.templates = defaultTemplates();
     mutated = true;
   } else {
-    mutated = ensureTemplateDefaults(db);
+    if(ensureTemplateDefaults(db)) mutated = true;
   }
+  if(ensureContractDefaults(db)) mutated = true;
+  if(ensureSequenceDefaults(db)) mutated = true;
   if(mutated){
     await saveLettersDB(db);
   }
@@ -6072,6 +6074,252 @@ function ensureTemplateDefaults(db){
   for(const tpl of defaultTemplates()){
     if(!existingIds.has(tpl.id)){
       db.templates.push({ ...tpl });
+      mutated = true;
+    }
+  }
+  for(const lt of LETTER_TEMPLATES){
+    if(!existingIds.has(lt.id)){
+      db.templates.push({
+        id: lt.id,
+        heading: lt.name,
+        intro: lt.english || '',
+        ask: '',
+        afterIssues: '',
+        evidence: '',
+        requestType: 'correct'
+      });
+      existingIds.add(lt.id);
+      mutated = true;
+    }
+  }
+  return mutated;
+}
+
+function defaultContracts(){
+  return [
+    {
+      id: "contract-credit-repair-retainer",
+      name: "Credit Repair Service Agreement",
+      english: `CREDIT REPAIR SERVICE AGREEMENT
+
+This Credit Repair Service Agreement ("Agreement") is entered into between the Credit Repair Organization ("Company") and the undersigned consumer ("Client").
+
+1. SCOPE OF SERVICES
+Company agrees to provide credit repair services in compliance with the Credit Repair Organizations Act (CROA), 15 U.S.C. §1679, including:
+- Review and analysis of Client's credit reports from Equifax, Experian, and TransUnion
+- Identification of inaccurate, incomplete, or unverifiable information
+- Preparation and mailing of dispute letters to credit bureaus and furnishers pursuant to FCRA §611
+- Follow-up correspondence including Method of Verification (MOV) requests, escalation letters, and regulatory complaints as warranted
+- Monthly progress reports and credit score monitoring updates
+
+2. CLIENT OBLIGATIONS
+Client agrees to:
+- Provide accurate personal information and documentation as requested
+- Promptly forward any correspondence received from credit bureaus or creditors
+- Not engage another credit repair organization simultaneously without written notice
+- Complete any required identity verification questionnaires
+
+3. FEES AND PAYMENT
+- Setup Fee: $_____ due upon execution of this Agreement (no work begins until 3 business days after signing per CROA §1679b(b))
+- Monthly Service Fee: $_____ billed on the _____ of each month
+- Per-deletion Fee (if applicable): $_____ per verified removal
+All fees are earned only after services are performed. No advance fees may be collected before the 3-day cancellation window expires.
+
+4. CANCELLATION AND REFUND POLICY
+Client may cancel this Agreement at any time without penalty by providing written notice. Per CROA §1679e, Client has the right to cancel within three (3) business days of signing. Upon cancellation, Company will refund any fees for services not yet rendered.
+
+5. NO GUARANTEES
+Company does not guarantee specific results. No credit repair organization can lawfully guarantee the removal of accurate, timely information from a credit report. Per CROA §1679b(a)(1), it is unlawful to make untrue or misleading representations regarding credit repair services.
+
+6. TERM
+This Agreement shall remain in effect for an initial term of _____ months, renewable on a month-to-month basis thereafter unless cancelled by either party with 30 days written notice.
+
+7. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of __________ and applicable federal law including the Fair Credit Reporting Act (FCRA), the Credit Repair Organizations Act (CROA), and the Fair Debt Collection Practices Act (FDCPA).
+
+NOTICE: You have a right to dispute inaccurate information in your credit report by contacting the credit bureau directly. However, under the FCRA you have the right to hire a credit repair organization to assist you.
+
+___________________________          ___________________________
+Company Representative               Client Signature
+Date: _______________                Date: _______________`
+    },
+    {
+      id: "contract-compliance-retainer",
+      name: "Metro 2 Compliance Retainer Agreement",
+      english: `METRO 2 COMPLIANCE RETAINER AGREEMENT
+
+This Metro 2 Compliance Retainer Agreement ("Agreement") is entered into between the Credit Repair Organization ("Company") and the undersigned consumer ("Client").
+
+1. SERVICE DESCRIPTION
+Company will provide ongoing Metro 2 compliance monitoring and dispute management services, including:
+- Continuous monitoring of Client's credit reports for Metro 2 format violations
+- Automated detection of data field inaccuracies (Base Segment, J1/J2 Segments, K-Segment irregularities)
+- Priority dispute filing for newly identified errors within 5 business days
+- Quarterly compliance audits with written findings reports
+- Certified mail concierge service for all dispute correspondence
+- Access to Company's client portal for real-time dispute tracking
+
+2. COMPLIANCE STANDARDS
+All dispute communications are prepared in accordance with:
+- FCRA §611 (Procedure in case of disputed accuracy)
+- FCRA §623 (Responsibilities of furnishers of information)
+- CDIA Metro 2 Format Reporting Standards
+- CFPB Supervision and Examination Manual guidelines
+
+3. FEES
+- Monthly Retainer: $_____ per month
+- Certified Mail Fees: Included (up to 10 pieces per month; additional at $_____ each)
+- Rush Processing: $_____ per item (disputes filed within 24 hours)
+All fees comply with CROA advance fee prohibitions. No charges are assessed before services are actually performed.
+
+4. TERM AND RENEWAL
+Initial term: _____ months. Automatically renews month-to-month unless either party provides 30 days written notice of cancellation.
+
+5. CANCELLATION
+Client may cancel at any time without penalty. CROA 3-day right of rescission applies from the date of signing.
+
+6. DISPUTE RESOLUTION
+Any disputes arising under this Agreement shall be resolved through binding arbitration in accordance with the rules of the American Arbitration Association.
+
+___________________________          ___________________________
+Company Representative               Client Signature
+Date: _______________                Date: _______________`
+    },
+    {
+      id: "contract-premium-concierge",
+      name: "Premium Concierge Dispute Package",
+      english: `PREMIUM CONCIERGE DISPUTE PACKAGE AGREEMENT
+
+This Premium Concierge Dispute Package Agreement ("Agreement") is entered into between the Credit Repair Organization ("Company") and the undersigned consumer ("Client").
+
+1. PACKAGE DESCRIPTION
+The Premium Concierge Package includes white-glove dispute management services:
+
+TIER 1 — INITIAL AUDIT & DISPUTE (Months 1-2)
+- Comprehensive tri-bureau credit report analysis
+- Metro 2 compliance audit identifying all reporting violations
+- First-round dispute letters via certified mail to all three bureaus
+- Direct furnisher disputes under FCRA §623 where applicable
+
+TIER 2 — ESCALATION (Months 3-4)
+- Second-round disputes for all items verified or not addressed
+- Method of Verification (MOV) demands under FCRA §611(a)(7)
+- AG/CFPB escalation letters for non-compliant bureaus
+- Evidence-based dispute strategy adjustments
+
+TIER 3 — RESOLUTION & PROTECTION (Months 5-6)
+- Final-round disputes with case law citations
+- CFPB complaint filing assistance for unresolved items
+- Goodwill and pay-for-delete negotiations where appropriate
+- Credit monitoring setup and identity theft prevention measures
+
+2. DELIVERABLES
+- All dispute letters prepared and mailed via USPS Certified Mail with Return Receipt
+- Monthly written progress reports
+- Client portal access with real-time tracking
+- Dedicated case manager for the duration of the engagement
+
+3. INVESTMENT
+- One-Time Package Fee: $_____ (billed in _____ monthly installments of $_____)
+- No additional per-item or per-round fees
+- Certified mail costs included
+
+4. COMPLIANCE NOTICE
+This package is offered in full compliance with the Credit Repair Organizations Act (CROA). No work will commence until the 3-business-day cancellation period has elapsed. Company makes no guarantee of specific outcomes.
+
+5. CANCELLATION
+Client may cancel at any time. Unused portions of prepaid installments will be refunded on a pro-rata basis.
+
+___________________________          ___________________________
+Company Representative               Client Signature
+Date: _______________                Date: _______________`
+    }
+  ];
+}
+
+function defaultSequences(){
+  return [
+    {
+      id: "playbook-standard-dispute",
+      name: "Standard Dispute Flow (6-Round)",
+      templates: [
+        "611-general-dispute",
+        "second-round-dispute",
+        "method-of-verification",
+        "623-direct-dispute",
+        "ag-cfpb-escalation",
+        "goodwill-removal"
+      ]
+    },
+    {
+      id: "playbook-debt-collector",
+      name: "Debt Collector Defense",
+      templates: [
+        "debt-validation",
+        "cease-and-desist",
+        "fdcpa-time-barred",
+        "fdcpa-harassment",
+        "arbitration-election"
+      ]
+    },
+    {
+      id: "playbook-aggressive-deletion",
+      name: "Aggressive Deletion Strategy",
+      templates: [
+        "611-general-dispute",
+        "609-disclosure",
+        "method-of-verification",
+        "second-round-dispute",
+        "623-direct-dispute",
+        "reinsertion-dispute",
+        "ag-cfpb-escalation"
+      ]
+    },
+    {
+      id: "playbook-medical-debt",
+      name: "Medical Debt Removal",
+      templates: [
+        "hipaa-medical-debt",
+        "hipaa-phi-disclosure",
+        "debt-validation",
+        "611-general-dispute",
+        "ag-cfpb-escalation"
+      ]
+    },
+    {
+      id: "playbook-bankruptcy-cleanup",
+      name: "Post-Bankruptcy Cleanup",
+      templates: [
+        "bankruptcy-misreporting",
+        "obsolete-debt",
+        "611-general-dispute",
+        "method-of-verification",
+        "623-direct-dispute"
+      ]
+    }
+  ];
+}
+
+function ensureContractDefaults(db){
+  if(!Array.isArray(db.contracts)){ db.contracts = []; }
+  const existingIds = new Set(db.contracts.map(c => c.id));
+  let mutated = false;
+  for(const ct of defaultContracts()){
+    if(!existingIds.has(ct.id)){
+      db.contracts.push(normalizeContract({ ...ct }));
+      mutated = true;
+    }
+  }
+  return mutated;
+}
+
+function ensureSequenceDefaults(db){
+  if(!Array.isArray(db.sequences)){ db.sequences = []; }
+  const existingIds = new Set(db.sequences.map(s => s.id));
+  let mutated = false;
+  for(const seq of defaultSequences()){
+    if(!existingIds.has(seq.id)){
+      db.sequences.push({ ...seq });
       mutated = true;
     }
   }
@@ -6137,6 +6385,36 @@ app.post("/api/contracts", async (req,res)=>{
   db.contracts.push(ct);
   await saveLettersDB(db);
   res.json({ ok:true, contract: ct });
+});
+
+app.put("/api/contracts/:id", async (req,res)=>{
+  const id = (req.params?.id || "").trim();
+  if(!id) return res.status(400).json({ ok:false, error:"id required" });
+  const db = await loadLettersDB();
+  db.contracts = db.contracts || [];
+  const existing = db.contracts.find(c => c.id === id);
+  if(!existing) return res.status(404).json({ ok:false, error:"contract not found" });
+  const name = (req.body?.name || "").trim();
+  const english = (req.body?.english || req.body?.body || "").trim();
+  if(!name) return res.status(400).json({ ok:false, error:"name required" });
+  if(!english) return res.status(400).json({ ok:false, error:"english body required" });
+  existing.name = name;
+  existing.english = english;
+  existing.body = english;
+  await saveLettersDB(db);
+  res.json({ ok:true, contract: normalizeContract(existing) });
+});
+
+app.delete("/api/contracts/:id", async (req,res)=>{
+  const id = (req.params?.id || "").trim();
+  if(!id) return res.status(400).json({ ok:false, error:"id required" });
+  const db = await loadLettersDB();
+  db.contracts = db.contracts || [];
+  const before = db.contracts.length;
+  db.contracts = db.contracts.filter(c => c.id !== id);
+  if(db.contracts.length === before) return res.status(404).json({ ok:false, error:"contract not found" });
+  await saveLettersDB(db);
+  res.json({ ok:true });
 });
 
 

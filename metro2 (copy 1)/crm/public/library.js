@@ -46,6 +46,7 @@ let currentTemplateId = null;
 let currentRequestType = 'correct';
 let defaultPack = [];
 let contracts = [];
+let editingContractId = null;
 let sequenceEditorState = { id: null, name: '', templates: [] };
 
 const defaultPackGrid = document.getElementById('defaultPackGrid');
@@ -224,6 +225,8 @@ function renderContracts(){
     const title = document.createElement('h3');
     title.className = 'text-sm font-semibold text-slate-700';
     title.textContent = contract.name || 'Contract';
+    title.style.cursor = 'pointer';
+    title.addEventListener('click', ()=> openEditContract(contract));
     const badge = document.createElement('span');
     badge.className = 'library-tag library-tag--neutral';
     badge.textContent = 'EN';
@@ -232,14 +235,24 @@ function renderContracts(){
 
     const english = document.createElement('p');
     english.className = 'library-contract-card__copy text-slate-600 whitespace-pre-wrap';
+    english.style.cursor = 'pointer';
     english.textContent = snippet(contract.english, 260) || '—';
+    english.addEventListener('click', ()=> openEditContract(contract));
 
     const actions = document.createElement('div');
     actions.className = 'library-contract-card__actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'btn text-xs';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', ()=> openEditContract(contract));
+    actions.appendChild(editBtn);
+
     const copyEn = document.createElement('button');
     copyEn.type = 'button';
     copyEn.className = 'btn text-xs';
-    copyEn.textContent = 'Copy EN';
+    copyEn.textContent = 'Copy';
     copyEn.addEventListener('click', async ()=>{
       try{
         await navigator.clipboard.writeText(contract.english || '');
@@ -249,6 +262,13 @@ function renderContracts(){
       }
     });
     actions.appendChild(copyEn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'btn text-xs';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.addEventListener('click', ()=> handleContractDelete(contract.id));
+    actions.appendChild(deleteBtn);
 
     li.appendChild(header);
     li.appendChild(english);
@@ -267,7 +287,39 @@ function closeContractModal(){
   if(!contractModal) return;
   contractModal.style.display = 'none';
   document.body.style.overflow = '';
+  editingContractId = null;
   if(contractForm) contractForm.reset();
+  const modalTitle = contractModal.querySelector('.contract-modal-title');
+  if(modalTitle) modalTitle.textContent = 'Contract Editor';
+}
+
+function openEditContract(contract){
+  if(!contract) return;
+  editingContractId = contract.id;
+  const nameInput = document.getElementById('contractName');
+  const englishInput = document.getElementById('contractEnglish');
+  if(nameInput) nameInput.value = contract.name || '';
+  if(englishInput) englishInput.value = contract.english || '';
+  const modalTitle = contractModal?.querySelector('.contract-modal-title');
+  if(modalTitle) modalTitle.textContent = 'Edit Contract';
+  openContractModal();
+}
+
+async function handleContractDelete(id){
+  if(!id) return;
+  const contract = contracts.find(c => c.id === id);
+  if(!contract) return;
+  if(!window.confirm(`Delete contract "${contract.name || 'Untitled'}"?`)) return;
+  try{
+    const res = await fetch(`/api/contracts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await res.json().catch(()=>({}));
+    if(!data.ok) throw new Error(data.error || 'Failed to delete contract');
+    contracts = contracts.filter(c => c.id !== id);
+    renderContracts();
+    showStatus(contractStatus, 'Contract deleted');
+  } catch(err){
+    showStatus(contractStatus, err.message || 'Failed to delete contract', 'error');
+  }
 }
 
 async function handleContractSubmit(event){
@@ -283,8 +335,11 @@ async function handleContractSubmit(event){
     return;
   }
   try{
-    const res = await fetch('/api/contracts', {
-      method: 'POST',
+    const isEdit = !!editingContractId;
+    const url = isEdit ? `/api/contracts/${encodeURIComponent(editingContractId)}` : '/api/contracts';
+    const method = isEdit ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
@@ -292,9 +347,14 @@ async function handleContractSubmit(event){
     if(!data.ok){
       throw new Error(data.error || 'Failed to save contract');
     }
-    contracts.unshift(data.contract);
+    if(isEdit){
+      const idx = contracts.findIndex(c => c.id === editingContractId);
+      if(idx !== -1) contracts[idx] = data.contract;
+    } else {
+      contracts.unshift(data.contract);
+    }
     renderContracts();
-    showStatus(contractStatus, 'Contract saved');
+    showStatus(contractStatus, isEdit ? 'Contract updated' : 'Contract saved');
     closeContractModal();
   } catch(err){
     showStatus(contractStatus, err.message || 'Failed to save contract', 'error');
