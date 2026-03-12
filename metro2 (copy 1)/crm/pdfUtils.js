@@ -137,8 +137,8 @@ function pushTextBlocks(blocks, html){
     .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (_, inner) => '##BOLD##' + stripTags(inner) + '##/BOLD##')
     .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, inner) => {
       let cleaned = inner
-        .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, (__, t) => stripTags(t))
-        .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (__, t) => stripTags(t))
+        .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, (__, t) => stripTags(t) + ' ')
+        .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, (__, t) => stripTags(t) + ' ')
         .replace(/<[^>]+>/g, '')
         .replace(/[\r\n]+/g, ' ')
         .replace(/\s{2,}/g, ' ')
@@ -255,13 +255,16 @@ function renderTable(doc, rows, pageWidth){
 
   for(let ri = 0; ri < rows.length; ri++){
     const row = rows[ri];
-    doc.font('Helvetica').fontSize(fontSize);
-    const cellHeights = row.map((cell) => {
+    const cellHeights = row.map((cell, ci) => {
+      const isLbl = ci === 0 && numCols >= 2 && rows.length > 1;
+      const hasBold = isLbl || (Array.isArray(cell) && cell.some(s => s.bold));
+      doc.font(hasBold ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize);
       const w = colWidth - cellPadding * 2;
       const text = cellPlainText(cell);
-      return doc.heightOfString(text || '', { width: w }) + cellPadding * 2;
+      return doc.heightOfString(text || ' ', { width: w }) + cellPadding * 2;
     });
-    const rowHeight = Math.max(16, ...cellHeights);
+    doc.font('Helvetica').fontSize(fontSize);
+    const rowHeight = Math.max(20, ...cellHeights);
 
     if(doc.y + rowHeight > doc.page.height - doc.page.margins.bottom - 10){
       doc.addPage();
@@ -299,7 +302,7 @@ function renderTable(doc, rows, pageWidth){
             const line = lines[li].trimEnd();
             if(!line && li > 0){ textY += fontSize * 0.5; continue; }
             const lineH = doc.heightOfString(line || ' ', { width: cellW });
-            if(textY + lineH > y + cellH + cellPadding) break;
+            if(textY + lineH > y + rowHeight - 1) break;
             doc.text(line || '', cellX, textY, { width: cellW, lineBreak: false });
             textY += lineH;
           }
