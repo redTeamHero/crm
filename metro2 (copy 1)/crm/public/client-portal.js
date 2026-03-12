@@ -1093,17 +1093,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function initTradelineStorefront(id){
     if (!tradelineSection) return;
 
-    (async function loadRecommendations() {
+    async function loadRecommendations() {
       try {
-        const res = await fetch(`/api/consumers/${id}/tradeline-recommendations`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.ok || !data.recommendations || data.recommendations.length === 0) return;
-
         const recSection = document.getElementById('tradelineRecommendations');
         const recCards = document.getElementById('tradelineRecCards');
         const recReason = document.getElementById('tradelineRecReason');
+        const recEmpty = document.getElementById('tradelineRecEmpty');
         if (!recSection || !recCards) return;
+
+        const minInput = document.getElementById('recMinPrice');
+        const maxInput = document.getElementById('recMaxPrice');
+        const params = new URLSearchParams();
+        const minVal = minInput ? parseFloat(minInput.value) : NaN;
+        const maxVal = maxInput ? parseFloat(maxInput.value) : NaN;
+        if (Number.isFinite(minVal) && minVal >= 0) params.set('minPrice', minVal);
+        if (Number.isFinite(maxVal) && maxVal >= 0) params.set('maxPrice', maxVal);
+
+        const qs = params.toString();
+        const url = `/api/consumers/${id}/tradeline-recommendations` + (qs ? '?' + qs : '');
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
 
         const weaknessLabels = {
           high_utilization: 'Your credit utilization appears high. These tradelines add high-limit accounts to bring it down.',
@@ -1117,6 +1127,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         recCards.innerHTML = '';
+
+        if (!data.ok || !data.recommendations || data.recommendations.length === 0) {
+          if (recEmpty) {
+            recEmpty.textContent = qs
+              ? 'No recommendations found in that price range \u2014 try widening your budget.'
+              : 'No recommendations available for your profile at this time.';
+            recEmpty.classList.remove('hidden');
+          }
+          recSection.classList.remove('hidden');
+          return;
+        }
+
+        if (recEmpty) recEmpty.classList.add('hidden');
+
         data.recommendations.forEach(rec => {
           const card = document.createElement('div');
           card.className = 'rounded-xl border border-slate-200 bg-white/80 p-3 shadow-sm';
@@ -1187,7 +1211,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recSection.classList.remove('hidden');
       } catch (e) {}
-    })();
+    }
+
+    loadRecommendations();
+
+    const applyBtn = document.getElementById('recPriceApply');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => loadRecommendations());
+    }
 
     const cartState = { items: loadCart(id) };
     const tradelineState = {

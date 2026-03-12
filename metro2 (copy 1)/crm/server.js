@@ -2330,7 +2330,21 @@ app.get("/api/consumers/:id/tradeline-recommendations", async (req, res) => {
       return parseFloat(cleaned) || 0;
     }
 
-    const scored = allTradelines.map(tl => {
+    const minPrice = parseFloat(req.query.minPrice);
+    const maxPrice = parseFloat(req.query.maxPrice);
+    const filtered = allTradelines.filter(tl => {
+      const p = typeof tl.price === 'number' ? tl.price : parseFloat(tl.price);
+      if (!Number.isFinite(p)) return true;
+      if (Number.isFinite(minPrice) && p < minPrice) return false;
+      if (Number.isFinite(maxPrice) && p > maxPrice) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      return res.json({ ok: true, recommendations: [], profile, primaryWeakness, reason: "No tradelines match the selected price range" });
+    }
+
+    const scored = filtered.map(tl => {
       const ageMonths = parseAgeToMonths(tl.age);
       const limit = parseLimitValue(tl.limit);
       const price = typeof tl.price === 'number' ? tl.price : 0;
