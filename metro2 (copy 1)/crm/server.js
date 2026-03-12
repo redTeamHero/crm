@@ -2306,14 +2306,21 @@ app.get("/api/consumers/:id/tradeline-recommendations", async (req, res) => {
 
     function parseAgeToMonths(ageStr) {
       if (!ageStr) return 0;
-      const match = String(ageStr).match(/(\d{4})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
-      if (!match) return 0;
-      const year = parseInt(match[1], 10);
-      const monthMap = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
-      const month = monthMap[match[2].toLowerCase()] ?? 0;
-      const opened = new Date(year, month, 1);
-      const now = new Date();
-      return Math.max(0, (now.getFullYear() - opened.getFullYear()) * 12 + (now.getMonth() - opened.getMonth()));
+      const s = String(ageStr);
+      const dateMatch = s.match(/(\d{4})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
+      if (dateMatch) {
+        const year = parseInt(dateMatch[1], 10);
+        const monthMap = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+        const month = monthMap[dateMatch[2].toLowerCase()] ?? 0;
+        const opened = new Date(year, month, 1);
+        const now = new Date();
+        return Math.max(0, (now.getFullYear() - opened.getFullYear()) * 12 + (now.getMonth() - opened.getMonth()));
+      }
+      const yearMatch = s.match(/(\d+)\s*(?:year|yr)/i);
+      if (yearMatch) return parseInt(yearMatch[1], 10) * 12;
+      const monthMatch = s.match(/(\d+)\s*(?:month|mo)/i);
+      if (monthMatch) return parseInt(monthMatch[1], 10);
+      return 0;
     }
 
     function parseLimitValue(limitVal) {
@@ -2330,28 +2337,35 @@ app.get("/api/consumers/:id/tradeline-recommendations", async (req, res) => {
       let score = 0;
       let reason = '';
 
+      const years = Math.floor(ageMonths / 12);
+      const bankLabel = tl.bank || 'account';
+      const ageDesc = years > 0 ? `${years} year${years !== 1 ? 's' : ''} of history` : 'positive payment history';
+
       if (primaryWeakness === 'high_utilization' || primaryWeakness === 'low_score') {
         score += Math.min(limit / 1000, 30);
         score += Math.min(ageMonths / 12, 10);
         if (limit >= 15000) {
-          reason = `This ${tl.bank || 'account'} has a $${limit.toLocaleString()} limit that can help lower your overall credit utilization.`;
+          reason = `This ${bankLabel} has a $${limit.toLocaleString()} limit that can help lower your overall credit utilization.`;
         } else {
-          reason = `This ${tl.bank || 'account'} adds a $${limit.toLocaleString()} limit and ${Math.floor(ageMonths / 12)}+ years of history to your profile.`;
+          reason = `This ${bankLabel} adds a $${limit.toLocaleString()} limit and ${ageDesc} to your profile.`;
         }
       } else if (primaryWeakness === 'low_age') {
         score += Math.min(ageMonths / 6, 30);
         score += Math.min(limit / 5000, 10);
-        const years = Math.floor(ageMonths / 12);
-        reason = `This ${tl.bank || 'account'} opened in ${tl.age || 'N/A'} adds ${years} year${years !== 1 ? 's' : ''} of seasoned history to raise your average account age.`;
+        if (years > 0) {
+          reason = `This ${bankLabel} opened in ${tl.age} adds ${years} year${years !== 1 ? 's' : ''} of seasoned history to raise your average account age.`;
+        } else {
+          reason = `This ${bankLabel} adds a seasoned revolving account with a $${limit.toLocaleString()} limit to strengthen your profile.`;
+        }
       } else if (primaryWeakness === 'low_mix') {
         score += 10;
         score += Math.min(ageMonths / 12, 15);
         score += Math.min(limit / 5000, 10);
-        reason = `Adding this ${tl.bank || ''} revolving account diversifies your credit mix and adds positive payment history.`;
+        reason = `Adding this ${bankLabel} revolving account diversifies your credit mix and adds ${ageDesc}.`;
       } else {
         score += Math.min(ageMonths / 12, 15);
         score += Math.min(limit / 5000, 15);
-        reason = `This ${tl.bank || 'account'} with a $${limit.toLocaleString()} limit and ${Math.floor(ageMonths / 12)}+ years of history strengthens your credit profile.`;
+        reason = `This ${bankLabel} with a $${limit.toLocaleString()} limit and ${ageDesc} strengthens your credit profile.`;
       }
 
       if (Number.isFinite(price) && price > 0) {
