@@ -4883,6 +4883,7 @@ app.put("/api/leads/:id", authenticate, forbidMember, async (req,res)=>{
     city: req.body.city ?? lead.city,
     state: req.body.state ?? lead.state,
     zip: req.body.zip ?? lead.zip,
+    dob: req.body.dob ?? lead.dob,
     source: req.body.source ?? lead.source,
     notes: req.body.notes ?? lead.notes,
     status: req.body.status !== undefined ? normalizeLeadStatus(req.body.status) : lead.status
@@ -5317,6 +5318,7 @@ app.post("/api/lead-capture", async (req, res) => {
     city: req.body.city || "",
     state: req.body.state || "",
     zip: req.body.zip || "",
+    dob: req.body.dob || "",
     source: req.body.source || "Lead Capture Form",
     notes: req.body.notes || "",
     creditGoal: req.body.creditGoal || "",

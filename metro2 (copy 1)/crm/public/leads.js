@@ -236,6 +236,7 @@ function normalizeLead(raw){
   const city = (raw.city || '').trim();
   const state = (raw.state || '').trim();
   const zip = (raw.zip || '').trim();
+  const dob = (raw.dob || '').trim();
   const createdAt = parseDate(raw.createdAt)?.toISOString() ?? new Date().toISOString();
   const updatedAt = parseDate(raw.updatedAt)?.toISOString() ?? createdAt;
   const locationSummary = [city, state].filter(Boolean).join(', ');
@@ -255,6 +256,7 @@ function normalizeLead(raw){
     city,
     state,
     zip,
+    dob,
     locationSummary,
     addressSummary,
     status: mapStatus(raw.status),
@@ -521,7 +523,8 @@ async function convertLead(lead){
       addr2: lead.addr2,
       city: lead.city,
       state: lead.state,
-      zip: lead.zip
+      zip: lead.zip,
+      dob: lead.dob
     })
   });
   await updateLead(lead.id, { status: 'won' });
@@ -591,6 +594,7 @@ if(leadForm){
       city: (formData.get('city') || '').toString().trim(),
       state: (formData.get('state') || '').toString().trim(),
       zip: (formData.get('zip') || '').toString().trim(),
+      dob: (formData.get('dob') || '').toString().trim(),
       source: (formData.get('source') || '').toString().trim(),
       notes: (formData.get('notes') || '').toString().trim(),
       status: mapStatus(formData.get('status'))
