@@ -1399,9 +1399,49 @@ function mergeTradeline(existing, incoming){
   return merged;
 }
 
+function extractAcctNumbers(tl) {
+  const per = tl.per_bureau || {};
+  const bureauNumbers = [
+    per.TransUnion?.account_number,
+    per.Experian?.account_number,
+    per.Equifax?.account_number
+  ].filter(n => n !== undefined && n !== null);
+  const metaNumbersRaw = tl.meta?.account_numbers;
+  const metaNumbers = Array.isArray(metaNumbersRaw)
+    ? metaNumbersRaw
+    : metaNumbersRaw && typeof metaNumbersRaw === 'object'
+      ? Object.values(metaNumbersRaw)
+      : metaNumbersRaw
+        ? [metaNumbersRaw]
+        : [];
+  const normalizeAcct = s => {
+    let v = String(s).trim().toUpperCase().replace(/[*]+$/g, '');
+    const m = v.match(/^[A-Z]+0{4,}(\d+)$/);
+    if (m) return m[1];
+    return v;
+  };
+  return [...new Set(
+    [...bureauNumbers, ...metaNumbers].map(normalizeAcct).filter(n => n.length > 0)
+  )];
+}
+
+function acctNumbersOverlap(numsA, numsB) {
+  if (!numsA.length || !numsB.length) return false;
+  for (const a of numsA) {
+    for (const b of numsB) {
+      if (a === b) return true;
+      if (a.length >= 4 && b.length >= 4) {
+        if (a.includes(b) || b.includes(a)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function dedupeTradelines(lines){
   const seen = new Map();
   const result = [];
+  const resultNumbers = [];
   (lines || []).forEach(tl => {
     const name = (tl.meta?.creditor || "").trim();
     if (!name) return;
@@ -1409,46 +1449,68 @@ export function dedupeTradelines(lines){
     const hasData = ["TransUnion","Experian","Equifax"].some(b => Object.keys(per[b] || {}).length);
     const hasViolations = (tl.violations || []).length > 0;
     if (!hasData && !hasViolations) return;
-    const bureauNumbers = [
-      per.TransUnion?.account_number,
-      per.Experian?.account_number,
-      per.Equifax?.account_number
-    ].filter(n => n !== undefined && n !== null);
-    const metaNumbersRaw = tl.meta?.account_numbers;
-    const metaNumbers = Array.isArray(metaNumbersRaw)
-      ? metaNumbersRaw
-      : metaNumbersRaw && typeof metaNumbersRaw === 'object'
-        ? Object.values(metaNumbersRaw)
-        : metaNumbersRaw
-          ? [metaNumbersRaw]
-          : [];
-    const normalizeAcct = s => {
-      let v = String(s).trim().toUpperCase().replace(/[*]+$/g, '');
-      const m = v.match(/^[A-Z]+0{4,}(\d+)$/);
-      if (m) return m[1];
-      return v;
-    };
-    const normalizedNumbers = [...bureauNumbers, ...metaNumbers]
-      .map(normalizeAcct)
-      .filter(n => n.length > 0);
-    const uniqueNumbers = Array.from(new Set(normalizedNumbers)).sort();
+    const uniqueNumbers = extractAcctNumbers(tl);
 
     if (!uniqueNumbers.length) {
       result.push(tl);
+      resultNumbers.push([]);
       return;
     }
 
-    const key = `${name}|${uniqueNumbers.join('|')}`;
+    const key = `${name}|${uniqueNumbers.sort().join('|')}`;
     if (seen.has(key)) {
       const idx = seen.get(key);
-      const existing = result[idx];
-      result[idx] = mergeTradeline(existing, tl);
+      result[idx] = mergeTradeline(result[idx], tl);
+      uniqueNumbers.forEach(n => { if (!resultNumbers[idx].includes(n)) resultNumbers[idx].push(n); });
     } else {
       seen.set(key, result.length);
       result.push(tl);
+      resultNumbers.push([...uniqueNumbers]);
     }
   });
-  return result;
+
+  const creditorIndices = new Map();
+  result.forEach((tl, idx) => {
+    if (!tl) return;
+    const cred = (tl.meta?.creditor || '').trim().toLowerCase();
+    if (!cred || !resultNumbers[idx].length) return;
+    if (!creditorIndices.has(cred)) creditorIndices.set(cred, []);
+    creditorIndices.get(cred).push(idx);
+  });
+
+  for (const [, indices] of creditorIndices) {
+    if (indices.length < 2) continue;
+    const parent = indices.map((_, i) => i);
+    const find = i => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+    const union = (a, b) => { parent[find(b)] = find(a); };
+    const allNums = indices.map(idx => resultNumbers[idx]);
+    for (let i = 0; i < indices.length; i++) {
+      for (let j = i + 1; j < indices.length; j++) {
+        const ri = find(i);
+        const combined = [...new Set([...allNums[i], ...allNums.filter((_, k) => find(k) === ri).flat()])];
+        if (acctNumbersOverlap(combined, allNums[j])) {
+          union(i, j);
+        }
+      }
+    }
+    const groups = new Map();
+    for (let i = 0; i < indices.length; i++) {
+      const root = find(i);
+      if (!groups.has(root)) groups.set(root, []);
+      groups.get(root).push(indices[i]);
+    }
+    for (const [, members] of groups) {
+      if (members.length < 2) continue;
+      const keep = members[0];
+      for (let m = 1; m < members.length; m++) {
+        result[keep] = mergeTradeline(result[keep], result[members[m]]);
+        resultNumbers[members[m]].forEach(n => { if (!resultNumbers[keep].includes(n)) resultNumbers[keep].push(n); });
+        result[members[m]] = null;
+      }
+    }
+  }
+
+  return result.filter(Boolean);
 }
 
 
