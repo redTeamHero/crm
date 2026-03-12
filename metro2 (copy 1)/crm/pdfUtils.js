@@ -192,9 +192,6 @@ async function renderFallbackPdf(html, { title = 'Dispute Letter Preview' } = {}
 
       const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
-      doc.font('Helvetica-Bold').fontSize(14).text(title, { align: 'center' });
-      doc.moveDown(0.5);
-
       const blocks = htmlToStructuredBlocks(html);
       let listIdx = 0;
 
