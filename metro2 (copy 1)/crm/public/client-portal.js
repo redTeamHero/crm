@@ -1106,8 +1106,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams();
         const minVal = minInput ? parseFloat(minInput.value) : NaN;
         const maxVal = maxInput ? parseFloat(maxInput.value) : NaN;
-        if (Number.isFinite(minVal) && minVal >= 0) params.set('minPrice', minVal);
-        if (Number.isFinite(maxVal) && maxVal >= 0) params.set('maxPrice', maxVal);
+        if (Number.isFinite(minVal)) params.set('minPrice', minVal);
+        if (Number.isFinite(maxVal)) params.set('maxPrice', maxVal);
 
         const qs = params.toString();
         const url = `/api/consumers/${id}/tradeline-recommendations` + (qs ? '?' + qs : '');

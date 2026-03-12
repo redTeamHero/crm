@@ -2332,9 +2332,10 @@ app.get("/api/consumers/:id/tradeline-recommendations", async (req, res) => {
 
     const minPrice = parseFloat(req.query.minPrice);
     const maxPrice = parseFloat(req.query.maxPrice);
+    const hasRangeFilter = Number.isFinite(minPrice) || Number.isFinite(maxPrice);
     const filtered = allTradelines.filter(tl => {
       const p = typeof tl.price === 'number' ? tl.price : parseFloat(tl.price);
-      if (!Number.isFinite(p)) return true;
+      if (!Number.isFinite(p)) return !hasRangeFilter;
       if (Number.isFinite(minPrice) && p < minPrice) return false;
       if (Number.isFinite(maxPrice) && p > maxPrice) return false;
       return true;
