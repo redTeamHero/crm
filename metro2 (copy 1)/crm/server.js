@@ -11034,7 +11034,7 @@ app.patch('/api/admin/affiliates/:affId', authenticate, forbidMember, async (req
 });
 
 registerStaticPage({ paths: "/affiliate", file: "affiliate.html", middlewares: [optionalAuth] });
-registerStaticPage({ paths: "/affiliates", file: "affiliates-admin.html", middlewares: [authenticate] });
+registerStaticPage({ paths: "/affiliates", file: "affiliates-admin.html", middlewares: [authenticate, forbidMember] });
 
 export default app;
 
