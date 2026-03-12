@@ -10922,6 +10922,39 @@ app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) =>
       const key = typeof k === 'string' ? k : k.key;
       return key.startsWith('aff:');
     });
+
+    let diyUsersDb = null;
+    let consumersDb = null;
+    function resolveAffUserInfo(aff) {
+      let name = '';
+      let email = '';
+      if (aff.userType === 'diy') {
+        if (!diyUsersDb) return { name: aff.userId, email: '' };
+        const u = diyUsersDb.users.find(u => u.id === aff.userId);
+        if (u) {
+          name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || aff.userId;
+          email = u.email || '';
+        } else {
+          name = aff.userId;
+        }
+      } else if (aff.userType === 'client') {
+        if (!consumersDb) return { name: aff.userId, email: '' };
+        const c = consumersDb.consumers.find(c => c.id === aff.userId);
+        if (c) {
+          name = c.name || c.email || aff.userId;
+          email = c.email || '';
+        } else {
+          name = aff.userId;
+        }
+      } else {
+        name = aff.userId;
+      }
+      return { name, email };
+    }
+
+    try { diyUsersDb = await loadDiyUsersDB(); } catch {}
+    try { consumersDb = await loadDB(); } catch {}
+
     const affiliates = [];
     for (const k of affKeys) {
       const key = typeof k === 'string' ? k : k.key;
@@ -10929,10 +10962,13 @@ app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) =>
       if (aff) {
         const conversions = (aff.referrals || []).length;
         const bal = calcAffiliateBalance(aff);
+        const userInfo = resolveAffUserInfo(aff);
         affiliates.push({
           id: aff.id,
           userId: aff.userId,
           userType: aff.userType,
+          name: userInfo.name,
+          email: userInfo.email,
           refCode: aff.refCode,
           clicks: aff.clicks || 0,
           conversions,

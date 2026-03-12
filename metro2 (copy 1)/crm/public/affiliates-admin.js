@@ -24,10 +24,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('affTable').classList.remove('hidden');
     const tbody = document.getElementById('affTableBody');
     tbody.innerHTML = affiliates.map(function(aff) {
-      var displayId = aff.userId || aff.id;
+      var displayName = aff.name || aff.userId || aff.id;
+      var displayEmail = aff.email || '';
       var typeLabel = (aff.userType || 'unknown').toUpperCase();
       return '<tr class="border-b border-white/5" data-aff-id="' + esc(aff.id) + '">' +
-        '<td class="p-3"><div class="font-medium">' + esc(displayId) + '</div><div class="text-xs text-gray-500">' + esc(typeLabel) + '</div></td>' +
+        '<td class="p-3"><div class="font-medium">' + esc(displayName) + '</div>' +
+        (displayEmail ? '<div class="text-xs text-gray-400">' + esc(displayEmail) + '</div>' : '') +
+        '<div class="text-xs text-gray-500">' + esc(typeLabel) + '</div></td>' +
         '<td class="p-3"><code class="text-xs bg-white/5 px-2 py-1 rounded font-mono">' + esc(aff.refCode) + '</code></td>' +
         '<td class="p-3 text-center">' + (aff.clicks || 0) + '</td>' +
         '<td class="p-3 text-center">' + (aff.conversions || 0) + '</td>' +
