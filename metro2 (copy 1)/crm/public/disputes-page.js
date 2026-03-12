@@ -1,4 +1,5 @@
 import { authHeader, api, escapeHtml } from './common.js';
+import { openCfpbModal } from './cfpb-modal.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -515,6 +516,14 @@ function renderDisputeTracker(data) {
       html += `</div>`;
     }
 
+    html += `<div style="padding-top:8px;margin-top:4px;border-top:1px solid rgba(255,255,255,0.05);">
+      <button class="btn-cfpb-round" data-job-id="${escapeHtml(jobId)}" type="button"
+        style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);color:#818cf8;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        File CFPB Complaint
+      </button>
+    </div>`;
+
     html += `</div>`;
     html += `</div>`;
   });
@@ -567,6 +576,17 @@ function renderDisputeTracker(data) {
         details.style.display = isOpen ? 'none' : '';
         if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
       }
+    });
+  });
+
+  timeline.querySelectorAll('.btn-cfpb-round').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const jid = btn.dataset.jobId;
+      const roundObj = currentDisputeData?.rounds?.find(r => (r.jobId || `round-${r.round}`) === jid);
+      openCfpbModal({
+        consumerId: currentConsumerId,
+        roundData: roundObj ? { jobId: jid, round: roundObj.round, items: roundObj.items || roundObj.letters || [], letters: roundObj.letters || [] } : null,
+      });
     });
   });
 

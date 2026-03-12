@@ -47,6 +47,7 @@
     if (sectionId === 'billing') loadBilling();
     if (sectionId === 'settings') loadSettings();
     if (sectionId === 'affiliate') loadDiyAffiliate();
+    if (sectionId === 'cfpb') loadCfpbHistory();
   }
 
   document.querySelectorAll('.diy-nav-link[data-section]').forEach(function(link) {
@@ -227,6 +228,122 @@
       console.error('Failed to load letters:', e);
     }
   }
+
+  var diyCfpbLastResult = null;
+  var diyCfpbLastPayload = null;
+
+  async function loadCfpbHistory() {
+    try {
+      var res = await fetch('/api/diy/cfpb-complaints', { headers: { 'Authorization': 'Bearer ' + token } });
+      var data = await res.json();
+      var complaints = (data.complaints || []);
+      var section = document.getElementById('diyCfpbHistorySection');
+      var list = document.getElementById('diyCfpbHistoryList');
+      if (!section || !list) return;
+      if (!complaints.length) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+      list.innerHTML = complaints.map(function(c) {
+        var dateStr = c.generatedAt ? new Date(c.generatedAt).toLocaleDateString() : '';
+        var vLabels = { no_response_30: '30-Day No Response', verified_inaccurate: 'Verified Inaccurate', reaged: 'Re-Aged Debt', continued_after_paid: 'Continued After Paid', not_mine: 'Not Mine / Identity Theft', other: 'Other' };
+        var vLabel = vLabels[c.violationType] || c.violationType || '';
+        return '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;margin-bottom:8px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+          '<strong style="font-size:13px;color:var(--diy-text);">' + esc(c.companyName || '') + '</strong>' +
+          '<span style="font-size:11px;color:#9ca3af;">' + esc(dateStr) + '</span>' +
+          '</div>' +
+          (vLabel ? '<div style="font-size:11px;color:#818cf8;margin-bottom:6px;">' + esc(vLabel) + '</div>' : '') +
+          '<details style="font-size:12px;"><summary style="cursor:pointer;color:#6b7280;">Show complaint</summary>' +
+          '<div style="margin-top:6px;white-space:pre-wrap;color:var(--diy-text);line-height:1.6;">' + esc(c.narrative || '') + '</div>' +
+          (c.resolution ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.07);white-space:pre-wrap;color:var(--diy-text);line-height:1.6;">' + esc(c.resolution) + '</div>' : '') +
+          '</details></div>';
+      }).join('');
+    } catch (e) { console.error('CFPB history load error:', e); }
+  }
+
+  (function initDiyCfpb() {
+    var violationSelect = document.getElementById('diyViolationType');
+    var otherBox = document.getElementById('diyOtherBox');
+    if (violationSelect && otherBox) {
+      violationSelect.addEventListener('change', function() {
+        otherBox.style.display = violationSelect.value === 'other' ? 'block' : 'none';
+      });
+    }
+
+    var genBtn = document.getElementById('btnDiyCfpbGenerate');
+    if (genBtn) {
+      genBtn.addEventListener('click', async function() {
+        var company = (document.getElementById('diyCompany') || {}).value || '';
+        var vtype = (document.getElementById('diyViolationType') || {}).value || '';
+        var otherText = (document.getElementById('diyOtherText') || {}).value || '';
+        var errEl = document.getElementById('diyCfpbError');
+        company = company.trim(); vtype = vtype.trim();
+        if (!company) { errEl.textContent = 'Company name is required.'; errEl.style.display = 'block'; return; }
+        if (!vtype) { errEl.textContent = 'Please select a violation type.'; errEl.style.display = 'block'; return; }
+        if (vtype === 'other' && !otherText.trim()) { errEl.textContent = 'Please describe the violation.'; errEl.style.display = 'block'; return; }
+        errEl.style.display = 'none';
+        var itemsRaw = (document.getElementById('diyItems') || {}).value || '';
+        var itemsDisputed = itemsRaw.trim() ? itemsRaw.trim().split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+        var sentDate = (document.getElementById('diySentDate') || {}).value || '';
+        var response = ((document.getElementById('diyResponse') || {}).value || '').trim();
+        var notes = ((document.getElementById('diyNotes') || {}).value || '').trim();
+        var origText = genBtn.textContent;
+        genBtn.disabled = true; genBtn.textContent = 'Generating…';
+        try {
+          var res = await fetch('/api/diy/cfpb-complaint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes, save: false })
+          });
+          var data = await res.json();
+          if (!data.ok) throw new Error(data.error || 'Generation failed');
+          diyCfpbLastResult = { narrative: data.narrative, resolution: data.resolution };
+          diyCfpbLastPayload = { companyName: company, violationType: vtype, otherViolationText: otherText, itemsDisputed: itemsDisputed, disputeSentDate: sentDate, responseOutcome: response, additionalNotes: notes };
+          var narEl = document.getElementById('diyCfpbNarrative');
+          var resEl = document.getElementById('diyCfpbResolution');
+          var resultSection = document.getElementById('diyCfpbResult');
+          var saveMsg = document.getElementById('diyCfpbSaveMsg');
+          if (narEl) narEl.textContent = data.narrative || '';
+          if (resEl) resEl.textContent = data.resolution || '';
+          if (saveMsg) saveMsg.style.display = 'none';
+          if (resultSection) { resultSection.style.display = 'block'; resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        } catch (e) {
+          errEl.textContent = e.message || 'Failed to generate complaint'; errEl.style.display = 'block';
+        } finally {
+          genBtn.disabled = false; genBtn.textContent = origText;
+        }
+      });
+    }
+
+    var copyBtn = document.getElementById('btnDiyCfpbCopy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function() {
+        if (!diyCfpbLastResult) return;
+        var text = 'WHAT HAPPENED:\n' + diyCfpbLastResult.narrative + '\n\nWHAT RESOLUTION I AM SEEKING:\n' + diyCfpbLastResult.resolution;
+        navigator.clipboard.writeText(text).then(function() { copyBtn.textContent = 'Copied!'; setTimeout(function() { copyBtn.textContent = 'Copy All'; }, 2000); });
+      });
+    }
+
+    var saveBtn = document.getElementById('btnDiyCfpbSave');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async function() {
+        if (!diyCfpbLastPayload || !diyCfpbLastResult) return;
+        saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+        try {
+          var res = await fetch('/api/diy/cfpb-complaint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(Object.assign({}, diyCfpbLastPayload, { save: true }))
+          });
+          var data = await res.json();
+          if (!data.ok) throw new Error(data.error || 'Save failed');
+          var saveMsg = document.getElementById('diyCfpbSaveMsg');
+          if (saveMsg) saveMsg.style.display = 'block';
+          loadCfpbHistory();
+        } catch (e) { alert('Save failed: ' + e.message); }
+        finally { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+      });
+    }
+  })();
 
   async function loadCompanyMatch() {
     if (!companyMatch) return;

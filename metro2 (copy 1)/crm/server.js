@@ -1647,6 +1647,7 @@ registerStaticPage({
 });
 registerStaticPage({ paths: "/billing", file: "billing.html" });
 registerStaticPage({ paths: "/disputes", file: "disputes.html" });
+registerStaticPage({ paths: "/cfpb", file: "cfpb.html" });
 registerStaticPage({ paths: "/client-invoicing", file: "client-invoicing.html" });
 registerStaticPage({
   paths: ["/letters", "/letters/:jobId"],
@@ -3827,6 +3828,32 @@ async function callOpenAiStructured({ schema, schemaName, system, developer, use
   const jsonContent = payload.output?.[0]?.content?.find(c => c.type === "output_json");
   if (jsonContent?.json) return jsonContent.json;
   throw new Error("OpenAI response missing structured output.");
+}
+
+async function callOpenAiText({ system, user, model, temperature = 0.7 }) {
+  const apiKey = getOpenAiKey();
+  const body = {
+    model: model || OPENAI_PARSE_MODEL,
+    input: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    temperature,
+    store: false,
+  };
+  const response = await fetchFn(OPENAI_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(`OpenAI error ${response.status}: ${JSON.stringify(payload)}`);
+  }
+  const outputText = payload.output_text
+    || payload.output?.map(item => item.content?.map(c => c.text || c.output_text || '').join('') || '').join('');
+  if (!outputText) throw new Error("OpenAI returned an empty text response");
+  return outputText;
 }
 
 function splitText(text = "", maxChunk = OPENAI_MAX_CHUNK_CHARS) {
@@ -9607,6 +9634,81 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
 });
 
 // ============================================================================
+// CFPB COMPLAINT GENERATOR (CRM)
+// ============================================================================
+
+const CFPB_VIOLATION_LABELS = {
+  no_response_30: 'The bureau failed to complete its investigation within 30 days as required by FCRA §611(a)(1)(A)',
+  verified_inaccurate: 'The bureau verified information that is demonstrably inaccurate, in violation of FCRA §611(a)(1)',
+  reaged: 'The creditor illegally re-aged the debt by changing the date of first delinquency, violating FCRA §605(c)',
+  continued_after_paid: 'The creditor continued reporting the account after it was paid/settled, violating FCRA §623(a)(2)',
+  not_mine: 'The account does not belong to the consumer and may be the result of identity theft, under FCRA §611 and §623',
+  other: null,
+};
+
+function buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes }) {
+  const system = `You are a consumer rights attorney specializing in FCRA and FDCPA violations. Write a formal CFPB complaint on behalf of the consumer. Be specific, firm, and professional. Write in first person from the consumer's perspective. Always cite the applicable federal law by section number. Format your response with exactly two labeled sections: "WHAT HAPPENED:" followed by 2-3 detailed paragraphs, then "WHAT RESOLUTION I AM SEEKING:" followed by 1-2 paragraphs. Do not include any other sections, headers, or extra formatting.`;
+  const parts = [
+    `Consumer: ${consumerName}${consumerState ? ', ' + consumerState : ''}`,
+    `Company being complained about: ${companyName}`,
+    `Violation: ${violationDesc}`,
+  ];
+  if (itemsList && itemsList.length > 0) parts.push(`Account(s) / item(s) disputed: ${itemsList.join(', ')}`);
+  if (disputeSentDate) parts.push(`Date dispute was sent: ${disputeSentDate}`);
+  if (responseOutcome) parts.push(`Bureau/creditor response received: ${responseOutcome}`);
+  if (additionalNotes) parts.push(`Additional details: ${additionalNotes}`);
+  const user = `Write a CFPB complaint based on the following:\n\n${parts.join('\n')}`;
+  return { system, user };
+}
+
+function parseCfpbOutput(rawText) {
+  const narrativeMatch = rawText.match(/WHAT HAPPENED:\s*([\s\S]*?)(?=WHAT RESOLUTION I AM SEEKING:|$)/i);
+  const resolutionMatch = rawText.match(/WHAT RESOLUTION I AM SEEKING:\s*([\s\S]*?)$/i);
+  return {
+    narrative: (narrativeMatch?.[1] || rawText).trim(),
+    resolution: (resolutionMatch?.[1] || '').trim(),
+  };
+}
+
+app.post("/api/consumers/:id/cfpb-complaint", authenticate, async (req, res) => {
+  try {
+    const consumerId = req.params.id;
+    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, save: saveRecord } = req.body || {};
+    if (!companyName) return res.status(400).json({ ok: false, error: "companyName is required" });
+    const db = await loadDB(req);
+    const consumer = db.consumers.find(c => c.id === consumerId);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    const consumerName = [consumer.firstName, consumer.lastName].filter(Boolean).join(' ') || consumer.name || 'the consumer';
+    const consumerState = consumer.state || consumer.address?.state || '';
+    const violationDesc = CFPB_VIOLATION_LABELS[violationType] || otherViolationText || 'Violation of consumer credit reporting laws (FCRA)';
+    const itemsList = Array.isArray(itemsDisputed) ? itemsDisputed.filter(Boolean) : (itemsDisputed ? [itemsDisputed] : []);
+    const { system, user } = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes });
+    const rawText = await callOpenAiText({ system, user });
+    const { narrative, resolution } = parseCfpbOutput(rawText);
+    if (saveRecord) {
+      const complaintId = `cfpb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      await addEvent(consumerId, 'cfpb_complaint', { id: complaintId, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, roundJobId: roundJobId || null, generatedAt: new Date().toISOString() });
+    }
+    res.json({ ok: true, narrative, resolution });
+  } catch (e) {
+    logError('CFPB_GENERATE_ERROR', 'Failed to generate CFPB complaint', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/consumers/:id/cfpb-complaints", authenticate, async (req, res) => {
+  try {
+    const consumerId = req.params.id;
+    const state = await listConsumerState(consumerId);
+    const complaints = (state.events || []).filter(e => e.type === 'cfpb_complaint').map(e => ({ ...e.payload, at: e.at }));
+    complaints.sort((a, b) => new Date(b.at || b.generatedAt || 0) - new Date(a.at || a.generatedAt || 0));
+    res.json({ ok: true, complaints });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ============================================================================
 // DIY USER MANAGEMENT
 // ============================================================================
 
@@ -10530,6 +10632,51 @@ app.get('/api/diy/letters/:id/download', diyAuthenticate, async (req, res) => {
   } catch (err) {
     logError('DIY_DOWNLOAD_LETTER_ERROR', err);
     res.status(500).json({ ok: false, error: 'Download failed' });
+  }
+});
+
+// ============================================================================
+// CFPB COMPLAINT GENERATOR (DIY)
+// ============================================================================
+
+async function loadDiyCfpbDB() {
+  let db = await readKey('diy_cfpb_complaints', null);
+  if (!db || typeof db !== 'object') db = { complaints: [] };
+  if (!Array.isArray(db.complaints)) db.complaints = [];
+  return db;
+}
+
+app.post('/api/diy/cfpb-complaint', diyAuthenticate, async (req, res) => {
+  try {
+    const user = req.diyUser;
+    const { companyName, violationType, otherViolationText, itemsDisputed, disputeSentDate, responseOutcome, additionalNotes, roundJobId, save: saveRecord } = req.body || {};
+    if (!companyName) return res.status(400).json({ ok: false, error: 'companyName is required' });
+    const consumerName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'the consumer';
+    const consumerState = user.state || '';
+    const violationDesc = CFPB_VIOLATION_LABELS[violationType] || otherViolationText || 'Violation of consumer credit reporting laws (FCRA)';
+    const itemsList = Array.isArray(itemsDisputed) ? itemsDisputed.filter(Boolean) : (itemsDisputed ? [itemsDisputed] : []);
+    const { system, userPrompt: userMsg } = (() => { const p = buildCfpbPrompt({ consumerName, consumerState, companyName, violationDesc, itemsList, disputeSentDate, responseOutcome, additionalNotes }); return { system: p.system, userPrompt: p.user }; })();
+    const rawText = await callOpenAiText({ system, user: userMsg });
+    const { narrative, resolution } = parseCfpbOutput(rawText);
+    if (saveRecord) {
+      const db = await loadDiyCfpbDB();
+      db.complaints.push({ id: `cfpb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, userId: user.id, companyName, violationType, narrative, resolution, itemsDisputed: itemsList, disputeSentDate, roundJobId: roundJobId || null, generatedAt: new Date().toISOString() });
+      await writeKey('diy_cfpb_complaints', db);
+    }
+    res.json({ ok: true, narrative, resolution });
+  } catch (e) {
+    logError('DIY_CFPB_ERROR', 'Failed to generate DIY CFPB complaint', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/diy/cfpb-complaints', diyAuthenticate, async (req, res) => {
+  try {
+    const db = await loadDiyCfpbDB();
+    const complaints = db.complaints.filter(c => c.userId === req.diyUser.id).sort((a, b) => new Date(b.generatedAt || 0) - new Date(a.generatedAt || 0));
+    res.json({ ok: true, complaints });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 

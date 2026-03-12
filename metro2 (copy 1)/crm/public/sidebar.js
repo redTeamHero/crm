@@ -36,7 +36,8 @@
     emailIcon: '<path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"/><path d="M22 7l-10 7L2 7"/>',
     chevronDown: '<path d="M6 9l6 6 6-6"/>',
     share2: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51l-6.82 3.98"/>',
-    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>'
   };
 
   function svg(name, size) {
@@ -59,6 +60,7 @@
     { label: 'Billing', icon: 'creditCard', href: '/billing', match: ['/billing'] },
     { label: 'Invoicing', icon: 'fileText', href: '/client-invoicing', match: ['/client-invoicing'] },
     { label: 'Disputes', icon: 'shield', href: '/disputes', match: ['/disputes'] },
+    { label: 'CFPB Complaints', icon: 'flag', href: '/cfpb', match: ['/cfpb'] },
     { group: 'TOOLS' },
     { label: 'Tradelines', icon: 'dollarSign', href: '/tradelines', match: ['/tradelines'] },
     { label: 'Affiliate', icon: 'share2', href: '/affiliate', match: ['/affiliate'] },
