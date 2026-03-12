@@ -1788,6 +1788,25 @@ app.get("/api/portal/:id", async (req, res) => {
   }
 });
 
+app.get("/api/portal/:id/contracts", async (req, res) => {
+  try {
+    const db = await loadDB();
+    const consumer = db.consumers.find(c => c.id === req.params.id);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    const ids = consumer.contractIds || [];
+    if (!ids.length) return res.json({ ok: true, contracts: [] });
+    const lettersDb = await loadLettersDB();
+    lettersDb.contracts = lettersDb.contracts || [];
+    const results = ids.map(cid => {
+      const ct = lettersDb.contracts.find(c => c.id === cid);
+      return ct ? normalizeContract(ct) : null;
+    }).filter(Boolean);
+    res.json({ ok: true, contracts: results });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: "Failed to load contracts" });
+  }
+});
+
 app.get("/buy", async (req, res) => {
   const { bank = "", price = "" } = req.query || {};
   const settings = await loadSettings();
@@ -6477,6 +6496,36 @@ app.delete("/api/contracts/:id", async (req,res)=>{
   res.json({ ok:true });
 });
 
+app.get("/api/contracts/:id", async (req,res)=>{
+  const id = (req.params?.id || "").trim();
+  if(!id) return res.status(400).json({ ok:false, error:"id required" });
+  const db = await loadLettersDB();
+  db.contracts = db.contracts || [];
+  const contract = db.contracts.find(c => c.id === id);
+  if(!contract) return res.status(404).json({ ok:false, error:"contract not found" });
+  res.json({ ok:true, contract: normalizeContract(contract) });
+});
+
+app.post("/api/contracts/:id/send", authenticate, async (req,res)=>{
+  const contractId = (req.params?.id || "").trim();
+  const consumerId = (req.body?.consumerId || "").trim();
+  if(!contractId) return res.status(400).json({ ok:false, error:"contract id required" });
+  if(!consumerId) return res.status(400).json({ ok:false, error:"consumerId required" });
+  const lettersDb = await loadLettersDB();
+  lettersDb.contracts = lettersDb.contracts || [];
+  const contract = lettersDb.contracts.find(c => c.id === contractId);
+  if(!contract) return res.status(404).json({ ok:false, error:"contract not found" });
+  const db = await loadDB();
+  const consumer = db.consumers.find(c => c.id === consumerId);
+  if(!consumer) return res.status(404).json({ ok:false, error:"consumer not found" });
+  if(!Array.isArray(consumer.contractIds)) consumer.contractIds = [];
+  if(!consumer.contractIds.includes(contractId)){
+    consumer.contractIds.push(contractId);
+    await saveDB(db);
+  }
+  const portalLink = `/portal/${encodeURIComponent(consumerId)}`;
+  res.json({ ok:true, portalLink });
+});
 
 // Upload HTML/PDF -> analyze -> save under consumer
 app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{

@@ -223,7 +223,7 @@ function renderContracts(){
     const header = document.createElement('div');
     header.className = 'library-contract-card__header';
     const title = document.createElement('h3');
-    title.className = 'text-sm font-semibold text-slate-700';
+    title.className = 'text-sm font-semibold text-gray-200';
     title.textContent = contract.name || 'Contract';
     title.style.cursor = 'pointer';
     title.addEventListener('click', ()=> openEditContract(contract));
@@ -234,7 +234,7 @@ function renderContracts(){
     header.appendChild(badge);
 
     const english = document.createElement('p');
-    english.className = 'library-contract-card__copy text-slate-600 whitespace-pre-wrap';
+    english.className = 'library-contract-card__copy text-gray-400 whitespace-pre-wrap';
     english.style.cursor = 'pointer';
     english.textContent = snippet(contract.english, 260) || '—';
     english.addEventListener('click', ()=> openEditContract(contract));
@@ -269,6 +269,13 @@ function renderContracts(){
     deleteBtn.textContent = 'Delete';
     deleteBtn.addEventListener('click', ()=> handleContractDelete(contract.id));
     actions.appendChild(deleteBtn);
+
+    const sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'btn text-xs';
+    sendBtn.textContent = 'Send to Client';
+    sendBtn.addEventListener('click', ()=> openSendContractModal(contract));
+    actions.appendChild(sendBtn);
 
     li.appendChild(header);
     li.appendChild(english);
@@ -861,6 +868,138 @@ if(preview){
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain');
     if(id) editTemplate(id);
+  });
+}
+
+const sendContractModal = document.getElementById('sendContractModal');
+const sendContractNameEl = document.getElementById('sendContractName');
+const sendClientSearchEl = document.getElementById('sendClientSearch');
+const sendClientListEl = document.getElementById('sendClientList');
+const sendClientEmptyEl = document.getElementById('sendClientEmpty');
+const sendContractStatusEl = document.getElementById('sendContractStatus');
+const sendContractResultEl = document.getElementById('sendContractResult');
+const sendPortalLinkEl = document.getElementById('sendPortalLink');
+const closeSendContractBtn = document.getElementById('closeSendContract');
+const copySendLinkBtn = document.getElementById('copySendLink');
+
+let sendingContract = null;
+let clientsCache = null;
+
+async function loadClients(){
+  if(clientsCache) return clientsCache;
+  try{
+    const res = await fetch('/api/consumers');
+    const data = await res.json().catch(()=>({}));
+    clientsCache = data.consumers || [];
+    return clientsCache;
+  } catch(err){
+    return [];
+  }
+}
+
+function renderClientList(clients){
+  if(!sendClientListEl) return;
+  sendClientListEl.innerHTML = '';
+  if(!clients.length){
+    if(sendClientEmptyEl) sendClientEmptyEl.classList.remove('hidden');
+    return;
+  }
+  if(sendClientEmptyEl) sendClientEmptyEl.classList.add('hidden');
+  clients.forEach(client => {
+    const li = document.createElement('li');
+    li.className = 'flex items-center justify-between gap-2 p-2 rounded-lg cursor-pointer';
+    li.style.cssText = 'background:var(--glass-bg);border:1px solid var(--border-soft);transition:background 0.15s';
+    li.addEventListener('mouseenter', ()=> li.style.background = 'rgba(212,168,83,0.12)');
+    li.addEventListener('mouseleave', ()=> li.style.background = 'var(--glass-bg)');
+    const info = document.createElement('div');
+    info.className = 'flex flex-col';
+    const name = document.createElement('span');
+    name.className = 'text-sm font-medium text-gray-200';
+    name.textContent = client.name || 'Unnamed';
+    const email = document.createElement('span');
+    email.className = 'text-xs text-gray-500';
+    email.textContent = client.email || '';
+    info.appendChild(name);
+    if(client.email) info.appendChild(email);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn text-xs';
+    btn.textContent = 'Send';
+    btn.addEventListener('click', ()=> handleSendContract(client));
+    li.appendChild(info);
+    li.appendChild(btn);
+    sendClientListEl.appendChild(li);
+  });
+}
+
+async function openSendContractModal(contract){
+  if(!sendContractModal || !contract) return;
+  sendingContract = contract;
+  if(sendContractNameEl) sendContractNameEl.textContent = contract.name || 'Contract';
+  if(sendContractResultEl) sendContractResultEl.classList.add('hidden');
+  if(sendContractStatusEl) sendContractStatusEl.classList.add('hidden');
+  if(sendClientSearchEl) sendClientSearchEl.value = '';
+  sendContractModal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  const clients = await loadClients();
+  renderClientList(clients);
+}
+
+function closeSendContractModal(){
+  if(!sendContractModal) return;
+  sendContractModal.style.display = 'none';
+  document.body.style.overflow = '';
+  sendingContract = null;
+}
+
+async function handleSendContract(client){
+  if(!sendingContract || !client) return;
+  try{
+    const res = await fetch(`/api/contracts/${encodeURIComponent(sendingContract.id)}/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consumerId: client.id })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(!data.ok) throw new Error(data.error || 'Failed to send contract');
+    if(sendContractResultEl) sendContractResultEl.classList.remove('hidden');
+    if(sendPortalLinkEl){
+      const base = `${location.protocol}//${location.host}`;
+      sendPortalLinkEl.value = `${base}${data.portalLink || `/portal/${encodeURIComponent(client.id)}`}`;
+    }
+    showStatus(sendContractStatusEl, `Contract sent to ${client.name || client.email || 'client'}`);
+  } catch(err){
+    showStatus(sendContractStatusEl, err.message || 'Failed to send contract', 'error');
+  }
+}
+
+if(closeSendContractBtn){
+  closeSendContractBtn.addEventListener('click', closeSendContractModal);
+}
+if(sendContractModal){
+  sendContractModal.addEventListener('click', e => {
+    if(e.target.id === 'sendContractModal') closeSendContractModal();
+  });
+}
+if(sendClientSearchEl){
+  sendClientSearchEl.addEventListener('input', ()=>{
+    const q = sendClientSearchEl.value.toLowerCase().trim();
+    if(!clientsCache) return;
+    if(!q){ renderClientList(clientsCache); return; }
+    renderClientList(clientsCache.filter(c => {
+      const n = (c.name || '').toLowerCase();
+      const e = (c.email || '').toLowerCase();
+      return n.includes(q) || e.includes(q);
+    }));
+  });
+}
+if(copySendLinkBtn && sendPortalLinkEl){
+  copySendLinkBtn.addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(sendPortalLinkEl.value);
+      copySendLinkBtn.textContent = 'Copied!';
+      setTimeout(()=> copySendLinkBtn.textContent = 'Copy', 2000);
+    } catch(err){ /* ignore */ }
   });
 }
 

@@ -2004,6 +2004,55 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }
+  function loadContracts(){
+    if(!consumerId) return;
+    var contractsCard = document.getElementById('contractsCard');
+    var contractsListPreview = document.getElementById('contractsListPreview');
+    if(!contractsCard || !contractsListPreview) return;
+    fetch('/api/portal/' + encodeURIComponent(consumerId) + '/contracts')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(!data.ok) return;
+        var valid = data.contracts || [];
+        if(!valid.length) return;
+        contractsCard.classList.remove('hidden');
+        contractsListPreview.innerHTML = '';
+        valid.forEach(function(ct){
+          var div = document.createElement('div');
+          div.className = 'glass card p-3 space-y-2';
+          div.style.cursor = 'pointer';
+          var name = document.createElement('div');
+          name.className = 'text-sm font-semibold text-gray-700';
+          name.textContent = ct.name || 'Contract';
+          div.appendChild(name);
+          var snippet = document.createElement('div');
+          snippet.className = 'text-xs text-gray-500';
+          var text = (ct.english || ct.body || '').replace(/\s+/g, ' ').trim();
+          snippet.textContent = text.length > 120 ? text.slice(0, 120) + '...' : text;
+          div.appendChild(snippet);
+          var body = document.createElement('div');
+          body.className = 'text-xs text-gray-500 whitespace-pre-wrap';
+          body.style.maxHeight = '0';
+          body.style.overflow = 'hidden';
+          body.style.transition = 'max-height 0.3s ease';
+          body.textContent = ct.english || ct.body || '';
+          div.appendChild(body);
+          div.addEventListener('click', function(){
+            if(body.style.maxHeight === '0px' || body.style.maxHeight === '0'){
+              body.style.maxHeight = '400px';
+              body.style.overflow = 'auto';
+              snippet.style.display = 'none';
+            } else {
+              body.style.maxHeight = '0';
+              body.style.overflow = 'hidden';
+              snippet.style.display = '';
+            }
+          });
+          contractsListPreview.appendChild(div);
+        });
+      })
+      .catch(function(){});
+  }
   function loadDocs(){
     if (!(consumerId && (docEl || docPreviewEl))) return;
     fetch(`/api/consumers/${consumerId}/state`)
@@ -2051,6 +2100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   loadDocs();
+  loadContracts();
   loadMessages();
   initNegativeItems();
   if (consumerId && paymentSection) {
