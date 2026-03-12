@@ -11898,6 +11898,7 @@ app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) =>
 
     let diyUsersDb = null;
     let consumersDb = null;
+    let crmUsersDb = null;
     function resolveAffUserInfo(aff) {
       let name = '';
       let email = '';
@@ -11911,11 +11912,25 @@ app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) =>
           name = aff.userId;
         }
       } else if (aff.userType === 'client') {
-        if (!consumersDb) return { name: aff.userId, email: '' };
-        const c = consumersDb.consumers.find(c => c.id === aff.userId);
+        const c = consumersDb?.consumers?.find(c => c.id === aff.userId);
         if (c) {
           name = c.name || c.email || aff.userId;
           email = c.email || '';
+        } else {
+          const u = diyUsersDb?.users?.find(u => u.id === aff.userId || u.username === aff.userId);
+          if (u) {
+            name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || u.username || aff.userId;
+            email = u.email || '';
+          } else {
+            name = aff.userId;
+          }
+        }
+      } else if (aff.userType === 'crm') {
+        if (!crmUsersDb) return { name: aff.userId, email: '' };
+        const u = crmUsersDb.users.find(u => u.id === aff.userId || u.username === aff.userId);
+        if (u) {
+          name = u.name || u.username || aff.userId;
+          email = u.email || '';
         } else {
           name = aff.userId;
         }
@@ -11927,6 +11942,7 @@ app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) =>
 
     try { diyUsersDb = await loadDiyUsersDB(); } catch {}
     try { consumersDb = await loadDB(); } catch {}
+    try { crmUsersDb = await loadUsersDB(); } catch {}
 
     const affiliates = [];
     for (const k of affKeys) {
