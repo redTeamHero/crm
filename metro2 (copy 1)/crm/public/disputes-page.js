@@ -845,11 +845,10 @@ $('#batchDeleteRound')?.addEventListener('click', async () => {
       await loadDisputeTracker();
     } else {
       showErr(res?.error || 'Failed to delete round.');
-      btn.disabled = false;
-      btn.textContent = origText;
     }
   } catch (err) {
     showErr(String(err));
+  } finally {
     btn.disabled = false;
     btn.textContent = origText;
   }

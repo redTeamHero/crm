@@ -7168,9 +7168,25 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       if (sel && sel.useOcr !== undefined) L.useOcr = !!sel.useOcr;
     }
 
-    for (const L of letters) {
+    for (let li = 0; li < letters.length; li++) {
+      const L = letters[li];
       const lKey = objStore.letterFileKey(jobId, L.filename);
-      await objStore.uploadFile(lKey, Buffer.from(L.html, "utf-8"), "text/html");
+      let uploaded = false;
+      for (let attempt = 0; attempt < 4 && !uploaded; attempt++) {
+        try {
+          await objStore.uploadFile(lKey, Buffer.from(L.html, "utf-8"), "text/html");
+          uploaded = true;
+        } catch (uploadErr) {
+          const isRateLimit = /rate.?limit|429|too many/i.test(String(uploadErr?.message || uploadErr));
+          if (isRateLimit && attempt < 3) {
+            const delay = (attempt + 1) * 1000;
+            await new Promise(r => setTimeout(r, delay));
+          } else {
+            throw uploadErr;
+          }
+        }
+      }
+      if (li > 0 && li % 10 === 0) await new Promise(r => setTimeout(r, 200));
     }
 
     const requestUserId = userId || "guest";
@@ -8561,7 +8577,18 @@ app.post("/api/letters/:jobId/portal", authenticate, requirePermission("letters"
       const roundTag = roundNumber ? `round${roundNumber}_` : '';
       const originalName = `${safe}_${date}_${roundTag}${base}.pdf`;
       const objectKey = objStore.consumerFileKey(consumer.id, storedName);
-      await objStore.uploadFile(objectKey, pdfBuffer, "application/pdf");
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await objStore.uploadFile(objectKey, pdfBuffer, "application/pdf");
+          break;
+        } catch (uploadErr) {
+          const isRateLimit = /rate.?limit|429|too many/i.test(String(uploadErr?.message || uploadErr));
+          if (isRateLimit && attempt < 3) {
+            await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
+          } else { throw uploadErr; }
+        }
+      }
+      if (i > 0 && i % 10 === 0) await new Promise(r => setTimeout(r, 200));
       await addFileMeta(consumer.id, {
         id,
         originalName,
