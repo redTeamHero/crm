@@ -12083,11 +12083,17 @@ let RssParser;
 try { RssParser = require('rss-parser'); } catch (_) { RssParser = null; }
 
 const FB_API = 'https://graph.facebook.com/v20.0';
-function getFbConfig() {
+function getFbConfig(req = null) {
+  let origin = (process.env.PUBLIC_BASE_URL || '').trim();
+  if (!origin && req) {
+    const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https');
+    const host = (req.headers['x-forwarded-host'] || req.headers.host || '');
+    if (host) origin = `${proto}://${host}`;
+  }
   return {
     appId:       (process.env.FB_APP_ID      || '').trim(),
     appSecret:   (process.env.FB_APP_SECRET  || '').trim(),
-    redirectUri: (process.env.FB_REDIRECT_URI || `${process.env.PUBLIC_BASE_URL || ''}/api/social/auth/facebook/callback`).trim(),
+    redirectUri: (process.env.FB_REDIRECT_URI || `${origin}/api/social/auth/facebook/callback`).trim(),
   };
 }
 
@@ -12152,7 +12158,7 @@ app.get('/api/social/status', authenticate, async (req, res) => {
 });
 
 app.get('/api/social/auth/facebook', authenticate, (req, res) => {
-  const { appId, redirectUri } = getFbConfig();
+  const { appId, redirectUri } = getFbConfig(req);
   if (!appId) return res.status(400).json({ ok: false, error: 'FB_APP_ID is not configured. Add it in Settings → Social Media / API.' });
   const params = new URLSearchParams({
     client_id: appId,
@@ -12166,7 +12172,7 @@ app.get('/api/social/auth/facebook', authenticate, (req, res) => {
 
 app.get('/api/social/auth/facebook/callback', authenticate, async (req, res) => {
   try {
-    const { appId, appSecret, redirectUri } = getFbConfig();
+    const { appId, appSecret, redirectUri } = getFbConfig(req);
     if (!appId || !appSecret) return res.redirect('/social?error=fb_not_configured');
     const { code } = req.query;
     if (!code) return res.redirect('/social?error=fb_no_code');
