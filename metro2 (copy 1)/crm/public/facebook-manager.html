@@ -149,8 +149,13 @@
         <div class="setup-step">
           <div class="step-num">3</div>
           <div style="flex:1;">
-            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:6px;">Add the OAuth Redirect URL</div>
-            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">In the left sidebar, go to <span class="setup-path">Facebook Login for Business <span>›</span> Settings</span>. Find the <strong style="color:#e5e7eb;">"Valid OAuth Redirect URIs"</strong> field and add this exact URL:</p>
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:8px;">Add the OAuth Redirect URL</div>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">3a — Open the use case customization</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">Back on the Dashboard you'll see a checklist under "App customization and requirements." Click the first row — <strong style="color:#e5e7eb;">"Customize the Authenticate and request data from users with Facebook Login use case"</strong> (the one with the green checkmark icon). This opens the use case settings.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">3b — Add the redirect URL</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">Inside the use case settings, look for a field labeled <strong style="color:#e5e7eb;">"Valid OAuth Redirect URIs"</strong>. Click in that field and paste this URL exactly:</p>
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
               <code id="redirectUriHint" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);padding:5px 12px;border-radius:6px;font-size:11px;color:#e5e7eb;word-break:break-all;"></code>
               <button class="copy-uri-btn" id="copyUriBtn" type="button">
@@ -158,7 +163,7 @@
                 Copy
               </button>
             </div>
-            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">Click <strong style="color:#e5e7eb;">Save Changes</strong> after adding the URL.</p>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">After pasting, click <strong style="color:#e5e7eb;">Save Changes</strong>. Then go back to the Dashboard checklist.</p>
           </div>
         </div>
 
