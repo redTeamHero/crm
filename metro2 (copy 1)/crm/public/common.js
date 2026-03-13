@@ -1143,15 +1143,24 @@ export async function api(url, options = {}) {
   try {
     const res = await fetch(url, { ...options, headers });
     const text = await res.text();
+    let parsed;
     try {
-      const parsed = JSON.parse(text);
-      if (parsed && typeof parsed === 'object') {
-        return { status: res.status, ...parsed };
-      }
-      return { status: res.status, data: parsed };
+      parsed = JSON.parse(text);
     } catch {
       return { status: res.status, ok: res.ok, data: text };
     }
+    if (res.status === 401 || (res.status === 403 && parsed && parsed.error === 'Forbidden')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth');
+      if (!location.pathname.endsWith('login.html')) {
+        location.href = '/login.html';
+      }
+      return { status: res.status, ok: false, ...(parsed || {}) };
+    }
+    if (parsed && typeof parsed === 'object') {
+      return { status: res.status, ...parsed };
+    }
+    return { status: res.status, data: parsed };
   } catch (err) {
     return { ok: false, status: 0, error: String(err) };
   }
