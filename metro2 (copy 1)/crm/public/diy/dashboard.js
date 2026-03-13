@@ -4,6 +4,25 @@
   let currentReport = null;
   let violations = [];
   let diyStripeProducts = [];
+  let wizardState = { step: 1, completed: [], strategy: '', markedSent: {}, badges: [] };
+
+  const WIZARD_STEPS = [
+    { num: 1, label: 'Import Report' },
+    { num: 2, label: 'Violations' },
+    { num: 3, label: 'Strategy' },
+    { num: 4, label: 'Dispute Letters' },
+    { num: 5, label: 'Progress Tracker' },
+    { num: 6, label: 'Score Tools' }
+  ];
+
+  const BADGE_DEFS = [
+    { id: 'report_uploaded', label: 'Report Uploaded', icon: '\uD83D\uDCC4' },
+    { id: 'violation_found', label: 'Violation Found', icon: '\uD83D\uDD0D' },
+    { id: 'first_dispute', label: 'First Dispute', icon: '\u2709\uFE0F' },
+    { id: 'letters_sent', label: 'Letters Sent', icon: '\uD83D\uDCEE' },
+    { id: 'score_goal_set', label: 'Score Goal Set', icon: '\uD83C\uDFAF' },
+    { id: 'tradeline_browsed', label: 'Tradeline Browsed', icon: '\uD83D\uDCB3' }
+  ];
 
   const userEmail = document.getElementById('userEmail');
   const planBadge = document.getElementById('planBadge');
@@ -42,7 +61,7 @@
     document.body.style.overflow = '';
     document.body.style.touchAction = '';
 
-    if (sectionId === 'tradelines') loadTradelines();
+    if (sectionId === 'tradelines') { loadTradelines(); awardBadge('tradeline_browsed'); }
     if (sectionId === 'news') loadNews();
     if (sectionId === 'billing') loadBilling();
     if (sectionId === 'settings') loadSettings();
@@ -114,8 +133,17 @@
       if (userEmail) userEmail.textContent = currentUser.email;
       updatePlanBadge(currentUser.plan);
       updateWelcome();
+
+      wizardState.step = currentUser.wizardStep || 1;
+      wizardState.completed = currentUser.wizardCompleted || [];
+      wizardState.strategy = currentUser.disputeStrategy || '';
+      wizardState.markedSent = currentUser.markedSent || {};
+      wizardState.badges = currentUser.badges || [];
+
+      initWizard();
       loadCompanyMatch();
       loadReports();
+      loadWizLetters();
       loadLetters();
       loadSpecialists();
       loadDiyProducts();
@@ -123,6 +151,502 @@
       localStorage.removeItem('diy_token');
       window.location.href = '/diy/login';
     }
+  }
+
+  function initWizard() {
+    renderWizardProgress();
+    goToWizStep(wizardState.step);
+    renderBadges();
+    initWizUpload();
+    initWizAudit();
+    initWizStrategy();
+    initWizLetterGen();
+    initWizScoreGoal();
+    initWizSimulator();
+    initWizNavButtons();
+  }
+
+  function renderWizardProgress() {
+    var label = document.getElementById('wizProgressLabel');
+    var pct = document.getElementById('wizProgressPct');
+    var fill = document.getElementById('wizProgressFill');
+    var stepsRow = document.getElementById('wizStepsRow');
+    if (!stepsRow) return;
+
+    var completedCount = wizardState.completed.length;
+    var pctVal = Math.round((completedCount / 6) * 100);
+    var stepInfo = WIZARD_STEPS.find(function(s) { return s.num === wizardState.step; }) || WIZARD_STEPS[0];
+
+    if (label) label.textContent = 'Step ' + wizardState.step + ' of 6 \u2014 ' + stepInfo.label + (pctVal >= 100 ? ' \u2014 Complete!' : '');
+    if (pct) pct.textContent = pctVal + '%';
+    if (fill) fill.style.width = pctVal + '%';
+
+    var dots = stepsRow.querySelectorAll('.wiz-step-dot');
+    var lines = stepsRow.querySelectorAll('.wiz-step-line');
+    dots.forEach(function(dot, i) {
+      var num = i + 1;
+      dot.classList.remove('active', 'completed');
+      if (num === wizardState.step) dot.classList.add('active');
+      else if (wizardState.completed.indexOf(num) !== -1) dot.classList.add('completed');
+    });
+    lines.forEach(function(line, i) {
+      line.classList.toggle('completed', wizardState.completed.indexOf(i + 1) !== -1);
+    });
+  }
+
+  function goToWizStep(num) {
+    wizardState.step = num;
+    document.querySelectorAll('.wiz-step-panel').forEach(function(p) { p.classList.remove('active'); });
+    var panel = document.getElementById('wizStep' + num);
+    if (panel) panel.classList.add('active');
+    renderWizardProgress();
+  }
+
+  function completeWizStep(num) {
+    if (wizardState.completed.indexOf(num) === -1) {
+      wizardState.completed.push(num);
+    }
+    renderWizardProgress();
+    saveWizardState();
+  }
+
+  function saveWizardState() {
+    if (!token) return;
+    fetch('/api/diy/profile', {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wizardStep: wizardState.step,
+        wizardCompleted: wizardState.completed,
+        disputeStrategy: wizardState.strategy,
+        markedSent: wizardState.markedSent,
+        badges: wizardState.badges
+      })
+    }).catch(function() {});
+  }
+
+  function awardBadge(badgeId) {
+    if (wizardState.badges.indexOf(badgeId) !== -1) return;
+    wizardState.badges.push(badgeId);
+    renderBadges();
+    saveWizardState();
+  }
+
+  function renderBadges() {
+    var grid = document.getElementById('badgesGrid');
+    if (!grid) return;
+    grid.innerHTML = BADGE_DEFS.map(function(b) {
+      var earned = wizardState.badges.indexOf(b.id) !== -1;
+      return '<div class="wiz-badge ' + (earned ? 'earned' : 'locked') + '">' +
+        '<span>' + b.icon + '</span>' +
+        '<span>' + esc(b.label) + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  function initWizNavButtons() {
+    document.querySelectorAll('.wiz-step-dot[data-wiz]').forEach(function(dot) {
+      dot.addEventListener('click', function() {
+        var num = parseInt(dot.getAttribute('data-wiz'), 10);
+        goToWizStep(num);
+        saveWizardState();
+      });
+    });
+    document.querySelectorAll('.wiz-next-btn[data-wiz-next]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var next = parseInt(btn.getAttribute('data-wiz-next'), 10);
+        goToWizStep(next);
+        saveWizardState();
+      });
+    });
+    document.querySelectorAll('.wiz-prev-btn[data-wiz-prev]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var prev = parseInt(btn.getAttribute('data-wiz-prev'), 10);
+        goToWizStep(prev);
+        saveWizardState();
+      });
+    });
+  }
+
+  function initWizUpload() {
+    var area = document.getElementById('wizUploadArea');
+    var input = document.getElementById('wizFileInput');
+    if (!area || !input) return;
+
+    area.addEventListener('click', function() { input.click(); });
+    area.addEventListener('dragover', function(e) { e.preventDefault(); area.classList.add('dragover'); });
+    area.addEventListener('dragleave', function() { area.classList.remove('dragover'); });
+    area.addEventListener('drop', function(e) { e.preventDefault(); area.classList.remove('dragover'); if (e.dataTransfer.files.length) handleWizUpload(e.dataTransfer.files[0]); });
+    input.addEventListener('change', function() { if (input.files.length) handleWizUpload(input.files[0]); });
+  }
+
+  function handleWizUpload(file) {
+    var formData = new FormData();
+    formData.append('report', file);
+    var prog = document.getElementById('wizUploadProgress');
+    var bar = document.getElementById('wizProgressBarUpload');
+    var text = document.getElementById('wizProgressTextUpload');
+    if (prog) prog.classList.remove('hidden');
+    if (bar) bar.style.width = '0%';
+    if (text) text.textContent = '0%';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/diy/reports/upload');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+    xhr.upload.onprogress = function(e) {
+      if (e.lengthComputable) {
+        var pct = Math.round((e.loaded / e.total) * 100);
+        if (bar) bar.style.width = pct + '%';
+        if (text) text.textContent = pct + '%';
+      }
+    };
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        var data = JSON.parse(xhr.responseText);
+        currentReport = data.report;
+        if (btnRunAudit) btnRunAudit.disabled = false;
+        var done = document.getElementById('wizStep1Done');
+        var doneText = document.getElementById('wizStep1DoneText');
+        if (done) done.style.display = '';
+        if (doneText) doneText.textContent = 'Report uploaded: ' + (data.report.originalName || 'success');
+        var nextBtn = document.getElementById('wizBtn1Next');
+        if (nextBtn) nextBtn.disabled = false;
+        completeWizStep(1);
+        awardBadge('report_uploaded');
+        updateStep(2, 4);
+        updateNextStep('Run an audit on your uploaded report to find violations.');
+        updateMilestone('Report uploaded successfully!');
+      } else {
+        alert('Upload failed: ' + xhr.statusText);
+      }
+      setTimeout(function() { if (prog) prog.classList.add('hidden'); }, 1000);
+    };
+    xhr.onerror = function() { alert('Upload failed'); if (prog) prog.classList.add('hidden'); };
+    xhr.send(formData);
+  }
+
+  function initWizAudit() {
+    var btn = document.getElementById('wizBtnRunAudit');
+    if (!btn) return;
+    btn.addEventListener('click', async function() {
+      if (!currentReport) {
+        alert('Please upload a report first (Step 1).');
+        return;
+      }
+      if (currentUser && currentUser.plan === 'free') {
+        alert('Please upgrade to the DIY plan to run audits.');
+        switchSection('billing');
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<svg style="width:16px;height:16px;" class="animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Running Audit...';
+
+      try {
+        var res = await fetch('/api/diy/audit', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reportId: currentReport.id })
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Audit failed');
+        violations = data.violations || [];
+        renderWizViolations(violations);
+        var nextBtn2 = document.getElementById('wizBtn2Next');
+        if (nextBtn2) nextBtn2.disabled = false;
+        completeWizStep(2);
+
+        if (violations.length > 0) {
+          awardBadge('violation_found');
+          if (noViolations) noViolations.style.display = 'none';
+          if (violationsList) {
+            violationsList.innerHTML = violations.map(function(v) {
+              return '<div class="violation-item"><div style="display:flex;align-items:start;gap:10px;"><span style="color:#ef4444;margin-top:2px;">&#9888;</span><div style="flex:1;"><p style="font-weight:600;color:var(--diy-text);font-size:14px;">' + esc(v.title || v.ruleId) + '</p><p style="font-size:13px;color:var(--diy-text-sub);margin-top:4px;">' + esc(v.explanation || v.description || '') + '</p>' + (v.bureau ? '<span style="display:inline-block;margin-top:6px;font-size:11px;padding:2px 8px;background:#f3f4f6;border-radius:6px;color:var(--diy-text-sub);">' + esc(v.bureau) + '</span>' : '') + '</div></div></div>';
+            }).join('');
+          }
+          if (btnGenerateLetters) btnGenerateLetters.disabled = false;
+          updateStep(3, 4);
+          updateNextStep('Generate dispute letters based on the violations found.');
+          updateReportSnapshot(violations.length + ' negative item' + (violations.length !== 1 ? 's' : '') + ' detected.');
+          updateMilestone('Audit complete! ' + violations.length + ' violation' + (violations.length !== 1 ? 's' : '') + ' found.');
+        } else {
+          updateMilestone('Audit complete! No violations found \u2014 your report looks clean.');
+          updateNextStep('Your report looks good! Explore score improvement tools.');
+        }
+      } catch (e) {
+        alert('Audit failed: ' + e.message);
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg> Run Audit on Report';
+    });
+  }
+
+  function renderWizViolations(viols) {
+    var container = document.getElementById('wizViolationCards');
+    var noViols = document.getElementById('wizNoViolations');
+    if (!container) return;
+    if (!viols || viols.length === 0) {
+      container.innerHTML = '';
+      if (noViols) noViols.style.display = '';
+      return;
+    }
+    if (noViols) noViols.style.display = 'none';
+    container.innerHTML = viols.map(function(v, i) {
+      var lawMap = {
+        'FCRA': 'Fair Credit Reporting Act, 15 U.S.C. \u00A7 1681. Requires accurate reporting and gives consumers the right to dispute inaccurate information.',
+        'FDCPA': 'Fair Debt Collection Practices Act, 15 U.S.C. \u00A7 1692. Prohibits abusive, unfair, or deceptive practices by debt collectors.',
+        'Metro-2': 'Metro-2 Format Compliance. The industry standard for credit reporting data format. Violations indicate improperly formatted data fields.',
+        'TILA': 'Truth in Lending Act, 15 U.S.C. \u00A7 1601. Requires clear disclosure of loan terms and costs.',
+        'HIPAA': 'Health Insurance Portability and Accountability Act. Protects medical information from unauthorized disclosure in credit reports.'
+      };
+      var lawKey = (v.law || v.ruleId || '').toUpperCase();
+      var citation = '';
+      for (var k in lawMap) { if (lawKey.indexOf(k) !== -1) { citation = lawMap[k]; break; } }
+      if (!citation) citation = 'This item may violate consumer credit reporting laws. Consult with a credit professional for specific legal guidance.';
+
+      return '<div class="wiz-violation-card">' +
+        '<div class="wiz-viol-header">' +
+        '<span style="color:#ef4444;font-size:18px;">&#9888;</span>' +
+        '<div class="wiz-viol-title">' + esc(v.title || v.ruleId || 'Violation #' + (i+1)) + '</div>' +
+        (v.bureau ? '<span class="wiz-viol-bureau">' + esc(v.bureau) + '</span>' : '') +
+        '</div>' +
+        '<div class="wiz-viol-actions">' +
+        '<button class="wiz-viol-btn-explain" data-explain="' + i + '" type="button">Explain</button>' +
+        '<button class="wiz-viol-btn-dispute" data-dispute="' + i + '" type="button">Dispute This</button>' +
+        '</div>' +
+        '<div class="wiz-viol-explain" id="wizExplain' + i + '">' +
+        '<strong style="color:var(--diy-text);display:block;margin-bottom:6px;">Legal Basis</strong>' +
+        esc(citation) +
+        (v.explanation || v.description ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.06);"><strong style="color:var(--diy-text);display:block;margin-bottom:4px;">Details</strong>' + esc(v.explanation || v.description) + '</div>' : '') +
+        '</div>' +
+        '</div>';
+    }).join('');
+
+    container.querySelectorAll('.wiz-viol-btn-explain').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = btn.getAttribute('data-explain');
+        var el = document.getElementById('wizExplain' + idx);
+        if (el) el.classList.toggle('open');
+      });
+    });
+
+    container.querySelectorAll('.wiz-viol-btn-dispute').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        goToWizStep(3);
+        saveWizardState();
+      });
+    });
+  }
+
+  function initWizStrategy() {
+    var cards = document.querySelectorAll('.wiz-strategy-card');
+    var selectBtns = document.querySelectorAll('.wiz-strategy-select');
+    var nextBtn = document.getElementById('wizBtn3Next');
+
+    if (currentUser && currentUser.plan === 'free') {
+      var advLock = document.getElementById('stratAdvLock');
+      var legalLock = document.getElementById('stratLegalLock');
+      if (advLock) advLock.style.display = 'flex';
+      if (legalLock) legalLock.style.display = 'flex';
+      var advCard = document.getElementById('stratAdvanced');
+      var legalCard = document.getElementById('stratLegal');
+      if (advCard) advCard.classList.add('locked');
+      if (legalCard) legalCard.classList.add('locked');
+    }
+
+    if (wizardState.strategy) {
+      var selected = document.querySelector('.wiz-strategy-card[data-strategy="' + wizardState.strategy + '"]');
+      if (selected) selected.classList.add('selected');
+      if (nextBtn) nextBtn.disabled = false;
+    }
+
+    selectBtns.forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var strategy = btn.getAttribute('data-strategy');
+        if (currentUser && currentUser.plan === 'free' && strategy !== 'basic') {
+          alert('Please upgrade to the DIY plan to use ' + strategy + ' strategy.');
+          switchSection('billing');
+          return;
+        }
+        cards.forEach(function(c) { c.classList.remove('selected'); });
+        var card = btn.closest('.wiz-strategy-card');
+        if (card) card.classList.add('selected');
+        wizardState.strategy = strategy;
+        if (nextBtn) nextBtn.disabled = false;
+        completeWizStep(3);
+        saveWizardState();
+      });
+    });
+  }
+
+  function initWizLetterGen() {
+    var btn = document.getElementById('wizBtnGenLetters');
+    if (!btn) return;
+    btn.addEventListener('click', async function() {
+      if (currentUser && currentUser.plan === 'free') {
+        alert('Please upgrade to the DIY plan to generate dispute letters.');
+        switchSection('billing');
+        return;
+      }
+      if (!currentReport || violations.length === 0) {
+        alert('Please upload a report and run an audit first to find violations.');
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<svg style="width:16px;height:16px;" class="animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...';
+      try {
+        var res = await fetch('/api/diy/letters', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reportId: currentReport ? currentReport.id : null, violations: violations })
+        });
+        var data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'Letter generation failed');
+        awardBadge('first_dispute');
+        completeWizStep(4);
+        loadWizLetters();
+        loadLetters();
+      } catch (e) {
+        alert('Letter generation failed: ' + e.message);
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Generate Dispute Letters';
+    });
+  }
+
+  async function loadWizLetters() {
+    try {
+      var res = await fetch('/api/diy/letters', { headers: { 'Authorization': 'Bearer ' + token } });
+      var data = await res.json();
+      var container = document.getElementById('wizLetterChecklist');
+      var noEl = document.getElementById('wizNoLetters');
+      if (!container) return;
+      if (!data.letters || data.letters.length === 0) {
+        container.innerHTML = '';
+        if (noEl) noEl.style.display = '';
+        return;
+      }
+      if (noEl) noEl.style.display = 'none';
+      container.innerHTML = data.letters.map(function(letter) {
+        var dateStr = letter.createdAt ? new Date(letter.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        var isSent = wizardState.markedSent[letter.id] === true;
+        return '<div class="wiz-letter-item">' +
+          '<div class="wiz-letter-info">' +
+          '<div class="wiz-letter-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>' +
+          '<div><p style="font-weight:600;color:var(--diy-text);font-size:14px;">' + esc(letter.bureau || 'Dispute Letter') + '</p>' +
+          '<p style="font-size:12px;color:var(--diy-text-sub);">' + esc(dateStr) + '</p></div>' +
+          '</div>' +
+          '<div class="wiz-letter-actions">' +
+          '<a href="/api/diy/letters/' + encodeURIComponent(letter.id) + '/download" class="diy-btn diy-btn-primary" style="padding:6px 14px;font-size:12px;text-decoration:none;">Download</a>' +
+          '<button class="wiz-mark-sent' + (isSent ? ' sent' : '') + '" data-letter-id="' + esc(letter.id) + '" type="button">' + (isSent ? 'Sent' : 'Mark Sent') + '</button>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+
+      container.querySelectorAll('.wiz-mark-sent').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var lid = btn.getAttribute('data-letter-id');
+          var isSent = wizardState.markedSent[lid] === true;
+          wizardState.markedSent[lid] = !isSent;
+          btn.classList.toggle('sent');
+          btn.textContent = wizardState.markedSent[lid] ? 'Sent' : 'Mark Sent';
+          var allSent = data.letters.every(function(l) { return wizardState.markedSent[l.id]; });
+          if (allSent) {
+            awardBadge('letters_sent');
+            updateTimeline();
+          }
+          saveWizardState();
+        });
+      });
+
+      updateTimeline();
+    } catch (e) {
+      console.error('Failed to load wizard letters:', e);
+    }
+  }
+
+  function updateTimeline() {
+    var anyMarkedSent = Object.values(wizardState.markedSent).some(function(v) { return v === true; });
+    var sentDate = document.getElementById('wizTlSentDate');
+    var stages = document.querySelectorAll('.wiz-tl-stage');
+    var connectors = document.querySelectorAll('.wiz-tl-connector');
+
+    if (anyMarkedSent) {
+      if (sentDate) sentDate.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      if (stages[0]) { stages[0].classList.add('completed'); stages[0].classList.remove('active'); }
+      if (stages[1]) stages[1].classList.add('active');
+      if (connectors[0]) connectors[0].classList.add('completed');
+
+      var processDate = document.getElementById('wizTlProcessDate');
+      var future30 = new Date(); future30.setDate(future30.getDate() + 30);
+      if (processDate) processDate.textContent = 'Expected by ' + future30.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+  }
+
+  function initWizScoreGoal() {
+    var goalInput = document.getElementById('wizScoreGoal');
+    var goalBtn = document.getElementById('wizBtnSetGoal');
+    var goalConfirm = document.getElementById('wizGoalConfirm');
+    if (!goalBtn || !goalInput) return;
+
+    if (currentUser && currentUser.scoreGoal > 0) {
+      goalInput.value = currentUser.scoreGoal;
+    }
+
+    goalBtn.addEventListener('click', function() {
+      var goal = parseInt(goalInput.value, 10);
+      if (!goal || goal < 300 || goal > 850) {
+        alert('Please enter a score between 300 and 850.');
+        return;
+      }
+      fetch('/api/diy/profile', {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scoreGoal: goal })
+      }).then(function(res) { return res.json(); }).then(function(data) {
+        if (data.ok) {
+          awardBadge('score_goal_set');
+          completeWizStep(6);
+          if (goalConfirm) { goalConfirm.style.display = ''; setTimeout(function() { goalConfirm.style.display = 'none'; }, 3000); }
+        }
+      }).catch(function() {});
+    });
+  }
+
+  function initWizSimulator() {
+    var scoreInput = document.getElementById('wizSimScore');
+    var projected = document.getElementById('wizSimProjected');
+    var delta = document.getElementById('wizSimDelta');
+    var cbs = document.querySelectorAll('.wiz-sim-cb');
+    if (!scoreInput || !projected) return;
+
+    var impacts = {
+      wizSimTradeline: 35,
+      wizSimUtilization: 30,
+      wizSimCollection: 40,
+      wizSimInquiry: 10,
+      wizSimLatePay: 20
+    };
+
+    function recalc() {
+      var base = parseInt(scoreInput.value, 10) || 620;
+      var bonus = 0;
+      cbs.forEach(function(cb) { if (cb.checked) bonus += (impacts[cb.id] || 0); });
+      var total = Math.min(850, base + bonus);
+      projected.textContent = total;
+      if (bonus > 0) {
+        delta.textContent = '+' + bonus + ' pts';
+        delta.style.display = '';
+        projected.style.color = '#10b981';
+      } else {
+        delta.style.display = 'none';
+        projected.style.color = 'var(--diy-text)';
+      }
+    }
+
+    scoreInput.addEventListener('input', recalc);
+    cbs.forEach(function(cb) { cb.addEventListener('change', recalc); });
+    recalc();
   }
 
   function updateWelcome() {
@@ -180,6 +704,16 @@
         updateStep(2, 4);
         updateNextStep('Run an audit on your uploaded report to find violations.');
         updateMilestone('Report uploaded successfully!');
+        var wizNextBtn = document.getElementById('wizBtn1Next');
+        if (wizNextBtn) wizNextBtn.disabled = false;
+        var done = document.getElementById('wizStep1Done');
+        var doneText = document.getElementById('wizStep1DoneText');
+        if (done) done.style.display = '';
+        if (doneText) doneText.textContent = 'Report on file: ' + (currentReport.originalName || 'uploaded');
+        if (wizardState.completed.indexOf(1) === -1) {
+          completeWizStep(1);
+          awardBadge('report_uploaded');
+        }
       }
     } catch (e) {
       console.error('Failed to load reports:', e);

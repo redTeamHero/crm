@@ -10500,7 +10500,13 @@ app.get('/api/diy/me', diyAuthenticate, async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         plan: user.plan,
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        wizardStep: user.wizardStep || 1,
+        wizardCompleted: user.wizardCompleted || [],
+        disputeStrategy: user.disputeStrategy || '',
+        markedSent: user.markedSent || {},
+        badges: user.badges || [],
+        scoreGoal: user.scoreGoal || 0
       }
     });
   } catch (err) {
@@ -11430,7 +11436,7 @@ async function initStripeSubscriptions() {
 // DIY Update Profile
 app.put('/api/diy/profile', diyAuthenticate, async (req, res) => {
   try {
-    const { firstName, lastName, phone, address, city, state, zip } = req.body || {};
+    const { firstName, lastName, phone, address, city, state, zip, wizardStep, wizardCompleted, disputeStrategy, markedSent, badges, scoreGoal } = req.body || {};
     const db = await loadDiyUsersDB();
     const user = db.users.find(u => u.id === req.diyUser.id);
     if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
@@ -11443,8 +11449,27 @@ app.put('/api/diy/profile', diyAuthenticate, async (req, res) => {
     if (state !== undefined) user.state = sanitizeSettingString(String(state).trim());
     if (zip !== undefined) user.zip = sanitizeSettingString(String(zip).trim());
 
+    if (wizardStep !== undefined) user.wizardStep = Math.max(1, Math.min(6, parseInt(wizardStep, 10) || 1));
+    if (wizardCompleted !== undefined && Array.isArray(wizardCompleted)) user.wizardCompleted = wizardCompleted.filter(s => [1,2,3,4,5,6].includes(s));
+    if (disputeStrategy !== undefined && ['basic','advanced','legal',''].includes(disputeStrategy)) {
+      if ((disputeStrategy === 'advanced' || disputeStrategy === 'legal') && user.plan === 'free') {
+        return res.status(403).json({ ok: false, error: 'Upgrade to a paid plan to use ' + disputeStrategy + ' strategy' });
+      }
+      user.disputeStrategy = disputeStrategy;
+    }
+    if (markedSent !== undefined && typeof markedSent === 'object') user.markedSent = markedSent;
+    if (badges !== undefined && Array.isArray(badges)) user.badges = badges;
+    if (scoreGoal !== undefined) user.scoreGoal = parseInt(scoreGoal, 10) || 0;
+
     await saveDiyUsersDB(db);
-    res.json({ ok: true, user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, phone: user.phone || '', address: user.address || '', city: user.city || '', state: user.state || '', zip: user.zip || '', plan: user.plan } });
+    res.json({ ok: true, user: {
+      id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
+      phone: user.phone || '', address: user.address || '', city: user.city || '',
+      state: user.state || '', zip: user.zip || '', plan: user.plan,
+      wizardStep: user.wizardStep || 1, wizardCompleted: user.wizardCompleted || [],
+      disputeStrategy: user.disputeStrategy || '', markedSent: user.markedSent || {},
+      badges: user.badges || [], scoreGoal: user.scoreGoal || 0
+    }});
   } catch (err) {
     logError('DIY_UPDATE_PROFILE_ERROR', err);
     res.status(500).json({ ok: false, error: 'Failed to update profile' });
@@ -11591,7 +11616,10 @@ app.get('/api/diy/profile', diyAuthenticate, async (req, res) => {
         id: user.id, email: user.email, firstName: user.firstName || '', lastName: user.lastName || '',
         phone: user.phone || '', address: user.address || '', city: user.city || '',
         state: user.state || '', zip: user.zip || '', plan: user.plan, createdAt: user.createdAt,
-        stripeCustomerId: user.stripeCustomerId || null
+        stripeCustomerId: user.stripeCustomerId || null,
+        wizardStep: user.wizardStep || 1, wizardCompleted: user.wizardCompleted || [],
+        disputeStrategy: user.disputeStrategy || '', markedSent: user.markedSent || {},
+        badges: user.badges || [], scoreGoal: user.scoreGoal || 0
       }
     });
   } catch (err) {

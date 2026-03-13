@@ -211,6 +211,128 @@
     .page-btn.active { background: var(--diy-accent); color: #fff; border-color: var(--diy-accent); }
     .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    .wiz-progress-container {
+      background: var(--diy-card); border-radius: 16px; padding: 20px;
+      border: 1px solid var(--diy-border); margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .wiz-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .wiz-progress-label { font-size: 14px; font-weight: 600; color: var(--diy-text); }
+    .wiz-progress-pct { font-size: 14px; font-weight: 700; color: var(--diy-accent); }
+    .wiz-progress-track { height: 8px; background: #e5e7eb; border-radius: 99px; overflow: hidden; margin-bottom: 16px; }
+    .wiz-progress-fill { height: 100%; background: linear-gradient(90deg, var(--diy-accent), #818cf8); border-radius: 99px; transition: width 0.5s ease; }
+    .wiz-steps-row { display: flex; align-items: center; gap: 0; }
+    .wiz-step-dot {
+      width: 36px; height: 36px; border-radius: 50%; border: 2px solid #d1d5db;
+      background: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #9ca3af; cursor: pointer;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .wiz-step-dot.active { border-color: var(--diy-accent); background: var(--diy-accent); color: #fff; }
+    .wiz-step-dot.completed { border-color: #10b981; background: #10b981; color: #fff; }
+    .wiz-step-dot:hover:not(.active) { border-color: var(--diy-accent); color: var(--diy-accent); }
+    .wiz-step-line { flex: 1; height: 2px; background: #e5e7eb; min-width: 12px; }
+    .wiz-step-line.completed { background: #10b981; }
+    .wiz-step-panel { display: none; background: var(--diy-card); border-radius: 16px; padding: 24px; border: 1px solid var(--diy-border); margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .wiz-step-panel.active { display: block; }
+    .wiz-step-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    .wiz-step-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .wiz-step-title { font-size: 18px; font-weight: 700; color: var(--diy-text); margin-bottom: 4px; }
+    .wiz-step-desc { font-size: 14px; color: var(--diy-text-sub); line-height: 1.5; }
+    .wiz-step-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--diy-border); }
+
+    .wiz-strategy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .wiz-strategy-card {
+      background: #fafafa; border: 2px solid var(--diy-border); border-radius: 16px;
+      padding: 20px; display: flex; flex-direction: column; align-items: center;
+      text-align: center; cursor: pointer; transition: all 0.2s; position: relative;
+    }
+    .wiz-strategy-card:hover { border-color: var(--diy-accent); box-shadow: 0 4px 16px rgba(99,102,241,0.1); }
+    .wiz-strategy-card.selected { border-color: var(--diy-accent); background: rgba(99,102,241,0.04); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .wiz-strategy-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 12px; }
+    .wiz-strategy-icon { margin-bottom: 12px; }
+    .wiz-strategy-name { font-size: 16px; font-weight: 700; color: var(--diy-text); margin-bottom: 8px; }
+    .wiz-strategy-desc { font-size: 13px; color: var(--diy-text-sub); line-height: 1.5; margin-bottom: 12px; }
+    .wiz-strategy-features { list-style: none; padding: 0; margin: 0 0 16px; text-align: left; width: 100%; }
+    .wiz-strategy-features li { font-size: 13px; color: var(--diy-text-sub); padding: 4px 0; padding-left: 20px; position: relative; }
+    .wiz-strategy-features li::before { content: '\2713'; position: absolute; left: 0; color: #10b981; font-weight: 700; }
+    .wiz-strategy-lock { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #f59e0b; margin-bottom: 8px; }
+    .wiz-strategy-card.locked { opacity: 0.65; }
+    .wiz-strategy-card.locked .wiz-strategy-select { background: #9ca3af; cursor: not-allowed; }
+
+    .wiz-violation-card {
+      background: #fff; border: 1px solid rgba(239,68,68,0.15); border-radius: 14px;
+      padding: 16px; margin-bottom: 10px; transition: all 0.2s;
+    }
+    .wiz-violation-card:hover { border-color: rgba(239,68,68,0.3); }
+    .wiz-viol-header { display: flex; align-items: center; gap: 12px; }
+    .wiz-viol-title { font-size: 14px; font-weight: 600; color: var(--diy-text); flex: 1; }
+    .wiz-viol-bureau { font-size: 11px; padding: 2px 8px; background: #f3f4f6; border-radius: 6px; color: var(--diy-text-sub); font-weight: 600; }
+    .wiz-viol-explain { margin-top: 10px; padding: 12px; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.12); border-radius: 10px; font-size: 13px; color: var(--diy-text-sub); line-height: 1.6; display: none; }
+    .wiz-viol-explain.open { display: block; }
+    .wiz-viol-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .wiz-viol-btn-explain {
+      font-size: 12px; padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(245,158,11,0.3);
+      background: rgba(245,158,11,0.08); color: #d97706; cursor: pointer; font-weight: 600;
+    }
+    .wiz-viol-btn-dispute {
+      font-size: 12px; padding: 5px 12px; border-radius: 8px; border: none;
+      background: var(--diy-accent); color: #fff; cursor: pointer; font-weight: 600;
+    }
+
+    .wiz-letter-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px; background: #fafafa; border: 1px solid var(--diy-border); border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    .wiz-letter-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .wiz-letter-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(99,102,241,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .wiz-letter-actions { display: flex; align-items: center; gap: 8px; }
+    .wiz-mark-sent {
+      font-size: 12px; padding: 5px 12px; border-radius: 8px; font-weight: 600; cursor: pointer;
+      border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: #10b981;
+    }
+    .wiz-mark-sent.sent { background: #10b981; color: #fff; border-color: #10b981; }
+
+    .wiz-timeline { display: flex; flex-direction: column; gap: 0; padding: 8px 0; }
+    .wiz-tl-stage { display: flex; align-items: center; gap: 16px; padding: 14px 0; }
+    .wiz-tl-icon {
+      width: 44px; height: 44px; border-radius: 50%; border: 2px solid #d1d5db;
+      background: #fff; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: #9ca3af;
+    }
+    .wiz-tl-stage.active .wiz-tl-icon { border-color: var(--diy-accent); color: var(--diy-accent); background: rgba(99,102,241,0.06); }
+    .wiz-tl-stage.completed .wiz-tl-icon { border-color: #10b981; background: #10b981; color: #fff; }
+    .wiz-tl-label { font-size: 14px; font-weight: 600; color: var(--diy-text); }
+    .wiz-tl-date { font-size: 12px; color: var(--diy-text-sub); margin-top: 2px; }
+    .wiz-tl-connector { width: 2px; height: 20px; background: #e5e7eb; margin-left: 21px; }
+    .wiz-tl-connector.completed { background: #10b981; }
+
+    .wiz-sim-section { background: #fafafa; border: 1px solid var(--diy-border); border-radius: 14px; padding: 20px; }
+    .wiz-suggestions { display: flex; flex-direction: column; gap: 10px; }
+    .wiz-suggestion-card { display: flex; align-items: center; gap: 14px; padding: 14px; background: #fff; border: 1px solid var(--diy-border); border-radius: 12px; }
+    .wiz-sugg-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .wiz-sugg-title { font-size: 14px; font-weight: 600; color: var(--diy-text); }
+    .wiz-sugg-desc { font-size: 12px; color: var(--diy-text-sub); margin-top: 2px; }
+    .wiz-sugg-info { flex: 1; }
+    .wiz-sugg-impact { font-size: 14px; font-weight: 700; white-space: nowrap; }
+
+    .wiz-simulator { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; padding: 16px; background: #fff; border: 1px solid var(--diy-border); border-radius: 12px; }
+    .wiz-sim-input-group { display: flex; flex-direction: column; }
+    .wiz-sim-toggles { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
+    .wiz-sim-toggle { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--diy-text); cursor: pointer; padding: 6px 0; }
+    .wiz-sim-toggle input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--diy-accent); cursor: pointer; }
+    .wiz-sim-result { text-align: center; min-width: 120px; }
+    .wiz-sim-projected { font-size: 42px; font-weight: 800; color: var(--diy-text); transition: all 0.3s; }
+    .wiz-sim-delta { font-size: 16px; font-weight: 700; color: #10b981; margin-top: 4px; }
+
+    .wiz-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+      border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid;
+    }
+    .wiz-badge.earned { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); color: #10b981; }
+    .wiz-badge.locked { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); color: #9ca3af; }
+
     @media (max-width: 768px) {
       .diy-sidebar { transform: translateX(-100%); width: 280px; z-index: 50; }
       .diy-sidebar.open { transform: translateX(0); }
@@ -222,6 +344,11 @@
       .specialist-stats { grid-template-columns: 1fr; }
       #billingPlansGrid { grid-template-columns: 1fr !important; max-width:100% !important; }
       .tradeline-card { flex-direction: column; align-items: flex-start; }
+      .wiz-strategy-grid { grid-template-columns: 1fr; }
+      .wiz-step-dot { width: 30px; height: 30px; font-size: 11px; }
+      .wiz-simulator { flex-direction: column; }
+      .wiz-timeline { }
+      .wiz-tl-stage { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -317,79 +444,431 @@
     </header>
 
     <main class="diy-content">
-      <!-- OVERVIEW SECTION -->
+      <!-- OVERVIEW / WIZARD SECTION -->
       <div id="sectionOverview" class="diy-section-page active">
         <div class="welcome-section">
           <div class="welcome-title" id="welcomeText">Welcome Back</div>
-          <div class="welcome-sub">Your credit restoration progress at a glance.</div>
-          <div class="step-info" style="margin-top:12px;">
-            <span class="step-text" id="stepProgress">Step 1 of 4: Upload Report</span>
-            <button class="step-badge" id="btnMarkGoal" type="button">Mark Today's Goal Done</button>
+          <div class="welcome-sub" id="wizardSubtitle">Let's get your credit back on track. Follow the steps below.</div>
+        </div>
+
+        <!-- Achievement Badges -->
+        <div id="badgesGrid" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
+
+        <!-- Wizard Progress Bar -->
+        <div class="wiz-progress-container">
+          <div class="wiz-progress-header">
+            <span class="wiz-progress-label" id="wizProgressLabel">Step 1 of 6 — Import Report</span>
+            <span class="wiz-progress-pct" id="wizProgressPct">0%</span>
+          </div>
+          <div class="wiz-progress-track">
+            <div class="wiz-progress-fill" id="wizProgressFill" style="width:0%"></div>
+          </div>
+          <div class="wiz-steps-row" id="wizStepsRow">
+            <button class="wiz-step-dot active" data-wiz="1" type="button" title="Import Report"><span>1</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="2" type="button" title="Violations"><span>2</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="3" type="button" title="Strategy"><span>3</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="4" type="button" title="Dispute Letters"><span>4</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="5" type="button" title="Progress Tracker"><span>5</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="6" type="button" title="Score Tools"><span>6</span></button>
           </div>
         </div>
 
-        <div class="bureau-grid">
-          <div class="bureau-card tu">
-            <div class="bureau-name">TransUnion</div>
-            <div id="scoreTU" class="bureau-dash">&mdash;</div>
-          </div>
-          <div class="bureau-card ex">
-            <div class="bureau-name">Experian</div>
-            <div id="scoreEX" class="bureau-dash">&mdash;</div>
-          </div>
-          <div class="bureau-card eq">
-            <div class="bureau-name">Equifax</div>
-            <div id="scoreEQ" class="bureau-dash">&mdash;</div>
-          </div>
-        </div>
-
-        <div class="diy-card">
-          <div class="diy-card-header">
-            <div class="diy-card-icon" style="background:rgba(245,158,11,0.1);">
-              <span>&#9200;</span>
+        <!-- ===== WIZARD STEP 1: Import Report ===== -->
+        <div class="wiz-step-panel active" id="wizStep1">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(99,102,241,0.12);color:#6366f1;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             </div>
-            <div class="diy-card-title">Next Step</div>
+            <div>
+              <h3 class="wiz-step-title">Step 1: Import Your Credit Report</h3>
+              <p class="wiz-step-desc">Upload a PDF or HTML credit report from any bureau. We'll scan it for errors and violations.</p>
+            </div>
           </div>
-          <div class="diy-card-body" id="nextStepContent">
-            Upload your credit report to get started with your audit.
+          <div class="trust-bar">
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Bank-level encryption
+            </div>
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+              Files never shared
+            </div>
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Private &amp; secure
+            </div>
+          </div>
+          <div id="wizUploadArea" class="upload-zone-diy">
+            <input type="file" id="wizFileInput" accept=".pdf,.html,.htm" style="display:none;" />
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <p style="font-weight:600;color:var(--diy-text);font-size:15px;">Drop your credit report here or click to browse</p>
+            <p style="font-size:13px;color:var(--diy-text-sub);margin-top:4px;">Supports PDF and HTML formats from all 3 bureaus</p>
+          </div>
+          <div id="wizUploadProgress" class="hidden" style="margin-top:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="flex:1;height:6px;background:#e5e7eb;border-radius:99px;overflow:hidden;">
+                <div id="wizProgressBarUpload" style="height:100%;background:var(--diy-accent);transition:width 0.3s;width:0%;border-radius:99px;"></div>
+              </div>
+              <span id="wizProgressTextUpload" style="font-size:13px;color:var(--diy-text-sub);font-weight:600;">0%</span>
+            </div>
+          </div>
+          <div id="wizStep1Done" style="display:none;margin-top:16px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:12px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span style="font-weight:600;color:#10b981;font-size:14px;" id="wizStep1DoneText">Report uploaded successfully!</span>
+            </div>
+          </div>
+          <div class="wiz-step-actions">
+            <div></div>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="2" type="button" id="wizBtn1Next" disabled>
+              Continue
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
           </div>
         </div>
 
-        <div class="diy-card">
-          <div class="diy-card-header">
-            <div class="diy-card-icon" style="background:rgba(16,185,129,0.1);">
-              <span>&#10004;&#65039;</span>
+        <!-- ===== WIZARD STEP 2: Violation Detection ===== -->
+        <div class="wiz-step-panel" id="wizStep2">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(239,68,68,0.1);color:#ef4444;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
             </div>
-            <div class="diy-card-title">Milestones</div>
+            <div>
+              <h3 class="wiz-step-title">Step 2: Violation Detection</h3>
+              <p class="wiz-step-desc">We found potential violations in your report. Review each one and decide which to dispute.</p>
+            </div>
           </div>
-          <div class="diy-card-body" id="milestonesContent">
-            Milestones will appear here.
+          <div id="wizRunAuditPanel" style="margin-bottom:16px;">
+            <button id="wizBtnRunAudit" class="diy-btn diy-btn-primary" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              Run Audit on Report
+            </button>
+          </div>
+          <div id="wizViolationCards"></div>
+          <div id="wizNoViolations" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p style="font-weight:600;">No violations detected yet</p>
+            <p style="font-size:13px;margin-top:4px;">Run an audit on your uploaded report to find issues.</p>
+          </div>
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="1" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="3" type="button" id="wizBtn2Next" disabled>
+              Continue
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
           </div>
         </div>
 
-        <div class="diy-card">
-          <div class="diy-card-header">
-            <div class="diy-card-icon" style="background:rgba(59,130,246,0.1);">
-              <span>&#128203;</span>
+        <!-- ===== WIZARD STEP 3: Strategy Selection ===== -->
+        <div class="wiz-step-panel" id="wizStep3">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
             </div>
-            <div class="diy-card-title">Report Snapshot</div>
+            <div>
+              <h3 class="wiz-step-title">Step 3: Choose Your Strategy</h3>
+              <p class="wiz-step-desc">Select a dispute strategy based on your goals and budget. You can change this later.</p>
+            </div>
           </div>
-          <div class="diy-card-body" id="reportSnapshot">
-            No negative items detected.
+          <div class="wiz-strategy-grid">
+            <div class="wiz-strategy-card" data-strategy="basic" id="stratBasic">
+              <div class="wiz-strategy-badge" style="background:rgba(59,130,246,0.1);color:#3b82f6;">Included</div>
+              <div class="wiz-strategy-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </div>
+              <h4 class="wiz-strategy-name">Basic</h4>
+              <p class="wiz-strategy-desc">Standard bureau dispute letters citing FCRA violations. Best for simple inaccuracies.</p>
+              <ul class="wiz-strategy-features">
+                <li>Bureau dispute letters</li>
+                <li>FCRA violation citations</li>
+                <li>All 3 bureaus covered</li>
+              </ul>
+              <button class="diy-btn diy-btn-primary wiz-strategy-select" data-strategy="basic" type="button" style="width:100%;margin-top:auto;">Select Basic</button>
+            </div>
+            <div class="wiz-strategy-card" data-strategy="advanced" id="stratAdvanced">
+              <div class="wiz-strategy-badge" style="background:rgba(168,85,247,0.1);color:#a855f7;">Popular</div>
+              <div class="wiz-strategy-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+              </div>
+              <h4 class="wiz-strategy-name">Advanced</h4>
+              <p class="wiz-strategy-desc">Metro-2 format disputes with compliance-level detail. Higher success rate for complex issues.</p>
+              <ul class="wiz-strategy-features">
+                <li>Metro-2 compliance disputes</li>
+                <li>Advanced law citations</li>
+                <li>Furnisher-level targeting</li>
+              </ul>
+              <div class="wiz-strategy-lock" id="stratAdvLock" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Requires DIY plan
+              </div>
+              <button class="diy-btn diy-btn-primary wiz-strategy-select" data-strategy="advanced" type="button" style="width:100%;margin-top:auto;">Select Advanced</button>
+            </div>
+            <div class="wiz-strategy-card" data-strategy="legal" id="stratLegal">
+              <div class="wiz-strategy-badge" style="background:rgba(239,68,68,0.1);color:#ef4444;">Maximum</div>
+              <div class="wiz-strategy-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </div>
+              <h4 class="wiz-strategy-name">Legal</h4>
+              <p class="wiz-strategy-desc">Full dispute package plus CFPB complaints. Nuclear option for unresponsive bureaus.</p>
+              <ul class="wiz-strategy-features">
+                <li>Everything in Advanced</li>
+                <li>CFPB complaint generation</li>
+                <li>Legal escalation templates</li>
+              </ul>
+              <div class="wiz-strategy-lock" id="stratLegalLock" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Requires DIY plan
+              </div>
+              <button class="diy-btn diy-btn-primary wiz-strategy-select" data-strategy="legal" type="button" style="width:100%;margin-top:auto;">Select Legal</button>
+            </div>
+          </div>
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="2" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="4" type="button" id="wizBtn3Next" disabled>
+              Continue
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
           </div>
         </div>
 
-        <div class="diy-card">
-          <div class="diy-card-header">
-            <div class="diy-card-icon" style="background:rgba(168,85,247,0.1);">
-              <span>&#128101;</span>
+        <!-- ===== WIZARD STEP 4: Dispute Letters ===== -->
+        <div class="wiz-step-panel" id="wizStep4">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(99,102,241,0.1);color:#6366f1;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             </div>
-            <div class="diy-card-title">Your Specialist</div>
+            <div>
+              <h3 class="wiz-step-title">Step 4: Generate & Send Dispute Letters</h3>
+              <p class="wiz-step-desc">Generate your letters, download PDFs, and mark each one as sent once you mail them.</p>
+            </div>
           </div>
-          <div class="diy-card-body" id="companyMatch">
-            <span style="color:var(--diy-text-sub);">No specialist selected.</span>
-            <a href="#specialists" class="diy-nav-trigger" data-section="specialists" style="color:var(--diy-accent);font-weight:600;margin-left:8px;text-decoration:none;">Find one &rarr;</a>
+          <div id="wizLettersGenPanel" style="margin-bottom:16px;">
+            <button id="wizBtnGenLetters" class="diy-btn diy-btn-primary" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Generate Dispute Letters
+            </button>
           </div>
+          <div id="wizLetterChecklist"></div>
+          <div id="wizNoLetters" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" stroke-width="1.5"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" stroke-width="1.5"/></svg>
+            <p style="font-weight:600;">No letters generated yet</p>
+            <p style="font-size:13px;margin-top:4px;">Generate your dispute letters to see them here.</p>
+          </div>
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="3" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="5" type="button" id="wizBtn4Next">
+              Continue
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== WIZARD STEP 5: Progress Tracker ===== -->
+        <div class="wiz-step-panel" id="wizStep5">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(16,185,129,0.1);color:#10b981;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <h3 class="wiz-step-title">Step 5: Track Your Progress</h3>
+              <p class="wiz-step-desc">Monitor the status of your disputes. Bureaus have 30 days to respond under FCRA.</p>
+            </div>
+          </div>
+          <div id="wizTimeline" class="wiz-timeline">
+            <div class="wiz-tl-stage active">
+              <div class="wiz-tl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>
+              <div class="wiz-tl-info">
+                <div class="wiz-tl-label">Letters Sent</div>
+                <div class="wiz-tl-date" id="wizTlSentDate">--</div>
+              </div>
+            </div>
+            <div class="wiz-tl-connector"></div>
+            <div class="wiz-tl-stage">
+              <div class="wiz-tl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+              <div class="wiz-tl-info">
+                <div class="wiz-tl-label">Bureau Processing</div>
+                <div class="wiz-tl-date" id="wizTlProcessDate">Pending</div>
+              </div>
+            </div>
+            <div class="wiz-tl-connector"></div>
+            <div class="wiz-tl-stage">
+              <div class="wiz-tl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+              <div class="wiz-tl-info">
+                <div class="wiz-tl-label">Response Received</div>
+                <div class="wiz-tl-date" id="wizTlResponseDate">Pending</div>
+              </div>
+            </div>
+            <div class="wiz-tl-connector"></div>
+            <div class="wiz-tl-stage">
+              <div class="wiz-tl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+              <div class="wiz-tl-info">
+                <div class="wiz-tl-label">Follow-up</div>
+                <div class="wiz-tl-date" id="wizTlFollowDate">Pending</div>
+              </div>
+            </div>
+            <div class="wiz-tl-connector"></div>
+            <div class="wiz-tl-stage">
+              <div class="wiz-tl-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+              <div class="wiz-tl-info">
+                <div class="wiz-tl-label">Resolved</div>
+                <div class="wiz-tl-date" id="wizTlResolvedDate">Pending</div>
+              </div>
+            </div>
+          </div>
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="4" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="6" type="button">
+              Continue
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== WIZARD STEP 6: Score Improvement & Simulator ===== -->
+        <div class="wiz-step-panel" id="wizStep6">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(16,185,129,0.1);color:#10b981;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+            </div>
+            <div>
+              <h3 class="wiz-step-title">Step 6: Score Improvement Tools</h3>
+              <p class="wiz-step-desc">See what actions could improve your credit score and simulate the impact.</p>
+            </div>
+          </div>
+
+          <div class="wiz-sim-section">
+            <h4 style="font-size:15px;font-weight:600;color:var(--diy-text);margin-bottom:12px;">Suggested Actions</h4>
+            <div class="wiz-suggestions">
+              <div class="wiz-suggestion-card">
+                <div class="wiz-sugg-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </div>
+                <div class="wiz-sugg-info">
+                  <div class="wiz-sugg-title">Add Authorized User Tradeline</div>
+                  <div class="wiz-sugg-desc">Being added as an authorized user on a seasoned account can boost your score.</div>
+                </div>
+                <div class="wiz-sugg-impact" style="color:#10b981;">+25-45 pts</div>
+              </div>
+              <div class="wiz-suggestion-card">
+                <div class="wiz-sugg-icon" style="background:rgba(168,85,247,0.1);color:#a855f7;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                </div>
+                <div class="wiz-sugg-info">
+                  <div class="wiz-sugg-title">Reduce Credit Utilization</div>
+                  <div class="wiz-sugg-desc">Paying down balances below 30% of your limit has an immediate impact.</div>
+                </div>
+                <div class="wiz-sugg-impact" style="color:#10b981;">+20-40 pts</div>
+              </div>
+              <div class="wiz-suggestion-card">
+                <div class="wiz-sugg-icon" style="background:rgba(239,68,68,0.1);color:#ef4444;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </div>
+                <div class="wiz-sugg-info">
+                  <div class="wiz-sugg-title">Remove Collection Account</div>
+                  <div class="wiz-sugg-desc">Successfully disputing or settling a collection can significantly boost your score.</div>
+                </div>
+                <div class="wiz-sugg-impact" style="color:#10b981;">+30-50 pts</div>
+              </div>
+              <div class="wiz-suggestion-card">
+                <div class="wiz-sugg-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </div>
+                <div class="wiz-sugg-info">
+                  <div class="wiz-sugg-title">Remove Hard Inquiry</div>
+                  <div class="wiz-sugg-desc">Unauthorized hard inquiries can be disputed and removed from your report.</div>
+                </div>
+                <div class="wiz-sugg-impact" style="color:#10b981;">+5-15 pts</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="wiz-sim-section" style="margin-top:24px;">
+            <h4 style="font-size:15px;font-weight:600;color:var(--diy-text);margin-bottom:12px;">Set Your Score Goal</h4>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:1px solid var(--diy-border);border-radius:12px;margin-bottom:16px;">
+              <label style="font-size:14px;color:var(--diy-text);font-weight:500;">I want my score to reach:</label>
+              <input type="number" id="wizScoreGoal" min="300" max="850" value="700" style="width:100px;padding:8px 12px;border-radius:10px;border:1px solid var(--diy-border);font-size:18px;font-weight:700;text-align:center;color:var(--diy-text);">
+              <button id="wizBtnSetGoal" class="diy-btn diy-btn-primary" type="button" style="padding:8px 18px;font-size:13px;">Set Goal</button>
+              <span id="wizGoalConfirm" style="color:#10b981;font-size:13px;font-weight:600;display:none;">Goal saved!</span>
+            </div>
+          </div>
+
+          <div class="wiz-sim-section" style="margin-top:24px;">
+            <h4 style="font-size:15px;font-weight:600;color:var(--diy-text);margin-bottom:12px;">Credit Score Simulator</h4>
+            <div class="wiz-simulator">
+              <div class="wiz-sim-input-group">
+                <label style="font-size:13px;color:var(--diy-text-sub);margin-bottom:4px;display:block;">Your Current Score (estimate)</label>
+                <input type="number" id="wizSimScore" min="300" max="850" value="620" style="width:120px;padding:10px 14px;border-radius:10px;border:1px solid var(--diy-border);font-size:18px;font-weight:700;color:var(--diy-text);text-align:center;background:#fff;">
+              </div>
+              <div class="wiz-sim-toggles">
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimTradeline" class="wiz-sim-cb">
+                  <span>Add tradeline (+35 pts)</span>
+                </label>
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimUtilization" class="wiz-sim-cb">
+                  <span>Lower utilization (+30 pts)</span>
+                </label>
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimCollection" class="wiz-sim-cb">
+                  <span>Remove collection (+40 pts)</span>
+                </label>
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimInquiry" class="wiz-sim-cb">
+                  <span>Remove inquiry (+10 pts)</span>
+                </label>
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimLatePay" class="wiz-sim-cb">
+                  <span>Remove late payment (+20 pts)</span>
+                </label>
+              </div>
+              <div class="wiz-sim-result">
+                <div style="font-size:13px;color:var(--diy-text-sub);margin-bottom:4px;">Projected Score</div>
+                <div class="wiz-sim-projected" id="wizSimProjected">620</div>
+                <div class="wiz-sim-delta" id="wizSimDelta" style="display:none;">+0 pts</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="5" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary" type="button" onclick="document.querySelector('[data-section=tradelines]').click()">
+              Browse Tradelines
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Legacy elements kept hidden for existing JS references -->
+        <div style="display:none;">
+          <span id="stepProgress"></span>
+          <button id="btnMarkGoal" type="button"></button>
+          <div id="scoreTU"></div>
+          <div id="scoreEX"></div>
+          <div id="scoreEQ"></div>
+          <div id="nextStepContent"></div>
+          <div id="milestonesContent"></div>
+          <div id="reportSnapshot"></div>
+          <div id="companyMatch"></div>
         </div>
       </div>
 
