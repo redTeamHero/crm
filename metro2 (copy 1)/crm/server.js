@@ -10289,10 +10289,11 @@ async function runDiyAudit({ reportId, userId }) {
 
   try {
     const buffer = await fs.promises.readFile(filePath);
-    const llmResult = await runLLMAnalyzer({
-      buffer,
-      filename: report.originalName || report.storedName
-    });
+    const DIY_AUDIT_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+    const llmResult = await Promise.race([
+      runLLMAnalyzer({ buffer, filename: report.originalName || report.storedName }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Audit timed out. Your report may be too large — please try again.')), DIY_AUDIT_TIMEOUT_MS))
+    ]);
     auditDetails.source = llmResult?.canonicalReport?.reportMeta?.provider || null;
     if (llmResult?.violations?.length) {
       violations = llmResult.violations.map(v => ({
@@ -10309,7 +10310,7 @@ async function runDiyAudit({ reportId, userId }) {
     report.auditedAt = new Date().toISOString();
     await saveDiyReportsDB(db);
     if(filePath && filePath.startsWith(os.tmpdir())) try{ fs.unlinkSync(filePath); }catch{}
-    return { status: 500, error: 'Audit failed. Please try again later.' };
+    return { status: 500, error: auditErr?.message?.startsWith('Audit timed out') ? auditErr.message : 'Audit failed. Please try again later.' };
   }
 
   if(filePath && filePath.startsWith(os.tmpdir())) try{ fs.unlinkSync(filePath); }catch{}
