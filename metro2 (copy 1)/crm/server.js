@@ -10176,7 +10176,7 @@ function diyAuthenticate(req, res, next) {
 
 // DIY Plan limits
 const DIY_PLAN_LIMITS = {
-  free: { canAudit: false, lettersPerMonth: 0 },
+  free: { canAudit: true, lettersPerMonth: 0 },
   basic: { canAudit: true, lettersPerMonth: -1 },
   pro: { canAudit: true, lettersPerMonth: -1 }
 };
@@ -10760,7 +10760,7 @@ app.get('/api/diy/reports', diyAuthenticate, async (req, res) => {
   }
 });
 
-app.post('/api/diy/audit', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
+app.post('/api/diy/audit', diyAuthenticate, async (req, res) => {
   try {
     const { reportId } = req.body || {};
     const reportsDb = await loadDiyReportsDB();
@@ -10789,7 +10789,7 @@ app.post('/api/diy/audit', diyAuthenticate, diyRequirePlan(['basic', 'pro']), as
 });
 
 // DIY Run Audit on Report - uses shared audit engine with DIY context
-app.post('/api/diy/reports/:id/audit', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
+app.post('/api/diy/reports/:id/audit', diyAuthenticate, async (req, res) => {
   try {
     const result = await runDiyAudit({ reportId: req.params.id, userId: req.diyUser.id });
     if (result.error) {
