@@ -478,6 +478,7 @@
         if (nextBtn) nextBtn.disabled = false;
         completeWizStep(3);
         saveWizardState();
+        setTimeout(function() { goToWizStep(4); saveWizardState(); }, 400);
       });
     });
   }
@@ -493,6 +494,11 @@
       }
       if (!currentReport || violations.length === 0) {
         alert('Please upload a report and run an audit first to find violations.');
+        return;
+      }
+      if (!wizardState.strategy) {
+        alert('Please select a dispute strategy first (Step 3).');
+        goToWizStep(3);
         return;
       }
       btn.disabled = true;
@@ -531,7 +537,7 @@
       if (noEl) noEl.style.display = 'none';
       container.innerHTML = data.letters.map(function(letter) {
         var dateStr = letter.createdAt ? new Date(letter.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
-        var isSent = wizardState.markedSent[letter.id] === true;
+        var isSent = !!wizardState.markedSent[letter.id];
         return '<div class="wiz-letter-item">' +
           '<div class="wiz-letter-info">' +
           '<div class="wiz-letter-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></div>' +
@@ -548,8 +554,12 @@
       container.querySelectorAll('.wiz-mark-sent').forEach(function(btn) {
         btn.addEventListener('click', function() {
           var lid = btn.getAttribute('data-letter-id');
-          var isSent = wizardState.markedSent[lid] === true;
-          wizardState.markedSent[lid] = !isSent;
+          var isSent = !!wizardState.markedSent[lid];
+          if (isSent) {
+            wizardState.markedSent[lid] = null;
+          } else {
+            wizardState.markedSent[lid] = new Date().toISOString();
+          }
           btn.classList.toggle('sent');
           btn.textContent = wizardState.markedSent[lid] ? 'Sent' : 'Mark Sent';
           var allSent = data.letters.every(function(l) { return wizardState.markedSent[l.id]; });
@@ -569,20 +579,34 @@
   }
 
   function updateTimeline() {
-    var anyMarkedSent = Object.values(wizardState.markedSent).some(function(v) { return v === true; });
+    var sentEntries = Object.entries(wizardState.markedSent).filter(function(e) { return e[1] && e[1] !== false; });
+    var anyMarkedSent = sentEntries.length > 0;
     var sentDate = document.getElementById('wizTlSentDate');
-    var stages = document.querySelectorAll('.wiz-tl-stage');
-    var connectors = document.querySelectorAll('.wiz-tl-connector');
+    var stages = document.querySelectorAll('#wizTimeline .wiz-tl-stage');
+    var connectors = document.querySelectorAll('#wizTimeline .wiz-tl-connector');
 
     if (anyMarkedSent) {
-      if (sentDate) sentDate.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      var firstSentTs = null;
+      sentEntries.forEach(function(e) {
+        if (typeof e[1] === 'string' || typeof e[1] === 'number') {
+          var ts = new Date(e[1]).getTime();
+          if (!firstSentTs || ts < firstSentTs) firstSentTs = ts;
+        }
+      });
+      var sentDateObj = firstSentTs ? new Date(firstSentTs) : new Date();
+      if (sentDate) sentDate.textContent = sentDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       if (stages[0]) { stages[0].classList.add('completed'); stages[0].classList.remove('active'); }
       if (stages[1]) stages[1].classList.add('active');
       if (connectors[0]) connectors[0].classList.add('completed');
 
       var processDate = document.getElementById('wizTlProcessDate');
-      var future30 = new Date(); future30.setDate(future30.getDate() + 30);
+      var future30 = new Date(sentDateObj.getTime()); future30.setDate(future30.getDate() + 30);
       if (processDate) processDate.textContent = 'Expected by ' + future30.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    if (wizardState.completed.indexOf(5) !== -1) {
+      stages.forEach(function(s) { s.classList.remove('active'); s.classList.add('completed'); });
+      connectors.forEach(function(c) { c.classList.add('completed'); });
     }
   }
 
