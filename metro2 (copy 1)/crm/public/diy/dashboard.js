@@ -380,104 +380,151 @@
     });
   }
 
-  function renderWizViolations(viols, tradelines) {
+  var _wizViolData = { tradelines: [], viols: [] };
+  var _wizViolPage = 0;
+  var WIZ_VIOL_PER_PAGE = 3;
+
+  var _wizLawMap = {
+    'FCRA': 'Fair Credit Reporting Act, 15 U.S.C. \u00A7 1681. Requires accurate reporting and gives consumers the right to dispute inaccurate information.',
+    'FDCPA': 'Fair Debt Collection Practices Act, 15 U.S.C. \u00A7 1692. Prohibits abusive, unfair, or deceptive practices by debt collectors.',
+    'Metro-2': 'Metro-2 Format Compliance. The industry standard for credit reporting data format. Violations indicate improperly formatted data fields.',
+    'TILA': 'Truth in Lending Act, 15 U.S.C. \u00A7 1601. Requires clear disclosure of loan terms and costs.',
+    'HIPAA': 'Health Insurance Portability and Accountability Act. Protects medical information from unauthorized disclosure in credit reports.'
+  };
+
+  function _wizGetCitation(v) {
+    var lawKey = (v.law || v.ruleId || '').toUpperCase();
+    for (var k in _wizLawMap) { if (lawKey.indexOf(k) !== -1) return _wizLawMap[k]; }
+    return 'This item may violate consumer credit reporting laws. Consult with a credit professional for specific legal guidance.';
+  }
+
+  function _renderWizViolPage() {
     var container = document.getElementById('wizViolationCards');
-    var noViols = document.getElementById('wizNoViolations');
     if (!container) return;
-    if (!viols || viols.length === 0) {
-      container.innerHTML = '';
-      if (noViols) noViols.style.display = '';
-      return;
-    }
-    if (noViols) noViols.style.display = 'none';
+    var tls = _wizViolData.tradelines;
+    var viols = _wizViolData.viols;
+    var usingTradelines = tls && tls.length > 0;
+    var items = usingTradelines ? tls : viols;
+    var total = items.length;
+    var pages = Math.ceil(total / WIZ_VIOL_PER_PAGE);
+    var page = Math.max(0, Math.min(_wizViolPage, pages - 1));
+    _wizViolPage = page;
+    var pageItems = items.slice(page * WIZ_VIOL_PER_PAGE, (page + 1) * WIZ_VIOL_PER_PAGE);
+    var globalOffset = page * WIZ_VIOL_PER_PAGE * 20;
 
-    var lawMap = {
-      'FCRA': 'Fair Credit Reporting Act, 15 U.S.C. \u00A7 1681. Requires accurate reporting and gives consumers the right to dispute inaccurate information.',
-      'FDCPA': 'Fair Debt Collection Practices Act, 15 U.S.C. \u00A7 1692. Prohibits abusive, unfair, or deceptive practices by debt collectors.',
-      'Metro-2': 'Metro-2 Format Compliance. The industry standard for credit reporting data format. Violations indicate improperly formatted data fields.',
-      'TILA': 'Truth in Lending Act, 15 U.S.C. \u00A7 1601. Requires clear disclosure of loan terms and costs.',
-      'HIPAA': 'Health Insurance Portability and Accountability Act. Protects medical information from unauthorized disclosure in credit reports.'
-    };
-
-    function getCitation(v) {
-      var lawKey = (v.law || v.ruleId || '').toUpperCase();
-      for (var k in lawMap) { if (lawKey.indexOf(k) !== -1) return lawMap[k]; }
-      return 'This item may violate consumer credit reporting laws. Consult with a credit professional for specific legal guidance.';
-    }
-
-    var violOffset = 0;
-
-    if (tradelines && tradelines.length > 0) {
-      container.innerHTML = tradelines.map(function(tl) {
+    var cardsHtml = '';
+    if (usingTradelines) {
+      pageItems.forEach(function(tl, ti) {
         var tlViols = tl.violations || [];
+        var cardId = 'wizTlCard_' + page + '_' + ti;
         var bureauBadges = (tl.bureaus || []).map(function(b) {
-          return '<span style="font-size:11px;padding:2px 7px;background:#f3f4f6;border-radius:5px;color:var(--diy-text-sub);">' + esc(b) + '</span>';
+          return '<span style="font-size:11px;padding:2px 7px;background:rgba(99,102,241,0.1);border-radius:5px;color:var(--diy-accent);font-weight:600;">' + esc(b) + '</span>';
         }).join(' ');
-        var meta = '';
-        if (tl.accountNumber) meta += '<span style="color:var(--diy-text-sub);font-size:12px;">\u00B7\u00B7\u00B7' + esc(tl.accountNumber.toString().slice(-4)) + '</span> ';
-        if (tl.accountStatus) meta += '<span style="font-size:12px;color:#ef4444;">' + esc(tl.accountStatus) + '</span> ';
-        if (tl.balance != null && tl.balance !== '') meta += '<span style="font-size:12px;color:var(--diy-text-sub);">Balance: $' + esc(String(tl.balance)) + '</span>';
+        var metaParts = [];
+        if (tl.accountNumber) metaParts.push('<span style="color:var(--diy-text-sub);font-size:12px;">\u00B7\u00B7\u00B7\u00B7' + esc(tl.accountNumber.toString().slice(-4)) + '</span>');
+        if (tl.accountStatus) metaParts.push('<span style="font-size:12px;font-weight:600;color:#ef4444;">' + esc(tl.accountStatus) + '</span>');
+        if (tl.balance != null && tl.balance !== '') metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Balance: <strong style="color:var(--diy-text);">$' + esc(String(tl.balance)) + '</strong></span>');
 
-        var violsHtml = tlViols.map(function(v) {
-          var idx = violOffset++;
-          var citation = getCitation(v);
-          return '<div class="wiz-violation-card" style="margin:8px 0 0 0;box-shadow:none;border:1px solid rgba(239,68,68,0.15);border-radius:8px;">' +
-            '<div class="wiz-viol-header">' +
-            '<span style="color:#ef4444;font-size:16px;">&#9888;</span>' +
-            '<div class="wiz-viol-title" style="font-size:13px;">' + esc(v.title || v.ruleId || 'Violation') + '</div>' +
-            (v.bureau ? '<span class="wiz-viol-bureau">' + esc(v.bureau) + '</span>' : '') +
+        var violsHtml = tlViols.map(function(v, vi) {
+          var idx = globalOffset + ti * 100 + vi;
+          var citation = _wizGetCitation(v);
+          return '<div class="wiz-viol-row" id="wizViolRow' + idx + '">' +
+            '<div class="wiz-viol-row-top">' +
+            '<span style="color:#ef4444;font-size:15px;flex-shrink:0;">&#9888;</span>' +
+            '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:600;color:var(--diy-text);line-height:1.3;">' + esc(v.title || v.ruleId || 'Violation') + '</div>' +
+            (v.bureau ? '<span style="display:inline-block;margin-top:3px;font-size:11px;padding:1px 7px;background:rgba(239,68,68,0.08);border-radius:4px;color:#ef4444;font-weight:600;">' + esc(v.bureau) + '</span>' : '') +
             '</div>' +
-            '<div class="wiz-viol-actions">' +
-            '<button class="wiz-viol-btn-explain" data-explain="' + idx + '" type="button">Explain</button>' +
-            '<button class="wiz-viol-btn-dispute" data-dispute="' + idx + '" type="button">Dispute This</button>' +
+            '<button class="wiz-viol-toggle" data-viol-id="' + idx + '" type="button" title="Show details" aria-expanded="false">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>' +
+            '</button>' +
             '</div>' +
-            '<div class="wiz-viol-explain" id="wizExplain' + idx + '">' +
-            '<strong style="color:var(--diy-text);display:block;margin-bottom:6px;">Legal Basis</strong>' +
-            esc(citation) +
-            (v.explanation || v.description ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.06);"><strong style="color:var(--diy-text);display:block;margin-bottom:4px;">Details</strong>' + esc(v.explanation || v.description) + '</div>' : '') +
+            '<div class="wiz-viol-detail" id="wizViolDetail' + idx + '">' +
+            '<div class="wiz-viol-detail-section">' +
+            '<div class="wiz-viol-detail-label">Legal Basis</div>' +
+            '<div class="wiz-viol-detail-text">' + esc(citation) + '</div>' +
+            '</div>' +
+            (v.explanation || v.description ? '<div class="wiz-viol-detail-section" style="margin-top:8px;">' +
+            '<div class="wiz-viol-detail-label">What This Means</div>' +
+            '<div class="wiz-viol-detail-text">' + esc(v.explanation || v.description) + '</div>' +
+            '</div>' : '') +
+            '<button class="wiz-viol-btn-dispute diy-btn diy-btn-primary" style="margin-top:10px;font-size:12px;padding:7px 14px;" data-dispute="' + idx + '" type="button">Dispute This</button>' +
             '</div>' +
             '</div>';
         }).join('');
 
-        return '<div style="border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--diy-card);">' +
-          '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' +
-          '<div>' +
-          '<div style="font-weight:700;font-size:14px;color:var(--diy-text);">' + esc(tl.creditor) + '</div>' +
-          '<div style="margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + meta + '</div>' +
+        cardsHtml += '<div class="wiz-tl-card" id="' + cardId + '">' +
+          '<button class="wiz-tl-header" data-card="' + cardId + '" type="button">' +
+          '<div class="wiz-tl-header-left">' +
+          '<div class="wiz-tl-creditor">' + esc(tl.creditor) + '</div>' +
+          '<div class="wiz-tl-meta">' + (metaParts.join('<span style="margin:0 4px;color:var(--diy-text-sub);">·</span>')) + '</div>' +
           '</div>' +
-          '<div style="display:flex;gap:4px;flex-wrap:wrap;">' + bureauBadges + '</div>' +
+          '<div class="wiz-tl-header-right">' +
+          bureauBadges +
+          '<span class="wiz-tl-badge">' + tlViols.length + ' issue' + (tlViols.length !== 1 ? 's' : '') + '</span>' +
+          '<svg class="wiz-tl-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>' +
           '</div>' +
-          '<div style="font-size:12px;font-weight:600;color:#ef4444;margin-bottom:4px;">' + tlViols.length + ' violation' + (tlViols.length !== 1 ? 's' : '') + ' found</div>' +
-          violsHtml +
+          '</button>' +
+          '<div class="wiz-tl-body">' + violsHtml + '</div>' +
           '</div>';
-      }).join('');
+      });
     } else {
-      container.innerHTML = viols.map(function(v, i) {
-        var citation = getCitation(v);
-        return '<div class="wiz-violation-card">' +
-          '<div class="wiz-viol-header">' +
-          '<span style="color:#ef4444;font-size:18px;">&#9888;</span>' +
-          '<div class="wiz-viol-title">' + esc(v.title || v.ruleId || 'Violation #' + (i+1)) + '</div>' +
-          (v.bureau ? '<span class="wiz-viol-bureau">' + esc(v.bureau) + '</span>' : '') +
+      pageItems.forEach(function(v, i) {
+        var idx = globalOffset + i;
+        var citation = _wizGetCitation(v);
+        cardsHtml += '<div class="wiz-viol-row">' +
+          '<div class="wiz-viol-row-top">' +
+          '<span style="color:#ef4444;font-size:15px;flex-shrink:0;">&#9888;</span>' +
+          '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:13px;font-weight:600;color:var(--diy-text);">' + esc(v.title || v.ruleId || 'Violation #' + (page * WIZ_VIOL_PER_PAGE + i + 1)) + '</div>' +
+          (v.bureau ? '<span style="display:inline-block;margin-top:3px;font-size:11px;padding:1px 7px;background:rgba(239,68,68,0.08);border-radius:4px;color:#ef4444;font-weight:600;">' + esc(v.bureau) + '</span>' : '') +
           '</div>' +
-          '<div class="wiz-viol-actions">' +
-          '<button class="wiz-viol-btn-explain" data-explain="' + i + '" type="button">Explain</button>' +
-          '<button class="wiz-viol-btn-dispute" data-dispute="' + i + '" type="button">Dispute This</button>' +
+          '<button class="wiz-viol-toggle" data-viol-id="' + idx + '" type="button">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>' +
+          '</button>' +
           '</div>' +
-          '<div class="wiz-viol-explain" id="wizExplain' + i + '">' +
-          '<strong style="color:var(--diy-text);display:block;margin-bottom:6px;">Legal Basis</strong>' +
-          esc(citation) +
-          (v.explanation || v.description ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.06);"><strong style="color:var(--diy-text);display:block;margin-bottom:4px;">Details</strong>' + esc(v.explanation || v.description) + '</div>' : '') +
+          '<div class="wiz-viol-detail" id="wizViolDetail' + idx + '">' +
+          '<div class="wiz-viol-detail-section"><div class="wiz-viol-detail-label">Legal Basis</div><div class="wiz-viol-detail-text">' + esc(citation) + '</div></div>' +
+          (v.explanation || v.description ? '<div class="wiz-viol-detail-section" style="margin-top:8px;"><div class="wiz-viol-detail-label">What This Means</div><div class="wiz-viol-detail-text">' + esc(v.explanation || v.description) + '</div></div>' : '') +
+          '<button class="wiz-viol-btn-dispute diy-btn diy-btn-primary" style="margin-top:10px;font-size:12px;padding:7px 14px;" type="button">Dispute This</button>' +
           '</div>' +
           '</div>';
-      }).join('');
+      });
     }
 
-    container.querySelectorAll('.wiz-viol-btn-explain').forEach(function(btn) {
+    var paginationHtml = '';
+    if (pages > 1) {
+      var start = page * WIZ_VIOL_PER_PAGE + 1;
+      var end = Math.min((page + 1) * WIZ_VIOL_PER_PAGE, total);
+      paginationHtml = '<div class="wiz-viol-pagination">' +
+        '<button class="wiz-viol-page-btn" id="wizViolPrev" type="button"' + (page === 0 ? ' disabled' : '') + '>' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Prev' +
+        '</button>' +
+        '<span class="wiz-viol-page-info">' + start + '\u2013' + end + ' of ' + total + '</span>' +
+        '<button class="wiz-viol-page-btn" id="wizViolNext" type="button"' + (page >= pages - 1 ? ' disabled' : '') + '>' +
+        'Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>' +
+        '</button>' +
+        '</div>';
+    }
+
+    container.innerHTML = cardsHtml + paginationHtml;
+
+    container.querySelectorAll('.wiz-tl-header').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        var idx = btn.getAttribute('data-explain');
-        var el = document.getElementById('wizExplain' + idx);
-        if (el) el.classList.toggle('open');
+        var card = document.getElementById(btn.getAttribute('data-card'));
+        if (card) card.classList.toggle('open');
+      });
+    });
+
+    container.querySelectorAll('.wiz-viol-toggle').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var id = btn.getAttribute('data-viol-id');
+        var detail = document.getElementById('wizViolDetail' + id);
+        if (detail) {
+          var open = detail.classList.toggle('open');
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          btn.style.transform = open ? 'rotate(180deg)' : '';
+        }
         completeWizStep(3);
       });
     });
@@ -489,6 +536,26 @@
         saveWizardState();
       });
     });
+
+    var prevBtn = document.getElementById('wizViolPrev');
+    var nextBtn = document.getElementById('wizViolNext');
+    if (prevBtn) prevBtn.addEventListener('click', function() { _wizViolPage--; _renderWizViolPage(); });
+    if (nextBtn) nextBtn.addEventListener('click', function() { _wizViolPage++; _renderWizViolPage(); });
+  }
+
+  function renderWizViolations(viols, tradelines) {
+    var container = document.getElementById('wizViolationCards');
+    var noViols = document.getElementById('wizNoViolations');
+    if (!container) return;
+    if (!viols || viols.length === 0) {
+      container.innerHTML = '';
+      if (noViols) noViols.style.display = '';
+      return;
+    }
+    if (noViols) noViols.style.display = 'none';
+    _wizViolData = { tradelines: tradelines || [], viols: viols };
+    _wizViolPage = 0;
+    _renderWizViolPage();
   }
 
   function initWizStrategy() {
