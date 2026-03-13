@@ -492,46 +492,8 @@
   }
 
   function initWizStrategy() {
-    var cards = document.querySelectorAll('.wiz-strategy-card');
-    var selectBtns = document.querySelectorAll('.wiz-strategy-select');
-    var nextBtn = document.getElementById('wizBtn3Next');
-
-    if (currentUser && currentUser.plan === 'free') {
-      var advLock = document.getElementById('stratAdvLock');
-      var legalLock = document.getElementById('stratLegalLock');
-      if (advLock) advLock.style.display = 'flex';
-      if (legalLock) legalLock.style.display = 'flex';
-      var advCard = document.getElementById('stratAdvanced');
-      var legalCard = document.getElementById('stratLegal');
-      if (advCard) advCard.classList.add('locked');
-      if (legalCard) legalCard.classList.add('locked');
-    }
-
-    if (wizardState.strategy) {
-      var selected = document.querySelector('.wiz-strategy-card[data-strategy="' + wizardState.strategy + '"]');
-      if (selected) selected.classList.add('selected');
-      if (nextBtn) nextBtn.disabled = false;
-    }
-
-    selectBtns.forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        var strategy = btn.getAttribute('data-strategy');
-        if (currentUser && currentUser.plan === 'free' && strategy !== 'basic') {
-          alert('Please upgrade to the DIY plan to use ' + strategy + ' strategy.');
-          switchSection('billing');
-          return;
-        }
-        cards.forEach(function(c) { c.classList.remove('selected'); });
-        var card = btn.closest('.wiz-strategy-card');
-        if (card) card.classList.add('selected');
-        wizardState.strategy = strategy;
-        if (nextBtn) nextBtn.disabled = false;
-        completeWizStep(3);
-        saveWizardState();
-        setTimeout(function() { goToWizStep(4); saveWizardState(); }, 400);
-      });
-    });
+    completeWizStep(3);
+    saveWizardState();
   }
 
   function initWizLetterGen() {
@@ -629,11 +591,11 @@
     }
   }
 
-  // Legacy stub — replaced by IntelliFeats tracker
+  // Legacy stub — replaced by CreditPulse tracker
   function updateTimeline() {}
 
   // ============================================================
-  // INTELLIFEATS: DISPUTE ROUND TRACKER
+  // CREDITPULSE: DISPUTE ROUND TRACKER
   // ============================================================
 
   var disputeRounds = [];

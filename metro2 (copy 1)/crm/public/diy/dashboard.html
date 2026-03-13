@@ -569,79 +569,102 @@
           </div>
         </div>
 
-        <!-- ===== WIZARD STEP 3: Strategy Selection ===== -->
+        <!-- ===== WIZARD STEP 3: CreditPulse Process Explainer ===== -->
         <div class="wiz-step-panel" id="wizStep3">
           <div class="wiz-step-header">
             <div class="wiz-step-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
             </div>
             <div>
-              <h3 class="wiz-step-title">Step 3: Choose Your Strategy</h3>
-              <p class="wiz-step-desc">Select a dispute strategy based on your goals and budget. You can change this later.</p>
+              <h3 class="wiz-step-title">Step 3: How CreditPulse Works</h3>
+              <p class="wiz-step-desc">CreditPulse guides you through every round of your dispute — from the first bureau letter all the way to legal escalation if needed.</p>
             </div>
           </div>
-          <div class="wiz-strategy-grid">
-            <div class="wiz-strategy-card" data-strategy="basic" id="stratBasic">
-              <div class="wiz-strategy-badge" style="background:rgba(59,130,246,0.1);color:#3b82f6;">Included</div>
-              <div class="wiz-strategy-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+
+          <!-- Intro badge -->
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(16,185,129,0.06));border:1px solid rgba(99,102,241,0.15);border-radius:12px;margin-bottom:20px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <p style="font-size:13px;color:var(--diy-text);margin:0;"><strong style="color:#6366f1;">CreditPulse</strong> tracks each account across multiple dispute rounds, generates the exact follow-up letter each situation legally requires, and escalates automatically when bureaus don't comply.</p>
+          </div>
+
+          <!-- Phase cards -->
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+
+            <!-- Phase 1 -->
+            <div style="display:flex;gap:14px;padding:16px;border:1px solid rgba(59,130,246,0.2);border-radius:12px;background:rgba(59,130,246,0.03);">
+              <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
               </div>
-              <h4 class="wiz-strategy-name">Basic</h4>
-              <div style="font-size:13px;color:var(--diy-text-sub);margin-bottom:8px;">Included with plan</div>
-              <p class="wiz-strategy-desc">Standard bureau dispute letters citing FCRA violations. Best for simple inaccuracies.</p>
-              <ul class="wiz-strategy-features">
-                <li>Bureau dispute letters</li>
-                <li>FCRA violation citations</li>
-                <li>All 3 bureaus covered</li>
-              </ul>
-              <button class="diy-btn diy-btn-primary wiz-strategy-select" data-strategy="basic" type="button" style="width:100%;margin-top:auto;">Select Basic</button>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-weight:700;font-size:14px;color:var(--diy-text);">Rounds 1–2 · Bureau Disputes</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,0.1);color:#3b82f6;font-weight:600;">FCRA § 611</span>
+                </div>
+                <p style="font-size:13px;color:var(--diy-text-sub);margin:0;">We send dispute letters to Equifax, Experian, and TransUnion. They have 30 days to investigate. If they verify without proof or simply ignore you, CreditPulse issues a targeted follow-up.</p>
+              </div>
             </div>
-            <div class="wiz-strategy-card" data-strategy="advanced" id="stratAdvanced">
-              <div class="wiz-strategy-badge" style="background:rgba(168,85,247,0.1);color:#a855f7;">Popular</div>
-              <div class="wiz-strategy-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="1.5"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+
+            <!-- Phase 2 -->
+            <div style="display:flex;gap:14px;padding:16px;border:1px solid rgba(168,85,247,0.2);border-radius:12px;background:rgba(168,85,247,0.03);">
+              <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:rgba(168,85,247,0.12);display:flex;align-items:center;justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
               </div>
-              <h4 class="wiz-strategy-name">Advanced</h4>
-              <div style="font-size:13px;color:var(--diy-text-sub);margin-bottom:8px;">$9.99/mo DIY plan</div>
-              <p class="wiz-strategy-desc">Metro-2 format disputes with compliance-level detail. Higher success rate for complex issues.</p>
-              <ul class="wiz-strategy-features">
-                <li>Metro-2 compliance disputes</li>
-                <li>Advanced law citations</li>
-                <li>Furnisher-level targeting</li>
-              </ul>
-              <div class="wiz-strategy-lock" id="stratAdvLock" style="display:none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Requires DIY plan
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-weight:700;font-size:14px;color:var(--diy-text);">Round 3 · Direct Furnisher Disputes</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(168,85,247,0.1);color:#a855f7;font-weight:600;">FCRA § 623</span>
+                </div>
+                <p style="font-size:13px;color:var(--diy-text-sub);margin:0;">If bureaus keep verifying inaccurate data, CreditPulse bypasses them entirely and disputes directly with the original creditor or data furnisher — the source of the problem.</p>
               </div>
-              <button class="diy-btn diy-btn-primary wiz-strategy-select" data-strategy="advanced" type="button" style="width:100%;margin-top:auto;">Select Advanced</button>
             </div>
-            <div class="wiz-strategy-card" data-strategy="legal" id="stratLegal">
-              <div class="wiz-strategy-badge" style="background:rgba(239,68,68,0.1);color:#ef4444;">Maximum</div>
-              <div class="wiz-strategy-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+
+            <!-- Phase 3 -->
+            <div style="display:flex;gap:14px;padding:16px;border:1px solid rgba(239,68,68,0.2);border-radius:12px;background:rgba(239,68,68,0.03);">
+              <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <h4 class="wiz-strategy-name">Legal</h4>
-              <div style="font-size:13px;color:var(--diy-text-sub);margin-bottom:8px;">$9.99/mo DIY plan</div>
-              <p class="wiz-strategy-desc">Full dispute package plus CFPB complaints. Nuclear option for unresponsive bureaus.</p>
-              <ul class="wiz-strategy-features">
-                <li>Everything in Advanced</li>
-                <li>CFPB complaint generation</li>
-                <li>Legal escalation templates</li>
-              </ul>
-              <div class="wiz-strategy-lock" id="stratLegalLock" style="display:none;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Requires DIY plan
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-weight:700;font-size:14px;color:var(--diy-text);">Round 4+ · Legal Escalation</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(239,68,68,0.1);color:#ef4444;font-weight:600;">FCRA § 616 / § 617</span>
+                </div>
+                <p style="font-size:13px;color:var(--diy-text-sub);margin:0;">Persistent non-compliance triggers a Notice of Intent to Sue, CFPB complaint guidance, and a referral to consumer law attorneys — many of whom take these cases on contingency (no upfront cost).</p>
               </div>
-              <button class="diy-btn diy-btn-primary wiz-strategy-select" data-strategy="legal" type="button" style="width:100%;margin-top:auto;">Select Legal</button>
             </div>
           </div>
+
+          <!-- What CreditPulse does for you -->
+          <div style="padding:14px 16px;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:12px;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#10b981;margin-bottom:10px;">What CreditPulse handles for you</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Tracks every account per round
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Picks the right follow-up letter
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>30-day deadline countdown
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Escalates when bureaus stall
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Deleted items drop off automatically
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All 3 bureaus covered
+              </div>
+            </div>
+          </div>
+
           <div class="wiz-step-actions">
             <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="2" type="button">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
               Back
             </button>
-            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="4" type="button" id="wizBtn3Next" disabled>
-              Continue
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="4" type="button" id="wizBtn3Next">
+              Let's Start
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
           </div>
@@ -682,7 +705,7 @@
           </div>
         </div>
 
-        <!-- ===== WIZARD STEP 5: IntelliFeats Dispute Tracker ===== -->
+        <!-- ===== WIZARD STEP 5: CreditPulse Dispute Tracker ===== -->
         <div class="wiz-step-panel" id="wizStep5">
           <div class="wiz-step-header">
             <div class="wiz-step-icon" style="background:rgba(16,185,129,0.1);color:#10b981;">
