@@ -10292,16 +10292,34 @@ async function runDiyAudit({ reportId, userId }) {
     const pyResult = await runPythonAnalyzer({ buffer, filename: report.originalName || report.storedName });
     const pyData = pyResult?.data || {};
     auditDetails.source = 'legacy';
-    const tradelines = mapAuditedViolations(pyData);
-    for (const tl of tradelines) {
+    const rawTradelines = mapAuditedViolations(pyData);
+    const tradelineResults = [];
+    for (const tl of rawTradelines) {
       const creditor = tl?.meta?.creditor || 'Unknown Creditor';
-      for (const v of (tl.violations || [])) {
-        violations.push({
-          ruleId: v.id || v.ruleId || '',
-          title: v.title || v.id || 'Violation',
-          explanation: v.explanation || v.description || v.message || 'This item may contain inaccurate information that violates credit reporting standards.',
-          bureau: v.bureau || '',
+      const tlViolations = (tl.violations || []).map(v => ({
+        ruleId: v.id || v.ruleId || '',
+        title: v.title || v.id || 'Violation',
+        explanation: v.explanation || v.description || v.message || 'This item may contain inaccurate information that violates credit reporting standards.',
+        bureau: v.bureau || '',
+        creditor,
+      }));
+      violations.push(...tlViolations);
+      if (tlViolations.length > 0) {
+        const bureauData = tl.per_bureau || {};
+        const bureaus = Object.keys(bureauData).filter(b => bureauData[b] && Object.keys(bureauData[b]).length > 0);
+        const firstBureau = bureauData[bureaus[0]] || {};
+        const accountNumber = tl?.meta?.account_numbers
+          ? Object.values(tl.meta.account_numbers)[0] || ''
+          : firstBureau.account_number || '';
+        const balance = firstBureau.balance ?? '';
+        const accountStatus = firstBureau.account_status || '';
+        tradelineResults.push({
           creditor,
+          accountNumber,
+          balance,
+          accountStatus,
+          bureaus,
+          violations: tlViolations,
         });
       }
     }
@@ -10325,7 +10343,7 @@ async function runDiyAudit({ reportId, userId }) {
   report.auditedAt = new Date().toISOString();
   await saveDiyReportsDB(db);
 
-  return { violations, auditedAt: report.auditedAt };
+  return { violations, tradelines: tradelineResults, auditedAt: report.auditedAt };
 }
 
 async function generateDiyLetters({ reportId, userId, violations }) {
@@ -10784,6 +10802,7 @@ app.post('/api/diy/audit', diyAuthenticate, async (req, res) => {
       ok: true,
       reportId: resolvedReportId,
       violations: result.violations || [],
+      tradelines: result.tradelines || [],
       auditedAt: result.auditedAt,
       message: result.message
     });

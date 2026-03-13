@@ -348,7 +348,7 @@
         var data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Audit failed');
         violations = data.violations || [];
-        renderWizViolations(violations);
+        renderWizViolations(violations, data.tradelines || []);
         var nextBtn2 = document.getElementById('wizBtn2Next');
         if (nextBtn2) nextBtn2.disabled = false;
 
@@ -380,7 +380,7 @@
     });
   }
 
-  function renderWizViolations(viols) {
+  function renderWizViolations(viols, tradelines) {
     var container = document.getElementById('wizViolationCards');
     var noViols = document.getElementById('wizNoViolations');
     if (!container) return;
@@ -390,36 +390,88 @@
       return;
     }
     if (noViols) noViols.style.display = 'none';
-    container.innerHTML = viols.map(function(v, i) {
-      var lawMap = {
-        'FCRA': 'Fair Credit Reporting Act, 15 U.S.C. \u00A7 1681. Requires accurate reporting and gives consumers the right to dispute inaccurate information.',
-        'FDCPA': 'Fair Debt Collection Practices Act, 15 U.S.C. \u00A7 1692. Prohibits abusive, unfair, or deceptive practices by debt collectors.',
-        'Metro-2': 'Metro-2 Format Compliance. The industry standard for credit reporting data format. Violations indicate improperly formatted data fields.',
-        'TILA': 'Truth in Lending Act, 15 U.S.C. \u00A7 1601. Requires clear disclosure of loan terms and costs.',
-        'HIPAA': 'Health Insurance Portability and Accountability Act. Protects medical information from unauthorized disclosure in credit reports.'
-      };
-      var lawKey = (v.law || v.ruleId || '').toUpperCase();
-      var citation = '';
-      for (var k in lawMap) { if (lawKey.indexOf(k) !== -1) { citation = lawMap[k]; break; } }
-      if (!citation) citation = 'This item may violate consumer credit reporting laws. Consult with a credit professional for specific legal guidance.';
 
-      return '<div class="wiz-violation-card">' +
-        '<div class="wiz-viol-header">' +
-        '<span style="color:#ef4444;font-size:18px;">&#9888;</span>' +
-        '<div class="wiz-viol-title">' + esc(v.title || v.ruleId || 'Violation #' + (i+1)) + '</div>' +
-        (v.bureau ? '<span class="wiz-viol-bureau">' + esc(v.bureau) + '</span>' : '') +
-        '</div>' +
-        '<div class="wiz-viol-actions">' +
-        '<button class="wiz-viol-btn-explain" data-explain="' + i + '" type="button">Explain</button>' +
-        '<button class="wiz-viol-btn-dispute" data-dispute="' + i + '" type="button">Dispute This</button>' +
-        '</div>' +
-        '<div class="wiz-viol-explain" id="wizExplain' + i + '">' +
-        '<strong style="color:var(--diy-text);display:block;margin-bottom:6px;">Legal Basis</strong>' +
-        esc(citation) +
-        (v.explanation || v.description ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.06);"><strong style="color:var(--diy-text);display:block;margin-bottom:4px;">Details</strong>' + esc(v.explanation || v.description) + '</div>' : '') +
-        '</div>' +
-        '</div>';
-    }).join('');
+    var lawMap = {
+      'FCRA': 'Fair Credit Reporting Act, 15 U.S.C. \u00A7 1681. Requires accurate reporting and gives consumers the right to dispute inaccurate information.',
+      'FDCPA': 'Fair Debt Collection Practices Act, 15 U.S.C. \u00A7 1692. Prohibits abusive, unfair, or deceptive practices by debt collectors.',
+      'Metro-2': 'Metro-2 Format Compliance. The industry standard for credit reporting data format. Violations indicate improperly formatted data fields.',
+      'TILA': 'Truth in Lending Act, 15 U.S.C. \u00A7 1601. Requires clear disclosure of loan terms and costs.',
+      'HIPAA': 'Health Insurance Portability and Accountability Act. Protects medical information from unauthorized disclosure in credit reports.'
+    };
+
+    function getCitation(v) {
+      var lawKey = (v.law || v.ruleId || '').toUpperCase();
+      for (var k in lawMap) { if (lawKey.indexOf(k) !== -1) return lawMap[k]; }
+      return 'This item may violate consumer credit reporting laws. Consult with a credit professional for specific legal guidance.';
+    }
+
+    var violOffset = 0;
+
+    if (tradelines && tradelines.length > 0) {
+      container.innerHTML = tradelines.map(function(tl) {
+        var tlViols = tl.violations || [];
+        var bureauBadges = (tl.bureaus || []).map(function(b) {
+          return '<span style="font-size:11px;padding:2px 7px;background:#f3f4f6;border-radius:5px;color:var(--diy-text-sub);">' + esc(b) + '</span>';
+        }).join(' ');
+        var meta = '';
+        if (tl.accountNumber) meta += '<span style="color:var(--diy-text-sub);font-size:12px;">\u00B7\u00B7\u00B7' + esc(tl.accountNumber.toString().slice(-4)) + '</span> ';
+        if (tl.accountStatus) meta += '<span style="font-size:12px;color:#ef4444;">' + esc(tl.accountStatus) + '</span> ';
+        if (tl.balance != null && tl.balance !== '') meta += '<span style="font-size:12px;color:var(--diy-text-sub);">Balance: $' + esc(String(tl.balance)) + '</span>';
+
+        var violsHtml = tlViols.map(function(v) {
+          var idx = violOffset++;
+          var citation = getCitation(v);
+          return '<div class="wiz-violation-card" style="margin:8px 0 0 0;box-shadow:none;border:1px solid rgba(239,68,68,0.15);border-radius:8px;">' +
+            '<div class="wiz-viol-header">' +
+            '<span style="color:#ef4444;font-size:16px;">&#9888;</span>' +
+            '<div class="wiz-viol-title" style="font-size:13px;">' + esc(v.title || v.ruleId || 'Violation') + '</div>' +
+            (v.bureau ? '<span class="wiz-viol-bureau">' + esc(v.bureau) + '</span>' : '') +
+            '</div>' +
+            '<div class="wiz-viol-actions">' +
+            '<button class="wiz-viol-btn-explain" data-explain="' + idx + '" type="button">Explain</button>' +
+            '<button class="wiz-viol-btn-dispute" data-dispute="' + idx + '" type="button">Dispute This</button>' +
+            '</div>' +
+            '<div class="wiz-viol-explain" id="wizExplain' + idx + '">' +
+            '<strong style="color:var(--diy-text);display:block;margin-bottom:6px;">Legal Basis</strong>' +
+            esc(citation) +
+            (v.explanation || v.description ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.06);"><strong style="color:var(--diy-text);display:block;margin-bottom:4px;">Details</strong>' + esc(v.explanation || v.description) + '</div>' : '') +
+            '</div>' +
+            '</div>';
+        }).join('');
+
+        return '<div style="border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:14px 16px;margin-bottom:12px;background:var(--diy-card);">' +
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">' +
+          '<div>' +
+          '<div style="font-weight:700;font-size:14px;color:var(--diy-text);">' + esc(tl.creditor) + '</div>' +
+          '<div style="margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + meta + '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;">' + bureauBadges + '</div>' +
+          '</div>' +
+          '<div style="font-size:12px;font-weight:600;color:#ef4444;margin-bottom:4px;">' + tlViols.length + ' violation' + (tlViols.length !== 1 ? 's' : '') + ' found</div>' +
+          violsHtml +
+          '</div>';
+      }).join('');
+    } else {
+      container.innerHTML = viols.map(function(v, i) {
+        var citation = getCitation(v);
+        return '<div class="wiz-violation-card">' +
+          '<div class="wiz-viol-header">' +
+          '<span style="color:#ef4444;font-size:18px;">&#9888;</span>' +
+          '<div class="wiz-viol-title">' + esc(v.title || v.ruleId || 'Violation #' + (i+1)) + '</div>' +
+          (v.bureau ? '<span class="wiz-viol-bureau">' + esc(v.bureau) + '</span>' : '') +
+          '</div>' +
+          '<div class="wiz-viol-actions">' +
+          '<button class="wiz-viol-btn-explain" data-explain="' + i + '" type="button">Explain</button>' +
+          '<button class="wiz-viol-btn-dispute" data-dispute="' + i + '" type="button">Dispute This</button>' +
+          '</div>' +
+          '<div class="wiz-viol-explain" id="wizExplain' + i + '">' +
+          '<strong style="color:var(--diy-text);display:block;margin-bottom:6px;">Legal Basis</strong>' +
+          esc(citation) +
+          (v.explanation || v.description ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.06);"><strong style="color:var(--diy-text);display:block;margin-bottom:4px;">Details</strong>' + esc(v.explanation || v.description) + '</div>' : '') +
+          '</div>' +
+          '</div>';
+      }).join('');
+    }
 
     container.querySelectorAll('.wiz-viol-btn-explain').forEach(function(btn) {
       btn.addEventListener('click', function() {
