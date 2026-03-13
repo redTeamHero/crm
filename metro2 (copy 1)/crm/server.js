@@ -10281,6 +10281,7 @@ async function runDiyAudit({ reportId, userId }) {
   }
 
   let violations = [];
+  let tradelineResults = [];
   const auditDetails = {
     source: null,
     violationCount: 0,
@@ -10293,7 +10294,6 @@ async function runDiyAudit({ reportId, userId }) {
     const pyData = pyResult?.data || {};
     auditDetails.source = 'legacy';
     const rawTradelines = mapAuditedViolations(pyData);
-    const tradelineResults = [];
     for (const tl of rawTradelines) {
       const creditor = tl?.meta?.creditor || 'Unknown Creditor';
       const tlViolations = (tl.violations || []).map(v => ({
