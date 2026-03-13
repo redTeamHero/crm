@@ -10289,17 +10289,21 @@ async function runDiyAudit({ reportId, userId }) {
 
   try {
     const buffer = await fs.promises.readFile(filePath);
-    const DIY_AUDIT_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
-    const llmResult = await Promise.race([
-      runLLMAnalyzer({ buffer, filename: report.originalName || report.storedName }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Audit timed out. Your report may be too large — please try again.')), DIY_AUDIT_TIMEOUT_MS))
-    ]);
-    auditDetails.source = llmResult?.canonicalReport?.reportMeta?.provider || null;
-    if (llmResult?.violations?.length) {
-      violations = llmResult.violations.map(v => ({
-        ...v,
-        explanation: v.explanation || v.description || 'This item may contain inaccurate information that violates credit reporting standards.'
-      }));
+    const pyResult = await runPythonAnalyzer({ buffer, filename: report.originalName || report.storedName });
+    const pyData = pyResult?.data || {};
+    auditDetails.source = 'legacy';
+    const tradelines = mapAuditedViolations(pyData);
+    for (const tl of tradelines) {
+      const creditor = tl?.meta?.creditor || 'Unknown Creditor';
+      for (const v of (tl.violations || [])) {
+        violations.push({
+          ruleId: v.id || v.ruleId || '',
+          title: v.title || v.id || 'Violation',
+          explanation: v.explanation || v.description || v.message || 'This item may contain inaccurate information that violates credit reporting standards.',
+          bureau: v.bureau || '',
+          creditor,
+        });
+      }
     }
     auditDetails.violationCount = violations.length;
   } catch (auditErr) {
@@ -10310,7 +10314,7 @@ async function runDiyAudit({ reportId, userId }) {
     report.auditedAt = new Date().toISOString();
     await saveDiyReportsDB(db);
     if(filePath && filePath.startsWith(os.tmpdir())) try{ fs.unlinkSync(filePath); }catch{}
-    return { status: 500, error: auditErr?.message?.startsWith('Audit timed out') ? auditErr.message : 'Audit failed. Please try again later.' };
+    return { status: 500, error: 'Audit failed. Please try again later.' };
   }
 
   if(filePath && filePath.startsWith(os.tmpdir())) try{ fs.unlinkSync(filePath); }catch{}
