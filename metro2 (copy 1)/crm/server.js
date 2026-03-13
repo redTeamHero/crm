@@ -10529,7 +10529,8 @@ app.get('/api/diy/me', diyAuthenticate, async (req, res) => {
         disputeStrategy: user.disputeStrategy || '',
         markedSent: user.markedSent || {},
         badges: user.badges || [],
-        scoreGoal: user.scoreGoal || 0
+        scoreGoal: user.scoreGoal || 0,
+        disputeRounds: user.disputeRounds || [],
       }
     });
   } catch (err) {
@@ -10889,6 +10890,245 @@ app.post('/api/diy/reports/:id/letters', diyAuthenticate, diyRequirePlan(['basic
   } catch (err) {
     logError('DIY_GENERATE_LETTERS_ERROR', err);
     res.status(500).json({ ok: false, error: 'Letter generation failed' });
+  }
+});
+
+// ============================================================================
+// DIY INTELLIFEATS: DISPUTE ROUND TRACKER
+// ============================================================================
+
+const OUTCOME_LETTER_MAP = {
+  verified:    'method_of_verification',
+  updated:     'still_inaccurate',
+  no_response: 'no_response_demand',
+  frivolous:   'frivolous_rebuttal',
+  not_found:   'verification_of_debt',
+};
+
+function generateFollowUpLetterContent({ type, creditor, bureau, userName }) {
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const name = userName || 'Consumer';
+
+  const subjects = {
+    method_of_verification: `Re: Method of Verification Demand — ${creditor} / ${bureau}`,
+    still_inaccurate:       `Re: Continued Inaccuracy After Investigation — ${creditor} / ${bureau}`,
+    no_response_demand:     `Re: FCRA § 611 Non-Compliance — Failure to Investigate — ${creditor} / ${bureau}`,
+    frivolous_rebuttal:     `Re: Rebuttal of Frivolous Designation — ${creditor} / ${bureau}`,
+    verification_of_debt:   `Re: Demand for Verification of Account — ${creditor} / ${bureau}`,
+    furnisher_623:          `Re: Direct Dispute Under FCRA § 623 — ${creditor}`,
+    intent_to_sue:          `Re: Notice of Intent to Pursue Legal Remedies — FCRA — ${creditor}`,
+  };
+
+  const bodies = {
+    method_of_verification: `I am writing to demand the method of verification used to investigate my recent dispute regarding the above-referenced account.
+
+Under the Fair Credit Reporting Act (FCRA) § 611(a)(7), you are required to provide a description of the procedure used to determine the accuracy and completeness of the disputed information, including the business name and address of any furnisher contacted.
+
+Your bureau reported that this item was "verified." However, no method of verification has been provided. I hereby demand that you provide this information within 15 days.
+
+If you cannot substantiate the method of verification, you are required by law to delete this item from my credit report immediately.`,
+
+    still_inaccurate: `I am writing regarding the above-referenced account, which continues to be reported inaccurately despite my previous dispute and your subsequent investigation.
+
+While your bureau acknowledged my dispute and made a partial update, the account still contains material inaccuracies. The information as currently reported does not accurately reflect the true status of this account.
+
+Under FCRA § 611, you are required to conduct a reasonable reinvestigation. I hereby demand that you complete a full reinvestigation and correct or delete this item. If the inaccuracy cannot be resolved, the item must be removed.`,
+
+    no_response_demand: `I am writing to notify you that you have failed to complete your investigation within the 30-day period mandated by the Fair Credit Reporting Act § 611(a)(1).
+
+I submitted a formal dispute regarding the above-referenced account. As of the date of this letter, I have received no response and the disputed item has not been corrected or deleted.
+
+Your failure to respond within the legally required timeframe constitutes a violation of the FCRA. I demand that you immediately delete this item from my credit report. Continued failure to comply may result in civil liability under FCRA § 616 and § 617, including statutory damages of up to $1,000 per violation.`,
+
+    frivolous_rebuttal: `I am writing to formally contest your designation of my previous dispute as "frivolous" or "irrelevant" pursuant to FCRA § 611(a)(3).
+
+This designation is improper and without merit. My dispute was based on specific, factual inaccuracies in my credit file and was submitted with sufficient identifying information. The FCRA permits a frivolous designation only when a dispute lacks any factual basis — mine clearly did not.
+
+I hereby resubmit my dispute and demand a proper reinvestigation in compliance with FCRA § 611. Please confirm receipt of this letter and provide your reinvestigation results within 30 days.`,
+
+    verification_of_debt: `I am writing to demand complete verification of the above-referenced account appearing on my credit report.
+
+You have indicated that you cannot locate or verify this account. Under FCRA § 611, if a consumer reporting agency cannot verify the accuracy of disputed information following a reinvestigation, that information must be promptly deleted.
+
+As you have confirmed your inability to verify this account, I hereby demand that you delete this item from my credit report immediately and notify me in writing of the deletion.`,
+
+    furnisher_623: `I am writing to submit a direct dispute under my rights pursuant to the Fair Credit Reporting Act § 623 regarding the above-referenced account.
+
+Despite multiple rounds of disputes with the credit bureaus, this account continues to be reported inaccurately. As the original furnisher of this information, you have an independent legal obligation under FCRA § 623 to investigate disputes submitted directly to you, and to correct or delete any inaccurate information.
+
+I hereby dispute the accuracy of this account and demand that you investigate and correct the inaccurate information within 30 days. Please notify all credit reporting agencies to which you have furnished this information of any corrections made.`,
+
+    intent_to_sue: `I am writing to provide formal notice of my intent to pursue all available legal remedies regarding the continued inaccurate reporting of the above-referenced account.
+
+Despite multiple rounds of disputes submitted pursuant to my rights under the Fair Credit Reporting Act, this information remains inaccurately reported. This constitutes a willful or negligent violation of the FCRA.
+
+Under FCRA § 616 and § 617, I am entitled to actual damages, statutory damages of up to $1,000 per violation, punitive damages, and attorney's fees and costs. I intend to pursue these remedies unless this matter is fully resolved within 30 days of this notice.
+
+I strongly urge you to investigate immediately and correct or delete the disputed information.`,
+  };
+
+  const subject = subjects[type] || `Re: Credit Dispute — ${creditor}`;
+  const body = bodies[type] || 'I am writing to dispute inaccurate information on my credit report.';
+
+  return `${name}
+${date}
+
+${bureau || 'Credit Reporting Agency'}
+Dispute Resolution Department
+
+${subject}
+
+To Whom It May Concern:
+
+${body}
+
+Sincerely,
+
+${name}
+[Address]
+[City, State, ZIP]
+[Phone]
+[Email]
+
+Enclosures: Copy of identification, Copy of credit report`;
+}
+
+// GET /api/diy/dispute-rounds
+app.get('/api/diy/dispute-rounds', diyAuthenticate, async (req, res) => {
+  try {
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+    res.json({ ok: true, rounds: user.disputeRounds || [] });
+  } catch (err) {
+    logError('DIY_ROUNDS_GET_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to load dispute rounds' });
+  }
+});
+
+// POST /api/diy/dispute-rounds — start a new round
+app.post('/api/diy/dispute-rounds', diyAuthenticate, async (req, res) => {
+  try {
+    const { items, sentAt } = req.body || {};
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ ok: false, error: 'items array is required' });
+    }
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+
+    const rounds = user.disputeRounds || [];
+    const roundNum = rounds.length + 1;
+    const now = new Date().toISOString();
+    const deadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const newRound = {
+      round: roundNum,
+      startedAt: now,
+      sentAt: sentAt || now,
+      deadline,
+      status: 'active',
+      items: items.map(item => ({
+        creditor: item.creditor || 'Unknown',
+        accountNumber: item.accountNumber || '',
+        bureau: item.bureau || '',
+        outcome: null,
+        outcomeAt: null,
+        letterType: null,
+      })),
+    };
+
+    rounds.push(newRound);
+    user.disputeRounds = rounds;
+    await saveDiyUsersDB(db);
+    res.json({ ok: true, round: newRound });
+  } catch (err) {
+    logError('DIY_ROUNDS_START_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to start dispute round' });
+  }
+});
+
+// PUT /api/diy/dispute-rounds/:n/outcomes
+app.put('/api/diy/dispute-rounds/:n/outcomes', diyAuthenticate, async (req, res) => {
+  try {
+    const roundNum = parseInt(req.params.n, 10);
+    const { outcomes } = req.body || {};
+    if (!Array.isArray(outcomes)) return res.status(400).json({ ok: false, error: 'outcomes array required' });
+
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+
+    const round = (user.disputeRounds || []).find(r => r.round === roundNum);
+    if (!round) return res.status(404).json({ ok: false, error: 'Round not found' });
+
+    const VALID_OUTCOMES = ['deleted', 'verified', 'updated', 'no_response', 'frivolous', 'not_found', 'pending'];
+    const now = new Date().toISOString();
+
+    for (const o of outcomes) {
+      const item = round.items.find(i => i.creditor === o.creditor && i.bureau === o.bureau);
+      if (item && VALID_OUTCOMES.includes(o.outcome)) {
+        item.outcome = o.outcome;
+        item.outcomeAt = now;
+        if (o.outcome !== 'deleted' && o.outcome !== 'pending') {
+          item.letterType = roundNum >= 4 ? 'intent_to_sue'
+            : roundNum === 3 ? 'furnisher_623'
+            : (OUTCOME_LETTER_MAP[o.outcome] || null);
+        } else {
+          item.letterType = null;
+        }
+      }
+    }
+
+    if (round.items.every(i => i.outcome === 'deleted')) round.status = 'completed';
+
+    await saveDiyUsersDB(db);
+    res.json({ ok: true, round });
+  } catch (err) {
+    logError('DIY_ROUNDS_OUTCOMES_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to save outcomes' });
+  }
+});
+
+// POST /api/diy/dispute-rounds/:n/letters
+app.post('/api/diy/dispute-rounds/:n/letters', diyAuthenticate, diyRequirePlan(['basic', 'pro']), async (req, res) => {
+  try {
+    const roundNum = parseInt(req.params.n, 10);
+    const db = await loadDiyUsersDB();
+    const user = db.users.find(u => u.id === req.diyUser.id);
+    if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
+
+    const round = (user.disputeRounds || []).find(r => r.round === roundNum);
+    if (!round) return res.status(404).json({ ok: false, error: 'Round not found' });
+
+    const needLetters = round.items.filter(i => i.letterType && i.outcome !== 'deleted' && i.outcome !== 'pending' && i.outcome !== null);
+    if (needLetters.length === 0) return res.status(400).json({ ok: false, error: 'No items require follow-up letters' });
+
+    const lettersDb = await loadDiyLettersDB();
+    const userName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+    const generated = [];
+
+    for (const item of needLetters) {
+      const content = generateFollowUpLetterContent({ type: item.letterType, creditor: item.creditor, bureau: item.bureau, userName });
+      const letter = {
+        id: nanoid(12),
+        userId: user.id,
+        bureau: item.bureau || 'General',
+        creditor: item.creditor,
+        letterType: item.letterType,
+        disputeRound: roundNum + 1,
+        content,
+        createdAt: new Date().toISOString(),
+      };
+      lettersDb.letters.push(letter);
+      generated.push({ id: letter.id, bureau: letter.bureau, creditor: letter.creditor, letterType: letter.letterType, createdAt: letter.createdAt });
+    }
+
+    await saveDiyLettersDB(lettersDb);
+    res.json({ ok: true, letters: generated, nextRound: roundNum + 1 });
+  } catch (err) {
+    logError('DIY_ROUND_LETTERS_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to generate follow-up letters' });
   }
 });
 
@@ -11492,7 +11732,8 @@ app.put('/api/diy/profile', diyAuthenticate, async (req, res) => {
       state: user.state || '', zip: user.zip || '', plan: user.plan,
       wizardStep: user.wizardStep || 1, wizardCompleted: user.wizardCompleted || [],
       disputeStrategy: user.disputeStrategy || '', markedSent: user.markedSent || {},
-      badges: user.badges || [], scoreGoal: user.scoreGoal || 0
+      badges: user.badges || [], scoreGoal: user.scoreGoal || 0,
+      disputeRounds: user.disputeRounds || [],
     }});
   } catch (err) {
     logError('DIY_UPDATE_PROFILE_ERROR', err);

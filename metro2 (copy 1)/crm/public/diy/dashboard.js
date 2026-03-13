@@ -161,7 +161,7 @@
     initWizAudit();
     initWizStrategy();
     initWizLetterGen();
-    initWizStep5Resolve();
+    initWizDisputeTracker();
     initWizScoreGoal();
     initWizSimulator();
     initWizNavButtons();
@@ -629,58 +629,385 @@
     }
   }
 
-  function updateTimeline() {
-    var sentEntries = Object.entries(wizardState.markedSent).filter(function(e) { return e[1] && e[1] !== false; });
-    var anyMarkedSent = sentEntries.length > 0;
-    var sentDate = document.getElementById('wizTlSentDate');
-    var stages = document.querySelectorAll('#wizTimeline .wiz-tl-stage');
-    var connectors = document.querySelectorAll('#wizTimeline .wiz-tl-connector');
+  // Legacy stub — replaced by IntelliFeats tracker
+  function updateTimeline() {}
 
-    if (anyMarkedSent) {
-      var firstSentTs = null;
-      sentEntries.forEach(function(e) {
-        if (typeof e[1] === 'string' || typeof e[1] === 'number') {
-          var ts = new Date(e[1]).getTime();
-          if (!firstSentTs || ts < firstSentTs) firstSentTs = ts;
+  // ============================================================
+  // INTELLIFEATS: DISPUTE ROUND TRACKER
+  // ============================================================
+
+  var disputeRounds = [];
+
+  var OUTCOME_LABELS = {
+    deleted:     { icon: '✅', label: 'Deleted — it\'s gone!', color: '#10b981' },
+    verified:    { icon: '📋', label: 'Verified as accurate', color: '#ef4444' },
+    updated:     { icon: '🔄', label: 'Updated but still wrong', color: '#f59e0b' },
+    no_response: { icon: '⏰', label: 'No response yet', color: '#6366f1' },
+    frivolous:   { icon: '🚫', label: 'Called it frivolous/irrelevant', color: '#ef4444' },
+    not_found:   { icon: '❓', label: 'Can\'t locate this account', color: '#6b7280' },
+  };
+
+  var ROUND_TITLES = {
+    1: 'Round 1 — Bureau Disputes',
+    2: 'Round 2 — Follow-Up to Bureaus',
+    3: 'Round 3 — Furnisher Disputes (FCRA § 623)',
+  };
+
+  var LETTER_TYPE_LABELS = {
+    method_of_verification: 'Method of Verification Demand',
+    still_inaccurate:       'Still Inaccurate Follow-Up',
+    no_response_demand:     'FCRA § 611 Non-Compliance Demand',
+    frivolous_rebuttal:     'Frivolous Designation Rebuttal',
+    verification_of_debt:   'Verification of Debt Demand',
+    furnisher_623:          'Direct Furnisher Dispute (§ 623)',
+    intent_to_sue:          'Notice of Intent to Sue',
+  };
+
+  function initWizDisputeTracker() {
+    var startBtn = document.getElementById('wizBtnStartRound1');
+    if (startBtn) {
+      startBtn.addEventListener('click', async function() {
+        startBtn.disabled = true;
+        startBtn.textContent = 'Starting…';
+        var items = buildItemsFromViolations();
+        if (!items.length) {
+          alert('Run your audit first (Step 2) so we know which accounts to track.');
+          startBtn.disabled = false;
+          startBtn.textContent = 'Start Tracking Round 1';
+          return;
+        }
+        try {
+          var res = await fetch('/api/diy/dispute-rounds', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: items })
+          });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to start round');
+          disputeRounds.push(data.round);
+          renderTrackerUI();
+        } catch (e) {
+          alert('Error: ' + e.message);
+          startBtn.disabled = false;
+          startBtn.textContent = 'Start Tracking Round 1';
         }
       });
-      var sentDateObj = firstSentTs ? new Date(firstSentTs) : new Date();
-      if (sentDate) sentDate.textContent = sentDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      if (stages[0]) { stages[0].classList.add('completed'); stages[0].classList.remove('active'); }
-      if (stages[1]) stages[1].classList.add('active');
-      if (connectors[0]) connectors[0].classList.add('completed');
+    }
+    loadAndRenderTracker();
+  }
 
-      var processDate = document.getElementById('wizTlProcessDate');
-      var future30 = new Date(sentDateObj.getTime()); future30.setDate(future30.getDate() + 30);
-      if (processDate) processDate.textContent = 'Expected by ' + future30.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  function buildItemsFromViolations() {
+    var items = [];
+    var seen = new Set();
+    violations.forEach(function(v) {
+      var key = (v.creditor || 'Unknown') + '|' + (v.bureau || '');
+      if (!seen.has(key)) {
+        seen.add(key);
+        items.push({ creditor: v.creditor || 'Unknown', accountNumber: v.accountNumber || '', bureau: v.bureau || '' });
+      }
+    });
+    return items;
+  }
+
+  async function loadAndRenderTracker() {
+    try {
+      var res = await fetch('/api/diy/dispute-rounds', { headers: { 'Authorization': 'Bearer ' + token } });
+      var data = await res.json();
+      if (data.ok) { disputeRounds = data.rounds || []; renderTrackerUI(); }
+    } catch (e) { console.error('Failed to load dispute rounds:', e); }
+  }
+
+  function renderTrackerUI() {
+    var noRound = document.getElementById('wizTrackerNoRound');
+    var roundPanel = document.getElementById('wizTrackerRoundPanel');
+    var historyDiv = document.getElementById('wizTrackerHistory');
+
+    if (!disputeRounds.length) {
+      if (noRound) noRound.style.display = '';
+      if (roundPanel) roundPanel.style.display = 'none';
+      if (historyDiv) historyDiv.style.display = 'none';
+      return;
     }
 
-    if (wizardState.completed.indexOf(5) !== -1) {
-      stages.forEach(function(s) { s.classList.remove('active'); s.classList.add('completed'); });
-      connectors.forEach(function(c) { c.classList.add('completed'); });
+    if (noRound) noRound.style.display = 'none';
+
+    var activeRound = disputeRounds.find(function(r) { return r.status === 'active'; });
+    var completedRounds = disputeRounds.filter(function(r) { return r.status !== 'active'; });
+
+    if (activeRound) {
+      if (roundPanel) roundPanel.style.display = '';
+      renderRoundHeader(activeRound);
+      renderOutcomeItems(activeRound);
+      renderTrackerCta(activeRound);
+    } else {
+      if (roundPanel) roundPanel.style.display = 'none';
+    }
+
+    if (completedRounds.length) {
+      if (historyDiv) historyDiv.style.display = '';
+      renderRoundHistory(completedRounds);
     }
   }
 
-  function initWizStep5Resolve() {
-    var btn = document.getElementById('wizBtnResponseReceived');
-    if (!btn) return;
-    btn.addEventListener('click', function() {
-      completeWizStep(5);
-      var stages = document.querySelectorAll('.wiz-tl-stage');
-      var connectors = document.querySelectorAll('.wiz-tl-connector');
-      var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      stages.forEach(function(s) { s.classList.remove('active'); s.classList.add('completed'); });
-      connectors.forEach(function(c) { c.classList.add('completed'); });
-      var responseDate = document.getElementById('wizTlResponseDate');
-      var followDate = document.getElementById('wizTlFollowDate');
-      var resolvedDate = document.getElementById('wizTlResolvedDate');
-      if (responseDate) responseDate.textContent = today;
-      if (followDate) followDate.textContent = 'Completed';
-      if (resolvedDate) resolvedDate.textContent = today;
-      btn.disabled = true;
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Disputes Resolved';
-      btn.style.background = '#10b981';
+  function renderRoundHeader(round) {
+    var title = document.getElementById('wizTrackerRoundTitle');
+    var sub = document.getElementById('wizTrackerRoundSub');
+    var countdown = document.getElementById('wizTrackerCountdown');
+    var roundNum = round.round;
+
+    if (title) title.textContent = ROUND_TITLES[roundNum] || 'Round ' + roundNum + ' — Escalation';
+
+    var sentFmt = round.sentAt ? new Date(round.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    var deadlineFmt = round.deadline ? new Date(round.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    if (sub) sub.textContent = 'Sent: ' + sentFmt + ' · Due by: ' + deadlineFmt;
+
+    if (countdown && round.deadline) {
+      var daysLeft = Math.ceil((new Date(round.deadline) - Date.now()) / (1000 * 60 * 60 * 24));
+      if (daysLeft > 0) {
+        countdown.textContent = daysLeft + ' days left';
+        countdown.style.background = daysLeft <= 5 ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)';
+        countdown.style.color = daysLeft <= 5 ? '#ef4444' : '#10b981';
+      } else {
+        countdown.textContent = 'Deadline passed';
+        countdown.style.background = 'rgba(239,68,68,0.1)';
+        countdown.style.color = '#ef4444';
+      }
+    }
+  }
+
+  function getOutcomeChoices(roundNum) {
+    if (roundNum >= 4) {
+      return [
+        { value: 'deleted', icon: '✅', label: 'Deleted — resolved!' },
+        { value: 'verified', icon: '⚖️', label: 'Still reporting — escalate to legal' },
+        { value: 'no_response', icon: '⏰', label: 'No response again' },
+      ];
+    }
+    if (roundNum === 3) {
+      return [
+        { value: 'deleted', icon: '✅', label: 'Creditor corrected it — deleted!' },
+        { value: 'verified', icon: '📋', label: 'Creditor verified as accurate' },
+        { value: 'updated', icon: '🔄', label: 'Creditor updated but still wrong' },
+        { value: 'no_response', icon: '⏰', label: 'No response from creditor' },
+        { value: 'frivolous', icon: '🚫', label: 'Creditor rejected as frivolous' },
+      ];
+    }
+    return [
+      { value: 'deleted', icon: '✅', label: 'Deleted — it\'s gone!' },
+      { value: 'verified', icon: '📋', label: 'Verified as accurate — they say it\'s correct' },
+      { value: 'updated', icon: '🔄', label: 'Updated but still wrong' },
+      { value: 'no_response', icon: '⏰', label: 'No response yet (within 30 days)' },
+      { value: 'frivolous', icon: '🚫', label: 'Called it frivolous or irrelevant' },
+      { value: 'not_found', icon: '❓', label: 'Can\'t locate this account' },
+    ];
+  }
+
+  function renderOutcomeItems(round) {
+    var container = document.getElementById('wizTrackerItems');
+    if (!container) return;
+    var choices = getOutcomeChoices(round.round);
+    var pendingIntro = round.round === 1
+      ? 'What did the bureau say about this account?'
+      : round.round === 3
+        ? 'What did the original creditor say?'
+        : 'What was the bureau\'s response this round?';
+
+    container.innerHTML = round.items.map(function(item, idx) {
+      var outcomeMeta = item.outcome ? OUTCOME_LABELS[item.outcome] : null;
+      var letterLabel = item.letterType ? LETTER_TYPE_LABELS[item.letterType] : null;
+
+      var outcomeHtml = '';
+      if (item.outcome) {
+        outcomeHtml = '<div style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,0.03);display:flex;align-items:center;gap:8px;">' +
+          '<span style="font-size:16px;">' + (outcomeMeta ? outcomeMeta.icon : '•') + '</span>' +
+          '<div><div style="font-size:13px;font-weight:600;color:' + (outcomeMeta ? outcomeMeta.color : 'var(--diy-text)') + ';">' + esc(outcomeMeta ? outcomeMeta.label : item.outcome) + '</div>' +
+          (letterLabel && item.outcome !== 'deleted' ? '<div style="font-size:11px;color:var(--diy-text-sub);margin-top:2px;">Follow-up: ' + esc(letterLabel) + '</div>' : '') +
+          (item.outcome === 'deleted' ? '<div style="font-size:11px;color:#10b981;margin-top:2px;">No follow-up needed — this one is resolved!</div>' : '') +
+          '</div>' +
+          '<button class="wiz-tracker-change-btn" data-idx="' + idx + '" style="margin-left:auto;font-size:11px;color:var(--diy-text-sub);background:none;border:none;cursor:pointer;text-decoration:underline;" type="button">Change</button>' +
+          '</div>';
+      } else {
+        var choiceHtml = choices.map(function(c) {
+          return '<button class="wiz-tracker-outcome-btn diy-btn" data-idx="' + idx + '" data-outcome="' + c.value + '" type="button" style="font-size:12px;padding:7px 12px;background:var(--diy-card);border:1px solid rgba(0,0,0,0.1);text-align:left;justify-content:flex-start;gap:6px;">' +
+            '<span>' + c.icon + '</span> ' + esc(c.label) + '</button>';
+        }).join('');
+        outcomeHtml = '<div style="margin-top:10px;"><p style="font-size:12px;color:var(--diy-text-sub);margin-bottom:8px;">' + esc(pendingIntro) + '</p>' +
+          '<div style="display:flex;flex-direction:column;gap:6px;">' + choiceHtml + '</div></div>';
+      }
+
+      return '<div style="border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:14px;margin-bottom:10px;background:var(--diy-card);" id="wizTrackerItem' + idx + '">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">' +
+        '<div style="font-weight:700;font-size:14px;color:var(--diy-text);">' + esc(item.creditor) + '</div>' +
+        (item.bureau ? '<span style="font-size:11px;padding:2px 8px;border-radius:5px;background:#f3f4f6;color:var(--diy-text-sub);">' + esc(item.bureau) + '</span>' : '') +
+        '</div>' +
+        outcomeHtml +
+        '</div>';
+    }).join('');
+
+    container.querySelectorAll('.wiz-tracker-outcome-btn').forEach(function(btn) {
+      btn.addEventListener('click', async function() {
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        var outcome = btn.getAttribute('data-outcome');
+        var item = round.items[idx];
+        if (!item) return;
+        btn.disabled = true;
+        try {
+          var res = await fetch('/api/diy/dispute-rounds/' + round.round + '/outcomes', {
+            method: 'PUT',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ outcomes: [{ creditor: item.creditor, bureau: item.bureau, outcome: outcome }] })
+          });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to save');
+          var updatedRound = data.round;
+          var ridx = disputeRounds.findIndex(function(r) { return r.round === updatedRound.round; });
+          if (ridx !== -1) disputeRounds[ridx] = updatedRound;
+          renderOutcomeItems(updatedRound);
+          renderTrackerCta(updatedRound);
+        } catch (e) {
+          alert('Error saving outcome: ' + e.message);
+          btn.disabled = false;
+        }
+      });
     });
+
+    container.querySelectorAll('.wiz-tracker-change-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        var item = round.items[idx];
+        if (!item) return;
+        item.outcome = null;
+        item.letterType = null;
+        renderOutcomeItems(round);
+        renderTrackerCta(round);
+      });
+    });
+  }
+
+  function renderTrackerCta(round) {
+    var ctaDiv = document.getElementById('wizTrackerCta');
+    if (!ctaDiv) return;
+
+    var allAnswered = round.items.every(function(i) { return i.outcome !== null; });
+    var allDeleted = round.items.every(function(i) { return i.outcome === 'deleted'; });
+    var anyNeedLetters = round.items.some(function(i) { return i.letterType && i.outcome !== 'deleted'; });
+    var unresolvedItems = round.items.filter(function(i) { return i.outcome !== 'deleted'; });
+
+    if (!allAnswered) {
+      ctaDiv.innerHTML = '<p style="font-size:13px;color:var(--diy-text-sub);padding:12px;background:rgba(0,0,0,0.03);border-radius:8px;text-align:center;">Answer each account above to see your next steps.</p>';
+      return;
+    }
+
+    if (allDeleted) {
+      completeWizStep(5);
+      ctaDiv.innerHTML = '<div style="text-align:center;padding:24px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;">' +
+        '<div style="font-size:32px;margin-bottom:8px;">🎉</div>' +
+        '<div style="font-weight:700;font-size:16px;color:#10b981;margin-bottom:6px;">All accounts resolved!</div>' +
+        '<p style="font-size:13px;color:var(--diy-text-sub);">Every disputed item has been deleted. Continue to Step 6 to work on improving your score.</p>' +
+        '</div>';
+      return;
+    }
+
+    if (round.round >= 4) {
+      ctaDiv.innerHTML = '<div style="padding:16px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:12px;">' +
+        '<p style="font-weight:700;font-size:14px;color:var(--diy-text);margin-bottom:6px;">⚖️ You\'ve exhausted the DIY dispute process for these accounts.</p>' +
+        '<p style="font-size:13px;color:var(--diy-text-sub);margin-bottom:12px;">Your next best options are filing a CFPB complaint and consulting a consumer law attorney — many work on contingency (no upfront cost).</p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+        '<button onclick="document.querySelector(\'[data-section=cfpb]\')?.click()" class="diy-btn diy-btn-primary" type="button" style="font-size:13px;">File CFPB Complaint</button>' +
+        '<button onclick="document.querySelector(\'[data-section=specialists]\')?.click()" class="diy-btn diy-btn-secondary" type="button" style="font-size:13px;">Find a Credit Attorney</button>' +
+        '</div></div>';
+      return;
+    }
+
+    var isPaid = currentUser && (currentUser.plan === 'basic' || currentUser.plan === 'pro');
+    var html = '<div style="padding:16px;background:rgba(99,102,241,0.05);border:1px solid rgba(99,102,241,0.15);border-radius:12px;">';
+
+    if (round.round === 3) {
+      html += '<p style="font-weight:700;font-size:14px;color:var(--diy-text);margin-bottom:4px;">Next: Direct Furnisher Disputes (FCRA § 623)</p>';
+      html += '<p style="font-size:13px;color:var(--diy-text-sub);margin-bottom:12px;">' + unresolvedItems.length + ' account' + (unresolvedItems.length !== 1 ? 's' : '') + ' still unresolved. We\'ll generate letters going directly to the original creditors — not the bureaus.</p>';
+    } else {
+      html += '<p style="font-weight:700;font-size:14px;color:var(--diy-text);margin-bottom:4px;">Next: Generate Round ' + (round.round + 1) + ' Follow-Up Letters</p>';
+      html += '<p style="font-size:13px;color:var(--diy-text-sub);margin-bottom:12px;">' + unresolvedItems.length + ' account' + (unresolvedItems.length !== 1 ? 's' : '') + ' need follow-up. Each account gets the specific letter that matches what the bureau said.</p>';
+    }
+
+    if (!isPaid) {
+      html += '<div style="padding:10px 14px;background:rgba(245,158,11,0.08);border-radius:8px;font-size:13px;color:var(--diy-text-sub);margin-bottom:10px;">🔒 Follow-up letter generation requires a paid plan.</div>';
+    }
+
+    html += '<button id="wizTrackerGenLetters" class="diy-btn diy-btn-primary" type="button" ' + (!isPaid ? 'disabled' : '') + ' style="font-size:13px;">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+      ' Generate Follow-Up Letters</button>';
+    html += '</div>';
+    ctaDiv.innerHTML = html;
+
+    var genBtn = document.getElementById('wizTrackerGenLetters');
+    if (genBtn && isPaid) {
+      genBtn.addEventListener('click', async function() {
+        genBtn.disabled = true;
+        genBtn.textContent = 'Generating…';
+        try {
+          var res = await fetch('/api/diy/dispute-rounds/' + round.round + '/letters', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+          });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to generate letters');
+          var letters = data.letters || [];
+          var nextRound = data.nextRound;
+          ctaDiv.innerHTML = '<div style="padding:16px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:12px;">' +
+            '<p style="font-weight:700;font-size:14px;color:#10b981;margin-bottom:6px;">✅ ' + letters.length + ' follow-up letter' + (letters.length !== 1 ? 's' : '') + ' generated!</p>' +
+            '<p style="font-size:13px;color:var(--diy-text-sub);margin-bottom:12px;">Go to Step 4 to download, print, and mail them. Then come back here to start Round ' + nextRound + '.</p>' +
+            '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+            '<button id="wizTrackerGoLetters" class="diy-btn diy-btn-primary" type="button" style="font-size:13px;">Go to Letters (Step 4)</button>' +
+            '<button id="wizTrackerStartNextRound" class="diy-btn diy-btn-secondary" type="button" style="font-size:13px;">Start Round ' + nextRound + '</button>' +
+            '</div></div>';
+          var goBtn = document.getElementById('wizTrackerGoLetters');
+          if (goBtn) goBtn.addEventListener('click', function() { goToWizStep(4); });
+          var nextRoundBtn = document.getElementById('wizTrackerStartNextRound');
+          if (nextRoundBtn) {
+            nextRoundBtn.addEventListener('click', async function() {
+              nextRoundBtn.disabled = true;
+              nextRoundBtn.textContent = 'Starting…';
+              var nextItems = unresolvedItems.map(function(i) { return { creditor: i.creditor, accountNumber: i.accountNumber, bureau: i.bureau }; });
+              try {
+                var r2 = await fetch('/api/diy/dispute-rounds', {
+                  method: 'POST',
+                  headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ items: nextItems })
+                });
+                var d2 = await r2.json();
+                if (!r2.ok) throw new Error(d2.error || 'Failed to start next round');
+                disputeRounds.push(d2.round);
+                renderTrackerUI();
+              } catch (e2) {
+                alert('Error: ' + e2.message);
+                nextRoundBtn.disabled = false;
+                nextRoundBtn.textContent = 'Start Round ' + nextRound;
+              }
+            });
+          }
+        } catch (e) {
+          alert('Error: ' + e.message);
+          genBtn.disabled = false;
+          genBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generate Follow-Up Letters';
+        }
+      });
+    }
+  }
+
+  function renderRoundHistory(completedRounds) {
+    var list = document.getElementById('wizTrackerHistoryList');
+    if (!list) return;
+    list.innerHTML = completedRounds.map(function(r) {
+      var deleted = r.items.filter(function(i) { return i.outcome === 'deleted'; }).length;
+      var total = r.items.length;
+      var sentFmt = r.sentAt ? new Date(r.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid rgba(0,0,0,0.07);border-radius:8px;margin-bottom:8px;background:var(--diy-card);">' +
+        '<div><div style="font-size:13px;font-weight:600;color:var(--diy-text);">Round ' + r.round + '</div>' +
+        '<div style="font-size:12px;color:var(--diy-text-sub);">Sent ' + sentFmt + '</div></div>' +
+        '<div style="font-size:12px;color:#10b981;font-weight:600;">' + deleted + '/' + total + ' deleted</div>' +
+        '</div>';
+    }).join('');
   }
 
   function initWizScoreGoal() {
