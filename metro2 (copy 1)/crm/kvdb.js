@@ -6,6 +6,41 @@ const schemaCache = new Set();
 let sharedTableInitialized = false;
 let initializationPromise = null;
 
+// ── In-memory KV cache ────────────────────────────────────────────────────────
+// Dramatically reduces PostgreSQL round-trips on login when the dashboard fires
+// 8-10 concurrent API calls that all read the same large blobs (consumers, users…).
+// Strategy: write-through (writes update cache immediately) + 60s TTL reads.
+// Concurrent reads for the same key share one in-flight DB promise ("thundering
+// herd" prevention) so we never issue duplicate queries.
+const KV_CACHE_TTL_MS = 60_000; // 60 seconds
+
+const _kvCache = new Map();    // cacheKey -> { value, expiresAt }
+const _kvInflight = new Map(); // cacheKey -> Promise  (dedup concurrent reads)
+
+function _cacheKey(key, tenantId) {
+  return `${tenantId}::${key}`;
+}
+
+function _cacheGet(cacheKey) {
+  const entry = _kvCache.get(cacheKey);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) {
+    _kvCache.delete(cacheKey);
+    return undefined;
+  }
+  return entry.value;
+}
+
+function _cacheSet(cacheKey, value) {
+  _kvCache.set(cacheKey, { value, expiresAt: Date.now() + KV_CACHE_TTL_MS });
+}
+
+function _cacheDelete(cacheKey) {
+  _kvCache.delete(cacheKey);
+  _kvInflight.delete(cacheKey);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function toJson(value) {
   try {
     const serialized = JSON.stringify(value);
@@ -144,18 +179,50 @@ async function getTenantContext(options) {
 
 export async function readKey(key, fallback, options = {}) {
   const { db, tenantId, strategy, schemaName } = await getTenantContext(options);
-  if (strategy === "schema") {
-    const row = await db.withSchema(schemaName).from("kv_store").where({ key }).first();
-    if (!row) return fallback;
-    return parseValue(row.value, fallback);
+  const ck = _cacheKey(key, tenantId);
+
+  // 1. Serve from cache if fresh
+  const cached = _cacheGet(ck);
+  if (cached !== undefined) return cached;
+
+  // 2. If another caller is already fetching this key, share their promise
+  if (_kvInflight.has(ck)) {
+    const val = await _kvInflight.get(ck);
+    return val !== undefined ? val : fallback;
   }
-  const row = await db("tenant_kv").where({ tenant_id: tenantId, key }).first();
-  if (!row) return fallback;
-  return parseValue(row.value, fallback);
+
+  // 3. Go to DB and dedup concurrent callers
+  const dbPromise = (async () => {
+    if (strategy === "schema") {
+      const row = await db.withSchema(schemaName).from("kv_store").where({ key }).first();
+      return row ? parseValue(row.value, undefined) : undefined;
+    }
+    const row = await db("tenant_kv").where({ tenant_id: tenantId, key }).first();
+    return row ? parseValue(row.value, undefined) : undefined;
+  })();
+
+  _kvInflight.set(ck, dbPromise);
+  let result;
+  try {
+    result = await dbPromise;
+  } finally {
+    _kvInflight.delete(ck);
+  }
+
+  if (result !== undefined) {
+    _cacheSet(ck, result);
+    return result;
+  }
+  return fallback;
 }
 
 export async function writeKey(key, value, options = {}) {
   const { db, tenantId, strategy, schemaName } = await getTenantContext(options);
+  const ck = _cacheKey(key, tenantId);
+
+  // Write-through: update cache immediately so subsequent reads are instant
+  _cacheSet(ck, value);
+
   const payload = { value: toJson(value), updated_at: db.fn.now() };
   if (strategy === "schema") {
     await db
@@ -174,6 +241,7 @@ export async function writeKey(key, value, options = {}) {
 
 export async function deleteKey(key, options = {}) {
   const { db, tenantId, strategy, schemaName } = await getTenantContext(options);
+  _cacheDelete(_cacheKey(key, tenantId));
   if (strategy === "schema") {
     await db.withSchema(schemaName).from("kv_store").where({ key }).del();
     return;
