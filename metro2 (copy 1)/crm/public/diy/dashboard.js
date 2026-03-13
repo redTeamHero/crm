@@ -161,6 +161,7 @@
     initWizAudit();
     initWizStrategy();
     initWizLetterGen();
+    initWizStep5Resolve();
     initWizScoreGoal();
     initWizSimulator();
     initWizNavButtons();
@@ -353,7 +354,6 @@
         renderWizViolations(violations);
         var nextBtn2 = document.getElementById('wizBtn2Next');
         if (nextBtn2) nextBtn2.disabled = false;
-        completeWizStep(2);
 
         if (violations.length > 0) {
           awardBadge('violation_found');
@@ -369,6 +369,7 @@
           updateReportSnapshot(violations.length + ' negative item' + (violations.length !== 1 ? 's' : '') + ' detected.');
           updateMilestone('Audit complete! ' + violations.length + ' violation' + (violations.length !== 1 ? 's' : '') + ' found.');
         } else {
+          completeWizStep(2);
           updateMilestone('Audit complete! No violations found \u2014 your report looks clean.');
           updateNextStep('Your report looks good! Explore score improvement tools.');
         }
@@ -426,11 +427,13 @@
         var idx = btn.getAttribute('data-explain');
         var el = document.getElementById('wizExplain' + idx);
         if (el) el.classList.toggle('open');
+        completeWizStep(2);
       });
     });
 
     container.querySelectorAll('.wiz-viol-btn-dispute').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        completeWizStep(2);
         goToWizStep(3);
         saveWizardState();
       });
@@ -503,7 +506,6 @@
         var data = await res.json();
         if (!data.ok) throw new Error(data.error || 'Letter generation failed');
         awardBadge('first_dispute');
-        completeWizStep(4);
         loadWizLetters();
         loadLetters();
       } catch (e) {
@@ -553,8 +555,9 @@
           var allSent = data.letters.every(function(l) { return wizardState.markedSent[l.id]; });
           if (allSent) {
             awardBadge('letters_sent');
-            updateTimeline();
+            completeWizStep(4);
           }
+          updateTimeline();
           saveWizardState();
         });
       });
@@ -581,6 +584,28 @@
       var future30 = new Date(); future30.setDate(future30.getDate() + 30);
       if (processDate) processDate.textContent = 'Expected by ' + future30.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
+  }
+
+  function initWizStep5Resolve() {
+    var btn = document.getElementById('wizBtnResponseReceived');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
+      completeWizStep(5);
+      var stages = document.querySelectorAll('.wiz-tl-stage');
+      var connectors = document.querySelectorAll('.wiz-tl-connector');
+      var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      stages.forEach(function(s) { s.classList.remove('active'); s.classList.add('completed'); });
+      connectors.forEach(function(c) { c.classList.add('completed'); });
+      var responseDate = document.getElementById('wizTlResponseDate');
+      var followDate = document.getElementById('wizTlFollowDate');
+      var resolvedDate = document.getElementById('wizTlResolvedDate');
+      if (responseDate) responseDate.textContent = today;
+      if (followDate) followDate.textContent = 'Completed';
+      if (resolvedDate) resolvedDate.textContent = today;
+      btn.disabled = true;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Disputes Resolved';
+      btn.style.background = '#10b981';
+    });
   }
 
   function initWizScoreGoal() {
