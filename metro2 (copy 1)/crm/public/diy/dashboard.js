@@ -7,9 +7,9 @@
   let wizardState = { step: 1, completed: [], strategy: '', markedSent: {}, badges: [] };
 
   const WIZARD_STEPS = [
-    { num: 1, label: 'Import Report' },
-    { num: 2, label: 'Violations' },
-    { num: 3, label: 'Strategy' },
+    { num: 1, label: 'How CreditPulse Works' },
+    { num: 2, label: 'Import Report' },
+    { num: 3, label: 'Violations' },
     { num: 4, label: 'Dispute Letters' },
     { num: 5, label: 'Progress Tracker' },
     { num: 6, label: 'Score Tools' }
@@ -312,7 +312,7 @@
         if (doneText) doneText.textContent = 'Report uploaded: ' + (data.report.originalName || 'success');
         var nextBtn = document.getElementById('wizBtn1Next');
         if (nextBtn) nextBtn.disabled = false;
-        completeWizStep(1);
+        completeWizStep(2);
         awardBadge('report_uploaded');
         updateStep(2, 4);
         updateNextStep('Run an audit on your uploaded report to find violations.');
@@ -331,7 +331,7 @@
     if (!btn) return;
     btn.addEventListener('click', async function() {
       if (!currentReport) {
-        alert('Please upload a report first (Step 1).');
+        alert('Please upload a report first (Step 2).');
         return;
       }
       btn.disabled = true;
@@ -366,7 +366,7 @@
           updateReportSnapshot(violations.length + ' negative item' + (violations.length !== 1 ? 's' : '') + ' detected.');
           updateMilestone('Audit complete! ' + violations.length + ' violation' + (violations.length !== 1 ? 's' : '') + ' found.');
         } else {
-          completeWizStep(2);
+          completeWizStep(3);
           updateMilestone('Audit complete! No violations found \u2014 your report looks clean.');
           updateNextStep('Your report looks good! Explore score improvement tools.');
         }
@@ -478,21 +478,21 @@
         var idx = btn.getAttribute('data-explain');
         var el = document.getElementById('wizExplain' + idx);
         if (el) el.classList.toggle('open');
-        completeWizStep(2);
+        completeWizStep(3);
       });
     });
 
     container.querySelectorAll('.wiz-viol-btn-dispute').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        completeWizStep(2);
-        goToWizStep(3);
+        completeWizStep(3);
+        goToWizStep(4);
         saveWizardState();
       });
     });
   }
 
   function initWizStrategy() {
-    completeWizStep(3);
+    completeWizStep(1);
     saveWizardState();
   }
 
@@ -507,11 +507,6 @@
       }
       if (!currentReport || violations.length === 0) {
         alert('Please upload a report and run an audit first to find violations.');
-        return;
-      }
-      if (!wizardState.strategy) {
-        alert('Please select a dispute strategy first (Step 3).');
-        goToWizStep(3);
         return;
       }
       btn.disabled = true;
@@ -1099,8 +1094,8 @@
         var doneText = document.getElementById('wizStep1DoneText');
         if (done) done.style.display = '';
         if (doneText) doneText.textContent = 'Report on file: ' + (currentReport.originalName || 'uploaded');
-        if (wizardState.completed.indexOf(1) === -1) {
-          completeWizStep(1);
+        if (wizardState.completed.indexOf(2) === -1) {
+          completeWizStep(2);
           awardBadge('report_uploaded');
         }
       }
