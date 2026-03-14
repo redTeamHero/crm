@@ -383,6 +383,8 @@
   var _wizViolData = { tradelines: [], viols: [] };
   var _wizViolPage = 0;
   var WIZ_VIOL_PER_PAGE = 3;
+  var WIZ_VIOLS_PER_CARD = 5;
+  var _wizCardViolPages = {};
 
   var _wizLawMap = {
     'FCRA': 'Fair Credit Reporting Act, 15 U.S.C. \u00A7 1681. Requires accurate reporting and gives consumers the right to dispute inaccurate information.',
@@ -398,6 +400,53 @@
     return 'This item may violate consumer credit reporting laws. Consult with a credit professional for specific legal guidance.';
   }
 
+  function _buildViolsHtml(tlViols, cardKey, globalBase) {
+    var vp = _wizCardViolPages[cardKey] || 0;
+    var totalV = tlViols.length;
+    var vPages = Math.ceil(totalV / WIZ_VIOLS_PER_CARD);
+    vp = Math.max(0, Math.min(vp, vPages - 1));
+    _wizCardViolPages[cardKey] = vp;
+    var slice = tlViols.slice(vp * WIZ_VIOLS_PER_CARD, (vp + 1) * WIZ_VIOLS_PER_CARD);
+
+    var rows = slice.map(function(v, vi) {
+      var idx = globalBase + vp * WIZ_VIOLS_PER_CARD + vi;
+      var citation = _wizGetCitation(v);
+      return '<div class="wiz-viol-row" id="wizViolRow' + idx + '">' +
+        '<div class="wiz-viol-row-top">' +
+        '<span style="color:#ef4444;font-size:15px;flex-shrink:0;">&#9888;</span>' +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:13px;font-weight:600;color:var(--diy-text);line-height:1.3;">' + esc(v.title || v.ruleId || 'Violation') + '</div>' +
+        (v.bureau ? '<span style="display:inline-block;margin-top:3px;font-size:11px;padding:1px 7px;background:rgba(239,68,68,0.08);border-radius:4px;color:#ef4444;font-weight:600;">' + esc(v.bureau) + '</span>' : '') +
+        '</div>' +
+        '<button class="wiz-viol-toggle" data-viol-id="' + idx + '" type="button" title="Show details" aria-expanded="false">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>' +
+        '</button>' +
+        '</div>' +
+        '<div class="wiz-viol-detail" id="wizViolDetail' + idx + '">' +
+        '<div class="wiz-viol-detail-section"><div class="wiz-viol-detail-label">Legal Basis</div><div class="wiz-viol-detail-text">' + esc(citation) + '</div></div>' +
+        (v.explanation || v.description ? '<div class="wiz-viol-detail-section" style="margin-top:8px;"><div class="wiz-viol-detail-label">What This Means</div><div class="wiz-viol-detail-text">' + esc(v.explanation || v.description) + '</div></div>' : '') +
+        '<button class="wiz-viol-btn-dispute diy-btn diy-btn-primary" style="margin-top:10px;font-size:12px;padding:7px 14px;" data-dispute="' + idx + '" type="button">Dispute This</button>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+
+    var mini = '';
+    if (vPages > 1) {
+      var vs = vp * WIZ_VIOLS_PER_CARD + 1;
+      var ve = Math.min((vp + 1) * WIZ_VIOLS_PER_CARD, totalV);
+      mini = '<div class="wiz-viol-mini-pager">' +
+        '<button class="wiz-viol-mini-btn" data-card-key="' + cardKey + '" data-vdir="-1" type="button"' + (vp === 0 ? ' disabled' : '') + '>' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>' +
+        '</button>' +
+        '<span style="font-size:12px;color:var(--diy-text-sub);font-weight:600;">' + vs + '\u2013' + ve + ' of ' + totalV + '</span>' +
+        '<button class="wiz-viol-mini-btn" data-card-key="' + cardKey + '" data-vdir="1" type="button"' + (vp >= vPages - 1 ? ' disabled' : '') + '>' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>' +
+        '</button>' +
+        '</div>';
+    }
+    return rows + mini;
+  }
+
   function _renderWizViolPage() {
     var container = document.getElementById('wizViolationCards');
     if (!container) return;
@@ -406,74 +455,52 @@
     var usingTradelines = tls && tls.length > 0;
     var items = usingTradelines ? tls : viols;
     var total = items.length;
-    var pages = Math.ceil(total / WIZ_VIOL_PER_PAGE);
+    var perPage = WIZ_VIOL_PER_PAGE === 0 ? total : WIZ_VIOL_PER_PAGE;
+    var pages = perPage > 0 ? Math.ceil(total / perPage) : 1;
     var page = Math.max(0, Math.min(_wizViolPage, pages - 1));
     _wizViolPage = page;
-    var pageItems = items.slice(page * WIZ_VIOL_PER_PAGE, (page + 1) * WIZ_VIOL_PER_PAGE);
-    var globalOffset = page * WIZ_VIOL_PER_PAGE * 20;
+    var pageItems = perPage > 0 ? items.slice(page * perPage, (page + 1) * perPage) : items;
+    var globalOffset = page * perPage * 100;
+
+    function infoCell(label, value, danger) {
+      if (value == null || value === '' || String(value) === '0') return '';
+      var color = danger ? '#ef4444' : 'var(--diy-text)';
+      return '<div class="wiz-tl-info-cell"><div class="wiz-tl-info-label">' + label + '</div>' +
+        '<div class="wiz-tl-info-value" style="color:' + color + ';">' + value + '</div></div>';
+    }
 
     var cardsHtml = '';
     if (usingTradelines) {
       pageItems.forEach(function(tl, ti) {
         var tlViols = tl.violations || [];
-        var cardId = 'wizTlCard_' + page + '_' + ti;
+        var cardKey = 'p' + page + 'i' + ti;
+        var cardId = 'wizTlCard_' + cardKey;
         var bureauBadges = (tl.bureaus || []).map(function(b) {
           return '<span style="font-size:11px;padding:2px 7px;background:rgba(99,102,241,0.1);border-radius:5px;color:var(--diy-accent);font-weight:600;">' + esc(b) + '</span>';
         }).join(' ');
 
         var acctSub = '';
-        if (tl.accountNumber) acctSub += '\u00B7\u00B7\u00B7\u00B7' + esc(tl.accountNumber.toString().slice(-4));
+        if (tl.accountNumber) acctSub += esc(tl.accountNumber.toString());
         if (tl.accountType) acctSub += (acctSub ? '  \u00B7  ' : '') + esc(tl.accountType);
 
-        function infoCell(label, value, danger) {
-          if (value == null || value === '' || value === '0' || value === 0) return '';
-          var color = danger ? '#ef4444' : 'var(--diy-text)';
-          return '<div class="wiz-tl-info-cell">' +
-            '<div class="wiz-tl-info-label">' + label + '</div>' +
-            '<div class="wiz-tl-info-value" style="color:' + color + ';">' + value + '</div>' +
-            '</div>';
-        }
+        var statusColor = /charge|collect|derog|late|past/i.test(tl.accountStatus || '') ? '#ef4444'
+          : /open|current/i.test(tl.accountStatus || '') ? '#10b981' : 'var(--diy-text)';
+        var pmtDanger = /late|past|delinq|charge/i.test(tl.paymentStatus || '');
 
-        var statusColor = tl.accountStatus && /charge|collect|derog|late|past/i.test(tl.accountStatus) ? '#ef4444' : tl.accountStatus && /open|current/i.test(tl.accountStatus) ? '#10b981' : 'var(--diy-text)';
-
-        var infoGrid =
-          '<div class="wiz-tl-info-grid">' +
-          (tl.accountStatus ? '<div class="wiz-tl-info-cell"><div class="wiz-tl-info-label">Status</div><div class="wiz-tl-info-value" style="color:' + statusColor + ';font-weight:700;">' + esc(tl.accountStatus) + '</div></div>' : '') +
+        var infoGrid = '<div class="wiz-tl-info-grid">' +
+          (tl.accountStatus ? '<div class="wiz-tl-info-cell"><div class="wiz-tl-info-label">Account Status</div><div class="wiz-tl-info-value" style="color:' + statusColor + ';font-weight:700;">' + esc(tl.accountStatus) + '</div></div>' : '') +
+          infoCell('Payment Status', tl.paymentStatus, pmtDanger) +
           infoCell('Balance', tl.balance ? '$' + esc(String(tl.balance)) : '', false) +
+          infoCell('Past Due', (tl.pastDue && String(tl.pastDue) !== '0') ? '$' + esc(String(tl.pastDue)) : '', true) +
           infoCell('Credit Limit', tl.creditLimit ? '$' + esc(String(tl.creditLimit)) : '', false) +
-          infoCell('Past Due', tl.pastDue && tl.pastDue !== '0' && tl.pastDue !== 0 ? '$' + esc(String(tl.pastDue)) : '', true) +
-          infoCell('Date Opened', tl.dateOpened ? esc(tl.dateOpened) : '', false) +
-          infoCell('Last Payment', tl.dateLastPayment ? esc(tl.dateLastPayment) : '', false) +
-          infoCell('Payment Status', tl.paymentStatus ? esc(tl.paymentStatus) : '', /late|past|delinq|charge/i.test(tl.paymentStatus || '')) +
+          infoCell('High Credit', tl.highCredit ? '$' + esc(String(tl.highCredit)) : '', false) +
+          infoCell('Date Opened', tl.dateOpened, false) +
+          infoCell('Last Reported', tl.lastReported, false) +
+          infoCell('Date of Last Payment', tl.dateLastPayment, false) +
+          (tl.comments ? '<div class="wiz-tl-info-cell wiz-tl-info-cell--full"><div class="wiz-tl-info-label">Comments</div><div class="wiz-tl-info-value">' + esc(tl.comments) + '</div></div>' : '') +
           '</div>';
 
-        var violsHtml = tlViols.map(function(v, vi) {
-          var idx = globalOffset + ti * 100 + vi;
-          var citation = _wizGetCitation(v);
-          return '<div class="wiz-viol-row" id="wizViolRow' + idx + '">' +
-            '<div class="wiz-viol-row-top">' +
-            '<span style="color:#ef4444;font-size:15px;flex-shrink:0;">&#9888;</span>' +
-            '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:13px;font-weight:600;color:var(--diy-text);line-height:1.3;">' + esc(v.title || v.ruleId || 'Violation') + '</div>' +
-            (v.bureau ? '<span style="display:inline-block;margin-top:3px;font-size:11px;padding:1px 7px;background:rgba(239,68,68,0.08);border-radius:4px;color:#ef4444;font-weight:600;">' + esc(v.bureau) + '</span>' : '') +
-            '</div>' +
-            '<button class="wiz-viol-toggle" data-viol-id="' + idx + '" type="button" title="Show details" aria-expanded="false">' +
-            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>' +
-            '</button>' +
-            '</div>' +
-            '<div class="wiz-viol-detail" id="wizViolDetail' + idx + '">' +
-            '<div class="wiz-viol-detail-section">' +
-            '<div class="wiz-viol-detail-label">Legal Basis</div>' +
-            '<div class="wiz-viol-detail-text">' + esc(citation) + '</div>' +
-            '</div>' +
-            (v.explanation || v.description ? '<div class="wiz-viol-detail-section" style="margin-top:8px;">' +
-            '<div class="wiz-viol-detail-label">What This Means</div>' +
-            '<div class="wiz-viol-detail-text">' + esc(v.explanation || v.description) + '</div>' +
-            '</div>' : '') +
-            '<button class="wiz-viol-btn-dispute diy-btn diy-btn-primary" style="margin-top:10px;font-size:12px;padding:7px 14px;" data-dispute="' + idx + '" type="button">Dispute This</button>' +
-            '</div>' +
-            '</div>';
-        }).join('');
+        var violsHtml = _buildViolsHtml(tlViols, cardKey, globalOffset + ti * 1000);
 
         cardsHtml += '<div class="wiz-tl-card" id="' + cardId + '">' +
           '<button class="wiz-tl-header" data-card="' + cardId + '" type="button">' +
@@ -502,7 +529,7 @@
           '<div class="wiz-viol-row-top">' +
           '<span style="color:#ef4444;font-size:15px;flex-shrink:0;">&#9888;</span>' +
           '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:13px;font-weight:600;color:var(--diy-text);">' + esc(v.title || v.ruleId || 'Violation #' + (page * WIZ_VIOL_PER_PAGE + i + 1)) + '</div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--diy-text);">' + esc(v.title || v.ruleId || 'Violation #' + (page * perPage + i + 1)) + '</div>' +
           (v.bureau ? '<span style="display:inline-block;margin-top:3px;font-size:11px;padding:1px 7px;background:rgba(239,68,68,0.08);border-radius:4px;color:#ef4444;font-weight:600;">' + esc(v.bureau) + '</span>' : '') +
           '</div>' +
           '<button class="wiz-viol-toggle" data-viol-id="' + idx + '" type="button">' +
@@ -519,15 +546,15 @@
     }
 
     var paginationHtml = '';
-    if (pages > 1) {
-      var start = page * WIZ_VIOL_PER_PAGE + 1;
-      var end = Math.min((page + 1) * WIZ_VIOL_PER_PAGE, total);
+    if (pages > 1 || total > 0) {
+      var start = perPage > 0 ? page * perPage + 1 : 1;
+      var end = perPage > 0 ? Math.min((page + 1) * perPage, total) : total;
       paginationHtml = '<div class="wiz-viol-pagination">' +
         '<button class="wiz-viol-page-btn" id="wizViolPrev" type="button"' + (page === 0 ? ' disabled' : '') + '>' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg> Prev' +
         '</button>' +
         '<span class="wiz-viol-page-info">' + start + '\u2013' + end + ' of ' + total + '</span>' +
-        '<button class="wiz-viol-page-btn" id="wizViolNext" type="button"' + (page >= pages - 1 ? ' disabled' : '') + '>' +
+        '<button class="wiz-viol-page-btn" id="wizViolNext" type="button"' + (page >= pages - 1 || perPage === 0 ? ' disabled' : '') + '>' +
         'Next <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>' +
         '</button>' +
         '</div>';
@@ -556,10 +583,18 @@
     });
 
     container.querySelectorAll('.wiz-viol-btn-dispute').forEach(function(btn) {
+      btn.addEventListener('click', function() { completeWizStep(3); goToWizStep(4); saveWizardState(); });
+    });
+
+    container.querySelectorAll('.wiz-viol-mini-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
-        completeWizStep(3);
-        goToWizStep(4);
-        saveWizardState();
+        var key = btn.getAttribute('data-card-key');
+        var dir = parseInt(btn.getAttribute('data-vdir'), 10);
+        _wizCardViolPages[key] = (_wizCardViolPages[key] || 0) + dir;
+        var openIds = [];
+        container.querySelectorAll('.wiz-tl-card.open').forEach(function(c) { openIds.push(c.id); });
+        _renderWizViolPage();
+        openIds.forEach(function(id) { var c = document.getElementById(id); if (c) c.classList.add('open'); });
       });
     });
 
@@ -567,20 +602,47 @@
     var nextBtn = document.getElementById('wizViolNext');
     if (prevBtn) prevBtn.addEventListener('click', function() { _wizViolPage--; _renderWizViolPage(); });
     if (nextBtn) nextBtn.addEventListener('click', function() { _wizViolPage++; _renderWizViolPage(); });
+
+    _syncPerPageBtns();
+  }
+
+  function _syncPerPageBtns() {
+    var bar = document.getElementById('wizPerPageBar');
+    if (!bar) return;
+    bar.querySelectorAll('.wiz-perpage-btn').forEach(function(b) {
+      var pp = parseInt(b.getAttribute('data-pp'), 10);
+      b.classList.toggle('active', pp === WIZ_VIOL_PER_PAGE);
+    });
   }
 
   function renderWizViolations(viols, tradelines) {
     var container = document.getElementById('wizViolationCards');
     var noViols = document.getElementById('wizNoViolations');
+    var bar = document.getElementById('wizPerPageBar');
     if (!container) return;
     if (!viols || viols.length === 0) {
       container.innerHTML = '';
       if (noViols) noViols.style.display = '';
+      if (bar) bar.style.display = 'none';
       return;
     }
     if (noViols) noViols.style.display = 'none';
+    if (bar) {
+      bar.style.display = 'flex';
+      _syncPerPageBtns();
+      bar.querySelectorAll('.wiz-perpage-btn').forEach(function(btn) {
+        btn.onclick = function() {
+          WIZ_VIOL_PER_PAGE = parseInt(btn.getAttribute('data-pp'), 10);
+          _wizViolPage = 0;
+          _wizCardViolPages = {};
+          _syncPerPageBtns();
+          _renderWizViolPage();
+        };
+      });
+    }
     _wizViolData = { tradelines: tradelines || [], viols: viols };
     _wizViolPage = 0;
+    _wizCardViolPages = {};
     _renderWizViolPage();
   }
 
