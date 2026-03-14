@@ -423,7 +423,13 @@
         var metaParts = [];
         if (tl.accountNumber) metaParts.push('<span style="color:var(--diy-text-sub);font-size:12px;">\u00B7\u00B7\u00B7\u00B7' + esc(tl.accountNumber.toString().slice(-4)) + '</span>');
         if (tl.accountStatus) metaParts.push('<span style="font-size:12px;font-weight:600;color:#ef4444;">' + esc(tl.accountStatus) + '</span>');
+        if (tl.accountType) metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">' + esc(tl.accountType) + '</span>');
         if (tl.balance != null && tl.balance !== '') metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Balance: <strong style="color:var(--diy-text);">$' + esc(String(tl.balance)) + '</strong></span>');
+        if (tl.creditLimit != null && tl.creditLimit !== '') metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Limit: <strong style="color:var(--diy-text);">$' + esc(String(tl.creditLimit)) + '</strong></span>');
+        if (tl.pastDue != null && tl.pastDue !== '' && tl.pastDue !== '0' && tl.pastDue !== 0) metaParts.push('<span style="font-size:12px;color:#ef4444;font-weight:600;">Past Due: $' + esc(String(tl.pastDue)) + '</span>');
+        if (tl.dateOpened) metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Opened: ' + esc(tl.dateOpened) + '</span>');
+        if (tl.dateLastPayment) metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Last Pmt: ' + esc(tl.dateLastPayment) + '</span>');
+        if (tl.paymentStatus) metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Pmt Status: ' + esc(tl.paymentStatus) + '</span>');
 
         var violsHtml = tlViols.map(function(v, vi) {
           var idx = globalOffset + ti * 100 + vi;

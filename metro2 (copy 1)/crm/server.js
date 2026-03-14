@@ -10308,16 +10308,24 @@ async function runDiyAudit({ reportId, userId }) {
         const bureauData = tl.per_bureau || {};
         const bureaus = Object.keys(bureauData).filter(b => bureauData[b] && Object.keys(bureauData[b]).length > 0);
         const firstBureau = bureauData[bureaus[0]] || {};
+        const pick = (key) => {
+          for (const b of bureaus) { const v = bureauData[b]?.[key]; if (v != null && v !== '') return v; }
+          return '';
+        };
         const accountNumber = tl?.meta?.account_numbers
           ? Object.values(tl.meta.account_numbers)[0] || ''
           : firstBureau.account_number || '';
-        const balance = firstBureau.balance ?? '';
-        const accountStatus = firstBureau.account_status || '';
         tradelineResults.push({
           creditor,
           accountNumber,
-          balance,
-          accountStatus,
+          accountStatus: pick('account_status'),
+          accountType:   pick('account_type'),
+          balance:       pick('balance'),
+          creditLimit:   pick('credit_limit') || pick('high_credit'),
+          pastDue:       pick('past_due'),
+          dateOpened:    pick('date_opened'),
+          dateLastPayment: pick('date_last_payment'),
+          paymentStatus: pick('payment_status'),
           bureaus,
           violations: tlViolations,
         });
