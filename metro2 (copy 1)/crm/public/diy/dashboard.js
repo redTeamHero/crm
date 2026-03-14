@@ -117,6 +117,25 @@
     }
   });
 
+  (function initSidebarCollapse() {
+    var toggleBtn = document.getElementById('sidebarToggle');
+    var diyMain = document.querySelector('.diy-main');
+    var collapsed = localStorage.getItem('sidebarCollapsed') === '1';
+    function applyCollapse(c) {
+      if (diySidebar) diySidebar.classList.toggle('collapsed', c);
+      if (diyMain) diyMain.classList.toggle('sidebar-collapsed', c);
+    }
+    applyCollapse(collapsed);
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        collapsed = !collapsed;
+        localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+        applyCollapse(collapsed);
+      });
+    }
+  })();
+
   async function init() {
     if (!token) {
       window.location.href = '/diy/login';

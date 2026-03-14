@@ -25,26 +25,38 @@
       position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
       background: var(--diy-sidebar);
       display: flex; flex-direction: column; z-index: 40;
-      transition: transform 0.3s ease;
-      overflow-y: auto;
+      transition: width 0.28s cubic-bezier(0.4,0,0.2,1), transform 0.3s ease;
+      overflow: hidden;
     }
     .diy-sidebar-brand {
-      padding: 24px 20px 16px;
+      padding: 20px 16px 16px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; gap: 10px;
+      min-height: 72px; flex-shrink: 0;
     }
     .diy-sidebar-brand .brand-icon {
       width: 36px; height: 36px; border-radius: 10px;
       background: linear-gradient(135deg, var(--diy-accent), #818cf8);
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
-    .diy-sidebar-brand .brand-text { color: #fff; font-size: 14px; font-weight: 600; }
-    .diy-sidebar-brand .brand-sub { color: rgba(255,255,255,0.45); font-size: 11px; line-height: 1.3; margin-top: 2px; }
-    .diy-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+    .diy-brand-text-wrap { min-width: 0; flex: 1; overflow: hidden; }
+    .diy-sidebar-brand .brand-text { color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap; }
+    .diy-sidebar-brand .brand-sub { color: rgba(255,255,255,0.45); font-size: 11px; line-height: 1.3; margin-top: 2px; white-space: nowrap; }
+    .sidebar-toggle-btn {
+      flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1); background: transparent;
+      color: rgba(255,255,255,0.4); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; margin-left: auto;
+    }
+    .sidebar-toggle-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
+    .sidebar-toggle-btn svg { transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .diy-nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; overflow-x: hidden; }
     .diy-nav-link {
       display: flex; align-items: center; gap: 12px; padding: 10px 14px;
       border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 500;
-      text-decoration: none; transition: all 0.15s ease; border: 1px solid transparent; cursor: pointer;
+      text-decoration: none; transition: background 0.15s, color 0.15s, padding 0.28s, gap 0.28s, justify-content 0.1s;
+      border: 1px solid transparent; cursor: pointer; white-space: nowrap;
     }
     .diy-nav-link:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
     .diy-nav-link.active {
@@ -52,18 +64,36 @@
       border-color: rgba(99,102,241,0.2);
     }
     .diy-nav-link svg { width: 20px; height: 20px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-    .diy-sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
-    .diy-sidebar-footer .diy-user-info { padding: 8px 0; margin-bottom: 8px; }
-    .diy-sidebar-footer .diy-user-email { color: rgba(255,255,255,0.5); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .diy-sidebar-footer .diy-user-plan { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; margin-top: 4px; }
+    .diy-nav-label { transition: opacity 0.15s; }
+    .diy-sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+    .diy-footer-content { overflow: hidden; transition: opacity 0.2s; }
+    .diy-footer-content .diy-user-info { padding: 6px 0 8px; }
+    .diy-footer-content .diy-user-email { color: rgba(255,255,255,0.5); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .diy-footer-content .diy-user-plan { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; margin-top: 4px; }
     .diy-book-call-btn {
       width: 100%; padding: 10px; border-radius: 12px; font-size: 14px; font-weight: 600;
       background: linear-gradient(135deg, var(--diy-accent), #818cf8); color: #fff; border: none;
       cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: all 0.2s ease;
+      transition: all 0.2s ease; white-space: nowrap;
     }
     .diy-book-call-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
-    .diy-main { margin-left: 240px; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Collapsed state (desktop only) ── */
+    .diy-sidebar.collapsed { width: 64px; }
+    .diy-sidebar.collapsed .diy-brand-text-wrap { display: none; }
+    .diy-sidebar.collapsed .sidebar-toggle-btn { margin-left: 0; }
+    .diy-sidebar.collapsed .sidebar-toggle-btn svg { transform: rotate(180deg); }
+    .diy-sidebar.collapsed .diy-sidebar-brand { justify-content: center; padding: 20px 0; }
+    .diy-sidebar.collapsed .diy-nav { padding: 12px 6px; }
+    .diy-sidebar.collapsed .diy-nav-link { justify-content: center; padding: 10px 0; gap: 0; }
+    .diy-sidebar.collapsed .diy-nav-label { display: none; }
+    .diy-sidebar.collapsed .diy-footer-content { display: none; }
+    .diy-sidebar.collapsed .diy-book-call-btn { padding: 10px 0; justify-content: center; gap: 0; }
+    .diy-sidebar.collapsed .diy-book-call-btn .diy-nav-label { display: none; }
+    .diy-sidebar.collapsed .diy-sidebar-footer { padding: 10px 6px; }
+
+    .diy-main { margin-left: 240px; min-height: 100vh; display: flex; flex-direction: column; transition: margin-left 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .diy-main.sidebar-collapsed { margin-left: 64px; }
     .diy-topbar {
       position: sticky; top: 0; z-index: 30;
       background: rgba(255,255,255,0.88); backdrop-filter: blur(16px);
@@ -392,9 +422,17 @@
     .wiz-badge.locked { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); color: #9ca3af; }
 
     @media (max-width: 768px) {
-      .diy-sidebar { transform: translateX(-100%); width: 280px; z-index: 50; }
+      .diy-sidebar { transform: translateX(-100%); width: 280px !important; z-index: 50; }
       .diy-sidebar.open { transform: translateX(0); }
-      .diy-main { margin-left: 0; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+      .diy-sidebar.collapsed { width: 280px !important; }
+      .sidebar-toggle-btn { display: none !important; }
+      .diy-sidebar.collapsed .diy-brand-text-wrap { display: block !important; }
+      .diy-sidebar.collapsed .diy-nav-link { justify-content: flex-start !important; padding: 10px 14px !important; gap: 12px !important; }
+      .diy-sidebar.collapsed .diy-nav-label { display: inline !important; }
+      .diy-sidebar.collapsed .diy-footer-content { display: block !important; }
+      .diy-sidebar.collapsed .diy-book-call-btn { justify-content: center !important; }
+      .diy-sidebar.collapsed .diy-book-call-btn .diy-nav-label { display: inline !important; }
+      .diy-main { margin-left: 0 !important; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
       .mobile-menu-btn { display: flex; }
       .diy-sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 45; backdrop-filter: blur(2px); touch-action: none; }
       .diy-sidebar-overlay.active { display: block; }
@@ -419,71 +457,76 @@
       <div class="brand-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
       </div>
-      <div class="min-w-0">
+      <div class="diy-brand-text-wrap">
         <div class="brand-text">Evolv</div>
         <div class="brand-sub">Your credit repair assistant</div>
       </div>
+      <button id="sidebarToggle" class="sidebar-toggle-btn" type="button" title="Collapse menu" aria-label="Toggle sidebar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
     </div>
 
     <nav class="diy-nav">
-      <a href="#overview" class="diy-nav-link active" data-section="overview">
+      <a href="#overview" class="diy-nav-link active" data-section="overview" title="Overview">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-        Overview
+        <span class="diy-nav-label">Overview</span>
       </a>
-      <a href="#upload" class="diy-nav-link" data-section="upload">
+      <a href="#upload" class="diy-nav-link" data-section="upload" title="Upload Report">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Upload Report
+        <span class="diy-nav-label">Upload Report</span>
       </a>
-      <a href="#violations" class="diy-nav-link" data-section="violations">
+      <a href="#violations" class="diy-nav-link" data-section="violations" title="Violations">
         <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
-        Violations
+        <span class="diy-nav-label">Violations</span>
       </a>
-      <a href="#letters" class="diy-nav-link" data-section="letters">
+      <a href="#letters" class="diy-nav-link" data-section="letters" title="Dispute Letters">
         <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        Dispute Letters
+        <span class="diy-nav-label">Dispute Letters</span>
       </a>
-      <a href="#cfpb" class="diy-nav-link" data-section="cfpb">
+      <a href="#cfpb" class="diy-nav-link" data-section="cfpb" title="CFPB Complaints">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-        CFPB Complaints
+        <span class="diy-nav-label">CFPB Complaints</span>
       </a>
-      <a href="#education" class="diy-nav-link" data-section="education">
+      <a href="#education" class="diy-nav-link" data-section="education" title="Education">
         <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-        Education
+        <span class="diy-nav-label">Education</span>
       </a>
-      <a href="#specialists" class="diy-nav-link" data-section="specialists">
+      <a href="#specialists" class="diy-nav-link" data-section="specialists" title="Find Specialist">
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Find Specialist
+        <span class="diy-nav-label">Find Specialist</span>
       </a>
-      <a href="#tradelines" class="diy-nav-link" data-section="tradelines">
+      <a href="#tradelines" class="diy-nav-link" data-section="tradelines" title="Trade Lines">
         <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        Trade Lines
+        <span class="diy-nav-label">Trade Lines</span>
       </a>
-      <a href="#news" class="diy-nav-link" data-section="news">
+      <a href="#news" class="diy-nav-link" data-section="news" title="News &amp; Tips">
         <svg viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg>
-        News & Tips
+        <span class="diy-nav-label">News &amp; Tips</span>
       </a>
-      <a href="#billing" class="diy-nav-link" data-section="billing">
+      <a href="#billing" class="diy-nav-link" data-section="billing" title="Upgrade &amp; Billing">
         <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="7" y1="15" x2="13" y2="15"/></svg>
-        Upgrade & Billing
+        <span class="diy-nav-label">Upgrade &amp; Billing</span>
       </a>
-      <a href="#affiliate" class="diy-nav-link" data-section="affiliate">
+      <a href="#affiliate" class="diy-nav-link" data-section="affiliate" title="Affiliate">
         <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        Affiliate
+        <span class="diy-nav-label">Affiliate</span>
       </a>
-      <a href="#settings" class="diy-nav-link" data-section="settings">
+      <a href="#settings" class="diy-nav-link" data-section="settings" title="Settings">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Settings
+        <span class="diy-nav-label">Settings</span>
       </a>
     </nav>
 
     <div class="diy-sidebar-footer">
-      <div class="diy-user-info">
-        <div id="userEmail" class="diy-user-email"></div>
-        <div id="planBadge" class="diy-user-plan" style="background:rgba(99,102,241,0.15);color:#818cf8;">Free</div>
+      <div class="diy-footer-content">
+        <div class="diy-user-info">
+          <div id="userEmail" class="diy-user-email"></div>
+          <div id="planBadge" class="diy-user-plan" style="background:rgba(99,102,241,0.15);color:#818cf8;">Free</div>
+        </div>
       </div>
-      <button id="btnLogout" class="diy-book-call-btn" style="background:transparent;border:1px solid rgba(255,255,255,0.12);font-size:13px;font-weight:500;" type="button">
+      <button id="btnLogout" class="diy-book-call-btn" style="background:transparent;border:1px solid rgba(255,255,255,0.12);font-size:13px;font-weight:500;" type="button" title="Sign Out">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Sign Out
+        <span class="diy-nav-label">Sign Out</span>
       </button>
     </div>
   </aside>
