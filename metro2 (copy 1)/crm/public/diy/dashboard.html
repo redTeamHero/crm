@@ -295,6 +295,17 @@
     .wiz-tl-card.open .wiz-tl-chevron { transform: rotate(180deg); }
     .wiz-tl-body { display: none; padding: 0 14px 12px; }
     .wiz-tl-card.open .wiz-tl-body { display: block; }
+    .wiz-tl-info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+      background: var(--diy-border); border: 1px solid var(--diy-border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 14px;
+    }
+    .wiz-tl-info-cell {
+      background: var(--diy-card); padding: 9px 12px;
+    }
+    .wiz-tl-info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--diy-text-sub); margin-bottom: 3px; }
+    .wiz-tl-info-value { font-size: 13px; font-weight: 600; color: var(--diy-text); line-height: 1.3; }
+    .wiz-tl-violations-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--diy-text-sub); padding: 2px 0 6px; border-bottom: 1px solid var(--diy-border); margin-bottom: 2px; }
     .wiz-viol-row { border-top: 1px solid var(--diy-border); padding: 10px 0 4px; }
     .wiz-tl-body .wiz-viol-row:first-child { border-top: none; }
     .wiz-viol-row-top { display: flex; align-items: flex-start; gap: 8px; }

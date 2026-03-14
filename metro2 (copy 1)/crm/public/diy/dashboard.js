@@ -420,16 +420,32 @@
         var bureauBadges = (tl.bureaus || []).map(function(b) {
           return '<span style="font-size:11px;padding:2px 7px;background:rgba(99,102,241,0.1);border-radius:5px;color:var(--diy-accent);font-weight:600;">' + esc(b) + '</span>';
         }).join(' ');
-        var metaParts = [];
-        if (tl.accountNumber) metaParts.push('<span style="color:var(--diy-text-sub);font-size:12px;">\u00B7\u00B7\u00B7\u00B7' + esc(tl.accountNumber.toString().slice(-4)) + '</span>');
-        if (tl.accountStatus) metaParts.push('<span style="font-size:12px;font-weight:600;color:#ef4444;">' + esc(tl.accountStatus) + '</span>');
-        if (tl.accountType) metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">' + esc(tl.accountType) + '</span>');
-        if (tl.balance != null && tl.balance !== '') metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Balance: <strong style="color:var(--diy-text);">$' + esc(String(tl.balance)) + '</strong></span>');
-        if (tl.creditLimit != null && tl.creditLimit !== '') metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Limit: <strong style="color:var(--diy-text);">$' + esc(String(tl.creditLimit)) + '</strong></span>');
-        if (tl.pastDue != null && tl.pastDue !== '' && tl.pastDue !== '0' && tl.pastDue !== 0) metaParts.push('<span style="font-size:12px;color:#ef4444;font-weight:600;">Past Due: $' + esc(String(tl.pastDue)) + '</span>');
-        if (tl.dateOpened) metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Opened: ' + esc(tl.dateOpened) + '</span>');
-        if (tl.dateLastPayment) metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Last Pmt: ' + esc(tl.dateLastPayment) + '</span>');
-        if (tl.paymentStatus) metaParts.push('<span style="font-size:12px;color:var(--diy-text-sub);">Pmt Status: ' + esc(tl.paymentStatus) + '</span>');
+
+        var acctSub = '';
+        if (tl.accountNumber) acctSub += '\u00B7\u00B7\u00B7\u00B7' + esc(tl.accountNumber.toString().slice(-4));
+        if (tl.accountType) acctSub += (acctSub ? '  \u00B7  ' : '') + esc(tl.accountType);
+
+        function infoCell(label, value, danger) {
+          if (value == null || value === '' || value === '0' || value === 0) return '';
+          var color = danger ? '#ef4444' : 'var(--diy-text)';
+          return '<div class="wiz-tl-info-cell">' +
+            '<div class="wiz-tl-info-label">' + label + '</div>' +
+            '<div class="wiz-tl-info-value" style="color:' + color + ';">' + value + '</div>' +
+            '</div>';
+        }
+
+        var statusColor = tl.accountStatus && /charge|collect|derog|late|past/i.test(tl.accountStatus) ? '#ef4444' : tl.accountStatus && /open|current/i.test(tl.accountStatus) ? '#10b981' : 'var(--diy-text)';
+
+        var infoGrid =
+          '<div class="wiz-tl-info-grid">' +
+          (tl.accountStatus ? '<div class="wiz-tl-info-cell"><div class="wiz-tl-info-label">Status</div><div class="wiz-tl-info-value" style="color:' + statusColor + ';font-weight:700;">' + esc(tl.accountStatus) + '</div></div>' : '') +
+          infoCell('Balance', tl.balance ? '$' + esc(String(tl.balance)) : '', false) +
+          infoCell('Credit Limit', tl.creditLimit ? '$' + esc(String(tl.creditLimit)) : '', false) +
+          infoCell('Past Due', tl.pastDue && tl.pastDue !== '0' && tl.pastDue !== 0 ? '$' + esc(String(tl.pastDue)) : '', true) +
+          infoCell('Date Opened', tl.dateOpened ? esc(tl.dateOpened) : '', false) +
+          infoCell('Last Payment', tl.dateLastPayment ? esc(tl.dateLastPayment) : '', false) +
+          infoCell('Payment Status', tl.paymentStatus ? esc(tl.paymentStatus) : '', /late|past|delinq|charge/i.test(tl.paymentStatus || '')) +
+          '</div>';
 
         var violsHtml = tlViols.map(function(v, vi) {
           var idx = globalOffset + ti * 100 + vi;
@@ -463,7 +479,7 @@
           '<button class="wiz-tl-header" data-card="' + cardId + '" type="button">' +
           '<div class="wiz-tl-header-left">' +
           '<div class="wiz-tl-creditor">' + esc(tl.creditor) + '</div>' +
-          '<div class="wiz-tl-meta">' + (metaParts.join('<span style="margin:0 4px;color:var(--diy-text-sub);">·</span>')) + '</div>' +
+          (acctSub ? '<div style="font-size:12px;color:var(--diy-text-sub);margin-top:2px;">' + acctSub + '</div>' : '') +
           '</div>' +
           '<div class="wiz-tl-header-right">' +
           bureauBadges +
@@ -471,7 +487,11 @@
           '<svg class="wiz-tl-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>' +
           '</div>' +
           '</button>' +
-          '<div class="wiz-tl-body">' + violsHtml + '</div>' +
+          '<div class="wiz-tl-body">' +
+          infoGrid +
+          '<div class="wiz-tl-violations-header">Violations (' + tlViols.length + ')</div>' +
+          violsHtml +
+          '</div>' +
           '</div>';
       });
     } else {
