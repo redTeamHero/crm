@@ -11826,11 +11826,10 @@ app.post('/api/diy/change-password', diyAuthenticate, async (req, res) => {
     const user = db.users.find(u => u.id === req.diyUser.id);
     if (!user) return res.status(404).json({ ok: false, error: 'User not found' });
 
-    const bcrypt = await import('bcryptjs');
-    const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+    const isValid = bcrypt.compareSync(currentPassword, user.password);
     if (!isValid) return res.status(400).json({ ok: false, error: 'Current password is incorrect' });
 
-    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.password = bcrypt.hashSync(newPassword, 10);
     await saveDiyUsersDB(db);
     res.json({ ok: true });
   } catch (err) {
