@@ -12956,6 +12956,19 @@ async function runAutopilotCycle(db, force = false) {
   db.autopilot = ap;
 }
 
+// On startup: cap any stale nextRunAt (old 24h cadence values) to 5 min from now
+(async () => {
+  try {
+    const db = await loadSocialDB();
+    const ap = db.autopilot || getDefaultAutopilot();
+    if (ap.enabled && ap.nextRunAt && new Date(ap.nextRunAt) > new Date(Date.now() + AUTOPILOT_CHECK_INTERVAL_MS)) {
+      ap.nextRunAt = autopilotNextRunAt();
+      db.autopilot = ap;
+      await saveSocialDB(db);
+    }
+  } catch (_) {}
+})();
+
 // Autopilot background loop — checks every 5 minutes for new articles
 setInterval(async () => {
   try {
@@ -12998,8 +13011,8 @@ app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) =>
         return res.status(400).json({ ok: false, error: 'feedIds must be "all" or an array of valid feed IDs' });
       }
     }
-    if (ap.enabled && !ap.nextRunAt) ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
-    if (!ap.enabled) ap.nextRunAt = null;
+    if (ap.enabled) ap.nextRunAt = autopilotNextRunAt();
+    else ap.nextRunAt = null;
     db.autopilot = ap;
     await saveSocialDB(db);
     res.json({ ok: true, autopilot: ap });
