@@ -773,17 +773,15 @@ function renderAutopilotHistory(history) {
     return;
   }
   const statusColors = { success: '#10b981', skipped: '#fbbf24', error: '#f87171' };
-  const statusLabels = { success: 'Generated', skipped: 'Skipped', error: 'Error' };
-  const getStatusLabel = h => h.status === 'success' ? (h.published ? 'Published' : 'Queued') : (statusLabels[h.status] || h.status);
-  const getStatusColor = h => h.status === 'success' ? (h.published ? '#10b981' : '#818cf8') : (statusColors[h.status] || '#9ca3af');
+  const statusLabels = { success: 'Queued', skipped: 'Skipped', error: 'Error' };
   el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${history.slice(0, 10).map(h => `
     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div style="width:8px;height:8px;border-radius:50%;background:${getStatusColor(h)};flex-shrink:0;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:${statusColors[h.status] || '#6b7280'};flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;color:#e5e7eb;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.articleTitle ? esc(h.articleTitle) : (h.reason ? esc(h.reason) : 'No article')}</div>
         <div style="font-size:11px;color:#6b7280;margin-top:2px;">${new Date(h.runAt).toLocaleString()}</div>
       </div>
-      <span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:${getStatusColor(h)}22;color:${getStatusColor(h)};">${getStatusLabel(h)}</span>
+      <span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:${statusColors[h.status]}22;color:${statusColors[h.status] || '#9ca3af'};">${statusLabels[h.status] || h.status}</span>
     </div>`).join('')}</div>`;
 }
 
