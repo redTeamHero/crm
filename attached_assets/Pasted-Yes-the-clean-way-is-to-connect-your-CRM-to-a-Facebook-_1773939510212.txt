@@ -1,0 +1,113 @@
+Yes — the clean way is to connect your CRM to a Facebook Business Page through Meta’s official login + Pages API, not by scraping or browser bots. Meta’s docs describe using Facebook Login for Business, Graph API access tokens, and the Pages API for creating and managing Page posts.  ￼
+
+Here’s the practical setup for your CRM:
+
+What your CRM needs
+
+Your app should request only the permissions needed for Page features. For Page connection and posting, the key ones commonly involved are:
+	•	pages_show_list to let the user choose from Pages they manage
+	•	pages_read_engagement to read Page info/engagement
+	•	pages_manage_posts to publish/manage posts
+
+Meta’s permissions reference and Pages/Post docs reflect these requirements.  ￼
+
+Basic flow
+	1.	Create a Meta app in the Meta developer dashboard. Meta says creating an app is the first step for integrations.  ￼
+	2.	Add Facebook Login for Business to the app so a business user can connect their assets to your CRM. Meta’s login-for-business docs are specifically for this kind of business onboarding flow.  ￼
+	3.	Send the user through login with the scopes above.
+	4.	Use the returned user access token to fetch the Pages they manage.
+	5.	Let them pick a Page in your CRM.
+	6.	Exchange/store the appropriate Page access token for API calls.
+	7.	Use the Pages API to publish posts, read Page data, and manage content.  ￼
+
+Endpoints you’ll usually use
+	•	Get Pages the person can manage: /me/accounts
+	•	Read Page details: /{page-id}
+	•	Publish a Page post: /{page-id}/feed
+
+Meta’s Pages and Posts docs cover Page retrieval and post creation/publishing.  ￼
+
+What this looks like in your CRM UI
+
+A good flow is:
+	•	Settings
+	•	Integrations
+	•	Connect Facebook
+	•	User logs in with Meta
+	•	CRM shows a list of Pages
+	•	User clicks Connect on the Page they want
+	•	CRM stores page_id, page name, token metadata, and granted scopes
+
+Node example
+
+import express from "express";
+import fetch from "node-fetch";
+
+const app = express();
+
+app.get("/auth/facebook/callback", async (req, res) => {
+  const userAccessToken = req.query.access_token; // normally obtained from OAuth flow
+
+  // Get pages the user manages
+  const pagesRes = await fetch(
+    `https://graph.facebook.com/v25.0/me/accounts?access_token=${encodeURIComponent(userAccessToken)}`
+  );
+  const pagesData = await pagesRes.json();
+
+  // Save pagesData.data in DB and let user choose a page
+  res.json(pagesData);
+});
+
+app.post("/facebook/page/:pageId/post", express.json(), async (req, res) => {
+  const { message, pageAccessToken } = req.body;
+  const { pageId } = req.params;
+
+  const postRes = await fetch(
+    `https://graph.facebook.com/v25.0/${pageId}/feed`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        access_token: pageAccessToken,
+      }),
+    }
+  );
+
+  const result = await postRes.json();
+  res.json(result);
+});
+
+app.listen(3000);
+
+Database fields to store
+
+At minimum:
+	•	provider = facebook
+	•	workspace_id
+	•	page_id
+	•	page_name
+	•	page_access_token
+	•	granted_scopes
+	•	token_expires_at
+	•	connected_by_user_id
+
+Important limitation
+
+This connects to a Page, not arbitrary Facebook Groups. Meta’s official docs support Page management and Page posting through the Pages API; that is very different from mass group-posting tools.  ￼
+
+Best setup for your CRM
+
+For your CRM, I’d structure it as:
+	•	Connect Facebook Page
+	•	Create/schedule Page posts
+	•	Pull comments/messages/leads where supported
+	•	Sync leads into your pipeline
+	•	Track post-to-lead attribution
+
+If you want, I can turn this into a full integration spec for your CRM with:
+	•	backend routes
+	•	DB schema
+	•	OAuth callback flow
+	•	React settings page
+	•	token refresh/storage pattern
