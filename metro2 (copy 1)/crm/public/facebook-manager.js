@@ -19,6 +19,7 @@ document.getElementById('smTabs').addEventListener('click', e => {
   const tab = btn.dataset.tab;
   document.querySelectorAll('.sm-section').forEach(s => s.classList.remove('active'));
   $(`tab-${tab}`)?.classList.add('active');
+  if (tab !== 'autopilot' && autopilotPollTimer) { clearInterval(autopilotPollTimer); autopilotPollTimer = null; }
   if (tab === 'feeds' && feeds.length === 0) loadFeeds();
   if (tab === 'queue') loadQueue();
   if (tab === 'autopilot') initAutopilotTab();
@@ -447,6 +448,7 @@ function renderQueue() {
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
             <span class="status-badge status-${p.status}">${p.status}</span>
+            ${p.source === 'autopilot' ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);">⚡ Autopilot</span>` : ''}
             ${p.scheduledAt ? `<span style="font-size:12px;color:#9ca3af;">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</span>` : ''}
             ${p.publishedAt ? `<span style="font-size:12px;color:#9ca3af;">Published: ${new Date(p.publishedAt).toLocaleString()}</span>` : ''}
             ${p.articleTitle ? `<span style="font-size:11px;color:#6b7280;">From: ${esc(p.articleTitle.slice(0, 40))}…</span>` : ''}

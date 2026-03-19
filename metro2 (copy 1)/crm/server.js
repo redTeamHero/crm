@@ -12841,9 +12841,9 @@ function calcNextRunAt(postsPerDay, fromDate = new Date()) {
   return new Date(fromDate.getTime() + intervalMs).toISOString();
 }
 
-async function runAutopilotCycle(db) {
+async function runAutopilotCycle(db, force = false) {
   const ap = db.autopilot || getDefaultAutopilot();
-  if (!ap.enabled) return;
+  if (!force && !ap.enabled) return;
 
   const feedList = db.feeds || [];
   const targetFeeds = ap.feedIds === 'all' ? feedList : feedList.filter(f => (ap.feedIds || []).includes(f.id));
@@ -12880,8 +12880,7 @@ async function runAutopilotCycle(db) {
 
   const runAt = new Date().toISOString();
   if (!candidate) {
-    ap.postedGuids = [];
-    ap.history = [{ runAt, status: 'skipped', reason: 'All articles already posted; reset history' }, ...(ap.history || [])].slice(0, 20);
+    ap.history = [{ runAt, status: 'skipped', reason: 'All articles already posted. Add more RSS feeds to continue.' }, ...(ap.history || [])].slice(0, 20);
     ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
     db.autopilot = ap;
     return;
@@ -12963,9 +12962,8 @@ app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) =>
 app.post('/api/social/autopilot/run-now', authenticate, forbidMember, async (req, res) => {
   try {
     const db = await loadSocialDB();
-    const ap = db.autopilot || getDefaultAutopilot();
     if (!(db.feeds || []).length) return res.status(400).json({ ok: false, error: 'No RSS feeds configured. Add a feed first.' });
-    await runAutopilotCycle(db);
+    await runAutopilotCycle(db, true);
     await saveSocialDB(db);
     const latest = (db.autopilot.history || [])[0];
     if (latest?.status === 'error') return res.status(500).json({ ok: false, error: latest.reason });
