@@ -12484,7 +12484,7 @@ app.get('/api/social/auth/facebook', authenticate, (req, res) => {
   const params = new URLSearchParams({
     client_id: appId,
     redirect_uri: redirectUri,
-    scope: 'pages_manage_posts,pages_read_engagement,pages_show_list',
+    scope: 'pages_manage_posts,pages_read_engagement,pages_show_list,leads_retrieval',
     response_type: 'code',
     state: nanoid(16),
   });
@@ -12504,7 +12504,8 @@ app.get('/api/social/auth/facebook/callback', authenticate, async (req, res) => 
     const longToken = await longTokenRes.json();
     const userToken = longToken.access_token || tokenData.access_token;
     const tokenExpiresAt = longToken.expires_in ? new Date(Date.now() + longToken.expires_in * 1000).toISOString() : null;
-    const grantedScopes = (tokenData.scope || '').split(',').map(s => s.trim()).filter(Boolean);
+    const permissionsData = await fbGraphGet('/me/permissions', {}, userToken);
+    const grantedScopes = (permissionsData.data || []).filter(p => p.status === 'granted').map(p => p.permission);
     const pagesData = await fbGraphGet('/me/accounts', {}, userToken);
     const pages = (pagesData.data || []);
     if (!pages.length) return res.redirect('/social?error=no_pages');
@@ -12605,7 +12606,7 @@ app.get('/api/social/page/leads', authenticate, async (req, res) => {
       for (const lead of (leadsData.data || [])) {
         const fields = {};
         (lead.field_data || []).forEach(f => { fields[f.name] = (f.values || [])[0] || ''; });
-        leads.push({ id: lead.id, formId: form.id, formName: form.name, name: fields.full_name || fields.first_name ? `${fields.first_name || ''} ${fields.last_name || ''}`.trim() : '', email: fields.email || '', phone: fields.phone_number || fields.phone || '', adId: lead.ad_id || null, createdAt: lead.created_time, fields });
+        leads.push({ id: lead.id, formId: form.id, formName: form.name, name: fields.full_name || (fields.first_name ? `${fields.first_name} ${fields.last_name || ''}`.trim() : ''), email: fields.email || '', phone: fields.phone_number || fields.phone || '', adId: lead.ad_id || null, createdAt: lead.created_time, fields });
       }
     }
     leads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
