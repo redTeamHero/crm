@@ -5097,6 +5097,8 @@ app.post("/api/consumers", authenticate, requirePermission("consumers", { allowG
     sale: Number(req.body.sale) || 0,
     paid: Number(req.body.paid) || 0,
     status: req.body.status || "active",
+    source: req.body.source || "",
+    sourcePostId: req.body.sourcePostId || "",
     createdAt: nowIso,
     updatedAt: nowIso,
     reports: [],
@@ -12501,17 +12503,57 @@ app.get('/api/social/auth/facebook/callback', authenticate, async (req, res) => 
     const longTokenRes = await fetch(`${FB_API}/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${tokenData.access_token}`);
     const longToken = await longTokenRes.json();
     const userToken = longToken.access_token || tokenData.access_token;
+    const tokenExpiresAt = longToken.expires_in ? new Date(Date.now() + longToken.expires_in * 1000).toISOString() : null;
+    const grantedScopes = (tokenData.scope || '').split(',').map(s => s.trim()).filter(Boolean);
     const pagesData = await fbGraphGet('/me/accounts', {}, userToken);
     const pages = (pagesData.data || []);
     if (!pages.length) return res.redirect('/social?error=no_pages');
-    const page = pages[0];
     const db = await loadSocialDB();
-    db.connection = { pageId: page.id, pageName: page.name, pageAccessToken: page.access_token, connectedAt: new Date().toISOString() };
+    const connectedByUserId = req.user?.id || req.user?.username || null;
+    if (pages.length === 1) {
+      const page = pages[0];
+      db.connection = { pageId: page.id, pageName: page.name, pageAccessToken: page.access_token, connectedAt: new Date().toISOString(), tokenExpiresAt, grantedScopes, connectedByUserId };
+      db.pendingPages = null;
+      await saveSocialDB(db);
+      return res.redirect('/social?connected=1');
+    }
+    db.pendingPages = { pages: pages.map(p => ({ id: p.id, name: p.name, accessToken: p.access_token, category: p.category || '' })), tokenExpiresAt, grantedScopes, connectedByUserId, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() };
     await saveSocialDB(db);
-    res.redirect('/social?connected=1');
+    res.redirect('/social?pick_page=1');
   } catch (e) {
     logError('FB_AUTH_CALLBACK_ERROR', e);
     res.redirect('/social?error=fb_auth_failed');
+  }
+});
+
+app.get('/api/social/pending-pages', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    if (!db.pendingPages || new Date(db.pendingPages.expiresAt) < new Date()) {
+      return res.json({ ok: false, error: 'No pending page selection or session expired. Please reconnect.' });
+    }
+    res.json({ ok: true, pages: db.pendingPages.pages });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/social/auth/pick-page', authenticate, async (req, res) => {
+  try {
+    const { pageId } = req.body || {};
+    if (!pageId) return res.status(400).json({ ok: false, error: 'pageId is required' });
+    const db = await loadSocialDB();
+    if (!db.pendingPages || new Date(db.pendingPages.expiresAt) < new Date()) {
+      return res.status(400).json({ ok: false, error: 'Page selection session expired. Please reconnect Facebook.' });
+    }
+    const page = db.pendingPages.pages.find(p => p.id === pageId);
+    if (!page) return res.status(400).json({ ok: false, error: 'Page not found in pending list.' });
+    db.connection = { pageId: page.id, pageName: page.name, pageAccessToken: page.accessToken, connectedAt: new Date().toISOString(), tokenExpiresAt: db.pendingPages.tokenExpiresAt, grantedScopes: db.pendingPages.grantedScopes, connectedByUserId: db.pendingPages.connectedByUserId };
+    db.pendingPages = null;
+    await saveSocialDB(db);
+    res.json({ ok: true, connection: db.connection });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
@@ -12519,9 +12561,57 @@ app.delete('/api/social/disconnect', authenticate, forbidMember, async (req, res
   try {
     const db = await loadSocialDB();
     db.connection = null;
+    db.pendingPages = null;
     await saveSocialDB(db);
     res.json({ ok: true });
   } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/social/page/comments', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    if (!db.connection) return res.status(400).json({ ok: false, error: 'No Facebook page connected.' });
+    const { pageId, pageAccessToken } = db.connection;
+    const limit = parseInt(req.query.limit || '25', 10);
+    const data = await fbGraphGet(`/${pageId}/feed`, { fields: 'message,story,created_time,from,comments{message,created_time,from}', limit }, pageAccessToken);
+    const posts = (data.data || []).slice(0, limit);
+    const comments = [];
+    for (const post of posts) {
+      const postPreview = (post.message || post.story || '').slice(0, 80);
+      for (const c of (post.comments?.data || [])) {
+        comments.push({ id: c.id, fromName: c.from?.name || 'Unknown', fromId: c.from?.id || null, message: c.message || '', createdAt: c.created_time, postPreview, postId: post.id });
+      }
+    }
+    comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ ok: true, comments: comments.slice(0, limit) });
+  } catch (e) {
+    logError('SOCIAL_COMMENTS_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/social/page/leads', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    if (!db.connection) return res.status(400).json({ ok: false, error: 'No Facebook page connected.' });
+    const { pageId, pageAccessToken } = db.connection;
+    const formsData = await fbGraphGet(`/${pageId}/leadgen_forms`, { fields: 'id,name,status', limit: 20 }, pageAccessToken);
+    const forms = formsData.data || [];
+    const leads = [];
+    for (const form of forms.slice(0, 5)) {
+      const leadsData = await fbGraphGet(`/${form.id}/leads`, { fields: 'id,created_time,field_data,ad_id', limit: 25 }, pageAccessToken);
+      for (const lead of (leadsData.data || [])) {
+        const fields = {};
+        (lead.field_data || []).forEach(f => { fields[f.name] = (f.values || [])[0] || ''; });
+        leads.push({ id: lead.id, formId: form.id, formName: form.name, name: fields.full_name || fields.first_name ? `${fields.first_name || ''} ${fields.last_name || ''}`.trim() : '', email: fields.email || '', phone: fields.phone_number || fields.phone || '', adId: lead.ad_id || null, createdAt: lead.created_time, fields });
+      }
+    }
+    leads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ ok: true, leads: leads.slice(0, 50), formCount: forms.length });
+  } catch (e) {
+    logError('SOCIAL_LEADS_ERROR', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });

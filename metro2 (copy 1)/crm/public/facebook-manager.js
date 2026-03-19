@@ -21,6 +21,7 @@ document.getElementById('smTabs').addEventListener('click', e => {
   $(`tab-${tab}`)?.classList.add('active');
   if (tab === 'feeds' && feeds.length === 0) loadFeeds();
   if (tab === 'queue') loadQueue();
+  if (tab === 'leads') initLeadsTab();
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -29,6 +30,10 @@ async function init() {
   if (urlParams.get('connected') === '1') {
     history.replaceState({}, '', '/social');
     showToast('Facebook page connected successfully!', 'green');
+  }
+  if (urlParams.get('pick_page') === '1') {
+    history.replaceState({}, '', '/social');
+    showPagePicker();
   }
   if (urlParams.get('error')) {
     const errMap = {
@@ -83,18 +88,23 @@ function renderStatusBar() {
 function renderConnectTab() {
   const body = $('connectBody');
   if (status.connection) {
+    const conn = status.connection;
+    const expiryStr = conn.tokenExpiresAt ? `Token expires ${new Date(conn.tokenExpiresAt).toLocaleDateString()}` : '';
+    const scopesTags = (conn.grantedScopes || []).map(s => `<span style="display:inline-block;background:rgba(99,102,241,0.12);color:#818cf8;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;margin:1px;">${esc(s)}</span>`).join('');
     body.innerHTML = `
       <div style="display:flex;align-items:center;gap:16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:20px 24px;">
-        <div style="width:48px;height:48px;border-radius:50%;background:#1877f2;display:flex;align-items:center;justify-content:center;">
+        <div style="width:48px;height:48px;border-radius:50%;background:#1877f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
         </div>
-        <div style="flex:1;">
-          <div style="font-size:15px;font-weight:700;color:#e5e7eb;">${esc(status.connection.pageName)}</div>
-          <div style="font-size:12px;color:#9ca3af;">Page ID: ${esc(status.connection.pageId)} · Connected ${new Date(status.connection.connectedAt).toLocaleDateString()}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:700;color:#e5e7eb;">${esc(conn.pageName)}</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:2px;">Page ID: ${esc(conn.pageId)} · Connected ${new Date(conn.connectedAt).toLocaleDateString()}${conn.connectedByUserId ? ` by ${esc(conn.connectedByUserId)}` : ''}</div>
+          ${expiryStr ? `<div style="font-size:11px;color:#6b7280;margin-top:2px;">${esc(expiryStr)}</div>` : ''}
+          ${scopesTags ? `<div style="margin-top:6px;">${scopesTags}</div>` : ''}
         </div>
-        <button id="btnDisconnect" type="button" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Disconnect</button>
+        <button id="btnDisconnect" type="button" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Disconnect</button>
       </div>
-      <p style="font-size:13px;color:#9ca3af;margin-top:12px;">Your page is connected. You can now schedule and publish posts from the <strong style="color:#e5e7eb;">Generate Post</strong> and <strong style="color:#e5e7eb;">Post Queue</strong> tabs.</p>`;
+      <p style="font-size:13px;color:#9ca3af;margin-top:12px;">Your page is connected. You can now schedule and publish posts from the <strong style="color:#e5e7eb;">Generate Post</strong> and <strong style="color:#e5e7eb;">Post Queue</strong> tabs, or pull leads and comments from the <strong style="color:#e5e7eb;">Leads &amp; Comments</strong> tab.</p>`;
     $('btnDisconnect')?.addEventListener('click', disconnectFacebook);
   } else if (status.fbConfigured) {
     body.innerHTML = `
@@ -501,6 +511,170 @@ function showToast(msg, color = 'green') {
   toast.style.cssText = `position:fixed;bottom:24px;right:24px;background:#1a1b2e;border:1px solid ${colorMap[color]};color:${colorMap[color]};padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-width:360px;line-height:1.4;`;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 4000);
+}
+
+// ─── Page Picker ──────────────────────────────────────────────────────────────
+async function showPagePicker() {
+  const overlay = $('pagePickerOverlay');
+  const list = $('pagePickerList');
+  const errEl = $('pagePickerErr');
+  overlay.style.display = 'flex';
+  list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px;">Loading your pages…</div>';
+  errEl.style.display = 'none';
+  try {
+    const data = await api('/api/social/pending-pages');
+    if (!data.ok) { list.innerHTML = `<div style="color:#f87171;font-size:13px;text-align:center;padding:16px;">${esc(data.error)}<br><br><a href="/api/social/auth/facebook" style="color:#818cf8;text-decoration:underline;">Reconnect Facebook</a></div>`; return; }
+    list.innerHTML = data.pages.map(p => `
+      <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;" class="page-picker-card" data-page-id="${esc(p.id)}">
+        <div style="width:40px;height:40px;border-radius:50%;background:#1877f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:#e5e7eb;">${esc(p.name)}</div>
+          <div style="font-size:11px;color:#9ca3af;">ID: ${esc(p.id)}${p.category ? ' · ' + esc(p.category) : ''}</div>
+        </div>
+        <button type="button" class="btn-pick-page btn-primary" data-page-id="${esc(p.id)}" style="font-size:13px;padding:7px 16px;white-space:nowrap;">Connect</button>
+      </div>`).join('');
+    list.querySelectorAll('.btn-pick-page').forEach(btn => btn.addEventListener('click', () => pickPage(btn.dataset.pageId)));
+  } catch (e) {
+    list.innerHTML = `<div style="color:#f87171;font-size:13px;text-align:center;padding:16px;">${esc(e.message)}</div>`;
+  }
+}
+
+async function pickPage(pageId) {
+  const errEl = $('pagePickerErr');
+  errEl.style.display = 'none';
+  const btn = document.querySelector(`.btn-pick-page[data-page-id="${pageId}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
+  try {
+    const data = await api('/api/social/auth/pick-page', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pageId }) });
+    if (!data.ok) throw new Error(data.error || 'Failed to connect page');
+    $('pagePickerOverlay').style.display = 'none';
+    await loadStatus();
+    showToast(`Connected to "${data.connection?.pageName}"!`, 'green');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+    if (btn) { btn.disabled = false; btn.textContent = 'Connect'; }
+  }
+}
+
+$('btnCancelPagePicker').addEventListener('click', () => { $('pagePickerOverlay').style.display = 'none'; });
+
+// ─── Leads & Comments Tab ────────────────────────────────────────────────────
+function initLeadsTab() {
+  if (!status.connection) {
+    $('leadsNoConn').style.display = 'block';
+    $('leadsSection').style.display = 'none';
+    $('commentsSection').style.display = 'none';
+  } else {
+    $('leadsNoConn').style.display = 'none';
+    $('leadsSection').style.display = 'block';
+    $('commentsSection').style.display = 'block';
+  }
+}
+
+$('btnLoadLeads').addEventListener('click', loadLeads);
+$('btnLoadComments').addEventListener('click', loadComments);
+
+async function loadLeads() {
+  if (!status.connection) { showToast('Connect a Facebook page first.', 'yellow'); return; }
+  const btn = $('btnLoadLeads');
+  const list = $('leadsList');
+  btn.disabled = true; btn.textContent = 'Loading…';
+  list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px;">Fetching lead form submissions…</div>';
+  try {
+    const data = await api('/api/social/page/leads');
+    if (!data.ok) throw new Error(data.error);
+    const leads = data.leads || [];
+    $('leadsCount').textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''} · ${data.formCount || 0} form${data.formCount !== 1 ? 's' : ''}`;
+    if (!leads.length) {
+      list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">No lead form submissions found. Make sure your page has active lead generation forms with submissions.</div>';
+      return;
+    }
+    list.innerHTML = leads.map((lead, i) => `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;" data-lead-idx="${i}">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:#e5e7eb;">${esc(lead.name || 'Unknown')}</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:2px;">${lead.email ? esc(lead.email) : '<span style="color:#6b7280;">No email</span>'}${lead.phone ? ' · ' + esc(lead.phone) : ''}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Form: ${esc(lead.formName)} · ${lead.createdAt ? new Date(lead.createdAt).toLocaleString() : ''}${lead.adId ? ' · Ad ID: ' + esc(lead.adId) : ''}</div>
+        </div>
+        <button class="btn-add-lead-crm btn-secondary" data-lead-idx="${i}" style="font-size:11px;padding:5px 12px;white-space:nowrap;flex-shrink:0;">+ Add to CRM</button>
+      </div>`).join('');
+    const leadsCache = leads;
+    list.querySelectorAll('.btn-add-lead-crm').forEach(btn2 => btn2.addEventListener('click', () => addLeadToCrm(leadsCache[parseInt(btn2.dataset.leadIdx, 10)], btn2)));
+  } catch (e) {
+    list.innerHTML = `<div style="color:#f87171;font-size:13px;text-align:center;padding:16px;">${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Load Leads';
+  }
+}
+
+async function loadComments() {
+  if (!status.connection) { showToast('Connect a Facebook page first.', 'yellow'); return; }
+  const btn = $('btnLoadComments');
+  const list = $('commentsList');
+  btn.disabled = true; btn.textContent = 'Loading…';
+  list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px;">Fetching page comments…</div>';
+  try {
+    const data = await api('/api/social/page/comments');
+    if (!data.ok) throw new Error(data.error);
+    const comments = data.comments || [];
+    $('commentsCount').textContent = `${comments.length} comment${comments.length !== 1 ? 's' : ''}`;
+    if (!comments.length) {
+      list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">No recent comments found on your page posts.</div>';
+      return;
+    }
+    list.innerHTML = comments.map((c, i) => `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;" data-comment-idx="${i}">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-size:13px;font-weight:600;color:#e5e7eb;">${esc(c.fromName)}</span>
+            <span style="font-size:11px;color:#6b7280;">${c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}</span>
+          </div>
+          <div style="font-size:13px;color:#d1d5db;line-height:1.5;margin-bottom:4px;">${esc(c.message)}</div>
+          ${c.postPreview ? `<div style="font-size:11px;color:#6b7280;border-left:2px solid rgba(255,255,255,0.1);padding-left:8px;margin-top:4px;">On post: ${esc(c.postPreview)}…</div>` : ''}
+        </div>
+        <button class="btn-add-comment-crm btn-secondary" data-comment-idx="${i}" style="font-size:11px;padding:5px 12px;white-space:nowrap;flex-shrink:0;">+ Add to CRM</button>
+      </div>`).join('');
+    const commentsCache = comments;
+    list.querySelectorAll('.btn-add-comment-crm').forEach(btn2 => btn2.addEventListener('click', () => addCommentToCrm(commentsCache[parseInt(btn2.dataset.commentIdx, 10)], btn2)));
+  } catch (e) {
+    list.innerHTML = `<div style="color:#f87171;font-size:13px;text-align:center;padding:16px;">${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Load Comments';
+  }
+}
+
+async function addLeadToCrm(lead, btn) {
+  btn.disabled = true; btn.textContent = 'Adding…';
+  try {
+    const body = { name: lead.name || 'Facebook Lead', email: lead.email || '', phone: lead.phone || '', source: 'Facebook Page', sourcePostId: lead.adId || '' };
+    const data = await api('/api/consumers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!data.ok && !data.id) throw new Error(data.error || 'Failed to add to CRM');
+    btn.textContent = '✓ Added';
+    btn.style.color = '#10b981';
+    btn.style.borderColor = '#10b981';
+    showToast(`"${lead.name || 'Lead'}" added to CRM pipeline!`, 'green');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '+ Add to CRM';
+    showToast('Failed to add: ' + e.message, 'red');
+  }
+}
+
+async function addCommentToCrm(comment, btn) {
+  btn.disabled = true; btn.textContent = 'Adding…';
+  try {
+    const body = { name: comment.fromName || 'Facebook User', source: 'Facebook Page Comment', sourcePostId: comment.postId || '' };
+    const data = await api('/api/consumers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!data.ok && !data.id) throw new Error(data.error || 'Failed to add to CRM');
+    btn.textContent = '✓ Added';
+    btn.style.color = '#10b981';
+    btn.style.borderColor = '#10b981';
+    showToast(`"${comment.fromName}" added to CRM pipeline!`, 'green');
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '+ Add to CRM';
+    showToast('Failed to add: ' + e.message, 'red');
+  }
 }
 
 init();

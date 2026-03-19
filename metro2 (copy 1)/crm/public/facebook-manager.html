@@ -84,6 +84,7 @@
       <button class="sm-tab" data-tab="feeds">RSS Feeds</button>
       <button class="sm-tab" data-tab="compose">Generate Post</button>
       <button class="sm-tab" data-tab="queue">Post Queue</button>
+      <button class="sm-tab" data-tab="leads">Leads &amp; Comments</button>
     </div>
 
     <!-- CONNECT TAB -->
@@ -329,8 +330,70 @@
       </div>
     </section>
 
+    <!-- LEADS & COMMENTS TAB -->
+    <section id="tab-leads" class="sm-section glass card p-6 space-y-6">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">Leads &amp; Comments</h2>
+          <p style="font-size:12px;color:#9ca3af;margin-top:2px;">Pull leads from Facebook lead forms and recent page comments — then add them directly to your CRM pipeline.</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="btnLoadLeads" type="button" class="btn-primary" style="font-size:13px;padding:7px 16px;">Load Leads</button>
+          <button id="btnLoadComments" type="button" class="btn-secondary" style="font-size:13px;padding:7px 16px;">Load Comments</button>
+        </div>
+      </div>
+
+      <div id="leadsNoConn" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:16px 20px;">
+        <div style="font-size:13px;color:#fbbf24;font-weight:600;margin-bottom:4px;">No Facebook page connected</div>
+        <p style="font-size:12px;color:#9ca3af;">Connect your Facebook Business Page on the <strong style="color:#e5e7eb;">Facebook Connect</strong> tab first.</p>
+      </div>
+
+      <!-- Lead Form Submissions -->
+      <div id="leadsSection">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <h3 style="font-size:14px;font-weight:700;color:#e5e7eb;">Lead Form Submissions</h3>
+          <div id="leadsCount" style="font-size:11px;color:#9ca3af;"></div>
+        </div>
+        <div id="leadsList">
+          <div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px;">Click "Load Leads" to pull lead form submissions from your connected Facebook page.</div>
+        </div>
+      </div>
+
+      <!-- Page Comments -->
+      <div id="commentsSection" style="margin-top:8px;">
+        <div style="border-top:1px solid rgba(255,255,255,0.06);margin-bottom:20px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <h3 style="font-size:14px;font-weight:700;color:#e5e7eb;">Recent Page Comments</h3>
+          <div id="commentsCount" style="font-size:11px;color:#9ca3af;"></div>
+        </div>
+        <div id="commentsList">
+          <div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px;">Click "Load Comments" to pull recent comments from your Facebook page posts.</div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </main>
+
+<!-- Page Picker Overlay -->
+<div id="pagePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;padding:60px 16px;overflow-y:auto;">
+  <div style="background:#1a1b2e;border:1px solid rgba(99,102,241,0.3);border-radius:14px;width:100%;max-width:560px;padding:28px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:#1877f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+      </div>
+      <div>
+        <h3 style="font-size:16px;font-weight:700;color:#e5e7eb;">Choose a Facebook Page</h3>
+        <p style="font-size:12px;color:#9ca3af;">Your account manages multiple pages. Select the page you want to connect to Evolv.</p>
+      </div>
+    </div>
+    <div id="pagePickerList" style="margin-top:20px;display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="pagePickerErr" style="color:#f87171;font-size:12px;margin-top:10px;display:none;"></div>
+    <button id="btnCancelPagePicker" type="button" style="margin-top:16px;font-size:12px;color:#9ca3af;background:none;border:none;cursor:pointer;width:100%;text-align:center;">Cancel — reconnect later</button>
+  </div>
+</div>
 
 <!-- Article Picker Modal -->
 <div id="articlePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;">
