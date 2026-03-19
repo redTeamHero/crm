@@ -12514,11 +12514,13 @@ app.get('/api/social/auth/facebook/callback', authenticate, async (req, res) => 
     if (pages.length === 1) {
       const page = pages[0];
       db.connection = { pageId: page.id, pageName: page.name, pageAccessToken: page.access_token, connectedAt: new Date().toISOString(), tokenExpiresAt, grantedScopes, connectedByUserId };
-      db.pendingPages = null;
+      if (!db.pendingPagesByUser) db.pendingPagesByUser = {};
+      delete db.pendingPagesByUser[connectedByUserId];
       await saveSocialDB(db);
       return res.redirect('/social?connected=1');
     }
-    db.pendingPages = { pages: pages.map(p => ({ id: p.id, name: p.name, accessToken: p.access_token, category: p.category || '' })), tokenExpiresAt, grantedScopes, connectedByUserId, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() };
+    if (!db.pendingPagesByUser) db.pendingPagesByUser = {};
+    db.pendingPagesByUser[connectedByUserId] = { pages: pages.map(p => ({ id: p.id, name: p.name, accessToken: p.access_token, category: p.category || '' })), tokenExpiresAt, grantedScopes, connectedByUserId, expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() };
     await saveSocialDB(db);
     res.redirect('/social?pick_page=1');
   } catch (e) {
@@ -12529,11 +12531,13 @@ app.get('/api/social/auth/facebook/callback', authenticate, async (req, res) => 
 
 app.get('/api/social/pending-pages', authenticate, async (req, res) => {
   try {
+    const userId = req.user?.id || req.user?.username || null;
     const db = await loadSocialDB();
-    if (!db.pendingPages || new Date(db.pendingPages.expiresAt) < new Date()) {
+    const pending = (db.pendingPagesByUser || {})[userId];
+    if (!pending || new Date(pending.expiresAt) < new Date()) {
       return res.json({ ok: false, error: 'No pending page selection or session expired. Please reconnect.' });
     }
-    res.json({ ok: true, pages: db.pendingPages.pages });
+    res.json({ ok: true, pages: pending.pages });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -12543,14 +12547,16 @@ app.post('/api/social/auth/pick-page', authenticate, async (req, res) => {
   try {
     const { pageId } = req.body || {};
     if (!pageId) return res.status(400).json({ ok: false, error: 'pageId is required' });
+    const userId = req.user?.id || req.user?.username || null;
     const db = await loadSocialDB();
-    if (!db.pendingPages || new Date(db.pendingPages.expiresAt) < new Date()) {
+    const pending = (db.pendingPagesByUser || {})[userId];
+    if (!pending || new Date(pending.expiresAt) < new Date()) {
       return res.status(400).json({ ok: false, error: 'Page selection session expired. Please reconnect Facebook.' });
     }
-    const page = db.pendingPages.pages.find(p => p.id === pageId);
+    const page = pending.pages.find(p => p.id === pageId);
     if (!page) return res.status(400).json({ ok: false, error: 'Page not found in pending list.' });
-    db.connection = { pageId: page.id, pageName: page.name, pageAccessToken: page.accessToken, connectedAt: new Date().toISOString(), tokenExpiresAt: db.pendingPages.tokenExpiresAt, grantedScopes: db.pendingPages.grantedScopes, connectedByUserId: db.pendingPages.connectedByUserId };
-    db.pendingPages = null;
+    db.connection = { pageId: page.id, pageName: page.name, pageAccessToken: page.accessToken, connectedAt: new Date().toISOString(), tokenExpiresAt: pending.tokenExpiresAt, grantedScopes: pending.grantedScopes, connectedByUserId: pending.connectedByUserId };
+    delete db.pendingPagesByUser[userId];
     await saveSocialDB(db);
     res.json({ ok: true, connection: db.connection });
   } catch (e) {
@@ -12610,7 +12616,7 @@ app.get('/api/social/page/leads', authenticate, async (req, res) => {
       }
     }
     leads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    res.json({ ok: true, leads: leads.slice(0, 50), formCount: forms.length });
+    res.json({ ok: true, leads, formCount: forms.length });
   } catch (e) {
     logError('SOCIAL_LEADS_ERROR', e);
     res.status(500).json({ ok: false, error: e.message });
