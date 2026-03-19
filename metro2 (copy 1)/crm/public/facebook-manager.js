@@ -21,6 +21,7 @@ document.getElementById('smTabs').addEventListener('click', e => {
   $(`tab-${tab}`)?.classList.add('active');
   if (tab === 'feeds' && feeds.length === 0) loadFeeds();
   if (tab === 'queue') loadQueue();
+  if (tab === 'autopilot') initAutopilotTab();
   if (tab === 'leads') initLeadsTab();
 });
 
@@ -674,6 +675,229 @@ async function addCommentToCrm(comment, btn) {
   } catch (e) {
     btn.disabled = false; btn.textContent = '+ Add to CRM';
     showToast('Failed to add: ' + e.message, 'red');
+  }
+}
+
+// ─── Autopilot ────────────────────────────────────────────────────────────────
+let autopilotData = null;
+let autopilotPollTimer = null;
+let selectedFeedIds = 'all';
+let selectedPpd = 1;
+
+const ppdHints = { 1: 'One post every 24 hours', 2: 'One post every 12 hours', 3: 'One post every 8 hours', 4: 'One post every 6 hours' };
+
+function formatCountdown(isoDate) {
+  if (!isoDate) return '';
+  const diff = new Date(isoDate) - Date.now();
+  if (diff <= 0) return 'Any moment now';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  if (h > 0) return `in ${h}h ${m}m`;
+  return `in ${m}m`;
+}
+
+async function loadAutopilot() {
+  try {
+    const data = await api('/api/social/autopilot');
+    if (!data.ok) return;
+    autopilotData = data;
+    renderAutopilot(data);
+  } catch (_) {}
+}
+
+function renderAutopilot(data) {
+  const ap = data.autopilot || {};
+  const enabled = !!ap.enabled;
+
+  const toggle = $('autopilotToggle');
+  const track = $('autopilotTrack');
+  const thumb = $('autopilotThumb');
+  const label = $('autopilotToggleLabel');
+  if (toggle) toggle.checked = enabled;
+  if (track) track.style.background = enabled ? '#6366f1' : '#374151';
+  if (thumb) thumb.style.transform = enabled ? 'translateX(20px)' : 'translateX(0)';
+  if (label) label.textContent = enabled ? 'Enabled' : 'Disabled';
+
+  const dot = $('autopilotStatusDot');
+  const lbl = $('autopilotStatusLabel');
+  const sub = $('autopilotStatusSub');
+  if (dot) dot.style.background = enabled ? '#10b981' : '#6b7280';
+  if (lbl) lbl.textContent = enabled ? 'Autopilot Active' : 'Autopilot Paused';
+  if (sub) {
+    if (enabled && ap.nextRunAt) sub.textContent = `Next post: ${formatCountdown(ap.nextRunAt)} · Last run: ${ap.lastRunAt ? new Date(ap.lastRunAt).toLocaleString() : 'Never'}`;
+    else if (enabled) sub.textContent = 'Starting soon…';
+    else sub.textContent = 'Enable autopilot to start generating posts automatically.';
+  }
+  const postsEl = $('autopilotPostsToday');
+  if (postsEl) postsEl.textContent = data.postsToday ?? '0';
+
+  selectedPpd = ap.postsPerDay || 1;
+  document.querySelectorAll('.ppd-btn').forEach(b => {
+    const active = Number(b.dataset.ppd) === selectedPpd;
+    b.style.background = active ? 'rgba(99,102,241,0.15)' : 'transparent';
+    b.style.borderColor = active ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)';
+    b.style.color = active ? '#818cf8' : '#9ca3af';
+  });
+  const hintEl = $('postsPerDayHint');
+  if (hintEl) hintEl.textContent = ppdHints[selectedPpd] || '';
+
+  selectedFeedIds = ap.feedIds === 'all' ? 'all' : (ap.feedIds || 'all');
+  const cbList = $('feedCheckboxList');
+  const selNote = $('feedSelectionNote');
+  const allFeeds = data.feeds || [];
+  if (typeof selectedFeedIds === 'string' && selectedFeedIds === 'all') {
+    if (cbList) cbList.style.display = 'none';
+    if (selNote) selNote.textContent = `Autopilot will rotate through all ${allFeeds.length || 0} RSS feed(s).`;
+  } else {
+    if (cbList) {
+      cbList.style.display = 'flex';
+      cbList.innerHTML = allFeeds.map(f => `
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#d1d5db;cursor:pointer;">
+          <input type="checkbox" class="feed-cb" data-feed-id="${esc(f.id)}" ${(selectedFeedIds || []).includes(f.id) ? 'checked' : ''} style="accent-color:#818cf8;">
+          ${esc(f.name)}
+        </label>`).join('');
+    }
+    if (selNote) selNote.textContent = `${(selectedFeedIds || []).length} of ${allFeeds.length} feed(s) selected.`;
+  }
+
+  renderAutopilotHistory(ap.history || []);
+}
+
+function renderAutopilotHistory(history) {
+  const el = $('autopilotHistory');
+  if (!el) return;
+  if (!history.length) {
+    el.innerHTML = '<div style="font-size:13px;color:#9ca3af;text-align:center;padding:20px 0;">No auto-posts yet. Enable Autopilot and save to get started.</div>';
+    return;
+  }
+  const statusColors = { success: '#10b981', skipped: '#fbbf24', error: '#f87171' };
+  const statusLabels = { success: 'Generated', skipped: 'Skipped', error: 'Error' };
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${history.slice(0, 10).map(h => `
+    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="width:8px;height:8px;border-radius:50%;background:${statusColors[h.status] || '#6b7280'};flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;color:#e5e7eb;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.articleTitle ? esc(h.articleTitle) : (h.reason ? esc(h.reason) : 'No article')}</div>
+        <div style="font-size:11px;color:#6b7280;margin-top:2px;">${new Date(h.runAt).toLocaleString()}</div>
+      </div>
+      <span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:${statusColors[h.status]}22;color:${statusColors[h.status] || '#9ca3af'};">${statusLabels[h.status] || h.status}</span>
+    </div>`).join('')}</div>`;
+}
+
+function initAutopilotTab() {
+  loadAutopilot();
+  if (autopilotPollTimer) clearInterval(autopilotPollTimer);
+  autopilotPollTimer = setInterval(loadAutopilot, 30_000);
+
+  const toggle = $('autopilotToggle');
+  if (toggle && !toggle._apBound) {
+    toggle._apBound = true;
+    toggle.addEventListener('change', () => {
+      const track = $('autopilotTrack');
+      const thumb = $('autopilotThumb');
+      const label = $('autopilotToggleLabel');
+      const on = toggle.checked;
+      if (track) track.style.background = on ? '#6366f1' : '#374151';
+      if (thumb) thumb.style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+      if (label) label.textContent = on ? 'Enabled' : 'Disabled';
+    });
+  }
+
+  document.querySelectorAll('.ppd-btn').forEach(btn => {
+    if (!btn._apBound) {
+      btn._apBound = true;
+      btn.addEventListener('click', () => {
+        selectedPpd = Number(btn.dataset.ppd);
+        document.querySelectorAll('.ppd-btn').forEach(b => {
+          const active = Number(b.dataset.ppd) === selectedPpd;
+          b.style.background = active ? 'rgba(99,102,241,0.15)' : 'transparent';
+          b.style.borderColor = active ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)';
+          b.style.color = active ? '#818cf8' : '#9ca3af';
+        });
+        const hintEl = $('postsPerDayHint');
+        if (hintEl) hintEl.textContent = ppdHints[selectedPpd] || '';
+      });
+    }
+  });
+
+  const btnAll = $('btnFeedAll');
+  const btnCustom = $('btnFeedCustom');
+  if (btnAll && !btnAll._apBound) {
+    btnAll._apBound = true;
+    btnAll.addEventListener('click', () => {
+      selectedFeedIds = 'all';
+      const cbList = $('feedCheckboxList');
+      const selNote = $('feedSelectionNote');
+      if (cbList) cbList.style.display = 'none';
+      if (selNote) selNote.textContent = `Autopilot will rotate through all RSS feeds.`;
+    });
+  }
+  if (btnCustom && !btnCustom._apBound) {
+    btnCustom._apBound = true;
+    btnCustom.addEventListener('click', () => {
+      const allFeeds = autopilotData?.feeds || [];
+      if (!allFeeds.length) { showToast('No RSS feeds added yet. Go to the RSS Feeds tab first.', 'yellow'); return; }
+      selectedFeedIds = Array.isArray(selectedFeedIds) ? selectedFeedIds : allFeeds.map(f => f.id);
+      const cbList = $('feedCheckboxList');
+      const selNote = $('feedSelectionNote');
+      if (cbList) {
+        cbList.style.display = 'flex';
+        cbList.innerHTML = allFeeds.map(f => `
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#d1d5db;cursor:pointer;">
+            <input type="checkbox" class="feed-cb" data-feed-id="${esc(f.id)}" ${selectedFeedIds.includes(f.id) ? 'checked' : ''} style="accent-color:#818cf8;">
+            ${esc(f.name)}
+          </label>`).join('');
+      }
+      if (selNote) selNote.textContent = `${selectedFeedIds.length} of ${allFeeds.length} feed(s) selected.`;
+    });
+  }
+
+  const btnSave = $('btnSaveAutopilot');
+  if (btnSave && !btnSave._apBound) {
+    btnSave._apBound = true;
+    btnSave.addEventListener('click', saveAutopilotSettings);
+  }
+
+  const btnRun = $('btnRunNow');
+  if (btnRun && !btnRun._apBound) {
+    btnRun._apBound = true;
+    btnRun.addEventListener('click', runNow);
+  }
+}
+
+async function saveAutopilotSettings() {
+  const btn = $('btnSaveAutopilot');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    const enabled = $('autopilotToggle')?.checked ?? false;
+    let feedIds = selectedFeedIds;
+    if (feedIds !== 'all') {
+      feedIds = [...document.querySelectorAll('.feed-cb:checked')].map(cb => cb.dataset.feedId);
+      if (!feedIds.length) feedIds = 'all';
+    }
+    const data = await api('/api/social/autopilot', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled, postsPerDay: selectedPpd, feedIds }) });
+    if (!data.ok) throw new Error(data.error || 'Save failed');
+    showToast(enabled ? 'Autopilot enabled! Posts will be generated automatically.' : 'Autopilot disabled.', enabled ? 'green' : 'yellow');
+    await loadAutopilot();
+  } catch (e) {
+    showToast('Failed to save: ' + e.message, 'red');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Settings'; }
+  }
+}
+
+async function runNow() {
+  const btn = $('btnRunNow');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+  try {
+    const data = await api('/api/social/autopilot/run-now', { method: 'POST' });
+    if (!data.ok) throw new Error(data.error || 'Run failed');
+    if (data.skipped) { showToast('Skipped: ' + data.reason, 'yellow'); }
+    else { showToast('Post generated and added to queue!', 'green'); }
+    await loadAutopilot();
+  } catch (e) {
+    showToast('Failed: ' + e.message, 'red');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Run Now'; }
   }
 }
 

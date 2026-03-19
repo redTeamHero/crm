@@ -45,6 +45,7 @@
     .tag { display:inline-block;background:rgba(16,185,129,0.12);color:#34d399;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px;margin-top:2px; }
     .setup-path { display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:3px 10px;font-size:11px;color:#d1d5db;font-family:monospace;white-space:nowrap; }
     .setup-path span { color:#9ca3af; }
+    @media (max-width: 540px) { .autopilot-grid { grid-template-columns: 1fr !important; } }
     .copy-uri-btn { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:5px;background:rgba(212,168,83,0.12);border:1px solid rgba(212,168,83,0.3);color:#d4a853;font-size:11px;font-weight:600;cursor:pointer;margin-left:8px;transition:all 0.15s; }
     .copy-uri-btn:hover { background:rgba(212,168,83,0.2); }
     .prereq-box { background:rgba(212,168,83,0.06);border:1px solid rgba(212,168,83,0.2);border-radius:10px;padding:14px 16px;margin-bottom:20px; }
@@ -84,6 +85,7 @@
       <button class="sm-tab" data-tab="feeds">RSS Feeds</button>
       <button class="sm-tab" data-tab="compose">Generate Post</button>
       <button class="sm-tab" data-tab="queue">Post Queue</button>
+      <button class="sm-tab" data-tab="autopilot">⚡ Autopilot</button>
       <button class="sm-tab" data-tab="leads">Leads &amp; Comments</button>
     </div>
 
@@ -327,6 +329,83 @@
       </div>
       <div id="queueList">
         <div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">Loading queue…</div>
+      </div>
+    </section>
+
+    <!-- AUTOPILOT TAB -->
+    <section id="tab-autopilot" class="sm-section glass card p-6">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">⚡ RSS Autopilot</h2>
+          <p style="font-size:12px;color:#9ca3af;margin-top:2px;">Automatically pull fresh articles from your RSS feeds, generate AI-crafted posts, and queue them on a continuous schedule.</p>
+        </div>
+        <button id="btnRunNow" type="button" class="btn-secondary" style="font-size:12px;padding:7px 16px;white-space:nowrap;">Run Now</button>
+      </div>
+
+      <!-- Status Banner -->
+      <div id="autopilotBanner" style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div id="autopilotStatusDot" style="width:10px;height:10px;border-radius:50%;background:#6b7280;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div id="autopilotStatusLabel" style="font-size:13px;font-weight:700;color:#e5e7eb;">Loading…</div>
+          <div id="autopilotStatusSub" style="font-size:11px;color:#9ca3af;margin-top:2px;"></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;color:#9ca3af;">Posts today</div>
+          <div id="autopilotPostsToday" style="font-size:18px;font-weight:700;color:#818cf8;">—</div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;" class="autopilot-grid">
+        <!-- Enable toggle -->
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;">
+          <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Autopilot</div>
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+            <div style="position:relative;width:44px;height:24px;flex-shrink:0;">
+              <input type="checkbox" id="autopilotToggle" style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;margin:0;z-index:1;">
+              <div id="autopilotTrack" style="position:absolute;inset:0;border-radius:12px;background:#374151;transition:background 0.2s;"></div>
+              <div id="autopilotThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>
+            </div>
+            <div>
+              <div id="autopilotToggleLabel" style="font-size:13px;font-weight:600;color:#e5e7eb;">Disabled</div>
+              <div style="font-size:11px;color:#9ca3af;">Toggle to start auto-posting</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Posts per day -->
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;">
+          <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Posts Per Day</div>
+          <div style="display:flex;gap:6px;" id="postsPerDayBtns">
+            <button data-ppd="1" class="ppd-btn ppd-active" type="button" style="flex:1;padding:7px 0;border-radius:7px;font-size:13px;font-weight:700;border:1px solid rgba(99,102,241,0.4);background:rgba(99,102,241,0.15);color:#818cf8;cursor:pointer;transition:all 0.15s;">1</button>
+            <button data-ppd="2" class="ppd-btn" type="button" style="flex:1;padding:7px 0;border-radius:7px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9ca3af;cursor:pointer;transition:all 0.15s;">2</button>
+            <button data-ppd="3" class="ppd-btn" type="button" style="flex:1;padding:7px 0;border-radius:7px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9ca3af;cursor:pointer;transition:all 0.15s;">3</button>
+            <button data-ppd="4" class="ppd-btn" type="button" style="flex:1;padding:7px 0;border-radius:7px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9ca3af;cursor:pointer;transition:all 0.15s;">4</button>
+          </div>
+          <div id="postsPerDayHint" style="font-size:11px;color:#6b7280;margin-top:8px;">One post every 24 hours</div>
+        </div>
+      </div>
+
+      <!-- Feed Selection -->
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Feed Selection</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+          <button id="btnFeedAll" type="button" class="btn-secondary" style="font-size:12px;padding:5px 14px;">Use All Feeds</button>
+          <button id="btnFeedCustom" type="button" class="btn-secondary" style="font-size:12px;padding:5px 14px;">Custom Selection</button>
+        </div>
+        <div id="feedCheckboxList" style="display:none;flex-direction:column;gap:8px;"></div>
+        <div id="feedSelectionNote" style="font-size:12px;color:#9ca3af;">Autopilot will rotate through all your RSS feeds.</div>
+      </div>
+
+      <!-- Save settings -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+        <button id="btnSaveAutopilot" type="button" class="btn-primary" style="font-size:13px;padding:8px 24px;">Save Settings</button>
+      </div>
+
+      <!-- Auto-post History -->
+      <div>
+        <h3 style="font-size:14px;font-weight:700;color:#e5e7eb;margin-bottom:12px;">Recent Auto-Posts</h3>
+        <div id="autopilotHistory" style="font-size:13px;color:#9ca3af;text-align:center;padding:20px 0;">No auto-posts yet. Enable Autopilot and save to get started.</div>
       </div>
     </section>
 

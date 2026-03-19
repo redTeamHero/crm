@@ -12831,6 +12831,151 @@ setInterval(async () => {
   } catch (_) {}
 }, 60_000);
 
+// ─── Autopilot ────────────────────────────────────────────────────────────────
+function getDefaultAutopilot() {
+  return { enabled: false, postsPerDay: 1, feedIds: 'all', postedGuids: [], lastRunAt: null, nextRunAt: null, history: [] };
+}
+
+function calcNextRunAt(postsPerDay, fromDate = new Date()) {
+  const intervalMs = (24 * 60 * 60 * 1000) / Math.max(1, postsPerDay);
+  return new Date(fromDate.getTime() + intervalMs).toISOString();
+}
+
+async function runAutopilotCycle(db) {
+  const ap = db.autopilot || getDefaultAutopilot();
+  if (!ap.enabled) return;
+
+  const feedList = db.feeds || [];
+  const targetFeeds = ap.feedIds === 'all' ? feedList : feedList.filter(f => (ap.feedIds || []).includes(f.id));
+  if (!targetFeeds.length) {
+    ap.history = [{ runAt: new Date().toISOString(), status: 'skipped', reason: 'No feeds configured' }, ...(ap.history || [])].slice(0, 20);
+    db.autopilot = ap;
+    return;
+  }
+
+  if (!RssParser) {
+    ap.history = [{ runAt: new Date().toISOString(), status: 'skipped', reason: 'RSS parser unavailable' }, ...(ap.history || [])].slice(0, 20);
+    db.autopilot = ap;
+    return;
+  }
+
+  const postedSet = new Set(ap.postedGuids || []);
+  let candidate = null;
+
+  const shuffled = [...targetFeeds].sort(() => Math.random() - 0.5);
+  for (const feed of shuffled) {
+    try {
+      const parser = new RssParser({ timeout: 8000 });
+      const parsed = await parser.parseURL(feed.url);
+      const items = (parsed.items || []).filter(it => {
+        const guid = it.guid || it.link || it.title || '';
+        return guid && !postedSet.has(guid);
+      });
+      if (items.length) {
+        candidate = { ...items[Math.floor(Math.random() * items.length)], feedName: feed.name };
+        break;
+      }
+    } catch (_) {}
+  }
+
+  const runAt = new Date().toISOString();
+  if (!candidate) {
+    ap.postedGuids = [];
+    ap.history = [{ runAt, status: 'skipped', reason: 'All articles already posted; reset history' }, ...(ap.history || [])].slice(0, 20);
+    ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
+    db.autopilot = ap;
+    return;
+  }
+
+  try {
+    const { system, user } = await buildSocialPostPrompt(candidate);
+    const content = await callOpenAiText({ system, user });
+
+    const postId = `ap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const guid = candidate.guid || candidate.link || candidate.title || '';
+    (db.queue = db.queue || []).push({
+      id: postId,
+      content: content.trim(),
+      articleTitle: candidate.title || '',
+      articleUrl: candidate.link || '',
+      feedName: candidate.feedName || '',
+      status: 'scheduled',
+      source: 'autopilot',
+      scheduledAt: null,
+      createdAt: runAt,
+    });
+
+    postedSet.add(guid);
+    ap.postedGuids = [...postedSet].slice(-500);
+    ap.lastRunAt = runAt;
+    ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
+    ap.history = [{ runAt, status: 'success', articleTitle: candidate.title || '', postId }, ...(ap.history || [])].slice(0, 20);
+  } catch (err) {
+    ap.lastRunAt = runAt;
+    ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
+    ap.history = [{ runAt, status: 'error', reason: err.message }, ...(ap.history || [])].slice(0, 20);
+  }
+  db.autopilot = ap;
+}
+
+// Autopilot background loop — checks every 5 minutes
+setInterval(async () => {
+  try {
+    const db = await loadSocialDB();
+    const ap = db.autopilot || getDefaultAutopilot();
+    if (!ap.enabled) return;
+    if (ap.nextRunAt && new Date(ap.nextRunAt) > new Date()) return;
+    await runAutopilotCycle(db);
+    await saveSocialDB(db);
+  } catch (_) {}
+}, 5 * 60 * 1000);
+
+app.get('/api/social/autopilot', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const ap = db.autopilot || getDefaultAutopilot();
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const postsToday = (db.queue || []).filter(p => p.source === 'autopilot' && p.createdAt && new Date(p.createdAt) >= todayStart).length;
+    res.json({ ok: true, autopilot: ap, postsToday, feeds: (db.feeds || []).map(f => ({ id: f.id, name: f.name })) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const ap = db.autopilot || getDefaultAutopilot();
+    const { enabled, postsPerDay, feedIds } = req.body || {};
+    if (enabled !== undefined) ap.enabled = !!enabled;
+    if (postsPerDay !== undefined) ap.postsPerDay = Math.min(4, Math.max(1, Number(postsPerDay) || 1));
+    if (feedIds !== undefined) ap.feedIds = feedIds;
+    if (ap.enabled && !ap.nextRunAt) ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
+    if (!ap.enabled) ap.nextRunAt = null;
+    db.autopilot = ap;
+    await saveSocialDB(db);
+    res.json({ ok: true, autopilot: ap });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/social/autopilot/run-now', authenticate, forbidMember, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const ap = db.autopilot || getDefaultAutopilot();
+    if (!(db.feeds || []).length) return res.status(400).json({ ok: false, error: 'No RSS feeds configured. Add a feed first.' });
+    await runAutopilotCycle(db);
+    await saveSocialDB(db);
+    const latest = (db.autopilot.history || [])[0];
+    if (latest?.status === 'error') return res.status(500).json({ ok: false, error: latest.reason });
+    if (latest?.status === 'skipped') return res.json({ ok: true, skipped: true, reason: latest.reason });
+    res.json({ ok: true, postId: latest?.postId });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 async function smartCreditIngestReport(consumer, reportData, db) {
   const reportBuffer = smartCreditReportToBuffer(reportData);
   const filename = `smartcredit_report_${Date.now()}.json`;
