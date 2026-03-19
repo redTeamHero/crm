@@ -12929,30 +12929,26 @@ async function runAutopilotCycle(db, force = false) {
     return;
   }
 
-  // Post all new articles (oldest-first so feed is chronological)
-  const toPost = [...newItems].reverse();
-  let successCount = 0;
-  let lastPostId = null;
-  let lastTitle = '';
-  for (const item of toPost) {
-    try {
-      const { system, user } = await buildSocialPostPrompt(item);
-      const content = await callOpenAiText({ system, user });
-      const postId = `ap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-      const postEntry = { id: postId, content: content.trim(), articleTitle: item.title || '', articleUrl: item.link || '', feedName: item.feedName || '', source: 'autopilot', status: 'scheduled', scheduledAt: new Date().toISOString(), createdAt: runAt };
-      (db.queue = db.queue || []).push(postEntry);
-      postedSet.add(item.guid);
-      successCount++;
-      lastPostId = postId;
-      lastTitle = item.title || '';
-    } catch (_) {
-      postedSet.add(item.guid);
-    }
+  // Post only the single most recent new article — one per cycle
+  const candidate = newItems[0];
+  try {
+    const { system, user } = await buildSocialPostPrompt(candidate);
+    const content = await callOpenAiText({ system, user });
+    const postId = `ap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const postEntry = { id: postId, content: content.trim(), articleTitle: candidate.title || '', articleUrl: candidate.link || '', feedName: candidate.feedName || '', source: 'autopilot', status: 'scheduled', scheduledAt: runAt, createdAt: runAt };
+    (db.queue = db.queue || []).push(postEntry);
+    postedSet.add(candidate.guid);
+    ap.postedGuids = [...postedSet].slice(-2000);
+    ap.lastRunAt = runAt;
+    ap.nextRunAt = autopilotNextRunAt();
+    ap.history = [{ runAt, status: 'success', articleTitle: candidate.title || '', postId, newRemaining: newItems.length - 1 }, ...(ap.history || [])].slice(0, 20);
+  } catch (err) {
+    postedSet.add(candidate.guid);
+    ap.postedGuids = [...postedSet].slice(-2000);
+    ap.lastRunAt = runAt;
+    ap.nextRunAt = autopilotNextRunAt();
+    ap.history = [{ runAt, status: 'error', reason: err.message }, ...(ap.history || [])].slice(0, 20);
   }
-  ap.postedGuids = [...postedSet].slice(-2000);
-  ap.lastRunAt = runAt;
-  ap.nextRunAt = autopilotNextRunAt();
-  ap.history = [{ runAt, status: successCount ? 'success' : 'skipped', articleTitle: lastTitle, postId: lastPostId, count: successCount, newFound: newItems.length }, ...(ap.history || [])].slice(0, 20);
   db.autopilot = ap;
 }
 

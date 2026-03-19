@@ -762,10 +762,10 @@ function renderAutopilotHistory(history) {
   const statusColors = { success: '#10b981', skipped: '#fbbf24', error: '#f87171' };
   el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${history.slice(0, 10).map(h => {
     const color = statusColors[h.status] || '#6b7280';
-    let badge = h.status === 'error' ? 'Error' : h.status === 'skipped' ? 'Skipped' : (h.count > 1 ? `${h.count} Queued` : 'Queued');
-    if (h.firstRun) badge += ' · First Run';
+    let badge = h.status === 'error' ? 'Error' : h.status === 'skipped' ? 'Skipped' : 'Queued';
+    if (h.firstRun) badge += ' · Seeded';
     let title = h.reason ? esc(h.reason) : (h.articleTitle ? esc(h.articleTitle) : 'No article');
-    if (h.newFound > 1 && h.count) title += ` <span style="color:#6b7280;font-size:11px;">(+${h.newFound} new)</span>`;
+    if (h.newRemaining > 0) title += ` <span style="color:#818cf8;font-size:11px;">(${h.newRemaining} more next cycles)</span>`;
     return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
