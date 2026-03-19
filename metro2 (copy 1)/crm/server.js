@@ -12949,7 +12949,17 @@ app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) =>
     const { enabled, postsPerDay, feedIds } = req.body || {};
     if (enabled !== undefined) ap.enabled = !!enabled;
     if (postsPerDay !== undefined) ap.postsPerDay = Math.min(4, Math.max(1, Number(postsPerDay) || 1));
-    if (feedIds !== undefined) ap.feedIds = feedIds;
+    if (feedIds !== undefined) {
+      const validFeedIds = (db.feeds || []).map(f => f.id);
+      if (feedIds === 'all') {
+        ap.feedIds = 'all';
+      } else if (Array.isArray(feedIds)) {
+        const filtered = feedIds.filter(id => typeof id === 'string' && validFeedIds.includes(id));
+        ap.feedIds = filtered.length ? filtered : 'all';
+      } else {
+        return res.status(400).json({ ok: false, error: 'feedIds must be "all" or an array of valid feed IDs' });
+      }
+    }
     if (ap.enabled && !ap.nextRunAt) ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
     if (!ap.enabled) ap.nextRunAt = null;
     db.autopilot = ap;
