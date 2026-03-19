@@ -684,9 +684,6 @@ async function addCommentToCrm(comment, btn) {
 let autopilotData = null;
 let autopilotPollTimer = null;
 let selectedFeedIds = 'all';
-let selectedPpd = 1;
-
-const ppdHints = { 1: 'One post every 24 hours', 2: 'One post every 12 hours', 3: 'One post every 8 hours', 4: 'One post every 6 hours' };
 
 function formatCountdown(isoDate) {
   if (!isoDate) return '';
@@ -726,22 +723,12 @@ function renderAutopilot(data) {
   if (dot) dot.style.background = enabled ? '#10b981' : '#6b7280';
   if (lbl) lbl.textContent = enabled ? 'Autopilot Active' : 'Autopilot Paused';
   if (sub) {
-    if (enabled && ap.nextRunAt) sub.textContent = `Next post: ${formatCountdown(ap.nextRunAt)} · Last run: ${ap.lastRunAt ? new Date(ap.lastRunAt).toLocaleString() : 'Never'}`;
+    if (enabled && ap.nextRunAt) sub.textContent = `Next check: ${formatCountdown(ap.nextRunAt)} · Last run: ${ap.lastRunAt ? new Date(ap.lastRunAt).toLocaleString() : 'Never'}`;
     else if (enabled) sub.textContent = 'Starting soon…';
-    else sub.textContent = 'Enable autopilot to start generating posts automatically.';
+    else sub.textContent = 'Enable autopilot to start posting new articles automatically.';
   }
   const postsEl = $('autopilotPostsToday');
   if (postsEl) postsEl.textContent = data.postsToday ?? '0';
-
-  selectedPpd = ap.postsPerDay || 1;
-  document.querySelectorAll('.ppd-btn').forEach(b => {
-    const active = Number(b.dataset.ppd) === selectedPpd;
-    b.style.background = active ? 'rgba(99,102,241,0.15)' : 'transparent';
-    b.style.borderColor = active ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)';
-    b.style.color = active ? '#818cf8' : '#9ca3af';
-  });
-  const hintEl = $('postsPerDayHint');
-  if (hintEl) hintEl.textContent = ppdHints[selectedPpd] || '';
 
   selectedFeedIds = ap.feedIds === 'all' ? 'all' : (ap.feedIds || 'all');
   const cbList = $('feedCheckboxList');
@@ -773,16 +760,21 @@ function renderAutopilotHistory(history) {
     return;
   }
   const statusColors = { success: '#10b981', skipped: '#fbbf24', error: '#f87171' };
-  const statusLabels = { success: 'Queued', skipped: 'Skipped', error: 'Error' };
-  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${history.slice(0, 10).map(h => `
-    <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <div style="width:8px;height:8px;border-radius:50%;background:${statusColors[h.status] || '#6b7280'};flex-shrink:0;"></div>
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${history.slice(0, 10).map(h => {
+    const color = statusColors[h.status] || '#6b7280';
+    let badge = h.status === 'error' ? 'Error' : h.status === 'skipped' ? 'Skipped' : (h.count > 1 ? `${h.count} Queued` : 'Queued');
+    if (h.firstRun) badge += ' · First Run';
+    let title = h.reason ? esc(h.reason) : (h.articleTitle ? esc(h.articleTitle) : 'No article');
+    if (h.newFound > 1 && h.count) title += ` <span style="color:#6b7280;font-size:11px;">(+${h.newFound} new)</span>`;
+    return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;color:#e5e7eb;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${h.articleTitle ? esc(h.articleTitle) : (h.reason ? esc(h.reason) : 'No article')}</div>
+        <div style="font-size:13px;color:#e5e7eb;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</div>
         <div style="font-size:11px;color:#6b7280;margin-top:2px;">${new Date(h.runAt).toLocaleString()}</div>
       </div>
-      <span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:${statusColors[h.status]}22;color:${statusColors[h.status] || '#9ca3af'};">${statusLabels[h.status] || h.status}</span>
-    </div>`).join('')}</div>`;
+      <span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:${color}22;color:${color};">${badge}</span>
+    </div>`;
+  }).join('')}</div>`;
 }
 
 function initAutopilotTab() {
@@ -803,23 +795,6 @@ function initAutopilotTab() {
       if (label) label.textContent = on ? 'Enabled' : 'Disabled';
     });
   }
-
-  document.querySelectorAll('.ppd-btn').forEach(btn => {
-    if (!btn._apBound) {
-      btn._apBound = true;
-      btn.addEventListener('click', () => {
-        selectedPpd = Number(btn.dataset.ppd);
-        document.querySelectorAll('.ppd-btn').forEach(b => {
-          const active = Number(b.dataset.ppd) === selectedPpd;
-          b.style.background = active ? 'rgba(99,102,241,0.15)' : 'transparent';
-          b.style.borderColor = active ? 'rgba(99,102,241,0.4)' : 'rgba(255,255,255,0.08)';
-          b.style.color = active ? '#818cf8' : '#9ca3af';
-        });
-        const hintEl = $('postsPerDayHint');
-        if (hintEl) hintEl.textContent = ppdHints[selectedPpd] || '';
-      });
-    }
-  });
 
   const btnAll = $('btnFeedAll');
   const btnCustom = $('btnFeedCustom');
@@ -876,7 +851,7 @@ async function saveAutopilotSettings() {
       feedIds = [...document.querySelectorAll('.feed-cb:checked')].map(cb => cb.dataset.feedId);
       if (!feedIds.length) feedIds = 'all';
     }
-    const data = await api('/api/social/autopilot', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled, postsPerDay: selectedPpd, feedIds }) });
+    const data = await api('/api/social/autopilot', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled, feedIds }) });
     if (!data.ok) throw new Error(data.error || 'Save failed');
     showToast(enabled ? 'Autopilot enabled! Posts will be generated automatically.' : 'Autopilot disabled.', enabled ? 'green' : 'yellow');
     await loadAutopilot();

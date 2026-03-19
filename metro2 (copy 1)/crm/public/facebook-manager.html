@@ -337,7 +337,7 @@
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
         <div>
           <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">⚡ RSS Autopilot</h2>
-          <p style="font-size:12px;color:#9ca3af;margin-top:2px;">Automatically pull fresh articles from your RSS feeds, generate AI-crafted posts, and queue them on a continuous schedule.</p>
+          <p style="font-size:12px;color:#9ca3af;margin-top:2px;">Checks RSS feeds every 5 minutes for new articles and generates an AI-crafted Facebook post for each one automatically.</p>
         </div>
         <button id="btnRunNow" type="button" class="btn-secondary" style="font-size:12px;padding:7px 16px;white-space:nowrap;">Run Now</button>
       </div>
@@ -356,7 +356,7 @@
       </div>
 
       <!-- Settings -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;" class="autopilot-grid">
+      <div style="margin-bottom:20px;">
         <!-- Enable toggle -->
         <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;">
           <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Autopilot</div>
@@ -368,21 +368,9 @@
             </div>
             <div>
               <div id="autopilotToggleLabel" style="font-size:13px;font-weight:600;color:#e5e7eb;">Disabled</div>
-              <div style="font-size:11px;color:#9ca3af;">Toggle to start auto-posting</div>
+              <div style="font-size:11px;color:#9ca3af;">Checks every 5 min · posts every new article automatically</div>
             </div>
           </label>
-        </div>
-
-        <!-- Posts per day -->
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;">
-          <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Posts Per Day</div>
-          <div style="display:flex;gap:6px;" id="postsPerDayBtns">
-            <button data-ppd="1" class="ppd-btn ppd-active" type="button" style="flex:1;padding:7px 0;border-radius:7px;font-size:13px;font-weight:700;border:1px solid rgba(99,102,241,0.4);background:rgba(99,102,241,0.15);color:#818cf8;cursor:pointer;transition:all 0.15s;">1</button>
-            <button data-ppd="2" class="ppd-btn" type="button" style="flex:1;padding:7px 0;border-radius:7px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9ca3af;cursor:pointer;transition:all 0.15s;">2</button>
-            <button data-ppd="3" class="ppd-btn" type="button" style="flex:1;padding:7px 0;border-radius:7px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9ca3af;cursor:pointer;transition:all 0.15s;">3</button>
-            <button data-ppd="4" class="ppd-btn" type="button" style="flex:1;padding:7px 0;border-radius:7px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9ca3af;cursor:pointer;transition:all 0.15s;">4</button>
-          </div>
-          <div id="postsPerDayHint" style="font-size:11px;color:#6b7280;margin-top:8px;">One post every 24 hours</div>
         </div>
       </div>
 

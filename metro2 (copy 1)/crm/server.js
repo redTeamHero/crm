@@ -12836,89 +12836,127 @@ function getDefaultAutopilot() {
   return { enabled: false, postsPerDay: 1, feedIds: 'all', postedGuids: [], lastRunAt: null, nextRunAt: null, history: [] };
 }
 
-function calcNextRunAt(postsPerDay, fromDate = new Date()) {
-  const intervalMs = (24 * 60 * 60 * 1000) / Math.max(1, postsPerDay);
-  return new Date(fromDate.getTime() + intervalMs).toISOString();
+const AUTOPILOT_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+function autopilotNextRunAt(fromDate = new Date()) {
+  return new Date(fromDate.getTime() + AUTOPILOT_CHECK_INTERVAL_MS).toISOString();
 }
 
 async function runAutopilotCycle(db, force = false) {
   const ap = db.autopilot || getDefaultAutopilot();
   if (!force && !ap.enabled) return;
 
+  const runAt = new Date().toISOString();
+
   const feedList = db.feeds || [];
   const targetFeeds = ap.feedIds === 'all' ? feedList : feedList.filter(f => (ap.feedIds || []).includes(f.id));
   if (!targetFeeds.length) {
-    ap.history = [{ runAt: new Date().toISOString(), status: 'skipped', reason: 'No feeds configured' }, ...(ap.history || [])].slice(0, 20);
+    ap.history = [{ runAt, status: 'skipped', reason: 'No feeds configured' }, ...(ap.history || [])].slice(0, 20);
+    ap.nextRunAt = autopilotNextRunAt();
     db.autopilot = ap;
     return;
   }
 
   if (!RssParser) {
-    ap.history = [{ runAt: new Date().toISOString(), status: 'skipped', reason: 'RSS parser unavailable' }, ...(ap.history || [])].slice(0, 20);
+    ap.history = [{ runAt, status: 'skipped', reason: 'RSS parser unavailable' }, ...(ap.history || [])].slice(0, 20);
+    ap.nextRunAt = autopilotNextRunAt();
     db.autopilot = ap;
     return;
   }
 
-  const postedSet = new Set(ap.postedGuids || []);
-  let candidate = null;
-
-  const shuffled = [...targetFeeds].sort(() => Math.random() - 0.5);
-  for (const feed of shuffled) {
+  // Collect all articles from all target feeds
+  const allItems = [];
+  for (const feed of targetFeeds) {
     try {
       const parser = new RssParser({ timeout: 8000 });
       const parsed = await parser.parseURL(feed.url);
-      const items = (parsed.items || []).filter(it => {
+      for (const it of (parsed.items || [])) {
         const guid = it.guid || it.link || it.title || '';
-        return guid && !postedSet.has(guid);
-      });
-      if (items.length) {
-        candidate = { ...items[Math.floor(Math.random() * items.length)], feedName: feed.name };
-        break;
+        if (guid) allItems.push({ ...it, guid, feedName: feed.name });
       }
     } catch (_) {}
   }
 
-  const runAt = new Date().toISOString();
-  if (!candidate) {
-    ap.history = [{ runAt, status: 'skipped', reason: 'All articles already posted. Add more RSS feeds to continue.' }, ...(ap.history || [])].slice(0, 20);
-    ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
+  if (!allItems.length) {
+    ap.history = [{ runAt, status: 'skipped', reason: 'No articles found in feeds' }, ...(ap.history || [])].slice(0, 20);
+    ap.nextRunAt = autopilotNextRunAt();
     db.autopilot = ap;
     return;
   }
 
-  try {
-    const { system, user } = await buildSocialPostPrompt(candidate);
-    const content = await callOpenAiText({ system, user });
+  // Sort all items newest-first
+  allItems.sort((a, b) => {
+    const da = a.isoDate || a.pubDate ? new Date(a.isoDate || a.pubDate) : new Date(0);
+    const db2 = b.isoDate || b.pubDate ? new Date(b.isoDate || b.pubDate) : new Date(0);
+    return db2 - da;
+  });
 
-    const postId = `ap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const guid = candidate.guid || candidate.link || candidate.title || '';
-    const postEntry = {
-      id: postId,
-      content: content.trim(),
-      articleTitle: candidate.title || '',
-      articleUrl: candidate.link || '',
-      feedName: candidate.feedName || '',
-      source: 'autopilot',
-      status: 'scheduled',
-      scheduledAt: runAt,
-      createdAt: runAt,
-    };
-    (db.queue = db.queue || []).push(postEntry);
+  const isFirstRun = !(ap.postedGuids || []).length;
+  const postedSet = new Set(ap.postedGuids || []);
 
-    postedSet.add(guid);
-    ap.postedGuids = [...postedSet].slice(-500);
-    ap.lastRunAt = runAt;
-    ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
-    ap.history = [{ runAt, status: 'success', articleTitle: candidate.title || '', postId }, ...(ap.history || [])].slice(0, 20);
-  } catch (err) {
-    ap.lastRunAt = runAt;
-    ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
-    ap.history = [{ runAt, status: 'error', reason: err.message }, ...(ap.history || [])].slice(0, 20);
+  if (isFirstRun) {
+    // First run: mark all articles as seen, post only the single most recent
+    allItems.forEach(it => postedSet.add(it.guid));
+    const newest = allItems[0];
+    try {
+      const { system, user } = await buildSocialPostPrompt(newest);
+      const content = await callOpenAiText({ system, user });
+      const postId = `ap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const postEntry = { id: postId, content: content.trim(), articleTitle: newest.title || '', articleUrl: newest.link || '', feedName: newest.feedName || '', source: 'autopilot', status: 'scheduled', scheduledAt: runAt, createdAt: runAt };
+      (db.queue = db.queue || []).push(postEntry);
+      ap.postedGuids = [...postedSet].slice(-2000);
+      ap.lastRunAt = runAt;
+      ap.nextRunAt = autopilotNextRunAt();
+      ap.history = [{ runAt, status: 'success', articleTitle: newest.title || '', postId, count: 1, firstRun: true }, ...(ap.history || [])].slice(0, 20);
+    } catch (err) {
+      ap.postedGuids = [...postedSet].slice(-2000);
+      ap.lastRunAt = runAt;
+      ap.nextRunAt = autopilotNextRunAt();
+      ap.history = [{ runAt, status: 'error', reason: err.message }, ...(ap.history || [])].slice(0, 20);
+    }
+    db.autopilot = ap;
+    return;
   }
+
+  // Subsequent runs: find all NEW articles (not seen before)
+  const newItems = allItems.filter(it => !postedSet.has(it.guid));
+
+  if (!newItems.length) {
+    ap.lastRunAt = runAt;
+    ap.nextRunAt = autopilotNextRunAt();
+    ap.history = [{ runAt, status: 'skipped', reason: 'No new articles since last check' }, ...(ap.history || [])].slice(0, 20);
+    db.autopilot = ap;
+    return;
+  }
+
+  // Post all new articles (oldest-first so feed is chronological)
+  const toPost = [...newItems].reverse();
+  let successCount = 0;
+  let lastPostId = null;
+  let lastTitle = '';
+  for (const item of toPost) {
+    try {
+      const { system, user } = await buildSocialPostPrompt(item);
+      const content = await callOpenAiText({ system, user });
+      const postId = `ap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const postEntry = { id: postId, content: content.trim(), articleTitle: item.title || '', articleUrl: item.link || '', feedName: item.feedName || '', source: 'autopilot', status: 'scheduled', scheduledAt: new Date().toISOString(), createdAt: runAt };
+      (db.queue = db.queue || []).push(postEntry);
+      postedSet.add(item.guid);
+      successCount++;
+      lastPostId = postId;
+      lastTitle = item.title || '';
+    } catch (_) {
+      postedSet.add(item.guid);
+    }
+  }
+  ap.postedGuids = [...postedSet].slice(-2000);
+  ap.lastRunAt = runAt;
+  ap.nextRunAt = autopilotNextRunAt();
+  ap.history = [{ runAt, status: successCount ? 'success' : 'skipped', articleTitle: lastTitle, postId: lastPostId, count: successCount, newFound: newItems.length }, ...(ap.history || [])].slice(0, 20);
   db.autopilot = ap;
 }
 
-// Autopilot background loop — checks every 5 minutes
+// Autopilot background loop — checks every 5 minutes for new articles
 setInterval(async () => {
   try {
     const db = await loadSocialDB();
@@ -12928,7 +12966,7 @@ setInterval(async () => {
     await runAutopilotCycle(db);
     await saveSocialDB(db);
   } catch (_) {}
-}, 5 * 60 * 1000);
+}, AUTOPILOT_CHECK_INTERVAL_MS);
 
 app.get('/api/social/autopilot', authenticate, async (req, res) => {
   try {
