@@ -12892,23 +12892,42 @@ async function runAutopilotCycle(db, force = false) {
 
     const postId = `ap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const guid = candidate.guid || candidate.link || candidate.title || '';
-    (db.queue = db.queue || []).push({
+    const postEntry = {
       id: postId,
       content: content.trim(),
       articleTitle: candidate.title || '',
       articleUrl: candidate.link || '',
       feedName: candidate.feedName || '',
-      status: 'scheduled',
       source: 'autopilot',
       scheduledAt: null,
       createdAt: runAt,
-    });
+    };
+
+    if (db.connection) {
+      try {
+        const fbResult = await fbPublishPost(postEntry, db.connection);
+        if (fbResult.id) {
+          postEntry.status = 'published';
+          postEntry.publishedAt = runAt;
+          postEntry.fbPostId = fbResult.id;
+        } else {
+          postEntry.status = 'draft';
+          postEntry.error = fbResult.error?.message || 'Facebook publish failed';
+        }
+      } catch (fbErr) {
+        postEntry.status = 'draft';
+        postEntry.error = fbErr.message;
+      }
+    } else {
+      postEntry.status = 'draft';
+    }
+    (db.queue = db.queue || []).push(postEntry);
 
     postedSet.add(guid);
     ap.postedGuids = [...postedSet].slice(-500);
     ap.lastRunAt = runAt;
     ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
-    ap.history = [{ runAt, status: 'success', articleTitle: candidate.title || '', postId }, ...(ap.history || [])].slice(0, 20);
+    ap.history = [{ runAt, status: 'success', articleTitle: candidate.title || '', postId, published: postEntry.status === 'published' }, ...(ap.history || [])].slice(0, 20);
   } catch (err) {
     ap.lastRunAt = runAt;
     ap.nextRunAt = calcNextRunAt(ap.postsPerDay);
