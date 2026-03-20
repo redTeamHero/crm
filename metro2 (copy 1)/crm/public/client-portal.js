@@ -465,18 +465,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const consumerId = idMatch ? decodeURIComponent(idMatch[1]) : null;
   if(!consumerId){
-    const storedId = localStorage.getItem('clientId');
-    if(storedId){
-      location.replace(`/portal/${encodeURIComponent(storedId)}`);
-      return;
-    }
+    // No ID in URL — redirect to login (clientId flat key removed for isolation)
+    location.replace('/login.html');
+    return;
   } else {
-    // On load: migrate legacy flat-key data → namespaced keys, then purge stale flat keys
-    // and clear any data cached for a different client from a prior session
+    // On load: migrate legacy flat-key data → namespaced keys, purge stale flat keys,
+    // and clear any data cached for a different client from a prior session.
     try {
-      const prevClientId = localStorage.getItem('clientId');
       if (_portalCid) {
-        // Purge stale namespaced keys from a previous different client
+        // Detect previous client via legacy clientId key and purge their namespaced data
+        const prevClientId = localStorage.getItem('clientId');
         if (prevClientId && prevClientId !== consumerId) {
           _PORTAL_LS_KEYS.forEach(function(k) {
             localStorage.removeItem(k + '_' + prevClientId);
@@ -493,8 +491,9 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem(k);
           }
         });
+        // Remove the legacy global clientId key — all data now namespaced by URL ID
+        localStorage.removeItem('clientId');
       }
-      localStorage.setItem('clientId', consumerId);
     } catch {}
   }
   initClientPortalNav();
@@ -3898,8 +3897,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getPortalConsumerId() {
-    var m = location.pathname.match(/\/portal\/(.+)$/);
-    return m ? decodeURIComponent(m[1]) : (localStorage.getItem('clientId') || '');
+    // Always derive consumer ID from the URL; clientId localStorage key is not used for data isolation
+    var m = location.pathname.match(/\/(?:client-)?portal\/(.+)$/);
+    return m ? decodeURIComponent(m[1]) : '';
   }
 
   function loadPortalAffiliate() {

@@ -1771,9 +1771,20 @@ app.get("/portal/:id", async (req, res) => {
 });
 
 async function verifyPortalAccess(req, res) {
+  // Support token from Authorization header, query string, or cookie
+  if (!req.headers.authorization && !req.query.token) {
+    const cookieHeader = req.headers.cookie || "";
+    const match = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/);
+    if (match) req.headers.authorization = `Bearer ${decodeURIComponent(match[1])}`;
+  }
   const user = await getAuthUser(req);
   if (!user) return false;
-  if (user.role === "client" && user.id !== req.params.id) {
+  // Portal API endpoints are for clients only; verify token belongs to this consumer
+  if (user.role !== "client") {
+    res.status(403).json({ ok: false, error: "Client token required" });
+    return null;
+  }
+  if (user.id !== req.params.id) {
     res.status(403).json({ ok: false, error: "Access denied" });
     return null;
   }
