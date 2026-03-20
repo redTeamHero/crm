@@ -685,7 +685,6 @@ def audit_missing_open_date(tradelines: Iterable[MutableMapping[str, Any]]) -> N
     for record in tradelines:
         if not record.get("date_opened"):
             _attach_violation(record, "MISSING_OPEN_DATE", "Missing Date Opened")
-            _attach_violation(record, "missing_date_opened", "Missing Date Opened")
         if not _normalized_account_number(record):
             last_reported = record.get("last_reported") or record.get("date_last_reported")
             if last_reported:
@@ -738,7 +737,6 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
         if len(open_dates) > 1:
             for r in records:
                 _attach_violation(r, "OPEN_DATE_MISMATCH", "Date Opened differs across bureaus")
-                _attach_violation(r, "open_date_mismatch", "Date Opened differs across bureaus")
 
         if len(last_payments) > 1:
             for r in records:
@@ -931,11 +929,6 @@ def audit_last_payment_integrity(tradelines: Iterable[MutableMapping[str, Any]])
             _attach_violation(
                 record,
                 "missing_last_payment_date",
-                "Missing Date of Last Payment on derogatory account",
-            )
-            _attach_violation(
-                record,
-                "fcra_last_payment_invalid",
                 "Missing Date of Last Payment on derogatory account",
             )
             continue
@@ -1259,7 +1252,7 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
             marker in payment_status for marker in delinquency_markers
         )
         is_delinquent = is_delinquent or any(marker in comments for marker in delinquency_markers)
-        if is_delinquent and not last_payment:
+        if is_delinquent and not last_payment and not _has_violation(record, "missing_last_payment_date"):
             _attach_violation(
                 record,
                 "missing_last_payment_date",
@@ -1267,7 +1260,7 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
             )
 
         # Existing guard: Charged-off accounts should carry a payment date to validate charge-off timing.
-        if "charge" in payment_status and not last_payment:
+        if "charge" in payment_status and not last_payment and not _has_violation(record, "missing_last_payment_date"):
             _attach_violation(
                 record,
                 "MISSING_LAST_PAYMENT_DATE",
@@ -1297,11 +1290,12 @@ def audit_missing_payment_date(tradelines: Iterable[MutableMapping[str, Any]]) -
 
         # A. Payment cannot precede the account being opened.
         if last_payment and date_opened and last_payment < date_opened:
-            _attach_violation(
-                record,
-                "ACCOUNT_OPENED_AFTER_LAST_PAYMENT_DATE",
-                "Last payment predates Date Opened",
-            )
+            if not _has_violation(record, "last_payment_precedes_date_opened") and not _has_violation(record, "DATE_ORDER_SANITY"):
+                _attach_violation(
+                    record,
+                    "ACCOUNT_OPENED_AFTER_LAST_PAYMENT_DATE",
+                    "Last payment predates Date Opened",
+                )
 
         # B. Payment cannot occur after closure (unless supported by re-open data).
         if last_payment and date_closed and last_payment > date_closed:
