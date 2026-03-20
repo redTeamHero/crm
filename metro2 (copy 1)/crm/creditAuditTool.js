@@ -210,15 +210,7 @@ function selectBureaus(acc, selection) {
     }
   }
 
-  const wantedViolations = new Set(selection.violationIdxs || []);
-  const issues = !wantedViolations.size
-    ? acc.issues
-    : acc.issues.filter((issue, idx) => {
-        const key = issue?.originalIndex ?? issue?.idx ?? idx;
-        return wantedViolations.has(key);
-      });
-
-  return { bureaus: filteredBureaus, issues };
+  return { bureaus: filteredBureaus, issues: acc.issues };
 }
 
 function normalizeAccountNumber(value) {
