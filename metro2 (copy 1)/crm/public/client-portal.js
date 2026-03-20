@@ -3,9 +3,16 @@ function esc(str){ return String(str ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;',
 
 // Namespace localStorage keys by client ID to prevent cross-client data leakage
 const _portalCid = (function() {
-  try { var m = location.pathname.match(/\/portal\/(.+)$/); return m ? decodeURIComponent(m[1]) : ''; } catch { return ''; }
+  try {
+    // Match both /portal/:id and /client-portal/:id routes
+    var m = location.pathname.match(/\/(?:client-)?portal\/(.+)$/);
+    return m ? decodeURIComponent(m[1]) : '';
+  } catch { return ''; }
 })();
 function lk(key) { return _portalCid ? key + '_' + _portalCid : key; }
+
+// Portal localStorage keys that need per-client namespacing
+const _PORTAL_LS_KEYS = ['creditScore','negativeItems','creditSnapshot','itemsInDispute','disputeTimeline','mailedLetters','educationItems','deletions','teamMembers','companyInfo','portal_user'];
 
 const productTiers = [
   { deletions:150, score:780, name:'Wealth Builder', icon:'👑', class:'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message:'Legendary status — mortgages, lines, and cards all bend in your favor. You’ve built true financial freedom.' },
@@ -453,7 +460,8 @@ document.addEventListener('DOMContentLoaded', () => {
   applyPortalTheme(portalSettings.theme);
   const enhanced = getPortalEnhanced();
 
-  const idMatch = location.pathname.match(/\/portal\/(.+)$/);
+  // Match both /portal/:id and /client-portal/:id routes
+  const idMatch = location.pathname.match(/\/(?:client-)?portal\/(.+)$/);
 
   const consumerId = idMatch ? decodeURIComponent(idMatch[1]) : null;
   if(!consumerId){
@@ -463,7 +471,29 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
   } else {
+    // On load: migrate legacy flat-key data → namespaced keys, then purge stale flat keys
+    // and clear any data cached for a different client from a prior session
     try {
+      const prevClientId = localStorage.getItem('clientId');
+      if (_portalCid) {
+        // Purge stale namespaced keys from a previous different client
+        if (prevClientId && prevClientId !== consumerId) {
+          _PORTAL_LS_KEYS.forEach(function(k) {
+            localStorage.removeItem(k + '_' + prevClientId);
+          });
+          ['edu_progress','edu_streak','edu_active_tier','edu_quiz_progress'].forEach(function(k) {
+            localStorage.removeItem(k + '_' + prevClientId);
+          });
+        }
+        // Migrate flat (legacy) keys → namespaced keys, then remove flat keys
+        _PORTAL_LS_KEYS.forEach(function(k) {
+          var flatVal = localStorage.getItem(k);
+          if (flatVal !== null) {
+            if (localStorage.getItem(lk(k)) === null) localStorage.setItem(lk(k), flatVal);
+            localStorage.removeItem(k);
+          }
+        });
+      }
       localStorage.setItem('clientId', consumerId);
     } catch {}
   }

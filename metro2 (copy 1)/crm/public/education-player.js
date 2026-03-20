@@ -3,7 +3,8 @@
 
   var _portalCid = (function() {
     try {
-      var m = location.pathname.match(/\/portal\/(.+)$/);
+      // Match both /portal/:id and /client-portal/:id routes
+      var m = location.pathname.match(/\/(?:client-)?portal\/(.+)$/);
       return m ? decodeURIComponent(m[1]) : '';
     } catch { return ''; }
   })();
