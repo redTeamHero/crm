@@ -1770,8 +1770,21 @@ app.get("/portal/:id", async (req, res) => {
   await renderClientPortalForConsumer(req, res, req.params.id);
 });
 
+async function verifyPortalAccess(req, res) {
+  const user = await getAuthUser(req);
+  if (!user) return false;
+  if (user.role === "client" && user.id !== req.params.id) {
+    res.status(403).json({ ok: false, error: "Access denied" });
+    return null;
+  }
+  return user;
+}
+
 app.get("/api/portal/:id", async (req, res) => {
   try {
+    const user = await verifyPortalAccess(req, res);
+    if (user === null) return;
+    if (!user) return res.status(401).json({ ok: false, error: "Unauthorized" });
     const db = await loadDB();
     const consumer = db.consumers.find((c) => c.id === req.params.id);
     if (!consumer) {
@@ -1790,6 +1803,9 @@ app.get("/api/portal/:id", async (req, res) => {
 
 app.get("/api/portal/:id/contracts", async (req, res) => {
   try {
+    const user = await verifyPortalAccess(req, res);
+    if (user === null) return;
+    if (!user) return res.status(401).json({ ok: false, error: "Unauthorized" });
     const db = await loadDB();
     const consumer = db.consumers.find(c => c.id === req.params.id);
     if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });

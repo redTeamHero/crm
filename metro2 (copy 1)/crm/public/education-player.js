@@ -1,8 +1,37 @@
 (function(){
   'use strict';
 
-  var EDU_STORAGE_KEY = 'edu_progress';
+  var _portalCid = (function() {
+    try {
+      var m = location.pathname.match(/\/portal\/(.+)$/);
+      return m ? decodeURIComponent(m[1]) : '';
+    } catch { return ''; }
+  })();
+
+  function _eduKey(base) { return _portalCid ? base + '_' + _portalCid : base; }
+
+  var EDU_STORAGE_KEY = _eduKey('edu_progress');
+  var EDU_STREAK_KEY  = _eduKey('edu_streak');
+  var EDU_TIER_KEY    = _eduKey('edu_active_tier');
+  var EDU_QUIZ_KEY    = _eduKey('edu_quiz_progress');
   var XP_PER_LESSON = 100;
+
+  // Migrate legacy flat-key data to namespaced keys on first load
+  if (_portalCid) {
+    try {
+      var _legacyKeys = { 'edu_progress': EDU_STORAGE_KEY, 'edu_streak': EDU_STREAK_KEY, 'edu_active_tier': EDU_TIER_KEY, 'edu_quiz_progress': EDU_QUIZ_KEY };
+      Object.keys(_legacyKeys).forEach(function(flat) {
+        var ns = _legacyKeys[flat];
+        if (flat !== ns) {
+          var legacyVal = localStorage.getItem(flat);
+          if (legacyVal !== null && localStorage.getItem(ns) === null) {
+            localStorage.setItem(ns, legacyVal);
+          }
+          localStorage.removeItem(flat);
+        }
+      });
+    } catch {}
+  }
 
   function getProgress(){
     try {
@@ -68,7 +97,7 @@
 
   function getStreak(){
     try {
-      var raw = localStorage.getItem('edu_streak');
+      var raw = localStorage.getItem(EDU_STREAK_KEY);
       if(!raw) return { days: 0, lastDate: null };
       return JSON.parse(raw);
     } catch { return { days: 0, lastDate: null }; }
@@ -85,7 +114,7 @@
       streak.days = 1;
     }
     streak.lastDate = today;
-    try { localStorage.setItem('edu_streak', JSON.stringify(streak)); } catch {}
+    try { localStorage.setItem(EDU_STREAK_KEY, JSON.stringify(streak)); } catch {}
     return streak;
   }
 
@@ -103,11 +132,11 @@
   }
 
   function getActiveTier(){
-    try { return localStorage.getItem('edu_active_tier') || 'beginner'; } catch { return 'beginner'; }
+    try { return localStorage.getItem(EDU_TIER_KEY) || 'beginner'; } catch { return 'beginner'; }
   }
 
   function setActiveTier(tier){
-    try { localStorage.setItem('edu_active_tier', tier); } catch {}
+    try { localStorage.setItem(EDU_TIER_KEY, tier); } catch {}
   }
 
   function renderMeter(visual){
@@ -395,11 +424,11 @@
   }
 
   function getQuizProgress(){
-    try { return JSON.parse(localStorage.getItem('edu_quiz_progress') || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem(EDU_QUIZ_KEY) || '{}'); } catch { return {}; }
   }
 
   function saveQuizProgress(qp){
-    try { localStorage.setItem('edu_quiz_progress', JSON.stringify(qp)); } catch {}
+    try { localStorage.setItem(EDU_QUIZ_KEY, JSON.stringify(qp)); } catch {}
   }
 
   function isTierComplete(tierKey){

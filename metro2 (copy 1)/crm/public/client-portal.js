@@ -1,6 +1,12 @@
 /* public/client-portal.js */
 function esc(str){ return String(str ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// Namespace localStorage keys by client ID to prevent cross-client data leakage
+const _portalCid = (function() {
+  try { var m = location.pathname.match(/\/portal\/(.+)$/); return m ? decodeURIComponent(m[1]) : ''; } catch { return ''; }
+})();
+function lk(key) { return _portalCid ? key + '_' + _portalCid : key; }
+
 const productTiers = [
   { deletions:150, score:780, name:'Wealth Builder', icon:'👑', class:'bg-gradient-to-r from-purple-400 to-pink-500 text-white', message:'Legendary status — mortgages, lines, and cards all bend in your favor. You’ve built true financial freedom.' },
   { deletions:125, score:760, name:'Elite Borrower', icon:'🦸', class:'bg-red-100 text-red-700', message:'You’ve achieved elite borrower status — lenders see you as top-tier.' },
@@ -273,7 +279,7 @@ function getBootstrapScore(){
 }
 
 function getLocalScore(){
-  return safeParseScore(localStorage.getItem('creditScore'));
+  return safeParseScore(localStorage.getItem(lk('creditScore')));
 }
 
 function formatScoreValue(value){
@@ -288,8 +294,8 @@ function applyCreditScore(score, { persist = true } = {}){
   if(persist){
     try {
       const serialized = JSON.stringify(score);
-      if(localStorage.getItem('creditScore') !== serialized){
-        localStorage.setItem('creditScore', serialized);
+      if(localStorage.getItem(lk('creditScore')) !== serialized){
+        localStorage.setItem(lk('creditScore'), serialized);
         return; // loadScores will re-render
       }
     } catch {
@@ -309,7 +315,7 @@ function getProductTier(deletions, score){
 function renderProductTier(score){
   const el = document.getElementById('tierBadge');
   if(!el) return;
-  const deletions = Number(localStorage.getItem('deletions') || 0);
+  const deletions = Number(localStorage.getItem(lk('deletions')) || 0);
   let scoreVal;
   if(score !== undefined){
     if(typeof score === 'object'){
@@ -397,7 +403,7 @@ function loadScores(){
 function renderTeamList(){
   const teamList = document.getElementById('teamList');
   if (!teamList) return;
-  const team = JSON.parse(localStorage.getItem('teamMembers') || '[]');
+  const team = JSON.parse(localStorage.getItem(lk('teamMembers')) || '[]');
   if (!team.length) {
     teamList.textContent = 'No team members added.';
   } else {
@@ -487,7 +493,13 @@ document.addEventListener('DOMContentLoaded', () => {
   var signOutBtn = document.getElementById('portalSignOut');
   if (signOutBtn) {
     signOutBtn.addEventListener('click', function () {
-      ['token','auth','clientId','teamMembers','companyInfo','cta_variant','creditScore','negativeItems','creditSnapshot','itemsInDispute','disputeTimeline','mailedLetters','educationItems','deletions','portal_user'].forEach(function(k){ localStorage.removeItem(k); });
+      // Remove both namespaced and legacy flat keys on sign-out
+      ['creditScore','negativeItems','creditSnapshot','itemsInDispute','disputeTimeline','mailedLetters','educationItems','deletions','teamMembers','companyInfo','portal_user',
+       'edu_progress','edu_streak','edu_active_tier','edu_quiz_progress'].forEach(function(k){
+        localStorage.removeItem(k);
+        if (_portalCid) localStorage.removeItem(k + '_' + _portalCid);
+      });
+      ['token','auth','clientId','cta_variant'].forEach(function(k){ localStorage.removeItem(k); });
       location.href = '/login.html';
     });
   }
@@ -781,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  const company = JSON.parse(localStorage.getItem('companyInfo') || '{}');
+  const company = JSON.parse(localStorage.getItem(lk('companyInfo')) || '{}');
   if (company.name) {
     const cn = document.getElementById('companyName');
     if (cn) cn.textContent = company.name;
@@ -876,7 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('storage', e => {
-    if (e.key === 'creditScore') {
+    if (e.key === lk('creditScore')) {
       if (e.newValue) {
         const parsed = safeParseScore(e.newValue);
         if (parsed) {
@@ -886,12 +898,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       loadScores();
     }
-    if (e.key === 'teamMembers') renderTeamList();
+    if (e.key === lk('teamMembers')) renderTeamList();
   });
   const _setItem = localStorage.setItem;
   localStorage.setItem = function(key, value) {
     _setItem.apply(this, arguments);
-    if (key === 'creditScore') {
+    if (key === lk('creditScore')) {
       const parsed = safeParseScore(value);
       if (parsed) {
         if (!window.__PORTAL_BOOTSTRAP__) window.__PORTAL_BOOTSTRAP__ = {};
@@ -899,19 +911,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       loadScores();
     }
-    if (key === 'teamMembers') renderTeamList();
+    if (key === lk('teamMembers')) renderTeamList();
   };
 
   const escape = window.escapeHtml || esc;
 
-  const items = JSON.parse(localStorage.getItem('itemsInDispute') || localStorage.getItem('disputeTimeline') || '[]');
+  const items = JSON.parse(localStorage.getItem(lk('itemsInDispute')) || localStorage.getItem(lk('disputeTimeline')) || '[]');
   const itemsEl = document.getElementById('itemsInDispute');
   let negativeItems = [];
   try {
     if (Array.isArray(window.__NEGATIVE_ITEMS__)) {
       negativeItems = window.__NEGATIVE_ITEMS__;
     } else {
-      negativeItems = JSON.parse(localStorage.getItem('negativeItems') || '[]');
+      negativeItems = JSON.parse(localStorage.getItem(lk('negativeItems')) || '[]');
     }
   } catch {
     negativeItems = [];
@@ -960,7 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window.__PORTAL_BOOTSTRAP__?.snapshot) {
         snap = window.__PORTAL_BOOTSTRAP__.snapshot;
       } else {
-        snap = JSON.parse(localStorage.getItem('creditSnapshot') || '{}');
+        snap = JSON.parse(localStorage.getItem(lk('creditSnapshot')) || '{}');
       }
     } catch { snap = {}; }
     const summary = Array.isArray(snap.summary) ? snap.summary : [];
@@ -981,7 +993,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const eduEl = document.getElementById('education');
   if (eduEl) {
-    const edu = JSON.parse(localStorage.getItem('educationItems') || '[]');
+    const edu = JSON.parse(localStorage.getItem(lk('educationItems')) || '[]');
     if (!edu.length) eduEl.textContent = 'No educational items.';
     else eduEl.innerHTML = edu.map(e => `<div class="news-item"><div class="font-medium">${esc(e.account)}</div><div>${esc(e.text)}</div></div>`).join('');
   }
@@ -2010,7 +2022,10 @@ document.addEventListener('DOMContentLoaded', () => {
     var contractsListPreview = document.getElementById('contractsListPreview');
     var docContractsSection = document.getElementById('docContractsSection');
     var docContractsList = document.getElementById('docContractsList');
-    fetch('/api/portal/' + encodeURIComponent(consumerId) + '/contracts')
+    var _contractsToken = getPortalToken();
+    fetch('/api/portal/' + encodeURIComponent(consumerId) + '/contracts', {
+      headers: _contractsToken ? { 'Authorization': 'Bearer ' + _contractsToken } : {}
+    })
       .then(function(r){ return r.json(); })
       .then(function(data){
         if(!data.ok) return;
@@ -2133,7 +2148,7 @@ document.addEventListener('DOMContentLoaded', () => {
           roundMap[p.jobId] = { round: p.round || 0, sentAt: p.sentAt || '', items: p.letters || p.items || [] };
         }
         const mailEvents = events.filter(e=>e.type==='letters_portal_sent');
-        const mailedSet = new Set(JSON.parse(localStorage.getItem('mailedLetters')||'[]'));
+        const mailedSet = new Set(JSON.parse(localStorage.getItem(lk('mailedLetters'))||'[]'));
         const waiting=[], mailed=[];
         for(const ev of mailEvents){
           const jobId = ev.payload?.jobId || '';
@@ -2451,9 +2466,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await resp.json().catch(()=>({}));
             if(!data?.ok) throw new Error(data?.error || 'Failed to mail letters');
-            const mailed = JSON.parse(localStorage.getItem('mailedLetters')||'[]');
+            const mailed = JSON.parse(localStorage.getItem(lk('mailedLetters'))||'[]');
             if(!mailed.includes(file)) mailed.push(file);
-            localStorage.setItem('mailedLetters', JSON.stringify(mailed));
+            localStorage.setItem(lk('mailedLetters'), JSON.stringify(mailed));
             loadMail();
           }catch(e){
             alert(e.message || 'Failed to mail letters.');
