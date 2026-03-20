@@ -12403,6 +12403,10 @@ app.get('/affiliates', (req, res) => res.redirect('/affiliate'));
 let RssParser;
 try { RssParser = require('rss-parser'); } catch (_) { RssParser = null; }
 
+function stripHtmlTags(str) {
+  return String(str ?? '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').trim();
+}
+
 const FB_API = 'https://graph.facebook.com/v20.0';
 function getFbConfig(req = null) {
   let origin = (process.env.PUBLIC_BASE_URL || '').trim();
@@ -12685,8 +12689,8 @@ app.get('/api/social/rss-feeds/:id/items', authenticate, async (req, res) => {
     await saveSocialDB(db);
     const items = (parsed.items || []).slice(0, 30).map(item => ({
       guid: item.guid || item.id || item.link,
-      title: item.title || '(no title)',
-      contentSnippet: (item.contentSnippet || item.summary || '').slice(0, 500),
+      title: stripHtmlTags(item.title || '(no title)'),
+      contentSnippet: stripHtmlTags((item.contentSnippet || item.summary || '').slice(0, 500)),
       link: item.link,
       pubDate: item.pubDate || item.isoDate,
       imageUrl: item.enclosure?.url || null,
@@ -12913,7 +12917,7 @@ async function runAutopilotCycle(db, force = false) {
       const parsed = await parser.parseURL(feed.url);
       for (const it of (parsed.items || [])) {
         const guid = it.guid || it.link || it.title || '';
-        if (guid) allItems.push({ ...it, guid, feedName: feed.name });
+        if (guid) allItems.push({ ...it, guid, feedName: feed.name, title: stripHtmlTags(it.title || ''), contentSnippet: stripHtmlTags(it.contentSnippet || it.summary || '') });
       }
     } catch (_) {}
   }

@@ -3,6 +3,7 @@ import { api, authHeader } from '/common.js';
 const $ = id => document.getElementById(id);
 
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const stripHtml = s => String(s == null ? '' : s).replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').trim();
 
 let status = {};
 let feeds = [];
@@ -277,9 +278,9 @@ async function loadFeedItems(feedId) {
     if (!items.length) { list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px;">No articles found in this feed.</div>'; return; }
     list.innerHTML = items.map((item, i) => `
       <div class="rss-item" data-idx="${i}" data-guid="${esc(item.guid || '')}">
-        <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">${esc(item.title)}</div>
+        <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">${esc(stripHtml(item.title))}</div>
         ${item.pubDate ? `<div style="font-size:11px;color:#6b7280;margin-bottom:4px;">${new Date(item.pubDate).toLocaleDateString()}</div>` : ''}
-        <div style="font-size:12px;color:#9ca3af;line-height:1.5;">${esc((item.contentSnippet || '').slice(0, 180))}${item.contentSnippet?.length > 180 ? '…' : ''}</div>
+        <div style="font-size:12px;color:#9ca3af;line-height:1.5;">${esc(stripHtml((item.contentSnippet || '').slice(0, 180)))}${item.contentSnippet?.length > 180 ? '…' : ''}</div>
         <div style="margin-top:8px;display:flex;gap:8px;">
           <button class="btn-use-article btn-secondary" data-idx="${i}" style="font-size:11px;padding:4px 12px;">Use for Post</button>
           ${item.link ? `<a href="${esc(item.link)}" target="_blank" style="font-size:11px;color:#818cf8;text-decoration:underline;padding:4px 0;">Read →</a>` : ''}
@@ -303,7 +304,7 @@ function selectArticleForCompose(article) {
   selectedArticle = article;
   const bar = $('selectedArticleBar');
   bar.style.display = 'flex';
-  $('selectedArticleTitle').textContent = article.title;
+  $('selectedArticleTitle').textContent = stripHtml(article.title);
   $('composeArticleLink').style.display = 'block';
   $('composeArticleUrl').value = article.link || '';
   updatePreviewLink(article.link);
@@ -404,9 +405,9 @@ $('btnLoadPickerItems').addEventListener('click', async () => {
     const items = data.items || [];
     list.innerHTML = items.map((item, i) => `
       <div class="rss-item" style="cursor:pointer;" data-idx="${i}">
-        <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">${esc(item.title)}</div>
+        <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:4px;">${esc(stripHtml(item.title))}</div>
         ${item.pubDate ? `<div style="font-size:11px;color:#6b7280;margin-bottom:3px;">${new Date(item.pubDate).toLocaleDateString()}</div>` : ''}
-        <div style="font-size:12px;color:#9ca3af;">${esc((item.contentSnippet || '').slice(0, 140))}…</div>
+        <div style="font-size:12px;color:#9ca3af;">${esc(stripHtml((item.contentSnippet || '').slice(0, 140)))}…</div>
       </div>`).join('');
     const itemsData = items;
     list.querySelectorAll('.rss-item').forEach(el => {
@@ -494,7 +495,7 @@ function renderQueue() {
             ${p.source === 'autopilot' ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);">⚡ Autopilot</span>` : ''}
             ${p.scheduledAt ? `<span style="font-size:12px;color:#9ca3af;">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</span>` : ''}
             ${p.publishedAt ? `<span style="font-size:12px;color:#9ca3af;">Published: ${new Date(p.publishedAt).toLocaleString()}</span>` : ''}
-            ${p.articleTitle ? `<span style="font-size:11px;color:#6b7280;">From: ${esc(p.articleTitle.slice(0, 40))}…</span>` : ''}
+            ${p.articleTitle ? `<span style="font-size:11px;color:#6b7280;">From: ${esc(stripHtml(p.articleTitle).slice(0, 40))}…</span>` : ''}
           </div>
           <div style="font-size:13px;color:#e5e7eb;line-height:1.6;max-height:80px;overflow:hidden;text-overflow:ellipsis;">${esc(p.content.slice(0, 300))}${p.content.length > 300 ? '…' : ''}</div>
           ${p.articleUrl ? `<a href="${esc(p.articleUrl)}" target="_blank" style="font-size:11px;color:#818cf8;text-decoration:underline;margin-top:4px;display:inline-block;">${esc(p.articleUrl.slice(0, 60))}…</a>` : ''}
@@ -815,7 +816,7 @@ function renderAutopilotHistory(history) {
     const color = statusColors[h.status] || '#6b7280';
     let badge = h.status === 'error' ? 'Error' : h.status === 'skipped' ? 'Skipped' : 'Queued';
     if (h.firstRun) badge += ' · Seeded';
-    let title = h.reason ? esc(h.reason) : (h.articleTitle ? esc(h.articleTitle) : 'No article');
+    let title = h.reason ? esc(h.reason) : (h.articleTitle ? esc(stripHtml(h.articleTitle)) : 'No article');
     if (h.newRemaining > 0) title += ` <span style="color:#818cf8;font-size:11px;">(${h.newRemaining} more next cycles)</span>`;
     return `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
