@@ -18,12 +18,19 @@
   var XP_PER_LESSON = 100;
 
   // Migrate legacy flat-key data to namespaced keys on first load.
-  // Uses window.__PORTAL_PREV_CLIENT_ID__ (set by client-portal.js) to decide whether
-  // flat keys belong to the current client (safe to migrate) or another client (purge only).
+  // education-player.js may execute before client-portal.js (deferred script order),
+  // so we read the legacy 'clientId' flat key directly from localStorage to detect
+  // whose data the flat edu keys belong to. If client-portal.js already ran first,
+  // it removes 'clientId' and sets window.__PORTAL_PREV_CLIENT_ID__; we use that as fallback.
   if (_portalCid) {
     try {
       var _legacyKeys = { 'edu_progress': EDU_STORAGE_KEY, 'edu_streak': EDU_STREAK_KEY, 'edu_active_tier': EDU_TIER_KEY, 'edu_quiz_progress': EDU_QUIZ_KEY };
-      var _prevCid = (typeof window.__PORTAL_PREV_CLIENT_ID__ !== 'undefined') ? window.__PORTAL_PREV_CLIENT_ID__ : null;
+      // Prefer the live localStorage value (if edu-player runs before client-portal.js);
+      // fall back to the window variable set by client-portal.js if it ran first.
+      var _prevCid = localStorage.getItem('clientId');
+      if (_prevCid === null && typeof window.__PORTAL_PREV_CLIENT_ID__ !== 'undefined') {
+        _prevCid = window.__PORTAL_PREV_CLIENT_ID__;
+      }
       var _eduFlatsBelongHere = (_prevCid === null || _prevCid === _portalCid);
       Object.keys(_legacyKeys).forEach(function(flat) {
         var ns = _legacyKeys[flat];
