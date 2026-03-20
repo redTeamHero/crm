@@ -12828,12 +12828,9 @@ setInterval(async () => {
     const tokenStatus = getTokenStatus(db.connection);
     if (tokenStatus === 'expired') return;
     const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const due = (db.queue || []).filter(p => {
-      if (p.status === 'scheduled' && p.scheduledAt && new Date(p.scheduledAt) <= now) return true;
-      if (p.status === 'failed' && (p.retryCount || 0) < 3 && (!p.lastAttemptAt || new Date(p.lastAttemptAt) <= oneHourAgo)) return true;
-      return false;
-    });
+    const due = (db.queue || []).filter(p =>
+      p.status === 'scheduled' && p.scheduledAt && new Date(p.scheduledAt) <= now
+    );
     if (!due.length) return;
     for (const post of due) {
       try {
@@ -12844,18 +12841,35 @@ setInterval(async () => {
         } else {
           post.retryCount = (post.retryCount || 0) + 1;
           post.lastAttemptAt = now.toISOString();
-          post.status = 'failed';
           post.error = result.error?.message || 'Facebook error';
+          if (post.retryCount >= 3) { post.status = 'failed'; }
+          else { post.status = 'scheduled'; post.scheduledAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); }
         }
       } catch (err) {
         post.retryCount = (post.retryCount || 0) + 1;
         post.lastAttemptAt = now.toISOString();
-        post.status = 'failed'; post.error = err.message;
+        post.error = err.message;
+        if (post.retryCount >= 3) { post.status = 'failed'; }
+        else { post.status = 'scheduled'; post.scheduledAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); }
       }
     }
     await saveSocialDB(db);
   } catch (_) {}
 }, 60_000);
+
+// ─── Hourly token health tick ─────────────────────────────────────────────────
+async function checkTokenHealth() {
+  try {
+    const db = await loadSocialDB();
+    if (!db.connection) return;
+    const status = getTokenStatus(db.connection);
+    if (status !== 'ok') {
+      console.warn(`[TokenHealth] Facebook token status: ${status}` + (db.connection.tokenExpiresAt ? ` (expires ${db.connection.tokenExpiresAt})` : ''));
+    }
+  } catch (_) {}
+}
+checkTokenHealth();
+setInterval(checkTokenHealth, 60 * 60 * 1000);
 
 // ─── Autopilot ────────────────────────────────────────────────────────────────
 function getDefaultAutopilot() {
