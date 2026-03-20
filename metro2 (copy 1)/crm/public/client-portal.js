@@ -497,13 +497,19 @@ document.addEventListener('DOMContentLoaded', () => {
           _PORTAL_LS_KEYS.forEach(function(k) { localStorage.removeItem(k + '_' + legacyClientId); });
           _eduKeys.forEach(function(k) { localStorage.removeItem(k + '_' + legacyClientId); });
         }
+        // Expose previous client ID to education-player.js (runs later in same page load)
+        window.__PORTAL_PREV_CLIENT_ID__ = legacyClientId || null;
         localStorage.removeItem('clientId');
 
-        // 3. Migrate legacy flat-key data → namespaced keys, then remove flat keys
+        // 3. Migrate flat (legacy) keys → namespaced keys for CURRENT client only.
+        //    If flat keys belonged to a different client (legacyClientId mismatch), purge instead.
+        var flatKeysBelongHere = !legacyClientId || legacyClientId === consumerId;
         _PORTAL_LS_KEYS.forEach(function(k) {
           var flatVal = localStorage.getItem(k);
           if (flatVal !== null) {
-            if (localStorage.getItem(lk(k)) === null) localStorage.setItem(lk(k), flatVal);
+            if (flatKeysBelongHere && localStorage.getItem(lk(k)) === null) {
+              localStorage.setItem(lk(k), flatVal);
+            }
             localStorage.removeItem(k);
           }
         });

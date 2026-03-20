@@ -17,18 +17,25 @@
   var EDU_QUIZ_KEY    = _eduKey('edu_quiz_progress');
   var XP_PER_LESSON = 100;
 
-  // Migrate legacy flat-key data to namespaced keys on first load
+  // Migrate legacy flat-key data to namespaced keys on first load.
+  // Uses window.__PORTAL_PREV_CLIENT_ID__ (set by client-portal.js) to decide whether
+  // flat keys belong to the current client (safe to migrate) or another client (purge only).
   if (_portalCid) {
     try {
       var _legacyKeys = { 'edu_progress': EDU_STORAGE_KEY, 'edu_streak': EDU_STREAK_KEY, 'edu_active_tier': EDU_TIER_KEY, 'edu_quiz_progress': EDU_QUIZ_KEY };
+      var _prevCid = (typeof window.__PORTAL_PREV_CLIENT_ID__ !== 'undefined') ? window.__PORTAL_PREV_CLIENT_ID__ : null;
+      var _eduFlatsBelongHere = (_prevCid === null || _prevCid === _portalCid);
       Object.keys(_legacyKeys).forEach(function(flat) {
         var ns = _legacyKeys[flat];
         if (flat !== ns) {
           var legacyVal = localStorage.getItem(flat);
-          if (legacyVal !== null && localStorage.getItem(ns) === null) {
-            localStorage.setItem(ns, legacyVal);
+          if (legacyVal !== null) {
+            // Only migrate if flat key belongs to the current client; otherwise purge
+            if (_eduFlatsBelongHere && localStorage.getItem(ns) === null) {
+              localStorage.setItem(ns, legacyVal);
+            }
+            localStorage.removeItem(flat);
           }
-          localStorage.removeItem(flat);
         }
       });
     } catch {}
