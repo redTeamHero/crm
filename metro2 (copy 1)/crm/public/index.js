@@ -2674,12 +2674,15 @@ async function loadConsumerState(){
     list.push(`<div class="font-medium mb-1">Files</div>`);
     files.forEach(f=>{
       list.push(`
-        <div class="glass card flex items-center justify-between p-2">
+        <div class="glass card flex items-center justify-between p-2" data-stored="${escapeHtml(f.storedName)}">
           <div class="wrap-anywhere">
             <div>${escapeHtml(f.originalName)}</div>
             <div class="text-xs muted">${escapeHtml((f.mimetype||"").split("/").pop() || "")} • ${(f.size/1024).toFixed(1)} KB • ${new Date(f.uploadedAt).toLocaleString()}</div>
           </div>
-          <a class="btn text-sm" href="/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(f.storedName)}" target="_blank">Open</a>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <a class="btn text-sm" href="/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(f.storedName)}" target="_blank">Open</a>
+            <button class="btn text-sm btn-delete-file" data-stored="${escapeHtml(f.storedName)}" data-name="${escapeHtml(f.originalName)}" style="color:#f87171;border-color:#f87171;">Delete</button>
+          </div>
         </div>
       `);
     });
@@ -2693,6 +2696,30 @@ async function loadConsumerState(){
   }
   $("#activityList").innerHTML = list.join("");
 }
+
+$("#activityList").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".btn-delete-file");
+  if (!btn) return;
+  if (!currentConsumerId) return;
+  const stored = btn.dataset.stored;
+  const name = btn.dataset.name || stored;
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  btn.disabled = true;
+  btn.textContent = "Deleting…";
+  try {
+    const res = await fetch(`/api/consumers/${currentConsumerId}/state/files/${encodeURIComponent(stored)}`, {
+      method: "DELETE",
+      headers: authHeader()
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!data?.ok) throw new Error(data?.error || "Failed to delete file");
+    await loadConsumerActivity();
+  } catch (err) {
+    showErr(err.message);
+    btn.disabled = false;
+    btn.textContent = "Delete";
+  }
+});
 
 $("#btnAddFile").addEventListener("click", ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");

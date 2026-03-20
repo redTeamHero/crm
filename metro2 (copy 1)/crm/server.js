@@ -9369,6 +9369,31 @@ app.get("/api/consumers/:id/state/files/:stored", async (req,res)=>{
   }
 });
 
+app.delete("/api/consumers/:id/state/files/:stored", authenticate, async (req, res) => {
+  try {
+    const consumerId = req.params.id;
+    const stored = path.basename(req.params.stored);
+    const db = await loadDB();
+    const consumer = db.consumers.find(c => c.id === consumerId);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    const cstate = await listConsumerState(consumerId);
+    const fileRec = (cstate.files || []).find(f => f.storedName === stored);
+    if (!fileRec) return res.status(404).json({ ok: false, error: "File not found" });
+    const objectKey = fileRec.objectKey || objStore.consumerFileKey(consumerId, stored);
+    try { await objStore.deleteFile(objectKey); } catch (_) {}
+    try {
+      const localPath = path.join(consumerUploadsDir(consumerId), stored);
+      if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
+    } catch (_) {}
+    await removeFileMetaByMatch(consumerId, f => f.storedName === stored);
+    await addEvent(consumerId, "file_deleted", { name: fileRec.originalName, type: fileRec.type });
+    res.json({ ok: true });
+  } catch (e) {
+    logError("FILE_DELETE_ERROR", "Failed to delete consumer file", e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ============================================================================
 // DISPUTE TRACKER ENDPOINTS (IntelliFeats)
 // ============================================================================
