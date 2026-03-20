@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import { readKey, writeKey, deleteKey } from '../kvdb.js';
 
 process.env.NODE_ENV = 'test';
@@ -13,6 +14,7 @@ const originalState = await readKey('consumer_state', null);
 const originalSettings = await readKey('settings', null);
 
 const consumerId = 'portal-test-consumer';
+const otherConsumerId = 'portal-other-consumer';
 const nowIso = new Date().toISOString();
 
 await writeKey('consumers', {
@@ -42,6 +44,12 @@ await writeKey('consumers', {
           },
         },
       ],
+    },
+    {
+      id: otherConsumerId,
+      name: 'Other Client',
+      status: 'active',
+      reports: [],
     },
   ],
 });
@@ -124,8 +132,16 @@ test.after(async () => {
   if (originalSettings) await writeKey('settings', originalSettings); else await deleteKey('settings');
 });
 
-test('portal API returns enriched payload', async () => {
-  const res = await request(app).get(`/api/portal/${consumerId}`);
+function makeClientToken(cid) {
+  const secret = process.env.JWT_SECRET;
+  return jwt.sign({ id: cid, role: 'client', username: 'client', name: 'Client' }, secret, { expiresIn: '1h' });
+}
+
+test('portal API returns enriched payload for authenticated client', async () => {
+  const token = makeClientToken(consumerId);
+  const res = await request(app)
+    .get(`/api/portal/${consumerId}`)
+    .set('Authorization', `Bearer ${token}`);
   assert.equal(res.status, 200);
   assert.equal(res.body.ok, true);
   const portal = res.body.portal;
@@ -140,4 +156,44 @@ test('portal API returns enriched payload', async () => {
   assert.equal(portal.messages[0].message, 'Welcome aboard');
   assert.equal(portal.documents[0].name, 'id.pdf');
   assert.equal(portal.tracker.steps.includes('Schedule review'), true);
+});
+
+test('portal API returns 401 for unauthenticated request', async () => {
+  const res = await request(app).get(`/api/portal/${consumerId}`);
+  assert.equal(res.status, 401);
+  assert.equal(res.body.ok, false);
+});
+
+test('portal API returns 403 when client token mismatches consumer ID', async () => {
+  const token = makeClientToken(otherConsumerId);
+  const res = await request(app)
+    .get(`/api/portal/${consumerId}`)
+    .set('Authorization', `Bearer ${token}`);
+  assert.equal(res.status, 403);
+  assert.equal(res.body.ok, false);
+});
+
+test('portal contracts API returns 401 for unauthenticated request', async () => {
+  const res = await request(app).get(`/api/portal/${consumerId}/contracts`);
+  assert.equal(res.status, 401);
+  assert.equal(res.body.ok, false);
+});
+
+test('portal contracts API returns 403 when client token mismatches consumer ID', async () => {
+  const token = makeClientToken(otherConsumerId);
+  const res = await request(app)
+    .get(`/api/portal/${consumerId}/contracts`)
+    .set('Authorization', `Bearer ${token}`);
+  assert.equal(res.status, 403);
+  assert.equal(res.body.ok, false);
+});
+
+test('portal contracts API returns ok for matching client token', async () => {
+  const token = makeClientToken(consumerId);
+  const res = await request(app)
+    .get(`/api/portal/${consumerId}/contracts`)
+    .set('Authorization', `Bearer ${token}`);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.ok, true);
+  assert.ok(Array.isArray(res.body.contracts));
 });
