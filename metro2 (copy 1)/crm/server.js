@@ -12828,9 +12828,12 @@ setInterval(async () => {
     const tokenStatus = getTokenStatus(db.connection);
     if (tokenStatus === 'expired') return;
     const now = new Date();
-    const due = (db.queue || []).filter(p =>
-      p.status === 'scheduled' && p.scheduledAt && new Date(p.scheduledAt) <= now
-    );
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const due = (db.queue || []).filter(p => {
+      if (p.status === 'scheduled' && p.scheduledAt && new Date(p.scheduledAt) <= now) return true;
+      if (p.status === 'failed' && (p.retryCount || 0) < 3 && (!p.lastAttemptAt || new Date(p.lastAttemptAt) <= oneHourAgo)) return true;
+      return false;
+    });
     if (!due.length) return;
     for (const post of due) {
       try {
@@ -12841,16 +12844,14 @@ setInterval(async () => {
         } else {
           post.retryCount = (post.retryCount || 0) + 1;
           post.lastAttemptAt = now.toISOString();
+          post.status = 'failed';
           post.error = result.error?.message || 'Facebook error';
-          if (post.retryCount >= 3) { post.status = 'failed'; }
-          else { post.status = 'scheduled'; post.scheduledAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); }
         }
       } catch (err) {
         post.retryCount = (post.retryCount || 0) + 1;
         post.lastAttemptAt = now.toISOString();
+        post.status = 'failed';
         post.error = err.message;
-        if (post.retryCount >= 3) { post.status = 'failed'; }
-        else { post.status = 'scheduled'; post.scheduledAt = new Date(now.getTime() + 60 * 60 * 1000).toISOString(); }
       }
     }
     await saveSocialDB(db);
