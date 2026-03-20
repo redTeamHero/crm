@@ -1410,7 +1410,7 @@ function extractAcctNumbers(tl) {
         ? [metaNumbersRaw]
         : [];
   const normalizeAcct = s => {
-    let v = String(s).trim().toUpperCase().replace(/[*]+$/g, '');
+    let v = String(s).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const m = v.match(/^[A-Z]+0{4,}(\d+)$/);
     if (m) return m[1];
     return v;

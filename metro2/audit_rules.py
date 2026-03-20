@@ -333,6 +333,8 @@ def _match_score_pair(a: Mapping[str, Any], b: Mapping[str, Any]) -> float:
     if account_a and account_b:
         if account_a == account_b:
             score += 80
+        elif account_a.endswith(account_b) or account_b.endswith(account_a):
+            score += 80
         else:
             score -= 100
 
@@ -1041,11 +1043,12 @@ def audit_factual_disputes(tradelines: Iterable[MutableMapping[str, Any]]) -> No
             )
 
         if last_payment_ref and date_opened and last_payment_ref < date_opened:
-            _attach_violation(
-                record,
-                "last_payment_precedes_date_opened",
-                "Date of Last Payment precedes Date Opened",
-            )
+            if not _has_violation(record, "DATE_ORDER_SANITY"):
+                _attach_violation(
+                    record,
+                    "last_payment_precedes_date_opened",
+                    "Date of Last Payment precedes Date Opened",
+                )
 
         if _payment_history_has_late(record) and (
             "current" in status or "current" in payment_status

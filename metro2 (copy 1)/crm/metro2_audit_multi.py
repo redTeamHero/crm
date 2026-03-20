@@ -44,11 +44,12 @@ FIELD_ALIASES: Dict[str, str] = {
     "creditor classification": "creditor_class",
     "date closed": "date_closed",
     "date closed:": "date_closed",
-    "date first delinquency": "date_last_payment",
-    "date of first delinquency": "date_last_payment",
-    "date of first delinquency:": "date_last_payment",
-    "dofd": "date_last_payment",
-    "dofd:": "date_last_payment",
+    "date first delinquency": "date_of_first_delinquency",
+    "date of first delinquency": "date_of_first_delinquency",
+    "date of first delinquency:": "date_of_first_delinquency",
+    "dofd": "date_of_first_delinquency",
+    "dofd:": "date_of_first_delinquency",
+    "date_of_first_delinquency": "date_of_first_delinquency",
     "date last active": "date_last_active",
     "date last payment": "date_last_payment",
     "date of last payment": "date_last_payment",
@@ -242,6 +243,20 @@ def _account_number_for(tradeline: Dict[str, Any]) -> str:
         or ""
     )
     return re.sub(r"[^A-Za-z0-9]", "", raw).upper()
+
+
+def _accounts_match(acct_a: str, acct_b: str) -> bool:
+    """Return True if two normalized account numbers refer to the same account.
+
+    Handles masked/partial numbers where one bureau may show only the last
+    4 digits (e.g. '2919') while another shows the full number ('32919').
+    An exact match or a suffix/substring relationship is treated as a match.
+    """
+    if not acct_a or not acct_b:
+        return acct_a == acct_b
+    if acct_a == acct_b:
+        return True
+    return acct_a.endswith(acct_b) or acct_b.endswith(acct_a)
 
 
 def _is_revolving(tradeline: Dict[str, Any]) -> bool:
@@ -1305,9 +1320,18 @@ def _translate_modern_violation(
 def _group_tradelines(tradelines: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """
     Groups tradelines by creditor + account number + bureau.
+
+    Account number matching uses suffix/substring logic so that masked
+    numbers (e.g. '2919' from one bureau) are treated as the same account
+    as a longer version ('32919' from another bureau).  The canonical key
+    stored for each group uses the longest normalized account number seen
+    so far, which ensures cross-bureau grouping is stable.
+
     Skips empty or duplicate creditors.
     """
     groups: Dict[str, List[Dict[str, Any]]] = {}
+    group_accts: Dict[str, str] = {}
+
     for t in tradelines:
         creditor = re.sub(r"\s+", " ", str(t.get("creditor_name", ""))).strip().lower()
         if not creditor or creditor in ("unknown", "address", "type of business"):
@@ -1315,13 +1339,28 @@ def _group_tradelines(tradelines: List[Dict[str, Any]]) -> Dict[str, List[Dict[s
 
         acct = _account_number_for(t)
         bureau = t.get("bureau", "Unknown")
-        key = f"{creditor}|{acct}|{bureau}"
+        exact_key = f"{creditor}|{acct}|{bureau}"
 
-        # skip duplicates
-        if key in groups:
+        if exact_key in groups:
             continue
 
-        groups.setdefault(key, []).append(t)
+        matched_key: Optional[str] = None
+        if acct:
+            for existing_key, existing_acct in group_accts.items():
+                if existing_key.startswith(f"{creditor}|") and _accounts_match(acct, existing_acct):
+                    matched_key = existing_key
+                    break
+
+        if matched_key is not None:
+            groups[matched_key].append(t)
+            existing_acct = group_accts[matched_key]
+            if len(acct) > len(existing_acct):
+                group_accts[matched_key] = acct
+        else:
+            key = f"{creditor}|{acct}|{bureau}"
+            groups[key] = [t]
+            group_accts[key] = acct
+
     return groups
 
 
