@@ -65,13 +65,17 @@ function renderStatusBar() {
   const el = $('fbConnectionStatus');
   const statsEl = $('smStats');
   if (status.connection) {
-    el.innerHTML = `<span style="color:#34d399;font-weight:600;">● Connected:</span> <span style="color:#e5e7eb;">${esc(status.connection.pageName)}</span>`;
+    const ts = status.tokenStatus || 'ok';
+    const dotColor = ts === 'expired' ? '#f87171' : ts === 'expiring_soon' ? '#fbbf24' : '#34d399';
+    el.innerHTML = `<span style="color:${dotColor};font-weight:600;">●</span> <span style="color:#e5e7eb;">${esc(status.connection.pageName)}</span>`;
     statsEl.style.display = 'block';
-    statsEl.textContent = `${status.scheduledCount} scheduled · ${status.publishedCount} published`;
+    const failedTxt = status.failedCount ? ` · <span style="color:#f87171;">${status.failedCount} failed</span>` : '';
+    statsEl.innerHTML = `${status.scheduledCount} scheduled · ${status.publishedCount} published${failedTxt}`;
   } else {
     el.innerHTML = `<span style="color:#f87171;font-weight:600;">● Not Connected</span>`;
     statsEl.style.display = 'none';
   }
+  renderTokenWarningBanner();
   const redirectUri = `${window.location.origin}/api/social/auth/facebook/callback`;
   const hint = $('redirectUriHint');
   if (hint) hint.textContent = redirectUri;
@@ -87,26 +91,65 @@ function renderStatusBar() {
   }
 }
 
+function renderTokenWarningBanner() {
+  let banner = $('tokenWarningBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'tokenWarningBanner';
+    const workspace = document.querySelector('.workspace-inner');
+    if (workspace) workspace.insertBefore(banner, workspace.firstChild);
+  }
+  const ts = status.tokenStatus;
+  if (ts === 'expired') {
+    banner.style.cssText = 'background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:0;';
+    banner.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><circle cx="12" cy="16" r="0.5" fill="#f87171"/></svg><span style="font-size:13px;color:#fca5a5;flex:1;"><strong style="color:#f87171;">Facebook token expired</strong> — Autopilot has paused publishing. <a href="#" id="bannerReconnect" style="color:#f87171;text-decoration:underline;">Reconnect your page</a> to resume.</span>`;
+    banner.querySelector('#bannerReconnect')?.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelector('[data-tab="connect"]')?.click();
+    });
+  } else if (ts === 'expiring_soon' && status.connection?.tokenExpiresAt) {
+    const days = Math.ceil((new Date(status.connection.tokenExpiresAt) - Date.now()) / (1000*60*60*24));
+    banner.style.cssText = 'background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:0;';
+    banner.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><circle cx="12" cy="16" r="0.5" fill="#fbbf24"/></svg><span style="font-size:13px;color:#fde68a;flex:1;"><strong style="color:#fbbf24;">Facebook token expires in ${days} day${days !== 1 ? 's' : ''}</strong> — Reconnect soon to keep autopilot running without interruption.</span>`;
+  } else {
+    banner.style.display = 'none';
+    return;
+  }
+  banner.style.display = 'flex';
+}
+
 function renderConnectTab() {
   const body = $('connectBody');
   if (status.connection) {
     const conn = status.connection;
-    const expiryStr = conn.tokenExpiresAt ? `Token expires ${new Date(conn.tokenExpiresAt).toLocaleDateString()}` : '';
+    const ts = status.tokenStatus || 'ok';
+    const tokenBadgeMap = {
+      ok: { color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', label: 'Token Valid' },
+      expiring_soon: { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', label: 'Expiring Soon' },
+      expired: { color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', label: 'Token Expired' },
+    };
+    const tb = tokenBadgeMap[ts] || tokenBadgeMap.ok;
+    const connBorderColor = ts === 'expired' ? 'rgba(239,68,68,0.3)' : ts === 'expiring_soon' ? 'rgba(251,191,36,0.3)' : 'rgba(16,185,129,0.2)';
+    const connBgColor = ts === 'expired' ? 'rgba(239,68,68,0.06)' : ts === 'expiring_soon' ? 'rgba(251,191,36,0.06)' : 'rgba(16,185,129,0.08)';
+    const expiryLine = conn.tokenExpiresAt ? `<div style="font-size:11px;color:#6b7280;margin-top:3px;">Token expires: ${new Date(conn.tokenExpiresAt).toLocaleDateString()}</div>` : '';
     const scopesTags = (conn.grantedScopes || []).map(s => `<span style="display:inline-block;background:rgba(99,102,241,0.12);color:#818cf8;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;margin:1px;">${esc(s)}</span>`).join('');
     body.innerHTML = `
-      <div style="display:flex;align-items:center;gap:16px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:20px 24px;">
+      <div style="display:flex;align-items:center;gap:16px;background:${connBgColor};border:1px solid ${connBorderColor};border-radius:12px;padding:20px 24px;">
         <div style="width:48px;height:48px;border-radius:50%;background:#1877f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:15px;font-weight:700;color:#e5e7eb;">${esc(conn.pageName)}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <div style="font-size:15px;font-weight:700;color:#e5e7eb;">${esc(conn.pageName)}</div>
+            <span style="display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;background:${tb.bg};color:${tb.color};border:1px solid ${tb.border};">${tb.label}</span>
+          </div>
           <div style="font-size:12px;color:#9ca3af;margin-top:2px;">Page ID: ${esc(conn.pageId)} · Connected ${new Date(conn.connectedAt).toLocaleDateString()}${conn.connectedByUserId ? ` by ${esc(conn.connectedByUserId)}` : ''}</div>
-          ${expiryStr ? `<div style="font-size:11px;color:#6b7280;margin-top:2px;">${esc(expiryStr)}</div>` : ''}
+          ${expiryLine}
           ${scopesTags ? `<div style="margin-top:6px;">${scopesTags}</div>` : ''}
         </div>
         <button id="btnDisconnect" type="button" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#f87171;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Disconnect</button>
       </div>
-      <p style="font-size:13px;color:#9ca3af;margin-top:12px;">Your page is connected. You can now schedule and publish posts from the <strong style="color:#e5e7eb;">Generate Post</strong> and <strong style="color:#e5e7eb;">Post Queue</strong> tabs, or pull leads and comments from the <strong style="color:#e5e7eb;">Leads &amp; Comments</strong> tab.</p>`;
+      <p style="font-size:13px;color:#9ca3af;margin-top:12px;">Your page is connected. Autopilot and scheduled posts run on the server 24/7 — you don't need to stay logged in. You can also schedule and publish posts from the <strong style="color:#e5e7eb;">Generate Post</strong> and <strong style="color:#e5e7eb;">Post Queue</strong> tabs.</p>`;
     $('btnDisconnect')?.addEventListener('click', disconnectFacebook);
   } else if (status.fbConfigured) {
     body.innerHTML = `
@@ -717,15 +760,23 @@ function renderAutopilot(data) {
   if (thumb) thumb.style.transform = enabled ? 'translateX(20px)' : 'translateX(0)';
   if (label) label.textContent = enabled ? 'Enabled' : 'Disabled';
 
+  const ts = data.tokenStatus || 'ok';
   const dot = $('autopilotStatusDot');
   const lbl = $('autopilotStatusLabel');
   const sub = $('autopilotStatusSub');
-  if (dot) dot.style.background = enabled ? '#10b981' : '#6b7280';
-  if (lbl) lbl.textContent = enabled ? 'Autopilot Active' : 'Autopilot Paused';
+  const dotColor = !enabled ? '#6b7280' : ts === 'expired' ? '#f87171' : ts === 'expiring_soon' ? '#fbbf24' : '#10b981';
+  if (dot) dot.style.background = dotColor;
+  if (lbl) {
+    if (!enabled) lbl.textContent = 'Autopilot Paused';
+    else if (ts === 'expired') lbl.textContent = 'Autopilot Paused — Token Expired';
+    else lbl.textContent = 'Autopilot Active · Runs 24/7 on server';
+  }
   if (sub) {
-    if (enabled && ap.nextRunAt) sub.textContent = `Next check: ${formatCountdown(ap.nextRunAt)} · Last run: ${ap.lastRunAt ? new Date(ap.lastRunAt).toLocaleString() : 'Never'}`;
-    else if (enabled) sub.textContent = 'Starting soon…';
-    else sub.textContent = 'Enable autopilot to start posting new articles automatically.';
+    if (!enabled) { sub.textContent = 'Enable autopilot to start posting new articles automatically. You don\'t need to stay logged in — it runs on the server.'; }
+    else if (ts === 'expired') { sub.innerHTML = 'Facebook token has expired. <a href="#" class="ap-reconnect-link" style="color:#f87171;text-decoration:underline;">Reconnect your page</a> to resume.'; sub.querySelector('.ap-reconnect-link')?.addEventListener('click', e => { e.preventDefault(); document.querySelector('[data-tab="connect"]')?.click(); }); }
+    else if (ts === 'expiring_soon' && data.connection?.tokenExpiresAt) { const days = Math.ceil((new Date(data.connection.tokenExpiresAt) - Date.now()) / (1000*60*60*24)); sub.textContent = `Next check: ${formatCountdown(ap.nextRunAt)} · Token expires in ${days}d — reconnect soon`; }
+    else if (ap.nextRunAt) { sub.textContent = `Next check: ${formatCountdown(ap.nextRunAt)} · Last run: ${ap.lastRunAt ? new Date(ap.lastRunAt).toLocaleString() : 'Never'}`; }
+    else sub.textContent = 'Starting soon…';
   }
   const postsEl = $('autopilotPostsToday');
   if (postsEl) postsEl.textContent = data.postsToday ?? '0';

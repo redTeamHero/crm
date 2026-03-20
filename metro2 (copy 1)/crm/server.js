@@ -12464,6 +12464,17 @@ Rules:
 
 registerStaticPage({ paths: '/social', file: 'facebook-manager.html', middlewares: [authenticate] });
 
+function getTokenStatus(connection) {
+  if (!connection) return 'none';
+  if (!connection.tokenExpiresAt) return 'ok';
+  const expiresAt = new Date(connection.tokenExpiresAt);
+  const now = new Date();
+  if (expiresAt <= now) return 'expired';
+  const daysLeft = (expiresAt - now) / (1000 * 60 * 60 * 24);
+  if (daysLeft < 7) return 'expiring_soon';
+  return 'ok';
+}
+
 app.get('/api/social/status', authenticate, async (req, res) => {
   try {
     const db = await loadSocialDB();
@@ -12472,7 +12483,9 @@ app.get('/api/social/status', authenticate, async (req, res) => {
     const connection = db.connection || null;
     const scheduledCount = (db.queue || []).filter(p => p.status === 'scheduled').length;
     const publishedCount = (db.queue || []).filter(p => p.status === 'published').length;
-    res.json({ ok: true, fbConfigured, connection, scheduledCount, publishedCount, rssParserAvailable: !!RssParser });
+    const failedCount = (db.queue || []).filter(p => p.status === 'failed').length;
+    const tokenStatus = getTokenStatus(connection);
+    res.json({ ok: true, fbConfigured, connection, scheduledCount, publishedCount, failedCount, tokenStatus, rssParserAvailable: !!RssParser });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -12812,18 +12825,31 @@ setInterval(async () => {
   try {
     const db = await loadSocialDB();
     if (!db.connection) return;
+    const tokenStatus = getTokenStatus(db.connection);
+    if (tokenStatus === 'expired') return;
     const now = new Date();
-    const due = (db.queue || []).filter(p => p.status === 'scheduled' && p.scheduledAt && new Date(p.scheduledAt) <= now);
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const due = (db.queue || []).filter(p => {
+      if (p.status === 'scheduled' && p.scheduledAt && new Date(p.scheduledAt) <= now) return true;
+      if (p.status === 'failed' && (p.retryCount || 0) < 3 && (!p.lastAttemptAt || new Date(p.lastAttemptAt) <= oneHourAgo)) return true;
+      return false;
+    });
     if (!due.length) return;
     for (const post of due) {
       try {
         const result = await fbPublishPost({ ...post, scheduledAt: null }, db.connection);
         if (result.id) {
           post.status = 'published'; post.publishedAt = new Date().toISOString(); post.fbPostId = result.id; post.error = null;
+          delete post.retryCount; delete post.lastAttemptAt;
         } else {
-          post.status = 'failed'; post.error = result.error?.message || 'Facebook error';
+          post.retryCount = (post.retryCount || 0) + 1;
+          post.lastAttemptAt = now.toISOString();
+          post.status = 'failed';
+          post.error = result.error?.message || 'Facebook error';
         }
       } catch (err) {
+        post.retryCount = (post.retryCount || 0) + 1;
+        post.lastAttemptAt = now.toISOString();
         post.status = 'failed'; post.error = err.message;
       }
     }
@@ -12983,7 +13009,9 @@ app.get('/api/social/autopilot', authenticate, async (req, res) => {
     const ap = db.autopilot || getDefaultAutopilot();
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const postsToday = (db.queue || []).filter(p => p.source === 'autopilot' && p.createdAt && new Date(p.createdAt) >= todayStart).length;
-    res.json({ ok: true, autopilot: ap, postsToday, feeds: (db.feeds || []).map(f => ({ id: f.id, name: f.name })) });
+    const tokenStatus = getTokenStatus(db.connection || null);
+    const connection = db.connection ? { pageId: db.connection.pageId, pageName: db.connection.pageName, tokenExpiresAt: db.connection.tokenExpiresAt } : null;
+    res.json({ ok: true, autopilot: ap, postsToday, tokenStatus, connection, feeds: (db.feeds || []).map(f => ({ id: f.id, name: f.name })) });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
