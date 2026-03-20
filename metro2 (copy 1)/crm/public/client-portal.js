@@ -465,25 +465,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const consumerId = idMatch ? decodeURIComponent(idMatch[1]) : null;
   if(!consumerId){
-    // No ID in URL — redirect to login (clientId flat key removed for isolation)
+    // No ID in URL — redirect to login (no clientId fallback for data isolation)
     location.replace('/login.html');
     return;
   } else {
-    // On load: migrate legacy flat-key data → namespaced keys, purge stale flat keys,
-    // and clear any data cached for a different client from a prior session.
+    // On load: migrate legacy flat-key data, purge stale data from prior client sessions,
+    // and write a namespaced session marker so future client switches can detect and clean up.
     try {
       if (_portalCid) {
-        // Detect previous client via legacy clientId key and purge their namespaced data
-        const prevClientId = localStorage.getItem('clientId');
-        if (prevClientId && prevClientId !== consumerId) {
-          _PORTAL_LS_KEYS.forEach(function(k) {
-            localStorage.removeItem(k + '_' + prevClientId);
-          });
-          ['edu_progress','edu_streak','edu_active_tier','edu_quiz_progress'].forEach(function(k) {
-            localStorage.removeItem(k + '_' + prevClientId);
-          });
+        const _eduKeys = ['edu_progress','edu_streak','edu_active_tier','edu_quiz_progress'];
+
+        // 1. Scan for namespaced clientId_* markers from prior sessions (other clients)
+        //    and purge their namespaced data.
+        const keysToScan = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var sk = localStorage.key(i);
+          if (sk && sk.startsWith('clientId_') && sk !== lk('clientId')) keysToScan.push(sk);
         }
-        // Migrate flat (legacy) keys → namespaced keys, then remove flat keys
+        keysToScan.forEach(function(markerKey) {
+          var prevCid = markerKey.slice('clientId_'.length);
+          if (prevCid && prevCid !== consumerId) {
+            _PORTAL_LS_KEYS.forEach(function(k) { localStorage.removeItem(k + '_' + prevCid); });
+            _eduKeys.forEach(function(k) { localStorage.removeItem(k + '_' + prevCid); });
+          }
+          localStorage.removeItem(markerKey);
+        });
+
+        // 2. Handle legacy flat clientId key (pre-namespacing migration path)
+        var legacyClientId = localStorage.getItem('clientId');
+        if (legacyClientId && legacyClientId !== consumerId) {
+          _PORTAL_LS_KEYS.forEach(function(k) { localStorage.removeItem(k + '_' + legacyClientId); });
+          _eduKeys.forEach(function(k) { localStorage.removeItem(k + '_' + legacyClientId); });
+        }
+        localStorage.removeItem('clientId');
+
+        // 3. Migrate legacy flat-key data → namespaced keys, then remove flat keys
         _PORTAL_LS_KEYS.forEach(function(k) {
           var flatVal = localStorage.getItem(k);
           if (flatVal !== null) {
@@ -491,8 +507,9 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem(k);
           }
         });
-        // Remove the legacy global clientId key — all data now namespaced by URL ID
-        localStorage.removeItem('clientId');
+
+        // 4. Write namespaced session marker for this client so future loads can detect switches
+        localStorage.setItem(lk('clientId'), consumerId);
       }
     } catch {}
   }
@@ -528,6 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem(k);
         if (_portalCid) localStorage.removeItem(k + '_' + _portalCid);
       });
+      // Remove namespaced session marker and all other flat keys
+      if (_portalCid) localStorage.removeItem('clientId_' + _portalCid);
       ['token','auth','clientId','cta_variant'].forEach(function(k){ localStorage.removeItem(k); });
       location.href = '/login.html';
     });
