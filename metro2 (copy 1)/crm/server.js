@@ -1639,6 +1639,14 @@ function renderClientPortalHtml({ portalBootstrap = {}, portalEnhanced = {}, neg
     .replace(/{{portalNegativeItems}}/g, toInlineJson(negativeItems));
 }
 
+// Prevent browsers from caching JS files so updated code is always loaded
+app.use((req, res, next) => {
+  if (req.path.endsWith('.js')) {
+    res.set('Cache-Control', 'no-store');
+  }
+  next();
+});
+
 // Disable default index to avoid auto-serving the app without auth
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
