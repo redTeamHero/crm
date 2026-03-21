@@ -144,6 +144,7 @@
 
     try {
       const res = await fetch('/api/diy/me', {
+        cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (!res.ok) throw new Error('Session expired');
@@ -706,7 +707,7 @@
 
   async function loadWizLetters() {
     try {
-      var res = await fetch('/api/diy/letters', { headers: { 'Authorization': 'Bearer ' + token } });
+      var res = await fetch('/api/diy/letters', { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + token } });
       var data = await res.json();
       var container = document.getElementById('wizLetterChecklist');
       var noEl = document.getElementById('wizNoLetters');
@@ -842,7 +843,7 @@
 
   async function loadAndRenderTracker() {
     try {
-      var res = await fetch('/api/diy/dispute-rounds', { headers: { 'Authorization': 'Bearer ' + token } });
+      var res = await fetch('/api/diy/dispute-rounds', { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + token } });
       var data = await res.json();
       if (data.ok) { disputeRounds = data.rounds || []; renderTrackerUI(); }
     } catch (e) { console.error('Failed to load dispute rounds:', e); }
@@ -1253,6 +1254,7 @@
   async function loadReports() {
     try {
       const res = await fetch('/api/diy/reports', {
+        cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
@@ -1281,6 +1283,7 @@
   async function loadLetters() {
     try {
       const res = await fetch('/api/diy/letters', {
+        cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
@@ -1329,7 +1332,7 @@
 
   async function loadCfpbHistory() {
     try {
-      var res = await fetch('/api/diy/cfpb-complaints', { headers: { 'Authorization': 'Bearer ' + token } });
+      var res = await fetch('/api/diy/cfpb-complaints', { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + token } });
       var data = await res.json();
       var complaints = (data.complaints || []);
       var section = document.getElementById('diyCfpbHistorySection');
@@ -1366,7 +1369,7 @@
     if (!panel) return;
     panel.innerHTML = '';
     try {
-      var res = await fetch('/api/diy/negative-items', { headers: { 'Authorization': 'Bearer ' + token } });
+      var res = await fetch('/api/diy/negative-items', { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + token } });
       var data = await res.json();
       var items = (data.items || []);
       if (!items.length) {
@@ -1589,6 +1592,7 @@
     if (!companyMatch) return;
     try {
       const res = await fetch('/api/diy/credit-companies/current', {
+        cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
       });
       const data = await res.json();
@@ -1640,6 +1644,7 @@
     if (!specialistsList) return;
     try {
       var res = await fetch('/api/diy/credit-companies', {
+        cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
       });
       var data = await res.json();
@@ -1745,7 +1750,7 @@
 
     if (!rangeId) {
       try {
-        var res = await fetch('/api/tradelines');
+        var res = await fetch('/api/tradelines', { cache: 'no-store' });
         var data = await res.json();
         if (data.ranges) {
           tradelineRanges = data.ranges;
@@ -1772,7 +1777,7 @@
     try {
       var url = '/api/tradelines?range=' + encodeURIComponent(rangeId) + '&page=' + page + '&perPage=10';
       if (bankFilter) url += '&bank=' + encodeURIComponent(bankFilter);
-      var res = await fetch(url);
+      var res = await fetch(url, { cache: 'no-store' });
       var data = await res.json();
 
       if (data.banks && tradelineBankSelect) {
@@ -1842,6 +1847,7 @@
     if (!newsFeedEl) return;
     try {
       var res = await fetch('/api/diy/news', {
+        cache: 'no-store',
         headers: { 'Authorization': 'Bearer ' + token }
       });
       var data = await res.json();
@@ -1869,7 +1875,7 @@
   // ─── UPGRADE & BILLING ───
   async function loadDiyProducts() {
     try {
-      var res = await fetch('/api/stripe/products');
+      var res = await fetch('/api/stripe/products', { cache: 'no-store' });
       var data = await res.json();
       if (data.ok) {
         diyStripeProducts = (data.products || []).filter(function(p) { return p.type === 'diy'; });
@@ -1913,7 +1919,7 @@
   async function loadSubscriptionStatus() {
     if (!currentUser) return;
     try {
-      var res = await fetch('/api/stripe/subscription-status?mode=diy&userId=' + currentUser.id);
+      var res = await fetch('/api/stripe/subscription-status?mode=diy&userId=' + currentUser.id, { cache: 'no-store' });
       var data = await res.json();
       var periodEl = document.getElementById('billingPeriod');
       if (data.ok && data.subscription) {

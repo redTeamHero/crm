@@ -15,7 +15,7 @@ const STATIC_PLAYBOOKS = {
 
 async function loadPlaybooks(){
   try{
-    const res = await fetch('/api/templates');
+    const res = await fetch('/api/templates', { cache: 'no-store' });
     const data = await res.json();
     const templateMap = Object.fromEntries((data.templates || []).map(t => [t.id, t.heading]));
     const seqPlaybooks = {};

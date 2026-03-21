@@ -36,6 +36,7 @@
   async function loadUser() {
     try {
       const res = await fetch('/api/diy/me', {
+        cache: 'no-store',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Session expired');
@@ -64,6 +65,7 @@
     companyList.innerHTML = '<div class="text-sm text-gray-500">Loading ranked picks...</div>';
     try {
       const res = await fetch('/api/diy/credit-companies', {
+        cache: 'no-store',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -92,6 +94,7 @@
   async function loadCurrentCompany() {
     try {
       const res = await fetch('/api/diy/credit-companies/current', {
+        cache: 'no-store',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -283,7 +286,7 @@
 
   async function loadDiyProducts() {
     try {
-      const res = await fetch('/api/stripe/products');
+      const res = await fetch('/api/stripe/products', { cache: 'no-store' });
       const data = await res.json();
       if (data.ok) {
         diyStripeProducts = (data.products || []).filter(p => p.type === 'diy');

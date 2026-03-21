@@ -91,7 +91,7 @@ async function bootstrapDataRegionExperiment(consumerId){
   if(consumerId) params.set('consumerId', consumerId);
   const query = params.toString();
   try {
-    const resp = await fetch(`/api/experiments/${DATA_REGION_EXPERIMENT_KEY}${query ? `?${query}` : ''}`);
+    const resp = await fetch(`/api/experiments/${DATA_REGION_EXPERIMENT_KEY}${query ? `?${query}` : ''}`, { cache: 'no-store' });
     if(!resp.ok) throw new Error('Experiment assignment failed');
     const payload = await resp.json();
     dataRegionVariant = payload?.variant || 'control';
@@ -608,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadAvailability() {
       if (availabilityCache) return availabilityCache;
       try {
-        const r = await fetch('/api/booking/availability');
+        const r = await fetch('/api/booking/availability', { cache: 'no-store' });
         const data = await r.json();
         if (data.ok) availabilityCache = data.availability;
         return availabilityCache || {};
@@ -672,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
       slotsLoading.classList.remove('hidden');
 
       try {
-        const r = await fetch('/api/booking/slots?date=' + dateStr);
+        const r = await fetch('/api/booking/slots?date=' + dateStr, { cache: 'no-store' });
         const data = await r.json();
         slotsLoading.classList.add('hidden');
 
@@ -858,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepEl = document.getElementById('currentStep');
   if (consumerId && stepEl) {
     const fetchStep = () => {
-      fetch(`/api/consumers/${consumerId}/tracker`)
+      fetch(`/api/consumers/${consumerId}/tracker`, { cache: 'no-store' })
         .then(r => r.json())
         .then(({ steps = [], completed = {} }) => {
           if (!Array.isArray(steps) || !steps.length) {
@@ -923,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const feedEl = document.getElementById('newsFeed');
   if (feedEl) {
-    fetch('/api/news')
+    fetch('/api/news', { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         const items = data.items || [];
@@ -1177,7 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const qs = params.toString();
         const url = `/api/consumers/${id}/tradeline-recommendations` + (qs ? '?' + qs : '');
-        const res = await fetch(url);
+        const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
 
@@ -1518,7 +1518,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const fetchJson = async (url) => {
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'Request failed');

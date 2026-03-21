@@ -1141,7 +1141,7 @@ export async function api(url, options = {}) {
     ...(options.headers || {})
   };
   try {
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(url, { cache: 'no-store', ...options, headers });
     const text = await res.text();
     let parsed;
     try {

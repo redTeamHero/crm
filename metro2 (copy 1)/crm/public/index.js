@@ -207,7 +207,7 @@ const ocrCb = $("#cbUseOcr");
 let CUSTOM_TEMPLATES = [];
 async function loadTemplates(){
   try{
-    const res = await fetch('/api/templates');
+    const res = await fetch('/api/templates', { cache: 'no-store' });
     const data = await res.json().catch(()=>({}));
     CUSTOM_TEMPLATES = data.templates || [];
     document.querySelectorAll('.tl-letter-select').forEach(sel=>populateLetterSelectOptions(sel));

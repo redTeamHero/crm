@@ -69,7 +69,7 @@ let hotkeys = getHotkeys();
 async function syncHotkeysFromServer() {
   if (typeof fetch !== 'function') return;
   try {
-    const resp = await fetch('/api/settings/hotkeys', { credentials: 'same-origin' });
+    const resp = await fetch('/api/settings/hotkeys', { cache: 'no-store', credentials: 'same-origin' });
     if (!resp.ok) return;
     const data = await resp.json().catch(() => null);
     if (!data || data.ok === false) return;
