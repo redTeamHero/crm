@@ -1789,7 +1789,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if(invoiceLoading) return;
     invoiceLoading = true;
-    fetch(`/api/invoices/${consumerId}`)
+    fetch(`/api/invoices/${consumerId}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         renderInvoices(Array.isArray(data.invoices) ? data.invoices : []);
@@ -2078,6 +2078,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var docContractsList = document.getElementById('docContractsList');
     var _contractsToken = getPortalToken();
     fetch('/api/portal/' + encodeURIComponent(consumerId) + '/contracts', {
+      cache: 'no-store',
       headers: _contractsToken ? { 'Authorization': 'Bearer ' + _contractsToken } : {}
     })
       .then(function(r){ return r.json(); })
@@ -2136,7 +2137,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function loadDocs(){
     if (!(consumerId && (docEl || docPreviewEl))) return;
-    fetch(`/api/consumers/${consumerId}/state`)
+    fetch(`/api/consumers/${consumerId}/state`, { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         allDocs = data.state?.files || [];
@@ -2190,7 +2191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function loadMail(){
     if (!(mailWaiting && mailMailed && consumerId)) return;
-    fetch(`/api/consumers/${consumerId}/state`)
+    fetch(`/api/consumers/${consumerId}/state`, { cache: 'no-store' })
       .then(r=>r.json())
       .then(data=>{
         const events = data.state?.events || [];
@@ -2976,7 +2977,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function loadMessages(){
     if (!(consumerId && messageList)) return;
-    fetch(`/api/messages/${consumerId}`)
+    fetch(`/api/messages/${consumerId}`, { cache: 'no-store' })
       .then(r => {
         if (!r.ok) throw new Error('Network response was not ok');
         return r.text();
@@ -3792,7 +3793,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!consumerId || disputeLoading) return;
     disputeLoading = true;
     try {
-      const resp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes`);
+      const resp = await fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes`, { cache: 'no-store' });
       if (!resp.ok) throw new Error('Failed to load disputes');
       const data = await resp.json();
       disputeData = data;
@@ -3805,14 +3806,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const latestWithResponses = [...rounds].reverse().find(r => r.status !== 'awaiting_response' && r.status !== 'awaiting');
         if (latestWithResponses) {
           fetches.push(
-            fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(latestWithResponses.jobId)}/recommendation`)
+            fetch(`/api/consumers/${encodeURIComponent(consumerId)}/disputes/${encodeURIComponent(latestWithResponses.jobId)}/recommendation`, { cache: 'no-store' })
               .then(r => r.ok ? r.json() : null)
               .then(d => { activeRoundRecs = d?.recommendations || []; })
               .catch(() => {})
           );
         }
         fetches.push(
-          fetch(`/api/consumers/${encodeURIComponent(consumerId)}/state`)
+          fetch(`/api/consumers/${encodeURIComponent(consumerId)}/state`, { cache: 'no-store' })
             .then(r => r.ok ? r.json() : null)
             .then(d => {
               const events = d?.state?.events || [];
@@ -3941,7 +3942,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function reloadPortalAff() {
       showPortalAffNotJoined();
-      fetch('/api/affiliate/me' + cidQuery, { headers: hdrs })
+      fetch('/api/affiliate/me' + cidQuery, { cache: 'no-store', headers: hdrs })
         .then(function(r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.json();
@@ -3963,7 +3964,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     reloadPortalAff();
 
-    fetch('/api/affiliate/commission-rates')
+    fetch('/api/affiliate/commission-rates', { cache: 'no-store' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
         if (!d.ok || !d.rates) return;
@@ -4018,7 +4019,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadPortalPayoutHistory() {
-      fetch('/api/affiliate/payouts' + cidQuery, { headers: hdrs })
+      fetch('/api/affiliate/payouts' + cidQuery, { cache: 'no-store', headers: hdrs })
         .then(function(r) { return r.json(); })
         .then(function(data) {
           var tbody = document.getElementById('portalPayoutTable');
@@ -4200,6 +4201,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (smartCreditConfigured === undefined) {
       fetch('/api/smartcredit/status' + (consumerId ? '?consumerId=' + encodeURIComponent(consumerId) : ''), {
+        cache: 'no-store',
         headers: authHeaders
       })
         .then(function(r) { return r.json(); })
