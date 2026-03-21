@@ -1278,6 +1278,11 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
+app.use("/api", (_req, res, next) => {
+  res.set("Cache-Control", "no-store");
+  next();
+});
+
 app.use(express.json({ limit: "10mb" }));
 
 function stripDangerousKeys(obj) {
