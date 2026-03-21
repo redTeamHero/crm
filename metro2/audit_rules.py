@@ -199,6 +199,39 @@ def _normalize_status(value: Any) -> str:
     return str(value or "").strip().lower()
 
 
+def _safe_lower(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def _has_keywords(text: str, keywords: Sequence[str]) -> bool:
+    low = _safe_lower(text)
+    return any(k in low for k in keywords)
+
+
+def _is_revolving(record: Mapping[str, Any]) -> bool:
+    t = _normalize_status(record.get("account_type"))
+    d = _normalize_status(record.get("account_type_detail"))
+    return any(k in t or k in d for k in ("revolv", "credit card", "line of credit"))
+
+
+def _is_installment(record: Mapping[str, Any]) -> bool:
+    t = _normalize_status(record.get("account_type"))
+    d = _normalize_status(record.get("account_type_detail"))
+    return any(k in t or k in d for k in ("install", "auto loan", "mortgage"))
+
+
+def _get_comments(record: Mapping[str, Any]) -> str:
+    return str(record.get("comments") or record.get("remarks") or record.get("notes") or "")
+
+
+def _get_ecoa(record: Mapping[str, Any]) -> str:
+    return _normalize_status(record.get("ecoa") or record.get("responsibility"))
+
+
+def _get_compliance_code(record: Mapping[str, Any]) -> str:
+    return _normalize_status(record.get("compliance_condition_code") or record.get("ccc"))
+
+
 def _boolish(value: Any) -> bool:
     if isinstance(value, bool):
         return value
@@ -650,6 +683,26 @@ RULE_METADATA: Dict[str, Dict[str, Any]] = {
         "category": "factual_dispute",
         "requires": ["consumer_assertion"],
     },
+    "CURRENT_STATUS_WITH_PAST_DUE": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "ZERO_BALANCE_WITH_PAST_DUE": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "LATE_STATUS_NO_PAST_DUE": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "OPEN_ZERO_BALANCE": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "REVOLVING_ZERO_LIMIT_COMMENT": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "HIGH_CREDIT_GT_LIMIT": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "REVOLVING_WITH_TERMS": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "REVOLVING_MISSING_LIMIT": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "INSTALLMENT_HAS_LIMIT": {"severity": "moderate", "fcra_section": "FCRA §623(a)(1)"},
+    "CO_COLLECTION_PAST_DUE": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "AU_COMMENT_ECOA_CONFLICT": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "DEROG_RATING_BUT_CURRENT": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "DISPUTE_COMMENT_NEEDS_XB": {"severity": "major", "fcra_section": "FCRA §623(a)(3)"},
+    "CLOSED_ACCOUNT_MONTHLY_PAYMENT": {"severity": "moderate", "fcra_section": "FCRA §607(b)"},
+    "STALE_ACTIVE_REPORTING": {"severity": "moderate", "fcra_section": "FCRA §623(a)(2)"},
+    "METRO2_CODE_3_CONFLICT": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "METRO2_CODE_9_MISSING_OC": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "SL_DEFERMENT_HAS_LATES": {"severity": "major", "fcra_section": "FCRA §623(a)(1)"},
+    "DATE_ORDER_SANITY": {"severity": "major", "fcra_section": "FCRA §607(b)"},
+    "CROSS_BUREAU_UTILIZATION_GAP": {"severity": "moderate", "fcra_section": "FCRA §1681e(b)"},
 }
 
 
@@ -1789,6 +1842,320 @@ def audit_personal_info(info: Mapping[str, Mapping[str, Any]]) -> List[Dict[str,
 
 
 # ---------------------------------------------------------------------------
+# Ported fallback rules — now unified in the primary engine
+# ---------------------------------------------------------------------------
+
+
+def audit_current_with_past_due(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        past_due = clean_amount(record.get("past_due"))
+        if past_due <= 0:
+            continue
+        if any(k in status for k in ("current", "pays as agreed", "paid as agreed", "ok")):
+            _attach_violation(
+                record,
+                "CURRENT_STATUS_WITH_PAST_DUE",
+                "Account marked current while reporting past due balance",
+            )
+
+
+def audit_zero_balance_with_past_due(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        balance = clean_amount(record.get("balance"))
+        past_due = clean_amount(record.get("past_due"))
+        if balance <= 1 and past_due > 0:
+            _attach_violation(
+                record,
+                "ZERO_BALANCE_WITH_PAST_DUE",
+                "Balance is zero but past due amount reported",
+            )
+
+
+def audit_late_status_no_past_due(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    late_kw = ("late", "delinquent", "past due", "charge", "collection", "derog", "30", "60", "90")
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        past_due = clean_amount(record.get("past_due"))
+        if past_due > 0:
+            continue
+        if _has_keywords(status, late_kw):
+            _attach_violation(
+                record,
+                "LATE_STATUS_NO_PAST_DUE",
+                "Delinquent status without supporting past due amount",
+            )
+
+
+def audit_open_zero_balance(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        balance = clean_amount(record.get("balance"))
+        if "open" in status and balance <= 0:
+            _attach_violation(
+                record,
+                "OPEN_ZERO_BALANCE",
+                "Open account reporting $0 balance",
+            )
+
+
+def audit_revolving_zero_limit_comment(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        if not _is_revolving(record):
+            continue
+        status = _normalize_status(record.get("account_status"))
+        if "closed" in status:
+            continue
+        limit = clean_amount(record.get("credit_limit"))
+        high_credit = clean_amount(record.get("high_credit"))
+        comments = _normalize_status(_get_comments(record))
+        if limit == 0 and high_credit > 0 and "high credit" in comments:
+            _attach_violation(
+                record,
+                "REVOLVING_ZERO_LIMIT_COMMENT",
+                "Open revolving account has $0 limit while comments cite high credit as proxy",
+            )
+
+
+def audit_high_credit_exceeds_limit(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        limit = clean_amount(record.get("credit_limit"))
+        high_credit = clean_amount(record.get("high_credit"))
+        if limit > 0 and high_credit > limit:
+            _attach_violation(
+                record,
+                "HIGH_CREDIT_GT_LIMIT",
+                "High Credit exceeds reported Credit Limit",
+            )
+
+
+def audit_revolving_with_terms(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    term_fields = ("terms", "term", "loan_term", "months_terms", "scheduled_payment_term")
+    for record in tradelines:
+        if not _is_revolving(record):
+            continue
+        for field in term_fields:
+            value = record.get(field)
+            if value and re.search(r"\d", str(value)):
+                _attach_violation(
+                    record,
+                    "REVOLVING_WITH_TERMS",
+                    "Revolving account should not include installment-style term length",
+                )
+                break
+
+
+def audit_revolving_missing_limit(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        if not _is_revolving(record):
+            continue
+        status = _normalize_status(record.get("account_status"))
+        if any(k in status for k in ("closed", "paid")):
+            continue
+        limit = clean_amount(record.get("credit_limit"))
+        high_credit = clean_amount(record.get("high_credit"))
+        if limit <= 0 and high_credit <= 0:
+            _attach_violation(
+                record,
+                "REVOLVING_MISSING_LIMIT",
+                "Open revolving tradeline missing both Credit Limit and High Credit",
+            )
+
+
+def audit_installment_has_limit(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        if not _is_installment(record):
+            continue
+        limit = clean_amount(record.get("credit_limit"))
+        if limit > 0:
+            _attach_violation(
+                record,
+                "INSTALLMENT_HAS_LIMIT",
+                "Installment account should not report a revolving-style credit limit",
+            )
+
+
+def audit_co_collection_past_due(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        past_due = clean_amount(record.get("past_due"))
+        if past_due <= 0:
+            continue
+        if any(k in status for k in ("charge", "collection", "chargeoff")):
+            _attach_violation(
+                record,
+                "CO_COLLECTION_PAST_DUE",
+                "Charge-off/Collection should report $0 past due",
+            )
+
+
+def audit_au_comment_ecoa_conflict(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    valid_ecoa = {"a", "au", "authorized user", "u"}
+    for record in tradelines:
+        comments = _normalize_status(_get_comments(record))
+        if not _has_keywords(comments, ("authorized user", "usuario autorizado")):
+            continue
+        ecoa = _get_ecoa(record)
+        if ecoa and ecoa in valid_ecoa:
+            continue
+        _attach_violation(
+            record,
+            "AU_COMMENT_ECOA_CONFLICT",
+            "Authorized user comment present without matching ECOA designator",
+        )
+
+
+def audit_derog_rating_but_current(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    derog_tokens = ("30", "60", "90", "120", "derog", "charge", "collection")
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        past_due = clean_amount(record.get("past_due"))
+        if past_due > 0 or not any(k in status for k in ("current", "pays as agreed", "ok")):
+            continue
+        history = _normalize_status(record.get("payment_history"))
+        rating = _normalize_status(record.get("payment_rating"))
+        if any(t in history for t in derog_tokens) or any(t in rating for t in derog_tokens):
+            _attach_violation(
+                record,
+                "DEROG_RATING_BUT_CURRENT",
+                "Derogatory history present while account marked current with $0 past due",
+            )
+
+
+def audit_dispute_comment_needs_xb(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        comments = _normalize_status(_get_comments(record))
+        if not _has_keywords(comments, ("dispute", "investigation", "en disputa")):
+            continue
+        code = _get_compliance_code(record)
+        if code == "xb":
+            continue
+        _attach_violation(
+            record,
+            "DISPUTE_COMMENT_NEEDS_XB",
+            "Dispute language in comments requires XB compliance condition code",
+        )
+
+
+def audit_closed_account_monthly_payment(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        if not _has_keywords(status, ("closed", "paid", "charge", "collection")):
+            continue
+        payment = clean_amount(record.get("monthly_payment"))
+        if payment > 0:
+            _attach_violation(
+                record,
+                "CLOSED_ACCOUNT_MONTHLY_PAYMENT",
+                "Closed account still reporting a monthly payment",
+            )
+
+
+def audit_stale_active_reporting(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        if not any(k in status for k in ("open", "current", "pays as agreed", "ok")):
+            continue
+        last_rep = parse_date(record.get("last_reported") or record.get("date_last_active"))
+        if not last_rep:
+            continue
+        if (today() - last_rep).days > 180:
+            _attach_violation(
+                record,
+                "STALE_ACTIVE_REPORTING",
+                "Open/current account has not been updated in over 6 months",
+            )
+
+
+def audit_metro2_code_3_conflict(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        closed_date = parse_date(record.get("date_closed"))
+        status = _normalize_status(record.get("account_status"))
+        if closed_date and any(k in status for k in ("open", "current", "pays as agreed", "ok")):
+            _attach_violation(
+                record,
+                "METRO2_CODE_3_CONFLICT",
+                "Tradeline shows Date Closed but status still reads open/current",
+            )
+
+
+def audit_metro2_code_9_missing_oc(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        status = _normalize_status(record.get("account_status"))
+        if "collection" not in status:
+            continue
+        if record.get("original_creditor"):
+            continue
+        _attach_violation(
+            record,
+            "METRO2_CODE_9_MISSING_OC",
+            "Collection account missing Original Creditor",
+        )
+
+
+def audit_student_loan_deferment(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    for record in tradelines:
+        acct_type = _normalize_status(record.get("account_type"))
+        comments = _normalize_status(_get_comments(record))
+        if not any(k in acct_type for k in ("student", "education")):
+            continue
+        if not _has_keywords(comments, ("defer", "forbear")):
+            continue
+        history = _normalize_status(record.get("payment_history"))
+        if any(t in history for t in ("30", "60", "90", "120", "late")):
+            _attach_violation(
+                record,
+                "SL_DEFERMENT_HAS_LATES",
+                "Student loan in deferment/forbearance shows late payment history",
+            )
+
+
+def audit_date_order_sanity(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    check_fields = ("last_reported", "date_last_active", "date_closed")
+    for record in tradelines:
+        opened = parse_date(record.get("date_opened"))
+        if not opened:
+            continue
+        bad_fields: List[str] = []
+        for field in check_fields:
+            dt = parse_date(record.get(field))
+            if dt and dt < opened:
+                bad_fields.append(field)
+        if bad_fields:
+            joined = ", ".join(sorted(bad_fields))
+            _attach_violation(
+                record,
+                "DATE_ORDER_SANITY",
+                f"Dates {joined} occur before Date Opened",
+            )
+
+
+def audit_cross_bureau_utilization_gap(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
+    def _utilization(record: Mapping[str, Any]) -> float | None:
+        balance = clean_amount(record.get("balance"))
+        limit = clean_amount(record.get("credit_limit"))
+        high = clean_amount(record.get("high_credit"))
+        base = limit if limit > 0 else high if high > 0 else 0
+        return None if base <= 0 else balance / base
+
+    groups = group_by_creditor(list(tradelines))
+    for group in groups.values():
+        utils = [(r, _utilization(r)) for r in group]
+        valid = [(r, u) for r, u in utils if u is not None]
+        if len(valid) < 2:
+            continue
+        values = [u for _, u in valid]
+        if max(values) - min(values) > 0.25:
+            for record, _ in valid:
+                if not _has_violation(record, "CROSS_BUREAU_UTILIZATION_GAP"):
+                    _attach_violation(
+                        record,
+                        "CROSS_BUREAU_UTILIZATION_GAP",
+                        "Utilization rate differs by more than 25 percentage points across bureaus",
+                    )
+
+
+# ---------------------------------------------------------------------------
 # Registry & entry point
 # ---------------------------------------------------------------------------
 
@@ -1819,6 +2186,26 @@ AUDIT_FUNCTIONS = [
     audit_closed_account_integrity,
     audit_dispute_compliance,
     audit_portfolio_alignment,
+    audit_current_with_past_due,
+    audit_zero_balance_with_past_due,
+    audit_late_status_no_past_due,
+    audit_open_zero_balance,
+    audit_revolving_zero_limit_comment,
+    audit_high_credit_exceeds_limit,
+    audit_revolving_with_terms,
+    audit_revolving_missing_limit,
+    audit_installment_has_limit,
+    audit_co_collection_past_due,
+    audit_au_comment_ecoa_conflict,
+    audit_derog_rating_but_current,
+    audit_dispute_comment_needs_xb,
+    audit_closed_account_monthly_payment,
+    audit_stale_active_reporting,
+    audit_metro2_code_3_conflict,
+    audit_metro2_code_9_missing_oc,
+    audit_student_loan_deferment,
+    audit_date_order_sanity,
+    audit_cross_bureau_utilization_gap,
 ]
 
 

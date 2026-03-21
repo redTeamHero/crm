@@ -1546,10 +1546,23 @@ def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[s
     for record in tradelines:
         record["violations"] = []
 
-    # First, execute JSON rulebook rules that operate on individual tradelines
+    # Attempt to load the primary engine's audit functions and normalizer.
+    # audit_rules.py is independent of metro2.parser so it is available even
+    # when the HTML parser fails to load.
+    _primary_audit_fns = None
+    try:
+        _add_metro2_module_path(Path(__file__))
+        from metro2.audit_rules import AUDIT_FUNCTIONS as _AF, normalize_tradeline as _NT  # noqa: PLC0415
+        _primary_audit_fns = _AF
+        for record in tradelines:
+            _NT(record)
+        logger.debug("Primary audit engine loaded — using unified AUDIT_FUNCTIONS")
+    except Exception as _import_err:
+        logger.warning(f"audit_rules unavailable; falling back to built-in RULES: {_import_err}")
+
+    # JSON rulebook rules (data-driven, highly specific field-level checks)
     for record in tradelines:
         for rule_name, rule_data in RULEBOOK.items():
-            # Skip personal/inquiry rules on tradelines
             if _is_personal_rule(rule_data):
                 continue
             if rule_data.get("target") and rule_data["target"].lower() != "tradeline":
@@ -1566,23 +1579,31 @@ def detect_tradeline_violations(tradelines: List[Dict[str, Any]]) -> List[Dict[s
                 })
                 logger.debug(f"✓ {rule_name} fired → {rule_data['violation']}")
 
-    # Then, execute bespoke Python rules that may rely on cross-tradeline context
-    groups = _group_tradelines(tradelines)
-    for creditor_name, records in groups.items():
-        logger.debug(f"Auditing {creditor_name} ({len(records)} tradelines)")
-        for record in records:
-            bureau = record.get("bureau", "?")
-            logger.debug(f"→ Bureau: {bureau} | Account: {record.get('account_number','?')}")
-            for rule in RULES:
-                try:
-                    findings = rule(record, records, tradelines)
-                    if findings:
-                        record.setdefault("violations", []).extend(findings)
-                        logger.debug(f"   Rule {rule.__name__} fired → {len(findings)} finding(s)")
-                    else:
-                        logger.debug(f"   Rule {rule.__name__} passed clean")
-                except Exception as exc:
-                    logger.exception(f"Error in rule {rule.__name__}: {exc}")
+    # Python rules: unified primary engine (preferred) or built-in RULES (fallback)
+    if _primary_audit_fns is not None:
+        for fn in _primary_audit_fns:
+            try:
+                fn(tradelines)
+            except Exception as exc:
+                logger.exception(f"Error in audit function {fn.__name__}: {exc}")
+    else:
+        groups = _group_tradelines(tradelines)
+        for creditor_name, records in groups.items():
+            logger.debug(f"Auditing {creditor_name} ({len(records)} tradelines)")
+            for record in records:
+                bureau = record.get("bureau", "?")
+                logger.debug(f"→ Bureau: {bureau} | Account: {record.get('account_number','?')}")
+                for rule in RULES:
+                    try:
+                        findings = rule(record, records, tradelines)
+                        if findings:
+                            record.setdefault("violations", []).extend(findings)
+                            logger.debug(f"   Rule {rule.__name__} fired → {len(findings)} finding(s)")
+                        else:
+                            logger.debug(f"   Rule {rule.__name__} passed clean")
+                    except Exception as exc:
+                        logger.exception(f"Error in rule {rule.__name__}: {exc}")
+
     return tradelines
 
 
