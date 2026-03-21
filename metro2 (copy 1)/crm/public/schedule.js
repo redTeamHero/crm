@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadEvents() {
     try {
-      const resp = await fetch('/api/calendar/events');
+      const resp = await fetch('/api/calendar/events', { cache: 'no-store' });
       const data = await resp.json();
       if (!resp.ok) {
         disableScheduling(data.error || 'Calendar sync unavailable. Connect Google Calendar in Settings to unlock scheduling.');
@@ -1584,7 +1584,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const listEl = document.getElementById('bookedCallsList');
     if (!listEl) return;
     try {
-      const resp = await fetch('/api/booking/bookings');
+      const resp = await fetch('/api/booking/bookings', { cache: 'no-store' });
       const data = await resp.json();
       if (!data.ok || !data.bookings.length) {
         listEl.innerHTML = '<p class="text-sm" style="color:#666;">No upcoming booked calls</p>';

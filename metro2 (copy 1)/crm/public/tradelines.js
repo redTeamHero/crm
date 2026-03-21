@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   async function fetchJson(url) {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Request failed: ${res.status}`);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Request failed');

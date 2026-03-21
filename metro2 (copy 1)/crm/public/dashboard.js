@@ -1667,7 +1667,7 @@ function initDashboard() {
 
   const feedEl = document.getElementById('newsFeed');
   if (feedEl) {
-    fetch('/api/news')
+    fetch('/api/news', { cache: 'no-store' })
       .then(r => r.json())
       .then(data => {
         const items = data.items || [];
@@ -1690,7 +1690,7 @@ function initDashboard() {
   async function renderMessages(){
     if(!msgList) return;
     try{
-      const resp = await fetch('/api/messages');
+      const resp = await fetch('/api/messages', { cache: 'no-store' });
       if(!resp.ok) throw new Error('bad response');
       const data = await resp.json().catch(()=>({}));
       const msgs = Array.isArray(data.messages) ? data.messages : [];
@@ -1718,7 +1718,7 @@ function initDashboard() {
   async function renderEvents(){
     if(!eventList) return;
     try{
-      const resp = await fetch('/api/calendar/events');
+      const resp = await fetch('/api/calendar/events', { cache: 'no-store' });
       if(!resp.ok) throw new Error('bad response');
       const data = await resp.json();
       const events = Array.isArray(data.events) ? data.events : [];

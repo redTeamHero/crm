@@ -488,7 +488,7 @@ function renderPipeline(){
 }
 
 async function fetchLeads(){
-  const res = await fetch('/api/leads');
+  const res = await fetch('/api/leads', { cache: 'no-store' });
   if(!res.ok) throw new Error('Failed to load leads');
   return res.json();
 }

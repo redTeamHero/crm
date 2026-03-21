@@ -405,7 +405,7 @@ $("#btnDownloadAll").addEventListener("click", async ()=>{
   btn.textContent = "Preparing...";
   try {
     const tokenParam = TOKEN ? `?token=${encodeURIComponent(TOKEN)}` : '';
-    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/all.zip${tokenParam}`);
+    const resp = await fetch(`/api/letters/${encodeURIComponent(JOB_ID)}/all.zip${tokenParam}`, { cache: 'no-store' });
     if(!resp.ok) throw new Error("Failed to download zip");
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);

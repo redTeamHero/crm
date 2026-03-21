@@ -366,7 +366,7 @@ function renderWorkflows() {
 
 async function bootstrapWorkflowEngineSummary() {
   try {
-    const res = await fetch('/api/workflows/config', { credentials: 'include' });
+    const res = await fetch('/api/workflows/config', { cache: 'no-store', credentials: 'include' });
     if (!res.ok) return;
     const data = await res.json();
     if (!data?.summary) return;

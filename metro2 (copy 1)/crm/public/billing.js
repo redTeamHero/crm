@@ -48,7 +48,7 @@ async function loadSubscriptionStatus() {
   try {
     const token = localStorage.getItem('token');
     const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-    const res = await fetch('/api/stripe/subscription-status?mode=crm', { headers });
+    const res = await fetch('/api/stripe/subscription-status?mode=crm', { cache: 'no-store', headers });
     const data = await res.json();
     if (data.ok && data.subscription) {
       currentSubscription = data.subscription;
@@ -93,7 +93,7 @@ function showCurrentSubscription(plan, sub) {
 
 async function loadStripeProducts() {
   try {
-    const res = await fetch('/api/stripe/products');
+    const res = await fetch('/api/stripe/products', { cache: 'no-store' });
     const data = await res.json();
     if (data.ok && data.products.length > 0) {
       stripeProducts = data.products.filter(p => p.type === 'crm');

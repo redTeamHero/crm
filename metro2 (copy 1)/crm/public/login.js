@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const headers = authHeader();
   if (!headers.Authorization) return; // nothing saved
   try {
-    const res = await fetch('/api/me', { headers });
+    const res = await fetch('/api/me', { cache: 'no-store', headers });
     if (res.ok) {
       const data = await res.json();
       redirectByRole(data.user);
@@ -60,7 +60,7 @@ async function handleAuth(endpoint, body, options = {}){
         localStorage.setItem('auth', options.basicAuth);
       }
       try{
-        const meRes = await fetch('/api/me', { headers: authHeader() });
+        const meRes = await fetch('/api/me', { cache: 'no-store', headers: authHeader() });
         if(meRes.ok){
           const meData = await meRes.json();
           redirectByRole(meData.user);
