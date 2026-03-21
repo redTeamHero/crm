@@ -807,11 +807,6 @@ def audit_balance_status_mismatch(tradelines: Iterable[MutableMapping[str, Any]]
                     "LAST_PAYMENT_DATE_NOT_FROZEN",
                     "Date of Last Payment inconsistent across bureaus",
                 )
-                _attach_violation(
-                    r,
-                    "fcra_last_payment_invalid",
-                    "Date of Last Payment is inconsistent across bureaus",
-                )
 
         if len(distinct_last_reported) > 1:
             pretty = ", ".join(sorted({r.get("last_reported") or r.get("date_last_reported") or "Missing" for r in records}))
