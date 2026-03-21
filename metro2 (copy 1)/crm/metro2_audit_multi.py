@@ -256,7 +256,8 @@ def _accounts_match(acct_a: str, acct_b: str) -> bool:
         return acct_a == acct_b
     if acct_a == acct_b:
         return True
-    return acct_a.endswith(acct_b) or acct_b.endswith(acct_a)
+    return (acct_a.endswith(acct_b) or acct_b.endswith(acct_a)
+            or acct_a.startswith(acct_b) or acct_b.startswith(acct_a))
 
 
 def _is_revolving(tradeline: Dict[str, Any]) -> bool:

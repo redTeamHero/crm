@@ -366,7 +366,8 @@ def _match_score_pair(a: Mapping[str, Any], b: Mapping[str, Any]) -> float:
     if account_a and account_b:
         if account_a == account_b:
             score += 80
-        elif account_a.endswith(account_b) or account_b.endswith(account_a):
+        elif (account_a.endswith(account_b) or account_b.endswith(account_a)
+              or account_a.startswith(account_b) or account_b.startswith(account_a)):
             score += 80
         else:
             score -= 100
@@ -1173,7 +1174,8 @@ def audit_comment_field_conflict(tradelines: Iterable[MutableMapping[str, Any]])
                 "Comments indicate collection activity but account type is not collection",
             )
 
-        if any(keyword in comment for keyword in ("paid", "paid in full", "settled")) and balance > 0:
+        paid_match = re.search(r'(?<![a-z])paid', comment) or "paid in full" in comment or "settled" in comment
+        if paid_match and balance > 0:
             _attach_violation(
                 record,
                 "comment_field_conflict",
@@ -1919,6 +1921,8 @@ def audit_revolving_zero_limit_comment(tradelines: Iterable[MutableMapping[str, 
 
 def audit_high_credit_exceeds_limit(tradelines: Iterable[MutableMapping[str, Any]]) -> None:
     for record in tradelines:
+        if _has_violation(record, "HIGH_CREDIT_EXCEEDS_LIMIT"):
+            continue
         limit = clean_amount(record.get("credit_limit"))
         high_credit = clean_amount(record.get("high_credit"))
         if limit > 0 and high_credit > limit:
