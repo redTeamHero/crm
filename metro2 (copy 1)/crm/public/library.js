@@ -947,12 +947,15 @@ async function openSendContractModal(contract){
   document.body.style.overflow = 'hidden';
   const clients = await loadClients();
 
-  const selectedId = (typeof getSelectedConsumerId === 'function' ? getSelectedConsumerId() : null)
+  const selectedId = (window.getSelectedConsumerId?.() ?? null)
     || localStorage.getItem('selectedConsumerId');
   const preSelected = selectedId ? clients.find(c => c.id === selectedId) : null;
   if(preSelected && sendSelectedClientEl){
     if(sendSelectedClientNameEl) sendSelectedClientNameEl.textContent = preSelected.name || 'Unnamed';
-    if(sendSelectedClientEmailEl) sendSelectedClientEmailEl.textContent = preSelected.email || '';
+    if(sendSelectedClientEmailEl){
+      sendSelectedClientEmailEl.textContent = preSelected.email || '';
+      sendSelectedClientEmailEl.style.display = preSelected.email ? '' : 'none';
+    }
     if(sendSelectedClientBtn){
       sendSelectedClientBtn.onclick = () => handleSendContract(preSelected);
     }
