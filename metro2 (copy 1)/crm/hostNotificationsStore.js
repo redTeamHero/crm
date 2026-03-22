@@ -139,9 +139,10 @@ export async function saveNotificationSettings(updates) {
 
 export async function listNotifications({ limit = 50 } = {}) {
   const data = await loadNotifications();
-  const items = (data.items || []).slice(0, limit);
-  const unreadCount = items.filter((n) => !n.read).length;
-  return { notifications: items, unreadCount };
+  const all = data.items || [];
+  const unreadCount = all.filter((n) => !n.read).length;
+  const notifications = all.slice(0, limit);
+  return { notifications, unreadCount };
 }
 
 export async function addNotification({

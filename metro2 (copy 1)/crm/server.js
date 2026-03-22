@@ -13645,8 +13645,7 @@ app.post("/api/smartcredit/refresh", authenticate, async (req, res) => {
   }
 });
 
-app.get("/api/notifications", authenticate, async (req, res) => {
-  if (!req.user) return res.status(401).json({ ok: false, error: "Unauthorized" });
+app.get("/api/notifications", authenticate, requireRole("admin"), async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 50, 200);
     const result = await listNotifications({ limit });
@@ -13657,8 +13656,7 @@ app.get("/api/notifications", authenticate, async (req, res) => {
   }
 });
 
-app.post("/api/notifications/read", authenticate, async (req, res) => {
-  if (!req.user) return res.status(401).json({ ok: false, error: "Unauthorized" });
+app.post("/api/notifications/read", authenticate, requireRole("admin"), async (req, res) => {
   try {
     const { id, all } = req.body || {};
     if (all) {
@@ -13675,8 +13673,7 @@ app.post("/api/notifications/read", authenticate, async (req, res) => {
   }
 });
 
-app.get("/api/notifications/settings", authenticate, async (req, res) => {
-  if (!req.user) return res.status(401).json({ ok: false, error: "Unauthorized" });
+app.get("/api/notifications/settings", authenticate, requireRole("admin"), async (req, res) => {
   try {
     const settings = await getNotificationSettings();
     res.json({ ok: true, settings });
@@ -13686,9 +13683,7 @@ app.get("/api/notifications/settings", authenticate, async (req, res) => {
   }
 });
 
-app.put("/api/notifications/settings", authenticate, async (req, res) => {
-  if (!req.user) return res.status(401).json({ ok: false, error: "Unauthorized" });
-  if (req.user.role !== "admin") return res.status(403).json({ ok: false, error: "Forbidden" });
+app.put("/api/notifications/settings", authenticate, requireRole("admin"), async (req, res) => {
   try {
     const updates = req.body || {};
     const saved = await saveNotificationSettings(updates);
