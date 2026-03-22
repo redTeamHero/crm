@@ -12551,6 +12551,7 @@ async function fbGraphGet(path, params = {}, token) {
     const msg = fb.error_user_msg || fb.message || 'Facebook API error';
     const code = fb.code ? ` (code ${fb.code})` : '';
     const err = new Error(`${msg}${code}`);
+    err.name = 'FacebookGraphError';
     err.fbErrorCode = fb.code;
     err.fbErrorType = fb.type;
     err.fbErrorSubcode = fb.error_subcode;
