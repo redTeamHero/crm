@@ -5691,6 +5691,8 @@ app.post("/api/lead-capture", async (req, res) => {
   if (now - last < 10000) return res.status(429).json({ ok: false, error: "Please wait a moment before submitting again" });
   leadCaptureTimestamps.set(ip, now);
 
+  const affRef = (req.body.ref || "").trim();
+  const isAffiliate = !!affRef;
   const db = await loadLeadsDB();
   const id = nanoid(10);
   const lead = {
@@ -5704,7 +5706,7 @@ app.post("/api/lead-capture", async (req, res) => {
     state: req.body.state || "",
     zip: req.body.zip || "",
     dob: req.body.dob || "",
-    source: req.body.source || "Lead Capture Form",
+    source: isAffiliate ? "Affiliate Referral" : (req.body.source || "Lead Capture Form"),
     notes: req.body.notes || "",
     creditGoal: req.body.creditGoal || "",
     currentScore: req.body.currentScore || "",
@@ -5714,6 +5716,20 @@ app.post("/api/lead-capture", async (req, res) => {
   };
   db.leads.push(lead);
   await saveLeadsDB(db);
+
+  if (isAffiliate) {
+    try {
+      const aff = await findAffiliateByRefCode(affRef);
+      if (aff) {
+        const commission = (aff.customCommissionRate != null && aff.customCommissionRate !== '') ? Number(aff.customCommissionRate) : 0;
+        if (!aff.referrals) aff.referrals = [];
+        aff.referrals.push({ id: nanoid(8), type: 'lead', name, email: email.toLowerCase(), earned: commission, status: 'pending', date: new Date().toISOString() });
+        aff.totalEarned = (aff.totalEarned || 0) + commission;
+        await saveAffiliate(aff);
+      }
+    } catch (e) { logWarn('AFFILIATE_LEAD_CREDIT_ERROR', e.message); }
+  }
+
   res.json({ ok: true, lead: { id: lead.id, name: lead.name } });
 });
 
@@ -12258,14 +12274,11 @@ app.post('/api/affiliate/payout/:id/cancel', affiliateAuth, async (req, res) => 
 
 app.get('/api/affiliate/track/:refCode', async (req, res) => {
   const refCode = req.params.refCode;
-  const dest = req.query.dest === 'crm' ? '/crm/login' : '/diy/signup';
-  const qs = new URLSearchParams({ ref: refCode });
+  const qs = new URLSearchParams({ ref: refCode, source: 'Affiliate Referral' });
 
-  let customPrice = null;
   try {
     const aff = await findAffiliateByRefCode(refCode);
     if (aff) {
-      if (aff.customPrice != null && aff.customPrice !== '') customPrice = aff.customPrice;
       try {
         aff.clicks = (aff.clicks || 0) + 1;
         await saveAffiliate(aff);
@@ -12277,8 +12290,7 @@ app.get('/api/affiliate/track/:refCode', async (req, res) => {
     logWarn('AFFILIATE_TRACK_LOOKUP_ERROR', lookupErr.message);
   }
 
-  if (customPrice != null) qs.set('price', customPrice);
-  res.redirect(`${dest}?${qs.toString()}`);
+  res.redirect(`/lead-capture?${qs.toString()}`);
 });
 
 app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) => {

@@ -4210,7 +4210,9 @@ document.addEventListener('DOMContentLoaded', () => {
       tbody.innerHTML = aff.referrals.slice().reverse().map(function(r) {
         var date = new Date(r.date).toLocaleDateString();
         var sc = r.status === 'paid' ? 'color:#4ade80' : 'color:#facc15';
-        return '<tr class="border-b border-white/5"><td class="p-2">' + date + '</td><td class="p-2 uppercase font-semibold">' + (r.type || 'diy') + '</td><td class="p-2">' + (r.plan || '-') + '</td><td class="p-2" style="color:#4ade80">$' + (r.earned || 0).toFixed(2) + '</td><td class="p-2" style="' + sc + '">' + (r.status || 'pending') + '</td></tr>';
+        var displayName = r.name || r.email || '—';
+        var displayType = r.type === 'lead' ? 'Lead' : (r.type || 'DIY').toUpperCase();
+        return '<tr class="border-b border-white/5"><td class="p-2">' + date + '</td><td class="p-2">' + displayName + '</td><td class="p-2 font-semibold">' + displayType + '</td><td class="p-2" style="color:#4ade80">$' + (r.earned || 0).toFixed(2) + '</td><td class="p-2" style="' + sc + '">' + (r.status || 'pending') + '</td></tr>';
       }).join('');
     }
   }

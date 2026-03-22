@@ -303,7 +303,9 @@
   </div>
 
   <script>
-    const source = new URLSearchParams(window.location.search).get('source') || 'direct';
+    const _qs = new URLSearchParams(window.location.search);
+    const source = _qs.get('source') || 'direct';
+    const affRef = _qs.get('ref') || '';
     const submitBtn = document.getElementById('submitBtn');
     const errorMsg = document.getElementById('errorMsg');
 
@@ -341,7 +343,7 @@
         const res = await fetch('/api/lead-capture', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, phone, email, addr1, city, state, zip, dob, currentScore, creditGoal, notes, source })
+          body: JSON.stringify({ name, phone, email, addr1, city, state, zip, dob, currentScore, creditGoal, notes, source, ref: affRef })
         });
         const data = await res.json();
 
