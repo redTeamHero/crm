@@ -13024,8 +13024,8 @@ app.post('/api/social/post/photo', authenticate, socialMediaUpload.single('photo
     await saveSocialDB(db);
     res.json({ ok: true, post });
   } catch (e) {
-    logError('SOCIAL_PHOTO_UPLOAD_ERROR', e);
-    res.status(500).json({ ok: false, error: e.message });
+    logError('SOCIAL_PHOTO_UPLOAD_ERROR', e.message || String(e), e);
+    res.status(500).json({ ok: false, error: e.message || 'Upload failed' });
   }
 });
 
@@ -13080,8 +13080,8 @@ app.post('/api/social/post/video', authenticate, socialMediaUpload.single('video
     await saveSocialDB(db);
     res.json({ ok: true, post });
   } catch (e) {
-    logError('SOCIAL_VIDEO_UPLOAD_ERROR', e);
-    res.status(500).json({ ok: false, error: e.message });
+    logError('SOCIAL_VIDEO_UPLOAD_ERROR', e.message || String(e), e);
+    res.status(500).json({ ok: false, error: e.message || 'Upload failed' });
   }
 });
 
