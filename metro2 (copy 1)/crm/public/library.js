@@ -1,4 +1,5 @@
 import { setupPageTour } from './tour-guide.js';
+import { api } from './common.js';
 
 setupPageTour('settings-library', {
   steps: [
@@ -892,8 +893,7 @@ let clientsCache = null;
 async function loadClients(){
   if(clientsCache) return clientsCache;
   try{
-    const res = await fetch('/api/consumers');
-    const data = await res.json().catch(()=>({}));
+    const data = await api('/api/consumers');
     clientsCache = data.consumers || [];
     return clientsCache;
   } catch(err){
