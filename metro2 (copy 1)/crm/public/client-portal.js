@@ -4009,32 +4009,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (copyBtn) {
       copyBtn.addEventListener('click', function() {
         var input = document.getElementById('portalAffLink');
+        var errEl = document.getElementById('portalAffCopyError');
         if (!input || !input.value) return;
         var text = input.value;
+        var showCopyError = function() {
+          copyBtn.textContent = 'Copy';
+          if (errEl) errEl.classList.remove('hidden');
+        };
+        var showCopySuccess = function() {
+          if (errEl) errEl.classList.add('hidden');
+          copyBtn.textContent = 'Copied!';
+          setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+        };
         var doFallbackCopy = function() {
           input.select();
           input.setSelectionRange(0, 99999);
           try {
             var ok = document.execCommand('copy');
-            if (ok) {
-              copyBtn.textContent = 'Copied!';
-              setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
-            } else {
-              copyBtn.textContent = 'Copy failed';
-              setTimeout(function() { copyBtn.textContent = 'Copy'; }, 3000);
-            }
+            if (ok) { showCopySuccess(); } else { showCopyError(); }
           } catch (e) {
-            copyBtn.textContent = 'Copy failed';
-            setTimeout(function() { copyBtn.textContent = 'Copy'; }, 3000);
+            showCopyError();
           }
         };
+        if (errEl) errEl.classList.add('hidden');
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(function() {
-            copyBtn.textContent = 'Copied!';
-            setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
-          }).catch(function() {
-            doFallbackCopy();
-          });
+          navigator.clipboard.writeText(text).then(showCopySuccess).catch(doFallbackCopy);
         } else {
           doFallbackCopy();
         }
@@ -4044,6 +4043,8 @@ document.addEventListener('DOMContentLoaded', () => {
     var affLinkInput = document.getElementById('portalAffLink');
     if (affLinkInput) {
       affLinkInput.addEventListener('click', function() {
+        var errEl = document.getElementById('portalAffCopyError');
+        if (errEl) errEl.classList.add('hidden');
         this.select();
         this.setSelectionRange(0, 99999);
       });
