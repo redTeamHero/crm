@@ -13010,6 +13010,7 @@ app.post('/api/social/post/photo', authenticate, socialMediaUpload.single('photo
       fbMediaId: fbJson.id || null,
       fbPostId: fbJson.post_id || fbJson.id || null,
       scheduledAt: scheduledAt || null,
+      scheduledVia: scheduledAt && !publishNow ? 'facebook' : null,
       status: scheduledAt && !publishNow ? 'scheduled' : 'published',
       publishedAt: publishNow ? new Date().toISOString() : null,
       createdAt: new Date().toISOString(),
@@ -13063,6 +13064,7 @@ app.post('/api/social/post/video', authenticate, socialMediaUpload.single('video
       fbMediaId: fbJson.id || null,
       fbPostId: fbJson.id || null,
       scheduledAt: scheduledAt || null,
+      scheduledVia: scheduledAt && !publishNow ? 'facebook' : null,
       status: scheduledAt && !publishNow ? 'scheduled' : 'published',
       publishedAt: publishNow ? new Date().toISOString() : null,
       createdAt: new Date().toISOString(),
@@ -13091,6 +13093,7 @@ setInterval(async () => {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     const due = (db.queue || []).filter(p => {
+      if (p.scheduledVia === 'facebook') return false;
       if (p.status === 'scheduled' && p.scheduledAt && new Date(p.scheduledAt) <= now) return true;
       if (p.status === 'failed' && (p.retryCount || 0) < 3 && (!p.lastAttemptAt || new Date(p.lastAttemptAt) <= oneHourAgo)) return true;
       return false;
