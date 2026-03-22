@@ -38,7 +38,10 @@
     share2: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51l-6.82 3.98"/>',
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
     flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>',
-    rss: '<path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1" fill="currentColor"/>'
+    rss: '<path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1" fill="currentColor"/>',
+    bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+    x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    check: '<polyline points="20 6 9 12 4 10"/>'
   };
 
   function svg(name, size) {
@@ -498,6 +501,184 @@
         padding-left: 0;
       }
     }
+
+    .evolv-sb-bell-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .evolv-sb-bell-badge {
+      position: absolute;
+      top: 6px;
+      left: 26px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+      pointer-events: none;
+      border: 2px solid #0d0d0f;
+      z-index: 10001;
+      display: none;
+    }
+    .evolv-sb-bell-badge.visible {
+      display: flex;
+    }
+
+    .evolv-notif-panel {
+      position: fixed;
+      top: 0;
+      right: -380px;
+      width: 360px;
+      height: 100vh;
+      background: #111113;
+      border-left: 1px solid rgba(255,255,255,0.08);
+      z-index: 10002;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+    }
+    .evolv-notif-panel.open {
+      right: 0;
+    }
+    .evolv-notif-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+    }
+    .evolv-notif-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f0f0f0;
+      letter-spacing: 0.02em;
+    }
+    .evolv-notif-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .evolv-notif-mark-all {
+      font-size: 11px;
+      color: #d4a853;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .evolv-notif-mark-all:hover {
+      background: rgba(212,168,83,0.08);
+    }
+    .evolv-notif-close {
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .evolv-notif-close:hover {
+      background: rgba(255,255,255,0.06);
+      color: #aaa;
+    }
+    .evolv-notif-list {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.08) transparent;
+    }
+    .evolv-notif-list::-webkit-scrollbar { width: 4px; }
+    .evolv-notif-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+    .evolv-notif-empty {
+      padding: 48px 24px;
+      text-align: center;
+      color: #555;
+      font-size: 13px;
+    }
+    .evolv-notif-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .evolv-notif-item:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    .evolv-notif-item.unread {
+      background: rgba(212,168,83,0.04);
+    }
+    .evolv-notif-item.unread:hover {
+      background: rgba(212,168,83,0.07);
+    }
+    .evolv-notif-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #d4a853;
+      flex-shrink: 0;
+      margin-top: 5px;
+      opacity: 0;
+    }
+    .evolv-notif-item.unread .evolv-notif-dot {
+      opacity: 1;
+    }
+    .evolv-notif-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .evolv-notif-msg {
+      font-size: 13px;
+      color: #ccc;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .evolv-notif-item.unread .evolv-notif-msg {
+      color: #f0f0f0;
+    }
+    .evolv-notif-time {
+      font-size: 11px;
+      color: #555;
+      margin-top: 4px;
+    }
+    .evolv-notif-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 10001;
+    }
+    .evolv-notif-backdrop.open {
+      display: block;
+    }
+
+    @media (max-width: 480px) {
+      .evolv-notif-panel {
+        width: 100vw;
+        right: -100vw;
+      }
+    }
   `;
   document.head.appendChild(style);
 
@@ -561,6 +742,7 @@
   html += '</div>';
 
   html += '<div class="evolv-sb-bottom">';
+  html += '<div class="evolv-sb-bell-wrap evolv-sb-item" id="evolv-sb-bell" data-tooltip="Notifications" style="cursor:pointer;">' + svg('bell', 20) + '<span class="evolv-sb-item-label">Notifications</span><span class="evolv-sb-bell-badge" id="evolv-bell-badge"></span></div>';
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Guided Tour" id="evolv-sb-tour" style="color:#d4a853;">';
   html += '<svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(50,50)"><g><path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="#c49a45" opacity="0.85"/></g><g><path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="#c49a45" opacity="0.85"/></g><ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#1a1a1a"/></g></svg>';
   html += '<span class="evolv-sb-item-label" style="color:#d4a853;">Guided Tour</span></a>';
@@ -734,4 +916,168 @@
       document.body.classList.toggle('evolv-sidebar-expanded', expanded);
     }
   });
+
+  // ---- Notification Panel ----
+  var notifPanel = document.createElement('div');
+  notifPanel.className = 'evolv-notif-panel';
+  notifPanel.innerHTML =
+    '<div class="evolv-notif-header">' +
+      '<span class="evolv-notif-title">Notifications</span>' +
+      '<div class="evolv-notif-actions">' +
+        '<button class="evolv-notif-mark-all" id="evolv-notif-mark-all">Mark all read</button>' +
+        '<button class="evolv-notif-close" id="evolv-notif-close" aria-label="Close">' + svg('x', 18) + '</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="evolv-notif-list" id="evolv-notif-list"><div class="evolv-notif-empty">No notifications yet</div></div>';
+
+  var notifBackdrop = document.createElement('div');
+  notifBackdrop.className = 'evolv-notif-backdrop';
+
+  document.body.appendChild(notifBackdrop);
+  document.body.appendChild(notifPanel);
+
+  var notifOpen = false;
+  var notifData = [];
+  var notifUnread = 0;
+  var badge = sidebar.querySelector('#evolv-bell-badge');
+
+  function relativeTime(isoStr) {
+    if (!isoStr) return '';
+    var diff = Date.now() - Date.parse(isoStr);
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    return Math.floor(diff / 86400000) + 'd ago';
+  }
+
+  function escN(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  function renderNotifList() {
+    var list = document.getElementById('evolv-notif-list');
+    if (!list) return;
+    if (!notifData.length) {
+      list.innerHTML = '<div class="evolv-notif-empty">No notifications yet</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < notifData.length; i++) {
+      var n = notifData[i];
+      html += '<div class="evolv-notif-item' + (n.read ? '' : ' unread') + '" data-id="' + escN(n.id) + '" data-consumer="' + escN(n.consumerId || '') + '">';
+      html += '<div class="evolv-notif-dot"></div>';
+      html += '<div class="evolv-notif-body">';
+      html += '<div class="evolv-notif-msg">' + escN(n.message) + '</div>';
+      html += '<div class="evolv-notif-time">' + escN(relativeTime(n.at)) + '</div>';
+      html += '</div></div>';
+    }
+    list.innerHTML = html;
+    list.querySelectorAll('.evolv-notif-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var id = el.getAttribute('data-id');
+        var consumerId = el.getAttribute('data-consumer');
+        if (id && !el.classList.contains('read')) {
+          markNotifRead(id);
+        }
+        if (consumerId) {
+          window.location.href = '/clients?id=' + encodeURIComponent(consumerId);
+        }
+      });
+    });
+  }
+
+  function updateBadge() {
+    if (!badge) return;
+    if (notifUnread > 0) {
+      badge.textContent = notifUnread > 99 ? '99+' : String(notifUnread);
+      badge.classList.add('visible');
+    } else {
+      badge.textContent = '';
+      badge.classList.remove('visible');
+    }
+  }
+
+  function authHeader() {
+    var tok = localStorage.getItem('token');
+    return tok ? { 'Authorization': 'Bearer ' + tok } : {};
+  }
+
+  function fetchNotifications() {
+    var token = localStorage.getItem('token');
+    if (!token) return;
+    fetch('/api/notifications?limit=50', { headers: authHeader() })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (!data || !data.ok) return;
+        notifData = data.notifications || [];
+        notifUnread = data.unreadCount || 0;
+        updateBadge();
+        if (notifOpen) renderNotifList();
+      })
+      .catch(function() {});
+  }
+
+  function markNotifRead(id) {
+    fetch('/api/notifications/read', {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, authHeader()),
+      body: JSON.stringify({ id: id })
+    })
+    .then(function() { fetchNotifications(); })
+    .catch(function() {});
+  }
+
+  function markAllNotifsRead() {
+    fetch('/api/notifications/read', {
+      method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, authHeader()),
+      body: JSON.stringify({ all: true })
+    })
+    .then(function() { fetchNotifications(); })
+    .catch(function() {});
+  }
+
+  function openNotifPanel() {
+    notifOpen = true;
+    notifPanel.classList.add('open');
+    notifBackdrop.classList.add('open');
+    renderNotifList();
+  }
+
+  function closeNotifPanel() {
+    notifOpen = false;
+    notifPanel.classList.remove('open');
+    notifBackdrop.classList.remove('open');
+  }
+
+  var bellBtn = sidebar.querySelector('#evolv-sb-bell');
+  if (bellBtn) {
+    bellBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (notifOpen) {
+        closeNotifPanel();
+      } else {
+        openNotifPanel();
+      }
+    });
+  }
+
+  var closeBtn = notifPanel.querySelector('#evolv-notif-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() { closeNotifPanel(); });
+  }
+
+  var markAllBtn = notifPanel.querySelector('#evolv-notif-mark-all');
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', function() {
+      markAllNotifsRead();
+    });
+  }
+
+  notifBackdrop.addEventListener('click', function() { closeNotifPanel(); });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && notifOpen) closeNotifPanel();
+  });
+
+  fetchNotifications();
+  setInterval(fetchNotifications, 60000);
 })();

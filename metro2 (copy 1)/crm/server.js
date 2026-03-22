@@ -77,6 +77,14 @@ import {
   fetchCreditReport,
   smartCreditReportToBuffer,
 } from "./smartCredit.js";
+import {
+  initHostNotifications,
+  listNotifications,
+  markRead,
+  markAllRead,
+  getNotificationSettings,
+  saveNotificationSettings,
+} from "./hostNotificationsStore.js";
 
 const MAX_ENV_KEY_LENGTH = 64;
 const DATA_REGION_EXPERIMENT_KEY = "portal-data-region";
@@ -244,6 +252,8 @@ function sanitizeSettingString(value = "") {
 initWorkflowEngine().catch((err) => {
   logWarn("WORKFLOW_INIT_FAILED", err?.message || "Workflow engine init failed");
 });
+
+initHostNotifications();
 
 const MAX_TRADLINE_PAGE_SIZE = 500;
 const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
@@ -13635,10 +13645,55 @@ app.post("/api/smartcredit/refresh", authenticate, async (req, res) => {
   }
 });
 
+app.get("/api/notifications", authenticate, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const result = await listNotifications({ limit });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logError("NOTIF_LIST_ERROR", "Failed to list notifications", err);
+    res.status(500).json({ ok: false, error: "Failed to load notifications" });
+  }
+});
+
+app.post("/api/notifications/read", authenticate, async (req, res) => {
+  try {
+    const { id, all } = req.body || {};
+    if (all) {
+      await markAllRead();
+    } else if (id) {
+      await markRead(id);
+    } else {
+      return res.status(400).json({ ok: false, error: "Provide id or all:true" });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    logError("NOTIF_READ_ERROR", "Failed to mark notification read", err);
+    res.status(500).json({ ok: false, error: "Failed to update notification" });
+  }
+});
+
+app.get("/api/notifications/settings", authenticate, async (req, res) => {
+  try {
+    const settings = await getNotificationSettings();
+    res.json({ ok: true, settings });
+  } catch (err) {
+    logError("NOTIF_SETTINGS_GET_ERROR", "Failed to get notification settings", err);
+    res.status(500).json({ ok: false, error: "Failed to load notification settings" });
+  }
+});
+
+app.put("/api/notifications/settings", authenticate, async (req, res) => {
+  try {
+    const updates = req.body || {};
+    const saved = await saveNotificationSettings(updates);
+    res.json({ ok: true, settings: saved });
+  } catch (err) {
+    logError("NOTIF_SETTINGS_PUT_ERROR", "Failed to save notification settings", err);
+    res.status(500).json({ ok: false, error: "Failed to save notification settings" });
+  }
+});
+
 export default app;
-
-// End of server.js
-
-
 
 // End of server.js
