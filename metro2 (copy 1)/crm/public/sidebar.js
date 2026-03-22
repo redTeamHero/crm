@@ -965,7 +965,13 @@
       html += '<div class="evolv-notif-item' + (n.read ? '' : ' unread') + '" data-id="' + escN(n.id) + '" data-consumer="' + escN(n.consumerId || '') + '">';
       html += '<div class="evolv-notif-dot"></div>';
       html += '<div class="evolv-notif-body">';
+      if (n.eventLabel || n.eventType) {
+        html += '<div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#d4a853;margin-bottom:3px;">' + escN(n.eventLabel || n.eventType) + '</div>';
+      }
       html += '<div class="evolv-notif-msg">' + escN(n.message) + '</div>';
+      if (n.consumerName) {
+        html += '<div style="font-size:11px;color:#888;margin-top:2px;">Client: ' + escN(n.consumerName) + '</div>';
+      }
       html += '<div class="evolv-notif-time">' + escN(relativeTime(n.at)) + '</div>';
       html += '</div></div>';
     }

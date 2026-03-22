@@ -33,9 +33,19 @@ const EVENT_LABELS = {
   call_booked: "Call booked",
 };
 
+function extractConsumerName(payload) {
+  return (
+    payload?.name ||
+    payload?.consumerName ||
+    payload?.clientName ||
+    payload?.fullName ||
+    null
+  );
+}
+
 function buildMessage(eventType, payload) {
   const base = EVENT_LABELS[eventType] || eventType;
-  const name = payload?.name || payload?.consumerName || payload?.clientName || null;
+  const name = extractConsumerName(payload);
   const amount = payload?.amount != null ? `$${Number(payload.amount).toFixed(2)}` : null;
   const planName = payload?.planName || null;
   const filename = payload?.name || payload?.filename || null;
@@ -85,15 +95,27 @@ async function loadSettings() {
     events: {
       consumer_created: true,
       billing_plan_cycle_processed: true,
-      billing_plan_created: false,
+      billing_plan_created: true,
       report_uploaded: true,
-      file_uploaded: false,
+      file_uploaded: true,
       letters_generated: true,
       letters_mailed: true,
       dispute_response: true,
       call_booked: true,
     },
     ...(data || {}),
+    events: {
+      consumer_created: true,
+      billing_plan_cycle_processed: true,
+      billing_plan_created: true,
+      report_uploaded: true,
+      file_uploaded: true,
+      letters_generated: true,
+      letters_mailed: true,
+      dispute_response: true,
+      call_booked: true,
+      ...((data || {}).events || {}),
+    },
   };
 }
 
@@ -122,14 +144,24 @@ export async function listNotifications({ limit = 50 } = {}) {
   return { notifications: items, unreadCount };
 }
 
-export async function addNotification({ type, message, consumerId, payload }) {
+export async function addNotification({
+  eventType,
+  message,
+  consumerName,
+  consumerId,
+  payload,
+  delivery,
+}) {
   const data = await loadNotifications();
   const notification = {
     id: `${Date.now()}_${Math.random().toString(16).slice(2, 8)}`,
-    type,
+    eventType: eventType || "unknown",
+    eventLabel: EVENT_LABELS[eventType] || eventType || "Event",
     message,
+    consumerName: consumerName || null,
     consumerId: consumerId || null,
     payload: payload || {},
+    delivery: delivery || { inApp: true, emailSent: false, smsSent: false },
     read: false,
     at: new Date().toISOString(),
   };
@@ -166,9 +198,9 @@ export async function markAllRead() {
 
 async function sendEmailNotification(settings, message) {
   const apiKey = process.env.SENDGRID_API_KEY;
-  if (!apiKey) return;
+  if (!apiKey) return false;
   const to = (settings.emailAddress || "").trim();
-  if (!to) return;
+  if (!to) return false;
 
   try {
     const body = {
@@ -188,22 +220,25 @@ async function sendEmailNotification(settings, message) {
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       logWarn("NOTIF_EMAIL_FAILED", `SendGrid ${res.status}: ${text.slice(0, 200)}`);
+      return false;
     }
+    return true;
   } catch (err) {
     logWarn("NOTIF_EMAIL_ERROR", err?.message || String(err));
+    return false;
   }
 }
 
 async function sendSmsNotification(settings, message) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  if (!accountSid || !authToken) return;
+  if (!accountSid || !authToken) return false;
 
   const to = (settings.smsNumber || "").trim();
-  if (!to) return;
+  if (!to) return false;
 
   const from = (process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MESSAGING_SERVICE_SID || "").trim();
-  if (!from) return;
+  if (!from) return false;
 
   try {
     const params = new URLSearchParams();
@@ -229,9 +264,12 @@ async function sendSmsNotification(settings, message) {
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       logWarn("NOTIF_SMS_FAILED", `Twilio ${res.status}: ${text.slice(0, 200)}`);
+      return false;
     }
+    return true;
   } catch (err) {
     logWarn("NOTIF_SMS_ERROR", err?.message || String(err));
+    return false;
   }
 }
 
@@ -250,27 +288,37 @@ export function initHostNotifications() {
     const eventEnabled = settings.events?.[event.type] !== false;
     if (!eventEnabled) return;
 
-    const message = buildMessage(event.type, event.payload || {});
+    const payload = event.payload || {};
+    const consumerName = extractConsumerName(payload);
+    const message = buildMessage(event.type, payload);
 
-    if (settings.inApp !== false) {
+    const delivery = {
+      inApp: settings.inApp !== false,
+      emailSent: false,
+      smsSent: false,
+    };
+
+    if (settings.email && settings.emailAddress) {
+      delivery.emailSent = await sendEmailNotification(settings, message).catch(() => false);
+    }
+
+    if (settings.sms && settings.smsNumber) {
+      delivery.smsSent = await sendSmsNotification(settings, message).catch(() => false);
+    }
+
+    if (delivery.inApp) {
       try {
         await addNotification({
-          type: event.type,
+          eventType: event.type,
           message,
+          consumerName,
           consumerId,
-          payload: event.payload || {},
+          payload,
+          delivery,
         });
       } catch (err) {
         logError("NOTIF_STORE_ERROR", "Failed to store notification", err);
       }
-    }
-
-    if (settings.email && settings.emailAddress) {
-      sendEmailNotification(settings, message).catch(() => {});
-    }
-
-    if (settings.sms && settings.smsNumber) {
-      sendSmsNotification(settings, message).catch(() => {});
     }
   });
 
