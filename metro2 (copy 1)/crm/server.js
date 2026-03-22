@@ -12370,6 +12370,34 @@ app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) =>
   }
 });
 
+app.post('/api/admin/affiliates/repair-index', authenticate, forbidMember, async (req, res) => {
+  try {
+    const keys = await listKeys();
+    const affKeys = keys.filter(k => {
+      const key = typeof k === 'string' ? k : k.key;
+      return key.startsWith('aff:');
+    });
+    let repaired = 0;
+    let skipped = 0;
+    for (const k of affKeys) {
+      const key = typeof k === 'string' ? k : k.key;
+      const aff = await readKey(key, null);
+      if (!aff || !aff.refCode) { skipped++; continue; }
+      const existing = await readKey(`aff_ref:${aff.refCode}`, null);
+      if (!existing) {
+        await writeKey(`aff_ref:${aff.refCode}`, { userId: aff.userId, userType: aff.userType });
+        repaired++;
+      } else {
+        skipped++;
+      }
+    }
+    res.json({ ok: true, repaired, skipped, total: affKeys.length });
+  } catch (err) {
+    logError('AFFILIATE_REPAIR_INDEX_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Repair failed' });
+  }
+});
+
 app.patch('/api/admin/affiliates/:affId', authenticate, forbidMember, async (req, res) => {
   try {
     const keys = await listKeys();
