@@ -1002,25 +1002,38 @@ function updateNpCharCount(len) {
   cc.className = 'char-count' + (len > 55000 ? ' near' : '') + (len > 63000 ? ' over' : '');
 }
 
+function updateNpMediaPicker(val) {
+  npSelectedMediaType = val;
+  $('npPhotoUpload').style.display = val === 'photo' ? 'block' : 'none';
+  $('npVideoUpload').style.display = val === 'video' ? 'block' : 'none';
+}
+
 document.querySelectorAll('[name="npMediaType"]').forEach(radio => {
-  radio.addEventListener('change', () => {
-    npSelectedMediaType = radio.value;
-    $('npPhotoUpload').style.display = npSelectedMediaType === 'photo' ? 'block' : 'none';
-    $('npVideoUpload').style.display = npSelectedMediaType === 'video' ? 'block' : 'none';
-  });
+  radio.addEventListener('change', () => updateNpMediaPicker(radio.value));
+  radio.addEventListener('click',  () => updateNpMediaPicker(radio.value));
 });
 
 $('npPhotoFile').addEventListener('change', function() {
   const file = this.files[0];
+  const nameEl = $('npPhotoName');
   const preview = $('npPhotoPreview');
   const img = $('npPhotoImg');
   if (file) {
+    nameEl.textContent = file.name;
     const url = URL.createObjectURL(file);
     img.src = url;
     preview.style.display = 'block';
   } else {
+    nameEl.textContent = '';
     preview.style.display = 'none';
   }
+});
+
+$('npVideoFile').addEventListener('change', function() {
+  const file = this.files[0];
+  const nameEl = $('npVideoName');
+  if (file) { nameEl.textContent = file.name; }
+  else { nameEl.textContent = ''; }
 });
 
 async function submitNewPost(opts = {}) {
@@ -1110,6 +1123,8 @@ function resetNewPostForm() {
   $('npPhotoFile').value = '';
   $('npVideoFile').value = '';
   $('npVideoTitle').value = '';
+  $('npPhotoName').textContent = '';
+  $('npVideoName').textContent = '';
   $('npPhotoPreview').style.display = 'none';
   npSelectedMediaType = 'none';
   document.querySelector('[name="npMediaType"][value="none"]').checked = true;

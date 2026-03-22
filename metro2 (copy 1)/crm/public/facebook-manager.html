@@ -384,22 +384,34 @@
           </label>
         </div>
 
-        <div id="npPhotoUpload" style="display:none;">
-          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:6px;">Select image file (JPG, PNG, GIF — max 10 MB)</label>
-          <input type="file" id="npPhotoFile" accept="image/*" style="font-size:13px;color:#d1d5db;">
+        <div id="npPhotoUpload" style="display:none;margin-top:10px;">
+          <input type="file" id="npPhotoFile" accept="image/*" style="display:none;">
+          <button type="button" id="btnNpChoosePhoto" onclick="document.getElementById('npPhotoFile').click()"
+            style="display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Choose Image
+          </button>
+          <span id="npPhotoName" style="font-size:12px;color:#9ca3af;margin-left:10px;"></span>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">JPG, PNG or GIF — max 10 MB</p>
           <div id="npPhotoPreview" style="margin-top:10px;display:none;">
             <img id="npPhotoImg" style="max-height:140px;max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);" alt="Preview">
           </div>
         </div>
 
-        <div id="npVideoUpload" style="display:none;">
-          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:6px;">Select video file (MP4, MOV — max 50 MB)</label>
-          <input type="file" id="npVideoFile" accept="video/*" style="font-size:13px;color:#d1d5db;margin-bottom:10px;">
-          <div style="margin-top:8px;">
+        <div id="npVideoUpload" style="display:none;margin-top:10px;">
+          <input type="file" id="npVideoFile" accept="video/*" style="display:none;">
+          <button type="button" id="btnNpChooseVideo" onclick="document.getElementById('npVideoFile').click()"
+            style="display:inline-flex;align-items:center;gap:8px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Choose Video
+          </button>
+          <span id="npVideoName" style="font-size:12px;color:#9ca3af;margin-left:10px;"></span>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">MP4 or MOV — max 50 MB</p>
+          <div style="margin-top:10px;">
             <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Video Title (optional)</label>
             <input type="text" id="npVideoTitle" class="input-field w-full" placeholder="e.g. How to fix your credit in 30 days" style="font-size:13px;">
           </div>
-          <p style="font-size:11px;color:#6b7280;margin-top:8px;">The Post Content field above will be used as the video description.</p>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">The Post Content above will be used as the video description.</p>
         </div>
       </div>
 
