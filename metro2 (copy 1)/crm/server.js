@@ -12545,7 +12545,18 @@ async function saveSocialDB(db) { await writeKey('social_media_db', db); }
 async function fbGraphGet(path, params = {}, token) {
   const qs = new URLSearchParams({ ...params, access_token: token }).toString();
   const res = await fetch(`${FB_API}${path}?${qs}`);
-  return res.json();
+  const json = await res.json();
+  if (json && json.error) {
+    const fb = json.error;
+    const msg = fb.error_user_msg || fb.message || 'Facebook API error';
+    const code = fb.code ? ` (code ${fb.code})` : '';
+    const err = new Error(`${msg}${code}`);
+    err.fbErrorCode = fb.code;
+    err.fbErrorType = fb.type;
+    err.fbErrorSubcode = fb.error_subcode;
+    throw err;
+  }
+  return json;
 }
 async function fbGraphPost(path, body = {}, token) {
   const res = await fetch(`${FB_API}${path}`, {

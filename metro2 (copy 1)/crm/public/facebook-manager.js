@@ -635,7 +635,11 @@ async function loadLeads() {
     const leads = data.leads || [];
     $('leadsCount').textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''} · ${data.formCount || 0} form${data.formCount !== 1 ? 's' : ''}`;
     if (!leads.length) {
-      list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">No lead form submissions found. Make sure your page has active lead generation forms with submissions.</div>';
+      const noForms = (data.formCount || 0) === 0;
+      const emptyMsg = noForms
+        ? 'No lead generation forms found on this page. Create a lead gen ad in Ads Manager to start collecting leads.'
+        : `Found ${data.formCount} form${data.formCount !== 1 ? 's' : ''} but no submissions yet. Leads will appear here once people fill out your form.`;
+      list.innerHTML = `<div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">${emptyMsg}</div>`;
       return;
     }
     list.innerHTML = leads.map((lead, i) => `
@@ -650,7 +654,12 @@ async function loadLeads() {
     const leadsCache = leads;
     list.querySelectorAll('.btn-add-lead-crm').forEach(btn2 => btn2.addEventListener('click', () => addLeadToCrm(leadsCache[parseInt(btn2.dataset.leadIdx, 10)], btn2)));
   } catch (e) {
-    list.innerHTML = `<div style="color:#f87171;font-size:13px;text-align:center;padding:16px;">${esc(e.message)}</div>`;
+    const msg = e.message || 'Unknown error';
+    const isLeadAccess = /lead access|lead_access|permission|OAuthException/i.test(msg) || msg.includes('code 100') || msg.includes('code 10');
+    const hint = isLeadAccess
+      ? '<div style="color:#fbbf24;font-size:12px;margin-top:8px;">Tip: Go to your Facebook Business Suite → Lead Access Manager and grant this app access to your page\'s leads.</div>'
+      : '';
+    list.innerHTML = `<div style="color:#f87171;font-size:13px;text-align:center;padding:16px;">${esc(msg)}${hint}</div>`;
   } finally {
     btn.disabled = false; btn.textContent = 'Load Leads';
   }
@@ -668,7 +677,7 @@ async function loadComments() {
     const comments = data.comments || [];
     $('commentsCount').textContent = `${comments.length} comment${comments.length !== 1 ? 's' : ''}`;
     if (!comments.length) {
-      list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">No recent comments found on your page posts.</div>';
+      list.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">No comments found on your recent page posts. Once your posts receive comments they will appear here.</div>';
       return;
     }
     list.innerHTML = comments.map((c, i) => `
@@ -686,7 +695,12 @@ async function loadComments() {
     const commentsCache = comments;
     list.querySelectorAll('.btn-add-comment-crm').forEach(btn2 => btn2.addEventListener('click', () => addCommentToCrm(commentsCache[parseInt(btn2.dataset.commentIdx, 10)], btn2)));
   } catch (e) {
-    list.innerHTML = `<div style="color:#f87171;font-size:13px;text-align:center;padding:16px;">${esc(e.message)}</div>`;
+    const msg = e.message || 'Unknown error';
+    const isScope = /permission|OAuthException|pages_read_engagement/i.test(msg);
+    const hint = isScope
+      ? '<div style="color:#fbbf24;font-size:12px;margin-top:8px;">Tip: Your Facebook token may be missing the pages_read_engagement permission. Try disconnecting and reconnecting your page.</div>'
+      : '';
+    list.innerHTML = `<div style="color:#f87171;font-size:13px;text-align:center;padding:16px;">${esc(msg)}${hint}</div>`;
   } finally {
     btn.disabled = false; btn.textContent = 'Load Comments';
   }
