@@ -25,6 +25,7 @@ document.getElementById('smTabs').addEventListener('click', e => {
   if (tab === 'queue') loadQueue();
   if (tab === 'autopilot') initAutopilotTab();
   if (tab === 'leads') initLeadsTab();
+  if (tab === 'newpost') initNewPostTab();
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -492,6 +493,8 @@ function renderQueue() {
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
             <span class="status-badge status-${p.status}">${p.status}</span>
+            ${p.mediaType === 'photo' ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.25);">📷 Photo</span>` : ''}
+            ${p.mediaType === 'video' ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.3);">🎬 Video</span>` : ''}
             ${p.source === 'autopilot' ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);">⚡ Autopilot</span>` : ''}
             ${p.scheduledAt ? `<span style="font-size:12px;color:#9ca3af;">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</span>` : ''}
             ${p.publishedAt ? `<span style="font-size:12px;color:#9ca3af;">Published: ${new Date(p.publishedAt).toLocaleString()}</span>` : ''}
@@ -943,5 +946,177 @@ async function runNow() {
     if (btn) { btn.disabled = false; btn.textContent = 'Run Now'; }
   }
 }
+
+// ─── New Post Composer ────────────────────────────────────────────────────────
+let npAiPanelOpen = false;
+let npSelectedMediaType = 'none';
+
+function initNewPostTab() {
+  const noConn = $('npNoConn');
+  if (noConn) noConn.style.display = status.connection ? 'none' : 'block';
+}
+
+$('btnNpAiToggle').addEventListener('click', () => {
+  npAiPanelOpen = !npAiPanelOpen;
+  const panel = $('npAiPanel');
+  const btn = $('btnNpAiToggle');
+  panel.style.display = npAiPanelOpen ? 'block' : 'none';
+  btn.textContent = npAiPanelOpen ? '✕ Close' : '✦ Write with AI';
+  if (npAiPanelOpen) $('npAiTopic').focus();
+});
+
+$('btnNpAiRun').addEventListener('click', async () => {
+  const topic = $('npAiTopic').value.trim();
+  const tone = $('npAiTone').value;
+  const errEl = $('npAiErr');
+  const btn = $('btnNpAiRun');
+  errEl.style.display = 'none';
+  if (!topic) { errEl.textContent = 'Please enter a topic.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const data = await api('/api/social/post/generate-content', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, tone }),
+    });
+    if (!data.ok) throw new Error(data.error || 'Generation failed');
+    $('npContent').value = data.content;
+    updateNpCharCount(data.content.length);
+    $('btnNpAiToggle').click();
+    showToast('Content generated! Review and edit before publishing.', 'green');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate';
+  }
+});
+
+$('npAiTopic').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnNpAiRun').click(); });
+
+$('npContent').addEventListener('input', function() { updateNpCharCount(this.value.length); });
+
+function updateNpCharCount(len) {
+  const cc = $('npCharCount');
+  cc.textContent = `${len} / 63,206`;
+  cc.className = 'char-count' + (len > 55000 ? ' near' : '') + (len > 63000 ? ' over' : '');
+}
+
+document.querySelectorAll('[name="npMediaType"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    npSelectedMediaType = radio.value;
+    $('npPhotoUpload').style.display = npSelectedMediaType === 'photo' ? 'block' : 'none';
+    $('npVideoUpload').style.display = npSelectedMediaType === 'video' ? 'block' : 'none';
+  });
+});
+
+$('npPhotoFile').addEventListener('change', function() {
+  const file = this.files[0];
+  const preview = $('npPhotoPreview');
+  const img = $('npPhotoImg');
+  if (file) {
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+});
+
+async function submitNewPost(opts = {}) {
+  const content = $('npContent').value.trim();
+  const errEl = $('npErr');
+  const msgEl = $('npMsg');
+  errEl.style.display = 'none';
+  msgEl.style.display = 'none';
+  if (!content) { errEl.textContent = 'Post content cannot be empty.'; errEl.style.display = 'block'; return; }
+
+  const schedValue = $('npSchedule').value;
+  let scheduledAt = schedValue ? new Date(schedValue).toISOString() : null;
+  if (opts.schedule && !scheduledAt) { errEl.textContent = 'Please set a schedule date and time first.'; errEl.style.display = 'block'; return; }
+  if (!opts.schedule) scheduledAt = null;
+
+  const btnPublish = $('btnNpPublish');
+  const btnSchedule = $('btnNpSchedule');
+  const btnDraft = $('btnNpDraft');
+  [btnPublish, btnSchedule, btnDraft].forEach(b => { b.disabled = true; });
+  btnPublish.textContent = 'Posting…';
+
+  try {
+    if (npSelectedMediaType === 'photo') {
+      const file = $('npPhotoFile').files[0];
+      if (!file) { errEl.textContent = 'Please select an image file.'; errEl.style.display = 'block'; return; }
+      if (!status.connection) { errEl.textContent = 'A connected Facebook page is required to publish photos.'; errEl.style.display = 'block'; return; }
+      const fd = new FormData();
+      fd.append('photo', file);
+      fd.append('caption', content);
+      if (scheduledAt) { fd.append('scheduledAt', scheduledAt); fd.append('publishNow', 'false'); }
+      const data = await fetch('/api/social/post/photo', { method: 'POST', headers: authHeader(), body: fd }).then(r => r.json());
+      if (!data.ok) throw new Error(data.error || 'Photo upload failed');
+      resetNewPostForm();
+      msgEl.style.color = '#10b981';
+      msgEl.textContent = scheduledAt ? `Photo scheduled for ${new Date(scheduledAt).toLocaleString()}` : 'Photo published to Facebook!';
+      msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+      showToast('Photo published to Facebook!', 'green');
+    } else if (npSelectedMediaType === 'video') {
+      const file = $('npVideoFile').files[0];
+      if (!file) { errEl.textContent = 'Please select a video file.'; errEl.style.display = 'block'; return; }
+      if (!status.connection) { errEl.textContent = 'A connected Facebook page is required to publish videos.'; errEl.style.display = 'block'; return; }
+      const fd = new FormData();
+      fd.append('video', file);
+      fd.append('description', content);
+      fd.append('title', $('npVideoTitle').value.trim() || '');
+      if (scheduledAt) { fd.append('scheduledAt', scheduledAt); fd.append('publishNow', 'false'); }
+      const data = await fetch('/api/social/post/video', { method: 'POST', headers: authHeader(), body: fd }).then(r => r.json());
+      if (!data.ok) throw new Error(data.error || 'Video upload failed');
+      resetNewPostForm();
+      msgEl.style.color = '#10b981';
+      msgEl.textContent = scheduledAt ? `Video scheduled for ${new Date(scheduledAt).toLocaleString()}` : 'Video published to Facebook!';
+      msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+      showToast('Video published to Facebook!', 'green');
+    } else {
+      const data = await api('/api/social/queue', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, scheduledAt, publishNow: opts.publishNow || false }),
+      });
+      if (!data.ok) throw new Error(data.error || 'Failed to save');
+      resetNewPostForm();
+      if (opts.publishNow) {
+        if (data.post.status === 'published') { msgEl.style.color = '#10b981'; msgEl.textContent = 'Post published to Facebook!'; }
+        else if (data.post.status === 'failed') { msgEl.style.color = '#f87171'; msgEl.textContent = `Publish failed: ${data.post.error || 'Unknown error'}`; }
+        else { msgEl.style.color = '#fbbf24'; msgEl.textContent = 'Post saved. No Facebook page connected yet.'; }
+      } else if (opts.schedule) {
+        msgEl.style.color = '#818cf8'; msgEl.textContent = `Scheduled for ${new Date(scheduledAt).toLocaleString()}`;
+      } else {
+        msgEl.style.color = '#9ca3af'; msgEl.textContent = 'Saved as draft.';
+      }
+      msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+    }
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    [btnPublish, btnSchedule, btnDraft].forEach(b => { b.disabled = false; });
+    btnPublish.textContent = 'Publish Now';
+  }
+}
+
+function resetNewPostForm() {
+  $('npContent').value = '';
+  updateNpCharCount(0);
+  $('npSchedule').value = '';
+  $('npPhotoFile').value = '';
+  $('npVideoFile').value = '';
+  $('npVideoTitle').value = '';
+  $('npPhotoPreview').style.display = 'none';
+  npSelectedMediaType = 'none';
+  document.querySelector('[name="npMediaType"][value="none"]').checked = true;
+  $('npPhotoUpload').style.display = 'none';
+  $('npVideoUpload').style.display = 'none';
+}
+
+$('btnNpPublish').addEventListener('click', () => submitNewPost({ publishNow: true }));
+$('btnNpSchedule').addEventListener('click', () => submitNewPost({ schedule: true }));
+$('btnNpDraft').addEventListener('click', () => submitNewPost({ draft: true }));
 
 init();

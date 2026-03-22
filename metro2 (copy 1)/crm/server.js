@@ -12950,6 +12950,137 @@ app.post('/api/social/queue/:id/publish-now', authenticate, async (req, res) => 
   }
 });
 
+// ── New Post Composer: AI content generation ─────────────────────────────────
+app.post('/api/social/post/generate-content', authenticate, async (req, res) => {
+  try {
+    const { topic, tone } = req.body || {};
+    if (!topic) return res.status(400).json({ ok: false, error: 'Topic is required' });
+    const toneInstruction = tone ? `Write in a ${tone} tone.` : 'Write in a conversational, empowering tone — not corporate.';
+    const system = `You are a social media expert for a credit repair and financial empowerment company. Write a compelling, engaging Facebook post about the given topic.
+Rules:
+- Start with a powerful hook line (question, bold statement, or shocking stat)
+- Write 2-3 concise paragraphs that provide real value
+- End with a clear call-to-action
+- Include 3-5 relevant hashtags at the end (#CreditRepair #FinancialFreedom etc.)
+- Keep the total post under 500 words
+- ${toneInstruction}
+- Do NOT include any title headers`;
+    const user = `Topic: ${topic}`;
+    const content = await callOpenAiText({ system, user });
+    res.json({ ok: true, content: content.trim() });
+  } catch (e) {
+    logError('SOCIAL_GENERATE_CONTENT_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── New Post Composer: Photo upload to Facebook ───────────────────────────────
+const socialMediaUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+
+app.post('/api/social/post/photo', authenticate, socialMediaUpload.single('photo'), async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    if (!db.connection) return res.status(400).json({ ok: false, error: 'No Facebook page connected' });
+    if (!req.file) return res.status(400).json({ ok: false, error: 'No photo file uploaded' });
+    const caption = req.body.caption || '';
+    const scheduledAt = req.body.scheduledAt || null;
+    const publishNow = req.body.publishNow !== 'false';
+
+    const formData = new FormData();
+    formData.append('access_token', db.connection.pageAccessToken);
+    formData.append('caption', caption);
+    const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    formData.append('source', blob, req.file.originalname || 'photo.jpg');
+    if (scheduledAt && !publishNow) {
+      formData.append('published', 'false');
+      formData.append('scheduled_publish_time', String(Math.floor(new Date(scheduledAt).getTime() / 1000)));
+    }
+
+    const fbRes = await fetch(`${FB_API}/${db.connection.pageId}/photos`, { method: 'POST', body: formData });
+    const fbJson = await fbRes.json();
+    if (fbJson.error) {
+      const fb = fbJson.error;
+      throw new Error(`${fb.error_user_msg || fb.message} (code ${fb.code})`);
+    }
+
+    const post = {
+      id: nanoid(12),
+      content: caption,
+      mediaType: 'photo',
+      fbMediaId: fbJson.id || null,
+      fbPostId: fbJson.post_id || fbJson.id || null,
+      scheduledAt: scheduledAt || null,
+      status: scheduledAt && !publishNow ? 'scheduled' : 'published',
+      publishedAt: publishNow ? new Date().toISOString() : null,
+      createdAt: new Date().toISOString(),
+      error: null,
+      source: 'composer',
+    };
+    db.queue = db.queue || [];
+    db.queue.unshift(post);
+    if (db.queue.length > 500) db.queue = db.queue.slice(0, 500);
+    await saveSocialDB(db);
+    res.json({ ok: true, post });
+  } catch (e) {
+    logError('SOCIAL_PHOTO_UPLOAD_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── New Post Composer: Video upload to Facebook ───────────────────────────────
+app.post('/api/social/post/video', authenticate, socialMediaUpload.single('video'), async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    if (!db.connection) return res.status(400).json({ ok: false, error: 'No Facebook page connected' });
+    if (!req.file) return res.status(400).json({ ok: false, error: 'No video file uploaded' });
+    const title = req.body.title || '';
+    const description = req.body.description || '';
+    const scheduledAt = req.body.scheduledAt || null;
+    const publishNow = req.body.publishNow !== 'false';
+
+    const formData = new FormData();
+    formData.append('access_token', db.connection.pageAccessToken);
+    if (title) formData.append('title', title);
+    if (description) formData.append('description', description);
+    const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+    formData.append('source', blob, req.file.originalname || 'video.mp4');
+    if (scheduledAt && !publishNow) {
+      formData.append('published', 'false');
+      formData.append('scheduled_publish_time', String(Math.floor(new Date(scheduledAt).getTime() / 1000)));
+    }
+
+    const fbRes = await fetch(`${FB_API}/${db.connection.pageId}/videos`, { method: 'POST', body: formData });
+    const fbJson = await fbRes.json();
+    if (fbJson.error) {
+      const fb = fbJson.error;
+      throw new Error(`${fb.error_user_msg || fb.message} (code ${fb.code})`);
+    }
+
+    const post = {
+      id: nanoid(12),
+      content: description || title,
+      mediaType: 'video',
+      fbMediaId: fbJson.id || null,
+      fbPostId: fbJson.id || null,
+      scheduledAt: scheduledAt || null,
+      status: scheduledAt && !publishNow ? 'scheduled' : 'published',
+      publishedAt: publishNow ? new Date().toISOString() : null,
+      createdAt: new Date().toISOString(),
+      error: null,
+      source: 'composer',
+      articleTitle: title || null,
+    };
+    db.queue = db.queue || [];
+    db.queue.unshift(post);
+    if (db.queue.length > 500) db.queue = db.queue.slice(0, 500);
+    await saveSocialDB(db);
+    res.json({ ok: true, post });
+  } catch (e) {
+    logError('SOCIAL_VIDEO_UPLOAD_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // Background scheduler: publish due posts every 60s
 setInterval(async () => {
   try {
