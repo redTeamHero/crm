@@ -624,6 +624,18 @@
     </header>
     <div class="body space-y-3">
       <p id="sendContractName" class="text-sm font-semibold text-gray-300"></p>
+      <div id="sendSelectedClient" class="hidden space-y-1">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Currently Selected Client</p>
+        <div id="sendSelectedClientRow" class="flex items-center justify-between gap-2 p-2 rounded-lg" style="background:rgba(212,168,83,0.10);border:1px solid rgba(212,168,83,0.28);">
+          <div class="flex flex-col">
+            <span id="sendSelectedClientName" class="text-sm font-medium text-gray-200"></span>
+            <span id="sendSelectedClientEmail" class="text-xs text-gray-500"></span>
+          </div>
+          <button id="sendSelectedClientBtn" type="button" class="btn text-xs">Send</button>
+        </div>
+        <hr style="border-color:rgba(212,168,83,0.15);margin-top:0.5rem;" />
+        <p class="text-xs text-gray-500">Or choose a different client below:</p>
+      </div>
       <input id="sendClientSearch" class="input w-full text-sm" placeholder="Search clients by name or email..." />
       <ul id="sendClientList" class="space-y-1 max-h-60 overflow-y-auto"></ul>
       <p id="sendClientEmpty" class="text-xs text-gray-500 hidden">No clients found.</p>

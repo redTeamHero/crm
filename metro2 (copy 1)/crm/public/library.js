@@ -881,6 +881,10 @@ const sendContractResultEl = document.getElementById('sendContractResult');
 const sendPortalLinkEl = document.getElementById('sendPortalLink');
 const closeSendContractBtn = document.getElementById('closeSendContract');
 const copySendLinkBtn = document.getElementById('copySendLink');
+const sendSelectedClientEl = document.getElementById('sendSelectedClient');
+const sendSelectedClientNameEl = document.getElementById('sendSelectedClientName');
+const sendSelectedClientEmailEl = document.getElementById('sendSelectedClientEmail');
+const sendSelectedClientBtn = document.getElementById('sendSelectedClientBtn');
 
 let sendingContract = null;
 let clientsCache = null;
@@ -942,6 +946,21 @@ async function openSendContractModal(contract){
   sendContractModal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
   const clients = await loadClients();
+
+  const selectedId = (typeof getSelectedConsumerId === 'function' ? getSelectedConsumerId() : null)
+    || localStorage.getItem('selectedConsumerId');
+  const preSelected = selectedId ? clients.find(c => c.id === selectedId) : null;
+  if(preSelected && sendSelectedClientEl){
+    if(sendSelectedClientNameEl) sendSelectedClientNameEl.textContent = preSelected.name || 'Unnamed';
+    if(sendSelectedClientEmailEl) sendSelectedClientEmailEl.textContent = preSelected.email || '';
+    if(sendSelectedClientBtn){
+      sendSelectedClientBtn.onclick = () => handleSendContract(preSelected);
+    }
+    sendSelectedClientEl.classList.remove('hidden');
+  } else if(sendSelectedClientEl){
+    sendSelectedClientEl.classList.add('hidden');
+  }
+
   renderClientList(clients);
 }
 
@@ -950,6 +969,7 @@ function closeSendContractModal(){
   sendContractModal.style.display = 'none';
   document.body.style.overflow = '';
   sendingContract = null;
+  if(sendSelectedClientEl) sendSelectedClientEl.classList.add('hidden');
 }
 
 async function handleSendContract(client){
