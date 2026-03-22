@@ -12257,21 +12257,28 @@ app.post('/api/affiliate/payout/:id/cancel', affiliateAuth, async (req, res) => 
 });
 
 app.get('/api/affiliate/track/:refCode', async (req, res) => {
+  const refCode = req.params.refCode;
+  const dest = req.query.dest === 'crm' ? '/crm/login' : '/diy/signup';
+  const qs = new URLSearchParams({ ref: refCode });
+
+  let customPrice = null;
   try {
-    const aff = await findAffiliateByRefCode(req.params.refCode);
+    const aff = await findAffiliateByRefCode(refCode);
     if (aff) {
-      aff.clicks = (aff.clicks || 0) + 1;
-      await saveAffiliate(aff);
+      if (aff.customPrice != null && aff.customPrice !== '') customPrice = aff.customPrice;
+      try {
+        aff.clicks = (aff.clicks || 0) + 1;
+        await saveAffiliate(aff);
+      } catch (saveErr) {
+        logWarn('AFFILIATE_CLICK_SAVE_ERROR', saveErr.message);
+      }
     }
-    const dest = req.query.dest === 'crm' ? '/crm/login' : '/diy/signup';
-    const qs = new URLSearchParams({ ref: req.params.refCode });
-    if (aff && aff.customPrice != null && aff.customPrice !== '') {
-      qs.set('price', aff.customPrice);
-    }
-    res.redirect(`${dest}?${qs.toString()}`);
-  } catch (err) {
-    res.redirect('/');
+  } catch (lookupErr) {
+    logWarn('AFFILIATE_TRACK_LOOKUP_ERROR', lookupErr.message);
   }
+
+  if (customPrice != null) qs.set('price', customPrice);
+  res.redirect(`${dest}?${qs.toString()}`);
 });
 
 app.get('/api/admin/affiliates', authenticate, forbidMember, async (req, res) => {

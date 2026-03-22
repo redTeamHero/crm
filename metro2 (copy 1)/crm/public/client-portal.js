@@ -4009,12 +4009,43 @@ document.addEventListener('DOMContentLoaded', () => {
     if (copyBtn) {
       copyBtn.addEventListener('click', function() {
         var input = document.getElementById('portalAffLink');
-        if (input) {
-          navigator.clipboard.writeText(input.value).then(function() {
+        if (!input || !input.value) return;
+        var text = input.value;
+        var doFallbackCopy = function() {
+          input.select();
+          input.setSelectionRange(0, 99999);
+          try {
+            var ok = document.execCommand('copy');
+            if (ok) {
+              copyBtn.textContent = 'Copied!';
+              setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+            } else {
+              copyBtn.textContent = 'Copy failed';
+              setTimeout(function() { copyBtn.textContent = 'Copy'; }, 3000);
+            }
+          } catch (e) {
+            copyBtn.textContent = 'Copy failed';
+            setTimeout(function() { copyBtn.textContent = 'Copy'; }, 3000);
+          }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function() {
             copyBtn.textContent = 'Copied!';
             setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+          }).catch(function() {
+            doFallbackCopy();
           });
+        } else {
+          doFallbackCopy();
         }
+      });
+    }
+
+    var affLinkInput = document.getElementById('portalAffLink');
+    if (affLinkInput) {
+      affLinkInput.addEventListener('click', function() {
+        this.select();
+        this.setSelectionRange(0, 99999);
       });
     }
 
