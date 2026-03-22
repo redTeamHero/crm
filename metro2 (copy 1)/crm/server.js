@@ -1586,6 +1586,7 @@ function registerStaticPage({ paths, file, middlewares = [], beforeSend }) {
         if (!resolved) {
           return res.status(404).send("Not found");
         }
+        res.set('Cache-Control', 'no-store');
         res.sendFile(resolved);
       } catch (err) {
         next(err);
