@@ -507,7 +507,8 @@ function renderQueue() {
           ${p.fbPostId ? `<div style="margin-top:4px;font-size:11px;color:#6b7280;">FB Post ID: ${esc(p.fbPostId)}</div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-          ${p.status !== 'published' ? `<button class="btn-publish-now btn-secondary" data-id="${esc(p.id)}" style="font-size:11px;padding:4px 10px;white-space:nowrap;">Post Now</button>` : ''}
+          ${p.status !== 'published' && p.scheduledVia !== 'facebook' ? `<button class="btn-publish-now btn-secondary" data-id="${esc(p.id)}" style="font-size:11px;padding:4px 10px;white-space:nowrap;">Post Now</button>` : ''}
+          ${p.scheduledVia === 'facebook' && p.status === 'scheduled' ? `<span style="font-size:10px;color:#6b7280;white-space:nowrap;">Managed by Facebook</span>` : ''}
           ${p.status === 'draft' || p.status === 'failed' ? `<button class="btn-queue-schedule btn-secondary" data-id="${esc(p.id)}" data-content="${esc(p.content)}" style="font-size:11px;padding:4px 10px;white-space:nowrap;">Edit/Schedule</button>` : ''}
           <button class="btn-del-post" data-id="${esc(p.id)}" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);color:#f87171;padding:4px 10px;border-radius:7px;font-size:11px;cursor:pointer;white-space:nowrap;">Delete</button>
         </div>

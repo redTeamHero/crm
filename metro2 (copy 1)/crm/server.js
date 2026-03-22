@@ -12982,6 +12982,7 @@ app.post('/api/social/post/photo', authenticate, socialMediaUpload.single('photo
     const db = await loadSocialDB();
     if (!db.connection) return res.status(400).json({ ok: false, error: 'No Facebook page connected' });
     if (!req.file) return res.status(400).json({ ok: false, error: 'No photo file uploaded' });
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ ok: false, error: 'File must be an image (JPG, PNG, GIF, etc.)' });
     const caption = req.body.caption || '';
     const scheduledAt = req.body.scheduledAt || null;
     const publishNow = req.body.publishNow !== 'false';
@@ -13034,6 +13035,7 @@ app.post('/api/social/post/video', authenticate, socialMediaUpload.single('video
     const db = await loadSocialDB();
     if (!db.connection) return res.status(400).json({ ok: false, error: 'No Facebook page connected' });
     if (!req.file) return res.status(400).json({ ok: false, error: 'No video file uploaded' });
+    if (!req.file.mimetype.startsWith('video/')) return res.status(400).json({ ok: false, error: 'File must be a video (MP4, MOV, etc.)' });
     const title = req.body.title || '';
     const description = req.body.description || '';
     const scheduledAt = req.body.scheduledAt || null;
