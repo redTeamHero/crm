@@ -981,7 +981,7 @@
         var id = el.getAttribute('data-id');
         var consumerId = el.getAttribute('data-consumer');
         if (id && !el.classList.contains('read')) {
-          markNotifRead(id);
+          markNotifRead(id, { navigate: !!consumerId });
         }
         if (consumerId) {
           window.location.href = '/clients?id=' + encodeURIComponent(consumerId);
@@ -1021,21 +1021,34 @@
       .catch(function() {});
   }
 
-  function markNotifRead(id) {
+  function markNotifRead(id, opts) {
+    var navigate = opts && opts.navigate;
+    var notif = notifData.find(function(n) { return n.id === id; });
+    if (notif && !notif.read) {
+      notif.read = true;
+      if (notifUnread > 0) notifUnread--;
+      updateBadge();
+    }
     fetch('/api/notifications/read', {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json' }, authHeader()),
-      body: JSON.stringify({ id: id })
+      body: JSON.stringify({ id: id }),
+      keepalive: true
     })
-    .then(function() { fetchNotifications(); })
+    .then(function() { if (!navigate) fetchNotifications(); })
     .catch(function() {});
   }
 
   function markAllNotifsRead() {
+    for (var i = 0; i < notifData.length; i++) { notifData[i].read = true; }
+    notifUnread = 0;
+    updateBadge();
+    if (notifOpen) renderNotifList();
     fetch('/api/notifications/read', {
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json' }, authHeader()),
-      body: JSON.stringify({ all: true })
+      body: JSON.stringify({ all: true }),
+      keepalive: true
     })
     .then(function() { fetchNotifications(); })
     .catch(function() {});
