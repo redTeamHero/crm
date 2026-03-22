@@ -5707,7 +5707,9 @@ app.post("/api/lead-capture", async (req, res) => {
     zip: req.body.zip || "",
     dob: req.body.dob || "",
     source: isAffiliate ? "Affiliate Referral" : (req.body.source || "Lead Capture Form"),
-    notes: req.body.notes || "",
+    notes: isAffiliate
+      ? [req.body.notes, `Affiliate Ref: ${affRef}`].filter(Boolean).join('\n')
+      : (req.body.notes || ""),
     creditGoal: req.body.creditGoal || "",
     currentScore: req.body.currentScore || "",
     status: "new",
@@ -5723,7 +5725,7 @@ app.post("/api/lead-capture", async (req, res) => {
       if (aff) {
         const commission = (aff.customCommissionRate != null && aff.customCommissionRate !== '') ? Number(aff.customCommissionRate) : 0;
         if (!aff.referrals) aff.referrals = [];
-        aff.referrals.push({ id: nanoid(8), type: 'lead', name, email: email.toLowerCase(), earned: commission, status: 'pending', date: new Date().toISOString() });
+        aff.referrals.push({ id: nanoid(8), type: 'lead', name, email: email.toLowerCase(), source: 'Affiliate Referral', earned: commission, status: 'pending', date: new Date().toISOString() });
         aff.totalEarned = (aff.totalEarned || 0) + commission;
         await saveAffiliate(aff);
       }
