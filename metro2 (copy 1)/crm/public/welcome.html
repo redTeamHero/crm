@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Evolv - Transform Your Credit</title>
+  <title>Evolv — Rise Financially</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#7C3AED" />
   <script>
@@ -64,12 +64,8 @@
       background: #0f172a;
     }
     
-    .nav-butterfly-svg { width: 28px; height: 28px; animation: flutter 2s ease-in-out infinite; }
-    .nav-butterfly-svg .bfly-wing-left { transform-origin: 50px 45px; animation: svgFlapL 1.4s ease-in-out infinite; }
-    .nav-butterfly-svg .bfly-wing-right { transform-origin: 50px 45px; animation: svgFlapR 1.4s ease-in-out infinite; }
-    @keyframes svgFlapL { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.5); } }
-    @keyframes svgFlapR { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(1.35); } }
-    @keyframes flutter { 0%,100%{transform:translateY(0) rotate(0deg)} 25%{transform:translateY(-4px) rotate(2deg)} 75%{transform:translateY(2px) rotate(-2deg)} }
+    .nav-phoenix-svg { width: 28px; height: 28px; animation: phoenixPulse 3s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(232,112,64,0.5)); }
+    @keyframes phoenixPulse { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-3px) scale(1.05)} }
     #hero-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; }
     .skip-intro { position:absolute; bottom:2rem; left:50%; transform:translateX(-50%); z-index:10; background:rgba(212,168,83,0.12); border:1px solid rgba(212,168,83,0.3); color:rgba(212,168,83,0.7); padding:0.5rem 1.5rem; border-radius:2rem; font-size:0.8rem; font-weight:500; cursor:pointer; letter-spacing:0.05em; transition:opacity 0.5s ease, background 0.2s ease; }
     .skip-intro:hover { background:rgba(212,168,83,0.22); color:#d4a853; }
@@ -248,33 +244,19 @@
     <header class="p-4 sticky top-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-white/5">
       <div class="max-w-6xl mx-auto flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500/20 to-emerald-500/20 flex items-center justify-center">
-            <svg class="nav-butterfly-svg" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="wingGradL" x1="0" y1="0" x2="50" y2="60" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#d4a853" stop-opacity="0.85"/>
-                  <stop offset="50%" stop-color="#d4a853" stop-opacity="0.6"/>
-                  <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.7"/>
-                </linearGradient>
-                <linearGradient id="wingGradR" x1="100" y1="0" x2="50" y2="60" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#d4a853" stop-opacity="0.85"/>
-                  <stop offset="50%" stop-color="#d4a853" stop-opacity="0.6"/>
-                  <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.7"/>
-                </linearGradient>
-              </defs>
-              <g class="bfly-wing-left">
-                <path d="M50,22.4 L46.2,20.2 L41.8,18.5 L36.9,17.3 L31.8,16.7 L26.6,16.8 L21.5,17.7 L17,19.4 L13.1,21.6 L10.2,24.5 L8.3,27.7 L7.5,31.1 L7.8,34.6 L9.2,38 L11.4,41.1 L14.4,43.8 L17.8,46.1 L21.5,47.9 L25.1,49.3 L28.5,50.3 L31.6,51 L34.1,51.6 L36.2,52.1 L37.7,52.8 L38.8,53.7 L39.7,54.9 L40.5,56.4 L41.5,58.3 L42.7,60.4 L44.5,62.8 L46.9,65.2 L50,67.6 Z" fill="url(#wingGradL)" stroke="#d4a853" stroke-width="1.2" stroke-opacity="0.8"/>
-                <path d="M50,45 Q47.9,39.6 46.4,37.5 M50,45 Q39.8,40.1 32.6,38.3 M50,45 Q33,44 21.1,43.6 M50,45 Q32.3,50.2 20,52.1" fill="none" stroke="#ffe0a0" stroke-width="0.6" stroke-opacity="0.25"/>
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 flex items-center justify-center">
+            <svg class="nav-phoenix-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <g transform="translate(50,58)">
+                <path d="M0,18 C-10,26 -18,16 -13,6 C-8,-4 -2,3 0,-1 Z" fill="#c49a45" opacity="0.75"/>
+                <path d="M0,18 C10,26 18,16 13,6 C8,-4 2,3 0,-1 Z" fill="#c49a45" opacity="0.75"/>
+                <path d="M0,-1 C-10,-9 -30,-5 -34,-17 C-36,-25 -24,-29 -12,-21 C-5,-15 -1,-7 0,-5 Z" fill="#d4a853"/>
+                <path d="M0,-1 C10,-9 30,-5 34,-17 C36,-25 24,-29 12,-21 C5,-15 1,-7 0,-5 Z" fill="#d4a853"/>
+                <ellipse cx="0" cy="-3" rx="3.5" ry="9" fill="#b8892e"/>
+                <circle cx="0" cy="-14" r="5" fill="#d4a853"/>
+                <path d="M-4,-19 C-6,-28 -1,-33 0,-25 C1,-33 6,-28 4,-19 Z" fill="#e87040"/>
+                <path d="M0,-22 C-1.5,-31 0,-37 0,-29 C0,-37 1.5,-31 0,-22 Z" fill="#f5a64a" opacity="0.85"/>
+                <circle cx="0" cy="-14" r="1.5" fill="#1a0a00"/>
               </g>
-              <g class="bfly-wing-right">
-                <path d="M50,22.4 L53.8,20.2 L58.2,18.5 L63.1,17.3 L68.2,16.7 L73.4,16.8 L78.5,17.7 L83,19.4 L86.9,21.6 L89.8,24.5 L91.7,27.7 L92.5,31.1 L92.2,34.6 L90.8,38 L88.6,41.1 L85.6,43.8 L82.2,46.1 L78.5,47.9 L74.9,49.3 L71.5,50.3 L68.4,51 L65.9,51.6 L63.8,52.1 L62.3,52.8 L61.2,53.7 L60.3,54.9 L59.5,56.4 L58.5,58.3 L57.3,60.4 L55.5,62.8 L53.1,65.2 L50,67.6 Z" fill="url(#wingGradR)" stroke="#d4a853" stroke-width="1.2" stroke-opacity="0.8"/>
-                <path d="M50,45 Q52.1,39.6 53.6,37.5 M50,45 Q60.2,40.1 67.4,38.3 M50,45 Q67,44 78.9,43.6 M50,45 Q67.7,50.2 80,52.1" fill="none" stroke="#ffe0a0" stroke-width="0.6" stroke-opacity="0.25"/>
-              </g>
-              <line x1="50" y1="20" x2="50" y2="70" stroke="#d4a853" stroke-width="2" stroke-linecap="round"/>
-              <line x1="50" y1="20" x2="43" y2="10" stroke="#d4a853" stroke-width="0.8" stroke-opacity="0.7"/>
-              <circle cx="42.5" cy="9" r="1.8" fill="#d4a853" opacity="0.8"/>
-              <line x1="50" y1="20" x2="57" y2="10" stroke="#d4a853" stroke-width="0.8" stroke-opacity="0.7"/>
-              <circle cx="57.5" cy="9" r="1.8" fill="#d4a853" opacity="0.8"/>
             </svg>
           </div>
           <span class="text-lg font-bold">Evolv</span>
@@ -296,7 +278,7 @@
         <div id="hero-content" class="hero-final" style="text-align:center;padding:0 1rem;">
           <div id="hero-score-display" class="hero-score"></div>
           <div class="hero-logo">EVOLV</div>
-          <div class="hero-tagline">Your Financial Evolution Starts Here.</div>
+          <div class="hero-tagline">Rebuild. Rise. Evolv.</div>
           <div class="hero-paths">
             <a href="/crm" class="hero-path-btn hero-path-pro">Credit Repair Pro</a>
             <a href="/diy" class="hero-path-btn hero-path-diy">DIY</a>
@@ -1078,15 +1060,6 @@
       });
     }
 
-    var butterflyWingL = [], butterflyWingR = [];
-    for(var a=0;a<32;a++){
-      var theta = (a/31)*Math.PI;
-      var r = 60 + 30*Math.sin(theta*2);
-      butterflyWingL.push({ x: -r*Math.sin(theta)*0.9, y: -r*Math.cos(theta)*0.6 });
-      butterflyWingR.push({ x: r*Math.sin(theta)*0.9, y: -r*Math.cos(theta)*0.6 });
-    }
-
-
     var particles = [];
     for(var i=0;i<60;i++){
       particles.push({
@@ -1111,19 +1084,18 @@
     var skipped = false;
     var skipBtn = document.getElementById('skipIntro');
 
-    var bgButterflies = [];
-    for(var bi=0; bi<5; bi++){
-      bgButterflies.push({
-        phase: Math.random()*Math.PI*2,
-        speed: 0.0003 + Math.random()*0.0003,
-        scale: 0.2 + Math.random()*0.2,
-        alpha: 0.2 + Math.random()*0.15,
-        offsetX: Math.random()*0.6 - 0.3,
-        offsetY: Math.random()*0.4 - 0.2,
-        flapSpeed: 0.004 + Math.random()*0.004,
-        radiusX: 0.15 + Math.random()*0.2,
-        radiusY: 0.1 + Math.random()*0.12,
-        shimmerOff: Math.random()*Math.PI*2
+    var bgEmbers = [];
+    for(var bi=0; bi<18; bi++){
+      bgEmbers.push({
+        x: Math.random(),
+        y: 0.7 + Math.random()*0.3,
+        vx: (Math.random()-0.5)*0.0004,
+        vy: -(0.0006 + Math.random()*0.0008),
+        size: 1.5 + Math.random()*3,
+        alpha: 0.3 + Math.random()*0.4,
+        life: Math.random(),
+        decay: 0.0008 + Math.random()*0.001,
+        hue: Math.floor(Math.random()*3)
       });
     }
 
@@ -1185,135 +1157,84 @@
     }
     */
 
-    var bflyTrail = [];
-    var settleBurstFired = false;
-    var settleBurstParticles = [];
+    var riseEmbers = [];
+    var burstFired = false;
+    var burstParticles = [];
 
-    function drawButterflyAt(bx, by, scale, angle, flapAmt, alpha, shimmerPhase){
+    function drawPhoenixGlow(bx, by, scale, alpha){
       var now = performance.now();
       var pulse = 0.7 + 0.3 * Math.sin(now * 0.003);
 
       ctx.save();
       ctx.translate(bx, by);
 
-      var auraSize = scale * 110 * pulse;
-      var auraGrad = ctx.createRadialGradient(0, -10, auraSize * 0.15, 0, -10, auraSize);
-      auraGrad.addColorStop(0, 'rgba(212,168,83,' + alpha * 0.25 * pulse + ')');
-      auraGrad.addColorStop(0.4, 'rgba(212,168,83,' + alpha * 0.1 + ')');
-      auraGrad.addColorStop(0.7, 'rgba(139,92,246,' + alpha * 0.05 + ')');
-      auraGrad.addColorStop(1, 'rgba(139,92,246,0)');
+      var auraSize = scale * 90 * pulse;
+      var auraGrad = ctx.createRadialGradient(0, -10, auraSize * 0.1, 0, -10, auraSize);
+      auraGrad.addColorStop(0, 'rgba(232,112,64,' + alpha * 0.35 * pulse + ')');
+      auraGrad.addColorStop(0.3, 'rgba(212,168,83,' + alpha * 0.18 + ')');
+      auraGrad.addColorStop(0.7, 'rgba(212,168,83,' + alpha * 0.05 + ')');
+      auraGrad.addColorStop(1, 'rgba(212,168,83,0)');
       ctx.beginPath();
       ctx.arc(0, -10, auraSize, 0, Math.PI * 2);
       ctx.fillStyle = auraGrad;
       ctx.fill();
 
-      ctx.restore();
-
-      ctx.save();
-      ctx.translate(bx, by);
-      ctx.rotate(angle);
       ctx.scale(scale, scale);
 
-      var wingFlap = flapAmt;
-      var sp = shimmerPhase || 0;
-      var goldR = 212, goldG = 168, goldB = 83;
-      var purpR = 139, purpG = 92, purpB = 246;
-      var shimmer = 0.5 + 0.5 * Math.sin(sp);
-      var wc1r = Math.round(lerp(goldR, purpR, shimmer * 0.6));
-      var wc1g = Math.round(lerp(goldG, purpG, shimmer * 0.6));
-      var wc1b = Math.round(lerp(goldB, purpB, shimmer * 0.6));
-      var wc2r = Math.round(lerp(purpR, goldR, shimmer * 0.6));
-      var wc2g = Math.round(lerp(purpG, goldG, shimmer * 0.6));
-      var wc2b = Math.round(lerp(purpB, goldB, shimmer * 0.6));
+      var fw = 38 * (0.85 + 0.15 * Math.sin(now * 0.009));
+      var fh = 52;
 
       ctx.save();
-      ctx.scale(1 - wingFlap, 1);
+      ctx.translate(-fw * 0.55, 0);
       ctx.beginPath();
-      for(var i = 0; i < butterflyWingL.length; i++){
-        var pt = butterflyWingL[i];
-        if(i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
-      }
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(-fw, -fh * 0.5, -fw * 0.6, -fh, 0, -fh * 0.3);
+      ctx.bezierCurveTo(fw * 0.5, -fh * 0.6, fw * 0.3, -fh * 0.2, 0, 0);
       ctx.closePath();
-      var grdL = ctx.createLinearGradient(-80, -60, 0, 40);
-      grdL.addColorStop(0, 'rgba(' + wc1r + ',' + wc1g + ',' + wc1b + ',' + alpha * 0.75 + ')');
-      grdL.addColorStop(0.5, 'rgba(212,168,83,' + alpha * 0.5 + ')');
-      grdL.addColorStop(1, 'rgba(' + wc2r + ',' + wc2g + ',' + wc2b + ',' + alpha * 0.55 + ')');
-      ctx.fillStyle = grdL;
+      var gL = ctx.createLinearGradient(-fw, -fh, 0, 0);
+      gL.addColorStop(0, 'rgba(232,112,64,' + alpha * 0.85 + ')');
+      gL.addColorStop(0.5, 'rgba(212,168,83,' + alpha * 0.7 + ')');
+      gL.addColorStop(1, 'rgba(245,166,74,' + alpha * 0.5 + ')');
+      ctx.fillStyle = gL;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(212,168,83,' + alpha * 0.9 + ')';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
       ctx.restore();
 
       ctx.save();
-      ctx.scale(1 + wingFlap, 1);
+      ctx.translate(fw * 0.55, 0);
       ctx.beginPath();
-      for(var i = 0; i < butterflyWingR.length; i++){
-        var pt = butterflyWingR[i];
-        if(i === 0) ctx.moveTo(pt.x, pt.y); else ctx.lineTo(pt.x, pt.y);
-      }
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(fw, -fh * 0.5, fw * 0.6, -fh, 0, -fh * 0.3);
+      ctx.bezierCurveTo(-fw * 0.5, -fh * 0.6, -fw * 0.3, -fh * 0.2, 0, 0);
       ctx.closePath();
-      var grdR = ctx.createLinearGradient(0, -60, 80, 40);
-      grdR.addColorStop(0, 'rgba(' + wc2r + ',' + wc2g + ',' + wc2b + ',' + alpha * 0.55 + ')');
-      grdR.addColorStop(0.5, 'rgba(212,168,83,' + alpha * 0.5 + ')');
-      grdR.addColorStop(1, 'rgba(' + wc1r + ',' + wc1g + ',' + wc1b + ',' + alpha * 0.75 + ')');
-      ctx.fillStyle = grdR;
+      var gR = ctx.createLinearGradient(fw, -fh, 0, 0);
+      gR.addColorStop(0, 'rgba(232,112,64,' + alpha * 0.85 + ')');
+      gR.addColorStop(0.5, 'rgba(212,168,83,' + alpha * 0.7 + ')');
+      gR.addColorStop(1, 'rgba(245,166,74,' + alpha * 0.5 + ')');
+      ctx.fillStyle = gR;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(212,168,83,' + alpha * 0.9 + ')';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
-
-      var veinAlpha = alpha * 0.2;
-      ctx.save();
-      ctx.scale(1 - wingFlap, 1);
-      ctx.strokeStyle = 'rgba(255,220,150,' + veinAlpha + ')';
-      ctx.lineWidth = 0.7;
-      for(var v = 0; v < 4; v++){
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        var va = (v / 4) * Math.PI * 0.8 + 0.2;
-        var vr = 40 + v * 12;
-        ctx.quadraticCurveTo(-vr * 0.5 * Math.sin(va), -vr * 0.4 * Math.cos(va),
-                             -vr * Math.sin(va) * 0.85, -vr * Math.cos(va) * 0.55);
-        ctx.stroke();
-      }
-      ctx.restore();
-      ctx.save();
-      ctx.scale(1 + wingFlap, 1);
-      ctx.strokeStyle = 'rgba(255,220,150,' + veinAlpha + ')';
-      ctx.lineWidth = 0.7;
-      for(var v = 0; v < 4; v++){
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        var va = (v / 4) * Math.PI * 0.8 + 0.2;
-        var vr = 40 + v * 12;
-        ctx.quadraticCurveTo(vr * 0.5 * Math.sin(va), -vr * 0.4 * Math.cos(va),
-                             vr * Math.sin(va) * 0.85, -vr * Math.cos(va) * 0.55);
-        ctx.stroke();
-      }
       ctx.restore();
 
       ctx.beginPath();
-      ctx.ellipse(0, 10, 3, 25, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 5, 22, 0, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(212,168,83,' + alpha + ')';
       ctx.fill();
 
-      var antAlpha = alpha * 0.6;
-      ctx.strokeStyle = 'rgba(212,168,83,' + antAlpha + ')';
-      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(0, -14);
-      ctx.quadraticCurveTo(-8, -30, -14, -38);
-      ctx.stroke();
+      ctx.ellipse(0, -20, 8, 8, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(212,168,83,' + alpha + ')';
+      ctx.fill();
+
+      var flameH = 28 + 8 * Math.sin(now * 0.012);
       ctx.beginPath();
-      ctx.moveTo(0, -14);
-      ctx.quadraticCurveTo(8, -30, 14, -38);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(-14, -38, 1.5, 0, Math.PI * 2);
-      ctx.arc(14, -38, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(212,168,83,' + antAlpha + ')';
+      ctx.moveTo(-5, -26);
+      ctx.bezierCurveTo(-8, -26 - flameH * 0.6, -2, -26 - flameH, 0, -26 - flameH * 0.4);
+      ctx.bezierCurveTo(2, -26 - flameH, 8, -26 - flameH * 0.6, 5, -26);
+      ctx.closePath();
+      var fGrad = ctx.createLinearGradient(0, -26, 0, -26 - flameH);
+      fGrad.addColorStop(0, 'rgba(212,168,83,' + alpha * 0.9 + ')');
+      fGrad.addColorStop(0.4, 'rgba(232,112,64,' + alpha * 0.8 + ')');
+      fGrad.addColorStop(1, 'rgba(245,166,74,' + alpha * 0.2 + ')');
+      ctx.fillStyle = fGrad;
       ctx.fill();
 
       ctx.restore();
@@ -1324,150 +1245,110 @@
       var now = performance.now();
 
       if(p < 0.05){
-        settleBurstFired = false;
-        settleBurstParticles.length = 0;
+        burstFired = false;
+        burstParticles.length = 0;
+        riseEmbers.length = 0;
       }
 
-      var entranceEnd = 0.15;
-      var flyStart = 0.1;
-      var flyEnd = 0.72;
-      var settleStart = 0.65;
+      var riseEnd = 0.85;
+      var baseScale = lerp(0.3, 1.1, Math.min(1, ease(p / 0.25)));
+      var alpha = Math.min(1, ep / 0.12);
 
-      var flyScale = Math.min(W, H) * 0.3;
-      var baseScale = lerp(0.3, 0.85, Math.min(1, ep / entranceEnd));
-      var alpha = Math.min(1, ep / 0.1);
+      var bx = cx;
+      var startY = cy + H * 0.28;
+      var by = lerp(startY, cy - H * 0.05, ease(Math.min(1, p / riseEnd)));
 
-      var bx, by, angle, flapSpeed;
-
-      if(p < flyStart){
-        bx = cx;
-        by = cy + 20;
-        angle = 0;
-        flapSpeed = 0.006;
-      } else if(p < flyEnd){
-        var fp = (p - flyStart) / (flyEnd - flyStart);
-        var pathT = fp * Math.PI * 2.4;
-
-        var loopX = Math.sin(pathT * 1.0) * flyScale * 0.7
-                  + Math.sin(pathT * 2.3) * flyScale * 0.25
-                  + Math.cos(pathT * 0.7) * flyScale * 0.15;
-        var loopY = Math.cos(pathT * 0.8) * flyScale * 0.35
-                  + Math.sin(pathT * 1.7) * flyScale * 0.2
-                  - Math.sin(pathT * 0.5) * flyScale * 0.15;
-
-        bx = cx + loopX;
-        by = cy + loopY;
-
-        var dx = Math.cos(pathT * 1.0) * 1.0 + Math.cos(pathT * 2.3) * 2.3 * 0.25;
-        var dy = -Math.sin(pathT * 0.8) * 0.8 + Math.cos(pathT * 1.7) * 1.7 * 0.2;
-        angle = Math.atan2(dy, dx) * 0.3;
-
-        flapSpeed = 0.012;
-        baseScale = lerp(0.6, 0.95, 0.5 + 0.5 * Math.sin(pathT * 0.5));
-
-        if(p > settleStart){
-          var settleProg = (p - settleStart) / (1 - settleStart);
-          var sp = ease(settleProg);
-          bx = lerp(bx, cx, sp);
-          by = lerp(by, cy + 20, sp);
-          angle = lerp(angle, 0, sp);
-          baseScale = lerp(baseScale, 1.0, sp);
-          flapSpeed = lerp(0.012, 0.005, sp);
-        }
-      } else {
-        bx = cx;
-        by = cy + 20;
-        angle = 0;
-        flapSpeed = 0.005;
-        baseScale = 1.0;
-      }
-
-      bflyTrail.push({ x: bx, y: by, t: now, alpha: alpha });
-      while(bflyTrail.length > 0 && now - bflyTrail[0].t > 900) bflyTrail.shift();
-
-      for(var ti = 0; ti < bflyTrail.length; ti++){
-        var tr = bflyTrail[ti];
-        var age = (now - tr.t) / 900;
-        var ta = (1 - age) * 0.6 * tr.alpha;
-        if(ta < 0.02) continue;
-        var trailSize = 3 + age * 8;
-        var trGrad = ctx.createRadialGradient(tr.x, tr.y, 0, tr.x, tr.y, trailSize);
-        trGrad.addColorStop(0, 'rgba(212,168,83,' + ta + ')');
-        trGrad.addColorStop(0.5, 'rgba(212,168,83,' + ta * 0.4 + ')');
-        trGrad.addColorStop(1, 'rgba(139,92,246,0)');
-        ctx.beginPath();
-        ctx.arc(tr.x, tr.y, trailSize, 0, Math.PI * 2);
-        ctx.fillStyle = trGrad;
-        ctx.fill();
-      }
-
-      if(p > flyStart && p < flyEnd){
-        var sparkCount = 3;
-        for(var si = 0; si < sparkCount; si++){
-          particles.push({
-            x: bx / W + (Math.random() - 0.5) * 0.03,
-            y: by / H + (Math.random() - 0.5) * 0.03,
-            vx: (Math.random() - 0.5) * 0.6,
-            vy: (Math.random() - 0.5) * 0.6,
+      if(p > 0.08){
+        for(var si = 0; si < 4; si++){
+          var eAngle = (Math.random() - 0.5) * Math.PI * 0.8;
+          riseEmbers.push({
+            x: bx + (Math.random() - 0.5) * baseScale * 60,
+            y: by + Math.random() * baseScale * 20,
+            vx: Math.cos(eAngle) * (0.5 + Math.random() * 1.5),
+            vy: -(1.5 + Math.random() * 2.5),
             size: 1 + Math.random() * 2.5,
-            alpha: 0.5 + Math.random() * 0.4
-          });
-        }
-        if(particles.length > 150) particles.splice(0, particles.length - 100);
-      }
-
-      if(p > settleStart && !settleBurstFired){
-        settleBurstFired = true;
-        for(var bi = 0; bi < 35; bi++){
-          var burstAngle = (bi / 35) * Math.PI * 2 + Math.random() * 0.3;
-          var burstSpeed = 1.5 + Math.random() * 3;
-          settleBurstParticles.push({
-            x: bx, y: by,
-            vx: Math.cos(burstAngle) * burstSpeed,
-            vy: Math.sin(burstAngle) * burstSpeed,
-            size: 1.5 + Math.random() * 3,
-            alpha: 0.7 + Math.random() * 0.3,
+            alpha: 0.6 + Math.random() * 0.4,
             life: 1.0,
-            decay: 0.008 + Math.random() * 0.008,
-            gold: Math.random() > 0.3
+            decay: 0.015 + Math.random() * 0.02,
+            ember: Math.random() > 0.4
           });
         }
       }
 
-      for(var sbi = settleBurstParticles.length - 1; sbi >= 0; sbi--){
-        var sbp = settleBurstParticles[sbi];
-        sbp.x += sbp.vx;
-        sbp.y += sbp.vy;
-        sbp.vx *= 0.97;
-        sbp.vy *= 0.97;
-        sbp.life -= sbp.decay;
-        if(sbp.life <= 0){ settleBurstParticles.splice(sbi, 1); continue; }
-        var sba = sbp.alpha * sbp.life;
-        var sbColor = sbp.gold
-          ? 'rgba(212,168,83,' + sba + ')'
-          : 'rgba(139,92,246,' + sba + ')';
+      for(var ei = riseEmbers.length - 1; ei >= 0; ei--){
+        var em = riseEmbers[ei];
+        em.x += em.vx;
+        em.y += em.vy;
+        em.vx *= 0.97;
+        em.vy *= 0.99;
+        em.life -= em.decay;
+        if(em.life <= 0){ riseEmbers.splice(ei, 1); continue; }
+        var ea = em.alpha * em.life;
         ctx.beginPath();
-        ctx.arc(sbp.x, sbp.y, sbp.size * sbp.life, 0, Math.PI * 2);
-        ctx.fillStyle = sbColor;
+        ctx.arc(em.x, em.y, em.size * em.life, 0, Math.PI * 2);
+        ctx.fillStyle = em.ember
+          ? 'rgba(232,112,64,' + ea + ')'
+          : 'rgba(212,168,83,' + ea + ')';
         ctx.fill();
-        if(sbp.life > 0.5){
+        if(em.life > 0.5){
           ctx.beginPath();
-          ctx.arc(sbp.x, sbp.y, sbp.size * sbp.life * 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = sbp.gold
-            ? 'rgba(212,168,83,' + sba * 0.15 + ')'
-            : 'rgba(139,92,246,' + sba * 0.15 + ')';
+          ctx.arc(em.x, em.y, em.size * em.life * 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = em.ember
+            ? 'rgba(232,112,64,' + ea * 0.12 + ')'
+            : 'rgba(212,168,83,' + ea * 0.12 + ')';
           ctx.fill();
         }
       }
 
-      var shimmerPhase = now * 0.004;
-      var wingFlap = Math.sin(now * flapSpeed) * 0.25 * alpha;
-      drawButterflyAt(bx, by, baseScale, angle, wingFlap, alpha, shimmerPhase);
+      if(p > 0.65 && !burstFired){
+        burstFired = true;
+        for(var bi = 0; bi < 40; bi++){
+          var burstAngle = (bi / 40) * Math.PI * 2 + Math.random() * 0.3;
+          var burstSpeed = 2 + Math.random() * 3.5;
+          burstParticles.push({
+            x: bx, y: by,
+            vx: Math.cos(burstAngle) * burstSpeed,
+            vy: Math.sin(burstAngle) * burstSpeed - 1.5,
+            size: 1.5 + Math.random() * 3,
+            alpha: 0.8 + Math.random() * 0.2,
+            life: 1.0,
+            decay: 0.007 + Math.random() * 0.007,
+            ember: Math.random() > 0.35
+          });
+        }
+      }
+
+      for(var sbi = burstParticles.length - 1; sbi >= 0; sbi--){
+        var sbp = burstParticles[sbi];
+        sbp.x += sbp.vx;
+        sbp.y += sbp.vy;
+        sbp.vx *= 0.96;
+        sbp.vy = sbp.vy * 0.96 - 0.04;
+        sbp.life -= sbp.decay;
+        if(sbp.life <= 0){ burstParticles.splice(sbi, 1); continue; }
+        var sba = sbp.alpha * sbp.life;
+        ctx.beginPath();
+        ctx.arc(sbp.x, sbp.y, sbp.size * sbp.life, 0, Math.PI * 2);
+        ctx.fillStyle = sbp.ember
+          ? 'rgba(232,112,64,' + sba + ')'
+          : 'rgba(212,168,83,' + sba + ')';
+        ctx.fill();
+        if(sbp.life > 0.5){
+          ctx.beginPath();
+          ctx.arc(sbp.x, sbp.y, sbp.size * sbp.life * 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = sbp.ember
+            ? 'rgba(232,112,64,' + sba * 0.12 + ')'
+            : 'rgba(212,168,83,' + sba * 0.12 + ')';
+          ctx.fill();
+        }
+      }
+
+      drawPhoenixGlow(bx, by, baseScale, alpha);
 
       if(p > 0.76){
         var textProg = Math.min(1, (p - 0.76) / 0.22);
         var textAlpha = ease(ease(textProg));
-        var textY = by + baseScale * 80 + 40;
+        var textY = by + baseScale * 70 + 40;
         var slideUp = (1 - ease(textProg)) * 35;
 
         ctx.save();
@@ -1478,10 +1359,10 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
-        ctx.shadowColor = 'rgba(212,168,83,' + (0.3 + textAlpha * 0.4) + ')';
+        ctx.shadowColor = 'rgba(232,112,64,' + (0.3 + textAlpha * 0.4) + ')';
         ctx.shadowBlur = 10 + textAlpha * 25;
         ctx.fillStyle = GOLD;
-        ctx.fillText('Reclaim Your Future', cx, textY + slideUp);
+        ctx.fillText('Rise Financially', cx, textY + slideUp);
 
         ctx.shadowBlur = 0;
         ctx.restore();
@@ -1578,17 +1459,33 @@
         ctx.stroke();
       }
 
-      for(var bi=0; bi<bgButterflies.length; bi++){
-        var b = bgButterflies[bi];
-        var t = now * b.speed + b.phase;
-        var bx = cx + (b.offsetX + Math.sin(t) * b.radiusX + Math.sin(t*2.3)*b.radiusX*0.3) * W;
-        var by = cy + (b.offsetY + Math.cos(t*0.7) * b.radiusY + Math.sin(t*1.4)*b.radiusY*0.25) * H;
-        var angle = Math.cos(t) * b.radiusX * W * b.speed;
-        var dy = -Math.sin(t*0.7) * b.radiusY * H * b.speed * 0.7;
-        var flightAngle = Math.atan2(dy, angle) * 0.25;
-        var wingFlap = Math.sin(now * b.flapSpeed) * 0.3;
-        drawButterflyAt(bx, by, b.scale, flightAngle, wingFlap, b.alpha, now*0.003 + b.shimmerOff);
+      for(var bi = bgEmbers.length - 1; bi >= 0; bi--){
+        var em = bgEmbers[bi];
+        em.x += em.vx;
+        em.y += em.vy;
+        em.life -= em.decay;
+        if(em.life <= 0 || em.y < -0.05){
+          em.x = Math.random();
+          em.y = 1.02;
+          em.vx = (Math.random()-0.5)*0.0004;
+          em.vy = -(0.0006 + Math.random()*0.0008);
+          em.life = 0.7 + Math.random()*0.3;
+          em.size = 1.5 + Math.random()*3;
+          em.alpha = 0.25 + Math.random()*0.35;
+          em.hue = Math.floor(Math.random()*3);
+          continue;
+        }
+        var ea = em.alpha * em.life;
+        var px = em.x * W, py = em.y * H;
+        var wobble = Math.sin(now * 0.002 + em.x * 8) * 4;
+        ctx.beginPath();
+        ctx.arc(px + wobble, py, em.size * em.life, 0, Math.PI * 2);
+        var colors = ['rgba(232,112,64,', 'rgba(212,168,83,', 'rgba(245,166,74,'];
+        ctx.fillStyle = colors[em.hue] + ea + ')';
+        ctx.fill();
       }
+
+      drawPhoenixGlow(cx, cy - H * 0.05, 0.55, 0.25);
 
       requestAnimationFrame(drawFinalLoop);
     }

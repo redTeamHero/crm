@@ -1,25 +1,17 @@
 (function() {
-  var BUTTERFLY_SVG = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
-    '<g transform="translate(50,50)">' +
-    '<g class="ptour-butterfly__wing-l" transform="translate(-2,0)">' +
-    '<path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="#3b82f6" opacity="0.9"/>' +
-    '<path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="#2563eb" opacity="0.85"/>' +
-    '<path d="M-8,-3 C-18,-22 -35,-20 -32,-8 Z" fill="#60a5fa" opacity="0.4"/>' +
-    '<path d="M-8,5 C-18,20 -32,18 -28,8 Z" fill="#60a5fa" opacity="0.3"/>' +
-    '</g>' +
-    '<g class="ptour-butterfly__wing-r" transform="translate(2,0)">' +
-    '<path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="#3b82f6" opacity="0.9"/>' +
-    '<path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="#2563eb" opacity="0.85"/>' +
-    '<path d="M8,-3 C18,-22 35,-20 32,-8 Z" fill="#60a5fa" opacity="0.4"/>' +
-    '<path d="M8,5 C18,20 32,18 28,8 Z" fill="#60a5fa" opacity="0.3"/>' +
-    '</g>' +
-    '<ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#1e293b"/>' +
-    '<circle cx="-1.5" cy="-8" r="1.8" fill="#3b82f6"/>' +
-    '<circle cx="1.5" cy="-8" r="1.8" fill="#3b82f6"/>' +
-    '<line x1="-2" y1="-12" x2="-6" y2="-20" stroke="#3b82f6" stroke-width="0.8" stroke-linecap="round"/>' +
-    '<line x1="2" y1="-12" x2="6" y2="-20" stroke="#3b82f6" stroke-width="0.8" stroke-linecap="round"/>' +
-    '<circle cx="-6" cy="-21" r="1.2" fill="#3b82f6"/>' +
-    '<circle cx="6" cy="-21" r="1.2" fill="#3b82f6"/>' +
+  var PHOENIX_SVG = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+    '<g transform="translate(50,58)">' +
+    '<path d="M0,18 C-10,26 -18,16 -13,6 C-8,-4 -2,3 0,-1 Z" fill="#c49a45" opacity="0.75"/>' +
+    '<path d="M0,18 C10,26 18,16 13,6 C8,-4 2,3 0,-1 Z" fill="#c49a45" opacity="0.75"/>' +
+    '<path d="M0,-1 C-10,-9 -30,-5 -34,-17 C-36,-25 -24,-29 -12,-21 C-5,-15 -1,-7 0,-5 Z" fill="#d4a853" opacity="0.92"/>' +
+    '<path d="M0,-1 C10,-9 30,-5 34,-17 C36,-25 24,-29 12,-21 C5,-15 1,-7 0,-5 Z" fill="#d4a853" opacity="0.92"/>' +
+    '<path d="M0,-1 C-8,-7 -20,-4 -23,-13 C-25,-18 -17,-21 -8,-16 C-3,-12 -1,-5 0,-5 Z" fill="#e8c875" opacity="0.45"/>' +
+    '<path d="M0,-1 C8,-7 20,-4 23,-13 C25,-18 17,-21 8,-16 C3,-12 1,-5 0,-5 Z" fill="#e8c875" opacity="0.45"/>' +
+    '<ellipse cx="0" cy="-3" rx="3.5" ry="9" fill="#b8892e"/>' +
+    '<circle cx="0" cy="-14" r="5" fill="#d4a853"/>' +
+    '<path d="M-5,-19 C-7,-28 -1,-33 0,-25 C1,-33 7,-28 5,-19 Z" fill="#e87040" opacity="0.92"/>' +
+    '<path d="M0,-21 C-2,-31 0,-38 0,-30 C0,-38 2,-31 0,-21 Z" fill="#f5a64a" opacity="0.8"/>' +
+    '<circle cx="0" cy="-14" r="1.5" fill="#1a0a00"/>' +
     '</g>' +
     '</svg>';
 
@@ -388,7 +380,7 @@
     var self = this;
     var isLast = this.currentStep === this.steps.length - 1;
     var isFirst = this.currentStep === 0;
-    var poseClass = step.pose ? 'ptour-butterfly--' + step.pose : '';
+    var poseClass = step.pose ? 'ptour-phoenix--' + step.pose : '';
 
     var dots = this.steps.map(function(_, i) {
       var cls = 'ptour-bubble__dot';
@@ -399,8 +391,8 @@
 
     this.popover.setAttribute('data-placement', placement);
     this.popover.innerHTML =
-      '<div class="ptour-butterfly ' + poseClass + '">' +
-        BUTTERFLY_SVG +
+      '<div class="ptour-phoenix ' + poseClass + '">' +
+        PHOENIX_SVG +
       '</div>' +
       '<div class="ptour-bubble">' +
         '<button class="ptour-bubble__close" data-action="skip" aria-label="Close" title="Close">\u2715</button>' +
@@ -534,7 +526,7 @@
     if (nextTour) {
       content =
         '<div class="ptour-continue__card">' +
-          '<div class="ptour-continue__butterfly">' + BUTTERFLY_SVG + '</div>' +
+          '<div class="ptour-continue__phoenix">' + PHOENIX_SVG + '</div>' +
           '<div class="ptour-continue__title">Section Complete!</div>' +
           '<div class="ptour-continue__body">' +
             'Great job! You\'ve finished the <strong>' + esc(finishedTour.label) + '</strong> tour. ' +
@@ -552,7 +544,7 @@
     } else {
       content =
         '<div class="ptour-continue__card">' +
-          '<div class="ptour-continue__butterfly ptour-butterfly--celebrate">' + BUTTERFLY_SVG + '</div>' +
+          '<div class="ptour-continue__phoenix ptour-phoenix--celebrate">' + PHOENIX_SVG + '</div>' +
           '<div class="ptour-continue__title">Tour Complete!</div>' +
           '<div class="ptour-continue__body">' +
             'Amazing! You\'ve toured every section of your portal. You\'re all set to make the most of your credit restoration journey. ' +
@@ -659,7 +651,7 @@
       '<div class="ptour-menu" style="position:relative;">' +
         '<button class="ptour-menu__close" data-close>\u2715</button>' +
         '<div class="ptour-menu__header">' +
-          '<div class="ptour-butterfly" style="width:56px;height:56px;">' + BUTTERFLY_SVG + '</div>' +
+          '<div class="ptour-phoenix" style="width:56px;height:56px;">' + PHOENIX_SVG + '</div>' +
           '<div>' +
             '<div class="ptour-menu__title">Portal Tour Guide</div>' +
             '<div class="ptour-menu__subtitle">Choose a section to learn about</div>' +
@@ -667,7 +659,7 @@
         '</div>' +
         '<div class="ptour-menu__list" style="max-height:400px;overflow-y:auto;">' +
           '<div class="ptour-menu__item ptour-menu__item--full" data-tour-key="__current__">' +
-            '<div class="ptour-menu__item-icon">\uD83E\uDD8B</div>' +
+            '<div class="ptour-menu__item-icon">\uD83D\uDD25</div>' +
             '<div class="ptour-menu__item-text">' +
               '<div class="ptour-menu__item-label">Tour This Section</div>' +
               '<div class="ptour-menu__item-desc">Let Evolv walk you through what\'s on screen right now</div>' +
@@ -703,7 +695,7 @@
     overlay.className = 'ptour-welcome';
     overlay.innerHTML =
       '<div class="ptour-welcome__card">' +
-        '<div class="ptour-welcome__butterfly">' + BUTTERFLY_SVG + '</div>' +
+        '<div class="ptour-welcome__phoenix">' + PHOENIX_SVG + '</div>' +
         '<div class="ptour-welcome__title">Welcome to Your Portal!</div>' +
         '<div class="ptour-welcome__body">' +
           'Hi! I\'m Evolv, your personal credit guide. This portal is your command center for tracking disputes, uploading documents, monitoring your credit scores, and communicating with your team. Want me to give you a quick tour so you know where everything is?' +

@@ -227,13 +227,13 @@
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
 }
 
-.ptour-butterfly {
+.ptour-phoenix {
   width: 72px;
   height: 72px;
   flex-shrink: 0;
   position: relative;
   animation: ptourFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.25));
+  filter: drop-shadow(0 4px 14px rgba(232, 112, 64, 0.3));
 }
 
 @keyframes ptourFloat {
@@ -241,30 +241,15 @@
   50% { transform: translateY(-6px); }
 }
 
-.ptour-butterfly svg {
+.ptour-phoenix svg {
   width: 100%;
   height: 100%;
 }
 
-.ptour-butterfly__wing-l,
-.ptour-butterfly__wing-r {
-  transform-origin: center;
-  animation: ptourFlap 0.8s ease-in-out infinite alternate;
+.ptour-phoenix--wave {
+  animation: ptourFloat 1.2s ease-in-out infinite;
 }
-
-.ptour-butterfly__wing-r {
-  animation-delay: 0.1s;
-}
-
-@keyframes ptourFlap {
-  0% { transform: scaleX(1) rotate(0deg); }
-  100% { transform: scaleX(0.92) rotate(-3deg); }
-}
-
-.ptour-butterfly--wave .ptour-butterfly__wing-l {
-  animation-duration: 0.5s;
-}
-.ptour-butterfly--excited {
+.ptour-phoenix--excited {
   animation: ptourBounce 0.6s ease-in-out infinite;
 }
 @keyframes ptourBounce {
@@ -273,14 +258,14 @@
   75% { transform: translateY(-4px) rotate(3deg); }
 }
 
-.ptour-butterfly--celebrate {
+.ptour-phoenix--celebrate {
   animation: ptourCelebrate 1s ease-in-out;
 }
 @keyframes ptourCelebrate {
   0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.15) rotate(-10deg); }
-  50% { transform: scale(1.2) rotate(10deg); }
-  75% { transform: scale(1.1) rotate(-5deg); }
+  25% { transform: scale(1.15) rotate(-8deg); }
+  50% { transform: scale(1.2) rotate(8deg); }
+  75% { transform: scale(1.1) rotate(-4deg); }
   100% { transform: scale(1) rotate(0deg); }
 }
 
@@ -460,12 +445,12 @@
   animation: ptourPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.ptour-welcome__butterfly {
+.ptour-welcome__phoenix {
   width: 100px;
   height: 100px;
   margin: 0 auto 20px;
   animation: ptourFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 6px 20px rgba(59, 130, 246, 0.3));
+  filter: drop-shadow(0 6px 22px rgba(232, 112, 64, 0.35));
 }
 
 .ptour-welcome__title {
@@ -585,12 +570,12 @@
   animation: ptourPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.ptour-continue__butterfly {
+.ptour-continue__phoenix {
   width: 80px;
   height: 80px;
   margin: 0 auto 16px;
   animation: ptourFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 6px 20px rgba(59, 130, 246, 0.3));
+  filter: drop-shadow(0 6px 22px rgba(232, 112, 64, 0.35));
 }
 
 .ptour-continue__title {
@@ -682,7 +667,7 @@
     max-width: calc(100vw - 24px);
     min-width: 280px;
   }
-  .ptour-butterfly {
+  .ptour-phoenix {
     width: 52px;
     height: 52px;
   }

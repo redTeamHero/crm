@@ -1,24 +1,16 @@
-const BUTTERFLY_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <g transform="translate(50,50)">
-    <g class="tour-butterfly__wing-l" transform="translate(-2,0)">
-      <path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="#d4a853" opacity="0.9"/>
-      <path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="#c49a45" opacity="0.85"/>
-      <path d="M-8,-3 C-18,-22 -35,-20 -32,-8 Z" fill="#e8c875" opacity="0.4"/>
-      <path d="M-8,5 C-18,20 -32,18 -28,8 Z" fill="#e8c875" opacity="0.3"/>
-    </g>
-    <g class="tour-butterfly__wing-r" transform="translate(2,0)">
-      <path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="#d4a853" opacity="0.9"/>
-      <path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="#c49a45" opacity="0.85"/>
-      <path d="M8,-3 C18,-22 35,-20 32,-8 Z" fill="#e8c875" opacity="0.4"/>
-      <path d="M8,5 C18,20 32,18 28,8 Z" fill="#e8c875" opacity="0.3"/>
-    </g>
-    <ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#1a1a1a"/>
-    <circle cx="-1.5" cy="-8" r="1.8" fill="#d4a853"/>
-    <circle cx="1.5" cy="-8" r="1.8" fill="#d4a853"/>
-    <line x1="-2" y1="-12" x2="-6" y2="-20" stroke="#d4a853" stroke-width="0.8" stroke-linecap="round"/>
-    <line x1="2" y1="-12" x2="6" y2="-20" stroke="#d4a853" stroke-width="0.8" stroke-linecap="round"/>
-    <circle cx="-6" cy="-21" r="1.2" fill="#d4a853"/>
-    <circle cx="6" cy="-21" r="1.2" fill="#d4a853"/>
+const PHOENIX_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(50,58)">
+    <path d="M0,18 C-10,26 -18,16 -13,6 C-8,-4 -2,3 0,-1 Z" fill="#c49a45" opacity="0.75"/>
+    <path d="M0,18 C10,26 18,16 13,6 C8,-4 2,3 0,-1 Z" fill="#c49a45" opacity="0.75"/>
+    <path d="M0,-1 C-10,-9 -30,-5 -34,-17 C-36,-25 -24,-29 -12,-21 C-5,-15 -1,-7 0,-5 Z" fill="#d4a853" opacity="0.92"/>
+    <path d="M0,-1 C10,-9 30,-5 34,-17 C36,-25 24,-29 12,-21 C5,-15 1,-7 0,-5 Z" fill="#d4a853" opacity="0.92"/>
+    <path d="M0,-1 C-8,-7 -20,-4 -23,-13 C-25,-18 -17,-21 -8,-16 C-3,-12 -1,-5 0,-5 Z" fill="#e8c875" opacity="0.45"/>
+    <path d="M0,-1 C8,-7 20,-4 23,-13 C25,-18 17,-21 8,-16 C3,-12 1,-5 0,-5 Z" fill="#e8c875" opacity="0.45"/>
+    <ellipse cx="0" cy="-3" rx="3.5" ry="9" fill="#b8892e"/>
+    <circle cx="0" cy="-14" r="5" fill="#d4a853"/>
+    <path d="M-5,-19 C-7,-28 -1,-33 0,-25 C1,-33 7,-28 5,-19 Z" fill="#e87040" opacity="0.92"/>
+    <path d="M0,-21 C-2,-31 0,-38 0,-30 C0,-38 2,-31 0,-21 Z" fill="#f5a64a" opacity="0.8"/>
+    <circle cx="0" cy="-14" r="1.5" fill="#1a0a00"/>
   </g>
 </svg>`;
 
@@ -43,7 +35,7 @@ const PAGE_TOURS = {
     icon: '📊',
     desc: 'Your command center — metrics, focus, and growth at a glance',
     steps: [
-      { target: '.hero-gold-section, .dashboard-hero, [data-tour="hero"]', title: 'Welcome to Your Command Center!', body: "Hey there! I'm Evolv, your butterfly guide. This is your dashboard — the heartbeat of your entire credit repair business. Everything you need to know about your operation is right here on one screen. Think of it as mission control. Let me walk you through each section so you can get the most out of it!", pose: 'wave' },
+      { target: '.hero-gold-section, .dashboard-hero, [data-tour="hero"]', title: 'Welcome to Your Command Center!', body: "Hey there! I'm Evolv, your phoenix guide. This is your dashboard — the heartbeat of your entire credit repair business. Everything you need to know about your operation is right here on one screen. Think of it as mission control. Let me walk you through each section so you can get the most out of it!", pose: 'wave' },
       { target: '#btnGoal', title: 'Daily Goal Tracker', body: "Start every day with intention. This button lets you mark your daily goal as done — whether it's booking consultations, sending letters, or following up with leads. The hero section also shows three key sub-metrics: your consultation fill rate, active automation flows, and upsell pipeline value. These numbers give you an instant snapshot of today's momentum so you know exactly where to focus your energy.", pose: 'default' },
       { target: '#focusList, #focusEditButton', title: 'Daily Focus Priorities', body: "This is your personal productivity zone. Set your top 3 priorities each morning by clicking the Edit button. Maybe it's 'Follow up with 5 clients,' 'Send batch dispute letters,' or 'Review new credit reports.' Your focus items persist so you can check them off as you go. Top performers in credit repair start every day with clear priorities — this makes it effortless.", pose: 'excited' },
       { target: '#nextRevenueWin', title: 'Next Revenue Win', body: "This card highlights your most immediate revenue opportunity — the next action you can take to bring in money. It might suggest following up on a consultation, closing a pending deal, or upselling an existing client. Think of it as your personal revenue coach, always pointing you toward the quickest win available right now.", pose: 'default' },
@@ -420,7 +412,7 @@ class EvolvTourEngine {
   renderPopover(step, placement, rect) {
     const isLast = this.currentStep === this.steps.length - 1;
     const isFirst = this.currentStep === 0;
-    const poseClass = step.pose ? `tour-butterfly--${step.pose}` : '';
+    const poseClass = step.pose ? `tour-phoenix--${step.pose}` : '';
 
     const dots = this.steps.map((_, i) => {
       let cls = 'tour-bubble__dot';
@@ -431,8 +423,8 @@ class EvolvTourEngine {
 
     this.popover.setAttribute('data-placement', placement);
     this.popover.innerHTML = `
-      <div class="tour-butterfly ${poseClass}">
-        ${BUTTERFLY_SVG}
+      <div class="tour-phoenix ${poseClass}">
+        ${PHOENIX_SVG}
       </div>
       <div class="tour-bubble">
         <button class="tour-bubble__close" data-action="skip" aria-label="Close" title="Close">✕</button>
@@ -443,7 +435,7 @@ class EvolvTourEngine {
           <div class="tour-bubble__actions">
             ${isFirst ? `<button class="tour-btn tour-btn--skip" data-action="skip">Skip Tour</button>` : `<button class="tour-btn tour-btn--prev" data-action="prev">Back</button>`}
             ${isLast
-              ? `<button class="tour-btn tour-btn--finish" data-action="finish">Got it! 🦋</button>`
+              ? `<button class="tour-btn tour-btn--finish" data-action="finish">Got it! 🔥</button>`
               : `<button class="tour-btn tour-btn--next" data-action="next">Next →</button>`
             }
           </div>
@@ -608,7 +600,7 @@ function showTourMenu() {
     <div class="tour-menu" style="position:relative;">
       <button class="tour-menu__close" data-close>✕</button>
       <div class="tour-menu__header">
-        <div class="tour-butterfly" style="width:56px;height:56px;">${BUTTERFLY_SVG}</div>
+        <div class="tour-phoenix" style="width:56px;height:56px;">${PHOENIX_SVG}</div>
         <div>
           <div class="tour-menu__title">Explore Evolv</div>
           <div class="tour-menu__subtitle">Choose a section to learn about</div>
@@ -616,7 +608,7 @@ function showTourMenu() {
       </div>
       <div class="tour-menu__list" style="max-height: 400px; overflow-y: auto;">
         <div class="tour-menu__item tour-menu__item--full" data-tour-key="__current__">
-          <div class="tour-menu__item-icon">🦋</div>
+          <div class="tour-menu__item-icon">🔥</div>
           <div class="tour-menu__item-text">
             <div class="tour-menu__item-label">Tour This Page</div>
             <div class="tour-menu__item-desc">Let Evolv walk you through what's on screen</div>
@@ -709,8 +701,8 @@ function showWelcome() {
   overlay.className = 'tour-welcome';
   overlay.innerHTML = `
     <div class="tour-welcome__card">
-      <div class="tour-welcome__butterfly">${BUTTERFLY_SVG}</div>
-      <div class="tour-welcome__title">Hi! I'm Evolv 🦋</div>
+      <div class="tour-welcome__phoenix">${PHOENIX_SVG}</div>
+      <div class="tour-welcome__title">Hi! I'm Evolv 🔥</div>
       <div class="tour-welcome__body">
         I'm your personal guide to mastering your credit repair business. Want me to show you around? I'll walk you through everything — it only takes a minute!
       </div>

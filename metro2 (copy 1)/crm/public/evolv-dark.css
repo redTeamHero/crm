@@ -23,6 +23,8 @@
   --bg-gradient-bottom: #0d0d0d !important;
   --bg-accent: rgba(212, 168, 83, 0.15) !important;
   --badge-text: #d4a853 !important;
+  --ember: #e87040 !important;
+  --crimson: #c0392b !important;
   color-scheme: dark !important;
 }
 
