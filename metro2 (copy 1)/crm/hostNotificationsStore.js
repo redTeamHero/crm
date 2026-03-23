@@ -555,6 +555,19 @@ export function initHostNotifications() {
 
     if (settings.email && settings.emailAddress) {
       delivery.emailSent = await sendEmailNotification(settings, message).catch(() => false);
+      if (!delivery.emailSent && event.type !== "email_bounced") {
+        // Record the email delivery failure as an email_bounced notification (direct insert, no recursion)
+        try {
+          await addNotification({
+            eventType: "email_bounced",
+            message: `Email delivery failed for notification: ${message.slice(0, 100)}`,
+            consumerName,
+            consumerId,
+            payload: { originalEvent: event.type, toAddress: settings.emailAddress },
+            delivery: { inApp: true, emailSent: false, smsSent: false },
+          });
+        } catch {}
+      }
     }
 
     if (settings.sms && settings.smsNumber) {

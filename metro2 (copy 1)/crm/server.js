@@ -270,6 +270,7 @@ initHostNotifications();
   const _notifiedClientInactive = new Set();  // client_inactive keyed by consumerId
   const _notifiedSLA = new Set();             // dispute_sla_missed keyed by consumerId:jobId
   const _notifiedCallReminder = new Set();    // call_reminder keyed by consumerId:bookingId
+  const _notifiedDocExpiring = new Set();     // document_expiring keyed by consumerId:filename
 
   async function runDigestTick() {
     try {
@@ -475,6 +476,21 @@ initHostNotifications();
               if (!_notifiedCallReminder.has(crKey)) {
                 _notifiedCallReminder.add(crKey);
                 try { await addEvent(cId, "call_reminder", { bookingId: bId, date: bc.payload?.date, time: bc.payload?.time }); } catch {}
+              }
+            }
+          }
+
+          // document_expiring: cfpb-proof or other uploaded documents older than 180 days
+          if (settings.events?.document_expiring !== false) {
+            const docEvents = events.filter(e => e.type === "document_approved" && new Date(e.at || 0).getTime() < nowMs - 180 * 86400000);
+            for (const de of docEvents) {
+              const files = de.payload?.files || [];
+              for (const fname of files) {
+                const deKey = `${cId}:doc:${fname}`;
+                if (!_notifiedDocExpiring.has(deKey)) {
+                  _notifiedDocExpiring.add(deKey);
+                  try { await addEvent(cId, "document_expiring", { name: consumer.name, fileName: fname, daysOld: Math.floor((nowMs - new Date(de.at || 0).getTime()) / 86400000) }); } catch {}
+                }
               }
             }
           }
@@ -5919,6 +5935,9 @@ const _loginFailCounts = new Map();
 const LOGIN_FAIL_THRESHOLD = 5;
 const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
+// Track last known IP per username for login_new_device detection
+const _lastLoginIP = new Map();
+
 function recordLoginFailure(username) {
   const now = Date.now();
   const entry = _loginFailCounts.get(username) || { count: 0, firstAt: now };
@@ -5962,6 +5981,13 @@ app.post("/api/login", async (req,res)=>{
   }
   // Clear failure count on success
   _loginFailCounts.delete(req.body.username);
+  // login_new_device: emit when a successful login comes from a new/different IP
+  const clientIp = (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown").split(",")[0].trim();
+  const lastIp = _lastLoginIP.get(user.username);
+  if (lastIp && lastIp !== clientIp) {
+    try { await emitHostNotification("login_new_device", `Login from new device/location for "${user.username}" (IP: ${clientIp})`, { username: user.username, ip: clientIp, previousIp: lastIp }); } catch {}
+  }
+  _lastLoginIP.set(user.username, clientIp);
   logInfo("LOGIN_SUCCESS", "Admin login successful", { userId: user.id });
   res.json({ ok:true, token: generateToken(user) });
 });
@@ -6305,6 +6331,22 @@ app.delete("/api/team-members/:id", authenticate, requireRole("admin"), async (r
     try{ fs.unlinkSync(path.join(PUBLIC_DIR, `team-${member.token}.html`)); }catch{}
   }
   res.json({ ok:true });
+});
+
+// system_maintenance: admin-triggered maintenance mode notification
+app.post("/api/admin/maintenance", authenticate, requireRole("admin"), async (req, res) => {
+  const { message, scheduledAt, expectedDurationMins } = req.body || {};
+  const msg = (typeof message === "string" && message.trim()) || "Scheduled system maintenance";
+  try {
+    await emitHostNotification("system_maintenance", msg, {
+      scheduledAt: scheduledAt || new Date().toISOString(),
+      expectedDurationMins: expectedDurationMins || null,
+      triggeredBy: req.user?.username || "admin",
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 app.patch("/api/team-members/:id", authenticate, requireRole("admin"), async (req,res)=>{
@@ -9568,6 +9610,7 @@ app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"),
     });
     await addEvent(consumerId, 'letters_mailed', { jobId, file: ev.payload.file, provider: 'simplecertifiedmail', result });
     try { await addEvent(consumerId, 'dispute_submitted', { name: consumer?.name, jobId, provider: 'simplecertifiedmail' }); } catch {}
+    try { await addEvent(consumerId, 'signature_requested', { name: consumer?.name, jobId, documentType: 'dispute_letter', provider: 'simplecertifiedmail' }); } catch {}
     res.json({ ok:true });
     logInfo('SCM_MAIL_SUCCESS', 'Sent letter via SimpleCertifiedMail', { jobId, consumerId, file });
   }catch(e){
@@ -9613,6 +9656,7 @@ app.post("/api/portal/:consumerId/mail", async (req,res)=>{
     });
     await addEvent(consumerId, 'letters_mailed', { jobId, file: ev.payload.file, provider: 'simplecertifiedmail', result });
     try { await addEvent(consumerId, 'dispute_submitted', { name: consumer?.name, jobId, provider: 'simplecertifiedmail' }); } catch {}
+    try { await addEvent(consumerId, 'signature_requested', { name: consumer?.name, jobId, documentType: 'dispute_letter', provider: 'simplecertifiedmail' }); } catch {}
     res.json({ ok:true });
     logInfo('SCM_MAIL_SUCCESS', 'Sent letter via SimpleCertifiedMail (portal)', { jobId, consumerId, file });
   }catch(e){
@@ -10195,6 +10239,8 @@ app.post("/api/consumers/:id/disputes/:jobId/response", authenticate, async (req
         round: roundEvent.payload.round,
         removedCount: removedItems.length,
       }).catch(() => {});
+      // signature_completed: bureau has acknowledged and resolved all items — equivalent to signing off
+      try { await addEvent(consumerId, "signature_completed", { jobId, round: roundEvent.payload.round, resolvedCount: removedItems.length, documentType: 'dispute_resolution' }); } catch {}
     }
 
     const roundPayloadItems = roundEvent.payload.items || [];
@@ -10504,6 +10550,9 @@ app.post("/api/consumers/:id/cfpb-proof", authenticate, cfpbProofUpload.array('f
       const objectKey = objStore.consumerFileKey(consumerId, storedName);
       await objStore.uploadFile(objectKey, file.buffer, SAFE_PROOF_MIMES[ext]);
       results.push({ key: storedName, name: file.originalname || storedName, size: file.size });
+    }
+    if (results.length) {
+      try { await addEvent(consumerId, "document_approved", { name: consumer.name, fileCount: results.length, files: results.map(r => r.name) }); } catch {}
     }
     res.json({ ok: true, files: results });
   } catch (e) {
