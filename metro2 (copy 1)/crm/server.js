@@ -9752,6 +9752,62 @@ app.get("/api/letters/:jobId/all.zip", authenticate, requirePermission("letters"
   }
 });
 
+app.post("/api/letters/:jobId/selected.zip", authenticate, requirePermission("letters", { allowGuest: true }), enforceTenantQuota("letters:zip"), async (req,res)=>{
+  const { jobId } = req.params;
+  const indices = (req.body?.indices || []).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+  if (!indices.length) return res.status(400).json({ ok: false, error: "No letter indices specified" });
+
+  const userId = req.user?.id || "guest";
+  const result = await loadJobForUser(jobId, userId);
+  if (!result) return res.status(404).json({ ok: false, error: "Job not found or expired" });
+  const { job } = result;
+
+  const selectedLetters = indices.map(i => ({ letter: job.letters[i], origIdx: i })).filter(({ letter }) => !!letter);
+  if (!selectedLetters.length) return res.status(400).json({ ok: false, error: "No matching letters for given indices" });
+
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="selected_letters_${jobId}.zip"`);
+
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.on('error', err => {
+    logError('ARCHIVE_STREAM_ERROR', 'Selected ZIP stream error', err, { jobId });
+    try { res.status(500).json({ ok: false, error: 'Zip error' }); } catch {}
+  });
+  archive.pipe(res);
+
+  const needsBrowser = selectedLetters.some(({ letter: L }) => !L.useOcr);
+  let browserInstance;
+  try {
+    if (needsBrowser) {
+      try { browserInstance = await launchBrowser(); } catch { browserInstance = null; }
+    }
+    for (const { letter: L, origIdx } of selectedLetters) {
+      const baseName = (L.filename || `letter${origIdx}`).replace(/\.html?$/i, "");
+      const pdfName = `${baseName}.pdf`;
+      if (L.useOcr) {
+        const pdfBuffer = await generateOcrPdf(L.html);
+        archive.append(pdfBuffer, { name: pdfName });
+        continue;
+      }
+      const htmlSource = L.html || await loadLetterHtml(jobId, L.filename) || '';
+      if (!htmlSource) continue;
+      const pdfBuffer = await htmlToPdfBuffer(htmlSource, {
+        browser: browserInstance || undefined,
+        allowBrowserLaunch: false,
+        title: `${L.bureau || 'Dispute'} Letter`,
+      });
+      archive.append(pdfBuffer, { name: pdfName });
+    }
+    await archive.finalize();
+    logInfo('ZIP_BUILD_SUCCESS', 'Selected letters zip created', { jobId, count: selectedLetters.length });
+  } catch (e) {
+    logError('ZIP_BUILD_FAILED', 'Selected zip generation failed', e, { jobId });
+    try { res.status(500).json({ ok: false, error: 'Failed to create selected zip.' }); } catch {}
+  } finally {
+    try { await browserInstance?.close(); } catch {}
+  }
+});
+
 app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"), async (req,res)=>{
 
   const { jobId } = req.params;

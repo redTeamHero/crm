@@ -203,6 +203,10 @@ async function loadDisputeTracker() {
   }
 }
 
+const CERTIFIED_MAIL_RATE = 5.99;
+
+function fmtPrice(n) { return '$' + n.toFixed(2); }
+
 function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, portalError) {
   let existing = document.getElementById('letterPreviewModal');
   if (existing) existing.remove();
@@ -213,41 +217,67 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
 
   const tokenParam = authHeader()?.Authorization ? `?token=${encodeURIComponent(authHeader().Authorization.replace('Bearer ',''))}` : '';
 
+  const letterSelections = new Set(letters.map((_, i) => i));
+
   let cardsHtml = letters.map((l, i) => {
     const creditor = escapeHtml(l.creditor || l.creditorName || 'Letter');
     const bureau = escapeHtml(l.bureau || '');
     const idx = l.index ?? i;
     const htmlUrl = `/api/letters/${encodeURIComponent(letterJobId)}/${idx}.html${tokenParam}`;
     const pdfUrl = `/api/letters/${encodeURIComponent(letterJobId)}/${idx}.pdf${tokenParam}`;
-    return `<div class="glass card" style="padding:12px;border:1px solid rgba(212,168,83,0.15);border-radius:8px;cursor:pointer;" data-html-url="${escapeHtml(htmlUrl)}">
-      <div style="font-weight:600;color:#fff;font-size:13px;">${creditor}</div>
-      <div style="font-size:11px;color:#888;margin-bottom:8px;">${bureau}</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-outline text-xs lpm-view" data-url="${escapeHtml(htmlUrl)}">View</button>
-        <a class="btn btn-outline text-xs" href="${escapeHtml(pdfUrl)}" target="_blank" style="text-decoration:none;">PDF</a>
+    return `<div class="glass card lpm-letter-card" style="padding:12px;border:1px solid rgba(212,168,83,0.25);border-radius:8px;position:relative;">
+      <label style="position:absolute;top:6px;left:6px;z-index:2;display:flex;align-items:center;cursor:pointer;" onclick="event.stopPropagation()">
+        <input type="checkbox" class="lpm-letter-check" data-idx="${idx}" checked style="accent-color:#d4a853;width:15px;height:15px;cursor:pointer;" />
+      </label>
+      <div style="padding-left:20px;">
+        <div style="font-weight:600;color:#fff;font-size:13px;">${creditor}</div>
+        <div style="font-size:11px;color:#888;margin-bottom:8px;">${bureau}</div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline text-xs lpm-view" data-url="${escapeHtml(htmlUrl)}">View</button>
+          <a class="btn btn-outline text-xs" href="${escapeHtml(pdfUrl)}" target="_blank" style="text-decoration:none;">PDF</a>
+        </div>
       </div>
     </div>`;
   }).join('');
 
+  const totalEst = fmtPrice(letters.length * CERTIFIED_MAIL_RATE);
+
   modal.innerHTML = `
-    <div style="background:#1a1a1e;border:1px solid rgba(212,168,83,0.2);border-radius:12px;width:90%;max-width:700px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="background:#1a1a1e;border:1px solid rgba(212,168,83,0.2);border-radius:12px;width:90%;max-width:740px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
       <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
         <div>
           <div style="font-weight:700;color:#fff;font-size:16px;">Generated Letters — ${new Date().toLocaleDateString()}</div>
           <div style="font-size:12px;color:#888;">Round ${escapeHtml(String(roundNum))} • ${letters.length} letter${letters.length !== 1 ? 's' : ''} generated</div>
         </div>
-        <button id="lpmClose" style="background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:4px 8px;">&times;</button>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#888;cursor:pointer;">
+            <input type="checkbox" id="lpmSelectAll" checked style="accent-color:#d4a853;width:13px;height:13px;cursor:pointer;" /> All
+          </label>
+          <button id="lpmClose" style="background:none;border:none;color:#888;font-size:20px;cursor:pointer;padding:4px 8px;">&times;</button>
+        </div>
       </div>
       <div style="padding:16px 20px;overflow-y:auto;flex:1;">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">${cardsHtml}</div>
       </div>
-      <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;flex-wrap:wrap;">
-        <a class="btn btn-outline text-xs" href="/api/letters/${encodeURIComponent(letterJobId)}/all.zip${tokenParam}" style="text-decoration:none;">Download All (ZIP)</a>
+
+      <div style="padding:10px 20px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(212,168,83,0.04);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:#888;">💰 Certified mail est.:</span>
+            <span id="lpmPriceText" style="font-size:13px;font-weight:700;color:#d4a853;">${letters.length} × ${fmtPrice(CERTIFIED_MAIL_RATE)} = ${totalEst}</span>
+          </div>
+          <span style="font-size:10px;color:#555;">Portal &amp; download are always free</span>
+        </div>
+      </div>
+
+      <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <a class="btn btn-outline text-xs" href="/api/letters/${encodeURIComponent(letterJobId)}/all.zip${tokenParam}" style="text-decoration:none;">⬇ All (ZIP)</a>
+        <button id="lpmDownloadSelected" class="btn btn-outline text-xs" style="border-color:rgba(96,165,250,0.35);color:#60a5fa;">⬇ Selected (${letters.length})</button>
         <button class="btn btn-outline text-xs" id="lpmSendPortal"${portalSent ? ' disabled style="color:#4ade80;border-color:#4ade80;"' : portalError ? ' style="color:#fbbf24;border-color:#fbbf24;"' : ''}>
-          ${portalSent ? '\u2713 Sent to Portal' : portalError ? '\u26A0 Retry Send to Portal' : 'Send to Portal'}
+          ${portalSent ? '\u2713 Portal' : portalError ? '\u26A0 Retry Portal' : '↑ Send to Portal'}
         </button>
         ${portalError ? `<span id="lpmPortalError" style="font-size:11px;color:#fbbf24;max-width:200px;display:inline-block;">${escapeHtml(portalError)}</span>` : ''}
-        <a class="btn btn-outline text-xs" href="/letters?job=${encodeURIComponent(letterJobId)}" target="_blank" style="text-decoration:none;">Open Full View</a>
+        <a class="btn btn-outline text-xs" href="/letters?job=${encodeURIComponent(letterJobId)}" target="_blank" style="text-decoration:none;">Full View</a>
         <button class="btn text-xs" id="lpmDone" style="margin-left:auto;">Done</button>
       </div>
     </div>
@@ -260,6 +290,91 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
     </div>
   `;
   document.body.appendChild(modal);
+
+  function updateLpmCalc() {
+    const count = letterSelections.size;
+    const total = fmtPrice(count * CERTIFIED_MAIL_RATE);
+    const priceEl = modal.querySelector('#lpmPriceText');
+    if (priceEl) {
+      priceEl.textContent = count === 0
+        ? 'No letters selected'
+        : `${count} × ${fmtPrice(CERTIFIED_MAIL_RATE)} = ${total}`;
+    }
+    const dlBtn = modal.querySelector('#lpmDownloadSelected');
+    if (dlBtn) {
+      dlBtn.textContent = `⬇ Selected (${count})`;
+      dlBtn.disabled = count === 0;
+      dlBtn.style.opacity = count === 0 ? '0.4' : '1';
+    }
+    const allCb = modal.querySelector('#lpmSelectAll');
+    if (allCb) {
+      allCb.indeterminate = count > 0 && count < letters.length;
+      allCb.checked = count === letters.length;
+    }
+  }
+
+  modal.querySelectorAll('.lpm-letter-check').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.dataset.idx, 10);
+      const card = e.target.closest('.lpm-letter-card');
+      if (e.target.checked) {
+        letterSelections.add(idx);
+        if (card) card.style.borderColor = 'rgba(212,168,83,0.45)';
+      } else {
+        letterSelections.delete(idx);
+        if (card) card.style.borderColor = 'rgba(212,168,83,0.15)';
+      }
+      updateLpmCalc();
+    });
+  });
+
+  modal.querySelector('#lpmSelectAll')?.addEventListener('change', (e) => {
+    letters.forEach((_, i) => {
+      const idx = (letters[i].index ?? i);
+      if (e.target.checked) {
+        letterSelections.add(idx);
+      } else {
+        letterSelections.delete(idx);
+      }
+    });
+    modal.querySelectorAll('.lpm-letter-check').forEach(cb => {
+      cb.checked = e.target.checked;
+      const card = cb.closest('.lpm-letter-card');
+      if (card) card.style.borderColor = e.target.checked ? 'rgba(212,168,83,0.45)' : 'rgba(212,168,83,0.15)';
+    });
+    updateLpmCalc();
+  });
+
+  modal.querySelector('#lpmDownloadSelected')?.addEventListener('click', async () => {
+    if (!letterSelections.size) return;
+    const indices = [...letterSelections];
+    const btn = modal.querySelector('#lpmDownloadSelected');
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Building ZIP…';
+    try {
+      const res = await fetch(`/api/letters/${encodeURIComponent(letterJobId)}/selected.zip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ indices }),
+      });
+      if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(`HTTP ${res.status} ${t}`.trim()); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `selected_letters.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showErr(`Download failed: ${err.message || err}`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  });
 
   const closeModal = () => { modal.remove(); loadDisputeTracker(); };
   modal.querySelector('#lpmClose').addEventListener('click', closeModal);
@@ -287,7 +402,7 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
     const btn = modal.querySelector('#lpmSendPortal');
     let errEl = modal.querySelector('#lpmPortalError');
     btn.disabled = true;
-    btn.textContent = 'Sending...';
+    btn.textContent = 'Sending…';
     btn.style.color = '';
     btn.style.borderColor = '';
     function showInlineErr(msg) {
@@ -302,20 +417,20 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
     try {
       const res = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
       if (res?.ok) {
-        btn.textContent = '\u2713 Sent to Portal';
+        btn.textContent = '\u2713 Portal';
         btn.style.color = '#4ade80';
         btn.style.borderColor = '#4ade80';
         if (errEl) errEl.remove();
       } else {
         btn.disabled = false;
-        btn.textContent = '\u26A0 Retry Send to Portal';
+        btn.textContent = '\u26A0 Retry Portal';
         btn.style.color = '#fbbf24';
         btn.style.borderColor = '#fbbf24';
         showInlineErr(res?.error || res?.message || 'Failed to send to portal.');
       }
     } catch (err) {
       btn.disabled = false;
-      btn.textContent = '\u26A0 Retry Send to Portal';
+      btn.textContent = '\u26A0 Retry Portal';
       btn.style.color = '#fbbf24';
       btn.style.borderColor = '#fbbf24';
       showInlineErr(String(err.message || err));
@@ -880,6 +995,75 @@ $('#batchClear')?.addEventListener('click', () => {
   document.querySelectorAll('.dispute-select-all').forEach(cb => { cb.checked = false; });
   document.querySelectorAll('.dispute-item-row').forEach(row => { row.style.background = 'rgba(255,255,255,0.03)'; });
   updateSelectionToolbar();
+});
+
+$('#batchDownloadRound')?.addEventListener('click', async () => {
+  const jobIds = getSelectedJobIds();
+  if (!jobIds.length || !currentConsumerId) return;
+  if (jobIds.length > 1) { showErr('Select items from a single round to download.'); return; }
+  const jobId = jobIds[0];
+  const round = currentDisputeData?.rounds?.find(r => r.jobId === jobId);
+  const letterCount = round?.letters?.length || 0;
+
+  const btn = $('#batchDownloadRound');
+  const origText = btn.textContent;
+  const costLine = letterCount > 0 ? ` (${letterCount} letters — ${fmtPrice(letterCount * CERTIFIED_MAIL_RATE)} certified mail est.)` : '';
+  if (!confirm(`Download all letters for this round as a ZIP?${costLine}`)) return;
+  btn.disabled = true;
+  btn.textContent = 'Building ZIP…';
+  try {
+    const res = await fetch(`/api/letters/${encodeURIComponent(jobId)}/all.zip`, {
+      headers: { ...authHeader() },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `letters_round.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    showErr(`Download failed: ${err.message || err}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+});
+
+$('#batchSendPortal')?.addEventListener('click', async () => {
+  const jobIds = getSelectedJobIds();
+  if (!jobIds.length || !currentConsumerId) return;
+  if (jobIds.length > 1) { showErr('Select items from a single round to send to portal.'); return; }
+  const jobId = jobIds[0];
+  const btn = $('#batchSendPortal');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const res = await api(`/api/letters/${encodeURIComponent(jobId)}/portal`, { method: 'POST' });
+    if (res?.ok) {
+      btn.textContent = '✓ Sent to Portal';
+      btn.style.color = '#4ade80';
+      btn.style.borderColor = 'rgba(74,222,128,0.4)';
+      setTimeout(() => {
+        btn.textContent = origText;
+        btn.style.color = '';
+        btn.style.borderColor = '';
+        btn.disabled = false;
+      }, 3000);
+    } else {
+      showErr(res?.error || res?.message || 'Failed to send to portal.');
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  } catch (err) {
+    showErr(`Portal send failed: ${err.message || err}`);
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
 });
 
 loadConsumers();
