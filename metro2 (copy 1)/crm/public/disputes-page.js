@@ -1,6 +1,6 @@
 import { authHeader, api, escapeHtml } from './common.js';
 import { openCfpbModal } from './cfpb-modal.js';
-import { resolveStateInfo } from './state-utils.js';
+import { resolveStateInfo, STATES_WITH_ADDENDA } from './state-utils.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -443,9 +443,6 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
     }
   });
 }
-
-// States with addenda in stateLaws.js — only show badge for these
-const STATES_WITH_ADDENDA = new Set(['CA','TX','NY','MD','MA','CO','NJ','CT','IL','WA','GA','FL','OR','MN','MI','PA','OH','VA','NC','AZ']);
 
 function renderStateLawBadge(consumerState) {
   if (!consumerState) return '';

@@ -4,6 +4,7 @@ import { PLAYBOOKS } from './playbooks.js';
 import { authHeader, api, escapeHtml, formatCurrency } from './common.js';
 import { clearClientLocationsCache } from './client-map.js';
 import { setupPageTour } from './tour-guide.js';
+import { hasStateLawAddendum, resolveStateInfo } from './state-utils.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -633,6 +634,15 @@ function renderConsumers(){
     const n = tpl.cloneNode(true);
     n.querySelector(".name").textContent = c.name || "(no name)";
     n.querySelector(".email").textContent = c.email || "";
+    const badgeSlot = n.querySelector(".state-law-badge");
+    if (badgeSlot && c.state && hasStateLawAddendum(c.state)) {
+      const info = resolveStateInfo(c.state);
+      const label = info.name || info.code;
+      badgeSlot.innerHTML = `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:9999px;font-size:10px;font-weight:600;background:rgba(212,168,83,0.12);color:#d4a853;border:1px solid rgba(212,168,83,0.3);" title="${escapeHtml(label)} consumer-protection law addendum included in generated letters">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        ${escapeHtml(info.code)} Law
+      </span>`;
+    }
     const card = n.querySelector(".consumer-card");
     if (c.id === currentConsumerId) {
       card.classList.add("active");

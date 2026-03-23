@@ -336,8 +336,11 @@
 <template id="consumerItem">
   <div class="glass card consumer-card cursor-pointer">
     <div class="flex items-start justify-between">
-      <div>
-        <div class="name font-medium"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+          <div class="name font-medium"></div>
+          <div class="state-law-badge"></div>
+        </div>
         <div class="email text-sm muted"></div>
       </div>
       <button class="delete btn" data-tip="Delete Consumer (click)">×</button>

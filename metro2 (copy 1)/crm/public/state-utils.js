@@ -112,6 +112,16 @@ for (const [alias, code] of Object.entries(MANUAL_STATE_ALIASES)) {
   addSanitizedKey(alias, code);
 }
 
+export const STATES_WITH_ADDENDA = Object.freeze(new Set([
+  'CA','TX','NY','MD','MA','CO','NJ','CT','IL','WA','GA','FL','OR','MN','MI','PA','OH','VA','NC','AZ'
+]));
+
+export function hasStateLawAddendum(stateRaw) {
+  if (!stateRaw) return false;
+  const info = resolveStateInfo(stateRaw);
+  return !!info.code && STATES_WITH_ADDENDA.has(info.code);
+}
+
 export function toTitleCase(value) {
   if (!value) return '';
   return String(value)
