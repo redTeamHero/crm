@@ -262,6 +262,9 @@ initHostNotifications();
   let lastDailyDate = "";
   let lastWeeklyDate = "";
   let lastAttentionDate = "";
+  // Track emitted invoice notifications in memory to avoid flooding on each hourly tick
+  const _notifiedOverdue = new Set();
+  const _notifiedDueSoon = new Set();
 
   async function runDigestTick() {
     try {
@@ -363,13 +366,46 @@ initHostNotifications();
           delivery: { inApp: true, emailSent: false, smsSent: false },
         });
       }
+      // Invoice overdue and due-soon scan — runs on every tick
+      if (settings.events?.invoice_overdue !== false || settings.events?.invoice_due_soon !== false) {
+        try {
+          const db = await loadDB();
+          const nowMs = Date.now();
+          const DUE_SOON_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+          for (const consumer of (db.consumers || [])) {
+            const invoices = (db.invoices || []).filter(inv => inv.consumerId === consumer.id);
+            for (const inv of invoices) {
+              if (!inv.due || inv.status === "paid" || inv.status === "cancelled") continue;
+              const dueMs = new Date(inv.due).getTime();
+              if (isNaN(dueMs)) continue;
+              const invKey = `${consumer.id}:${inv.id}`;
+              // Overdue
+              if (settings.events?.invoice_overdue !== false && dueMs < nowMs && !_notifiedOverdue.has(invKey)) {
+                _notifiedOverdue.add(invKey);
+                try {
+                  await addEvent(consumer.id, "invoice_overdue", { name: consumer.name, amount: inv.amount });
+                } catch {}
+              }
+              // Due soon (not yet overdue)
+              if (settings.events?.invoice_due_soon !== false && dueMs >= nowMs && dueMs - nowMs <= DUE_SOON_WINDOW_MS && !_notifiedDueSoon.has(invKey)) {
+                _notifiedDueSoon.add(invKey);
+                try {
+                  await addEvent(consumer.id, "invoice_due_soon", { name: consumer.name, amount: inv.amount, due: inv.due });
+                } catch {}
+              }
+            }
+          }
+        } catch (invoiceErr) {
+          logWarn("INVOICE_SCAN_ERROR", invoiceErr?.message || String(invoiceErr));
+        }
+      }
     } catch (err) {
       logWarn("DIGEST_TICK_ERROR", err?.message || String(err));
     }
   }
 
-  // Run on startup then every hour
-  runDigestTick();
+  // Run on startup (delayed 5s to let DB initialize) then every hour
+  setTimeout(runDigestTick, 5000);
   setInterval(runDigestTick, 60 * 60 * 1000);
 })();
 
@@ -2374,6 +2410,23 @@ app.post("/api/calendar/events", authenticate, forbidMember, async (req, res) =>
 app.put("/api/calendar/events/:id", authenticate, forbidMember, async (req, res) => {
   try {
     const { event, mode, notice } = await updateCalendarEvent(req.params.id, req.body);
+    // Emit call_rescheduled if start/time/date is being changed
+    if (req.body?.start || req.body?.date || req.body?.time) {
+      const evtConsumerId = event?.consumerId || req.body?.consumerId || null;
+      const evtName = event?.attendeeName || event?.summary || req.body?.attendeeName || null;
+      if (evtConsumerId) {
+        try { await addEvent(evtConsumerId, "call_rescheduled", { name: evtName, date: req.body.date || req.body.start }); } catch {}
+      } else {
+        try {
+          await addNotification({
+            eventType: "call_rescheduled",
+            message: `Call rescheduled${evtName ? `: ${evtName}` : ""}`,
+            payload: { name: evtName },
+            delivery: { inApp: true, emailSent: false, smsSent: false },
+          });
+        } catch {}
+      }
+    }
     res.json({ ok: true, event, mode, notice });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -5766,18 +5819,62 @@ app.post("/api/register", async (req,res)=>{
   res.json({ ok:true, token: generateToken(user) });
 });
 
+// Track login failures per username for login_failed_threshold notifications
+const _loginFailCounts = new Map();
+const LOGIN_FAIL_THRESHOLD = 5;
+const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function recordLoginFailure(username) {
+  const now = Date.now();
+  const entry = _loginFailCounts.get(username) || { count: 0, firstAt: now };
+  // Reset window if expired
+  if (now - entry.firstAt > LOGIN_FAIL_WINDOW_MS) {
+    entry.count = 0;
+    entry.firstAt = now;
+  }
+  entry.count++;
+  _loginFailCounts.set(username, entry);
+  return entry.count;
+}
+
 app.post("/api/login", async (req,res)=>{
   logInfo("LOGIN_ATTEMPT", "Admin login attempt", { username: req.body.username });
   const db = await loadUsersDB();
   const user = db.users.find(u=>u.username===req.body.username);
   if(!user){
     logWarn("LOGIN_FAIL", "Admin login failed: user not found", { username: req.body.username });
+    const failCount = recordLoginFailure(req.body.username || "unknown");
+    if (failCount >= LOGIN_FAIL_THRESHOLD) {
+      try {
+        await addNotification({
+          eventType: "login_failed_threshold",
+          message: `${failCount} failed login attempts for "${req.body.username}" in the last 15 minutes`,
+          payload: { detail: `${failCount} failures for ${req.body.username}`, count: failCount },
+          delivery: { inApp: true, emailSent: false, smsSent: false },
+        });
+        _loginFailCounts.delete(req.body.username || "unknown");
+      } catch {}
+    }
     return res.status(401).json({ ok:false, error:"Invalid credentials" });
   }
   if(!bcrypt.compareSync(req.body.password || "", user.password)){
     logWarn("LOGIN_FAIL", "Admin login failed: wrong password", { username: req.body.username });
+    const failCount = recordLoginFailure(req.body.username);
+    if (failCount >= LOGIN_FAIL_THRESHOLD) {
+      try {
+        await addNotification({
+          eventType: "login_failed_threshold",
+          message: `${failCount} failed login attempts for "${req.body.username}" in the last 15 minutes`,
+          payload: { detail: `${failCount} failures for ${req.body.username}`, count: failCount },
+          delivery: { inApp: true, emailSent: false, smsSent: false },
+        });
+        _loginFailCounts.delete(req.body.username);
+      } catch {}
+    }
     return res.status(401).json({ ok:false, error:"Invalid credentials" });
   }
+  // Clear failure count on success
+  _loginFailCounts.delete(req.body.username);
   logInfo("LOGIN_SUCCESS", "Admin login successful", { userId: user.id });
   res.json({ ok:true, token: generateToken(user) });
 });
@@ -5824,6 +5921,7 @@ app.post("/api/consumers/:id/portal-invite", authenticate, async (req, res) => {
   await saveDB(db);
   const base = `${req.protocol}://${req.get("host")}`;
   const link = `${base}/client-setup?token=${token}`;
+  try { await addEvent(consumer.id, "client_invited", { name: consumer.name }); } catch {}
   res.json({ ok: true, link, token });
 });
 
@@ -5871,6 +5969,7 @@ app.post("/api/client-setup/complete", async (req, res) => {
   consumer.password = bcrypt.hashSync(password, 10);
   consumer.portalSetupCompletedAt = new Date().toISOString();
   await saveDB(db);
+  try { await addEvent(consumer.id, "client_activated", { name: consumer.name }); } catch {}
   const clientTenant = sanitizeTenantId(consumer?.tenantId || consumer?.ownerTenantId || DEFAULT_TENANT_ID);
   const u = { id: consumer.id, username: consumer.email || consumer.name || "client", role: "client", tenantId: clientTenant, permissions: [] };
   res.json({ ok: true, token: generateToken(u) });

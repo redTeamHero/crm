@@ -237,8 +237,13 @@ function buildMessage(eventType, payload) {
 }
 
 // Default on/off per event (true = on by default)
+// Tier policy:
+//   Essential (always on) — payment_failed, dispute_outcome, item_removed, score_change,
+//     no_show_detected, login_failed_threshold, invoice_overdue, message_received
+//   Recommended (default on) — everything else
+//   Advanced (default off) — login_new_device, daily_digest, weekly_summary, needs_attention_digest
 const EVENT_DEFAULTS = {
-  // Existing — all on
+  // Existing — all recommended/on
   consumer_created: true,
   billing_plan_cycle_processed: true,
   billing_plan_created: true,
@@ -249,52 +254,52 @@ const EVENT_DEFAULTS = {
   dispute_response: true,
   call_booked: true,
   // Client lifecycle
-  client_invited: false,
+  client_invited: true,
   client_activated: true,
-  client_inactive: false,
+  client_inactive: true,
   client_status_changed: true,
-  client_profile_updated: false,
+  client_profile_updated: true,
   // Billing & payments
   invoice_created: true,
-  invoice_due_soon: false,
-  invoice_overdue: true,
+  invoice_due_soon: true,
+  invoice_overdue: true,      // Essential
   payment_succeeded: true,
-  payment_failed: true,
-  refund_issued: false,
-  subscription_renewed: false,
-  trial_ending_soon: false,
+  payment_failed: true,       // Essential
+  refund_issued: true,
+  subscription_renewed: true,
+  trial_ending_soon: true,
   // Credit/dispute workflow
   dispute_submitted: true,
   bureau_acknowledgment: true,
-  dispute_outcome: true,
-  item_removed: true,
-  score_change: true,
+  dispute_outcome: true,      // Essential
+  item_removed: true,         // Essential
+  score_change: true,         // Essential
   dispute_sla_missed: true,
   // Documents & files
   file_review_required: true,
   document_approved: true,
   signature_requested: true,
   signature_completed: true,
-  document_expiring: false,
+  document_expiring: true,
   // Communication & engagement
-  message_received: true,
-  email_bounced: false,
-  reminder_overdue: false,
+  message_received: true,     // Essential
+  email_bounced: true,
+  reminder_overdue: true,
   followup_overdue: true,
   // Calls & appointments
   call_reminder: true,
   call_rescheduled: true,
   call_canceled: true,
-  no_show_detected: true,
-  post_call_notes_missing: false,
+  no_show_detected: true,     // Essential
+  post_call_notes_missing: true,
   // Team / admin / security
   team_member_added: true,
-  role_changed: false,
-  login_new_device: false,
-  login_failed_threshold: true,
+  role_changed: true,
+  login_new_device: false,    // Advanced
+  login_failed_threshold: true, // Essential
   integration_failure: true,
   system_maintenance: true,
-  // Smart digests
+  // Smart digests — Advanced
   daily_digest: false,
   weekly_summary: false,
   needs_attention_digest: false,
