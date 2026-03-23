@@ -1860,7 +1860,7 @@
 
   <script type="module">
   /* 3D Phoenix Hero Animation
-   * "Phoenix" by rononoro (CC-BY-4.0)
+   * "Phoenix" by rononono (CC-BY-4.0)
    * https://sketchfab.com/3d-models/phoenix-1af2002062964ca198f8fcc57dbeb528
    */
   import * as THREE from 'three';
@@ -1870,13 +1870,19 @@
     var canvas3d = document.getElementById('phoenix-3d-canvas');
     if (!canvas3d) return;
 
-    var renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(0x0d1124, 1);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
-    renderer.shadowMap.enabled = false;
+    var renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setClearColor(0x0d1124, 1);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.1;
+      renderer.shadowMap.enabled = false;
+    } catch(e) {
+      return;
+    }
+    if (!renderer || !renderer.getContext()) return;
 
     var scene = new THREE.Scene();
 
@@ -1986,10 +1992,17 @@
       renderer.render(scene, camera);
     }
 
+    function scheduleLoad() {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(initLoad, { timeout: 3000 });
+      } else {
+        setTimeout(initLoad, 200);
+      }
+    }
     if (document.readyState === 'complete') {
-      setTimeout(initLoad, 150);
+      scheduleLoad();
     } else {
-      window.addEventListener('load', function() { setTimeout(initLoad, 150); });
+      window.addEventListener('load', scheduleLoad);
     }
 
     animate();
