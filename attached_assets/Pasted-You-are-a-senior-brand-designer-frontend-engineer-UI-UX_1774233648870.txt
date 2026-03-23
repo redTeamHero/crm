@@ -1,0 +1,170 @@
+You are a senior brand designer + frontend engineer + UI/UX redesign specialist.
+
+I need you to redesign my app/website brand identity from a butterfly-based transformation theme to a **Phoenix**-based transformation theme for my brand **Evolv**.
+
+## Core brand meaning
+The new theme must represent:
+- rebirth
+- rising
+- renewal
+- comeback
+- transformation after hardship
+- financial rebuilding
+- resilience
+- premium confidence
+
+This is for a **credit repair / financial transformation** brand, so the design should feel like helping people rise from setbacks into strength.
+
+## New brand direction
+Replace all butterfly imagery, metaphors, icons, shapes, animations, and copy themes with a **Phoenix** concept.
+
+The brand should feel:
+- bold
+- premium
+- resilient
+- dramatic
+- modern
+- trustworthy
+- aspirational
+
+## Visual direction
+Build the visual identity around:
+- rising line shapes
+- abstract phoenix wings
+- ember-to-flame transitions
+- dark-to-light gradients
+- upward motion
+- glowing accents
+- subtle fire/rebirth symbolism
+- sleek fintech-style polish
+
+Avoid:
+- cartoon fire
+- cheesy flame icons
+- generic clipart phoenixes
+- overly aggressive “sports team” branding
+- anything that looks spammy or low-end
+
+## Logo redesign requirements
+Create a new logo concept for **Evolv** using the Phoenix theme.
+
+Logo goals:
+- premium and modern
+- minimal enough for app/web use
+- memorable
+- scalable
+- can work as a full logo and as an icon/favicon
+- should symbolize rising / rebirth / upward transformation
+
+Preferred concepts:
+- abstract phoenix wings
+- a phoenix shape subtly integrated into the letter **V**
+- rising flame lines forming a clean emblem
+- a geometric phoenix mark
+- an upward motion icon that suggests rebirth
+
+Do not use a butterfly or anything too close to it.
+
+## Color palette direction
+Redesign the palette around a premium phoenix-inspired feel.
+
+Suggested direction:
+- deep charcoal / black / midnight tones
+- ember orange
+- deep gold
+- crimson accents
+- subtle warm glow
+- optional gradient from dark → ember → gold
+
+The palette should still feel professional and suitable for a financial services / SaaS platform.
+
+## Typography direction
+Update typography to feel:
+- premium
+- modern
+- bold
+- clean
+- trustworthy
+
+Use a strong headline font paired with a clean body font.
+The branding should feel like a modern fintech company, not a fantasy brand.
+
+## Copy / messaging updates
+Update copy throughout the site/app so it reflects the new Phoenix brand language.
+
+Replace butterfly/transformation wording with Phoenix-based messaging around:
+- rebuilding
+- rising again
+- comeback
+- strength after setbacks
+- financial rebirth
+- momentum
+- progress
+- renewal
+
+Use these tagline ideas where appropriate:
+- Rise financially
+- Rebuild. Rise. Evolv.
+- From setback to strength
+- Your comeback starts here
+
+## UI theme updates
+Update the interface theme so it visually supports the new brand.
+
+Incorporate:
+- dark premium backgrounds
+- subtle glowing gradients
+- warm accent highlights
+- upward/rising visual motifs
+- clean cards and sections
+- elegant hover states
+- modern CTA buttons
+- dramatic but polished hero section
+
+Potential UI touches:
+- gradient glow behind hero logo
+- rising streak/line accents
+- ember-like motion particles very subtly
+- section dividers inspired by wings or upward lines
+
+Keep it clean and high-converting, not overly decorative.
+
+## Specific implementation tasks
+1. Replace the current logo with a new Phoenix-themed concept for Evolv
+2. Replace all butterfly references in UI, content, assets, icons, and theme
+3. Update global color variables / design tokens
+4. Update hero section styling and messaging
+5. Update buttons, cards, nav, footer, and major sections to match the new brand
+6. Update any onboarding, dashboard, or marketing sections that reference transformation so they match Phoenix/rebirth language
+7. Make the site feel more premium and dramatic while staying professional
+8. Preserve responsive design
+9. Preserve accessibility and readability
+10. Keep the overall app structure intact unless a layout improvement is clearly beneficial
+
+## Deliverables
+Provide:
+- updated brand direction summary
+- new color palette
+- typography recommendations
+- updated tagline usage
+- revised UI copy where needed
+- redesigned components/pages
+- actual code changes to implement the new theme
+- a short explanation of what was changed and why
+
+## Important
+Do not just describe the redesign — actually implement it in the codebase.
+Search the existing project for:
+- logo files
+- brand color variables
+- theme config
+- hero section copy
+- icon usage
+- butterfly references
+- marketing copy
+- dashboard theme elements
+
+Then replace them with the new Phoenix-based Evolv brand system.
+
+The final result should feel like:
+**Evolv = financial rebirth, resilience, and rising stronger**
