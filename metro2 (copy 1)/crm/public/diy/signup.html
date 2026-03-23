@@ -185,7 +185,7 @@
               <div style="flex:1;">
                 <div style="display:flex;align-items:center;">
                   <span class="plan-name">DIY</span>
-                  <span class="plan-price" style="background:rgba(16,185,129,0.15);color:#34d399;">$9.99/mo</span>
+                  <span class="plan-price" style="background:rgba(16,185,129,0.15);color:#34d399;">$24.99/mo</span>
                   <span class="plan-price" style="background:rgba(245,158,11,0.15);color:#fbbf24;margin-left:6px;">Popular</span>
                 </div>
                 <div class="plan-desc">AI audits, unlimited dispute letters, specialist matching</div>
@@ -297,7 +297,7 @@
         var priceNum = parseFloat(customPrice).toFixed(2);
         var priceLabels = document.querySelectorAll('.plan-price');
         for (var i = 0; i < priceLabels.length; i++) {
-          if (priceLabels[i].textContent.indexOf('$9.99') !== -1) {
+          if (priceLabels[i].textContent.indexOf('$24.99') !== -1) {
             priceLabels[i].textContent = '$' + priceNum + '/mo';
           }
         }

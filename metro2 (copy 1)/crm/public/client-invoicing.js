@@ -629,7 +629,7 @@ function renderPlansList(){
 function updatePlanSummary(plans = []){
   if(!planSummaryValueEl || !planSummaryDescriptionEl || !planSummaryCta) return;
   if(!plans.length){
-    planSummaryValueEl.textContent = translate('billing.metrics.planValue') || 'Growth Suite · $297/mo';
+    planSummaryValueEl.textContent = translate('billing.metrics.planValue') || 'Growth Suite · $199.99/mo';
     planSummaryDescriptionEl.textContent = translate('billing.metrics.planDescription') || 'Includes Metro-2 automation, dispute letter engine, and concierge support.';
     planSummaryCta.textContent = translate('billing.metrics.planCta') || 'View upgrades';
     planSummaryCta.dataset.planId = '';
