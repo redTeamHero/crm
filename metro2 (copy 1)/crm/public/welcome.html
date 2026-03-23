@@ -1089,11 +1089,11 @@
     }
 
     var globe = Globe()
-      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
       .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
       .backgroundColor('rgba(0,0,0,0)')
-      .atmosphereColor('#e87040')
-      .atmosphereAltitude(0.14)
+      .atmosphereColor('#a855f7')
+      .atmosphereAltitude(0.22)
       .width(container.offsetWidth)
       .height(container.offsetHeight)
       (container);
@@ -1109,16 +1109,33 @@
       .pointLat(function(d) { return d.lat; })
       .pointLng(function(d) { return d.lng; })
       .pointColor(function(d) { return d.color; })
-      .pointAltitude(0.01)
-      .pointRadius(0.45);
+      .pointAltitude(0.06)
+      .pointRadius(0.55);
+
+    var allArcs = [
+      { startLat: 33.749, startLng: -84.388, endLat: 33.641, endLng: -117.919, color: ['#e87040','#4a90e2'] },
+      { startLat: 33.641, startLng: -117.919, endLat: 41.878, endLng: -87.630, color: ['#4a90e2','#8b5cf6'] },
+      { startLat: 41.878, startLng: -87.630, endLat: 33.749, endLng: -84.388, color: ['#8b5cf6','#e87040'] }
+    ];
+    globe.arcsData(allArcs)
+      .arcStartLat(function(d) { return d.startLat; })
+      .arcStartLng(function(d) { return d.startLng; })
+      .arcEndLat(function(d) { return d.endLat; })
+      .arcEndLng(function(d) { return d.endLng; })
+      .arcColor(function(d) { return d.color; })
+      .arcAltitude(0.25)
+      .arcStroke(0.6)
+      .arcDashLength(0.4)
+      .arcDashGap(0.15)
+      .arcDashAnimateTime(2200);
 
     globe.ringsData([])
       .ringLat(function(d) { return d.lat; })
       .ringLng(function(d) { return d.lng; })
       .ringColor(function(d) { return function(t) { return d.ringColor + Math.max(0, 1 - t) + ')'; }; })
-      .ringMaxRadius(5)
-      .ringPropagationSpeed(2.5)
-      .ringRepeatPeriod(900);
+      .ringMaxRadius(7)
+      .ringPropagationSpeed(3)
+      .ringRepeatPeriod(800);
 
     function updatePanels(b) {
       document.getElementById('bl-name').textContent = b.name;
@@ -1149,7 +1166,24 @@
           showPanels();
           setTimeout(function() {
             hidePanels(function() {
-              globe.ringsData([]);
+              var allArcs = [
+      { startLat: 33.749, startLng: -84.388, endLat: 33.641, endLng: -117.919, color: ['#e87040','#4a90e2'] },
+      { startLat: 33.641, startLng: -117.919, endLat: 41.878, endLng: -87.630, color: ['#4a90e2','#8b5cf6'] },
+      { startLat: 41.878, startLng: -87.630, endLat: 33.749, endLng: -84.388, color: ['#8b5cf6','#e87040'] }
+    ];
+    globe.arcsData(allArcs)
+      .arcStartLat(function(d) { return d.startLat; })
+      .arcStartLng(function(d) { return d.startLng; })
+      .arcEndLat(function(d) { return d.endLat; })
+      .arcEndLng(function(d) { return d.endLng; })
+      .arcColor(function(d) { return d.color; })
+      .arcAltitude(0.25)
+      .arcStroke(0.6)
+      .arcDashLength(0.4)
+      .arcDashGap(0.15)
+      .arcDashAnimateTime(2200);
+
+    globe.ringsData([]);
               globe.pointOfView({ lat: 20, lng: b.lng - 25, altitude: 2.5 }, 1800);
               setTimeout(function() {
                 globe.controls().autoRotate = true;
