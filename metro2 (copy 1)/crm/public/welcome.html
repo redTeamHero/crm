@@ -28,14 +28,6 @@
     })();
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     
@@ -74,8 +66,7 @@
     
     .nav-phoenix-svg { width: 28px; height: 28px; animation: phoenixPulse 3s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(232,112,64,0.5)); }
     @keyframes phoenixPulse { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-3px) scale(1.05)} }
-    #phoenix-3d-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; background:radial-gradient(ellipse at 50% 45%, #1a0800 0%, #0a0400 55%, #000000 100%); }
-    #hero-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; pointer-events:none; }
+    #hero-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; }
     .skip-intro { position:absolute; bottom:2rem; left:50%; transform:translateX(-50%); z-index:10; background:rgba(212,168,83,0.12); border:1px solid rgba(212,168,83,0.3); color:rgba(212,168,83,0.7); padding:0.5rem 1.5rem; border-radius:2rem; font-size:0.8rem; font-weight:500; cursor:pointer; letter-spacing:0.05em; transition:opacity 0.5s ease, background 0.2s ease; }
     .skip-intro:hover { background:rgba(212,168,83,0.22); color:#d4a853; }
     .skip-intro.hidden { opacity:0; pointer-events:none; }
@@ -281,8 +272,6 @@
     </header>
 
     <section id="hero" class="hero-scene">
-      <!-- "Phoenix" (CC-BY-4.0) by rononono https://sketchfab.com/3d-models/phoenix-1af2002062964ca198f8fcc57dbeb528 licensed under CC-BY-4.0 http://creativecommons.org/licenses/by/4.0/ -->
-      <canvas id="phoenix-3d-canvas"></canvas>
       <canvas id="hero-canvas"></canvas>
       <button id="skipIntro" class="skip-intro" aria-label="Skip intro animation" onclick="window._skipIntro && window._skipIntro()">Skip ▸</button>
       <div class="hero-text-layer">
@@ -1024,15 +1013,10 @@
     var canvas = document.getElementById('hero-canvas');
     var ctx = canvas.getContext('2d');
     var W, H, cx, cy, dpr;
-    var GOLD = '#d4a853';
-    var GOLD_DIM = 'rgba(212,168,83,0.3)';
-    var BLUE = '#6d9eeb';
-    var t0 = performance.now();
-    var SCENE_DUR = [7000, 3500];
-    var TOTAL = SCENE_DUR.reduce(function(a,b){return a+b},0);
-    var sceneStarts = [];
-    var acc = 0;
-    for(var si=0;si<SCENE_DUR.length;si++){ sceneStarts.push(acc); acc+=SCENE_DUR[si]; }
+
+    document.getElementById('hero-content').classList.add('visible');
+    var skipBtn = document.getElementById('skipIntro');
+    if (skipBtn) skipBtn.classList.add('hidden');
 
     function resize(){
       dpr = Math.min(window.devicePixelRatio||1, 2);
@@ -1049,443 +1033,120 @@
     window.addEventListener('resize', resize);
     resize();
 
-    var fragments = [];
-    var labels = ['520','610','Late','Charge-off','Collection','30 Days','Delinquent','Closed','$0'];
-    for(var i=0;i<labels.length;i++){
-      fragments.push({
-        text: labels[i],
-        x: Math.random()*0.6+0.2,
-        y: Math.random()*0.6+0.2,
-        vx: (Math.random()-0.5)*1.2,
-        vy: (Math.random()-0.5)*1.2,
-        size: 16 + Math.random()*14,
-        glitchOffset: Math.random()*6-3,
-        alpha: 0.7+Math.random()*0.3,
-        freq1: 0.8 + Math.random()*1.5,
-        freq2: 0.5 + Math.random()*1.0,
-        amp1: 40 + Math.random()*80,
-        amp2: 30 + Math.random()*60,
-        phase: Math.random()*Math.PI*2,
-        rotSpeed: (Math.random()-0.5)*0.008,
-        sizeWobble: 0.3 + Math.random()*0.5
-      });
+    var SPAWN_X_SPREAD = 0.28;
+    var PARTICLE_COUNT = 110;
+
+    function spawnParticle(aged) {
+      var angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
+      var speed = 0.5 + Math.random() * 1.8;
+      var isSpark = Math.random() < 0.28;
+      var p = {
+        x: cx + (Math.random() - 0.5) * W * SPAWN_X_SPREAD,
+        y: H * 0.78,
+        vx: Math.cos(angle) * speed * 0.35,
+        vy: Math.sin(angle) * speed,
+        size: isSpark ? 1 + Math.random() * 2.5 : 3 + Math.random() * 9,
+        alpha: isSpark ? 0.7 + Math.random() * 0.3 : 0.5 + Math.random() * 0.5,
+        life: aged ? Math.random() : 1.0,
+        decay: isSpark ? 0.008 + Math.random() * 0.018 : 0.003 + Math.random() * 0.008,
+        wobblePhase: Math.random() * Math.PI * 2,
+        wobbleSpeed: 1.5 + Math.random() * 3,
+        wobbleAmp: 0.4 + Math.random() * 1.2,
+        isSpark: isSpark,
+        r: isSpark ? 255 : 230 + Math.floor(Math.random() * 25),
+        g: isSpark ? 220 + Math.floor(Math.random() * 35) : 60 + Math.floor(Math.random() * 80),
+        b: isSpark ? 120 + Math.floor(Math.random() * 80) : 0
+      };
+      return p;
     }
 
     var particles = [];
-    for(var i=0;i<60;i++){
-      particles.push({
-        x: Math.random(), y: Math.random(),
-        vx: (Math.random()-0.5)*0.2, vy: (Math.random()-0.5)*0.2,
-        size: 1+Math.random()*2, alpha: 0.2+Math.random()*0.4
+    for (var pi = 0; pi < PARTICLE_COUNT; pi++) particles.push(spawnParticle(true));
+
+    var bgSparks = [];
+    for (var bi = 0; bi < 28; bi++) {
+      bgSparks.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vy: -(0.04 + Math.random() * 0.18),
+        vx: (Math.random() - 0.5) * 0.12,
+        size: 0.6 + Math.random() * 1.4,
+        alpha: 0.08 + Math.random() * 0.18,
+        life: Math.random()
       });
-    }
-
-    function ease(t){ return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
-    function lerp(a,b,t){ return a+(b-a)*t; }
-
-    function getScene(elapsed){
-      for(var i=SCENE_DUR.length-1;i>=0;i--){
-        if(elapsed >= sceneStarts[i]) return { scene:i, progress: Math.min(1,(elapsed-sceneStarts[i])/SCENE_DUR[i]) };
-      }
-      return {scene:0,progress:0};
-    }
-
-    var finalShown = false;
-    var scoreShown = false;
-    var skipped = false;
-    var skipBtn = document.getElementById('skipIntro');
-
-    var bgEmbers = [];
-    for(var bi=0; bi<18; bi++){
-      bgEmbers.push({
-        x: Math.random(),
-        y: 0.7 + Math.random()*0.3,
-        vx: (Math.random()-0.5)*0.0004,
-        vy: -(0.0006 + Math.random()*0.0008),
-        size: 1.5 + Math.random()*3,
-        alpha: 0.3 + Math.random()*0.4,
-        life: Math.random(),
-        decay: 0.0008 + Math.random()*0.001,
-        hue: Math.floor(Math.random()*3)
-      });
-    }
-
-    window._skipIntro = function(){
-      if(skipped) return;
-      skipped = true;
-      finalShown = true;
-      window._phoenixSkipped = true;
-      document.getElementById('hero-content').classList.add('visible');
-      if(skipBtn) skipBtn.classList.add('hidden');
-    };
-
-    function drawParticles(alpha){
-      for(var i=0;i<particles.length;i++){
-        var p = particles[i];
-        p.x += p.vx * 0.001;
-        p.y += p.vy * 0.001;
-        if(p.x<0) p.x=1; if(p.x>1) p.x=0;
-        if(p.y<0) p.y=1; if(p.y>1) p.y=0;
-        ctx.beginPath();
-        ctx.arc(p.x*W, p.y*H, p.size, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(212,168,83,' + (p.alpha*alpha) + ')';
-        ctx.fill();
-      }
-    }
-
-    /* drawScene0 (fragments) – commented out
-    function drawScene0(p){
-      var ep = ease(p);
-      var now = performance.now();
-      var t = now * 0.001;
-      for(var i=0;i<fragments.length;i++){
-        var f = fragments[i];
-        var driftX = f.vx * ep * 120;
-        var driftY = f.vy * ep * 120;
-        var bounceX = Math.sin(t * f.freq1 + f.phase) * f.amp1;
-        var bounceY = Math.cos(t * f.freq2 + f.phase * 1.7) * f.amp2;
-        var jitterX = Math.sin(now * 0.003 + i * 1.3) * 8;
-        var jitterY = Math.cos(now * 0.004 + i * 0.9) * 6;
-        var fx = f.x * W + driftX + bounceX + jitterX;
-        var fy = f.y * H + driftY + bounceY + jitterY;
-        var rot = Math.sin(t * f.freq1 * 0.7 + f.phase) * 0.15 + now * f.rotSpeed;
-        var sizeScale = 1 + Math.sin(t * f.sizeWobble * 2 + i) * 0.12;
-        var glitch = Math.random() < 0.05;
-        ctx.save();
-        ctx.globalAlpha = f.alpha * (1 - p * 0.3);
-        ctx.translate(fx, fy);
-        ctx.rotate(rot);
-        if(glitch){
-          ctx.translate(Math.random()*8-4, Math.random()*8-4);
-          ctx.globalAlpha *= 0.6;
-        }
-        ctx.font = (glitch ? 'italic ':'') + 'bold ' + Math.round(f.size * sizeScale) + 'px Inter, monospace';
-        ctx.fillStyle = /\d/.test(f.text) ? GOLD : 'rgba(255,120,120,0.8)';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(f.text, 0, 0);
-        ctx.restore();
-      }
-    }
-    */
-
-    var riseEmbers = [];
-    var burstFired = false;
-    var burstParticles = [];
-
-    function drawPhoenixGlow(bx, by, scale, alpha){
-      var now = performance.now();
-      var pulse = 0.7 + 0.3 * Math.sin(now * 0.003);
-
-      ctx.save();
-      ctx.translate(bx, by);
-
-      var auraSize = scale * 90 * pulse;
-      var auraGrad = ctx.createRadialGradient(0, -10, auraSize * 0.1, 0, -10, auraSize);
-      auraGrad.addColorStop(0, 'rgba(232,112,64,' + alpha * 0.35 * pulse + ')');
-      auraGrad.addColorStop(0.3, 'rgba(212,168,83,' + alpha * 0.18 + ')');
-      auraGrad.addColorStop(0.7, 'rgba(212,168,83,' + alpha * 0.05 + ')');
-      auraGrad.addColorStop(1, 'rgba(212,168,83,0)');
-      ctx.beginPath();
-      ctx.arc(0, -10, auraSize, 0, Math.PI * 2);
-      ctx.fillStyle = auraGrad;
-      ctx.fill();
-
-      ctx.scale(scale, scale);
-
-      var fw = 38 * (0.85 + 0.15 * Math.sin(now * 0.009));
-      var fh = 52;
-
-      ctx.save();
-      ctx.translate(-fw * 0.55, 0);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(-fw, -fh * 0.5, -fw * 0.6, -fh, 0, -fh * 0.3);
-      ctx.bezierCurveTo(fw * 0.5, -fh * 0.6, fw * 0.3, -fh * 0.2, 0, 0);
-      ctx.closePath();
-      var gL = ctx.createLinearGradient(-fw, -fh, 0, 0);
-      gL.addColorStop(0, 'rgba(232,112,64,' + alpha * 0.85 + ')');
-      gL.addColorStop(0.5, 'rgba(212,168,83,' + alpha * 0.7 + ')');
-      gL.addColorStop(1, 'rgba(245,166,74,' + alpha * 0.5 + ')');
-      ctx.fillStyle = gL;
-      ctx.fill();
-      ctx.restore();
-
-      ctx.save();
-      ctx.translate(fw * 0.55, 0);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(fw, -fh * 0.5, fw * 0.6, -fh, 0, -fh * 0.3);
-      ctx.bezierCurveTo(-fw * 0.5, -fh * 0.6, -fw * 0.3, -fh * 0.2, 0, 0);
-      ctx.closePath();
-      var gR = ctx.createLinearGradient(fw, -fh, 0, 0);
-      gR.addColorStop(0, 'rgba(232,112,64,' + alpha * 0.85 + ')');
-      gR.addColorStop(0.5, 'rgba(212,168,83,' + alpha * 0.7 + ')');
-      gR.addColorStop(1, 'rgba(245,166,74,' + alpha * 0.5 + ')');
-      ctx.fillStyle = gR;
-      ctx.fill();
-      ctx.restore();
-
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 5, 22, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(212,168,83,' + alpha + ')';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.ellipse(0, -20, 8, 8, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(212,168,83,' + alpha + ')';
-      ctx.fill();
-
-      var flameH = 28 + 8 * Math.sin(now * 0.012);
-      ctx.beginPath();
-      ctx.moveTo(-5, -26);
-      ctx.bezierCurveTo(-8, -26 - flameH * 0.6, -2, -26 - flameH, 0, -26 - flameH * 0.4);
-      ctx.bezierCurveTo(2, -26 - flameH, 8, -26 - flameH * 0.6, 5, -26);
-      ctx.closePath();
-      var fGrad = ctx.createLinearGradient(0, -26, 0, -26 - flameH);
-      fGrad.addColorStop(0, 'rgba(212,168,83,' + alpha * 0.9 + ')');
-      fGrad.addColorStop(0.4, 'rgba(232,112,64,' + alpha * 0.8 + ')');
-      fGrad.addColorStop(1, 'rgba(245,166,74,' + alpha * 0.2 + ')');
-      ctx.fillStyle = fGrad;
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    function drawScene2(p){
-      var ep = ease(p);
-      var now = performance.now();
-
-      if(p < 0.05){
-        burstFired = false;
-        burstParticles.length = 0;
-        riseEmbers.length = 0;
-      }
-
-      var riseEnd = 0.85;
-      var baseScale = lerp(0.3, 1.1, Math.min(1, ease(p / 0.25)));
-      var alpha = Math.min(1, ep / 0.12);
-
-      var bx = cx;
-      var startY = cy + H * 0.28;
-      var by = lerp(startY, cy - H * 0.05, ease(Math.min(1, p / riseEnd)));
-
-      if(p > 0.08){
-        for(var si = 0; si < 4; si++){
-          var eAngle = (Math.random() - 0.5) * Math.PI * 0.8;
-          riseEmbers.push({
-            x: bx + (Math.random() - 0.5) * baseScale * 60,
-            y: by + Math.random() * baseScale * 20,
-            vx: Math.cos(eAngle) * (0.5 + Math.random() * 1.5),
-            vy: -(1.5 + Math.random() * 2.5),
-            size: 1 + Math.random() * 2.5,
-            alpha: 0.6 + Math.random() * 0.4,
-            life: 1.0,
-            decay: 0.015 + Math.random() * 0.02,
-            ember: Math.random() > 0.4
-          });
-        }
-      }
-
-      for(var ei = riseEmbers.length - 1; ei >= 0; ei--){
-        var em = riseEmbers[ei];
-        em.x += em.vx;
-        em.y += em.vy;
-        em.vx *= 0.97;
-        em.vy *= 0.99;
-        em.life -= em.decay;
-        if(em.life <= 0){ riseEmbers.splice(ei, 1); continue; }
-        var ea = em.alpha * em.life;
-        ctx.beginPath();
-        ctx.arc(em.x, em.y, em.size * em.life, 0, Math.PI * 2);
-        ctx.fillStyle = em.ember
-          ? 'rgba(232,112,64,' + ea + ')'
-          : 'rgba(212,168,83,' + ea + ')';
-        ctx.fill();
-        if(em.life > 0.5){
-          ctx.beginPath();
-          ctx.arc(em.x, em.y, em.size * em.life * 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = em.ember
-            ? 'rgba(232,112,64,' + ea * 0.12 + ')'
-            : 'rgba(212,168,83,' + ea * 0.12 + ')';
-          ctx.fill();
-        }
-      }
-
-      if(p > 0.65 && !burstFired){
-        burstFired = true;
-        for(var bi = 0; bi < 40; bi++){
-          var burstAngle = (bi / 40) * Math.PI * 2 + Math.random() * 0.3;
-          var burstSpeed = 2 + Math.random() * 3.5;
-          burstParticles.push({
-            x: bx, y: by,
-            vx: Math.cos(burstAngle) * burstSpeed,
-            vy: Math.sin(burstAngle) * burstSpeed - 1.5,
-            size: 1.5 + Math.random() * 3,
-            alpha: 0.8 + Math.random() * 0.2,
-            life: 1.0,
-            decay: 0.007 + Math.random() * 0.007,
-            ember: Math.random() > 0.35
-          });
-        }
-      }
-
-      for(var sbi = burstParticles.length - 1; sbi >= 0; sbi--){
-        var sbp = burstParticles[sbi];
-        sbp.x += sbp.vx;
-        sbp.y += sbp.vy;
-        sbp.vx *= 0.96;
-        sbp.vy = sbp.vy * 0.96 - 0.04;
-        sbp.life -= sbp.decay;
-        if(sbp.life <= 0){ burstParticles.splice(sbi, 1); continue; }
-        var sba = sbp.alpha * sbp.life;
-        ctx.beginPath();
-        ctx.arc(sbp.x, sbp.y, sbp.size * sbp.life, 0, Math.PI * 2);
-        ctx.fillStyle = sbp.ember
-          ? 'rgba(232,112,64,' + sba + ')'
-          : 'rgba(212,168,83,' + sba + ')';
-        ctx.fill();
-        if(sbp.life > 0.5){
-          ctx.beginPath();
-          ctx.arc(sbp.x, sbp.y, sbp.size * sbp.life * 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = sbp.ember
-            ? 'rgba(232,112,64,' + sba * 0.12 + ')'
-            : 'rgba(212,168,83,' + sba * 0.12 + ')';
-          ctx.fill();
-        }
-      }
-
-      if(p > 0.76){
-        var textProg = Math.min(1, (p - 0.76) / 0.22);
-        var textAlpha = ease(ease(textProg));
-        var textY = by + baseScale * 70 + 40;
-        var slideUp = (1 - ease(textProg)) * 35;
-
-        ctx.save();
-        ctx.globalAlpha = textAlpha;
-
-        var fontSize = W < 500 ? 22 : 36;
-        ctx.font = '600 ' + fontSize + 'px "Inter", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-
-        ctx.shadowColor = 'rgba(232,112,64,' + (0.3 + textAlpha * 0.4) + ')';
-        ctx.shadowBlur = 10 + textAlpha * 25;
-        ctx.fillStyle = GOLD;
-        ctx.fillText('Rise Financially', cx, textY + slideUp);
-
-        ctx.shadowBlur = 0;
-        ctx.restore();
-      }
-    }
-
-
-
-    function drawScene4(p){
-      var ep = ease(p);
-      drawParticles(ep * 0.6);
-
-      for(var i=0;i<5;i++){
-        var ring = (performance.now()*0.0003 + i*0.2) % 1;
-        var r = ring * Math.min(W,H) * 0.4;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(212,168,83,' + (1-ring)*0.08 + ')';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      if(ep > 0.2 && !finalShown){
-        finalShown = true;
-        document.getElementById('hero-content').classList.add('visible');
-      }
-    }
-
-    function frame(){
-      if(skipped){
-        if(skipBtn) skipBtn.classList.add('hidden');
-        drawFinalLoop();
-        return;
-      }
-
-      var elapsed = performance.now() - t0;
-      ctx.clearRect(0,0,W,H);
-
-      drawParticles(0.3);
-
-      var info = getScene(elapsed);
-      var s = info.scene;
-      var p = info.progress;
-
-      if(s === 0){
-        drawScene2(p);
-      } else {
-        if(p < 0.3){
-          ctx.save();
-          ctx.globalAlpha = 1 - p/0.3;
-          drawScene2(1);
-          ctx.restore();
-        }
-        drawScene4(p);
-      }
-
-      if(elapsed < TOTAL + 3000){
-        requestAnimationFrame(frame);
-      } else {
-        if(skipBtn) skipBtn.classList.add('hidden');
-        drawFinalLoop();
-      }
     }
 
     var heroVisible = true;
-    var obs = new IntersectionObserver(function(entries){ heroVisible = entries[0].isIntersecting; }, { threshold:0.1 });
-    obs.observe(canvas.parentElement);
+    new IntersectionObserver(function(e){ heroVisible = e[0].isIntersecting; }, { threshold: 0.05 })
+        .observe(canvas.parentElement);
 
-    function drawFinalLoop(){
-      if(!heroVisible){ requestAnimationFrame(drawFinalLoop); return; }
+    function drawFrame() {
+      requestAnimationFrame(drawFrame);
+      if (!heroVisible) return;
       var now = performance.now();
-      ctx.clearRect(0,0,W,H);
-      drawParticles(0.4);
-      for(var i=0;i<5;i++){
-        var ring = (now*0.0003 + i*0.2) % 1;
-        var r = ring * Math.min(W,H) * 0.4;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(212,168,83,' + (1-ring)*0.08 + ')';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
 
-      for(var bi = bgEmbers.length - 1; bi >= 0; bi--){
-        var em = bgEmbers[bi];
-        em.x += em.vx;
-        em.y += em.vy;
-        em.life -= em.decay;
-        if(em.life <= 0 || em.y < -0.05){
-          em.x = Math.random();
-          em.y = 1.02;
-          em.vx = (Math.random()-0.5)*0.0004;
-          em.vy = -(0.0006 + Math.random()*0.0008);
-          em.life = 0.7 + Math.random()*0.3;
-          em.size = 1.5 + Math.random()*3;
-          em.alpha = 0.25 + Math.random()*0.35;
-          em.hue = Math.floor(Math.random()*3);
-          continue;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+
+      var glowY = H * 0.74;
+      var g1 = ctx.createRadialGradient(cx, glowY, 0, cx, glowY, W * 0.55);
+      g1.addColorStop(0, 'rgba(255,80,0,0.38)');
+      g1.addColorStop(0.45, 'rgba(220,45,0,0.14)');
+      g1.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g1;
+      ctx.fillRect(0, 0, W, H);
+
+      var g2 = ctx.createRadialGradient(cx, H * 0.32, 0, cx, H * 0.32, W * 0.35);
+      g2.addColorStop(0, 'rgba(255,60,0,0.07)');
+      g2.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g2;
+      ctx.fillRect(0, 0, W, H);
+
+      for (var bi = 0; bi < bgSparks.length; bi++) {
+        var bs = bgSparks[bi];
+        bs.x += bs.vx;
+        bs.y += bs.vy;
+        bs.life -= 0.0025;
+        if (bs.life <= 0 || bs.y < -5) {
+          bs.x = Math.random() * W;
+          bs.y = H + 4;
+          bs.life = 0.6 + Math.random() * 0.4;
         }
-        var ea = em.alpha * em.life;
-        var px = em.x * W, py = em.y * H;
-        var wobble = Math.sin(now * 0.002 + em.x * 8) * 4;
         ctx.beginPath();
-        ctx.arc(px + wobble, py, em.size * em.life, 0, Math.PI * 2);
-        var colors = ['rgba(232,112,64,', 'rgba(212,168,83,', 'rgba(245,166,74,'];
-        ctx.fillStyle = colors[em.hue] + ea + ')';
+        ctx.arc(bs.x, bs.y, bs.size, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,150,40,' + (bs.alpha * bs.life) + ')';
         ctx.fill();
       }
 
-      requestAnimationFrame(drawFinalLoop);
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.life -= p.decay;
+        if (p.life <= 0) { particles[i] = spawnParticle(false); continue; }
+        p.x += p.vx + Math.sin(now * 0.001 * p.wobbleSpeed + p.wobblePhase) * p.wobbleAmp;
+        p.y += p.vy;
+        p.vy *= 0.994;
+        var a = p.alpha * p.life;
+        var r = p.size * (0.4 + p.life * 0.6);
+        if (p.isSpark) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(' + p.r + ',' + p.g + ',' + p.b + ',' + a + ')';
+          ctx.fill();
+        } else {
+          var gp = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+          var ca = Math.min(1, a);
+          gp.addColorStop(0, 'rgba(255,' + Math.min(255, p.g + 130) + ',80,' + ca + ')');
+          gp.addColorStop(0.35, 'rgba(' + p.r + ',' + p.g + ',0,' + (ca * 0.75) + ')');
+          gp.addColorStop(1, 'rgba(180,20,0,0)');
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = gp;
+          ctx.fill();
+        }
+      }
     }
 
-    requestAnimationFrame(frame);
+    drawFrame();
   })();
   </script>
 
@@ -1858,162 +1519,5 @@
   })();
   </script>
 
-  <script type="module">
-  /* 3D Phoenix Hero Animation
-   * "Phoenix" by rononono (CC-BY-4.0)
-   * https://sketchfab.com/3d-models/phoenix-1af2002062964ca198f8fcc57dbeb528
-   */
-  import * as THREE from 'three';
-  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-  (function() {
-    var canvas3d = document.getElementById('phoenix-3d-canvas');
-    if (!canvas3d) return;
-
-    var renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: false });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.setClearColor(0x000000, 1);
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ReinhardToneMapping;
-      renderer.toneMappingExposure = 2.0;
-      renderer.shadowMap.enabled = false;
-    } catch(e) {
-      return;
-    }
-    if (!renderer || !renderer.getContext()) return;
-
-    var scene = new THREE.Scene();
-
-    var camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-    camera.position.set(0, 0.5, 10);
-    camera.lookAt(0, 0, 0);
-
-    scene.add(new THREE.AmbientLight(0x1a0300, 0.6));
-
-    var keyLight = new THREE.DirectionalLight(0xff6a00, 5.0);
-    keyLight.position.set(2, 3, 5);
-    scene.add(keyLight);
-
-    var fillLight = new THREE.DirectionalLight(0xff8c00, 3.0);
-    fillLight.position.set(-4, 0, 3);
-    scene.add(fillLight);
-
-    var rimLight = new THREE.DirectionalLight(0xff4500, 2.5);
-    rimLight.position.set(0, -2, -5);
-    scene.add(rimLight);
-
-    var topLight = new THREE.DirectionalLight(0xffa040, 3.5);
-    topLight.position.set(0, 6, 1);
-    scene.add(topLight);
-
-    var glowCore = new THREE.PointLight(0xff7700, 8.0, 12);
-    glowCore.position.set(0, 0, 1);
-    scene.add(glowCore);
-
-    var phoenix = null;
-    var mixer = null;
-    var clock = new THREE.Clock();
-    var modelBaseY = 0;
-    var modelReady = false;
-    var startMs = performance.now();
-
-    function resize() {
-      var section = canvas3d.parentElement;
-      var w = section.clientWidth || window.innerWidth;
-      var h = section.clientHeight || window.innerHeight;
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    function initLoad() {
-      var loader = new GLTFLoader();
-      loader.load('/assets/phoenix/scene.gltf', function(gltf) {
-        phoenix = gltf.scene;
-
-        var box = new THREE.Box3().setFromObject(phoenix);
-        var size = box.getSize(new THREE.Vector3());
-        var center = box.getCenter(new THREE.Vector3());
-        var maxDim = Math.max(size.x, size.y, size.z);
-        var scale = 5.5 / maxDim;
-        phoenix.scale.setScalar(scale);
-        phoenix.position.copy(center.multiplyScalar(-scale));
-        modelBaseY = phoenix.position.y;
-
-        phoenix.traverse(function(node) {
-          if (node.isMesh && node.material) {
-            var mats = Array.isArray(node.material) ? node.material : [node.material];
-            mats.forEach(function(mat) {
-              try {
-                if (mat.color && typeof mat.color.set === 'function') {
-                  mat.color.set(0xff6200);
-                }
-                if (mat.emissive && typeof mat.emissive.set === 'function') {
-                  mat.emissive.set(0xff3d00);
-                  mat.emissiveIntensity = 0.55;
-                }
-                mat.needsUpdate = true;
-              } catch(e) {}
-            });
-          }
-        });
-
-        scene.add(phoenix);
-
-        if (gltf.animations && gltf.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(phoenix);
-          var action = mixer.clipAction(gltf.animations[0]);
-          action.play();
-        }
-
-        modelReady = true;
-      }, null, function(err) {
-        console.warn('[Phoenix3D] Model load failed:', err);
-      });
-    }
-
-    var heroVisible = true;
-    new IntersectionObserver(function(entries) {
-      heroVisible = entries[0].isIntersecting;
-    }, { threshold: 0.1 }).observe(canvas3d.parentElement);
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (!heroVisible) return;
-
-      var dt = clock.getDelta();
-      var elapsed = (performance.now() - startMs) / 1000;
-
-      if (mixer) mixer.update(dt);
-
-      glowCore.intensity = 7.0 + Math.sin(elapsed * 3.1) * 1.5 + Math.sin(elapsed * 7.3) * 0.8;
-
-      if (phoenix && modelReady) {
-        phoenix.position.y = modelBaseY;
-      }
-
-      renderer.render(scene, camera);
-    }
-
-    function scheduleLoad() {
-      if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(initLoad, { timeout: 3000 });
-      } else {
-        setTimeout(initLoad, 200);
-      }
-    }
-    if (document.readyState === 'complete') {
-      scheduleLoad();
-    } else {
-      window.addEventListener('load', scheduleLoad);
-    }
-
-    animate();
-  })();
-  </script>
 </body>
 </html>
