@@ -498,6 +498,15 @@ function formatEvent(ev){
     const label = total === 1 ? "breach" : "breaches";
     const emailPart = email ? ` for ${escapeHtml(email)}` : "";
     body = `<div class="text-xs mt-1">${escapeHtml(total)} ${label} found${emailPart}.</div>`;
+  } else if(ev.type === "contract_signed"){
+    const { contractName, signedBy, contractId, signedAt } = ev.payload || {};
+    title = "Contract signed";
+    const signerPart = signedBy ? ` by ${escapeHtml(signedBy)}` : "";
+    const namePart = contractName ? `"${escapeHtml(contractName)}"` : "Contract";
+    const printLink = contractId && currentConsumerId
+      ? `<a href="/api/consumers/${encodeURIComponent(currentConsumerId)}/contracts/${encodeURIComponent(contractId)}/print" target="_blank" class="text-accent underline ml-2">View</a>`
+      : "";
+    body = `<div class="text-xs mt-1">${namePart} signed${signerPart}.${printLink}</div>`;
   } else if(ev.type === "letters_portal_sent"){
     const { file } = ev.payload || {};
     title = "Letters sent to portal";
@@ -773,6 +782,7 @@ async function selectConsumer(id){
   await loadMessages();
   await loadTracker();
   await loadDisputeTracker();
+  await loadClientContracts();
 }
 
 function restoreSelectedConsumer(){
@@ -3011,6 +3021,76 @@ async function loadDisputeTracker() {
     }
   } catch (err) {
     console.error('Failed to load dispute tracker summary', err);
+    panel.classList.add("hidden");
+  }
+}
+
+// ===================== Contracts Panel =====================
+async function loadClientContracts() {
+  const panel = $("#clientContractsPanel");
+  const list = $("#clientContractsList");
+  const subtitle = $("#contractsPanelSubtitle");
+  if (!panel || !list) return;
+  if (!currentConsumerId) {
+    panel.classList.add("hidden");
+    return;
+  }
+  try {
+    const data = await api(`/api/consumers/${currentConsumerId}/contracts`);
+    if (!data || !data.ok || !data.contracts || !data.contracts.length) {
+      panel.classList.add("hidden");
+      return;
+    }
+    panel.classList.remove("hidden");
+    const contracts = data.contracts;
+    const signedCount = contracts.filter(c => c.signature).length;
+    if (subtitle) {
+      subtitle.textContent = `${signedCount} of ${contracts.length} signed`;
+    }
+    list.innerHTML = "";
+    contracts.forEach(ct => {
+      const sig = ct.signature;
+      const card = document.createElement("div");
+      card.className = "glass card p-3";
+      card.style.cssText = "border:1px solid " + (sig ? "rgba(74,222,128,0.25)" : "rgba(212,168,83,0.2)") + ";border-radius:12px;";
+
+      const header = document.createElement("div");
+      header.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;";
+
+      const nameEl = document.createElement("div");
+      nameEl.style.cssText = "font-weight:600;font-size:13px;";
+      nameEl.textContent = ct.name || "Contract";
+
+      const badge = document.createElement("span");
+      if (sig) {
+        badge.style.cssText = "background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.3);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;";
+        badge.textContent = "Signed";
+      } else {
+        badge.style.cssText = "background:rgba(212,168,83,0.12);color:#d4a853;border:1px solid rgba(212,168,83,0.25);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;";
+        badge.textContent = "Awaiting Signature";
+      }
+
+      header.appendChild(nameEl);
+      header.appendChild(badge);
+      card.appendChild(header);
+
+      if (sig) {
+        const meta = document.createElement("div");
+        meta.style.cssText = "font-size:11px;color:#888;margin-top:6px;";
+        meta.textContent = `Signed by ${sig.signedBy} on ${new Date(sig.signedAt).toLocaleString()}`;
+        card.appendChild(meta);
+
+        const viewLink = document.createElement("a");
+        viewLink.href = `/api/consumers/${encodeURIComponent(currentConsumerId)}/contracts/${encodeURIComponent(ct.id)}/print`;
+        viewLink.target = "_blank";
+        viewLink.style.cssText = "display:inline-block;margin-top:8px;font-size:11px;color:#d4a853;text-decoration:underline;";
+        viewLink.textContent = "View signed copy";
+        card.appendChild(viewLink);
+      }
+
+      list.appendChild(card);
+    });
+  } catch (err) {
     panel.classList.add("hidden");
   }
 }

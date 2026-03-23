@@ -2157,13 +2157,160 @@ app.get("/api/portal/:id/contracts", async (req, res) => {
     if (!ids.length) return res.json({ ok: true, contracts: [] });
     const lettersDb = await loadLettersDB();
     lettersDb.contracts = lettersDb.contracts || [];
+    const sigs = consumer.contractSignatures || {};
     const results = ids.map(cid => {
       const ct = lettersDb.contracts.find(c => c.id === cid);
-      return ct ? normalizeContract(ct) : null;
+      if (!ct) return null;
+      const norm = normalizeContract(ct);
+      norm.signature = sigs[cid] || null;
+      return norm;
     }).filter(Boolean);
     res.json({ ok: true, contracts: results });
   } catch (err) {
     res.status(500).json({ ok: false, error: "Failed to load contracts" });
+  }
+});
+
+app.post("/api/portal/:id/contracts/:contractId/sign", async (req, res) => {
+  try {
+    const user = await verifyPortalAccess(req, res);
+    if (user === null) return;
+    if (!user) return res.status(401).json({ ok: false, error: "Unauthorized" });
+    const { id, contractId } = req.params;
+    const signedBy = (req.body?.signedBy || "").trim();
+    if (!signedBy) return res.status(400).json({ ok: false, error: "Signer name required" });
+    const db = await loadDB();
+    const consumer = db.consumers.find(c => c.id === id);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    const ids = consumer.contractIds || [];
+    if (!ids.includes(contractId)) return res.status(404).json({ ok: false, error: "Contract not assigned to this consumer" });
+    if (!consumer.contractSignatures) consumer.contractSignatures = {};
+    if (consumer.contractSignatures[contractId]) {
+      return res.status(409).json({ ok: false, error: "Contract already signed" });
+    }
+    const lettersDb = await loadLettersDB();
+    lettersDb.contracts = lettersDb.contracts || [];
+    const contract = lettersDb.contracts.find(c => c.id === contractId);
+    if (!contract) return res.status(404).json({ ok: false, error: "Contract template not found" });
+    const sigRecord = {
+      signedBy,
+      signedAt: new Date().toISOString(),
+      signerIp: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown",
+      userAgent: req.headers["user-agent"] || "unknown"
+    };
+    consumer.contractSignatures[contractId] = sigRecord;
+    await saveDB(db);
+    try {
+      await addEvent(id, "contract_signed", {
+        contractId,
+        contractName: contract.name || "Contract",
+        signedBy: sigRecord.signedBy,
+        signedAt: sigRecord.signedAt
+      });
+    } catch {}
+    res.json({ ok: true, signature: sigRecord });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: "Failed to sign contract" });
+  }
+});
+
+function buildSignedContractHtml(contract, signature, consumerName) {
+  const esc = (s) => String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const body = (contract.english || contract.body || "").replace(/\n/g, "<br>");
+  const signedAt = signature ? new Date(signature.signedAt).toLocaleString() : "";
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>${esc(contract.name)} — Signed Copy</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 780px; margin: 40px auto; color: #111; padding: 24px; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .meta { font-size: 0.85rem; color: #555; margin-bottom: 24px; }
+  .body { font-size: 0.95rem; line-height: 1.7; border: 1px solid #ccc; padding: 20px; border-radius: 6px; background: #fafafa; }
+  .sig-block { margin-top: 40px; border-top: 2px solid #333; padding-top: 20px; }
+  .sig-line { display: flex; gap: 40px; flex-wrap: wrap; }
+  .sig-field { flex: 1; min-width: 200px; }
+  .sig-field label { font-size: 0.75rem; color: #666; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sig-field .value { font-size: 1.1rem; border-bottom: 1px solid #333; padding-bottom: 4px; font-style: italic; }
+  .notice { margin-top: 16px; font-size: 0.75rem; color: #555; }
+  @media print { body { margin: 20px; } }
+</style>
+</head>
+<body>
+<h1>${esc(contract.name)}</h1>
+<div class="meta">Client: ${esc(consumerName || "—")}</div>
+<div class="body">${body}</div>
+${signature ? `<div class="sig-block">
+  <div class="sig-line">
+    <div class="sig-field"><label>Signed by</label><div class="value">${esc(signature.signedBy)}</div></div>
+    <div class="sig-field"><label>Date &amp; Time</label><div class="value">${esc(signedAt)}</div></div>
+  </div>
+  <p class="notice">Electronically signed via Evolv Credit Repair Platform. IP: ${esc(signature.signerIp)}</p>
+</div>` : `<div class="sig-block"><p style="color:#c00;">This contract has not been signed yet.</p></div>`}
+</body>
+</html>`;
+}
+
+app.get("/api/portal/:id/contracts/:contractId/print", async (req, res) => {
+  try {
+    const user = await verifyPortalAccess(req, res);
+    if (user === null) return;
+    if (!user) return res.status(401).json({ ok: false, error: "Unauthorized" });
+    const { id, contractId } = req.params;
+    const db = await loadDB();
+    const consumer = db.consumers.find(c => c.id === id);
+    if (!consumer) return res.status(404).send("Consumer not found");
+    const lettersDb = await loadLettersDB();
+    const contract = (lettersDb.contracts || []).find(c => c.id === contractId);
+    if (!contract) return res.status(404).send("Contract not found");
+    const sig = (consumer.contractSignatures || {})[contractId] || null;
+    const html = buildSignedContractHtml(normalizeContract(contract), sig, consumer.name);
+    res.setHeader("Content-Type", "text/html");
+    res.send(html);
+  } catch (err) {
+    res.status(500).send("Error generating contract view");
+  }
+});
+
+app.get("/api/consumers/:id/contracts", authenticate, async (req, res) => {
+  try {
+    const db = await loadDB();
+    const consumer = db.consumers.find(c => c.id === req.params.id);
+    if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    const ids = consumer.contractIds || [];
+    if (!ids.length) return res.json({ ok: true, contracts: [] });
+    const lettersDb = await loadLettersDB();
+    lettersDb.contracts = lettersDb.contracts || [];
+    const sigs = consumer.contractSignatures || {};
+    const results = ids.map(cid => {
+      const ct = lettersDb.contracts.find(c => c.id === cid);
+      if (!ct) return null;
+      const norm = normalizeContract(ct);
+      norm.signature = sigs[cid] || null;
+      return norm;
+    }).filter(Boolean);
+    res.json({ ok: true, contracts: results });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: "Failed to load contracts" });
+  }
+});
+
+app.get("/api/consumers/:id/contracts/:contractId/print", authenticate, async (req, res) => {
+  try {
+    const { id, contractId } = req.params;
+    const db = await loadDB();
+    const consumer = db.consumers.find(c => c.id === id);
+    if (!consumer) return res.status(404).send("Consumer not found");
+    const lettersDb = await loadLettersDB();
+    const contract = (lettersDb.contracts || []).find(c => c.id === contractId);
+    if (!contract) return res.status(404).send("Contract not found");
+    const sig = (consumer.contractSignatures || {})[contractId] || null;
+    const html = buildSignedContractHtml(normalizeContract(contract), sig, consumer.name);
+    res.setHeader("Content-Type", "text/html");
+    res.send(html);
+  } catch (err) {
+    res.status(500).send("Error generating contract view");
   }
 });
 

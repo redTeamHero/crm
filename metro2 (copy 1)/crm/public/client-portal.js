@@ -2097,11 +2097,25 @@ document.addEventListener('DOMContentLoaded', () => {
             name.className = 'text-sm font-semibold text-gray-700';
             name.textContent = ct.name || 'Contract';
             div.appendChild(name);
+            var previewRow = document.createElement('div');
+            previewRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:6px;';
             var snippet = document.createElement('div');
             snippet.className = 'text-xs text-gray-500';
             var text = (ct.english || ct.body || '').replace(/\s+/g, ' ').trim();
-            snippet.textContent = text.length > 120 ? text.slice(0, 120) + '...' : text;
-            div.appendChild(snippet);
+            snippet.textContent = text.length > 100 ? text.slice(0, 100) + '...' : text;
+            previewRow.appendChild(snippet);
+            if(ct.signature){
+              var sigBadge = document.createElement('span');
+              sigBadge.style.cssText = 'flex-shrink:0;background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.3);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;';
+              sigBadge.textContent = 'Signed';
+              previewRow.appendChild(sigBadge);
+            } else {
+              var pendingBadge = document.createElement('span');
+              pendingBadge.style.cssText = 'flex-shrink:0;background:rgba(212,168,83,0.12);color:#d4a853;border:1px solid rgba(212,168,83,0.25);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;';
+              pendingBadge.textContent = 'Sign Required';
+              previewRow.appendChild(pendingBadge);
+            }
+            div.appendChild(previewRow);
             div.addEventListener('click', function(){
               if(docContractsSection) {
                 var docNav = document.querySelector('[href="#documentSection"]');
@@ -2115,26 +2129,144 @@ document.addEventListener('DOMContentLoaded', () => {
           docContractsSection.classList.remove('hidden');
           docContractsList.innerHTML = '';
           valid.forEach(function(ct){
-            var card = document.createElement('div');
-            card.className = 'glass card p-4 space-y-2';
-            var title = document.createElement('div');
-            title.className = 'text-sm font-semibold text-gray-700';
-            title.textContent = ct.name || 'Contract';
-            card.appendChild(title);
-            var ta = document.createElement('textarea');
-            ta.className = 'w-full text-xs text-gray-600 border border-gray-200 rounded-lg p-3';
-            ta.readOnly = true;
-            ta.style.minHeight = '160px';
-            ta.style.resize = 'vertical';
-            ta.style.background = 'rgba(255,255,255,0.03)';
-            ta.value = ct.english || ct.body || '';
-            card.appendChild(ta);
-            docContractsList.appendChild(card);
+            buildContractCard(ct, docContractsList, _contractsToken);
           });
         }
       })
       .catch(function(){});
   }
+
+  function buildContractCard(ct, container, token){
+    var card = document.createElement('div');
+    card.className = 'glass card p-4';
+    card.style.cssText = 'border:1px solid ' + (ct.signature ? 'rgba(74,222,128,0.2)' : 'rgba(212,168,83,0.15)') + ';border-radius:14px;';
+
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap;';
+    var title = document.createElement('div');
+    title.style.cssText = 'font-size:14px;font-weight:600;color:#1e293b;';
+    title.textContent = ct.name || 'Contract';
+    titleRow.appendChild(title);
+    if(ct.signature){
+      var signedBadge = document.createElement('span');
+      signedBadge.style.cssText = 'background:rgba(74,222,128,0.15);color:#16a34a;border:1px solid rgba(74,222,128,0.4);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;';
+      signedBadge.textContent = 'Signed';
+      titleRow.appendChild(signedBadge);
+    } else {
+      var pendBadge = document.createElement('span');
+      pendBadge.style.cssText = 'background:rgba(212,168,83,0.12);color:#d4a853;border:1px solid rgba(212,168,83,0.3);padding:3px 12px;border-radius:20px;font-size:11px;font-weight:600;';
+      pendBadge.textContent = 'Awaiting Signature';
+      titleRow.appendChild(pendBadge);
+    }
+    card.appendChild(titleRow);
+
+    var contractBody = document.createElement('div');
+    contractBody.style.cssText = 'font-size:12px;color:#374151;line-height:1.7;max-height:240px;overflow-y:auto;background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.06);border-radius:8px;padding:14px;white-space:pre-wrap;word-break:break-word;';
+    contractBody.textContent = ct.english || ct.body || '';
+    card.appendChild(contractBody);
+
+    if(ct.signature){
+      var sigInfo = document.createElement('div');
+      sigInfo.style.cssText = 'margin-top:12px;padding:10px 12px;background:rgba(74,222,128,0.06);border:1px solid rgba(74,222,128,0.2);border-radius:8px;font-size:12px;color:#374151;';
+      var sigDate = new Date(ct.signature.signedAt).toLocaleString();
+      sigInfo.innerHTML = '<span style="font-weight:600;color:#16a34a;">Signed by</span> ' + esc(ct.signature.signedBy) + '<span style="color:#888;margin-left:8px;">' + esc(sigDate) + '</span>';
+      card.appendChild(sigInfo);
+
+      var printLink = document.createElement('a');
+      printLink.href = '/api/portal/' + encodeURIComponent(consumerId) + '/contracts/' + encodeURIComponent(ct.id) + '/print';
+      printLink.target = '_blank';
+      printLink.style.cssText = 'display:inline-block;margin-top:10px;font-size:12px;color:#d4a853;text-decoration:underline;';
+      printLink.textContent = 'Download / Print signed copy';
+      card.appendChild(printLink);
+    } else {
+      var signSection = document.createElement('div');
+      signSection.style.cssText = 'margin-top:14px;padding:14px;background:rgba(212,168,83,0.04);border:1px solid rgba(212,168,83,0.2);border-radius:10px;';
+
+      var signHeading = document.createElement('div');
+      signHeading.style.cssText = 'font-size:13px;font-weight:600;color:#1e293b;margin-bottom:10px;';
+      signHeading.textContent = 'Sign this document';
+      signSection.appendChild(signHeading);
+
+      var nameLabel = document.createElement('label');
+      nameLabel.style.cssText = 'display:block;font-size:12px;color:#555;margin-bottom:4px;';
+      nameLabel.textContent = 'Your full legal name';
+      signSection.appendChild(nameLabel);
+
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.placeholder = 'Type your full name to sign';
+      nameInput.style.cssText = 'width:100%;box-sizing:border-box;border:1px solid rgba(212,168,83,0.4);border-radius:8px;padding:8px 12px;font-size:13px;background:rgba(255,255,255,0.8);color:#111;margin-bottom:10px;outline:none;';
+      signSection.appendChild(nameInput);
+
+      var agreeLabel = document.createElement('label');
+      agreeLabel.style.cssText = 'display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12px;color:#374151;margin-bottom:12px;';
+      var agreeCheck = document.createElement('input');
+      agreeCheck.type = 'checkbox';
+      agreeCheck.style.cssText = 'margin-top:2px;accent-color:#d4a853;flex-shrink:0;';
+      var agreeText = document.createElement('span');
+      agreeText.textContent = 'I have read and agree to all terms of this contract. I understand this constitutes a legally binding electronic signature.';
+      agreeLabel.appendChild(agreeCheck);
+      agreeLabel.appendChild(agreeText);
+      signSection.appendChild(agreeLabel);
+
+      var errEl = document.createElement('div');
+      errEl.style.cssText = 'display:none;font-size:11px;color:#ef4444;margin-bottom:8px;';
+      signSection.appendChild(errEl);
+
+      var signBtn = document.createElement('button');
+      signBtn.type = 'button';
+      signBtn.style.cssText = 'background:linear-gradient(135deg,#d4a853,#c49a45);color:#0a0a0a;font-weight:600;font-size:13px;padding:9px 22px;border:none;border-radius:8px;cursor:pointer;';
+      signBtn.textContent = 'Sign Document';
+      signBtn.addEventListener('click', function(){
+        var name = nameInput.value.trim();
+        if(!name){
+          errEl.textContent = 'Please type your full name.';
+          errEl.style.display = 'block';
+          return;
+        }
+        if(!agreeCheck.checked){
+          errEl.textContent = 'Please check the agreement box.';
+          errEl.style.display = 'block';
+          return;
+        }
+        errEl.style.display = 'none';
+        signBtn.disabled = true;
+        signBtn.textContent = 'Signing…';
+        fetch('/api/portal/' + encodeURIComponent(consumerId) + '/contracts/' + encodeURIComponent(ct.id) + '/sign', {
+          method: 'POST',
+          headers: Object.assign({'Content-Type':'application/json'}, token ? {'Authorization':'Bearer '+token} : {}),
+          body: JSON.stringify({ signedBy: name })
+        })
+          .then(function(r){ return r.json(); })
+          .then(function(result){
+            if(!result.ok){
+              errEl.textContent = result.error || 'Failed to sign. Please try again.';
+              errEl.style.display = 'block';
+              signBtn.disabled = false;
+              signBtn.textContent = 'Sign Document';
+              return;
+            }
+            ct.signature = result.signature;
+            var replacement = document.createElement('div');
+            card.parentNode.replaceChild(replacement, card);
+            buildContractCard(ct, container, token);
+            var newlyAdded = container.lastChild;
+            container.replaceChild(newlyAdded, replacement);
+          })
+          .catch(function(){
+            errEl.textContent = 'Network error. Please try again.';
+            errEl.style.display = 'block';
+            signBtn.disabled = false;
+            signBtn.textContent = 'Sign Document';
+          });
+      });
+      signSection.appendChild(signBtn);
+      card.appendChild(signSection);
+    }
+
+    container.appendChild(card);
+  }
+
   function loadDocs(){
     if (!(consumerId && (docEl || docPreviewEl))) return;
     fetch(`/api/consumers/${consumerId}/state`, { cache: 'no-store' })
