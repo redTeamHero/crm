@@ -1062,7 +1062,7 @@
       {
         name: 'EXPERIAN', city: 'Costa Mesa, CA',
         coords: '33.6411° N, 117.9187° W', lat: 33.641, lng: -117.919,
-        tagline: "The world's largest credit bureau.",
+        tagline: "The world’s largest credit bureau.",
         stats: [{ val: '235M+', label: 'consumers tracked' }, { val: '80+', label: 'countries served' }],
         subtext: 'Experian reaches the most lenders — errors here cost the most.',
         color: '#4a90e2', ringColor: 'rgba(74,144,226,'
@@ -1078,6 +1078,7 @@
     ];
 
     var idx = 0;
+    var cycling = false;
     var panelL = document.getElementById('panel-left');
     var panelR = document.getElementById('panel-right');
 
@@ -1088,118 +1089,132 @@
       }
     }
 
-    var globe = Globe()
-      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
-      .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
-      .backgroundColor('rgba(0,0,0,0)')
-      .atmosphereColor('#a855f7')
-      .atmosphereAltitude(0.22)
-      .width(container.offsetWidth)
-      .height(container.offsetHeight)
-      (container);
+    var globe;
+    try {
+      globe = Globe()
+        .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+        .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
+        .backgroundColor('rgba(0,0,0,0)')
+        .atmosphereColor('#a855f7')
+        .atmosphereAltitude(0.22)
+        .width(container.offsetWidth)
+        .height(container.offsetHeight)
+        (container);
 
-    globe.pointOfView({ lat: 20, lng: -30, altitude: 2.5 });
-    globe.controls().autoRotate = true;
-    globe.controls().autoRotateSpeed = 0.4;
-    globe.controls().enableZoom = false;
-    globe.controls().enablePan = false;
-    globe.controls().enableRotate = false;
+      globe.controls().autoRotate = true;
+      globe.controls().autoRotateSpeed = 0.5;
+      globe.controls().enableZoom = false;
+      globe.controls().enablePan = false;
+      globe.controls().enableRotate = false;
 
-    globe.pointsData(bureaus)
-      .pointLat(function(d) { return d.lat; })
-      .pointLng(function(d) { return d.lng; })
-      .pointColor(function(d) { return d.color; })
-      .pointAltitude(0.06)
-      .pointRadius(0.55);
+      globe.pointOfView({ lat: 20, lng: -60, altitude: 2.6 });
 
-    var allArcs = [
-      { startLat: 33.749, startLng: -84.388, endLat: 33.641, endLng: -117.919, color: ['#e87040','#4a90e2'] },
-      { startLat: 33.641, startLng: -117.919, endLat: 41.878, endLng: -87.630, color: ['#4a90e2','#8b5cf6'] },
-      { startLat: 41.878, startLng: -87.630, endLat: 33.749, endLng: -84.388, color: ['#8b5cf6','#e87040'] }
-    ];
-    globe.arcsData(allArcs)
-      .arcStartLat(function(d) { return d.startLat; })
-      .arcStartLng(function(d) { return d.startLng; })
-      .arcEndLat(function(d) { return d.endLat; })
-      .arcEndLng(function(d) { return d.endLng; })
-      .arcColor(function(d) { return d.color; })
-      .arcAltitude(0.25)
-      .arcStroke(0.6)
-      .arcDashLength(0.4)
-      .arcDashGap(0.15)
-      .arcDashAnimateTime(2200);
+      globe.pointsData(bureaus)
+        .pointLat(function(d) { return d.lat; })
+        .pointLng(function(d) { return d.lng; })
+        .pointColor(function(d) { return d.color; })
+        .pointAltitude(0.07)
+        .pointRadius(0.6);
 
-    globe.ringsData([])
-      .ringLat(function(d) { return d.lat; })
-      .ringLng(function(d) { return d.lng; })
-      .ringColor(function(d) { return function(t) { return d.ringColor + Math.max(0, 1 - t) + ')'; }; })
-      .ringMaxRadius(7)
-      .ringPropagationSpeed(3)
-      .ringRepeatPeriod(800);
+      globe.arcsData([
+        { sLat: 33.749, sLng: -84.388, eLat: 33.641, eLng: -117.919, c: ['#e87040','#4a90e2'] },
+        { sLat: 33.641, sLng: -117.919, eLat: 41.878, eLng: -87.630, c: ['#4a90e2','#8b5cf6'] },
+        { sLat: 41.878, sLng: -87.630, eLat: 33.749, eLng: -84.388, c: ['#8b5cf6','#e87040'] }
+      ])
+        .arcStartLat(function(d) { return d.sLat; })
+        .arcStartLng(function(d) { return d.sLng; })
+        .arcEndLat(function(d) { return d.eLat; })
+        .arcEndLng(function(d) { return d.eLng; })
+        .arcColor(function(d) { return d.c; })
+        .arcAltitude(0.28)
+        .arcDashLength(0.4)
+        .arcDashGap(0.15)
+        .arcDashAnimateTime(2400);
 
-    function updatePanels(b) {
-      document.getElementById('bl-name').textContent = b.name;
-      document.getElementById('bl-city').textContent = b.city;
-      document.getElementById('bl-coords').textContent = b.coords;
-      document.getElementById('bl-tagline').textContent = b.tagline;
-      document.getElementById('bl-stats').innerHTML = b.stats.map(function(s) {
-        return '<div class="bp-stat"><span class="bp-stat-val">' + s.val + '</span><span class="bp-stat-label">' + s.label + '</span></div>';
-      }).join('');
-      document.getElementById('br-subtext').textContent = b.subtext;
+      globe.ringsData([])
+        .ringLat(function(d) { return d.lat; })
+        .ringLng(function(d) { return d.lng; })
+        .ringColor(function(d) { return function(t) { return d.ringColor + Math.max(0, 1 - t) + ')'; }; })
+        .ringMaxRadius(7)
+        .ringPropagationSpeed(3)
+        .ringRepeatPeriod(800);
+
+    } catch(e) {
+      globe = null;
     }
 
-    function showPanels() { panelL.classList.add('active'); panelR.classList.add('active'); }
+    function updatePanels(b) {
+      var elName = document.getElementById('bl-name');
+      var elCity = document.getElementById('bl-city');
+      var elCoords = document.getElementById('bl-coords');
+      var elTagline = document.getElementById('bl-tagline');
+      var elStats = document.getElementById('bl-stats');
+      var elSubtext = document.getElementById('br-subtext');
+      if (elName) elName.textContent = b.name;
+      if (elCity) elCity.textContent = b.city;
+      if (elCoords) elCoords.textContent = b.coords;
+      if (elTagline) elTagline.textContent = b.tagline;
+      if (elStats) elStats.innerHTML = b.stats.map(function(s) {
+        return '<div class="bp-stat"><span class="bp-stat-val">' + s.val + '</span><span class="bp-stat-label">' + s.label + '</span></div>';
+      }).join('');
+      if (elSubtext) elSubtext.textContent = b.subtext;
+    }
+
+    function showPanels() {
+      if (panelL) panelL.classList.add('active');
+      if (panelR) panelR.classList.add('active');
+    }
+
     function hidePanels(cb) {
-      panelL.classList.remove('active'); panelR.classList.remove('active');
+      if (panelL) panelL.classList.remove('active');
+      if (panelR) panelR.classList.remove('active');
       if (cb) setTimeout(cb, 700);
     }
 
     function runCycle() {
+      if (cycling) return;
+      cycling = true;
       var b = bureaus[idx];
       setDot(idx);
-      globe.ringsData([b]);
+      try { if (globe) globe.ringsData([b]); } catch(e) {}
       setTimeout(function() {
-        globe.controls().autoRotate = false;
-        globe.pointOfView({ lat: b.lat, lng: b.lng, altitude: 1.7 }, 2300);
+        try {
+          if (globe) {
+            globe.controls().autoRotate = false;
+            globe.pointOfView({ lat: b.lat, lng: b.lng, altitude: 1.7 }, 2200);
+          }
+        } catch(e) {}
         setTimeout(function() {
           updatePanels(b);
           showPanels();
           setTimeout(function() {
             hidePanels(function() {
-              var allArcs = [
-      { startLat: 33.749, startLng: -84.388, endLat: 33.641, endLng: -117.919, color: ['#e87040','#4a90e2'] },
-      { startLat: 33.641, startLng: -117.919, endLat: 41.878, endLng: -87.630, color: ['#4a90e2','#8b5cf6'] },
-      { startLat: 41.878, startLng: -87.630, endLat: 33.749, endLng: -84.388, color: ['#8b5cf6','#e87040'] }
-    ];
-    globe.arcsData(allArcs)
-      .arcStartLat(function(d) { return d.startLat; })
-      .arcStartLng(function(d) { return d.startLng; })
-      .arcEndLat(function(d) { return d.endLat; })
-      .arcEndLng(function(d) { return d.endLng; })
-      .arcColor(function(d) { return d.color; })
-      .arcAltitude(0.25)
-      .arcStroke(0.6)
-      .arcDashLength(0.4)
-      .arcDashGap(0.15)
-      .arcDashAnimateTime(2200);
-
-    globe.ringsData([]);
-              globe.pointOfView({ lat: 20, lng: b.lng - 25, altitude: 2.5 }, 1800);
+              try { if (globe) globe.ringsData([]); } catch(e) {}
+              try {
+                if (globe) globe.pointOfView({ lat: 20, lng: b.lng - 30, altitude: 2.6 }, 1800);
+              } catch(e) {}
               setTimeout(function() {
-                globe.controls().autoRotate = true;
+                try { if (globe) globe.controls().autoRotate = true; } catch(e) {}
                 idx = (idx + 1) % bureaus.length;
-                setTimeout(runCycle, 2200);
+                cycling = false;
+                setTimeout(runCycle, 1800);
               }, 1800);
             });
           }, 5500);
-        }, 2500);
-      }, 900);
+        }, 2400);
+      }, 800);
     }
 
-    setTimeout(runCycle, 2000);
+    updatePanels(bureaus[0]);
+    showPanels();
+    setTimeout(function() {
+      hidePanels(function() {
+        setTimeout(runCycle, 600);
+      });
+    }, 4000);
 
     window.addEventListener('resize', function() {
-      globe.width(container.offsetWidth).height(container.offsetHeight);
+      try { if (globe) globe.width(container.offsetWidth).height(container.offsetHeight); } catch(e) {}
     });
   })();
   </script>
