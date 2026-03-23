@@ -6240,7 +6240,18 @@ app.get("/api/public/credit-companies", async (_req, res) => {
     rankings = rankings.sort((a, b) => b.finalScore - a.finalScore);
     rankings = applyRotationWindow(rankings);
 
-    res.json({ ok: true, companies: rankings.map((e, i) => ({ rank: i + 1, ...e })) });
+    res.json({
+      ok: true,
+      companies: rankings.map((e, i) => ({
+        rank: i + 1,
+        companyId: e.companyId,
+        name: e.name,
+        serviceArea: e.serviceArea,
+        focus: e.focus,
+        isBoosted: e.isBoosted,
+        metrics: e.metrics
+      }))
+    });
   } catch (err) {
     logError('PUBLIC_CREDIT_COMPANY_LIST_ERROR', err);
     res.status(500).json({ ok: false, error: 'Failed to fetch specialists' });
@@ -6259,6 +6270,9 @@ app.post("/api/public/leads", async (req, res) => {
   if (!/\S+@\S+\.\S+/.test(email)) {
     return res.status(400).json({ ok: false, error: "Invalid email address" });
   }
+  if (!companyId) {
+    return res.status(400).json({ ok: false, error: "A specialist must be selected" });
+  }
   if (req.body.website) return res.status(200).json({ ok: true });
 
   const ip = req.ip || req.connection?.remoteAddress || "unknown";
@@ -6270,19 +6284,17 @@ app.post("/api/public/leads", async (req, res) => {
   leadCaptureTimestamps.set(ip, now);
 
   try {
-    let companyName = '';
-    if (companyId) {
-      const companiesDb = await loadCreditCompaniesDB();
-      const company = companiesDb.companies.find(c => c.id === companyId);
-      if (company) companyName = company.name;
+    const companiesDb = await loadCreditCompaniesDB();
+    const company = companiesDb.companies.find(c => c.id === companyId && c.isActive);
+    if (!company) {
+      return res.status(404).json({ ok: false, error: "Selected specialist not found or is no longer available" });
     }
 
-    const db = await loadLeadsDB();
+    const tenantId = sanitizeTenantId(company.tenantId || DEFAULT_TENANT_ID, DEFAULT_TENANT_ID);
     const id = nanoid(10);
-    const sourceLabel = companyName ? `Specialist Directory — ${companyName}` : 'Specialist Directory';
     const noteParts = [];
     if (req.body.notes) noteParts.push(req.body.notes.trim());
-    if (companyName) noteParts.push(`Requested specialist: ${companyName}`);
+    noteParts.push(`Requested specialist: ${company.name}`);
 
     const lead = {
       id,
@@ -6295,7 +6307,7 @@ app.post("/api/public/leads", async (req, res) => {
       state: "",
       zip: "",
       dob: "",
-      source: sourceLabel,
+      source: `Specialist Directory — ${company.name}`,
       notes: noteParts.join('\n'),
       creditGoal: req.body.creditGoal || "",
       currentScore: "",
@@ -6304,14 +6316,16 @@ app.post("/api/public/leads", async (req, res) => {
       updatedAt: new Date().toISOString()
     };
 
-    db.leads.push(lead);
-    await saveLeadsDB(db);
-
-    try {
-      await emitHostNotification("lead_new", `New specialist inquiry from ${lead.name}`, {
-        name: lead.name, email: lead.email, phone: lead.phone, source: lead.source
-      });
-    } catch {}
+    await withTenantContext(tenantId, async () => {
+      const db = await loadLeadsDB();
+      db.leads.push(lead);
+      await saveLeadsDB(db);
+      try {
+        await emitHostNotification("lead_new", `New specialist inquiry from ${lead.name}`, {
+          name: lead.name, email: lead.email, phone: lead.phone, source: lead.source
+        });
+      } catch {}
+    });
 
     res.json({ ok: true, lead: { id: lead.id, name: lead.name } });
   } catch (err) {
