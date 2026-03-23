@@ -274,13 +274,16 @@
             var ack = document.getElementById('croaAck');
             if (!ack || !ack.checked) {
               e.stopImmediatePropagation();
-              ack.closest('.croa-ack-row').style.outline = '1px solid rgba(239,68,68,0.6)';
-              ack.closest('.croa-ack-row').style.borderRadius = '8px';
-              ack.closest('.croa-ack-row').style.padding = '6px';
-              setTimeout(function() {
-                ack.closest('.croa-ack-row').style.outline = '';
-                ack.closest('.croa-ack-row').style.padding = '';
-              }, 2000);
+              var ackRow = ack && ack.closest ? ack.closest('.croa-ack-row') : document.getElementById('croaAckRow');
+              if (ackRow) {
+                ackRow.style.outline = '1px solid rgba(239,68,68,0.6)';
+                ackRow.style.borderRadius = '8px';
+                ackRow.style.padding = '6px';
+                setTimeout(function() {
+                  ackRow.style.outline = '';
+                  ackRow.style.padding = '';
+                }, 2000);
+              }
               return false;
             }
           }
