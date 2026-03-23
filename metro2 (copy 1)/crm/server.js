@@ -81,6 +81,7 @@ import {
   initHostNotifications,
   listNotifications,
   addNotification,
+  emitHostNotification,
   markRead,
   markAllRead,
   getNotificationSettings,
@@ -262,9 +263,12 @@ initHostNotifications();
   let lastDailyDate = "";
   let lastWeeklyDate = "";
   let lastAttentionDate = "";
-  // Track emitted invoice notifications in memory to avoid flooding on each hourly tick
-  const _notifiedOverdue = new Set();
-  const _notifiedDueSoon = new Set();
+  // Dedup sets — keyed by consumerId or consumerId:itemId to prevent repeat fires per session
+  const _notifiedOverdue = new Set();   // invoice overdue
+  const _notifiedDueSoon = new Set();   // invoice due soon
+  const _notifiedReminderOverdue = new Set(); // reminder_overdue keyed by consumerId:reminderId
+  const _notifiedClientInactive = new Set();  // client_inactive keyed by consumerId
+  const _notifiedSLA = new Set();             // dispute_sla_missed keyed by consumerId:jobId
 
   async function runDigestTick() {
     try {
@@ -310,12 +314,7 @@ initHostNotifications();
         if (stats.overdueReminders) parts.push(`${stats.overdueReminders} overdue reminder${stats.overdueReminders !== 1 ? "s" : ""}`);
         if (stats.disputesPending) parts.push(`${stats.disputesPending} new letter${stats.disputesPending !== 1 ? "s" : ""} generated`);
         const summary = parts.length ? `Daily digest: ${parts.join(", ")}` : "Daily digest: all clear";
-        await addNotification({
-          eventType: "daily_digest",
-          message: summary,
-          payload: { summary, ...stats },
-          delivery: { inApp: true, emailSent: false, smsSent: false },
-        });
+        await emitHostNotification("daily_digest", summary, { summary, ...stats });
       }
 
       // Needs attention digest — fires daily at 09:00 if enabled and there are critical items
@@ -333,12 +332,7 @@ initHostNotifications();
           if (attentionStats.overdueReminders) attParts.push(`${attentionStats.overdueReminders} overdue task${attentionStats.overdueReminders !== 1 ? "s" : ""}`);
           if (attentionStats.unreadDisputes) attParts.push(`${attentionStats.unreadDisputes} dispute response${attentionStats.unreadDisputes !== 1 ? "s" : ""} awaiting review`);
           const attSummary = `Needs attention: ${attParts.join(", ")}`;
-          await addNotification({
-            eventType: "needs_attention_digest",
-            message: attSummary,
-            payload: { summary: attSummary, ...attentionStats },
-            delivery: { inApp: true, emailSent: false, smsSent: false },
-          });
+          await emitHostNotification("needs_attention_digest", attSummary, { summary: attSummary, ...attentionStats });
         }
       }
 
@@ -359,12 +353,7 @@ initHostNotifications();
         const wSummary = wParts.length
           ? `Weekly summary (${dateStr}): ${wParts.join(", ")}`
           : `Weekly summary (${dateStr}): all clear`;
-        await addNotification({
-          eventType: "weekly_summary",
-          message: wSummary,
-          payload: { summary: wSummary, ...weekStats },
-          delivery: { inApp: true, emailSent: false, smsSent: false },
-        });
+        await emitHostNotification("weekly_summary", wSummary, { summary: wSummary, ...weekStats });
       }
       // Invoice overdue and due-soon scan — runs on every tick
       if (settings.events?.invoice_overdue !== false || settings.events?.invoice_due_soon !== false) {
@@ -398,6 +387,82 @@ initHostNotifications();
         } catch (invoiceErr) {
           logWarn("INVOICE_SCAN_ERROR", invoiceErr?.message || String(invoiceErr));
         }
+      }
+
+      // Consumer activity scans — reminder_overdue, client_inactive, dispute_sla_missed
+      try {
+        const allStates = await listAllConsumerStates({ includeEvents: true }).catch(() => []);
+        const nowMs = Date.now();
+        const INACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;  // 30 days
+        const SLA_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;        // 30 days
+
+        for (const st of allStates) {
+          const cId = st.id;
+          const events = st.events || [];
+
+          // reminder_overdue: fire once per overdue reminder (keyed by reminderId)
+          if (settings.events?.reminder_overdue !== false) {
+            for (const rem of (st.reminders || [])) {
+              if (rem.status === "overdue") {
+                const rKey = `${cId}:${rem.id}`;
+                if (!_notifiedReminderOverdue.has(rKey)) {
+                  _notifiedReminderOverdue.add(rKey);
+                  try { await addEvent(cId, "reminder_overdue", { reminderId: rem.id, due: rem.due }); } catch {}
+                }
+              }
+            }
+          }
+
+          // client_inactive: no events in last 30 days
+          if (settings.events?.client_inactive !== false && !_notifiedClientInactive.has(cId)) {
+            const lastEvent = events.reduce((latest, e) => {
+              const t = e.at ? new Date(e.at).getTime() : 0;
+              return t > latest ? t : latest;
+            }, 0);
+            if (lastEvent > 0 && nowMs - lastEvent > INACTIVE_WINDOW_MS) {
+              _notifiedClientInactive.add(cId);
+              try { await addEvent(cId, "client_inactive", { daysSinceActivity: Math.floor((nowMs - lastEvent) / 86400000) }); } catch {}
+            }
+          }
+
+          // dispute_sla_missed: dispute_round events older than 30 days with no dispute_response
+          if (settings.events?.dispute_sla_missed !== false) {
+            const disputeRounds = events.filter(e => e.type === "dispute_round");
+            const responseJobIds = new Set(
+              events.filter(e => e.type === "dispute_response").map(e => e.payload?.jobId).filter(Boolean)
+            );
+            for (const dr of disputeRounds) {
+              const jobId = dr.payload?.jobId;
+              if (!jobId) continue;
+              if (responseJobIds.has(jobId)) continue; // already responded
+              const drAge = nowMs - new Date(dr.at || 0).getTime();
+              if (drAge > SLA_WINDOW_MS) {
+                const slaKey = `${cId}:${jobId}`;
+                if (!_notifiedSLA.has(slaKey)) {
+                  _notifiedSLA.add(slaKey);
+                  try { await addEvent(cId, "dispute_sla_missed", { jobId, daysSinceRound: Math.floor(drAge / 86400000) }); } catch {}
+                }
+              }
+            }
+          }
+
+          // post_call_notes_missing: call_booked events older than 24h with no subsequent call_notes event
+          if (settings.events?.post_call_notes_missing !== false) {
+            const bookedCalls = events.filter(e => e.type === "call_booked" && new Date(e.at || 0).getTime() < nowMs - 86400000);
+            const noteEvents = new Set(events.filter(e => e.type === "call_notes").map(e => e.payload?.bookingId).filter(Boolean));
+            for (const bc of bookedCalls) {
+              const bId = bc.payload?.bookingId || bc.id;
+              if (!bId || noteEvents.has(bId)) continue;
+              const notesKey = `${cId}:notes:${bId}`;
+              if (!_notifiedReminderOverdue.has(notesKey)) {
+                _notifiedReminderOverdue.add(notesKey);
+                try { await addEvent(cId, "post_call_notes_missing", { bookingId: bId }); } catch {}
+              }
+            }
+          }
+        }
+      } catch (scanErr) {
+        logWarn("ACTIVITY_SCAN_ERROR", scanErr?.message || String(scanErr));
       }
     } catch (err) {
       logWarn("DIGEST_TICK_ERROR", err?.message || String(err));
@@ -2418,12 +2483,7 @@ app.put("/api/calendar/events/:id", authenticate, forbidMember, async (req, res)
         try { await addEvent(evtConsumerId, "call_rescheduled", { name: evtName, date: req.body.date || req.body.start }); } catch {}
       } else {
         try {
-          await addNotification({
-            eventType: "call_rescheduled",
-            message: `Call rescheduled${evtName ? `: ${evtName}` : ""}`,
-            payload: { name: evtName },
-            delivery: { inApp: true, emailSent: false, smsSent: false },
-          });
+          await emitHostNotification("call_rescheduled", `Call rescheduled${evtName ? `: ${evtName}` : ""}`, { name: evtName });
         } catch {}
       }
     }
@@ -5846,12 +5906,8 @@ app.post("/api/login", async (req,res)=>{
     const failCount = recordLoginFailure(req.body.username || "unknown");
     if (failCount >= LOGIN_FAIL_THRESHOLD) {
       try {
-        await addNotification({
-          eventType: "login_failed_threshold",
-          message: `${failCount} failed login attempts for "${req.body.username}" in the last 15 minutes`,
-          payload: { detail: `${failCount} failures for ${req.body.username}`, count: failCount },
-          delivery: { inApp: true, emailSent: false, smsSent: false },
-        });
+        const _thresh_msg = `${failCount} failed login attempts for "${req.body.username}" in the last 15 minutes`;
+        await emitHostNotification("login_failed_threshold", _thresh_msg, { count: failCount, username: req.body.username });
         _loginFailCounts.delete(req.body.username || "unknown");
       } catch {}
     }
@@ -5862,12 +5918,8 @@ app.post("/api/login", async (req,res)=>{
     const failCount = recordLoginFailure(req.body.username);
     if (failCount >= LOGIN_FAIL_THRESHOLD) {
       try {
-        await addNotification({
-          eventType: "login_failed_threshold",
-          message: `${failCount} failed login attempts for "${req.body.username}" in the last 15 minutes`,
-          payload: { detail: `${failCount} failures for ${req.body.username}`, count: failCount },
-          delivery: { inApp: true, emailSent: false, smsSent: false },
-        });
+        const _thresh_msg = `${failCount} failed login attempts for "${req.body.username}" in the last 15 minutes`;
+        await emitHostNotification("login_failed_threshold", _thresh_msg, { count: failCount, username: req.body.username });
         _loginFailCounts.delete(req.body.username);
       } catch {}
     }
@@ -7122,6 +7174,7 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       if (Object.keys(extractedScores).length) {
         consumer.creditScore = mergeCreditScores(consumer.creditScore, extractedScores);
         await setCreditScore(consumer.id, consumer.creditScore);
+        try { await addEvent(consumer.id, "score_change", { scores: extractedScores }); } catch {}
       }
     }catch(e){
       logError("SCORE_EXTRACT_FAILED", "Failed to extract credit scores", e);
@@ -7214,6 +7267,12 @@ app.post("/api/consumers/:id/upload", upload.single("file"), async (req,res)=>{
       size: req.file.size,
       ...(consumer.reports[0].diff?.summary || {}),
     });
+
+    // file_review_required: emit when the uploaded report has disputable items
+    const negCount = analyzed?.negative_items?.length || analyzed?.tradelines?.filter(t => (t.violations || []).length > 0).length || 0;
+    if (negCount > 0) {
+      try { await addEvent(consumer.id, "file_review_required", { reportId: rid, negativeItemCount: negCount }); } catch {}
+    }
 
     try {
       const disputableItems = (analyzed.tradelines || [])
@@ -10088,6 +10147,34 @@ app.post("/api/consumers/:id/disputes/:jobId/response", authenticate, async (req
       items: normalizedItems,
       respondedAt: new Date().toISOString(),
     });
+
+    // bureau_acknowledgment: fired every time a response is received from the bureau
+    await addEvent(consumerId, "bureau_acknowledgment", {
+      jobId,
+      round: roundEvent.payload.round,
+      itemCount: normalizedItems.length,
+    }).catch(() => {});
+
+    // item_removed: fired for each item with a successful outcome
+    const removedItems = normalizedItems.filter(i => ["removed", "deleted", "corrected"].includes(i.outcome));
+    for (const ri of removedItems) {
+      await addEvent(consumerId, "item_removed", {
+        jobId,
+        creditor: ri.creditor,
+        bureau: ri.bureau,
+        outcome: ri.outcome,
+      }).catch(() => {});
+    }
+
+    // dispute_outcome: fired when the round is fully resolved
+    const allResolved = normalizedItems.every(i => ["removed", "deleted", "corrected"].includes(i.outcome));
+    if (allResolved && normalizedItems.length > 0) {
+      await addEvent(consumerId, "dispute_outcome", {
+        jobId,
+        round: roundEvent.payload.round,
+        removedCount: removedItems.length,
+      }).catch(() => {});
+    }
 
     const roundPayloadItems = roundEvent.payload.items || [];
     const recommendations = [];
@@ -13805,6 +13892,7 @@ async function smartCreditIngestReport(consumer, reportData, db) {
     if (Object.keys(extractedScores).length) {
       consumer.creditScore = mergeCreditScores(consumer.creditScore, extractedScores);
       await setCreditScore(consumer.id, consumer.creditScore);
+      try { await addEvent(consumer.id, "score_change", { scores: extractedScores }); } catch {}
     }
   } catch (e) {
     logError("SMART_CREDIT_SCORE_EXTRACT_FAILED", "Failed to extract credit scores from Smart Credit report", e);

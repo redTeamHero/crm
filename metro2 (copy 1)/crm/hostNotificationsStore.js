@@ -337,6 +337,46 @@ export async function getNotificationSettings() {
   return loadSettings();
 }
 
+/**
+ * Emit a host-level notification (not tied to a specific consumer) while
+ * respecting per-event settings and optional email/SMS delivery — same path
+ * used by the consumer-state event listener.
+ */
+export async function emitHostNotification(eventType, message, payload = {}) {
+  if (!WATCHED_EVENTS.has(eventType)) return null;
+  let settings;
+  try {
+    settings = await loadSettings();
+  } catch (err) {
+    logWarn("NOTIF_SETTINGS_READ_ERROR", err?.message || String(err));
+    return null;
+  }
+  const eventEnabled = settings.events?.[eventType] !== false;
+  if (!eventEnabled) return null;
+
+  const delivery = {
+    inApp: settings.inApp !== false,
+    emailSent: false,
+    smsSent: false,
+  };
+
+  if (settings.email && settings.emailAddress) {
+    delivery.emailSent = await sendEmailNotification(settings, message).catch(() => false);
+  }
+  if (settings.sms && settings.smsNumber) {
+    delivery.smsSent = await sendSmsNotification(settings, message).catch(() => false);
+  }
+
+  if (!delivery.inApp) return null;
+
+  return addNotification({
+    eventType,
+    message,
+    payload,
+    delivery,
+  });
+}
+
 export async function saveNotificationSettings(updates) {
   const current = await loadSettings();
   const merged = {
