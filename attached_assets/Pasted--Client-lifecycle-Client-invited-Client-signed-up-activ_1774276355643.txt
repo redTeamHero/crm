@@ -1,0 +1,63 @@
+
+Client lifecycle
+    •    Client invited
+    •    Client signed up / activated
+    •    Client inactive for X days
+    •    Client status changed (active, paused, canceled)
+    •    Client profile updated (email/phone/address)
+
+Billing & payments
+    •    Invoice created
+    •    Invoice due soon (e.g., 3 days before)
+    •    Invoice overdue
+    •    Payment succeeded
+    •    Payment failed / card declined
+    •    Refund issued
+    •    Subscription renewed / canceled / expired
+    •    Trial ending soon
+
+Credit/dispute workflow
+    •    Dispute submitted to bureau
+    •    Bureau acknowledgment received
+    •    Dispute accepted/rejected
+    •    Item removed from report
+    •    Score change detected (+/- threshold)
+    •    No response after SLA window (follow-up needed)
+
+Documents & files
+    •    File upload failed
+    •    File requires review/approval
+    •    Document approved/rejected
+    •    Signature requested
+    •    Signature completed
+    •    Document expiring soon (ID, consent forms)
+
+Communication & engagement
+    •    Message from client
+    •    Email bounced / SMS undelivered
+    •    Client opened important email
+    •    Reminder not acknowledged
+    •    Follow-up task overdue
+
+Calls & appointments
+    •    Call reminder (24h/1h before)
+    •    Call rescheduled
+    •    Call canceled / missed
+    •    No-show detected
+    •    Post-call notes missing
+
+Team/admin/security
+    •    New team member added
+    •    Role/permission changed
+    •    Login from new device/location
+    •    Failed login attempts threshold reached
+    •    Integration/API failure
+    •    System outage / maintenance alert
+
+Smart summary notifications (very useful)
+    •    Daily digest (all events)
+    •    Weekly performance summary
+    •    Priority-only alerts (critical events only)
+    •    “Needs attention” digest (failed payments, overdue tasks, missed calls)
+
+If you want, I can also help you group these into “Essential / Recommended / Advanced” defaults so the settings screen stays simple.
