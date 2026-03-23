@@ -1948,10 +1948,16 @@
           if (node.isMesh && node.material) {
             var mats = Array.isArray(node.material) ? node.material : [node.material];
             mats.forEach(function(mat) {
-              mat.color.set(0xff6200);
-              mat.emissive = new THREE.Color(0xff3d00);
-              mat.emissiveIntensity = 0.55;
-              mat.needsUpdate = true;
+              try {
+                if (mat.color && typeof mat.color.set === 'function') {
+                  mat.color.set(0xff6200);
+                }
+                if (mat.emissive && typeof mat.emissive.set === 'function') {
+                  mat.emissive.set(0xff3d00);
+                  mat.emissiveIntensity = 0.55;
+                }
+                mat.needsUpdate = true;
+              } catch(e) {}
             });
           }
         });
