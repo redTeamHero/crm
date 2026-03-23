@@ -264,6 +264,71 @@
     }
     .cta-box a:hover { opacity: 0.88; }
 
+    /* ─── BIO ─── */
+    .card-bio {
+      font-size: 12.5px; color: rgba(255,255,255,0.52); line-height: 1.6;
+      margin: 10px 0 4px; font-style: italic;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* ─── REVIEWS TOGGLE ROW ─── */
+    .reviews-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 10px 0 0; padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .reviews-summary { font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; }
+    .btn-reviews {
+      font-size: 11px; color: var(--gold); background: none; border: none;
+      cursor: pointer; padding: 0; font-weight: 600; letter-spacing: 0.03em;
+      transition: opacity 0.15s;
+    }
+    .btn-reviews:hover { opacity: 0.75; }
+
+    /* ─── REVIEWS PANEL ─── */
+    .reviews-panel {
+      display: none; padding: 14px 20px 18px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.015);
+    }
+    .reviews-panel.open { display: block; }
+    .review-item {
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .review-item:last-of-type { border-bottom: none; }
+    .review-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .review-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .review-date { font-size: 11px; color: var(--text-sub); margin-left: auto; }
+    .review-comment { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.55; }
+    .reviews-empty { font-size: 12px; color: var(--text-sub); padding: 6px 0; text-align: center; }
+
+    /* ─── LEAVE A REVIEW FORM ─── */
+    .review-form { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .review-form-title { font-size: 11px; font-weight: 600; color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+    .star-selector { display: flex; gap: 4px; margin-bottom: 10px; }
+    .star-selector span { font-size: 22px; cursor: pointer; color: rgba(255,255,255,0.2); transition: color 0.12s; user-select: none; }
+    .star-selector span.on { color: #d4a853; }
+    .rf-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
+    .rf-field label { font-size: 11px; color: var(--text-sub); font-weight: 500; }
+    .rf-field input, .rf-field textarea {
+      padding: 8px 11px; background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+      color: var(--text); font-size: 12px; outline: none;
+      transition: border-color 0.18s; resize: none;
+    }
+    .rf-field input:focus, .rf-field textarea:focus { border-color: var(--gold); }
+    .rf-field input::placeholder, .rf-field textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .btn-submit-review {
+      width: 100%; padding: 9px 16px;
+      background: linear-gradient(135deg, var(--gold), #c49a45);
+      color: #0a0a0a; font-weight: 700; font-size: 12px;
+      border: none; border-radius: 8px; cursor: pointer;
+      transition: opacity 0.18s; margin-top: 4px;
+    }
+    .btn-submit-review:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-submit-review:hover:not(:disabled) { opacity: 0.88; }
+    .review-form-msg { font-size: 12px; margin-top: 6px; text-align: center; }
+
     @media (max-width: 540px) {
       .card-top { flex-wrap: wrap; }
       .card-stats { grid-template-columns: 1fr 1fr 1fr; }
@@ -336,6 +401,7 @@
       var m = company.metrics || {};
       var color = AVATAR_COLORS[idx % AVATAR_COLORS.length];
       var initial = (company.name || 'C').charAt(0).toUpperCase();
+      var cid = esc(company.companyId);
 
       var successVal = m.successRate !== null ? m.successRate + '%' : 'New';
       var responseVal = m.avgResponseDays !== null ? m.avgResponseDays + 'd' : 'N/A';
@@ -343,10 +409,14 @@
 
       var badges = buildBadges(company);
       var rankLabel = company.rank === 1 ? '#1 Ranked' : 'Rank #' + company.rank;
-
       var focusLine = company.focus ? '<div class="card-focus">' + esc(company.focus) + '</div>' : '';
+      var bioLine = company.bio ? '<div class="card-bio">' + esc(company.bio) + '</div>' : '';
 
-      return '<div class="spec-card' + (company.isBoosted ? ' boosted' : '') + '" id="card-' + esc(company.companyId) + '">' +
+      var reviewSummary = m.rating !== null
+        ? '<span>' + renderStars(Math.round(m.rating)) + '</span><span>' + m.rating.toFixed(1) + '</span>'
+        : '<span style="color:var(--text-sub);font-size:11px;">No reviews yet</span>';
+
+      return '<div class="spec-card' + (company.isBoosted ? ' boosted' : '') + '" id="card-' + cid + '">' +
         '<div class="card-body">' +
           '<div class="card-top">' +
             '<div class="avatar" style="background:' + esc(color) + ';">' + esc(initial) + '</div>' +
@@ -357,34 +427,140 @@
             '</div>' +
             '<div class="rank-badge">' + esc(rankLabel) + '</div>' +
           '</div>' +
+          bioLine +
           '<div class="card-stats">' +
             '<div class="stat-box"><div class="stat-val">' + esc(successVal) + '</div><div class="stat-label">Success Rate</div></div>' +
             '<div class="stat-box"><div class="stat-val">' + esc(responseVal) + '</div><div class="stat-label">Avg. Response</div></div>' +
             '<div class="stat-box"><div class="stat-val" style="font-size:0.8rem;">' + ratingVal + '</div><div class="stat-label">Rating</div></div>' +
           '</div>' +
           (badges ? '<div class="card-badges">' + badges + '</div>' : '') +
-          '<button class="btn-connect" data-company-id="' + esc(company.companyId) + '" data-company-name="' + esc(company.name) + '">Connect with ' + esc(company.name) + '</button>' +
+          '<div class="reviews-row">' +
+            '<div class="reviews-summary">' + reviewSummary + '</div>' +
+            '<button class="btn-reviews" data-reviews-toggle="' + cid + '">Reviews ▾</button>' +
+          '</div>' +
+          '<button class="btn-connect" data-company-id="' + cid + '" data-company-name="' + esc(company.name) + '" style="margin-top:10px;">Connect with ' + esc(company.name) + '</button>' +
         '</div>' +
-        '<div class="connect-panel" id="panel-' + esc(company.companyId) + '">' +
+        /* reviews panel */
+        '<div class="reviews-panel" id="rp-' + cid + '">' +
+          '<div id="rl-' + cid + '"><div class="reviews-empty">Loading reviews…</div></div>' +
+          /* leave a review form */
+          '<div class="review-form" id="rf-' + cid + '">' +
+            '<div class="review-form-title">Leave a Review</div>' +
+            '<div class="star-selector" id="stars-' + cid + '">' +
+              '<span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>' +
+            '</div>' +
+            '<div class="rf-field"><label>Your Name *</label><input type="text" id="rname-' + cid + '" placeholder="Jane Smith" /></div>' +
+            '<div class="rf-field"><label>Comment (optional)</label><textarea id="rcomment-' + cid + '" rows="3" placeholder="Share your experience…"></textarea></div>' +
+            '<button class="btn-submit-review" id="rsub-' + cid + '" data-company-id="' + cid + '">Submit Review</button>' +
+            '<div class="review-form-msg" id="rmsg-' + cid + '"></div>' +
+          '</div>' +
+        '</div>' +
+        /* connect panel */
+        '<div class="connect-panel" id="panel-' + cid + '">' +
           '<h3>Connect with ' + esc(company.name) + '</h3>' +
-          '<div class="form-error" id="err-' + esc(company.companyId) + '"></div>' +
+          '<div class="form-error" id="err-' + cid + '"></div>' +
           '<div class="form-row">' +
-            '<div class="form-field"><label>Full Name *</label><input type="text" id="name-' + esc(company.companyId) + '" placeholder="Jane Smith" autocomplete="name" /></div>' +
-            '<div class="form-field"><label>Phone *</label><input type="tel" id="phone-' + esc(company.companyId) + '" placeholder="(555) 123-4567" autocomplete="tel" /></div>' +
+            '<div class="form-field"><label>Full Name *</label><input type="text" id="name-' + cid + '" placeholder="Jane Smith" autocomplete="name" /></div>' +
+            '<div class="form-field"><label>Phone *</label><input type="tel" id="phone-' + cid + '" placeholder="(555) 123-4567" autocomplete="tel" /></div>' +
           '</div>' +
-          '<div class="form-field"><label>Email *</label><input type="email" id="email-' + esc(company.companyId) + '" placeholder="jane@email.com" autocomplete="email" /></div>' +
-          '<div class="form-field"><label>Briefly describe your situation (optional)</label><input type="text" id="notes-' + esc(company.companyId) + '" placeholder="e.g. Collections, late payments, identity errors…" /></div>' +
+          '<div class="form-field"><label>Email *</label><input type="email" id="email-' + cid + '" placeholder="jane@email.com" autocomplete="email" /></div>' +
+          '<div class="form-field"><label>Briefly describe your situation (optional)</label><input type="text" id="notes-' + cid + '" placeholder="e.g. Collections, late payments, identity errors…" /></div>' +
           '<div class="form-actions">' +
-            '<button class="btn-submit" id="sub-' + esc(company.companyId) + '" data-company-id="' + esc(company.companyId) + '">Send My Info</button>' +
-            '<button class="btn-cancel" data-close="' + esc(company.companyId) + '">Cancel</button>' +
+            '<button class="btn-submit" id="sub-' + cid + '" data-company-id="' + cid + '">Send My Info</button>' +
+            '<button class="btn-cancel" data-close="' + cid + '">Cancel</button>' +
           '</div>' +
-          '<div class="form-success" id="ok-' + esc(company.companyId) + '" style="display:none;">' +
+          '<div class="form-success" id="ok-' + cid + '" style="display:none;">' +
             '<div class="check">✓</div>' +
             '<strong>Request sent!</strong>' +
             '<p>A specialist from ' + esc(company.name) + ' will reach out to you shortly via phone or email.</p>' +
           '</div>' +
         '</div>' +
       '</div>';
+    }
+
+    var reviewsCache = {};
+
+    function renderReviewItem(r) {
+      var date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+      return '<div class="review-item">' +
+        '<div class="review-meta">' +
+          '<span class="review-name">' + esc(r.reviewerName || 'Anonymous') + '</span>' +
+          '<span>' + renderStars(r.rating) + '</span>' +
+          '<span class="review-date">' + esc(date) + '</span>' +
+        '</div>' +
+        (r.comment ? '<div class="review-comment">' + esc(r.comment) + '</div>' : '') +
+      '</div>';
+    }
+
+    async function loadReviews(companyId) {
+      if (reviewsCache[companyId]) return reviewsCache[companyId];
+      var res = await fetch('/api/public/reviews/' + encodeURIComponent(companyId), { cache: 'no-store' });
+      var data = await res.json();
+      reviewsCache[companyId] = data.reviews || [];
+      return reviewsCache[companyId];
+    }
+
+    function wireStars(companyId) {
+      var container = document.getElementById('stars-' + companyId);
+      if (!container) return;
+      var selected = 0;
+      container.querySelectorAll('span').forEach(function(star) {
+        star.addEventListener('mouseover', function() {
+          var v = parseInt(star.getAttribute('data-v'));
+          container.querySelectorAll('span').forEach(function(s) {
+            s.classList.toggle('on', parseInt(s.getAttribute('data-v')) <= v);
+          });
+        });
+        star.addEventListener('mouseleave', function() {
+          container.querySelectorAll('span').forEach(function(s) {
+            s.classList.toggle('on', parseInt(s.getAttribute('data-v')) <= selected);
+          });
+        });
+        star.addEventListener('click', function() {
+          selected = parseInt(star.getAttribute('data-v'));
+          container.querySelectorAll('span').forEach(function(s) {
+            s.classList.toggle('on', parseInt(s.getAttribute('data-v')) <= selected);
+          });
+          container.dataset.rating = selected;
+        });
+      });
+    }
+
+    async function wireReviewForm(companyId) {
+      var subBtn = document.getElementById('rsub-' + companyId);
+      var msgEl = document.getElementById('rmsg-' + companyId);
+      if (!subBtn) return;
+      subBtn.addEventListener('click', async function() {
+        var starsEl = document.getElementById('stars-' + companyId);
+        var rating = parseInt(starsEl?.dataset.rating || '0');
+        var name = (document.getElementById('rname-' + companyId)?.value || '').trim();
+        var comment = (document.getElementById('rcomment-' + companyId)?.value || '').trim();
+        if (!rating) { msgEl.textContent = 'Please select a star rating.'; msgEl.style.color = '#ef4444'; return; }
+        if (!name) { msgEl.textContent = 'Please enter your name.'; msgEl.style.color = '#ef4444'; return; }
+        subBtn.disabled = true; subBtn.textContent = 'Submitting…';
+        try {
+          var res = await fetch('/api/public/reviews', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ companyId: companyId, reviewerName: name, rating: rating, comment: comment })
+          });
+          var data = await res.json();
+          if (!data.ok) { msgEl.textContent = data.error || 'Could not submit. Try again.'; msgEl.style.color = '#ef4444'; subBtn.disabled = false; subBtn.textContent = 'Submit Review'; return; }
+          /* success — append new review and hide form */
+          delete reviewsCache[companyId];
+          var rlEl = document.getElementById('rl-' + companyId);
+          if (rlEl) {
+            var newItem = document.createElement('div');
+            newItem.innerHTML = renderReviewItem(data.review);
+            rlEl.insertBefore(newItem.firstChild, rlEl.firstChild);
+          }
+          var rfEl = document.getElementById('rf-' + companyId);
+          if (rfEl) rfEl.innerHTML = '<div style="font-size:13px;color:#10b981;text-align:center;padding:8px 0;">✓ Thank you for your review!</div>';
+        } catch (e) {
+          msgEl.textContent = 'Network error. Please try again.'; msgEl.style.color = '#ef4444';
+          subBtn.disabled = false; subBtn.textContent = 'Submit Review';
+        }
+      });
     }
 
     function wireCard(companyId) {
@@ -394,6 +570,33 @@
       var cancelBtn = document.querySelector('[data-close="' + companyId + '"]');
       var errEl = document.getElementById('err-' + companyId);
       var okEl = document.getElementById('ok-' + companyId);
+
+      /* reviews toggle */
+      var reviewsToggle = document.querySelector('[data-reviews-toggle="' + companyId + '"]');
+      var reviewsPanel = document.getElementById('rp-' + companyId);
+      var reviewsList = document.getElementById('rl-' + companyId);
+      var reviewsLoaded = false;
+      if (reviewsToggle && reviewsPanel) {
+        reviewsToggle.addEventListener('click', async function() {
+          var isOpen = reviewsPanel.classList.toggle('open');
+          reviewsToggle.textContent = isOpen ? 'Reviews ▴' : 'Reviews ▾';
+          if (isOpen && !reviewsLoaded) {
+            reviewsLoaded = true;
+            try {
+              var reviews = await loadReviews(companyId);
+              if (!reviews.length) {
+                reviewsList.innerHTML = '<div class="reviews-empty">No reviews yet. Be the first!</div>';
+              } else {
+                reviewsList.innerHTML = reviews.map(renderReviewItem).join('');
+              }
+            } catch (e) {
+              reviewsList.innerHTML = '<div class="reviews-empty">Could not load reviews.</div>';
+            }
+          }
+        });
+      }
+      wireStars(companyId);
+      wireReviewForm(companyId);
 
       if (connectBtn) {
         connectBtn.addEventListener('click', function() {

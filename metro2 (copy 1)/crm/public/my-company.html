@@ -194,6 +194,33 @@
     </form>
   </div>
 
+  <!-- ── Directory Listing: Bio + Reviews ── -->
+  <div class="company-section" id="directorySection" style="margin-top:24px;">
+    <div class="section-label">Specialist Directory</div>
+    <div class="section-title">Public Listing</div>
+    <div class="section-desc">This bio and your client reviews appear on the public <a href="/specialists.html" target="_blank" style="color:#d4a853;text-decoration:none;">Find a Specialist</a> page.</div>
+
+    <div class="form-group">
+      <label for="directoryBio">About Your Company <span id="bioCharCount" style="color:#555;font-weight:400;">(0 / 500)</span></label>
+      <textarea id="directoryBio" rows="5" placeholder="Describe your specialties, experience, how you help clients, and what makes you different…" style="resize:vertical;"></textarea>
+      <div class="hint">Shown directly below your listing card on the public directory</div>
+    </div>
+    <div class="flex items-center gap-3 mt-4">
+      <button id="saveBio" type="button" class="px-6 py-2.5 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,#d4a853,#c4973e);color:#0a0a0a;">Save Bio</button>
+      <span id="bioSaveMsg" style="font-size:12px;color:#10b981;display:none;"></span>
+    </div>
+
+    <div style="margin-top:28px;border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;">
+      <div style="font-size:12px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">
+        Client Reviews
+        <span id="reviewBadge" style="margin-left:8px;background:rgba(212,168,83,0.12);color:#d4a853;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;"></span>
+      </div>
+      <div id="reviewsList" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#555;">Loading reviews…</div>
+      </div>
+    </div>
+  </div>
+
   <div class="company-section" id="myCompanyTeam">
     <div class="flex items-start justify-between gap-4">
       <div>

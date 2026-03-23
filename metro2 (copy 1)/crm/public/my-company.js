@@ -781,8 +781,120 @@ async function initTeamSection() {
   await loadTeamMembers();
 }
 
+function renderStarsStatic(rating) {
+  let out = '';
+  for (let i = 1; i <= 5; i++) {
+    out += `<span style="color:${i <= rating ? '#d4a853' : 'rgba(255,255,255,0.18)'};font-size:13px;">★</span>`;
+  }
+  return out;
+}
+
+function renderReviewCard(r) {
+  const date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  return `
+    <div style="background:#0a0a0a;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;font-weight:600;color:#e0e0e0;">${r.reviewerName || 'Anonymous'}</span>
+          <span style="font-size:12px;">${renderStarsStatic(r.rating)}</span>
+        </div>
+        <span style="font-size:11px;color:#555;">${date}</span>
+      </div>
+      ${r.comment ? `<div style="font-size:12px;color:#888;line-height:1.55;">${r.comment}</div>` : ''}
+    </div>`;
+}
+
+async function initDirectorySection() {
+  const bioEl = document.getElementById('directoryBio');
+  const charCountEl = document.getElementById('bioCharCount');
+  const saveBtn = document.getElementById('saveBio');
+  const saveMsg = document.getElementById('bioSaveMsg');
+  const reviewsList = document.getElementById('reviewsList');
+  const reviewBadge = document.getElementById('reviewBadge');
+  if (!bioEl) return;
+
+  /* load current company to get id + existing bio */
+  let companyId = null;
+  try {
+    const res = await api('/api/credit-companies');
+    const companies = res.data?.companies || res.companies || [];
+    if (companies.length) {
+      companyId = companies[0].id;
+      if (bioEl) bioEl.value = companies[0].bio || '';
+      if (charCountEl) charCountEl.textContent = `(${(companies[0].bio || '').length} / 500)`;
+    }
+  } catch (e) {
+    console.warn('Could not load company bio', e);
+  }
+
+  if (bioEl) {
+    bioEl.addEventListener('input', () => {
+      const len = bioEl.value.length;
+      if (charCountEl) charCountEl.textContent = `(${len} / 500)`;
+    });
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      if (!companyId) {
+        saveMsg.textContent = 'Save your company profile first.';
+        saveMsg.style.color = '#ef4444';
+        saveMsg.style.display = 'inline';
+        return;
+      }
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+      try {
+        const res = await api(`/api/credit-companies/${companyId}/bio`, {
+          method: 'PUT',
+          body: JSON.stringify({ bio: bioEl.value.trim() })
+        });
+        if (res.ok) {
+          saveMsg.textContent = 'Bio saved!';
+          saveMsg.style.color = '#10b981';
+        } else {
+          saveMsg.textContent = res.error || 'Save failed';
+          saveMsg.style.color = '#ef4444';
+        }
+        saveMsg.style.display = 'inline';
+        setTimeout(() => { saveMsg.style.display = 'none'; }, 3000);
+      } catch (e) {
+        saveMsg.textContent = 'Error saving bio';
+        saveMsg.style.color = '#ef4444';
+        saveMsg.style.display = 'inline';
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Bio';
+      }
+    });
+  }
+
+  /* load reviews */
+  if (reviewsList && companyId) {
+    try {
+      const res = await api(`/api/credit-companies/${companyId}/reviews`);
+      const reviews = res.data?.reviews || res.reviews || [];
+      if (!reviews.length) {
+        reviewsList.innerHTML = '<div style="font-size:13px;color:#555;">No reviews yet — clients who submit a review on the specialist page will appear here.</div>';
+        if (reviewBadge) reviewBadge.textContent = '';
+      } else {
+        const avg = (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1);
+        if (reviewBadge) reviewBadge.textContent = `${avg} ★  ·  ${reviews.length} review${reviews.length !== 1 ? 's' : ''}`;
+        reviewsList.innerHTML = reviews.map(renderReviewCard).join('');
+      }
+    } catch (e) {
+      reviewsList.innerHTML = '<div style="font-size:13px;color:#555;">Could not load reviews.</div>';
+    }
+  } else if (reviewsList && !companyId) {
+    reviewsList.innerHTML = '<div style="font-size:13px;color:#555;">Save your company profile to see reviews.</div>';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initCompanyForm();
+  initDirectorySection().catch(err => {
+    console.error('Failed to initialize directory section', err);
+  });
   initTeamSection().catch(err => {
     console.error('Failed to initialize team section', err);
   });

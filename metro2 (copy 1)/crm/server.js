@@ -2535,6 +2535,110 @@ app.put("/api/credit-companies/:id/metrics", authenticate, requirePermission("ad
   }
 });
 
+/* ── Specialist directory bio (host editable) ── */
+app.put("/api/credit-companies/:id/bio", authenticate, async (req, res) => {
+  try {
+    const requestTenantId = sanitizeTenantId(
+      req.user?.tenantId || getCurrentTenantId() || DEFAULT_TENANT_ID,
+      DEFAULT_TENANT_ID
+    );
+    const companiesDb = await loadCreditCompaniesDB();
+    const idx = companiesDb.companies.findIndex(c => c.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ ok: false, error: "Company not found" });
+    const company = companiesDb.companies[idx];
+    if (company.tenantId && company.tenantId !== requestTenantId) {
+      return res.status(403).json({ ok: false, error: "Not authorized" });
+    }
+    const bio = sanitizeSettingString(String(req.body.bio || '')).slice(0, 500);
+    companiesDb.companies[idx] = { ...company, bio };
+    await saveCreditCompaniesDB(companiesDb);
+    res.json({ ok: true, bio });
+  } catch (err) {
+    logError("CREDIT_COMPANY_BIO_UPDATE_ERROR", err);
+    res.status(500).json({ ok: false, error: "Failed to update bio" });
+  }
+});
+
+/* ── Reviews: host view ── */
+app.get("/api/credit-companies/:id/reviews", authenticate, async (req, res) => {
+  try {
+    const requestTenantId = sanitizeTenantId(
+      req.user?.tenantId || getCurrentTenantId() || DEFAULT_TENANT_ID,
+      DEFAULT_TENANT_ID
+    );
+    const companiesDb = await loadCreditCompaniesDB();
+    const company = companiesDb.companies.find(c => c.id === req.params.id);
+    if (!company) return res.status(404).json({ ok: false, error: "Company not found" });
+    if (company.tenantId && company.tenantId !== requestTenantId) {
+      return res.status(403).json({ ok: false, error: "Not authorized" });
+    }
+    const reviewsDb = await loadCompanyReviewsDB();
+    const reviews = reviewsDb.reviews.filter(r => r.companyId === req.params.id)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ ok: true, reviews });
+  } catch (err) {
+    logError("CREDIT_COMPANY_REVIEWS_FETCH_ERROR", err);
+    res.status(500).json({ ok: false, error: "Failed to fetch reviews" });
+  }
+});
+
+/* ── Reviews: public submit ── */
+app.post("/api/public/reviews", async (req, res) => {
+  try {
+    const companyId = sanitizeSettingString(String(req.body.companyId || '')).slice(0, 64);
+    const reviewerName = sanitizeSettingString(String(req.body.reviewerName || '')).slice(0, 80);
+    const rating = Math.min(5, Math.max(1, parseInt(req.body.rating, 10) || 0));
+    const comment = sanitizeSettingString(String(req.body.comment || '')).slice(0, 600);
+    if (!companyId || !reviewerName || !rating) {
+      return res.status(400).json({ ok: false, error: "Company, name, and rating are required" });
+    }
+    const companiesDb = await loadCreditCompaniesDB();
+    if (!companiesDb.companies.find(c => c.id === companyId && c.isActive)) {
+      return res.status(404).json({ ok: false, error: "Company not found" });
+    }
+    const reviewsDb = await loadCompanyReviewsDB();
+    const review = {
+      id: nanoid(),
+      companyId,
+      reviewerName,
+      rating,
+      comment,
+      createdAt: new Date().toISOString()
+    };
+    reviewsDb.reviews.push(review);
+    await saveCompanyReviewsDB(reviewsDb);
+    /* update aggregate reviewScore in metrics */
+    const metricsDb = await loadCreditCompanyMetricsDB();
+    const companyReviews = reviewsDb.reviews.filter(r => r.companyId === companyId);
+    const avg = companyReviews.reduce((s, r) => s + r.rating, 0) / companyReviews.length;
+    const metric = metricsDb.metrics.find(m => m.companyId === companyId);
+    if (metric) {
+      metric.reviewScore = parseFloat(avg.toFixed(2));
+      metric.updatedAt = new Date().toISOString();
+      await saveCreditCompanyMetricsDB(metricsDb);
+    }
+    res.json({ ok: true, review });
+  } catch (err) {
+    logError("PUBLIC_REVIEW_SUBMIT_ERROR", err);
+    res.status(500).json({ ok: false, error: "Failed to submit review" });
+  }
+});
+
+/* ── Reviews: public fetch ── */
+app.get("/api/public/reviews/:companyId", async (req, res) => {
+  try {
+    const reviewsDb = await loadCompanyReviewsDB();
+    const reviews = reviewsDb.reviews
+      .filter(r => r.companyId === req.params.companyId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 50);
+    res.json({ ok: true, reviews });
+  } catch (err) {
+    logError("PUBLIC_REVIEWS_FETCH_ERROR", err);
+    res.status(500).json({ ok: false, error: "Failed to fetch reviews" });
+  }
+});
+
 app.use("/api/marketing", marketingKeyAuth, authenticate, forbidMember, marketingRoutes);
 
 app.get("/api/calendar/events", authenticate, async (_req, res) => {
@@ -6240,6 +6344,7 @@ app.get("/api/public/credit-companies", async (_req, res) => {
     rankings = rankings.sort((a, b) => b.finalScore - a.finalScore);
     rankings = applyRotationWindow(rankings);
 
+    const companiesByIdForBio = new Map(activeCompanies.map(c => [c.id, c.bio || '']));
     res.json({
       ok: true,
       companies: rankings.map((e, i) => ({
@@ -6248,6 +6353,7 @@ app.get("/api/public/credit-companies", async (_req, res) => {
         name: e.name,
         serviceArea: e.serviceArea,
         focus: e.focus,
+        bio: companiesByIdForBio.get(e.companyId) || '',
         isBoosted: e.isBoosted,
         metrics: e.metrics
       }))
@@ -10952,6 +11058,7 @@ function normalizeCreditCompany(payload = {}) {
   const idValue = sanitizeSettingString(payload.id || '');
   const tenantValue = sanitizeSettingString(payload.tenantId || '');
   const tenantId = tenantValue ? sanitizeTenantId(tenantValue, DEFAULT_TENANT_ID) : null;
+  const bio = sanitizeSettingString(payload.bio || '').slice(0, 500);
   return {
     id: idValue || nanoid(),
     name,
@@ -10959,6 +11066,7 @@ function normalizeCreditCompany(payload = {}) {
     minPlan,
     isActive,
     focus,
+    bio,
     tenantId
   };
 }
@@ -11014,6 +11122,19 @@ async function loadCreditCompanyBoostsDB() {
 
 async function saveCreditCompanyBoostsDB(db) {
   await writeKey('credit_company_boosts', db);
+}
+
+async function loadCompanyReviewsDB() {
+  let db = await readKey('company_reviews', null);
+  if (!db) {
+    db = { reviews: [] };
+    await writeKey('company_reviews', db);
+  }
+  return db;
+}
+
+async function saveCompanyReviewsDB(db) {
+  await writeKey('company_reviews', db);
 }
 
 async function loadDiyCompanyMatchesDB() {
