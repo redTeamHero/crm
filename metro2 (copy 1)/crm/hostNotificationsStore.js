@@ -10,6 +10,7 @@ const KV_SETTINGS = "host_notification_settings_v1";
 const MAX_NOTIFICATIONS = 200;
 
 const WATCHED_EVENTS = new Set([
+  // Existing
   "consumer_created",
   "billing_plan_cycle_processed",
   "billing_plan_created",
@@ -19,9 +20,60 @@ const WATCHED_EVENTS = new Set([
   "letters_mailed",
   "dispute_response",
   "call_booked",
+  // Client lifecycle
+  "client_invited",
+  "client_activated",
+  "client_inactive",
+  "client_status_changed",
+  "client_profile_updated",
+  // Billing & payments
+  "invoice_created",
+  "invoice_due_soon",
+  "invoice_overdue",
+  "payment_succeeded",
+  "payment_failed",
+  "refund_issued",
+  "subscription_renewed",
+  "trial_ending_soon",
+  // Credit/dispute workflow
+  "dispute_submitted",
+  "bureau_acknowledgment",
+  "dispute_outcome",
+  "item_removed",
+  "score_change",
+  "dispute_sla_missed",
+  // Documents & files
+  "file_review_required",
+  "document_approved",
+  "signature_requested",
+  "signature_completed",
+  "document_expiring",
+  // Communication & engagement
+  "message_received",
+  "email_bounced",
+  "reminder_overdue",
+  "followup_overdue",
+  // Calls & appointments
+  "call_reminder",
+  "call_rescheduled",
+  "call_canceled",
+  "no_show_detected",
+  "post_call_notes_missing",
+  // Team / admin / security
+  "team_member_added",
+  "role_changed",
+  "login_new_device",
+  "login_failed_threshold",
+  "integration_failure",
+  "system_maintenance",
+  // Smart digests
+  "daily_digest",
+  "weekly_summary",
+  "needs_attention_digest",
 ]);
 
 const EVENT_LABELS = {
+  // Existing
   consumer_created: "New client added",
   billing_plan_cycle_processed: "Billing cycle processed",
   billing_plan_created: "New billing plan created",
@@ -31,6 +83,56 @@ const EVENT_LABELS = {
   letters_mailed: "Letters mailed",
   dispute_response: "Dispute response received",
   call_booked: "Call booked",
+  // Client lifecycle
+  client_invited: "Client invited",
+  client_activated: "Client signed up",
+  client_inactive: "Client inactive",
+  client_status_changed: "Client status changed",
+  client_profile_updated: "Client profile updated",
+  // Billing & payments
+  invoice_created: "Invoice created",
+  invoice_due_soon: "Invoice due soon",
+  invoice_overdue: "Invoice overdue",
+  payment_succeeded: "Payment succeeded",
+  payment_failed: "Payment failed",
+  refund_issued: "Refund issued",
+  subscription_renewed: "Subscription updated",
+  trial_ending_soon: "Trial ending soon",
+  // Credit/dispute workflow
+  dispute_submitted: "Dispute submitted",
+  bureau_acknowledgment: "Bureau acknowledgment received",
+  dispute_outcome: "Dispute outcome",
+  item_removed: "Item removed from report",
+  score_change: "Score change detected",
+  dispute_sla_missed: "Dispute follow-up needed",
+  // Documents & files
+  file_review_required: "File requires review",
+  document_approved: "Document approved/rejected",
+  signature_requested: "Signature requested",
+  signature_completed: "Signature completed",
+  document_expiring: "Document expiring soon",
+  // Communication & engagement
+  message_received: "Message from client",
+  email_bounced: "Email bounced / SMS undelivered",
+  reminder_overdue: "Reminder not acknowledged",
+  followup_overdue: "Follow-up task overdue",
+  // Calls & appointments
+  call_reminder: "Call reminder",
+  call_rescheduled: "Call rescheduled",
+  call_canceled: "Call canceled / missed",
+  no_show_detected: "No-show detected",
+  post_call_notes_missing: "Post-call notes missing",
+  // Team / admin / security
+  team_member_added: "New team member added",
+  role_changed: "Role / permission changed",
+  login_new_device: "Login from new device",
+  login_failed_threshold: "Repeated login failures",
+  integration_failure: "Integration / API failure",
+  system_maintenance: "System maintenance alert",
+  // Smart digests
+  daily_digest: "Daily activity digest",
+  weekly_summary: "Weekly performance summary",
+  needs_attention_digest: "Needs attention digest",
 };
 
 function extractConsumerName(payload) {
@@ -52,27 +154,151 @@ function buildMessage(eventType, payload) {
 
   switch (eventType) {
     case "consumer_created":
+    case "client_invited":
+    case "client_activated":
+    case "client_inactive":
+    case "client_status_changed":
+    case "client_profile_updated":
       return name ? `${base}: ${name}` : base;
+
     case "billing_plan_cycle_processed":
       return [base, name, amount ? `(${amount})` : null].filter(Boolean).join(" — ");
     case "billing_plan_created":
       return [base, planName || name].filter(Boolean).join(": ");
+
+    case "invoice_created":
+    case "invoice_due_soon":
+    case "invoice_overdue":
+      return [base, name, amount ? `(${amount})` : null].filter(Boolean).join(" — ");
+
+    case "payment_succeeded":
+    case "payment_failed":
+    case "refund_issued":
+      return [base, name, amount ? `(${amount})` : null].filter(Boolean).join(" — ");
+
+    case "subscription_renewed":
+    case "trial_ending_soon":
+      return name ? `${base} — ${name}` : base;
+
     case "report_uploaded":
-      return name ? `${base} for ${name}` : base;
-    case "file_uploaded":
-      return filename ? `${base}: ${filename}` : base;
+    case "dispute_submitted":
+    case "bureau_acknowledgment":
+    case "dispute_outcome":
+    case "item_removed":
+    case "score_change":
+    case "dispute_sla_missed":
     case "letters_generated":
-      return name ? `${base} for ${name}` : base;
     case "letters_mailed":
-      return name ? `${base} for ${name}` : base;
     case "dispute_response":
       return name ? `${base} for ${name}` : base;
+
+    case "file_uploaded":
+    case "file_review_required":
+    case "document_approved":
+    case "document_expiring":
+      return filename ? `${base}: ${filename}` : (name ? `${base} — ${name}` : base);
+
+    case "signature_requested":
+    case "signature_completed":
+      return name ? `${base} — ${name}` : base;
+
+    case "message_received":
+    case "email_bounced":
+    case "reminder_overdue":
+    case "followup_overdue":
+      return name ? `${base} — ${name}` : base;
+
     case "call_booked":
+    case "call_reminder":
+    case "call_rescheduled":
+    case "call_canceled":
+    case "no_show_detected":
+    case "post_call_notes_missing":
       return name ? `${base} with ${name}` : base;
+
+    case "team_member_added":
+    case "role_changed":
+      return payload?.memberName ? `${base}: ${payload.memberName}` : base;
+
+    case "login_new_device":
+    case "login_failed_threshold":
+    case "integration_failure":
+    case "system_maintenance":
+      return payload?.detail ? `${base}: ${payload.detail}` : base;
+
+    case "daily_digest":
+    case "weekly_summary":
+    case "needs_attention_digest":
+      return payload?.summary || base;
+
     default:
       return base;
   }
 }
+
+// Default on/off per event (true = on by default)
+const EVENT_DEFAULTS = {
+  // Existing — all on
+  consumer_created: true,
+  billing_plan_cycle_processed: true,
+  billing_plan_created: true,
+  report_uploaded: true,
+  file_uploaded: true,
+  letters_generated: true,
+  letters_mailed: true,
+  dispute_response: true,
+  call_booked: true,
+  // Client lifecycle
+  client_invited: false,
+  client_activated: true,
+  client_inactive: false,
+  client_status_changed: true,
+  client_profile_updated: false,
+  // Billing & payments
+  invoice_created: true,
+  invoice_due_soon: false,
+  invoice_overdue: true,
+  payment_succeeded: true,
+  payment_failed: true,
+  refund_issued: false,
+  subscription_renewed: false,
+  trial_ending_soon: false,
+  // Credit/dispute workflow
+  dispute_submitted: true,
+  bureau_acknowledgment: true,
+  dispute_outcome: true,
+  item_removed: true,
+  score_change: true,
+  dispute_sla_missed: true,
+  // Documents & files
+  file_review_required: true,
+  document_approved: true,
+  signature_requested: true,
+  signature_completed: true,
+  document_expiring: false,
+  // Communication & engagement
+  message_received: true,
+  email_bounced: false,
+  reminder_overdue: false,
+  followup_overdue: true,
+  // Calls & appointments
+  call_reminder: true,
+  call_rescheduled: true,
+  call_canceled: true,
+  no_show_detected: true,
+  post_call_notes_missing: false,
+  // Team / admin / security
+  team_member_added: true,
+  role_changed: false,
+  login_new_device: false,
+  login_failed_threshold: true,
+  integration_failure: true,
+  system_maintenance: true,
+  // Smart digests
+  daily_digest: false,
+  weekly_summary: false,
+  needs_attention_digest: false,
+};
 
 async function loadNotifications() {
   const data = await readKey(KV_NOTIFICATIONS, null);
@@ -86,36 +312,19 @@ async function saveNotifications(data) {
 
 async function loadSettings() {
   const data = await readKey(KV_SETTINGS, null);
+  const savedEvents = (data || {}).events || {};
+  const mergedEvents = {};
+  for (const [k, v] of Object.entries(EVENT_DEFAULTS)) {
+    mergedEvents[k] = savedEvents[k] !== undefined ? savedEvents[k] : v;
+  }
   return {
     inApp: true,
     email: false,
     emailAddress: "",
     sms: false,
     smsNumber: "",
-    events: {
-      consumer_created: true,
-      billing_plan_cycle_processed: true,
-      billing_plan_created: true,
-      report_uploaded: true,
-      file_uploaded: true,
-      letters_generated: true,
-      letters_mailed: true,
-      dispute_response: true,
-      call_booked: true,
-    },
     ...(data || {}),
-    events: {
-      consumer_created: true,
-      billing_plan_cycle_processed: true,
-      billing_plan_created: true,
-      report_uploaded: true,
-      file_uploaded: true,
-      letters_generated: true,
-      letters_mailed: true,
-      dispute_response: true,
-      call_booked: true,
-      ...((data || {}).events || {}),
-    },
+    events: mergedEvents,
   };
 }
 

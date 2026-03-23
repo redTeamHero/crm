@@ -80,6 +80,7 @@ import {
 import {
   initHostNotifications,
   listNotifications,
+  addNotification,
   markRead,
   markAllRead,
   getNotificationSettings,
@@ -254,6 +255,76 @@ initWorkflowEngine().catch((err) => {
 });
 
 initHostNotifications();
+
+// =================== Smart Digest Scheduler ===================
+// Fires a 1-hour tick and emits digest events at the right times.
+(function startDigestScheduler() {
+  let lastDailyDate = "";
+  let lastWeeklyDate = "";
+
+  async function runDigestTick() {
+    try {
+      const settings = await getNotificationSettings();
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const hour = now.getHours();
+      const day = now.getDay(); // 0=Sun, 1=Mon
+
+      // Daily digest — fires at 00:00 (midnight) if enabled and not already run today
+      if (
+        hour === 0 &&
+        dateStr !== lastDailyDate &&
+        settings.events?.daily_digest !== false
+      ) {
+        lastDailyDate = dateStr;
+        const allStates = await listAllConsumerStates({ includeEvents: true }).catch(() => []);
+        const now24h = Date.now() - 24 * 60 * 60 * 1000;
+        let failedPayments = 0;
+        let disputesPending = 0;
+        let missedCalls = 0;
+        for (const st of allStates) {
+          const events = st.events || [];
+          failedPayments += events.filter(e => e.type === "payment_failed" && new Date(e.at).getTime() >= now24h).length;
+          disputesPending += events.filter(e => e.type === "letters_generated" && new Date(e.at).getTime() >= now24h).length;
+          missedCalls += events.filter(e => e.type === "no_show_detected" && new Date(e.at).getTime() >= now24h).length;
+        }
+        const parts = [];
+        if (failedPayments) parts.push(`${failedPayments} failed payment${failedPayments !== 1 ? "s" : ""}`);
+        if (disputesPending) parts.push(`${disputesPending} new dispute letter${disputesPending !== 1 ? "s" : ""}`);
+        if (missedCalls) parts.push(`${missedCalls} missed call${missedCalls !== 1 ? "s" : ""}`);
+        const summary = parts.length ? `Daily digest: ${parts.join(", ")}` : "Daily digest: all clear";
+        await addNotification({
+          eventType: "daily_digest",
+          message: summary,
+          payload: { summary, failedPayments, disputesPending, missedCalls },
+          delivery: { inApp: true, emailSent: false, smsSent: false },
+        });
+      }
+
+      // Weekly summary — fires Monday at 08:00 if enabled and not already run this week
+      if (
+        day === 1 &&
+        hour === 8 &&
+        dateStr !== lastWeeklyDate &&
+        settings.events?.weekly_summary !== false
+      ) {
+        lastWeeklyDate = dateStr;
+        await addNotification({
+          eventType: "weekly_summary",
+          message: `Weekly summary for ${dateStr} — review your CRM dashboard for details`,
+          payload: { summary: `Weekly summary — ${dateStr}` },
+          delivery: { inApp: true, emailSent: false, smsSent: false },
+        });
+      }
+    } catch (err) {
+      logWarn("DIGEST_TICK_ERROR", err?.message || String(err));
+    }
+  }
+
+  // Run on startup then every hour
+  runDigestTick();
+  setInterval(runDigestTick, 60 * 60 * 1000);
+})();
 
 const MAX_TRADLINE_PAGE_SIZE = 500;
 const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
@@ -5207,6 +5278,7 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
 
   const c = db.consumers.find(x=>x.id===req.params.id);
   if(!c) return res.status(404).json({ ok:false, error:"Consumer not found" });
+  const prevStatus = c.status;
   const prevSignature = c.geo_signature || addressSignature(c);
   Object.assign(c, {
     name:req.body.name??c.name, email:req.body.email??c.email, phone:req.body.phone??c.phone,
@@ -5229,6 +5301,11 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
   c.updatedAt = new Date().toISOString();
   await saveDB(db);
   await addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
+  if (req.body?.status && req.body.status !== prevStatus) {
+    try {
+      await addEvent(c.id, "client_status_changed", { name: c.name, status: req.body.status });
+    } catch {}
+  }
   res.json({ ok:true, consumer:c });
 });
 
@@ -5338,6 +5415,15 @@ app.post("/api/invoices", authenticate, forbidMember, async (req,res)=>{
       consumer,
       req,
     });
+    if (result.invoice) {
+      try {
+        await addEvent(consumerId, "invoice_created", {
+          name: consumer?.name,
+          amount: result.invoice.amount,
+          desc: result.invoice.desc,
+        });
+      } catch {}
+    }
     res.json({ ok:true, invoice: result.invoice, warning: result.warning });
   } catch (err) {
     console.error("Failed to create invoice", err);
@@ -5552,6 +5638,17 @@ app.put("/api/invoices/:id", authenticate, forbidMember, async (req,res)=>{
         paymentProvider: inv.paymentProvider || null,
       },
     });
+  }
+  if (!wasPaid && inv.paid) {
+    try {
+      const mainDb2 = await loadDB().catch(() => null);
+      const invConsumer = mainDb2?.consumers?.find(c => c.id === inv.consumerId);
+      await addEvent(inv.consumerId, "payment_succeeded", {
+        name: invConsumer?.name,
+        amount: inv.amount,
+        desc: inv.desc,
+      });
+    } catch {}
   }
   res.json({ ok:true, invoice: inv });
 });
@@ -5920,6 +6017,14 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
     try{ fs.writeFileSync(path.join(PUBLIC_DIR, `team-${token}.html`), html); }catch{}
   }
   const response = buildTeamMemberResponse(member);
+  try {
+    await addNotification({
+      eventType: "team_member_added",
+      message: `New team member added: ${member.name || member.username}`,
+      payload: { memberName: member.name || member.username, username: member.username, teamRole: member.teamRole },
+      delivery: { inApp: true, emailSent: false, smsSent: false },
+    });
+  } catch {}
   res.json({ ok:true, member: { ...response, token, password: passwordPlain } });
 });
 
@@ -5968,6 +6073,14 @@ app.patch("/api/team-members/:id", authenticate, requireRole("admin"), async (re
   }
   if(dirty){
     await saveUsersDB(db);
+    try {
+      await addNotification({
+        eventType: "role_changed",
+        message: `Role updated for ${member.name || member.username}: ${member.teamRole || "custom"}`,
+        payload: { memberName: member.name || member.username, teamRole: member.teamRole },
+        delivery: { inApp: true, emailSent: false, smsSent: false },
+      });
+    } catch {}
   }
   const response = buildTeamMemberResponse(member);
   res.json({ ok:true, member: response });
@@ -6144,6 +6257,62 @@ app.post("/api/messages/:consumerId", optionalAuth, async (req,res)=>{
   }
   await addEvent(req.params.consumerId, "message", payload);
   res.json({ ok:true });
+});
+
+// =================== Pipeline Pulse Feed ===================
+// Returns a merged, time-sorted list of recent client messages + host notification events
+// System events get _kind:'system'; client messages get _kind:'message'
+app.get("/api/pulse-feed", authenticate, async (req, res) => {
+  const LIMIT = 20;
+  const SYSTEM_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h for system events
+  const cutoff = new Date(Date.now() - SYSTEM_WINDOW_MS).toISOString();
+
+  try {
+    const [db, { notifications }] = await Promise.all([
+      loadDB(),
+      listNotifications({ limit: 50 }),
+    ]);
+
+    const systemItems = (notifications || [])
+      .filter(n => n.at >= cutoff)
+      .map(n => ({
+        _kind: "system",
+        id: n.id,
+        eventType: n.eventType,
+        eventLabel: n.eventLabel,
+        message: n.message,
+        consumerName: n.consumerName,
+        consumerId: n.consumerId,
+        at: n.at,
+        read: n.read,
+      }));
+
+    const msgItems = [];
+    for (const c of db.consumers || []) {
+      try {
+        const cstate = await listConsumerState(c.id);
+        const msgs = (cstate.events || [])
+          .filter(e => e.type === "message" && e.at >= cutoff)
+          .map(m => ({
+            _kind: "message",
+            id: m.id,
+            consumer: { id: c.id, name: c.name || "" },
+            payload: m.payload || {},
+            message: m.payload?.text || "",
+            at: m.at,
+          }));
+        msgItems.push(...msgs);
+      } catch {}
+    }
+
+    const all = [...systemItems, ...msgItems]
+      .sort((a, b) => new Date(b.at) - new Date(a.at))
+      .slice(0, LIMIT);
+
+    res.json({ ok: true, items: all });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: "Failed to load pulse feed" });
+  }
 });
 
 app.post("/api/consumers/:consumerId/events", async (req,res)=>{

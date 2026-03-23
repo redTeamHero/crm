@@ -1687,25 +1687,75 @@ function initDashboard() {
 
   const msgList = document.getElementById('msgList');
 
+  const PULSE_DOT_COLORS = {
+    payment_failed: '#ef4444',
+    invoice_overdue: '#ef4444',
+    no_show_detected: '#ef4444',
+    login_failed_threshold: '#ef4444',
+    dispute_outcome: '#f59e0b',
+    item_removed: '#22c55e',
+    score_change: '#a78bfa',
+    dispute_submitted: '#60a5fa',
+    bureau_acknowledgment: '#60a5fa',
+    call_canceled: '#f97316',
+    call_rescheduled: '#f97316',
+    team_member_added: '#d4a853',
+    payment_succeeded: '#22c55e',
+    invoice_created: '#60a5fa',
+    signature_completed: '#22c55e',
+    signature_requested: '#f59e0b',
+    file_review_required: '#f59e0b',
+    client_activated: '#22c55e',
+    client_status_changed: '#a78bfa',
+    daily_digest: '#6b7280',
+    weekly_summary: '#6b7280',
+    needs_attention_digest: '#f59e0b',
+  };
+
+  function pulseItemHtml(item) {
+    if (item._kind === 'system') {
+      const dot = PULSE_DOT_COLORS[item.eventType] || '#6b7280';
+      const label = escapeHtml(item.eventLabel || item.eventType || '');
+      const msg = escapeHtml(item.message || '');
+      const ts = item.at ? new Date(item.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      return `<div class="flex items-start gap-2 py-1">
+        <span style="flex-shrink:0;margin-top:6px;width:7px;height:7px;border-radius:50%;background:${dot};display:inline-block;"></span>
+        <div class="flex-1 min-w-0">
+          <span class="text-xs font-semibold" style="color:${dot}">${label}</span>
+          <span class="text-xs text-gray-400 ml-1">${msg}</span>
+        </div>
+        ${ts ? `<span class="text-xs text-gray-600 flex-shrink-0">${escapeHtml(ts)}</span>` : ''}
+      </div>`;
+    }
+    const sender = item.payload?.from === 'client' ? 'Client' : item.payload?.from || 'Host';
+    const name = escapeHtml(item.consumer?.name || item.consumerName || '');
+    const text = escapeHtml(item.payload?.text || item.message || '');
+    return `<div class="flex items-start gap-2 py-1">
+      <span style="flex-shrink:0;margin-top:6px;width:7px;height:7px;border-radius:50%;background:#d4a853;display:inline-block;"></span>
+      <div class="flex-1 min-w-0">
+        ${name ? `<span class="text-xs font-semibold text-gray-300">${name}</span><span class="text-xs text-gray-500 mx-1">·</span>` : ''}
+        <span class="text-xs text-gray-500">${escapeHtml(sender)}:</span>
+        <span class="text-xs text-gray-400 ml-1">${text}</span>
+      </div>
+    </div>`;
+  }
+
   async function renderMessages(){
     if(!msgList) return;
     try{
-      const resp = await fetch('/api/messages', { cache: 'no-store' });
+      const resp = await fetch('/api/pulse-feed', { cache: 'no-store' });
       if(!resp.ok) throw new Error('bad response');
       const data = await resp.json().catch(()=>({}));
-      const msgs = Array.isArray(data.messages) ? data.messages : [];
+      const items = Array.isArray(data.items) ? data.items : [];
 
-      if(!msgs.length){
-        msgList.textContent = 'No messages.';
+      if(!items.length){
+        msgList.innerHTML = '<div class="text-xs text-gray-500">No recent activity.</div>';
         return;
       }
-      msgList.innerHTML = msgs.map(m=>{
-        const sender = m.payload?.from === 'client' ? 'Client' : m.payload?.from || 'Host';
-        return `<div><span class="font-medium">${escapeHtml(m.consumer?.name || '')} - ${escapeHtml(sender)}:</span> ${escapeHtml(m.payload?.text || '')}</div>`;
-      }).join('');
+      msgList.innerHTML = items.map(pulseItemHtml).join('');
     }catch(e){
-      console.error('Failed to load messages', e);
-      msgList.textContent = 'Failed to load messages.';
+      console.error('Failed to load pulse feed', e);
+      msgList.innerHTML = '<div class="text-xs text-gray-500">Failed to load activity.</div>';
     }
   }
 

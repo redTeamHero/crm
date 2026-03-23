@@ -3,6 +3,7 @@
 
 (function () {
   const EVENT_IDS = [
+    // Existing
     'consumer_created',
     'billing_plan_cycle_processed',
     'billing_plan_created',
@@ -12,6 +13,56 @@
     'letters_mailed',
     'dispute_response',
     'call_booked',
+    // Client lifecycle
+    'client_invited',
+    'client_activated',
+    'client_inactive',
+    'client_status_changed',
+    'client_profile_updated',
+    // Billing & payments
+    'invoice_created',
+    'invoice_due_soon',
+    'invoice_overdue',
+    'payment_succeeded',
+    'payment_failed',
+    'refund_issued',
+    'subscription_renewed',
+    'trial_ending_soon',
+    // Credit/dispute workflow
+    'dispute_submitted',
+    'bureau_acknowledgment',
+    'dispute_outcome',
+    'item_removed',
+    'score_change',
+    'dispute_sla_missed',
+    // Documents & files
+    'file_review_required',
+    'document_approved',
+    'signature_requested',
+    'signature_completed',
+    'document_expiring',
+    // Communication & engagement
+    'message_received',
+    'email_bounced',
+    'reminder_overdue',
+    'followup_overdue',
+    // Calls & appointments
+    'call_reminder',
+    'call_rescheduled',
+    'call_canceled',
+    'no_show_detected',
+    'post_call_notes_missing',
+    // Team / admin / security
+    'team_member_added',
+    'role_changed',
+    'login_new_device',
+    'login_failed_threshold',
+    'integration_failure',
+    'system_maintenance',
+    // Smart digests
+    'daily_digest',
+    'weekly_summary',
+    'needs_attention_digest',
   ];
 
   function authHeader() {

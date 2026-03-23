@@ -481,34 +481,124 @@
       </div>
       <div>
         <p class="text-sm font-medium text-gray-300 mb-3">Events to notify</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_consumer_created" class="w-4 h-4 accent-[#d4a853]" /> New client added
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_billing_plan_cycle_processed" class="w-4 h-4 accent-[#d4a853]" /> Billing cycle processed
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_billing_plan_created" class="w-4 h-4 accent-[#d4a853]" /> New billing plan created
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_report_uploaded" class="w-4 h-4 accent-[#d4a853]" /> Credit report uploaded
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_file_uploaded" class="w-4 h-4 accent-[#d4a853]" /> File uploaded
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_letters_generated" class="w-4 h-4 accent-[#d4a853]" /> Dispute letters generated
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_letters_mailed" class="w-4 h-4 accent-[#d4a853]" /> Letters mailed
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_dispute_response" class="w-4 h-4 accent-[#d4a853]" /> Dispute response received
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-            <input type="checkbox" id="notifEvt_call_booked" class="w-4 h-4 accent-[#d4a853]" /> Call booked
-          </label>
+        <style>
+          .notif-group { margin-bottom: 1.25rem; }
+          .notif-group-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7280; margin-bottom: 0.5rem; padding-bottom: 0.25rem; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 0.5rem; }
+          .notif-badge { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; padding: 1px 6px; border-radius: 99px; }
+          .notif-badge-essential { background: rgba(239,68,68,0.15); color: #f87171; }
+          .notif-badge-recommended { background: rgba(212,168,83,0.12); color: #d4a853; }
+          .notif-badge-advanced { background: rgba(107,114,128,0.15); color: #9ca3af; }
+          .notif-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem 1.5rem; }
+          @media (max-width: 480px) { .notif-grid { grid-template-columns: 1fr; } }
+          .notif-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.78rem; color: #9ca3af; padding: 2px 0; }
+          .notif-label:hover { color: #d1d5db; }
+        </style>
+
+        <!-- Client Lifecycle -->
+        <div class="notif-group">
+          <div class="notif-group-title">Client Lifecycle</div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_consumer_created" class="w-4 h-4 accent-[#d4a853]" /> New client added</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_client_activated" class="w-4 h-4 accent-[#d4a853]" /> Client signed up</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_client_status_changed" class="w-4 h-4 accent-[#d4a853]" /> Status changed</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_client_invited" class="w-4 h-4 accent-[#d4a853]" /> Client invited</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_client_inactive" class="w-4 h-4 accent-[#d4a853]" /> Client inactive</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_client_profile_updated" class="w-4 h-4 accent-[#d4a853]" /> Profile updated</label>
+          </div>
+        </div>
+
+        <!-- Billing & Payments -->
+        <div class="notif-group">
+          <div class="notif-group-title">Billing &amp; Payments <span class="notif-badge notif-badge-essential">Essential</span></div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_payment_failed" class="w-4 h-4 accent-[#d4a853]" /> Payment failed <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_invoice_overdue" class="w-4 h-4 accent-[#d4a853]" /> Invoice overdue <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_payment_succeeded" class="w-4 h-4 accent-[#d4a853]" /> Payment succeeded</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_invoice_created" class="w-4 h-4 accent-[#d4a853]" /> Invoice created</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_billing_plan_created" class="w-4 h-4 accent-[#d4a853]" /> Billing plan created</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_billing_plan_cycle_processed" class="w-4 h-4 accent-[#d4a853]" /> Billing cycle processed</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_invoice_due_soon" class="w-4 h-4 accent-[#d4a853]" /> Invoice due soon</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_refund_issued" class="w-4 h-4 accent-[#d4a853]" /> Refund issued</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_subscription_renewed" class="w-4 h-4 accent-[#d4a853]" /> Subscription updated</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_trial_ending_soon" class="w-4 h-4 accent-[#d4a853]" /> Trial ending soon</label>
+          </div>
+        </div>
+
+        <!-- Credit & Disputes -->
+        <div class="notif-group">
+          <div class="notif-group-title">Credit &amp; Disputes <span class="notif-badge notif-badge-essential">Essential</span></div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_dispute_outcome" class="w-4 h-4 accent-[#d4a853]" /> Dispute outcome <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_item_removed" class="w-4 h-4 accent-[#d4a853]" /> Item removed <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_score_change" class="w-4 h-4 accent-[#d4a853]" /> Score change <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_dispute_submitted" class="w-4 h-4 accent-[#d4a853]" /> Dispute submitted</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_bureau_acknowledgment" class="w-4 h-4 accent-[#d4a853]" /> Bureau acknowledgment</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_dispute_response" class="w-4 h-4 accent-[#d4a853]" /> Dispute response received</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_dispute_sla_missed" class="w-4 h-4 accent-[#d4a853]" /> Follow-up needed</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_letters_generated" class="w-4 h-4 accent-[#d4a853]" /> Letters generated</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_letters_mailed" class="w-4 h-4 accent-[#d4a853]" /> Letters mailed</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_report_uploaded" class="w-4 h-4 accent-[#d4a853]" /> Credit report uploaded</label>
+          </div>
+        </div>
+
+        <!-- Documents & Files -->
+        <div class="notif-group">
+          <div class="notif-group-title">Documents &amp; Files</div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_file_uploaded" class="w-4 h-4 accent-[#d4a853]" /> File uploaded</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_file_review_required" class="w-4 h-4 accent-[#d4a853]" /> File review required</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_signature_requested" class="w-4 h-4 accent-[#d4a853]" /> Signature requested</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_signature_completed" class="w-4 h-4 accent-[#d4a853]" /> Signature completed</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_document_approved" class="w-4 h-4 accent-[#d4a853]" /> Document approved/rejected</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_document_expiring" class="w-4 h-4 accent-[#d4a853]" /> Document expiring soon</label>
+          </div>
+        </div>
+
+        <!-- Communication & Engagement -->
+        <div class="notif-group">
+          <div class="notif-group-title">Communication &amp; Engagement</div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_message_received" class="w-4 h-4 accent-[#d4a853]" /> Message from client</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_followup_overdue" class="w-4 h-4 accent-[#d4a853]" /> Follow-up overdue</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_reminder_overdue" class="w-4 h-4 accent-[#d4a853]" /> Reminder overdue</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_email_bounced" class="w-4 h-4 accent-[#d4a853]" /> Email bounce / SMS failed</label>
+          </div>
+        </div>
+
+        <!-- Calls & Appointments -->
+        <div class="notif-group">
+          <div class="notif-group-title">Calls &amp; Appointments <span class="notif-badge notif-badge-essential">Essential</span></div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_no_show_detected" class="w-4 h-4 accent-[#d4a853]" /> No-show detected <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_call_booked" class="w-4 h-4 accent-[#d4a853]" /> Call booked</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_call_rescheduled" class="w-4 h-4 accent-[#d4a853]" /> Call rescheduled</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_call_canceled" class="w-4 h-4 accent-[#d4a853]" /> Call canceled / missed</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_call_reminder" class="w-4 h-4 accent-[#d4a853]" /> Call reminder</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_post_call_notes_missing" class="w-4 h-4 accent-[#d4a853]" /> Post-call notes missing</label>
+          </div>
+        </div>
+
+        <!-- Team, Admin & Security -->
+        <div class="notif-group">
+          <div class="notif-group-title">Team, Admin &amp; Security <span class="notif-badge notif-badge-essential">Essential</span></div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_login_failed_threshold" class="w-4 h-4 accent-[#d4a853]" /> Repeated login failures <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_team_member_added" class="w-4 h-4 accent-[#d4a853]" /> Team member added</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_integration_failure" class="w-4 h-4 accent-[#d4a853]" /> Integration failure</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_system_maintenance" class="w-4 h-4 accent-[#d4a853]" /> System maintenance alert</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_login_new_device" class="w-4 h-4 accent-[#d4a853]" /> Login from new device <span class="notif-badge notif-badge-advanced" style="margin-left:4px">Adv</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_role_changed" class="w-4 h-4 accent-[#d4a853]" /> Role / permission changed <span class="notif-badge notif-badge-advanced" style="margin-left:4px">Adv</span></label>
+          </div>
+        </div>
+
+        <!-- Smart Digests -->
+        <div class="notif-group">
+          <div class="notif-group-title">Smart Digests <span class="notif-badge notif-badge-advanced">Advanced</span></div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_daily_digest" class="w-4 h-4 accent-[#d4a853]" /> Daily activity digest</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_weekly_summary" class="w-4 h-4 accent-[#d4a853]" /> Weekly performance summary</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_needs_attention_digest" class="w-4 h-4 accent-[#d4a853]" /> Needs attention digest</label>
+          </div>
         </div>
       </div>
     </div>
