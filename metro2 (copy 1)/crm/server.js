@@ -480,16 +480,17 @@ initHostNotifications();
             }
           }
 
-          // document_expiring: cfpb-proof or other uploaded documents older than 180 days
+          // document_expiring: cfpb-proof documents older than 180 days
           if (settings.events?.document_expiring !== false) {
             const docEvents = events.filter(e => e.type === "document_approved" && new Date(e.at || 0).getTime() < nowMs - 180 * 86400000);
             for (const de of docEvents) {
               const files = de.payload?.files || [];
+              const consumerName = de.payload?.name || cId;
               for (const fname of files) {
                 const deKey = `${cId}:doc:${fname}`;
                 if (!_notifiedDocExpiring.has(deKey)) {
                   _notifiedDocExpiring.add(deKey);
-                  try { await addEvent(cId, "document_expiring", { name: consumer.name, fileName: fname, daysOld: Math.floor((nowMs - new Date(de.at || 0).getTime()) / 86400000) }); } catch {}
+                  try { await addEvent(cId, "document_expiring", { name: consumerName, fileName: fname, daysOld: Math.floor((nowMs - new Date(de.at || 0).getTime()) / 86400000) }); } catch {}
                 }
               }
             }
