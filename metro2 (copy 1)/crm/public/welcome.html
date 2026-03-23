@@ -290,8 +290,58 @@
           <a href="#affiliate" class="hover:text-white transition-colors">Affiliate</a>
           <a href="#about" class="hover:text-white transition-colors">About</a>
         </nav>
+        <button id="mobile-menu-btn" class="md:hidden flex flex-col justify-center items-center w-9 h-9 gap-1.5 rounded-lg" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);" aria-label="Menu">
+          <span class="mobile-bar block w-5 h-0.5 rounded-full bg-violet-300 transition-all duration-300"></span>
+          <span class="mobile-bar block w-5 h-0.5 rounded-full bg-violet-300 transition-all duration-300"></span>
+          <span class="mobile-bar block w-5 h-0.5 rounded-full bg-violet-300 transition-all duration-300"></span>
+        </button>
+      </div>
+      <div id="mobile-menu" class="md:hidden overflow-hidden transition-all duration-300" style="max-height:0;">
+        <div class="px-5 pb-5 flex flex-col gap-1 text-sm" style="border-top:1px solid rgba(139,92,246,0.2);padding-top:1rem;">
+          <a href="/whats-in-evolv" class="py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors font-medium">Features</a>
+          <a href="#how-it-works" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">How it Works</a>
+          <a href="#pricing" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">Pricing</a>
+          <a href="#tradelines" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">Tradelines</a>
+          <a href="#affiliate" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">Affiliate</a>
+          <a href="#about" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">About</a>
+          <div class="mt-2 flex gap-2">
+            <a href="/diy/signup" class="flex-1 text-center py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#6ee7b7;">DIY — Free</a>
+            <a href="/crm" class="flex-1 text-center py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors" style="background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;">Pro CRM</a>
+          </div>
+        </div>
       </div>
     </header>
+    <script>
+      (function(){
+        var btn = document.getElementById('mobile-menu-btn');
+        var menu = document.getElementById('mobile-menu');
+        var open = false;
+        btn.addEventListener('click', function(){
+          open = !open;
+          menu.style.maxHeight = open ? menu.scrollHeight + 'px' : '0';
+          var bars = btn.querySelectorAll('.mobile-bar');
+          if(open){
+            bars[0].style.transform = 'translateY(8px) rotate(45deg)';
+            bars[1].style.opacity = '0';
+            bars[2].style.transform = 'translateY(-8px) rotate(-45deg)';
+          } else {
+            bars[0].style.transform = '';
+            bars[1].style.opacity = '';
+            bars[2].style.transform = '';
+          }
+        });
+        document.querySelectorAll('.mobile-nav-link').forEach(function(a){
+          a.addEventListener('click', function(){
+            open = false;
+            menu.style.maxHeight = '0';
+            var bars = btn.querySelectorAll('.mobile-bar');
+            bars[0].style.transform = '';
+            bars[1].style.opacity = '';
+            bars[2].style.transform = '';
+          });
+        });
+      })();
+    </script>
 
     <section id="hero" class="hero-scene">
       <div id="globe-container"></div>
