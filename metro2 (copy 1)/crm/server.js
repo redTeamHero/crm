@@ -6196,6 +6196,130 @@ app.post("/api/lead-capture/generate-link", authenticate, async (req, res) => {
   res.json({ ok: true, link });
 });
 
+app.get("/api/public/credit-companies", async (_req, res) => {
+  try {
+    const [companiesDb, metricsDb, boostsDb] = await Promise.all([
+      loadCreditCompaniesDB(),
+      loadCreditCompanyMetricsDB(),
+      loadCreditCompanyBoostsDB()
+    ]);
+    const now = Date.now();
+    const metricsByCompany = new Map(metricsDb.metrics.map(m => [m.companyId, m]));
+    const boostsByCompany = new Map(boostsDb.boosts.map(b => [b.companyId, b]));
+    const activeCompanies = companiesDb.companies.filter(c => c.isActive);
+
+    const ranges = {
+      responseTime: normalizeRange(activeCompanies.map(c => metricsByCompany.get(c.id)?.avgResponseTimeDays)),
+      activeClients: normalizeRange(activeCompanies.map(c => metricsByCompany.get(c.id)?.activeClients)),
+      reviewScore: normalizeRange(activeCompanies.map(c => metricsByCompany.get(c.id)?.reviewScore))
+    };
+
+    let rankings = activeCompanies.map(company => {
+      const metrics = metricsByCompany.get(company.id) || {};
+      const boost = boostsByCompany.get(company.id);
+      const isBoosted = isBoostActive(boost, now);
+      const performanceScore = Object.keys(metrics).length ? calculatePerformanceScore(metrics, ranges) : 0;
+      const boostMultiplier = isBoosted ? 1 + Math.min(0.25, boost.amount || 0) : 1;
+      return {
+        companyId: company.id,
+        name: company.name,
+        serviceArea: company.serviceArea || 'Nationwide',
+        focus: company.focus || '',
+        isBoosted,
+        performanceScore,
+        finalScore: performanceScore * boostMultiplier,
+        metrics: {
+          successRate: metrics.disputeSuccessRate ? Math.round(metrics.disputeSuccessRate * 100) : null,
+          avgResponseDays: metrics.avgResponseTimeDays ? parseFloat(metrics.avgResponseTimeDays.toFixed(1)) : null,
+          rating: metrics.reviewScore ? parseFloat(metrics.reviewScore.toFixed(1)) : null,
+          activeClients: metrics.activeClients || null
+        }
+      };
+    });
+
+    rankings = rankings.sort((a, b) => b.finalScore - a.finalScore);
+    rankings = applyRotationWindow(rankings);
+
+    res.json({ ok: true, companies: rankings.map((e, i) => ({ rank: i + 1, ...e })) });
+  } catch (err) {
+    logError('PUBLIC_CREDIT_COMPANY_LIST_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to fetch specialists' });
+  }
+});
+
+app.post("/api/public/leads", async (req, res) => {
+  const name = (req.body.name || "").trim();
+  const email = (req.body.email || "").trim();
+  const phone = (req.body.phone || "").trim();
+  const companyId = (req.body.companyId || "").trim();
+
+  if (!name || !email || !phone) {
+    return res.status(400).json({ ok: false, error: "Name, email, and phone are required" });
+  }
+  if (!/\S+@\S+\.\S+/.test(email)) {
+    return res.status(400).json({ ok: false, error: "Invalid email address" });
+  }
+  if (req.body.website) return res.status(200).json({ ok: true });
+
+  const ip = req.ip || req.connection?.remoteAddress || "unknown";
+  const now = Date.now();
+  const last = leadCaptureTimestamps.get(ip) || 0;
+  if (now - last < 10000) {
+    return res.status(429).json({ ok: false, error: "Please wait a moment before submitting again" });
+  }
+  leadCaptureTimestamps.set(ip, now);
+
+  try {
+    let companyName = '';
+    if (companyId) {
+      const companiesDb = await loadCreditCompaniesDB();
+      const company = companiesDb.companies.find(c => c.id === companyId);
+      if (company) companyName = company.name;
+    }
+
+    const db = await loadLeadsDB();
+    const id = nanoid(10);
+    const sourceLabel = companyName ? `Specialist Directory — ${companyName}` : 'Specialist Directory';
+    const noteParts = [];
+    if (req.body.notes) noteParts.push(req.body.notes.trim());
+    if (companyName) noteParts.push(`Requested specialist: ${companyName}`);
+
+    const lead = {
+      id,
+      name,
+      email,
+      phone,
+      addr1: "",
+      addr2: "",
+      city: "",
+      state: "",
+      zip: "",
+      dob: "",
+      source: sourceLabel,
+      notes: noteParts.join('\n'),
+      creditGoal: req.body.creditGoal || "",
+      currentScore: "",
+      status: "new",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    db.leads.push(lead);
+    await saveLeadsDB(db);
+
+    try {
+      await emitHostNotification("lead_new", `New specialist inquiry from ${lead.name}`, {
+        name: lead.name, email: lead.email, phone: lead.phone, source: lead.source
+      });
+    } catch {}
+
+    res.json({ ok: true, lead: { id: lead.id, name: lead.name } });
+  } catch (err) {
+    logError('PUBLIC_LEAD_CAPTURE_ERROR', err);
+    res.status(500).json({ ok: false, error: 'Failed to submit your inquiry. Please try again.' });
+  }
+});
+
 const _resetRateMap = new Map();
 function checkResetRateLimit(key, maxAttempts = 5, windowMs = 15 * 60 * 1000) {
   const now = Date.now();
