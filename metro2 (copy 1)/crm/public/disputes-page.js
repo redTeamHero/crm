@@ -760,11 +760,11 @@ function renderDisputeTracker(data) {
             const tname = escapeHtml(t.name || t.id || '');
             const selected = currentOverride === t.id ? ' selected' : '';
             const wasSent = sentTpls.has(t.id);
-            const sentMarker = wasSent ? ' ✓ sent' : '';
+            const sentMarker = wasSent ? ' — Sent previously' : '';
             return `<option value="${tid}"${selected}>${tname}${sentMarker}</option>`;
           }).join('');
           const sentCount = sentTpls.size;
-          const sentInfo = sentCount > 0 ? `<span style="font-size:10px;color:#d4a853;margin-left:4px;">${sentCount} type${sentCount !== 1 ? 's' : ''} already sent to this bureau</span>` : '';
+          const sentInfo = sentCount > 0 ? `<span style="font-size:10px;color:#d4a853;margin-left:4px;">${sentCount} type${sentCount !== 1 ? 's' : ''} sent previously to this bureau</span>` : '';
           html += `<div style="margin-top:4px;" onclick="event.stopPropagation()">
             <div style="font-size:10px;color:#888;margin-bottom:2px;display:flex;align-items:center;gap:4px;">Next round template:${sentInfo}</div>
             <select class="dispute-template-override" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" style="width:100%;padding:2px 6px;border-radius:4px;border:1px solid rgba(96,165,250,0.2);background:#1a1a1e;color:#9ca3af;font-size:10px;">

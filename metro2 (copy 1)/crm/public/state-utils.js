@@ -112,6 +112,8 @@ for (const [alias, code] of Object.entries(MANUAL_STATE_ALIASES)) {
   addSanitizedKey(alias, code);
 }
 
+// NOTE: Keep this list in sync with the state codes in server-side stateLaws.js.
+// stateLaws.js is the single source of truth for addendum content; this mirrors the covered codes for client-side badge rendering.
 export const STATES_WITH_ADDENDA = Object.freeze(new Set([
   'CA','TX','NY','MD','MA','CO','NJ','CT','IL','WA','GA','FL','OR','MN','MI','PA','OH','VA','NC','AZ'
 ]));
