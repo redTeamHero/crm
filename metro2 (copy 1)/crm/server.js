@@ -261,6 +261,7 @@ initHostNotifications();
 (function startDigestScheduler() {
   let lastDailyDate = "";
   let lastWeeklyDate = "";
+  let lastAttentionDate = "";
 
   async function runDigestTick() {
     try {
@@ -270,6 +271,27 @@ initHostNotifications();
       const hour = now.getHours();
       const day = now.getDay(); // 0=Sun, 1=Mon
 
+      // Helper to aggregate consumer-level stats across all states
+      async function aggregateDigestStats(windowMs) {
+        const cutoff = Date.now() - windowMs;
+        const allStates = await listAllConsumerStates({ includeEvents: true }).catch(() => []);
+        let failedPayments = 0;
+        let disputesPending = 0;
+        let missedCalls = 0;
+        let overdueReminders = 0;
+        let unreadDisputes = 0;
+        const nowDate = new Date();
+        for (const st of allStates) {
+          const events = st.events || [];
+          failedPayments += events.filter(e => e.type === "payment_failed" && new Date(e.at).getTime() >= cutoff).length;
+          disputesPending += events.filter(e => e.type === "letters_generated" && new Date(e.at).getTime() >= cutoff).length;
+          missedCalls += events.filter(e => e.type === "no_show_detected" && new Date(e.at).getTime() >= cutoff).length;
+          unreadDisputes += events.filter(e => e.type === "dispute_response" && new Date(e.at).getTime() >= cutoff).length;
+          overdueReminders += (st.reminders || []).filter(r => r.due && new Date(r.due) < nowDate && r.status !== "done").length;
+        }
+        return { failedPayments, disputesPending, missedCalls, overdueReminders, unreadDisputes };
+      }
+
       // Daily digest — fires at 00:00 (midnight) if enabled and not already run today
       if (
         hour === 0 &&
@@ -277,28 +299,44 @@ initHostNotifications();
         settings.events?.daily_digest !== false
       ) {
         lastDailyDate = dateStr;
-        const allStates = await listAllConsumerStates({ includeEvents: true }).catch(() => []);
-        const now24h = Date.now() - 24 * 60 * 60 * 1000;
-        let failedPayments = 0;
-        let disputesPending = 0;
-        let missedCalls = 0;
-        for (const st of allStates) {
-          const events = st.events || [];
-          failedPayments += events.filter(e => e.type === "payment_failed" && new Date(e.at).getTime() >= now24h).length;
-          disputesPending += events.filter(e => e.type === "letters_generated" && new Date(e.at).getTime() >= now24h).length;
-          missedCalls += events.filter(e => e.type === "no_show_detected" && new Date(e.at).getTime() >= now24h).length;
-        }
+        const stats = await aggregateDigestStats(24 * 60 * 60 * 1000);
         const parts = [];
-        if (failedPayments) parts.push(`${failedPayments} failed payment${failedPayments !== 1 ? "s" : ""}`);
-        if (disputesPending) parts.push(`${disputesPending} new dispute letter${disputesPending !== 1 ? "s" : ""}`);
-        if (missedCalls) parts.push(`${missedCalls} missed call${missedCalls !== 1 ? "s" : ""}`);
+        if (stats.failedPayments) parts.push(`${stats.failedPayments} failed payment${stats.failedPayments !== 1 ? "s" : ""}`);
+        if (stats.unreadDisputes) parts.push(`${stats.unreadDisputes} new dispute response${stats.unreadDisputes !== 1 ? "s" : ""}`);
+        if (stats.missedCalls) parts.push(`${stats.missedCalls} missed call${stats.missedCalls !== 1 ? "s" : ""}`);
+        if (stats.overdueReminders) parts.push(`${stats.overdueReminders} overdue reminder${stats.overdueReminders !== 1 ? "s" : ""}`);
+        if (stats.disputesPending) parts.push(`${stats.disputesPending} new letter${stats.disputesPending !== 1 ? "s" : ""} generated`);
         const summary = parts.length ? `Daily digest: ${parts.join(", ")}` : "Daily digest: all clear";
         await addNotification({
           eventType: "daily_digest",
           message: summary,
-          payload: { summary, failedPayments, disputesPending, missedCalls },
+          payload: { summary, ...stats },
           delivery: { inApp: true, emailSent: false, smsSent: false },
         });
+      }
+
+      // Needs attention digest — fires daily at 09:00 if enabled and there are critical items
+      if (
+        hour === 9 &&
+        dateStr !== lastAttentionDate &&
+        settings.events?.needs_attention_digest !== false
+      ) {
+        lastAttentionDate = dateStr;
+        const attentionStats = await aggregateDigestStats(72 * 60 * 60 * 1000); // 3 day window
+        const critical = attentionStats.failedPayments + attentionStats.overdueReminders + attentionStats.unreadDisputes;
+        if (critical > 0) {
+          const attParts = [];
+          if (attentionStats.failedPayments) attParts.push(`${attentionStats.failedPayments} failed payment${attentionStats.failedPayments !== 1 ? "s" : ""}`);
+          if (attentionStats.overdueReminders) attParts.push(`${attentionStats.overdueReminders} overdue task${attentionStats.overdueReminders !== 1 ? "s" : ""}`);
+          if (attentionStats.unreadDisputes) attParts.push(`${attentionStats.unreadDisputes} dispute response${attentionStats.unreadDisputes !== 1 ? "s" : ""} awaiting review`);
+          const attSummary = `Needs attention: ${attParts.join(", ")}`;
+          await addNotification({
+            eventType: "needs_attention_digest",
+            message: attSummary,
+            payload: { summary: attSummary, ...attentionStats },
+            delivery: { inApp: true, emailSent: false, smsSent: false },
+          });
+        }
       }
 
       // Weekly summary — fires Monday at 08:00 if enabled and not already run this week
@@ -309,10 +347,19 @@ initHostNotifications();
         settings.events?.weekly_summary !== false
       ) {
         lastWeeklyDate = dateStr;
+        const weekStats = await aggregateDigestStats(7 * 24 * 60 * 60 * 1000);
+        const wParts = [];
+        if (weekStats.failedPayments) wParts.push(`${weekStats.failedPayments} failed payment${weekStats.failedPayments !== 1 ? "s" : ""}`);
+        if (weekStats.unreadDisputes) wParts.push(`${weekStats.unreadDisputes} dispute response${weekStats.unreadDisputes !== 1 ? "s" : ""}`);
+        if (weekStats.missedCalls) wParts.push(`${weekStats.missedCalls} missed call${weekStats.missedCalls !== 1 ? "s" : ""}`);
+        if (weekStats.overdueReminders) wParts.push(`${weekStats.overdueReminders} overdue task${weekStats.overdueReminders !== 1 ? "s" : ""}`);
+        const wSummary = wParts.length
+          ? `Weekly summary (${dateStr}): ${wParts.join(", ")}`
+          : `Weekly summary (${dateStr}): all clear`;
         await addNotification({
           eventType: "weekly_summary",
-          message: `Weekly summary for ${dateStr} — review your CRM dashboard for details`,
-          payload: { summary: `Weekly summary — ${dateStr}` },
+          message: wSummary,
+          payload: { summary: wSummary, ...weekStats },
           delivery: { inApp: true, emailSent: false, smsSent: false },
         });
       }
@@ -2864,8 +2911,33 @@ app.delete("/api/booking/bookings/:id", authenticate, async (req, res) => {
     const bookings = await readKey("call_bookings", []);
     const idx = bookings.findIndex(b => b.id === req.params.id);
     if (idx === -1) return res.status(404).json({ ok: false, error: "Booking not found" });
-    bookings[idx].status = "cancelled";
+    const booking = bookings[idx];
+    const isNoShow = !!req.body?.noShow;
+    booking.status = isNoShow ? "no_show" : "cancelled";
     await writeKey("call_bookings", bookings);
+    // Emit call event notifications
+    if (booking.consumerId) {
+      try {
+        const callConsumer = { name: booking.name };
+        if (isNoShow) {
+          await addEvent(booking.consumerId, "no_show_detected", { name: callConsumer.name, date: booking.date, time: booking.time });
+        } else {
+          await addEvent(booking.consumerId, "call_canceled", { name: callConsumer.name, date: booking.date, time: booking.time });
+        }
+      } catch {}
+    } else {
+      // No consumerId — emit host-level notification directly
+      try {
+        await addNotification({
+          eventType: isNoShow ? "no_show_detected" : "call_canceled",
+          message: isNoShow
+            ? `No-show: ${booking.name || "client"} — ${booking.date} ${booking.time}`
+            : `Call canceled: ${booking.name || "client"} — ${booking.date} ${booking.time}`,
+          payload: { name: booking.name, date: booking.date, time: booking.time },
+          delivery: { inApp: true, emailSent: false, smsSent: false },
+        });
+      } catch {}
+    }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -5540,6 +5612,20 @@ app.post("/api/billing/plans/:id/send", authenticate, forbidMember, async (req,r
     if(err?.code === "PLAN_NO_SCHEDULE"){
       return res.status(400).json({ ok:false, error: "Plan has no upcoming bill date" });
     }
+    // Emit payment_failed event for unexpected billing failures
+    if (req.body?.consumerId || req.params?.id) {
+      const plansDb2 = await loadBillingPlansDB().catch(() => null);
+      const failPlan = plansDb2?.plans?.find(p => p.id === req.params.id);
+      if (failPlan?.consumerId) {
+        try {
+          await addEvent(failPlan.consumerId, "payment_failed", {
+            name: null,
+            amount: failPlan.amount,
+            detail: err?.message?.slice(0, 100),
+          });
+        } catch {}
+      }
+    }
     res.status(500).json({ ok:false, error: "Failed to send plan invoice" });
   }
 });
@@ -6256,6 +6342,17 @@ app.post("/api/messages/:consumerId", optionalAuth, async (req,res)=>{
     payload.userId = req.user.id;
   }
   await addEvent(req.params.consumerId, "message", payload);
+  // Emit message_received notification when a client sends a message
+  if (from === "client" || (!req.user && req.body.from === "client")) {
+    try {
+      const msgDb = await loadDB().catch(() => null);
+      const msgConsumer = msgDb?.consumers?.find(c => c.id === req.params.consumerId);
+      await addEvent(req.params.consumerId, "message_received", {
+        name: msgConsumer?.name,
+        text: text.slice(0, 100),
+      });
+    } catch {}
+  }
   res.json({ ok:true });
 });
 
@@ -9291,6 +9388,7 @@ app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"),
       toZip: consumer.zip
     });
     await addEvent(consumerId, 'letters_mailed', { jobId, file: ev.payload.file, provider: 'simplecertifiedmail', result });
+    try { await addEvent(consumerId, 'dispute_submitted', { name: consumer?.name, jobId, provider: 'simplecertifiedmail' }); } catch {}
     res.json({ ok:true });
     logInfo('SCM_MAIL_SUCCESS', 'Sent letter via SimpleCertifiedMail', { jobId, consumerId, file });
   }catch(e){
@@ -9335,6 +9433,7 @@ app.post("/api/portal/:consumerId/mail", async (req,res)=>{
       toZip: consumer.zip
     });
     await addEvent(consumerId, 'letters_mailed', { jobId, file: ev.payload.file, provider: 'simplecertifiedmail', result });
+    try { await addEvent(consumerId, 'dispute_submitted', { name: consumer?.name, jobId, provider: 'simplecertifiedmail' }); } catch {}
     res.json({ ok:true });
     logInfo('SCM_MAIL_SUCCESS', 'Sent letter via SimpleCertifiedMail (portal)', { jobId, consumerId, file });
   }catch(e){
