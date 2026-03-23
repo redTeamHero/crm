@@ -97,7 +97,9 @@
     .hero-brand-bar { position:absolute; bottom:2.5rem; left:50%; transform:translateX(-50%); z-index:5; text-align:center; pointer-events:none; white-space:nowrap; }
     .hero-wordmark { font-size:1.9rem; font-weight:800; letter-spacing:0.22em; background:linear-gradient(135deg,#d4a853,#f5d590,#d4a853); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 22px rgba(212,168,83,0.35)); }
     .hero-sub { font-size:0.75rem; color:rgba(255,255,255,0.38); letter-spacing:0.14em; margin-top:0.3rem; }
-    #globe-counter { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); z-index:5; font-size:0.6rem; letter-spacing:0.18em; color:rgba(255,255,255,0.28); pointer-events:none; font-variant-numeric:tabular-nums; }
+    #globe-counter { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); z-index:5; display:flex; align-items:center; gap:0.5rem; font-size:0.6rem; letter-spacing:0.18em; color:rgba(255,255,255,0.28); pointer-events:auto; font-variant-numeric:tabular-nums; user-select:none; }
+    .globe-nav-btn { background:none; border:none; cursor:pointer; color:rgba(255,255,255,0.28); font-size:1rem; line-height:1; padding:4px 8px; border-radius:4px; display:flex; align-items:center; justify-content:center; min-width:28px; min-height:28px; transition:color 0.18s; -webkit-tap-highlight-color:transparent; }
+    .globe-nav-btn:hover, .globe-nav-btn:focus { color:rgba(255,255,255,0.7); outline:none; }
 
     @media(max-width:768px){
       .bureau-panel { width:min(200px,42vw); }
@@ -378,7 +380,11 @@
         <div class="hero-sub">Rebuild. Rise. Evolv.</div>
       </div>
 
-      <div id="globe-counter">1 / 16</div>
+      <div id="globe-counter">
+        <button class="globe-nav-btn" id="globe-nav-prev" aria-label="Previous entity">&#8249;</button>
+        <span id="globe-counter-text">1 / 16</span>
+        <button class="globe-nav-btn" id="globe-nav-next" aria-label="Next entity">&#8250;</button>
+      </div>
     </section>
   </div>
 
@@ -1310,12 +1316,19 @@
 
     var idx = 0;
     var cycling = false;
+    var cycleGen = 0;
     var panelL = document.getElementById('panel-left');
     var panelR = document.getElementById('panel-right');
 
     function setCounter(i, total) {
-      var el = document.getElementById('globe-counter');
+      var el = document.getElementById('globe-counter-text');
+      if (!el) el = document.getElementById('globe-counter');
       if (el) el.textContent = (i + 1) + ' / ' + total;
+    }
+
+    function cancelCycle() {
+      cycleGen++;
+      cycling = false;
     }
 
     var isMobile = window.innerWidth < 768;
@@ -1406,13 +1419,15 @@
       if (cb) setTimeout(cb, 700);
     }
 
-    function runCycle() {
+    function runCycle(gen) {
+      if (gen !== cycleGen) return;
       if (cycling) return;
       cycling = true;
       var e = cycleEntities[idx];
       setCounter(idx, TOTAL);
       try { if (globe) globe.ringsData([e]); } catch(err) {}
       setTimeout(function() {
+        if (gen !== cycleGen) return;
         try {
           if (globe) {
             globe.controls().autoRotate = false;
@@ -1420,23 +1435,67 @@
           }
         } catch(err) {}
         setTimeout(function() {
+          if (gen !== cycleGen) return;
           updatePanels(e);
           showPanels();
           setTimeout(function() {
+            if (gen !== cycleGen) return;
             hidePanels(function() {
+              if (gen !== cycleGen) return;
               try { if (globe) globe.ringsData([]); } catch(err) {}
               try {
                 if (globe) globe.pointOfView({ lat: 20, lng: isMobile ? e.lng : e.lng - 30, altitude: isMobile ? 2.2 : 2.6 }, 1800);
               } catch(err) {}
               setTimeout(function() {
+                if (gen !== cycleGen) return;
                 try { if (globe) globe.controls().autoRotate = true; } catch(err) {}
                 idx = (idx + 1) % TOTAL;
                 cycling = false;
-                setTimeout(runCycle, 1800);
+                var g = cycleGen;
+                setTimeout(function() { runCycle(g); }, 1800);
               }, 1800);
             });
           }, 5500);
         }, 2400);
+      }, 800);
+    }
+
+    function jumpToEntity(newIdx) {
+      cancelCycle();
+      hidePanels(null);
+      idx = ((newIdx % TOTAL) + TOTAL) % TOTAL;
+      var e = cycleEntities[idx];
+      var gen = cycleGen;
+      setCounter(idx, TOTAL);
+      try { if (globe) globe.ringsData([e]); } catch(err) {}
+      try {
+        if (globe) {
+          globe.controls().autoRotate = false;
+          globe.pointOfView({ lat: e.lat, lng: e.lng, altitude: isMobile ? 2.0 : 1.7 }, 700);
+        }
+      } catch(err) {}
+      setTimeout(function() {
+        if (gen !== cycleGen) return;
+        updatePanels(e);
+        showPanels();
+        setTimeout(function() {
+          if (gen !== cycleGen) return;
+          hidePanels(function() {
+            if (gen !== cycleGen) return;
+            try { if (globe) globe.ringsData([]); } catch(err) {}
+            try {
+              if (globe) globe.pointOfView({ lat: 20, lng: isMobile ? e.lng : e.lng - 30, altitude: isMobile ? 2.2 : 2.6 }, 1800);
+            } catch(err) {}
+            setTimeout(function() {
+              if (gen !== cycleGen) return;
+              try { if (globe) globe.controls().autoRotate = true; } catch(err) {}
+              idx = (idx + 1) % TOTAL;
+              cycling = false;
+              var g = cycleGen;
+              setTimeout(function() { runCycle(g); }, 1800);
+            }, 1800);
+          });
+        }, 5500);
       }, 800);
     }
 
@@ -1445,9 +1504,15 @@
     showPanels();
     setTimeout(function() {
       hidePanels(function() {
-        setTimeout(runCycle, 600);
+        var g = cycleGen;
+        setTimeout(function() { runCycle(g); }, 600);
       });
     }, 4000);
+
+    var navPrev = document.getElementById('globe-nav-prev');
+    var navNext = document.getElementById('globe-nav-next');
+    if (navPrev) navPrev.addEventListener('click', function() { jumpToEntity(idx - 1); });
+    if (navNext) navNext.addEventListener('click', function() { jumpToEntity(idx + 1); });
 
     window.addEventListener('resize', function() {
       try { if (globe) globe.width(container.offsetWidth).height(container.offsetHeight); } catch(err) {}
