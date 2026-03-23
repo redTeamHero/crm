@@ -1,5 +1,6 @@
 import { authHeader, api, escapeHtml } from './common.js';
 import { openCfpbModal } from './cfpb-modal.js';
+import { resolveStateInfo } from './state-utils.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -183,6 +184,8 @@ async function loadDisputeTracker() {
   if (!currentConsumerId) {
     panel.classList.add('hidden');
     currentDisputeData = null;
+    const historySection = $('#letterHistorySection');
+    if (historySection) historySection.innerHTML = `<div style="font-size:12px;color:#666;padding:8px 0;">Select a client to view letter history.</div>`;
     return;
   }
 
@@ -438,6 +441,50 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
   });
 }
 
+function renderStateLawBadge(consumerState) {
+  if (!consumerState) return '';
+  const info = resolveStateInfo(consumerState);
+  if (!info.code && !info.name) return '';
+  const label = info.name || info.code;
+  return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;background:rgba(212,168,83,0.12);color:#d4a853;border:1px solid rgba(212,168,83,0.3);margin-left:8px;" title="State consumer-protection laws may apply to letters for this client">
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    ${escapeHtml(label)} Law
+  </span>`;
+}
+
+async function renderLetterHistory(consumerId) {
+  const container = $('#letterHistorySection');
+  if (!container) return;
+  try {
+    const data = await api(`/api/consumers/${consumerId}/letter-history`);
+    const history = data?.history || [];
+    if (!history.length) {
+      container.innerHTML = `<div style="font-size:12px;color:#666;padding:8px 0;">No letters generated yet for this client.</div>`;
+      return;
+    }
+    let html = `<div style="display:flex;flex-direction:column;gap:6px;">`;
+    history.forEach(item => {
+      const date = item.at ? new Date(item.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
+      const bureaus = (item.bureaus || []).join(', ') || 'N/A';
+      const rType = item.requestType ? escapeHtml(item.requestType) : null;
+      const roundLabel = item.round ? `Round ${item.round}` : '';
+      const tokenParam = authHeader()?.Authorization ? `?token=${encodeURIComponent(authHeader().Authorization.replace('Bearer ',''))}` : '';
+      const dlLink = item.jobId ? `/api/letters/${encodeURIComponent(item.jobId)}/all.zip${tokenParam}` : null;
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:#e5e7eb;">${escapeHtml(date)}${roundLabel ? `<span style="color:#888;font-weight:400;margin-left:6px;">${escapeHtml(roundLabel)}</span>` : ''}</div>
+          <div style="font-size:11px;color:#888;margin-top:1px;">${item.count} letter${item.count !== 1 ? 's' : ''} • ${escapeHtml(bureaus)}${rType ? ` • ${rType}` : ''}</div>
+        </div>
+        ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:11px;color:#60a5fa;text-decoration:none;white-space:nowrap;" title="Download ZIP">⬇ ZIP</a>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+    container.innerHTML = html;
+  } catch {
+    container.innerHTML = `<div style="font-size:12px;color:#666;padding:8px 0;">Could not load letter history.</div>`;
+  }
+}
+
 function renderDisputeTracker(data) {
   const subtitle = $('#disputeTrackerSubtitle');
   const analysisCard = $('#disputeAnalysisCard');
@@ -447,10 +494,12 @@ function renderDisputeTracker(data) {
 
   const activation = data.activation;
   const rounds = data.rounds || [];
+  const consumerState = data.consumerState || null;
 
   if (activation && activation.items && activation.items.length > 0) {
     analysisCard.classList.remove('hidden');
-    analysisTitle.textContent = `Report Analysis — ${activation.items.length} negative item${activation.items.length !== 1 ? 's' : ''} found`;
+    const stateBadge = renderStateLawBadge(consumerState);
+    analysisTitle.innerHTML = `Report Analysis — ${activation.items.length} negative item${activation.items.length !== 1 ? 's' : ''} found${stateBadge}`;
     let html = '';
     activation.items.forEach(item => {
       const creditor = escapeHtml(item.creditor || 'Unknown');
@@ -483,6 +532,10 @@ function renderDisputeTracker(data) {
     analysisBody.innerHTML = html;
   } else {
     analysisCard.classList.add('hidden');
+  }
+
+  if (currentConsumerId) {
+    renderLetterHistory(currentConsumerId);
   }
 
   if (rounds.length === 0 && !activation) {

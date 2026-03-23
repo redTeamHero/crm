@@ -6814,6 +6814,31 @@ app.post("/api/consumers/:consumerId/events", async (req,res)=>{
   res.json({ ok:true });
 });
 
+app.get("/api/consumers/:consumerId/letter-history", authenticate, async (req, res) => {
+  try {
+    const { consumerId } = req.params;
+    const cstate = await listConsumerState(consumerId);
+    const events = cstate?.events || [];
+    const genEvents = events
+      .filter(e => e.type === "letters_generated" || e.type === "letters_zip_ready")
+      .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
+
+    const history = genEvents.map(e => ({
+      jobId: e.payload?.jobId || null,
+      type: e.type,
+      count: e.payload?.count || 0,
+      bureaus: e.payload?.bureaus || [],
+      requestType: e.payload?.requestType || null,
+      round: e.payload?.round || null,
+      at: e.at || null,
+    }));
+    res.json({ ok: true, history });
+  } catch (err) {
+    logError("LETTER_HISTORY_ERROR", "Failed to load letter history", err, { consumerId: req.params.consumerId });
+    res.status(500).json({ ok: false, error: "Failed to load letter history" });
+  }
+});
+
 app.get("/api/workflows/config", authenticate, requirePermission("consumers"), async (_req, res) => {
   try {
     const config = await getWorkflowConfig();
@@ -10203,6 +10228,10 @@ app.delete("/api/consumers/:id/state/files/:stored", authenticate, async (req, r
 app.get("/api/consumers/:id/disputes", authenticate, async (req, res) => {
   try {
     const consumerId = req.params.id;
+    const db = await loadDB();
+    const consumerRecord = (db.consumers || []).find(c => c.id === consumerId) || {};
+    const consumerState = consumerRecord.state || null;
+
     const state = await listConsumerState(consumerId);
     const events = state.events || [];
 
@@ -10242,7 +10271,7 @@ app.get("/api/consumers/:id/disputes", authenticate, async (req, res) => {
 
     const pendingFollowups = (state.reminders || []).filter(r => r.payload?.type === "dispute_followup");
 
-    res.json({ ok: true, activated, rounds, pendingFollowups });
+    res.json({ ok: true, activated, rounds, pendingFollowups, consumerState });
   } catch (e) {
     logError("DISPUTE_LIST_ERROR", "Failed to list disputes", e, { consumerId: req.params.id });
     res.status(500).json({ ok: false, error: "Failed to load dispute data" });

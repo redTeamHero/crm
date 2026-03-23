@@ -2,6 +2,7 @@
 import { enrichTradeline } from './pullTradelineData.js';
 import { loadMetro2Violations } from './utils.js';
 import { LETTER_TEMPLATES } from './letterTemplates.js';
+import { getStateLawAddendum } from './stateLaws.js';
 
 // Load Metro 2 violation definitions from shared metadata
 const VIOLATION_DEFS = await loadMetro2Violations();
@@ -669,6 +670,7 @@ function buildLetterHTML(opts) {
   ${chosenList}
 
   <p style="margin-top:24px;">Please provide the method of verification, including the name and contact information of any furnisher relied upon. If you cannot verify the information with maximum possible accuracy, delete the item and send me an updated report.</p>
+  ${(() => { const _sl = getStateLawAddendum(consumer.state); return _sl ? `<p class="ocr" style="margin-top:16px;padding:12px;border-left:3px solid #d4a853;background:#fffbf0;font-size:13px;color:#374151;">${safe(_sl.addendum)}</p>` : ''; })()}
   ${hasSig ? '' : `<div class="sig-block"><p>Sincerely,<br>${safe(consumer.name)}</p></div>`}
   ${opts._enclosuresHtml || ''}
 </body>
@@ -767,6 +769,7 @@ function buildLetterHTML(opts) {
   ${afterIssuesPara}
 
   <p style="margin-top:24px;">${verifyLine}</p>
+  ${(() => { const _sl = getStateLawAddendum(consumer.state); return _sl ? `<p class="ocr" style="margin-top:16px;padding:12px;border-left:3px solid #d4a853;background:#fffbf0;font-size:13px;color:#374151;">${safe(_sl.addendum)}</p>` : ''; })()}
   <div class="sig-block">
     <p>${signOff}</p>
   </div>
@@ -818,6 +821,10 @@ function buildLetterHeader(consumer, recipient){
 
 function buildLetterTemplate({ title, bodyHtml, consumer, headerData }) {
   const dateStr = todayISO();
+  const _sl = getStateLawAddendum(consumer?.state);
+  const stateLawHtml = _sl
+    ? `<p style="margin-top:16px;padding:12px;border-left:3px solid #d4a853;background:#fffbf0;font-size:13px;color:#374151;">${safe(_sl.addendum)}</p>`
+    : '';
   return `
 <!DOCTYPE html>
 <html>
@@ -843,6 +850,7 @@ function buildLetterTemplate({ title, bodyHtml, consumer, headerData }) {
   ${buildLetterHeader(consumer, headerData)}
   <div class="muted" style="margin-bottom:14px;">${dateStr}</div>
   ${bodyHtml}
+  ${stateLawHtml}
 </body>
 </html>
   `.trim();
