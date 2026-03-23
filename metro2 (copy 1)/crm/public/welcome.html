@@ -99,6 +99,10 @@
     .hero-cycle-dot { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); z-index:5; display:flex; gap:0.45rem; }
     .hcd { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.4s; }
     .hcd.active { background:rgba(232,112,64,0.9); }
+    .globe-legend { position:absolute; bottom:5.5rem; right:1.5rem; z-index:6; display:flex; flex-direction:column; gap:0.32rem; pointer-events:none; }
+    .gl-row { display:flex; align-items:center; gap:0.45rem; font-size:0.62rem; letter-spacing:0.08em; color:rgba(255,255,255,0.52); text-transform:uppercase; }
+    .gl-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    @media(max-width:500px){ .globe-legend { bottom:4.5rem; right:0.75rem; } }
     @media(max-width:768px){
       .bureau-panel { width:min(200px,42vw); }
       .bp-inner { margin:0.4rem; padding:1rem 1.1rem; }
@@ -322,6 +326,11 @@
         <div class="hcd active" id="dot-0"></div>
         <div class="hcd" id="dot-1"></div>
         <div class="hcd" id="dot-2"></div>
+      </div>
+      <div class="globe-legend">
+        <div class="gl-row"><span class="gl-dot" style="background:#e87040;box-shadow:0 0 6px #e87040"></span>Primary Bureau</div>
+        <div class="gl-row"><span class="gl-dot" style="background:#f5a623;box-shadow:0 0 5px #f5a623"></span>Secondary Bureau</div>
+        <div class="gl-row"><span class="gl-dot" style="background:#ef4444;box-shadow:0 0 5px #ef4444"></span>Collector</div>
       </div>
     </section>
   </div>
@@ -1077,6 +1086,47 @@
       }
     ];
 
+    var secondaryBureaus = [
+      { name: 'Innovis',            lat: 39.961, lng: -82.999 },
+      { name: 'ChexSystems',        lat: 44.924, lng: -93.007 },
+      { name: 'LexisNexis Risk',    lat: 34.075, lng: -84.294 },
+      { name: 'SageStream',         lat: 32.716, lng: -117.161 },
+      { name: 'CoreLogic',          lat: 33.684, lng: -117.826 }
+    ];
+
+    var collectors = [
+      { name: 'Midland Credit Mgmt',       lat: 32.715, lng: -117.157, nearLat: 33.641, nearLng: -117.919 },
+      { name: 'Portfolio Recovery',         lat: 36.847, lng: -76.086, nearLat: 33.749, nearLng: -84.388  },
+      { name: 'LVNV Funding',               lat: 34.853, lng: -82.394, nearLat: 33.749, nearLng: -84.388  },
+      { name: 'Convergent Outsourcing',     lat: 47.483, lng: -122.217, nearLat: 33.641, nearLng: -117.919 },
+      { name: 'Cavalry SPV',                lat: 41.080, lng: -73.783, nearLat: 41.878, nearLng: -87.630  },
+      { name: 'Resurgent Capital',          lat: 34.862, lng: -82.374, nearLat: 33.749, nearLng: -84.388  },
+      { name: 'Caine & Weiner',             lat: 34.168, lng: -118.606, nearLat: 33.641, nearLng: -117.919 },
+      { name: 'Jefferson Capital',          lat: 45.563, lng: -94.163, nearLat: 41.878, nearLng: -87.630  }
+    ];
+
+    var allPoints = [];
+    bureaus.forEach(function(b) {
+      allPoints.push({ lat: b.lat, lng: b.lng, color: b.color, r: 0.6, alt: 0.07 });
+    });
+    secondaryBureaus.forEach(function(b) {
+      allPoints.push({ lat: b.lat, lng: b.lng, color: '#f5a623', r: 0.32, alt: 0.04 });
+    });
+    collectors.forEach(function(c) {
+      allPoints.push({ lat: c.lat, lng: c.lng, color: '#ef4444', r: 0.20, alt: 0.02 });
+    });
+
+    var primaryArcs = [
+      { sLat: 33.749, sLng: -84.388, eLat: 33.641, eLng: -117.919, c: ['#e87040','#4a90e2'], alt: 0.28, dl: 0.4, dg: 0.15, dt: 2400 },
+      { sLat: 33.641, sLng: -117.919, eLat: 41.878, eLng: -87.630, c: ['#4a90e2','#8b5cf6'], alt: 0.28, dl: 0.4, dg: 0.15, dt: 2400 },
+      { sLat: 41.878, sLng: -87.630, eLat: 33.749, eLng: -84.388, c: ['#8b5cf6','#e87040'], alt: 0.28, dl: 0.4, dg: 0.15, dt: 2400 }
+    ];
+    var collectorArcs = collectors.map(function(c) {
+      return { sLat: c.lat, sLng: c.lng, eLat: c.nearLat, eLng: c.nearLng,
+               c: ['rgba(239,68,68,0.45)','rgba(232,112,64,0.45)'], alt: 0.13, dl: 0.22, dg: 0.38, dt: 4800 };
+    });
+    var allArcs = primaryArcs.concat(collectorArcs);
+
     var idx = 0;
     var cycling = false;
     var panelL = document.getElementById('panel-left');
@@ -1109,27 +1159,23 @@
 
       globe.pointOfView({ lat: 20, lng: -60, altitude: 2.6 });
 
-      globe.pointsData(bureaus)
+      globe.pointsData(allPoints)
         .pointLat(function(d) { return d.lat; })
         .pointLng(function(d) { return d.lng; })
         .pointColor(function(d) { return d.color; })
-        .pointAltitude(0.07)
-        .pointRadius(0.6);
+        .pointAltitude(function(d) { return d.alt; })
+        .pointRadius(function(d) { return d.r; });
 
-      globe.arcsData([
-        { sLat: 33.749, sLng: -84.388, eLat: 33.641, eLng: -117.919, c: ['#e87040','#4a90e2'] },
-        { sLat: 33.641, sLng: -117.919, eLat: 41.878, eLng: -87.630, c: ['#4a90e2','#8b5cf6'] },
-        { sLat: 41.878, sLng: -87.630, eLat: 33.749, eLng: -84.388, c: ['#8b5cf6','#e87040'] }
-      ])
+      globe.arcsData(allArcs)
         .arcStartLat(function(d) { return d.sLat; })
         .arcStartLng(function(d) { return d.sLng; })
         .arcEndLat(function(d) { return d.eLat; })
         .arcEndLng(function(d) { return d.eLng; })
         .arcColor(function(d) { return d.c; })
-        .arcAltitude(0.28)
-        .arcDashLength(0.4)
-        .arcDashGap(0.15)
-        .arcDashAnimateTime(2400);
+        .arcAltitude(function(d) { return d.alt; })
+        .arcDashLength(function(d) { return d.dl; })
+        .arcDashGap(function(d) { return d.dg; })
+        .arcDashAnimateTime(function(d) { return d.dt; });
 
       globe.ringsData([])
         .ringLat(function(d) { return d.lat; })
