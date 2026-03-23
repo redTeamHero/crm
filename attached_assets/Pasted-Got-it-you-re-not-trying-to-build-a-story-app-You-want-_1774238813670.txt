@@ -1,0 +1,199 @@
+Got it — you’re not trying to build a “story app.”
+You want pure cinematic visuals + side panel UI 🔥
+
+Think: hero experience first, content second
+
+⸻
+
+🎬 Core Concept (Cinematic + Panels)
+
+Center = FULLSCREEN 3D EARTH (no clutter)
+Sides = clean UI panels that slide in/out
+
+⸻
+
+🎥 Cinematic Flow
+
+1. Idle State (Looping Scene)
+	•	Slow rotating Earth
+	•	Subtle glow + atmosphere
+	•	Tiny orbit lines / particles
+	•	No text overload
+	•	Ambient sound optional
+
+⸻
+
+2. Target Lock (Moment of Action)
+	•	A pulse appears on a random city
+	•	Thin line path (like flight path)
+	•	Camera smoothly zooms in
+	•	Slight screen shake or bass hit (optional)
+
+⸻
+
+3. Arrival (Focus State)
+	•	Camera stops above city
+	•	Slight tilt for cinematic angle
+	•	Background dims slightly
+	•	UI activates
+
+⸻
+
+🧩 Side Panel System (THIS is your main UI)
+
+You’ll have two panels max:
+
+⸻
+
+📍 LEFT PANEL → “CITY INFO”
+
+Slides in from left when city is selected.
+
+Content:
+	•	City name + country
+	•	Coordinates (adds that premium feel)
+	•	Tagline (1 line only)
+	•	Small stats (clean + minimal)
+
+Example:
+
+DALLAS, TX
+32.7767° N, 96.7970° W
+
+A hub of growth and opportunity.
+
+• Population: 1.3M+
+• Key Industry: Finance / Tech
+• Growth Rate: High
+
+👉 Keep it tight, not cluttered
+
+⸻
+
+📊 RIGHT PANEL → “TIMELINE / STORY”
+
+Slides in from right.
+
+Style options:
+
+Option A: Vertical timeline
+	•	Clean dots + years
+	•	Minimal text
+
+Option B: Card stack
+	•	Each event = card
+	•	Slight parallax on scroll
+
+Option C (🔥 best for cinematic):
+
+Progressive reveal timeline
+	•	Auto-plays like a story
+	•	Each step fades in
+
+Example:
+
+1960s → Expansion boom
+1980s → Corporate growth
+2000s → Tech integration
+Today → Financial powerhouse
+
+
+⸻
+
+🎮 Interaction Modes
+
+Mode 1: Auto Cinematic (best for homepage)
+	•	Globe rotates
+	•	Picks random city
+	•	Plays animation
+	•	Panels slide in
+	•	Timeline auto plays
+	•	Then resets → next city
+
+👉 feels like a movie loop
+
+⸻
+
+Mode 2: Manual Control
+	•	User clicks globe
+	•	Picks city
+	•	Panels update
+
+⸻
+
+🎨 Visual Style (IMPORTANT)
+
+Stick to ONE strong aesthetic:
+
+🔥 Recommended for you:
+
+Dark + Premium + Subtle Glow
+	•	Background: deep black / space
+	•	Accent: gold / blue / ember glow
+	•	Panels: glassmorphism (blur + transparency)
+	•	Lines: thin, sharp, minimal
+
+⸻
+
+⚡ Micro-Animations (what makes it feel expensive)
+	•	Panel slides: 300–500ms ease
+	•	Fade + blur combo on UI
+	•	Text appears line-by-line
+	•	Subtle pulse on selected city
+	•	Camera easing (not linear)
+
+⸻
+
+🧠 UX Philosophy (keep this in mind)
+
+You are NOT building:
+❌ a dashboard
+❌ a data-heavy map
+
+You ARE building:
+✅ a cinematic experience with supporting info
+
+So:
+	•	Keep text minimal
+	•	Let motion do the talking
+	•	Panels = supporting actors, not main character
+
+⸻
+
+🛠️ Tech Stack (quick build path)
+	•	Three.js or React Three Fiber → globe
+	•	GSAP → smooth camera + panel animations
+	•	Framer Motion → panel transitions
+	•	globe.gl → faster setup if needed
+
+⸻
+
+🧩 Layout Blueprint
+
+[ LEFT PANEL ]   [   3D EARTH / CITY VIEW   ]   [ RIGHT PANEL ]
+
+   (hidden)              (always visible)             (hidden)
+
+      ↓                         ↓                        ↓
+
+slides in ←           cinematic focus           → slides in
+
+
+⸻
+
+💡 Extra Sauce Ideas
+	•	Add sound cue when city locks in
+	•	Add subtle vibration effect (mobile)
+	•	Add “Next City” auto countdown
+	•	Add hover glow on cities
+
+⸻
+
+🔥 If you want next step
+
+I can:
+	•	Build you a Replit-ready prompt
+	•	Or generate a full React + Three.js starter code
+	•	Or design exact UI (pixel-perfect layout + colors + fonts)
+
+Just tell me 👍

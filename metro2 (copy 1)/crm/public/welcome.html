@@ -28,6 +28,7 @@
     })();
   </script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/globe.gl@2.27.0/dist/globe.gl.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     
@@ -66,38 +67,49 @@
     
     .nav-phoenix-svg { width: 28px; height: 28px; animation: phoenixPulse 3s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(232,112,64,0.5)); }
     @keyframes phoenixPulse { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-3px) scale(1.05)} }
-    #hero-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; }
-    .skip-intro { position:absolute; bottom:2rem; left:50%; transform:translateX(-50%); z-index:10; background:rgba(212,168,83,0.12); border:1px solid rgba(212,168,83,0.3); color:rgba(212,168,83,0.7); padding:0.5rem 1.5rem; border-radius:2rem; font-size:0.8rem; font-weight:500; cursor:pointer; letter-spacing:0.05em; transition:opacity 0.5s ease, background 0.2s ease; }
-    .skip-intro:hover { background:rgba(212,168,83,0.22); color:#d4a853; }
-    .skip-intro.hidden { opacity:0; pointer-events:none; }
-    .hero-overlay { position:relative; z-index:1; }
-    .hero-scene { position:relative; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
-    .hero-text-layer { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; pointer-events:none; }
-    .hero-text-layer > * { pointer-events:auto; }
-    .hero-final { opacity:0; transform:translateY(30px); transition:opacity 1.2s ease, transform 1.2s ease; pointer-events:none; }
-    .hero-final.visible { opacity:1; transform:translateY(0); pointer-events:auto; }
-    .hero-score { font-size:5rem; font-weight:800; background:linear-gradient(135deg,#d4a853 0%,#f5d590 40%,#d4a853 70%,#c49b3a 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; opacity:0; transition:opacity 0.8s ease; }
-    .hero-score.visible { opacity:1; }
-    .hero-logo { font-size:3rem; font-weight:800; letter-spacing:0.15em; background:linear-gradient(135deg,#d4a853 0%,#f5d590 40%,#d4a853 70%,#c49b3a 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; text-shadow:none; filter:drop-shadow(0 0 30px rgba(212,168,83,0.4)); }
-    .hero-tagline { color:rgba(255,255,255,0.7); font-size:1.1rem; margin-top:0.75rem; }
-    .hero-cta { display:inline-flex; align-items:center; gap:0.5rem; margin-top:2rem; padding:0.875rem 2.5rem; background:linear-gradient(135deg,#d4a853,#c49b3a); color:#0f172a; font-weight:700; font-size:1rem; border-radius:0.75rem; border:none; cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; text-decoration:none; }
-    .hero-cta:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(212,168,83,0.4); }
-    .hero-paths { display:flex; gap:1rem; margin-top:1.25rem; justify-content:center; }
-    .hero-path-btn { padding:0.625rem 1.75rem; border-radius:0.625rem; font-weight:600; font-size:0.875rem; cursor:pointer; transition:all 0.2s; text-decoration:none; display:inline-flex; align-items:center; gap:0.5rem; }
-    .hero-path-pro { background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.4); color:#c4b5fd; }
-    .hero-path-pro:hover { background:rgba(139,92,246,0.25); border-color:rgba(139,92,246,0.6); color:#fff; }
-    .hero-path-diy { background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#6ee7b7; }
-    .hero-path-diy:hover { background:rgba(16,185,129,0.25); border-color:rgba(16,185,129,0.6); color:#fff; }
-    .hero-stats { display:flex; align-items:center; gap:1.5rem; margin-top:2.5rem; opacity:0; transition:opacity 1s ease 0.5s; }
-    .hero-stats.visible { opacity:1; }
-    .hero-stat-val { font-size:1.25rem; font-weight:700; color:#fff; }
-    .hero-stat-label { font-size:0.7rem; color:rgba(196,181,253,0.6); }
-    .hero-stat-div { width:1px; height:2rem; background:rgba(139,92,246,0.3); }
-    @media(max-width:640px){
-      .hero-logo { font-size:2rem; }
-      .hero-score { font-size:3.5rem; }
-      .hero-tagline { font-size:0.9rem; }
-      .hero-paths { flex-direction:column; align-items:center; }
+    .hero-scene { position:relative; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#000; }
+    #globe-container { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; }
+    .bureau-panel { position:absolute; top:50%; z-index:5; width:min(270px,36vw); pointer-events:auto; }
+    .bureau-panel--left { left:0; transform:translateY(-50%) translateX(-110%); transition:transform 0.65s cubic-bezier(0.22,1,0.36,1); }
+    .bureau-panel--left.active { transform:translateY(-50%) translateX(0); }
+    .bureau-panel--right { right:0; transform:translateY(-50%) translateX(110%); transition:transform 0.65s cubic-bezier(0.22,1,0.36,1); }
+    .bureau-panel--right.active { transform:translateY(-50%) translateX(0); }
+    .bp-inner { margin:0.75rem; background:rgba(4,4,12,0.82); border:1px solid rgba(255,140,40,0.18); border-radius:1rem; padding:1.4rem 1.5rem; backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); }
+    .bp-label { font-size:0.58rem; font-weight:700; letter-spacing:0.2em; color:rgba(232,112,64,0.65); margin-bottom:0.55rem; text-transform:uppercase; }
+    .bp-name { font-size:1.35rem; font-weight:800; letter-spacing:0.1em; color:#fff; line-height:1.1; }
+    .bp-city { font-size:0.82rem; color:rgba(255,255,255,0.55); margin-top:0.25rem; }
+    .bp-coords { font-size:0.65rem; font-family:monospace; color:rgba(232,112,64,0.55); margin-top:0.35rem; letter-spacing:0.04em; }
+    .bp-rule { height:1px; background:linear-gradient(90deg,rgba(232,112,64,0.35),transparent); margin:0.9rem 0; }
+    .bp-tagline { font-size:0.78rem; color:rgba(255,255,255,0.5); margin-bottom:0.85rem; font-style:italic; }
+    .bp-stats { display:flex; flex-direction:column; gap:0.55rem; }
+    .bp-stat { display:flex; flex-direction:column; }
+    .bp-stat-val { font-size:1.05rem; font-weight:700; color:#d4a853; }
+    .bp-stat-label { font-size:0.62rem; color:rgba(255,255,255,0.38); text-transform:uppercase; letter-spacing:0.08em; }
+    .bp-headline { font-size:1rem; font-weight:700; color:#fff; line-height:1.35; margin-bottom:0.6rem; }
+    .bp-subtext { font-size:0.78rem; color:rgba(255,255,255,0.52); line-height:1.55; margin-bottom:1.1rem; }
+    .bp-ctas { display:flex; flex-direction:column; gap:0.6rem; }
+    .bp-cta-pro,.bp-cta-diy { display:block; text-align:center; padding:0.6rem 1rem; border-radius:0.625rem; font-size:0.78rem; font-weight:600; text-decoration:none; transition:background 0.2s,border-color 0.2s; }
+    .bp-cta-pro { background:rgba(139,92,246,0.18); border:1px solid rgba(139,92,246,0.45); color:#c4b5fd; }
+    .bp-cta-pro:hover { background:rgba(139,92,246,0.32); }
+    .bp-cta-diy { background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.45); color:#6ee7b7; }
+    .bp-cta-diy:hover { background:rgba(16,185,129,0.32); }
+    .hero-brand-bar { position:absolute; bottom:2.5rem; left:50%; transform:translateX(-50%); z-index:5; text-align:center; pointer-events:none; white-space:nowrap; }
+    .hero-wordmark { font-size:1.9rem; font-weight:800; letter-spacing:0.22em; background:linear-gradient(135deg,#d4a853,#f5d590,#d4a853); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 22px rgba(212,168,83,0.35)); }
+    .hero-sub { font-size:0.75rem; color:rgba(255,255,255,0.38); letter-spacing:0.14em; margin-top:0.3rem; }
+    .hero-cycle-dot { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); z-index:5; display:flex; gap:0.45rem; }
+    .hcd { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.4s; }
+    .hcd.active { background:rgba(232,112,64,0.9); }
+    @media(max-width:768px){
+      .bureau-panel { width:min(200px,42vw); }
+      .bp-inner { margin:0.4rem; padding:1rem 1.1rem; }
+      .bp-name { font-size:1rem; }
+      .bp-stat-val { font-size:0.9rem; }
+    }
+    @media(max-width:500px){
+      .bureau-panel--left { transform:translateY(-80%) translateX(-110%); }
+      .bureau-panel--left.active { transform:translateY(-80%) translateX(0); }
+      .bureau-panel--right { transform:translateY(0%) translateX(110%); }
+      .bureau-panel--right.active { transform:translateY(0%) translateX(0); }
     }
 
     .proof-gallery { display:flex; gap:1.25rem; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; padding:0 0 1.5rem 0; scrollbar-width:thin; scrollbar-color:rgba(139,92,246,0.3) transparent; }
@@ -272,19 +284,44 @@
     </header>
 
     <section id="hero" class="hero-scene">
-      <canvas id="hero-canvas"></canvas>
-      <button id="skipIntro" class="skip-intro" aria-label="Skip intro animation" onclick="window._skipIntro && window._skipIntro()">Skip ▸</button>
-      <div class="hero-text-layer">
-        <div id="hero-content" class="hero-final" style="text-align:center;padding:0 1rem;">
-          <div id="hero-score-display" class="hero-score"></div>
-          <div class="hero-logo">EVOLV</div>
-          <div class="hero-tagline">Rebuild. Rise. Evolv.</div>
-          <div class="hero-paths">
-            <a href="/crm" class="hero-path-btn hero-path-pro">Credit Repair Pro</a>
-            <a href="/diy" class="hero-path-btn hero-path-diy">DIY</a>
+      <div id="globe-container"></div>
+
+      <div id="panel-left" class="bureau-panel bureau-panel--left">
+        <div class="bp-inner">
+          <div class="bp-label">Credit Bureau</div>
+          <div class="bp-name" id="bl-name">EQUIFAX</div>
+          <div class="bp-city" id="bl-city">Atlanta, GA</div>
+          <div class="bp-coords" id="bl-coords">33.7490° N, 84.3880° W</div>
+          <div class="bp-rule"></div>
+          <div class="bp-tagline" id="bl-tagline">The oldest U.S. credit bureau.</div>
+          <div class="bp-stats" id="bl-stats">
+            <div class="bp-stat"><span class="bp-stat-val">220M+</span><span class="bp-stat-label">consumers tracked</span></div>
+            <div class="bp-stat"><span class="bp-stat-val">1899</span><span class="bp-stat-label">established</span></div>
           </div>
-          <div class="hero-hook" style="margin-top:1.5rem;font-size:1.15rem;color:rgba(255,255,255,0.75);letter-spacing:0.02em;">Do you really know what's on your credit report?</div>
         </div>
+      </div>
+
+      <div id="panel-right" class="bureau-panel bureau-panel--right">
+        <div class="bp-inner">
+          <div class="bp-label">Take Action</div>
+          <div class="bp-headline">Errors here cost you thousands</div>
+          <div class="bp-subtext" id="br-subtext">1 in 5 Americans has an error on their Equifax report.</div>
+          <div class="bp-ctas">
+            <a href="/crm" class="bp-cta-pro">Credit Repair Pro</a>
+            <a href="/diy" class="bp-cta-diy">DIY Mode</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-brand-bar">
+        <div class="hero-wordmark">EVOLV</div>
+        <div class="hero-sub">Rebuild. Rise. Evolv.</div>
+      </div>
+
+      <div class="hero-cycle-dot">
+        <div class="hcd active" id="dot-0"></div>
+        <div class="hcd" id="dot-1"></div>
+        <div class="hcd" id="dot-2"></div>
       </div>
     </section>
   </div>
@@ -1009,144 +1046,127 @@
     }
   </script>
   <script>
-  (function(){
-    var canvas = document.getElementById('hero-canvas');
-    var ctx = canvas.getContext('2d');
-    var W, H, cx, cy, dpr;
+  (function() {
+    var container = document.getElementById('globe-container');
+    if (!container || typeof Globe === 'undefined') return;
 
-    document.getElementById('hero-content').classList.add('visible');
-    var skipBtn = document.getElementById('skipIntro');
-    if (skipBtn) skipBtn.classList.add('hidden');
-
-    function resize(){
-      dpr = Math.min(window.devicePixelRatio||1, 2);
-      W = canvas.parentElement.clientWidth;
-      H = canvas.parentElement.clientHeight;
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
-      canvas.style.width = W + 'px';
-      canvas.style.height = H + 'px';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      cx = W / 2;
-      cy = H / 2;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    var SPAWN_X_SPREAD = 0.28;
-    var PARTICLE_COUNT = 110;
-
-    function spawnParticle(aged) {
-      var angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.4;
-      var speed = 0.5 + Math.random() * 1.8;
-      var isSpark = Math.random() < 0.28;
-      var p = {
-        x: cx + (Math.random() - 0.5) * W * SPAWN_X_SPREAD,
-        y: H * 0.78,
-        vx: Math.cos(angle) * speed * 0.35,
-        vy: Math.sin(angle) * speed,
-        size: isSpark ? 1 + Math.random() * 2.5 : 3 + Math.random() * 9,
-        alpha: isSpark ? 0.7 + Math.random() * 0.3 : 0.5 + Math.random() * 0.5,
-        life: aged ? Math.random() : 1.0,
-        decay: isSpark ? 0.008 + Math.random() * 0.018 : 0.003 + Math.random() * 0.008,
-        wobblePhase: Math.random() * Math.PI * 2,
-        wobbleSpeed: 1.5 + Math.random() * 3,
-        wobbleAmp: 0.4 + Math.random() * 1.2,
-        isSpark: isSpark,
-        r: isSpark ? 255 : 230 + Math.floor(Math.random() * 25),
-        g: isSpark ? 220 + Math.floor(Math.random() * 35) : 60 + Math.floor(Math.random() * 80),
-        b: isSpark ? 120 + Math.floor(Math.random() * 80) : 0
-      };
-      return p;
-    }
-
-    var particles = [];
-    for (var pi = 0; pi < PARTICLE_COUNT; pi++) particles.push(spawnParticle(true));
-
-    var bgSparks = [];
-    for (var bi = 0; bi < 28; bi++) {
-      bgSparks.push({
-        x: Math.random() * W,
-        y: Math.random() * H,
-        vy: -(0.04 + Math.random() * 0.18),
-        vx: (Math.random() - 0.5) * 0.12,
-        size: 0.6 + Math.random() * 1.4,
-        alpha: 0.08 + Math.random() * 0.18,
-        life: Math.random()
-      });
-    }
-
-    var heroVisible = true;
-    new IntersectionObserver(function(e){ heroVisible = e[0].isIntersecting; }, { threshold: 0.05 })
-        .observe(canvas.parentElement);
-
-    function drawFrame() {
-      requestAnimationFrame(drawFrame);
-      if (!heroVisible) return;
-      var now = performance.now();
-
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, W, H);
-
-      var glowY = H * 0.74;
-      var g1 = ctx.createRadialGradient(cx, glowY, 0, cx, glowY, W * 0.55);
-      g1.addColorStop(0, 'rgba(255,80,0,0.38)');
-      g1.addColorStop(0.45, 'rgba(220,45,0,0.14)');
-      g1.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g1;
-      ctx.fillRect(0, 0, W, H);
-
-      var g2 = ctx.createRadialGradient(cx, H * 0.32, 0, cx, H * 0.32, W * 0.35);
-      g2.addColorStop(0, 'rgba(255,60,0,0.07)');
-      g2.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g2;
-      ctx.fillRect(0, 0, W, H);
-
-      for (var bi = 0; bi < bgSparks.length; bi++) {
-        var bs = bgSparks[bi];
-        bs.x += bs.vx;
-        bs.y += bs.vy;
-        bs.life -= 0.0025;
-        if (bs.life <= 0 || bs.y < -5) {
-          bs.x = Math.random() * W;
-          bs.y = H + 4;
-          bs.life = 0.6 + Math.random() * 0.4;
-        }
-        ctx.beginPath();
-        ctx.arc(bs.x, bs.y, bs.size, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,150,40,' + (bs.alpha * bs.life) + ')';
-        ctx.fill();
+    var bureaus = [
+      {
+        name: 'EQUIFAX', city: 'Atlanta, GA',
+        coords: '33.7490° N, 84.3880° W', lat: 33.749, lng: -84.388,
+        tagline: 'The oldest U.S. credit bureau.',
+        stats: [{ val: '220M+', label: 'consumers tracked' }, { val: '1899', label: 'established' }],
+        subtext: '1 in 5 Americans has an error on their Equifax report.',
+        color: '#e87040', ringColor: 'rgba(232,112,64,'
+      },
+      {
+        name: 'EXPERIAN', city: 'Costa Mesa, CA',
+        coords: '33.6411° N, 117.9187° W', lat: 33.641, lng: -117.919,
+        tagline: "The world's largest credit bureau.",
+        stats: [{ val: '235M+', label: 'consumers tracked' }, { val: '80+', label: 'countries served' }],
+        subtext: 'Experian reaches the most lenders — errors here cost the most.',
+        color: '#4a90e2', ringColor: 'rgba(74,144,226,'
+      },
+      {
+        name: 'TRANSUNION', city: 'Chicago, IL',
+        coords: '41.8781° N, 87.6298° W', lat: 41.878, lng: -87.630,
+        tagline: 'Data & analytics powerhouse.',
+        stats: [{ val: '200M+', label: 'consumers tracked' }, { val: '1968', label: 'established' }],
+        subtext: 'TransUnion models often catch collectors first. Dispute early.',
+        color: '#8b5cf6', ringColor: 'rgba(139,92,246,'
       }
+    ];
 
-      for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-        p.life -= p.decay;
-        if (p.life <= 0) { particles[i] = spawnParticle(false); continue; }
-        p.x += p.vx + Math.sin(now * 0.001 * p.wobbleSpeed + p.wobblePhase) * p.wobbleAmp;
-        p.y += p.vy;
-        p.vy *= 0.994;
-        var a = p.alpha * p.life;
-        var r = p.size * (0.4 + p.life * 0.6);
-        if (p.isSpark) {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(' + p.r + ',' + p.g + ',' + p.b + ',' + a + ')';
-          ctx.fill();
-        } else {
-          var gp = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-          var ca = Math.min(1, a);
-          gp.addColorStop(0, 'rgba(255,' + Math.min(255, p.g + 130) + ',80,' + ca + ')');
-          gp.addColorStop(0.35, 'rgba(' + p.r + ',' + p.g + ',0,' + (ca * 0.75) + ')');
-          gp.addColorStop(1, 'rgba(180,20,0,0)');
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-          ctx.fillStyle = gp;
-          ctx.fill();
-        }
+    var idx = 0;
+    var panelL = document.getElementById('panel-left');
+    var panelR = document.getElementById('panel-right');
+
+    function setDot(i) {
+      for (var d = 0; d < 3; d++) {
+        var el = document.getElementById('dot-' + d);
+        if (el) el.classList.toggle('active', d === i);
       }
     }
 
-    drawFrame();
+    var globe = Globe()
+      .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+      .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
+      .backgroundColor('rgba(0,0,0,0)')
+      .atmosphereColor('#e87040')
+      .atmosphereAltitude(0.14)
+      .width(container.offsetWidth)
+      .height(container.offsetHeight)
+      (container);
+
+    globe.pointOfView({ lat: 20, lng: -30, altitude: 2.5 });
+    globe.controls().autoRotate = true;
+    globe.controls().autoRotateSpeed = 0.4;
+    globe.controls().enableZoom = false;
+    globe.controls().enablePan = false;
+    globe.controls().enableRotate = false;
+
+    globe.pointsData(bureaus)
+      .pointLat(function(d) { return d.lat; })
+      .pointLng(function(d) { return d.lng; })
+      .pointColor(function(d) { return d.color; })
+      .pointAltitude(0.01)
+      .pointRadius(0.45);
+
+    globe.ringsData([])
+      .ringLat(function(d) { return d.lat; })
+      .ringLng(function(d) { return d.lng; })
+      .ringColor(function(d) { return function(t) { return d.ringColor + Math.max(0, 1 - t) + ')'; }; })
+      .ringMaxRadius(5)
+      .ringPropagationSpeed(2.5)
+      .ringRepeatPeriod(900);
+
+    function updatePanels(b) {
+      document.getElementById('bl-name').textContent = b.name;
+      document.getElementById('bl-city').textContent = b.city;
+      document.getElementById('bl-coords').textContent = b.coords;
+      document.getElementById('bl-tagline').textContent = b.tagline;
+      document.getElementById('bl-stats').innerHTML = b.stats.map(function(s) {
+        return '<div class="bp-stat"><span class="bp-stat-val">' + s.val + '</span><span class="bp-stat-label">' + s.label + '</span></div>';
+      }).join('');
+      document.getElementById('br-subtext').textContent = b.subtext;
+    }
+
+    function showPanels() { panelL.classList.add('active'); panelR.classList.add('active'); }
+    function hidePanels(cb) {
+      panelL.classList.remove('active'); panelR.classList.remove('active');
+      if (cb) setTimeout(cb, 700);
+    }
+
+    function runCycle() {
+      var b = bureaus[idx];
+      setDot(idx);
+      globe.ringsData([b]);
+      setTimeout(function() {
+        globe.controls().autoRotate = false;
+        globe.pointOfView({ lat: b.lat, lng: b.lng, altitude: 1.7 }, 2300);
+        setTimeout(function() {
+          updatePanels(b);
+          showPanels();
+          setTimeout(function() {
+            hidePanels(function() {
+              globe.ringsData([]);
+              globe.pointOfView({ lat: 20, lng: b.lng - 25, altitude: 2.5 }, 1800);
+              setTimeout(function() {
+                globe.controls().autoRotate = true;
+                idx = (idx + 1) % bureaus.length;
+                setTimeout(runCycle, 2200);
+              }, 1800);
+            });
+          }, 5500);
+        }, 2500);
+      }, 900);
+    }
+
+    setTimeout(runCycle, 2000);
+
+    window.addEventListener('resize', function() {
+      globe.width(container.offsetWidth).height(container.offsetHeight);
+    });
   })();
   </script>
 
