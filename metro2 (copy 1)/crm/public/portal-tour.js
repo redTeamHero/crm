@@ -698,7 +698,7 @@
         '<div class="ptour-welcome__phoenix">' + PHOENIX_SVG + '</div>' +
         '<div class="ptour-welcome__title">Welcome to Your Portal!</div>' +
         '<div class="ptour-welcome__body">' +
-          'Hi! I\'m Evolv, your personal credit guide. This portal is your command center for tracking disputes, uploading documents, monitoring your credit scores, and communicating with your team. Want me to give you a quick tour so you know where everything is?' +
+          'Hi! I\'m Evolv 🔥 — your phoenix guide to credit restoration. This portal is your command center for tracking disputes, uploading documents, monitoring your credit scores, and communicating with your team. Want me to show you around?' +
         '</div>' +
         '<div class="ptour-welcome__actions">' +
           '<button class="ptour-welcome__btn ptour-welcome__btn--start" data-action="start">Show Me Around!</button>' +
