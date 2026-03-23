@@ -69,7 +69,7 @@
     .nav-globe-spin { animation: navGlobeSpin 6s linear infinite; transform-origin: 14px 14px; }
     @keyframes navGlobeSpin { to { transform: rotate(360deg); } }
     .hero-scene { position:relative; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#000; }
-    #globe-container { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; touch-action:auto; }
+    #globe-container { position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none; touch-action:auto; }
     .bureau-panel { position:absolute; top:50%; z-index:5; width:min(270px,36vw); pointer-events:auto; }
     .bureau-panel--left { left:0; transform:translateY(-50%) translateX(-110%); transition:transform 0.65s cubic-bezier(0.22,1,0.36,1); }
     .bureau-panel--left.active { transform:translateY(-50%) translateX(0); }
@@ -347,7 +347,7 @@
     </script>
 
     <section id="hero" class="hero-scene">
-      <canvas id="space-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;"></canvas>
+      <canvas id="space-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;"></canvas>
       <div id="globe-container"></div>
 
       <div id="panel-left" class="bureau-panel bureau-panel--left">
