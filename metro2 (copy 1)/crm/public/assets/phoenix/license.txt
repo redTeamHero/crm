@@ -1,0 +1,11 @@
+Model Information:
+* title:	Phoenix
+* source:	https://sketchfab.com/3d-models/phoenix-1af2002062964ca198f8fcc57dbeb528
+* author:	rononono (https://sketchfab.com/rononono)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Phoenix" (https://sketchfab.com/3d-models/phoenix-1af2002062964ca198f8fcc57dbeb528) by rononono (https://sketchfab.com/rononono) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

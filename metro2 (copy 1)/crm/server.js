@@ -1658,6 +1658,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Long cache for 3D model assets (phoenix GLTF)
+app.use('/assets/phoenix', (req, res, next) => {
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  next();
+});
+
 // Disable default index to avoid auto-serving the app without auth
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
