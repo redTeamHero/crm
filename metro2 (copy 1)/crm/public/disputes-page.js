@@ -493,64 +493,101 @@ async function renderLetterHistory(consumerId) {
       return;
     }
 
-    // Group per-letter records by jobId/round
+    const tokenParam = authHeader()?.Authorization ? `?token=${encodeURIComponent(authHeader().Authorization.replace('Bearer ',''))}` : '';
+
+    // Build deduped at-a-glance list: one row per unique (letterType, bureau) combo, newest date
+    const dedupMap = new Map();
+    for (const letter of letters) {
+      const tplKey = `${letter.letterType || '(unknown)'}__${letter.bureau || ''}`;
+      const existing = dedupMap.get(tplKey);
+      const letterAt = letter.at ? new Date(letter.at).getTime() : 0;
+      if (!existing || letterAt > (existing.latestAt || 0)) {
+        dedupMap.set(tplKey, {
+          letterType: letter.letterType,
+          bureau: letter.bureau,
+          creditor: letter.creditor,
+          round: letter.round,
+          jobId: letter.jobId,
+          latestAt: letterAt,
+          at: letter.at,
+        });
+      }
+    }
+    const deduped = Array.from(dedupMap.values()).sort((a, b) => (b.latestAt || 0) - (a.latestAt || 0));
+
+    // Build per-round detail grouped by jobId (for expandable section)
     const byJob = new Map();
     for (const letter of letters) {
       const key = letter.jobId || `nojob_${letter.at}`;
       if (!byJob.has(key)) {
-        byJob.set(key, {
-          jobId: letter.jobId,
-          round: letter.round,
-          at: letter.at,
-          requestType: letter.requestType,
-          letterItems: [],
-        });
+        byJob.set(key, { jobId: letter.jobId, round: letter.round, at: letter.at, letterItems: [] });
       }
       byJob.get(key).letterItems.push(letter);
     }
+    const groups = Array.from(byJob.values()).sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
 
-    let html = `<div style="display:flex;flex-direction:column;gap:8px;">`;
-    const tokenParam = authHeader()?.Authorization ? `?token=${encodeURIComponent(authHeader().Authorization.replace('Bearer ',''))}` : '';
+    let html = `<div style="display:flex;flex-direction:column;gap:10px;">`;
 
-    for (const group of byJob.values()) {
-      const date = group.at ? new Date(group.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
-      const roundLabel = group.round ? `Round ${group.round}` : '';
-      const dlLink = group.jobId ? `/api/letters/${encodeURIComponent(group.jobId)}/all.zip${tokenParam}` : null;
-      const count = group.letterItems.length;
-
-      const itemsHtml = group.letterItems.map(l => {
-        const creditor = escapeHtml(l.creditor || 'Unknown');
-        const bureau = escapeHtml(l.bureau || '');
-        const tpl = l.letterType ? `<span style="color:#888;font-size:10px;margin-left:4px;">${escapeHtml(l.letterType)}</span>` : '';
-        const acct = l.accountNumber ? `<span style="color:#666;font-size:10px;"> ·  ${escapeHtml(l.accountNumber)}</span>` : '';
-        return `<div style="font-size:11px;color:#ccc;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span style="font-weight:500;">${creditor}</span><span style="color:#666;">→</span><span style="color:#9ca3af;">${bureau}</span>${tpl}${acct}
-        </div>`;
-      }).join('');
-
-      html += `<div style="padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-          <span style="font-size:12px;font-weight:600;color:#e5e7eb;">${escapeHtml(date)}</span>
-          ${roundLabel ? `<span style="font-size:10px;color:#d4a853;font-weight:600;background:rgba(212,168,83,0.1);padding:1px 7px;border-radius:9999px;border:1px solid rgba(212,168,83,0.2);">${escapeHtml(roundLabel)}</span>` : ''}
-          <span style="font-size:10px;color:#666;margin-left:auto;">${count} letter${count !== 1 ? 's' : ''}</span>
-          ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:10px;color:#60a5fa;text-decoration:none;white-space:nowrap;">⬇ ZIP</a>` : ''}
-        </div>
-        <div style="display:flex;flex-direction:column;gap:1px;">${itemsHtml}</div>
+    // At-a-glance deduped table
+    html += `<div>
+      <div style="font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Letter types sent</div>
+      <div style="display:flex;flex-direction:column;gap:3px;">`;
+    for (const entry of deduped) {
+      const date = entry.at ? new Date(entry.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+      const tpl = escapeHtml(entry.letterType || '(unknown)');
+      const bureau = escapeHtml(entry.bureau || '');
+      const roundBadge = entry.round ? `<span style="font-size:9px;color:#d4a853;background:rgba(212,168,83,0.1);padding:1px 5px;border-radius:9999px;border:1px solid rgba(212,168,83,0.2);">R${entry.round}</span>` : '';
+      html += `<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;font-size:11px;">
+        <span style="font-weight:600;color:#e5e7eb;flex:1;min-width:0;">${tpl}</span>
+        <span style="color:#9ca3af;">${bureau}</span>
+        ${roundBadge}
+        <span style="color:#666;white-space:nowrap;margin-left:auto;">${escapeHtml(date)}</span>
       </div>`;
     }
-
-    // Standalone summary entries (no dispute_round data)
+    // Summaries from standalone jobs with no round data
     for (const s of summaries) {
-      const date = s.at ? new Date(s.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
+      const date = s.at ? new Date(s.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
       const bureaus = (s.bureaus || []).join(', ') || 'N/A';
       const dlLink = s.jobId ? `/api/letters/${encodeURIComponent(s.jobId)}/all.zip${tokenParam}` : null;
-      html += `<div style="padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;display:flex;align-items:center;gap:8px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;color:#e5e7eb;">${escapeHtml(date)}</div>
-          <div style="font-size:11px;color:#888;">${s.count} letter${s.count !== 1 ? 's' : ''} · ${escapeHtml(bureaus)}</div>
-        </div>
-        ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:10px;color:#60a5fa;text-decoration:none;white-space:nowrap;">⬇ ZIP</a>` : ''}
+      html += `<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;font-size:11px;">
+        <span style="color:#888;flex:1;">${s.count} letter${s.count !== 1 ? 's' : ''} · ${escapeHtml(bureaus)}</span>
+        <span style="color:#666;white-space:nowrap;">${escapeHtml(date)}</span>
+        ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:10px;color:#60a5fa;text-decoration:none;white-space:nowrap;margin-left:4px;">⬇</a>` : ''}
       </div>`;
+    }
+    html += `</div></div>`;
+
+    // Expandable per-round detail
+    if (groups.length > 0) {
+      const detailId = `lh-detail-${consumerId}`;
+      html += `<details style="font-size:11px;">
+        <summary style="cursor:pointer;color:#60a5fa;font-size:11px;list-style:none;display:flex;align-items:center;gap:4px;user-select:none;">
+          <span>▶</span> Round-by-round detail
+        </summary>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">`;
+      for (const group of groups) {
+        const date = group.at ? new Date(group.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
+        const roundLabel = group.round ? `Round ${group.round}` : 'No round';
+        const dlLink = group.jobId ? `/api/letters/${encodeURIComponent(group.jobId)}/all.zip${tokenParam}` : null;
+        const itemsHtml = group.letterItems.map(l => {
+          const creditor = escapeHtml(l.creditor || 'Unknown');
+          const bureau = escapeHtml(l.bureau || '');
+          const tpl = l.letterType ? `<span style="color:#888;font-size:10px;">${escapeHtml(l.letterType)}</span>` : '';
+          return `<div style="font-size:10px;color:#ccc;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-weight:500;">${creditor}</span><span style="color:#666;">→</span><span style="color:#9ca3af;">${bureau}</span>${tpl}
+          </div>`;
+        }).join('');
+        html += `<div style="padding:6px 8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span style="font-weight:600;color:#e5e7eb;">${escapeHtml(date)}</span>
+            <span style="font-size:10px;color:#d4a853;">${escapeHtml(roundLabel)}</span>
+            <span style="font-size:10px;color:#666;margin-left:auto;">${group.letterItems.length} letter${group.letterItems.length !== 1 ? 's' : ''}</span>
+            ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:10px;color:#60a5fa;text-decoration:none;">⬇ ZIP</a>` : ''}
+          </div>
+          <div>${itemsHtml}</div>
+        </div>`;
+      }
+      html += `</div></details>`;
     }
 
     html += `</div>`;

@@ -673,6 +673,7 @@ function buildLetterHTML(opts) {
   ${(() => { const _sl = getStateLawAddendum(consumer.state); return _sl ? `<p class="ocr" style="margin-top:16px;padding:12px;border-left:3px solid #d4a853;background:#fffbf0;font-size:13px;color:#374151;">${safe(_sl.addendum)}</p>` : ''; })()}
   ${hasSig ? '' : `<div class="sig-block"><p>Sincerely,<br>${safe(consumer.name)}</p></div>`}
   ${opts._enclosuresHtml || ''}
+  ${(() => { const _sl = getStateLawAddendum(consumer.state); return _sl ? `<p style="font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;margin-top:24px;padding-top:8px;text-align:center;">Applicable state law: ${safe(_sl.name)}</p>` : ''; })()}
 </body>
 </html>`.trim();
 
@@ -774,6 +775,7 @@ function buildLetterHTML(opts) {
     <p>${signOff}</p>
   </div>
   ${opts._enclosuresHtml || ''}
+  ${(() => { const _sl = getStateLawAddendum(consumer.state); return _sl ? `<p style="font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;margin-top:24px;padding-top:8px;text-align:center;">Applicable state law: ${safe(_sl.name)}</p>` : ''; })()}
 </body>
 </html>`.trim();
 
@@ -825,6 +827,9 @@ function buildLetterTemplate({ title, bodyHtml, consumer, headerData }) {
   const stateLawHtml = _sl
     ? `<p style="margin-top:16px;padding:12px;border-left:3px solid #d4a853;background:#fffbf0;font-size:13px;color:#374151;">${safe(_sl.addendum)}</p>`
     : '';
+  const stateLawFooterHtml = _sl
+    ? `<p style="font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;margin-top:24px;padding-top:8px;text-align:center;">Applicable state law: ${safe(_sl.name)}</p>`
+    : '';
   return `
 <!DOCTYPE html>
 <html>
@@ -851,6 +856,7 @@ function buildLetterTemplate({ title, bodyHtml, consumer, headerData }) {
   <div class="muted" style="margin-bottom:14px;">${dateStr}</div>
   ${bodyHtml}
   ${stateLawHtml}
+  ${stateLawFooterHtml}
 </body>
 </html>
   `.trim();
