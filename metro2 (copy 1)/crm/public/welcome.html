@@ -99,7 +99,7 @@
     .hero-cycle-dot { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); z-index:5; display:flex; gap:0.45rem; }
     .hcd { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.4s; }
     .hcd.active { background:rgba(232,112,64,0.9); }
-    .globe-legend { position:absolute; bottom:5.5rem; right:1.5rem; z-index:6; display:flex; flex-direction:column; gap:0.32rem; pointer-events:none; }
+    .globe-legend { position:absolute; bottom:5.5rem; right:1.5rem; z-index:6; display:flex; flex-direction:column; gap:0.32rem; pointer-events:none; background:rgba(0,0,0,0.38); border:1px solid rgba(255,255,255,0.07); border-radius:0.55rem; padding:0.5rem 0.75rem; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
     .gl-row { display:flex; align-items:center; gap:0.45rem; font-size:0.62rem; letter-spacing:0.08em; color:rgba(255,255,255,0.52); text-transform:uppercase; }
     .gl-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
     @media(max-width:500px){ .globe-legend { bottom:4.5rem; right:0.75rem; } }
@@ -1089,13 +1089,13 @@
     var secondaryBureaus = [
       { name: 'Innovis',            lat: 39.961, lng: -82.999 },
       { name: 'ChexSystems',        lat: 44.924, lng: -93.007 },
-      { name: 'LexisNexis Risk',    lat: 34.075, lng: -84.294 },
+      { name: 'LexisNexis Risk Solutions',    lat: 34.075, lng: -84.294 },
       { name: 'SageStream',         lat: 32.716, lng: -117.161 },
       { name: 'CoreLogic',          lat: 33.684, lng: -117.826 }
     ];
 
     var collectors = [
-      { name: 'Midland Credit Mgmt',       lat: 32.715, lng: -117.157, nearLat: 33.641, nearLng: -117.919 },
+      { name: 'Midland Credit Management',       lat: 32.715, lng: -117.157, nearLat: 33.641, nearLng: -117.919 },
       { name: 'Portfolio Recovery',         lat: 36.847, lng: -76.086, nearLat: 33.749, nearLng: -84.388  },
       { name: 'LVNV Funding',               lat: 34.853, lng: -82.394, nearLat: 33.749, nearLng: -84.388  },
       { name: 'Convergent Outsourcing',     lat: 47.483, lng: -122.217, nearLat: 33.641, nearLng: -117.919 },
