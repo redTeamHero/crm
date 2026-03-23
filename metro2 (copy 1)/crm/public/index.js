@@ -604,17 +604,24 @@ function currentPageItems(){
   return items.slice(start, start+PAGE_SIZE);
 }
 
-async function loadConsumers(restore = true, invalidateGeo = false){
+async function loadConsumers(restore = true, invalidateGeo = false, _attempt = 1){
   clearErr();
+  const loadingEl = document.getElementById('consumerLoadingState');
+  if (loadingEl) loadingEl.style.display = 'block';
   const data = await api("/api/consumers");
+  if (loadingEl) loadingEl.style.display = 'none';
   if (data.status === 401 || data.status === 403 || data.error === 'Forbidden') {
     localStorage.removeItem('token');
     localStorage.removeItem('auth');
     location.href = '/login.html';
     return;
   }
-  if (data.ok === false || !data.consumers) {
-    showErr(data.error || 'Could not load consumers.');
+  if (data.ok === false || !Array.isArray(data.consumers)) {
+    if (_attempt < 3) {
+      await new Promise(r => setTimeout(r, 1000 * _attempt));
+      return loadConsumers(restore, invalidateGeo, _attempt + 1);
+    }
+    showErr(data.error || 'Could not load clients. Please refresh the page.');
     return;
   }
   DB = data.consumers;

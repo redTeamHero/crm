@@ -757,7 +757,7 @@ function getJwtSecret(){
   return secret;
 }
 
-const TOKEN_EXPIRES_IN = "1h";
+const TOKEN_EXPIRES_IN = "7d";
 
 function generateToken(user){
   return jwt.sign({
