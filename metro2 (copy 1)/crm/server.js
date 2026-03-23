@@ -264,11 +264,12 @@ initHostNotifications();
   let lastWeeklyDate = "";
   let lastAttentionDate = "";
   // Dedup sets — keyed by consumerId or consumerId:itemId to prevent repeat fires per session
-  const _notifiedOverdue = new Set();   // invoice overdue
-  const _notifiedDueSoon = new Set();   // invoice due soon
-  const _notifiedReminderOverdue = new Set(); // reminder_overdue keyed by consumerId:reminderId
+  const _notifiedOverdue = new Set();         // invoice overdue
+  const _notifiedDueSoon = new Set();         // invoice due soon
+  const _notifiedReminderOverdue = new Set(); // reminder_overdue / followup_overdue / post_call_notes keyed by consumerId:id
   const _notifiedClientInactive = new Set();  // client_inactive keyed by consumerId
   const _notifiedSLA = new Set();             // dispute_sla_missed keyed by consumerId:jobId
+  const _notifiedCallReminder = new Set();    // call_reminder keyed by consumerId:bookingId
 
   async function runDigestTick() {
     try {
@@ -442,6 +443,38 @@ initHostNotifications();
                   _notifiedSLA.add(slaKey);
                   try { await addEvent(cId, "dispute_sla_missed", { jobId, daysSinceRound: Math.floor(drAge / 86400000) }); } catch {}
                 }
+              }
+            }
+          }
+
+          // followup_overdue: dispute_followup reminders that are overdue
+          if (settings.events?.followup_overdue !== false) {
+            for (const rem of (st.reminders || [])) {
+              if (rem.status === "overdue" && rem.payload?.type === "dispute_followup") {
+                const rfKey = `${cId}:fo:${rem.id}`;
+                if (!_notifiedReminderOverdue.has(rfKey)) {
+                  _notifiedReminderOverdue.add(rfKey);
+                  try { await addEvent(cId, "followup_overdue", { reminderId: rem.id, due: rem.due, jobId: rem.payload?.jobId }); } catch {}
+                }
+              }
+            }
+          }
+
+          // call_reminder: call_booked event where scheduled time is within 24h from now
+          if (settings.events?.call_reminder !== false) {
+            const upcomingCalls = events.filter(e => {
+              if (e.type !== "call_booked") return false;
+              const callDateStr = e.payload?.date && e.payload?.time ? `${e.payload.date}T${e.payload.time}` : null;
+              if (!callDateStr) return false;
+              const callMs = new Date(callDateStr).getTime();
+              return !isNaN(callMs) && callMs > nowMs && callMs - nowMs <= 86400000;
+            });
+            for (const bc of upcomingCalls) {
+              const bId = bc.payload?.bookingId || bc.id;
+              const crKey = `${cId}:cr:${bId}`;
+              if (!_notifiedCallReminder.has(crKey)) {
+                _notifiedCallReminder.add(crKey);
+                try { await addEvent(cId, "call_reminder", { bookingId: bId, date: bc.payload?.date, time: bc.payload?.time }); } catch {}
               }
             }
           }
@@ -1497,6 +1530,8 @@ app.post(
       res.status(200).json({ received: true });
     } catch (error) {
       console.error('Webhook error:', error.message);
+      // integration_failure: Stripe webhook processing failed
+      try { await emitHostNotification("integration_failure", `Stripe webhook error: ${error.message}`, { service: "stripe", error: error.message }); } catch {}
       res.status(400).json({ error: 'Webhook processing error' });
     }
   }
@@ -3039,17 +3074,12 @@ app.delete("/api/booking/bookings/:id", authenticate, async (req, res) => {
         }
       } catch {}
     } else {
-      // No consumerId — emit host-level notification directly
-      try {
-        await addNotification({
-          eventType: isNoShow ? "no_show_detected" : "call_canceled",
-          message: isNoShow
-            ? `No-show: ${booking.name || "client"} — ${booking.date} ${booking.time}`
-            : `Call canceled: ${booking.name || "client"} — ${booking.date} ${booking.time}`,
-          payload: { name: booking.name, date: booking.date, time: booking.time },
-          delivery: { inApp: true, emailSent: false, smsSent: false },
-        });
-      } catch {}
+      // No consumerId — emit host-level notification via settings-checked path
+      const _evtType = isNoShow ? "no_show_detected" : "call_canceled";
+      const _evtMsg = isNoShow
+        ? `No-show: ${booking.name || "client"} — ${booking.date} ${booking.time}`
+        : `Call canceled: ${booking.name || "client"} — ${booking.date} ${booking.time}`;
+      try { await emitHostNotification(_evtType, _evtMsg, { name: booking.name, date: booking.date, time: booking.time }); } catch {}
     }
     res.json({ ok: true });
   } catch (e) {
@@ -5486,6 +5516,11 @@ app.put("/api/consumers/:id", authenticate, requirePermission("consumers"), asyn
   c.updatedAt = new Date().toISOString();
   await saveDB(db);
   await addEvent(c.id, "consumer_updated", { fields: Object.keys(req.body||{}) });
+  // client_profile_updated: fires when any core profile field is changed
+  const PROFILE_FIELDS = ["name","email","phone","addr1","city","state","zip","dob","ssn_last4"];
+  if (PROFILE_FIELDS.some(f => req.body?.[f] !== undefined)) {
+    try { await addEvent(c.id, "client_profile_updated", { name: c.name, changedFields: PROFILE_FIELDS.filter(f => req.body?.[f] !== undefined) }); } catch {}
+  }
   if (req.body?.status && req.body.status !== prevStatus) {
     try {
       await addEvent(c.id, "client_status_changed", { name: c.name, status: req.body.status });
@@ -6254,14 +6289,7 @@ app.post("/api/team-members", authenticate, requireRole("admin"), async (req,res
     try{ fs.writeFileSync(path.join(PUBLIC_DIR, `team-${token}.html`), html); }catch{}
   }
   const response = buildTeamMemberResponse(member);
-  try {
-    await addNotification({
-      eventType: "team_member_added",
-      message: `New team member added: ${member.name || member.username}`,
-      payload: { memberName: member.name || member.username, username: member.username, teamRole: member.teamRole },
-      delivery: { inApp: true, emailSent: false, smsSent: false },
-    });
-  } catch {}
+  try { await emitHostNotification("team_member_added", `New team member added: ${member.name || member.username}`, { memberName: member.name || member.username, username: member.username, teamRole: member.teamRole }); } catch {}
   res.json({ ok:true, member: { ...response, token, password: passwordPlain } });
 });
 
@@ -6310,14 +6338,7 @@ app.patch("/api/team-members/:id", authenticate, requireRole("admin"), async (re
   }
   if(dirty){
     await saveUsersDB(db);
-    try {
-      await addNotification({
-        eventType: "role_changed",
-        message: `Role updated for ${member.name || member.username}: ${member.teamRole || "custom"}`,
-        payload: { memberName: member.name || member.username, teamRole: member.teamRole },
-        delivery: { inApp: true, emailSent: false, smsSent: false },
-      });
-    } catch {}
+    try { await emitHostNotification("role_changed", `Role updated for ${member.name || member.username}: ${member.teamRole || "custom"}`, { memberName: member.name || member.username, teamRole: member.teamRole }); } catch {}
   }
   const response = buildTeamMemberResponse(member);
   res.json({ ok:true, member: response });
