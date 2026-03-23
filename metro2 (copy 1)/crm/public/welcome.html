@@ -2055,6 +2055,10 @@
     /* timers (ms until next spawn of each type) */
     var tShoot = 2500, tComet = 9000, tSat = 14000, tShip = 18000, tRoid = 22000;
 
+    /* meteor shower state */
+    var shower = null;   /* active shower object or null */
+    var tShower = 20000; /* ms until next shower */
+
     /* ── Helpers ── */
     function edgeEntry(margin) {
       margin = margin || 30;
@@ -2098,6 +2102,35 @@
       }
       roids.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
         rot: 0, rspd: rnd(-0.018, 0.018), pts: pts });
+    }
+
+    function spawnShower() {
+      /* pick a radiant point — upper portion of screen, random x */
+      var radX = rnd(W * 0.15, W * 0.85);
+      var radY = rnd(-H * 0.2, H * 0.25);
+      /* travel direction: generally downward with random lean */
+      var baseAng = rnd(Math.PI * 0.35, Math.PI * 0.65);
+      var count   = Math.round(rnd(12, 20));
+      var pending = [];
+      for (var k = 0; k < count; k++) {
+        /* each meteor starts near the radiant with slight offset */
+        var offR = rnd(0, 60);
+        var offA = rnd(0, Math.PI * 2);
+        var ang  = baseAng + rnd(-0.18, 0.18); /* tiny fan */
+        var sp   = rnd(5.5, 10);
+        pending.push({
+          delay:  rnd(0, 3200),          /* stagger spawns over 3.2 s */
+          x:      radX + Math.cos(offA) * offR,
+          y:      radY + Math.sin(offA) * offR,
+          vx:     Math.cos(ang) * sp,
+          vy:     Math.sin(ang) * sp,
+          tail:   [],
+          maxTail: Math.round(rnd(8, 18)),
+          r:      rnd(0.5, 1.1),
+          alive:  false
+        });
+      }
+      shower = { pending: pending, active: [], done: false };
     }
 
     /* ── Draw functions ── */
@@ -2165,6 +2198,21 @@
       ctx.beginPath(); ctx.arc(0, 4, 6, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
       ctx.restore();
     }
+    function drawMeteorFn(m) {
+      if (m.tail.length < 2) return;
+      var t0 = m.tail[0], t1 = m.tail[m.tail.length - 1];
+      var g = ctx.createLinearGradient(t0.x, t0.y, t1.x, t1.y);
+      g.addColorStop(0, 'rgba(200,220,255,0)');
+      g.addColorStop(1, 'rgba(220,235,255,0.85)');
+      ctx.beginPath();
+      ctx.moveTo(t0.x, t0.y);
+      for (var j = 1; j < m.tail.length; j++) ctx.lineTo(m.tail[j].x, m.tail[j].y);
+      ctx.lineTo(m.x, m.y);
+      ctx.strokeStyle = g; ctx.lineWidth = m.r; ctx.stroke();
+      ctx.beginPath(); ctx.arc(m.x, m.y, m.r * 0.9, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(240,248,255,0.88)'; ctx.fill();
+    }
+
     function drawRoidFn(a) {
       ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.rot);
       ctx.beginPath();
@@ -2211,6 +2259,28 @@
       if (tShip <= 0 && ships.length < 1)       { spawnShip();    tShip  = rnd(18000, 32000); }
       tRoid -= dt;
       if (tRoid <= 0 && roids.length < 1)       { spawnRoid();    tRoid  = rnd(22000, 40000); }
+      tShower -= dt;
+      if (tShower <= 0 && !shower)               { spawnShower();  tShower = rnd(28000, 55000); }
+
+      /* update meteor shower */
+      if (shower) {
+        /* tick pending delays and activate ready meteors */
+        shower.pending = shower.pending.filter(function(m) {
+          m.delay -= dt;
+          if (m.delay <= 0) { shower.active.push(m); return false; }
+          return true;
+        });
+        /* move and draw active shower meteors */
+        shower.active = shower.active.filter(function(m) {
+          m.tail.push({ x: m.x, y: m.y });
+          if (m.tail.length > m.maxTail) m.tail.shift();
+          m.x += m.vx; m.y += m.vy;
+          drawMeteorFn(m);
+          return !gone(m.x, m.y);
+        });
+        /* shower is finished when both queues are empty */
+        if (shower.pending.length === 0 && shower.active.length === 0) shower = null;
+      }
 
       /* update & draw transients */
       shooters = shooters.filter(function(o) {
