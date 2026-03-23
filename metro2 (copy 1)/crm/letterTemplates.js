@@ -106,7 +106,7 @@ I am asking that you take the following steps within 15 days:
 3. Correct or delete the disputed information if it cannot be verified with documentation.
 4. Send me written confirmation of what you have done.
 
-If a satisfactory resolution is not reached, I am prepared to seek assistance from the Consumer Financial Protection Bureau and my State Attorney General's office.
+If a satisfactory resolution is not reached through this process, I am prepared to explore all available options.
 
 Sincerely,
 [Your Name]`
@@ -534,7 +534,7 @@ Here is what I need from you:
 3. Opt-Out Evidence: Documentation showing I was given a real opportunity to opt out before any sharing occurred.
 4. Safeguard Compliance: Confirmation that your information security practices meet applicable requirements to protect my information.
 
-If my information was shared without proper notice and a meaningful opt-out opportunity, I reserve the right to file complaints with the appropriate regulatory agencies.
+If my information was shared without proper notice and a meaningful opt-out opportunity, I am requesting a full explanation and correction of the issue.
 
 Sincerely,
 [Your Name]`
@@ -598,7 +598,7 @@ I am asking you to immediately:
 3. Limit any future communication to written correspondence only.
 4. Confirm compliance in writing.
 
-If this conduct continues, I will file complaints with the FTC, the CFPB, and my State Attorney General's office.
+If this conduct continues without resolution, I will need to document these events and escalate through the appropriate channels.
 
 Sincerely,
 [Your Name]`

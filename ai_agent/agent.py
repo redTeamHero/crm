@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from .memory.vectorstore import KnowledgeMemory
 from .tools.client_profile_tool import summarize_client_profile
-from .tools.dispute_tool import generate_dispute_letter
+from .tools.dispute_tool import generate_dispute_letter, get_dispute_system_prompt
 from .tools.knowledge_tool import lookup_fact
 from .tools.metro2_tool import run_metro2_audit
 from .workflows.audit_workflow import build_audit_summary
@@ -32,7 +32,14 @@ class ToolSpec:
 
 
 class AIAgent:
-    """Simple router that maps intents to domain tools."""
+    """Simple router that maps intents to domain tools.
+
+    When this agent is wired to an LLM, inject get_dispute_system_prompt() as
+    the system message for any model call that generates or refines dispute
+    letter content. This enforces the Evolv tone policy at the model level.
+    """
+
+    DISPUTE_SYSTEM_PROMPT: str = get_dispute_system_prompt()
 
     def __init__(self, memory: Optional[KnowledgeMemory] = None):
         self.memory = memory or KnowledgeMemory()
@@ -48,7 +55,13 @@ class AIAgent:
         self.register_tool(
             "dispute_generator",
             generate_dispute_letter,
-            "Draft a Metro-2 dispute letter using identified violations.",
+            (
+                "Draft a Metro-2 dispute letter using identified violations. "
+                "Letters must follow the Evolv tone policy: no statute citations, "
+                "no case law, no threats, no emotional or rights-claiming language — "
+                "professional and fact-based only. "
+                f"System prompt: {self.DISPUTE_SYSTEM_PROMPT}"
+            ),
         )
         self.register_tool(
             "knowledge_lookup",
