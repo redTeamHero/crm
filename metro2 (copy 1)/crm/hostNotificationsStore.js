@@ -20,6 +20,10 @@ const WATCHED_EVENTS = new Set([
   "letters_mailed",
   "dispute_response",
   "call_booked",
+  // Leads
+  "lead_new",
+  "lead_status_changed",
+  "lead_converted",
   // Client lifecycle
   "client_invited",
   "client_activated",
@@ -42,6 +46,7 @@ const WATCHED_EVENTS = new Set([
   "item_removed",
   "score_change",
   "dispute_sla_missed",
+  "dispute_ready",
   // Documents & files
   "file_review_required",
   "document_approved",
@@ -83,6 +88,10 @@ const EVENT_LABELS = {
   letters_mailed: "Letters mailed",
   dispute_response: "Dispute response received",
   call_booked: "Call booked",
+  // Leads
+  lead_new: "New lead received",
+  lead_status_changed: "Lead status changed",
+  lead_converted: "Lead converted to client",
   // Client lifecycle
   client_invited: "Client invited",
   client_activated: "Client signed up",
@@ -105,6 +114,7 @@ const EVENT_LABELS = {
   item_removed: "Item removed from report",
   score_change: "Score change detected",
   dispute_sla_missed: "Dispute follow-up needed",
+  dispute_ready: "Ready for next dispute round",
   // Documents & files
   file_review_required: "File requires review",
   document_approved: "Document approved/rejected",
@@ -153,6 +163,15 @@ function buildMessage(eventType, payload) {
   const filename = payload?.name || payload?.filename || null;
 
   switch (eventType) {
+    case "lead_new":
+      return name ? `${base}: ${name}${payload?.source ? ` (${payload.source})` : ""}` : base;
+    case "lead_status_changed":
+      return name
+        ? `${base}: ${name}${payload?.from && payload?.to ? ` → ${payload.to}` : ""}`
+        : base;
+    case "lead_converted":
+      return name ? `${base}: ${name}` : base;
+
     case "consumer_created":
     case "client_invited":
     case "client_activated":
@@ -178,6 +197,9 @@ function buildMessage(eventType, payload) {
 
     case "subscription_renewed":
     case "trial_ending_soon":
+      return name ? `${base} — ${name}` : base;
+
+    case "dispute_ready":
       return name ? `${base} — ${name}` : base;
 
     case "report_uploaded":
@@ -243,6 +265,10 @@ function buildMessage(eventType, payload) {
 //   Recommended (default on) — everything else
 //   Advanced (default off) — login_new_device, daily_digest, weekly_summary, needs_attention_digest
 const EVENT_DEFAULTS = {
+  // Leads — all essential/on
+  lead_new: true,             // Essential
+  lead_status_changed: true,
+  lead_converted: true,       // Essential
   // Existing — all recommended/on
   consumer_created: true,
   billing_plan_cycle_processed: true,
@@ -275,6 +301,7 @@ const EVENT_DEFAULTS = {
   item_removed: true,         // Essential
   score_change: true,         // Essential
   dispute_sla_missed: true,
+  dispute_ready: true,        // Essential
   // Documents & files
   file_review_required: true,
   document_approved: true,

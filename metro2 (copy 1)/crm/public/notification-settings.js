@@ -3,6 +3,10 @@
 
 (function () {
   const EVENT_IDS = [
+    // Leads
+    'lead_new',
+    'lead_status_changed',
+    'lead_converted',
     // Existing
     'consumer_created',
     'billing_plan_cycle_processed',
@@ -35,6 +39,7 @@
     'item_removed',
     'score_change',
     'dispute_sla_missed',
+    'dispute_ready',
     // Documents & files
     'file_review_required',
     'document_approved',

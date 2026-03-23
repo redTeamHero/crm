@@ -271,6 +271,7 @@ initHostNotifications();
   const _notifiedSLA = new Set();             // dispute_sla_missed keyed by consumerId:jobId
   const _notifiedCallReminder = new Set();    // call_reminder keyed by consumerId:bookingId
   const _notifiedDocExpiring = new Set();     // document_expiring keyed by consumerId:filename
+  const _notifiedDisputeReady = new Set();    // dispute_ready keyed by consumerId:jobId
 
   async function runDigestTick() {
     try {
@@ -443,6 +444,36 @@ initHostNotifications();
                 if (!_notifiedSLA.has(slaKey)) {
                   _notifiedSLA.add(slaKey);
                   try { await addEvent(cId, "dispute_sla_missed", { jobId, daysSinceRound: Math.floor(drAge / 86400000) }); } catch {}
+                }
+              }
+            }
+          }
+
+          // dispute_ready: most recent dispute_round's followUpDate has passed and no newer round started
+          if (settings.events?.dispute_ready !== false) {
+            const disputeRounds = events.filter(e => e.type === "dispute_round");
+            if (disputeRounds.length > 0) {
+              // Sort rounds ascending by date, pick the latest
+              const sortedRounds = disputeRounds.slice().sort((a, b) => new Date(a.at || 0) - new Date(b.at || 0));
+              const latestRound = sortedRounds[sortedRounds.length - 1];
+              const jobId = latestRound.payload?.jobId;
+              const followUpDateStr = latestRound.payload?.followUpDate;
+              if (jobId && followUpDateStr) {
+                const followUpMs = new Date(followUpDateStr).getTime();
+                if (!isNaN(followUpMs) && followUpMs < nowMs) {
+                  // Check no newer dispute_round started after this one's followUpDate
+                  const newerRoundExists = disputeRounds.some(e => {
+                    if (e === latestRound) return false;
+                    return new Date(e.at || 0).getTime() > followUpMs;
+                  });
+                  if (!newerRoundExists) {
+                    const drKey = `${cId}:dr:${jobId}`;
+                    if (!_notifiedDisputeReady.has(drKey)) {
+                      _notifiedDisputeReady.add(drKey);
+                      const consumerName = latestRound.payload?.letters?.[0]?.creditor || null;
+                      try { await addEvent(cId, "dispute_ready", { jobId, round: latestRound.payload?.round, followUpDate: followUpDateStr, daysPast: Math.floor((nowMs - followUpMs) / 86400000) }); } catch {}
+                    }
+                  }
                 }
               }
             }
@@ -5584,6 +5615,7 @@ app.post("/api/leads", authenticate, forbidMember, async (req,res)=>{
   };
   db.leads.push(lead);
   await saveLeadsDB(db);
+  try { await emitHostNotification("lead_new", `New lead received: ${lead.name}`, { name: lead.name, email: lead.email, phone: lead.phone, source: lead.source }); } catch {}
   res.json({ ok:true, lead });
 });
 
@@ -5591,6 +5623,7 @@ app.put("/api/leads/:id", authenticate, forbidMember, async (req,res)=>{
   const db = await loadLeadsDB();
   const lead = db.leads.find(l=>l.id===req.params.id);
   if(!lead) return res.status(404).json({ error:"Not found" });
+  const prevStatus = lead.status;
   Object.assign(lead, {
     name: req.body.name ?? lead.name,
     email: req.body.email ?? lead.email,
@@ -5607,6 +5640,12 @@ app.put("/api/leads/:id", authenticate, forbidMember, async (req,res)=>{
   });
   lead.updatedAt = new Date().toISOString();
   await saveLeadsDB(db);
+  if (req.body.status !== undefined && lead.status !== prevStatus) {
+    try { await emitHostNotification("lead_status_changed", `Lead status changed: ${lead.name} → ${lead.status}`, { name: lead.name, email: lead.email, from: prevStatus, to: lead.status }); } catch {}
+    if (lead.status === "won") {
+      try { await emitHostNotification("lead_converted", `Lead converted to client: ${lead.name}`, { name: lead.name, email: lead.email, phone: lead.phone }); } catch {}
+    }
+  }
   res.json({ ok:true, lead });
 });
 
@@ -6132,6 +6171,7 @@ app.post("/api/lead-capture", async (req, res) => {
   };
   db.leads.push(lead);
   await saveLeadsDB(db);
+  try { await emitHostNotification("lead_new", `New lead received: ${lead.name}`, { name: lead.name, email: lead.email, phone: lead.phone, source: lead.source }); } catch {}
 
   if (isAffiliate) {
     try {

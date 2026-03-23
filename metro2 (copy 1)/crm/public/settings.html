@@ -494,6 +494,16 @@
           .notif-label:hover { color: #d1d5db; }
         </style>
 
+        <!-- Leads -->
+        <div class="notif-group">
+          <div class="notif-group-title">Leads <span class="notif-badge notif-badge-essential">Essential</span></div>
+          <div class="notif-grid">
+            <label class="notif-label"><input type="checkbox" id="notifEvt_lead_new" class="w-4 h-4 accent-[#d4a853]" /> New lead received <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_lead_converted" class="w-4 h-4 accent-[#d4a853]" /> Lead converted to client <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_lead_status_changed" class="w-4 h-4 accent-[#d4a853]" /> Lead status changed</label>
+          </div>
+        </div>
+
         <!-- Client Lifecycle -->
         <div class="notif-group">
           <div class="notif-group-title">Client Lifecycle</div>
@@ -535,6 +545,7 @@
             <label class="notif-label"><input type="checkbox" id="notifEvt_bureau_acknowledgment" class="w-4 h-4 accent-[#d4a853]" /> Bureau acknowledgment</label>
             <label class="notif-label"><input type="checkbox" id="notifEvt_dispute_response" class="w-4 h-4 accent-[#d4a853]" /> Dispute response received</label>
             <label class="notif-label"><input type="checkbox" id="notifEvt_dispute_sla_missed" class="w-4 h-4 accent-[#d4a853]" /> Follow-up needed</label>
+            <label class="notif-label"><input type="checkbox" id="notifEvt_dispute_ready" class="w-4 h-4 accent-[#d4a853]" /> Ready for next dispute round <span class="notif-badge notif-badge-essential" style="margin-left:4px">E</span></label>
             <label class="notif-label"><input type="checkbox" id="notifEvt_letters_generated" class="w-4 h-4 accent-[#d4a853]" /> Letters generated</label>
             <label class="notif-label"><input type="checkbox" id="notifEvt_letters_mailed" class="w-4 h-4 accent-[#d4a853]" /> Letters mailed</label>
             <label class="notif-label"><input type="checkbox" id="notifEvt_report_uploaded" class="w-4 h-4 accent-[#d4a853]" /> Credit report uploaded</label>
