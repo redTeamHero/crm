@@ -74,7 +74,7 @@
     
     .nav-phoenix-svg { width: 28px; height: 28px; animation: phoenixPulse 3s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(232,112,64,0.5)); }
     @keyframes phoenixPulse { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-3px) scale(1.05)} }
-    #phoenix-3d-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; background:radial-gradient(ellipse at 50% 45%, #1a1530 0%, #0f172a 55%, #0a0e1a 100%); }
+    #phoenix-3d-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; background:radial-gradient(ellipse at 50% 45%, #1a0800 0%, #0a0400 55%, #000000 100%); }
     #hero-canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; pointer-events:none; }
     .skip-intro { position:absolute; bottom:2rem; left:50%; transform:translateX(-50%); z-index:10; background:rgba(212,168,83,0.12); border:1px solid rgba(212,168,83,0.3); color:rgba(212,168,83,0.7); padding:0.5rem 1.5rem; border-radius:2rem; font-size:0.8rem; font-weight:500; cursor:pointer; letter-spacing:0.05em; transition:opacity 0.5s ease, background 0.2s ease; }
     .skip-intro:hover { background:rgba(212,168,83,0.22); color:#d4a853; }
@@ -1874,10 +1874,10 @@
     try {
       renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: false });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.setClearColor(0x0d1124, 1);
+      renderer.setClearColor(0x000000, 1);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.1;
+      renderer.toneMapping = THREE.ReinhardToneMapping;
+      renderer.toneMappingExposure = 2.0;
       renderer.shadowMap.enabled = false;
     } catch(e) {
       return;
@@ -1890,23 +1890,27 @@
     camera.position.set(0, 0.5, 10);
     camera.lookAt(0, 0, 0);
 
-    scene.add(new THREE.AmbientLight(0x1a0f2e, 1.2));
+    scene.add(new THREE.AmbientLight(0x1a0300, 0.6));
 
-    var keyLight = new THREE.DirectionalLight(0xe87040, 3.0);
-    keyLight.position.set(3, 4, 5);
+    var keyLight = new THREE.DirectionalLight(0xff6a00, 5.0);
+    keyLight.position.set(2, 3, 5);
     scene.add(keyLight);
 
-    var fillLight = new THREE.DirectionalLight(0xd4a853, 1.4);
-    fillLight.position.set(-4, 1, 3);
+    var fillLight = new THREE.DirectionalLight(0xff8c00, 3.0);
+    fillLight.position.set(-4, 0, 3);
     scene.add(fillLight);
 
-    var rimLight = new THREE.DirectionalLight(0xf5a64a, 1.0);
-    rimLight.position.set(0, -3, -4);
+    var rimLight = new THREE.DirectionalLight(0xff4500, 2.5);
+    rimLight.position.set(0, -2, -5);
     scene.add(rimLight);
 
-    var topLight = new THREE.DirectionalLight(0xffd580, 1.2);
+    var topLight = new THREE.DirectionalLight(0xffa040, 3.5);
     topLight.position.set(0, 6, 1);
     scene.add(topLight);
+
+    var glowCore = new THREE.PointLight(0xff7700, 8.0, 12);
+    glowCore.position.set(0, 0, 1);
+    scene.add(glowCore);
 
     var phoenix = null;
     var mixer = null;
@@ -1974,6 +1978,8 @@
       var elapsed = (performance.now() - startMs) / 1000;
 
       if (mixer) mixer.update(dt);
+
+      glowCore.intensity = 7.0 + Math.sin(elapsed * 3.1) * 1.5 + Math.sin(elapsed * 7.3) * 0.8;
 
       if (phoenix && modelReady) {
         var skipped = !!window._phoenixSkipped;
