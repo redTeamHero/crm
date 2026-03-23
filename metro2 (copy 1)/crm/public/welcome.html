@@ -347,6 +347,7 @@
     </script>
 
     <section id="hero" class="hero-scene">
+      <canvas id="space-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;"></canvas>
       <div id="globe-container"></div>
 
       <div id="panel-left" class="bureau-panel bureau-panel--left">
@@ -2017,6 +2018,230 @@
         el=document.getElementById('welRateCrmBusiness');if(el)el.textContent='$'+r.crm_business;
         el=document.getElementById('welRateCrmEnterprise');if(el)el.textContent='$'+r.crm_enterprise;
       }).catch(function(){});
+  })();
+  </script>
+
+  <script>
+  /* ── Space background animation ── */
+  (function () {
+    var canvas = document.getElementById('space-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = 0, H = 0;
+
+    function resize() {
+      var rect = canvas.parentElement.getBoundingClientRect();
+      W = canvas.width  = rect.width  || window.innerWidth;
+      H = canvas.height = rect.height || window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    /* ── Stars (static, twinkling) ── */
+    var stars = [];
+    for (var i = 0; i < 190; i++) {
+      stars.push({
+        fx: Math.random(), fy: Math.random(),
+        r:  0.4 + Math.random() * 1.1,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.18 + Math.random() * 0.55,
+        bright: 0.25 + Math.random() * 0.55
+      });
+    }
+
+    /* ── Transient object pools ── */
+    var shooters = [], comets = [], sats = [], ships = [], roids = [];
+
+    /* timers (ms until next spawn of each type) */
+    var tShoot = 2500, tComet = 9000, tSat = 14000, tShip = 18000, tRoid = 22000;
+
+    /* ── Helpers ── */
+    function edgeEntry(margin) {
+      margin = margin || 30;
+      var edge  = Math.floor(Math.random() * 4);
+      var spread = Math.PI * 0.35;
+      var x, y, ang;
+      if (edge === 0) { x = Math.random() * W; y = -margin; ang = Math.PI * 0.5 + (Math.random() - 0.5) * spread; }
+      else if (edge === 1) { x = W + margin; y = Math.random() * H; ang = Math.PI     + (Math.random() - 0.5) * spread; }
+      else if (edge === 2) { x = Math.random() * W; y = H + margin; ang = -Math.PI * 0.5 + (Math.random() - 0.5) * spread; }
+      else { x = -margin; y = Math.random() * H; ang = (Math.random() - 0.5) * spread; }
+      return { x: x, y: y, ang: ang };
+    }
+    function gone(x, y) { return x < -120 || x > W + 120 || y < -120 || y > H + 120; }
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+
+    /* ── Spawn functions ── */
+    function spawnShooter() {
+      var e = edgeEntry(10), sp = rnd(7, 13);
+      shooters.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
+        tail: [], maxTail: Math.round(rnd(14, 26)), r: rnd(1, 2) });
+    }
+    function spawnComet() {
+      var e = edgeEntry(20), sp = rnd(1.4, 2.8);
+      comets.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
+        tail: [], maxTail: Math.round(rnd(45, 75)), r: rnd(2, 3.5) });
+    }
+    function spawnSat() {
+      var e = edgeEntry(30), sp = rnd(0.45, 0.85);
+      sats.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp, ang: e.ang });
+    }
+    function spawnShip() {
+      var e = edgeEntry(30), sp = rnd(2, 3.5);
+      ships.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
+        ang: e.ang, wPhase: rnd(0, Math.PI * 2) });
+    }
+    function spawnRoid() {
+      var e = edgeEntry(30), sp = rnd(0.5, 1.1);
+      var n = 6 + Math.floor(Math.random() * 5), pts = [];
+      for (var k = 0; k < n; k++) {
+        pts.push({ a: (k / n) * Math.PI * 2, r: rnd(5, 11) });
+      }
+      roids.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
+        rot: 0, rspd: rnd(-0.018, 0.018), pts: pts });
+    }
+
+    /* ── Draw functions ── */
+    function drawStreak(obj, headColor, tailColor, lineW) {
+      if (obj.tail.length < 2) return;
+      var t0 = obj.tail[0], t1 = obj.tail[obj.tail.length - 1];
+      var g = ctx.createLinearGradient(t0.x, t0.y, t1.x, t1.y);
+      g.addColorStop(0, tailColor);
+      g.addColorStop(1, headColor);
+      ctx.beginPath();
+      ctx.moveTo(t0.x, t0.y);
+      for (var j = 1; j < obj.tail.length; j++) ctx.lineTo(obj.tail[j].x, obj.tail[j].y);
+      ctx.lineTo(obj.x, obj.y);
+      ctx.strokeStyle = g; ctx.lineWidth = lineW; ctx.stroke();
+    }
+    function drawShooterFn(s) {
+      drawStreak(s, 'rgba(255,255,255,0.92)', 'rgba(255,255,255,0)', 1.4);
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+    }
+    function drawCometFn(c) {
+      drawStreak(c, 'rgba(190,215,255,0.88)', 'rgba(140,190,255,0)', 2.2);
+      /* nucleus glow */
+      var g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 10);
+      g.addColorStop(0, 'rgba(220,235,255,0.95)');
+      g.addColorStop(1, 'rgba(140,190,255,0)');
+      ctx.beginPath(); ctx.arc(c.x, c.y, 10, 0, Math.PI * 2);
+      ctx.fillStyle = g; ctx.fill();
+    }
+    function drawSatFn(s) {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.ang + Math.PI * 0.25);
+      /* body */ ctx.fillStyle = 'rgba(210,225,255,0.72)'; ctx.fillRect(-4, -3, 8, 6);
+      /* panels */ ctx.fillStyle = 'rgba(80,140,255,0.5)';
+      ctx.fillRect(-16, -2, 11, 4); ctx.fillRect(5, -2, 11, 4);
+      /* panel grid lines */
+      ctx.strokeStyle = 'rgba(130,170,255,0.35)'; ctx.lineWidth = 0.5;
+      [-16, -13, -10].forEach(function(px) {
+        ctx.beginPath(); ctx.moveTo(px, -2); ctx.lineTo(px, 2); ctx.stroke();
+      });
+      [5, 8, 11].forEach(function(px) {
+        ctx.beginPath(); ctx.moveTo(px, -2); ctx.lineTo(px, 2); ctx.stroke();
+      });
+      /* antenna */ ctx.strokeStyle = 'rgba(200,215,255,0.5)'; ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, -7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -7, 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(200,215,255,0.6)'; ctx.fill();
+      ctx.restore();
+    }
+    function drawShipFn(s) {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.ang + Math.PI * 0.5);
+      /* fuselage */ ctx.beginPath();
+      ctx.moveTo(0, -11); ctx.lineTo(4.5, 2); ctx.lineTo(0, -1); ctx.lineTo(-4.5, 2);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(212,168,83,0.72)';
+      ctx.strokeStyle = 'rgba(255,225,140,0.55)'; ctx.lineWidth = 0.8;
+      ctx.fill(); ctx.stroke();
+      /* wings */ ctx.beginPath();
+      ctx.moveTo(0, -2); ctx.lineTo(9, 6); ctx.lineTo(5, 7); ctx.lineTo(0, 1);
+      ctx.closePath(); ctx.fillStyle = 'rgba(180,140,60,0.55)'; ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0, -2); ctx.lineTo(-9, 6); ctx.lineTo(-5, 7); ctx.lineTo(0, 1);
+      ctx.closePath(); ctx.fillStyle = 'rgba(180,140,60,0.55)'; ctx.fill();
+      /* engine glow */ var g = ctx.createRadialGradient(0, 4, 0, 0, 4, 6);
+      g.addColorStop(0, 'rgba(255,180,60,0.75)'); g.addColorStop(1, 'rgba(212,100,0,0)');
+      ctx.beginPath(); ctx.arc(0, 4, 6, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+      ctx.restore();
+    }
+    function drawRoidFn(a) {
+      ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.rot);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a.pts[0].a) * a.pts[0].r, Math.sin(a.pts[0].a) * a.pts[0].r);
+      for (var k = 1; k < a.pts.length; k++) {
+        ctx.lineTo(Math.cos(a.pts[k].a) * a.pts[k].r, Math.sin(a.pts[k].a) * a.pts[k].r);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(155,140,120,0.32)';
+      ctx.strokeStyle = 'rgba(200,185,165,0.45)'; ctx.lineWidth = 0.8;
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ── Main loop ── */
+    var last = 0;
+    function frame(ts) {
+      requestAnimationFrame(frame);
+      var dt = Math.min(ts - last, 80); last = ts;
+      var t = ts * 0.001;
+
+      ctx.clearRect(0, 0, W, H);
+
+      /* stars */
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var a = s.bright * (0.55 + 0.45 * Math.sin(t * s.speed + s.phase));
+        var sx = s.fx * W, sy = s.fy * H;
+        var g = ctx.createRadialGradient(sx, sy, 0, sx, sy, s.r * 1.8);
+        g.addColorStop(0, 'rgba(255,255,255,' + a.toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.beginPath(); ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = g; ctx.fill();
+      }
+
+      /* spawn timers */
+      tShoot -= dt;
+      if (tShoot <= 0 && shooters.length < 2) { spawnShooter(); tShoot = rnd(3000, 7000); }
+      tComet -= dt;
+      if (tComet <= 0 && comets.length < 1)   { spawnComet();   tComet = rnd(12000, 22000); }
+      tSat -= dt;
+      if (tSat <= 0 && sats.length < 1)        { spawnSat();     tSat   = rnd(14000, 26000); }
+      tShip -= dt;
+      if (tShip <= 0 && ships.length < 1)       { spawnShip();    tShip  = rnd(18000, 32000); }
+      tRoid -= dt;
+      if (tRoid <= 0 && roids.length < 1)       { spawnRoid();    tRoid  = rnd(22000, 40000); }
+
+      /* update & draw transients */
+      shooters = shooters.filter(function(o) {
+        o.tail.push({ x: o.x, y: o.y });
+        if (o.tail.length > o.maxTail) o.tail.shift();
+        o.x += o.vx; o.y += o.vy;
+        drawShooterFn(o); return !gone(o.x, o.y);
+      });
+      comets = comets.filter(function(o) {
+        o.tail.push({ x: o.x, y: o.y });
+        if (o.tail.length > o.maxTail) o.tail.shift();
+        o.x += o.vx; o.y += o.vy;
+        drawCometFn(o); return !gone(o.x, o.y);
+      });
+      sats = sats.filter(function(o) {
+        o.x += o.vx; o.y += o.vy;
+        drawSatFn(o); return !gone(o.x, o.y);
+      });
+      ships = ships.filter(function(o) {
+        o.wPhase += 0.025;
+        var perp = o.ang + Math.PI * 0.5;
+        o.x += o.vx + Math.cos(perp) * Math.sin(o.wPhase) * 0.35;
+        o.y += o.vy + Math.sin(perp) * Math.sin(o.wPhase) * 0.35;
+        drawShipFn(o); return !gone(o.x, o.y);
+      });
+      roids = roids.filter(function(o) {
+        o.x += o.vx; o.y += o.vy; o.rot += o.rspd;
+        drawRoidFn(o); return !gone(o.x, o.y);
+      });
+    }
+    requestAnimationFrame(frame);
   })();
   </script>
 
