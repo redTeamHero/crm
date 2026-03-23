@@ -1336,6 +1336,7 @@
       if (el) el.textContent = (i + 1) + ' / ' + total;
     }
 
+    var isMobile = window.innerWidth < 768;
     var globe;
     try {
       globe = Globe()
@@ -1357,7 +1358,9 @@
       var canvas = container.querySelector('canvas');
       if (canvas) { canvas.style.pointerEvents = 'none'; canvas.style.touchAction = 'auto'; }
 
-      globe.pointOfView({ lat: 20, lng: -60, altitude: 2.6 });
+      globe.pointOfView(isMobile
+        ? { lat: 20, lng: -90, altitude: 2.2 }
+        : { lat: 20, lng: -60, altitude: 2.6 });
 
       globe.pointsData(allPoints)
         .pointLat(function(d) { return d.lat; })
@@ -1431,7 +1434,7 @@
         try {
           if (globe) {
             globe.controls().autoRotate = false;
-            globe.pointOfView({ lat: e.lat, lng: e.lng, altitude: 1.7 }, 2200);
+            globe.pointOfView({ lat: e.lat, lng: e.lng, altitude: isMobile ? 2.0 : 1.7 }, 2200);
           }
         } catch(err) {}
         setTimeout(function() {
@@ -1441,7 +1444,7 @@
             hidePanels(function() {
               try { if (globe) globe.ringsData([]); } catch(err) {}
               try {
-                if (globe) globe.pointOfView({ lat: 20, lng: e.lng - 30, altitude: 2.6 }, 1800);
+                if (globe) globe.pointOfView({ lat: 20, lng: isMobile ? e.lng : e.lng - 30, altitude: isMobile ? 2.2 : 2.6 }, 1800);
               } catch(err) {}
               setTimeout(function() {
                 try { if (globe) globe.controls().autoRotate = true; } catch(err) {}
