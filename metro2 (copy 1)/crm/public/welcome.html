@@ -1915,15 +1915,9 @@
     var phoenix = null;
     var mixer = null;
     var clock = new THREE.Clock();
-    var RISE_DUR = 7.0;
-    var MODEL_Y_START = -14;
     var modelBaseY = 0;
     var modelReady = false;
     var startMs = performance.now();
-
-    function easeInOut(t) {
-      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    }
 
     function resize() {
       var section = canvas3d.parentElement;
@@ -1949,7 +1943,6 @@
         phoenix.scale.setScalar(scale);
         phoenix.position.copy(center.multiplyScalar(-scale));
         modelBaseY = phoenix.position.y;
-        phoenix.position.y = MODEL_Y_START;
 
         scene.add(phoenix);
 
@@ -1982,17 +1975,7 @@
       glowCore.intensity = 7.0 + Math.sin(elapsed * 3.1) * 1.5 + Math.sin(elapsed * 7.3) * 0.8;
 
       if (phoenix && modelReady) {
-        var skipped = !!window._phoenixSkipped;
-        var t = Math.min(1.0, elapsed / RISE_DUR);
-        var et = easeInOut(t);
-
-        if (skipped || t >= 1.0) {
-          phoenix.position.y = modelBaseY + Math.sin(elapsed * 0.75) * 0.15;
-        } else {
-          phoenix.position.y = MODEL_Y_START + (modelBaseY - MODEL_Y_START) * et;
-        }
-
-        phoenix.rotation.y = elapsed * 0.28;
+        phoenix.position.y = modelBaseY;
       }
 
       renderer.render(scene, camera);
