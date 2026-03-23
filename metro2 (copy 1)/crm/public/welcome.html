@@ -96,9 +96,7 @@
     .hero-brand-bar { position:absolute; bottom:2.5rem; left:50%; transform:translateX(-50%); z-index:5; text-align:center; pointer-events:none; white-space:nowrap; }
     .hero-wordmark { font-size:1.9rem; font-weight:800; letter-spacing:0.22em; background:linear-gradient(135deg,#d4a853,#f5d590,#d4a853); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 22px rgba(212,168,83,0.35)); }
     .hero-sub { font-size:0.75rem; color:rgba(255,255,255,0.38); letter-spacing:0.14em; margin-top:0.3rem; }
-    .hero-cycle-dot { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); z-index:5; display:flex; gap:0.45rem; }
-    .hcd { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.2); transition:background 0.4s; }
-    .hcd.active { background:rgba(232,112,64,0.9); }
+    #globe-counter { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); z-index:5; font-size:0.6rem; letter-spacing:0.18em; color:rgba(255,255,255,0.28); pointer-events:none; font-variant-numeric:tabular-nums; }
     .globe-legend { position:absolute; bottom:5.5rem; right:1.5rem; z-index:6; display:flex; flex-direction:column; gap:0.32rem; pointer-events:none; background:rgba(0,0,0,0.38); border:1px solid rgba(255,255,255,0.07); border-radius:0.55rem; padding:0.5rem 0.75rem; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
     .gl-row { display:flex; align-items:center; gap:0.45rem; font-size:0.62rem; letter-spacing:0.08em; color:rgba(255,255,255,0.52); text-transform:uppercase; }
     .gl-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
@@ -292,7 +290,7 @@
 
       <div id="panel-left" class="bureau-panel bureau-panel--left">
         <div class="bp-inner">
-          <div class="bp-label">Credit Bureau</div>
+          <div class="bp-label" id="bl-type">Credit Bureau</div>
           <div class="bp-name" id="bl-name">EQUIFAX</div>
           <div class="bp-city" id="bl-city">Atlanta, GA</div>
           <div class="bp-coords" id="bl-coords">33.7490° N, 84.3880° W</div>
@@ -308,7 +306,7 @@
       <div id="panel-right" class="bureau-panel bureau-panel--right">
         <div class="bp-inner">
           <div class="bp-label">Take Action</div>
-          <div class="bp-headline">Errors here cost you thousands</div>
+          <div class="bp-headline" id="br-headline">Errors here cost you thousands</div>
           <div class="bp-subtext" id="br-subtext">1 in 5 Americans has an error on their Equifax report.</div>
           <div class="bp-ctas">
             <a href="/crm" class="bp-cta-pro">Credit Repair Pro</a>
@@ -322,11 +320,7 @@
         <div class="hero-sub">Rebuild. Rise. Evolv.</div>
       </div>
 
-      <div class="hero-cycle-dot">
-        <div class="hcd active" id="dot-0"></div>
-        <div class="hcd" id="dot-1"></div>
-        <div class="hcd" id="dot-2"></div>
-      </div>
+      <div id="globe-counter">1 / 16</div>
       <div class="globe-legend">
         <div class="gl-row"><span class="gl-dot" style="background:#e87040;box-shadow:0 0 6px #e87040"></span>Primary Bureau</div>
         <div class="gl-row"><span class="gl-dot" style="background:#f5a623;box-shadow:0 0 5px #f5a623"></span>Secondary Bureau</div>
@@ -1061,49 +1055,183 @@
 
     var bureaus = [
       {
+        type: 'primary', typeLabel: 'Credit Bureau',
         name: 'EQUIFAX', city: 'Atlanta, GA',
         coords: '33.7490° N, 84.3880° W', lat: 33.749, lng: -84.388,
         tagline: 'The oldest U.S. credit bureau.',
         stats: [{ val: '220M+', label: 'consumers tracked' }, { val: '1899', label: 'established' }],
         subtext: '1 in 5 Americans has an error on their Equifax report.',
+        headline: 'Errors here cost you thousands',
         color: '#e87040', ringColor: 'rgba(232,112,64,'
       },
       {
+        type: 'primary', typeLabel: 'Credit Bureau',
         name: 'EXPERIAN', city: 'Costa Mesa, CA',
         coords: '33.6411° N, 117.9187° W', lat: 33.641, lng: -117.919,
         tagline: "The world’s largest credit bureau.",
         stats: [{ val: '235M+', label: 'consumers tracked' }, { val: '80+', label: 'countries served' }],
         subtext: 'Experian reaches the most lenders — errors here cost the most.',
+        headline: 'Errors here cost you thousands',
         color: '#4a90e2', ringColor: 'rgba(74,144,226,'
       },
       {
+        type: 'primary', typeLabel: 'Credit Bureau',
         name: 'TRANSUNION', city: 'Chicago, IL',
         coords: '41.8781° N, 87.6298° W', lat: 41.878, lng: -87.630,
         tagline: 'Data & analytics powerhouse.',
         stats: [{ val: '200M+', label: 'consumers tracked' }, { val: '1968', label: 'established' }],
         subtext: 'TransUnion models often catch collectors first. Dispute early.',
+        headline: 'Errors here cost you thousands',
         color: '#8b5cf6', ringColor: 'rgba(139,92,246,'
       }
     ];
 
     var secondaryBureaus = [
-      { name: 'Innovis',            lat: 39.961, lng: -82.999 },
-      { name: 'ChexSystems',        lat: 44.924, lng: -93.007 },
-      { name: 'LexisNexis Risk Solutions',    lat: 34.075, lng: -84.294 },
-      { name: 'SageStream',         lat: 32.716, lng: -117.161 },
-      { name: 'CoreLogic',          lat: 33.684, lng: -117.826 }
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'INNOVIS', city: 'Columbus, OH',
+        coords: '39.9612° N, 82.9988° W', lat: 39.961, lng: -82.999,
+        tagline: 'The fourth-largest credit bureau in the U.S.',
+        stats: [{ val: '1B+', label: 'credit records' }, { val: '2000', label: 'established' }],
+        subtext: 'Innovis is often missed in disputes — errors here still affect loan decisions.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      },
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'CHEXSYSTEMS', city: 'Woodbury, MN',
+        coords: '44.9239° N, 93.0070° W', lat: 44.924, lng: -93.007,
+        tagline: 'Tracks banking history, not credit scores.',
+        stats: [{ val: '80%', label: 'of banks use it' }, { val: '1971', label: 'established' }],
+        subtext: 'A ChexSystems flag can block you from opening a bank account for 5 years.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      },
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'LEXISNEXIS RISK', city: 'Alpharetta, GA',
+        coords: '34.0754° N, 84.2941° W', lat: 34.075, lng: -84.294,
+        tagline: 'Comprehensive consumer data aggregator.',
+        stats: [{ val: '300M+', label: 'consumer profiles' }, { val: '40+', label: 'years of data' }],
+        subtext: 'LexisNexis data affects insurance rates and tenant screening — not just credit.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      },
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'SAGESTREAM', city: 'San Diego, CA',
+        coords: '32.7157° N, 117.1611° W', lat: 32.716, lng: -117.161,
+        tagline: 'Thin-file and alternative credit data bureau.',
+        stats: [{ val: '200M+', label: 'consumer profiles' }, { val: '2001', label: 'established' }],
+        subtext: 'Lenders use SageStream for applicants with little or no traditional credit history.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      },
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'CORELOGIC', city: 'Irvine, CA',
+        coords: '33.6846° N, 117.8265° W', lat: 33.684, lng: -117.826,
+        tagline: 'Property and rental history reporting bureau.',
+        stats: [{ val: '1B+', label: 'property records' }, { val: '1991', label: 'established' }],
+        subtext: 'CoreLogic flags can affect rental applications and mortgage approvals.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      }
     ];
 
     var collectors = [
-      { name: 'Midland Credit Management',       lat: 32.715, lng: -117.157, nearLat: 33.641, nearLng: -117.919 },
-      { name: 'Portfolio Recovery',         lat: 36.847, lng: -76.086, nearLat: 33.749, nearLng: -84.388  },
-      { name: 'LVNV Funding',               lat: 34.853, lng: -82.394, nearLat: 33.749, nearLng: -84.388  },
-      { name: 'Convergent Outsourcing',     lat: 47.483, lng: -122.217, nearLat: 33.641, nearLng: -117.919 },
-      { name: 'Cavalry SPV',                lat: 41.080, lng: -73.783, nearLat: 41.878, nearLng: -87.630  },
-      { name: 'Resurgent Capital',          lat: 34.862, lng: -82.374, nearLat: 33.749, nearLng: -84.388  },
-      { name: 'Caine & Weiner',             lat: 34.168, lng: -118.606, nearLat: 33.641, nearLng: -117.919 },
-      { name: 'Jefferson Capital',          lat: 45.563, lng: -94.163, nearLat: 41.878, nearLng: -87.630  }
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'MIDLAND CREDIT', city: 'San Diego, CA',
+        coords: '32.7150° N, 117.1570° W', lat: 32.715, lng: -117.157,
+        tagline: 'One of the largest debt buyers in the U.S.',
+        stats: [{ val: '$8B+', label: 'debt portfolio' }, { val: '30M+', label: 'accounts managed' }],
+        subtext: 'Midland buys old debts for pennies on the dollar — dispute before they validate.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.641, nearLng: -117.919
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'PORTFOLIO RECOVERY', city: 'Norfolk, VA',
+        coords: '36.8468° N, 76.0856° W', lat: 36.847, lng: -76.086,
+        tagline: 'Major purchaser of charged-off accounts.',
+        stats: [{ val: '$6B+', label: 'in debt purchased' }, { val: '1996', label: 'established' }],
+        subtext: "PRA’s collection tradelines are among the most disputed in the country.",
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.749, nearLng: -84.388
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'LVNV FUNDING', city: 'Greenville, SC',
+        coords: '34.8526° N, 82.3940° W', lat: 34.853, lng: -82.394,
+        tagline: 'Debt buyer linked to Resurgent Capital Services.',
+        stats: [{ val: 'Billions', label: 'in portfolio' }, { val: '2001', label: 'established' }],
+        subtext: 'LVNV often re-ages debt — always check the original delinquency date.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.749, nearLng: -84.388
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'CONVERGENT', city: 'Renton, WA',
+        coords: '47.4829° N, 122.2171° W', lat: 47.483, lng: -122.217,
+        tagline: 'National third-party debt collection agency.',
+        stats: [{ val: 'Fortune 500', label: 'clients' }, { val: '1950', label: 'established' }],
+        subtext: 'Convergent collects for telecoms and utilities — a common credit report surprise.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.641, nearLng: -117.919
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'CAVALRY SPV', city: 'Valhalla, NY',
+        coords: '41.0795° N, 73.7832° W', lat: 41.080, lng: -73.783,
+        tagline: 'Specialty finance company and debt buyer.',
+        stats: [{ val: 'Billions', label: 'managed annually' }, { val: '2002', label: 'established' }],
+        subtext: 'Cavalry SPV accounts may be legally uncollectable after the statute of limitations.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 41.878, nearLng: -87.630
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'RESURGENT CAPITAL', city: 'Greenville, SC',
+        coords: '34.8626° N, 82.3740° W', lat: 34.862, lng: -82.374,
+        tagline: 'Debt management and servicing arm of LVNV.',
+        stats: [{ val: 'Millions', label: 'of accounts' }, { val: '1998', label: 'established' }],
+        subtext: 'Resurgent services LVNV accounts — disputes should reference both names.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.749, nearLng: -84.388
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'CAINE & WEINER', city: 'Woodland Hills, CA',
+        coords: '34.1684° N, 118.6059° W', lat: 34.168, lng: -118.606,
+        tagline: 'One of the oldest collection agencies in the U.S.',
+        stats: [{ val: 'Multi-industry', label: 'collector' }, { val: '1930', label: 'established' }],
+        subtext: 'Caine & Weiner handles healthcare and retail debt — often negotiable.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.641, nearLng: -117.919
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'JEFFERSON CAPITAL', city: 'St. Cloud, MN',
+        coords: '45.5630° N, 94.1632° W', lat: 45.563, lng: -94.163,
+        tagline: 'Consumer debt buyer: telecom and student debt.',
+        stats: [{ val: 'Millions', label: 'of accounts' }, { val: '2002', label: 'established' }],
+        subtext: 'Jefferson Capital often buys telecom and student loan debt — verify ownership first.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 41.878, nearLng: -87.630
+      }
     ];
+
+    var cycleEntities = bureaus.concat(secondaryBureaus).concat(collectors);
+    var TOTAL = cycleEntities.length;
 
     var allPoints = [];
     bureaus.forEach(function(b) {
@@ -1132,11 +1260,9 @@
     var panelL = document.getElementById('panel-left');
     var panelR = document.getElementById('panel-right');
 
-    function setDot(i) {
-      for (var d = 0; d < 3; d++) {
-        var el = document.getElementById('dot-' + d);
-        if (el) el.classList.toggle('active', d === i);
-      }
+    function setCounter(i, total) {
+      var el = document.getElementById('globe-counter');
+      if (el) el.textContent = (i + 1) + ' / ' + total;
     }
 
     var globe;
@@ -1189,21 +1315,25 @@
       globe = null;
     }
 
-    function updatePanels(b) {
-      var elName = document.getElementById('bl-name');
-      var elCity = document.getElementById('bl-city');
-      var elCoords = document.getElementById('bl-coords');
+    function updatePanels(e) {
+      var elType    = document.getElementById('bl-type');
+      var elName    = document.getElementById('bl-name');
+      var elCity    = document.getElementById('bl-city');
+      var elCoords  = document.getElementById('bl-coords');
       var elTagline = document.getElementById('bl-tagline');
-      var elStats = document.getElementById('bl-stats');
+      var elStats   = document.getElementById('bl-stats');
+      var elHead    = document.getElementById('br-headline');
       var elSubtext = document.getElementById('br-subtext');
-      if (elName) elName.textContent = b.name;
-      if (elCity) elCity.textContent = b.city;
-      if (elCoords) elCoords.textContent = b.coords;
-      if (elTagline) elTagline.textContent = b.tagline;
-      if (elStats) elStats.innerHTML = b.stats.map(function(s) {
+      if (elType)    elType.textContent    = e.typeLabel;
+      if (elName)    elName.textContent    = e.name;
+      if (elCity)    elCity.textContent    = e.city;
+      if (elCoords)  elCoords.textContent  = e.coords;
+      if (elTagline) elTagline.textContent = e.tagline;
+      if (elStats)   elStats.innerHTML = e.stats.map(function(s) {
         return '<div class="bp-stat"><span class="bp-stat-val">' + s.val + '</span><span class="bp-stat-label">' + s.label + '</span></div>';
       }).join('');
-      if (elSubtext) elSubtext.textContent = b.subtext;
+      if (elHead)    elHead.textContent    = e.headline;
+      if (elSubtext) elSubtext.textContent = e.subtext;
     }
 
     function showPanels() {
@@ -1220,38 +1350,39 @@
     function runCycle() {
       if (cycling) return;
       cycling = true;
-      var b = bureaus[idx];
-      setDot(idx);
-      try { if (globe) globe.ringsData([b]); } catch(e) {}
+      var e = cycleEntities[idx];
+      setCounter(idx, TOTAL);
+      try { if (globe) globe.ringsData([e]); } catch(err) {}
       setTimeout(function() {
         try {
           if (globe) {
             globe.controls().autoRotate = false;
-            globe.pointOfView({ lat: b.lat, lng: b.lng, altitude: 1.7 }, 2200);
+            globe.pointOfView({ lat: e.lat, lng: e.lng, altitude: 1.7 }, 2200);
           }
-        } catch(e) {}
+        } catch(err) {}
         setTimeout(function() {
-          updatePanels(b);
+          updatePanels(e);
           showPanels();
           setTimeout(function() {
             hidePanels(function() {
-              try { if (globe) globe.ringsData([]); } catch(e) {}
+              try { if (globe) globe.ringsData([]); } catch(err) {}
               try {
-                if (globe) globe.pointOfView({ lat: 20, lng: b.lng - 30, altitude: 2.6 }, 1800);
-              } catch(e) {}
+                if (globe) globe.pointOfView({ lat: 20, lng: e.lng - 30, altitude: 2.6 }, 1800);
+              } catch(err) {}
               setTimeout(function() {
-                try { if (globe) globe.controls().autoRotate = true; } catch(e) {}
-                idx = (idx + 1) % bureaus.length;
+                try { if (globe) globe.controls().autoRotate = true; } catch(err) {}
+                idx = (idx + 1) % TOTAL;
                 cycling = false;
                 setTimeout(runCycle, 1800);
               }, 1800);
             });
-          }, 5500);
+          }, 5000);
         }, 2400);
       }, 800);
     }
 
-    updatePanels(bureaus[0]);
+    updatePanels(cycleEntities[0]);
+    setCounter(0, TOTAL);
     showPanels();
     setTimeout(function() {
       hidePanels(function() {
@@ -1260,7 +1391,7 @@
     }, 4000);
 
     window.addEventListener('resize', function() {
-      try { if (globe) globe.width(container.offsetWidth).height(container.offsetHeight); } catch(e) {}
+      try { if (globe) globe.width(container.offsetWidth).height(container.offsetHeight); } catch(err) {}
     });
   })();
   </script>
