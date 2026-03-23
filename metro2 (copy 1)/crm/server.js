@@ -6819,20 +6819,68 @@ app.get("/api/consumers/:consumerId/letter-history", authenticate, async (req, r
     const { consumerId } = req.params;
     const cstate = await listConsumerState(consumerId);
     const events = cstate?.events || [];
-    const genEvents = events
-      .filter(e => e.type === "letters_generated" || e.type === "letters_zip_ready")
+
+    // Build per-letter records from dispute_round events (most granular source)
+    const roundEvents = events
+      .filter(e => e.type === "dispute_round" && e.payload?.letters?.length)
       .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
 
-    const history = genEvents.map(e => ({
-      jobId: e.payload?.jobId || null,
-      type: e.type,
-      count: e.payload?.count || 0,
-      bureaus: e.payload?.bureaus || [],
-      requestType: e.payload?.requestType || null,
-      round: e.payload?.round || null,
-      at: e.at || null,
-    }));
-    res.json({ ok: true, history });
+    const letters = [];
+    const seenJobIds = new Set();
+
+    for (const e of roundEvents) {
+      const jobId = e.payload?.jobId || null;
+      const roundNum = e.payload?.round || null;
+      const sentAt = e.payload?.sentAt || e.at || null;
+      const requestType = e.payload?.requestType || null;
+
+      // Deduplicate by jobId (each generate run creates one round event)
+      if (jobId && seenJobIds.has(jobId)) continue;
+      if (jobId) seenJobIds.add(jobId);
+
+      for (const letter of (e.payload.letters || [])) {
+        letters.push({
+          jobId,
+          round: roundNum,
+          at: sentAt,
+          bureau: letter.bureau || null,
+          creditor: letter.creditor || letter.creditorName || null,
+          letterType: letter.letterType || letter.templateId || null,
+          accountNumber: letter.accountNumber || null,
+          filename: letter.filename || null,
+          requestType,
+        });
+      }
+    }
+
+    // For jobIds that have letters_generated events but no dispute_round (e.g. standalone generations),
+    // include a summary-level entry so history is not blank
+    const genEvents = events
+      .filter(e => e.type === "letters_generated")
+      .sort((a, b) => new Date(b.at || 0).getTime() - new Date(a.at || 0).getTime());
+
+    const summaries = [];
+    for (const e of genEvents) {
+      const jobId = e.payload?.jobId || null;
+      if (jobId && seenJobIds.has(jobId)) continue;
+      if (jobId) seenJobIds.add(jobId);
+      summaries.push({
+        jobId,
+        round: null,
+        at: e.at || null,
+        bureau: null,
+        creditor: null,
+        letterType: null,
+        accountNumber: null,
+        filename: null,
+        requestType: e.payload?.requestType || null,
+        count: e.payload?.count || 0,
+        bureaus: e.payload?.bureaus || [],
+        isSummaryOnly: true,
+      });
+    }
+
+    res.json({ ok: true, letters, summaries });
   } catch (err) {
     logError("LETTER_HISTORY_ERROR", "Failed to load letter history", err, { consumerId: req.params.consumerId });
     res.status(500).json({ ok: false, error: "Failed to load letter history" });

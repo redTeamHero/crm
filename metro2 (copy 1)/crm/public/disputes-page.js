@@ -190,7 +190,10 @@ async function loadDisputeTracker() {
   }
 
   try {
-    const data = await api(`/api/consumers/${currentConsumerId}/disputes`);
+    const [data] = await Promise.all([
+      api(`/api/consumers/${currentConsumerId}/disputes`),
+      loadSentTemplates(currentConsumerId),
+    ]);
     if (!data || data.ok === false) {
       panel.classList.add('hidden');
       currentDisputeData = null;
@@ -441,15 +444,43 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
   });
 }
 
+// States with addenda in stateLaws.js — only show badge for these
+const STATES_WITH_ADDENDA = new Set(['CA','TX','NY','MD','MA','CO','NJ','CT','IL','WA','GA','FL','OR','MN','MI','PA','OH','VA','NC','AZ']);
+
 function renderStateLawBadge(consumerState) {
   if (!consumerState) return '';
   const info = resolveStateInfo(consumerState);
-  if (!info.code && !info.name) return '';
+  if (!info.code) return '';
+  if (!STATES_WITH_ADDENDA.has(info.code)) return '';
   const label = info.name || info.code;
-  return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;background:rgba(212,168,83,0.12);color:#d4a853;border:1px solid rgba(212,168,83,0.3);margin-left:8px;" title="State consumer-protection laws may apply to letters for this client">
+  return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;background:rgba(212,168,83,0.12);color:#d4a853;border:1px solid rgba(212,168,83,0.3);margin-left:8px;" title="${escapeHtml(label)} consumer-protection law addendum is included in generated letters">
     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     ${escapeHtml(label)} Law
   </span>`;
+}
+
+// Track previously sent letterTypes per creditor+bureau for "Sent previously" markers
+let _sentTemplatesByCreditorBureau = {};
+
+async function loadSentTemplates(consumerId) {
+  try {
+    const data = await api(`/api/consumers/${consumerId}/letter-history`);
+    const map = {};
+    for (const letter of (data?.letters || [])) {
+      if (!letter.letterType) continue;
+      const key = `${(letter.creditor || '').toLowerCase()}__${(letter.bureau || '').toLowerCase()}`;
+      if (!map[key]) map[key] = new Set();
+      map[key].add(letter.letterType);
+    }
+    _sentTemplatesByCreditorBureau = map;
+  } catch {
+    _sentTemplatesByCreditorBureau = {};
+  }
+}
+
+function getSentTemplatesFor(creditor, bureau) {
+  const key = `${(creditor || '').toLowerCase()}__${(bureau || '').toLowerCase()}`;
+  return _sentTemplatesByCreditorBureau[key] || new Set();
 }
 
 async function renderLetterHistory(consumerId) {
@@ -457,27 +488,74 @@ async function renderLetterHistory(consumerId) {
   if (!container) return;
   try {
     const data = await api(`/api/consumers/${consumerId}/letter-history`);
-    const history = data?.history || [];
-    if (!history.length) {
+    const letters = data?.letters || [];
+    const summaries = data?.summaries || [];
+
+    if (!letters.length && !summaries.length) {
       container.innerHTML = `<div style="font-size:12px;color:#666;padding:8px 0;">No letters generated yet for this client.</div>`;
       return;
     }
-    let html = `<div style="display:flex;flex-direction:column;gap:6px;">`;
-    history.forEach(item => {
-      const date = item.at ? new Date(item.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
-      const bureaus = (item.bureaus || []).join(', ') || 'N/A';
-      const rType = item.requestType ? escapeHtml(item.requestType) : null;
-      const roundLabel = item.round ? `Round ${item.round}` : '';
-      const tokenParam = authHeader()?.Authorization ? `?token=${encodeURIComponent(authHeader().Authorization.replace('Bearer ',''))}` : '';
-      const dlLink = item.jobId ? `/api/letters/${encodeURIComponent(item.jobId)}/all.zip${tokenParam}` : null;
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:7px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;color:#e5e7eb;">${escapeHtml(date)}${roundLabel ? `<span style="color:#888;font-weight:400;margin-left:6px;">${escapeHtml(roundLabel)}</span>` : ''}</div>
-          <div style="font-size:11px;color:#888;margin-top:1px;">${item.count} letter${item.count !== 1 ? 's' : ''} • ${escapeHtml(bureaus)}${rType ? ` • ${rType}` : ''}</div>
+
+    // Group per-letter records by jobId/round
+    const byJob = new Map();
+    for (const letter of letters) {
+      const key = letter.jobId || `nojob_${letter.at}`;
+      if (!byJob.has(key)) {
+        byJob.set(key, {
+          jobId: letter.jobId,
+          round: letter.round,
+          at: letter.at,
+          requestType: letter.requestType,
+          letterItems: [],
+        });
+      }
+      byJob.get(key).letterItems.push(letter);
+    }
+
+    let html = `<div style="display:flex;flex-direction:column;gap:8px;">`;
+    const tokenParam = authHeader()?.Authorization ? `?token=${encodeURIComponent(authHeader().Authorization.replace('Bearer ',''))}` : '';
+
+    for (const group of byJob.values()) {
+      const date = group.at ? new Date(group.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
+      const roundLabel = group.round ? `Round ${group.round}` : '';
+      const dlLink = group.jobId ? `/api/letters/${encodeURIComponent(group.jobId)}/all.zip${tokenParam}` : null;
+      const count = group.letterItems.length;
+
+      const itemsHtml = group.letterItems.map(l => {
+        const creditor = escapeHtml(l.creditor || 'Unknown');
+        const bureau = escapeHtml(l.bureau || '');
+        const tpl = l.letterType ? `<span style="color:#888;font-size:10px;margin-left:4px;">${escapeHtml(l.letterType)}</span>` : '';
+        const acct = l.accountNumber ? `<span style="color:#666;font-size:10px;"> ·  ${escapeHtml(l.accountNumber)}</span>` : '';
+        return `<div style="font-size:11px;color:#ccc;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-weight:500;">${creditor}</span><span style="color:#666;">→</span><span style="color:#9ca3af;">${bureau}</span>${tpl}${acct}
+        </div>`;
+      }).join('');
+
+      html += `<div style="padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <span style="font-size:12px;font-weight:600;color:#e5e7eb;">${escapeHtml(date)}</span>
+          ${roundLabel ? `<span style="font-size:10px;color:#d4a853;font-weight:600;background:rgba(212,168,83,0.1);padding:1px 7px;border-radius:9999px;border:1px solid rgba(212,168,83,0.2);">${escapeHtml(roundLabel)}</span>` : ''}
+          <span style="font-size:10px;color:#666;margin-left:auto;">${count} letter${count !== 1 ? 's' : ''}</span>
+          ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:10px;color:#60a5fa;text-decoration:none;white-space:nowrap;">⬇ ZIP</a>` : ''}
         </div>
-        ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:11px;color:#60a5fa;text-decoration:none;white-space:nowrap;" title="Download ZIP">⬇ ZIP</a>` : ''}
+        <div style="display:flex;flex-direction:column;gap:1px;">${itemsHtml}</div>
       </div>`;
-    });
+    }
+
+    // Standalone summary entries (no dispute_round data)
+    for (const s of summaries) {
+      const date = s.at ? new Date(s.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
+      const bureaus = (s.bureaus || []).join(', ') || 'N/A';
+      const dlLink = s.jobId ? `/api/letters/${encodeURIComponent(s.jobId)}/all.zip${tokenParam}` : null;
+      html += `<div style="padding:7px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:#e5e7eb;">${escapeHtml(date)}</div>
+          <div style="font-size:11px;color:#888;">${s.count} letter${s.count !== 1 ? 's' : ''} · ${escapeHtml(bureaus)}</div>
+        </div>
+        ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:10px;color:#60a5fa;text-decoration:none;white-space:nowrap;">⬇ ZIP</a>` : ''}
+      </div>`;
+    }
+
     html += `</div>`;
     container.innerHTML = html;
   } catch {
@@ -642,14 +720,19 @@ function renderDisputeTracker(data) {
             ${notes ? `<div style="font-size:11px;color:#ccc;margin-bottom:4px;"><span style="color:#888;">Notes:</span> ${notes}</div>` : ''}`;
 
         if (round.status !== 'resolved') {
+          const sentTpls = getSentTemplatesFor(item.creditor || '', item.bureau || '');
           const tplOptions = (DISPUTE_LETTER_TEMPLATES || []).map(t => {
             const tid = escapeHtml(t.id || '');
             const tname = escapeHtml(t.name || t.id || '');
             const selected = currentOverride === t.id ? ' selected' : '';
-            return `<option value="${tid}"${selected}>${tname}</option>`;
+            const wasSent = sentTpls.has(t.id);
+            const sentMarker = wasSent ? ' ✓ sent' : '';
+            return `<option value="${tid}"${selected}>${tname}${sentMarker}</option>`;
           }).join('');
+          const sentCount = sentTpls.size;
+          const sentInfo = sentCount > 0 ? `<span style="font-size:10px;color:#d4a853;margin-left:4px;">${sentCount} type${sentCount !== 1 ? 's' : ''} already sent to this bureau</span>` : '';
           html += `<div style="margin-top:4px;" onclick="event.stopPropagation()">
-            <div style="font-size:10px;color:#888;margin-bottom:2px;">Next round template:</div>
+            <div style="font-size:10px;color:#888;margin-bottom:2px;display:flex;align-items:center;gap:4px;">Next round template:${sentInfo}</div>
             <select class="dispute-template-override" data-job-id="${escapeHtml(jobId)}" data-item-index="${itemIdx}" style="width:100%;padding:2px 6px;border-radius:4px;border:1px solid rgba(96,165,250,0.2);background:#1a1a1e;color:#9ca3af;font-size:10px;">
               <option value="">Auto (use recommendation)</option>
               ${tplOptions}
