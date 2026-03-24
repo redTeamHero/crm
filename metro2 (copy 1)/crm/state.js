@@ -29,20 +29,24 @@ class AsyncMutex {
 
 const stateMutex = new AsyncMutex();
 
+let _stateCache = null;
+
 async function loadState() {
+  if (_stateCache) return _stateCache;
   ensureDirs();
   let st = await readKey("consumer_state", null);
-  if (st) return st;
+  if (st) { _stateCache = st; return st; }
 
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise(r => setTimeout(r, 200));
   st = await readKey("consumer_state", null);
-  if (st) return st;
+  if (st) { _stateCache = st; return st; }
 
   if (fs.existsSync(STATE_PATH)) {
     try {
       const raw = fs.readFileSync(STATE_PATH, "utf-8");
       st = JSON.parse(raw);
       await writeKey("consumer_state", st);
+      _stateCache = st;
       return st;
     } catch {}
   }
@@ -50,17 +54,21 @@ async function loadState() {
   const sentinel = await readKey("_state_seeded", null);
   if (sentinel) {
     console.warn("[state] DB was previously seeded but consumer_state is missing — returning empty state without overwriting");
-    return { consumers: {}, trackerSteps: [] };
+    st = { consumers: {}, trackerSteps: [] };
+    _stateCache = st;
+    return st;
   }
 
   console.warn("[state] Initializing fresh consumer_state (first-time setup)");
   st = { consumers: {}, trackerSteps: [] };
   await writeKey("consumer_state", st);
   await writeKey("_state_seeded", { at: new Date().toISOString() });
+  _stateCache = st;
   return st;
 }
 
 async function saveState(st) {
+  _stateCache = st;
   await writeKey("consumer_state", st);
 }
 
@@ -112,6 +120,7 @@ function ensureConsumer(st, consumerId) {
 
 function processReminders(st) {
   const now = Date.now();
+  let changed = false;
   for (const c of Object.values(st.consumers)) {
     if (!c.reminders?.length) continue;
     const remaining = [];
@@ -124,12 +133,14 @@ function processReminders(st) {
           payload: { ...r.payload, due: r.due },
           at: new Date().toISOString(),
         });
+        changed = true;
       } else {
         remaining.push(r);
       }
     }
     c.reminders = remaining;
   }
+  return changed;
 }
 
 // ---- Public API ----
@@ -142,9 +153,10 @@ async function withStateLock(fn) {
 export async function listConsumerState(consumerId) {
   return withStateLock(async () => {
     const st = await loadState();
+    const isNew = !st.consumers[consumerId];
     const c = ensureConsumer(st, consumerId);
-    processReminders(st);
-    await saveState(st);
+    const remindersChanged = processReminders(st);
+    if (isNew || remindersChanged) await saveState(st);
     return c;
   });
 }
@@ -284,10 +296,11 @@ function seedDefaultSteps(st) {
 export async function listTracker(consumerId) {
   return withStateLock(async () => {
     const st = await loadState();
-    seedDefaultSteps(st);
+    const seeded = seedDefaultSteps(st);
     const steps = st.trackerSteps;
+    const isNew = !st.consumers[consumerId];
     const c = ensureConsumer(st, consumerId);
-    await saveState(st);
+    if (seeded || isNew) await saveState(st);
     return { steps, completed: c.tracker || {} };
   });
 }
@@ -295,8 +308,8 @@ export async function listTracker(consumerId) {
 export async function getTrackerSteps() {
   return withStateLock(async () => {
     const st = await loadState();
-    seedDefaultSteps(st);
-    await saveState(st);
+    const seeded = seedDefaultSteps(st);
+    if (seeded) await saveState(st);
     return st.trackerSteps;
   });
 }

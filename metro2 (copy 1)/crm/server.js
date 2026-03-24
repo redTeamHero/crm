@@ -3488,14 +3488,27 @@ async function buildSeedReport(existing) {
 
 const dbMutex = new (await import("./state.js")).AsyncMutex();
 
+const _dbCache = new Map();
+function _dbCacheKey(context){
+  const scope = tenantScope(resolveTenantContextInput(context));
+  return JSON.stringify(scope || '__default__');
+}
+function _dbCacheGet(context){ return _dbCache.get(_dbCacheKey(context)) || null; }
+function _dbCacheSet(context, db){ _dbCache.set(_dbCacheKey(context), db); }
+function _dbCacheInvalidate(context){ _dbCache.delete(_dbCacheKey(context)); }
+
 async function loadDB(context){
+  const cached = _dbCacheGet(context);
+  if(cached) return JSON.parse(JSON.stringify(cached));
   await dbMutex.acquire();
   try {
+    const cached2 = _dbCacheGet(context);
+    if(cached2){ return JSON.parse(JSON.stringify(cached2)); }
     const scope = tenantScope(resolveTenantContextInput(context));
     let db = await readKey('consumers', null, scope);
     let changed = false;
     if(!db){
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 200));
       db = await readKey('consumers', null, scope);
     }
     if(!db){
@@ -3549,15 +3562,18 @@ async function loadDB(context){
       await writeKey('consumers', db, scope);
       await writeKey('_db_seeded', { at: new Date().toISOString() }, scope);
     }
-    return db;
+    _dbCacheSet(context, db);
+    return JSON.parse(JSON.stringify(db));
   } finally {
     dbMutex.release();
   }
 }
 async function saveDB(db, context){
+  _dbCacheInvalidate(context);
   await dbMutex.acquire();
   try {
     await writeKey('consumers', db, tenantScope(resolveTenantContextInput(context)));
+    _dbCacheSet(context, db);
   } finally {
     dbMutex.release();
   }
@@ -3592,25 +3608,29 @@ function normalizeLettersDB(db){
   return { db: normalized, mutated };
 }
 
+let _lettersDbCache = null;
+
 async function loadLettersDB(){
+  if(_lettersDbCache) return JSON.parse(JSON.stringify(_lettersDbCache));
   const raw = await readKey('letters', null);
   if(!raw){
     console.warn("Letters DB missing, initializing with defaults");
     await writeKey('letters', LETTERS_DEFAULT);
-    return { ...LETTERS_DEFAULT };
+    _lettersDbCache = { ...LETTERS_DEFAULT };
+    return JSON.parse(JSON.stringify(_lettersDbCache));
   }
   const { db, mutated } = normalizeLettersDB(raw);
   if(mutated){
     await writeKey('letters', db);
   }
-  console.log(`Loaded letters DB with ${db.jobs?.length || 0} jobs`);
-  return db;
+  _lettersDbCache = db;
+  return JSON.parse(JSON.stringify(db));
 }
 
 async function saveLettersDB(db){
   const { db: normalized } = normalizeLettersDB(db);
+  _lettersDbCache = normalized;
   await writeKey('letters', normalized);
-  console.log(`Saved letters DB with ${normalized.jobs.length} jobs`);
 }
 
 async function loadLeadsDB(){

@@ -783,11 +783,13 @@ async function selectConsumer(id){
 
   updatePortalLink();
   await refreshReports();
-  await loadConsumerState();
-  await loadMessages();
-  await loadTracker();
-  await loadDisputeTracker();
-  await loadClientContracts();
+  await Promise.all([
+    loadConsumerState(),
+    loadMessages(),
+    loadTracker(),
+    loadDisputeTracker(),
+    loadClientContracts(),
+  ]);
 }
 
 function restoreSelectedConsumer(){
