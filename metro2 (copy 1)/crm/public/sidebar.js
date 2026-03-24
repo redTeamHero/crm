@@ -428,8 +428,11 @@
       top: 12px;
       left: 12px;
       z-index: 9998;
-      width: 44px;
+      width: auto;
+      min-width: 44px;
       height: 44px;
+      padding: 0 10px 0 10px;
+      gap: 8px;
       border-radius: 12px;
       background: #0d0d0f;
       border: 1px solid rgba(255,255,255,0.1);
@@ -438,6 +441,21 @@
       align-items: center;
       justify-content: center;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .evolv-mb-avatar {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(212,168,83,0.18);
+      border: 1.5px solid rgba(212,168,83,0.45);
+      color: #d4a853;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+      line-height: 1;
     }
     .evolv-sb-backdrop {
       display: none;
@@ -690,9 +708,18 @@
   var backdrop = document.createElement('div');
   backdrop.className = 'evolv-sb-backdrop';
 
+  var _mbTok = localStorage.getItem('token');
+  var _mbInitial = 'U';
+  var _mbUsername = 'Account';
+  if (_mbTok) {
+    try {
+      var _mbP = JSON.parse(atob(_mbTok.split('.')[1]));
+      if (_mbP.username) { _mbInitial = _mbP.username.charAt(0).toUpperCase(); _mbUsername = _mbP.username; }
+    } catch(e) {}
+  }
   var mobileBtn = document.createElement('button');
   mobileBtn.className = 'evolv-mobile-toggle';
-  mobileBtn.innerHTML = svg('menu', 22);
+  mobileBtn.innerHTML = svg('menu', 22) + '<span class="evolv-mb-avatar" title="Logged in as ' + esc(_mbUsername) + '">' + esc(_mbInitial) + '</span>';
   mobileBtn.setAttribute('aria-label', 'Toggle navigation');
 
   var html = '';

@@ -644,6 +644,20 @@ async function loadConsumers(restore = true, invalidateGeo = false, _attempt = 1
 function renderConsumers(){
   const wrap = $("#consumerList");
   wrap.innerHTML = "";
+
+  if (DB.length === 0) {
+    let _diagUser = '';
+    try {
+      const _t = localStorage.getItem('token');
+      if (_t) { const _p = JSON.parse(atob(_t.split('.')[1])); _diagUser = _p.username || ''; }
+    } catch(e) {}
+    wrap.innerHTML = `<div style="text-align:center;padding:2rem 1rem;color:rgba(255,255,255,0.35);font-size:0.8rem;line-height:1.6;">
+      <div style="margin-bottom:0.4rem;">No clients found.</div>
+      ${_diagUser ? `<div style="color:rgba(255,255,255,0.22);font-size:0.72rem;">Logged in as <span style="color:rgba(212,168,83,0.7);font-weight:600;">@${escapeHtml(_diagUser)}</span> — if this looks wrong, sign out and log back in.</div>` : ''}
+    </div>`;
+    return;
+  }
+
   const tpl = $("#consumerItem").content;
 
   currentPageItems().forEach(c=>{
