@@ -2216,7 +2216,7 @@ app.post("/api/portal/:id/contracts/:contractId/sign", async (req, res) => {
 
 function buildSignedContractHtml(contract, signature, consumerName) {
   const esc = (s) => String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const body = (contract.english || contract.body || "").replace(/\n/g, "<br>");
+  const body = esc(contract.english || contract.body || "").replace(/\n/g, "<br>");
   const signedAt = signature ? new Date(signature.signedAt).toLocaleString() : "";
   return `<!DOCTYPE html>
 <html lang="en">
@@ -2305,6 +2305,9 @@ app.get("/api/consumers/:id/contracts/:contractId/print", authenticate, async (r
     const db = await loadDB();
     const consumer = db.consumers.find(c => c.id === id);
     if (!consumer) return res.status(404).send("Consumer not found");
+    if (!(consumer.contractIds || []).includes(contractId)) {
+      return res.status(403).send("Access denied");
+    }
     const lettersDb = await loadLettersDB();
     const contract = (lettersDb.contracts || []).find(c => c.id === contractId);
     if (!contract) return res.status(404).send("Contract not found");
