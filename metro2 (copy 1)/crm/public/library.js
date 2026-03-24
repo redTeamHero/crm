@@ -978,12 +978,10 @@ function closeSendContractModal(){
 async function handleSendContract(client){
   if(!sendingContract || !client) return;
   try{
-    const res = await fetch(`/api/contracts/${encodeURIComponent(sendingContract.id)}/send`, {
+    const data = await api(`/api/contracts/${encodeURIComponent(sendingContract.id)}/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ consumerId: client.id })
     });
-    const data = await res.json().catch(()=>({}));
     if(!data.ok) throw new Error(data.error || 'Failed to send contract');
     if(sendContractResultEl) sendContractResultEl.classList.remove('hidden');
     if(sendPortalLinkEl){

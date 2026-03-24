@@ -3037,12 +3037,13 @@ async function loadClientContracts() {
   }
   try {
     const data = await api(`/api/consumers/${currentConsumerId}/contracts`);
-    if (!data || !data.ok || !data.contracts || !data.contracts.length) {
-      panel.classList.add("hidden");
+    panel.classList.remove("hidden");
+    const contracts = (data?.contracts) || [];
+    if (!contracts.length) {
+      if (subtitle) subtitle.textContent = "No contracts sent yet.";
+      list.innerHTML = "";
       return;
     }
-    panel.classList.remove("hidden");
-    const contracts = data.contracts;
     const signedCount = contracts.filter(c => c.signature).length;
     if (subtitle) {
       subtitle.textContent = `${signedCount} of ${contracts.length} signed`;
@@ -3094,6 +3095,94 @@ async function loadClientContracts() {
     panel.classList.add("hidden");
   }
 }
+
+// ===================== Send Contract from CRM =====================
+(function initCrmSendContract(){
+  const modal = $("#crmSendContractModal");
+  const closeBtn = $("#crmSendContractClose");
+  const openBtn = $("#btnSendContractFromCrm");
+  const pickerList = $("#crmContractPickerList");
+  const emptyEl = $("#crmContractPickerEmpty");
+  const statusEl = $("#crmSendContractStatus");
+  const clientNameEl = $("#crmSendContractClientName");
+  if(!modal || !openBtn) return;
+
+  function closeModal(){
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+    document.body.style.overflow = "";
+  }
+
+  async function openModal(){
+    if(!currentConsumerId) return;
+    const consumer = DB.find(c => c.id === currentConsumerId);
+    if(clientNameEl) clientNameEl.textContent = consumer?.name || "this client";
+    if(statusEl){ statusEl.textContent = ""; statusEl.classList.add("hidden"); }
+    if(pickerList) pickerList.innerHTML = '<div class="text-xs muted">Loading…</div>';
+    if(emptyEl) emptyEl.classList.add("hidden");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    document.body.style.overflow = "hidden";
+
+    try {
+      const data = await api("/api/templates");
+      const contracts = (data.contracts || []).filter(c => c.id && c.name);
+      pickerList.innerHTML = "";
+      if(!contracts.length){
+        emptyEl.classList.remove("hidden");
+        return;
+      }
+      contracts.forEach(ct => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(212,168,83,0.18);background:rgba(212,168,83,0.04);";
+        const name = document.createElement("span");
+        name.style.cssText = "font-size:13px;font-weight:500;color:#e5e7eb;";
+        name.textContent = ct.name;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn text-xs";
+        btn.style.cssText = "background:rgba(212,168,83,0.15);border:1px solid rgba(212,168,83,0.3);color:#d4a853;white-space:nowrap;";
+        btn.textContent = "Send";
+        btn.addEventListener("click", async ()=>{
+          btn.disabled = true;
+          btn.textContent = "Sending…";
+          try {
+            const res = await api(`/api/contracts/${encodeURIComponent(ct.id)}/send`, {
+              method: "POST",
+              body: JSON.stringify({ consumerId: currentConsumerId })
+            });
+            if(!res.ok) throw new Error(res.error || "Failed to send");
+            btn.textContent = "Sent ✓";
+            btn.style.color = "#4ade80";
+            if(statusEl){
+              statusEl.textContent = `"${ct.name}" sent — the client will see it in their portal.`;
+              statusEl.style.color = "#4ade80";
+              statusEl.classList.remove("hidden");
+            }
+            await loadClientContracts();
+          } catch(err){
+            btn.textContent = "Send";
+            btn.disabled = false;
+            if(statusEl){
+              statusEl.textContent = err.message || "Failed to send contract";
+              statusEl.style.color = "#f87171";
+              statusEl.classList.remove("hidden");
+            }
+          }
+        });
+        row.appendChild(name);
+        row.appendChild(btn);
+        pickerList.appendChild(row);
+      });
+    } catch(err){
+      pickerList.innerHTML = '<div class="text-xs" style="color:#f87171;">Failed to load contracts</div>';
+    }
+  }
+
+  openBtn.addEventListener("click", openModal);
+  if(closeBtn) closeBtn.addEventListener("click", closeModal);
+  modal.addEventListener("click", e => { if(e.target === modal) closeModal(); });
+})();
 
 // ===================== Init =====================
 loadConsumers(true, true);
