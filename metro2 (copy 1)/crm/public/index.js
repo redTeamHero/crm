@@ -626,7 +626,6 @@ async function loadConsumers(restore = true, invalidateGeo = false, _attempt = 1
     return;
   }
   if (data.ok === false || !Array.isArray(data.consumers)) {
-    console.warn('[loadConsumers] attempt', _attempt, 'failed:', data.status, data.error, 'ok=', data.ok, 'consumers=', typeof data.consumers);
     if (_attempt < 3) {
       await new Promise(r => setTimeout(r, 1000 * _attempt));
       return loadConsumers(restore, invalidateGeo, _attempt + 1);
