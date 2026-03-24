@@ -717,6 +717,11 @@ $("#tlPageSize").addEventListener("change", (e)=>{
   tlPage = 1;
   renderTradelines(CURRENT_REPORT?.tradelines || []);
 });
+$("#creditorSearch").addEventListener("input", (e)=>{
+  creditorSearchText = e.target.value.trim();
+  tlPage = 1;
+  renderTradelines(CURRENT_REPORT?.tradelines || []);
+});
 
 document.querySelectorAll(".ni-dropdown-trigger").forEach(btn => {
   btn.addEventListener("click", (e) => {
@@ -1034,6 +1039,11 @@ async function loadReportJSON(){
   hiddenTradelines.clear();
   Object.keys(selectionState).forEach(k=> delete selectionState[k]);
   activeFilters.clear();
+  activeStatusFilters.clear();
+  activeBureaus.clear();
+  creditorSearchText = "";
+  const creditorSearchEl = $("#creditorSearch");
+  if (creditorSearchEl) creditorSearchEl.value = "";
   renderFilterBar();
   renderTradelines(CURRENT_REPORT.tradelines);
   renderCollectors(CURRENT_REPORT.creditor_contacts || []);
@@ -1194,9 +1204,14 @@ function renderReportDiff(diff) {
 
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-// ===================== Filters (unchanged) =====================
+// ===================== Filters =====================
 const ALL_TAGS = ["Collections","Late Payments","Charge-Off","Student Loans","Medical Bills","Other"];
-const activeFilters = new Set();
+const STATUS_TAGS = ["Open","Closed"];
+const BUREAU_OPTIONS = ["TransUnion","Experian","Equifax"];
+const activeFilters = new Set();       // category filters (Collections, Late Payments, etc.)
+const activeStatusFilters = new Set(); // status filters (Open, Closed)
+const activeBureaus = new Set();
+let creditorSearchText = "";
 const hiddenTradelines = new Set();
 const selectionState = {};
 
@@ -1591,33 +1606,148 @@ function deriveTags(tl){
   if (medical.some(k => hasWord(name, k))) tags.add("Medical Bills");
 
   if (tags.size === 0) tags.add("Other");
+
+  // Derived status tags
+  const isClosed = bureaus.some(b =>
+    hasWord(per[b]?.account_status, "closed") ||
+    hasWord(per[b]?.payment_status, "closed")
+  );
+  if (isClosed) tags.add("Closed"); else tags.add("Open");
+
   return Array.from(tags).map(t => t.trim());
+}
+
+function _computeTagCounts(tradelines){
+  const counts = {};
+  [...ALL_TAGS, ...STATUS_TAGS].forEach(t => { counts[t] = 0; });
+  (tradelines || []).forEach(tl => {
+    const pb = tl.per_bureau || {};
+    const hasBureauData = BUREAU_OPTIONS.some(b => Object.keys(pb[b] || {}).length);
+    const hasAcct = Object.values(pb).some(b => b?.account_number);
+    const hasVios = (tl.violations || []).length > 0;
+    if (!hasBureauData && !hasAcct && !hasVios) return;
+    deriveTags(tl).forEach(t => {
+      if (t in counts) counts[t]++;
+    });
+  });
+  return counts;
 }
 
 function renderFilterBar(){
   const bar = $("#filterBar");
   bar.innerHTML = "";
-  ALL_TAGS.forEach(tag=>{
+  const tradelines = CURRENT_REPORT?.tradelines || [];
+  const counts = _computeTagCounts(tradelines);
+
+  // ---- Section: Bureau toggle pills ----
+  const bureauSection = document.createElement("div");
+  bureauSection.className = "filter-section";
+  const bureauLabel = document.createElement("div");
+  bureauLabel.className = "filter-section-label";
+  bureauLabel.textContent = "Bureau";
+  bureauSection.appendChild(bureauLabel);
+  const bureauRow = document.createElement("div");
+  bureauRow.className = "bureau-pill-row";
+  BUREAU_OPTIONS.forEach(bureau => {
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = "bureau-pill" + (activeBureaus.has(bureau) ? " active" : "");
+    pill.textContent = bureau;
+    pill.addEventListener("click", () => {
+      if (activeBureaus.has(bureau)) activeBureaus.delete(bureau); else activeBureaus.add(bureau);
+      tlPage = 1;
+      renderTradelines(CURRENT_REPORT?.tradelines || []);
+      updateFilterTrigger();
+      pill.classList.toggle("active", activeBureaus.has(bureau));
+    });
+    bureauRow.appendChild(pill);
+  });
+  bureauSection.appendChild(bureauRow);
+  bar.appendChild(bureauSection);
+
+  // ---- Divider ----
+  const div1 = document.createElement("div");
+  div1.className = "filter-section-divider";
+  bar.appendChild(div1);
+
+  // ---- Section: Category checkboxes ----
+  const catLabel = document.createElement("div");
+  catLabel.className = "filter-section-label";
+  catLabel.style.padding = "2px 12px 0";
+  catLabel.textContent = "Category";
+  bar.appendChild(catLabel);
+  ALL_TAGS.forEach(tag => {
+    const count = counts[tag] || 0;
     const label = document.createElement("label");
-    label.className = "ni-dropdown-item";
+    label.className = "ni-dropdown-item" + (count === 0 ? " filter-tag-zero" : "");
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.checked = activeFilters.has(tag);
+    cb.disabled = count === 0;
     cb.style.cssText = "accent-color:#d4a853;width:14px;height:14px;cursor:pointer;";
-    cb.addEventListener("change", ()=>{
+    cb.addEventListener("change", () => {
       if (cb.checked) activeFilters.add(tag); else activeFilters.delete(tag);
       tlPage = 1;
       renderTradelines(CURRENT_REPORT?.tradelines || []);
       updateFilterTrigger();
     });
     const span = document.createElement("span");
+    span.style.flex = "1";
     span.textContent = tag;
+    const badge = document.createElement("span");
+    badge.className = "filter-count-badge";
+    badge.textContent = `(${count})`;
     label.appendChild(cb);
     label.appendChild(span);
+    label.appendChild(badge);
     bar.appendChild(label);
   });
+
+  // ---- Divider ----
+  const div2 = document.createElement("div");
+  div2.className = "filter-section-divider";
+  bar.appendChild(div2);
+
+  // ---- Section: Status checkboxes ----
+  const statusLabel = document.createElement("div");
+  statusLabel.className = "filter-section-label";
+  statusLabel.style.padding = "2px 12px 0";
+  statusLabel.textContent = "Status";
+  bar.appendChild(statusLabel);
+  STATUS_TAGS.forEach(tag => {
+    const count = counts[tag] || 0;
+    const label = document.createElement("label");
+    label.className = "ni-dropdown-item" + (count === 0 ? " filter-tag-zero" : "");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = activeStatusFilters.has(tag);
+    cb.disabled = count === 0;
+    cb.style.cssText = "accent-color:#d4a853;width:14px;height:14px;cursor:pointer;";
+    cb.addEventListener("change", () => {
+      if (cb.checked) activeStatusFilters.add(tag); else activeStatusFilters.delete(tag);
+      tlPage = 1;
+      renderTradelines(CURRENT_REPORT?.tradelines || []);
+      updateFilterTrigger();
+    });
+    const span = document.createElement("span");
+    span.style.flex = "1";
+    span.textContent = tag;
+    const badge = document.createElement("span");
+    badge.className = "filter-count-badge";
+    badge.textContent = `(${count})`;
+    label.appendChild(cb);
+    label.appendChild(span);
+    label.appendChild(badge);
+    bar.appendChild(label);
+  });
+
   $("#btnClearFilters").onclick = () => {
     activeFilters.clear();
+    activeStatusFilters.clear();
+    activeBureaus.clear();
+    creditorSearchText = "";
+    const searchEl = $("#creditorSearch");
+    if (searchEl) searchEl.value = "";
     tlPage = 1;
     renderFilterBar();
     renderTradelines(CURRENT_REPORT?.tradelines || []);
@@ -1625,15 +1755,41 @@ function renderFilterBar(){
   };
   updateFilterTrigger();
 }
+
 function updateFilterTrigger(){
+  const totalActive = activeFilters.size + activeStatusFilters.size + activeBureaus.size;
   const triggers = document.querySelectorAll(".ni-dropdown-trigger");
   triggers.forEach(t => {
     if (t.textContent.startsWith("Filters")) {
-      t.textContent = activeFilters.size > 0 ? `Filters (${activeFilters.size}) ▾` : "Filters ▾";
+      if (totalActive > 0) {
+        t.textContent = `Filters (${totalActive}) ▾`;
+        t.classList.add("filter-active");
+      } else {
+        t.textContent = "Filters ▾";
+        t.classList.remove("filter-active");
+      }
     }
   });
 }
-function passesFilter(tags){ if (activeFilters.size === 0) return true; return tags.some(t => activeFilters.has(t)); }
+
+function passesFilter(tags, tl){
+  // Category filter — tradeline must match at least one selected category
+  if (activeFilters.size > 0 && !tags.some(t => activeFilters.has(t))) return false;
+  // Status filter — tradeline must match at least one selected status (AND with category)
+  if (activeStatusFilters.size > 0 && !tags.some(t => activeStatusFilters.has(t))) return false;
+  // Bureau filter (AND logic — tradeline must be reported by ALL selected bureaus)
+  if (activeBureaus.size > 0){
+    const per = tl?.per_bureau || {};
+    const reportedBureaus = BUREAU_OPTIONS.filter(b => Object.keys(per[b] || {}).length > 0);
+    if (!Array.from(activeBureaus).every(b => reportedBureaus.includes(b))) return false;
+  }
+  // Creditor search filter
+  if (creditorSearchText){
+    const name = (tl?.meta?.creditor || "").toLowerCase();
+    if (!name.includes(creditorSearchText.toLowerCase())) return false;
+  }
+  return true;
+}
 
 // ===================== Tradelines + Zoom =====================
 function updateSelectAllButton(){
@@ -1761,7 +1917,7 @@ function renderTradelines(tradelines){
 
 
     const tags = deriveTags(tl);
-    if (!passesFilter(tags)) return;
+    if (!passesFilter(tags, tl)) return;
     visible.push({ tl, idx, tags });
   });
 
