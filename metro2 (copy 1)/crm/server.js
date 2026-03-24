@@ -2147,12 +2147,18 @@ app.get("/api/portal/:id", async (req, res) => {
 
 app.get("/api/portal/:id/contracts", async (req, res) => {
   try {
-    const user = await verifyPortalAccess(req, res);
-    if (user === null) return;
+    const user = await getAuthUser(req);
     if (!user) return res.status(401).json({ ok: false, error: "Unauthorized" });
     const db = await loadDB();
     const consumer = db.consumers.find(c => c.id === req.params.id);
     if (!consumer) return res.status(404).json({ ok: false, error: "Consumer not found" });
+    if (user.role === "client") {
+      if (user.id !== req.params.id) return res.status(403).json({ ok: false, error: "Access denied" });
+    } else {
+      const consumerTenant = sanitizeTenantId(consumer?.tenantId || consumer?.ownerTenantId || DEFAULT_TENANT_ID);
+      const userTenant = sanitizeTenantId(user?.tenantId || DEFAULT_TENANT_ID);
+      if (userTenant !== consumerTenant) return res.status(403).json({ ok: false, error: "Access denied" });
+    }
     const ids = consumer.contractIds || [];
     if (!ids.length) return res.json({ ok: true, contracts: [] });
     const lettersDb = await loadLettersDB();
@@ -6382,7 +6388,7 @@ app.post("/api/client-setup/complete", async (req, res) => {
   try { await addEvent(consumer.id, "client_activated", { name: consumer.name }); } catch {}
   const clientTenant = sanitizeTenantId(consumer?.tenantId || consumer?.ownerTenantId || DEFAULT_TENANT_ID);
   const u = { id: consumer.id, username: consumer.email || consumer.name || "client", role: "client", tenantId: clientTenant, permissions: [] };
-  res.json({ ok: true, token: generateToken(u) });
+  res.json({ ok: true, token: generateToken(u), consumerId: consumer.id, portalLink: `/portal/${encodeURIComponent(consumer.id)}?tab=documents` });
 });
 
 const leadCaptureTimestamps = new Map();

@@ -266,8 +266,9 @@
       <div id="successScreen" class="success-screen">
         <div class="check">✓</div>
         <h2>Account Created!</h2>
-        <p>Your portal is ready. You can now log in with your email and password.</p>
-        <a href="/login.html" class="btn-secondary">Go to Login</a>
+        <p>Taking you to your portal now…</p>
+        <p style="font-size:0.8rem;color:#888;margin-top:8px;">You'll find any contracts waiting to be signed in the <strong style="color:#d4a853;">Documents</strong> tab.</p>
+        <a href="/login.html" class="btn-secondary" style="margin-top:20px;">Go to Login instead</a>
       </div>
     </div>
   </div>
@@ -377,6 +378,12 @@
 
         document.getElementById('setupForm').style.display = 'none';
         document.getElementById('successScreen').style.display = 'block';
+
+        if (data.portalLink) {
+          setTimeout(function() {
+            window.location.href = data.portalLink;
+          }, 1500);
+        }
       } catch (err) {
         errorMsg.textContent = 'Network error. Please try again.';
         errorMsg.style.display = 'block';

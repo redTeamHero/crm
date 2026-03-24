@@ -2132,6 +2132,17 @@ document.addEventListener('DOMContentLoaded', () => {
             buildContractCard(ct, docContractsList, _contractsToken);
           });
         }
+        var hasUnsigned = valid.some(function(ct){ return !ct.signature; });
+        var urlParams = new URLSearchParams(window.location.search);
+        if(hasUnsigned && (urlParams.get('tab') === 'documents' || urlParams.get('contracts') === '1')){
+          setTimeout(function(){
+            var docNav = document.querySelector('[href="#documentSection"]') || document.querySelector('[data-section="documents"]');
+            if(docNav) docNav.click();
+            else if(docContractsSection){
+              docContractsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 300);
+        }
       })
       .catch(function(){});
   }
