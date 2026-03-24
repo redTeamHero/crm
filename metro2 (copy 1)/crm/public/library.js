@@ -984,9 +984,17 @@ async function handleSendContract(client){
     });
     if(!data.ok) throw new Error(data.error || 'Failed to send contract');
     if(sendContractResultEl) sendContractResultEl.classList.remove('hidden');
+    const base = `${location.protocol}//${location.host}`;
     if(sendPortalLinkEl){
-      const base = `${location.protocol}//${location.host}`;
       sendPortalLinkEl.value = `${base}${data.portalLink || `/portal/${encodeURIComponent(client.id)}`}`;
+    }
+    const inviteSectionEl = document.getElementById('sendInviteSection');
+    const inviteLinkEl = document.getElementById('sendInviteLink');
+    if(data.inviteLink && inviteSectionEl && inviteLinkEl){
+      inviteLinkEl.value = data.inviteLink;
+      inviteSectionEl.classList.remove('hidden');
+    } else if(inviteSectionEl){
+      inviteSectionEl.classList.add('hidden');
     }
     showStatus(sendContractStatusEl, `Contract sent to ${client.name || client.email || 'client'}`);
   } catch(err){
@@ -1020,6 +1028,17 @@ if(copySendLinkBtn && sendPortalLinkEl){
       await navigator.clipboard.writeText(sendPortalLinkEl.value);
       copySendLinkBtn.textContent = 'Copied!';
       setTimeout(()=> copySendLinkBtn.textContent = 'Copy', 2000);
+    } catch(err){ /* ignore */ }
+  });
+}
+const copyInviteLinkBtn = document.getElementById('copyInviteLink');
+const sendInviteLinkEl = document.getElementById('sendInviteLink');
+if(copyInviteLinkBtn && sendInviteLinkEl){
+  copyInviteLinkBtn.addEventListener('click', async ()=>{
+    try{
+      await navigator.clipboard.writeText(sendInviteLinkEl.value);
+      copyInviteLinkBtn.textContent = 'Copied!';
+      setTimeout(()=> copyInviteLinkBtn.textContent = 'Copy', 2000);
     } catch(err){ /* ignore */ }
   });
 }

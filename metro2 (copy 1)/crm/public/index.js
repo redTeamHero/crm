@@ -3105,12 +3105,26 @@ async function loadClientContracts() {
   const emptyEl = $("#crmContractPickerEmpty");
   const statusEl = $("#crmSendContractStatus");
   const clientNameEl = $("#crmSendContractClientName");
+  const inviteSectionEl = $("#crmSendInviteSection");
+  const inviteLinkEl = $("#crmSendInviteLink");
+  const copyInviteBtn = $("#crmCopyInviteLink");
   if(!modal || !openBtn) return;
+
+  if(copyInviteBtn && inviteLinkEl){
+    copyInviteBtn.addEventListener("click", async ()=>{
+      try{
+        await navigator.clipboard.writeText(inviteLinkEl.value);
+        copyInviteBtn.textContent = "Copied!";
+        setTimeout(()=> copyInviteBtn.textContent = "Copy", 2000);
+      }catch{}
+    });
+  }
 
   function closeModal(){
     modal.classList.add("hidden");
     modal.classList.remove("flex");
     document.body.style.overflow = "";
+    if(inviteSectionEl) inviteSectionEl.classList.add("hidden");
   }
 
   async function openModal(){
@@ -3118,6 +3132,7 @@ async function loadClientContracts() {
     const consumer = DB.find(c => c.id === currentConsumerId);
     if(clientNameEl) clientNameEl.textContent = consumer?.name || "this client";
     if(statusEl){ statusEl.textContent = ""; statusEl.classList.add("hidden"); }
+    if(inviteSectionEl) inviteSectionEl.classList.add("hidden");
     if(pickerList) pickerList.innerHTML = '<div class="text-xs muted">Loading…</div>';
     if(emptyEl) emptyEl.classList.add("hidden");
     modal.classList.remove("hidden");
@@ -3158,6 +3173,10 @@ async function loadClientContracts() {
               statusEl.textContent = `"${ct.name}" sent — the client will see it in their portal.`;
               statusEl.style.color = "#4ade80";
               statusEl.classList.remove("hidden");
+            }
+            if(res.inviteLink && inviteSectionEl && inviteLinkEl){
+              inviteLinkEl.value = res.inviteLink;
+              inviteSectionEl.classList.remove("hidden");
             }
             await loadClientContracts();
           } catch(err){

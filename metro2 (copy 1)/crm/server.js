@@ -7621,10 +7621,18 @@ app.post("/api/contracts/:id/send", authenticate, async (req,res)=>{
   if(!Array.isArray(consumer.contractIds)) consumer.contractIds = [];
   if(!consumer.contractIds.includes(contractId)){
     consumer.contractIds.push(contractId);
-    await saveDB(db);
   }
   const portalLink = `/portal/${encodeURIComponent(consumerId)}`;
-  res.json({ ok:true, portalLink });
+  let inviteLink = null;
+  if(!consumer.password){
+    const inviteToken = nanoid(20);
+    consumer.portalInviteToken = inviteToken;
+    consumer.portalInviteCreatedAt = new Date().toISOString();
+    const base = `${req.protocol}://${req.get("host")}`;
+    inviteLink = `${base}/client-setup?token=${inviteToken}`;
+  }
+  await saveDB(db);
+  res.json({ ok:true, portalLink, inviteLink });
 });
 
 // Upload HTML/PDF -> analyze -> save under consumer

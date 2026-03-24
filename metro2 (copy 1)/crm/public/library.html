@@ -640,11 +640,21 @@
       <ul id="sendClientList" class="space-y-1 max-h-60 overflow-y-auto"></ul>
       <p id="sendClientEmpty" class="text-xs text-gray-500 hidden">No clients found.</p>
       <p id="sendContractStatus" class="hidden rounded-lg bg-[rgba(212,168,83,0.12)] px-3 py-2 text-xs text-[#d4a853]"></p>
-      <div id="sendContractResult" class="hidden space-y-2">
-        <p class="text-xs text-gray-400">Contract sent. Share this portal link with the client:</p>
-        <div class="flex gap-2 items-center">
-          <input id="sendPortalLink" class="input w-full text-xs" readonly />
-          <button id="copySendLink" class="btn text-xs" type="button">Copy</button>
+      <div id="sendContractResult" class="hidden space-y-3">
+        <div id="sendInviteSection" class="hidden space-y-1 rounded-lg p-3" style="background:rgba(212,168,83,0.08);border:1px solid rgba(212,168,83,0.25);">
+          <p class="text-xs font-semibold" style="color:#d4a853;">Client has no portal access yet</p>
+          <p class="text-xs text-gray-400">Share this one-time setup link so they can create their password and view the contract:</p>
+          <div class="flex gap-2 items-center">
+            <input id="sendInviteLink" class="input w-full text-xs" readonly />
+            <button id="copyInviteLink" class="btn text-xs" type="button">Copy</button>
+          </div>
+        </div>
+        <div id="sendPortalSection" class="space-y-1">
+          <p class="text-xs text-gray-400">Portal link (for clients who already have a password):</p>
+          <div class="flex gap-2 items-center">
+            <input id="sendPortalLink" class="input w-full text-xs" readonly />
+            <button id="copySendLink" class="btn text-xs" type="button">Copy</button>
+          </div>
         </div>
       </div>
     </div>
