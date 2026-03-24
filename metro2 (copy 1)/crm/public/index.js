@@ -626,11 +626,21 @@ async function loadConsumers(restore = true, invalidateGeo = false, _attempt = 1
     return;
   }
   if (data.ok === false || !Array.isArray(data.consumers)) {
+    console.warn('[loadConsumers] attempt', _attempt, 'failed:', data.status, data.error, 'ok=', data.ok, 'consumers=', typeof data.consumers);
     if (_attempt < 3) {
       await new Promise(r => setTimeout(r, 1000 * _attempt));
       return loadConsumers(restore, invalidateGeo, _attempt + 1);
     }
-    showErr(data.error || 'Could not load clients. Please refresh the page.');
+    const errMsg = data.error || 'Could not load clients. Please refresh the page.';
+    showErr(errMsg);
+    const listEl = document.getElementById('consumerList');
+    if (listEl) {
+      listEl.innerHTML = `<div style="text-align:center;padding:1.5rem 1rem;font-size:0.78rem;line-height:1.6;">
+        <div style="color:#f87171;margin-bottom:0.3rem;">Failed to load clients</div>
+        <div style="color:rgba(255,255,255,0.3);">${errMsg}</div>
+        <div style="margin-top:0.8rem;"><a href="javascript:location.reload()" style="color:#d4a853;text-decoration:underline;font-size:0.75rem;">Tap to refresh</a></div>
+      </div>`;
+    }
     return;
   }
   DB = data.consumers;

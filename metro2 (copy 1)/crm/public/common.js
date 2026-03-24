@@ -1140,8 +1140,12 @@ export async function api(url, options = {}) {
     ...authHeader(),
     ...(options.headers || {})
   };
+  const timeoutMs = options._timeout || 25000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { ...options, cache: 'no-store', headers });
+    const res = await fetch(url, { ...options, cache: 'no-store', headers, signal: controller.signal });
+    clearTimeout(timer);
     const text = await res.text();
     let parsed;
     try {
@@ -1162,7 +1166,9 @@ export async function api(url, options = {}) {
     }
     return { status: res.status, data: parsed };
   } catch (err) {
-    return { ok: false, status: 0, error: String(err) };
+    clearTimeout(timer);
+    const isTimeout = err && err.name === 'AbortError';
+    return { ok: false, status: 0, error: isTimeout ? 'Request timed out. Check your connection and refresh.' : String(err) };
   }
 }
 
