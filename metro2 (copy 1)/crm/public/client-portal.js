@@ -2252,6 +2252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             buildContractCard(ct, container, token);
             var newlyAdded = container.lastChild;
             container.replaceChild(newlyAdded, replacement);
+            loadContracts();
           })
           .catch(function(){
             errEl.textContent = 'Network error. Please try again.';
