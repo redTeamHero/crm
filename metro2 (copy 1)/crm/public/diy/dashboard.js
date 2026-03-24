@@ -1784,7 +1784,9 @@
         var currentBank = tradelineBankSelect.value;
         tradelineBankSelect.innerHTML = '<option value="">All banks</option>' +
           data.banks.map(function(b) {
-            return '<option value="' + esc(b) + '"' + (b === currentBank ? ' selected' : '') + '>' + esc(b) + '</option>';
+            var bankName = (typeof b === 'object' && b !== null) ? (b.bank || '') : String(b);
+            var countLabel = (typeof b === 'object' && b !== null && b.count) ? ' (' + b.count + ')' : '';
+            return '<option value="' + esc(bankName) + '"' + (bankName === currentBank ? ' selected' : '') + '>' + esc(bankName) + esc(countLabel) + '</option>';
           }).join('');
       }
 
