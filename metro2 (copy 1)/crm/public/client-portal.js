@@ -2248,7 +2248,12 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: Object.assign({'Content-Type':'application/json'}, token ? {'Authorization':'Bearer '+token} : {}),
           body: JSON.stringify({ signedBy: name })
         })
-          .then(function(r){ return r.json(); })
+          .then(function(r){
+            if(!r.ok){
+              return r.json().catch(function(){ return { ok: false, error: 'Server error (' + r.status + ')' }; });
+            }
+            return r.json();
+          })
           .then(function(result){
             if(!result.ok){
               errEl.textContent = result.error || 'Failed to sign. Please try again.';
@@ -2257,16 +2262,12 @@ document.addEventListener('DOMContentLoaded', () => {
               signBtn.textContent = 'Sign Document';
               return;
             }
-            ct.signature = result.signature;
-            var replacement = document.createElement('div');
-            card.parentNode.replaceChild(replacement, card);
-            buildContractCard(ct, container, token);
-            var newlyAdded = container.lastChild;
-            container.replaceChild(newlyAdded, replacement);
+            signBtn.textContent = 'Signed!';
             loadContracts();
           })
-          .catch(function(){
-            errEl.textContent = 'Network error. Please try again.';
+          .catch(function(err){
+            console.error('Contract sign error:', err);
+            errEl.textContent = 'Connection error. Please check your network and try again.';
             errEl.style.display = 'block';
             signBtn.disabled = false;
             signBtn.textContent = 'Sign Document';
