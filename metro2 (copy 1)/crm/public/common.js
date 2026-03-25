@@ -656,8 +656,6 @@ function injectClientsDropdown(){
   if (document.getElementById('navClients')) return;
 
   const clientsLink = navLinks.querySelector('a[href="/clients"]');
-  const leadsLink = navLinks.querySelector('a[href="/leads"]');
-  const billingLink = navLinks.querySelector('a[href="/billing"]');
   if (!clientsLink) return;
 
   const dropdown = document.createElement('div');
@@ -668,19 +666,12 @@ function injectClientsDropdown(){
   toggle.type = 'button';
   toggle.id = 'navClientsToggle';
   toggle.className = 'btn nav-btn flex items-center justify-between md:justify-center gap-2';
-  toggle.dataset.dropdownToggle = 'navClientsMenu';
   toggle.setAttribute('aria-expanded', 'false');
   toggle.setAttribute('aria-haspopup', 'true');
-  toggle.dataset.i18nAriaLabel = 'nav.clientsMenu';
-  toggle.dataset.i18nTitle = 'nav.clientsMenu';
-
-  const toggleLabel = getTranslation('nav.clientsMenu') || 'Clients Hub';
-  toggle.setAttribute('aria-label', toggleLabel);
-  toggle.title = toggleLabel;
 
   const label = document.createElement('span');
   label.dataset.i18n = 'nav.clientsMenu';
-  label.textContent = toggleLabel;
+  label.textContent = 'Clients';
   toggle.appendChild(label);
 
   const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -702,35 +693,24 @@ function injectClientsDropdown(){
   menu.setAttribute('role', 'menu');
   menu.setAttribute('aria-labelledby', 'navClientsToggle');
 
-  const transformLink = (link, translationKey) => {
-    if (!link) return null;
-    const clone = link.cloneNode(true);
-    clone.className = 'btn text-sm';
-    if (translationKey) {
-      clone.dataset.i18n = translationKey;
-      const text = getTranslation(translationKey) || link.textContent?.trim();
-      if (text) clone.textContent = text;
-    } else if (link.textContent) {
-      clone.textContent = link.textContent.trim();
-    }
-    const target = link.getAttribute('target');
-    if (target) clone.setAttribute('target', target);
-    const rel = link.getAttribute('rel');
-    if (rel) clone.setAttribute('rel', rel);
-    link.remove();
-    return clone;
+  const makeLink = (href, text) => {
+    const a = document.createElement('a');
+    a.href = href;
+    a.className = 'btn text-sm';
+    a.textContent = text;
+    return a;
   };
 
-  const insertBeforeNode = clientsLink;
-  navLinks.insertBefore(dropdown, insertBeforeNode);
+  navLinks.insertBefore(dropdown, clientsLink);
+  clientsLink.remove();
 
   [
-    transformLink(clientsLink, 'nav.clients'),
-    transformLink(leadsLink, 'nav.leads'),
-    transformLink(billingLink, 'nav.billing')
-  ].forEach((anchor) => {
-    if (anchor) menu.appendChild(anchor);
-  });
+    makeLink('/clients', 'Clients'),
+    makeLink('/client-invoicing', 'Invoicing'),
+    makeLink('/disputes', 'Disputes'),
+    makeLink('/cfpb', 'CFPB Complaints'),
+    makeLink('/social', 'Social Media')
+  ].forEach((a) => menu.appendChild(a));
 
   dropdown.appendChild(toggle);
   dropdown.appendChild(menu);

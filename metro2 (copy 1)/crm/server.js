@@ -1967,7 +1967,12 @@ app.use('/assets/phoenix', (req, res, next) => {
 });
 
 // Disable default index to avoid auto-serving the app without auth
-app.use(express.static(PUBLIC_DIR, { index: false }));
+app.use(express.static(PUBLIC_DIR, {
+  index: false,
+  setHeaders(res) {
+    res.set('Cache-Control', 'no-store');
+  }
+}));
 
 // Serve neutral welcome page at root, CRM login at /crm
 registerStaticPage({ paths: "/", file: "welcome.html" });
