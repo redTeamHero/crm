@@ -5395,163 +5395,156 @@ body.portal-layout::after {
   transition: width 0.6s ease;
 }
 
-.edu-path {
-  position: relative;
+/* === Education: Card stack layout === */
+.edu-coach-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(99,102,241,0.07);
+  border: 1.5px solid rgba(99,102,241,0.15);
+  margin-bottom: 20px;
+}
+.edu-coach-avatar {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 2px;
+}
+.edu-coach-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.edu-coach-text {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  line-height: 1.55;
+  font-style: italic;
+}
+
+.edu-cards-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 32px 16px 48px;
-  gap: 0;
+  gap: 10px;
+  padding: 0 0 8px;
 }
 
-.edu-step {
-  position: relative;
+.edu-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  width: 100%;
-  max-width: 360px;
-  padding: 8px 0;
-}
-
-.edu-step.align-left {
-  justify-content: flex-start;
-  margin-right: auto;
-  margin-left: 0;
-}
-
-.edu-step.align-right {
-  justify-content: flex-end;
-  flex-direction: row-reverse;
-  margin-left: auto;
-  margin-right: 0;
-}
-
-.edu-step.align-right .edu-lesson-title {
-  text-align: right;
-}
-
-.edu-connector {
-  width: 3px;
-  height: 40px;
-  margin: 0 auto;
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--glass-brd) 0px,
-    var(--glass-brd) 6px,
-    transparent 6px,
-    transparent 12px
-  );
-  border-radius: 2px;
-}
-
-.edu-connector.completed {
-  background: repeating-linear-gradient(
-    to bottom,
-    #22c55e 0px,
-    #22c55e 6px,
-    transparent 6px,
-    transparent 12px
-  );
-}
-
-.edu-node {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  position: relative;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--glass-bg, rgba(255,255,255,0.05));
+  border: 1.5px solid var(--glass-brd, rgba(255,255,255,0.08));
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
   cursor: default;
-  border: 3px solid transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
 }
 
-.edu-node:hover {
-  transform: scale(1.08);
-}
-
-.edu-node.completed {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  border-color: rgba(34,197,94,0.3);
-  box-shadow: 0 8px 20px rgba(34,197,94,0.25);
-  color: #fff;
-}
-
-.edu-node.current {
-  background: linear-gradient(135deg, var(--accent), #8b5cf6);
-  border-color: rgba(99,102,241,0.3);
-  box-shadow: 0 8px 24px rgba(99,102,241,0.35);
-  color: #fff;
-  animation: eduPulse 2s ease-in-out infinite;
+button.edu-card {
   cursor: pointer;
 }
 
-.edu-node.locked {
-  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
-  border-color: rgba(148,163,184,0.2);
-  box-shadow: 0 4px 12px rgba(148,163,184,0.15);
-  color: rgba(255,255,255,0.7);
+button.edu-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
 }
 
-@keyframes eduPulse {
-  0%, 100% { box-shadow: 0 8px 24px rgba(99,102,241,0.35); }
-  50% { box-shadow: 0 8px 32px rgba(99,102,241,0.55), 0 0 0 8px rgba(99,102,241,0.1); }
+.edu-card.current {
+  border-width: 2px;
 }
 
-.edu-node .edu-check {
-  font-size: 1.4rem;
+.edu-card.completed {
+  opacity: 0.78;
 }
 
-.edu-node .edu-lock {
-  font-size: 1.2rem;
-  opacity: 0.7;
+.edu-card.locked {
+  opacity: 0.42;
 }
 
-.edu-lesson-info {
+.edu-card-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.edu-card-body {
+  flex: 1;
   min-width: 0;
 }
 
-.edu-lesson-title {
+.edu-card-title {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.3;
+  margin-bottom: 3px;
 }
 
-.edu-lesson-subtitle {
-  font-size: 0.75rem;
+.edu-card-subtitle {
+  font-size: 0.72rem;
   color: var(--muted);
+  line-height: 1.4;
 }
 
-.edu-step.locked .edu-lesson-title {
+.edu-card.locked .edu-card-title,
+.edu-card.locked .edu-card-subtitle {
   color: #94a3b8;
 }
 
-.edu-step.locked .edu-lesson-subtitle {
-  color: #cbd5e1;
+.edu-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
-@media (max-width: 640px) {
-  .edu-step {
-    max-width: 100%;
-  }
-  .edu-step.align-left,
-  .edu-step.align-right {
-    margin-left: auto;
-    margin-right: auto;
-    justify-content: center;
-    flex-direction: row;
-  }
-  .edu-step.align-right .edu-lesson-title {
-    text-align: left;
-  }
+.edu-card-xp {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+
+.edu-card-status {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.edu-next-lesson-btn {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.edu-next-lesson-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
 }
 
 /* iMessage-style Messaging */
@@ -5855,11 +5848,6 @@ body.portal-layout::after {
 .time-slot-btn.selected { background: #6366f1; color: #fff; border-color: #6366f1; }
 
 /* ======= Interactive Lesson Player ======= */
-.edu-step[data-lesson-id] { cursor: pointer; }
-.edu-step[data-lesson-id]:hover .edu-node { transform: scale(1.12); }
-.edu-step[data-lesson-id]:hover .edu-lesson-title { color: #d4a853; }
-button.edu-step { background: none; border: none; text-align: left; padding: 8px 0; }
-button.edu-step.align-right { text-align: right; }
 
 .lesson-overlay {
   position: fixed; inset: 0; z-index: 9999;

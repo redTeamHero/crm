@@ -3,28 +3,34 @@
 
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+  var COACH_INTROS = {
+    beginner:     "Let's build your foundation. Understanding your credit score is the first step to transforming it.",
+    intermediate: "You're ready for the real law. FCRA and FDCPA are your sharpest weapons — let's use them.",
+    expert:       "This is where most people stop. Master the legal strategies that separate pros from the rest."
+  };
+
   function renderEducation(){
     var container = document.getElementById('education');
     if(!container) return;
     var activeTier = typeof window.getActiveTier === 'function' ? window.getActiveTier() : 'beginner';
 
     var tiers = {
-      beginner:     { data: window.EDUCATION_LESSONS     || [], label: 'Beginner',     icon: '📗', xpEach: 100, desc: 'Credit fundamentals',  color: '#22c55e' },
-      intermediate: { data: window.EDUCATION_INTERMEDIATE || [], label: 'Intermediate', icon: '📙', xpEach: 150, desc: 'FCRA, FDCPA, CFPB',   color: '#f59e0b' },
-      expert:       { data: window.EDUCATION_EXPERT       || [], label: 'Expert',       icon: '📕', xpEach: 200, desc: 'Legal & regulatory',   color: '#ef4444' }
+      beginner:     { data: window.EDUCATION_LESSONS     || [], label: 'Beginner',     icon: '📗', xpEach: 100, desc: 'Credit fundamentals',  color: '#22c55e', iconBg: 'linear-gradient(135deg,#22c55e,#16a34a)' },
+      intermediate: { data: window.EDUCATION_INTERMEDIATE || [], label: 'Intermediate', icon: '📙', xpEach: 150, desc: 'FCRA, FDCPA, CFPB',   color: '#f59e0b', iconBg: 'linear-gradient(135deg,#f59e0b,#d97706)' },
+      expert:       { data: window.EDUCATION_EXPERT       || [], label: 'Expert',       icon: '📕', xpEach: 200, desc: 'Legal & regulatory',   color: '#ef4444', iconBg: 'linear-gradient(135deg,#ef4444,#dc2626)' }
     };
 
-    var currentTier = tiers[activeTier] || tiers.beginner;
-    var lessonData  = currentTier.data;
-    var statuses    = typeof window.resolveStatuses        === 'function' ? window.resolveStatuses(lessonData)   : lessonData.map(function(_,i){ return i === 0 ? 'current' : 'locked'; });
-    var allLessons  = typeof window.getAllLessons           === 'function' ? window.getAllLessons()               : lessonData;
-    var completedCount = typeof window.getCompletedCount   === 'function' ? window.getCompletedCount()           : 0;
-    var totalXP     = typeof window.getTotalXP             === 'function' ? window.getTotalXP()                  : 0;
-    var streak      = typeof window.getStreak              === 'function' ? window.getStreak()                   : { days: 0 };
-    var tierCompleted  = typeof window.getCompletedCountForTier === 'function' ? window.getCompletedCountForTier(lessonData) : 0;
+    var currentTier   = tiers[activeTier] || tiers.beginner;
+    var lessonData    = currentTier.data;
+    var statuses      = typeof window.resolveStatuses          === 'function' ? window.resolveStatuses(lessonData)        : lessonData.map(function(_,i){ return i === 0 ? 'current' : 'locked'; });
+    var allLessons    = typeof window.getAllLessons             === 'function' ? window.getAllLessons()                    : lessonData;
+    var completedCount= typeof window.getCompletedCount        === 'function' ? window.getCompletedCount()                : 0;
+    var totalXP       = typeof window.getTotalXP               === 'function' ? window.getTotalXP()                      : 0;
+    var streak        = typeof window.getStreak                === 'function' ? window.getStreak()                       : { days: 0 };
+    var tierCompleted = typeof window.getCompletedCountForTier === 'function' ? window.getCompletedCountForTier(lessonData): 0;
 
     var level    = Math.floor(totalXP / 800) + 1;
-    var xpInLevel = totalXP % 800;
+    var xpInLevel= totalXP % 800;
     var xpPct    = Math.min((xpInLevel / 800) * 100, 100);
 
     var header = document.querySelector('.edu-header');
@@ -56,31 +62,59 @@
     tierInfoHtml += '<span class="edu-tier-count">' + tierCompleted + ' of ' + lessonData.length + ' complete</span>';
     tierInfoHtml += '</div>';
 
-    var mapHtml = '';
-    lessonData.forEach(function(lesson, i){
-      var status    = statuses[i] || 'locked';
-      var align     = i % 2 === 0 ? 'align-left' : 'align-right';
-      var stepClass = 'edu-step ' + align + (status === 'locked' ? ' locked' : '');
-      var nodeClass = 'edu-node ' + status;
-      var inner     = status === 'completed' ? '<span class="edu-check">\u2713</span>' :
-                      status === 'current'   ? lesson.icon :
-                      '<span class="edu-lock">\uD83D\uDD12</span>';
-      var clickable = status !== 'locked';
-      var tag  = clickable ? 'button' : 'div';
-      var extra = clickable ? ' data-lesson-id="' + lesson.id + '" type="button"' : '';
-      mapHtml += '<' + tag + ' class="' + stepClass + '"' + extra + '>';
-      mapHtml += '<div class="' + nodeClass + '">' + inner + '</div>';
-      mapHtml += '<div class="edu-lesson-info"><div class="edu-lesson-title">' + esc(lesson.title) + '</div><div class="edu-lesson-subtitle">' + esc(lesson.subtitle) + '</div></div>';
-      mapHtml += '</' + tag + '>';
-      if(i < lessonData.length - 1){
-        var connClass = 'edu-connector';
-        if(status === 'completed' && (statuses[i+1] === 'completed' || statuses[i+1] === 'current')) connClass += ' completed';
-        mapHtml += '<div class="' + connClass + '"></div>';
-      }
-    });
+    var currentLesson = null;
+    statuses.forEach(function(s, i){ if(s === 'current' && !currentLesson) currentLesson = lessonData[i]; });
+    var coachMsg = currentLesson
+      ? 'Next up: \u201c' + currentLesson.title + '\u201d \u2014 pay attention here.'
+      : COACH_INTROS[activeTier];
+    var coachHtml = '<div class="edu-coach-bubble" style="border-color:' + currentTier.color + '44;background:' + currentTier.color + '0d">';
+    coachHtml += '<div class="edu-coach-avatar">🧑\u200d💼</div>';
+    coachHtml += '<div><div class="edu-coach-label" style="color:' + currentTier.color + '">Evolv Guide</div>';
+    coachHtml += '<div class="edu-coach-text">' + esc(coachMsg) + '</div></div>';
+    coachHtml += '</div>';
 
-    var tierAllComplete = typeof window.isTierComplete    === 'function' && window.isTierComplete(activeTier);
-    var tierQuizPassed  = typeof window.isTierQuizPassed  === 'function' && window.isTierQuizPassed(activeTier);
+    var mapHtml = '<div class="edu-cards-list">';
+    lessonData.forEach(function(lesson, i){
+      var status   = statuses[i] || 'locked';
+      var clickable= status !== 'locked';
+      var tag      = clickable ? 'button' : 'div';
+      var extra    = clickable ? ' data-lesson-id="' + esc(lesson.id) + '" type="button"' : '';
+
+      var iconContent = status === 'completed' ? '✓'
+                      : status === 'current'   ? lesson.icon
+                      : '🔒';
+      var iconBg = status === 'completed' ? 'linear-gradient(135deg,#22c55e,#16a34a)'
+                 : status === 'locked'    ? 'rgba(148,163,184,0.25)'
+                 : currentTier.iconBg;
+      var borderStyle = status === 'current' ? 'border-color:' + currentTier.color + ';box-shadow:0 0 0 3px ' + currentTier.color + '22' : '';
+
+      var xpText  = status === 'completed' ? '✓ ' + currentTier.xpEach + ' XP' : currentTier.xpEach + ' XP';
+      var xpBg    = status === 'completed' ? 'rgba(34,197,94,0.12);color:#22c55e' : currentTier.color + '18;color:' + currentTier.color;
+      var statusIcon = status === 'completed' ? '✓' : status === 'current' ? '▶' : '🔒';
+
+      mapHtml += '<' + tag + ' class="edu-card ' + status + '"' + extra + (borderStyle ? ' style="' + borderStyle + '"' : '') + '>';
+      mapHtml += '<div class="edu-card-icon" style="background:' + iconBg + '">' + iconContent + '</div>';
+      mapHtml += '<div class="edu-card-body">';
+      mapHtml += '<div class="edu-card-title">' + esc(lesson.title) + '</div>';
+      mapHtml += '<div class="edu-card-subtitle">' + esc(lesson.subtitle) + '</div>';
+      mapHtml += '</div>';
+      mapHtml += '<div class="edu-card-right">';
+      mapHtml += '<span class="edu-card-xp" style="background:' + xpBg + '">' + xpText + '</span>';
+      mapHtml += '<span class="edu-card-status">' + statusIcon + '</span>';
+      mapHtml += '</div>';
+      mapHtml += '</' + tag + '>';
+    });
+    mapHtml += '</div>';
+
+    var nextBtnHtml = '';
+    if(currentLesson){
+      nextBtnHtml = '<button class="edu-next-lesson-btn" data-lesson-id="' + esc(currentLesson.id) + '" type="button" style="background:' + currentTier.color + '">';
+      nextBtnHtml += '\u25B6\uFE0F  Continue \u2014 ' + esc(currentLesson.title);
+      nextBtnHtml += '</button>';
+    }
+
+    var tierAllComplete = typeof window.isTierComplete   === 'function' && window.isTierComplete(activeTier);
+    var tierQuizPassed  = typeof window.isTierQuizPassed === 'function' && window.isTierQuizPassed(activeTier);
     var remaining = lessonData.length - tierCompleted;
 
     var quizHtml = '<div class="edu-tier-quiz-section' + (!tierAllComplete ? ' locked' : '') + '">';
@@ -96,7 +130,7 @@
     }
     quizHtml += '</div>';
 
-    container.innerHTML = tabsHtml + tierInfoHtml + mapHtml + quizHtml;
+    container.innerHTML = tabsHtml + tierInfoHtml + coachHtml + mapHtml + nextBtnHtml + quizHtml;
 
     container.querySelectorAll('.edu-tier-tab').forEach(function(tab){
       tab.addEventListener('click', function(){
