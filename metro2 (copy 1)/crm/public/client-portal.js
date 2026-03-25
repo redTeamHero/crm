@@ -2744,6 +2744,7 @@ document.addEventListener('DOMContentLoaded', () => {
           docSection.querySelectorAll('.doc-card .batch-cb').forEach(function(cb) { cb.checked = false; });
           docSection.querySelectorAll('.doc-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
         }
+        document.body.classList.toggle('batch-select-active', mailSelectMode || docSelectMode);
         updateToolbarCount(docToolbar, docSection, '.doc-card');
       });
 
@@ -2793,6 +2794,7 @@ document.addEventListener('DOMContentLoaded', () => {
           mailSection.querySelectorAll('.mail-card .batch-cb').forEach(function(cb) { cb.checked = false; });
           mailSection.querySelectorAll('.mail-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
         }
+        document.body.classList.toggle('batch-select-active', mailSelectMode || docSelectMode);
         updateToolbarCount(mailToolbar, getActiveMailContainer(), '.mail-card');
       });
 
