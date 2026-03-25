@@ -2016,6 +2016,7 @@ registerStaticPage({
 });
 registerStaticPage({ paths: "/billing", file: "billing.html" });
 registerStaticPage({ paths: "/disputes", file: "disputes.html" });
+registerStaticPage({ paths: "/education", file: "education.html" });
 registerStaticPage({ paths: "/whats-in-evolv", file: "whats-in-evolv.html" });
 registerStaticPage({ paths: "/cfpb", file: "cfpb.html" });
 registerStaticPage({ paths: "/client-invoicing", file: "client-invoicing.html" });

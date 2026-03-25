@@ -69,6 +69,7 @@
     { label: 'Schedule', icon: 'calendar', href: '/schedule', match: ['/schedule'] },
     { label: 'Billing', icon: 'creditCard', href: '/billing', match: ['/billing'] },
     { group: 'TOOLS' },
+    { label: 'Education', icon: 'book', href: '/education', match: ['/education'] },
     { label: 'Tradelines', icon: 'dollarSign', href: '/tradelines', match: ['/tradelines'] },
     { label: 'Affiliate', icon: 'share2', href: '/affiliate', match: ['/affiliate'] },
     { group: 'SETTINGS' },
