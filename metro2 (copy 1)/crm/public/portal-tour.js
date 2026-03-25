@@ -30,6 +30,40 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
   }
 
+  function _getPortalToken() {
+    return localStorage.getItem('token') || localStorage.getItem('auth') || '';
+  }
+
+  function dismissPortalTourServer() {
+    try {
+      var tok = _getPortalToken();
+      if (!tok) return;
+      fetch('/api/portal-tour/dismiss', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + tok }
+      }).catch(function() {});
+    } catch(_) {}
+  }
+
+  function undismissPortalTourServer() {
+    try {
+      var tok = _getPortalToken();
+      if (!tok) return;
+      fetch('/api/portal-tour/undismiss', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + tok }
+      }).catch(function() {});
+    } catch(_) {}
+  }
+
+  function getPortalTourStatus() {
+    var tok = _getPortalToken();
+    if (!tok) return Promise.resolve({ dismissed: false });
+    return fetch('/api/portal-tour/status', {
+      headers: { 'Authorization': 'Bearer ' + tok }
+    }).then(function(r) { return r.json(); }).catch(function() { return { dismissed: false }; });
+  }
+
   var PORTAL_TOURS = {
     overview: {
       label: 'Overview',
@@ -647,47 +681,76 @@
       '</div>';
     }).join('');
 
-    overlay.innerHTML =
-      '<div class="ptour-menu" style="position:relative;">' +
-        '<button class="ptour-menu__close" data-close>\u2715</button>' +
-        '<div class="ptour-menu__header">' +
-          '<div class="ptour-phoenix" style="width:56px;height:56px;">' + PHOENIX_SVG + '</div>' +
-          '<div>' +
-            '<div class="ptour-menu__title">Portal Tour Guide</div>' +
-            '<div class="ptour-menu__subtitle">Choose a section to learn about</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="ptour-menu__list" style="max-height:400px;overflow-y:auto;">' +
-          '<div class="ptour-menu__item ptour-menu__item--full" data-tour-key="__current__">' +
-            '<div class="ptour-menu__item-icon">\uD83D\uDD25</div>' +
-            '<div class="ptour-menu__item-text">' +
-              '<div class="ptour-menu__item-label">Tour This Section</div>' +
-              '<div class="ptour-menu__item-desc">Let Evolv walk you through what\'s on screen right now</div>' +
+    getPortalTourStatus().then(function(data) {
+      var autoShowOn = !(data && data.dismissed);
+
+      overlay.innerHTML =
+        '<div class="ptour-menu" style="position:relative;">' +
+          '<button class="ptour-menu__close" data-close>\u2715</button>' +
+          '<div class="ptour-menu__header">' +
+            '<div class="ptour-phoenix" style="width:56px;height:56px;">' + PHOENIX_SVG + '</div>' +
+            '<div>' +
+              '<div class="ptour-menu__title">Portal Tour Guide</div>' +
+              '<div class="ptour-menu__subtitle">Choose a section to learn about</div>' +
             '</div>' +
           '</div>' +
-          menuItems +
-        '</div>' +
-      '</div>';
+          '<div class="ptour-menu__list" style="max-height:400px;overflow-y:auto;">' +
+            '<div class="ptour-menu__item ptour-menu__item--full" data-tour-key="__current__">' +
+              '<div class="ptour-menu__item-icon">\uD83D\uDD25</div>' +
+              '<div class="ptour-menu__item-text">' +
+                '<div class="ptour-menu__item-label">Tour This Section</div>' +
+                '<div class="ptour-menu__item-desc">Let Evolv walk you through what\'s on screen right now</div>' +
+              '</div>' +
+            '</div>' +
+            menuItems +
+          '</div>' +
+          '<div class="tour-menu__footer">' +
+            '<span class="tour-menu__footer-label">Auto-show on login</span>' +
+            '<button class="tour-menu__footer-toggle ' + (autoShowOn ? 'tour-menu__footer-toggle--on' : 'tour-menu__footer-toggle--off') + '" data-action="toggle-autoshow">' +
+              (autoShowOn ? 'On' : 'Off') +
+            '</button>' +
+          '</div>' +
+        '</div>';
 
-    overlay.addEventListener('click', function(e) {
-      if (e.target === overlay || e.target.closest('[data-close]')) {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay || e.target.closest('[data-close]')) {
+          overlay.remove();
+          return;
+        }
+
+        var toggleBtn = e.target.closest('[data-action="toggle-autoshow"]');
+        if (toggleBtn) {
+          var isOn = toggleBtn.classList.contains('tour-menu__footer-toggle--on');
+          if (isOn) {
+            dismissPortalTourServer();
+            toggleBtn.classList.replace('tour-menu__footer-toggle--on', 'tour-menu__footer-toggle--off');
+            toggleBtn.textContent = 'Off';
+          } else {
+            undismissPortalTourServer();
+            var st = getState();
+            delete st._welcomed;
+            saveState(st);
+            toggleBtn.classList.replace('tour-menu__footer-toggle--off', 'tour-menu__footer-toggle--on');
+            toggleBtn.textContent = 'On';
+          }
+          return;
+        }
+
+        var item = e.target.closest('[data-tour-key]');
+        if (!item) return;
+        var key = item.dataset.tourKey;
         overlay.remove();
-        return;
-      }
-      var item = e.target.closest('[data-tour-key]');
-      if (!item) return;
-      var key = item.dataset.tourKey;
-      overlay.remove();
 
-      if (key === '__current__') {
-        startSectionTour();
-        return;
-      }
+        if (key === '__current__') {
+          startSectionTour();
+          return;
+        }
 
-      engine.start(key);
+        engine.start(key);
+      });
+
+      document.body.appendChild(overlay);
     });
-
-    document.body.appendChild(overlay);
   }
 
   function showWelcome() {
@@ -700,6 +763,12 @@
         '<div class="ptour-welcome__body">' +
           'Hi! I\'m Evolv 🔥 — your phoenix guide to credit restoration. This portal is your command center for tracking disputes, uploading documents, monitoring your credit scores, and communicating with your team. Want me to show you around?' +
         '</div>' +
+        '<div class="tour-welcome__opt-out" style="margin:10px 0 4px;text-align:center;">' +
+          '<label class="tour-welcome__opt-out-label" style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:#9ca3af;cursor:pointer;">' +
+            '<input type="checkbox" id="ptourDontShowAgain" class="tour-welcome__opt-out-check">' +
+            "Don\u2019t show this again" +
+          '</label>' +
+        '</div>' +
         '<div class="ptour-welcome__actions">' +
           '<button class="ptour-welcome__btn ptour-welcome__btn--start" data-action="start">Show Me Around!</button>' +
           '<button class="ptour-welcome__btn ptour-welcome__btn--skip" data-action="skip">I\'ll Explore On My Own</button>' +
@@ -711,9 +780,12 @@
       action = action ? action.action : null;
       if (action === 'start') {
         overlay.remove();
+        dismissPortalTourServer();
         startSectionTour('overview');
       } else if (action === 'skip' || e.target === overlay) {
+        var cb = overlay.querySelector('#ptourDontShowAgain');
         overlay.remove();
+        if (cb && cb.checked) dismissPortalTourServer();
       }
     });
 
@@ -722,11 +794,20 @@
 
   function checkAutoStart() {
     var state = getState();
-    if (!state._welcomed) {
-      state._welcomed = true;
-      saveState(state);
+    if (state._welcomed) return;
+
+    getPortalTourStatus().then(function(data) {
+      if (data && data.dismissed) {
+        var st = getState();
+        st._welcomed = true;
+        saveState(st);
+        return;
+      }
+      var st = getState();
+      st._welcomed = true;
+      saveState(st);
       setTimeout(showWelcome, 1500);
-    }
+    });
   }
 
   function resetAllTours() {

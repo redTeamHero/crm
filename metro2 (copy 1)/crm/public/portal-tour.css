@@ -403,6 +403,46 @@
   background: #f1f5f9;
 }
 
+.tour-menu__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  margin-top: 4px;
+}
+.tour-menu__footer-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.tour-menu__footer-toggle {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: none;
+}
+.tour-menu__footer-toggle--on {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.08);
+}
+.tour-menu__footer-toggle--on:hover {
+  background: rgba(16, 185, 129, 0.15);
+}
+.tour-menu__footer-toggle--off {
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.06);
+}
+.tour-menu__footer-toggle--off:hover {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.12);
+}
+
 .ptour-confetti {
   position: fixed;
   inset: 0;
@@ -464,7 +504,30 @@
   font-size: 0.95rem;
   color: #64748b;
   line-height: 1.6;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
+}
+
+.tour-welcome__opt-out {
+  margin-bottom: 16px;
+  text-align: center;
+}
+.tour-welcome__opt-out-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: #94a3b8;
+  cursor: pointer;
+  user-select: none;
+}
+.tour-welcome__opt-out-label:hover {
+  color: #64748b;
+}
+.tour-welcome__opt-out-check {
+  width: 14px;
+  height: 14px;
+  accent-color: #3b82f6;
+  cursor: pointer;
 }
 
 .ptour-welcome__actions {

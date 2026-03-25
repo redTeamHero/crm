@@ -91,7 +91,7 @@ const PAGE_TOURS = {
     icon: '💳',
     desc: 'Manage your subscription, payments, and feature access',
     steps: [
-      { target: '[data-tour="billing-plans"], .pricing-grid', title: 'Subscription Plans', body: "Choose the plan that matches your business stage. Starter ($99.99/mo) is perfect when you're getting off the ground — it includes core features for up to 25 clients. Growth ($199.99/mo) unlocks bulk automation, AI-powered letters, and up to 150 clients — ideal when you're scaling. Enterprise ($499.99/mo) removes all limits and adds white-labeling, API access, and priority support for established businesses. You can upgrade or downgrade anytime, and your billing adjusts automatically.", pose: 'wave' },
+      { target: '[data-tour="billing-plans"], .pricing-grid', title: 'Subscription Plans', body: "Choose the plan that matches your business stage. Starter ($97/mo) is perfect when you're getting off the ground — it includes core features for up to 25 clients. Growth ($297/mo) unlocks bulk automation, AI-powered letters, and up to 150 clients — ideal when you're scaling. Enterprise ($597/mo) removes all limits and adds white-labeling, API access, and priority support for established businesses. You can upgrade or downgrade anytime, and your billing adjusts automatically.", pose: 'wave' },
       { target: '[data-tour="billing-status"], .subscription-status', title: 'Your Current Subscription', body: "This section shows your active plan, next billing date, payment method on file, and current usage against your plan limits. If you're approaching your client limit, you'll see a warning here so you can upgrade before hitting the cap. You can also view your complete billing history, download invoices for tax purposes, and update your payment method — all without leaving this page.", pose: 'default' },
       { target: '[data-tour="billing-portal"], .manage-btn, .portal-btn', title: 'Manage Subscription', body: "Click here to open the Stripe customer portal where you can update your card, switch plans, cancel, or resume your subscription. Changes take effect immediately — if you upgrade mid-cycle, you're only charged the prorated difference. If you cancel, you keep access until the end of your billing period. We believe in earning your business every month, so there are no long-term contracts or cancellation fees.", pose: 'default' }
     ]
@@ -194,6 +194,83 @@ const PAGE_TOURS = {
       { target: '#saveSettings, #portalThemeReset', title: 'Save & Reset Controls', body: "After customizing your portal, hit Save to push changes live instantly — your clients will see the updates the next time they visit. If you ever want to start over or undo experimental changes, the Reset to Defaults button restores the original theme settings. Changes reflect immediately for all portal visitors, so preview your customizations carefully before saving.", pose: 'default' },
       { target: '#ctaPortalHeading', title: 'Concierge Portal Upgrade', body: "This is a powerful revenue strategy: offer your clients a premium portal upgrade that includes priority dispute reviews and SMS alerts for an additional monthly fee. It's a win-win — clients get faster service and proactive updates, and you increase your lifetime value per client. The suggested pricing and messaging here is compliance-safe and proven to convert. Enable it and you've instantly added a new revenue stream to your business.", pose: 'excited' }
     ]
+  },
+  disputes: {
+    label: 'Dispute Tracker',
+    icon: '⚖️',
+    desc: 'Track every dispute round and monitor bureau responses',
+    steps: [
+      { target: '.workspace-hero, .hero-title', title: 'Welcome to Dispute Tracker!', body: "This is your dispute command center — a single view of every dispute round, bureau response, and letter sent for any client. Select a client to load their full dispute history and manage the next steps in their credit repair journey.", pose: 'wave' },
+      { target: '#consumerPicker', title: 'Select a Client', body: "Use the dropdown to pick any client in your roster. Once selected, their full dispute tracker loads below — showing all rounds, the timeline of bureau interactions, and every letter that's been sent on their behalf.", pose: 'default' },
+      { target: '#disputeAnalysisCard', title: 'Report Analysis Card', body: "When a client has active disputes, this card shows the AI-powered analysis of their credit report. It highlights the strongest dispute arguments, flags which items have the highest deletion potential, and gives you a strategic roadmap for each round. Gold means there's action to take.", pose: 'default' },
+      { target: '#letterHistoryCard', title: 'Letters Sent History', body: "This blue card tracks every dispute letter that's been generated and sent for this client. You'll see the letter type, bureau targeted, and date sent. This is your audit trail — if a bureau claims they never received correspondence, this log proves otherwise.", pose: 'default' },
+      { target: '#disputeTimeline', title: 'Dispute Timeline', body: "The timeline is the heart of the tracker. Each entry shows a dispute round with its status — Pending, Awaiting Response, Resolved, or Deleted. Select multiple entries using the checkboxes and use the toolbar at the bottom to generate next-round letters, mark items as resolved, download a full round, or send letters to the client portal. Use 'Items/letter' to control how many dispute items get bundled into each letter.", pose: 'celebrate' }
+    ]
+  },
+  cfpb: {
+    label: 'CFPB Complaints',
+    icon: '🏛️',
+    desc: 'Generate AI-drafted federal complaints for unresolved disputes',
+    steps: [
+      { target: '.workspace-hero, .hero-title', title: 'CFPB Complaint Generator', body: "When bureau disputes fail — or a creditor refuses to comply — the CFPB (Consumer Financial Protection Bureau) is your next weapon. Filing a CFPB complaint puts federal oversight on the case and often produces results that dispute letters alone cannot. This tool drafts a legally-precise complaint using AI in seconds.", pose: 'wave' },
+      { target: '#consumerSelect', title: 'Pick the Client', body: "Select the client you're generating the complaint for. The form will use their name and contact details in the complaint narrative automatically. Their negative items also load into the items panel so you can select exactly which accounts are part of the complaint.", pose: 'default' },
+      { target: '#cfpbFormSection', title: 'Complaint Details Form', body: "Fill in the company being complained about (Equifax, Experian, TransUnion, or any creditor), the violation type (FCRA no response, inaccurate reporting, re-aged debt, and more), and attach any proof documents like dispute letters and bureau responses. The violation type list covers every common FCRA and FDCPA scenario so you don't have to write it from scratch.", pose: 'default' },
+      { target: '#cfpbItemsPanel', title: 'Disputed Account Items', body: "Check the specific accounts or items you want included in the complaint. These are pulled directly from the client's credit report data. You can also add a custom item manually if the disputed account isn't listed. Being specific about which accounts are affected makes the complaint much harder for the bureau to dismiss.", pose: 'default' },
+      { target: '#btnGenerateCfpb', title: 'Generate & Save', body: "Click Generate to have AI write a formal 'What Happened' narrative and a 'What Resolution I Am Seeking' statement — both using FCRA-compliant language. Review the output, copy it to file at consumerfinance.gov, and click Save to Record to attach it permanently to the client's file. Filed complaints are tracked in the Saved Complaints section below.", pose: 'celebrate' }
+    ]
+  },
+  education: {
+    label: 'Credit Academy',
+    icon: '🎓',
+    desc: 'Master credit repair, FCRA law, and dispute strategy',
+    steps: [
+      { target: '.workspace-hero, .hero-title', title: 'Welcome to Credit Academy!', body: "The Credit Academy is your personal training ground for becoming a world-class credit repair professional. Structured lessons cover everything from credit report basics and FCRA law fundamentals all the way to advanced Metro-2 dispute strategy and business scaling. Each lesson you complete builds your expertise and credibility.", pose: 'wave' },
+      { target: '.edu-header', title: 'Your Learning Progress', body: "Track your growth here. Your Level badge shows your current rank as you earn XP from completing lessons. The XP progress bar fills as you learn. Your streak counter tracks consecutive days of study — consistency is the fastest path to mastery. Completed lessons show you exactly how far you've come.", pose: 'default' },
+      { target: '#educationSection, #education', title: 'Course Catalog', body: "Lessons are organized by skill level — Beginner, Intermediate, and Expert. Beginner courses cover credit report anatomy, score factors, and initial dispute strategy. Intermediate dives into FCRA law, bureau-specific rules, and letter writing technique. Expert covers Metro-2 compliance, data furnisher liability, and advanced escalation strategies. Click any lesson to start it immediately.", pose: 'excited' },
+      { target: '.edu-xp-bar, .edu-xp-fill', title: 'XP & Level System', body: "Every lesson you complete earns XP points. As your XP grows, you level up — from Beginner through Practitioner to Expert and beyond. Higher levels signal to your clients and peers that you've put in the work. The streak system rewards daily learning habits, which research shows is the most effective way to retain new information over the long term.", pose: 'celebrate' }
+    ]
+  },
+  affiliate: {
+    label: 'Affiliate Program',
+    icon: '🔗',
+    desc: 'Earn commissions by referring new users to Evolv',
+    steps: [
+      { target: '#affiliateNotJoined, #affiliateDashboard, #adminSection', title: 'Your Affiliate Program', body: "The Affiliate Program turns your network into a revenue stream. When someone signs up for Evolv using your referral link, you earn a commission — automatically tracked and paid out on request. Whether you're a solo practitioner or a team, this adds passive income to your business without any extra work.", pose: 'wave' },
+      { target: '#affiliateNotJoined', title: 'Join to Get Started', body: "New here? Click 'Join Affiliate Program' to activate your account and get your unique referral links — one for the DIY client-facing product and one for the CRM. Once joined, your dashboard activates and tracks every click, signup, and commission earned in real time.", pose: 'default' },
+      { target: '#affiliateDashboard', title: 'Affiliate Dashboard', body: "Your dashboard shows the key metrics: Total Clicks on your referral links, Signups converted, Total Earned, and your Conversion Rate. Below the stats are your Earnings Breakdown (total, paid out, pending, and available balance), your Payout History, and your full Referral History. Click 'Request Payout' when your available balance is ready to withdraw via PayPal, Venmo, or check.", pose: 'default' },
+      { target: '#ratesPanel', title: 'Commission Rate Schedule', body: "Admins can set commission rates here for each product tier — DIY Basic, DIY Pro, DIY Tradeline purchases, and CRM Starter/Business/Enterprise plans. Each referral that converts to a paid subscription at that tier earns the corresponding commission amount. Higher-tier referrals pay more, so focus your outreach on prospects who need the full CRM experience.", pose: 'excited' }
+    ]
+  },
+  social: {
+    label: 'Social Media Manager',
+    icon: '📱',
+    desc: 'Generate and schedule AI-crafted Facebook posts from RSS feeds',
+    steps: [
+      { target: '.workspace-hero, .hero-title', title: 'Social Media Manager', body: "Stay top-of-mind with your audience without spending hours creating content. The Social Media Manager connects to your Facebook Page, pulls articles from RSS news feeds, and uses AI to craft compliant, engaging posts — ready to schedule with one click. This keeps your social presence active even on your busiest days.", pose: 'wave' },
+      { target: '#smTabs', title: 'Section Tabs', body: "Navigate using the tabs: Connect links your Facebook Page, Feeds manages the RSS news sources you pull content from, Compose creates individual posts with AI assistance, and Schedule shows your upcoming post calendar. Start with Connect if you haven't linked Facebook yet.", pose: 'default' },
+      { target: '#tab-connect, #connectBody', title: 'Facebook Connection', body: "Connect your Facebook Page using your Facebook App credentials. Once connected, the status badge turns green and your Page name appears. All posts generated here go to this connected Page. The setup guide walks you through creating a Facebook App if you don't have one — it takes about 5 minutes and you only do it once.", pose: 'default' },
+      { target: '#tab-feeds, #feedsList', title: 'RSS Feed Sources', body: "Add any RSS feed URL and give it a name — for example, CFPB News, NerdWallet, or your favorite credit industry blog. The system pulls the latest articles from each feed so you always have fresh, relevant content to share. Credit-related news is perfect for positioning you as a knowledgeable expert to your followers.", pose: 'excited' }
+    ]
+  },
+  'marketing-sms': {
+    label: 'Marketing — SMS',
+    icon: '📲',
+    desc: 'Build compliant SMS campaigns and save reusable templates',
+    steps: [
+      { target: '#marketingSmsBuilder', title: 'SMS Campaign Builder', body: "The SMS builder helps you craft outreach messages before you wire them into Twilio or any SMS provider. Build your campaign name, choose a recipient segment (All Leads, New Clients, Inactive Accounts, or Owner-Operators), and write your message using merge fields like {{first_name}} and {{dispute_stage}} for personalization. A live phone preview shows exactly what recipients will see.", pose: 'wave' },
+      { target: '#smsMessage, #mergeFieldSelect', title: 'Merge Fields & Personalization', body: "Personalized messages get 3-5x higher response rates. Use the merge field dropdown to insert tokens like {{first_name}}, {{credit_score}}, or {{cta_link}} directly into your message body. The character counter tracks your message length — SMS messages over 160 characters split into multiple segments, which increases cost. Keep it tight and punchy for best results.", pose: 'default' },
+      { target: '#smsTemplateForm, #smsTemplateList', title: 'SMS Template Manager', body: "Save frequently-used messages as named templates organized by audience segment. Saved templates appear in the list below the form and can be reused across multiple campaigns. When you're ready to go live, templates push directly to your SMS automation backend via API. Always include opt-out language — the guardrails here remind you to append 'Reply STOP' before going live.", pose: 'excited' }
+    ]
+  },
+  'marketing-email': {
+    label: 'Marketing — Email',
+    icon: '💌',
+    desc: 'Design email templates, nurture sequences, and dispatch schedules',
+    steps: [
+      { target: '#marketingEmailBuilder', title: 'Email Template Designer', body: "Design branded email templates for every stage of the client journey — from lead nurture and onboarding to dispute updates and upsell offers. Filter templates by audience segment: B2C consumers, B2B/truckers, or attorney referral partners. Click 'New Template' to start from scratch or 'Import HTML' to upload an existing design.", pose: 'wave' },
+      { target: '#emailSequenceForm, #emailSequenceList', title: 'Email Sequence Builder', body: "Sequences are multi-step email flows that fire automatically on a schedule. A '7-Day Dispute Warm-Up' sequence might send a welcome email on day 1, a credit education article on day 3, and a consultation invite on day 7. Define the sequence name, target segment, frequency, and individual steps here. Once connected to your email provider, sequences run on autopilot.", pose: 'default' },
+      { target: '#dispatchForm, #dispatchList', title: 'Dispatch Scheduler', body: "The Dispatch Scheduler queues specific templates or sequences to go out to a segment at a scheduled time. Set the target asset, cadence (immediate, daily, or weekly), segment, audience count, and launch date. Upcoming dispatches appear in the list on the right. Track open-to-consult rate after each dispatch and iterate on subject lines and CTAs to improve performance over time.", pose: 'excited' }
+    ]
   }
 };
 
@@ -225,7 +302,20 @@ const PAGE_MAP = {
   'client-invoicing': 'client-invoicing',
   'client-invoicing.html': 'client-invoicing',
   'client-portal-settings': 'client-portal-settings',
-  'client-portal-settings.html': 'client-portal-settings'
+  'client-portal-settings.html': 'client-portal-settings',
+  'disputes': 'disputes',
+  'disputes.html': 'disputes',
+  'cfpb': 'cfpb',
+  'cfpb.html': 'cfpb',
+  'education': 'education',
+  'education.html': 'education',
+  'affiliate': 'affiliate',
+  'affiliate.html': 'affiliate',
+  'social': 'social',
+  'facebook-manager': 'social',
+  'facebook-manager.html': 'social',
+  'sms': 'marketing-sms',
+  'email': 'marketing-email'
 };
 
 const ROUTE_MAP = {
@@ -242,7 +332,14 @@ const ROUTE_MAP = {
   'workflows': '/workflows',
   'my-company': '/my-company',
   'client-invoicing': '/client-invoicing',
-  'client-portal-settings': '/client-portal-settings'
+  'client-portal-settings': '/client-portal-settings',
+  'disputes': '/disputes',
+  'cfpb': '/cfpb',
+  'education': '/education',
+  'affiliate': '/affiliate',
+  'social': '/social',
+  'marketing-sms': '/marketing/sms',
+  'marketing-email': '/marketing/email'
 };
 
 function getCurrentPageKey() {
@@ -572,7 +669,7 @@ function startPageTour(pageKey) {
   tourEngine.start(key);
 }
 
-function showTourMenu() {
+async function showTourMenu() {
   const existing = document.querySelector('.tour-menu-overlay');
   if (existing) existing.remove();
 
@@ -580,6 +677,18 @@ function showTourMenu() {
   const currentPage = getCurrentPageKey();
   const overlay = document.createElement('div');
   overlay.className = 'tour-menu-overlay';
+
+  let autoShowOn = true;
+  try {
+    const tok = localStorage.getItem('token');
+    if (tok) {
+      const res = await fetch('/api/tour/status', { headers: { 'Authorization': 'Bearer ' + tok } });
+      if (res.ok) {
+        const data = await res.json();
+        autoShowOn = !data.dismissed;
+      }
+    }
+  } catch (_) {}
 
   const menuItems = Object.entries(PAGE_TOURS).map(([key, tour]) => {
     const done = state[key]?.completed;
@@ -616,6 +725,12 @@ function showTourMenu() {
         </div>
         ${menuItems}
       </div>
+      <div class="tour-menu__footer">
+        <span class="tour-menu__footer-label">Auto-show on login</span>
+        <button class="tour-menu__footer-toggle ${autoShowOn ? 'tour-menu__footer-toggle--on' : 'tour-menu__footer-toggle--off'}" data-action="toggle-autoshow">
+          ${autoShowOn ? 'On' : 'Off'}
+        </button>
+      </div>
     </div>
   `;
 
@@ -624,6 +739,25 @@ function showTourMenu() {
       overlay.remove();
       return;
     }
+
+    const toggleBtn = e.target.closest('[data-action="toggle-autoshow"]');
+    if (toggleBtn) {
+      const isOn = toggleBtn.classList.contains('tour-menu__footer-toggle--on');
+      if (isOn) {
+        dismissTourServer();
+        toggleBtn.classList.replace('tour-menu__footer-toggle--on', 'tour-menu__footer-toggle--off');
+        toggleBtn.textContent = 'Off';
+      } else {
+        undismissTourServer();
+        const state = getTourState();
+        delete state._welcomed;
+        saveTourState(state);
+        toggleBtn.classList.replace('tour-menu__footer-toggle--off', 'tour-menu__footer-toggle--on');
+        toggleBtn.textContent = 'On';
+      }
+      return;
+    }
+
     const item = e.target.closest('[data-tour-key]');
     if (!item) return;
     const key = item.dataset.tourKey;
@@ -654,6 +788,17 @@ function dismissTourServer() {
     const tok = localStorage.getItem('token');
     if (!tok) return;
     fetch('/api/tour/dismiss', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + tok }
+    }).catch(() => {});
+  } catch (_) {}
+}
+
+function undismissTourServer() {
+  try {
+    const tok = localStorage.getItem('token');
+    if (!tok) return;
+    fetch('/api/tour/undismiss', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + tok }
     }).catch(() => {});
@@ -706,6 +851,12 @@ function showWelcome() {
       <div class="tour-welcome__body">
         I'm your personal guide to mastering your credit repair business. Want me to show you around? I'll walk you through everything — it only takes a minute!
       </div>
+      <div class="tour-welcome__opt-out">
+        <label class="tour-welcome__opt-out-label">
+          <input type="checkbox" id="tourDontShowAgain" class="tour-welcome__opt-out-check">
+          Don't show this again
+        </label>
+      </div>
       <div class="tour-welcome__actions">
         <button class="tour-welcome__btn tour-welcome__btn--start" data-action="start">Show Me Around!</button>
         <button class="tour-welcome__btn tour-welcome__btn--skip" data-action="skip">I'll Explore On My Own</button>
@@ -721,8 +872,9 @@ function showWelcome() {
       const current = getCurrentPageKey();
       if (current) tourEngine.start(current);
     } else if (action === 'skip' || e.target === overlay) {
+      const checked = overlay.querySelector('#tourDontShowAgain')?.checked;
       overlay.remove();
-      dismissTourServer();
+      if (checked) dismissTourServer();
     }
   });
 

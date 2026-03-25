@@ -2584,6 +2584,49 @@ app.post("/api/tour/dismiss", authenticate, async (req, res) => {
   }
 });
 
+app.post("/api/tour/undismiss", authenticate, async (req, res) => {
+  try {
+    const scope = tenantScope(resolveRequestTenant(req));
+    await writeKey("tour_dismissed", false, scope);
+    res.json({ ok: true });
+  } catch (err) {
+    logError("TOUR_UNDISMISS_ERROR", err);
+    res.status(500).json({ ok: false });
+  }
+});
+
+app.get("/api/portal-tour/status", optionalAuth, async (req, res) => {
+  try {
+    const scope = tenantScope(resolveRequestTenant(req));
+    const dismissed = !!(await readKey("portal_tour_dismissed", null, scope));
+    res.json({ ok: true, dismissed });
+  } catch (err) {
+    res.json({ ok: true, dismissed: false });
+  }
+});
+
+app.post("/api/portal-tour/dismiss", authenticate, async (req, res) => {
+  try {
+    const scope = tenantScope(resolveRequestTenant(req));
+    await writeKey("portal_tour_dismissed", true, scope);
+    res.json({ ok: true });
+  } catch (err) {
+    logError("PORTAL_TOUR_DISMISS_ERROR", err);
+    res.status(500).json({ ok: false });
+  }
+});
+
+app.post("/api/portal-tour/undismiss", authenticate, async (req, res) => {
+  try {
+    const scope = tenantScope(resolveRequestTenant(req));
+    await writeKey("portal_tour_dismissed", false, scope);
+    res.json({ ok: true });
+  } catch (err) {
+    logError("PORTAL_TOUR_UNDISMISS_ERROR", err);
+    res.status(500).json({ ok: false });
+  }
+});
+
 app.get("/api/credit-companies", authenticate, requirePermission("admin"), async (_req, res) => {
   try {
     const companiesDb = await loadCreditCompaniesDB();
