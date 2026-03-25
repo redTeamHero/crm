@@ -7658,9 +7658,14 @@ app.post("/api/contracts/:id/send", authenticate, async (req,res)=>{
   const portalLink = `${base}/portal/${encodeURIComponent(consumerId)}`;
   let inviteLink = null;
   if(!consumer.password){
-    const inviteToken = nanoid(20);
-    consumer.portalInviteToken = inviteToken;
-    consumer.portalInviteCreatedAt = new Date().toISOString();
+    const existingToken = consumer.portalInviteToken;
+    const existingCreated = consumer.portalInviteCreatedAt ? new Date(consumer.portalInviteCreatedAt).getTime() : 0;
+    const tokenStillValid = existingToken && (Date.now() - existingCreated < PORTAL_INVITE_TTL_MS);
+    const inviteToken = tokenStillValid ? existingToken : nanoid(20);
+    if(!tokenStillValid){
+      consumer.portalInviteToken = inviteToken;
+      consumer.portalInviteCreatedAt = new Date().toISOString();
+    }
     inviteLink = `${base}/client-setup?token=${inviteToken}`;
   }
   await saveDB(db);
