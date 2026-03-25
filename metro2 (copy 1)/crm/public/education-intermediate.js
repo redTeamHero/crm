@@ -25,15 +25,12 @@ window.EDUCATION_INTERMEDIATE = [
         visual: { type: 'tip', text: 'Legal Strategy: When a bureau violates §611 — for example, by failing to forward your evidence to the furnisher — each violation can be worth $100-$1,000 in statutory damages under §616(a), plus actual damages, attorney fees, and costs. Many consumer rights attorneys take these cases on contingency (no upfront cost to you).' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The 30-Day Clock',
-        story: 'On March 1st, Jordan sends a dispute letter via certified mail to Equifax about a $3,200 collection he doesn\'t recognize. The certified mail receipt shows delivery on March 4th. On April 8th — 35 days after delivery — Jordan still hasn\'t received any response from Equifax.',
-        question: 'Has Equifax violated the FCRA?',
+        type: 'true-false',
+        title: 'The FCRA 30-Day Investigation Clock',
+        question: 'Under FCRA §611, the 30-day investigation clock starts from the date you mailed your dispute letter, not from the date the bureau received it.',
         options: [
-          { text: 'No — 35 days is close enough to the deadline', correct: false, explanation: 'The FCRA doesn\'t have a "close enough" standard. 30 days means 30 days from receipt. At 35 days without a response, Equifax is in violation.' },
-          { text: 'Yes — under §611(a)(1)(A), the investigation must be completed within 30 days of receiving the dispute, and Equifax failed to meet this deadline', correct: true, explanation: 'Correct! The 30-day clock starts when the CRA receives the dispute (March 4th per the certified mail receipt). The deadline was April 3rd. By April 8th without a response, Equifax has violated §611. Jordan should: 1) Send a follow-up letter demanding immediate deletion under §611(a)(5)(A) since the item is now unverified, 2) File a CFPB complaint citing the violation, 3) Consult a consumer rights attorney about statutory damages.' },
-          { text: 'No — the clock starts from when Jordan mailed the letter, not when Equifax received it', correct: false, explanation: 'The 30-day period begins when the CRA receives the dispute, not when it was mailed. This is why certified mail with return receipt is essential — it proves exactly when the bureau received it.' },
-          { text: 'Yes — but only if Jordan filed the dispute online', correct: false, explanation: 'The 30-day deadline applies regardless of how the dispute was filed — mail, online, or phone. The method doesn\'t change the legal obligation.' }
+          { text: 'True', correct: false, explanation: 'False! The 30-day clock starts when the credit bureau RECEIVES your dispute — not when you mailed it. This is why certified mail with return receipt is essential: it proves the exact delivery date, which is day one of the bureau\'s 30-day obligation. If they fail to complete the investigation by day 30, they have violated §611(a)(1)(A) and the unverified item must be promptly deleted under §611(a)(5)(A).' },
+          { text: 'False', correct: true, explanation: 'Correct! The deadline runs from receipt, not from mailing. If your certified mail shows delivery on March 4th, the bureau\'s deadline is April 3rd. If you have received no response by April 4th, that is a §611 violation — and you can demand immediate deletion plus file a CFPB complaint citing the missed deadline.' }
         ]
       },
       {
@@ -49,15 +46,14 @@ window.EDUCATION_INTERMEDIATE = [
         ]}
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Furnisher Rubber Stamp',
-        story: 'Andrea disputed a $4,500 credit card balance showing as $7,200 on her Experian report. She sent bank statements proving the correct balance. Experian forwarded the dispute to Capital One via e-OSCAR. Capital One responded "verified as reported" within 3 days without reviewing Andrea\'s bank statements.',
-        question: 'Did Capital One violate the FCRA?',
+        type: 'multiple-choice',
+        title: 'Furnisher Rubber-Stamping',
+        question: 'You disputed a wrong balance on your credit report and sent bank statements as proof. The bureau forwarded the dispute. The furnisher responded "verified as reported" within 3 days. Is this a §623(b) violation?',
         options: [
-          { text: 'No — they verified the information in their own records', correct: false, explanation: 'Simply checking internal records without considering the consumer\'s evidence is not a "reasonable investigation" as required by §623(b). Courts have repeatedly ruled on this.' },
-          { text: 'Yes — under §623(b), Capital One was required to review ALL relevant information, including Andrea\'s bank statements, and conduct a reasonable investigation', correct: true, explanation: 'Correct! Under §623(b)(1)(A), the furnisher must "conduct an investigation with respect to the disputed information" and "review all relevant information provided by the CRA." If Experian forwarded Andrea\'s bank statements (as required by §611(a)(2)), Capital One was obligated to review them. A 3-day turnaround without reviewing evidence suggests rubber-stamping, which courts have found to violate the FCRA in cases like Gorman v. Wolpoff & Abramson (2009).' },
-          { text: 'No — the 3-day response time shows they were diligent', correct: false, explanation: 'A fast response is not evidence of a thorough investigation — in fact, it suggests the opposite. Reviewing bank statements and cross-referencing account records takes time.' },
-          { text: 'Andrea needs to sue Experian, not Capital One', correct: false, explanation: 'Andrea can potentially pursue both. Experian may have violated §611(a)(2) by not forwarding her evidence, and Capital One may have violated §623(b) by not conducting a reasonable investigation.' }
+          { text: 'No — the furnisher checked their own records and confirmed the data', correct: false, explanation: 'Simply checking internal records without reviewing YOUR evidence is not a "reasonable investigation" under §623(b). Courts have repeatedly held that rubber-stamping — confirming data without actually examining the consumer\'s documents — violates the law.' },
+          { text: 'No — a fast response means they were diligent', correct: false, explanation: 'Speed is not evidence of thoroughness — it is often evidence of the opposite. Reviewing bank statements and reconciling account records takes time. A 3-day turnaround on disputed account data strongly suggests the furnisher did not review your evidence.' },
+          { text: 'Yes — §623(b) requires the furnisher to review ALL relevant information, including your bank statements, and conduct a reasonable investigation', correct: true, explanation: 'Correct! Under §623(b)(1)(A), furnishers must "review all relevant information provided by the CRA" — including your bank statements if the bureau forwarded them. A 3-day "verified" response without reviewing evidence is textbook rubber-stamping, which courts have found to violate the FCRA. Next steps: file a §623 direct dispute with the furnisher\'s compliance department and a CFPB complaint citing the failure to conduct a reasonable investigation.' },
+          { text: 'Yes, but only Experian violated the law — not the furnisher', correct: false, explanation: 'Both can be liable. Experian may have violated §611(a)(2) by not forwarding your evidence; the furnisher may have violated §623(b) by not reviewing it. Both can be pursued simultaneously.' }
         ]
       },
       {
@@ -92,15 +88,14 @@ window.EDUCATION_INTERMEDIATE = [
         visual: { type: 'tip', text: 'Strategy Tip: Don\'t fall for the "609 letter template" scams sold online. §609 is a disclosure right, not a dispute right. Your dispute power comes from §611 and §623. Use §609 strategically to gather information that supports your disputes, not as a standalone removal tactic.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Damages and Lawsuits',
-        story: 'After months of disputing, Samantha has proof that Equifax: 1) Failed to investigate her dispute within 30 days (§611 violation), 2) Did not forward her evidence to the furnisher (§611(a)(2) violation), and 3) The furnisher continued reporting inaccurate information that cost Samantha a mortgage approval. She was denied a 3.5% rate and had to take a 5.8% rate on her $250,000 mortgage.',
-        question: 'What damages might Samantha be entitled to?',
+        type: 'multiple-choice',
+        title: 'FCRA Damages When You Are Denied a Mortgage',
+        question: 'A bureau failed to investigate your dispute within 30 days and did not forward your evidence to the furnisher. As a result, you were denied a 3.5% mortgage rate and had to accept 5.8% on a $250,000 loan. What types of damages can you pursue under the FCRA?',
         options: [
-          { text: 'Nothing — you can\'t sue credit bureaus', correct: false, explanation: 'The FCRA explicitly creates a private right of action under §616 (willful violations) and §617 (negligent violations).' },
-          { text: 'Only $1,000 maximum', correct: false, explanation: '$1,000 is the maximum STATUTORY damage per willful violation, but actual damages (the real financial harm) can be much higher and are uncapped.' },
-          { text: 'Statutory damages ($100-$1,000 per willful violation), actual damages (the interest rate difference over 30 years = ~$50,000+), punitive damages, and attorney fees', correct: true, explanation: 'Correct! Under the FCRA, Samantha can pursue: 1) Statutory damages of $100-$1,000 per willful violation (§616), 2) Actual damages — the financial harm she suffered, which includes the difference in interest rates over 30 years (potentially $50,000+), 3) Punitive damages if the violations were willful, 4) Attorney fees and costs. Many consumer rights attorneys take FCRA cases on contingency because the law requires the violator to pay attorney fees.' },
-          { text: 'She can only file a complaint, not a lawsuit', correct: false, explanation: 'The FCRA specifically creates a private right of action, meaning individual consumers can sue. Complaints (CFPB, FTC) and lawsuits are separate tools that can be used simultaneously.' }
+          { text: 'You cannot sue credit bureaus — only file complaints', correct: false, explanation: 'The FCRA explicitly creates a private right of action under §616 (willful violations) and §617 (negligent violations). Consumers can and do sue credit bureaus directly.' },
+          { text: 'Maximum $1,000 in statutory damages only', correct: false, explanation: '$1,000 is the maximum statutory award per willful violation. Actual damages — the real financial harm — are uncapped and can far exceed statutory awards. The mortgage rate difference alone represents tens of thousands of dollars.' },
+          { text: 'Statutory damages ($100-$1,000 per willful violation), uncapped actual damages (interest rate difference over 30 years = ~$50,000+), punitive damages, and attorney fees', correct: true, explanation: 'Correct! Under §616, willful FCRA violations entitle you to: 1) Statutory damages ($100-$1,000 per violation), 2) Actual damages — the interest rate difference on a $250,000 loan at 5.8% vs. 3.5% over 30 years is $50,000-$60,000+, 3) Punitive damages for egregious conduct, 4) Attorney fees (the losing party pays). Many consumer rights attorneys take these cases on contingency because the law requires violators to pay fees.' },
+          { text: 'Nothing — you have to prove the bureau acted intentionally', correct: false, explanation: 'The FCRA has two damage tracks: willful violations (§616) for intentional or recklessly disregarded conduct, and negligent violations (§617) for careless mistakes. Both provide for actual damages plus attorney fees. You do not need to prove intent for the negligent track.' }
         ]
       },
       {
@@ -137,15 +132,12 @@ window.EDUCATION_INTERMEDIATE = [
         visual: { type: 'tip', text: 'Documentation Tip: If a collector violates the FDCPA, document everything. Note the date, time, caller\'s name, company, what was said, and any witnesses. If your state allows it, record the call (check your state\'s recording consent laws). Each violation is worth up to $1,000 in statutory damages.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Workplace Call',
-        story: 'Mike told a collector from National Recovery Agency that his employer doesn\'t allow personal calls at work. The collector said "I don\'t care about your employer\'s rules — you owe this money and I\'ll call wherever I need to." The collector called Mike\'s office three more times the same week.',
-        question: 'How many FDCPA violations occurred?',
+        type: 'true-false',
+        title: 'Workplace Call Protection',
+        question: 'Under the FDCPA, once you tell a debt collector your employer does not allow personal calls at work, each subsequent call to your workplace is a separate violation worth up to $1,000 each.',
         options: [
-          { text: 'One — the rude comment', correct: false, explanation: 'Multiple violations occurred across multiple calls and statements.' },
-          { text: 'None — collectors can call wherever they want', correct: false, explanation: 'The FDCPA explicitly restricts workplace calls and requires collectors to stop calling your workplace if you inform them your employer prohibits it.' },
-          { text: 'At least four: 1) continuing to call workplace after being told employer prohibits it (§1692c), 2-4) three additional workplace calls, each a separate violation', correct: true, explanation: 'Correct! Under §1692c(a)(3), a collector may not contact you at your place of employment if they know your employer prohibits it. Mike informed them, making each subsequent call a separate violation. Each violation carries up to $1,000 in statutory damages. The "I don\'t care" comment could also constitute harassment under §1692d. Mike should: 1) Document all dates and times, 2) Send a written cease and desist via certified mail, 3) File a CFPB complaint, 4) Consult an FDCPA attorney — with multiple documented violations, this is a strong case.' },
-          { text: 'Two — one for the comment and one for calling back', correct: false, explanation: 'Each call to the workplace after being told to stop constitutes a separate violation, not just one.' }
+          { text: 'True', correct: true, explanation: 'Correct! Under §1692c(a)(3), a collector cannot contact you at work once they know your employer prohibits it. Each call after that notification is a separate §1692c violation, not just one violation total. Document every call with date, time, and collector name, then send a written cease and desist by certified mail and file a CFPB complaint. With multiple documented violations, FDCPA attorneys take these cases on contingency.' },
+          { text: 'False', correct: false, explanation: 'This is true. Each workplace call after you have informed the collector your employer prohibits it constitutes its own separate FDCPA violation. Multiple violations across several calls can add up to thousands of dollars in statutory damages plus actual damages and attorney fees.' }
         ]
       },
       {
@@ -161,15 +153,14 @@ window.EDUCATION_INTERMEDIATE = [
         ]}
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Cease and Desist',
-        story: 'Rosa is being harassed by a collector calling 3-4 times per day about a $1,200 credit card debt. She\'s sent a debt validation request (still within the 30-day window), but the collector keeps calling daily. They haven\'t provided any validation.',
-        question: 'What violations are occurring and what should Rosa do?',
+        type: 'multiple-choice',
+        title: 'Validation Request + Ongoing Calls',
+        question: 'You sent a written debt validation request within 30 days of first contact. The collector is now calling 3-4 times per day and has not provided any validation. What violations are occurring?',
         options: [
-          { text: 'No violations — collectors can call as often as they want until the debt is paid', correct: false, explanation: 'Multiple FDCPA violations are occurring. Repeated calls to annoy violate §1692d, and continuing collection activity after a validation request violates §1692g.' },
-          { text: 'The collector is violating §1692g (continuing collection without providing validation) and §1692d (repeated calls to harass). Rosa should send a cease and desist letter, file a CFPB complaint, and consult an attorney', correct: true, explanation: 'Correct! Two types of violations: 1) §1692g violation — after receiving a validation request within 30 days, the collector must CEASE all collection activity until they provide validation. Each call is a separate violation. 2) §1692d(5) violation — calling 3-4 times daily with intent to annoy or harass. Rosa should: 1) Send a written cease and desist via certified mail, 2) Document every call with date/time, 3) File a CFPB complaint, 4) Contact an FDCPA attorney. With multiple daily violations, statutory damages could be significant.' },
-          { text: 'Rosa should just pay the debt to make the calls stop', correct: false, explanation: 'Rosa has no obligation to pay an unvalidated debt. The collector is breaking the law by continuing to collect without providing validation.' },
-          { text: 'Rosa needs to call the police', correct: false, explanation: 'While extreme harassment could warrant police involvement, the more effective route is FDCPA enforcement through CFPB complaints and attorney action.' }
+          { text: 'No violations — collectors can call as frequently as needed until the debt is paid', correct: false, explanation: 'Multiple FDCPA violations are occurring simultaneously. Collectors cannot continue collection activity after a timely validation request, and repeated calls to annoy or harass are independently prohibited.' },
+          { text: 'Only one violation for the harassment calls — the validation request does not stop all collection', correct: false, explanation: 'After a validation request made within 30 days, §1692g requires the collector to cease ALL collection activity — including calls — until they provide validation. Each call after your request is a separate §1692g violation, plus repeated daily calls are separately prohibited under §1692d.' },
+          { text: 'Two types of violations: §1692g (continuing to call after a validation request without providing validation) and §1692d (repeated calls to harass) — send a cease and desist, document every call, and consult an FDCPA attorney', correct: true, explanation: 'Correct! Each call after your validation request is a separate §1692g violation. The 3-4 daily calls independently violate §1692d(5) — repeated calls with intent to annoy or harass. Document all calls with date and time, send a written cease and desist via certified mail, file a CFPB complaint, and consult an FDCPA attorney. Multiple daily violations can add up to significant statutory damages.' },
+          { text: 'Pay the debt to stop the calls — you cannot stop a collector from calling', correct: false, explanation: 'You have no obligation to pay an unvalidated debt, and you absolutely can stop a collector from calling by sending a written cease and desist. The collector is the one breaking the law here.' }
         ]
       },
       {
@@ -230,27 +221,25 @@ window.EDUCATION_INTERMEDIATE = [
         ]}
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Bureau That Won\'t Investigate',
-        story: 'Nina has disputed the same incorrect collection three times with Experian over 6 months. Each time, Experian sends back a form letter saying the account was "verified as accurate" — but Nina has proof the debt was paid in full 2 years ago. She has the payoff letter from the original creditor and bank statements showing the final payment.',
-        question: 'How should Nina\'s CFPB complaint be structured?',
+        type: 'multiple-choice',
+        title: 'Writing an Effective CFPB Complaint',
+        question: 'You have disputed a paid collection three times with a bureau over 6 months. Each time you received a form letter saying the account was "verified as accurate." You have the payoff letter and bank statements. What makes a CFPB complaint effective?',
         options: [
-          { text: 'Simply write "Experian won\'t fix my report"', correct: false, explanation: 'Vague complaints get vague responses. Nina needs specifics to trigger real investigation.' },
-          { text: 'Write a detailed chronological narrative citing three prior disputes with dates, certified mail receipt numbers, attach the payoff letter and bank statements, cite §611(a)(5)(A) requiring deletion of unverifiable items, and request the account be deleted', correct: true, explanation: 'Correct! An effective CFPB complaint includes: 1) "I have disputed this account three times: [date 1, certified mail #], [date 2, #], [date 3, #]", 2) "Each time Experian responded with a form letter verifying the account without a meaningful investigation," 3) "Attached: payoff letter from [Original Creditor] dated [X], bank statement showing final payment of $X on [date]," 4) "Experian has violated FCRA §611(a)(2) by failing to forward my evidence, and §611(a)(1)(A) by failing to conduct a reasonable reinvestigation," 5) "I request deletion of this account under §611(a)(5)(A) as it cannot be accurately verified." This level of detail gets executive attention.' },
-          { text: 'Threaten to sue Experian in the complaint', correct: false, explanation: 'Legal threats in a CFPB complaint aren\'t necessary and can be counterproductive. Let the facts and law speak for themselves.' },
-          { text: 'File the complaint against the collection agency instead of Experian', correct: false, explanation: 'Nina should file against Experian since they\'re the ones failing to investigate properly. She could file a separate complaint against the collection agency for continued inaccurate reporting.' }
+          { text: 'A short message: "The bureau will not fix my report"', correct: false, explanation: 'Vague complaints get vague responses. A complaint lacking specific dates, certified mail receipt numbers, legal citations, and attached evidence is easily dismissed with a form response.' },
+          { text: 'A detailed chronological narrative: dispute dates and certified mail numbers, attached payoff letter and bank statements, citation of §611(a)(2) and §611(a)(5)(A), and a specific request for deletion', correct: true, explanation: 'Correct! Effective CFPB complaints are specific and documented. Include: "I disputed this account [date 1, certified mail #], [date 2, #], [date 3, #]. Each time received a form letter without meaningful investigation. Attached: payoff letter from [Creditor] showing $0 balance and bank statement confirming final payment. The bureau violated FCRA §611(a)(2) by not forwarding my evidence and §611(a)(1)(A) by failing to conduct a reasonable reinvestigation. I request deletion under §611(a)(5)(A)." This level of specificity gets escalated to executive teams.' },
+          { text: 'Threaten to sue the bureau within the complaint text', correct: false, explanation: 'Legal threats in regulatory complaints are counterproductive and unnecessary. Let the documented facts and legal citations make your case — that is what gets results.' },
+          { text: 'File the complaint against the collection agency instead of the bureau', correct: false, explanation: 'File against the bureau that is failing to investigate — that is the specific violation. You can and should file a separate complaint against the collection agency for continued inaccurate reporting.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Company Response',
-        story: 'After filing a CFPB complaint about a $6,000 collection that wasn\'t hers, Keisha receives a response from the collection agency through the CFPB portal. The response says: "We have reviewed the account and confirmed the debt is valid. No changes will be made." They provided no supporting documentation.',
-        question: 'What should Keisha do next?',
+        type: 'multiple-choice',
+        title: 'When a Company Sends an Inadequate CFPB Response',
+        question: 'You filed a CFPB complaint about a $6,000 collection that is not yours. The company responded through the portal: "We reviewed the account and confirmed the debt is valid. No changes will be made." No documentation was provided. What should you do?',
         options: [
-          { text: 'Accept the response — the company has the final say', correct: false, explanation: 'The company\'s response through the CFPB portal is NOT the final say. Keisha has options.' },
-          { text: 'Mark the response as "Not satisfied," add a rebuttal explaining the inadequate response with no evidence, file a second CFPB complaint with more detail, and consult an FDCPA/FCRA attorney', correct: true, explanation: 'Correct! Keisha should: 1) Mark "Not satisfied" in the CFPB portal — this flag is tracked and impacts the company\'s complaint resolution statistics, 2) Write a detailed rebuttal noting the company provided no documentation, 3) File a follow-up complaint emphasizing the pattern, 4) Consult an attorney — the company\'s refusal to validate the debt while continuing to report it may violate both the FDCPA (§1692g) and FCRA (§623). Companies that brush off CFPB complaints are more vulnerable in litigation because the CFPB record shows they were warned.' },
-          { text: 'File a police report', correct: false, explanation: 'A police report may be relevant if identity theft is involved, but the next best step is escalation through CFPB and legal channels.' },
-          { text: 'Delete her CFPB account and start over', correct: false, explanation: 'Don\'t delete the complaint — the history of complaints and responses becomes valuable evidence in any future legal action.' }
+          { text: 'Accept the response — companies always have the final say through the CFPB', correct: false, explanation: 'The company\'s CFPB response is not the final word. The portal lets you mark the response as unsatisfactory, and the case history can be used in follow-up complaints and attorney consultations.' },
+          { text: 'Delete your CFPB account and refile everything as new', correct: false, explanation: 'Never delete your complaint. The documented history of complaints and responses becomes powerful evidence in any future legal action — it proves the company was put on notice and chose not to respond meaningfully.' },
+          { text: 'Mark the response "Not satisfied," write a rebuttal noting they provided no documentation, file a follow-up complaint, and consult an FDCPA/FCRA attorney since the response without validation may violate both laws', correct: true, explanation: 'Correct! A dismissive CFPB response without documentation is powerful evidence in your favor: it proves the company was warned and chose not to comply. Mark "Not satisfied," document the inadequate response in your rebuttal, and escalate to a consumer rights attorney. The CFPB record showing their non-response makes FCRA and FDCPA cases significantly stronger.' },
+          { text: 'File a police report as the next step', correct: false, explanation: 'A police report is relevant if identity theft is involved, but the immediate next step for an inadequate CFPB response is to mark it unsatisfactory, escalate to AG complaints, and consult a consumer rights attorney.' }
         ]
       },
       {
@@ -260,15 +249,14 @@ window.EDUCATION_INTERMEDIATE = [
         visual: { type: 'tip', text: 'Power Move: When a company gives an inadequate CFPB response, screenshot it and include it in your attorney consultation. Many FCRA attorneys say a company\'s dismissive CFPB response is some of the best evidence of willful violation — it proves the company was aware of the issue and chose not to fix it.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Multi-Front Attack',
-        story: 'Andre has a $4,200 collection on his report that he already paid in full. He has: the payoff receipt, a bank statement, and the collector\'s letter confirming $0 balance. Despite this, the collection still shows as "unpaid" on all three bureau reports after two disputes.',
-        question: 'What is the most effective multi-front strategy?',
+        type: 'multiple-choice',
+        title: 'Escalating a Paid Collection Still Showing as Unpaid',
+        question: 'You paid a collection in full and have the payoff receipt, bank statement, and collector\'s letter confirming $0 balance. After two disputes, all three bureaus still show the account as unpaid. What is the most effective next step?',
         options: [
-          { text: 'Keep disputing with the bureaus until they get it right', correct: false, explanation: 'Repeating the same approach that failed twice is unlikely to produce different results. Escalation is needed.' },
-          { text: 'File three CFPB complaints (one per bureau), one CFPB complaint against the collection agency, send §623 direct dispute letters to the collector, and consult an FCRA attorney', correct: true, explanation: 'Correct! The multi-front attack: 1) Three CFPB complaints against TransUnion, Experian, and Equifax — each failed to correct after disputes with proof, 2) One CFPB complaint against the collection agency for continuing to report a paid debt as unpaid, 3) §623 direct dispute letter to the collector with copies of payoff receipt and bank statement, 4) Attorney consultation — with documented paid debt, prior disputes, and ongoing inaccurate reporting, this is a strong FCRA/FDCPA case. The combined pressure from 4+ regulatory complaints plus the threat of litigation usually produces results within 2-4 weeks.' },
-          { text: 'Pay the $4,200 again to get a new receipt', correct: false, explanation: 'Andre already paid. He should never pay the same debt twice. The issue is inaccurate reporting, not an unpaid debt.' },
-          { text: 'Wait for it to fall off in 7 years', correct: false, explanation: 'When you have proof of payment and clear law on your side, waiting 7 years is unnecessary and allows continued damage to your credit.' }
+          { text: 'Send a third dispute to each bureau using the same approach', correct: false, explanation: 'Repeating the same approach that failed twice will not produce different results. Two rounds of failed disputes with proof in hand signals that escalation is needed.' },
+          { text: 'Pay the debt a second time to generate a new receipt', correct: false, explanation: 'Never pay the same debt twice. The issue is inaccurate reporting on a debt you already paid — a payment problem it is not. Paying again solves nothing and wastes money.' },
+          { text: 'File CFPB complaints against all three bureaus and the collection agency, send a §623 direct dispute to the collector with your payoff documents, and consult a consumer rights attorney', correct: true, explanation: 'Correct! With proof of payment and two failed disputes, multi-channel escalation is the right move: four CFPB complaints (three bureaus + collector), §623 direct dispute to the collector with payoff receipt and bank statement, and attorney consultation. A documented paid debt that bureaus and the collector continue to show as unpaid is a strong FCRA/FDCPA case. The combination of regulatory complaints plus an attorney demand letter typically produces results within 2-4 weeks.' },
+          { text: 'Wait for the collection to fall off the report in 7 years', correct: false, explanation: 'When you have documentation proving the debt was paid, waiting 7 years is unnecessary and allows years of continued credit damage. You have the evidence to remove it now.' }
         ]
       },
       {
@@ -329,15 +317,12 @@ window.EDUCATION_INTERMEDIATE = [
         visual: { type: 'tip', text: 'Negotiation Timing Tip: The best time to negotiate is at the end of the month or end of the quarter. Collection agents have quotas and are more likely to accept lower offers to hit their numbers. Also, debts over 2 years old are significantly easier to settle for less — collectors know their collection probability drops each year.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Validation-First Strategy',
-        story: 'Tanya has a $1,800 medical collection on her report. She\'s not sure if the amount is correct because the original medical bill was complicated with insurance adjustments. She wants to settle, but she also wants to make sure she\'s not paying more than she actually owes.',
-        question: 'What should Tanya do before negotiating a settlement?',
+        type: 'true-false',
+        title: 'Validate Before You Negotiate',
+        question: 'You should always request debt validation under FDCPA §1692g before agreeing to any settlement, especially for medical debts where billing errors are extremely common.',
         options: [
-          { text: 'Just pay whatever they\'re asking — medical debt is always accurate', correct: false, explanation: 'Medical billing errors are extremely common. Up to 80% of medical bills contain errors according to some estimates. Tanya should verify before paying anything.' },
-          { text: 'Send a debt validation request first under FDCPA §1692g. If the collector can\'t provide proper documentation showing the correct amount after insurance, Tanya has strong grounds for deletion or a significantly reduced settlement', correct: true, explanation: 'Correct! The validation-first strategy: 1) Send a debt validation request within 30 days of first contact (§1692g), 2) The collector must provide documentation proving the debt amount is correct, 3) Medical debts are notoriously poorly documented during the collection process — insurance adjustments, write-offs, and billing errors frequently get lost in transfers, 4) If they can\'t validate properly, demand deletion, 5) If they DO validate, compare against your insurance EOBs and original bills, 6) Only THEN negotiate, armed with knowledge of the true amount owed. Many medical collections are reduced or deleted entirely through the validation process because collectors can\'t produce proper documentation.' },
-          { text: 'Call the original hospital and pay them directly', correct: false, explanation: 'Once the debt has been sold to a collector, the hospital may no longer accept payment. Even if they do, the collection may remain on the credit report. Tanya needs to deal with the collector and get deletion.' },
-          { text: 'Ignore it — medical debt doesn\'t affect credit anymore', correct: false, explanation: 'While recent changes removed SOME medical debt from credit reports (paid medical collections and those under $500), unpaid medical collections over $500 that are 12+ months old still appear and affect your score.' }
+          { text: 'True', correct: true, explanation: 'Correct! Medical billing errors appear in an estimated 80% of bills. Insurance adjustments, write-offs, and itemization errors frequently get lost in debt transfers. Requesting validation forces the collector to document the correct amount after insurance. If they cannot validate properly, you have grounds for deletion. If they do validate, you can compare against your insurance Explanation of Benefits and negotiate from a position of knowledge. Many medical collections are reduced or deleted through validation alone.' },
+          { text: 'False', correct: false, explanation: 'This is true. You should always validate before negotiating. Paying without validating risks overpaying a wrong amount or paying a debt the collector cannot even prove you owe. Validation is free, requires no negotiation, and gives you maximum information and leverage before committing to any payment.' }
         ]
       },
       {
@@ -380,15 +365,12 @@ window.EDUCATION_INTERMEDIATE = [
         visual: { type: 'tip', text: 'Action Item: Right now, check all three of your credit reports for medical collections. If ANY are paid, under $500, or less than 12 months from the original billing date, dispute them immediately. The bureaus are required to remove them under their own policies.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Surprise Medical Bill',
-        story: 'Angela went to the ER for chest pains. Her in-network hospital treated her, but the anesthesiologist who was called in was out-of-network. Two months later, Angela received a $4,200 bill from the anesthesiologist\'s practice. Her insurance paid the in-network portion, but the out-of-network provider is demanding the remaining $3,100 from Angela.',
-        question: 'Does Angela have protection under the No Surprises Act?',
+        type: 'true-false',
+        title: 'The No Surprises Act and Emergency Care',
+        question: 'Under the No Surprises Act (2022), you can be balance billed by an out-of-network anesthesiologist who treated you during emergency surgery at an in-network hospital, even if you never chose that provider.',
         options: [
-          { text: 'No — Angela chose to go to that hospital', correct: false, explanation: 'The No Surprises Act specifically covers emergency services AND situations where an out-of-network provider treats you at an in-network facility without your consent.' },
-          { text: 'Yes — the No Surprises Act protects patients from out-of-network billing when they receive emergency care or are treated by out-of-network providers at in-network facilities without their prior consent', correct: true, explanation: 'Correct! The No Surprises Act (effective January 2022) directly covers Angela\'s situation: 1) She received emergency care — emergency services are always protected regardless of network status, 2) The out-of-network anesthesiologist treated her at an in-network facility without her prior consent, 3) Under the Act, Angela can only be charged the in-network cost-sharing amount (copay, coinsurance, deductible), 4) The out-of-network provider must work with her insurance to resolve the balance — they cannot "balance bill" Angela for the difference. Angela should: File a complaint at cms.gov/nosurprises if the provider continues billing her, and notify her insurance company about the surprise bill.' },
-          { text: 'Only if Angela has government insurance (Medicare/Medicaid)', correct: false, explanation: 'The No Surprises Act applies to ALL private health insurance plans, not just government insurance. It covers commercial plans through employers and the marketplace.' },
-          { text: 'She should just pay it — fighting medical bills is too hard', correct: false, explanation: 'Angela has strong legal protections here. The No Surprises Act was specifically created for situations like this. Fighting it is straightforward.' }
+          { text: 'True', correct: false, explanation: 'False! The No Surprises Act was created exactly to stop this. For emergency care AND for non-emergency care where an out-of-network provider treats you at an in-network facility without your prior written consent, you can only be charged in-network cost-sharing amounts. The provider must work with your insurance to resolve the balance — they cannot bill you the difference. If they do, file a complaint at cms.gov/nosurprises.' },
+          { text: 'False', correct: true, explanation: 'Correct! Balance billing by out-of-network emergency providers is prohibited under the No Surprises Act. Your maximum exposure is your normal in-network copay, coinsurance, or deductible — nothing more. This applies to all private health insurance plans including employer-sponsored and marketplace plans. Notify your insurance company immediately if you receive a surprise bill, and report ongoing billing to cms.gov/nosurprises.' }
         ]
       },
       {
@@ -398,15 +380,14 @@ window.EDUCATION_INTERMEDIATE = [
         visual: { type: 'tip', text: 'Strategy: Request an itemized bill from the original provider AND the collector. Compare them. Medical billing errors are found in up to 80% of bills according to medical billing advocates. If the amounts don\'t match, you have a strong dispute. If the collector has medical details they shouldn\'t, report the HIPAA violation to HHS.gov/hipaa/filing-a-complaint.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Charity Care Discovery',
-        story: 'Robert has a $12,000 hospital bill from surgery at a nonprofit hospital. He earns $35,000/year and has no insurance. The bill went to collections after 6 months. Robert didn\'t know the hospital was nonprofit or that financial assistance might be available.',
-        question: 'What option does Robert have that could eliminate this debt entirely?',
+        type: 'multiple-choice',
+        title: 'Charity Care at Nonprofit Hospitals',
+        question: 'Someone earns $35,000/year with no insurance and has a $12,000 hospital bill from a nonprofit hospital now in collections. What option could eliminate or dramatically reduce this debt?',
         options: [
-          { text: 'File for bankruptcy — it\'s the only way to eliminate $12,000', correct: false, explanation: 'Bankruptcy is a drastic step. Robert has a much simpler option available through the hospital itself.' },
-          { text: 'Apply for the hospital\'s financial assistance (charity care) program — nonprofit hospitals are legally required to offer financial assistance, and at Robert\'s income level, he likely qualifies for significant reduction or complete forgiveness', correct: true, explanation: 'Correct! Under IRS regulations (Section 501(r)), nonprofit hospitals must: 1) Have a written financial assistance policy, 2) Make the policy widely available, 3) Not take extraordinary collection actions before making reasonable efforts to determine FAP eligibility. At $35,000/year income, Robert likely qualifies for significant reduction (50-100% discount) under most hospital FAP policies. Even though the bill went to collections, he can: 1) Contact the hospital\'s financial counseling department, 2) Request a Financial Assistance Application, 3) Provide proof of income, 4) If approved, the hospital must recall the debt from collections and adjust the bill. Many hospitals will retroactively apply charity care to bills already in collections.' },
-          { text: 'Negotiate a payment plan with the collector', correct: false, explanation: 'While a payment plan is an option, it doesn\'t address the fact that Robert may qualify for the bill to be reduced or eliminated entirely through the hospital\'s financial assistance program.' },
-          { text: 'The hospital is required to forgive all debt for uninsured patients', correct: false, explanation: 'Hospitals aren\'t required to forgive all uninsured debt, but nonprofit hospitals must have financial assistance policies based on income. Robert needs to apply and see what he qualifies for.' }
+          { text: 'File for bankruptcy — it is the only way to eliminate $12,000 in medical debt', correct: false, explanation: 'Bankruptcy is a drastic, last-resort step. There is a much simpler option available directly through the hospital that costs nothing to apply for and can eliminate the debt entirely.' },
+          { text: 'Negotiate a payment plan with the collection agency', correct: false, explanation: 'A payment plan is an option, but it means paying an amount that may not need to be paid at all. At this income level, the person very likely qualifies for the hospital\'s financial assistance program — which could eliminate the debt entirely without a payment plan.' },
+          { text: 'Apply for the nonprofit hospital\'s financial assistance (charity care) program — IRS Section 501(r) requires nonprofit hospitals to offer this, and at $35,000/year income, significant reduction or complete forgiveness is likely', correct: true, explanation: 'Correct! Under IRS Section 501(r), nonprofit hospitals must have written Financial Assistance Policies and cannot pursue extraordinary collection actions before determining FAP eligibility. At $35,000/year, most nonprofit hospital FAPs provide 50-100% reduction. Even though the bill is in collections, contact the hospital\'s financial counseling department, request a Financial Assistance Application, submit proof of income, and the hospital can recall the debt from collections if you qualify.' },
+          { text: 'All nonprofit hospitals must forgive 100% of debt for uninsured patients', correct: false, explanation: 'Nonprofit hospitals must have financial assistance policies, but the amount of assistance varies by income level and hospital policy. Patients must apply and qualify — it is not automatic. The important point is that many low-income patients qualify for major reduction or full forgiveness when they apply.' }
         ]
       },
       {

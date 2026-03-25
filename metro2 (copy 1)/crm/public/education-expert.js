@@ -25,27 +25,23 @@ window.EDUCATION_EXPERT = [
         visual: { type: 'tip', text: 'Strategy Tip: File BOTH a CFPB complaint AND an AG complaint simultaneously. The dual pressure from federal and state regulators is significantly more effective than either one alone. Companies facing complaints from both channels tend to resolve issues faster.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The State Law Advantage',
-        story: 'Christine lives in California and has a paid medical collection that\'s still showing on her report after 6 months. Under federal law (FCRA), paid collections can stay for 7 years. But California has its own credit reporting laws.',
-        question: 'How might California\'s state law help Christine?',
+        type: 'true-false',
+        title: 'State Law vs. Federal FCRA',
+        question: 'The FCRA sets a ceiling on consumer credit reporting protections, meaning state laws cannot require stronger protections than the federal standard.',
         options: [
-          { text: 'State laws don\'t override federal law, so it doesn\'t matter', correct: false, explanation: 'State consumer protection laws can provide ADDITIONAL protections beyond federal law. The FCRA is a floor, not a ceiling — states can go further.' },
-          { text: 'California law (CCRAA) and recent FCRA amendments require that paid medical collections under certain thresholds and timelines be removed faster than the federal 7-year rule', correct: true, explanation: 'Correct! California\'s Consumer Credit Reporting Agencies Act (CCRAA) provides additional protections. Additionally, recent changes (effective nationally in 2023) require that paid medical collections be removed from reports, and medical collections under $500 cannot be reported. California has historically led the nation in stronger consumer protections, and Christine should cite both federal and state law in her dispute. Filing with the California AG adds the weight of one of the nation\'s most aggressive consumer protection offices.' },
-          { text: 'California outlawed credit reporting entirely', correct: false, explanation: 'California hasn\'t outlawed credit reporting, but it has enacted some of the strongest consumer protections in the nation regarding how it\'s done.' },
-          { text: 'State law only helps with in-state companies', correct: false, explanation: 'State consumer protection laws typically apply to any company that conducts business with residents of that state, regardless of where the company is headquartered.' }
+          { text: 'True', correct: false, explanation: 'False! The FCRA is a FLOOR, not a ceiling. State consumer protection laws can and regularly do go further than federal law. California\'s CCRAA provides protections beyond the FCRA, and the 2023 nationwide rule changes require paid medical collections to be removed from reports — with California consistently leading the country in stronger consumer protections. State laws apply to any company doing business with residents of that state, regardless of where the company is headquartered.' },
+          { text: 'False', correct: true, explanation: 'Correct! The FCRA is a minimum standard that states can exceed. Consumers should always cite BOTH applicable federal law AND any relevant state law — the combination maximizes leverage and potential damages. California, New York, Texas, Massachusetts, and many other states provide rights that go significantly beyond the federal FCRA baseline.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Multi-State Pattern',
-        story: 'Raymond discovers that a collection agency, FastCollect LLC, has been re-aging debts across multiple consumer reports. He finds 47 CFPB complaints from other consumers reporting the same practice. He files complaints with both the CFPB and his state AG.',
-        question: 'Why is Raymond\'s AG complaint particularly powerful in this situation?',
+        type: 'multiple-choice',
+        title: 'When Your AG Complaint Is Part of a Pattern',
+        question: 'You discover a collection agency has 47+ CFPB complaints from other consumers reporting the same illegal debt re-aging practice. You file AG and CFPB complaints referencing the broader pattern. Why does this pattern evidence make your AG complaint especially powerful?',
         options: [
-          { text: 'It isn\'t — individual AG complaints don\'t make a difference', correct: false, explanation: 'AG complaints absolutely matter, especially when they reveal patterns of illegal behavior across multiple consumers.' },
-          { text: 'Because the pattern of 47+ CFPB complaints combined with his AG complaint provides evidence of a systematic illegal practice, which could trigger an AG investigation or enforcement action against FastCollect', correct: true, explanation: 'Correct! AGs look for patterns. When Raymond\'s complaint arrives alongside evidence of 47+ similar CFPB complaints, it signals a systematic practice — not an isolated mistake. The AG may: 1) Open a formal investigation of FastCollect, 2) Issue subpoenas for FastCollect\'s records, 3) Seek injunctive relief to stop the practice, 4) Pursue civil penalties (which can be $1,000-$10,000 per violation per consumer in some states), 5) Coordinate with other state AGs for a multi-state action. Raymond\'s individual complaint could be the catalyst for major enforcement.' },
-          { text: 'The AG will automatically sue FastCollect', correct: false, explanation: 'AG investigations take time and resources. Not every complaint leads to a lawsuit. But pattern evidence significantly increases the likelihood of formal investigation.' },
-          { text: 'Raymond should wait for the AG to contact him before doing anything else', correct: false, explanation: 'Raymond shouldn\'t wait. He should simultaneously pursue his individual rights through direct disputes, CFPB complaints, and potentially an FDCPA attorney while the AG evaluates the pattern.' }
+          { text: 'It does not — individual AG complaints never make a difference', correct: false, explanation: 'AG complaints matter enormously, especially when they reveal a systematic pattern. Pattern evidence is exactly what triggers formal investigations, not isolated one-off complaints.' },
+          { text: 'The AG will automatically sue the company once it receives your complaint', correct: false, explanation: 'AG investigations require time and resources, and not every complaint leads to a lawsuit. However, strong pattern evidence dramatically increases the probability of a formal investigation, subpoenas, or enforcement action.' },
+          { text: 'The pattern of 47+ documented CFPB complaints gives the AG evidence of a systematic illegal practice, which can trigger a formal investigation, subpoenas, civil penalties ($1,000-$10,000 per violation per consumer), or a multi-state AG enforcement action', correct: true, explanation: 'Correct! AGs look for patterns — your complaint signals a systematic practice, not an isolated mistake. The AG can open a formal investigation, issue subpoenas, seek injunctive relief to stop the practice company-wide, and coordinate with other state AGs for a multi-state action. One consumer\'s well-documented complaint that references a clear pattern can be the catalyst for major enforcement action benefiting thousands of consumers.' },
+          { text: 'You should wait for the AG to contact you before doing anything else', correct: false, explanation: 'Never wait passively. Continue pursuing your individual rights simultaneously — direct disputes, CFPB complaints, and an FDCPA attorney consultation — while the AG evaluates the pattern on a longer timeline.' }
         ]
       },
       {
@@ -89,27 +85,23 @@ window.EDUCATION_EXPERT = [
         ]}
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Bank That Won\'t Budge',
-        story: 'After a hurricane, William\'s Capital One card showed two 30-day late payments during the months he was displaced. He sent two goodwill letters explaining the natural disaster, but Capital One\'s standard customer service rejected both requests. His score is 712 but would be ~770 without these late payments.',
-        question: 'How could a BBB complaint help William?',
+        type: 'multiple-choice',
+        title: 'Using a BBB Complaint to Reach the Right Team',
+        question: 'Two standard goodwill letters to a major bank were rejected by customer service about late payments caused by a natural disaster. Why might a BBB complaint succeed where the goodwill letters failed?',
         options: [
-          { text: 'It wouldn\'t — BBB has no power over banks', correct: false, explanation: 'While BBB has no legal authority, banks like Capital One are BBB-accredited and care about their rating. BBB complaints reach different departments than standard goodwill letters.' },
-          { text: 'A BBB complaint routes to Capital One\'s executive customer service team, which has more authority to make goodwill adjustments than the standard team that rejected his letters', correct: true, explanation: 'Correct! BBB complaints typically get escalated to executive or escalations teams that have broader authority than frontline agents. Capital One\'s standard customer service may follow strict scripts, but the executive team can make exceptions — especially for documented hardship like natural disasters. William should: 1) File a BBB complaint detailing the hurricane displacement, 2) Attach FEMA documentation or news reports about the disaster, 3) Note his otherwise perfect payment history, 4) Request specific relief: "Please update March and April 2024 payment status from \'30 days late\' to \'paid as agreed.\'"\n\nThis approach combines legitimate hardship with executive-level attention.' },
-          { text: 'William should threaten Capital One in the BBB complaint', correct: false, explanation: 'Threats are counterproductive. A professional, fact-based complaint with documented hardship is far more effective than threats.' },
-          { text: 'BBB complaints only work for product issues, not credit reporting', correct: false, explanation: 'BBB complaints cover any business practice, including credit reporting issues. Many consumers have successfully resolved credit disputes through BBB.' }
+          { text: 'It would not — BBB has no power over banks and companies ignore it', correct: false, explanation: 'While the BBB has no legal authority, accredited banks care deeply about their public BBB rating. BBB complaints are routed differently than standard customer service contacts — they reach teams with more decision-making authority.' },
+          { text: 'A BBB complaint reaches the executive or escalations team, which has broader authority to make goodwill exceptions than the frontline agents who rejected both letters', correct: true, explanation: 'Correct! Standard customer service agents follow strict scripts. BBB complaints bypass them and reach executive teams that can make exceptions — especially for documented hardship like a federally declared disaster. Include FEMA documentation or news reports about the disaster, note an otherwise perfect payment history, and make a specific request: "Please update [Month] and [Month] payment status from \'30 days late\' to \'paid as agreed.\'" This combination of documented hardship plus executive-level attention succeeds where form-letter rejections do not.' },
+          { text: 'Include threats in the BBB complaint to pressure the bank', correct: false, explanation: 'Threats in regulatory complaints are counterproductive and can undermine your credibility. A professional, documented, fact-based complaint with specific requested relief is far more effective.' },
+          { text: 'BBB complaints only work for product defects — not credit reporting issues', correct: false, explanation: 'BBB complaints cover any business practice, including credit reporting and billing disputes. Many consumers have successfully resolved credit reporting issues through BBB escalations, particularly with reputation-conscious banks and creditors.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: When BBB Doesn\'t Work',
-        story: 'Linda filed a BBB complaint against QuickDebt Collections about a $2,300 collection she doesn\'t recognize. QuickDebt responded to the BBB with a one-line response: "The debt is valid." They provided no validation documents and didn\'t address Linda\'s specific concerns. BBB closed the complaint as "answered."',
-        question: 'What should Linda do next?',
+        type: 'true-false',
+        title: 'What "BBB Complaint Answered" Actually Means',
+        question: 'When the BBB closes a complaint as "Answered," it means the company resolved the issue and you have no further recourse.',
         options: [
-          { text: 'Nothing — the BBB said the complaint was answered', correct: false, explanation: '"Answered" doesn\'t mean "resolved." BBB closes complaints as "answered" when the company responds, even if the response is inadequate. Linda has many options.' },
-          { text: 'Use the inadequate BBB response as evidence in a CFPB complaint and FDCPA attorney consultation — it shows the company was put on notice but refused to validate the debt properly', correct: true, explanation: 'Correct! The BBB response (or lack of meaningful response) becomes powerful evidence: 1) File a CFPB complaint citing the BBB response as proof the company refuses to validate, 2) Send a formal debt validation letter under FDCPA §1692g, 3) File an AG complaint about the pattern of non-validation, 4) Consult an FDCPA attorney — the company\'s refusal to validate when challenged through multiple channels strengthens a legal case. The BBB complaint created a documented record that the company was aware of the dispute and chose not to address it properly.' },
-          { text: 'File the same BBB complaint again', correct: false, explanation: 'Refiling the same complaint won\'t produce different results. Escalation to more powerful channels (CFPB, AG, attorney) is the right move.' },
-          { text: 'Pay the debt to make it go away', correct: false, explanation: 'Linda shouldn\'t pay a debt she doesn\'t recognize and that hasn\'t been validated. Paying it doesn\'t guarantee removal and could acknowledge a debt that isn\'t hers.' }
+          { text: 'True', correct: false, explanation: 'False! "Answered" only means the company sent a response — not that the response was adequate or the issue was resolved. A one-line response like "the debt is valid" with no supporting documentation will close a complaint as "answered." The inadequate response actually becomes useful evidence: use it in a CFPB complaint to show the company was put on notice but refused to properly validate; send a formal §1692g debt validation letter; and consult an FDCPA attorney. The BBB record proves the company was aware and chose not to respond meaningfully.' },
+          { text: 'False', correct: true, explanation: 'Correct! "Answered" is a process status, not a resolution status. Consumers can mark responses as "not satisfactory" in the BBB portal. More importantly, a dismissive or inadequate BBB response is valuable evidence of the company\'s pattern of non-response — exactly the kind of documentation that strengthens CFPB complaints and FDCPA legal cases.' }
         ]
       },
       {
@@ -164,15 +156,14 @@ window.EDUCATION_EXPERT = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Calculating Damages',
-        story: 'Alicia has documented the following harm from a false collection on her report:\n• Denied a mortgage in June 2024 (had to continue renting: $1,800/month vs. $1,400 mortgage = $400/month extra)\n• Denied a car loan; had to accept a 12.9% rate instead of 4.9% rate (extra $3,200 in interest over loan life)\n• Documented 3 FCRA violations by the bureau (failure to investigate within 30 days, failure to forward evidence, continued reporting)\n• Emotional distress documented by a therapist ($150/session × 8 sessions)',
-        question: 'What are Alicia\'s potential damages?',
+        type: 'multiple-choice',
+        title: 'Calculating Your FCRA Damages',
+        question: 'A false collection caused a mortgage denial ($400/month extra in rent vs. mortgage for 12+ months), a higher car loan rate ($3,200 in extra interest), 3 documented FCRA violations, and $1,200 in documented therapy. Which answer correctly captures all recoverable damages?',
         options: [
-          { text: 'Maximum $1,000', correct: false, explanation: '$1,000 is just the statutory maximum per violation. Actual damages, emotional distress, and attorney fees can be much higher.' },
-          { text: 'Only the therapy costs ($1,200)', correct: false, explanation: 'Therapy costs are just one component of actual damages. Financial harm from denied/overpriced credit is also recoverable.' },
-          { text: 'Statutory damages ($300-$3,000 for 3 willful violations) + actual financial damages ($400/month rent difference + $3,200 in extra interest) + emotional distress ($1,200 in therapy) + attorney fees — potentially $15,000-$30,000+', correct: true, explanation: 'Correct! Alicia\'s damages include multiple categories: 1) STATUTORY: $100-$1,000 per willful violation × 3 = $300-$3,000, 2) ACTUAL FINANCIAL: $400/month × 12+ months of extra rent = $4,800+, plus $3,200 extra auto loan interest = $8,000+, 3) EMOTIONAL DISTRESS: $1,200 documented therapy costs, 4) ATTORNEY FEES: Under FCRA §616, the violator pays the winning party\'s attorney fees. With documented violations and quantifiable harm, this case could settle for $15,000-$30,000+ or more at trial.' },
-          { text: 'She can only recover damages if she goes to trial', correct: false, explanation: 'Most FCRA cases settle before trial. Settlement avoids the cost and risk of litigation for both sides.' }
+          { text: 'Maximum $1,000 total — that is the FCRA cap', correct: false, explanation: '$1,000 is the statutory maximum per willful violation — not the total cap for a case. Actual financial harm, emotional distress, and attorney fees are separate categories with no ceiling.' },
+          { text: 'Only the $1,200 therapy costs — courts only count medical receipts', correct: false, explanation: 'Documented therapy costs are one piece of actual damages. Lost credit opportunities — denied mortgages, higher interest rates — are also recoverable as actual financial harm and often dwarf the therapy costs.' },
+          { text: 'Statutory ($300-$3,000 for 3 violations) + actual financial harm ($4,800+ rent difference + $3,200 extra interest) + emotional distress ($1,200 therapy) + attorney fees = potential $15,000-$30,000+ total', correct: true, explanation: 'Correct! FCRA damages stack across multiple categories: statutory ($100-$1,000 per willful violation × 3), actual financial harm (real dollars lost to denied or overpriced credit), emotional distress (documented therapy costs), and attorney fees (paid by the violator under §616 — no upfront cost). With itemized, documented harm, cases like this typically settle for $15,000-$30,000+ without going to trial.' },
+          { text: 'Damages are only available if the case goes to trial', correct: false, explanation: 'The vast majority of FCRA cases settle before trial — typically within weeks of an attorney demand letter. Settlement provides the same damages without the risk and time of litigation.' }
         ]
       },
       {
@@ -233,15 +224,14 @@ window.EDUCATION_EXPERT = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Full-Court Press',
-        story: 'After 8 months of being unable to remove a fraudulent $12,000 auto loan from all three credit reports despite having an FTC identity theft report and police report, Marcus has decided it\'s time for the full escalation. He has perfect documentation: certified mail receipts for 6 disputes (2 per bureau), 3 CFPB complaints, and responses from all three bureaus saying "verified."',
-        question: 'What is Marcus\'s optimal final escalation strategy?',
+        type: 'multiple-choice',
+        title: 'Full Escalation After 8 Months of Failed Disputes',
+        question: 'After 8 months, 6 certified-mail disputes (2 per bureau), 3 CFPB complaints, and FTC + police identity theft reports, all three bureaus still say a fraudulent $12,000 auto loan is "verified." What is the optimal next step?',
         options: [
-          { text: 'File one more dispute with each bureau', correct: false, explanation: 'After 6 disputes and 3 CFPB complaints over 8 months, repeating the same approach won\'t work. Marcus needs to escalate to legal channels.' },
-          { text: 'Give up — if it hasn\'t been fixed by now, nothing will work', correct: false, explanation: 'Marcus has one of the strongest possible FCRA cases. His documentation is excellent and the violations are clear. This is exactly when legal action is most effective.' },
-          { text: 'Consult an FCRA attorney with his complete 8-month documentation file, file simultaneous AG complaints in his state against all three bureaus, and file an OCC complaint against the auto lender\'s bank', correct: true, explanation: 'Correct! Marcus\'s optimal strategy: 1) FCRA attorney consultation (free, contingency) — with 8 months of documented violations (failure to investigate identity theft despite FTC report + police report), his case is worth $15,000-$50,000+ in statutory + actual damages. 2) State AG complaints against all three bureaus — citing continued reporting of documented identity theft, 3) OCC/FDIC complaint against the auto lender\'s bank for furnishing data on a documented fraudulent account, 4) The attorney will likely send demand letters to all parties, and most cases at this stage settle within 30-60 days. His 8 months of documentation isn\'t wasted — it\'s evidence of systematic failure by multiple parties.' },
-          { text: 'Pay off the $12,000 fraudulent loan to make it go away', correct: false, explanation: 'Marcus should NEVER pay for a loan he didn\'t take out. This is identity theft — he\'s a victim, not a debtor. Paying would be surrendering $12,000 for a crime committed against him.' }
+          { text: 'File one more dispute with each bureau using the same format', correct: false, explanation: 'After 6 disputes and 3 CFPB complaints over 8 months, repeating the same approach will not produce a different result. 8 months of documented failures is exactly the evidence needed for legal escalation.' },
+          { text: 'Give up — if the bureaus have verified it 6 times, nothing more can be done', correct: false, explanation: '8 months of documented violations on a fraudulent identity theft account is one of the strongest possible FCRA cases. This is precisely the point at which legal action is most effective.' },
+          { text: 'Consult an FCRA attorney (free, contingency) with the full 8-month file, file state AG complaints against all three bureaus, and file an OCC/FDIC complaint against the auto lender\'s bank', correct: true, explanation: 'Correct! This is the optimal escalation package: 1) FCRA attorney consultation — 8 months of documented bureau failures to investigate identity theft is worth $15,000-$50,000+ in statutory and actual damages, 2) State AG complaints against each bureau for continuing to report documented identity theft, 3) OCC or FDIC complaint against the lender for furnishing data on a documented fraudulent account. Attorneys typically send demand letters to all parties simultaneously; most cases at this documentation level settle within 30-60 days. Those 8 months of files are the case.' },
+          { text: 'Pay off the $12,000 fraudulent loan to clear the report', correct: false, explanation: 'Never pay a loan that resulted from identity theft. Paying would mean surrendering $12,000 as a victim of a crime committed against you. It also would not guarantee removal and could be treated as acknowledgment of the debt.' }
         ]
       },
       {
@@ -284,15 +274,14 @@ window.EDUCATION_EXPERT = [
         visual: { type: 'tip', text: 'Dispute Power: When you dispute a Metro 2 field error, be specific. Instead of "this account is inaccurate," write: "The Account Status code shows 97 (charged off) but this account was settled in full on [date]. The correct Account Status should be 13 (paid/closed). Additionally, the current balance of $X should be $0." Specific field-level disputes are harder for furnishers to dismiss.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Compliance Condition Code',
-        story: 'While reviewing his Metro 2 data, Derek notices that a credit card account that was included in his Chapter 7 bankruptcy 3 years ago shows:\n• Account Status: 97 (charged off)\n• Compliance Condition Code: blank\n• Balance: $4,800\n\nDerek\'s bankruptcy attorney confirms the account was discharged.',
-        question: 'What Metro 2 errors should Derek dispute?',
+        type: 'multiple-choice',
+        title: 'Metro 2 Errors on a Discharged Bankruptcy Account',
+        question: 'A credit card included in your Chapter 7 bankruptcy 3 years ago shows: Account Status 97 (charged off), Compliance Condition Code blank, Balance $4,800. Your attorney confirms the account was discharged. What should you dispute?',
         options: [
-          { text: 'Only the balance — it should be $0', correct: false, explanation: 'The balance is one error, but there are multiple Metro 2 field errors here that need correction.' },
-          { text: 'All three: the Compliance Condition Code should show "XH" (discharged through bankruptcy), the balance should be $0, and the Account Status should reflect the discharge — not a charge-off', correct: true, explanation: 'Correct! Three distinct Metro 2 errors: 1) Compliance Condition Code should be "XH" (discharged in bankruptcy under Chapter 7) — this code is required for any account included in a bankruptcy, 2) Balance MUST be reported as $0 for discharged accounts — reporting a balance on a discharged debt violates the bankruptcy discharge injunction, 3) Account Status should be updated to reflect the discharge, not an active charge-off. Derek should dispute with all three bureaus citing these specific Metro 2 field errors AND contact the furnisher under §623(b) citing the bankruptcy discharge order. Reporting a balance on a discharged debt can also be a violation of the bankruptcy discharge injunction — worth mentioning to a consumer rights attorney.' },
-          { text: 'There are no errors — bankruptcy accounts always show as charged off', correct: false, explanation: 'Bankruptcy accounts must be properly coded with the correct Compliance Condition Code and a $0 balance. The way this account is currently reported is inaccurate.' },
-          { text: 'Derek should just wait for it to fall off his report', correct: false, explanation: 'The inaccurate balance and missing compliance code are actively damaging Derek\'s credit now. These are correctable errors that should be disputed immediately.' }
+          { text: 'Only the balance — it is the most obvious error', correct: false, explanation: 'The balance is one of three distinct Metro 2 field errors. Disputing only the balance leaves two other violations uncorrected and leaves you vulnerable to continued reporting errors.' },
+          { text: 'There are no errors — bankruptcy accounts always show Status 97 (charged off)', correct: false, explanation: 'Discharged bankruptcy accounts must be correctly coded, not left as active charge-offs. The Compliance Condition Code must reflect the discharge, and the balance must be $0. The current reporting is inaccurate and actively damaging your score.' },
+          { text: 'All three: Compliance Condition Code should be "XH" (Chapter 7 discharge), Balance must be $0, and Account Status should reflect the discharge rather than an active charge-off', correct: true, explanation: 'Correct! Three Metro 2 field errors: 1) Compliance Condition Code "XH" is required for Chapter 7 discharged accounts — it is not optional, 2) Balance must be $0 for any discharged debt — reporting a positive balance on a discharged account may also violate the bankruptcy discharge injunction, 3) Account Status should reflect the discharge, not an ongoing charge-off. Dispute all three fields with all three bureaus via certified mail, and send a §623 direct dispute to the furnisher with a copy of the bankruptcy discharge order. A consumer rights attorney can also address the discharge injunction violation.' },
+          { text: 'Wait for the account to fall off the report in 10 years', correct: false, explanation: 'The inaccurate balance and missing compliance codes are actively damaging your credit right now. These are specific, documented, correctable errors — there is no reason to wait years when they can be fixed immediately.' }
         ]
       },
       {
@@ -302,15 +291,12 @@ window.EDUCATION_EXPERT = [
         visual: { type: 'tip', text: 'How to See Metro 2 Data: Your regular credit report is a consumer-friendly version of the Metro 2 data. To see the raw data, request your full file disclosure under FCRA §609. Some credit monitoring services also show account-level detail that reveals Metro 2 field values. Compare data across all three bureaus to spot inconsistencies.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Cross-Bureau Discrepancy',
-        story: 'Elena pulls her reports from all three bureaus and finds her auto loan reported differently:\n• TransUnion: Balance $12,400, Current, opened Jan 2022\n• Experian: Balance $12,400, Current, opened Jan 2022\n• Equifax: Balance $14,200, 30 days late (June 2024), opened Mar 2022\n\nElena has never been late on this account and her statements confirm she\'s current with a balance of $12,400. She opened the account in January 2022.',
-        question: 'How should Elena approach this dispute?',
+        type: 'true-false',
+        title: 'Cross-Bureau Discrepancies as Dispute Evidence',
+        question: 'When two bureaus report an account correctly and one bureau shows different data (wrong balance, false late payment, wrong open date), the correct data at the other two bureaus serves as evidence in your dispute with the inaccurate bureau.',
         options: [
-          { text: 'Dispute with Equifax only — they\'re the only ones with wrong data', correct: false, explanation: 'While Equifax has the errors, Elena should also involve the furnisher to ensure the data is corrected at the source and prevent future re-reporting of wrong data.' },
-          { text: 'Dispute with Equifax citing three specific Metro 2 field errors (wrong balance, false late payment, wrong open date), AND send a §623 direct dispute to the auto lender\'s compliance department with her payment records and original contract', correct: true, explanation: 'Correct! Elena has three provable Metro 2 errors on Equifax that are verifiable against the other two bureaus: 1) Balance: $14,200 vs. confirmed $12,400 — wrong by $1,800, 2) Payment Status: Shows 30 days late in June 2024, but TransUnion and Experian show current AND Elena has payment records proving she was never late, 3) Account Open Date: March 2022 vs. January 2022 on the other two bureaus. She should: 1) Dispute with Equifax citing all three field errors with supporting documentation, 2) Send §623 direct dispute to the auto lender\'s compliance department requesting they correct Equifax reporting, 3) Include copies of her loan contract (showing Jan 2022 open date) and payment statements. Cross-bureau discrepancies are among the strongest disputes because the correct data already exists at the other bureaus.' },
-          { text: 'Call Equifax customer service and ask them to fix it', correct: false, explanation: 'Phone disputes are poorly documented. Written disputes via certified mail create a paper trail and trigger the formal §611 investigation process.' },
-          { text: 'Dispute with all three bureaus to be safe', correct: false, explanation: 'TransUnion and Experian are reporting correctly. Disputing accurate data at those bureaus is unnecessary and could actually cause problems if it triggers unnecessary reinvestigation.' }
+          { text: 'True', correct: true, explanation: 'Correct! Cross-bureau discrepancies are among the strongest disputes you can make. The correct data already exists at two other bureaus and directly contradicts the error — it is verifiable, documented proof without needing to gather additional evidence. Dispute the inaccurate bureau via certified mail citing the specific Metro 2 field errors, attach payment statements and account documentation, and send a §623 direct dispute to the furnisher requesting they correct their reporting to the inaccurate bureau. Do not dispute the bureaus that are reporting accurately.' },
+          { text: 'False', correct: false, explanation: 'This is true. Cross-bureau discrepancies are powerful dispute evidence because the correct data is already in the system at another bureau. It proves the error is in the reporting, not in the underlying facts. Always compare all three bureau reports and use matching data at one bureau to challenge incorrect data at another.' }
         ]
       },
       {
@@ -353,15 +339,12 @@ window.EDUCATION_EXPERT = [
         visual: { type: 'tip', text: 'Texas Strategy: When dealing with collectors or inaccurate credit reporting in Texas, mention the DTPA in addition to federal claims. The threat of treble damages gets corporate attention fast. Many Texas consumer protection attorneys are experienced with DTPA claims alongside FCRA/FDCPA cases.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Using State Law Advantage',
-        story: 'Patricia lives in Massachusetts and has documented that a collection agency has been calling her 4-5 times per day for 3 weeks despite her written cease and desist letter. She\'s also documented that they told her she would be arrested if she didn\'t pay — a false threat. She has voicemail recordings of 8 calls that include threats.',
-        question: 'What are Patricia\'s options under both federal AND Massachusetts state law?',
+        type: 'true-false',
+        title: 'Federal and State Law Can Apply Simultaneously',
+        question: 'A consumer can pursue both federal FDCPA claims AND state consumer protection claims for the same debt collection violations, potentially combining $1,000 in statutory damages with treble damages under state law.',
         options: [
-          { text: 'Federal FDCPA only — state law doesn\'t add anything', correct: false, explanation: 'Massachusetts has one of the strongest consumer protection laws in the nation (Chapter 93A) that provides significantly higher damages than federal law alone.' },
-          { text: 'FDCPA violations (up to $1,000 statutory + actuals) PLUS Massachusetts Chapter 93A claims with automatic treble damages for willful violations — potentially tripling her total recovery', correct: true, explanation: 'Correct! Patricia has a powerful dual-track case: FEDERAL (FDCPA): 1) §1692d — harassment through repeated calls (3 weeks, 4-5x daily), 2) §1692c — continued contact after cease and desist, 3) §1692e — false threats of arrest. Up to $1,000 statutory + actual damages + attorney fees. MASSACHUSETTS (93A): Chapter 93A considers FDCPA violations to be unfair practices under state law. The critical advantage: 93A provides AUTOMATIC treble damages for willful or knowing violations. If Patricia\'s actual damages are $5,000, she could recover $15,000 under 93A plus attorney fees. The combination of federal and state claims makes this a very strong case. Her voicemail recordings are powerful evidence of willful violations.' },
-          { text: 'She can only use one law — federal or state, not both', correct: false, explanation: 'Consumers can and should pursue claims under BOTH federal and state law when both apply. They protect different rights and provide different remedies.' },
-          { text: 'She needs to file a complaint before she can sue', correct: false, explanation: 'While filing complaints is recommended (CFPB, AG), it\'s not a prerequisite for a lawsuit. Patricia can consult an attorney and file suit immediately if she has the evidence.' }
+          { text: 'True', correct: true, explanation: 'Correct! Federal and state consumer protection laws can and should be layered when both apply. In states like Massachusetts (Chapter 93A), Texas (DTPA), and New Jersey (CFA), willful violations automatically trigger treble (3x) damages on top of federal statutory awards. Voicemail recordings of threats and continued calls after a cease and desist are evidence of willful violations — exactly what triggers the treble damage multiplier. Consumers can consult an attorney and file suit without having to file a complaint first.' },
+          { text: 'False', correct: false, explanation: 'This is true. Federal and state claims can be stacked for maximum recovery. The FCRA and FDCPA both have savings clauses preserving stronger state protections. State attorneys experienced in consumer law routinely combine federal and state claims because the combination increases both settlement pressure and potential damages significantly.' }
         ]
       },
       {
@@ -371,15 +354,14 @@ window.EDUCATION_EXPERT = [
         visual: { type: 'tip', text: 'Research Your State: Search "[Your State] consumer protection act credit reporting" or "[Your State] debt collection practices act." Many states have free legal guides on their AG websites. Also check if your state covers original creditors (not just third-party collectors) — this is a huge advantage that the federal FDCPA doesn\'t provide.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Choosing the Right Law',
-        story: 'Kevin lives in Illinois and has three different credit issues:\n1. A debt collector has been calling his cell phone with a robocaller despite being on the Do Not Call list\n2. His bank (original creditor) is reporting a wrong balance on his credit card\n3. A debt buyer is reporting a collection with an illegally re-aged Date of First Delinquency',
-        question: 'Which laws apply to each of Kevin\'s three issues?',
+        type: 'multiple-choice',
+        title: 'Matching Laws to Credit Issues in Illinois',
+        question: 'An Illinois consumer has three issues: (1) a robocaller ignoring Do Not Call registration, (2) a bank (original creditor) reporting a wrong balance, (3) a debt buyer reporting an illegally re-aged Date of First Delinquency. Which combination of laws maximizes their leverage?',
         options: [
-          { text: 'Just use the FCRA for all three — it covers everything', correct: false, explanation: 'Different issues are covered by different laws. Using all applicable laws maximizes Kevin\'s leverage and potential recovery.' },
-          { text: 'Issue 1: TCPA + FDCPA + Illinois Consumer Fraud Act. Issue 2: FCRA §623 + Illinois Consumer Fraud Act (covers original creditors). Issue 3: FCRA §605(c) + FDCPA §1692e + Illinois Consumer Fraud Act', correct: true, explanation: 'Correct! Each issue has multiple applicable laws: ISSUE 1 (Robocalls): TCPA (Telephone Consumer Protection Act) — $500-$1,500 per robocall without consent, FDCPA §1692d — harassment, Illinois CFA — unfair consumer practice. ISSUE 2 (Bank\'s wrong balance): FCRA §623 — furnisher duty to report accurately, Illinois Consumer Fraud Act — covers original creditors (unlike FDCPA which doesn\'t). This is a KEY advantage of Illinois law. ISSUE 3 (Re-aged DOFD): FCRA §605(c) — illegal re-aging, FDCPA §1692e — false/misleading representation, Illinois CFA — deceptive practice. By layering federal AND state claims, Kevin maximizes both his leverage for settlement and his potential damages at trial.' },
-          { text: 'Kevin should just file CFPB complaints for all three', correct: false, explanation: 'CFPB complaints are great for regulatory pressure, but Kevin should also pursue legal claims. The combination of complaints + legal action is the most effective approach.' },
-          { text: 'State law only applies if federal law doesn\'t cover the issue', correct: false, explanation: 'State and federal law can apply simultaneously to the same issue. Consumers should use all available legal tools, not choose between them.' }
+          { text: 'FCRA only — it covers all three credit-related issues', correct: false, explanation: 'Different violations require different laws. Limiting yourself to one statute when multiple apply means leaving money and leverage on the table.' },
+          { text: 'CFPB complaints only — no need to identify specific laws', correct: false, explanation: 'CFPB complaints are powerful regulatory tools, but they work best alongside legal claims. Identifying the specific applicable statutes is what makes complaints and demand letters effective.' },
+          { text: 'Issue 1: TCPA ($500-$1,500 per robocall) + FDCPA §1692d + Illinois CFA. Issue 2: FCRA §623 + Illinois CFA (covers original creditors unlike federal FDCPA). Issue 3: FCRA §605(c) + FDCPA §1692e + Illinois CFA', correct: true, explanation: 'Correct! Layering federal and state law applies maximum leverage: Issue 1 — TCPA provides $500-$1,500 per robocall; FDCPA covers the harassment; Illinois CFA adds state-level claims. Issue 2 — FDCPA does NOT cover original creditors (only third-party collectors), but FCRA §623 and the Illinois CFA do. This is a KEY advantage of Illinois state law. Issue 3 — FCRA §605(c) covers illegal re-aging directly; FDCPA §1692e covers the false representation; Illinois CFA adds state claims. Multi-statute cases dramatically increase settlement pressure and potential damages.' },
+          { text: 'State law only applies when no federal law covers the issue', correct: false, explanation: 'State and federal law apply simultaneously to the same conduct. The FCRA and FDCPA have savings clauses explicitly preserving stronger state protections. Always layer both for maximum coverage.' }
         ]
       },
       {

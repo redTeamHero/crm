@@ -296,11 +296,12 @@
         html += '<h2 class="lesson-section-title">' + esc(section.title) + '</h2>';
         html += '<div class="lesson-section-body">' + formatBody(section.body) + '</div>';
         if(section.visual) html += renderVisual(section.visual);
-      } else if(section.type === 'scenario'){
+      } else if(section.type === 'scenario' || section.type === 'multiple-choice' || section.type === 'true-false'){
+        var badgeText = section.type === 'true-false' ? '✅ True or False' : section.type === 'multiple-choice' ? '❓ Question' : '📋 Scenario';
         html += '<div class="lesson-scenario">';
-        html += '<div class="lesson-scenario-badge">📋 Scenario</div>';
+        html += '<div class="lesson-scenario-badge">' + badgeText + '</div>';
         html += '<h2 class="lesson-section-title">' + esc(section.title) + '</h2>';
-        html += '<div class="lesson-scenario-story">' + formatBody(section.story) + '</div>';
+        if(section.story) html += '<div class="lesson-scenario-story">' + formatBody(section.story) + '</div>';
         html += '<div class="lesson-scenario-question">' + esc(section.question) + '</div>';
         html += '<div class="lesson-options" id="lessonOptions">';
         section.options.forEach(function(opt, oi){
@@ -361,7 +362,7 @@
       var completeBtn = overlay.querySelector('#lessonComplete');
       if(completeBtn && canProceed) completeBtn.addEventListener('click', function(){ handleComplete(); });
 
-      if(section.type === 'scenario' && answered[currentStep] === undefined){
+      if((section.type === 'scenario' || section.type === 'multiple-choice' || section.type === 'true-false') && answered[currentStep] === undefined){
         overlay.querySelectorAll('.lesson-option').forEach(function(btn){
           btn.addEventListener('click', function(){
             var oi = parseInt(btn.getAttribute('data-oi'));
@@ -468,24 +469,38 @@
     return [];
   }
 
+  function _shuffleArr(arr){
+    for(var i = arr.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
   function buildQuizQuestions(tierKey){
     var tierData = getTierData(tierKey);
     var scenarios = [];
+    var direct = [];
     tierData.forEach(function(lesson){
       if(!lesson.sections) return;
       lesson.sections.forEach(function(sec){
         if(sec.type === 'scenario'){
-          scenarios.push({ lessonTitle: lesson.title, title: sec.title, question: sec.question, options: sec.options, story: sec.story });
+          scenarios.push({ lessonTitle: lesson.title, title: sec.title, question: sec.question, options: sec.options, story: sec.story, type: 'scenario' });
+        } else if(sec.type === 'multiple-choice' || sec.type === 'true-false'){
+          direct.push({ lessonTitle: lesson.title, title: sec.title, question: sec.question, options: sec.options, type: sec.type });
         }
       });
     });
-    for(var i = scenarios.length - 1; i > 0; i--){
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = scenarios[i]; scenarios[i] = scenarios[j]; scenarios[j] = tmp;
-    }
+    _shuffleArr(scenarios);
+    _shuffleArr(direct);
     var quizSize = { beginner: 8, intermediate: 5, expert: 5 };
     var count = quizSize[tierKey] || 5;
-    return scenarios.slice(0, Math.min(count, scenarios.length));
+    var scenarioCount = Math.max(1, Math.round(count * 0.2));
+    var directCount = count - scenarioCount;
+    var selected = scenarios.slice(0, Math.min(scenarioCount, scenarios.length))
+      .concat(direct.slice(0, Math.min(directCount, direct.length)));
+    _shuffleArr(selected);
+    return selected.slice(0, count);
   }
 
   var QUIZ_TIME_LIMITS = { beginner: 600, intermediate: 480, expert: 420 };
@@ -549,9 +564,10 @@
 
       html += '<div class="lesson-player-body">';
       html += '<div class="lesson-scenario">';
-      html += '<div class="lesson-scenario-badge">📝 Exam Question</div>';
+      var qBadge = q.type === 'true-false' ? '✅ True or False' : q.type === 'multiple-choice' ? '❓ Question' : '📝 Exam Question';
+      html += '<div class="lesson-scenario-badge">' + qBadge + '</div>';
       html += '<h2 class="lesson-section-title">' + esc(q.title) + '</h2>';
-      html += '<div class="lesson-scenario-story">' + formatBody(q.story) + '</div>';
+      if(q.story) html += '<div class="lesson-scenario-story">' + formatBody(q.story) + '</div>';
       html += '<div class="lesson-scenario-question">' + esc(q.question) + '</div>';
       html += '<div class="lesson-options" id="quizOptions">';
       q.options.forEach(function(opt, oi){
@@ -896,20 +912,26 @@
   function buildTestQuestions(subjects, count){
     var lessons = window.EDUCATION_LESSONS || [];
     var scenarios = [];
+    var direct = [];
     lessons.forEach(function(lesson){
       if(subjects.indexOf(lesson.id) === -1) return;
       if(!lesson.sections) return;
       lesson.sections.forEach(function(sec){
         if(sec.type === 'scenario'){
-          scenarios.push({ lessonTitle: lesson.title, title: sec.title, question: sec.question, options: sec.options, story: sec.story });
+          scenarios.push({ lessonTitle: lesson.title, title: sec.title, question: sec.question, options: sec.options, story: sec.story, type: 'scenario' });
+        } else if(sec.type === 'multiple-choice' || sec.type === 'true-false'){
+          direct.push({ lessonTitle: lesson.title, title: sec.title, question: sec.question, options: sec.options, type: sec.type });
         }
       });
     });
-    for(var i = scenarios.length - 1; i > 0; i--){
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = scenarios[i]; scenarios[i] = scenarios[j]; scenarios[j] = tmp;
-    }
-    return scenarios.slice(0, Math.min(count, scenarios.length));
+    _shuffleArr(scenarios);
+    _shuffleArr(direct);
+    var scenarioCount = Math.max(1, Math.round(count * 0.2));
+    var directCount = count - scenarioCount;
+    var selected = scenarios.slice(0, Math.min(scenarioCount, scenarios.length))
+      .concat(direct.slice(0, Math.min(directCount, direct.length)));
+    _shuffleArr(selected);
+    return selected.slice(0, count);
   }
 
   function openBeginnerTest(testIndex){
@@ -971,9 +993,10 @@
 
       html += '<div class="lesson-player-body">';
       html += '<div class="lesson-scenario">';
-      html += '<div class="lesson-scenario-badge">\uD83D\uDCDD ' + test.label + ' Question</div>';
+      var tBadge = q.type === 'true-false' ? '\u2705 True or False' : q.type === 'multiple-choice' ? '\u2753 Question' : '\uD83D\uDCDD ' + test.label + ' Question';
+      html += '<div class="lesson-scenario-badge">' + tBadge + '</div>';
       html += '<h2 class="lesson-section-title">' + esc(q.title) + '</h2>';
-      html += '<div class="lesson-scenario-story">' + formatBody(q.story) + '</div>';
+      if(q.story) html += '<div class="lesson-scenario-story">' + formatBody(q.story) + '</div>';
       html += '<div class="lesson-scenario-question">' + esc(q.question) + '</div>';
       html += '<div class="lesson-options" id="quizOptions">';
       q.options.forEach(function(opt, oi){

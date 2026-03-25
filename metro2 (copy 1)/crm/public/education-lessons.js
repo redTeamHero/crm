@@ -60,39 +60,34 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Which Hurts More?',
-        story: 'Two neighbors both have 720 credit scores. Neighbor A misses one mortgage payment by 30 days. Neighbor B opens 3 new credit cards in the same week.',
-        question: 'Which neighbor will likely see a bigger score drop?',
+        type: 'multiple-choice',
+        title: 'Payment History vs. New Credit',
+        question: 'Which action causes a bigger drop to your credit score?',
         options: [
-          { text: 'Neighbor A — the missed payment', correct: true, explanation: 'Correct! Payment history is 35% of your score. A single 30-day late payment can drop a good score by 60-110 points. New inquiries (Neighbor B) only account for 10% and might drop 5-15 points total. The impact difference is dramatic.' },
-          { text: 'Neighbor B — the new cards', correct: false, explanation: 'Opening new cards causes hard inquiries (10% of score), which typically drops 5-15 points. A missed payment affects 35% of the score and can cause a 60-110 point drop.' },
-          { text: 'Both will drop equally', correct: false, explanation: 'Payment history (35%) weighs much more than new credit (10%). The missed payment will have a significantly larger impact.' },
-          { text: 'Neither will be affected', correct: false, explanation: 'Both actions do affect your score, but payment history carries a much heavier weight.' }
+          { text: 'Missing one mortgage payment by 30 days', correct: true, explanation: 'Correct! Payment history is 35% of your score. A single 30-day late payment can drop a good score by 60-110 points. New credit inquiries only account for 10% and typically cause a 5-15 point drop — far less damaging.' },
+          { text: 'Opening 3 new credit cards in one week', correct: false, explanation: 'Opening new cards triggers hard inquiries, which affect only 10% of your score and usually drop it 5-15 points total. A missed payment hits 35% of your score and causes 60-110 points of damage.' },
+          { text: 'Both have equal impact', correct: false, explanation: 'Payment history (35%) weighs far more than new credit (10%). A missed payment is dramatically more damaging than opening new accounts.' },
+          { text: 'Neither affects your score', correct: false, explanation: 'Both actions do affect your score. A missed payment is far more damaging because payment history carries the heaviest weight at 35%.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Statement Balance Trick',
-        story: 'Priya has two credit cards:\n• Card A: $5,000 limit, $4,800 balance (96% utilization)\n• Card B: $15,000 limit, $200 balance (1.3% utilization)\n\nHer overall utilization is $5,000/$20,000 = 25%, which seems okay.',
-        question: 'Will Priya\'s score be affected by Card A even though her overall utilization is only 25%?',
+        type: 'true-false',
+        title: 'Individual Card Utilization',
+        question: 'Credit scoring models only look at your total overall utilization across all cards — they do not care about individual card utilization.',
         options: [
-          { text: 'No — only overall utilization matters', correct: false, explanation: 'Both individual card utilization AND overall utilization are factored in. A maxed-out card hurts regardless of what your other cards show.' },
-          { text: 'Yes — having one card at 96% utilization will hurt her score even though overall utilization is 25%', correct: true, explanation: 'Correct! Scoring models look at BOTH individual card utilization and overall utilization. Having Card A at 96% is a major red flag even if the total is 25%. Priya should transfer some of Card A\'s balance to Card B, or pay down Card A aggressively.' },
-          { text: 'Only if Card A is a store card', correct: false, explanation: 'The type of card doesn\'t matter here. Individual card utilization is tracked for all revolving accounts.' },
-          { text: 'It depends on her payment history', correct: false, explanation: 'Payment history and utilization are scored independently. High utilization will hurt regardless of perfect payment history.' }
+          { text: 'True', correct: false, explanation: 'False! Scoring models track BOTH overall utilization AND per-card utilization. Having one card near its limit hurts your score even if your total across all cards looks fine.' },
+          { text: 'False', correct: true, explanation: 'Correct! Scoring models look at both individual card utilization and overall utilization. A card at 96% hurts you even if your combined utilization is only 25%. Spread balances across cards and pay down high-utilization cards first.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Score Gap Mystery',
-        story: 'Carlos checks his credit score on three different sources:\n• Credit Karma says 695\n• His bank app says 712\n• His mortgage lender says 668\n\nAll three were checked within the same week. Carlos is confused about which one is "real."',
-        question: 'Why are Carlos\'s scores so different?',
+        type: 'multiple-choice',
+        title: 'Why Scores Differ by Source',
+        question: 'Why might your credit score from a free monitoring app be different from what your mortgage lender sees?',
         options: [
-          { text: 'Two of the scores must be wrong', correct: false, explanation: 'All three can be accurate — they\'re just using different scoring models and pulling from different bureaus.' },
-          { text: 'Each source uses a different scoring model and may pull from a different bureau, so variation is normal', correct: true, explanation: 'Correct! Credit Karma uses VantageScore (often from TransUnion or Equifax). His bank might use FICO 8 from Experian. His mortgage lender uses a specialized FICO mortgage score, which tends to be the most conservative. A 40-50 point spread between models is completely normal.' },
-          { text: 'Credit Karma inflates scores to make users feel good', correct: false, explanation: 'Credit Karma accurately reports VantageScore results. The difference is in the model used, not inflation.' },
-          { text: 'His mortgage lender is trying to give him a worse rate', correct: false, explanation: 'Mortgage lenders use industry-standard FICO mortgage scores required by Fannie Mae/Freddie Mac. They can\'t change which model they use.' }
+          { text: 'Free apps are always wrong', correct: false, explanation: 'Free apps report accurately — they just use different scoring models. The score is accurate for the model it uses.' },
+          { text: 'Different sources use different scoring models and may pull from different bureaus', correct: true, explanation: 'Correct! Credit Karma uses VantageScore (TransUnion or Equifax). Your bank may use FICO 8 from Experian. Mortgage lenders use specialized FICO mortgage scores. A 40-50 point spread between models is completely normal.' },
+          { text: 'Lenders always see a lower score to justify higher rates', correct: false, explanation: 'Mortgage lenders must use industry-standard FICO mortgage scores required by Fannie Mae/Freddie Mac. They cannot manipulate which model they use.' },
+          { text: 'Scores only differ if you\'ve applied for credit recently', correct: false, explanation: 'Scores differ due to different models and bureaus — not because of recent applications. VantageScore and FICO can show different results even with no recent activity.' }
         ]
       },
       {
@@ -150,39 +145,34 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Hard vs. Soft Inquiry',
-        story: 'David checked his own credit score on Credit Karma last week. Today, he applied for a car loan at three different dealerships within a 2-hour window.',
-        question: 'How many hard inquiries will appear on David\'s report?',
+        type: 'true-false',
+        title: 'Rate Shopping Inquiry Protection',
+        question: 'Checking your own credit score on a free app counts as a hard inquiry and can lower your score.',
         options: [
-          { text: 'Four — one for Credit Karma plus three dealerships', correct: false, explanation: 'Credit Karma is a soft inquiry and never appears as a hard inquiry on your report.' },
-          { text: 'Three — one for each dealership', correct: false, explanation: 'Close, but multiple auto loan inquiries within a 14-45 day window are typically grouped as one inquiry by scoring models.' },
-          { text: 'One — the auto loan inquiries count as a single inquiry', correct: true, explanation: 'Correct! Rate shopping is protected. Multiple inquiries for the same type of loan (auto, mortgage, student) within a short window (14-45 days depending on scoring model) count as just one inquiry. FICO uses a 45-day window; VantageScore uses 14 days.' },
-          { text: 'Zero — dealerships don\'t pull credit', correct: false, explanation: 'Dealerships absolutely pull your credit when you apply for financing. They typically pull from all three bureaus.' }
+          { text: 'True', correct: false, explanation: 'False! Checking your own credit is always a soft inquiry and has zero impact on your score. Only applications for credit from lenders trigger hard inquiries.' },
+          { text: 'False', correct: true, explanation: 'Correct! Checking your own credit is a soft inquiry and never affects your score. Additionally, multiple loan inquiries for the same purpose (auto, mortgage) within a 14-45 day window count as a single hard inquiry, protecting rate shoppers.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Closed Account Problem',
-        story: 'Rachel paid off and closed her Bank of America credit card last year. When she checks her report, the account shows "Closed by Credit Grantor" instead of "Closed by Consumer." She called to close it herself.',
-        question: 'Does the reason for closure matter?',
+        type: 'multiple-choice',
+        title: 'Closed Account Reporting',
+        question: 'If you voluntarily closed a credit card but your report shows "Closed by Credit Grantor," what should you do?',
         options: [
-          { text: 'No — closed is closed, it doesn\'t matter who closed it', correct: false, explanation: 'The reason for closure does matter. "Closed by creditor" can signal to future lenders that the bank chose to end the relationship, which looks negative.' },
-          { text: 'Yes — "Closed by Credit Grantor" looks negative and Rachel should dispute it to reflect the correct closure reason', correct: true, explanation: 'Correct! "Closed by credit grantor" can be interpreted as the bank shutting down the account due to misuse or risk concerns. Since Rachel voluntarily closed it, this is inaccurate reporting and she should dispute it to have it corrected to "closed by consumer" or "closed at consumer\'s request."' },
-          { text: 'It only matters if she has late payments on the account', correct: false, explanation: 'The closure reason is a separate data point from payment history. It matters independently because future lenders see it.' },
-          { text: 'Closed accounts disappear from your report immediately', correct: false, explanation: 'Closed accounts in good standing stay on your report for 10 years. Closed accounts with negative history stay for 7 years from the date of first delinquency.' }
+          { text: 'Nothing — the distinction doesn\'t matter to lenders', correct: false, explanation: '"Closed by credit grantor" suggests the bank ended the relationship, which looks negative. It matters to future lenders.' },
+          { text: 'Dispute the account status to accurately reflect "closed by consumer" or "closed at consumer\'s request"', correct: true, explanation: 'Correct! If you voluntarily closed the account, the report is inaccurate. Dispute it to correct the closure reason — it\'s a legitimate dispute target under the FCRA since the information is incorrect.' },
+          { text: 'Pay off any remaining balance and the status will update automatically', correct: false, explanation: 'The closure reason doesn\'t update automatically. You must actively dispute inaccurate information to have it corrected.' },
+          { text: 'Only dispute if there are also late payments on the account', correct: false, explanation: 'Closure reason is a separate data point from payment history. You should dispute it independently if it\'s inaccurate.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Suspicious Address',
-        story: 'Michael reviews the Personal Information section of his TransUnion report and notices an address listed in Florida — a state he has never lived in or visited. All his other information (name, SSN, employers) is correct.',
-        question: 'What should Michael be most concerned about?',
+        type: 'multiple-choice',
+        title: 'Unrecognized Address on Your Report',
+        question: 'You find an address on your credit report for a state you have never lived in. What is the most important first step?',
         options: [
-          { text: 'Nothing — bureaus sometimes add random addresses', correct: false, explanation: 'Bureaus don\'t add addresses randomly. Addresses come from creditor reports, meaning someone may have used Michael\'s identity at that address.' },
-          { text: 'This could indicate identity theft — someone may have opened an account using his SSN at a Florida address', correct: true, explanation: 'Correct! An unfamiliar address is one of the earliest warning signs of identity theft. Someone may have used Michael\'s SSN to open an account with a different address. He should immediately: check all three reports for unfamiliar accounts, place fraud alerts or credit freezes, and dispute the address as not belonging to him.' },
-          { text: 'It was probably a typo by one of his creditors', correct: false, explanation: 'While typos happen, an entirely different state address is unlikely to be a simple typo. This warrants investigation.' },
-          { text: 'He should update his address with the bureau to remove it', correct: false, explanation: 'Removing the address is part of the solution, but first he needs to investigate whether any accounts were opened at that address under his name.' }
+          { text: 'Call the bureau to update your current address', correct: false, explanation: 'Updating your address doesn\'t investigate the root cause. An unfamiliar address needs to be investigated for identity theft before simply being removed.' },
+          { text: 'Investigate all three reports for unfamiliar accounts — an unknown address is a common early sign of identity theft', correct: true, explanation: 'Correct! An address you don\'t recognize often means someone used your identity at that location to open accounts. Check all three bureau reports for unfamiliar accounts, place a fraud alert or credit freeze, and then dispute the address as not belonging to you.' },
+          { text: 'Ignore it — bureaus sometimes list old addresses from public records', correct: false, explanation: 'While old addresses can appear, an address in a state you\'ve never lived in warrants immediate investigation — not dismissal.' },
+          { text: 'Dispute just the address and wait for results before doing anything else', correct: false, explanation: 'Disputing the address is one step, but you should simultaneously check for fraudulent accounts, place a fraud alert, and consider a credit freeze — all done at once, not sequentially.' }
         ]
       },
       {
@@ -243,39 +233,34 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Charge-Off vs. Collection',
-        story: 'James stopped paying his $5,000 credit card 8 months ago. The original creditor charged it off. Now James sees BOTH a charge-off from the bank AND a collection account from a new company on his report for the same $5,000.',
-        question: 'Is it legal to have both a charge-off and a collection for the same debt?',
+        type: 'multiple-choice',
+        title: 'Charge-Off and Collection — Duplicate Reporting',
+        question: 'A debt is charged off by the original creditor and then sold to a collection agency. Both entries now appear on your report. What should the original charge-off show?',
         options: [
-          { text: 'Yes — both the original creditor and collector can report', correct: false, explanation: 'While both CAN report, the balance should only show on one. If both show a $5,000 balance, that\'s illegal double-jeopardy inflating his debt by $5,000.' },
-          { text: 'No — only the collection agency can report after a charge-off', correct: false, explanation: 'The original creditor can still report the charge-off, but the balance reporting matters — only one should show the balance.' },
-          { text: 'It depends — the charge-off should show $0 balance if sold to collections', correct: true, explanation: 'Correct! If the debt was sold, the original charge-off should show a $0 balance with a note that it was "transferred" or "sold to another lender." If both show $5,000 balances, James can dispute the duplicate balance as inaccurate. This is one of the most common and most disputable errors on credit reports.' },
-          { text: 'Neither should appear — charge-offs are automatically removed', correct: false, explanation: 'Charge-offs stay on your report for 7 years from the date of first delinquency. They don\'t automatically disappear.' }
+          { text: 'The full balance — both entries can show the same amount owed', correct: false, explanation: 'Both entries showing the same balance is illegal duplicate reporting. It would inflate your apparent debt by doubling the amount.' },
+          { text: 'A $0 balance with a note that it was transferred or sold to another lender', correct: true, explanation: 'Correct! If the debt was sold, the original charge-off should show $0 balance with a "transferred" or "sold" notation. The collection agency entry carries the balance. If both show the full balance, that\'s a disputable error — one of the most common and most actionable errors on credit reports.' },
+          { text: 'It should be removed entirely — only the collection agency can report once a debt is sold', correct: false, explanation: 'The original creditor can still report the charge-off. The key issue is that only one entry should show the outstanding balance.' },
+          { text: 'Charge-offs automatically disappear after 2 years', correct: false, explanation: 'Charge-offs remain on your report for 7 years from the date of first delinquency. They do not disappear automatically.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Zombie Debt',
-        story: 'Rodriguez hasn\'t heard about a $900 credit card debt in 6 years. Suddenly, a new collection agency starts calling, claiming he owes $1,450 with interest. They threaten to report it to the credit bureaus as a "new" collection if he doesn\'t pay.',
-        question: 'What does Rodriguez need to know about this situation?',
+        type: 'true-false',
+        title: 'Zombie Debt and Re-Aging',
+        question: 'A collection agency that buys an old debt can legally start a new 7-year credit reporting period from the date they purchased the account.',
         options: [
-          { text: 'He should pay immediately to avoid it being re-reported', correct: false, explanation: 'Paying old debt can actually restart the statute of limitations for lawsuits in many states. And the original 7-year clock for credit reporting cannot legally be reset.' },
-          { text: 'The debt has expired and he has no obligation to pay', correct: false, explanation: 'The debt may have passed the statute of limitations for lawsuits, but the debt itself doesn\'t expire. However, the credit reporting period is fixed from the original DOFD and likely expires within a year.' },
-          { text: 'The collector cannot legally re-age this debt — the 7-year reporting clock started from the original default and cannot be restarted', correct: true, explanation: 'Correct! Under the FCRA, the 7-year reporting period runs from the Date of First Delinquency (DOFD) with the ORIGINAL creditor. A collector cannot restart this clock by "re-aging" the account. If it\'s been 6 years, the item should fall off within about a year regardless. Re-aging a debt is illegal and can be reported to the FTC and CFPB.' },
-          { text: 'He should negotiate a payment plan to stop the calls', correct: false, explanation: 'Making any payment or even verbally acknowledging the debt can restart the statute of limitations for lawsuits in some states. Rodriguez should proceed very carefully and consider consulting a consumer rights attorney.' }
+          { text: 'True', correct: false, explanation: 'False! This is illegal re-aging. Under the FCRA, the 7-year reporting period runs from the Date of First Delinquency (DOFD) with the original creditor. No collector can restart this clock. Re-aging a debt is a federal violation you can report to the CFPB and FTC.' },
+          { text: 'False', correct: true, explanation: 'Correct! Re-aging a debt is illegal. The 7-year credit reporting clock is permanently set from the original Date of First Delinquency and cannot be restarted by selling the debt to a new collector. If you see a collection account with a suspiciously recent date, check the original DOFD and dispute any re-aging immediately.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Bankruptcy Question',
-        story: 'After drowning in $85,000 of credit card debt, Vanessa is considering bankruptcy. She\'s researching the difference between Chapter 7 and Chapter 13. She makes $55,000/year and has no assets.',
-        question: 'What is the key difference Vanessa should understand?',
+        type: 'multiple-choice',
+        title: 'Chapter 7 vs. Chapter 13 Bankruptcy',
+        question: 'How long does a Chapter 7 bankruptcy stay on your credit report compared to Chapter 13?',
         options: [
-          { text: 'Chapter 7 and Chapter 13 are the same thing with different names', correct: false, explanation: 'They are fundamentally different processes with different requirements, timelines, and outcomes.' },
-          { text: 'Chapter 7 liquidates assets and discharges most debts (stays 10 years); Chapter 13 is a 3-5 year repayment plan (stays 7 years)', correct: true, explanation: 'Correct! Chapter 7 wipes out most unsecured debt but requires passing a "means test" (income below state median). It stays on your report for 10 years. Chapter 13 creates a court-supervised repayment plan lasting 3-5 years, and stays on your report for only 7 years. Since Vanessa has no assets and her income may qualify, Chapter 7 could discharge her debt faster, but the longer reporting period is the tradeoff.' },
-          { text: 'Chapter 7 is for individuals and Chapter 13 is for businesses', correct: false, explanation: 'Both Chapter 7 and Chapter 13 are available to individuals. Business bankruptcies typically use Chapter 11.' },
-          { text: 'Both stay on your report for 10 years', correct: false, explanation: 'Chapter 7 stays 10 years from the filing date. Chapter 13 stays 7 years from the filing date — a significant difference.' }
+          { text: 'Both stay for 7 years', correct: false, explanation: 'Chapter 13 stays for 7 years, but Chapter 7 stays for 10 years — a significant difference that should factor into which type you pursue.' },
+          { text: 'Chapter 7 stays for 10 years; Chapter 13 stays for 7 years', correct: true, explanation: 'Correct! Chapter 7 discharges most unsecured debts quickly but stays on your report for 10 years from the filing date. Chapter 13 creates a 3-5 year repayment plan and stays on your report for only 7 years. The longer Chapter 7 reporting period is the tradeoff for faster debt elimination.' },
+          { text: 'Chapter 7 stays for 7 years; Chapter 13 stays for 10 years', correct: false, explanation: 'It is the opposite. Chapter 7 (liquidation, faster) stays 10 years. Chapter 13 (repayment plan, 3-5 years) stays only 7 years.' },
+          { text: 'Both stay for 10 years', correct: false, explanation: 'Only Chapter 7 stays for 10 years. Chapter 13 is removed after 7 years, which is the same timeline as most other negative items.' }
         ]
       },
       {
@@ -297,99 +282,74 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Re-Aging a Debt',
-        story: 'Sandra has a collection account from 2019 with a Date of First Delinquency (DOFD) of March 2019. In 2024, the debt is sold to a new collection agency called FastCollect LLC. When Sandra checks her report, she sees FastCollect listed the account with an "open date" of January 2024.',
-        question: 'Is FastCollect allowed to report the account with a 2024 date?',
+        type: 'true-false',
+        title: 'Paid Medical Collections',
+        question: 'As of 2023, paid medical collections must be removed from your credit report entirely.',
         options: [
-          { text: 'Yes — when a new company buys the debt, they start a new reporting period', correct: false, explanation: 'A new buyer cannot restart the reporting period. The DOFD is permanently tied to the original delinquency with the original creditor.' },
-          { text: 'Yes — the open date reflects when FastCollect acquired the account, which is different from the DOFD', correct: false, explanation: 'While an "open date" might reflect acquisition, the critical DOFD must remain March 2019. If the account appears as a brand-new 2024 item, it has been illegally re-aged.' },
-          { text: 'No — this is illegal re-aging. The DOFD must remain March 2019, and the account must fall off by approximately March 2026', correct: true, explanation: 'Correct! Re-aging is a violation of the FCRA. The 7-year reporting period runs from the original DOFD (March 2019), meaning this account must be removed by approximately March 2026. Sandra should dispute this with all three bureaus citing the original DOFD and report FastCollect to the CFPB and FTC for illegal re-aging.' },
-          { text: 'It doesn\'t matter — old debts can\'t be reported at all after being sold', correct: false, explanation: 'Debts can absolutely be reported after being sold, but the original DOFD must be preserved. The new owner inherits the same reporting timeline.' }
+          { text: 'True', correct: true, explanation: 'Correct! All three major bureaus (Equifax, Experian, TransUnion) agreed to remove paid medical collections from credit reports as of 2023. Additionally, medical collections under $500 are excluded from many scoring models regardless of payment status.' },
+          { text: 'False', correct: false, explanation: 'Actually, this is true. As of 2023, all three bureaus remove paid medical collections from reports. Medical collections under $500 are also excluded from newer scoring models. Unpaid medical collections over $500 may still appear.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Medical Debt New Rules',
-        story: 'In 2023, Denise had a $350 medical bill go to collections after an insurance dispute. The bill has since been paid by her insurance company. She also has a separate $800 unpaid medical collection from a different provider.',
-        question: 'Under the newest credit reporting rules for medical debt, how should these accounts appear on Denise\'s report?',
+        type: 'multiple-choice',
+        title: 'Late Payment Impact by Score Tier',
+        question: 'Who experiences the largest point drop from a single 30-day late payment?',
         options: [
-          { text: 'Both should appear — medical debt is treated the same as any other debt', correct: false, explanation: 'Medical debt has received special treatment under newer rules. Paid medical collections and those under certain thresholds are handled differently.' },
-          { text: 'The $350 paid medical collection should be removed (paid medical collections are excluded), but the $800 unpaid collection may still appear', correct: true, explanation: 'Correct! As of 2023, all three bureaus remove paid medical collections from credit reports. Additionally, medical collections under $500 are excluded from many reports. Denise\'s $350 account qualifies for removal on both counts (paid AND under $500). The $800 unpaid collection may still appear since it exceeds the $500 threshold and remains unpaid.' },
-          { text: 'Neither should appear — all medical debt was banned from credit reports', correct: false, explanation: 'Not all medical debt has been banned. Unpaid medical collections above $500 can still appear on credit reports. The rules protect paid medical debt and smaller amounts.' },
-          { text: 'Both should appear but with reduced scoring impact', correct: false, explanation: 'Paid medical collections are fully removed from reports, not just scored differently. The $350 paid collection should not appear at all.' }
+          { text: 'Someone with a 580 score and several existing late marks', correct: false, explanation: 'People with lower scores and existing negatives have less to lose — the impact is already partially priced in. Higher scores have further to fall.' },
+          { text: 'Someone with an 800 score and a perfect payment history', correct: true, explanation: 'Correct! FICO penalizes people with higher scores MORE for a first late payment. An 800-score consumer with perfect history can see a 90-110+ point drop from a single 30-day late. The same late on a 620 score might cause only 30-50 points of damage. The cleaner your record, the more damaging a first negative mark.' },
+          { text: 'Both experience the same drop', correct: false, explanation: 'FICO scoring is not linear. The drop from a first late payment is significantly larger for consumers with higher scores because they have more to lose.' },
+          { text: 'Neither — a single 30-day late has minimal impact', correct: false, explanation: 'A 30-day late payment can cause a 30-110+ point drop depending on your score tier. It is never minimal.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Late Payment Tiers',
-        story: 'Kevin has an 800 credit score with a perfect payment history across 5 accounts over 10 years. Due to a family emergency, he misses his mortgage payment. It is now 35 days past due.',
-        question: 'How will this 30-day late payment likely affect Kevin\'s score?',
+        type: 'multiple-choice',
+        title: 'Foreclosure Reporting Timeline',
+        question: 'How long does a foreclosure stay on your credit report?',
         options: [
-          { text: 'It will drop about 10-20 points — one late payment is minor', correct: false, explanation: 'For someone with an 800 score and perfect history, the impact is much more severe. Higher scores have further to fall.' },
-          { text: 'It will drop 90-110 points or more because a 30-day late on a perfect 800-score profile causes the most dramatic percentage drop', correct: true, explanation: 'Correct! The FICO scoring model penalizes people with higher scores MORE for a first late payment. Kevin could see a drop of 90-110+ points because he\'s falling from a "perfect" standard. A mortgage late payment is especially damaging because mortgages are high-value accounts. The same 30-day late on a 620 score might only cause a 30-50 point drop.' },
-          { text: 'It won\'t affect his score because mortgage lenders don\'t report to credit bureaus', correct: false, explanation: 'Mortgage lenders absolutely report to credit bureaus. Mortgage accounts are among the most closely tracked tradelines on any credit report.' },
-          { text: 'It will only matter if the payment becomes 60 days late', correct: false, explanation: 'A 30-day late payment is the first tier of delinquency and is reported and scored. Each additional tier (60, 90, 120) adds further damage, but 30 days is already very impactful.' }
+          { text: '3 years', correct: false, explanation: 'Three years is the FHA waiting period (under some circumstances) before you can get a new mortgage — not how long the foreclosure stays on your report.' },
+          { text: '7 years from the date of the foreclosure sale', correct: true, explanation: 'Correct! Foreclosures stay on your credit report for 7 years from the date of the foreclosure sale. This is the same timeline as most other major negative items. FHA loans require a 3-year wait, conventional loans typically require 7 years before you can get a new mortgage.' },
+          { text: '10 years, the same as Chapter 7 bankruptcy', correct: false, explanation: 'Foreclosures stay 7 years — it is only Chapter 7 bankruptcy that stays 10 years. This distinction is important when comparing your options if facing both.' },
+          { text: 'Until the deficiency balance is paid off', correct: false, explanation: 'Paying a deficiency balance does not remove the foreclosure. The 7-year clock runs from the foreclosure date regardless of payment status.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Foreclosure Impact',
-        story: 'After losing his job, William lost his home to foreclosure in 2023. His score dropped from 720 to 560. He\'s now re-employed and wants to know when he can buy a home again and how long the foreclosure will haunt his credit.',
-        question: 'How long will the foreclosure stay on William\'s credit report, and when can he qualify for a new mortgage?',
+        type: 'true-false',
+        title: 'Short Sale vs. Foreclosure Impact',
+        question: 'A short sale and a foreclosure have identical credit score impact and result in the same mortgage waiting periods.',
         options: [
-          { text: 'The foreclosure stays forever and he can never get a mortgage again', correct: false, explanation: 'No negative item stays forever. Foreclosures have a defined reporting period, and mortgage programs have specific waiting periods after foreclosure.' },
-          { text: 'The foreclosure stays for 7 years from the date of the foreclosure sale, and he may qualify for an FHA loan after 3 years with extenuating circumstances or a conventional loan after 7 years', correct: true, explanation: 'Correct! Foreclosures remain on credit reports for 7 years. For new mortgages: FHA loans require a 3-year waiting period (1 year with documented extenuating circumstances), VA loans require 2 years, and conventional loans typically require 7 years (3 years with extenuating circumstances). William should focus on rebuilding credit during this waiting period.' },
-          { text: 'It stays for 10 years, just like a bankruptcy', correct: false, explanation: 'Foreclosures stay for 7 years, not 10. Only Chapter 7 bankruptcy has a 10-year reporting period.' },
-          { text: 'It will be removed as soon as he pays off any deficiency balance', correct: false, explanation: 'Paying a deficiency balance does not remove the foreclosure record from your credit report. The 7-year timeline runs regardless of payment status.' }
+          { text: 'True', correct: false, explanation: 'False! A short sale is typically less damaging — roughly 100-130 point drop vs. 130-160 for foreclosure. Mortgage waiting periods are also shorter: 2 years for FHA after a short sale vs. 3 years after foreclosure. Short sales show lenders the borrower took proactive steps.' },
+          { text: 'False', correct: true, explanation: 'Correct! A short sale causes less damage than a foreclosure. The score drop is smaller (100-130 vs. 130-160 points) and mortgage waiting periods are shorter. Both are negative, but a short sale demonstrates cooperation with the lender rather than simply walking away.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Short Sale vs. Foreclosure',
-        story: 'Jasmine owes $280,000 on her mortgage but her home is only worth $220,000. She\'s struggling to make payments. Her real estate agent suggests a short sale, where the bank agrees to accept less than the full amount owed. Jasmine wonders if a short sale is better for her credit than foreclosure.',
-        question: 'How does a short sale compare to a foreclosure in terms of credit impact?',
+        type: 'multiple-choice',
+        title: 'Statute of Limitations vs. Credit Reporting Period',
+        question: 'What happens to your credit report when the statute of limitations on a debt expires?',
         options: [
-          { text: 'They\'re exactly the same on your credit report', correct: false, explanation: 'While both are negative, they are reported differently and have different impacts on future mortgage eligibility waiting periods.' },
-          { text: 'A short sale is typically less damaging than a foreclosure — it may drop the score 100-130 points vs. 130-160 for foreclosure, and waiting periods for new mortgages are usually shorter', correct: true, explanation: 'Correct! A short sale typically causes a smaller score drop (100-130 points) compared to foreclosure (130-160 points). More importantly, the waiting period for a new mortgage is shorter: 2 years for FHA after a short sale vs. 3 years after foreclosure (conventional loans: 4 years vs. 7 years). Short sales also look better to future lenders because they show the borrower took proactive steps rather than walking away.' },
-          { text: 'A short sale doesn\'t appear on your credit report at all', correct: false, explanation: 'Short sales do appear on credit reports. The account is typically reported as "settled for less than full balance" or similar language. It is still a negative mark.' },
-          { text: 'A foreclosure is actually better because it completely eliminates the debt', correct: false, explanation: 'Foreclosure doesn\'t always eliminate the debt. In many states, the lender can pursue a deficiency judgment for the remaining balance. And foreclosure is more damaging to credit than a short sale.' }
+          { text: 'The debt is automatically removed from your credit report', correct: false, explanation: 'The statute of limitations and credit reporting period are completely separate. SOL expiration only means a collector cannot sue you — it does not affect the 7-year credit reporting clock.' },
+          { text: 'Nothing — the statute of limitations and credit reporting period are separate legal timelines', correct: true, explanation: 'Correct! The statute of limitations (3-10 years, varies by state) governs whether a collector can sue you. The credit reporting period (7 years from DOFD under FCRA) governs how long the item stays on your report. They run independently. A debt can be time-barred from lawsuits while still appearing on your credit report.' },
+          { text: 'The debt gets paid off automatically', correct: false, explanation: 'Statute of limitations expiration does not pay off, forgive, or eliminate the debt. It only means a collector has lost the legal right to sue for it.' },
+          { text: 'The credit reporting period resets to another 7 years', correct: false, explanation: 'The 7-year credit reporting period cannot be reset by any action — not by statute of limitations, not by a new collector purchasing the debt, not by a partial payment.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Statute of Limitations Confusion',
-        story: 'Rosa has a $3,500 credit card debt from 2018 in Texas, where the statute of limitations for credit card debt is 4 years. It\'s now 2024 — over 6 years since her last payment. A collector calls and offers to settle for $1,200. Rosa is tempted to pay.',
-        question: 'What should Rosa understand about this situation before making any payment?',
+        type: 'true-false',
+        title: 'Federal Student Loan Statute of Limitations',
+        question: 'Federal student loans have no statute of limitations, meaning the government can attempt to collect on them indefinitely.',
         options: [
-          { text: 'She should pay the $1,200 immediately — it\'s a great deal', correct: false, explanation: 'The debt is past the statute of limitations in Texas (4 years). Making a payment could restart the statute of limitations, giving the collector another 4 years to potentially sue her.' },
-          { text: 'The debt is past the Texas statute of limitations, so the collector cannot sue her for it — but making any payment could restart the lawsuit clock in some states. She should consult an attorney before paying anything.', correct: true, explanation: 'Correct! The 4-year Texas SOL has expired, meaning the collector cannot file a lawsuit to collect. However, making even a small payment — or verbally acknowledging the debt — could restart the SOL in some states. The 7-year credit reporting period also runs from the original 2018 DOFD, meaning this item should fall off her report by approximately 2025. Rosa should consult a consumer rights attorney before taking any action.' },
-          { text: 'The statute of limitations and credit reporting period are the same thing', correct: false, explanation: 'These are two completely different legal concepts. The SOL (varies by state, 3-10 years) governs lawsuits. The credit reporting period (7 years from DOFD under FCRA) governs how long it appears on your report. They run independently.' },
-          { text: 'Once the statute of limitations expires, the debt is automatically removed from her credit report', correct: false, explanation: 'The SOL expiration does not affect credit reporting. The debt can remain on her report for 7 years from the DOFD regardless of whether the SOL has passed.' }
+          { text: 'True', correct: true, explanation: 'Correct! Unlike private debts, federal student loans have no statute of limitations. The government can garnish wages without a court order, seize tax refunds, and withhold Social Security benefits — with no time limit. Federal loans are also extremely difficult to discharge in bankruptcy.' },
+          { text: 'False', correct: false, explanation: 'Actually, this is true. Federal student loans are uniquely powerful — they have no statute of limitations. Private student loans do have statutes of limitations (typically 3-6 years), but federal loans can be collected indefinitely through wage garnishment, tax offset, and other federal powers.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Student Loan Default',
-        story: 'Derek stopped paying his $45,000 federal student loan 10 months ago. He just received a notice that his loan is now in "default" status. His wages may be garnished and his tax refund intercepted.',
-        question: 'What makes federal student loan default uniquely dangerous compared to other types of debt?',
+        type: 'multiple-choice',
+        title: '"Paid in Full" vs. "Settled for Less"',
+        question: 'You have a charged-off credit card and can either settle for 60% of the balance or pay it in full. Which is better for your credit score?',
         options: [
-          { text: 'It\'s no different from any other defaulted debt', correct: false, explanation: 'Federal student loans have special powers that other debts do not, including wage garnishment without a court order and no statute of limitations.' },
-          { text: 'Federal student loans have no statute of limitations, can garnish wages without a court order, can seize tax refunds, and cannot be discharged in most bankruptcy cases', correct: true, explanation: 'Correct! Federal student loans are uniquely powerful debts. Unlike credit cards or medical bills, federal student loans have no statute of limitations — they can be collected forever. The government can garnish up to 15% of disposable income without suing, offset tax refunds, and withhold Social Security benefits. They\'re also extremely difficult to discharge in bankruptcy (requires proving "undue hardship"). Derek should explore rehabilitation (9 on-time payments over 10 months) or income-driven repayment plans to get out of default.' },
-          { text: 'Student loans are automatically forgiven after 7 years like other debts', correct: false, explanation: 'The 7-year rule applies to credit reporting, not debt forgiveness. Federal student loans have no statute of limitations and do not expire or get forgiven automatically (certain forgiveness programs exist but require qualification).' },
-          { text: 'Default only affects his credit score and nothing else', correct: false, explanation: 'Student loan default has consequences far beyond credit scores — including wage garnishment, tax refund seizure, professional license revocation in some states, and loss of eligibility for future financial aid.' }
-        ]
-      },
-      {
-        type: 'scenario',
-        title: 'Scenario: Settled vs. Paid in Full',
-        story: 'Angela owes $4,000 on a charged-off credit card. The creditor offers two options: settle for $2,400 (60%) and report it as "settled for less than full amount," or pay the full $4,000 and have it reported as "paid in full — was charge-off."',
-        question: 'Which option is better for Angela\'s credit, and why?',
-        options: [
-          { text: 'Both are exactly the same on her credit report', correct: false, explanation: 'They are reported differently. "Paid in full" is viewed more favorably by lenders than "settled for less" when manually reviewing credit applications.' },
-          { text: '"Paid in full" looks better to future lenders reviewing her report, but both still show as negative items. If she can afford it, paying in full is better — but saving $1,600 with a settlement may be the smarter financial decision depending on her situation.', correct: true, explanation: 'Correct! Both options still leave a negative charge-off on the report. However, "paid in full" looks better during manual review (mortgage applications, for example). That said, the scoring impact difference is minimal — both are still derogatory marks. If Angela needs the $1,600 savings for other financial goals (emergency fund, secured card deposit), settling might be the smarter overall financial move. Ideally, she should negotiate a pay-for-delete before accepting either option.' },
-          { text: 'Settling is always better because you save money and the credit impact is identical', correct: false, explanation: 'While the scoring impact is similar, "settled for less" can negatively affect manual underwriting decisions. Some lenders view settlements as evidence that the borrower didn\'t fulfill their full obligation.' },
-          { text: 'She should pay neither — charge-offs are removed after payment', correct: false, explanation: 'Charge-offs are NOT removed simply because you pay them. They remain on your report for 7 years from the DOFD. Payment changes the status but doesn\'t delete the record.' }
+          { text: 'Settling — the scoring impact is identical to paying in full, so save the money', correct: false, explanation: 'While the scoring impact difference is minimal, "settled for less" looks worse during manual underwriting. For mortgage applications, "paid in full" is meaningfully better.' },
+          { text: '"Paid in full" looks better for manual underwriting, but the scoring impact is similar — the best outcome is negotiating a pay-for-delete before paying anything', correct: true, explanation: 'Correct! Both options leave the charge-off on your report. "Paid in full" looks better when a human reviews your file (mortgage applications). However, the automated scoring impact is similar. The ideal strategy is negotiating a pay-for-delete, where the creditor removes the account entirely in exchange for payment — eliminating the negative mark altogether.' },
+          { text: 'Paying in full will remove the charge-off from your report', correct: false, explanation: 'Payment alone does not remove a charge-off. The negative mark stays for 7 years from the DOFD. Only a pay-for-delete agreement would remove it.' },
+          { text: 'Neither option helps — you should wait for the 7 years to expire', correct: false, explanation: 'While waiting is sometimes valid for very old debts, paying or settling (especially with a pay-for-delete) can positively impact your ability to get approved for new credit in the meantime.' }
         ]
       },
       {
@@ -469,123 +429,96 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Round Timing Strategy',
-        story: 'Kevin sent his first round of disputes to Equifax on January 15th, challenging 2 items. He received results on February 12th — one item was removed, one was verified. Kevin immediately wants to send another round on February 13th challenging 3 new items plus re-disputing the verified item.',
-        question: 'What is the best approach for Kevin\'s second round?',
+        type: 'true-false',
+        title: 'Dispute Round Timing',
+        question: 'You can re-send the exact same dispute letter for an item that was previously "verified" to get it reconsidered.',
         options: [
-          { text: 'Send immediately — there\'s no reason to wait between rounds', correct: false, explanation: 'Sending disputes too rapidly can trigger frivolous dispute flags. Spacing rounds strategically shows the bureau you\'re conducting legitimate investigations.' },
-          { text: 'Wait 30-45 days between rounds, dispute the 3 new items with fresh evidence, and use a different strategy (like MOV request or 623 direct dispute) for the verified item', correct: true, explanation: 'Correct! Waiting 30-45 days between rounds prevents frivolous flags and gives you time to gather new evidence. For the verified item, sending the same dispute again is risky — it could be flagged as frivolous under FCRA §611(a)(3). Instead, escalate with a Method of Verification request, a 623 direct dispute to the furnisher, or a CFPB complaint. New items should have fresh, specific dispute reasons.' },
-          { text: 'Wait exactly 6 months between each dispute round', correct: false, explanation: 'Six months is unnecessarily long. A 30-45 day gap between rounds is sufficient and keeps your credit repair momentum going.' },
-          { text: 'Re-send the exact same letter for the verified item — repetition works', correct: false, explanation: 'Sending identical disputes can be flagged as "frivolous" under the FCRA, allowing the bureau to refuse to investigate. You must change your strategy, provide new evidence, or escalate.' }
+          { text: 'True', correct: false, explanation: 'False! Re-sending an identical dispute can be flagged as "frivolous" under FCRA §611(a)(3), allowing the bureau to refuse to investigate. For a verified item, you must change your strategy — send a Method of Verification request, file a CFPB complaint, or dispute directly with the furnisher under Section 623.' },
+          { text: 'False', correct: true, explanation: 'Correct! Repeating the same dispute verbatim risks being flagged as frivolous. For verified items, escalate with a Method of Verification request, a CFPB complaint, or a direct Section 623 dispute to the furnisher. Also wait 30-45 days between rounds to avoid triggering frivolous flags.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Documentation Requirements',
-        story: 'Patricia is disputing a $2,800 collection that she already paid off 3 months ago. She has three pieces of evidence: her bank statement showing the payment, an email from the collector confirming receipt, and a letter from the collector stating the account is paid in full.',
-        question: 'How should Patricia submit this evidence with her dispute?',
+        type: 'multiple-choice',
+        title: 'Dispute Documentation Best Practice',
+        question: 'When mailing evidence with a dispute letter, what should you always send?',
         options: [
-          { text: 'Send the original documents — originals carry more weight', correct: false, explanation: 'Never send original documents. If they are lost in transit or during investigation, you\'ll have no proof. Always send copies and keep originals in a safe place.' },
-          { text: 'Send COPIES of all three documents via certified mail, keeping the originals in a secure file along with the certified mail receipt', correct: true, explanation: 'Correct! Always send copies, never originals. Include all three pieces of evidence — the bank statement, email printout, and payoff letter create a powerful evidence package. Send via USPS Certified Mail with Return Receipt Requested to create a legal paper trail. Keep originals plus a copy of your dispute letter and the certified mail receipt in a dedicated credit dispute file.' },
-          { text: 'Just describe the evidence in the letter — the bureau will request the documents if needed', correct: false, explanation: 'The bureau won\'t request documents from you. They\'ll simply send a code to the furnisher via e-OSCAR. Including evidence upfront gives your dispute the strongest possible foundation and creates legal obligations for the bureau to forward "all relevant information."' },
-          { text: 'Upload the evidence to the bureau\'s online portal instead of mailing it', correct: false, explanation: 'Online portals often have file size limits and may not properly attach evidence to your dispute. Certified mail ensures your evidence is documented and creates a legal record of exactly what was submitted.' }
+          { text: 'Original documents — they carry more legal weight', correct: false, explanation: 'Never send originals. If they are lost in transit or during investigation, you lose your proof. Always send copies.' },
+          { text: 'Copies via certified mail with return receipt, keeping originals in a secure file', correct: true, explanation: 'Correct! Always send copies and keep originals safe. Certified Mail with Return Receipt Requested creates a documented legal record — you\'ll have proof of exactly what was submitted and when the bureau received it. This record is invaluable if you need to escalate or pursue FCRA damages.' },
+          { text: 'Just describe the documents in the letter — bureaus will request them if needed', correct: false, explanation: 'Bureaus do not request documents from consumers. They translate your dispute into an e-OSCAR code and send it to the furnisher. Including evidence upfront is the only way to give your dispute the strongest foundation.' },
+          { text: 'Upload everything to the bureau\'s online portal for faster processing', correct: false, explanation: 'Online portals often have file size limits and may not properly link evidence to your dispute. Certified mail ensures a documented legal record that cannot be questioned.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Escalation Path After Verification',
-        story: 'Monique disputed a late payment on her Chase credit card with TransUnion. She has bank statements proving the payment was on time. TransUnion responded that the account was "verified as accurate." Monique is frustrated because she knows the data is wrong.',
-        question: 'What is Monique\'s best escalation strategy?',
+        type: 'multiple-choice',
+        title: 'When the Bureau Verifies a Wrong Item',
+        question: 'After disputing an inaccurate late payment with solid proof, the bureau responds "verified as accurate." What is the best escalation approach?',
         options: [
-          { text: 'Give up — TransUnion has the final say', correct: false, explanation: 'The bureau does NOT have the final say. Federal law provides multiple escalation paths when a dispute is incorrectly verified.' },
-          { text: 'File a lawsuit against TransUnion immediately', correct: false, explanation: 'While lawsuits are an option, there are several intermediate steps that are faster, cheaper, and often effective before resorting to litigation.' },
-          { text: 'Send a Method of Verification letter to TransUnion, file a CFPB complaint, and send a Section 623 direct dispute to Chase\'s compliance department — all simultaneously', correct: true, explanation: 'Correct! A multi-pronged escalation: 1) MOV letter forces TransUnion to reveal HOW they verified — often exposing a superficial e-OSCAR rubber stamp. 2) CFPB complaint puts regulatory pressure on TransUnion (97% response rate, often different results). 3) Section 623 direct dispute to Chase requires an independent investigation separate from the e-OSCAR process. This three-pronged attack addresses the issue from every angle and creates a strong legal record if litigation becomes necessary.' },
-          { text: 'Dispute the same item with Experian and Equifax instead', correct: false, explanation: 'Disputing with other bureaus addresses those specific reports but doesn\'t fix the TransUnion error. She needs to escalate with TransUnion specifically while also disputing with other bureaus if the error appears there.' }
+          { text: 'Accept the result — the bureau has the final say under the FCRA', correct: false, explanation: 'The bureau does NOT have the final say. Federal law provides multiple escalation paths — Method of Verification request, CFPB complaint, and direct furnisher dispute — and ultimately federal litigation.' },
+          { text: 'Send a Method of Verification letter, file a CFPB complaint against both the bureau and the furnisher, and send a Section 623 direct dispute to the creditor', correct: true, explanation: 'Correct! A three-pronged escalation is most effective: 1) MOV letter forces the bureau to reveal how they verified — often exposing a rubber-stamped e-OSCAR code. 2) CFPB complaint creates regulatory pressure with a 97% response rate. 3) Section 623 direct dispute requires the creditor to independently investigate and respond. Together these create a strong legal record.' },
+          { text: 'File a lawsuit immediately — that is the only next step', correct: false, explanation: 'Lawsuits are a last resort. Several intermediate steps are faster, free, and often resolve the issue before litigation is necessary.' },
+          { text: 'Dispute the same item with a different bureau and let them sort it out', correct: false, explanation: 'Each bureau is independent. Fixing the error with one doesn\'t fix it at another. More importantly, you must escalate with the bureau that verified the error, not redirect to others.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Frivolous Dispute Warning',
-        story: 'Tony has been disputing items on his credit report aggressively. He sent 5 disputes in his first letter, then 4 more two weeks later, then 6 more a week after that — all to Equifax. He just received a letter from Equifax stating they consider his disputes "frivolous and irrelevant" and will not investigate.',
-        question: 'Can Equifax legally refuse to investigate Tony\'s disputes?',
+        type: 'multiple-choice',
+        title: 'FCRA Frivolous Dispute Rules',
+        question: 'Under the FCRA, when can a credit bureau legally refuse to investigate a dispute?',
         options: [
-          { text: 'No — the bureau must investigate every dispute, no exceptions', correct: false, explanation: 'Under FCRA §611(a)(3), bureaus CAN decline to investigate if they reasonably determine a dispute is frivolous or irrelevant, such as when disputes don\'t include sufficient information or appear to be submitted by a credit repair organization in bulk.' },
-          { text: 'Yes — under FCRA §611(a)(3), bureaus can refuse to investigate disputes they determine are frivolous, especially when multiple rapid-fire disputes lack specific evidence. Tony should slow down, dispute 1-3 items per round with strong evidence, and wait 30-45 days between rounds.', correct: true, explanation: 'Correct! The FCRA allows bureaus to flag disputes as frivolous when they lack sufficient identification, don\'t identify specific items, or appear to be mass-submitted without substance. Tony\'s rapid-fire approach triggered this. He should: 1) Slow to 1-3 items per round, 2) Include specific evidence for each item, 3) Wait 30-45 days between rounds, 4) Write personalized letters (not templates), and 5) Clearly identify each account and the specific error.' },
-          { text: 'Only if Tony is using a credit repair company', correct: false, explanation: 'Bureaus can flag any disputes as frivolous regardless of who submits them. However, template letters from credit repair companies are more commonly flagged because they use identical language.' },
-          { text: 'Tony should respond by sending even more disputes to show he\'s serious', correct: false, explanation: 'More volume will reinforce the frivolous determination. Tony needs to change his approach entirely — fewer disputes, more evidence, better spacing.' }
+          { text: 'Never — the bureau must investigate every dispute without exception', correct: false, explanation: 'The FCRA does allow bureaus to decline disputes they reasonably determine are frivolous or irrelevant, such as those lacking sufficient identifying information or appearing to be mass-submitted without substance.' },
+          { text: 'When the bureau reasonably determines the dispute is frivolous — such as repeated identical disputes, rapid-fire submissions lacking evidence, or disputes without sufficient identifying information', correct: true, explanation: 'Correct! Under FCRA §611(a)(3), bureaus can flag disputes as frivolous when they lack substance, are repeated identically, or appear to be part of a bulk submission. Best practices: dispute 1-3 items per round, include specific evidence, wait 30-45 days between rounds, and write personalized letters explaining the specific error.' },
+          { text: 'Only when a credit repair company submits the dispute', correct: false, explanation: 'Bureaus can flag frivolous disputes from any source. However, template letters from credit repair companies are more commonly flagged because they use identical boilerplate language.' },
+          { text: 'When the disputed item is more than 5 years old', correct: false, explanation: 'Age of the item is not a criterion for a frivolous determination. Bureaus must investigate legitimate disputes regardless of how old the item is, as long as it is still within the reporting period.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The CFPB Complaint Advantage',
-        story: 'Linda disputed a $3,400 collection with Experian three times over 6 months. Each time, the account was "verified." She\'s certain the debt isn\'t hers — it belongs to her ex-husband from before their divorce. A friend suggests filing a CFPB complaint.',
-        question: 'How does a CFPB complaint differ from a standard bureau dispute?',
+        type: 'multiple-choice',
+        title: 'CFPB Complaint vs. Bureau Dispute',
+        question: 'How does filing a CFPB complaint differ from filing a standard bureau dispute?',
         options: [
-          { text: 'It\'s the same thing — the CFPB just forwards it to the bureau', correct: false, explanation: 'While the CFPB does forward complaints, the regulatory oversight changes how companies respond. CFPB complaints carry significantly more weight than standard disputes.' },
-          { text: 'CFPB complaints are tracked by federal regulators, companies must respond within 15 days, and their responses become part of a public database — this regulatory pressure often produces different results than standard disputes', correct: true, explanation: 'Correct! CFPB complaints create regulatory accountability. Companies must respond within 15 days (vs. 30 for standard disputes). The CFPB tracks complaint patterns and can take enforcement action against companies with high complaint volumes. Companies know this and often assign complaints to senior staff who investigate more thoroughly. The 97% response rate and public database create real consequences. Linda should file complaints against both Experian and the collection agency.' },
-          { text: 'The CFPB can force the bureau to remove the item', correct: false, explanation: 'The CFPB doesn\'t directly order removals. They oversee the process and ensure companies follow the law. However, the regulatory pressure often leads companies to investigate more thoroughly, which frequently results in corrections.' },
-          { text: 'CFPB complaints cost $50 to file', correct: false, explanation: 'CFPB complaints are completely free. You can file online at consumerfinance.gov/complaint in about 15-20 minutes.' }
+          { text: 'They are the same — the CFPB just forwards it to the bureau', correct: false, explanation: 'While the CFPB does forward complaints, regulatory oversight changes how companies respond. CFPB complaints carry significantly more weight and create formal accountability.' },
+          { text: 'CFPB complaints require companies to respond within 15 days, are tracked by federal regulators, and become part of a public database — creating pressure that often yields different results than a standard dispute', correct: true, explanation: 'Correct! CFPB complaints create real regulatory accountability. Companies must respond within 15 days (vs. 30 for standard disputes). The CFPB tracks complaint patterns and can take enforcement action against repeat offenders. This often results in senior staff conducting more thorough investigations. CFPB complaints are completely free at consumerfinance.gov/complaint.' },
+          { text: 'The CFPB directly orders bureaus to remove items from your report', correct: false, explanation: 'The CFPB does not directly order removals. They oversee compliance and regulatory pressure, which causes companies to investigate more thoroughly — leading to corrections, not mandated removals.' },
+          { text: 'CFPB complaints cost $50 and must be filed by an attorney', correct: false, explanation: 'CFPB complaints are completely free and can be filed by any consumer at consumerfinance.gov/complaint in about 15 minutes.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Understanding e-OSCAR Codes',
-        story: 'Rachel sends a detailed 2-page dispute letter with bank statements, a payment confirmation, and a creditor letter — all proving that her Capital One account was never 60 days late as reported. The bureau translates her dispute into a 2-digit e-OSCAR code and sends it to Capital One.',
-        question: 'What is the main problem with the e-OSCAR system from the consumer\'s perspective?',
+        type: 'true-false',
+        title: 'The e-OSCAR System',
+        question: 'When you mail a detailed dispute letter with supporting documents, the bureau forwards all of your evidence directly to the creditor for review.',
         options: [
-          { text: 'e-OSCAR is very accurate and consumers have nothing to worry about', correct: false, explanation: 'e-OSCAR has been widely criticized for oversimplifying consumer disputes and failing to transmit supporting evidence effectively.' },
-          { text: 'Rachel\'s detailed evidence and explanation get compressed into a simple code, and the furnisher often "verifies" without ever seeing her actual documents — creating a basis for an FCRA violation claim', correct: true, explanation: 'Correct! The e-OSCAR system reduces complex disputes to 2-digit codes (like "claims not his/hers" or "disputes amounts"). Rachel\'s bank statements, payment confirmations, and creditor letter may never reach Capital One\'s reviewer. The FCRA requires bureaus to forward "all relevant information" — if they only send a code and ignore the evidence, that\'s a potential violation of FCRA §611(a)(2). This is why sending a 623 direct dispute to Capital One with the evidence is crucial as a follow-up.' },
-          { text: 'The e-OSCAR system only works for online disputes', correct: false, explanation: 'e-OSCAR is used for ALL disputes — mail, online, and phone. It\'s the electronic system bureaus use to communicate with furnishers regardless of how the consumer submitted the dispute.' },
-          { text: 'Consumers can access e-OSCAR directly to submit their evidence', correct: false, explanation: 'Consumers have no direct access to e-OSCAR. It\'s a bureau-to-furnisher system. This is why Method of Verification requests and 623 direct disputes are important — they bypass e-OSCAR\'s limitations.' }
+          { text: 'True', correct: false, explanation: 'False! Bureaus translate your dispute into a 2-digit e-OSCAR code and send that code to the creditor. Your bank statements, letters, and detailed explanation may never be seen by the reviewer. This is why Section 623 direct disputes to the furnisher — where you send your evidence directly — are so important.' },
+          { text: 'False', correct: true, explanation: 'Correct! The e-OSCAR system reduces your dispute to a simple 2-digit code. Your supporting evidence often never reaches the creditor\'s reviewer. The FCRA requires bureaus to forward "all relevant information" — if they only send a code, that may be a violation of FCRA §611(a)(2), which is why Section 623 direct disputes and CFPB complaints are important escalation tools.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Method of Verification Request',
-        story: 'After Experian verified a collection as accurate, Greg sends a "Method of Verification" (MOV) letter demanding that Experian explain exactly how they verified the account. Experian responds with a generic letter saying "the information was verified by the data furnisher."',
-        question: 'Is Experian\'s response adequate under the FCRA?',
+        type: 'multiple-choice',
+        title: 'FCRA Investigation Deadline',
+        question: 'From what date does the 30-day dispute investigation clock start — the date you mailed the dispute, or the date the bureau received it?',
         options: [
-          { text: 'Yes — they told him it was verified and that\'s sufficient', correct: false, explanation: 'A generic "it was verified" response does not satisfy the FCRA\'s requirements. The bureau must provide specific information about their investigation procedure.' },
-          { text: 'No — under FCRA §611(a)(6) and (7), the bureau must provide the specific method of verification, including the business name and address of the furnisher contacted, and the phone number if reasonably available. Greg can use this inadequate response as evidence of an FCRA violation.', correct: true, explanation: 'Correct! The FCRA requires bureaus to provide specific details about how they verified the information, including the method used and the furnisher\'s contact information. A vague "verified by data furnisher" response fails this standard. Greg should: 1) Send a follow-up letter citing §611(a)(6)-(7) specifically, 2) File a CFPB complaint about the inadequate response, 3) Save the inadequate MOV response as evidence for potential litigation.' },
-          { text: 'The bureau has no obligation to explain their verification process', correct: false, explanation: 'FCRA §611(a)(7) specifically requires bureaus to provide the method of verification upon consumer request. This right is clearly stated in federal law.' },
-          { text: 'Greg should accept the response and move on', correct: false, explanation: 'An inadequate MOV response is actually valuable — it strengthens Greg\'s position for CFPB complaints and potential litigation. He should escalate, not accept.' }
+          { text: 'The date you mailed the dispute letter', correct: false, explanation: 'The 30-day clock starts from the date the bureau RECEIVES your dispute, not the date you mailed it. This is why certified mail with return receipt is so important — it proves the exact receipt date.' },
+          { text: 'The date the bureau received the dispute', correct: true, explanation: 'Correct! The FCRA §611(a)(1) gives bureaus 30 days from receipt to complete their investigation. A 45-day extension applies only if the consumer submits additional information during the investigation. Exceeding the 30-day deadline without a qualifying extension is an FCRA violation entitling the consumer to up to $1,000 in statutory damages per violation.' },
+          { text: 'The 30-day clock does not start until the bureau sends you an acknowledgment letter', correct: false, explanation: 'There is no acknowledgment requirement that delays the clock. The 30-day investigation period begins the moment the bureau receives the dispute, regardless of whether they acknowledge it.' },
+          { text: 'Bureaus have 60 days to investigate', correct: false, explanation: 'The standard period is 30 days. A 45-day extension is possible only when the consumer provides additional information mid-investigation. There is no 60-day standard period.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Investigation Timeline Pressure',
-        story: 'Maya submitted a dispute to TransUnion via certified mail on March 1st. The return receipt shows TransUnion received it on March 5th. It is now April 10th — 36 days since receipt — and Maya has not received any response.',
-        question: 'Has TransUnion violated the FCRA investigation timeline?',
+        type: 'true-false',
+        title: 'Disputing Across All Three Bureaus',
+        question: 'If you successfully get an error removed from TransUnion, the correction will automatically appear on your Experian and Equifax reports too.',
         options: [
-          { text: 'No — bureaus have 60 days to investigate', correct: false, explanation: 'The standard investigation period is 30 days, not 60. There is a 45-day extension only if the consumer provides additional information during the investigation.' },
-          { text: 'Yes — TransUnion had 30 days from receipt (April 4th deadline) to complete the investigation. By failing to respond by April 4th, they have violated FCRA §611(a)(1), which entitles Maya to statutory damages of up to $1,000 per violation.', correct: true, explanation: 'Correct! The FCRA gives bureaus 30 days from receipt of a dispute to complete their investigation. TransUnion received Maya\'s dispute on March 5th, making the deadline April 4th. The 45-day extension only applies if the consumer submits additional relevant information during the investigation (Maya did not). This violation entitles Maya to up to $1,000 in statutory damages per violation, plus actual damages and attorney fees. She should consult a consumer rights attorney.' },
-          { text: 'The 30-day clock starts from when Maya mailed the letter, not when TransUnion received it', correct: false, explanation: 'The 30-day clock starts from when the bureau RECEIVES the dispute, not when it was mailed. This is why certified mail with return receipt is so important — it proves the exact receipt date.' },
-          { text: 'Maya should wait 90 days before taking any action', correct: false, explanation: 'The bureau has already violated the 30-day timeline. Maya should act now — send a follow-up letter noting the violation, file a CFPB complaint, and consult an attorney about FCRA damages.' }
+          { text: 'True', correct: false, explanation: 'False! The three credit bureaus are completely independent companies with separate databases. A correction at TransUnion has zero effect on Experian or Equifax. You must send separate dispute letters to each bureau where the error appears.' },
+          { text: 'False', correct: true, explanation: 'Correct! Each bureau must be disputed separately. Send individual certified letters to each bureau reporting the error, each with copies of your evidence. Each bureau has its own 30-day timeline. Keep a dispute log tracking each bureau\'s receipt date, deadline, and outcome independently.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Multiple Bureau Strategy',
-        story: 'Darnell finds the same incorrect late payment on all three bureau reports — TransUnion, Experian, and Equifax. He has bank statements proving the payment was on time.',
-        question: 'Should Darnell dispute with all three bureaus simultaneously or one at a time?',
+        type: 'multiple-choice',
+        title: 'Section 623 Furnisher Obligations',
+        question: 'Under FCRA Section 623, what must a creditor do when they receive a direct dispute letter from you after your bureau dispute was verified?',
         options: [
-          { text: 'Only dispute with one bureau — if they remove it, the others will automatically update', correct: false, explanation: 'Each bureau maintains independent records. Removing an item from one bureau does NOT affect the other two. Each must be disputed separately.' },
-          { text: 'Dispute with all three bureaus simultaneously — each bureau maintains independent records and must investigate separately. Send each bureau its own dispute letter with copies of evidence via certified mail.', correct: true, explanation: 'Correct! The three bureaus are independent companies with separate databases. An error corrected at TransUnion will still appear on Experian and Equifax unless separately disputed. Send separate certified letters to each bureau with copies of the same evidence. Each bureau has its own 30-day investigation timeline. Keep a dispute log tracking each bureau\'s receipt date, deadlines, and results independently.' },
-          { text: 'Start with the bureau that has the lowest score and ignore the others', correct: false, explanation: 'Different lenders pull from different bureaus. A mortgage lender might use all three. Leaving the error on any bureau means it could affect a future application. Dispute all three.' },
-          { text: 'File one CFPB complaint and it covers all three bureaus', correct: false, explanation: 'A CFPB complaint is filed against a specific company. To address all three bureaus, you would need to file separate complaints against each bureau and potentially against the furnisher as well.' }
-        ]
-      },
-      {
-        type: 'scenario',
-        title: 'Scenario: Furnisher Direct Obligations',
-        story: 'After Sarah\'s bureau dispute of a Discover card late payment was verified, she sends a Section 623 direct dispute letter to Discover\'s compliance department. She includes her bank statement proving the payment was on time. Discover ignores her letter entirely and never responds.',
-        question: 'What are Discover\'s legal obligations when they receive Sarah\'s direct dispute?',
-        options: [
-          { text: 'Discover has no obligation to respond to consumer letters', correct: false, explanation: 'Under FCRA §623(b), data furnishers have specific legal obligations when they receive a direct dispute from a consumer who has already disputed through the bureau.' },
-          { text: 'Discover is required under FCRA §623(b) to conduct an independent investigation, review all evidence provided, and report the results back to the consumer and the bureaus. Ignoring the letter is a violation that could result in legal liability.', correct: true, explanation: 'Correct! Once a consumer has first disputed through the bureau, FCRA §623(b) requires the furnisher to: 1) Conduct a reasonable investigation, 2) Review all relevant information provided by the consumer, 3) Report results to all bureaus to which they reported, and 4) Notify the consumer of results. By ignoring Sarah\'s letter, Discover has violated the FCRA. Sarah should file a CFPB complaint and consult a consumer rights attorney — §623(b) violations can result in statutory damages, actual damages, and attorney fees.' },
-          { text: 'Discover only has to respond if Sarah is a current customer', correct: false, explanation: 'The obligation under §623(b) applies regardless of whether the consumer is a current customer. It applies to any furnisher that reports information to credit bureaus.' },
-          { text: 'Discover has 90 days to respond to direct disputes', correct: false, explanation: 'While the FCRA doesn\'t specify an exact timeline for §623 responses like it does for bureau investigations (30 days), furnishers must conduct their investigation within a reasonable time. Courts have generally interpreted this as similar to the 30-day standard.' }
+          { text: 'Nothing — creditors are not required to respond to consumer letters', correct: false, explanation: 'Under FCRA §623(b), data furnishers have specific legal obligations when they receive a direct dispute from a consumer who has first disputed through the bureau.' },
+          { text: 'Conduct an independent investigation, review all evidence provided, and report corrected results to all bureaus — ignoring the letter is an FCRA violation', correct: true, explanation: 'Correct! FCRA §623(b) requires the furnisher to: 1) Conduct a reasonable investigation, 2) Review all relevant information you provided, 3) Report results to all bureaus they report to, and 4) Notify you of the outcome. Ignoring a direct dispute is an FCRA violation that can result in statutory damages, actual damages, and attorney fees — strong grounds for a CFPB complaint and potential litigation.' },
+          { text: 'Only respond if you are a current active customer', correct: false, explanation: 'The obligation under §623(b) applies to any consumer whose information the furnisher reports to credit bureaus — regardless of whether the account is active, closed, or charged off.' },
+          { text: 'Creditors have 90 days to respond to direct consumer disputes', correct: false, explanation: 'The FCRA does not specify a strict 90-day timeline for §623 responses. Furnishers must respond within a reasonable time — courts have generally interpreted this similarly to the 30-day bureau investigation standard.' }
         ]
       },
       {
@@ -658,63 +591,52 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Validation Deadline',
-        story: 'Marcus receives his first letter from a collection agency about an $1,800 debt on January 5th. He\'s busy with work and doesn\'t respond. On February 10th — 36 days later — he sends a debt validation letter asking them to prove the debt is his.',
-        question: 'Did Marcus miss his window for debt validation?',
+        type: 'true-false',
+        title: 'Debt Validation 30-Day Window',
+        question: 'If you send a debt validation letter more than 30 days after first contact from a collector, you lose all rights to request validation.',
         options: [
-          { text: 'Yes — he only had 30 days and now he has no rights', correct: false, explanation: 'Marcus CAN still request validation after 30 days. The difference is that within 30 days, the collector MUST stop all collection activity until they validate. After 30 days, they don\'t have to stop collecting while they validate.' },
-          { text: 'No — but he lost the automatic protection that makes the collector stop all activity while validating', correct: true, explanation: 'Correct! Under the FDCPA §809, if you request validation within 30 days of first contact, the collector MUST cease all collection activity until they provide validation. After 30 days, you can still request validation and the collector must provide it, but they don\'t have to stop calling or collecting in the meantime. This is why responding quickly is crucial.' },
-          { text: 'The 30-day rule only applies to medical debt', correct: false, explanation: 'The 30-day validation window applies to ALL consumer debts under the FDCPA, not just medical.' },
-          { text: 'There is no time limit for debt validation', correct: false, explanation: 'You can always request validation, but the automatic cease-collection protection only applies within the first 30 days.' }
+          { text: 'True', correct: false, explanation: 'False! You can request validation at any time. What you lose after 30 days is the automatic protection that requires the collector to stop all collection activity while they validate. Within 30 days, collection must cease until validation is provided.' },
+          { text: 'False', correct: true, explanation: 'Correct! You can always request validation. The 30-day window under FDCPA §809(b) determines whether the collector must stop collecting while they validate — within 30 days, they must pause; after 30 days, they can continue calling and collecting while the validation is pending. Always respond within 30 days for maximum protection.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Threatening Letter Mistake',
-        story: 'Carlos writes a dispute letter that reads: "REMOVE THIS ACCOUNT IMMEDIATELY OR I WILL SUE YOU FOR $10 MILLION AND REPORT YOU TO EVERY GOVERNMENT AGENCY. YOU HAVE 5 DAYS TO COMPLY." He sends it to Equifax about a $600 collection.',
-        question: 'Why is Carlos\'s letter likely to be ineffective?',
+        type: 'multiple-choice',
+        title: 'Elements of an Effective Dispute Letter',
+        question: 'Which approach makes a dispute letter most effective?',
         options: [
-          { text: 'The letter is too short — he needs to write more', correct: false, explanation: 'Length isn\'t the primary issue. The problem is the tone, lack of specifics, and absence of evidence.' },
-          { text: 'The aggressive tone, lack of specific account details, absence of evidence, unrealistic demands, and failure to cite applicable law make this letter easy to dismiss. A professional, fact-based letter with evidence would be far more effective.', correct: true, explanation: 'Correct! Bureau investigators process thousands of disputes. ALL CAPS threats, unrealistic damage claims, and arbitrary deadlines are red flags for template letters. Effective disputes are: professional in tone, specific about the account and error, supported by documentary evidence, citing the correct FCRA section, and making reasonable requests. Carlos should identify the specific account number, state exactly what\'s wrong, include evidence, cite FCRA §611, and request investigation within the standard 30-day period.' },
-          { text: 'Threatening to sue always works — he just needs to be more aggressive', correct: false, explanation: 'Empty threats are counterproductive. They signal to the investigator that the consumer has no real evidence and is relying on intimidation.' },
-          { text: 'The 5-day deadline is the only problem — 10 days would be fine', correct: false, explanation: 'The deadline is only one of many problems. The entire approach — tone, specificity, evidence, and legal citations — needs to be overhauled.' }
+          { text: 'Use aggressive language and threaten large lawsuits to show you are serious', correct: false, explanation: 'Threats without evidence are counterproductive. Bureau investigators process thousands of disputes and ignore threats that lack substance and supporting documentation.' },
+          { text: 'Be specific about the account, state exactly what is wrong, cite the applicable FCRA section, and include copies of supporting evidence', correct: true, explanation: 'Correct! Effective disputes reference the exact account number, describe the specific error, cite the correct FCRA provision (§611 for bureau disputes, §623 for direct furnisher disputes), and include official documentary evidence. This approach is legally precise and difficult to rubber-stamp.' },
+          { text: 'Keep the letter vague to prevent the bureau from finding loopholes', correct: false, explanation: 'Vague disputes are the easiest to verify without investigation. Specificity forces the bureau to address the exact error rather than sending a generic e-OSCAR code.' },
+          { text: 'Use the same template letter repeatedly — consistency helps', correct: false, explanation: 'Bureau investigators recognize popular templates instantly. Identical letters are more likely to be flagged as frivolous. Personalized, specific letters are far more effective.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Types of Evidence',
-        story: 'Natasha is disputing a $1,900 balance reported as unpaid on her Wells Fargo credit card. She actually paid it off 4 months ago. She has the following potential evidence: (1) Her bank statement showing the payment, (2) A screenshot of her online banking transfer, (3) Wells Fargo\'s payoff confirmation letter, (4) A text message from a friend saying she saw Natasha pay it.',
-        question: 'Which evidence should Natasha include with her dispute?',
+        type: 'multiple-choice',
+        title: 'Best Evidence for a Dispute',
+        question: 'When disputing a balance shown as unpaid that you already paid, which types of evidence carry the most weight?',
         options: [
-          { text: 'Only the bank statement — one piece of evidence is enough', correct: false, explanation: 'While the bank statement is strong, multiple pieces of official evidence create a more compelling case. Why include only one when you have three strong options?' },
-          { text: 'Items 1, 2, and 3 — the bank statement, online banking screenshot, and Wells Fargo\'s payoff letter. Skip the friend\'s text message because personal communications aren\'t credible evidence in credit disputes.', correct: true, explanation: 'Correct! The bank statement, online banking screenshot, and payoff letter are all official documentation that clearly proves payment. Together, they create overwhelming evidence. The friend\'s text message is hearsay — it\'s a third party\'s claim, not official documentation. Bureau investigators need verifiable records from financial institutions, not personal communications. Always prioritize bank records, creditor correspondence, payment receipts, and official statements.' },
-          { text: 'Only the text message from her friend — personal testimony is the strongest evidence', correct: false, explanation: 'Personal testimony from friends or family carries almost no weight in credit disputes. Bureau investigators need official financial documentation.' },
-          { text: 'All four pieces of evidence including the friend\'s text', correct: false, explanation: 'Including the friend\'s text could actually weaken the dispute by making it look less professional. Stick to official financial documentation.' }
+          { text: 'A text message from a friend who witnessed you making the payment', correct: false, explanation: 'Personal testimony from friends or third parties carries almost no weight. Bureau investigators need official financial documentation from institutions, not personal communications.' },
+          { text: 'Bank statements, payment confirmation from the creditor, and online banking records — all official financial documentation', correct: true, explanation: 'Correct! Official documentation from financial institutions is the gold standard: bank statements showing the payment, creditor confirmation letters or payoff letters, and online banking screenshots. Multiple official documents create overwhelming evidence. Never rely on personal communications — always prioritize verifiable institutional records.' },
+          { text: 'Your own handwritten note describing when and how you paid', correct: false, explanation: 'Self-written notes are not credible evidence. You need third-party documentation from banks, creditors, or payment processors that objectively confirms the payment.' },
+          { text: 'One piece of evidence is enough — do not overwhelm the investigator', correct: false, explanation: 'Multiple corroborating pieces of evidence are better than one. When all your documentation consistently confirms the same fact, it is much harder to dispute or ignore.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Certified Mail Decision',
-        story: 'Omar is deciding how to send his dispute letter to Experian. He can send it by regular first-class mail ($0.68), certified mail with return receipt ($7.19), or email through the bureau\'s online portal (free).',
-        question: 'Why is certified mail worth the extra cost?',
+        type: 'true-false',
+        title: 'Sending Disputes via Certified Mail',
+        question: 'Sending a dispute online through a bureau\'s portal is just as legally protected as sending it via certified mail.',
         options: [
-          { text: 'Certified mail doesn\'t matter — the dispute is the same regardless of delivery method', correct: false, explanation: 'The delivery method creates different levels of legal protection. How you send a dispute can be just as important as what\'s in it.' },
-          { text: 'Certified mail creates a legal paper trail with proof of delivery date, starts the 30-day investigation clock with documented evidence, and preserves your right to sue under the FCRA if the bureau mishandles the dispute', correct: true, explanation: 'Correct! Certified mail with return receipt is essential because: 1) The green card proves exactly when Experian received the letter, starting the 30-day clock. 2) In court, you can prove what was sent and when. 3) Online disputes often include Terms of Service with arbitration clauses that limit your legal options. 4) Regular mail has no delivery proof — the bureau could claim they never received it. The $7.19 cost is an investment in your legal rights. Think of it as insurance for your dispute.' },
-          { text: 'Email is actually better because it\'s instant and free', correct: false, explanation: 'Online/email disputes through bureau portals may include arbitration clauses in the Terms of Service, limiting your legal options. They also often trigger the simplified e-OSCAR process rather than a thorough investigation.' },
-          { text: 'Regular first-class mail is fine — it still gets delivered', correct: false, explanation: 'Regular mail provides no proof of delivery. If the bureau claims they never received it, you have no evidence to the contrary. Without a delivery date, you can\'t prove a timeline violation.' }
+          { text: 'True', correct: false, explanation: 'False! Online bureau portals often include Terms of Service with arbitration clauses that limit your legal options. You also cannot easily prove exactly what was submitted. Certified mail with return receipt creates a documented legal record, proves the exact delivery date, and preserves your full FCRA rights including the ability to sue.' },
+          { text: 'False', correct: true, explanation: 'Correct! Certified mail is significantly stronger legally. It documents: what you submitted, when the bureau received it (starting the 30-day clock), and provides evidence for any FCRA violation claims. Online portal Terms of Service may include arbitration clauses that restrict your ability to sue in federal court — a major limitation.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The 609 Letter Strategy',
-        story: 'A credit repair forum recommends that Jasmine send a "609 letter" to the credit bureaus, claiming that Section 609 of the FCRA requires them to produce the original signed contract for every account on her report, and that failure to produce it means the account must be deleted.',
-        question: 'Is the "609 letter" strategy as described by the forum accurate?',
+        type: 'true-false',
+        title: 'The "609 Letter" Myth',
+        question: 'Section 609 of the FCRA requires credit bureaus to produce original signed contracts for every account, and failure to produce them means the account must be deleted.',
         options: [
-          { text: 'Yes — Section 609 requires bureaus to produce original signed contracts or delete the account', correct: false, explanation: 'This is one of the most common myths in credit repair. Section 609 does not require original signed contracts to be produced.' },
-          { text: 'No — Section 609 only gives consumers the right to request disclosure of their file information. It does NOT require bureaus to produce original contracts. However, requesting your file can still be useful for identifying errors to dispute under Section 611.', correct: true, explanation: 'Correct! FCRA §609 (15 U.S.C. §1681g) gives you the right to request disclosure of your credit file — essentially, a copy of your report. It does NOT require the bureau to produce original signed contracts, account applications, or any source documents. The "609 letter" as marketed by some credit repair companies is misleading. That said, requesting your full file under §609 can reveal information not visible on standard reports, helping you identify legitimate errors to dispute under §611.' },
-          { text: 'The 609 letter works but only for collections, not original creditor accounts', correct: false, explanation: 'Section 609 doesn\'t create a deletion obligation for any type of account. It\'s a disclosure right, not a dispute mechanism.' },
-          { text: 'Section 609 was repealed and no longer exists', correct: false, explanation: 'Section 609 still exists and is valid — it provides your right to request your file. The issue is that credit repair forums misrepresent what it actually requires.' }
+          { text: 'True', correct: false, explanation: 'False! This is one of the most common credit repair myths. FCRA §609 only gives you the right to request your credit file disclosure. It does NOT require production of original contracts or create a deletion obligation. The "609 letter" strategy marketed online misrepresents this law.' },
+          { text: 'False', correct: true, explanation: 'Correct! FCRA §609 gives consumers the right to request disclosure of their credit file — essentially, a copy of their report. It does not require bureaus to produce original signed contracts. The real dispute authority is FCRA §611, which gives you the right to dispute inaccurate or unverifiable information. The confusion between §609 and §611 is deliberately exploited by misleading credit repair companies.' }
         ]
       },
       {
@@ -730,63 +652,45 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Follow-Up Letter',
-        story: 'Andre disputed a wrong balance on his Citi credit card with Equifax 25 days ago. He sent it via certified mail. The return receipt shows Equifax received it 22 days ago. He hasn\'t heard anything yet.',
-        question: 'What should Andre do at this point?',
+        type: 'multiple-choice',
+        title: 'Following Up After No Response',
+        question: 'You sent a dispute to a bureau via certified mail 31 days ago and have received no response. What should you do?',
         options: [
-          { text: 'Send another dispute immediately — they\'re ignoring him', correct: false, explanation: 'The bureau has 30 days from receipt to investigate. It\'s only been 22 days. Sending another dispute before the deadline could create confusion and potentially delay the original investigation.' },
-          { text: 'Wait until day 31. If no response, send a follow-up letter referencing the original dispute date, certified mail tracking number, and stating that the 30-day investigation period has expired per FCRA §611(a)(1)', correct: true, explanation: 'Correct! The bureau has a full 30 days from receipt (not mailing date). Andre should wait until day 31. If no response arrives, his follow-up letter should: 1) Reference the original dispute date and certified mail tracking number, 2) State the receipt date proven by the return receipt, 3) Note that the 30-day period has expired, 4) Cite FCRA §611(a)(1), 5) Demand immediate resolution, and 6) Mention that failure to investigate within the timeline is a violation of the FCRA. This letter creates additional legal documentation if the issue escalates.' },
-          { text: 'File a lawsuit on day 25 for timeline violation', correct: false, explanation: 'The bureau still has 8 more days. Filing a lawsuit before the deadline expires would be premature and would likely be dismissed.' },
-          { text: 'Call Equifax to check on the status', correct: false, explanation: 'Phone calls create no paper trail. While checking status isn\'t harmful, the key action should be preparing a written follow-up for after the deadline passes.' }
+          { text: 'Send another dispute letter with the same content', correct: false, explanation: 'Re-sending the same dispute before getting results could create confusion and may be flagged as frivolous. Since the deadline has now passed, the correct step is a follow-up noting the FCRA violation.' },
+          { text: 'Call the bureau to ask what happened', correct: false, explanation: 'Phone calls create no paper trail. Written follow-up is the correct approach, especially when documenting an FCRA timeline violation for potential legal action.' },
+          { text: 'Send a follow-up letter citing the original certified mail tracking number, the receipt date, and that the 30-day FCRA investigation deadline has expired — then file a CFPB complaint', correct: true, explanation: 'Correct! Once the 30-day deadline passes without a response, the bureau has violated FCRA §611(a)(1). Your follow-up letter should reference the original tracking number, document the receipt date, cite the statute, demand immediate resolution, and mention the violation. Simultaneously file a CFPB complaint to create regulatory pressure. Each violation is worth up to $1,000 in statutory damages.' },
+          { text: 'Wait 60 more days — bureaus have 90 days total', correct: false, explanation: 'Bureaus have 30 days from receipt to complete investigations (45 if you provide additional info mid-investigation). After 31 days with no response, the violation has occurred and you should act.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Batch Dispute Strategy',
-        story: 'Tamika has 8 items she wants to dispute across her three bureau reports. Her friend says she should dispute all 8 at once to save time. A credit repair professional says she should dispute them in strategic batches.',
-        question: 'What is the recommended batch strategy for Tamika\'s 8 items?',
+        type: 'multiple-choice',
+        title: 'Strategic Dispute Batching',
+        question: 'You have 8 items to dispute. What is the recommended approach?',
         options: [
-          { text: 'Dispute all 8 at once — get it done in one round', correct: false, explanation: 'Disputing too many items at once increases the risk of being flagged as frivolous. It also means each item gets less individual attention from the investigator.' },
-          { text: 'Dispute 2-3 items per round, prioritizing by score impact. Start with the highest-damage items (recent collections, incorrect lates), wait for results (30-45 days), then send the next batch with lessons learned from round one.', correct: true, explanation: 'Correct! Strategic batching: Round 1 — Dispute the 2-3 items causing the most score damage (recent collections, wrong late payments) with strong evidence. Round 2 — After results (30-45 day wait), dispute the next 2-3 items. Adjust strategy based on what worked in Round 1. Round 3 — Final items plus any re-disputes using different strategies (MOV, 623, CFPB). This approach: avoids frivolous flags, maintains steady progress, allows strategy refinement, and keeps the process manageable.' },
-          { text: 'Only dispute 1 item per year to be safe', correct: false, explanation: 'One per year is excessively cautious. At that rate, clearing 8 items would take 8 years. Batches of 2-3 per round with 30-45 day spacing is the recommended approach.' },
-          { text: 'Hire a credit repair company to dispute all 8 simultaneously', correct: false, explanation: 'Credit repair companies often use template letters that are more likely to be flagged as frivolous. The strategic batch approach works whether you do it yourself or with professional help.' }
+          { text: 'Dispute all 8 at once to save time', correct: false, explanation: 'Disputing too many items simultaneously increases the risk of being flagged as frivolous and means each item receives less investigative attention. Quality beats quantity.' },
+          { text: 'Dispute 2-3 items per round starting with the highest-impact items, wait 30-45 days for results, then dispute the next batch using lessons learned from round one', correct: true, explanation: 'Correct! Strategic batching avoids frivolous flags, gives each item proper attention, allows you to refine your approach based on early results, and maintains steady forward progress. Start with the items causing the most score damage (recent collections, wrong late payments). Each round takes 30-45 days before the next begins.' },
+          { text: 'Dispute only 1 item per year to avoid triggering suspicion', correct: false, explanation: 'One item per year is unnecessarily conservative. At that rate, clearing 8 items takes 8 years. Batches of 2-3 items every 30-45 days is both safe and effective.' },
+          { text: 'Dispute with all three bureaus simultaneously for all 8 items', correct: false, explanation: 'While you should dispute with each bureau where the error appears, still batch the items in rounds of 2-3 per bureau per round. Sending too many at once to any single bureau risks a frivolous flag.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Legal Citation Power',
-        story: 'Rebecca is writing a dispute letter about an account that isn\'t hers. She\'s deciding whether to include legal citations. Her letter currently says: "This account is not mine. Please remove it." She\'s considering adding references to FCRA §611(a), §623(b), and §605B.',
-        question: 'How important are legal citations in dispute letters?',
+        type: 'true-false',
+        title: 'Legal Citations in Dispute Letters',
+        question: 'Adding specific FCRA legal citations (like §611 or §623) to your dispute letter can meaningfully improve the outcome of your dispute.',
         options: [
-          { text: 'Legal citations don\'t matter — the bureau ignores them', correct: false, explanation: 'Legal citations demonstrate knowledge of consumer rights and signal that the consumer may escalate or litigate. Bureau investigators are trained to handle disputes differently when legal citations are present.' },
-          { text: 'Legal citations signal that the consumer knows their rights, create a legal record for potential litigation, and put the bureau on notice about specific obligations — making it harder for them to provide a superficial investigation', correct: true, explanation: 'Correct! Including legal citations: 1) Shows the investigator this isn\'t a generic complaint — the consumer understands the law. 2) Creates a record that the bureau was notified of specific legal obligations. 3) Makes it harder for the bureau to claim ignorance if the dispute goes to court. 4) §611(a) — bureau investigation obligations, §623(b) — furnisher investigation obligations, §605B — blocking of information from identity theft. Rebecca should include the specific sections relevant to her situation. This one change can meaningfully improve dispute outcomes.' },
-          { text: 'You should only include legal citations if you\'re an attorney', correct: false, explanation: 'Any consumer can cite the FCRA in their dispute letters. You don\'t need to be an attorney to reference the law that protects your rights.' },
-          { text: 'Adding too many legal citations makes your letter look like a template', correct: false, explanation: 'As long as the citations are relevant to the specific dispute and the letter is personalized (not a generic template), legal citations strengthen rather than weaken the dispute.' }
+          { text: 'True', correct: true, explanation: 'Correct! Legal citations signal that you know your rights and may escalate or litigate. They put the bureau on notice about specific legal obligations and create a paper record that the bureau was informed of those obligations. This makes it harder for them to provide a superficial response. Any consumer can cite the FCRA — you do not need to be an attorney.' },
+          { text: 'False', correct: false, explanation: 'Legal citations do matter. They demonstrate consumer knowledge, create legal documentation, and make it harder for the bureau to claim they weren\'t notified of specific obligations. Relevant citations (§611 for bureau disputes, §623 for furnisher disputes, §605B for identity theft) strengthen your dispute.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Template Letter Pitfalls',
-        story: 'James downloads a dispute letter template from a website. It uses phrases like "I am demanding my rights under the Fair Credit Reporting Act" and "you must remove all inaccurate items within 30 days." He plans to use it word-for-word, filling in only his name and address.',
-        question: 'What is the main risk of using a word-for-word template letter?',
+        type: 'multiple-choice',
+        title: 'The Problem with Word-for-Word Templates',
+        question: 'What is the main risk of using a word-for-word template dispute letter without personalizing it?',
         options: [
-          { text: 'Templates are the best approach — they were written by experts', correct: false, explanation: 'While templates can provide structure, using them word-for-word is one of the biggest mistakes in credit repair. Bureau investigators see the same templates thousands of times.' },
-          { text: 'Bureau investigators recognize common templates and may flag them as frivolous or give them minimal investigation. Personalized letters with specific account details, custom explanations, and your own evidence are significantly more effective.', correct: true, explanation: 'Correct! Credit bureaus process millions of disputes annually and their investigators recognize popular template letters instantly. Common templates from credit repair websites are the LEAST effective approach because: 1) They lack specific account details, 2) They use the same phrases investigators see daily, 3) They may be flagged as credit repair organization submissions, 4) They contain no personalized evidence. Use templates as a STRUCTURE guide, but write in your own words, include specific account numbers and error descriptions, and attach your own evidence documents.' },
-          { text: 'Templates are illegal to use in credit disputes', correct: false, explanation: 'Templates aren\'t illegal, but they\'re far less effective than personalized letters. You have every right to use a template, but personalizing it will dramatically improve your results.' },
-          { text: 'The template will work fine as long as he sends it by certified mail', correct: false, explanation: 'Certified mail is important for the paper trail, but it doesn\'t fix the fundamental problem of a generic, impersonal template letter. The content matters as much as the delivery method.' }
-        ]
-      },
-      {
-        type: 'scenario',
-        title: 'Scenario: The Validation Letter Timing',
-        story: 'Priya receives her first contact from a collection agency about a $2,500 medical debt on October 1st. She\'s been researching debt validation and wants to send a validation letter, but she\'s busy with work. She finally sends it on November 5th — 35 days after first contact.',
-        question: 'Has Priya lost her right to request debt validation?',
-        options: [
-          { text: 'Yes — the right to validate expires after 30 days', correct: false, explanation: 'The right to request validation doesn\'t disappear after 30 days. What changes is the protection level you receive.' },
-          { text: 'No — she can still request validation at any time, but she lost the automatic protection that requires the collector to stop all collection activity while they validate. Within 30 days, collection must cease until validation is provided; after 30 days, the collector can continue pursuing the debt while validating.', correct: true, explanation: 'Correct! Under FDCPA §809(b), if validation is requested within 30 days of first contact, the collector MUST cease all collection activity until they provide validation. After 30 days, the collector must still provide validation if requested, but they don\'t have to stop calling, sending letters, or pursuing collection in the meantime. This is why responding within 30 days is crucial — it gives you breathing room to verify the debt without being harassed. Priya can still request validation, but she\'ll continue receiving collection calls until it\'s provided.' },
-          { text: 'It doesn\'t matter — validation letters don\'t actually work', correct: false, explanation: 'Validation letters are a powerful tool under federal law. Many collection agencies cannot provide proper validation because they purchased the debt without complete documentation.' },
-          { text: 'She should just pay the debt to avoid further complications', correct: false, explanation: 'Paying without validating means she might pay a debt that isn\'t hers, has an incorrect amount, or is past the statute of limitations. Validation first, payment decisions second.' }
+          { text: 'Templates are illegal under the FCRA', correct: false, explanation: 'Templates are perfectly legal. The issue is effectiveness — template letters are far less effective than personalized, specific disputes.' },
+          { text: 'Bureau investigators recognize popular templates and may give them less thorough investigation or flag them as frivolous mass submissions', correct: true, explanation: 'Correct! Credit bureaus process millions of disputes and their investigators instantly recognize popular template letters. Templates lack specific account details, use identical boilerplate phrases, and may be flagged as credit repair organization submissions. Use templates as structural guides, but rewrite them in your own words with specific account numbers, error descriptions, and your own evidence attached.' },
+          { text: 'Templates are the most effective approach — they were written by legal experts', correct: false, explanation: 'Template effectiveness is actually quite low in practice. The investigator\'s goal is to resolve your specific case, and a letter that lacks specifics is difficult to act on — or easy to rubber-stamp.' },
+          { text: 'Certified mail cannot be used with template letters', correct: false, explanation: 'You can always send any dispute letter via certified mail. Delivery method and letter quality are entirely separate concerns.' }
         ]
       },
       {
@@ -855,87 +759,76 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Credit Limit Request',
-        story: 'After 6 months of perfect payments, Darnell has two credit cards:\n• Card A: $500 limit, $100 balance (20% utilization)\n• Card B: $1,000 limit, $250 balance (25% utilization)\n\nOverall: $350 / $1,500 = 23% utilization\n\nDarnell calls Card B and they offer to increase his limit to $3,000.',
-        question: 'How would accepting this limit increase affect Darnell\'s credit?',
+        type: 'multiple-choice',
+        title: 'Credit Limit Increases and Utilization',
+        question: 'You have $350 in balances across two cards with a combined $1,500 limit (23% utilization). One card offers to increase your limit to $3,000. What happens to your utilization if you accept?',
         options: [
-          { text: 'It would hurt his score because more available credit means more risk', correct: false, explanation: 'More available credit actually HELPS your score by lowering your utilization ratio. Lenders don\'t view higher limits as risky — they view high utilization as risky.' },
-          { text: 'No effect — credit limits don\'t matter', correct: false, explanation: 'Credit limits directly affect your utilization ratio, which is 30% of your score. Limits matter a lot.' },
-          { text: 'It would help his score — his overall utilization drops from 23% to 10% ($350/$3,500) with no additional spending', correct: true, explanation: 'Correct! With the increase: $350 / $3,500 = 10% overall utilization. That\'s a drop from 23% to 10% without paying down any debt. Card B\'s individual utilization drops from 25% to 8.3%. This could boost his score 20-40 points instantly. Important: the limit increase should ideally be a "soft pull" — ask the issuer before accepting whether they\'ll do a hard inquiry.' },
-          { text: 'It would only help if he also closes Card A', correct: false, explanation: 'Closing Card A would actually hurt by reducing total available credit and shortening his credit history. Keep both cards open.' }
+          { text: 'It gets worse — more available credit increases risk in lenders\' eyes', correct: false, explanation: 'More available credit helps your score, not hurts it. Lenders view high utilization — not high limits — as risky.' },
+          { text: 'Nothing changes — credit limits don\'t affect utilization', correct: false, explanation: 'Credit limits directly affect utilization. Utilization = balances ÷ limits. A higher limit with the same balance lowers the ratio.' },
+          { text: 'Utilization drops from 23% to 10% ($350 ÷ $3,500) with no additional spending — a potential 20-40 point boost', correct: true, explanation: 'Correct! With the same $350 balance on a $3,500 combined limit, utilization drops from 23% to 10%. That\'s a significant improvement with no additional payments required. Always ask whether a limit increase will trigger a hard inquiry before accepting — a soft-pull increase is free points.' },
+          { text: 'Only helps if you also close your other card', correct: false, explanation: 'Closing a card reduces your total available credit, increases utilization, and shortens your average account age. Never close cards to get a limit increase on another — keep all cards open.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Credit Builder Loan Benefits',
-        story: 'Nina has a secured credit card with 6 months of perfect payments. Her score is 620. A credit union offers her a credit builder loan for $500 over 12 months at $44/month. She wonders if it\'s worth it since she already has a credit card.',
-        question: 'How would a credit builder loan help Nina beyond what her credit card provides?',
+        type: 'multiple-choice',
+        title: 'Credit Builder Loan Purpose',
+        question: 'You already have a secured credit card with 6 months of perfect payments. How does adding a credit builder loan help your credit further?',
         options: [
-          { text: 'It won\'t help — she already has a credit card building her history', correct: false, explanation: 'A credit builder loan provides benefits that a credit card alone cannot, particularly in the credit mix category.' },
-          { text: 'It adds an installment loan to her credit mix (10% of score), creates a second tradeline for more reporting depth, builds forced savings of ~$500, and diversifies her profile beyond just revolving credit', correct: true, explanation: 'Correct! The credit builder loan helps Nina in several ways: 1) Credit mix diversity — having both revolving (card) and installment (loan) accounts improves the credit mix factor (10% of FICO score). 2) Additional tradeline — two accounts reporting positive payments is better than one. 3) Forced savings — the $500 is released to her at the end. 4) Lender diversity — shows she can manage different types of credit. The $44/month cost is small for the credit-building benefit and forced savings.' },
-          { text: 'Credit builder loans hurt your score because they add debt', correct: false, explanation: 'Credit builder loans are designed specifically to build credit. The installment loan balance is expected and doesn\'t hurt utilization (that\'s only for revolving accounts). The positive payment history far outweighs any minor impact from the new account.' },
-          { text: 'She should wait until her score is 700 before applying for any loan', correct: false, explanation: 'Credit builder loans don\'t require a high score — many have no credit check at all. They\'re designed specifically for people building or rebuilding credit.' }
+          { text: 'It does not help — a credit card alone is sufficient', correct: false, explanation: 'A credit builder loan adds something a credit card alone cannot: installment loan diversity, which improves your credit mix (10% of FICO score).' },
+          { text: 'It adds an installment loan tradeline to diversify your credit mix, creates a second positive payment account, and builds forced savings that are released to you at the end', correct: true, explanation: 'Correct! Credit cards are revolving accounts. A credit builder loan is an installment account. Having both types improves your credit mix factor (10% of score). You also get a second account with positive payment history and the loan amount (typically $300-$1,000) deposited in savings and returned to you when paid off — building credit and savings simultaneously.' },
+          { text: 'Credit builder loans hurt your score because they add to your debt', correct: false, explanation: 'Credit builder loan balances are installment debt, which scoring models treat differently from revolving debt. The positive payment history and credit mix benefit far outweigh any minor score impact from the new balance.' },
+          { text: 'You need a 700+ score before you can qualify for any type of loan', correct: false, explanation: 'Many credit builder loans require no credit check at all — they are specifically designed for people rebuilding or establishing credit. Credit unions are the best source for these products.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Rent Reporting Service',
-        story: 'Marcus rents an apartment for $1,400/month and has been paying on time for 3 years. He has a thin credit file with only one secured card. A rent reporting service offers to report his rental payments to the credit bureaus for $5/month.',
-        question: 'Should Marcus use a rent reporting service?',
+        type: 'true-false',
+        title: 'Rent Reporting Services',
+        question: 'Your on-time rent payments are automatically reported to the credit bureaus without any action on your part.',
         options: [
-          { text: 'No — rent payments can\'t appear on credit reports', correct: false, explanation: 'Rent payments can absolutely appear on credit reports through third-party reporting services. Not all bureaus accept them, but TransUnion and Equifax generally do.' },
-          { text: 'Yes — with a thin file, adding 3 years of on-time rental payments can significantly boost his score by creating additional positive payment history and increasing his number of reporting accounts', correct: true, explanation: 'Correct! For Marcus, rent reporting is especially valuable because: 1) His thin file means every additional tradeline has outsized impact. 2) Three years of on-time payments adds substantial positive payment history (35% of score). 3) It creates account age depth without applying for new credit. 4) At $5/month ($60/year), the ROI is excellent compared to the potential score increase. Services like Rental Kharma, Boom, and LevelCredit can report to TransUnion and Equifax. Some services can even backdate up to 24 months of previous payments.' },
-          { text: 'He should only do it if his landlord offers it for free', correct: false, explanation: 'Most landlords don\'t offer rent reporting. Third-party services fill this gap at a small monthly fee. For someone with a thin file, the $5/month is a worthwhile investment in credit building.' },
-          { text: 'Rent reporting only helps VantageScore, not FICO', correct: false, explanation: 'Rent reporting can benefit both scoring models. FICO 9 and FICO 10 consider rental tradelines, and VantageScore has included them for longer. Even under older FICO versions, having additional tradelines on your report helps when lenders do manual review.' }
+          { text: 'True', correct: false, explanation: 'False! Rent payments are NOT automatically reported. You must enroll in a third-party rent reporting service (like Rental Kharma, Boom, or LevelCredit) to have your payments reported to TransUnion and Equifax. Some services can even backdate up to 24 months of previous payments.' },
+          { text: 'False', correct: true, explanation: 'Correct! Rent is not automatically reported. Third-party services fill this gap, typically for $5-20/month. For consumers with thin credit files, adding years of on-time rental payments can create a meaningful boost to payment history (35% of score) and add a new tradeline.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Experian Boost Decision',
-        story: 'Lisa has a 640 FICO score and pays her electric bill ($120/month), phone bill ($85/month), and Netflix ($15/month) on time every month. She discovers Experian Boost, a free service that adds utility and streaming payments to her Experian credit report.',
-        question: 'What should Lisa know about Experian Boost before signing up?',
+        type: 'multiple-choice',
+        title: 'Experian Boost — Key Facts',
+        question: 'Which statement about Experian Boost is accurate?',
         options: [
-          { text: 'It will boost her score at all three bureaus instantly', correct: false, explanation: 'Experian Boost only affects your Experian report and Experian-based FICO scores. TransUnion and Equifax scores are not affected.' },
-          { text: 'It\'s free and only affects her Experian report. It can add 10-20+ points by incorporating utility, phone, and streaming payment history. She can remove the data at any time if it doesn\'t help. The boost only applies when lenders pull her Experian FICO score.', correct: true, explanation: 'Correct! Experian Boost is genuinely free and can provide an immediate score increase. Key details: 1) Only affects Experian-based scores — TransUnion and Equifax won\'t change. 2) Typical boost is 10-20 points but varies. 3) Works by connecting to your bank account to verify bill payments. 4) You can opt out and remove the data instantly if it doesn\'t help. 5) Most effective for thin files and borderline scores. For Lisa at 640, even a 10-point boost to 650 could help her qualify for better interest rates.' },
-          { text: 'It costs $9.99/month for premium boost features', correct: false, explanation: 'Experian Boost is completely free. There is no premium version or monthly fee. Experian uses it to attract users to their platform, which is why they offer it at no cost.' },
-          { text: 'It will hurt her score because it shows she\'s desperate for credit', correct: false, explanation: 'Experian Boost only adds positive payment data. It doesn\'t signal anything negative to lenders. If the data doesn\'t help your score, you can simply remove it.' }
+          { text: 'It boosts your score at all three bureaus simultaneously', correct: false, explanation: 'Experian Boost only affects your Experian report and Experian-based FICO scores. TransUnion and Equifax scores are unaffected.' },
+          { text: 'It is free, only affects Experian, adds utility and phone payments to your file, and can be reversed at any time if it does not help your score', correct: true, explanation: 'Correct! Experian Boost connects to your bank account to verify on-time utility, phone, and streaming payments and adds them to your Experian report. It\'s completely free, takes minutes to set up, typically adds 10-20 points, and you can opt out instantly if the data doesn\'t improve your score.' },
+          { text: 'It costs $9.99/month and requires a premium Experian account', correct: false, explanation: 'Experian Boost is completely free. Experian offers it to attract users to their platform — no subscription required.' },
+          { text: 'It can be used to add negative payment history as positive', correct: false, explanation: 'Experian Boost only adds on-time payment history. Late or missed utility payments are not included. Only payments you have made on time are added.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Secured Card Graduation',
-        story: 'After 10 months of perfect payments on her Discover it Secured card ($500 deposit), Aisha receives a letter saying she\'s being "graduated" to an unsecured Discover it card. Her $500 deposit will be refunded and her credit limit will increase to $1,500.',
-        question: 'How will graduation affect Aisha\'s credit?',
+        type: 'true-false',
+        title: 'Secured Card Graduation',
+        question: 'When a secured credit card is "graduated" to an unsecured card, the original account history and opening date are lost and the credit age resets.',
         options: [
-          { text: 'It will hurt her score because it\'s technically a new account', correct: false, explanation: 'Graduation typically converts the existing account — it doesn\'t close the old one and open a new one. The account history, age, and payment record are preserved.' },
-          { text: 'It will help her credit in multiple ways: her credit limit triples (lowering utilization), she gets her $500 deposit back, and her full payment history is preserved since the account number and history remain the same', correct: true, explanation: 'Correct! Secured card graduation is one of the best things that can happen during credit building. Benefits: 1) Credit limit jumps from $500 to $1,500 — instantly lowering utilization. 2) The $500 deposit is refunded — free money back. 3) All 10 months of payment history and the original account age are preserved. 4) Future limit increases are typically easier on unsecured cards. Aisha should continue using the card responsibly and request limit increases every 6 months.' },
-          { text: 'She should decline the graduation and keep the secured card for safety', correct: false, explanation: 'There is no benefit to declining graduation. An unsecured card with higher limit and refunded deposit is strictly better than a secured card in every way.' },
-          { text: 'Graduation resets her account age to zero', correct: false, explanation: 'Graduation preserves the original account opening date and full payment history. The account is upgraded, not replaced.' }
+          { text: 'True', correct: false, explanation: 'False! Graduation typically converts the existing account — it does not close and reopen it. The account history, opening date, and payment record are fully preserved. Your deposit is refunded and your credit limit typically increases, making graduation strictly beneficial to your credit.' },
+          { text: 'False', correct: true, explanation: 'Correct! Secured card graduation preserves the original account history. All previous payment history and the original account opening date are maintained. Your credit limit typically increases and your deposit is returned. There is no reason to decline graduation — it is better in every way than keeping a secured card.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Credit Mix Diversity',
-        story: 'Robert has three credit cards (all revolving accounts) with perfect payment history for 2 years. His score is 710 but he wants to reach 750. A financial advisor suggests he\'s missing "credit mix diversity."',
-        question: 'What type of account would best improve Robert\'s credit mix?',
+        type: 'multiple-choice',
+        title: 'Improving Credit Mix',
+        question: 'You have three credit cards and a 710 score. You want to reach 750. What type of account would most improve your credit mix?',
         options: [
-          { text: 'Another credit card — more cards means better mix', correct: false, explanation: 'Adding another revolving account doesn\'t improve credit mix. He already has three credit cards. Diversity means different TYPES of credit, not more of the same type.' },
-          { text: 'An installment loan (like a credit builder loan, auto loan, or personal loan) would add diversity because he currently only has revolving credit. Adding an installment tradeline addresses the credit mix factor (10% of score).', correct: true, explanation: 'Correct! Credit mix (10% of FICO score) rewards having different types of credit. Robert only has revolving accounts (credit cards). Adding an installment loan creates the ideal mix. Best options: 1) Credit builder loan — low cost, specifically designed for this purpose. 2) Small personal loan from a credit union. 3) Auto loan if he needs a car. The key is having both revolving and installment accounts. With this addition and continued perfect payments, Robert could see the boost he needs to reach 750.' },
-          { text: 'A store credit card from his favorite retailer', correct: false, explanation: 'A store card is still a revolving account. It doesn\'t add diversity to Robert\'s credit mix — it just adds another card to his existing three.' },
-          { text: 'Credit mix doesn\'t affect your score at all', correct: false, explanation: 'Credit mix is 10% of the FICO score. While it\'s not the biggest factor, for someone at 710 trying to reach 750, optimizing every factor matters.' }
+          { text: 'A fourth credit card with a higher limit', correct: false, explanation: 'Adding another revolving account does not improve credit mix. Credit mix rewards different types of accounts, not more of the same type.' },
+          { text: 'An installment loan (credit builder loan, auto loan, or personal loan) to add installment credit alongside your existing revolving accounts', correct: true, explanation: 'Correct! Credit mix accounts for 10% of your FICO score. Having only revolving accounts (credit cards) misses this opportunity. Adding a credit builder loan or any installment account creates the diversity scoring models reward. For someone at 710 trying to reach 750, a credit builder loan from a credit union is the lowest-cost, lowest-risk way to add this missing piece.' },
+          { text: 'A store credit card — retail cards count as a different type', correct: false, explanation: 'Store cards are still revolving accounts, just like regular credit cards. They do not add installment diversity.' },
+          { text: 'Credit mix has no impact on FICO scores', correct: false, explanation: 'Credit mix is 10% of the FICO score. For someone optimizing a score in the 700s, this factor is meaningful and addressable with low-risk tools like credit builder loans.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Thin File Strategy',
-        story: 'Wei is 22 years old and just graduated college. He has zero credit history — no credit cards, no loans, no student debt. He applied for a basic credit card and was denied due to "insufficient credit history." He needs to build credit from scratch.',
-        question: 'What is the best starting strategy for Wei\'s thin file?',
+        type: 'multiple-choice',
+        title: 'Starting Credit from Zero',
+        question: 'Someone with no credit history is denied for a standard credit card. What is the best first approach?',
         options: [
-          { text: 'Keep applying for credit cards until one approves him', correct: false, explanation: 'Each denial generates a hard inquiry that stays for 2 years. Multiple applications with no approvals looks bad and the inquiries will hurt once he does get an account.' },
-          { text: 'Start with a secured credit card (requires a deposit, not a credit check), sign up for Experian Boost for utility/phone payments, and ask a parent to add him as an authorized user on their oldest card with good history', correct: true, explanation: 'Correct! This three-pronged approach attacks a thin file from every angle: 1) Secured card — guaranteed approval since the deposit is collateral. Starts building his own payment history immediately. 2) Experian Boost — adds his existing utility/phone payments to Experian at no cost. Provides an instant score boost on at least one bureau. 3) Authorized user — inherits years of credit history from a parent\'s old, clean card. Can add significant age and payment history instantly. Within 6 months, Wei should have enough history to qualify for an unsecured card.' },
-          { text: 'Wait until he\'s 25 — credit history builds automatically with age', correct: false, explanation: 'Credit history doesn\'t build automatically. Without credit accounts, Wei will still have zero history at 25. The sooner he starts building, the better.' },
-          { text: 'Take out a large personal loan to show he can handle debt', correct: false, explanation: 'Wei likely won\'t qualify for a personal loan with no credit history, and a large loan would be risky. Small, manageable steps are the right approach.' }
+          { text: 'Keep applying to different credit cards until one approves', correct: false, explanation: 'Each application generates a hard inquiry. Multiple denials create hard inquiries with no accounts — a pattern that further harms your ability to get approved. Apply strategically, not repeatedly.' },
+          { text: 'Open a secured card (deposit-based, no credit check required), get added as an authorized user on a family member\'s established account, and use Experian Boost for existing utility and phone payments', correct: true, explanation: 'Correct! This three-pronged strategy attacks a thin file from every angle: 1) Secured card — guaranteed approval with deposit collateral, starts building payment history immediately. 2) Authorized user — inherits the account history, age, and payment record of the primary cardholder overnight. 3) Experian Boost — adds existing on-time utility and phone payments to Experian at no cost. Within 6 months, this combination typically generates a score high enough to qualify for an unsecured card.' },
+          { text: 'Wait until age 25 — credit scores build automatically over time', correct: false, explanation: 'Credit history does not build passively. Without open accounts, a 25-year-old has the same zero-history file as a 21-year-old. You must open and use credit accounts to build history.' },
+          { text: 'Take out a large personal loan to show you can handle significant debt', correct: false, explanation: 'Personal loans require credit history to qualify. Additionally, starting with a large loan is unnecessarily risky. Small, controlled accounts (secured cards, credit builder loans) are the right foundation.' }
         ]
       },
       {
@@ -951,39 +844,32 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Alternative Data Advantages',
-        story: 'Hakeem has a limited credit file — just one secured card for 4 months. He applies for an apartment and the property management company says they use an "alternative data" screening that considers bank account history, income verification, and utility payments in addition to traditional credit scores.',
-        question: 'What are "alternative data" sources and how do they help people with thin credit files?',
+        type: 'multiple-choice',
+        title: 'Alternative Data for Thin Files',
+        question: 'What is "alternative data" and how does it help consumers with thin or no credit history?',
         options: [
-          { text: 'Alternative data is unreliable and no legitimate company uses it', correct: false, explanation: 'Alternative data is increasingly used by landlords, lenders, and insurance companies, especially for consumers with limited traditional credit history.' },
-          { text: 'Alternative data includes bank account history, rent payments, utility bills, income verification, and even employment history — giving a more complete picture of financial responsibility for people whose traditional credit file doesn\'t reflect their true creditworthiness', correct: true, explanation: 'Correct! Alternative data bridges the gap for the ~45 million Americans who are "credit invisible" or have thin files. Sources include: 1) Bank account history — deposit patterns, overdraft frequency, average balances. 2) Rent payments — on-time rent history through reporting services. 3) Utility/telecom payments — electric, gas, phone, internet. 4) Income verification — employment stability and earnings. 5) UltraFICO — uses banking data alongside traditional credit data. For Hakeem, this means his responsible banking habits and on-time bill payments can help him qualify for the apartment even with a thin traditional credit file.' },
-          { text: 'Alternative data replaces your credit score entirely', correct: false, explanation: 'Alternative data supplements traditional credit data — it doesn\'t replace it. Most decisions still heavily weight traditional credit scores, but alternative data provides additional context.' },
-          { text: 'Alternative data only matters for credit cards, not apartments', correct: false, explanation: 'Alternative data is used across many industries — rental screening, auto lending, insurance underwriting, and personal loans. It\'s especially common in rental applications for tenants with limited credit history.' }
+          { text: 'Alternative data is experimental and not used by legitimate companies', correct: false, explanation: 'Alternative data is widely used by landlords, lenders, and insurance companies — especially for consumers with limited traditional credit history.' },
+          { text: 'Bank account history, rent payments, utility bills, income verification, and employment history — providing a fuller picture of financial responsibility for people whose traditional credit file understates their reliability', correct: true, explanation: 'Correct! Alternative data bridges the gap for the ~45 million credit-invisible Americans. Sources include bank account history (deposit patterns, overdrafts), rent payments (via reporting services), utility and telecom payments, income stability, and UltraFICO which incorporates banking data. For thin-file consumers, this data can make the difference in qualifying for apartments, auto loans, and credit products.' },
+          { text: 'Alternative data replaces your traditional credit score entirely', correct: false, explanation: 'Alternative data supplements — it does not replace — traditional credit data. Most lenders still weight traditional scores heavily but use alternative data for additional context.' },
+          { text: 'Alternative data only applies to mortgage applications', correct: false, explanation: 'Alternative data is used in rental screening, auto lending, personal loans, insurance underwriting, and more — it is not limited to mortgages.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Store Card Pros and Cons',
-        story: 'At the checkout counter, Victoria is offered a Target RedCard with 5% off all purchases and a $500 credit limit. She already has 2 credit cards with a combined limit of $8,000 and a 700 score. The cashier says approval is instant.',
-        question: 'Should Victoria open the store card?',
+        type: 'true-false',
+        title: 'Store Cards and Credit Bureaus',
+        question: 'Store credit cards (like those from retail chains) do not report to the credit bureaus and therefore have no impact on your credit score.',
         options: [
-          { text: 'Absolutely — the 5% discount is a great deal and more cards are always better', correct: false, explanation: 'While the discount is appealing, store cards have significant drawbacks that Victoria should consider, especially impulse applications at the register.' },
-          { text: 'She should carefully consider that store cards typically have high APRs (25-30%), low limits that can increase utilization ratios, and a hard inquiry that will temporarily lower her score. If she shops at Target frequently and will pay in full monthly, it may be worth it — but an impulse checkout decision is risky.', correct: true, explanation: 'Correct! Store card considerations: Cons: 1) High APRs (25-30%) — devastating if she carries a balance. 2) Low limits create high per-card utilization risk. 3) Hard inquiry lowers score temporarily. 4) Checkout pressure leads to impulse decisions. Pros: 1) 5% discount saves money if she shops there regularly. 2) Adds another revolving tradeline. 3) Relatively easy approval. Victoria should research the card terms at home, not decide at the register. If she frequently shops at Target and will always pay in full, it could be worthwhile — but it\'s not urgent.' },
-          { text: 'Store cards don\'t report to credit bureaus, so it won\'t affect her credit at all', correct: false, explanation: 'Most major store cards DO report to all three credit bureaus. They affect your credit profile just like any other credit card — for better or worse.' },
-          { text: 'She should close her other two cards and use only the store card', correct: false, explanation: 'This would be terrible for her credit. She\'d lose $8,000 in available credit and years of account history. Never close existing cards to open a store card.' }
+          { text: 'True', correct: false, explanation: 'False! Most major store cards report to all three credit bureaus just like regular credit cards. They create hard inquiries when applied for, affect utilization with their typically low limits, and build or damage payment history like any other revolving account.' },
+          { text: 'False', correct: true, explanation: 'Correct! Store cards report to credit bureaus and affect your score. Considerations: their high APRs (25-30%) are risky if you carry a balance, their low limits create high per-card utilization risk, and the hard inquiry temporarily lowers your score. Don\'t make impulse decisions at the checkout — research any new card at home before applying.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Credit Union Advantages',
-        story: 'David is comparing a secured credit card from a big national bank ($200 minimum deposit, 22.99% APR, $39 annual fee) versus a secured card from his local credit union ($200 minimum deposit, 14.99% APR, no annual fee, and they report to all three bureaus).',
-        question: 'What advantages do credit unions typically offer for credit building?',
+        type: 'true-false',
+        title: 'Credit Union vs. Bank for Credit Building',
+        question: 'Credit unions typically offer better terms for credit-building products than big national banks, including lower interest rates, fewer fees, and access to credit builder loans.',
         options: [
-          { text: 'Credit unions and big banks offer identical products', correct: false, explanation: 'Credit unions are not-for-profit institutions that frequently offer better terms than for-profit banks, especially for credit-building products.' },
-          { text: 'Credit unions typically offer lower APRs, lower or no fees, more personal service, credit builder loans, and share-secured loans — making them ideal for credit building. David\'s credit union card saves him money while building the same credit history.', correct: true, explanation: 'Correct! Credit union advantages for credit building: 1) Lower APRs — 14.99% vs. 22.99% saves money if he ever carries a balance. 2) No annual fee — saves $39/year. 3) Credit builder loans — many CUs offer these while most big banks don\'t. 4) Share-secured loans — borrow against your savings at low rates. 5) Personal relationships — CU staff may help with financial education and upgrades. 6) Same credit reporting — the card reports to all three bureaus identically. David should absolutely choose the credit union card — better terms, lower cost, same credit-building benefit.' },
-          { text: 'Credit unions don\'t report to credit bureaus', correct: false, explanation: 'Most credit unions report to all three major credit bureaus, just like banks. David\'s credit union specifically confirms they report to all three.' },
-          { text: 'Credit unions are harder to join and not worth the effort', correct: false, explanation: 'Most credit unions have broad eligibility — based on geography, employer, or even just making a small donation to a partner organization. Joining is usually very easy.' }
+          { text: 'True', correct: true, explanation: 'Correct! Credit unions are not-for-profit institutions that typically offer lower APRs, fewer or no annual fees, credit builder loans (rare at big banks), and share-secured loans. They report to all three bureaus identically to big banks. For credit building, a credit union secured card or credit builder loan is usually the superior choice.' },
+          { text: 'False', correct: false, explanation: 'Actually, this is true. Credit unions consistently offer better terms for credit-building products than big national banks. They are not-for-profit, which means savings get passed to members. Joining a credit union is usually easy — eligibility is often based on geography, employer, or a small donation to a partner organization.' }
         ]
       },
       {
@@ -1051,63 +937,56 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The CFPB Complaint',
-        story: 'Jennifer disputed a $3,400 collection that she already paid in full 6 months ago. She sent proof of payment (canceled check + receipt) via certified mail. The bureau came back and said the account was "verified as accurate" — but it\'s still showing a $3,400 balance with "unpaid" status.',
-        question: 'What is Jennifer\'s strongest next move?',
+        type: 'multiple-choice',
+        title: 'After a Bureau Verifies a Paid Account as Unpaid',
+        question: 'You have proof a collection was paid in full but the bureau verified it as "unpaid." What is your strongest next step?',
         options: [
-          { text: 'Send the same dispute letter again', correct: false, explanation: 'Repeating the same dispute with the same evidence can be flagged as frivolous. She needs to escalate, not repeat.' },
-          { text: 'File a complaint with the Consumer Financial Protection Bureau (CFPB) and include all documentation proving payment', correct: true, explanation: 'Correct! The CFPB complaint is one of the most powerful tools available. Companies have a 97% response rate to CFPB complaints because federal regulators track them. Jennifer should include her proof of payment, certified mail receipts, and the bureau\'s "verified" response. CFPB complaints often produce results within 15 days — much faster than re-disputing. She can file at consumerfinance.gov.' },
-          { text: 'Hire a lawyer immediately', correct: false, explanation: 'A lawyer may be the right next step if the CFPB complaint doesn\'t work, but it\'s premature to skip the CFPB process. An attorney consultation is free in many cases, though, so it\'s worth exploring in parallel.' },
-          { text: 'Pay the $3,400 again to make it go away', correct: false, explanation: 'Jennifer already paid the debt. Paying again would mean paying the same debt twice — $6,800 total for a $3,400 debt. This is exactly why keeping payment proof is essential.' }
+          { text: 'Send the same dispute letter again with the same evidence', correct: false, explanation: 'Repeating an identical dispute risks a frivolous flag. You must escalate your approach, not repeat it.' },
+          { text: 'File a CFPB complaint that includes your proof of payment, certified mail receipts, and the bureau\'s verification response', correct: true, explanation: 'Correct! The CFPB complaint is one of the most powerful escalation tools. Companies have a 97% response rate because federal regulators track them. CFPB complaints are reviewed by senior staff and often produce results within 15 days — faster than re-disputing. File at consumerfinance.gov — it is completely free.' },
+          { text: 'Pay the collection a second time to remove it', correct: false, explanation: 'You already paid the debt. Paying again would mean paying twice for a single debt. Keep your proof of payment and escalate through proper channels.' },
+          { text: 'Contact your local police department about the bureau\'s error', correct: false, explanation: 'Credit reporting errors are civil matters, not criminal. The CFPB, not law enforcement, is the correct regulatory authority for credit reporting disputes.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Rapid Rescoring for a Mortgage',
-        story: 'Anthony is in the middle of a mortgage application. His credit score is 678 across all three bureaus. His mortgage broker says he needs a 680 to qualify for the best rate, saving him $43,000 over 30 years. Anthony just paid off a $2,000 credit card balance yesterday.',
-        question: 'Can Anthony\'s score be updated fast enough for the mortgage?',
+        type: 'multiple-choice',
+        title: 'Rapid Rescoring',
+        question: 'What is "rapid rescoring" and who can request it?',
         options: [
-          { text: 'No — credit scores only update once per month', correct: false, explanation: 'While normal bureau updates happen monthly, there is a special process available during mortgage applications.' },
-          { text: 'Yes — his mortgage broker can request a "rapid rescore" which updates his credit with the bureaus in 48-72 hours', correct: true, explanation: 'Correct! Rapid rescoring is a service available through mortgage lenders. The broker submits proof of the payoff directly to the bureaus through a special channel. Within 48-72 hours, Anthony\'s report reflects the $0 balance, his utilization drops, and his score updates. This 2-point boost from 678 to 680+ could save him $43,000. Only mortgage professionals can request rapid rescores — consumers cannot do it themselves.' },
-          { text: 'He should dispute all his accounts to force a rescore', correct: false, explanation: 'Filing disputes during a mortgage application is a terrible idea. Most lenders will pause or deny your application if you have active disputes because the report is considered "in flux."' },
-          { text: 'He should open a new credit card for a higher limit', correct: false, explanation: 'Opening new credit during a mortgage application would trigger a hard inquiry and potentially lower his score further. Mortgage lenders also flag new accounts as a risk.' }
+          { text: 'A service consumers can buy directly from the credit bureaus to instantly boost their score', correct: false, explanation: 'Consumers cannot request rapid rescoring directly. It is a lender service only.' },
+          { text: 'A lender-initiated process that updates credit information at the bureau level within 48-72 hours — only available through mortgage and auto loan professionals', correct: true, explanation: 'Correct! Rapid rescoring allows mortgage and auto loan lenders to submit proof of account changes (like a paid balance) directly to the bureaus through a special channel, updating the score in 48-72 hours. This can be the difference between qualifying and not qualifying for a rate tier. Consumers cannot do this themselves — only licensed lenders can initiate it.' },
+          { text: 'Filing disputes on all accounts simultaneously to force a bulk rescore', correct: false, explanation: 'Active disputes during a mortgage application can actually pause or derail the application. Lenders treat disputed items as unstable, which is why rapid rescoring exists as a legitimate alternative.' },
+          { text: 'Opening new accounts to quickly boost your score before a loan closes', correct: false, explanation: 'Opening accounts during a mortgage application triggers hard inquiries and may flag you as a risk. Lenders specifically look for new accounts opened during the application process.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The 609 Letter Reality',
-        story: 'Brandon reads online that sending a "609 letter" to TransUnion demanding they produce the original signed credit application for his $6,500 collection will force them to delete it. He sends the letter citing "Section 609 of the FCRA."',
-        question: 'What will likely happen with Brandon\'s 609 letter?',
+        type: 'true-false',
+        title: 'The "609 Letter" Myth',
+        question: 'Sending a "609 letter" to a credit bureau forces them to produce the original signed contract for an account, and if they cannot, the account must be deleted.',
         options: [
-          { text: 'TransUnion will delete the collection because they can\'t produce the original application', correct: false, explanation: 'Section 609 doesn\'t require bureaus to produce original documents. The bureau has no obligation to obtain original signed agreements from creditors.' },
-          { text: 'The letter will likely be ineffective because Section 609 only provides the right to request disclosure of your file — it does not create an obligation for the bureau to produce original signed contracts. Brandon should use Section 611 for disputes and Section 623 for direct furnisher disputes instead.', correct: true, explanation: 'Correct! FCRA §609 gives you the right to see what\'s IN your file. It does NOT require the bureau to prove accounts with original contracts. The "609 letter" as marketed online is one of the most widespread myths in credit repair. For Brandon\'s collection, effective strategies include: §611 dispute (inaccuracy/unverifiability), debt validation letter to the collector (FDCPA §809), §623 direct dispute to the furnisher, and CFPB complaint. These approaches have actual legal teeth.' },
-          { text: 'TransUnion will forward the letter to the collection agency and they\'ll settle', correct: false, explanation: 'TransUnion processes disputes according to FCRA procedures. They don\'t forward consumer letters to collectors for settlement purposes.' },
-          { text: '609 letters guarantee deletion within 15 days', correct: false, explanation: 'There is no guaranteed timeline for deletion through any letter. The 609 letter strategy as commonly described is fundamentally flawed in its legal basis.' }
+          { text: 'True', correct: false, explanation: 'False! This is one of the most widespread myths in credit repair. FCRA §609 only gives you the right to request disclosure of your credit file — it does NOT require bureaus to produce original signed contracts or create a deletion obligation for any account.' },
+          { text: 'False', correct: true, explanation: 'Correct! FCRA §609 is a file disclosure right, not a deletion mechanism. The "609 letter" as marketed by some credit repair companies is legally inaccurate. For disputing accounts, the correct sections are FCRA §611 (investigation by bureaus), §623 (direct dispute with the furnisher), and FDCPA §809 (debt validation with the collector).' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: CFPB Complaint Filing Strategy',
-        story: 'Michelle has disputed a $2,200 medical collection with Equifax three times. Each time, it was verified as accurate. She believes the debt was paid by her insurance and the collector has no valid claim. She decides to file a CFPB complaint.',
-        question: 'How should Michelle structure her CFPB complaint for maximum effectiveness?',
+        type: 'multiple-choice',
+        title: 'Making a CFPB Complaint Effective',
+        question: 'Which approach makes a CFPB complaint most effective?',
         options: [
-          { text: 'Keep it vague — just say "they won\'t remove my collection"', correct: false, explanation: 'Vague complaints get vague responses. The CFPB complaint is a formal regulatory process that works best with specific details and documentation.' },
-          { text: 'Include specific details: account number, dates of previous disputes, evidence that insurance paid the bill, Equifax\'s failure to properly investigate, and cite the specific FCRA sections violated. Request a specific resolution (deletion) and upload supporting documents.', correct: true, explanation: 'Correct! An effective CFPB complaint should include: 1) Specific account details (account number, creditor name, amount). 2) Timeline of previous dispute attempts and results. 3) Evidence supporting your claim (insurance payment confirmation). 4) Specific FCRA sections violated (§611 investigation requirements). 5) A clear, specific requested resolution (delete the account). 6) Uploaded supporting documents. Companies must respond within 15 days. CFPB complaints are reviewed by senior staff and carry regulatory weight that standard disputes don\'t.' },
-          { text: 'File complaints against Equifax only — the collector doesn\'t matter', correct: false, explanation: 'Michelle should file complaints against BOTH Equifax (for failing to properly investigate) and the collection agency (for reporting inaccurate information). Targeting both creates pressure from multiple angles.' },
-          { text: 'Wait until she has exhausted all other options before filing a CFPB complaint', correct: false, explanation: 'After three failed disputes, Michelle has already exhausted the standard process. The CFPB complaint is an appropriate next step and can be filed alongside other escalation strategies like MOV requests and 623 direct disputes.' }
+          { text: 'Keep it brief — just state the item you want removed', correct: false, explanation: 'Vague complaints get vague responses. The CFPB is a formal regulatory process that requires specific information to produce meaningful results.' },
+          { text: 'Include specific account details, timeline of previous disputes, supporting evidence (e.g., proof of insurance payment), which FCRA sections were violated, and a clear requested resolution — then upload supporting documents', correct: true, explanation: 'Correct! Companies must respond within 15 days of a CFPB complaint. Senior staff investigate CFPB complaints more thoroughly than standard disputes. File against BOTH the bureau AND the collection agency if both failed to act correctly — targeting multiple parties creates pressure from every angle. CFPB complaints are completely free at consumerfinance.gov.' },
+          { text: 'Only file against the bureau — the collector does not receive CFPB complaints', correct: false, explanation: 'CFPB complaints can be filed against any company — bureaus, collection agencies, original creditors, and banks. Filing against both the bureau and the collector creates maximum pressure.' },
+          { text: 'CFPB complaints should be saved as a last resort after exhausting all other options', correct: false, explanation: 'After multiple failed disputes, the CFPB complaint is an appropriate next step — not a final resort. It can be filed concurrently with MOV requests and Section 623 direct disputes.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Debt Validation Deep Dive',
-        story: 'A collection agency sends Oscar a letter about a $4,100 debt from a credit card he doesn\'t recognize. Oscar sends a debt validation letter within 30 days. The collector responds with a single-page letter showing his name, the amount owed, and the original creditor name — but no signed agreement, account statements, or payment history.',
-        question: 'Has the collector provided adequate validation of the debt?',
+        type: 'multiple-choice',
+        title: 'Adequate Debt Validation',
+        question: 'You request debt validation from a collector within 30 days. They respond with a one-page letter showing your name, the balance owed, and the original creditor name. Is this adequate validation?',
         options: [
-          { text: 'Yes — they showed his name and the amount, which is all that\'s required', correct: false, explanation: 'Courts have generally required more than just a name and amount for proper validation. The collector should provide documentation connecting Oscar to the specific debt.' },
-          { text: 'The validation is likely inadequate. While courts vary, many require the collector to provide documentation that verifies the debt amount, connects it to the consumer, and shows the chain of ownership. Oscar should send a follow-up letter citing the inadequate validation and demanding complete documentation.', correct: true, explanation: 'Correct! Proper debt validation should include: 1) Documentation from the original creditor connecting Oscar to the account. 2) Account statements showing how the balance was calculated. 3) Chain of assignment/sale showing the collector\'s right to collect. 4) The original account terms and conditions. A single-page summary letter often fails to meet validation standards. Oscar should respond noting the inadequate validation, demand complete documentation, and if the collector can\'t provide it, dispute the account with the credit bureaus as "unverifiable."' },
-          { text: 'Validation requirements are the same in every state', correct: false, explanation: 'While the FDCPA provides federal minimums, court interpretations of what constitutes adequate validation vary by circuit. Some circuits require more detailed documentation than others.' },
-          { text: 'If the collector provided anything at all, the debt is valid', correct: false, explanation: 'Simply sending a letter with basic information doesn\'t validate a debt. The documentation must actually demonstrate that the debt is legitimate, the amount is correct, and the consumer is the right person.' }
+          { text: 'Yes — your name and the amount are all that is required', correct: false, explanation: 'Courts have generally required more substantive documentation. A name and amount without supporting records does not connect you to the specific debt.' },
+          { text: 'Likely not — adequate validation should include account statements, chain of ownership documentation, and records connecting you to the specific account, not just a summary letter', correct: true, explanation: 'Correct! Proper validation should include: documentation from the original creditor connecting you to the account, statements showing how the balance was calculated, and chain of assignment showing the collector\'s right to collect. A bare summary letter often falls short. Send a follow-up demanding complete documentation — if they cannot provide it, dispute the account with bureaus as "unverifiable."' },
+          { text: 'Yes — any written response constitutes adequate validation under the FDCPA', correct: false, explanation: 'Not any written response qualifies. The documentation must substantively demonstrate that the debt is yours, the amount is correct, and the collector has the right to collect it.' },
+          { text: 'Validation requirements are identical in every state and court circuit', correct: false, explanation: 'The FDCPA provides federal minimums, but court interpretations of what constitutes adequate validation vary by circuit. Some require more detailed documentation than others.' }
         ]
       },
       {
@@ -1123,63 +1002,56 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Goodwill Letter Timing',
-        story: 'Eric has a 30-day late payment on his American Express card from 14 months ago. He was hospitalized and missed the payment. Since then, he\'s made 14 consecutive on-time payments and has been a cardholder for 8 years. He wants to send a goodwill letter.',
-        question: 'Does Eric have a strong case for a goodwill adjustment?',
+        type: 'multiple-choice',
+        title: 'Ideal Goodwill Letter Conditions',
+        question: 'Which combination of factors gives a goodwill letter the strongest chance of success?',
         options: [
-          { text: 'No — creditors never remove accurate information', correct: false, explanation: 'While creditors aren\'t required to remove accurate information, many do make goodwill adjustments for loyal customers with legitimate hardship stories. Success rates are 15-30%.' },
-          { text: 'Yes — Eric has multiple factors in his favor: legitimate hardship (hospitalization), long customer relationship (8 years), strong recovery (14 months of perfect payments), and a single isolated incident. He should send the goodwill letter to Amex\'s executive customer relations team.', correct: true, explanation: 'Correct! Eric has an ideal goodwill case: 1) Documented hardship — hospitalization is one of the most sympathetic reasons. 2) 8-year relationship — long-standing customers get more consideration. 3) 14 months of perfect payments — strong demonstration of recovery. 4) Single incident — one late in 8 years shows this was an anomaly, not a pattern. He should send the letter to Amex\'s executive team (not regular customer service), include brief documentation of the hospitalization, take responsibility, highlight his loyalty, and specifically request a "goodwill adjustment" to remove the late payment notation.' },
-          { text: 'He should wait until 24 months of perfect payments before sending the letter', correct: false, explanation: '14 months is already a strong track record. While more time doesn\'t hurt, there\'s no need to wait. The sooner the late payment is removed, the sooner his score recovers.' },
-          { text: 'Goodwill letters only work for the first 90 days after a late payment', correct: false, explanation: 'There\'s no time limit on goodwill letters. In fact, having more months of on-time payments AFTER the incident strengthens the case. 14 months of recovery is excellent.' }
+          { text: 'The account is recent, the error was minor, and you are a new customer', correct: false, explanation: 'New customers have less leverage than long-standing ones. Creditors are more likely to grant goodwill adjustments to customers who demonstrate years of loyalty.' },
+          { text: 'Documented legitimate hardship, a long customer relationship, multiple months of recovery payments, and a single isolated incident rather than a pattern of lates', correct: true, explanation: 'Correct! The strongest goodwill cases combine: documented hardship (job loss, medical emergency), a long customer relationship (3+ years), demonstrated recovery (6+ months of on-time payments since the incident), and an isolated incident rather than a pattern. Always send goodwill letters to the creditor\'s executive customer relations office — not regular customer service, which has less authority.' },
+          { text: 'Creditors never remove accurate information, so goodwill letters always fail', correct: false, explanation: 'While creditors are not required to remove accurate information, goodwill adjustments succeed 15-30% of the time for customers with legitimate hardship stories and good relationship history. That success rate is worth a letter and a stamp.' },
+          { text: 'Goodwill letters only work within 90 days of the late payment', correct: false, explanation: 'There is no time limit on goodwill letters. In fact, having more months of perfect payments after the incident strengthens your case by demonstrating sustained recovery. More recovery history, not less, improves your odds.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Settlement Negotiation Tactics',
-        story: 'A collection agency is trying to collect $7,500 from Debra for an old credit card debt. They purchased the debt from the original creditor. Debra has $3,000 available. The collector initially demands full payment.',
-        question: 'What negotiation strategies should Debra use?',
+        type: 'multiple-choice',
+        title: 'Debt Settlement Negotiation Basics',
+        question: 'A collection agency is demanding $7,500 for a purchased debt. You have $3,000 available to negotiate. What is the correct approach?',
         options: [
-          { text: 'Accept the full $7,500 and set up a payment plan', correct: false, explanation: 'Collectors who bought debt for pennies on the dollar are almost always willing to negotiate. Accepting the full amount leaves significant money on the table.' },
-          { text: 'Start by offering 30-40% ($2,250-$3,000), negotiate in writing only, require pay-for-delete as a condition, get the final agreement in writing on company letterhead before sending any payment, and pay by cashier\'s check — never give bank account access', correct: true, explanation: 'Correct! Debra\'s negotiation strategy: 1) Start low — offer 30-40% ($2,250-$3,000). The collector probably paid 4-10 cents on the dollar ($300-$750). Anything above that is profit. 2) Negotiate in writing — verbal agreements aren\'t enforceable. 3) Demand pay-for-delete — make it a condition of payment. 4) Get the agreement on company letterhead before paying. 5) Pay by cashier\'s check or money order — never give direct bank account access. 6) Best timing — end of month/quarter when collectors face quotas. 7) Don\'t reveal how much she has available — always act like money is tight.' },
-          { text: 'Tell the collector she\'ll pay $3,000 right now if they stop calling', correct: false, explanation: 'Revealing her maximum budget eliminates negotiation leverage. She should start at 30% and work up slowly. Also, stopping calls without deletion doesn\'t fix her credit.' },
-          { text: 'Ignore all calls and letters — eventually they give up', correct: false, explanation: 'While the debt may become uncollectible after the statute of limitations expires, it can still damage her credit for up to 7 years. Active negotiation gives her control over the outcome.' }
+          { text: 'Immediately offer your full $3,000 to close the matter quickly', correct: false, explanation: 'Revealing your maximum budget immediately eliminates leverage. Start low and negotiate upward — the collector paid 4-10 cents on the dollar for this debt, so anything you offer above that is profit for them.' },
+          { text: 'Accept the full $7,500 on a payment plan to show good faith', correct: false, explanation: 'Collectors who purchased debt cheaply are almost always willing to settle for less. Accepting the full amount without negotiating is unnecessary.' },
+          { text: 'Start at 30-40%, negotiate only in writing, require pay-for-delete as a condition, and get the final agreement on company letterhead before sending any payment via cashier\'s check', correct: true, explanation: 'Correct! The framework: 1) Start at 30-40% ($2,250-$3,000) — the collector paid far less. 2) Writing only — verbal agreements are not enforceable. 3) Pay-for-delete as a condition — not an afterthought. 4) Written agreement on company letterhead before paying. 5) Cashier\'s check or money order — never give bank account access. Best time to negotiate: end of month or quarter, when collectors face quotas and are most flexible.' },
+          { text: 'Ignore all communications until the statute of limitations expires', correct: false, explanation: 'While the debt may become legally uncollectible after the statute of limitations, it can still damage your credit for up to 7 years from the date of first delinquency. Negotiation gives you control that passive waiting does not.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: When to Consult an Attorney',
-        story: 'After two rounds of disputes, William\'s TransUnion report still shows a $3,200 collection he\'s proven isn\'t his. He sent a Method of Verification letter and received an inadequate response. His CFPB complaint was answered with a generic "verified" letter. The collection agency ignored his 623 direct dispute entirely.',
-        question: 'At what point should William consider consulting a consumer rights attorney?',
+        type: 'multiple-choice',
+        title: 'When to Involve a Consumer Rights Attorney',
+        question: 'After two dispute rounds, a CFPB complaint, and a Method of Verification request, an account you have proven is not yours is still on your report. What should you do?',
         options: [
-          { text: 'Only after 5+ years of disputing on his own', correct: false, explanation: 'William shouldn\'t wait years. He already has strong evidence of multiple FCRA violations that an attorney could act on immediately.' },
-          { text: 'Now — William has documented evidence of multiple FCRA violations: inadequate MOV response (§611 violation), potential failure to properly investigate (§611), and the furnisher ignoring his 623 direct dispute (§623 violation). Many consumer rights attorneys work on contingency with no upfront cost.', correct: true, explanation: 'Correct! William has already exhausted the standard process and documented multiple potential violations: 1) Inadequate MOV response — violation of §611(a)(7). 2) Continued reporting despite evidence — potential §611(a)(1) violation. 3) Furnisher ignoring 623 direct dispute — §623(b) violation. Most consumer rights attorneys offer free consultations and work on contingency (they get paid from the damages award, not from William). Under the FCRA, successful plaintiffs can recover: up to $1,000 per violation in statutory damages, actual damages, and attorney fees paid by the violator. William\'s documented paper trail makes him an attractive case.' },
-          { text: 'Attorneys are never worth it for credit disputes — they\'re too expensive', correct: false, explanation: 'Consumer rights attorneys typically work on contingency for FCRA cases — meaning no upfront cost to the consumer. The defendant pays attorney fees if the consumer wins.' },
-          { text: 'He should keep sending the same dispute letter until it works', correct: false, explanation: 'Repeating the same approach after multiple failures is the definition of futility. William has strong legal claims that an attorney can leverage. Escalation is the right move.' }
+          { text: 'Wait 5 more years and hope it falls off naturally', correct: false, explanation: 'You already have documented evidence of multiple FCRA violations. Waiting years when legal recourse is available is unnecessary and costly in terms of score damage.' },
+          { text: 'Send the same dispute letter a third time', correct: false, explanation: 'Repeating an identical approach after multiple failures wastes time. You have already exhausted the standard process — escalation is the correct next step.' },
+          { text: 'Consult a consumer rights attorney — you have documented FCRA violations and most consumer rights attorneys offer free consultations and work on contingency', correct: true, explanation: 'Correct! After exhausting disputes, MOV, CFPB complaint, and Section 623 direct dispute, you have documented multiple potential violations. Consumer rights attorneys take FCRA cases on contingency — no upfront cost. If successful, the defendant pays attorney fees. Under the FCRA, you can recover up to $1,000 per violation in statutory damages plus actual damages. Your paper trail makes you an attractive client.' },
+          { text: 'Consumer rights attorneys are too expensive for credit issues', correct: false, explanation: 'FCRA cases are commonly taken on contingency — meaning you pay nothing upfront. The violator pays attorney fees if you win. Many attorneys offer free initial consultations specifically for credit reporting cases.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Early Exclusion Request',
-        story: 'Claudia has a charged-off credit card from January 2018. It\'s now December 2024 — nearly 7 years since the Date of First Delinquency. The item should automatically fall off by approximately January 2025. However, it\'s still showing on her Experian report.',
-        question: 'What can Claudia do if the item doesn\'t automatically fall off after 7 years?',
+        type: 'true-false',
+        title: 'The 7-Year Reporting Limit',
+        question: 'If a negative item remains on your credit report past its 7-year expiration date, you can legally demand its removal by disputing it as "obsolete" under FCRA §605.',
         options: [
-          { text: 'Nothing — she just has to wait longer', correct: false, explanation: 'The 7-year reporting period is not optional. If an item remains past its expiration date, consumers have the right to demand removal.' },
-          { text: 'Dispute the item as "obsolete" under FCRA §605, which requires removal of most negative items after 7 years from the DOFD. If the bureau doesn\'t comply, file a CFPB complaint and consult an attorney for the FCRA violation.', correct: true, explanation: 'Correct! FCRA §605(a) mandates that most negative items be removed 7 years after the DOFD. If Claudia\'s charge-off from January 2018 is still showing in February 2025, it\'s a clear violation. She should: 1) Dispute with Experian citing §605(a) and stating the DOFD and 7-year expiration date. 2) Include documentation of the DOFD if available. 3) If the bureau doesn\'t comply within 30 days, file a CFPB complaint. 4) Consult a consumer rights attorney — continued reporting of obsolete information is a straightforward FCRA violation with potential damages.' },
-          { text: 'The 7-year rule is just a guideline, not a legal requirement', correct: false, explanation: 'The 7-year reporting period is codified in federal law (FCRA §605). It is a legal requirement, not a suggestion. Bureaus that violate it face legal liability.' },
-          { text: 'Items stay until you call the bureau and ask them to check', correct: false, explanation: 'Items should be automatically removed when they reach their expiration date. If they\'re not, it\'s a system failure or violation that should be addressed through dispute and escalation.' }
+          { text: 'True', correct: true, explanation: 'Correct! FCRA §605(a) mandates removal of most negative items 7 years after the date of first delinquency (DOFD). If an item persists past its expiration, dispute it as "obsolete" citing §605(a) with the DOFD documented. If the bureau does not comply within 30 days, file a CFPB complaint. Continued reporting of obsolete information is an FCRA violation.' },
+          { text: 'False', correct: false, explanation: 'Actually this is true. The 7-year reporting period is codified in federal law — it is a legal requirement, not a guideline. Bureaus that continue to report expired items face regulatory consequences and potential legal liability.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: Strategic Default Recovery Plan',
-        story: 'Paul strategically defaulted on his mortgage in 2020 during a financial crisis, letting the home go to foreclosure. It\'s now 2024, and his credit score is 540. He has stable employment and $20,000 in savings. He wants to rebuild to a 700+ score within 2 years.',
-        question: 'What is the most effective recovery plan for Paul?',
+        type: 'multiple-choice',
+        title: 'Rebuilding After Serious Derogatory Events',
+        question: 'Your credit score is 540 after a major derogatory event 2 years ago. You have stable income and savings. What is the most effective recovery approach?',
         options: [
-          { text: 'Wait for the foreclosure to fall off — there\'s nothing he can do until then', correct: false, explanation: 'Waiting passively for 3+ more years wastes valuable rebuilding time. Paul can actively rebuild his credit now despite the foreclosure on his report.' },
-          { text: 'Open a secured card ($500) and credit builder loan now, maintain under 10% utilization, make perfect payments for 24 months, get added as an authorized user if possible, and request limit increases every 6 months. The foreclosure\'s impact diminishes each year and new positive accounts will gradually outweigh it.', correct: true, explanation: 'Correct! Paul\'s strategic recovery: 1) Secured card immediately ($500 deposit from savings) — starts building positive payment history. 2) Credit builder loan ($500) — adds installment tradeline for credit mix. 3) Keep utilization under 10% — critical for maximizing score recovery. 4) Perfect payments for 24 months — payment history is 35% of score. 5) Authorized user on a family member\'s old, clean card — adds history depth. 6) Limit increases every 6 months — lowers utilization without new inquiries. 7) The 2020 foreclosure\'s scoring impact diminishes each year, and by 2026, with 2 years of positive history, Paul could realistically reach 680-720. The foreclosure will remain on his report until 2027 but its impact lessens significantly over time.' },
-          { text: 'Apply for multiple credit cards to rebuild quickly', correct: false, explanation: 'Multiple applications generate hard inquiries and most would be denied with a 540 score and recent foreclosure. One secured card is the right starting point.' },
-          { text: 'Focus only on paying cash for everything and avoiding credit entirely', correct: false, explanation: 'Avoiding credit means no positive payment history being reported. Paul needs active credit accounts to rebuild his score — not debt avoidance.' }
+          { text: 'Wait passively until the negative item falls off your report', correct: false, explanation: 'Waiting passively means 5+ more years of score damage with no improvement. Active credit building during this period significantly accelerates recovery.' },
+          { text: 'Apply for multiple credit cards simultaneously to establish history quickly', correct: false, explanation: 'Multiple applications generate hard inquiries and will mostly be denied with a 540 score. One secured card is the correct starting point.' },
+          { text: 'Open a secured card and credit builder loan, maintain under 10% utilization, make perfect payments for 24 months, and request limit increases every 6 months — the negative event\'s impact diminishes each year while new positive accounts accumulate', correct: true, explanation: 'Correct! Active rebuilding: 1) Secured card — guaranteed approval, starts positive payment history immediately. 2) Credit builder loan — adds installment tradeline for credit mix. 3) Under 10% utilization — critical for score recovery. 4) Perfect payments for 24 months — 35% of score. 5) Limit increases every 6 months — lowers utilization free. The negative event\'s scoring weight decreases each year, and new positive history gradually outweighs it. With discipline, a 680-720 score is realistic within 2 years despite the derogatory on record.' },
+          { text: 'Avoid credit entirely and pay cash for everything', correct: false, explanation: 'Avoiding credit means no positive payment history is being reported. You need active accounts to rebuild — not debt avoidance. The goal is responsible credit use, not credit abstinence.' }
         ]
       },
       {
@@ -1229,99 +1101,85 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Co-Signer Trap',
-        story: 'Elena\'s brother asks her to co-sign his $25,000 car loan because his credit score is 520 and he can\'t qualify alone. Elena has an 810 score and has worked hard for years to achieve it. Her brother promises to make every payment on time.',
-        question: 'What should Elena understand about co-signing?',
+        type: 'true-false',
+        title: 'Co-Signing Responsibility',
+        question: 'When you co-sign a loan, the debt appears on your credit report and any missed payments by the primary borrower will also appear on your credit history.',
         options: [
-          { text: 'It\'s safe as long as her brother promises to pay on time', correct: false, explanation: 'Promises don\'t protect credit scores. If her brother misses even one payment, Elena\'s 810 score will take a massive hit — potentially 90-110 points for a single 30-day late.' },
-          { text: 'Co-signing means the full $25,000 debt appears on her credit report, affecting her utilization and debt-to-income ratio — and if her brother defaults, her score could drop over 100 points', correct: true, explanation: 'Correct! Co-signing means: 1) The full $25,000 loan balance appears on Elena\'s credit report, 2) It affects her debt-to-income ratio for future loans, 3) Every late payment hits HER report, 4) If her brother defaults, Elena is legally responsible for the remaining balance, 5) If it goes to collections, it appears on Elena\'s report too. An 810 score has the most to lose — people with higher scores experience larger drops from negative events.' },
-          { text: 'Co-signing doesn\'t appear on the co-signer\'s credit report', correct: false, explanation: 'Co-signed accounts appear on BOTH the primary borrower\'s and the co-signer\'s credit reports. Every payment — good or bad — is reported for both.' },
-          { text: 'She can remove herself as co-signer at any time', correct: false, explanation: 'Removing a co-signer typically requires the primary borrower to refinance the loan in their own name. Most people who need a co-signer can\'t qualify to refinance, trapping the co-signer.' }
+          { text: 'True', correct: true, explanation: 'Correct! Co-signed accounts appear on both the primary borrower\'s and the co-signer\'s credit reports. Every payment — on-time or late — is reported for both. If the borrower defaults, you are legally liable for the full balance, and it will affect your score just as if it were your own debt. Co-signers with high scores have the most to lose from a single missed payment.' },
+          { text: 'False', correct: false, explanation: 'False! Co-signed accounts fully appear on your credit report. The $25,000 loan balance affects your debt-to-income ratio for future credit applications, and every late payment drops your score. You also cannot easily remove yourself as a co-signer — the borrower must refinance in their own name to release you, which may not be possible.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Identity Theft Alert',
-        story: 'Sandra gets a notification from her credit monitoring service: a new credit card was opened in her name at a bank she\'s never used, with a $5,000 limit. She did NOT apply for this card.',
-        question: 'What is the correct order of actions Sandra should take?',
+        type: 'multiple-choice',
+        title: 'Responding to a Fraudulent Account',
+        question: 'Your credit monitoring alerts you that a new credit card was opened in your name at a bank you have never used. What is your immediate action plan?',
         options: [
-          { text: 'File a police report, then wait to see if charges appear', correct: false, explanation: 'Waiting is risky. The fraudster could run up charges immediately and open more accounts. Sandra needs to act on all fronts simultaneously.' },
-          { text: 'Call the bank to close the fraudulent account, freeze credit at all 3 bureaus, file an FTC identity theft report at IdentityTheft.gov, file a police report, and dispute the account with all three bureaus', correct: true, explanation: 'Correct! The complete action plan: 1) Call the bank immediately to report fraud and close the account, 2) Freeze credit at TransUnion, Experian, and Equifax to prevent new accounts, 3) File an identity theft report at IdentityTheft.gov (creates an official FTC report), 4) File a local police report using the FTC report as documentation, 5) Send dispute letters to all three bureaus with copies of the FTC report and police report, 6) Set up fraud alerts as an additional layer, 7) Monitor all accounts closely for 12+ months.' },
-          { text: 'Just dispute the account with the credit bureaus', correct: false, explanation: 'Disputing alone doesn\'t stop the fraudster from opening more accounts. She needs to freeze her credit immediately to prevent further damage.' },
-          { text: 'Ignore it — the bank will figure it out eventually', correct: false, explanation: 'Ignoring identity theft allows the fraudster to continue. Without freezes and disputes, they could open multiple accounts, take out loans, and even commit crimes in Sandra\'s name.' }
+          { text: 'File a police report, then wait to see if charges appear', correct: false, explanation: 'Waiting is risky — the fraudster can run up charges and open additional accounts while you wait. You must freeze your credit immediately.' },
+          { text: 'Just dispute the account with the credit bureaus', correct: false, explanation: 'Disputing alone does not stop the fraudster from opening more accounts. A credit freeze is the essential first defensive action.' },
+          { text: 'Call the bank to report fraud and close the account, freeze credit at all three bureaus, file an FTC identity theft report at IdentityTheft.gov, file a police report, then dispute the account with all three bureaus', correct: true, explanation: 'Correct! The complete action plan: 1) Call the bank to close the fraudulent account immediately. 2) Freeze credit at all three bureaus to block new accounts. 3) File an official FTC identity theft report at IdentityTheft.gov. 4) File a local police report using the FTC report. 5) Dispute the account with all three bureaus using copies of both reports. 6) Monitor accounts closely for 12+ months after the event.' },
+          { text: 'Ignore it — the bank will investigate on its own', correct: false, explanation: 'Banks investigate fraud, but without your freeze, the fraudster can open additional accounts while the investigation is ongoing. You must take immediate protective action.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Statement Date Trick',
-        story: 'Michelle has a Discover card with a $6,000 limit. She uses it heavily for rewards, spending about $4,000/month on groceries, gas, and bills. She always pays the full balance by the due date and has never paid interest.\n\nHer credit score is 720, but she thinks it should be higher given her perfect payment history.',
-        question: 'Why might Michelle\'s score be lower than expected despite never missing a payment?',
+        type: 'multiple-choice',
+        title: 'Statement Balance vs. Payment Date',
+        question: 'You spend $4,000/month on a card with a $6,000 limit and always pay in full by the due date. Your score is lower than expected. Why?',
         options: [
-          { text: 'Discover cards don\'t help your credit as much as Visa or Mastercard', correct: false, explanation: 'All major credit cards report to the bureaus equally. The card network doesn\'t affect scoring.' },
-          { text: 'Her statement balance of $4,000 on a $6,000 limit shows 67% utilization to the bureaus — even though she pays in full each month', correct: true, explanation: 'Correct! Credit utilization is calculated from your STATEMENT BALANCE — the amount on your bill, not your balance after payment. Even though Michelle pays in full (great for avoiding interest), the bureaus see 67% utilization every month. The fix: pay down the balance BEFORE the statement closing date. If she pays $3,500 before the statement closes, only $500 will be reported (8% utilization). Her score could jump 40-60 points.' },
-          { text: 'Spending too much even if you pay it off shows irresponsibility', correct: false, explanation: 'Spending isn\'t tracked as a negative — only the balance at statement close matters. High spending with low reported utilization is actually ideal.' },
-          { text: 'Her score is limited by having only one credit card', correct: false, explanation: 'While having more cards can help, the primary issue here is utilization. Fixing the statement date timing would give her the biggest immediate boost.' }
+          { text: 'Paying in full lowers your score because you generate no interest income for the bank', correct: false, explanation: 'Paying in full is optimal — it avoids interest and shows responsible usage. The issue here is timing, not the full-payment habit.' },
+          { text: 'The bureaus see your statement balance of $4,000 on a $6,000 limit as 67% utilization — even though you pay it off — because utilization is calculated from the statement balance, not the post-payment balance', correct: true, explanation: 'Correct! Utilization is calculated from your STATEMENT BALANCE — the amount on your bill at the time statements close. Even though you pay in full, bureaus see 67% utilization every month. The fix: pay down your balance BEFORE the statement closing date. If you pay it down to $500 before the statement closes, only 8% utilization is reported. This one timing change can boost scores 40-60 points.' },
+          { text: 'Spending heavily on any single card permanently lowers your score', correct: false, explanation: 'Utilization has no memory — it only reflects the current statement balance. High utilization is temporary and reversible by paying before the statement closes.' },
+          { text: 'Card network type (Visa, Mastercard, Discover) affects how utilization is calculated', correct: false, explanation: 'All major card networks report to bureaus identically. The card network has no effect on how utilization is calculated.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Balance Transfer Mistake',
-        story: 'Olivia has $8,000 in credit card debt on Card A ($10,000 limit, 24% APR). She gets a balance transfer offer: 0% APR for 15 months on Card B (new card with $10,000 limit). She transfers the entire $8,000 and then closes Card A to avoid temptation.',
-        question: 'What mistake did Olivia make?',
+        type: 'true-false',
+        title: 'Balance Transfers and Account Closure',
+        question: 'After completing a balance transfer to a 0% APR card, you should close the old card to eliminate temptation and simplify your finances.',
         options: [
-          { text: 'She should have kept Card A open — closing it eliminated $10,000 in available credit, spiking her overall utilization from 40% ($8,000/$20,000) to 80% ($8,000/$10,000)', correct: true, explanation: 'Correct! By closing Card A, Olivia cut her total available credit in half. Her utilization jumped from 40% to 80% — a massive increase that could drop her score 50-80 points. The transfer itself was smart (saving on interest), but closing Card A was the mistake. She should have kept it open with a $0 balance to maintain her total credit limit. The ideal strategy: transfer the balance, keep the old card open, and use the 0% period to aggressively pay down the debt.' },
-          { text: 'Balance transfers always hurt your credit', correct: false, explanation: 'Balance transfers themselves are neutral or positive for credit. The new card may cause a temporary inquiry dip, but lower interest means faster payoff. The mistake was closing the old card.' },
-          { text: 'She should have transferred only half the balance', correct: false, explanation: 'Transferring the full amount to a 0% card is financially optimal — it saves the most in interest. The mistake was closing the old card, not the transfer amount.' },
-          { text: 'The 0% offer was a scam', correct: false, explanation: 'Balance transfer offers with 0% introductory APR are legitimate and widely available from major banks. They\'re a powerful debt payoff tool when used correctly.' }
+          { text: 'True', correct: false, explanation: 'False! Closing the old card eliminates its credit limit from your total available credit, which spikes your utilization ratio dramatically. For example, transferring $8,000 from a $10,000-limit card and closing it takes your utilization from 40% ($8,000/$20,000) to 80% ($8,000/$10,000) — a 50-80 point score drop. Keep the old card open with a $0 balance.' },
+          { text: 'False', correct: true, explanation: 'Correct! The balance transfer itself is a smart move, but closing the old card is a mistake. Keep it open with a $0 balance to preserve your total available credit and lower your overall utilization. Use the 0% introductory period to aggressively pay down the transferred balance.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Annual Fee Decision',
-        story: 'Marcus has a premium rewards card he\'s had for 7 years with a $25,000 limit. The card has a $550 annual fee. He no longer travels enough to justify the rewards. He wants to cancel it.',
-        question: 'What is Marcus\'s best option?',
+        type: 'multiple-choice',
+        title: 'Managing Annual Fee Cards You No Longer Use',
+        question: 'You have a 7-year-old credit card with a $25,000 limit and a $550 annual fee you can no longer justify. What is the best approach?',
         options: [
-          { text: 'Cancel the card immediately to stop paying the fee', correct: false, explanation: 'Canceling would eliminate 7 years of credit history and $25,000 in available credit, likely dropping his score significantly.' },
-          { text: 'Call the issuer and ask to downgrade to a no-annual-fee version of the card — this preserves the account age, credit limit, and payment history while eliminating the fee', correct: true, explanation: 'Correct! Most major card issuers allow "product changes" or downgrades. Marcus can switch to a no-fee card from the same issuer while keeping the same account number, credit limit, and 7-year history. This is the best of both worlds — no fee and no credit damage. If the issuer doesn\'t offer a downgrade, Marcus should negotiate a retention offer (reduced fee or bonus rewards) before considering cancellation.' },
-          { text: 'Keep paying the $550 fee to protect his credit', correct: false, explanation: 'While keeping the card protects his credit, paying $550/year when he doesn\'t use the rewards is wasteful. A product change/downgrade is a better solution.' },
-          { text: 'Stop paying the fee and let them close it', correct: false, explanation: 'Not paying the fee would result in a late payment or account closure by the creditor — both of which damage credit. He should proactively manage the situation.' }
+          { text: 'Cancel the card immediately to stop paying the fee', correct: false, explanation: 'Canceling eliminates 7 years of credit history and $25,000 in available credit — a damaging trade-off for saving $550/year.' },
+          { text: 'Call the issuer and request a product change (downgrade) to a no-annual-fee card with the same issuer', correct: true, explanation: 'Correct! Most major issuers allow product changes. You switch to a no-fee card from the same issuer while keeping the same account number, 7-year history, and credit limit. If no downgrade exists, call retention and negotiate — issuers often offer fee waivers or bonus rewards to keep profitable customers. Cancellation should be a last resort.' },
+          { text: 'Stop paying the fee and let the issuer close it', correct: false, explanation: 'Not paying the annual fee results in a late payment (or account closure by the creditor) — both damaging to your credit. Always manage proactively.' },
+          { text: 'Pay the fee annually to preserve the account permanently', correct: false, explanation: 'Paying $550/year unnecessarily is wasteful when a product change achieves the same credit preservation at no cost. The downgrade option is strictly better.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Freeze vs. Lock Confusion',
-        story: 'After hearing about data breaches, Tamara wants to protect her credit. She sees two options from Experian: a free "Credit Freeze" and a paid "CreditLock" subscription for $24.99/month. Both claim to prevent unauthorized access to her report.',
-        question: 'Which should Tamara choose?',
+        type: 'true-false',
+        title: 'Credit Freeze vs. Paid Credit Lock',
+        question: 'A paid credit lock service from a bureau offers stronger protection than a free credit freeze because it is a premium product.',
         options: [
-          { text: 'CreditLock — it costs more so it must be better', correct: false, explanation: 'Price doesn\'t equal quality in this case. The free credit freeze actually has stronger legal protections than the paid lock service.' },
-          { text: 'The free Credit Freeze — it has the same blocking capability plus stronger legal protections under federal law (FCRA), while CreditLock is a private service with terms that can change', correct: true, explanation: 'Correct! A credit freeze is governed by federal law (FCRA) and state laws. It cannot be weakened by the bureau, and violations carry legal penalties. CreditLock is a private product — its terms can change, and it may not carry the same legal weight. Both prevent new accounts from being opened, but the freeze is free and has stronger legal backing. The paid lock service is essentially a convenience product with app-based toggling. Tamara should choose the free freeze and freeze at all three bureaus.' },
-          { text: 'Both — she needs maximum protection', correct: false, explanation: 'Using both at the same bureau is redundant. The free freeze provides all the protection she needs. Save the $300/year.' },
-          { text: 'Neither — they hurt your credit score', correct: false, explanation: 'Neither a freeze nor a lock affects your credit score. They only prevent new credit applications from being processed.' }
+          { text: 'True', correct: false, explanation: 'False! Credit freezes are governed by federal law (FCRA) and have stronger legal protections than paid lock services, which are private products whose terms can change. Both block new accounts from being opened, but the free freeze is legally more powerful and costs nothing.' },
+          { text: 'False', correct: true, explanation: 'Correct! The free credit freeze has stronger legal backing than paid lock services because it is enshrined in the FCRA. Lock products are private, their terms can change, and they may not carry the same legal weight. Freeze your credit at all three bureaus for free — there is no reason to pay for a lock service.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Rate Shopping Window',
-        story: 'Kevin is shopping for a mortgage and wants the best rate. He applies at: Bank A on March 1st, Bank B on March 8th, Credit Union C on March 15th, and Bank D on March 20th. Each one pulls his credit report. He\'s worried about four hard inquiries.',
-        question: 'How will these mortgage inquiries affect Kevin\'s score?',
+        type: 'multiple-choice',
+        title: 'Rate Shopping and Hard Inquiries',
+        question: 'You apply for a mortgage at four different lenders over a 20-day period. Each one pulls your credit report. How many hard inquiry impacts does your score take?',
         options: [
-          { text: 'Four separate hard inquiries — his score will drop 20-60 points', correct: false, explanation: 'Mortgage inquiries within a short window are protected by rate-shopping provisions in scoring models.' },
-          { text: 'All four mortgage inquiries within a 14-45 day window will count as a single inquiry for scoring purposes — his score will only take one small hit of 5-15 points', correct: true, explanation: 'Correct! FICO allows a 45-day window (VantageScore uses 14 days) for mortgage rate shopping. All inquiries of the same type within this window are treated as one inquiry for scoring. Kevin\'s four mortgage pulls over 20 days will count as a single inquiry, costing him only 5-15 points. Important: This protection only applies to mortgage, auto, and student loan inquiries — NOT credit card applications. Kevin was smart to consolidate his shopping within a tight timeframe.' },
-          { text: 'Only the first inquiry counts — the others are ignored completely', correct: false, explanation: 'All inquiries appear on the report, but for scoring purposes they\'re grouped as one during the rate-shopping window. They don\'t disappear — they just count as one impact.' },
-          { text: 'He should have only applied to one lender', correct: false, explanation: 'Shopping multiple lenders is actually recommended to get the best rate. The rate-shopping window specifically protects consumers who compare offers.' }
+          { text: 'Four impacts — one per inquiry', correct: false, explanation: 'Rate-shopping protections exist specifically to prevent this. Multiple mortgage inquiries within a short window are grouped into a single scoring impact.' },
+          { text: 'Zero — mortgage inquiries are always ignored', correct: false, explanation: 'Mortgage inquiries do count, but multiple applications within the rate-shopping window are treated as one inquiry for scoring purposes.' },
+          { text: 'One — FICO treats multiple mortgage inquiries within a 45-day window as a single inquiry for scoring purposes', correct: true, explanation: 'Correct! FICO allows a 45-day window for mortgage (and auto loan and student loan) rate shopping. All inquiries of the same loan type within this window count as a single scoring impact of 5-15 points. Important: this protection does NOT apply to credit card applications — each card application is a separate hard inquiry.' },
+          { text: 'It depends on which credit bureau each lender pulls', correct: false, explanation: 'The rate-shopping window applies regardless of which bureau is pulled. The grouping is based on inquiry type (mortgage) and timing (within 45 days), not which bureau.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Dormant Account Problem',
-        story: 'Jessica has a credit card she hasn\'t used in 18 months. It was her second-oldest card (8 years old, $12,000 limit). She just received a notice from the bank saying they plan to close the account due to inactivity in 30 days.',
-        question: 'What should Jessica do?',
+        type: 'multiple-choice',
+        title: 'Preventing Inactivity Account Closures',
+        question: 'You receive notice that your bank plans to close your 8-year-old card due to 18 months of inactivity. What should you do?',
         options: [
-          { text: 'Let them close it — she doesn\'t use it anyway', correct: false, explanation: 'Losing an 8-year-old card with a $12,000 limit would reduce her average account age and total available credit, potentially hurting her score.' },
-          { text: 'Make a small purchase immediately to keep the account active, then set up a recurring charge to prevent future inactivity closures', correct: true, explanation: 'Correct! Jessica should use the card right away to prevent closure, then set up a small recurring charge (like a $10 monthly subscription) with autopay to keep it active. An 8-year-old card with $12,000 limit is valuable for both credit age and utilization calculations. Most issuers will close inactive accounts after 12-24 months. The fix is simple: one small charge every 3-6 months, ideally on autopay so she doesn\'t have to think about it.' },
-          { text: 'Call and ask them to increase the credit limit', correct: false, explanation: 'A limit increase doesn\'t solve the inactivity issue. She needs to use the card to keep it open.' },
-          { text: 'Transfer it to a different bank', correct: false, explanation: 'You can\'t transfer a credit card account to a different bank. She needs to use the card with the existing issuer.' }
+          { text: 'Let them close it — you have not used it and do not need it', correct: false, explanation: 'An 8-year-old card with a high limit is valuable for both credit history length and total available credit. Losing it unnecessarily hurts your score.' },
+          { text: 'Call the bank to dispute the closure and demand they keep the account', correct: false, explanation: 'Banks have the right to close inactive accounts. The correct approach is to use the card before the closure date, not argue against it.' },
+          { text: 'Make a small purchase immediately to reactivate the account, then set up a small recurring charge with autopay to prevent future inactivity closures', correct: true, explanation: 'Correct! One purchase before the closure date saves the account. To prevent this from happening again, set up a small recurring charge (like a monthly streaming service) with autopay — this keeps the account active with minimal effort. Most issuers close accounts inactive for 12-24 months, so a charge every 3-6 months is sufficient protection.' },
+          { text: 'Open a new card to replace the one being closed', correct: false, explanation: 'Opening a new card does not replace the lost history of an 8-year-old account. The correct action is to keep the existing account active, not replace it.' }
         ]
       },
       {
@@ -1337,15 +1195,12 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Emergency Credit Use',
-        story: 'Chris has an emergency — his car needs $3,000 in repairs and he needs it for work. He has a credit card with a $5,000 limit and currently $500 balance (10% utilization). Using it for repairs would push his balance to $3,500 (70% utilization). His credit score is 740.',
-        question: 'What should Chris consider about using his credit card for this emergency?',
+        type: 'true-false',
+        title: 'Utilization Has No Memory',
+        question: 'If you use a credit card heavily one month and push your utilization to 70%, that high utilization will continue hurting your score for years even after you pay the balance down.',
         options: [
-          { text: 'Never use credit cards for emergencies — it will destroy his score permanently', correct: false, explanation: 'Utilization has no memory — it only reflects the current statement balance. High utilization is temporary and can be fixed quickly by paying down the balance.' },
-          { text: 'Use the card for the repair — the temporary utilization spike will lower his score but utilization has no memory. Once he pays down the balance, his score will recover within 1-2 statement cycles', correct: true, explanation: 'Correct! Unlike late payments (which stay 7 years), utilization only reflects your current balance. Chris\'s score will drop while at 70% utilization, but as soon as he pays it down, his score recovers. The key considerations: 1) If he\'s not applying for credit soon, the temporary dip doesn\'t matter, 2) He should try to pay it down before the statement closes if possible, 3) He can make multiple payments during the month to keep the reported balance low, 4) Having the car for work is more important than a temporary score dip. Practical needs always outweigh score optimization.' },
-          { text: 'He should open a new card with 0% APR instead', correct: false, explanation: 'Opening a new card takes time (application, approval, shipping), and he needs the repair now. Plus, a new inquiry and account would also temporarily affect his score.' },
-          { text: 'He should take a personal loan instead — loans don\'t affect credit scores', correct: false, explanation: 'Personal loans absolutely affect credit scores. They add a hard inquiry and a new account. For a short-term need, using an existing card is often simpler.' }
+          { text: 'True', correct: false, explanation: 'False! Unlike late payments (which stay on your report for 7 years), utilization only reflects your current statement balance. Once you pay the balance down, your utilization drops and your score recovers within 1-2 statement cycles. Utilization is entirely reversible — it has no memory.' },
+          { text: 'False', correct: true, explanation: 'Correct! Utilization resets every statement cycle based on your current balance. High utilization is temporary and fully recoverable. If you must use a card heavily for an emergency, focus on paying it down before the next statement closes. Your score will recover quickly.' }
         ]
       },
       {
@@ -1361,15 +1216,14 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Autopay Safety Net',
-        story: 'Ryan relies on autopay for all his credit cards. He has 4 cards set to pay the full balance each month. In October, his bank account had insufficient funds when Card C\'s autopay tried to process. The payment bounced.',
-        question: 'What are the potential consequences and what should Ryan do?',
+        type: 'multiple-choice',
+        title: 'Autopay Failures and the 30-Day Window',
+        question: 'Your autopay bounced because of insufficient funds. The payment is now a few days past due. What should you do?',
         options: [
-          { text: 'No consequences — autopay guarantees on-time payment', correct: false, explanation: 'Autopay is not foolproof. If there aren\'t enough funds, the payment bounces and can result in a late payment, NSF fees, and potential credit damage.' },
-          { text: 'Pay the card manually immediately — if it\'s under 30 days past due, it won\'t be reported to credit bureaus. Then add a backup payment method and set low-balance alerts on his bank account', correct: true, explanation: 'Correct! The critical window is 30 days. Creditors don\'t report late payments until they\'re 30+ days past due. If Ryan pays within that window, his credit is protected. He should: 1) Make the payment immediately via manual payment, 2) Call the card issuer to explain — they may waive the late fee, 3) Add a backup payment method to his autopay, 4) Set up low-balance alerts on his bank account, 5) Consider setting autopay for the minimum payment as a safety net, with a separate manual full payment. Ryan should also ensure he has a buffer in his checking account for autopay timing.' },
-          { text: 'Call the credit bureau to prevent reporting', correct: false, explanation: 'You can\'t preemptively stop a creditor from reporting. The solution is to pay before the 30-day mark so there\'s nothing negative to report.' },
-          { text: 'Switch all cards to minimum payment autopay to avoid this', correct: false, explanation: 'Minimum payments would mean carrying balances and paying interest. The better approach is full-balance autopay with a backup funding source.' }
+          { text: 'Nothing — autopay issues are automatically excused by card issuers', correct: false, explanation: 'Autopay is not foolproof and bounced payments are not automatically excused. You must act immediately to protect your credit.' },
+          { text: 'Call the credit bureau to prevent the missed payment from being reported', correct: false, explanation: 'You cannot preemptively contact bureaus to block reporting. The solution is to pay before the 30-day mark so there is nothing negative to report.' },
+          { text: 'Pay manually right away — creditors don\'t report late payments until 30+ days past due, so paying within that window protects your credit score', correct: true, explanation: 'Correct! The critical window is 30 days. Creditors do not report to bureaus until a payment is 30+ days past due. If you pay within this window, your credit score is fully protected (you may still get a late fee, but no credit impact). After paying: add a backup funding source to your autopay, set up low-balance alerts, and maintain a buffer in your checking account to cover autopay timing.' },
+          { text: 'Switch all cards to minimum payment autopay to prevent future bounces', correct: false, explanation: 'Setting autopay to minimum payments means carrying balances and paying interest unnecessarily. A better approach is full-balance autopay with a backup funding method and account buffer.' }
         ]
       },
       {
@@ -1410,15 +1264,14 @@ window.EDUCATION_LESSONS = [
         ]}
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Mysterious Credit Card',
-        story: 'Maria receives a call from a collection agency about a $4,200 credit card balance from a card she never opened. She checks her credit reports and finds two accounts she doesn\'t recognize — a credit card and a personal loan.',
-        question: 'What should Maria do FIRST?',
+        type: 'multiple-choice',
+        title: 'First Steps When You Find Fraudulent Accounts',
+        question: 'You discover two accounts on your credit reports that you never opened. What is your FIRST action?',
         options: [
-          { text: 'Pay the $4,200 to make it go away', correct: false, explanation: 'Never pay a debt that isn\'t yours. Paying it could be interpreted as acknowledging the debt and make it harder to dispute later.' },
-          { text: 'Place a fraud alert with one credit bureau, then proceed to file an FTC report and police report', correct: true, explanation: 'Correct! The immediate priority is stopping further damage. A fraud alert prevents new accounts from being opened without identity verification. Then Maria should: 1) File an FTC Identity Theft Report at IdentityTheft.gov, 2) File a police report with her local department, 3) Dispute the fraudulent accounts with all three bureaus using the FTC report as evidence, 4) Consider placing a credit freeze for maximum protection.' },
-          { text: 'Call the collection agency and argue with them', correct: false, explanation: 'While Maria should eventually address the collection, arguing won\'t solve the problem. She needs to establish the identity theft through proper channels first.' },
-          { text: 'Close all her legitimate credit cards', correct: false, explanation: 'Closing legitimate accounts would damage her credit score and doesn\'t stop the thief from opening new ones. A fraud alert or freeze is the right approach.' }
+          { text: 'Pay off the fraudulent balances to protect your credit score', correct: false, explanation: 'Never pay a debt that is not yours. Paying it could be interpreted as acknowledging the debt, making it harder to dispute and potentially resetting the statute of limitations.' },
+          { text: 'Place a fraud alert with one bureau (who must notify the other two), then file an FTC Identity Theft Report at IdentityTheft.gov and place credit freezes at all three bureaus', correct: true, explanation: 'Correct! The immediate priority is stopping further damage. A fraud alert requires creditors to verify your identity before opening new accounts. A credit freeze is even stronger — it blocks access entirely. Your FTC Identity Theft Report is the official document you need to dispute the fraudulent accounts under FCRA §605B, which mandates removal within 4 business days.' },
+          { text: 'Call the collection agencies and argue with them', correct: false, explanation: 'Arguing without documentation is ineffective. You need to establish the identity theft through proper channels (FTC report, police report) before disputing.' },
+          { text: 'Close all your legitimate credit accounts to prevent further fraud', correct: false, explanation: 'Closing legitimate accounts damages your credit score without stopping the thief. A credit freeze — not account closures — is the right protective measure.' }
         ]
       },
       {
@@ -1439,15 +1292,23 @@ window.EDUCATION_LESSONS = [
         ]}
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Job Application Freeze',
-        story: 'David placed credit freezes after identity theft 6 months ago. Now he\'s applying for a new job and the employer wants to run a background check that includes a credit check. David is worried he\'ll have to remove his freeze entirely.',
-        question: 'What should David do?',
+        type: 'true-false',
+        title: 'Credit Freeze Flexibility',
+        question: 'A credit freeze means you cannot apply for any new credit, loans, apartments, or jobs that require a credit check until the freeze is completely removed.',
         options: [
-          { text: 'Remove the freeze permanently — he doesn\'t need it anymore', correct: false, explanation: 'Removing the freeze entirely would leave David unprotected again. There are better options that maintain his security.' },
-          { text: 'Temporarily lift the freeze for only the specific bureau the employer\'s background check company uses, for a limited time period', correct: true, explanation: 'Correct! David can temporarily lift his freeze at just one bureau (whichever the background check company uses — they\'ll tell him which one). He can set it for a specific date range (e.g., 1 week) and it automatically re-freezes after that period. This allows the check while maintaining protection at the other two bureaus and re-freezing automatically.' },
-          { text: 'Tell the employer he can\'t do a credit check', correct: false, explanation: 'Refusing could cost David the job opportunity. A temporary lift is quick, free, and solves the problem.' },
-          { text: 'Give the employer his freeze PIN so they can lift it themselves', correct: false, explanation: 'Never share your freeze PIN with anyone. Only YOU should control your freeze. Lift it yourself for the specific time period needed.' }
+          { text: 'True', correct: false, explanation: 'False! A credit freeze can be temporarily lifted for specific bureaus for a limited time window without removing it permanently. Need to apply for a job where the employer uses TransUnion? Lift just TransUnion for one week. The freeze automatically re-engages after the period ends. This makes freezes practical to maintain long-term.' },
+          { text: 'False', correct: true, explanation: 'Correct! Credit freezes can be temporarily lifted for a specific bureau and a specific time period. You can also lift for a specific creditor. Lifts are free, instant online, and the freeze automatically reactivates. This flexibility means there is no reason to permanently remove a freeze — lift only as needed and for the shortest possible time.' }
+        ]
+      },
+      {
+        type: 'multiple-choice',
+        title: 'When Identity Theft Recurs After a Freeze',
+        question: 'You had your identity stolen and placed freezes. Six months later, a new fraudulent account appears on one bureau\'s report. You had temporarily lifted freezes at all bureaus 2 weeks earlier to apply for an apartment. What most likely happened?',
+        options: [
+          { text: 'Credit freezes do not actually prevent identity theft', correct: false, explanation: 'Credit freezes are highly effective — when active. The vulnerability here was the temporary lift, not a failure of the freeze itself.' },
+          { text: 'The thief exploited the temporary freeze lift window to open the account', correct: true, explanation: 'Correct! Temporary freeze lifts create windows of vulnerability. Best practices: lift for the shortest possible time (hours or days, not weeks), lift only at the specific bureau the lender needs (not all three), and confirm the freeze is re-engaged immediately after the application. For future temporary lifts, minimize the window and limit the scope.' },
+          { text: 'Someone stole your freeze PIN from the bureau', correct: false, explanation: 'While possible, the much more likely explanation is the timing coincidence with your temporary lift. The thief or their tools may have been monitoring for windows when your report became accessible.' },
+          { text: 'A new FTC report is not necessary since you already filed one previously', correct: false, explanation: 'Any new fraudulent account is a new identity theft event that requires updated documentation — a supplement to your existing FTC report and a new dispute under §605B.' }
         ]
       },
       {
@@ -1492,15 +1353,14 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Synthetic Identity Theft',
-        story: 'A collection agency contacts Carlos about a $6,500 credit card debt. The account was opened using Carlos\'s Social Security number combined with a different name and address. Carlos has never seen this account on his credit reports before.',
-        question: 'What type of identity theft is this and how should Carlos respond?',
+        type: 'multiple-choice',
+        title: 'Synthetic Identity Theft',
+        question: 'A collection agency contacts you about a debt opened using your Social Security number but a completely different name and address you don\'t recognize. What is this and what should you do?',
         options: [
-          { text: 'This is regular identity theft — just dispute it with the bureau', correct: false, explanation: 'While disputing is part of the solution, synthetic identity theft requires additional steps because the thief created a blended identity that may not fully appear on Carlos\'s report.' },
-          { text: 'This is synthetic identity theft — the thief combined Carlos\'s real SSN with fake information to create a new identity. Carlos should file an FTC report, dispute with all bureaus, place credit freezes, and specifically request verification that his SSN is not being used with alternate identities across all three bureaus.', correct: true, explanation: 'Correct! Synthetic identity theft is the fastest-growing type of fraud. The thief combines a real SSN (Carlos\'s) with a fake name and address to create a new identity. Key challenges: 1) The account may not appear on Carlos\'s report because it\'s under a different name, 2) But the SSN links it to Carlos when collections start, 3) Carlos should check all three bureaus for any accounts he doesn\'t recognize, 4) He should request a fraud alert and freeze at all three bureaus, 5) File an FTC report and police report, 6) Ask each bureau if his SSN is associated with any alternate names or addresses, 7) Synthetic ID theft accounts for an estimated $6 billion in losses annually.' },
-          { text: 'If the name is different, it can\'t affect Carlos', correct: false, explanation: 'The SSN is the primary identifier. Even with a different name, the account is linked to Carlos\'s SSN and can affect his credit and create legal complications.' },
-          { text: 'Carlos probably opened this account and forgot', correct: false, explanation: 'A different name and address clearly indicate fraud. Carlos should take this seriously and follow identity theft recovery procedures.' }
+          { text: 'It is probably a mistake by the collection agency — ignore it', correct: false, explanation: 'A different name on an account linked to your SSN is a serious red flag for synthetic identity theft. Ignoring it allows the fraud to continue and the debt to potentially damage your credit.' },
+          { text: 'If the name is different, it cannot affect your credit at all', correct: false, explanation: 'The SSN is the primary identifier in credit systems. Even with a different name, the debt can link to your file when collections begin, creating credit damage and legal exposure.' },
+          { text: 'This is synthetic identity theft — your real SSN was combined with a fake name. File an FTC report, place freezes at all three bureaus, dispute under §605B, and ask each bureau whether your SSN is associated with any alternate names or addresses', correct: true, explanation: 'Correct! Synthetic identity theft combines a real SSN (yours) with a fake name and address to create a blended identity. The account may not appear on your standard report because it is under a different name — but your SSN connects it to you when debts collect. Request that each bureau check for alternate identities associated with your SSN. This is the fastest-growing fraud category.' },
+          { text: 'Just dispute the specific account and nothing more is needed', correct: false, explanation: 'Synthetic identity theft often involves multiple accounts across different lenders. A standard dispute is part of the response, but you also need freezes, an FTC report, and a full audit of all accounts potentially linked to your SSN.' }
         ]
       },
       {
@@ -1516,87 +1376,76 @@ window.EDUCATION_LESSONS = [
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Tax Identity Theft',
-        story: 'When filing her tax return in February, Angela gets a rejection notice from the IRS saying a return has already been filed using her Social Security number. Someone filed a fraudulent return to steal her refund.',
-        question: 'What steps should Angela take to resolve tax identity theft?',
+        type: 'multiple-choice',
+        title: 'Tax Identity Theft Resolution',
+        question: 'You attempt to e-file your tax return and it is rejected because a return was already filed using your Social Security number. What should you do?',
         options: [
-          { text: 'Wait until next year and try filing again', correct: false, explanation: 'Waiting won\'t resolve the issue — the fraudulent return will still be in the IRS system, and the thief could do it again next year.' },
-          { text: 'File IRS Form 14039 (Identity Theft Affidavit), mail her return by paper with the affidavit attached, apply for an IRS Identity Protection PIN for future years, and also check her credit reports for financial identity theft', correct: true, explanation: 'Correct! Tax identity theft requires specific IRS steps: 1) File IRS Form 14039 — Identity Theft Affidavit, 2) Mail her paper tax return with the 14039 attached (can\'t e-file when a fraudulent return exists), 3) The IRS will investigate and process her legitimate return (this can take 6-12 months), 4) Apply for an IP PIN — a unique 6-digit number required for future filings that prevents unauthorized returns, 5) Check credit reports — tax identity theft often indicates broader identity theft, 6) File an FTC report at IdentityTheft.gov, 7) Consider filing a police report. Prevention: All taxpayers can now request an IP PIN from the IRS to prevent tax identity theft proactively.' },
-          { text: 'Call the IRS and they\'ll fix it immediately', correct: false, explanation: 'IRS identity theft resolution typically takes 6-12 months. Angela needs to file the proper forms and be prepared for a long process.' },
-          { text: 'This only affects her taxes, not her credit', correct: false, explanation: 'Tax identity theft often indicates the thief has her SSN, which means financial identity theft may also be occurring or imminent. She should check her credit reports immediately.' }
+          { text: 'Wait until next year and try filing again', correct: false, explanation: 'Waiting does not resolve the fraudulent return already in the system. The thief could file again the following year too. You must act immediately.' },
+          { text: 'File IRS Form 14039 (Identity Theft Affidavit), mail your paper return with the affidavit attached, apply for an IRS Identity Protection PIN to secure future filings, and check your credit reports for related financial identity theft', correct: true, explanation: 'Correct! Tax identity theft requires specific IRS steps: 1) File IRS Form 14039 (Identity Theft Affidavit). 2) Mail your paper return with the 14039 attached — you cannot e-file when a fraudulent return exists. 3) The IRS will investigate and process your legitimate return (this takes 6-12 months). 4) Apply for an IP PIN — a 6-digit code required for all future filings that prevents unauthorized returns. All taxpayers can now proactively request an IP PIN from the IRS even if they have not been victimized.' },
+          { text: 'Call the IRS and they will fix it immediately', correct: false, explanation: 'IRS identity theft resolution typically takes 6-12 months. You must file the proper paperwork and expect a long process — phone calls alone will not resolve it.' },
+          { text: 'Tax identity theft only affects your refund, not your credit', correct: false, explanation: 'Tax identity theft indicates someone has your SSN, which means financial identity theft may also be occurring. Check all three credit reports immediately for additional fraudulent activity.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Extended Fraud Alert',
-        story: 'After filing her FTC Identity Theft Report, Keisha wants the strongest possible protection. She\'s considering an extended fraud alert versus a credit freeze. She travels frequently and applies for hotel and airline credit cards several times a year.',
-        question: 'What should Keisha understand about extended fraud alerts?',
+        type: 'true-false',
+        title: 'Extended Fraud Alert Requirements',
+        question: 'An extended fraud alert (7 years) requires an FTC Identity Theft Report and is free.',
         options: [
-          { text: 'Extended fraud alerts and freezes are the same thing', correct: false, explanation: 'They\'re different protections with different mechanisms. Fraud alerts ask creditors to verify identity; freezes block report access entirely.' },
-          { text: 'An extended fraud alert lasts 7 years, requires the FTC report, removes her from pre-approved offer lists, and requires creditors to verify her identity. But since Keisha applies for credit frequently, she should use a freeze instead — she can temporarily lift it for specific applications, giving her stronger protection with more flexibility.', correct: true, explanation: 'Correct! Extended fraud alert details: 1) Lasts 7 years (vs. 1 year for initial alert), 2) Requires an FTC Identity Theft Report, 3) Removes you from pre-approved credit offer lists for 5 years, 4) Gives you two free credit reports per year from each bureau, 5) Creditors must take "reasonable steps" to verify identity. However, for Keisha who applies for credit frequently, a freeze is actually better because: creditors MUST comply with a freeze (they can\'t access the report at all), while fraud alert verification is not always enforced. She can quickly lift a freeze online for specific applications.' },
-          { text: 'Extended fraud alerts cost money', correct: false, explanation: 'Extended fraud alerts are free, just like initial fraud alerts and credit freezes. All credit protection tools are free by federal law.' },
-          { text: 'She can only get an extended alert if she files a police report', correct: false, explanation: 'An extended fraud alert requires an FTC Identity Theft Report, not a police report. The FTC report is filed at IdentityTheft.gov.' }
+          { text: 'True', correct: true, explanation: 'Correct! An extended fraud alert lasts 7 years (vs. 1 year for an initial alert), requires an FTC Identity Theft Report from IdentityTheft.gov, and is completely free. It also removes you from pre-approved credit offer lists for 5 years and entitles you to two free credit reports per year from each bureau. However, for consumers who apply for credit frequently, a credit freeze provides stronger protection because creditors MUST comply with a freeze, while fraud alert compliance is not always enforced.' },
+          { text: 'False', correct: false, explanation: 'This is true. Extended fraud alerts are free and require an FTC Identity Theft Report (not a police report — that is a common misconception). File your FTC report at IdentityTheft.gov, then contact one bureau to place the extended alert (they notify the other two).' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Data Breach Notification',
-        story: 'Marcus receives a letter from his health insurance company saying his personal data (name, SSN, date of birth, and address) was exposed in a data breach affecting 2 million customers. The company is offering 2 years of free credit monitoring.',
-        question: 'What should Marcus do beyond accepting the free monitoring?',
+        type: 'true-false',
+        title: 'Data Breach Response — Monitoring Enough?',
+        question: 'If your SSN, date of birth, and address were exposed in a data breach, accepting the free credit monitoring offered by the company provides sufficient protection.',
         options: [
-          { text: 'Accept the free monitoring and do nothing else — the company will protect him', correct: false, explanation: 'Credit monitoring only alerts you AFTER fraud has occurred — it doesn\'t prevent anything. Marcus needs proactive protection.' },
-          { text: 'Ignore the letter — data breaches happen all the time and rarely lead to identity theft', correct: false, explanation: 'With his full SSN, name, DOB, and address exposed, Marcus is at very high risk. This is the exact information needed to open new accounts.' },
-          { text: 'Accept the free monitoring AND place credit freezes at all three bureaus, set up fraud alerts, file his taxes early each year to prevent tax ID theft, strengthen all passwords, and monitor his credit reports monthly for at least 2 years', correct: true, explanation: 'Correct! A comprehensive response to a data breach: 1) Accept the free monitoring — it\'s a useful alert system, 2) Place credit freezes at ALL three bureaus — this is the strongest prevention, 3) Place a fraud alert (you can have both freeze and alert simultaneously), 4) File taxes early — this prevents someone from filing a fraudulent return first, 5) Change passwords on all financial accounts and enable 2FA, 6) Monitor all three credit reports monthly, 7) Watch for signs of medical or tax identity theft (not just financial), 8) Consider an IRS Identity Protection PIN. The key insight: monitoring DETECTS theft, but freezes PREVENT it. You need both.' },
-          { text: 'Sue the company immediately', correct: false, explanation: 'While there may be class action lawsuits later, Marcus\'s immediate priority should be protecting himself. Legal action can be pursued later.' }
+          { text: 'True', correct: false, explanation: 'False! Credit monitoring only DETECTS fraud after it has already occurred — it does not prevent it. After a data breach exposing your SSN and personal details, you should also place credit freezes at all three bureaus (this PREVENTS fraud), place a fraud alert, strengthen all financial account passwords, enable two-factor authentication, file taxes early to block fraudulent returns, and request an IRS IP PIN.' },
+          { text: 'False', correct: true, explanation: 'Correct! Monitoring detects; freezes prevent. Accept the free monitoring as a useful alert layer, then add a credit freeze at all three bureaus for actual prevention. The combination of active freezes plus monitoring provides far stronger protection than monitoring alone.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Collector on Fraud Accounts',
-        story: 'Despite filing an FTC report and disputing fraudulent accounts, James keeps getting aggressive calls from a collection agency about a $3,200 debt from a fraudulent credit card. He\'s told them multiple times it\'s identity theft. They threaten to sue.',
-        question: 'What are James\'s rights when dealing with collectors on fraudulent accounts?',
+        type: 'multiple-choice',
+        title: 'Collectors Pursuing Fraudulent Debts',
+        question: 'A collection agency keeps calling about a debt you have proven is from identity theft. You have sent them your FTC Identity Theft Report and they are still calling and threatening to sue. What are your rights?',
         options: [
-          { text: 'He has to pay to make the calls stop', correct: false, explanation: 'James has no obligation to pay a debt that isn\'t his. He has strong legal protections as an identity theft victim.' },
-          { text: 'Send the collector a written notice with his FTC Identity Theft Report demanding they stop collection. Under the FDCPA and FCRA, collectors must stop attempting to collect a debt that has been reported as identity theft with proper documentation. If they continue, James can sue for FDCPA violations.', correct: true, explanation: 'Correct! James has powerful protections: 1) Send the collector a copy of his FTC Identity Theft Report and police report via certified mail, 2) Demand they cease collection under the identity theft provisions of the FCRA, 3) If they continue calling after receiving documentation, they\'re violating the FDCPA, 4) Each violation can carry damages of up to $1,000 in statutory damages plus actual damages and attorney fees, 5) James can also file a CFPB complaint against the collector, 6) He should document every call (date, time, what was said) as evidence, 7) Consider consulting a consumer rights attorney — many take identity theft cases on contingency.' },
-          { text: 'Block their number — problem solved', correct: false, explanation: 'Blocking calls doesn\'t stop the legal obligation the collector claims, and it doesn\'t stop them from other collection actions like reporting to bureaus or filing a lawsuit.' },
-          { text: 'The FTC will handle the collector automatically', correct: false, explanation: 'The FTC doesn\'t intervene in individual collection disputes. James needs to assert his rights directly with the collector using his documentation.' }
+          { text: 'You must pay to stop collection since they have your personal information on file', correct: false, explanation: 'You have no obligation to pay a fraudulent debt. Your FTC Identity Theft Report is legal documentation proving this is not your debt.' },
+          { text: 'Block the collector\'s number — this resolves the legal issue', correct: false, explanation: 'Blocking calls does not stop the collector from reporting to bureaus, filing lawsuits, or other collection actions. You must assert your legal rights formally in writing.' },
+          { text: 'Send the collector your FTC Identity Theft Report via certified mail demanding cessation under the FCRA identity theft provisions — continued collection after documentation is an FDCPA violation worth up to $1,000 per violation in statutory damages', correct: true, explanation: 'Correct! Once you send written documentation of identity theft (FTC report, police report) via certified mail, continued collection is an FDCPA violation. Each violation entitles you to up to $1,000 in statutory damages plus actual damages and attorney fees. Document every call. File a CFPB complaint. Consider a consumer rights attorney — many take these cases on contingency.' },
+          { text: 'The FTC automatically handles individual collectors on your behalf', correct: false, explanation: 'The FTC does not intervene in individual collection disputes. You must assert your rights directly with the collector using your documentation, and escalate through CFPB complaints and legal action if needed.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Recovery Timeline Reality',
-        story: 'Six months after discovering identity theft, Andrea has filed all the right reports and disputes. The fraudulent credit card was removed from Equifax and TransUnion within a week, but Experian is still showing it after 3 months despite multiple disputes.',
-        question: 'What should Andrea do about Experian\'s failure to remove the fraudulent account?',
+        type: 'multiple-choice',
+        title: 'When One Bureau Refuses to Remove a Fraudulent Account',
+        question: 'Two bureaus removed a fraudulent account within days of your §605B dispute. Three months later, the third bureau still shows the account despite multiple disputes. What should you do?',
         options: [
-          { text: 'Keep sending the same dispute letter', correct: false, explanation: 'Repeating identical disputes can be flagged as frivolous. Andrea needs to escalate.' },
-          { text: 'Give up — Experian will eventually remove it on its own', correct: false, explanation: 'Bureaus don\'t proactively clean up accounts. Andrea needs to escalate aggressively.' },
-          { text: 'Escalate: file a CFPB complaint against Experian citing their failure to block under §605B within 4 business days, send a follow-up dispute with copies of removal confirmations from the other two bureaus as additional evidence, and consult a consumer rights attorney about potential FCRA violations', correct: true, explanation: 'Correct! When one bureau cooperates but another doesn\'t: 1) File a CFPB complaint — this puts regulatory pressure on Experian and has a 97% response rate, 2) Send a new dispute letter citing §605B (identity theft blocking) with her FTC report, police report, AND the removal confirmations from Equifax and TransUnion as evidence, 3) If the other bureaus removed the same account, Experian has no basis to keep it, 4) Consult a consumer rights attorney — Experian may have violated the FCRA by failing to block within 4 business days, which could entitle Andrea to damages, 5) Each FCRA violation can be worth $100-$1,000 in statutory damages, plus actual damages and attorney fees. Many consumer rights attorneys take these cases on contingency.' },
-          { text: 'Contact the original creditor instead', correct: false, explanation: 'While contacting the creditor can help, the primary issue is Experian\'s failure to comply with §605B blocking. A CFPB complaint directly addresses Experian\'s non-compliance.' }
+          { text: 'Keep sending the same dispute letter to the third bureau', correct: false, explanation: 'Repeating identical disputes can be flagged as frivolous. After multiple failures, you must escalate, not repeat.' },
+          { text: 'File a CFPB complaint against the non-compliant bureau citing failure to block under §605B within 4 business days, and include the removal confirmations from the other two bureaus as evidence', correct: true, explanation: 'Correct! FCRA §605B mandates blocking within 4 business days of receiving your FTC report. If the bureau has not complied after months, this is a potential FCRA violation. CFPB complaints carry regulatory weight (97% response rate). Include all documentation: FTC report, police report, your dispute history, and confirmation letters from the two bureaus that already removed the account. Consult a consumer rights attorney — §605B violations carry potential statutory damages.' },
+          { text: 'Contact the original fraudulent creditor to ask them to recall the account from all bureaus', correct: false, explanation: 'The primary issue is the bureau\'s failure to comply with the §605B identity theft blocking requirement. The CFPB complaint targets the bureau\'s legal obligation directly.' },
+          { text: 'Accept it — one bureau is just slower and it will come off eventually', correct: false, explanation: 'Bureaus do not proactively clean up accounts. Without pressure, a fraudulent account can remain indefinitely. Escalation is necessary.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Credit Monitoring Choice',
-        story: 'After resolving identity theft, Patricia wants ongoing monitoring. She\'s comparing: Credit Karma (free, monitors TransUnion and Equifax), her bank\'s free FICO score, and a paid service ($29.99/month) that monitors all three bureaus with real-time alerts.',
-        question: 'What monitoring approach should Patricia use?',
+        type: 'multiple-choice',
+        title: 'Best Free Credit Monitoring Strategy',
+        question: 'Which approach gives you full three-bureau monitoring coverage at no cost?',
         options: [
-          { text: 'The paid service — it\'s the most expensive so it must be best', correct: false, explanation: 'More expensive doesn\'t always mean better. There are effective ways to get comprehensive monitoring for free or minimal cost.' },
-          { text: 'Use Credit Karma (free, covers 2 bureaus) plus a free Experian account for the third bureau, plus her bank\'s FICO score. This gives her monitoring at all three bureaus at no cost. If she wants extra security, she should keep her credit freezes active rather than paying for monitoring — freezes PREVENT theft while monitoring only DETECTS it.', correct: true, explanation: 'Correct! A comprehensive free monitoring strategy: 1) Credit Karma — free monitoring of TransUnion and Equifax with alerts, 2) Free Experian account — monitors Experian with free FICO score, 3) Bank FICO score — additional scoring model perspective, 4) Annual free reports from AnnualCreditReport.com for detailed review. The key insight: monitoring tells you AFTER something happens, but credit freezes PREVENT unauthorized access. Patricia should keep her freezes active permanently and only lift them when she specifically needs to apply for credit. This combination of free monitoring + active freezes provides the same or better protection than any paid service.' },
-          { text: 'Credit Karma alone is sufficient', correct: false, explanation: 'Credit Karma only monitors TransUnion and Equifax. Fraud could occur on Experian and go undetected. Patricia needs coverage at all three bureaus.' },
-          { text: 'She doesn\'t need monitoring — the identity theft is resolved', correct: false, explanation: 'Identity theft victims should monitor their credit for at least 1-2 years after resolution, and preferably permanently. Repeat victimization is common.' }
+          { text: 'A paid $29.99/month monitoring service — more expensive means better protection', correct: false, explanation: 'Paid monitoring is not inherently better than free options. Comprehensive three-bureau coverage is available at no cost.' },
+          { text: 'Credit Karma alone — it covers all three bureaus', correct: false, explanation: 'Credit Karma monitors TransUnion and Equifax only. Experian coverage requires a separate free account. Without Experian coverage, fraud there can go undetected.' },
+          { text: 'Credit Karma (TransUnion + Equifax) plus a free Experian account gives three-bureau coverage at no cost — and active credit freezes provide prevention that no monitoring service can match', correct: true, explanation: 'Correct! Full free coverage: Credit Karma (TransUnion + Equifax) + free Experian account = three bureaus. Key insight: monitoring DETECTS fraud after it occurs; credit freezes PREVENT it. Keep your freezes active and monitor all three bureaus free. This combination outperforms any paid service.' },
+          { text: 'Checking AnnualCreditReport.com once per year is sufficient monitoring', correct: false, explanation: 'Annual reports are valuable for detailed review but are not real-time monitoring. Identity theft can occur and cause significant damage in the months between annual checks.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Mail Theft Identity Crime',
-        story: 'Omar notices he hasn\'t received any mail in over a week. He checks with the post office and discovers someone filed a fraudulent Change of Address form redirecting all his mail to a different address. He suspects identity theft.',
-        question: 'Why is mail theft a serious identity theft concern and what should Omar do?',
+        type: 'multiple-choice',
+        title: 'Mail Redirection as Identity Theft Vector',
+        question: 'Someone filed a fraudulent USPS Change of Address form and redirected your mail to a different address for the past week. Why is this serious and what should you do?',
         options: [
-          { text: 'It\'s just a mail prank — report it to the post office and wait', correct: false, explanation: 'Mail redirection is a serious crime often used as part of a larger identity theft scheme. Omar needs to act comprehensively.' },
-          { text: 'Mail redirection gives thieves access to bank statements, credit card bills, pre-approved offers, and other mail containing personal information. Omar should reverse the address change with the post office, file a USPS mail fraud report, place credit freezes, file an FTC report, and check all financial accounts for unauthorized activity.', correct: true, explanation: 'Correct! Mail theft via fraudulent address change is a federal crime and often precedes financial identity theft: 1) The thief can intercept bank statements, credit offers, new credit cards, and checks, 2) Omar should: reverse the address change with USPS immediately, file a complaint with the USPS Inspector General (mail fraud is a federal crime), place credit freezes at all three bureaus, file an FTC Identity Theft Report, check all bank and credit accounts for unauthorized activity, change passwords on all financial accounts, sign up for USPS Informed Delivery to monitor incoming mail, and consider a P.O. Box for sensitive mail. 3) Fraudulent mail redirection carries penalties of up to 5 years in federal prison.' },
-          { text: 'Only worry about it if credit cards were in the mail', correct: false, explanation: 'Even without credit cards in transit, the thief gains access to all financial correspondence — account numbers, statements, pre-approved offers — which they can use to open new accounts.' },
-          { text: 'Contact his credit card companies to issue new cards', correct: false, explanation: 'While reissuing cards is one step, Omar needs a comprehensive response since mail redirection suggests the thief is gathering information for broader identity theft.' }
+          { text: 'It is a minor postal inconvenience — just file a correction with the post office', correct: false, explanation: 'Fraudulent mail redirection is a federal crime often used as the opening move in a broader identity theft scheme. The thief gains access to all your financial correspondence during the redirection period.' },
+          { text: 'Only worry if credit cards were mailed to the new address', correct: false, explanation: 'Even without new credit cards in transit, the thief gained access to bank statements (account numbers), pre-approved credit offers, and financial correspondence — all usable to open accounts in your name.' },
+          { text: 'Reverse the address change with USPS, file a USPS Inspector General complaint (federal crime), place credit freezes at all three bureaus, file an FTC Identity Theft Report, and check all financial accounts for unauthorized activity', correct: true, explanation: 'Correct! Fraudulent mail redirection carries federal penalties of up to 5 years in prison because it enables broader fraud. Reverse the Change of Address immediately. The thief may have intercepted statements, offers, and checks. Place credit freezes to prevent new account fraud, and set up USPS Informed Delivery (free) to monitor incoming mail digitally going forward.' },
+          { text: 'Ask your bank to reissue all your cards as a precaution', correct: false, explanation: 'Reissuing cards is one small step, but the threat is much broader than existing cards. The thief may use intercepted information to open entirely new accounts. Credit freezes and a comprehensive response are necessary.' }
         ]
       },
       {
@@ -1632,15 +1481,14 @@ window.EDUCATION_LESSONS = [
         visual: { type: 'tip', text: 'Strategy: Put your Netflix or Spotify subscription ($10-15/month) on your secured card and set up autopay. This creates a perfect payment pattern: low utilization, consistent payments, zero effort. Your credit builds on autopilot.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Secured Card Decision',
-        story: 'Alex has no credit history and wants to start building credit. He\'s considering two secured cards: Card A requires a $200 deposit, has a $49 annual fee, and reports to all three bureaus. Card B requires a $200 deposit, has no annual fee, but only reports to Experian and TransUnion.',
-        question: 'Which card should Alex choose?',
+        type: 'multiple-choice',
+        title: 'Choosing a Secured Credit Card',
+        question: 'You are building credit from scratch. Card A has a $200 deposit, $49 annual fee, and reports to all three bureaus. Card B has a $200 deposit, no annual fee, but only reports to Experian and TransUnion. Which should you choose?',
         options: [
-          { text: 'Card B — no annual fee means it\'s free', correct: false, explanation: 'The annual fee savings is small ($49), but missing one bureau means Alex won\'t build an Equifax history. Many lenders pull Equifax specifically.' },
-          { text: 'Card A — reporting to all three bureaus is critical for building a complete credit profile, even with the small annual fee', correct: true, explanation: 'Correct! Reporting to all three bureaus is the single most important feature of a starter card. If Card B doesn\'t report to Equifax, any lender that pulls Equifax will see no credit history at all. The $49 annual fee is a small investment in building a complete credit profile across all three bureaus. After 6-12 months of history, Alex can apply for a no-fee card and potentially cancel Card A.' },
-          { text: 'He should get both cards to build credit faster', correct: false, explanation: 'Two secured cards isn\'t necessary and the two hard inquiries could hurt his thin file. One card reporting to all three bureaus is sufficient.' },
-          { text: 'He shouldn\'t get a secured card — he should wait until he can get an unsecured card', correct: false, explanation: 'Without any credit history, Alex likely won\'t qualify for an unsecured card. A secured card is specifically designed for people building from scratch.' }
+          { text: 'Card B — saving the $49 annual fee is the priority', correct: false, explanation: 'Saving $49 is not worth skipping Equifax. Any lender who pulls Equifax will see zero credit history on your file. A complete three-bureau profile is the single most important feature of a starter card.' },
+          { text: 'Card A — reporting to all three bureaus is essential, even at the cost of the annual fee', correct: true, explanation: 'Correct! If Card B does not report to Equifax, any lender pulling Equifax will see no credit history at all. The $49 fee is a small investment in building a complete credit profile. After 6-12 months, you can apply for a no-fee unsecured card and cancel Card A. Three-bureau reporting trumps fee savings when building credit from zero.' },
+          { text: 'Get both cards to build credit faster', correct: false, explanation: 'Two secured cards is unnecessary. Two hard inquiries can hurt a thin file, and one card reporting to all three bureaus is fully sufficient to start building.' },
+          { text: 'Wait until you can get an unsecured card instead', correct: false, explanation: 'Without any credit history, you are unlikely to qualify for an unsecured card. Secured cards exist precisely for this situation.' }
         ]
       },
       {
@@ -1679,135 +1527,116 @@ window.EDUCATION_LESSONS = [
         visual: { type: 'tip', text: 'AZEO Method Example: If you have 3 credit cards, pay all three to $0 before statement closing dates. On ONE card, leave a small balance ($5-$20). This shows all three accounts are responsibly managed while demonstrating active credit use. This single change can boost your score 20-40 points.' }
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Rebuilder\'s Path',
-        story: 'James completed bankruptcy 2 years ago and currently has no credit accounts. His score is 520. He wants to buy a home in 3 years. He has $500 available for credit building.',
-        question: 'What is James\'s optimal 3-year credit building strategy?',
+        type: 'multiple-choice',
+        title: 'Post-Bankruptcy Credit Rebuilding',
+        question: 'Which is the most effective first move when rebuilding credit after bankruptcy with $500 available?',
         options: [
-          { text: 'Apply for as many credit cards as possible to build history quickly', correct: false, explanation: 'Multiple applications will generate hard inquiries that hurt his score, and he\'ll likely be denied for most cards post-bankruptcy. Quality over quantity.' },
-          { text: 'Wait until the bankruptcy falls off his report', correct: false, explanation: 'Chapter 7 bankruptcy stays for 10 years. Waiting 8 more years isn\'t necessary — James can build credit now alongside the bankruptcy record.' },
-          { text: 'Month 1: Get a secured card ($300 deposit) reporting to all 3 bureaus + credit builder loan ($200). Month 6: Request limit increase. Month 12: Apply for unsecured card. Months 1-36: Perfect payments, under 10% utilization, build authorized user history', correct: true, explanation: 'Correct! This systematic approach builds a strong credit profile: 1) Secured card ($300) + credit builder loan ($200) = $500 budget used, two account types reporting, 2) Perfect payment history from day 1 — this is the #1 scoring factor, 3) Keep utilization under 10% ($30 max on secured card), 4) At 6 months, request limit increase on secured card, 5) At 12 months, apply for an unsecured card (Discover or Capital One are bankruptcy-friendly), 6) If possible, get added as authorized user on a family member\'s old, clean card. With this strategy, James could realistically reach 680-720+ within 2-3 years — enough for many mortgage programs.' },
-          { text: 'Only use debit cards — they\'re safer than credit', correct: false, explanation: 'Debit cards are NOT reported to credit bureaus and do nothing to build credit history. James needs credit accounts to build a score.' }
+          { text: 'Apply for as many credit cards as possible to build history quickly', correct: false, explanation: 'Multiple applications generate hard inquiries that damage a thin file, and most approvals are unlikely post-bankruptcy. Quality and strategy beat volume.' },
+          { text: 'Wait until the bankruptcy falls off the credit report before doing anything', correct: false, explanation: 'Chapter 7 bankruptcy stays for 10 years. Waiting is not necessary — you can actively build credit now alongside the bankruptcy record and be mortgage-ready in 2-3 years.' },
+          { text: 'Open a secured card ($300 deposit, all 3 bureaus) + credit builder loan ($200) simultaneously to establish both revolving and installment history on day one', correct: true, explanation: 'Correct! Two account types reporting from day one maximizes credit mix impact. Secured card + credit builder loan = installment + revolving history. Perfect payments, under 10% utilization, and at 6 months request a limit increase. At 12 months, apply for an unsecured card (Discover and Capital One are bankruptcy-friendly). With this plan, reaching 680-720+ in 2-3 years is realistic — enough for many mortgage programs.' },
+          { text: 'Use only debit cards — they are safer than credit', correct: false, explanation: 'Debit cards are not reported to credit bureaus and build no credit history. Credit accounts are required to build a score.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Credit Builder Loan Decision',
-        story: 'Maria is deciding between two credit builder loans: Loan A from her credit union ($500, 12 months, 5% APR, reports to all 3 bureaus) and Loan B from an app ($1,000, 24 months, 15% APR, reports to 2 bureaus). She earns $2,500/month.',
-        question: 'Which credit builder loan should Maria choose?',
+        type: 'true-false',
+        title: 'Credit Builder Loan — Bigger Is Better?',
+        question: 'A $1,000 credit builder loan builds significantly more credit than a $500 loan because the higher amount demonstrates greater creditworthiness.',
         options: [
-          { text: 'Loan B — the larger amount builds more credit', correct: false, explanation: 'The loan amount doesn\'t affect credit building. Payment history is what matters, and a smaller, more affordable loan reduces the risk of missed payments.' },
-          { text: 'Loan A — it reports to all 3 bureaus, has lower cost, and shorter term. The $500 amount is sufficient for credit building since the payment history matters more than the loan size.', correct: true, explanation: 'Correct! Loan A wins on every metric: 1) Reports to ALL 3 bureaus vs. only 2 — this means her credit building efforts cover Equifax too, 2) Lower APR (5% vs. 15%) means less money wasted on interest, 3) Shorter term (12 vs. 24 months) means she builds credit faster and can move to the next step sooner, 4) Smaller amount ($500 vs. $1,000) means lower monthly payments — reducing the risk of missing one, 5) Credit unions typically offer better terms because they\'re not-for-profit. The loan amount is irrelevant for credit building — it\'s the consistent on-time payments that boost the score.' },
-          { text: 'Both — more loans means more credit', correct: false, explanation: 'Two credit builder loans would be redundant. One is sufficient to establish installment loan history. Adding a secured card alongside the loan is a better strategy.' },
-          { text: 'Neither — credit builder loans are scams', correct: false, explanation: 'Credit builder loans are legitimate products offered by established financial institutions. They\'re specifically designed for credit building and are effective when used properly.' }
+          { text: 'True', correct: false, explanation: 'False! Credit builder loan amounts have no impact on score improvement. What matters is the payment history — 12 consistent on-time payments from a $300 loan and a $1,000 loan produce the same credit impact. Choose the smaller, lower-APR loan (especially from a credit union) to minimize cost and risk of missed payments.' },
+          { text: 'False', correct: true, explanation: 'Correct! The loan amount is irrelevant for credit building. Payment consistency and reporting to all three bureaus are what matter. A $300 credit union loan at 5% APR reporting to all 3 bureaus is far more valuable than a $1,000 app loan at 15% APR reporting to 2 bureaus. Always choose lower cost and three-bureau reporting over loan size.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Rent Reporting Question',
-        story: 'Carlos rents an apartment for $1,200/month and has been paying on time for 3 years. He discovers rent reporting services that can add his rent payment history to his credit report for $5-10/month. His credit file is "thin" with only one credit card.',
-        question: 'Should Carlos use a rent reporting service?',
+        type: 'multiple-choice',
+        title: 'Rent Reporting Services',
+        question: 'You have been paying $1,200/month rent on time for 3 years but have a thin credit file with only one card. A rent reporting service costs $5-10/month and can add this history to your credit report. Should you use it?',
         options: [
-          { text: 'No — rent payments never count for credit', correct: false, explanation: 'While rent isn\'t reported by default, rent reporting services can add this data to credit reports, and newer scoring models (FICO 9, VantageScore 3.0+) do consider rent payments.' },
-          { text: 'Yes — for someone with a thin file, 3 years of on-time rent payments can significantly strengthen his credit profile. Services like Rental Kharma or Boom can report to bureaus, and some newer scoring models factor in rent. The $5-10/month cost is worth it for the credit benefit.', correct: true, explanation: 'Correct! Rent reporting is especially valuable for thin files: 1) Carlos has 36 months of perfect payments that aren\'t being counted, 2) Adding this history could immediately boost his FICO 9 and VantageScore, 3) It adds a different payment type to his profile, improving the "credit mix" factor, 4) At $5-10/month ($60-120/year), the ROI is excellent if it helps him qualify for better rates, 5) Some services (Rental Kharma, Boom, PayYourRent) can even report past rent history, 6) Important: not all scoring models count rent, but the trend is moving toward including it. FICO 9, FICO XD, and VantageScore 3.0+ all consider rent data.' },
-          { text: 'Only if his landlord agrees to report directly', correct: false, explanation: 'Most landlords don\'t report to bureaus. Third-party rent reporting services work independently — they verify payments with the landlord or through bank records.' },
-          { text: 'He should skip rent reporting and just get more credit cards', correct: false, explanation: 'While more credit accounts can help, rent reporting adds history without a hard inquiry or new account. For a thin file, it\'s one of the easiest wins available.' }
+          { text: 'No — rent payments never count toward credit scores', correct: false, explanation: 'Rent is not reported by default, but rent reporting services add it, and newer scoring models (FICO 9, VantageScore 3.0+, FICO XD) do consider it. This is a growing trend across the industry.' },
+          { text: 'Yes — for a thin file, 36 months of perfect rent payments is valuable data. Services can report it to bureaus and some can retroactively add past history. The $5-10/month cost is worth the credit benefit.', correct: true, explanation: 'Correct! Rent reporting is especially powerful for thin files: you already have 36 months of perfect payment history sitting unused. Adding it can immediately improve your score in models that count it, add a different payment type to your mix, and cost less than $120/year. Important: not all scoring models count rent, so the benefit varies by lender. Still, for a thin file, every positive data point matters.' },
+          { text: 'Only if your landlord agrees to report directly to the bureaus', correct: false, explanation: 'Most landlords do not report. Third-party services (Rental Kharma, Boom, PayYourRent) work independently — they verify payments through bank records or landlord confirmation. No landlord cooperation is required.' },
+          { text: 'Skip rent reporting and get more credit cards instead', correct: false, explanation: 'Rent reporting adds positive history with no hard inquiry and no new account risk. For a thin file, it is one of the easiest, lowest-risk credit improvements available.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Authorized User Removal',
-        story: 'Tyler was added as an authorized user on his mother\'s card 3 years ago to build credit. His score is now 720. His mother recently started carrying a high balance (85% utilization) and missed a payment. Tyler\'s score dropped 45 points.',
-        question: 'What should Tyler do?',
+        type: 'multiple-choice',
+        title: 'When an Authorized User Account Goes Bad',
+        question: 'You were added as an authorized user on a family member\'s card 3 years ago. Your score is now 720. Recently their utilization jumped to 85% and they missed a payment — your score dropped 45 points. What should you do?',
         options: [
-          { text: 'Nothing — he\'s stuck with the consequences', correct: false, explanation: 'Authorized users can be removed from accounts at any time. Tyler is not stuck.' },
-          { text: 'Have himself removed as an authorized user immediately. The card\'s negative activity (high utilization and late payment) will be removed from his report. Then dispute the tradeline if it doesn\'t automatically disappear within 30 days.', correct: true, explanation: 'Correct! Authorized user removal is simple and reversible: 1) Tyler can call the card issuer or his mother can request his removal, 2) Once removed, the entire tradeline should disappear from his report within 1-2 billing cycles, 3) This removes BOTH the negative recent activity AND the positive 3-year history, 4) If it doesn\'t disappear automatically, Tyler can dispute it with the bureaus, 5) Since Tyler now has his own credit history (720 before the drop), losing the AU card is a worthwhile tradeoff, 6) He can always be re-added later once his mother\'s account is back in good standing. Key lesson: authorized user status is a double-edged sword — you inherit both the good AND the bad.' },
-          { text: 'Pay his mother\'s balance down for her', correct: false, explanation: 'While generous, Tyler isn\'t responsible for his mother\'s debt. Removing himself as an authorized user is the faster and more practical solution.' },
-          { text: 'Close his own credit cards to reduce overall debt exposure', correct: false, explanation: 'Closing his own cards would eliminate his personal credit history and increase his personal utilization. That\'s the opposite of what he needs.' }
+          { text: 'Nothing — you are stuck with the consequences of their account', correct: false, explanation: 'Authorized users can be removed from accounts at any time. You are never permanently bound to an authorized user tradeline.' },
+          { text: 'Have yourself removed as an authorized user. Once removed, the entire tradeline disappears from your report within 1-2 billing cycles, eliminating both the negative activity and the 3-year positive history', correct: true, explanation: 'Correct! Removal is immediate and reversible. Since you now have your own credit history (720 before the drop), losing the AU card is a worthwhile tradeoff. If the tradeline does not disappear automatically within 30 days, dispute it with the bureaus. You can be re-added later once the account is back in good standing. Key lesson: authorized user status is a double-edged sword — you inherit both the positive history AND any future negative activity.' },
+          { text: 'Pay the family member\'s balance down yourself so the account improves', correct: false, explanation: 'While generous, removing yourself as an authorized user is faster and more practical. You are not obligated to pay a debt that is not yours.' },
+          { text: 'Close your own credit cards to reduce your total debt exposure', correct: false, explanation: 'Closing your own cards eliminates your personal history and increases your personal utilization — the opposite of what you need. Remove yourself from the problematic AU account instead.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Store Card Temptation',
-        story: 'At the checkout of her favorite clothing store, Brittany is offered 20% off her $200 purchase if she opens a store credit card today. She has a 680 credit score and 3 existing cards. The store card has a $500 limit and 28% APR.',
-        question: 'Should Brittany open the store card for the discount?',
+        type: 'true-false',
+        title: 'Store Card Instant Discounts',
+        question: 'Taking a 20% instant discount from a store credit card offer at checkout is generally a good deal for most credit builders.',
         options: [
-          { text: 'Absolutely — free money is free money', correct: false, explanation: 'The $40 savings comes with significant credit implications that may cost far more in the long run.' },
-          { text: 'Probably not — the hard inquiry will temporarily lower her score, the low limit increases the chance of high utilization, the 28% APR is very high, and store cards are less valuable than general-purpose cards. The $40 savings isn\'t worth the credit impact.', correct: true, explanation: 'Correct! Store cards have several drawbacks: 1) Hard inquiry drops her score 5-15 points immediately, 2) Low $500 limit — even small purchases create high utilization (a $250 purchase = 50%), 3) 28% APR is significantly higher than most general cards (16-22%), 4) Store cards can only be used at that store — less versatile than Visa/Mastercard, 5) Lowers her average account age, 6) The $40 savings is a one-time benefit vs. ongoing credit impact. Better alternative: if Brittany wants a new card, apply for a general-purpose rewards card with a higher limit and lower APR. The exception: if she already has excellent credit and uses it solely for the initial discount, pays in full, and doesn\'t mind the inquiry.' },
-          { text: 'Yes — more accounts always help your credit', correct: false, explanation: 'More accounts can help credit mix, but a store card with a low limit and high APR is one of the worst ways to add an account. A general-purpose card would be far more beneficial.' },
-          { text: 'Store cards don\'t show up on credit reports', correct: false, explanation: 'Store credit cards report to the bureaus just like any other credit card. They count as revolving credit accounts.' }
+          { text: 'True', correct: false, explanation: 'False! Store cards come with significant downsides: a hard inquiry that drops your score 5-15 points, very low credit limits (often $300-$500) that make high utilization almost inevitable, APRs of 25-30%, and limited usability. The one-time savings (often $20-$40) rarely outweighs the ongoing credit cost. Better alternative: a general-purpose rewards card with a higher limit and lower APR.' },
+          { text: 'False', correct: true, explanation: 'Correct! Store card drawbacks: hard inquiry, low limit that easily creates high utilization, 25-30% APR, and reduced average account age. The instant discount is a one-time benefit versus lasting credit impact. Exception: if you have excellent credit and will pay in full immediately and close or ignore the card — but even then, a general-purpose card is a better addition to your profile.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Piggyback Credit Strategy',
-        story: 'Derek has no credit history and discovers companies that sell "tradeline rentals" — for $500-$1,500, they\'ll add him as an authorized user on a stranger\'s credit card with perfect history for 2-3 months, then remove him.',
-        question: 'Should Derek use a paid tradeline rental service?',
+        type: 'multiple-choice',
+        title: 'Paid Tradeline Rentals',
+        question: 'A company offers to add you as an authorized user on a stranger\'s old, perfect-history credit card for $500-$1,500, then remove you after 2-3 months. Is this a good way to build credit?',
         options: [
-          { text: 'Yes — it\'s a guaranteed way to build instant credit', correct: false, explanation: 'Paid tradelines are not guaranteed to work and carry significant risks. FICO has been working to detect and reduce the impact of AU tradeline manipulation.' },
-          { text: 'No — paid tradeline rentals are ethically and legally questionable. Banks and scoring models are actively working to detect this practice. Derek could face account closures, and the temporary boost disappears when the tradeline is removed. Legitimate authorized user status with a family member is the proper approach.', correct: true, explanation: 'Correct! Paid tradeline rentals are problematic: 1) Legally gray area — some legal experts consider it bank fraud or wire fraud, 2) Banks actively try to identify and shut down tradeline selling operations, 3) FICO has modified scoring to reduce AU tradeline impact when abuse is detected, 4) The boost is temporary — once Derek is removed after 2-3 months, the tradeline disappears, 5) If the card owner closes the account or gets caught, Derek gets nothing, 6) $500-$1,500 is a lot to spend on a temporary, uncertain benefit, 7) If discovered, it could result in account closures or being blacklisted by issuers. The legitimate alternative: ask a trusted family member to add Derek as an AU on their existing card — it\'s free, legal, and more sustainable.' },
-          { text: 'It\'s illegal and he\'ll go to jail', correct: false, explanation: 'While the practice is ethically questionable and may violate bank terms of service, individual consumers using tradeline services haven\'t typically been prosecuted. The bigger risk is financial loss and potential credit damage.' },
-          { text: 'Only use companies that guarantee results', correct: false, explanation: 'No tradeline company can truly guarantee results because scoring models are constantly being updated to detect manipulation. Any guarantee is likely false advertising.' }
+          { text: 'Yes — it is a guaranteed instant credit boost', correct: false, explanation: 'Nothing is guaranteed. FICO actively works to detect and reduce AU tradeline manipulation. The boost is temporary and disappears when you are removed.' },
+          { text: 'No — paid tradeline rentals are ethically questionable, potentially a violation of bank terms of service, and provide only a temporary boost that disappears after removal. Free family-member authorized user status is the legitimate approach.', correct: true, explanation: 'Correct! Paid tradeline risks: legally gray area, banks actively detect and close these accounts, FICO has modified scoring to reduce the impact of suspicious AU tradelines, the boost is temporary and gone after 2-3 months, and you risk losing hundreds to thousands of dollars with no lasting benefit. The free, legal, sustainable approach: have a trusted family member add you to their existing clean card.' },
+          { text: 'Yes, but only use companies that guarantee results in writing', correct: false, explanation: 'No tradeline company can guarantee results. Scoring models are constantly updated to detect manipulation, making any written guarantee misleading.' },
+          { text: 'It is a federal crime with jail time', correct: false, explanation: 'While it is ethically questionable and violates bank terms of service, individual consumers have not typically been criminally prosecuted. The bigger risks are financial loss and potential account closures.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Foreclosure Recovery',
-        story: 'Rachel lost her home to foreclosure 3 years ago. Her credit score is 540. She\'s been renting and paying all bills on time since the foreclosure. She wants to rebuild her credit to buy a home again someday.',
-        question: 'What should Rachel know about rebuilding after foreclosure?',
+        type: 'multiple-choice',
+        title: 'Rebuilding After Foreclosure',
+        question: 'You lost a home to foreclosure 3 years ago. Your score is 540. What should you know about your path back to homeownership?',
         options: [
-          { text: 'She can never get a mortgage again', correct: false, explanation: 'Foreclosure has waiting periods, not permanent bans. Most mortgage programs allow applications after 2-7 years depending on the loan type.' },
-          { text: 'Rachel can get a new mortgage after the waiting period (FHA: 3 years, conventional: 7 years, VA: 2 years from foreclosure). In the meantime, she should build credit aggressively: secured card, credit builder loan, authorized user, rent reporting. With 3+ years of positive credit building, she could qualify for an FHA loan now.', correct: true, explanation: 'Correct! Foreclosure recovery timeline: 1) FHA loans: 3-year waiting period (Rachel qualifies NOW if she has extenuating circumstances documentation), 2) VA loans: 2-year waiting period, 3) Conventional loans: 7-year waiting period (4 years with extenuating circumstances), 4) USDA loans: 3-year waiting period. What Rachel should do now: get a secured card + credit builder loan, request rent reporting, get added as AU on a family member\'s card, maintain perfect payments on everything. With her 3 years of clean history, she may already be eligible for FHA. She should consult with a mortgage lender who works with credit recovery borrowers.' },
-          { text: 'She needs to wait 10 years for the foreclosure to fall off', correct: false, explanation: 'Foreclosures stay on credit reports for 7 years (not 10), but more importantly, she can get new credit and even a new mortgage BEFORE it falls off.' },
-          { text: 'She should focus only on saving a down payment, not credit', correct: false, explanation: 'Both are important. Without good credit, she won\'t qualify for a mortgage regardless of her down payment. Credit rebuilding should happen simultaneously with saving.' }
+          { text: 'A foreclosure means you can never get a mortgage again', correct: false, explanation: 'Foreclosure has waiting periods, not permanent bans. Most mortgage programs allow new applications after 2-7 years depending on the loan type and circumstances.' },
+          { text: 'Foreclosures stay on your credit report for 10 years before you can get a new mortgage', correct: false, explanation: 'Foreclosures stay for 7 years (not 10), and more importantly, you can qualify for a new mortgage well before it falls off — as early as 2-3 years after foreclosure.' },
+          { text: 'FHA loans allow new mortgages after 3 years, VA after 2 years, and conventional after 7 years — and with 3 years of clean credit rebuilding, you may already qualify for FHA today', correct: true, explanation: 'Correct! At 3 years post-foreclosure, FHA eligibility may already apply. Build credit aggressively now: secured card + credit builder loan, rent reporting, authorized user if possible, and perfect payments. Consult a lender specializing in credit recovery borrowers. Waiting for the foreclosure to fall off is unnecessary — start the path back now.' },
+          { text: 'Save a down payment first; worry about credit later', correct: false, explanation: 'Both matter simultaneously. Without qualifying credit, no down payment will be enough. Start credit rebuilding now while also saving.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The FICO vs. VantageScore Confusion',
-        story: 'Anthony is rebuilding credit after bankruptcy. Credit Karma shows his VantageScore as 650, but when he applied for a car loan, the dealer said his FICO score is only 590. Anthony is confused and frustrated by the 60-point difference.',
-        question: 'Why is there such a big difference between Anthony\'s scores, and which one matters more?',
+        type: 'multiple-choice',
+        title: 'VantageScore vs. FICO — Which Matters for Lending?',
+        question: 'Your Credit Karma score shows 650, but when you applied for an auto loan, the dealer said your FICO score is 590. Why is there a 60-point gap and which score matters?',
         options: [
-          { text: 'Credit Karma\'s score is inflated and unreliable', correct: false, explanation: 'Credit Karma accurately reports VantageScore. The difference is in how the two models calculate scores, not in accuracy.' },
-          { text: 'VantageScore and FICO weigh factors differently — VantageScore is more forgiving of past negative events like bankruptcy, while FICO weighs them more heavily. For auto loans and mortgages, the FICO score is what matters since 90% of lenders use FICO. Anthony should focus on improving factors that FICO values most.', correct: true, explanation: 'Correct! Key differences between the scores: 1) VantageScore is more forgiving of bankruptcies and collections, often producing higher scores during rebuilding, 2) FICO 8 (most commonly used by lenders) penalizes recent negative items more heavily, 3) 90% of lenders use FICO scores for lending decisions — Credit Karma\'s VantageScore is educational but not what lenders see, 4) Different FICO versions exist: FICO Auto Score may differ from FICO 8, 5) The 60-point gap is common during rebuilding — it narrows as the negative events age. Anthony should track his FICO score (available free from many banks and Experian) alongside VantageScore to set realistic expectations.' },
-          { text: 'The dealership made an error — his real score is 650', correct: false, explanation: 'Both scores are real — they\'re calculated using different models. The dealership used FICO, which is standard for auto lending.' },
-          { text: 'The difference doesn\'t matter — all scores work the same', correct: false, explanation: 'The 60-point difference significantly matters for lending decisions. A 590 FICO may mean higher interest rates or denial, while 650 would qualify for better terms.' }
+          { text: 'Credit Karma\'s score is inflated and inaccurate', correct: false, explanation: 'Credit Karma accurately reports your VantageScore. Both scores are real — they are calculated using different models with different weightings.' },
+          { text: 'VantageScore is more forgiving of past negative events like bankruptcy; FICO 8 weighs them more heavily. Since 90% of lenders use FICO, the dealer\'s 590 is what matters for lending decisions.', correct: true, explanation: 'Correct! VantageScore and FICO use different algorithms. During rebuilding, VantageScore typically reads higher because it penalizes past negative events less. For auto loans and mortgages, lenders use FICO (often a version specific to that loan type, like FICO Auto Score). Track your FICO score through your bank, credit card issuer, or a free Experian account to set realistic lending expectations. The 60-point gap narrows as negative events age.' },
+          { text: 'The dealership made an error — your real score is 650', correct: false, explanation: 'Both scores are real, calculated by different models. The dealership used FICO, which is the standard for auto lending. Both numbers are accurate for their respective models.' },
+          { text: 'The difference does not matter since all scores are calculated the same way', correct: false, explanation: 'The difference matters significantly for lending decisions. A 590 FICO can mean higher rates or denial, while 650 would qualify for better terms. Understanding which score lenders use is critical.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Emergency Credit Conundrum',
-        story: 'Laura has been building credit for 10 months with one secured card ($300 limit, perfect payments). Her score is 660. Her car breaks down and she needs $2,000 for repairs. She\'s considering applying for a personal loan or another credit card.',
-        question: 'What should Laura consider about using credit for this emergency?',
+        type: 'multiple-choice',
+        title: 'Using Credit for a Financial Emergency',
+        question: 'You have been building credit for 10 months with one secured card (660 score). Your car breaks down and you need $2,000 for repairs. Should you apply for a personal loan or another credit card?',
         options: [
-          { text: 'Apply for as many options as possible to increase her chances', correct: false, explanation: 'Multiple applications create multiple hard inquiries that would significantly damage her thin file. She should be strategic.' },
-          { text: 'A personal loan is better than a credit card for this situation — it provides a fixed amount with fixed payments, won\'t affect her utilization ratio since it\'s installment debt, and adds credit mix diversity. She should research credit union personal loans first, as they often approve thin-file borrowers with 660+ scores at reasonable rates.', correct: true, explanation: 'Correct! Why a personal loan works better here: 1) Fixed payments — easier to budget than revolving credit card debt, 2) Installment loan — doesn\'t affect revolving utilization (which is her only account type), 3) Credit mix improvement — adding an installment loan to her revolving-only profile improves the credit mix factor (10% of score), 4) Credit unions are more willing to work with thin files and offer lower rates, 5) Some credit unions offer "emergency loans" designed for exactly this situation, 6) A $2,000 credit card charge on any card she could get would likely create very high utilization. If a personal loan isn\'t available, a 0% APR credit card with a promotional period could work — but only if she can pay it off before the rate jumps.' },
-          { text: 'She should just use her debit card', correct: false, explanation: 'If Laura has $2,000 in checking, great. But this scenario implies she needs credit because she doesn\'t have the cash available. Debit cards don\'t provide credit.' },
-          { text: 'Wait until her score is higher before applying for anything', correct: false, explanation: 'She needs the car for work — waiting isn\'t an option. A strategic application with one well-chosen lender is reasonable.' }
+          { text: 'Apply for as many lenders as possible to maximize approval chances', correct: false, explanation: 'Multiple applications create multiple hard inquiries that significantly damage a thin file. One well-chosen application is the right approach.' },
+          { text: 'A personal loan from a credit union is the better choice — it does not affect your revolving utilization, adds installment loan credit mix, and credit unions are more willing to work with thin-file borrowers at reasonable rates', correct: true, explanation: 'Correct! A $2,000 charge on any new credit card would likely create very high utilization on your thin file. An installment loan does not affect revolving utilization, adds credit mix diversity (10% of your score), and has fixed payments that are easier to budget. Credit unions often have emergency loan programs designed for exactly this situation. If a personal loan is unavailable, a 0% APR promotional card is a fallback — but only if you can pay it off before the rate jumps.' },
+          { text: 'Use a debit card instead', correct: false, explanation: 'If you had $2,000 available in checking, you would not need credit. The question assumes you need to borrow — a personal loan is the most credit-healthy way to do that.' },
+          { text: 'Wait until your score is higher before applying for anything', correct: false, explanation: 'When you need the car for work, waiting is not an option. A single strategic application to a credit union is reasonable even with a thin file.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Credit Portfolio Building',
-        story: 'After 18 months of credit building, Vanessa has: a secured card ($500 limit, 12 months old), an unsecured card ($2,000 limit, 6 months old), and a credit builder loan (3 months remaining). Her score is 710. She wants to get to 750+.',
-        question: 'What should Vanessa focus on to reach 750+?',
+        type: 'true-false',
+        title: 'Reaching 750+ — Do You Need More Accounts?',
+        question: 'The fastest way to move from a 710 credit score to 750+ is to open additional credit accounts to increase your total available credit.',
         options: [
-          { text: 'Open more credit cards to increase her total credit', correct: false, explanation: 'More cards aren\'t needed yet. New inquiries and lower average age would actually hurt her short-term progress toward 750.' },
-          { text: 'Keep all existing accounts in perfect standing, request a credit limit increase on the unsecured card, let the credit builder loan complete, keep utilization under 10% using the AZEO method, and be patient — time and consistency will push her to 750+ within 6-12 more months.', correct: true, explanation: 'Correct! Vanessa has a solid foundation. To reach 750+: 1) Continue perfect payments — payment history is 35% of the score and consistency over time is key, 2) Request a credit limit increase on the unsecured card (ask if it\'s a soft pull) — higher limits mean lower utilization, 3) Keep utilization under 10% using AZEO: pay all cards to $0 except one with a $5-$20 balance, 4) Let the credit builder loan complete naturally — this adds positive installment history, 5) After the loan completes, consider one more revolving account in 6+ months, 6) DON\'T open new accounts right now — her average age is only ~9 months and needs to grow, 7) Time is her biggest ally — accounts aging from 12 months to 24+ months creates meaningful score improvement. Patience + consistency = 750+.' },
-          { text: 'Close the secured card since she now has an unsecured card', correct: false, explanation: 'Closing the secured card would reduce her total available credit, increase utilization, and shorten her credit history. Keep it open even if unused.' },
-          { text: 'Pay off the credit builder loan early to save money', correct: false, explanation: 'Paying off the loan early ends the monthly positive reporting earlier. The remaining 3 months of payments build more credit history. The interest cost is minimal compared to the credit benefit.' }
+          { text: 'True', correct: false, explanation: 'False! At 710 with accounts averaging under 12 months old, opening new accounts reduces your average age of credit and adds hard inquiries — both of which hurt your score short-term. The path to 750+ is patience: maintain perfect payments, keep utilization under 10% using the AZEO method, let the credit builder loan complete naturally, and request a credit limit increase on existing accounts. Time and consistency are more powerful than new accounts at this stage.' },
+          { text: 'False', correct: true, explanation: 'Correct! From 710, adding accounts does more harm than good in the short term. New accounts lower average age and add inquiries. Instead: perfect payments (35% of score), AZEO method for utilization (30%), let existing accounts age (15%), and a soft-pull limit increase on your unsecured card. Patience plus consistency will reach 750+ within 6-12 months.' }
         ]
       },
       {
-        type: 'scenario',
-        title: 'Scenario: The Experian Boost Decision',
-        story: 'Kevin has a thin credit file with one secured card. His Experian score is 620. He hears about Experian Boost, which can add his utility bills, phone bill, and streaming subscriptions to his Experian credit report.',
-        question: 'Should Kevin use Experian Boost?',
+        type: 'true-false',
+        title: 'Experian Boost',
+        question: 'Experian Boost is free, adds utility and phone bill history to your credit profile, and can improve your scores at all three bureaus.',
         options: [
-          { text: 'No — it probably doesn\'t work and it\'s a scam', correct: false, explanation: 'Experian Boost is a legitimate, free service from Experian. It genuinely adds payment data and can increase scores.' },
-          { text: 'Yes — for a thin file, Experian Boost is a free way to add positive payment history. It typically adds 10-20 points by including utility, phone, and streaming payments. However, Kevin should understand it only affects his Experian score, not TransUnion or Equifax.', correct: true, explanation: 'Correct! Experian Boost is especially valuable for thin files: 1) It\'s completely free — no subscription required, 2) It adds payment history for utilities (electric, gas, water), phone bills, and streaming services, 3) Average score increase is 13 points (some see more with thin files), 4) Instant results — the score updates immediately, 5) IMPORTANT LIMITATION: It only affects Experian reports and scores. TransUnion and Equifax scores are unchanged, 6) If a lender pulls TransUnion or Equifax, they won\'t see the Boost data, 7) Kevin can remove the data at any time if he wants, 8) It works by connecting to his bank account to verify payment history. For Kevin\'s thin file, every point counts, and 10-20 free points on Experian is absolutely worth it.' },
-          { text: 'Only if he pays for the premium version', correct: false, explanation: 'Experian Boost is completely free. There is no premium version of Boost. Experian has paid products, but Boost itself is free.' },
-          { text: 'He should wait until he has more credit accounts', correct: false, explanation: 'Experian Boost is most valuable when you have a thin file — that\'s when a few extra positive data points make the biggest difference.' }
+          { text: 'True', correct: false, explanation: 'Partially false! Experian Boost is free and does add utility, phone, and streaming payment history — but it only affects your Experian score, not TransUnion or Equifax. If a lender pulls either of the other two bureaus, they will not see the Boost data. Still, for thin files, free improvements on even one bureau are worthwhile — especially since Experian is one of the three most-used bureaus.' },
+          { text: 'False', correct: true, explanation: 'Correct! Experian Boost only updates your Experian score (average improvement: 13 points). TransUnion and Equifax are unchanged. Despite this limitation, it is completely free, instant, and especially valuable for thin files where every positive data point matters. The limitation is important to understand when a lender specifies which bureau they pull.' }
         ]
       },
       {
