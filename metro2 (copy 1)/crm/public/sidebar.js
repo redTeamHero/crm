@@ -775,8 +775,26 @@
 
   html += '<div class="evolv-sb-bottom">';
   html += '<div class="evolv-sb-bell-wrap evolv-sb-item" id="evolv-sb-bell" data-tooltip="Notifications" style="cursor:pointer;">' + svg('bell', 20) + '<span class="evolv-sb-item-label">Notifications</span><span class="evolv-sb-bell-badge" id="evolv-bell-badge"></span></div>';
+  // Inject globe spin animation once
+  if (!document.getElementById('evolv-globe-style')) {
+    var gs = document.createElement('style');
+    gs.id = 'evolv-globe-style';
+    gs.textContent = '@keyframes evolv-meridian{0%{transform:scaleX(1)}25%{transform:scaleX(0)}50%{transform:scaleX(-1)}75%{transform:scaleX(0)}100%{transform:scaleX(1)}}.evolv-globe-meridian{animation:evolv-meridian 2.4s linear infinite;transform-box:fill-box;transform-origin:center}.evolv-globe-meridian2{animation:evolv-meridian 2.4s linear infinite -1.2s;transform-box:fill-box;transform-origin:center}';
+    document.head.appendChild(gs);
+  }
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Guided Tour" id="evolv-sb-tour" style="color:#d4a853;">';
-  html += '<svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><g transform="translate(50,50)"><g><path d="M-5,-5 C-25,-35 -50,-30 -45,-10 C-42,2 -25,8 -5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M-5,5 C-25,30 -45,28 -40,12 C-37,2 -22,-2 -5,2 Z" fill="#c49a45" opacity="0.85"/></g><g><path d="M5,-5 C25,-35 50,-30 45,-10 C42,2 25,8 5,2 Z" fill="#d4a853" opacity="0.9"/><path d="M5,5 C25,30 45,28 40,12 C37,2 22,-2 5,2 Z" fill="#c49a45" opacity="0.85"/></g><ellipse cx="0" cy="0" rx="3.5" ry="12" fill="#1a1a1a"/></g></svg>';
+  html += '<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;">'
+    + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="position:absolute;top:0;left:0;">'
+    + '<circle cx="12" cy="12" r="9.5" stroke="#d4a853" stroke-width="1.5"/>'
+    + '<path d="M2.5 12 Q12 8 21.5 12" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.65"/>'
+    + '<path d="M2.5 12 Q12 16 21.5 12" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.65"/>'
+    + '<path d="M5.5 6.5 Q12 4.5 18.5 6.5" stroke="#d4a853" stroke-width="0.8" fill="none" opacity="0.45"/>'
+    + '<path d="M5.5 17.5 Q12 19.5 18.5 17.5" stroke="#d4a853" stroke-width="0.8" fill="none" opacity="0.45"/>'
+    + '<ellipse class="evolv-globe-meridian" cx="12" cy="12" rx="5" ry="9.5" stroke="#d4a853" stroke-width="1.5" fill="none"/>'
+    + '<ellipse class="evolv-globe-meridian2" cx="12" cy="12" rx="5" ry="9.5" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.5"/>'
+    + '</svg>'
+    + '<span style="position:relative;z-index:1;font-size:9px;font-weight:900;color:#d4a853;line-height:1;font-family:Georgia,serif;user-select:none;">?</span>'
+    + '</span>';
   html += '<span class="evolv-sb-item-label" style="color:#d4a853;">Guided Tour</span></a>';
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Help" id="evolv-sb-help">' + svg('help', 20) + '<span class="evolv-sb-item-label">Help</span></a>';
 
