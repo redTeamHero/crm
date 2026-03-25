@@ -312,3 +312,107 @@ canvas { filter: none !important; }
 .text-\[\#f0f0f0\] { color: #0f172a !important; }
 .text-\[\#cccccc\] { color: #374151 !important; }
 .text-\[\#888\], .text-\[\#888888\] { color: #6b7280 !important; }
+
+/* =============================================
+   EXTENDED LIGHT OVERRIDES — dark remnants fix
+   ============================================= */
+
+/* --- Client Journey Tracker card (style.css .hero-tracker uses rgba(15,15,20,0.85)) --- */
+.hero-tracker {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.2) !important;
+}
+.hero-tracker-title { color: #0f172a !important; }
+.hero-tracker-description { color: #6b7280 !important; }
+
+/* --- Tracker step circles, rails, names --- */
+.tracker-step-circle {
+  background: #f8fafc !important;
+  border-color: #d1d5db !important;
+  color: #6b7280 !important;
+}
+.tracker-step.current .tracker-step-circle {
+  border-color: #d4a853 !important;
+  color: #92400e !important;
+  background: #fffbf0 !important;
+}
+.tracker-step-line { background: #e5e7eb !important; }
+.tracker-step-name { color: #374151 !important; }
+.tracker-step.current .tracker-step-name { color: #111827 !important; font-weight: 600; }
+.tracker-step.completed .tracker-step-name { color: #9ca3af !important; }
+
+/* --- Invoice table: bg-[rgba(18,18,22,0.95)] Tailwind class used on thead + empty state --- */
+.bg-\[rgba\(18\,18\,22\,0\.95\)\] { background-color: #f8fafc !important; }
+
+/* --- Invoice table dividers --- */
+.divide-gray-800 > * + * { border-color: #f1f5f9 !important; }
+
+/* --- Facebook Social Media: Live Preview card --- */
+.preview-card {
+  background: #f8fafc !important;
+  border: 1px solid #e5e7eb !important;
+}
+.preview-page-name { color: #111827 !important; }
+.preview-time { color: #6b7280 !important; }
+.preview-content { color: #374151 !important; }
+.preview-link {
+  background: #f1f5f9 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* --- Facebook: inline code/path chips (rgba(255,255,255,0.06) on dark) --- */
+.setup-path {
+  background: rgba(212, 168, 83, 0.08) !important;
+  border-color: rgba(212, 168, 83, 0.2) !important;
+  color: #374151 !important;
+}
+.setup-path span { color: #6b7280 !important; }
+
+/* --- Affiliate page: aff-card and rate inputs --- */
+.aff-card {
+  background: #f8fafc !important;
+  border: 1px solid #e5e7eb !important;
+}
+.rate-input {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+.aff-edit-row input {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+
+/* --- Disputes: floating selection toolbar (inline style rgba(30,30,34,0.95)) --- */
+#selectionToolbar {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border-color: rgba(212, 168, 83, 0.3) !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+}
+#selectionToolbar input {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+
+/* --- Disputes: selection toolbar item text/border colors --- */
+#itemsPerLetterInput {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+
+/* --- Letters page progress bar track --- */
+#generatingBar { background: var(--border-soft, #e5e7eb) !important; }
+
+/* --- My-company / settings: any rgba(0,0,0,0.2) tinted sections --- */
+.glass .rounded-xl[style*="rgba(0,0,0"] { background: #f8fafc !important; }
+
+/* --- Modals with rgba(0,0,0) overlay backdrops (lighten overlay) --- */
+.fixed[style*="rgba(0,0,0,0.7)"],
+.fixed[style*="rgba(0,0,0,0.6)"],
+.fixed[style*="rgba(0,0,0,0.75)"] {
+  background: rgba(0, 0, 0, 0.35) !important;
+}

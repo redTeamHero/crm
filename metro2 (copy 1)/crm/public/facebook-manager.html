@@ -568,32 +568,32 @@
 </main>
 
 <!-- Page Picker Overlay -->
-<div id="pagePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;padding:60px 16px;overflow-y:auto;">
-  <div style="background:#1a1b2e;border:1px solid rgba(99,102,241,0.3);border-radius:14px;width:100%;max-width:560px;padding:28px;">
+<div id="pagePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;align-items:flex-start;justify-content:center;padding:60px 16px;overflow-y:auto;">
+  <div style="background:#ffffff;border:1px solid rgba(212,168,83,0.25);border-radius:14px;width:100%;max-width:560px;padding:28px;box-shadow:0 12px 40px rgba(0,0,0,0.12);">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
       <div style="width:40px;height:40px;border-radius:50%;background:#1877f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
       </div>
       <div>
-        <h3 style="font-size:16px;font-weight:700;color:#e5e7eb;">Choose a Facebook Page</h3>
-        <p style="font-size:12px;color:#9ca3af;">Your account manages multiple pages. Select the page you want to connect to Evolv.</p>
+        <h3 style="font-size:16px;font-weight:700;color:#111827;">Choose a Facebook Page</h3>
+        <p style="font-size:12px;color:#6b7280;">Your account manages multiple pages. Select the page you want to connect to Evolv.</p>
       </div>
     </div>
     <div id="pagePickerList" style="margin-top:20px;display:flex;flex-direction:column;gap:10px;"></div>
-    <div id="pagePickerErr" style="color:#f87171;font-size:12px;margin-top:10px;display:none;"></div>
-    <button id="btnCancelPagePicker" type="button" style="margin-top:16px;font-size:12px;color:#9ca3af;background:none;border:none;cursor:pointer;width:100%;text-align:center;">Cancel — reconnect later</button>
+    <div id="pagePickerErr" style="color:#dc2626;font-size:12px;margin-top:10px;display:none;"></div>
+    <button id="btnCancelPagePicker" type="button" style="margin-top:16px;font-size:12px;color:#6b7280;background:none;border:none;cursor:pointer;width:100%;text-align:center;">Cancel — reconnect later</button>
   </div>
 </div>
 
 <!-- Article Picker Modal -->
-<div id="articlePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;">
-  <div style="background:#1a1b2e;border:1px solid rgba(255,255,255,0.1);border-radius:14px;width:100%;max-width:680px;padding:24px;">
+<div id="articlePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;">
+  <div style="background:#ffffff;border:1px solid rgba(212,168,83,0.25);border-radius:14px;width:100%;max-width:680px;padding:24px;box-shadow:0 12px 40px rgba(0,0,0,0.12);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h3 style="font-size:16px;font-weight:700;color:#e5e7eb;">Pick an Article from RSS</h3>
-      <button id="btnCloseArticlePicker" type="button" style="color:#9ca3af;font-size:20px;background:none;border:none;cursor:pointer;line-height:1;">✕</button>
+      <h3 style="font-size:16px;font-weight:700;color:#111827;">Pick an Article from RSS</h3>
+      <button id="btnCloseArticlePicker" type="button" style="color:#6b7280;font-size:20px;background:none;border:none;cursor:pointer;line-height:1;">✕</button>
     </div>
     <div style="margin-bottom:14px;">
-      <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Select Feed</label>
+      <label style="font-size:12px;color:#6b7280;display:block;margin-bottom:4px;">Select Feed</label>
       <select id="pickerFeedSelect" class="input-field w-full" style="font-size:13px;"></select>
     </div>
     <button id="btnLoadPickerItems" type="button" class="btn-secondary" style="font-size:13px;padding:7px 16px;margin-bottom:14px;">Load Articles</button>
