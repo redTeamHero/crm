@@ -867,8 +867,9 @@ function showWelcome() {
   overlay.addEventListener('click', (e) => {
     const action = e.target.closest('[data-action]')?.dataset?.action;
     if (action === 'start') {
+      const checked = overlay.querySelector('#tourDontShowAgain')?.checked;
       overlay.remove();
-      dismissTourServer();
+      if (checked) dismissTourServer();
       const current = getCurrentPageKey();
       if (current) tourEngine.start(current);
     } else if (action === 'skip' || e.target === overlay) {

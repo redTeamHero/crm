@@ -779,13 +779,14 @@
       var action = (e.target.closest('[data-action]') || {}).dataset;
       action = action ? action.action : null;
       if (action === 'start') {
-        overlay.remove();
-        dismissPortalTourServer();
-        startSectionTour('overview');
-      } else if (action === 'skip' || e.target === overlay) {
         var cb = overlay.querySelector('#ptourDontShowAgain');
         overlay.remove();
         if (cb && cb.checked) dismissPortalTourServer();
+        startSectionTour('overview');
+      } else if (action === 'skip' || e.target === overlay) {
+        var cb2 = overlay.querySelector('#ptourDontShowAgain');
+        overlay.remove();
+        if (cb2 && cb2.checked) dismissPortalTourServer();
       }
     });
 
