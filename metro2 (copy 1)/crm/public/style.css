@@ -6717,6 +6717,18 @@ a.primaries-card {
   50%       { transform: translateX(-50%) translateY(6px); opacity: 1; }
 }
 
+.batch-price {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #d4a853;
+  background: rgba(212,168,83,0.1);
+  border: 1px solid rgba(212,168,83,0.25);
+  border-radius: 999px;
+  padding: 4px 12px;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
 body.batch-select-active .back-to-top {
   bottom: calc(60px + 24px);
   transition: bottom 0.25s ease, transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, border-color 0.3s ease;

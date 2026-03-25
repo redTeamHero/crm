@@ -2553,8 +2553,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   var mailSelectMode = false;
+  function detectMailType(it) {
+    var name = (it.rawName || it.name || '').toLowerCase();
+    var file = (it.file || '').toLowerCase();
+    return (/certified/i.test(name) || /^scm[-_]/i.test(file)) ? 'certified' : 'regular';
+  }
   function renderMailCard(it, iconClass, statusText, svgIcon, allowMail) {
-    return `<div class="mail-card mail-card-${iconClass}" data-file-url="${esc(it.url)}"><input type="checkbox" class="batch-cb" tabindex="-1"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div></div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`;
+    var mailType = detectMailType(it);
+    return `<div class="mail-card mail-card-${iconClass}" data-file-url="${esc(it.url)}" data-mail-type="${mailType}"><input type="checkbox" class="batch-cb" tabindex="-1"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div></div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`;
   }
 
   function renderMailList(el, items, allowMail){
@@ -2662,12 +2668,23 @@ document.addEventListener('DOMContentLoaded', () => {
     var docToolbar = null;
     var mailToolbar = null;
 
+    var MAIL_RATE = { regular: 1.50, certified: 8.50 };
+
     function createToolbar(id) {
       var tb = document.createElement('div');
       tb.className = 'batch-toolbar';
       tb.id = id;
       tb.innerHTML = '<label class="select-all-label"><input type="checkbox" class="batch-select-all"> Select All</label><span class="batch-count">0 selected</span><button class="batch-download-btn" disabled><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Selected</button>';
       document.body.appendChild(tb);
+      return tb;
+    }
+
+    function createMailToolbar(id) {
+      var tb = createToolbar(id);
+      var priceEl = document.createElement('span');
+      priceEl.className = 'batch-price';
+      var dlBtn = tb.querySelector('.batch-download-btn');
+      tb.insertBefore(priceEl, dlBtn);
       return tb;
     }
 
@@ -2690,6 +2707,24 @@ document.addEventListener('DOMContentLoaded', () => {
       if (allCb) allCb.checked = cards.length > 0 && checked.length === cards.length;
     }
 
+    function updateMailToolbarCount(toolbar, container) {
+      updateToolbarCount(toolbar, container, '.mail-card');
+      var priceEl = toolbar ? toolbar.querySelector('.batch-price') : null;
+      if (!priceEl) return;
+      var cards = getVisibleCards(container, '.mail-card');
+      var checked = cards.filter(function(c) { return c.querySelector('.batch-cb')?.checked; });
+      if (checked.length === 0) { priceEl.textContent = ''; return; }
+      var regular = 0, certified = 0;
+      checked.forEach(function(c) {
+        if (c.dataset.mailType === 'certified') certified++; else regular++;
+      });
+      var total = (regular * MAIL_RATE.regular) + (certified * MAIL_RATE.certified);
+      var parts = [];
+      if (regular > 0) parts.push(regular + ' regular');
+      if (certified > 0) parts.push(certified + ' certified');
+      priceEl.textContent = parts.join(' + ') + ' = $' + total.toFixed(2);
+    }
+
     function batchDownload(urls) {
       var i = 0;
       function next() {
@@ -2709,7 +2744,7 @@ document.addEventListener('DOMContentLoaded', () => {
       next();
     }
 
-    function wireCardClicks(container, selector, toolbar) {
+    function wireCardClicks(container, selector, toolbar, updateFn) {
       if (!container) return;
       container.addEventListener('click', function(e) {
         var card = e.target.closest(selector);
@@ -2723,7 +2758,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!cb) return;
         cb.checked = !cb.checked;
         card.classList.toggle('batch-selected', cb.checked);
-        updateToolbarCount(toolbar, container, selector);
+        if (updateFn) updateFn(toolbar, container); else updateToolbarCount(toolbar, container, selector);
       }, true);
     }
 
@@ -2771,7 +2806,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var mailSection = document.getElementById('mailSection');
     var mailSelectBtn = document.getElementById('mailSelectToggle');
     if (mailSelectBtn && mailSection) {
-      mailToolbar = createToolbar('mailBatchToolbar');
+      mailToolbar = createMailToolbar('mailBatchToolbar');
 
       function getActiveMailContainer() {
         var waitingEl = document.getElementById('mailWaiting');
@@ -2781,7 +2816,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return waitingEl;
       }
 
-      wireCardClicks(mailSection, '.mail-card', mailToolbar);
+      wireCardClicks(mailSection, '.mail-card', mailToolbar, updateMailToolbarCount);
 
       mailSelectBtn.addEventListener('click', function() {
         mailSelectMode = !mailSelectMode;
@@ -2795,7 +2830,7 @@ document.addEventListener('DOMContentLoaded', () => {
           mailSection.querySelectorAll('.mail-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
         }
         document.body.classList.toggle('batch-select-active', mailSelectMode || docSelectMode);
-        updateToolbarCount(mailToolbar, getActiveMailContainer(), '.mail-card');
+        updateMailToolbarCount(mailToolbar, getActiveMailContainer());
       });
 
       mailToolbar.querySelector('.batch-select-all').addEventListener('change', function(e) {
@@ -2807,7 +2842,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (cb) cb.checked = checked;
           card.classList.toggle('batch-selected', checked);
         });
-        updateToolbarCount(mailToolbar, container, '.mail-card');
+        updateMailToolbarCount(mailToolbar, container);
       });
 
       mailToolbar.querySelector('.batch-download-btn').addEventListener('click', function() {
