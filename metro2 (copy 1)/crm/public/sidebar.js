@@ -54,7 +54,13 @@
   var navItems = [
     { group: 'MAIN' },
     { label: 'Dashboard', icon: 'grid', href: '/dashboard', match: ['/dashboard'] },
-    { label: 'Clients', icon: 'users', href: '/clients', match: ['/clients', '/'] },
+    { label: 'Clients', icon: 'users', href: null, match: ['/clients', '/client-invoicing', '/disputes', '/cfpb', '/social', '/'], sub: [
+      { label: 'Clients', icon: 'users', href: '/clients', match: ['/clients', '/'] },
+      { label: 'Invoicing', icon: 'fileText', href: '/client-invoicing', match: ['/client-invoicing'] },
+      { label: 'Disputes', icon: 'shield', href: '/disputes', match: ['/disputes'] },
+      { label: 'CFPB Complaints', icon: 'flag', href: '/cfpb', match: ['/cfpb'] },
+      { label: 'Social Media', icon: 'rss', href: '/social', match: ['/social'] }
+    ]},
     { label: 'Leads', icon: 'target', href: '/leads', match: ['/leads'] },
     { label: 'Marketing', icon: 'megaphone', href: null, match: ['/marketing'], sub: [
       { label: 'SMS', icon: 'sms', href: '/marketing/sms', match: ['/marketing/sms'] },
@@ -62,10 +68,6 @@
     ]},
     { label: 'Schedule', icon: 'calendar', href: '/schedule', match: ['/schedule'] },
     { label: 'Billing', icon: 'creditCard', href: '/billing', match: ['/billing'] },
-    { label: 'Invoicing', icon: 'fileText', href: '/client-invoicing', match: ['/client-invoicing'] },
-    { label: 'Disputes', icon: 'shield', href: '/disputes', match: ['/disputes'] },
-    { label: 'CFPB Complaints', icon: 'flag', href: '/cfpb', match: ['/cfpb'] },
-    { label: 'Social Media', icon: 'rss', href: '/social', match: ['/social'] },
     { group: 'TOOLS' },
     { label: 'Tradelines', icon: 'dollarSign', href: '/tradelines', match: ['/tradelines'] },
     { label: 'Affiliate', icon: 'share2', href: '/affiliate', match: ['/affiliate'] },
