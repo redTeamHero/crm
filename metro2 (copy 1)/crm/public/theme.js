@@ -51,9 +51,10 @@
     }
     if (event.key === 'evolv-theme') {
       const darkLink = document.getElementById('dark-theme-css');
-      if (darkLink) {
-        darkLink.disabled = event.newValue !== 'dark';
-      }
+      const lightLink = document.getElementById('light-theme-css');
+      const isDark = event.newValue === 'dark';
+      if (darkLink) darkLink.disabled = !isDark;
+      if (lightLink) lightLink.disabled = isDark;
     }
   });
 

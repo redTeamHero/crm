@@ -921,10 +921,16 @@
     themeToggleBtn.addEventListener('click', function (e) {
       e.preventDefault();
       var darkLink = document.getElementById('dark-theme-css');
+      var lightLink = document.getElementById('light-theme-css');
       var currentlyDark = localStorage.getItem('evolv-theme') === 'dark';
       if (currentlyDark) {
         localStorage.setItem('evolv-theme', 'light');
         if (darkLink) darkLink.disabled = true;
+        if (lightLink) { lightLink.disabled = false; } else {
+          var ll = document.createElement('link');
+          ll.id = 'light-theme-css'; ll.rel = 'stylesheet'; ll.href = '/evolv-light.css';
+          document.head.appendChild(ll);
+        }
         themeToggleBtn.setAttribute('data-tooltip', 'Switch to Dark Mode');
         var iconEl = themeToggleBtn.querySelector('svg');
         if (iconEl) iconEl.outerHTML = svg('moon', 20);
@@ -932,14 +938,11 @@
         if (labelEl) labelEl.textContent = 'Dark Mode';
       } else {
         localStorage.setItem('evolv-theme', 'dark');
-        if (darkLink) {
-          darkLink.disabled = false;
-        } else {
-          var newLink = document.createElement('link');
-          newLink.id = 'dark-theme-css';
-          newLink.rel = 'stylesheet';
-          newLink.href = '/evolv-dark.css';
-          document.head.appendChild(newLink);
+        if (lightLink) lightLink.disabled = true;
+        if (darkLink) { darkLink.disabled = false; } else {
+          var dl = document.createElement('link');
+          dl.id = 'dark-theme-css'; dl.rel = 'stylesheet'; dl.href = '/evolv-dark.css';
+          document.head.appendChild(dl);
         }
         themeToggleBtn.setAttribute('data-tooltip', 'Switch to Light Mode');
         var iconEl2 = themeToggleBtn.querySelector('svg');

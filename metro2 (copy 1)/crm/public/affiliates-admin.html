@@ -8,8 +8,9 @@
   <link rel="stylesheet" href="/tour-guide.css">
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
+  <link id="light-theme-css" rel="stylesheet" href="/evolv-light.css">
   <link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css" disabled>
-  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled")}})()</script>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
   <script src="/sidebar.js?v=3" defer></script>
   <script src="/command-palette.js" defer></script>
   <style>

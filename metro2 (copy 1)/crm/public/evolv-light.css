@@ -1,0 +1,314 @@
+/* ===================================================================
+   evolv-light.css — White / Light Theme Override
+   Loaded by default. Disabled when user switches to dark mode.
+   =================================================================== */
+
+/* ---- Root variables: light palette, gold accent ---- */
+:root {
+  --surface: rgba(255, 255, 255, 0.97) !important;
+  --surface-strong: #ffffff !important;
+  --surface-muted: rgba(241, 245, 249, 0.6) !important;
+  --border-soft: rgba(212, 168, 83, 0.18) !important;
+  --border-strong: rgba(212, 168, 83, 0.32) !important;
+  --glass-bg: rgba(255, 255, 255, 0.92) !important;
+  --glass-brd: rgba(212, 168, 83, 0.2) !important;
+  --muted: #6b7280 !important;
+  --text-primary: #0f172a !important;
+  --text-strong: #111827 !important;
+  --accent: #d4a853 !important;
+  --accent-hover: #c4973e !important;
+  --accent-bg: rgba(212, 168, 83, 0.12) !important;
+  --accent-soft: rgba(212, 168, 83, 0.2) !important;
+  --green: #16a34a !important;
+  --green-bg: #15803d !important;
+  --btn-text: #0a0a0a !important;
+  --shadow-soft: 0 18px 40px rgba(212, 168, 83, 0.12) !important;
+  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.08) !important;
+  --nav-shadow: 0 4px 24px rgba(0, 0, 0, 0.06) !important;
+  --bg-gradient-top: #ffffff !important;
+  --bg-gradient-bottom: #fafafa !important;
+  --bg-accent: rgba(212, 168, 83, 0.08) !important;
+  --badge-text: #92400e !important;
+  --ember: #c2410c !important;
+  --crimson: #b91c1c !important;
+  color-scheme: light !important;
+}
+
+/* ---- Body ---- */
+body {
+  color: #0f172a !important;
+  background: #f9fafb !important;
+}
+
+body::after {
+  background:
+    radial-gradient(circle at 20% 80%, rgba(212, 168, 83, 0.05), transparent 55%),
+    radial-gradient(circle at 75% 15%, rgba(212, 168, 83, 0.04), transparent 58%) !important;
+}
+
+/* ---- White text → dark text (Tailwind utility class) ---- */
+.text-white {
+  color: #111827 !important;
+}
+
+/* ---- Light text classes that need darkening on white backgrounds ---- */
+.text-gray-100 { color: #1e293b !important; }
+.text-gray-200 { color: #374151 !important; }
+.text-gray-300 { color: #4b5563 !important; }
+.text-gray-400 { color: #6b7280 !important; }
+
+/* ---- Dark hardcoded background classes → white / off-white ---- */
+.bg-\[\#0a0a0a\] { background-color: #ffffff !important; }
+.bg-\[\#0d0d0d\] { background-color: #ffffff !important; }
+.bg-\[\#111113\] { background-color: #f8fafc !important; }
+.bg-\[\#1a1a1a\] { background-color: #f1f5f9 !important; }
+.bg-\[\#111\]    { background-color: #f8fafc !important; }
+
+/* Dark glass / panel backgrounds */
+.glass {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(212, 168, 83, 0.15) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.07) !important;
+}
+
+.card {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.glass.card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(212, 168, 83, 0.15) !important;
+}
+
+.glass.card:hover {
+  border-color: rgba(212, 168, 83, 0.28) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.09), 0 0 24px rgba(212, 168, 83, 0.06) !important;
+}
+
+.panel {
+  background: #ffffff !important;
+  border: 1px solid rgba(212, 168, 83, 0.15) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+  color: #0f172a !important;
+}
+
+/* ---- Dark border classes → light ---- */
+.border-gray-600 { border-color: #d1d5db !important; }
+.border-gray-700 { border-color: #e5e7eb !important; }
+.border-gray-800 { border-color: #e2e8f0 !important; }
+.border-\[\#1a1a1a\] { border-color: #e5e7eb !important; }
+
+/* Dashed dark borders */
+.border-dashed.border-gray-600,
+.border-dashed.border-gray-700 { border-color: #d1d5db !important; }
+
+/* ---- Inputs & selects ---- */
+.input,
+textarea,
+select,
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="tel"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="date"] {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #0f172a !important;
+}
+
+/* Tailwind-styled inputs with hardcoded dark bg */
+input.bg-\[\#0a0a0a\],
+textarea.bg-\[\#0a0a0a\] {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+
+input.bg-\[\#1a1a1a\],
+textarea.bg-\[\#1a1a1a\] {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+
+.input:focus,
+textarea:focus,
+select:focus,
+input:focus {
+  border-color: #d4a853 !important;
+  box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.15) !important;
+  outline: none !important;
+}
+
+.input::placeholder,
+textarea::placeholder,
+input::placeholder {
+  color: #9ca3af !important;
+}
+
+.input-select,
+.tl-letter-select,
+.tl-playbook-select {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #d1d5db !important;
+}
+
+select option {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* ---- Buttons ---- */
+.btn {
+  background: linear-gradient(135deg, #d4a853 0%, #c4973e 100%) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 4px 14px rgba(212, 168, 83, 0.2) !important;
+}
+
+.btn:hover {
+  box-shadow: 0 8px 20px rgba(212, 168, 83, 0.3) !important;
+  filter: brightness(1.06) !important;
+}
+
+.btn-outline {
+  background: transparent !important;
+  color: #92400e !important;
+  border: 1px solid rgba(212, 168, 83, 0.5) !important;
+}
+
+.btn-outline:hover {
+  background: rgba(212, 168, 83, 0.1) !important;
+  border-color: #d4a853 !important;
+}
+
+.btn-ghost {
+  background: rgba(212, 168, 83, 0.08) !important;
+  color: #92400e !important;
+  border: 1px solid rgba(212, 168, 83, 0.2) !important;
+}
+
+.btn-ghost:hover {
+  background: rgba(212, 168, 83, 0.15) !important;
+}
+
+.btn-soft {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #374151 !important;
+}
+
+.btn-soft:hover {
+  background: rgba(212, 168, 83, 0.1) !important;
+  color: #92400e !important;
+}
+
+.btn-icon { color: #6b7280 !important; }
+.btn-icon:hover { color: #d4a853 !important; }
+
+.btn-destructive {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
+/* ---- Nav ---- */
+.nav-elevated {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(212, 168, 83, 0.15) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.nav-shell { color: #0f172a !important; }
+.nav-subtitle { color: rgba(15, 23, 42, 0.5) !important; }
+
+.nav-links .btn,
+.nav-actions .nav-btn {
+  background: #f8fafc !important;
+  border: 1px solid #e5e7eb !important;
+  color: #374151 !important;
+}
+
+.nav-links .btn:hover,
+.nav-actions .nav-btn:hover {
+  background: rgba(212, 168, 83, 0.1) !important;
+  border-color: rgba(212, 168, 83, 0.3) !important;
+  color: #92400e !important;
+}
+
+/* ---- Dark hover states (Tailwind hover:bg-gray-800, hover:bg-gray-900) ---- */
+.hover\:bg-gray-800:hover,
+.hover\:bg-gray-900:hover { background-color: #f1f5f9 !important; }
+.hover\:bg-gray-700:hover { background-color: #f1f5f9 !important; }
+
+/* ---- Modals / Dialogs with dark backgrounds ---- */
+.bg-black\/60 { background-color: rgba(0, 0, 0, 0.25) !important; }
+.bg-black\/80 { background-color: rgba(0, 0, 0, 0.35) !important; }
+
+/* ---- Tables ---- */
+thead, th {
+  background: #f8fafc !important;
+  color: #374151 !important;
+  border-color: #e5e7eb !important;
+}
+
+tr { border-color: #f1f5f9 !important; }
+tr:hover { background: #fffbf0 !important; }
+td { color: #374151 !important; }
+
+/* ---- Sidebar overrides ---- */
+.evolv-sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid #e5e7eb !important;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.evolv-sb-item { color: #374151 !important; }
+.evolv-sb-item:hover { background: rgba(212, 168, 83, 0.1) !important; color: #92400e !important; }
+.evolv-sb-item.active { background: rgba(212, 168, 83, 0.12) !important; color: #92400e !important; }
+
+.evolv-sb-section-label { color: #9ca3af !important; }
+.evolv-sb-brand { color: #0f172a !important; }
+.evolv-sb-brand-sub { color: #6b7280 !important; }
+
+.evolv-sb-avatar {
+  background: linear-gradient(135deg, #d4a853 0%, #c4973e 100%) !important;
+  color: #0a0a0a !important;
+}
+
+/* ---- Dropdowns / Menus ---- */
+.nav-dropdown-menu,
+.dropdown-menu,
+[class*="dropdown"] > div {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ---- Badges / Tags ---- */
+.badge { color: #92400e !important; background: rgba(212, 168, 83, 0.12) !important; }
+
+/* ---- Tooltip ---- */
+[data-tooltip]::after,
+.tooltip-content {
+  background: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* ---- Scrollbar (light) ---- */
+::-webkit-scrollbar-track { background: #f1f5f9 !important; }
+::-webkit-scrollbar-thumb { background: #d1d5db !important; }
+::-webkit-scrollbar-thumb:hover { background: #d4a853 !important; }
+
+/* ---- Chart.js canvas backgrounds ---- */
+canvas { filter: none !important; }
+
+/* ---- Misc text corrections ---- */
+.text-\[\#f0f0f0\] { color: #0f172a !important; }
+.text-\[\#cccccc\] { color: #374151 !important; }
+.text-\[\#888\], .text-\[\#888888\] { color: #6b7280 !important; }
