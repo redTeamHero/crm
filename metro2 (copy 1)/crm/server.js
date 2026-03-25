@@ -8712,6 +8712,7 @@ async function preflightLettersJob(payload, { tenantId, userId }) {
     inquiries,
     collectors,
     workflow = {},
+    itemsPerLetter = 0,
   } = payload || {};
 
   const db = await loadDB();
@@ -8918,6 +8919,7 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       previousDisputeDate,
       priorDates,
       enclosures,
+      itemsPerLetter,
     });
     if (Array.isArray(personalInfo) && personalInfo.length) {
       letters.push(

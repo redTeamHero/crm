@@ -1003,12 +1003,113 @@ function buildEnclosuresHtml(enclosures) {
   return `<div class="enclosures"><strong>Enclosures:</strong><ul style="margin:4px 0 0;padding-left:18px;">${items}</ul></div>`;
 }
 
-function generateLetters({ report, selections, consumer, requestType = "correct", templates = [], playbooks = {}, previousDisputeDate, priorDates, enclosures }) {
+function buildBatchLetterHTML({ consumer, bureau, items, requestType = "correct", enclosuresHtml = '' }) {
+  const bureauMeta = BUREAU_ADDR[bureau];
+  const dateStr = todayISO();
+  const signOff = `Sincerely,<br>${safe(consumer.name)}`;
+  const stateLaw = getStateLawAddendum(consumer.state);
+
+  const accountBlocks = items.map((item, idx) => {
+    const { tl, sel } = item;
+    enrichTradeline(tl);
+    const creditor = safe(tl.meta?.creditor || `Account ${idx + 1}`);
+    const accountNum = tl.per_bureau?.[bureau]?.account_number
+      || tl.meta?.account_numbers?.[bureau]
+      || tl.meta?.account_number
+      || null;
+    const acctLine = accountNum ? ` (Acct: ${safe(accountNum)})` : '';
+    const rawReason = typeof sel.specificDisputeReason === 'string' && sel.specificDisputeReason.trim() ? sel.specificDisputeReason.trim() : null;
+    const violationsHtml = rawReason
+      ? `<ol class="ocr" style="margin:6px 0 0;padding-left:18px;"><li>${safe(rawReason)}</li></ol>`
+      : buildViolationListHTML(tl.violations, sel.violationIdxs || []);
+    return `
+    <div style="border-left:3px solid #d4a853;padding:12px 0 12px 16px;margin:20px 0;">
+      <div style="font-weight:700;font-size:15px;margin-bottom:4px;">${idx + 1}. ${creditor}${acctLine}</div>
+      <div style="font-size:13px;color:#374151;margin-bottom:6px;">Reported by: <strong>${safe(bureau)}</strong></div>
+      ${violationsHtml}
+    </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${safe(bureau)} Batch Dispute – ${items.length} Account${items.length !== 1 ? 's' : ''}</title>
+  <style>
+    @media print { @page { margin: 1in; } }
+    body { font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; color:#000000; line-height:1.55; }
+    * { word-break:break-word; }
+    p { margin:10px 0; }
+    h1 { font-size:20px; margin-top:18px; margin-bottom:10px; }
+    h2 { font-size:16px; margin-top:28px; margin-bottom:10px; }
+    table { table-layout:fixed; width:100%; border-collapse:collapse; }
+    td, th { word-break:break-word; padding:8px; border:1px solid #e5e7eb; }
+    .enclosures { margin-top:28px; font-size:13px; color:#374151; }
+    .sig-block { margin-top:32px; }
+    ol.ocr { margin:0; padding-left:18px; }
+    ol.ocr li { margin-bottom:8px; }
+  </style>
+</head>
+<body>
+  ${buildLetterHeader(consumer, bureauMeta)}
+  <div style="color:#6b7280;margin-bottom:14px;">${dateStr}</div>
+
+  <h1>Formal Dispute of Multiple Accounts</h1>
+  <p>Pursuant to the Fair Credit Reporting Act (FCRA), 15 U.S.C. § 1681i, I am formally disputing the accuracy of the following accounts on my credit report maintained by ${safe(bureauMeta.name)}. I request a full reinvestigation of each item listed below.</p>
+
+  <h2>Disputed Accounts (${items.length})</h2>
+  ${accountBlocks}
+
+  <p style="margin-top:24px;">For each account listed above, please provide the method of verification, including the name and contact information of any furnisher relied upon. If you cannot verify an item with maximum possible accuracy, delete it from my credit file and send me an updated report.</p>
+  ${stateLaw ? `<p style="margin-top:16px;padding:12px;border-left:3px solid #d4a853;background:#fffbf0;font-size:13px;color:#374151;">${safe(stateLaw.addendum)}</p>` : ''}
+  <div class="sig-block"><p>${signOff}</p></div>
+  ${enclosuresHtml}
+  ${stateLaw ? `<p style="font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;margin-top:24px;padding-top:8px;text-align:center;">Applicable state law: ${safe(stateLaw.name)}</p>` : ''}
+</body>
+</html>`.trim();
+
+  const batchIdx = items.length;
+  const filename = `${namePrefix(consumer)}_${bureau}_batch${batchIdx}_dispute_${new Date().toISOString().slice(0, 10)}.html`;
+  return { filename, html, letterType: 'batch' };
+}
+
+function generateLetters({ report, selections, consumer, requestType = "correct", templates = [], playbooks = {}, previousDisputeDate, priorDates, enclosures, itemsPerLetter = 0 }) {
   const SPECIAL_ONE_BUREAU = new Set(["identity", "breach", "assault"]);
   const letters = [];
   const templateMap = Object.fromEntries((LETTER_TEMPLATES || []).map(t => [t.id, t]));
   for (const t of (templates || [])) {
     templateMap[t.id] = t;
+  }
+
+  const batchSize = Number(itemsPerLetter) || 0;
+  if (batchSize > 1) {
+    const enclosuresHtml = buildEnclosuresHtml(enclosures);
+    const prepared = [];
+    for (const sel of selections || []) {
+      const tl = report.tradelines?.[sel.tradelineIndex];
+      if (!tl) continue;
+      if (sel.creditor) { tl.meta = tl.meta || {}; tl.meta.creditor = sel.creditor; }
+      enrichTradeline(tl);
+      for (const bureau of sel.bureaus || []) {
+        if (!ALL_BUREAUS.includes(bureau)) continue;
+        prepared.push({ tl, sel, bureau });
+      }
+    }
+    const byBureau = {};
+    for (const entry of prepared) {
+      (byBureau[entry.bureau] ||= []).push(entry);
+    }
+    for (const bureau of Object.keys(byBureau)) {
+      const entries = byBureau[bureau];
+      for (let i = 0; i < entries.length; i += batchSize) {
+        const chunk = entries.slice(i, i + batchSize);
+        const letter = buildBatchLetterHTML({ consumer, bureau, items: chunk, requestType, enclosuresHtml });
+        const batchNum = Math.floor(i / batchSize) + 1;
+        const filename = `${namePrefix(consumer)}_${bureau}_batch${batchNum}_of_${Math.ceil(entries.length / batchSize)}_dispute_${new Date().toISOString().slice(0, 10)}.html`;
+        letters.push({ bureau, tradelineIndex: null, creditor: null, requestType, ...letter, filename });
+      }
+    }
+    return letters;
   }
 
   for (const sel of selections || []) {

@@ -1082,10 +1082,11 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
       btn.disabled = false; btn.textContent = origText; return;
     }
     btn.textContent = 'Sending to server...';
+    const itemsPerLetter = Math.max(1, parseInt($('#itemsPerLetterInput')?.value || '10', 10) || 10);
     const genResp = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('dispute-next-round'), ...authHeader() },
-      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, personalInfo: false, collectors: [] })
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, personalInfo: false, collectors: [], itemsPerLetter })
     });
     if (!genResp.ok) { const txt = await genResp.text().catch(() => ''); throw new Error(`Generation failed: HTTP ${genResp.status} ${txt}`.trim()); }
     const genData = await genResp.json().catch(() => ({}));

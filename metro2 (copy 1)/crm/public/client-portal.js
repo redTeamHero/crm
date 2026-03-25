@@ -2560,7 +2560,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function renderMailCard(it, iconClass, statusText, svgIcon, allowMail) {
     var mailType = detectMailType(it);
-    return `<div class="mail-card mail-card-${iconClass}" data-file-url="${esc(it.url)}" data-mail-type="${mailType}"><input type="checkbox" class="batch-cb" tabindex="-1"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div></div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`;
+    var typeBadge = '<button class="mail-type-badge" data-type="' + mailType + '" tabindex="-1" title="Click to switch mail type">' + (mailType === 'certified' ? 'Certified' : 'Regular') + '</button>';
+    return `<div class="mail-card mail-card-${iconClass}" data-file-url="${esc(it.url)}" data-mail-type="${mailType}"><input type="checkbox" class="batch-cb" tabindex="-1"><div class="mail-card-icon ${iconClass}">${svgIcon}</div><div class="mail-card-info"><div class="mail-card-name">${esc(it.name)}</div><div class="mail-card-status"><span class="mail-status-dot ${iconClass}"></span>${statusText}</div>${typeBadge}</div><div class="mail-card-actions"><a class="mail-btn mail-btn-view" href="${esc(it.url)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View</a>${allowMail?`<button class="mail-btn mail-btn-send mail-act" data-job="${esc(it.jobId)}" data-file="${esc(it.file)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg> Mail</button>`:''}</div></div>`;
   }
 
   function renderMailList(el, items, allowMail){
@@ -2817,6 +2818,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       wireCardClicks(mailSection, '.mail-card', mailToolbar, updateMailToolbarCount);
+
+      mailSection.addEventListener('click', function(e) {
+        var badge = e.target.closest('.mail-type-badge');
+        if (!badge || !mailSelectMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var card = badge.closest('.mail-card');
+        if (!card) return;
+        var cur = card.getAttribute('data-mail-type') === 'certified' ? 'regular' : 'certified';
+        card.setAttribute('data-mail-type', cur);
+        badge.setAttribute('data-type', cur);
+        badge.textContent = cur === 'certified' ? 'Certified' : 'Regular';
+        updateMailToolbarCount(mailToolbar, getActiveMailContainer());
+      }, true);
 
       mailSelectBtn.addEventListener('click', function() {
         mailSelectMode = !mailSelectMode;
