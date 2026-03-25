@@ -104,31 +104,35 @@
     '#d1d5db': '#374151'
   };
 
+  function scrubElement(el) {
+    if (el.hasAttribute('data-evolv-dark-style')) return;
+    const raw = el.getAttribute('style');
+    if (!raw) return;
+    let out = raw
+      .replace(DARK_BG_REGEX, (_, prop, val) => {
+        const key = val.toLowerCase().replace(/\s/g, '');
+        if (/rgba\(255,255,255,0\.0[36]\)/.test(key)) {
+          return prop + ':rgba(0,0,0,0.04)';
+        }
+        return prop + ':' + (DARK_BG_LIGHT[key] || '#f8fafc');
+      })
+      .replace(DARK_TEXT_REGEX, (_, val) => {
+        return 'color:' + (DARK_TEXT_LIGHT[val.toLowerCase()] || '#374151');
+      });
+    if (out !== raw) {
+      el.setAttribute('data-evolv-dark-style', raw);
+      el.setAttribute('style', out);
+    }
+  }
+
   function scrubDarkInlineStyles(root) {
     if (localStorage.getItem('evolv-theme') === 'dark') return;
-    (root || document).querySelectorAll('[style]').forEach(el => {
-      // Skip elements already scrubbed in this light-mode session
-      if (el.hasAttribute('data-evolv-dark-style')) return;
-      const raw = el.getAttribute('style');
-      if (!raw) return;
-      let out = raw
-        .replace(DARK_BG_REGEX, (_, prop, val) => {
-          const key = val.toLowerCase().replace(/\s/g, '');
-          // rgba(255,255,255,0.03/0.06) → subtle neutral tint for light backgrounds
-          if (/rgba\(255,255,255,0\.0[36]\)/.test(key)) {
-            return prop + ':rgba(0,0,0,0.04)';
-          }
-          return prop + ':' + (DARK_BG_LIGHT[key] || '#f8fafc');
-        })
-        .replace(DARK_TEXT_REGEX, (_, val) => {
-          return 'color:' + (DARK_TEXT_LIGHT[val.toLowerCase()] || '#374151');
-        });
-      if (out !== raw) {
-        // Save original so we can restore it on dark-mode toggle
-        el.setAttribute('data-evolv-dark-style', raw);
-        el.setAttribute('style', out);
-      }
-    });
+    const context = root || document;
+    // Process the root element itself if it carries inline styles
+    if (context.nodeType === 1 && context.hasAttribute('style')) {
+      scrubElement(context);
+    }
+    context.querySelectorAll('[style]').forEach(scrubElement);
   }
 
   function restoreDarkInlineStyles(root) {
