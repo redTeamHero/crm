@@ -410,9 +410,38 @@ canvas { filter: none !important; }
 /* --- My-company / settings: any rgba(0,0,0,0.2) tinted sections --- */
 .glass .rounded-xl[style*="rgba(0,0,0"] { background: #f8fafc !important; }
 
-/* --- Modals with rgba(0,0,0) overlay backdrops (lighten overlay) --- */
-.fixed[style*="rgba(0,0,0,0.7)"],
-.fixed[style*="rgba(0,0,0,0.6)"],
-.fixed[style*="rgba(0,0,0,0.75)"] {
-  background: rgba(0, 0, 0, 0.35) !important;
+/* --- Specific modal inner divs (inline dark styles overridden via !important) --- */
+/* index.html portal invite modal */
+#portalInviteModal > div {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
 }
+#portalInviteLinkInput {
+  background: #f8fafc !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+
+/* index.html send contract modal */
+#crmSendContractModal > div {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+}
+
+/* facebook-manager page picker modal */
+#pagePickerOverlay > div {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+}
+#pagePickerOverlay h3 { color: #111827 !important; }
+#pagePickerOverlay p { color: #6b7280 !important; }
+#pagePickerOverlay button#btnCancelPagePicker { color: #6b7280 !important; }
+
+/* facebook-manager article picker modal */
+#articlePickerOverlay > div {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+}
+#articlePickerOverlay h3 { color: #111827 !important; }
+#articlePickerOverlay label { color: #6b7280 !important; }
+#articlePickerOverlay button { color: #6b7280 !important; }
