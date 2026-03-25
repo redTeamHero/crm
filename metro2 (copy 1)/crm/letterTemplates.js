@@ -277,9 +277,9 @@ Dear [Bureau],
 I reviewed my credit report and noticed that some of my personal information is incorrect. Inaccurate personal details can lead to mixed-file errors where another person's accounts become associated with my name, which can seriously affect my credit profile. I am writing to have this corrected.
 
 Please remove or correct the following:
-- Incorrect Address(es): [List]
-- Misspelled Name(s): [List]
-- Outdated Employer(s): [List]
+• Incorrect Address(es): [List]
+• Misspelled Name(s): [List]
+• Outdated Employer(s): [List]
 
 I have enclosed copies of my government-issued ID and a utility bill showing my correct information. Please update your records and send me written confirmation within 30 days.
 
@@ -342,8 +342,8 @@ I am writing to formally request that all communication from your company regard
 Once you receive this letter, the only appropriate contact would be to confirm that you are stopping collection activity, or to inform me of a specific action your company intends to take.
 
 I also want to document that I have experienced the following, which I am asking you to address immediately:
-- Repeated phone calls at inconvenient times or with excessive frequency.
-- Third-party disclosure of this debt to individuals not involved in this matter.
+• Repeated phone calls at inconvenient times or with excessive frequency.
+• Third-party disclosure of this debt to individuals not involved in this matter.
 
 Please confirm in writing that you have received this notice and will comply.
 
@@ -587,10 +587,10 @@ I am writing to formally document and object to the collection conduct I have ex
 
 Specifically, I have experienced:
 
-- Excessive Contact: Your company has called me [number] times in [time period], which is unreasonably frequent and disruptive.
-- Third-Party Disclosure: Information about this debt has been shared with individuals who have no involvement in this matter.
-- Intimidating Language: Your representatives have used language designed to pressure or intimidate me.
-- Contact at Inconvenient Times: I have received calls before 8:00 AM or after 9:00 PM.
+• Excessive Contact: Your company has called me [number] times in [time period], which is unreasonably frequent and disruptive.
+• Third-Party Disclosure: Information about this debt has been shared with individuals who have no involvement in this matter.
+• Intimidating Language: Your representatives have used language designed to pressure or intimidate me.
+• Contact at Inconvenient Times: I have received calls before 8:00 AM or after 9:00 PM.
 
 I am asking you to immediately:
 1. Stop all phone calls about this account.
@@ -626,9 +626,9 @@ I am asking you to provide the following within 30 days:
 4. The original creditor's name and account terms.
 
 Please be aware of the following:
-- I am not making any payment or acknowledgment that could restart the statute of limitations or the credit reporting period on this debt.
-- Adjusting the date of first delinquency to extend the credit reporting period is not permissible.
-- If this debt is beyond the applicable statute of limitations, continued collection activity or credit reporting may not be appropriate.
+• I am not making any payment or acknowledgment that could restart the statute of limitations or the credit reporting period on this debt.
+• Adjusting the date of first delinquency to extend the credit reporting period is not permissible.
+• If this debt is beyond the applicable statute of limitations, continued collection activity or credit reporting may not be appropriate.
 
 If you cannot show this debt is within the statute of limitations, I am asking you to:
 1. Permanently stop all collection activity.

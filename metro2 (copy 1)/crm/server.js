@@ -7323,23 +7323,23 @@ This Credit Repair Service Agreement ("Agreement") is entered into between the C
 
 1. SCOPE OF SERVICES
 Company agrees to provide credit repair services in compliance with the Credit Repair Organizations Act (CROA), 15 U.S.C. §1679, including:
-- Review and analysis of Client's credit reports from Equifax, Experian, and TransUnion
-- Identification of inaccurate, incomplete, or unverifiable information
-- Preparation and mailing of dispute letters to credit bureaus and furnishers pursuant to FCRA §611
-- Follow-up correspondence including Method of Verification (MOV) requests, escalation letters, and regulatory complaints as warranted
-- Monthly progress reports and credit score monitoring updates
+• Review and analysis of Client's credit reports from Equifax, Experian, and TransUnion
+• Identification of inaccurate, incomplete, or unverifiable information
+• Preparation and mailing of dispute letters to credit bureaus and furnishers pursuant to FCRA §611
+• Follow-up correspondence including Method of Verification (MOV) requests, escalation letters, and regulatory complaints as warranted
+• Monthly progress reports and credit score monitoring updates
 
 2. CLIENT OBLIGATIONS
 Client agrees to:
-- Provide accurate personal information and documentation as requested
-- Promptly forward any correspondence received from credit bureaus or creditors
-- Not engage another credit repair organization simultaneously without written notice
-- Complete any required identity verification questionnaires
+• Provide accurate personal information and documentation as requested
+• Promptly forward any correspondence received from credit bureaus or creditors
+• Not engage another credit repair organization simultaneously without written notice
+• Complete any required identity verification questionnaires
 
 3. FEES AND PAYMENT
-- Setup Fee: $_____ due upon execution of this Agreement (no work begins until 3 business days after signing per CROA §1679b(b))
-- Monthly Service Fee: $_____ billed on the _____ of each month
-- Per-deletion Fee (if applicable): $_____ per verified removal
+• Setup Fee: $_____ due upon execution of this Agreement (no work begins until 3 business days after signing per CROA §1679b(b))
+• Monthly Service Fee: $_____ billed on the _____ of each month
+• Per-deletion Fee (if applicable): $_____ per verified removal
 All fees are earned only after services are performed. No advance fees may be collected before the 3-day cancellation window expires.
 
 4. CANCELLATION AND REFUND POLICY
@@ -7369,24 +7369,24 @@ This Metro 2 Compliance Retainer Agreement ("Agreement") is entered into between
 
 1. SERVICE DESCRIPTION
 Company will provide ongoing Metro 2 compliance monitoring and dispute management services, including:
-- Continuous monitoring of Client's credit reports for Metro 2 format violations
-- Automated detection of data field inaccuracies (Base Segment, J1/J2 Segments, K-Segment irregularities)
-- Priority dispute filing for newly identified errors within 5 business days
-- Quarterly compliance audits with written findings reports
-- Certified mail concierge service for all dispute correspondence
-- Access to Company's client portal for real-time dispute tracking
+• Continuous monitoring of Client's credit reports for Metro 2 format violations
+• Automated detection of data field inaccuracies (Base Segment, J1/J2 Segments, K-Segment irregularities)
+• Priority dispute filing for newly identified errors within 5 business days
+• Quarterly compliance audits with written findings reports
+• Certified mail concierge service for all dispute correspondence
+• Access to Company's client portal for real-time dispute tracking
 
 2. COMPLIANCE STANDARDS
 All dispute communications are prepared in accordance with:
-- FCRA §611 (Procedure in case of disputed accuracy)
-- FCRA §623 (Responsibilities of furnishers of information)
-- CDIA Metro 2 Format Reporting Standards
-- CFPB Supervision and Examination Manual guidelines
+• FCRA §611 (Procedure in case of disputed accuracy)
+• FCRA §623 (Responsibilities of furnishers of information)
+• CDIA Metro 2 Format Reporting Standards
+• CFPB Supervision and Examination Manual guidelines
 
 3. FEES
-- Monthly Retainer: $_____ per month
-- Certified Mail Fees: Included (up to 10 pieces per month; additional at $_____ each)
-- Rush Processing: $_____ per item (disputes filed within 24 hours)
+• Monthly Retainer: $_____ per month
+• Certified Mail Fees: Included (up to 10 pieces per month; additional at $_____ each)
+• Rush Processing: $_____ per item (disputes filed within 24 hours)
 All fees comply with CROA advance fee prohibitions. No charges are assessed before services are actually performed.
 
 4. TERM AND RENEWAL
@@ -7413,33 +7413,33 @@ This Premium Concierge Dispute Package Agreement ("Agreement") is entered into b
 The Premium Concierge Package includes white-glove dispute management services:
 
 TIER 1 — INITIAL AUDIT & DISPUTE (Months 1-2)
-- Comprehensive tri-bureau credit report analysis
-- Metro 2 compliance audit identifying all reporting violations
-- First-round dispute letters via certified mail to all three bureaus
-- Direct furnisher disputes under FCRA §623 where applicable
+• Comprehensive tri-bureau credit report analysis
+• Metro 2 compliance audit identifying all reporting violations
+• First-round dispute letters via certified mail to all three bureaus
+• Direct furnisher disputes under FCRA §623 where applicable
 
 TIER 2 — ESCALATION (Months 3-4)
-- Second-round disputes for all items verified or not addressed
-- Method of Verification (MOV) demands under FCRA §611(a)(7)
-- AG/CFPB escalation letters for non-compliant bureaus
-- Evidence-based dispute strategy adjustments
+• Second-round disputes for all items verified or not addressed
+• Method of Verification (MOV) demands under FCRA §611(a)(7)
+• AG/CFPB escalation letters for non-compliant bureaus
+• Evidence-based dispute strategy adjustments
 
 TIER 3 — RESOLUTION & PROTECTION (Months 5-6)
-- Final-round disputes with case law citations
-- CFPB complaint filing assistance for unresolved items
-- Goodwill and pay-for-delete negotiations where appropriate
-- Credit monitoring setup and identity theft prevention measures
+• Final-round disputes with case law citations
+• CFPB complaint filing assistance for unresolved items
+• Goodwill and pay-for-delete negotiations where appropriate
+• Credit monitoring setup and identity theft prevention measures
 
 2. DELIVERABLES
-- All dispute letters prepared and mailed via USPS Certified Mail with Return Receipt
-- Monthly written progress reports
-- Client portal access with real-time tracking
-- Dedicated case manager for the duration of the engagement
+• All dispute letters prepared and mailed via USPS Certified Mail with Return Receipt
+• Monthly written progress reports
+• Client portal access with real-time tracking
+• Dedicated case manager for the duration of the engagement
 
 3. INVESTMENT
-- One-Time Package Fee: $_____ (billed in _____ monthly installments of $_____)
-- No additional per-item or per-round fees
-- Certified mail costs included
+• One-Time Package Fee: $_____ (billed in _____ monthly installments of $_____)
+• No additional per-item or per-round fees
+• Certified mail costs included
 
 4. COMPLIANCE NOTICE
 This package is offered in full compliance with the Credit Repair Organizations Act (CROA). No work will commence until the 3-business-day cancellation period has elapsed. Company makes no guarantee of specific outcomes.
