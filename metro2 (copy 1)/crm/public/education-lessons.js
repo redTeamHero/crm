@@ -283,53 +283,44 @@ window.EDUCATION_LESSONS = [
       },
       {
         type: 'true-false',
-        title: 'Paid Medical Collections',
-        question: 'As of 2023, paid medical collections must be removed from your credit report entirely.',
+        title: 'Re-Aging Old Debt Is Illegal',
+        question: 'A debt collector can legally restart your 7-year credit reporting clock by placing a new collection with a more recent Date of First Delinquency (DOFD), as long as the debt was sold to them by the original creditor.',
         options: [
-          { text: 'True', correct: true, explanation: 'Correct! All three major bureaus (Equifax, Experian, TransUnion) agreed to remove paid medical collections from credit reports as of 2023. Additionally, medical collections under $500 are excluded from many scoring models regardless of payment status.' },
-          { text: 'False', correct: false, explanation: 'Actually, this is true. As of 2023, all three bureaus remove paid medical collections from reports. Medical collections under $500 are also excluded from newer scoring models. Unpaid medical collections over $500 may still appear.' }
+          { text: 'True', correct: false, explanation: 'False! Re-aging a debt is illegal under FCRA §605(c). The DOFD is fixed as the date you first became delinquent on the ORIGINAL account and never caught up — it cannot be legally reset by selling the debt, placing a new collection, or any other action. A collector who reports a later DOFD is committing illegal re-aging (also called "zombie debt" fraud). If you spot this, dispute with all three bureaus citing §605(c) and file a CFPB complaint.' },
+          { text: 'False', correct: true, explanation: 'Correct! Re-aging is strictly prohibited under FCRA §605(c). No collector, original creditor, or credit bureau can restart the 7-year reporting clock. The DOFD is fixed from the original account and cannot change when the debt is sold, assigned, or re-placed with a new collector. Compare the DOFD across all three bureaus — discrepancies are a red flag for illegal re-aging.' }
         ]
       },
       {
         type: 'multiple-choice',
-        title: 'Late Payment Impact by Score Tier',
-        question: 'Who experiences the largest point drop from a single 30-day late payment?',
+        title: 'Medical Debt Reporting — 2023 Rule Changes',
+        question: 'Which of the following correctly describes the new medical debt credit reporting rules that took effect in 2023?',
         options: [
-          { text: 'Someone with a 580 score and several existing late marks', correct: false, explanation: 'People with lower scores and existing negatives have less to lose — the impact is already partially priced in. Higher scores have further to fall.' },
-          { text: 'Someone with an 800 score and a perfect payment history', correct: true, explanation: 'Correct! FICO penalizes people with higher scores MORE for a first late payment. An 800-score consumer with perfect history can see a 90-110+ point drop from a single 30-day late. The same late on a 620 score might cause only 30-50 points of damage. The cleaner your record, the more damaging a first negative mark.' },
-          { text: 'Both experience the same drop', correct: false, explanation: 'FICO scoring is not linear. The drop from a first late payment is significantly larger for consumers with higher scores because they have more to lose.' },
-          { text: 'Neither — a single 30-day late has minimal impact', correct: false, explanation: 'A 30-day late payment can cause a 30-110+ point drop depending on your score tier. It is never minimal.' }
+          { text: 'All medical debt — paid or unpaid — is now completely excluded from credit reports', correct: false, explanation: 'Not all medical debt was removed. Unpaid medical collections over $500 that are at least 12 months old can still appear on credit reports. The changes targeted specific categories, not all medical debt.' },
+          { text: 'Medical collections under $500 cannot be reported, paid medical collections must be removed, and new medical debt cannot appear on your report until 12 months after the billing date', correct: true, explanation: 'Correct! The 2023 changes introduced three distinct protections: 1) Collections under $500 are excluded entirely, 2) Once a medical collection is paid, it must be removed from all three bureau reports, 3) A 12-month grace period prevents new medical debt from appearing immediately, giving you time to resolve insurance disputes. If any of these apply to your situation, dispute the item immediately — it should not be on your report.' },
+          { text: 'Medical debt now stays on credit reports for 3 years instead of 7', correct: false, explanation: 'The reporting period for qualifying medical debt was not reduced to 3 years. The changes focused on removing paid collections and excluding small balances, not changing the 7-year reporting timeline for remaining eligible medical debt.' },
+          { text: 'Medical debt rules only apply to hospital bills, not lab or specialist charges', correct: false, explanation: 'The 2023 medical debt rules apply to all types of medical collections — hospitals, labs, specialists, ambulance services, etc. The key factors are the balance amount, payment status, and age of the debt, not the type of provider.' }
         ]
       },
       {
         type: 'multiple-choice',
-        title: 'Foreclosure Reporting Timeline',
-        question: 'How long does a foreclosure stay on your credit report?',
+        title: 'Late Payment Severity Tiers',
+        question: 'You have a credit card with a $0 balance and a perfect payment history. You miss a payment by 45 days. Which of the following most accurately describes the damage?',
         options: [
-          { text: '3 years', correct: false, explanation: 'Three years is the FHA waiting period (under some circumstances) before you can get a new mortgage — not how long the foreclosure stays on your report.' },
-          { text: '7 years from the date of the foreclosure sale', correct: true, explanation: 'Correct! Foreclosures stay on your credit report for 7 years from the date of the foreclosure sale. This is the same timeline as most other major negative items. FHA loans require a 3-year wait, conventional loans typically require 7 years before you can get a new mortgage.' },
-          { text: '10 years, the same as Chapter 7 bankruptcy', correct: false, explanation: 'Foreclosures stay 7 years — it is only Chapter 7 bankruptcy that stays 10 years. This distinction is important when comparing your options if facing both.' },
-          { text: 'Until the deficiency balance is paid off', correct: false, explanation: 'Paying a deficiency balance does not remove the foreclosure. The 7-year clock runs from the foreclosure date regardless of payment status.' }
-        ]
-      },
-      {
-        type: 'true-false',
-        title: 'Short Sale vs. Foreclosure Impact',
-        question: 'A short sale and a foreclosure have identical credit score impact and result in the same mortgage waiting periods.',
-        options: [
-          { text: 'True', correct: false, explanation: 'False! A short sale is typically less damaging — roughly 100-130 point drop vs. 130-160 for foreclosure. Mortgage waiting periods are also shorter: 2 years for FHA after a short sale vs. 3 years after foreclosure. Short sales show lenders the borrower took proactive steps.' },
-          { text: 'False', correct: true, explanation: 'Correct! A short sale causes less damage than a foreclosure. The score drop is smaller (100-130 vs. 130-160 points) and mortgage waiting periods are shorter. Both are negative, but a short sale demonstrates cooperation with the lender rather than simply walking away.' }
+          { text: 'A 45-day late is scored the same as a 30-day late — there is no penalty difference', correct: false, explanation: 'Late payments are scored in tiers. A 45-day late falls in the 30-day tier today, but if it reaches 60 days, it moves to the next tier with a more severe score impact. Each tier jump causes additional damage.' },
+          { text: 'A 45-day late is scored the same as a 90-day late — once you are late, the severity does not matter', correct: false, explanation: 'Severity absolutely matters. 30-day lates, 60-day lates, 90-day lates, and 120-day lates are separate scoring categories, each causing progressively more damage. Stopping a late from advancing tiers is extremely important.' },
+          { text: 'Currently a 30-day late tier (still time to prevent a 60-day tier), which would cause additional score damage and stay on your report for 7 years from the date it was first reported late', correct: true, explanation: 'Correct! At 45 days, it is currently in the 30-day late tier. If you make a payment now and catch up, it stays at that tier. If it reaches 60 days, it hits the next tier with greater score damage. Each tier jump (30 → 60 → 90 → 120 → 150 → 180+) causes additional score damage and may trigger additional lender actions (credit limit reduction, account closure). The late mark stays on your report for 7 years from the first date it was reported late.' },
+          { text: 'A 45-day late will be automatically removed if you pay the full balance in the next billing cycle', correct: false, explanation: 'Payment does not remove a late payment from your credit report. Once a payment is reported as late to the bureaus, it stays on your report for 7 years regardless of subsequent payment. The only ways to remove it are a goodwill letter or, if the late was reported in error, a dispute.' }
         ]
       },
       {
         type: 'multiple-choice',
-        title: 'Statute of Limitations vs. Credit Reporting Period',
-        question: 'What happens to your credit report when the statute of limitations on a debt expires?',
+        title: 'Short Sale vs. Foreclosure — Credit Impact',
+        question: 'You are facing the loss of your home and must choose between a short sale (selling for less than owed with lender approval) and letting it go to foreclosure. Which is better for your credit?',
         options: [
-          { text: 'The debt is automatically removed from your credit report', correct: false, explanation: 'The statute of limitations and credit reporting period are completely separate. SOL expiration only means a collector cannot sue you — it does not affect the 7-year credit reporting clock.' },
-          { text: 'Nothing — the statute of limitations and credit reporting period are separate legal timelines', correct: true, explanation: 'Correct! The statute of limitations (3-10 years, varies by state) governs whether a collector can sue you. The credit reporting period (7 years from DOFD under FCRA) governs how long the item stays on your report. They run independently. A debt can be time-barred from lawsuits while still appearing on your credit report.' },
-          { text: 'The debt gets paid off automatically', correct: false, explanation: 'Statute of limitations expiration does not pay off, forgive, or eliminate the debt. It only means a collector has lost the legal right to sue for it.' },
-          { text: 'The credit reporting period resets to another 7 years', correct: false, explanation: 'The 7-year credit reporting period cannot be reset by any action — not by statute of limitations, not by a new collector purchasing the debt, not by a partial payment.' }
+          { text: 'Foreclosure — it clears the debt faster and has the same credit impact as a short sale', correct: false, explanation: 'Foreclosure is worse for your credit on two dimensions: the score drop is larger (130-160 points vs. 100-130 for short sale) and mortgage waiting periods are longer (3 years for FHA after foreclosure vs. 2 years after a short sale). Foreclosure also shows lenders you walked away without attempting to cooperate.' },
+          { text: 'Both are identical — once you default on a mortgage, it makes no difference which path you take', correct: false, explanation: 'There is a meaningful difference. A short sale requires the lender\'s cooperation and shows proactive problem-solving, which lenders view more favorably. A foreclosure is an involuntary process that signals the lender had to take the property back against your will.' },
+          { text: 'A short sale causes less credit damage (100-130 point drop vs. 130-160 for foreclosure) and shorter mortgage waiting periods (2 years FHA vs. 3 years after foreclosure)', correct: true, explanation: 'Correct! A short sale is significantly better for your credit than foreclosure. The score drop is smaller, mortgage waiting periods are shorter, and it demonstrates to future lenders that you took responsible steps to resolve the situation rather than forcing the lender to take the property. Both are serious negatives, but a short sale gives you a faster path back to homeownership.' },
+          { text: 'A short sale has no credit impact if the lender agrees to it in writing', correct: false, explanation: 'A short sale will still appear on your credit report as a negative item and cause a significant score drop (100-130 points). Lender approval means they agreed to the sale terms, not that it will be unreported. The lender\'s written agreement should specify whether they waive the deficiency balance — that is a separate issue from credit reporting.' }
         ]
       },
       {
