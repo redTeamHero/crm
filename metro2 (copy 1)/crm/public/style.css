@@ -6701,15 +6701,15 @@ a.primaries-card {
 .batch-toolbar.visible::before {
   content: '⌄';
   position: absolute;
-  top: -30px;
+  top: -46px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 1.6rem;
+  font-size: 3rem;
   line-height: 1;
-  color: #a5b4fc;
+  color: #ef4444;
   pointer-events: none;
   animation: batchArrowBounce 1.2s ease-in-out infinite;
-  text-shadow: 0 2px 8px rgba(99,102,241,0.5);
+  text-shadow: 0 2px 12px rgba(239,68,68,0.6);
 }
 
 @keyframes batchArrowBounce {
