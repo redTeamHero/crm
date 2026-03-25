@@ -652,12 +652,12 @@ Re: Follow-Up on Conditional Settlement Offer – Account #[Account Number]
 
 To Whom It May Concern:
 
-On [Original Offer Date], I sent a certified letter to your organization proposing a conditional settlement on the account above. My offer was to pay $[Amount] in exchange for complete deletion of this account from all three credit bureau files — Equifax, Experian, and TransUnion. As of today I have received no response.
+On [Original Offer Date], I sent a certified letter to your organization proposing a conditional settlement on the account above. My offer was to pay 40% of the reported balance — $[40% Amount] — in exchange for complete deletion of this account from all three credit bureau files — Equifax, Experian, and TransUnion. As of today I have received no response.
 
 I am writing to renew that offer and request a response.
 
 My offer remains as follows:
-1. I will pay $[Amount] as full and final settlement of this account.
+1. I will pay $[40% Amount] (40% of the $[Total Balance] reported balance) as full and final settlement of this account.
 2. In exchange, you will request deletion of all reporting related to this account — the tradeline, any collection notation, and any associated inquiries — from all three credit bureaus within 30 days of receiving payment.
 3. Before any payment is sent, you must provide a written agreement on company letterhead, signed by an authorized representative, confirming all terms.
 4. Once payment is received, this account will be considered settled in full with no remaining balance and no further collection activity.
@@ -683,7 +683,7 @@ Re: Counter-Offer Response – Conditional Settlement – Account #[Account Numb
 
 To Whom It May Concern:
 
-Thank you for responding to my settlement offer. I have reviewed your counter-offer requesting $[Their Counter Amount] and I am not able to agree to that amount. However, I would like to continue negotiating in good faith.
+Thank you for responding to my settlement offer. I have reviewed your counter-offer requesting $[Their Counter Amount] and I am not able to agree to that amount. My original offer of 40% of the reported balance ($[40% Amount]) was made in good faith, and I would like to continue negotiating toward a resolution.
 
 My revised offer is as follows: I am willing to pay $[Your Counter Amount] as full and final settlement of this account, subject to the same conditions stated in my original letter:
 
@@ -773,7 +773,7 @@ Sincerely,
   },
   {
     id: 'pay-for-delete',
-    name: 'Pay-for-Delete Settlement Offer',
+    name: 'Pay-for-Delete Settlement Offer (40%)',
     english: `[Your Name]
 [Address] • [City, State ZIP] • [Phone] • [Email]
 [Date]
@@ -787,11 +787,11 @@ To Whom It May Concern:
 
 I am writing to propose a settlement on the account listed above. This letter is not an acknowledgment that the debt is valid, and it is intended solely as a good-faith offer to resolve this matter.
 
-Here is what I am proposing: I am willing to pay $[Amount] as full and final settlement of this account, subject to the following conditions:
+The reported balance on this account is $[Total Balance]. I am prepared to offer 40% of that balance — $[40% Amount] — as full and final settlement, subject to the following conditions:
 
 1. Deletion: After you receive payment, you will request deletion of all reporting related to this account from Equifax, Experian, and TransUnion within 30 days — including the tradeline, any collection notation, and any related inquiry.
 2. Written Agreement: Before I send any payment, I need a written settlement agreement on your company letterhead, signed by someone authorized to make this commitment, confirming all terms including deletion.
-3. Full Satisfaction: Once payment is received, the account is considered settled in full with no remaining balance.
+3. Full Satisfaction: Once payment of $[40% Amount] is received, the account is considered settled in full with no remaining balance.
 4. No Further Collection: You agree to permanently stop all collection activity on this account.
 5. Tax Reporting: If the forgiven amount exceeds $600, please confirm whether a 1099-C will be issued.
 
