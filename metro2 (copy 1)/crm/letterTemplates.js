@@ -639,6 +639,108 @@ Sincerely,
 [Your Name]`
   },
   {
+    id: 'pay-for-delete-followup',
+    name: 'Pay-for-Delete Follow-Up (No Response)',
+    english: `[Your Name]
+[Address] • [City, State ZIP] • [Phone] • [Email]
+[Date]
+
+[Debt Collector Name]
+[Address] • [City, State ZIP]
+
+Re: Follow-Up on Conditional Settlement Offer – Account #[Account Number]
+
+To Whom It May Concern:
+
+On [Original Offer Date], I sent a certified letter to your organization proposing a conditional settlement on the account above. My offer was to pay $[Amount] in exchange for complete deletion of this account from all three credit bureau files — Equifax, Experian, and TransUnion. As of today I have received no response.
+
+I am writing to renew that offer and request a response.
+
+My offer remains as follows:
+1. I will pay $[Amount] as full and final settlement of this account.
+2. In exchange, you will request deletion of all reporting related to this account — the tradeline, any collection notation, and any associated inquiries — from all three credit bureaus within 30 days of receiving payment.
+3. Before any payment is sent, you must provide a written agreement on company letterhead, signed by an authorized representative, confirming all terms.
+4. Once payment is received, this account will be considered settled in full with no remaining balance and no further collection activity.
+
+This offer will expire 21 days from the date of this letter. If I do not receive a written response by that date, I will consider the matter closed and allow the debt to age off my credit reports naturally.
+
+Please respond in writing to the address above. Do not contact me by telephone — written communication only.
+
+Sincerely,
+[Your Name]`
+  },
+  {
+    id: 'pay-for-delete-counter',
+    name: 'Pay-for-Delete Counter-Offer Response',
+    english: `[Your Name]
+[Address] • [City, State ZIP] • [Phone] • [Email]
+[Date]
+
+[Debt Collector Name]
+[Address] • [City, State ZIP]
+
+Re: Counter-Offer Response – Conditional Settlement – Account #[Account Number]
+
+To Whom It May Concern:
+
+Thank you for responding to my settlement offer. I have reviewed your counter-offer requesting $[Their Counter Amount] and I am not able to agree to that amount. However, I would like to continue negotiating in good faith.
+
+My revised offer is as follows: I am willing to pay $[Your Counter Amount] as full and final settlement of this account, subject to the same conditions stated in my original letter:
+
+1. Deletion: Upon receipt of payment, you will request deletion of this account — including the tradeline, all collection notations, and any related inquiries — from Equifax, Experian, and TransUnion within 30 days.
+2. Written Agreement First: I will not send any payment until I have a written settlement and deletion agreement on your company letterhead, signed by an authorized representative.
+3. Full and Final Settlement: Payment of the agreed amount constitutes full satisfaction of this account with no remaining balance.
+4. No Further Collection: All collection activity on this account will permanently cease upon execution of the agreement.
+5. 1099-C Reporting: If the forgiven amount exceeds $600, please confirm whether a 1099-C will be issued so I can plan accordingly.
+
+I believe $[Your Counter Amount] is a fair resolution given the age of this debt and my current financial circumstances. I am prepared to pay promptly once a written agreement is in hand.
+
+This counter-offer is valid for 21 days from the date of this letter.
+
+Please respond in writing only.
+
+Sincerely,
+[Your Name]`
+  },
+  {
+    id: 'pay-for-delete-post-payment',
+    name: 'Pay-for-Delete Post-Payment Deletion Demand',
+    english: `[Your Name]
+[Address] • [City, State ZIP] • [Phone] • [Email]
+[Date]
+
+[Debt Collector Name]
+[Address] • [City, State ZIP]
+
+Re: Failure to Honor Deletion Agreement – Account #[Account Number]
+
+To Whom It May Concern:
+
+On [Agreement Date], your organization and I entered into a written settlement agreement in which I agreed to pay $[Amount] in exchange for deletion of Account #[Account Number] from my credit files at Equifax, Experian, and TransUnion within 30 days of payment.
+
+I fulfilled my obligation. Payment of $[Amount] was made on [Payment Date] via [cashier's check / money order / wire transfer — check number or confirmation number: XXXXXX]. A copy of that payment confirmation is enclosed.
+
+It has now been [number] days since payment was received. As of today, this account has NOT been deleted from my credit reports at [list affected bureaus]. This is a breach of our written agreement.
+
+I am demanding that you:
+1. Submit deletion requests to Equifax, Experian, and TransUnion for Account #[Account Number] within 10 business days of receiving this letter.
+2. Send me written confirmation — with deletion request submission dates and reference numbers — no later than [date 10 business days from today].
+
+If you fail to honor the terms of our signed agreement within the deadline above, I will file complaints with the Consumer Financial Protection Bureau, the Federal Trade Commission, and my state Attorney General's office, and I will pursue all available legal remedies for breach of contract and any violations of the Fair Debt Collection Practices Act.
+
+I am enclosing a copy of our signed settlement agreement and proof of payment for your records.
+
+Please govern yourself accordingly.
+
+Sincerely,
+[Your Name]
+
+Enclosures:
+• Copy of signed settlement and deletion agreement dated [Agreement Date]
+• Proof of payment dated [Payment Date]
+• Current credit report excerpts showing account still reporting`
+  },
+  {
     id: 'goodwill-removal',
     name: 'Goodwill Removal Request',
     english: `[Your Name]
@@ -726,6 +828,9 @@ export const LETTER_RESPONSE_WINDOWS = {
   'fdcpa-time-barred': 30,
   'goodwill-removal': 30,
   'pay-for-delete': 30,
+  'pay-for-delete-followup': 21,
+  'pay-for-delete-counter': 21,
+  'pay-for-delete-post-payment': 10,
 };
 
 export const DEFAULT_RESPONSE_WINDOW_DAYS = 30;
