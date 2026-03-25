@@ -8,7 +8,8 @@
   <link rel="stylesheet" href="/tour-guide.css">
 <script src="/theme.js"></script>
 <link rel="stylesheet" href="/style.css">
-<link rel="stylesheet" href="/evolv-dark.css">
+<link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css" disabled>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled")}})()</script>
   <style>
     .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:50}
     .modal{width:min(1100px,96vw);height:min(90vh,900px);border-radius:18px;box-shadow:0 20px 60px rgba(15,23,42,.18);background:var(--surface-strong);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border-soft)}

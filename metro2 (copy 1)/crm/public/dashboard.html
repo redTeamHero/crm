@@ -8,7 +8,8 @@
   <link rel="stylesheet" href="/tour-guide.css">
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/evolv-dark.css">
+  <link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css" disabled>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled")}})()</script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-LiXKzCcsMEY0Kx4PAvpc9L8AMBFvH1mpxi2BNfk4ULkpYLkFhYqpKfT/aJQgJWdL" crossorigin="anonymous"></script>

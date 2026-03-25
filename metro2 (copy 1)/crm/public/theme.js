@@ -44,9 +44,16 @@
 
   applyTheme(localStorage.getItem('theme') || 'purple');
 
+  // Sync dark/light mode across tabs
   window.addEventListener('storage', (event) => {
     if (event.key === 'theme') {
       applyTheme(event.newValue || 'purple');
+    }
+    if (event.key === 'evolv-theme') {
+      const darkLink = document.getElementById('dark-theme-css');
+      if (darkLink) {
+        darkLink.disabled = event.newValue !== 'dark';
+      }
     }
   });
 

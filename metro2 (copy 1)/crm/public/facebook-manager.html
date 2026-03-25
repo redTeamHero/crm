@@ -6,7 +6,8 @@
   <title>Social Media Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/evolv-dark.css">
+  <link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css" disabled>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled")}})()</script>
   <script src="/sidebar.js?v=3" defer></script>
   <script src="/theme.js"></script>
   <style>

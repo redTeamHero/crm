@@ -32,6 +32,8 @@
     zap: '<path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
     help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r="0.5"/>',
     logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
+    sun: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+    moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
     sms: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
     emailIcon: '<path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"/><path d="M22 7l-10 7L2 7"/>',
     chevronDown: '<path d="M6 9l6 6 6-6"/>',
@@ -778,6 +780,9 @@
   html += '<span class="evolv-sb-item-label" style="color:#d4a853;">Guided Tour</span></a>';
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Help" id="evolv-sb-help">' + svg('help', 20) + '<span class="evolv-sb-item-label">Help</span></a>';
 
+  var isDarkNow = localStorage.getItem('evolv-theme') === 'dark';
+  html += '<a href="#" class="evolv-sb-item" data-tooltip="' + (isDarkNow ? 'Switch to Light Mode' : 'Switch to Dark Mode') + '" id="evolv-sb-theme-toggle">' + svg(isDarkNow ? 'sun' : 'moon', 20) + '<span class="evolv-sb-item-label">' + (isDarkNow ? 'Light Mode' : 'Dark Mode') + '</span></a>';
+
   var tierBadge = document.getElementById('tierBadge');
   var tierText = '';
   if (tierBadge) {
@@ -908,6 +913,40 @@
       e.preventDefault();
       ['token','auth','clientId','teamMembers','companyInfo','cta_variant','creditScore','negativeItems','creditSnapshot','itemsInDispute','disputeTimeline','mailedLetters','educationItems','deletions','portal_user'].forEach(function(k){ localStorage.removeItem(k); });
       location.href = '/login.html';
+    });
+  }
+
+  var themeToggleBtn = sidebar.querySelector('#evolv-sb-theme-toggle');
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var darkLink = document.getElementById('dark-theme-css');
+      var currentlyDark = localStorage.getItem('evolv-theme') === 'dark';
+      if (currentlyDark) {
+        localStorage.setItem('evolv-theme', 'light');
+        if (darkLink) darkLink.disabled = true;
+        themeToggleBtn.setAttribute('data-tooltip', 'Switch to Dark Mode');
+        var iconEl = themeToggleBtn.querySelector('svg');
+        if (iconEl) iconEl.outerHTML = svg('moon', 20);
+        var labelEl = themeToggleBtn.querySelector('.evolv-sb-item-label');
+        if (labelEl) labelEl.textContent = 'Dark Mode';
+      } else {
+        localStorage.setItem('evolv-theme', 'dark');
+        if (darkLink) {
+          darkLink.disabled = false;
+        } else {
+          var newLink = document.createElement('link');
+          newLink.id = 'dark-theme-css';
+          newLink.rel = 'stylesheet';
+          newLink.href = '/evolv-dark.css';
+          document.head.appendChild(newLink);
+        }
+        themeToggleBtn.setAttribute('data-tooltip', 'Switch to Light Mode');
+        var iconEl2 = themeToggleBtn.querySelector('svg');
+        if (iconEl2) iconEl2.outerHTML = svg('sun', 20);
+        var labelEl2 = themeToggleBtn.querySelector('.evolv-sb-item-label');
+        if (labelEl2) labelEl2.textContent = 'Light Mode';
+      }
     });
   }
 
