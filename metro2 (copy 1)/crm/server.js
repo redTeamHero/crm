@@ -7654,13 +7654,13 @@ app.post("/api/contracts/:id/send", authenticate, async (req,res)=>{
   if(!consumer.contractIds.includes(contractId)){
     consumer.contractIds.push(contractId);
   }
-  const portalLink = `/portal/${encodeURIComponent(consumerId)}`;
+  const base = `${req.protocol}://${req.get("host")}`;
+  const portalLink = `${base}/portal/${encodeURIComponent(consumerId)}`;
   let inviteLink = null;
   if(!consumer.password){
     const inviteToken = nanoid(20);
     consumer.portalInviteToken = inviteToken;
     consumer.portalInviteCreatedAt = new Date().toISOString();
-    const base = `${req.protocol}://${req.get("host")}`;
     inviteLink = `${base}/client-setup?token=${inviteToken}`;
   }
   await saveDB(db);

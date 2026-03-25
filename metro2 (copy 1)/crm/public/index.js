@@ -3355,8 +3355,18 @@ async function loadClientContracts() {
               statusEl.style.color = "#4ade80";
               statusEl.classList.remove("hidden");
             }
-            if(res.inviteLink && inviteSectionEl && inviteLinkEl){
-              inviteLinkEl.value = res.inviteLink;
+            const linkToShow = res.inviteLink || res.portalLink;
+            if(linkToShow && inviteSectionEl && inviteLinkEl){
+              inviteLinkEl.value = linkToShow;
+              const titleEl = $("#crmSendInviteTitle");
+              const descEl  = $("#crmSendInviteDesc");
+              if(res.inviteLink){
+                if(titleEl) titleEl.textContent = "Client has no portal access yet";
+                if(descEl)  descEl.textContent  = "Share this one-time setup link so they can create their password and view the contract:";
+              } else {
+                if(titleEl) titleEl.textContent = "Client already has portal access";
+                if(descEl)  descEl.textContent  = "Share this portal link so they can log in and view the contract:";
+              }
               inviteSectionEl.classList.remove("hidden");
             }
             await loadClientContracts();
