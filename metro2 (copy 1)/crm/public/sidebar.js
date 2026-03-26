@@ -883,6 +883,10 @@
   document.body.appendChild(mobileBtn);
 
   // --- Floating Tour FAB (globe + ?) ---
+  // Remove any previously-injected FAB so we never stack duplicates.
+  var _existingFab = document.querySelector('.evolv-tour-fab');
+  if (_existingFab) _existingFab.remove();
+
   var tourFab = document.createElement('button');
   tourFab.className = 'evolv-tour-fab';
   tourFab.setAttribute('aria-label', 'Guided Tour');
