@@ -445,3 +445,180 @@ canvas { filter: none !important; }
 #articlePickerOverlay h3 { color: #111827 !important; }
 #articlePickerOverlay label { color: #6b7280 !important; }
 #articlePickerOverlay button { color: #6b7280 !important; }
+
+/* ===================================================================
+   SCHEDULE PAGE — schedule.html <style> block overrides
+   =================================================================== */
+.schedule-hero {
+  background: linear-gradient(135deg, #fff9ed 0%, #fffbf0 100%) !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06) !important;
+}
+.schedule-hero h1 { color: #111827 !important; }
+.schedule-hero .hero-sub { color: #6b7280 !important; }
+
+.summary-tile {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.2) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06) !important;
+}
+.summary-tile strong { color: #111827 !important; }
+.summary-tile .tile-helper { color: #6b7280 !important; }
+
+.calendar-shell {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.18) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06) !important;
+}
+.calendar-cell {
+  background: #f9fafb !important;
+  border-color: #e5e7eb !important;
+}
+.calendar-cell:hover {
+  background: rgba(212, 168, 83, 0.06) !important;
+  border-color: rgba(212, 168, 83, 0.22) !important;
+}
+.calendar-cell .day-number { color: #374151 !important; }
+.calendar-cell .event-text { color: #374151 !important; }
+
+.sidebar-card {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.18) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+.sidebar-card h2,
+.sidebar-card h3 { color: #111827 !important; }
+
+.empty-state {
+  background: #f8fafc !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+  color: #9ca3af !important;
+}
+
+/* Schedule: event modal */
+#eventModal .modal-panel {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.2) !important;
+}
+#eventModal .modal-hero {
+  background: linear-gradient(135deg, #fff9ed 0%, #fffbf0 100%) !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+}
+#eventModal .modal-hero-title { color: #111827 !important; }
+#eventModal .modal-hero-subcopy { color: #6b7280 !important; }
+#eventModal .modal-hero-meta-value { color: #111827 !important; }
+#eventModal .modal-card {
+  background: #f9fafb !important;
+  border-color: #e5e7eb !important;
+}
+#eventModal .modal-card.accent {
+  background: linear-gradient(135deg, #fff9ed 0%, #fffbf0 100%) !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+  color: #111827 !important;
+}
+#eventModal .modal-card.accent p { color: #6b7280 !important; }
+#eventModal .modal-card label span { color: #6b7280 !important; }
+#eventModal .section-label { color: #6b7280 !important; }
+#eventModal .modal-card.accent .section-label { color: #d4a853 !important; }
+
+.slot-button {
+  background: #f9fafb !important;
+  border-color: #e5e7eb !important;
+}
+.slot-button:hover:not(.busy) {
+  background: rgba(212, 168, 83, 0.06) !important;
+  border-color: rgba(212, 168, 83, 0.3) !important;
+}
+.slot-time { color: #111827 !important; }
+
+/* ===================================================================
+   MY COMPANY PAGE — my-company.html <style> block overrides
+   =================================================================== */
+.company-section {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.15) !important;
+}
+.company-section .section-title { color: #111827 !important; }
+.company-section .section-desc { color: #6b7280 !important; }
+.form-group label { color: #374151 !important; }
+.form-group input,
+.form-group textarea,
+.form-group select {
+  background: #f8fafc !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+.form-group input::placeholder,
+.form-group textarea::placeholder { color: #9ca3af !important; }
+.form-group .hint { color: #9ca3af !important; }
+.team-member-row {
+  background: #f8fafc !important;
+  border-color: #e5e7eb !important;
+}
+
+/* ===================================================================
+   SETTINGS / API PAGE — settings.html <style> block overrides
+   =================================================================== */
+.api-card {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.15) !important;
+}
+.api-card:hover {
+  border-color: rgba(212, 168, 83, 0.3) !important;
+  box-shadow: 0 4px 20px rgba(212, 168, 83, 0.08) !important;
+}
+.api-card-title { color: #111827 !important; }
+.api-card-desc { color: #6b7280 !important; }
+.api-card .input-row label { color: #6b7280 !important; }
+.api-card input {
+  background: #f8fafc !important;
+  border-color: #d1d5db !important;
+  color: #0f172a !important;
+}
+.api-card input::placeholder { color: #9ca3af !important; }
+
+.section-divider { background: #e5e7eb !important; }
+
+.hotkey-item {
+  background: #f8fafc !important;
+  border-color: #e5e7eb !important;
+}
+.hotkey-item span { color: #374151 !important; }
+.hotkey-item input {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+.system-status-card {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.15) !important;
+}
+.system-status-badge.connected { color: #16a34a !important; }
+.system-status-badge.not-connected { color: #d97706 !important; }
+
+/* ===================================================================
+   TOUR GUIDE MODAL — tour-guide.css overrides
+   =================================================================== */
+.tour-bubble {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.35) !important;
+  color: #0f172a !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 0 30px rgba(212, 168, 83, 0.06) !important;
+}
+.tour-bubble::before {
+  background: #ffffff !important;
+}
+.tour-bubble__close {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #6b7280 !important;
+}
+.tour-bubble__body { color: #374151 !important; }
+.tour-bubble__body .font-semibold,
+.tour-bubble__body p.font-semibold { color: #111827 !important; }
+.tour-bubble__dot { background: rgba(0, 0, 0, 0.1) !important; }
+
+/* ===================================================================
+   INVOICING — additional tbody Tailwind class (0.9 variant)
+   =================================================================== */
+.bg-\[rgba\(18\,18\,22\,0\.9\)\] { background-color: #f8fafc !important; }
