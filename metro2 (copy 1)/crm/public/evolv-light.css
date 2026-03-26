@@ -711,3 +711,31 @@ canvas { filter: none !important; }
 .placeholder-gray-500::placeholder {
   color: #9ca3af !important;
 }
+
+/* ===================================================================
+   EDUCATION PAGE — Final Exam section light-mode overrides
+   style.css uses near-transparent white colors designed for dark mode
+   =================================================================== */
+
+/* Locked exam section: invisible on white bg in dark-mode CSS → visible muted */
+.edu-tier-quiz-section.locked {
+  background: #f8fafc !important;
+  border-color: #e5e7eb !important;
+  opacity: 0.7 !important;
+}
+
+/* Disabled "Take Final Exam" button: dark #333 bg → light grey */
+.edu-quiz-btn.disabled,
+button.edu-quiz-btn[disabled] {
+  background: #e5e7eb !important;
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+/* Exam info text inside locked section */
+.edu-tier-quiz-section.locked .edu-quiz-title {
+  color: #92400e !important;
+}
+.edu-tier-quiz-section.locked .edu-quiz-desc {
+  color: #6b7280 !important;
+}
