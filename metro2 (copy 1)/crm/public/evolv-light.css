@@ -741,3 +741,140 @@ button.edu-quiz-btn[disabled] {
 .edu-tier-quiz-section.locked .edu-quiz-desc {
   color: #6b7280 !important;
 }
+
+/* ============================================================
+   Tour guide — light mode overrides
+   tour-guide.css loads BEFORE evolv-light.css so same-
+   specificity rules here win by source order. !important added
+   as extra insurance against any injected styles.
+   ============================================================ */
+
+/* Tour menu popup ("Explore Evolv") */
+.tour-menu {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+  color: #1a1a1a !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.15) !important;
+}
+.tour-menu__title {
+  color: #d4a853 !important;
+}
+.tour-menu__subtitle {
+  color: #6b7280 !important;
+}
+.tour-menu__item {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.09) !important;
+  color: #374151 !important;
+}
+.tour-menu__item:hover {
+  background: rgba(212, 168, 83, 0.08) !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+  color: #92400e !important;
+}
+.tour-menu__item--full {
+  border-color: rgba(212, 168, 83, 0.25) !important;
+  background: rgba(212, 168, 83, 0.06) !important;
+}
+.tour-menu__item-icon {
+  background: rgba(212, 168, 83, 0.12) !important;
+}
+.tour-menu__item-label {
+  color: #1a1a1a !important;
+}
+.tour-menu__item-desc {
+  color: #6b7280 !important;
+}
+.tour-menu__close {
+  color: #9ca3af !important;
+}
+.tour-menu__close:hover {
+  color: #374151 !important;
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+.tour-menu__footer {
+  border-top-color: rgba(0, 0, 0, 0.1) !important;
+}
+.tour-menu__footer-label {
+  color: #6b7280 !important;
+}
+
+/* Tour step bubble (popover during guided tour) */
+.tour-bubble {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.25) !important;
+  color: #1a1a1a !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 0 30px rgba(212, 168, 83, 0.06) !important;
+}
+.tour-bubble::before {
+  background: #ffffff !important;
+}
+.tour-bubble__title {
+  color: #d4a853 !important;
+}
+.tour-bubble__body {
+  color: #374151 !important;
+}
+.tour-bubble__body p,
+.tour-bubble__body span,
+.tour-bubble__body div {
+  color: #374151 !important;
+}
+.tour-bubble__body .font-semibold,
+.tour-bubble__body p.font-semibold {
+  color: #1a1a1a !important;
+}
+.tour-bubble__body .text-gray-500 {
+  color: #6b7280 !important;
+}
+.tour-bubble__close {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #6b7280 !important;
+}
+.tour-bubble__close:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+.tour-bubble__dot {
+  background: rgba(0, 0, 0, 0.15) !important;
+}
+.tour-btn--skip {
+  color: #9ca3af !important;
+}
+.tour-btn--skip:hover {
+  color: #374151 !important;
+}
+.tour-btn--prev {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #374151 !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+.tour-btn--prev:hover {
+  background: rgba(0, 0, 0, 0.09) !important;
+}
+
+/* Tour welcome / intro card */
+.tour-welcome__card {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.2) !important;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.12) !important;
+}
+.tour-welcome__title {
+  color: #d4a853 !important;
+}
+.tour-welcome__body {
+  color: #6b7280 !important;
+}
+.tour-welcome__opt-out-label {
+  color: #6b7280 !important;
+}
+.tour-welcome__btn--skip {
+  color: #6b7280 !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+.tour-welcome__btn--skip:hover {
+  color: #374151 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
