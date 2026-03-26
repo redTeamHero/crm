@@ -10,6 +10,15 @@ const STATIC_PLAYBOOKS = {
       'Factual errors layer',
       'Deletion demand failure to fix under Metro 2 and FCRA 607(b)'
     ]
+  },
+  'playbook-pay-for-delete': {
+    name: 'Pay for Delete Negotiation',
+    letters: [
+      'Pay-for-Delete Settlement Offer (40%)',
+      'Pay-for-Delete Follow-Up (No Response)',
+      'Pay-for-Delete Counter-Offer Response',
+      'Pay-for-Delete Post-Payment Deletion Demand'
+    ]
   }
 };
 

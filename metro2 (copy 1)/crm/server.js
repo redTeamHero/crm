@@ -7556,6 +7556,16 @@ function defaultSequences(){
         "method-of-verification",
         "623-direct-dispute"
       ]
+    },
+    {
+      id: "playbook-pay-for-delete",
+      name: "Pay for Delete Negotiation",
+      templates: [
+        "pay-for-delete",
+        "pay-for-delete-followup",
+        "pay-for-delete-counter",
+        "pay-for-delete-post-payment"
+      ]
     }
   ];
 }
