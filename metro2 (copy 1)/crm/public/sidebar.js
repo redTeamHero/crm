@@ -913,7 +913,7 @@
   // default to light (the app's default theme) rather than dark.
   function syncFabTheme() {
     var lightEl = document.getElementById('light-theme-css');
-    var isDark = lightEl ? lightEl.disabled : (localStorage.getItem('evolv-theme') === 'dark');
+    var isDark = (localStorage.getItem('evolv-theme') === 'dark') || (lightEl ? lightEl.disabled : false);
     if (!isDark) {
       tourFab.style.background = '#ffffff';
       tourFab.style.boxShadow = '0 4px 18px rgba(0,0,0,0.12)';
