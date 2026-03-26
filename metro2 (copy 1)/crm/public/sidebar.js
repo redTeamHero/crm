@@ -471,6 +471,51 @@
       z-index: 9998;
       touch-action: none;
     }
+
+    .evolv-tour-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9997;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #0d0d0f;
+      border: 2px solid #d4a853;
+      box-shadow: 0 4px 18px rgba(212,168,83,0.25);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      padding: 0;
+      outline: none;
+    }
+    .evolv-tour-fab:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 24px rgba(212,168,83,0.38);
+    }
+    .evolv-tour-fab:active {
+      transform: scale(0.96);
+    }
+    .evolv-tour-fab-tooltip {
+      position: absolute;
+      right: 60px;
+      white-space: nowrap;
+      background: #1a1a1e;
+      color: #f0f0f0;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 11px;
+      border-radius: 8px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.18s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+    .evolv-tour-fab:hover .evolv-tour-fab-tooltip {
+      opacity: 1;
+    }
     .evolv-sb-backdrop.visible {
       display: block;
     }
@@ -836,6 +881,51 @@
   document.body.appendChild(sidebar);
   document.body.appendChild(backdrop);
   document.body.appendChild(mobileBtn);
+
+  // --- Floating Tour FAB (globe + ?) ---
+  var tourFab = document.createElement('button');
+  tourFab.className = 'evolv-tour-fab';
+  tourFab.setAttribute('aria-label', 'Guided Tour');
+  tourFab.setAttribute('type', 'button');
+  tourFab.innerHTML = '<span class="evolv-tour-fab-tooltip">Guided Tour</span>'
+    + '<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;">'
+    + '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" style="position:absolute;top:0;left:0;">'
+    + '<circle cx="12" cy="12" r="9.5" stroke="#d4a853" stroke-width="1.5"/>'
+    + '<path d="M2.5 12 Q12 8 21.5 12" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.65"/>'
+    + '<path d="M2.5 12 Q12 16 21.5 12" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.65"/>'
+    + '<path d="M5.5 6.5 Q12 4.5 18.5 6.5" stroke="#d4a853" stroke-width="0.8" fill="none" opacity="0.45"/>'
+    + '<path d="M5.5 17.5 Q12 19.5 18.5 17.5" stroke="#d4a853" stroke-width="0.8" fill="none" opacity="0.45"/>'
+    + '<ellipse class="evolv-globe-meridian" cx="12" cy="12" rx="5" ry="9.5" stroke="#d4a853" stroke-width="1.5" fill="none"/>'
+    + '<ellipse class="evolv-globe-meridian2" cx="12" cy="12" rx="5" ry="9.5" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.5"/>'
+    + '</svg>'
+    + '<span style="position:relative;z-index:1;font-size:12px;font-weight:900;color:#d4a853;line-height:1;font-family:Georgia,serif;user-select:none;">?</span>'
+    + '</span>';
+  document.body.appendChild(tourFab);
+  tourFab.addEventListener('click', function () {
+    if (window.EvolvTour && window.EvolvTour.showMenu) {
+      window.EvolvTour.showMenu();
+    }
+  });
+
+  // Keep FAB background in sync with the active theme
+  function syncFabTheme() {
+    var isDark = localStorage.getItem('evolv-theme') === 'dark' || !document.getElementById('light-theme-css') || document.getElementById('light-theme-css').disabled;
+    var isLight = localStorage.getItem('evolv-theme') !== 'dark' && document.getElementById('light-theme-css') && !document.getElementById('light-theme-css').disabled;
+    if (isLight) {
+      tourFab.style.background = '#ffffff';
+      tourFab.style.boxShadow = '0 4px 18px rgba(0,0,0,0.12)';
+    } else {
+      tourFab.style.background = '#0d0d0f';
+      tourFab.style.boxShadow = '0 4px 18px rgba(212,168,83,0.25)';
+    }
+  }
+  syncFabTheme();
+  window.addEventListener('storage', function(e) {
+    if (e.key === 'evolv-theme') syncFabTheme();
+  });
+  var _fabObserver = new MutationObserver(function() { syncFabTheme(); });
+  var _lightCss = document.getElementById('light-theme-css');
+  if (_lightCss) _fabObserver.observe(_lightCss, { attributes: true, attributeFilter: ['disabled'] });
 
   document.body.classList.add('evolv-sidebar-active');
   if (!isMobile()) {
