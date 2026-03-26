@@ -268,11 +268,6 @@ td { color: #374151 !important; }
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* Tour FAB: force white bg in light mode (evolv-light.css is disabled in dark mode) */
-.evolv-tour-fab {
-  background: #ffffff !important;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12) !important;
-}
 
 .evolv-sb-item { color: #374151 !important; }
 .evolv-sb-item:hover { background: rgba(212, 168, 83, 0.1) !important; color: #92400e !important; }

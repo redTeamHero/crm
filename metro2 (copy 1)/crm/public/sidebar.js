@@ -907,11 +907,14 @@
     }
   });
 
-  // Keep FAB background in sync with the active theme
+  // Keep FAB background in sync with the active theme.
+  // Rule: dark only when localStorage explicitly says 'dark' OR the light CSS
+  // element exists AND is disabled.  If the element isn't in the DOM yet we
+  // default to light (the app's default theme) rather than dark.
   function syncFabTheme() {
-    var isDark = localStorage.getItem('evolv-theme') === 'dark' || !document.getElementById('light-theme-css') || document.getElementById('light-theme-css').disabled;
-    var isLight = localStorage.getItem('evolv-theme') !== 'dark' && document.getElementById('light-theme-css') && !document.getElementById('light-theme-css').disabled;
-    if (isLight) {
+    var lightEl = document.getElementById('light-theme-css');
+    var isDark = lightEl ? lightEl.disabled : (localStorage.getItem('evolv-theme') === 'dark');
+    if (!isDark) {
       tourFab.style.background = '#ffffff';
       tourFab.style.boxShadow = '0 4px 18px rgba(0,0,0,0.12)';
     } else {
@@ -923,9 +926,19 @@
   window.addEventListener('storage', function(e) {
     if (e.key === 'evolv-theme') syncFabTheme();
   });
+  // Attach MutationObserver; if element isn't present yet, retry once the DOM
+  // is fully loaded so we never miss a theme switch.
   var _fabObserver = new MutationObserver(function() { syncFabTheme(); });
-  var _lightCss = document.getElementById('light-theme-css');
-  if (_lightCss) _fabObserver.observe(_lightCss, { attributes: true, attributeFilter: ['disabled'] });
+  function _attachFabObserver() {
+    var _lightCss = document.getElementById('light-theme-css');
+    if (_lightCss) {
+      _fabObserver.observe(_lightCss, { attributes: true, attributeFilter: ['disabled'] });
+    }
+  }
+  _attachFabObserver();
+  if (document.readyState !== 'complete') {
+    window.addEventListener('DOMContentLoaded', function() { _attachFabObserver(); syncFabTheme(); }, { once: true });
+  }
 
   document.body.classList.add('evolv-sidebar-active');
   if (!isMobile()) {
