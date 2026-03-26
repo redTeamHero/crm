@@ -488,7 +488,7 @@
       width: 52px;
       height: 52px;
       border-radius: 50%;
-      background: #ffffff;
+      background: #0d0d0f;
       border: 2px solid #d4a853;
       box-shadow: 0 4px 18px rgba(212,168,83,0.25);
       cursor: pointer;
@@ -919,38 +919,10 @@
     }
   });
 
-  // Keep FAB background in sync with the active theme.
-  // Rule: dark only when localStorage explicitly says 'dark' OR the light CSS
-  // element exists AND is disabled.  If the element isn't in the DOM yet we
-  // default to light (the app's default theme) rather than dark.
-  function syncFabTheme() {
-    var lightEl = document.getElementById('light-theme-css');
-    var isDark = (localStorage.getItem('evolv-theme') === 'dark') || (lightEl ? lightEl.disabled : false);
-    if (!isDark) {
-      tourFab.style.background = '#ffffff';
-      tourFab.style.boxShadow = '0 4px 18px rgba(0,0,0,0.12)';
-    } else {
-      tourFab.style.background = '#0d0d0f';
-      tourFab.style.boxShadow = '0 4px 18px rgba(212,168,83,0.25)';
-    }
-  }
-  syncFabTheme();
-  window.addEventListener('storage', function(e) {
-    if (e.key === 'evolv-theme') syncFabTheme();
-  });
-  // Attach MutationObserver; if element isn't present yet, retry once the DOM
-  // is fully loaded so we never miss a theme switch.
-  var _fabObserver = new MutationObserver(function() { syncFabTheme(); });
-  function _attachFabObserver() {
-    var _lightCss = document.getElementById('light-theme-css');
-    if (_lightCss) {
-      _fabObserver.observe(_lightCss, { attributes: true, attributeFilter: ['disabled'] });
-    }
-  }
-  _attachFabObserver();
-  if (document.readyState !== 'complete') {
-    window.addEventListener('DOMContentLoaded', function() { _attachFabObserver(); syncFabTheme(); }, { once: true });
-  }
+  // FAB background/shadow are controlled entirely by CSS (sidebar injected style
+  // for dark mode, evolv-light.css overrides for light mode). No inline styles
+  // are applied here — inline styles would fight the CSS cascade and can't be
+  // overridden by evolv-light.css !important rules.
 
   document.body.classList.add('evolv-sidebar-active');
   if (!isMobile()) {

@@ -268,6 +268,13 @@ td { color: #374151 !important; }
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06) !important;
 }
 
+/* FAB: override dark-mode default background with light-mode values.
+   This works because evolv-light.css is disabled in dark mode, so the
+   sidebar's injected #0d0d0f default takes over automatically. */
+.evolv-tour-fab {
+  background: #ffffff !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12) !important;
+}
 
 .evolv-sb-item { color: #374151 !important; }
 .evolv-sb-item:hover { background: rgba(212, 168, 83, 0.1) !important; color: #92400e !important; }
