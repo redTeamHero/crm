@@ -1,555 +1,533 @@
-.tour-overlay {
+/* ═══════════════════════════════════════════════════════════════════════════
+   EVOLV GUIDED TOUR — Spotlight + Centered Modal Engine
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Dark backdrop  (transparent: darkness comes from the ring's box-shadow)
+   Covers the full viewport. pointer-events:auto catches clicks to close tour. */
+.evolv-tour-overlay {
   position: fixed;
   inset: 0;
   z-index: 99990;
-  pointer-events: none;
-}
-
-.tour-overlay--active {
+  background: transparent;
   pointer-events: auto;
+  /* No background — the ring's box-shadow provides all the darkness */
 }
 
-.tour-backdrop {
+/* ── 2. Spotlight ring
+   A transparent rectangle positioned over the target element.
+   The 5000px box-shadow spread darkens everything outside its bounds.
+   Gold border + glow makes the highlighted element obvious. */
+.evolv-tour-ring {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 99991;
-  transition: opacity 0.3s ease;
-}
-
-.tour-spotlight {
-  position: absolute;
   z-index: 99992;
-  border-radius: 8px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 20px 4px rgba(212, 168, 83, 0.3);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  border-radius: 12px;
+  /* Gold ring */
+  border: 2px solid rgba(212, 168, 83, 0.85);
+  /* Dark curtain outside ring + gold glow */
+  box-shadow:
+    0 0 0 5000px rgba(0, 0, 0, 0.72),
+    0 0 0 6px rgba(212, 168, 83, 0.18),
+    0 0 28px 10px rgba(212, 168, 83, 0.22);
   pointer-events: none;
+  opacity: 0;
+  will-change: top, left, width, height, opacity;
+  transition:
+    top    0.38s cubic-bezier(0.4, 0, 0.2, 1),
+    left   0.38s cubic-bezier(0.4, 0, 0.2, 1),
+    width  0.38s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.38s ease,
+    opacity 0.22s ease;
 }
 
-.tour-popover {
-  position: absolute;
-  z-index: 99995;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  max-width: min(420px, calc(100vw - 32px));
-  min-width: min(320px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
-  animation: tourPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+/* ── 3. Centered modal container
+   Always centered in the viewport regardless of where the target is. */
+.evolv-tour-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  width: min(500px, calc(100vw - 32px));
+  max-height: calc(100svh - 48px);
+  pointer-events: auto;
+  overflow: visible;
 }
 
-@keyframes tourPopIn {
-  from { opacity: 0; transform: scale(0.85) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.tour-bubble {
+/* ── 4. Modal card ─────────────────────────────────────────────────────────── */
+.evolv-tm {
   background: #111113;
-  border: 1px solid rgba(212, 168, 83, 0.3);
-  border-radius: 16px;
-  padding: 24px;
-  color: #e5e5e5;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(212, 168, 83, 0.08);
-  flex: 1;
+  border: 1px solid rgba(212, 168, 83, 0.28);
+  border-radius: 20px;
+  padding: 28px 28px 22px;
+  color: #e5e7eb;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 40px -8px rgba(212, 168, 83, 0.15);
+  animation: evolvTmIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   position: relative;
-  display: flex;
-  flex-direction: column;
-  max-height: calc(100vh - 80px);
   overflow: hidden;
 }
 
-.tour-bubble__close {
+.evolv-tm::before {
+  content: '';
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.5), transparent);
+}
+
+@keyframes evolvTmIn {
+  from { opacity: 0; transform: scale(0.88) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.evolv-tm--reduced,
+.evolv-tm--reduced * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ── Header row ────────────────────────────────────────────────────────────── */
+.evolv-tm__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.evolv-tm__logo {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+}
+
+.evolv-tm__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.evolv-tm__label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #d4a853;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.evolv-tm__counter {
+  display: block;
+  font-size: 12px;
+  color: rgba(229, 231, 235, 0.45);
+  font-weight: 500;
+}
+
+.evolv-tm__close {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
-  color: #999;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(229, 231, 235, 0.6);
   font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, color 0.2s;
-  z-index: 2;
+  transition: background 0.18s ease, color 0.18s ease;
   line-height: 1;
   padding: 0;
 }
-.tour-bubble__close:hover {
-  background: rgba(239,68,68,0.2);
-  color: #ef4444;
-  border-color: rgba(239,68,68,0.4);
+
+.evolv-tm__close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e5e7eb;
 }
 
-.tour-bubble::before {
-  content: '';
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  background: #111113;
-  border: 1px solid rgba(212, 168, 83, 0.3);
-  transform: rotate(45deg);
-}
-
-.tour-popover[data-placement="bottom"] .tour-bubble::before {
-  top: -8px;
-  left: 30px;
-  border-right: none;
-  border-bottom: none;
-}
-.tour-popover[data-placement="top"] .tour-bubble::before {
-  bottom: -8px;
-  left: 30px;
-  border-left: none;
-  border-top: none;
-}
-.tour-popover[data-placement="left"] .tour-bubble::before {
-  right: -8px;
-  top: 30px;
-  border-left: none;
-  border-top: none;
-}
-.tour-popover[data-placement="right"] .tour-bubble::before {
-  left: -8px;
-  top: 30px;
-  border-right: none;
-  border-bottom: none;
-}
-.tour-popover[data-placement="center"] .tour-bubble::before {
-  display: none;
-}
-
-.tour-bubble__title {
-  font-size: 1.1rem;
+/* ── Title & body ──────────────────────────────────────────────────────────── */
+.evolv-tm__title {
+  font-size: 18px;
   font-weight: 700;
-  color: #d4a853;
-  margin-bottom: 8px;
+  color: #fff;
   line-height: 1.3;
-  padding-right: 32px;
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
 }
 
-.tour-bubble__body {
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: #b0b0b0;
-  margin-bottom: 16px;
-  overflow-y: auto;
-  flex-shrink: 1;
-  min-height: 0;
-  -webkit-overflow-scrolling: touch;
+.evolv-tm__body {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(229, 231, 235, 0.75);
+  margin: 0 0 20px;
 }
 
-.tour-bubble__body p,
-.tour-bubble__body span,
-.tour-bubble__body div {
-  color: inherit !important;
-}
-
-.tour-bubble__body .font-semibold,
-.tour-bubble__body p.font-semibold {
-  color: #e5e5e5 !important;
-  font-weight: 600;
-}
-
-.tour-bubble__body .text-slate-600,
-.tour-bubble__body .text-slate-500,
-.tour-bubble__body .text-gray-600,
-.tour-bubble__body .text-gray-500 {
-  color: #999 !important;
-}
-
-.tour-bubble__footer {
+/* ── Footer: dots + action buttons ────────────────────────────────────────── */
+.evolv-tm__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.tour-bubble__progress {
+.evolv-tm__dots {
   display: flex;
+  gap: 6px;
   align-items: center;
-  gap: 4px;
+  flex-wrap: wrap;
 }
 
-.tour-bubble__dot {
-  width: 6px;
-  height: 6px;
+.evolv-tm__dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
-  transition: all 0.3s ease;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, width 0.2s ease;
+  flex-shrink: 0;
 }
 
-.tour-bubble__dot--active {
+.evolv-tm__dot:hover {
+  background: rgba(212, 168, 83, 0.5);
+  transform: scale(1.2);
+}
+
+.evolv-tm__dot--active {
   background: #d4a853;
-  width: 18px;
-  border-radius: 3px;
+  width: 20px;
+  border-radius: 4px;
 }
 
-.tour-bubble__dot--done {
-  background: rgba(212, 168, 83, 0.4);
+.evolv-tm__dot--done {
+  background: rgba(212, 168, 83, 0.45);
 }
 
-.tour-bubble__actions {
+.evolv-tm__actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.tour-btn {
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 0.82rem;
+.evolv-tm__btn {
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  border: none;
-  transition: all 0.2s ease;
-  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  line-height: 1;
 }
 
-.tour-btn--skip {
-  background: transparent;
-  color: #888;
-}
-.tour-btn--skip:hover {
-  color: #ccc;
-}
-
-.tour-btn--prev {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ccc;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.tour-btn--prev:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.tour-btn--next {
+.evolv-tm__btn--primary {
   background: #d4a853;
-  color: #0a0a0a;
-}
-.tour-btn--next:hover {
-  background: #e0b96a;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(212, 168, 83, 0.3);
+  color: #111;
+  border-color: #d4a853;
 }
 
-.tour-btn--finish {
-  background: linear-gradient(135deg, #d4a853, #c49a45);
-  color: #0a0a0a;
-}
-.tour-btn--finish:hover {
-  background: linear-gradient(135deg, #e0b96a, #d4a853);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(212, 168, 83, 0.4);
+.evolv-tm__btn--primary:hover {
+  background: #e8c875;
+  border-color: #e8c875;
 }
 
-/* Phoenix Mascot */
-.tour-phoenix {
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
-  position: relative;
-  animation: phoenixFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 14px rgba(212, 168, 83, 0.35));
+.evolv-tm__btn--ghost {
+  background: transparent;
+  color: rgba(229, 231, 235, 0.55);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-@keyframes phoenixFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+.evolv-tm__btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(229, 231, 235, 0.85);
 }
 
-.tour-phoenix svg {
-  width: 100%;
-  height: 100%;
+/* ── Target active highlight (on the element itself) ──────────────────────── */
+.evolv-tour-target-active {
+  position: relative !important;
+  z-index: 99996 !important;
 }
 
-/* Phoenix poses */
-.tour-phoenix--wave {
-  animation: phoenixFloat 1.2s ease-in-out infinite;
-}
-.tour-phoenix--excited {
-  animation: phoenixBounce 0.6s ease-in-out infinite;
-}
-@keyframes phoenixBounce {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-8px) rotate(-3deg); }
-  75% { transform: translateY(-4px) rotate(3deg); }
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOUR MENU OVERLAY ("Explore Evolv" popup)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-.tour-phoenix--celebrate {
-  animation: phoenixCelebrate 1s ease-in-out;
-}
-@keyframes phoenixCelebrate {
-  0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.15) rotate(-8deg); }
-  50% { transform: scale(1.2) rotate(8deg); }
-  75% { transform: scale(1.1) rotate(-4deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-/* Tour menu modal */
 .tour-menu-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.55);
   z-index: 99980;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  padding: 16px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .tour-menu {
   background: #111113;
-  border: 1px solid rgba(212, 168, 83, 0.2);
-  border-radius: 20px;
-  padding: 32px;
-  max-width: 480px;
-  width: 90%;
-  color: #e5e5e5;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
-  animation: tourPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.tour-menu__header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.tour-menu__title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #d4a853;
-}
-
-.tour-menu__subtitle {
-  font-size: 0.85rem;
-  color: #888;
-  margin-top: 4px;
-}
-
-.tour-menu__list {
+  border: 1px solid rgba(212, 168, 83, 0.25);
+  border-radius: 18px;
+  padding: 24px;
+  width: min(420px, 100%);
+  max-height: calc(100svh - 48px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: 0;
+  animation: tourMenuIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-.tour-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #ccc;
-  font-size: 0.9rem;
-}
-
-.tour-menu__item:hover {
-  background: rgba(212, 168, 83, 0.08);
-  border-color: rgba(212, 168, 83, 0.2);
-  color: #fff;
-  transform: translateX(4px);
-}
-
-.tour-menu__item--full {
-  border-color: rgba(212, 168, 83, 0.2);
-  background: rgba(212, 168, 83, 0.05);
-}
-
-.tour-menu__item-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: rgba(212, 168, 83, 0.1);
-  color: #d4a853;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.tour-menu__item-text {
-  flex: 1;
-}
-
-.tour-menu__item-label {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.tour-menu__item-desc {
-  font-size: 0.75rem;
-  color: #777;
-  margin-top: 2px;
-}
-
-.tour-menu__item-badge {
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(76, 175, 80, 0.15);
-  color: #4caf50;
-  font-weight: 600;
+@keyframes tourMenuIn {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .tour-menu__close {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: none;
-  border: none;
-  color: #666;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-.tour-menu__close:hover {
-  color: #ccc;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.05);
+  color: rgba(229, 231, 235, 0.55);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.tour-menu__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.tour-menu__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding-right: 36px;
+}
+
+.tour-menu__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.tour-menu__subtitle {
+  font-size: 12px;
+  color: rgba(229, 231, 235, 0.45);
+  margin-top: 2px;
+}
+
+.tour-menu__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 380px;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+.tour-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.tour-menu__item:hover {
+  background: rgba(212, 168, 83, 0.08);
+  border-color: rgba(212, 168, 83, 0.15);
+}
+
+.tour-menu__item--full {
+  border-color: rgba(212, 168, 83, 0.15);
+  background: rgba(212, 168, 83, 0.06);
+  margin-bottom: 8px;
+}
+
+.tour-menu__item--full:hover {
+  background: rgba(212, 168, 83, 0.12);
+}
+
+.tour-menu__item-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.tour-menu__item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tour-menu__item-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 2px;
+}
+
+.tour-menu__item-label em {
+  font-style: normal;
+  color: #d4a853;
+  font-size: 11px;
+}
+
+.tour-menu__item-desc {
+  font-size: 11px;
+  color: rgba(229, 231, 235, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tour-menu__item-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  border-radius: 999px;
+  padding: 2px 8px;
+  letter-spacing: 0.04em;
 }
 
 .tour-menu__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px 4px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
-  margin-top: 4px;
 }
+
 .tour-menu__footer-label {
   font-size: 12px;
-  color: #6b7280;
+  color: rgba(229, 231, 235, 0.45);
 }
+
 .tour-menu__footer-toggle {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   padding: 4px 12px;
   border-radius: 999px;
-  border: 1px solid;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: none;
+  transition: all 0.15s ease;
 }
+
 .tour-menu__footer-toggle--on {
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.35);
-  background: rgba(52, 211, 153, 0.08);
+  background: rgba(212, 168, 83, 0.18);
+  color: #d4a853;
 }
-.tour-menu__footer-toggle--on:hover {
-  background: rgba(52, 211, 153, 0.15);
-}
+
 .tour-menu__footer-toggle--off {
-  color: #6b7280;
-  border-color: rgba(107, 114, 128, 0.3);
-  background: rgba(107, 114, 128, 0.06);
-}
-.tour-menu__footer-toggle--off:hover {
-  color: #9ca3af;
-  background: rgba(107, 114, 128, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(229, 231, 235, 0.45);
 }
 
-/* Confetti for tour completion */
-.tour-confetti {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  pointer-events: none;
-}
-
-.tour-confetti__piece {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  animation: confettiFall 2s ease-in forwards;
-}
-
-@keyframes confettiFall {
-  0% { opacity: 1; transform: translateY(-20vh) rotate(0deg); }
-  100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
-}
-
-/* Welcome screen for full tour */
-.tour-welcome {
-  position: fixed;
-  inset: 0;
-  z-index: 99998;
+/* ── Phoenix / globe icon ──────────────────────────────────────────────────── */
+.tour-phoenix {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.85);
-  animation: fadeIn 0.3s ease;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WELCOME CARD
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tour-welcome {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.60);
+  z-index: 99985;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: evolvTmIn 0.4s ease both;
 }
 
 .tour-welcome__card {
-  text-align: center;
-  max-width: 420px;
-  padding: 48px 40px;
   background: #111113;
-  border: 1px solid rgba(212, 168, 83, 0.2);
-  border-radius: 24px;
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
-  animation: tourPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(212, 168, 83, 0.28);
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  width: min(440px, 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
 }
 
 .tour-welcome__phoenix {
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 20px;
-  animation: phoenixFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 6px 22px rgba(232, 112, 64, 0.45));
+  width: 72px;
+  height: 72px;
+  margin-bottom: 20px;
 }
 
 .tour-welcome__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #d4a853;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
   margin-bottom: 12px;
 }
 
 .tour-welcome__body {
-  font-size: 0.95rem;
-  color: #999;
-  line-height: 1.6;
-  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(229, 231, 235, 0.7);
+  margin-bottom: 20px;
+  max-width: 340px;
 }
 
 .tour-welcome__opt-out {
-  margin-bottom: 16px;
-  text-align: center;
+  margin-bottom: 22px;
 }
+
 .tour-welcome__opt-out-label {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  color: #6b7280;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(229, 231, 235, 0.45);
   cursor: pointer;
-  user-select: none;
 }
-.tour-welcome__opt-out-label:hover {
-  color: #9ca3af;
-}
+
 .tour-welcome__opt-out-check {
-  width: 14px;
-  height: 14px;
   accent-color: #d4a853;
   cursor: pointer;
 }
@@ -558,52 +536,119 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
 .tour-welcome__btn {
-  padding: 14px 24px;
+  padding: 12px 20px;
   border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  border: none;
-  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
 }
 
 .tour-welcome__btn--start {
   background: #d4a853;
-  color: #0a0a0a;
+  color: #111;
+  border-color: #d4a853;
 }
+
 .tour-welcome__btn--start:hover {
-  background: #e0b96a;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(212, 168, 83, 0.35);
+  background: #e8c875;
+  border-color: #e8c875;
 }
 
 .tour-welcome__btn--skip {
   background: transparent;
-  color: #666;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.tour-welcome__btn--skip:hover {
-  color: #999;
-  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(229, 231, 235, 0.4);
+  border-color: rgba(255, 255, 255, 0.08);
+  font-weight: 500;
+  font-size: 13px;
 }
 
-@media (max-width: 640px) {
-  .tour-popover {
-    max-width: calc(100vw - 32px);
-    min-width: 280px;
+.tour-welcome__btn--skip:hover {
+  color: rgba(229, 231, 235, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONFETTI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.tour-confetti {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.tour-confetti__piece {
+  position: absolute;
+  top: -10px;
+  border-radius: 2px;
+  animation: tourConfettiFall linear forwards;
+}
+
+@keyframes tourConfettiFall {
+  0%   { transform: translateY(0) rotate(0deg);     opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE  (≤ 600px)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  .evolv-tour-modal {
+    top: auto;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    transform: none;
+    width: auto;
   }
-  .tour-phoenix {
-    width: 52px;
-    height: 52px;
+
+  .evolv-tm {
+    padding: 20px 18px 16px;
   }
-  .tour-bubble {
-    padding: 18px;
+
+  .evolv-tm__title {
+    font-size: 16px;
   }
+
+  .evolv-tm__footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .evolv-tm__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   .tour-menu {
-    padding: 24px;
-    width: 95%;
+    padding: 20px 18px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .evolv-tour-ring,
+  .evolv-tm,
+  .tour-menu,
+  .tour-welcome {
+    animation: none !important;
+    transition: opacity 0.15s ease !important;
   }
 }

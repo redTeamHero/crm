@@ -878,3 +878,77 @@ button.edu-quiz-btn[disabled] {
   color: #374151 !important;
   border-color: rgba(0, 0, 0, 0.2) !important;
 }
+
+/* ═══════════════════════════════════════════════════════
+   NEW SPOTLIGHT TOUR ENGINE — light-mode overrides
+   Classes: .evolv-tm, .evolv-tour-ring, .evolv-tour-modal
+   ════════════════════════════════════════════════════════ */
+
+/* Centered modal card */
+.evolv-tm {
+  background: #ffffff !important;
+  border-color: rgba(212, 168, 83, 0.2) !important;
+  color: #111827 !important;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 0 40px -8px rgba(212, 168, 83, 0.1) !important;
+}
+
+.evolv-tm::before {
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.35), transparent) !important;
+}
+
+.evolv-tm__label { color: #b8922e !important; }
+
+.evolv-tm__counter { color: #9ca3af !important; }
+
+.evolv-tm__close {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: #6b7280 !important;
+}
+.evolv-tm__close:hover {
+  background: rgba(0, 0, 0, 0.09) !important;
+  color: #111827 !important;
+}
+
+.evolv-tm__title { color: #111827 !important; }
+
+.evolv-tm__body { color: #374151 !important; }
+
+.evolv-tm__footer { border-top-color: rgba(0, 0, 0, 0.06) !important; }
+
+.evolv-tm__dot { background: rgba(0, 0, 0, 0.1) !important; }
+.evolv-tm__dot:hover { background: rgba(212, 168, 83, 0.4) !important; }
+.evolv-tm__dot--active { background: #d4a853 !important; }
+.evolv-tm__dot--done { background: rgba(212, 168, 83, 0.4) !important; }
+
+.evolv-tm__btn--primary {
+  background: #d4a853 !important;
+  border-color: #d4a853 !important;
+  color: #ffffff !important;
+}
+.evolv-tm__btn--primary:hover {
+  background: #c49a45 !important;
+  border-color: #c49a45 !important;
+}
+
+.evolv-tm__btn--ghost {
+  color: #9ca3af !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  background: transparent !important;
+}
+.evolv-tm__btn--ghost:hover {
+  color: #374151 !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Spotlight ring — unchanged in light mode (gold on white looks good) */
+.evolv-tour-ring {
+  box-shadow:
+    0 0 0 5000px rgba(0, 0, 0, 0.52),
+    0 0 0 6px rgba(212, 168, 83, 0.18),
+    0 0 28px 10px rgba(212, 168, 83, 0.22) !important;
+}
+

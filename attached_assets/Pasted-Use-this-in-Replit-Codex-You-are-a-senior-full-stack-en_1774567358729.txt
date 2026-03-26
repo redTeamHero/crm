@@ -1,0 +1,174 @@
+Use this in Replit/Codex:
+
+You are a senior full-stack engineer and product UX developer. Upgrade my existing guided tour system in this app into a polished, production-grade “spotlight walkthrough” experience.
+
+GOAL
+I need the tour feature to:
+1. Describe each dashboard card and each menu item clearly
+2. Visually identify the exact item currently being explained
+3. Keep the tour tooltip/modal centered in the viewport
+4. Automatically bring the active target item into focus on screen
+5. Dim the rest of the UI while spotlighting the active element
+6. Work well on desktop and mobile/tablet layouts
+7. Support multi-step tours across sidebar items, dashboard cards, forms, buttons, tabs, and panels
+8. Avoid breaking existing app styling and routes
+
+WHAT TO BUILD
+Refactor the current tour into a reusable guided tour engine with:
+- spotlight/highlight around the target element
+- dark overlay over the rest of the page
+- automatic scroll-to-element when the next step starts
+- centered explanation modal/box in the viewport
+- optional arrow/pointer from modal to target
+- visible label showing what element is being described
+- step title + step description + progress indicator
+- next / back / skip / finish controls
+- graceful fallback if an element is not found
+- persistence so completed tour steps can be remembered per user
+- tour can be restarted from “Guided Tour”
+
+UX REQUIREMENTS
+For every step:
+- the active element must be visually focused
+- the tooltip/modal must remain centered on screen
+- the app should auto-scroll so the target item is visible
+- the highlighted element should have strong emphasis:
+  - glow, border ring, elevated z-index
+  - optionally slight scale effect
+- the description should explicitly name the item being described
+  Example:
+  “Dashboard: This is your KPI overview card.”
+  “Clients menu: Manage all client records here.”
+  “Leads card: Track incoming prospects and conversion opportunities.”
+
+TOUR CONTENT REQUIREMENTS
+Create tour coverage for:
+1. Sidebar / navigation items
+   - Dashboard
+   - Clients
+   - Leads
+   - Marketing
+   - Schedule
+   - Billing
+   - Education
+   - Tradelines
+   - Affiliate
+   - Letters
+   - Library
+   - My Company
+   - Notifications
+   - Guided Tour
+   - Search
+   - Help
+   - Dark Mode
+
+2. Dashboard cards / sections
+   - Welcome / hero section
+   - Daily Focus
+   - Pipeline Pulse
+   - News
+   - Messages
+   - Upcoming Events
+   - Key KPIs
+   - Total Leads
+   - Total Clients
+   - Sales
+   - Payments
+   - Notepad
+   - Retention Rate
+   - Lead Conversion
+   - Company Deletion Statistics
+   - Revenue Ladder to 7 Figures
+   - Client Locations
+   - any major CTA buttons inside those cards
+
+BEHAVIOR REQUIREMENTS
+- The system should use a structured step config array/object
+- Each step should support:
+  - id
+  - title
+  - description
+  - selector
+  - route/path if needed
+  - placement/preferred alignment
+  - optional padding around spotlight
+  - optional action before step
+- If the tour step belongs to another page or collapsed menu section:
+  - open/expand the relevant area first
+  - wait for DOM render
+  - then highlight the correct element
+- If selector not found:
+  - retry briefly
+  - if still missing, skip safely to next step without crashing
+
+TECHNICAL REQUIREMENTS
+- Inspect the existing codebase first and integrate with current component structure
+- Reuse existing design tokens/colors/components where possible
+- Do not add unnecessary dependencies unless truly needed
+- If there is already a tour library, improve it only if it can support this behavior cleanly
+- If current implementation is weak, replace it with a custom lightweight guided tour manager
+- Make it modular and maintainable
+
+IMPLEMENTATION DETAILS
+Build:
+1. A reusable TourProvider / tour state manager
+2. A SpotlightOverlay component
+3. A CenteredTourModal component
+4. Utility functions:
+   - getTargetRect
+   - scrollTargetIntoView
+   - waitForElement
+   - computeSpotlightStyle
+5. A tour step registry/config file
+6. Optional user completion persistence in local storage or existing user settings/profile store
+
+FOCUS + SCROLL RULES
+When a step starts:
+- locate target by selector
+- scroll it into view smoothly, centered if possible
+- wait until layout stabilizes
+- render spotlight around target
+- keep tooltip/modal centered on screen
+- prevent tooltip from going offscreen
+- ensure target remains above overlay with proper z-index layering
+
+ACCESSIBILITY
+- keyboard accessible controls
+- ESC to close/skip
+- tab-safe navigation in modal
+- aria labels for buttons
+- reduced motion fallback if user prefers reduced motion
+
+MOBILE/TABLET
+- Must work on smaller screens
+- Sidebar tour steps should still function if nav is collapsed
+- Tooltip/modal should remain readable and not overflow viewport
+- Highlight padding should adapt for touch devices
+
+DESIGN DIRECTION
+Use a premium CRM feel:
+- elegant darkened backdrop
+- gold/brand-accent spotlight ring
+- smooth transitions
+- clean centered explainer card
+- professional, not cheesy
+
+IMPORTANT
+- Do not just describe what should be done
+- Actually implement the feature in code
+- Update existing components/selectors as needed so each step can target a stable element
+- Add data-tour attributes where necessary
+- Return all changed files
+- Keep code clean and production-ready
+
+DELIVERABLES
+1. Fully implemented tour system
+2. Updated step definitions for sidebar + dashboard cards
+3. Stable selectors/data-tour attributes added to target elements
+4. Any required styling updates
+5. Brief developer notes explaining:
+   - architecture
+   - how to add new tour steps
+   - how the scroll/focus logic works
+
+Start by auditing the current guided tour code and app layout, then implement the improved centered spotlight walkthrough end-to-end.
