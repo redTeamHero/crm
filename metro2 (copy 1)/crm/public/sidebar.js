@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  // Prevent re-initialization if this script is loaded more than once.
+  if (window.__evolvSidebarInit) return;
+  window.__evolvSidebarInit = true;
+
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
   const hostNav = document.getElementById('host-nav');
@@ -100,6 +104,10 @@
     }
     return false;
   }
+
+  // Remove any stale injected style from a previous load before re-injecting.
+  var _oldStyle = document.getElementById('evolv-sidebar-styles');
+  if (_oldStyle) _oldStyle.remove();
 
   var style = document.createElement('style');
   style.id = 'evolv-sidebar-styles';
