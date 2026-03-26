@@ -480,7 +480,7 @@
       width: 52px;
       height: 52px;
       border-radius: 50%;
-      background: #0d0d0f;
+      background: #ffffff;
       border: 2px solid #d4a853;
       box-shadow: 0 4px 18px rgba(212,168,83,0.25);
       cursor: pointer;
