@@ -700,3 +700,8 @@ canvas { filter: none !important; }
   border-color: rgba(239, 68, 68, 0.25) !important;
   color: #dc2626 !important;
 }
+
+/* Login inputs: placeholder-gray-500 Tailwind utility */
+.placeholder-gray-500::placeholder {
+  color: #9ca3af !important;
+}

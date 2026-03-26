@@ -8,7 +8,7 @@
   }
 })();
 
-const PHOENIX_SVG = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+const TOUR_ICON_SVG = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
   <circle cx="24" cy="24" r="18.5" stroke="#d4a853" stroke-width="2" fill="none"/>
   <path d="M5.5 24 Q24 15 42.5 24" stroke="#d4a853" stroke-width="1.2" fill="none" opacity="0.65"/>
   <path d="M5.5 24 Q24 33 42.5 24" stroke="#d4a853" stroke-width="1.2" fill="none" opacity="0.65"/>
@@ -526,7 +526,7 @@ class EvolvTourEngine {
     this.popover.setAttribute('data-placement', placement);
     this.popover.innerHTML = `
       <div class="tour-phoenix ${poseClass}">
-        ${PHOENIX_SVG}
+        ${TOUR_ICON_SVG}
       </div>
       <div class="tour-bubble">
         <button class="tour-bubble__close" data-action="skip" aria-label="Close" title="Close">✕</button>
@@ -714,7 +714,7 @@ async function showTourMenu() {
     <div class="tour-menu" style="position:relative;">
       <button class="tour-menu__close" data-close>✕</button>
       <div class="tour-menu__header">
-        <div class="tour-phoenix" style="width:56px;height:56px;">${PHOENIX_SVG}</div>
+        <div class="tour-phoenix" style="width:56px;height:56px;">${TOUR_ICON_SVG}</div>
         <div>
           <div class="tour-menu__title">Explore Evolv</div>
           <div class="tour-menu__subtitle">Choose a section to learn about</div>
@@ -851,7 +851,7 @@ function showWelcome() {
   overlay.className = 'tour-welcome';
   overlay.innerHTML = `
     <div class="tour-welcome__card">
-      <div class="tour-welcome__phoenix">${PHOENIX_SVG}</div>
+      <div class="tour-welcome__phoenix">${TOUR_ICON_SVG}</div>
       <div class="tour-welcome__title">Hi! I'm Evolv 🔥</div>
       <div class="tour-welcome__body">
         I'm your personal guide to mastering your credit repair business. Want me to show you around? I'll walk you through everything — it only takes a minute!
