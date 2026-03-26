@@ -253,7 +253,7 @@
   flex-shrink: 0;
   position: relative;
   animation: phoenixFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 14px rgba(232, 112, 64, 0.35));
+  filter: drop-shadow(0 4px 14px rgba(212, 168, 83, 0.35));
 }
 
 @keyframes phoenixFloat {

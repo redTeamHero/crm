@@ -632,3 +632,71 @@ canvas { filter: none !important; }
   border: 1px solid rgba(212,168,83,0.3) !important;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
 }
+
+/* ===================================================================
+   LOGIN PAGE — light theme overrides
+   login.html uses inline <style> dark classes + Tailwind dark utilities
+   =================================================================== */
+
+/* Login body background */
+.gradient-bg {
+  background: linear-gradient(135deg, #f9fafb 0%, #fff9ed 100%) !important;
+}
+
+/* Login card */
+.glass-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(212, 168, 83, 0.2) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: none !important;
+}
+
+/* Login role selector buttons */
+.role-option {
+  background: #f8fafc !important;
+  border-color: #e5e7eb !important;
+}
+.role-option:hover {
+  background: rgba(212, 168, 83, 0.08) !important;
+  border-color: rgba(212, 168, 83, 0.35) !important;
+}
+.role-option.selected {
+  background: rgba(212, 168, 83, 0.1) !important;
+  border-color: #d4a853 !important;
+}
+.role-option span.text-white {
+  color: #111827 !important;
+}
+
+/* Login secondary button ("Create Account") */
+.btn-secondary {
+  background: #f1f5f9 !important;
+  border: 1px solid rgba(212, 168, 83, 0.35) !important;
+  color: #92400e !important;
+}
+.btn-secondary:hover {
+  background: rgba(212, 168, 83, 0.1) !important;
+  border-color: rgba(212, 168, 83, 0.5) !important;
+  color: #92400e !important;
+}
+
+/* Reset Password button: bg-white/5 → light surface */
+.bg-white\/5 {
+  background-color: #f1f5f9 !important;
+}
+.hover\:bg-white\/10:hover {
+  background-color: rgba(212, 168, 83, 0.08) !important;
+}
+
+/* Login "Back to home" link */
+.gradient-bg a .text-gray-400,
+.gradient-bg a:hover {
+  color: #6b7280 !important;
+}
+
+/* Login error box */
+#err {
+  background: rgba(239, 68, 68, 0.06) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  color: #dc2626 !important;
+}

@@ -1,17 +1,22 @@
-const PHOENIX_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <g transform="translate(50,58)">
-    <path d="M0,18 C-10,26 -18,16 -13,6 C-8,-4 -2,3 0,-1 Z" fill="#c49a45" opacity="0.75"/>
-    <path d="M0,18 C10,26 18,16 13,6 C8,-4 2,3 0,-1 Z" fill="#c49a45" opacity="0.75"/>
-    <path d="M0,-1 C-10,-9 -30,-5 -34,-17 C-36,-25 -24,-29 -12,-21 C-5,-15 -1,-7 0,-5 Z" fill="#d4a853" opacity="0.92"/>
-    <path d="M0,-1 C10,-9 30,-5 34,-17 C36,-25 24,-29 12,-21 C5,-15 1,-7 0,-5 Z" fill="#d4a853" opacity="0.92"/>
-    <path d="M0,-1 C-8,-7 -20,-4 -23,-13 C-25,-18 -17,-21 -8,-16 C-3,-12 -1,-5 0,-5 Z" fill="#e8c875" opacity="0.45"/>
-    <path d="M0,-1 C8,-7 20,-4 23,-13 C25,-18 17,-21 8,-16 C3,-12 1,-5 0,-5 Z" fill="#e8c875" opacity="0.45"/>
-    <ellipse cx="0" cy="-3" rx="3.5" ry="9" fill="#b8892e"/>
-    <circle cx="0" cy="-14" r="5" fill="#d4a853"/>
-    <path d="M-5,-19 C-7,-28 -1,-33 0,-25 C1,-33 7,-28 5,-19 Z" fill="#e87040" opacity="0.92"/>
-    <path d="M0,-21 C-2,-31 0,-38 0,-30 C0,-38 2,-31 0,-21 Z" fill="#f5a64a" opacity="0.8"/>
-    <circle cx="0" cy="-14" r="1.5" fill="#1a0a00"/>
-  </g>
+// Inject globe meridian animation if not already present
+(function() {
+  if (!document.getElementById('evolv-globe-style')) {
+    var gs = document.createElement('style');
+    gs.id = 'evolv-globe-style';
+    gs.textContent = '@keyframes evolv-meridian{0%{transform:scaleX(1)}25%{transform:scaleX(0)}50%{transform:scaleX(-1)}75%{transform:scaleX(0)}100%{transform:scaleX(1)}}.evolv-globe-meridian{animation:evolv-meridian 2.4s linear infinite;transform-box:fill-box;transform-origin:center}.evolv-globe-meridian2{animation:evolv-meridian 2.4s linear infinite -1.2s;transform-box:fill-box;transform-origin:center}';
+    document.head.appendChild(gs);
+  }
+})();
+
+const PHOENIX_SVG = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="24" cy="24" r="18.5" stroke="#d4a853" stroke-width="2" fill="none"/>
+  <path d="M5.5 24 Q24 15 42.5 24" stroke="#d4a853" stroke-width="1.2" fill="none" opacity="0.65"/>
+  <path d="M5.5 24 Q24 33 42.5 24" stroke="#d4a853" stroke-width="1.2" fill="none" opacity="0.65"/>
+  <path d="M10.5 13 Q24 9 37.5 13" stroke="#d4a853" stroke-width="0.9" fill="none" opacity="0.45"/>
+  <path d="M10.5 35 Q24 39 37.5 35" stroke="#d4a853" stroke-width="0.9" fill="none" opacity="0.45"/>
+  <ellipse class="evolv-globe-meridian" cx="24" cy="24" rx="9.5" ry="18.5" stroke="#d4a853" stroke-width="2" fill="none"/>
+  <ellipse class="evolv-globe-meridian2" cx="24" cy="24" rx="9.5" ry="18.5" stroke="#d4a853" stroke-width="1.5" fill="none" opacity="0.5"/>
+  <text x="24" y="30" text-anchor="middle" font-family="Georgia, serif" font-size="14" font-weight="900" fill="#d4a853">?</text>
 </svg>`;
 
 function esc(s) {
