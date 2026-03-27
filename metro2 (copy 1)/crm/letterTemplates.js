@@ -641,104 +641,32 @@ Sincerely,
   {
     id: 'pay-for-delete-followup',
     name: 'Pay-for-Delete Follow-Up (No Response)',
-    english: `[Your Name]
-[Address] • [City, State ZIP] • [Phone] • [Email]
-[Date]
-
-[Debt Collector Name]
-[Address] • [City, State ZIP]
-
-Re: Follow-Up on Conditional Settlement Offer – Account #[Account Number]
-
-To Whom It May Concern:
-
-On [Original Offer Date], I sent a certified letter to your organization proposing a conditional settlement on the account above. My offer was to pay 40% of the reported balance — $[40% Amount] — in exchange for complete deletion of this account from all three credit bureau files — Equifax, Experian, and TransUnion. As of today I have received no response.
-
-I am writing to renew that offer and request a response.
-
-My offer remains as follows:
-1. I will pay $[40% Amount] (40% of the $[Total Balance] reported balance) as full and final settlement of this account.
-2. In exchange, you will request deletion of all reporting related to this account — the tradeline, any collection notation, and any associated inquiries — from all three credit bureaus within 30 days of receiving payment.
-3. Before any payment is sent, you must provide a written agreement on company letterhead, signed by an authorized representative, confirming all terms.
-4. Once payment is received, this account will be considered settled in full with no remaining balance and no further collection activity.
-
-This offer will expire 21 days from the date of this letter. If I do not receive a written response by that date, I will consider the matter closed and allow the debt to age off my credit reports naturally.
-
-Please respond in writing to the address above. Do not contact me by telephone — written communication only.
-
-Sincerely,
-[Your Name]`
+    requestType: 'correct',
+    heading: 'Pay-for-Delete Follow-Up — No Response',
+    intro: 'I previously submitted a certified settlement offer regarding the above account, proposing payment of {40_PCT} — 40% of the reported balance of {BALANCE} — in exchange for complete deletion of this account from all three credit bureau files — Equifax, Experian, and TransUnion. As of today I have received no written response. I am writing to renew that offer and formally request a reply.',
+    ask: 'My offer remains as follows:\n1. I will pay {40_PCT} (40% of the {BALANCE} reported balance) as full and final settlement of this account.\n2. In exchange, you will request deletion of all reporting related to this account — the tradeline, any collection notation, and any associated inquiries — from Equifax, Experian, and TransUnion within 30 days of receiving payment.\n3. Before any payment is sent, you must provide a written agreement on company letterhead, signed by an authorized representative, confirming all terms.\n4. Once payment is received, this account will be considered settled in full with no remaining balance and no further collection activity.',
+    afterIssues: 'This renewed offer will expire 21 days from the date of this letter. If I do not receive a written response by that date, I will consider the matter closed. Please respond in writing only — do not contact me by telephone.',
+    evidence: '',
   },
   {
     id: 'pay-for-delete-counter',
     name: 'Pay-for-Delete Counter-Offer Response',
-    english: `[Your Name]
-[Address] • [City, State ZIP] • [Phone] • [Email]
-[Date]
-
-[Debt Collector Name]
-[Address] • [City, State ZIP]
-
-Re: Counter-Offer Response – Conditional Settlement – Account #[Account Number]
-
-To Whom It May Concern:
-
-Thank you for responding to my settlement offer. I have reviewed your counter-offer requesting $[Their Counter Amount] and I am not able to agree to that amount. My original offer of 40% of the reported balance ($[40% Amount]) was made in good faith, and I would like to continue negotiating toward a resolution.
-
-My revised offer is as follows: I am willing to pay $[Your Counter Amount] as full and final settlement of this account, subject to the same conditions stated in my original letter:
-
-1. Deletion: Upon receipt of payment, you will request deletion of this account — including the tradeline, all collection notations, and any related inquiries — from Equifax, Experian, and TransUnion within 30 days.
-2. Written Agreement First: I will not send any payment until I have a written settlement and deletion agreement on your company letterhead, signed by an authorized representative.
-3. Full and Final Settlement: Payment of the agreed amount constitutes full satisfaction of this account with no remaining balance.
-4. No Further Collection: All collection activity on this account will permanently cease upon execution of the agreement.
-5. 1099-C Reporting: If the forgiven amount exceeds $600, please confirm whether a 1099-C will be issued so I can plan accordingly.
-
-I believe $[Your Counter Amount] is a fair resolution given the age of this debt and my current financial circumstances. I am prepared to pay promptly once a written agreement is in hand.
-
-This counter-offer is valid for 21 days from the date of this letter.
-
-Please respond in writing only.
-
-Sincerely,
-[Your Name]`
+    requestType: 'correct',
+    heading: 'Pay-for-Delete Counter-Offer Response',
+    intro: 'Thank you for responding to my settlement offer. I have reviewed your counter-offer and am not able to agree to that amount. My original offer of 40% of the reported balance ({40_PCT}) was made in good faith. I would like to continue negotiating toward a resolution. My revised offer is {50_PCT} — 50% of the reported balance of {BALANCE} — as full and final settlement of this account.',
+    ask: 'The terms of my revised offer are as follows:\n1. Deletion: Upon receipt of payment, you will request deletion of this account — including the tradeline, all collection notations, and any related inquiries — from Equifax, Experian, and TransUnion within 30 days.\n2. Written Agreement First: I will not send any payment until I have a written settlement and deletion agreement on your company letterhead, signed by an authorized representative.\n3. Full and Final Settlement: Payment of {50_PCT} constitutes full satisfaction of this account with no remaining balance.\n4. No Further Collection: All collection activity on this account will permanently cease upon execution of the agreement.\n5. 1099-C Reporting: If the forgiven amount exceeds $600, please confirm whether a 1099-C will be issued so I can plan accordingly.',
+    afterIssues: 'I believe {50_PCT} is a fair resolution given the age of this debt and the circumstances of this account. I am prepared to pay promptly once a written agreement is in hand. This counter-offer is valid for 21 days from the date of this letter. Please respond in writing only.',
+    evidence: '',
   },
   {
     id: 'pay-for-delete-post-payment',
     name: 'Pay-for-Delete Post-Payment Deletion Demand',
-    english: `[Your Name]
-[Address] • [City, State ZIP] • [Phone] • [Email]
-[Date]
-
-[Debt Collector Name]
-[Address] • [City, State ZIP]
-
-Re: Failure to Honor Deletion Agreement – Account #[Account Number]
-
-To Whom It May Concern:
-
-On [Agreement Date], your organization and I entered into a written settlement agreement in which I agreed to pay $[Amount] in exchange for deletion of Account #[Account Number] from my credit files at Equifax, Experian, and TransUnion within 30 days of payment.
-
-I fulfilled my obligation. Payment of $[Amount] was made on [Payment Date] via [cashier's check / money order / wire transfer — check number or confirmation number: XXXXXX]. A copy of that payment confirmation is enclosed.
-
-It has now been [number] days since payment was received. As of today, this account has NOT been deleted from my credit reports at [list affected bureaus]. This is a breach of our written agreement.
-
-I am demanding that you:
-1. Submit deletion requests to Equifax, Experian, and TransUnion for Account #[Account Number] within 10 business days of receiving this letter.
-2. Send me written confirmation — with deletion request submission dates and reference numbers — no later than [date 10 business days from today].
-
-If you fail to honor the terms of our signed agreement within the deadline above, I will file complaints with the Consumer Financial Protection Bureau, the Federal Trade Commission, and my state Attorney General's office, and I will pursue all available legal remedies for breach of contract and any violations of the Fair Debt Collection Practices Act.
-
-I am enclosing a copy of our signed settlement agreement and proof of payment for your records.
-
-Please govern yourself accordingly.
-
-Sincerely,
-[Your Name]
-
-Enclosures:
-• Copy of signed settlement and deletion agreement dated [Agreement Date]
-• Proof of payment dated [Payment Date]
-• Current credit report excerpts showing account still reporting`
+    requestType: 'correct',
+    heading: 'Post-Payment Deletion Demand — Failure to Honor Agreement',
+    intro: 'Your organization and I entered into a written settlement agreement in which I agreed to pay a negotiated amount in exchange for deletion of the above account from my credit files at Equifax, Experian, and TransUnion within 30 days of payment. I fulfilled my obligation. Payment was made on [DATE OF PAYMENT — ENTER MANUALLY] via certified funds. A copy of the payment confirmation is enclosed. Despite the terms of our signed agreement, this account has NOT been deleted from my credit reports. This is a breach of our written agreement.',
+    ask: 'I am demanding that you:\n1. Submit deletion requests to Equifax, Experian, and TransUnion for account #{ACCOUNT} within 10 business days of receiving this letter.\n2. Send me written confirmation — with deletion request submission dates and reference numbers — no later than 10 business days from today.\n3. Confirm in writing that the disputed information will not be reinserted without proper furnisher certification and advance written notice to me, as required by FCRA §611(a)(5)(B).',
+    afterIssues: 'If you fail to honor the terms of our signed agreement within the deadline above, I will file complaints with the Consumer Financial Protection Bureau, the Federal Trade Commission, and my state Attorney General\'s office, and I will pursue all available legal remedies for breach of contract and violations of the Fair Debt Collection Practices Act.',
+    evidence: 'Enclosures: Copy of signed settlement and deletion agreement; Proof of payment; Current credit report excerpts showing account still reporting.',
   },
   {
     id: 'goodwill-removal',
@@ -774,126 +702,42 @@ Sincerely,
   {
     id: 'pay-for-delete',
     name: 'Pay-for-Delete Settlement Offer (40%)',
-    english: `[Your Name]
-[Address] • [City, State ZIP] • [Phone] • [Email]
-[Date]
-
-[Debt Collector Name]
-[Address] • [City, State ZIP]
-
-Re: Conditional Settlement Offer – Account #[Account Number]
-
-To Whom It May Concern:
-
-I am writing to propose a settlement on the account listed above. This letter is not an acknowledgment that the debt is valid, and it is intended solely as a good-faith offer to resolve this matter.
-
-The reported balance on this account is $[Total Balance]. I am prepared to offer 40% of that balance — $[40% Amount] — as full and final settlement, subject to the following conditions:
-
-1. Deletion: After you receive payment, you will request deletion of all reporting related to this account from Equifax, Experian, and TransUnion within 30 days — including the tradeline, any collection notation, and any related inquiry.
-2. Written Agreement: Before I send any payment, I need a written settlement agreement on your company letterhead, signed by someone authorized to make this commitment, confirming all terms including deletion.
-3. Full Satisfaction: Once payment of $[40% Amount] is received, the account is considered settled in full with no remaining balance.
-4. No Further Collection: You agree to permanently stop all collection activity on this account.
-5. Tax Reporting: If the forgiven amount exceeds $600, please confirm whether a 1099-C will be issued.
-
-This offer is valid for 30 days from the date of this letter. No payment will be sent until I have a signed written agreement in hand.
-
-Please respond in writing to the address above.
-
-Sincerely,
-[Your Name]`
+    requestType: 'correct',
+    heading: 'Pay-for-Delete Settlement Offer',
+    intro: 'I am writing to propose a conditional settlement on the account listed above. This letter is not an acknowledgment that the debt is valid — it is a good-faith offer made under Federal Rule of Evidence 408 and is not admissible as evidence of liability. The reported balance on this account is {BALANCE}. I am prepared to pay {40_PCT} — 40% of that balance — as full and final settlement, subject to the conditions below.',
+    ask: '1. Deletion: After you receive payment, you will request deletion of all reporting related to this account from Equifax, Experian, and TransUnion within 30 days — including the tradeline, any collection notation, and any related inquiry.\n2. Written Agreement: Before I send any payment, I need a written settlement agreement on your company letterhead, signed by someone authorized to make this commitment, confirming all terms including deletion.\n3. Full Satisfaction: Once payment of {40_PCT} is received, the account is considered settled in full with no remaining balance.\n4. No Further Collection: You agree to permanently stop all collection activity on this account.\n5. Tax Reporting: If the forgiven amount exceeds $600, please confirm whether a 1099-C will be issued.',
+    afterIssues: 'This offer is valid for 30 days from the date of this letter. No payment will be sent until I have a signed written agreement in hand. Please respond in writing to the address above.',
+    evidence: '',
   },
   {
     id: 'metro2-inconsistency-dispute',
     name: 'Metro 2 inconsistency dispute',
-    english: `[Your Name]
-[Address] • [City, State ZIP] • [Phone] • [Email]
-[Date]
-
-[Credit Bureau Name]
-[Address] • [City, State ZIP]
-
-Re: Metro 2 Compliance Dispute – Account #[Account Number]
-
-To Whom It May Concern:
-
-I am writing to dispute the accuracy of the above account based on Metro 2 reporting standard violations. Metro 2 is the industry-mandated format that furnishers must use when reporting consumer credit data. When data is reported in a way that conflicts with Metro 2 requirements, the credit bureau has an obligation under FCRA §611 to investigate and correct the inaccurate information.
-
-My review of this account reveals the following Metro 2 inconsistencies:
-• The reported account status, payment rating, or compliance condition code does not align with the account history and payment data also on file.
-• Field values appear to conflict with each other — for example, the account is marked with a payment status that is inconsistent with the reported balance or date of last activity.
-• One or more bureaus are reporting information about this account that differs materially from what the other bureaus show, indicating a Metro 2 data transmission error.
-
-I am asking that you take the following steps within 30 days:
-1. Conduct a full Metro 2 compliance review of all data fields for this account.
-2. Contact the furnisher and request corrected Metro 2-compliant data.
-3. If the furnisher cannot provide corrected Metro 2-compliant data within the investigation period, delete the account from my credit file.
-4. Send me written confirmation of the results and a corrected copy of my credit report.
-
-Sincerely,
-[Your Name]`
+    requestType: 'correct',
+    heading: 'Metro 2 Compliance Dispute',
+    intro: 'I am writing to dispute the accuracy of the above account based on Metro 2 reporting standard violations. Metro 2 is the industry-mandated data reporting format that furnishers must follow when submitting consumer credit information. When data is reported in conflict with Metro 2 requirements, you have an obligation under FCRA §611 to investigate and correct the information. Specifically: the reported account status, payment rating, or compliance condition code does not align with the account history and payment data on file; field values conflict with each other in ways inconsistent with a compliant data submission; and one or more bureaus are reporting information that differs materially from what other bureaus show, indicating a Metro 2 data transmission error.',
+    ask: 'I am asking that you take the following steps within 30 days:\n1. Conduct a full Metro 2 compliance review of all data fields for this account.\n2. Contact the furnisher and require corrected Metro 2-compliant data.\n3. If the furnisher cannot provide corrected Metro 2-compliant data within the investigation period, delete this account from my credit file.\n4. Send me written confirmation of the results and a corrected copy of my credit report.',
+    afterIssues: '',
+    evidence: '',
   },
   {
     id: 'factual-errors-layer',
     name: 'Factual errors layer',
-    english: `[Your Name]
-[Address] • [City, State ZIP] • [Phone] • [Email]
-[Date]
-
-[Credit Bureau Name]
-[Address] • [City, State ZIP]
-
-Re: Factual Dispute – Account #[Account Number]
-
-To Whom It May Concern:
-
-I previously submitted a dispute regarding the above account. I am now providing additional factual documentation to further substantiate my position and request that you reopen the investigation.
-
-The information currently reported contains specific factual errors that I can document:
-• The balance, account status, or payment history shown does not match my own records or the statements I have from the creditor.
-• The dates being reported — including the date of first delinquency, date opened, or date of last activity — are incorrect and do not match the underlying account documents.
-• The account is being reported as open, delinquent, or in collection when it was resolved, paid, or closed prior to the date shown.
-
-These are not differences of interpretation — they are objective factual errors that can be verified against source documents.
-
-I am asking that you take the following steps within 30 days:
-1. Reopen the investigation and review the specific factual discrepancies I have identified.
-2. Contact the furnisher and require them to produce the original account records that support their current reporting.
-3. If the furnisher cannot substantiate the reported data with documentation, correct or delete the disputed information.
-4. Provide me with the method of verification used, including the name and contact information of the furnisher and a description of the documents reviewed.
-
-Sincerely,
-[Your Name]`
+    requestType: 'correct',
+    heading: 'Factual Dispute — Documentation Layer',
+    intro: 'I previously submitted a dispute regarding the above account. I am now providing additional factual documentation to further substantiate my position and request that you reopen the investigation. The information currently reported contains specific, objective factual errors that can be verified against source documents — these are not differences of interpretation. The balance, account status, or payment history shown does not match my records; the dates reported (date of first delinquency, date opened, date of last activity) are incorrect; and the account appears as open, delinquent, or in collection when it was previously resolved or closed.',
+    ask: 'I am asking that you take the following steps within 30 days:\n1. Reopen the investigation and review the specific factual discrepancies identified in the account data above.\n2. Contact the furnisher and require them to produce the original account records that support their current reporting.\n3. If the furnisher cannot substantiate the reported data with documentation, correct or delete the disputed information.\n4. Provide me with the method of verification used, including the name and contact information of the furnisher and a description of any documents reviewed.',
+    afterIssues: '',
+    evidence: '',
   },
   {
     id: 'metro2-deletion-demand',
     name: 'Deletion demand failure to fix under Metro 2 and FCRA 607(b)',
-    english: `[Your Name]
-[Address] • [City, State ZIP] • [Phone] • [Email]
-[Date]
-
-[Credit Bureau Name]
-[Address] • [City, State ZIP]
-
-Re: Deletion Demand – Ongoing Non-Compliance – Account #[Account Number]
-
-To Whom It May Concern:
-
-I have now submitted multiple disputes regarding the above account. Despite my prior disputes and the documentation I have provided, the inaccurate and Metro 2 non-compliant information continues to appear on my credit report without correction. This constitutes a failure to conduct a proper reinvestigation as required by FCRA §611, and a failure to ensure maximum possible accuracy as required by FCRA §607(b).
-
-The furnisher has had multiple opportunities to verify the accuracy of this reporting. They have not produced documentation that substantiates what is being reported. Under FCRA §607(b), furnishers must maintain procedures to ensure the accuracy and integrity of the information they report. The ongoing inaccurate reporting demonstrates that those procedures have failed.
-
-Given the extended period of time during which this inaccurate information has remained on my report despite my repeated disputes, I am requesting deletion as the only appropriate remedy. Continued reporting of unverified, inaccurate, and Metro 2 non-compliant data is causing ongoing harm to my credit standing.
-
-I am asking that you:
-1. Delete the disputed account from my credit file immediately.
-2. Notify the furnisher that this item has been deleted.
-3. Send me a corrected copy of my credit report confirming the deletion within 5 business days.
-4. Confirm in writing that the disputed information will not be reinserted without proper furnisher certification and advance written notice to me.
-
-If you are unable to delete this item, please provide a detailed written explanation of every step taken during your reinvestigation, including the name and contact information of the furnisher contacted and copies of any documents they provided.
-
-Sincerely,
-[Your Name]`
+    requestType: 'correct',
+    heading: 'Deletion Demand — Ongoing Non-Compliance Under Metro 2 and FCRA §607(b)',
+    intro: 'I have now submitted multiple disputes regarding the above account. Despite my prior disputes and the documentation provided, the inaccurate and Metro 2 non-compliant information continues to appear on my credit report without correction. This constitutes a failure to conduct a proper reinvestigation as required by FCRA §611, and a failure to ensure maximum possible accuracy as required by FCRA §607(b). The furnisher has had multiple opportunities to verify the accuracy of this reporting and has not produced documentation that substantiates what is being reported. Deletion is now the only appropriate remedy.',
+    ask: 'I am asking that you:\n1. Delete the disputed account from my credit file within 5 business days of receiving this letter.\n2. Notify the furnisher that this item has been deleted.\n3. Send me a corrected copy of my credit report confirming the deletion.\n4. Confirm in writing that the disputed information will not be reinserted without proper furnisher certification and advance written notice to me, as required by FCRA §611(a)(5)(B).',
+    afterIssues: 'If you are unable to delete this item, please provide a detailed written explanation of every step taken during your reinvestigation, including the name and contact information of the furnisher contacted and copies of any documents they provided.',
+    evidence: '',
   },
 ];
 

@@ -696,6 +696,33 @@ function buildLetterHTML(opts) {
       }
     : modeCopy(modeKey, requestType);
 
+  {
+    const _acct = tl.per_bureau?.[bureau]?.account_number
+      || tl.meta?.account_numbers?.[bureau]
+      || tl.meta?.account_number
+      || '****';
+    const _cred = safe(tl.meta?.creditor || 'Unknown');
+    const _rawBal = tl.per_bureau?.[bureau]?.balance_raw
+      ?? tl.per_bureau?.[bureau]?.balance
+      ?? tl.meta?.balance
+      ?? null;
+    const _num = _rawBal != null ? parseFloat(String(_rawBal).replace(/[^0-9.]/g, '')) : NaN;
+    const _balStr  = !isNaN(_num) ? `$${_num.toFixed(2)}`           : '[BALANCE — ENTER MANUALLY]';
+    const _p40Str  = !isNaN(_num) ? `$${(_num * 0.40).toFixed(2)}`  : '[40% AMOUNT — ENTER MANUALLY]';
+    const _p50Str  = !isNaN(_num) ? `$${(_num * 0.50).toFixed(2)}`  : '[50% AMOUNT — ENTER MANUALLY]';
+    const _sub = (s) => !s ? s : s
+      .replace(/\{BALANCE\}/g,  _balStr)
+      .replace(/\{40_PCT\}/g,   _p40Str)
+      .replace(/\{50_PCT\}/g,   _p50Str)
+      .replace(/\{CREDITOR\}/g, _cred)
+      .replace(/\{ACCOUNT\}/g,  safe(_acct));
+    mc.heading    = _sub(mc.heading);
+    mc.intro      = _sub(mc.intro);
+    mc.ask        = _sub(mc.ask);
+    mc.afterIssues = _sub(mc.afterIssues);
+    mc.evidence   = _sub(mc.evidence);
+  }
+
   const intro = colorize(mc.intro);
   const ask = colorize(mc.ask);
   const afterIssuesPara = mc.afterIssues ? `<p class="ocr">${colorize(mc.afterIssues)}</p>` : "";
@@ -783,10 +810,10 @@ function buildLetterHTML(opts) {
     .replace(/[^a-z0-9]+/gi, "_")
     .replace(/^_+|_+$/g, "");
 
-  const modeSuffix = modeKey ? `_${modeKey}` : "";
-  const filename = `${bureau}_${fnSafeCred}${modeSuffix}_dispute_${new Date().toISOString().slice(0, 10)}.html`;
+  const _suffix = template ? `_${template.id}` : (modeKey ? `_${modeKey}` : "");
+  const filename = `${bureau}_${fnSafeCred}${_suffix}_dispute_${new Date().toISOString().slice(0, 10)}.html`;
 
-  return { filename, html: letterBody };
+  return { filename, html: letterBody, letterType: template?.id };
 }
 
 function namePrefix(consumer) {

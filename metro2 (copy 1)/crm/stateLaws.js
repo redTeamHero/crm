@@ -1,86 +1,86 @@
 // stateLaws.js — State consumer-protection law addenda for dispute letters
-// Tone: informational only — no statute citations as threats, no guarantees
+// Tone: notice to the recipient (bureau/creditor) about the consumer's state rights
 
 const STATE_LAW_ADDENDA = {
   CA: {
     name: 'California',
-    addendum: 'Additionally, as a California resident, you may have rights under the California Consumer Credit Reporting Agencies Act and the California Consumer Privacy Act. You have the right to obtain a free copy of your credit report and to dispute inaccurate information. If a consumer credit reporting agency fails to properly investigate your dispute, you may have the right to seek correction through California state channels.',
+    addendum: 'Please be advised that this consumer is also protected under the California Consumer Credit Reporting Agencies Act (CCRAA) and the California Consumer Privacy Act. California law imposes obligations on credit reporting agencies and furnishers that are in addition to — and in some respects more stringent than — federal FCRA requirements. Failure to comply with applicable state law may expose your organization to remedies available under California law.',
   },
   TX: {
     name: 'Texas',
-    addendum: 'Additionally, as a Texas resident, you may have rights under the Texas Business & Commerce Code related to credit reporting. Texas law provides certain protections regarding the accuracy of information furnished to and reported by consumer credit reporting agencies. You may also contact the Texas Office of Consumer Credit Commissioner for guidance on your rights.',
+    addendum: 'Please be advised that this consumer is also protected under the Texas Business & Commerce Code and applicable Texas credit reporting statutes. Texas law imposes obligations on credit reporting agencies and furnishers regarding the accuracy and investigation of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Texas law, including those enforceable by the Texas Office of Consumer Credit Commissioner.',
   },
   NY: {
     name: 'New York',
-    addendum: 'Additionally, as a New York resident, you may have rights under the New York Fair Credit Reporting Act, which provides consumer protections that may exceed federal law in certain respects. New York residents can also contact the New York State Department of Financial Services for assistance with credit reporting concerns.',
+    addendum: 'Please be advised that this consumer is also protected under the New York Fair Credit Reporting Act, which provides consumer rights that may exceed those under federal law. New York law imposes additional obligations on credit reporting agencies in connection with dispute investigations and the accuracy of reported information. Failure to comply with applicable state law may expose your organization to remedies available under New York law and through the New York State Department of Financial Services.',
   },
   MD: {
     name: 'Maryland',
-    addendum: 'Additionally, as a Maryland resident, you may have rights under the Maryland Consumer Debt Collection Act and Maryland credit reporting statutes. Maryland law provides additional consumer protections regarding the accuracy of credit information. You may also contact the Maryland Office of the Attorney General, Consumer Protection Division, for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the Maryland Consumer Debt Collection Act and Maryland credit reporting statutes. Maryland law imposes additional obligations on credit reporting agencies and debt collectors regarding the accuracy and investigation of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Maryland law, including those enforceable by the Maryland Office of the Attorney General, Consumer Protection Division.',
   },
   MA: {
     name: 'Massachusetts',
-    addendum: 'Additionally, as a Massachusetts resident, you may have rights under Chapter 93 of the Massachusetts General Laws, which governs consumer credit reporting. Massachusetts law provides additional protections that may apply to your dispute. You may also contact the Massachusetts Office of Consumer Affairs and Business Regulation for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under Chapter 93 of the Massachusetts General Laws governing consumer credit reporting. Massachusetts law imposes additional obligations on credit reporting agencies and furnishers regarding the accuracy and investigation of disputed information. Failure to comply with applicable state law may expose your organization to remedies available under Massachusetts law, including those enforceable by the Massachusetts Office of Consumer Affairs and Business Regulation.',
   },
   CO: {
     name: 'Colorado',
-    addendum: 'Additionally, as a Colorado resident, you may have rights under the Colorado Consumer Protection Act and Colorado credit reporting laws. Colorado residents have the right to place a security freeze on their credit file free of charge. You may also contact the Colorado Attorney General\'s Office for guidance on your consumer rights.',
+    addendum: 'Please be advised that this consumer is also protected under the Colorado Consumer Protection Act and applicable Colorado credit reporting statutes. Colorado law imposes obligations on credit reporting agencies and furnishers that are in addition to federal requirements. Failure to comply with applicable state law may expose your organization to remedies available under Colorado law, including those enforceable by the Colorado Attorney General\'s Office.',
   },
   NJ: {
     name: 'New Jersey',
-    addendum: 'Additionally, as a New Jersey resident, you may have rights under New Jersey\'s consumer protection statutes, including the New Jersey Consumer Fraud Act. New Jersey law provides certain protections in connection with the reporting of consumer credit information. You may also contact the New Jersey Division of Consumer Affairs for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the New Jersey Consumer Fraud Act and applicable New Jersey consumer protection statutes, including provisions governing the accuracy of consumer credit reporting. Failure to comply with applicable state law may expose your organization to remedies available under New Jersey law, including those enforceable by the New Jersey Division of Consumer Affairs.',
   },
   CT: {
     name: 'Connecticut',
-    addendum: 'Additionally, as a Connecticut resident, you may have rights under the Connecticut Fair Credit Reporting Act and the Connecticut Unfair Trade Practices Act. Connecticut law may provide protections beyond federal law regarding the accuracy of your credit file. You may also contact the Connecticut Department of Banking for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the Connecticut Fair Credit Reporting Act and the Connecticut Unfair Trade Practices Act. Connecticut law imposes obligations on credit reporting agencies and furnishers that may exceed federal standards in certain respects. Failure to comply with applicable state law may expose your organization to remedies available under Connecticut law, including those enforceable by the Connecticut Department of Banking.',
   },
   IL: {
     name: 'Illinois',
-    addendum: 'Additionally, as an Illinois resident, you may have rights under the Illinois Consumer Fraud and Deceptive Business Practices Act and Illinois credit reporting statutes. Illinois law provides certain consumer protections that may be relevant to your dispute. You may also contact the Illinois Attorney General\'s Office for guidance on your rights.',
+    addendum: 'Please be advised that this consumer is also protected under the Illinois Consumer Fraud and Deceptive Business Practices Act and applicable Illinois credit reporting statutes. Illinois law imposes obligations on credit reporting agencies and furnishers regarding the accuracy of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Illinois law, including those enforceable by the Illinois Attorney General\'s Office.',
   },
   WA: {
     name: 'Washington',
-    addendum: 'Additionally, as a Washington State resident, you may have rights under the Washington Consumer Protection Act and Washington credit reporting statutes. Washington law provides certain consumer protections in connection with the accuracy of credit information. You may also contact the Washington State Office of the Attorney General for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the Washington Consumer Protection Act and applicable Washington credit reporting statutes. Washington law imposes obligations on credit reporting agencies and furnishers regarding the accuracy and investigation of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Washington law, including those enforceable by the Washington State Office of the Attorney General.',
   },
   GA: {
     name: 'Georgia',
-    addendum: 'Additionally, as a Georgia resident, you may have rights under the Georgia Fair Business Practices Act and related credit reporting statutes. Georgia law provides certain consumer protections regarding the accuracy of credit reporting. You may also contact the Georgia Consumer Protection Division of the Attorney General\'s Office for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the Georgia Fair Business Practices Act and related Georgia credit reporting statutes. Georgia law imposes obligations on credit reporting agencies and furnishers regarding the accuracy of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Georgia law, including those enforceable by the Georgia Consumer Protection Division of the Attorney General\'s Office.',
   },
   FL: {
     name: 'Florida',
-    addendum: 'Additionally, as a Florida resident, you may have rights under the Florida Consumer Collection Practices Act and Florida credit reporting statutes. Florida law provides certain protections regarding the accuracy of consumer credit information. You may also contact the Florida Attorney General\'s Office or the Florida Department of Financial Services for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the Florida Consumer Collection Practices Act and applicable Florida credit reporting statutes. Florida law imposes obligations on credit reporting agencies and debt collectors regarding the accuracy and collection of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Florida law, including those enforceable by the Florida Attorney General\'s Office and the Florida Department of Financial Services.',
   },
   OR: {
     name: 'Oregon',
-    addendum: 'Additionally, as an Oregon resident, you may have rights under the Oregon Unlawful Debt Collection Practices Act and Oregon credit reporting statutes. Oregon law provides certain consumer protections that may apply to your dispute. You may also contact the Oregon Department of Justice for guidance on your rights.',
+    addendum: 'Please be advised that this consumer is also protected under the Oregon Unlawful Debt Collection Practices Act and applicable Oregon credit reporting statutes. Oregon law imposes obligations on credit reporting agencies and debt collectors regarding the accuracy and investigation of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Oregon law, including those enforceable by the Oregon Department of Justice.',
   },
   MN: {
     name: 'Minnesota',
-    addendum: 'Additionally, as a Minnesota resident, you may have rights under the Minnesota Unfair Trade Practices Act and Minnesota credit reporting statutes. Minnesota law provides certain consumer protections in connection with the accuracy of credit information. You may also contact the Minnesota Department of Commerce for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the Minnesota Unfair Trade Practices Act and applicable Minnesota credit reporting statutes. Minnesota law imposes obligations on credit reporting agencies and furnishers regarding the accuracy of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Minnesota law, including those enforceable by the Minnesota Department of Commerce.',
   },
   MI: {
     name: 'Michigan',
-    addendum: 'Additionally, as a Michigan resident, you may have rights under the Michigan Collection Practices Act and Michigan credit reporting statutes. Michigan law provides certain consumer protections regarding the accuracy of credit reporting. You may also contact the Michigan Department of Attorney General for guidance on your rights.',
+    addendum: 'Please be advised that this consumer is also protected under the Michigan Collection Practices Act and applicable Michigan credit reporting statutes. Michigan law imposes obligations on credit reporting agencies and debt collectors regarding the accuracy and investigation of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Michigan law, including those enforceable by the Michigan Department of Attorney General.',
   },
   PA: {
     name: 'Pennsylvania',
-    addendum: 'Additionally, as a Pennsylvania resident, you may have rights under the Pennsylvania Fair Credit Extension Uniformity Act and related consumer protection statutes. Pennsylvania law provides certain protections in connection with the accuracy of consumer credit information. You may also contact the Pennsylvania Bureau of Consumer Protection for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the Pennsylvania Fair Credit Extension Uniformity Act and related Pennsylvania consumer protection statutes. Pennsylvania law imposes obligations on credit reporting agencies and furnishers regarding the accuracy of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Pennsylvania law, including those enforceable by the Pennsylvania Bureau of Consumer Protection.',
   },
   OH: {
     name: 'Ohio',
-    addendum: 'Additionally, as an Ohio resident, you may have rights under the Ohio Consumer Sales Practices Act and Ohio credit reporting statutes. Ohio law provides certain consumer protections regarding the accuracy of credit information. You may also contact the Ohio Attorney General\'s Consumer Protection Section for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the Ohio Consumer Sales Practices Act and applicable Ohio credit reporting statutes. Ohio law imposes obligations on credit reporting agencies and furnishers regarding the accuracy of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Ohio law, including those enforceable by the Ohio Attorney General\'s Consumer Protection Section.',
   },
   VA: {
     name: 'Virginia',
-    addendum: 'Additionally, as a Virginia resident, you may have rights under the Virginia Consumer Protection Act and the Virginia Consumer Data Protection Act. Virginia law provides certain protections that may apply to your credit dispute. You may also contact the Virginia Office of the Attorney General for guidance on your rights.',
+    addendum: 'Please be advised that this consumer is also protected under the Virginia Consumer Protection Act and the Virginia Consumer Data Protection Act. Virginia law imposes obligations on credit reporting agencies and furnishers regarding the accuracy of consumer credit information and the handling of personal data. Failure to comply with applicable state law may expose your organization to remedies available under Virginia law, including those enforceable by the Virginia Office of the Attorney General.',
   },
   NC: {
     name: 'North Carolina',
-    addendum: 'Additionally, as a North Carolina resident, you may have rights under the North Carolina Debt Collection Act and North Carolina consumer protection statutes. North Carolina law provides certain consumer protections in connection with the accuracy of credit reporting. You may also contact the North Carolina Attorney General\'s Consumer Protection Division for guidance.',
+    addendum: 'Please be advised that this consumer is also protected under the North Carolina Debt Collection Act and applicable North Carolina consumer protection statutes. North Carolina law imposes obligations on credit reporting agencies and debt collectors regarding the accuracy of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under North Carolina law, including those enforceable by the North Carolina Attorney General\'s Consumer Protection Division.',
   },
   AZ: {
     name: 'Arizona',
-    addendum: 'Additionally, as an Arizona resident, you may have rights under the Arizona Consumer Fraud Act and related credit reporting statutes. Arizona law provides certain consumer protections regarding the accuracy of credit information. You may also contact the Arizona Attorney General\'s Office for guidance on your rights.',
+    addendum: 'Please be advised that this consumer is also protected under the Arizona Consumer Fraud Act and applicable Arizona credit reporting statutes. Arizona law imposes obligations on credit reporting agencies and furnishers regarding the accuracy of consumer credit information. Failure to comply with applicable state law may expose your organization to remedies available under Arizona law, including those enforceable by the Arizona Attorney General\'s Office.',
   },
 };
 
