@@ -1,8 +1,9 @@
 export const PRICE_BUCKETS = [
-  { id: '0-150', label: '0–150', min: 0, max: 150 },
-  { id: '151-300', label: '151–300', min: 151, max: 300 },
-  { id: '301-500', label: '301–500', min: 301, max: 500 },
-  { id: '501+', label: '501+', min: 501, max: Number.POSITIVE_INFINITY },
+  { id: '0-299',   label: 'Under $300',   min: 0,    max: 299 },
+  { id: '300-499', label: '$300–$499',     min: 300,  max: 499 },
+  { id: '500-699', label: '$500–$699',     min: 500,  max: 699 },
+  { id: '700-999', label: '$700–$999',     min: 700,  max: 999 },
+  { id: '1000+',   label: '$1,000+',       min: 1000, max: Number.POSITIVE_INFINITY },
 ];
 
 const bucketIndex = new Map(PRICE_BUCKETS.map((bucket) => [bucket.id, bucket]));
@@ -84,4 +85,3 @@ export function paginate(items = [], page = 1, perPage = 20, options = {}) {
   const slice = items.slice(start, end);
   return { items: slice, page: currentPage, perPage: safePerPage, totalItems, totalPages };
 }
-

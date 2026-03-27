@@ -8,6 +8,7 @@ const stripHtml = s => String(s == null ? '' : s).replace(/<[^>]*>/g, '').replac
 let status = {};
 let feeds = [];
 let selectedArticle = null;
+let npSelectedArticle = null;
 let activeFeedId = null;
 let queuePosts = [];
 
@@ -21,6 +22,7 @@ document.getElementById('smTabs').addEventListener('click', e => {
   document.querySelectorAll('.sm-section').forEach(s => s.classList.remove('active'));
   $(`tab-${tab}`)?.classList.add('active');
   if (tab !== 'autopilot' && autopilotPollTimer) { clearInterval(autopilotPollTimer); autopilotPollTimer = null; }
+  if (tab !== 'leads') stopLeadsPolling();
   if (tab === 'feeds' && feeds.length === 0) loadFeeds();
   if (tab === 'queue') loadQueue();
   if (tab === 'autopilot') initAutopilotTab();
@@ -301,93 +303,38 @@ async function loadFeedItems(feedId) {
 
 $('btnRefreshItems').addEventListener('click', () => { if (activeFeedId) loadFeedItems(activeFeedId); });
 
-// ─── Compose ──────────────────────────────────────────────────────────────────
+// ─── Compose (merged into New Post) ───────────────────────────────────────────
+// The Generate Post tab has been merged into New Post. RSS articles picked from
+// the Feeds tab now route to the New Post tab via selectArticleForNewPost().
 function selectArticleForCompose(article) {
-  selectedArticle = article;
-  const bar = $('selectedArticleBar');
-  bar.style.display = 'flex';
-  $('selectedArticleTitle').textContent = stripHtml(article.title);
-  $('composeArticleLink').style.display = 'block';
-  $('composeArticleUrl').value = article.link || '';
-  updatePreviewLink(article.link);
+  // Route to New Post tab instead
+  window._npArticlePickerMode = false;
+  npSelectedArticle = article;
+  const titleEl = $('npSelectedArticleTitle');
+  const bar = $('npSelectedArticleBar');
+  if (titleEl) titleEl.textContent = stripHtml(article.title || '');
+  if (bar) bar.style.display = 'flex';
+  if (article.link) {
+    const urlEl = $('npArticleUrl');
+    const row = $('npArticleLinkRow');
+    if (urlEl) urlEl.value = article.link;
+    if (row) row.style.display = 'block';
+  }
+  const topicEl = $('npAiTopic');
+  if (topicEl) topicEl.value = article.title || '';
+  const aiPanel = $('npAiPanel');
+  if (aiPanel) aiPanel.style.display = 'block';
   document.querySelectorAll('.sm-tab').forEach(b => b.classList.remove('active'));
-  document.querySelector('[data-tab="compose"]').classList.add('active');
+  const npTab = document.querySelector('[data-tab="newpost"]');
+  if (npTab) npTab.classList.add('active');
   document.querySelectorAll('.sm-section').forEach(s => s.classList.remove('active'));
-  $('tab-compose').classList.add('active');
+  const npSec = $('tab-newpost');
+  if (npSec) npSec.classList.add('active');
+  showToast('Article selected — click Generate to create a post.', 'green');
 }
 
-$('btnClearArticle').addEventListener('click', () => {
-  selectedArticle = null;
-  $('selectedArticleBar').style.display = 'none';
-  $('composeArticleLink').style.display = 'none';
-  $('composeArticleUrl').value = '';
-  updatePreviewLink('');
-});
-
-$('composeContent').addEventListener('input', function() {
-  updateComposePreview(this.value);
-  const len = this.value.length;
-  const cc = $('composeCharCount');
-  cc.textContent = `${len} / 63,206`;
-  cc.className = 'char-count' + (len > 55000 ? ' near' : '') + (len > 63000 ? ' over' : '');
-});
-
-$('composeArticleUrl').addEventListener('input', function() { updatePreviewLink(this.value); });
-
-function updateComposePreview(text) {
-  const el = $('previewContent');
-  el.style.fontStyle = text ? 'normal' : 'italic';
-  el.style.color = text ? '#e4e6eb' : '#b0b3b8';
-  el.textContent = text || 'Your post will appear here…';
-}
-
-function updatePreviewLink(url) {
-  const el = $('previewLink');
-  if (!url) { el.style.display = 'none'; return; }
-  try {
-    const u = new URL(url);
-    el.style.display = 'flex';
-    $('previewLinkDomain').textContent = u.hostname;
-    $('previewLinkTitle').textContent = selectedArticle?.title || u.href;
-  } catch (_) { el.style.display = 'none'; }
-}
-
-$('btnAiGenerate').addEventListener('click', async () => {
-  const btn = $('btnAiGenerate');
-  const errEl = $('composeErr');
-  errEl.style.display = 'none';
-  if (!selectedArticle && !$('composeContent').value.trim()) {
-    errEl.textContent = 'Please select an article from your RSS feeds first, or write content in the post box.'; errEl.style.display = 'block'; return;
-  }
-  const article = selectedArticle || { title: 'Credit Repair Tips', contentSnippet: $('composeContent').value.slice(0, 400), link: '' };
-  btn.disabled = true; btn.textContent = 'Generating…';
-  try {
-    const data = await api('/api/social/generate-post', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: article.title, contentSnippet: article.contentSnippet || article.content, link: article.link }),
-    });
-    if (!data.ok) throw new Error(data.error || 'Generation failed');
-    $('composeContent').value = data.content;
-    updateComposePreview(data.content);
-    const len = data.content.length;
-    const cc = $('composeCharCount');
-    cc.textContent = `${len} / 63,206`;
-    cc.className = 'char-count' + (len > 55000 ? ' near' : '');
-    if (article.link) { $('composeArticleLink').style.display = 'block'; $('composeArticleUrl').value = article.link; updatePreviewLink(article.link); }
-    showToast('Post generated! Review and edit before scheduling.', 'green');
-  } catch (e) {
-    errEl.textContent = e.message; errEl.style.display = 'block';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Generate with AI';
-  }
-});
-
-$('btnPickArticle').addEventListener('click', () => {
-  populatePickerSelect();
-  $('articlePickerOverlay').style.display = 'flex';
-});
 $('btnCloseArticlePicker').addEventListener('click', () => { $('articlePickerOverlay').style.display = 'none'; });
-$('articlePickerOverlay').addEventListener('click', e => { if (e.target === $('articlePickerOverlay')) $('articlePickerOverlay').style.display = 'none'; });
+$('articlePickerOverlay').addEventListener('click', e => { if (e.target === $('articlePickerOverlay')) { window._npArticlePickerMode = false; $('articlePickerOverlay').style.display = 'none'; } });
 
 function populatePickerSelect() {
   const sel = $('pickerFeedSelect');
@@ -425,51 +372,7 @@ $('btnLoadPickerItems').addEventListener('click', async () => {
   }
 });
 
-async function savePost(opts = {}) {
-  const content = $('composeContent').value.trim();
-  const errEl = $('composeErr');
-  errEl.style.display = 'none';
-  if (!content) { errEl.textContent = 'Post content cannot be empty.'; errEl.style.display = 'block'; return; }
-  const schedValue = $('composeSchedule').value;
-  let scheduledAt = null;
-  if (schedValue) { scheduledAt = new Date(schedValue).toISOString(); }
-  if (opts.schedule && !scheduledAt) { errEl.textContent = 'Please set a schedule date and time first.'; errEl.style.display = 'block'; return; }
-  if (!opts.schedule) scheduledAt = null;
-  const articleUrl = $('composeArticleUrl').value.trim() || null;
-  const msg = $('composeSaveMsg');
-  msg.style.display = 'none';
-  try {
-    const data = await api('/api/social/queue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, articleUrl, articleTitle: selectedArticle?.title || null, scheduledAt, publishNow: opts.publishNow || false }),
-    });
-    if (!data.ok) throw new Error(data.error || 'Failed to save');
-    $('composeContent').value = '';
-    updateComposePreview('');
-    $('composeSchedule').value = '';
-    $('composeCharCount').textContent = '0 / 63,206';
-    $('composeCharCount').className = 'char-count';
-    $('btnClearArticle').click();
-    if (opts.publishNow) {
-      if (data.post.status === 'published') { msg.textContent = 'Post published to Facebook!'; msg.style.color = '#10b981'; }
-      else if (data.post.status === 'failed') { msg.textContent = `Publish failed: ${data.post.error || 'Unknown error'}`; msg.style.color = '#f87171'; }
-      else { msg.textContent = 'Post saved. No Facebook page connected yet.'; msg.style.color = '#fbbf24'; }
-    } else if (opts.schedule) {
-      msg.textContent = `Scheduled for ${new Date(scheduledAt).toLocaleString()}`;  msg.style.color = '#818cf8';
-    } else {
-      msg.textContent = 'Saved as draft.'; msg.style.color = '#9ca3af';
-    }
-    msg.style.display = 'block';
-    setTimeout(() => { msg.style.display = 'none'; }, 4000);
-  } catch (e) {
-    errEl.textContent = e.message; errEl.style.display = 'block';
-  }
-}
-
-$('btnSaveDraft').addEventListener('click', () => savePost({ draft: true }));
-$('btnSchedulePost').addEventListener('click', () => savePost({ schedule: true }));
-$('btnPublishNowCompose').addEventListener('click', () => savePost({ publishNow: true }));
+// savePost removed — compose tab merged into New Post tab
 
 // ─── Queue ────────────────────────────────────────────────────────────────────
 async function loadQueue() {
@@ -520,12 +423,19 @@ function renderQueue() {
   el.querySelectorAll('.btn-publish-now').forEach(btn => btn.addEventListener('click', () => publishQueuePost(btn.dataset.id)));
   el.querySelectorAll('.btn-del-post').forEach(btn => btn.addEventListener('click', () => deleteQueuePost(btn.dataset.id)));
   el.querySelectorAll('.btn-queue-schedule').forEach(btn => btn.addEventListener('click', () => {
-    $('composeContent').value = decodeURIComponent(btn.dataset.content || '');
-    updateComposePreview($('composeContent').value);
+    // Open in New Post tab and pre-fill content
+    const content = decodeURIComponent(btn.dataset.content || '');
+    const npEl = $('npContent');
+    if (npEl) {
+      npEl.value = content;
+      npEl.dispatchEvent(new Event('input'));
+    }
     document.querySelectorAll('.sm-tab').forEach(b => b.classList.remove('active'));
-    document.querySelector('[data-tab="compose"]').classList.add('active');
+    const npTabBtn = document.querySelector('[data-tab="newpost"]');
+    if (npTabBtn) npTabBtn.classList.add('active');
     document.querySelectorAll('.sm-section').forEach(s => s.classList.remove('active'));
-    $('tab-compose').classList.add('active');
+    const npSec = $('tab-newpost');
+    if (npSec) npSec.classList.add('active');
   }));
 }
 
@@ -620,10 +530,12 @@ function initLeadsTab() {
     $('leadsNoConn').style.display = 'block';
     $('leadsSection').style.display = 'none';
     $('commentsSection').style.display = 'none';
+    stopLeadsPolling();
   } else {
     $('leadsNoConn').style.display = 'none';
     $('leadsSection').style.display = 'block';
     $('commentsSection').style.display = 'block';
+    startLeadsPolling();
   }
 }
 
@@ -1220,12 +1132,28 @@ async function loadTlRange(rangeId, page = 1) {
   const btn = $('btnLoadTradelines');
   btn.disabled = true; btn.textContent = 'Loading…';
   try {
-    const data = await api(`/api/tradelines?range=${encodeURIComponent(rangeId)}&page=${page}&perPage=20`);
+    const bank = ($('tlBankFilter')?.value || '').trim();
+    const sort = $('tlSortSelect')?.value || '';
+    let url = `/api/tradelines?range=${encodeURIComponent(rangeId)}&page=${page}&perPage=20`;
+    if (bank) url += `&bank=${encodeURIComponent(bank)}`;
+    if (sort) url += `&sort=${encodeURIComponent(sort)}`;
+    const data = await api(url);
     if (!data.ok) throw new Error(data.error || 'Failed to load');
     const tradelines = data.tradelines || [];
     tlTotalPages = data.totalPages || 1;
     const title = $('tlGridTitle');
-    title.textContent = `${data.totalItems || tradelines.length} tradelines in ${data.range?.label || rangeId}`;
+    const bankLabel = bank ? ` · ${bank}` : '';
+    title.textContent = `${data.totalItems || tradelines.length} tradelines in ${data.range?.label || rangeId}${bankLabel}`;
+
+    // Populate bank filter dropdown (only on page 1 to avoid resetting user's choice)
+    if (page === 1 && data.banks && $('tlBankFilter')) {
+      const sel = $('tlBankFilter');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">All banks</option>' +
+        (data.banks || []).map(b => `<option value="${esc(b.bank)}">${esc(b.bank)} (${b.count})</option>`).join('');
+      sel.value = cur; // restore selection if still valid
+    }
+
     tlRenderCards(tradelines, page > 1);
     const moreRow = $('tlLoadMore');
     moreRow.style.display = tlCurrentPage < tlTotalPages ? 'block' : 'none';
@@ -1235,7 +1163,7 @@ async function loadTlRange(rangeId, page = 1) {
     $('tlCardGrid').style.display = 'none';
   } finally {
     $('tlLoading').style.display = 'none';
-    btn.disabled = false; btn.textContent = 'Load Tradelines';
+    btn.disabled = false; btn.textContent = 'Load';
   }
 }
 
@@ -1370,10 +1298,13 @@ function renderTlAutopilot(data) {
   if (label) label.textContent = enabled ? 'Enabled' : 'Disabled';
 
   const freq = $('tlApFreq');
-  const hour = $('tlApHour');
+  const hourFrom = $('tlApHourFrom');
+  const hourTo = $('tlApHourTo');
   const day = $('tlApDay');
   if (freq && ta.postsPerWeek != null) freq.value = String(ta.postsPerWeek);
-  if (hour && ta.preferredHour != null) hour.value = String(ta.preferredHour);
+  if (hourFrom && ta.hourFrom != null) hourFrom.value = String(ta.hourFrom);
+  else if (hourFrom && ta.preferredHour != null) hourFrom.value = String(ta.preferredHour);
+  if (hourTo && ta.hourTo != null) hourTo.value = String(ta.hourTo);
   if (day && ta.preferredDay != null) day.value = String(ta.preferredDay);
 
   const dot = $('tlApStatusDot');
@@ -1411,12 +1342,13 @@ if (btnSaveTlAp && !btnSaveTlAp._tlBound) {
     btnSaveTlAp.disabled = true; btnSaveTlAp.textContent = 'Saving…';
     try {
       const enabled = $('tlApToggle').checked;
-      const postsPerWeek = parseInt($('tlApFreq').value, 10) || 3;
-      const preferredHour = parseInt($('tlApHour').value, 10) || 10;
+      const postsPerWeek = Math.max(1, parseInt($('tlApFreq').value, 10) || 3);
+      const hourFrom = parseInt($('tlApHourFrom').value, 10) || 10;
+      const hourTo = parseInt($('tlApHourTo').value, 10) || 14;
       const preferredDay = parseInt($('tlApDay')?.value ?? '-1', 10);
       const data = await api('/api/social/autopilot', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tradelineAutopilot: { enabled, postsPerWeek, preferredHour, preferredDay } }),
+        body: JSON.stringify({ tradelineAutopilot: { enabled, postsPerWeek, hourFrom, hourTo, preferredDay } }),
       });
       if (!data.ok) throw new Error(data.error || 'Save failed');
       renderTlAutopilot(data);
@@ -1445,6 +1377,100 @@ if (btnTlApRunNow && !btnTlApRunNow._tlBound) {
       btnTlApRunNow.disabled = false; btnTlApRunNow.textContent = 'Post One Now';
     }
   });
+}
+
+// ── Apply Best Times ───────────────────────────────────────────────────────
+const btnApplyBestTimes = $('btnApplyBestTimes');
+if (btnApplyBestTimes && !btnApplyBestTimes._bound) {
+  btnApplyBestTimes._bound = true;
+  btnApplyBestTimes.addEventListener('click', () => {
+    const freq = $('tlApFreq');
+    const hourFrom = $('tlApHourFrom');
+    const hourTo = $('tlApHourTo');
+    const day = $('tlApDay');
+    if (freq) freq.value = '5';
+    if (hourFrom) hourFrom.value = '10';
+    if (hourTo) hourTo.value = '14';
+    if (day) day.value = '3'; // Wednesday
+    showToast('Best times applied — Wed, 10AM–2PM, 5x/week. Save to confirm.', 'green');
+  });
+}
+
+// ── New Post RSS Article Picker ────────────────────────────────────────────
+// Clicking "Pick Article" in New Post opens the shared article picker overlay.
+// Selecting an item calls selectArticleForCompose() which now routes to New Post.
+const btnNpPickArticle = $('btnNpPickArticle');
+if (btnNpPickArticle && !btnNpPickArticle._bound) {
+  btnNpPickArticle._bound = true;
+  btnNpPickArticle.addEventListener('click', () => {
+    populatePickerSelect();
+    $('articlePickerOverlay').style.display = 'flex';
+  });
+}
+const btnNpClearArticle = $('btnNpClearArticle');
+if (btnNpClearArticle && !btnNpClearArticle._bound) {
+  btnNpClearArticle._bound = true;
+  btnNpClearArticle.addEventListener('click', () => {
+    npSelectedArticle = null;
+    $('npSelectedArticleBar').style.display = 'none';
+    $('npArticleLinkRow').style.display = 'none';
+    $('npArticleUrl').value = '';
+  });
+}
+
+// ── Bank filter & sort change handlers ────────────────────────────────────
+const tlBankFilter = $('tlBankFilter');
+const tlSortSelect = $('tlSortSelect');
+if (tlBankFilter && !tlBankFilter._bound) {
+  tlBankFilter._bound = true;
+  tlBankFilter.addEventListener('change', () => {
+    const rangeId = $('tlRangeSelect').value;
+    if (rangeId) loadTlRange(rangeId, 1);
+  });
+}
+if (tlSortSelect && !tlSortSelect._bound) {
+  tlSortSelect._bound = true;
+  tlSortSelect.addEventListener('change', () => {
+    const rangeId = $('tlRangeSelect').value;
+    if (rangeId) loadTlRange(rangeId, 1);
+  });
+}
+
+// ── Leads & Comments auto-polling ─────────────────────────────────────────
+let leadsPollingInterval = null;
+const LEADS_POLL_MS = 45000;
+
+function startLeadsPolling() {
+  if (leadsPollingInterval) return;
+  if (!status.connection) return;
+  const dot = $('leadsRefreshDot');
+  const lbl = $('leadsRefreshLabel');
+  let tick = 0;
+  const updateBadge = () => {
+    const secs = Math.round((LEADS_POLL_MS - (tick % LEADS_POLL_MS)) / 1000);
+    if (dot) dot.style.background = '#10b981';
+    if (lbl) lbl.textContent = `Auto-refreshing · next in ${secs}s`;
+  };
+  updateBadge();
+  const ticker = setInterval(updateBadge, 5000);
+  leadsPollingInterval = setInterval(async () => {
+    updateBadge();
+    try { await loadLeads(); } catch (_) {}
+    try { await loadComments(); } catch (_) {}
+  }, LEADS_POLL_MS);
+  leadsPollingInterval._ticker = ticker;
+}
+
+function stopLeadsPolling() {
+  if (leadsPollingInterval) {
+    clearInterval(leadsPollingInterval);
+    if (leadsPollingInterval._ticker) clearInterval(leadsPollingInterval._ticker);
+    leadsPollingInterval = null;
+  }
+  const dot = $('leadsRefreshDot');
+  const lbl = $('leadsRefreshLabel');
+  if (dot) dot.style.background = '#6b7280';
+  if (lbl) lbl.textContent = 'Auto-refresh paused';
 }
 
 init();

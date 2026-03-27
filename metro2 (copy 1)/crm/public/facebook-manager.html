@@ -86,7 +86,6 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;" id="smTabs">
       <button class="sm-tab active" data-tab="connect">Facebook Connect</button>
       <button class="sm-tab" data-tab="feeds">RSS Feeds</button>
-      <button class="sm-tab" data-tab="compose">Generate Post</button>
       <button class="sm-tab" data-tab="newpost">New Post</button>
       <button class="sm-tab" data-tab="tradelines">📈 Tradelines</button>
       <button class="sm-tab" data-tab="queue">Post Queue</button>
@@ -250,83 +249,38 @@
       </div>
     </section>
 
-    <!-- COMPOSE TAB -->
-    <section id="tab-compose" class="sm-section glass card p-6 space-y-5">
-      <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;margin-bottom:4px;">Compose Post</h2>
-      <p style="font-size:13px;color:#9ca3af;margin-top:0;">Select an article from your RSS feeds or write a post from scratch. The AI will generate an engaging Facebook post for you.</p>
-
-      <div id="selectedArticleBar" style="display:none;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:10px 14px;display:none;align-items:center;gap:10px;">
-        <div style="flex:1;">
-          <div style="font-size:11px;color:#818cf8;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Selected Article</div>
-          <div id="selectedArticleTitle" style="font-size:13px;color:#e5e7eb;margin-top:2px;"></div>
-        </div>
-        <button id="btnClearArticle" type="button" style="font-size:11px;color:#9ca3af;background:none;border:none;cursor:pointer;padding:0;">✕ Clear</button>
-      </div>
-
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button id="btnPickArticle" type="button" class="btn-secondary" style="font-size:13px;padding:8px 16px;">Pick from RSS Feeds</button>
-        <button id="btnAiGenerate" type="button" class="btn-primary" style="font-size:13px;padding:8px 16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);">Generate with AI</button>
-      </div>
-
-      <div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <label style="font-size:13px;font-weight:600;color:#e5e7eb;">Post Content</label>
-          <span id="composeCharCount" class="char-count">0 / 500</span>
-        </div>
-        <textarea id="composeContent" class="textarea-post" placeholder="Write your post here, or click Generate with AI…"></textarea>
-      </div>
-
-      <div id="composeArticleLink" style="display:none;">
-        <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Article Link (will be attached to post)</label>
-        <input type="url" id="composeArticleUrl" class="input-field w-full" placeholder="https://…" style="font-size:13px;">
-      </div>
-
-      <div>
-        <label style="font-size:13px;font-weight:600;color:#e5e7eb;display:block;margin-bottom:6px;">Live Preview</label>
-        <div class="preview-card">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:36px;height:36px;border-radius:50%;background:rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;color:#818cf8;font-weight:700;font-size:16px;">E</div>
-            <div>
-              <div class="preview-page-name">Your Business Page</div>
-              <div class="preview-time">Just now · <span style="color:#b0b3b8;">🌐</span></div>
-            </div>
-          </div>
-          <div id="previewContent" class="preview-content" style="color:#b0b3b8;font-style:italic;">Your post will appear here…</div>
-          <div id="previewLink" class="preview-link" style="display:none;">
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:10px;color:#b0b3b8;text-transform:uppercase;margin-bottom:2px;" id="previewLinkDomain"></div>
-              <div style="font-size:13px;color:#e4e6eb;font-weight:600;" id="previewLinkTitle"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="composeErr" style="color:#f87171;font-size:13px;display:none;"></div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        <div>
-          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Schedule Date &amp; Time (optional)</label>
-          <input type="datetime-local" id="composeSchedule" class="input-field w-full">
-        </div>
-        <div style="display:flex;align-items:flex-end;gap:10px;">
-          <button id="btnSaveDraft" type="button" class="btn-secondary w-full" style="font-size:13px;padding:9px 0;">Save as Draft</button>
-          <button id="btnSchedulePost" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#6366f1,#8b5cf6);">Schedule</button>
-          <button id="btnPublishNowCompose" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#10b981,#059669);">Post Now</button>
-        </div>
-      </div>
-      <div id="composeSaveMsg" style="font-size:13px;color:#10b981;display:none;"></div>
-    </section>
-
     <!-- NEW POST TAB -->
     <section id="tab-newpost" class="sm-section glass card p-6 space-y-5">
       <div>
         <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;margin-bottom:4px;">Create New Post</h2>
-        <p style="font-size:13px;color:#9ca3af;margin-top:0;">Write your own post with AI-assisted content, an optional image or video, and flexible scheduling.</p>
+        <p style="font-size:13px;color:#9ca3af;margin-top:0;">Write your own post with AI-assisted content, start from an RSS article, add media, and schedule flexibly.</p>
       </div>
 
       <div id="npNoConn" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:14px 18px;">
         <div style="font-size:13px;color:#fbbf24;font-weight:600;margin-bottom:4px;">No Facebook page connected</div>
         <p style="font-size:12px;color:#9ca3af;margin:0;">You can still draft and schedule text posts without a connection. Connect on the <strong style="color:#e5e7eb;">Facebook Connect</strong> tab to publish images and videos.</p>
+      </div>
+
+      <!-- RSS Article Picker -->
+      <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.18);border-radius:10px;padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#e5e7eb;margin-bottom:2px;">📰 Start from RSS Article</div>
+            <div style="font-size:12px;color:#9ca3af;">Pick an article from your feeds — AI will generate a post around it.</div>
+          </div>
+          <button id="btnNpPickArticle" type="button" class="btn-secondary" style="font-size:12px;padding:7px 16px;white-space:nowrap;">Pick Article</button>
+        </div>
+        <div id="npSelectedArticleBar" style="display:none;margin-top:10px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:10px 14px;align-items:center;gap:10px;">
+          <div style="flex:1;">
+            <div style="font-size:11px;color:#818cf8;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Selected Article</div>
+            <div id="npSelectedArticleTitle" style="font-size:13px;color:#e5e7eb;margin-top:2px;"></div>
+          </div>
+          <button id="btnNpClearArticle" type="button" style="font-size:11px;color:#9ca3af;background:none;border:none;cursor:pointer;padding:0;">✕ Clear</button>
+        </div>
+        <div id="npArticleLinkRow" style="display:none;margin-top:10px;">
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Article Link (will be attached to post)</label>
+          <input type="url" id="npArticleUrl" class="input-field w-full" placeholder="https://…" style="font-size:13px;">
+        </div>
       </div>
 
       <!-- AI Generate -->
@@ -444,15 +398,33 @@
         <p style="font-size:13px;color:#9ca3af;margin-top:0;">Pick tradelines from your inventory, generate a compelling Facebook post, and publish or schedule it instantly.</p>
       </div>
 
-      <!-- Range picker -->
+      <!-- Range picker + filters -->
       <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-        <div style="flex:1;min-width:180px;">
+        <div style="flex:1;min-width:160px;">
           <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Price Range</label>
           <select id="tlRangeSelect" class="input-field w-full" style="font-size:13px;">
             <option value="">— Select a price range —</option>
           </select>
         </div>
-        <button id="btnLoadTradelines" type="button" class="btn-secondary" style="font-size:13px;padding:8px 16px;white-space:nowrap;">Load Tradelines</button>
+        <div style="min-width:140px;">
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Bank</label>
+          <select id="tlBankFilter" class="input-field w-full" style="font-size:13px;">
+            <option value="">All banks</option>
+          </select>
+        </div>
+        <div style="min-width:150px;">
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Sort By</label>
+          <select id="tlSortSelect" class="input-field w-full" style="font-size:13px;">
+            <option value="">Default</option>
+            <option value="price_asc">Price ↑</option>
+            <option value="price_desc">Price ↓</option>
+            <option value="limit_asc">Credit Limit ↑</option>
+            <option value="limit_desc">Credit Limit ↓</option>
+            <option value="age_desc">Age (Oldest first)</option>
+            <option value="age_asc">Age (Newest first)</option>
+          </select>
+        </div>
+        <button id="btnLoadTradelines" type="button" class="btn-secondary" style="font-size:13px;padding:8px 16px;white-space:nowrap;">Load</button>
       </div>
 
       <!-- Tradeline card grid -->
@@ -615,22 +587,15 @@
           </label>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:14px;">
           <div>
             <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Posts per week</label>
-            <select id="tlApFreq" class="input-field w-full" style="font-size:13px;">
-              <option value="1">1 per week</option>
-              <option value="2">2 per week</option>
-              <option value="3" selected>3 per week</option>
-              <option value="4">4 per week</option>
-              <option value="5">5 per week</option>
-              <option value="7">Daily (7 per week)</option>
-              <option value="14">Twice daily (14 per week)</option>
-            </select>
+            <input type="number" id="tlApFreq" class="input-field w-full" min="1" max="365" value="3" style="font-size:13px;">
           </div>
           <div>
-            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Preferred posting hour</label>
-            <select id="tlApHour" class="input-field w-full" style="font-size:13px;">
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Post from (hour)</label>
+            <select id="tlApHourFrom" class="input-field w-full" style="font-size:13px;">
+              <option value="6">6:00 AM</option>
               <option value="7">7:00 AM</option>
               <option value="8">8:00 AM</option>
               <option value="9">9:00 AM</option>
@@ -644,6 +609,27 @@
               <option value="17">5:00 PM</option>
               <option value="18">6:00 PM</option>
               <option value="19">7:00 PM</option>
+              <option value="20">8:00 PM</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Post until (hour)</label>
+            <select id="tlApHourTo" class="input-field w-full" style="font-size:13px;">
+              <option value="6">6:00 AM</option>
+              <option value="7">7:00 AM</option>
+              <option value="8">8:00 AM</option>
+              <option value="9">9:00 AM</option>
+              <option value="10">10:00 AM</option>
+              <option value="11">11:00 AM</option>
+              <option value="12">12:00 PM</option>
+              <option value="13">1:00 PM</option>
+              <option value="14" selected>2:00 PM</option>
+              <option value="15">3:00 PM</option>
+              <option value="16">4:00 PM</option>
+              <option value="17">5:00 PM</option>
+              <option value="18">6:00 PM</option>
+              <option value="19">7:00 PM</option>
+              <option value="20">8:00 PM</option>
             </select>
           </div>
           <div>
@@ -658,6 +644,22 @@
               <option value="5">Friday</option>
               <option value="6">Saturday</option>
             </select>
+          </div>
+        </div>
+
+        <!-- Best Times Guide -->
+        <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:6px;">💡 Best Times for Credit / Financial Content</div>
+              <div style="font-size:12px;color:#9ca3af;line-height:1.7;">
+                <strong style="color:#e5e7eb;">Tue–Thu, 10AM–2PM</strong> — Highest engagement for financial topics<br>
+                <strong style="color:#e5e7eb;">Mon–Fri, 11AM–1PM</strong> — Lunch-hour peak across all audiences<br>
+                <strong style="color:#e5e7eb;">Fri, 8AM–11AM</strong> — Strong for deal &amp; offer posts<br>
+                <span style="color:#6b7280;">Avoid: weekends before 10AM &amp; weekdays after 9PM</span>
+              </div>
+            </div>
+            <button id="btnApplyBestTimes" type="button" class="btn-secondary" style="font-size:12px;padding:6px 14px;white-space:nowrap;flex-shrink:0;">Apply Best Times</button>
           </div>
         </div>
 
@@ -680,9 +682,15 @@
           <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">Leads &amp; Comments</h2>
           <p style="font-size:12px;color:#9ca3af;margin-top:2px;">Pull leads from Facebook lead forms and recent page comments — then add them directly to your CRM pipeline.</p>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button id="btnLoadLeads" type="button" class="btn-primary" style="font-size:13px;padding:7px 16px;">Load Leads</button>
-          <button id="btnLoadComments" type="button" class="btn-secondary" style="font-size:13px;padding:7px 16px;">Load Comments</button>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <div style="display:flex;gap:8px;">
+            <button id="btnLoadLeads" type="button" class="btn-primary" style="font-size:13px;padding:7px 16px;">Load Leads</button>
+            <button id="btnLoadComments" type="button" class="btn-secondary" style="font-size:13px;padding:7px 16px;">Load Comments</button>
+          </div>
+          <div id="leadsAutoRefreshBadge" style="display:flex;align-items:center;gap:5px;">
+            <span id="leadsRefreshDot" style="width:6px;height:6px;border-radius:50%;background:#6b7280;display:inline-block;flex-shrink:0;"></span>
+            <span id="leadsRefreshLabel" style="font-size:11px;color:#6b7280;">Auto-refresh paused</span>
+          </div>
         </div>
       </div>
 
@@ -754,7 +762,7 @@
   </div>
 </div>
 
-<script type="module" src="/facebook-manager.js?v=5"></script>
+<script type="module" src="/facebook-manager.js?v=6"></script>
 <script src="/tour-guide.js" type="module"></script>
 </body>
 </html>

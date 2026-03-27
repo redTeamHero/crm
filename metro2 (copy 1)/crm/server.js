@@ -2904,7 +2904,7 @@ app.get("/api/tradelines", async (req, res) => {
     const grouped = groupTradelinesByPrice(tradelines);
     const ranges = buildRangeSummary(grouped);
 
-    const { range: rangeId = "", bank = "", page = "1", perPage = "20" } = req.query || {};
+    const { range: rangeId = "", bank = "", page = "1", perPage = "20", sort = "" } = req.query || {};
     const selectedRange = getBucketMeta(rangeId);
 
     if (!rangeId) {
@@ -2920,6 +2920,14 @@ app.get("/api/tradelines", async (req, res) => {
     if (normalizedBank) {
       items = items.filter((item) => item.bank === normalizedBank);
     }
+
+    // Apply sort
+    if (sort === 'price_asc') items = [...items].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    else if (sort === 'price_desc') items = [...items].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+    else if (sort === 'limit_asc') items = [...items].sort((a, b) => (a.limit ?? 0) - (b.limit ?? 0));
+    else if (sort === 'limit_desc') items = [...items].sort((a, b) => (b.limit ?? 0) - (a.limit ?? 0));
+    else if (sort === 'age_desc') items = [...items].sort((a, b) => (b.ageMonths ?? 0) - (a.ageMonths ?? 0));
+    else if (sort === 'age_asc') items = [...items].sort((a, b) => (a.ageMonths ?? 0) - (b.ageMonths ?? 0));
 
     const banks = listBanks(grouped[selectedRange.id]);
 
@@ -14544,7 +14552,7 @@ setInterval(checkTokenHealth, 60 * 60 * 1000);
 // ─── Autopilot ────────────────────────────────────────────────────────────────
 function getDefaultAutopilot() {
   return { enabled: false, postsPerDay: 1, feedIds: 'all', postedGuids: [], lastRunAt: null, nextRunAt: null, history: [],
-    tradelineAutopilot: { enabled: false, postsPerWeek: 3, preferredHour: 10, preferredDay: -1, lastPostedAt: null, lastPostedBank: null, lastPostedId: null, nextRunAt: null } };
+    tradelineAutopilot: { enabled: false, postsPerWeek: 3, hourFrom: 10, hourTo: 14, preferredDay: -1, lastPostedAt: null, lastPostedBank: null, lastPostedId: null, nextRunAt: null } };
 }
 
 const AUTOPILOT_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -14553,7 +14561,7 @@ function autopilotNextRunAt(fromDate = new Date()) {
   return new Date(fromDate.getTime() + AUTOPILOT_CHECK_INTERVAL_MS).toISOString();
 }
 
-function tradelineAutopilotNextRunAt(postsPerWeek = 3, preferredHour = 10, preferredDay = -1, fromDate = null) {
+function tradelineAutopilotNextRunAt(postsPerWeek = 3, hourFrom = 10, hourTo = 14, preferredDay = -1, fromDate = null) {
   const now = new Date();
   const intervalMs = Math.round((7 * 24 * 60 * 60 * 1000) / Math.max(1, postsPerWeek));
 
@@ -14562,11 +14570,20 @@ function tradelineAutopilotNextRunAt(postsPerWeek = 3, preferredHour = 10, prefe
     ? new Date(Math.max(now.getTime() + 30 * 60 * 1000, new Date(fromDate).getTime() + intervalMs))
     : new Date(now.getTime() + intervalMs);
 
-  // Apply preferred hour: move to preferred hour on the base date
+  // Pick a random hour in the [hourFrom, hourTo] window
+  const lo = Math.min(hourFrom, hourTo);
+  const hi = Math.max(hourFrom, hourTo);
+  const chosenHour = lo + Math.floor(Math.random() * (hi - lo + 1));
+
+  // Apply chosen hour on the base date
   const next = new Date(base);
-  next.setHours(preferredHour, 0, 0, 0);
-  // If that hour has already passed on the base date, advance one day
-  if (next < base) next.setDate(next.getDate() + 1);
+  next.setHours(chosenHour, Math.floor(Math.random() * 60), 0, 0);
+  // If that time has already passed on the base date, advance one day and re-randomize
+  if (next < base) {
+    next.setDate(next.getDate() + 1);
+    const h2 = lo + Math.floor(Math.random() * (hi - lo + 1));
+    next.setHours(h2, Math.floor(Math.random() * 60), 0, 0);
+  }
 
   // Apply preferred day only when cadence is sub-daily (≤6/week); skip for daily/multiple-daily
   if (preferredDay >= 0 && preferredDay <= 6 && postsPerWeek <= 6) {
@@ -14587,14 +14604,14 @@ async function runTradelineAutopilotCycle(db) {
     const scrapeImpl = db._scrapeOverride || scrapeTradelines;
     const tradelines = await scrapeImpl(fetchFn);
     if (!tradelines || !tradelines.length) {
-      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, null);
+      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.hourFrom ?? 10, ta.hourTo ?? 14, ta.preferredDay, null);
       ap.tradelineAutopilot = ta;
       db.autopilot = ap;
       return;
     }
     const validTradelines = tradelines.filter(t => t.bank && (t.limit || t.price != null));
     if (!validTradelines.length) {
-      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, null);
+      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.hourFrom ?? 10, ta.hourTo ?? 14, ta.preferredDay, null);
       ap.tradelineAutopilot = ta;
       db.autopilot = ap;
       return;
@@ -14619,11 +14636,11 @@ async function runTradelineAutopilotCycle(db) {
     ta.lastPostedAt = runAt;
     ta.lastPostedBank = pick.bank || null;
     ta.lastPostedId = makeTradelineId(pick);
-    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, runAt);
+    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.hourFrom ?? 10, ta.hourTo ?? 14, ta.preferredDay, runAt);
     ap.tradelineAutopilot = ta;
     db.autopilot = ap;
   } catch (e) {
-    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, null);
+    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.hourFrom ?? 10, ta.hourTo ?? 14, ta.preferredDay, null);
     ap.tradelineAutopilot = ta;
     db.autopilot = ap;
     logError('TRADELINE_AUTOPILOT_ERROR', e);
@@ -14814,12 +14831,13 @@ app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) =>
       }
     }
     if (tradelineAutopilot !== undefined && typeof tradelineAutopilot === 'object') {
-      const ta = ap.tradelineAutopilot || { enabled: false, postsPerWeek: 3, preferredHour: 10, preferredDay: -1, lastPostedAt: null, lastPostedBank: null, nextRunAt: null };
+      const ta = ap.tradelineAutopilot || { enabled: false, postsPerWeek: 3, hourFrom: 10, hourTo: 14, preferredDay: -1, lastPostedAt: null, lastPostedBank: null, nextRunAt: null };
       if (tradelineAutopilot.enabled !== undefined) ta.enabled = !!tradelineAutopilot.enabled;
-      if (tradelineAutopilot.postsPerWeek !== undefined) ta.postsPerWeek = Math.min(14, Math.max(1, Number(tradelineAutopilot.postsPerWeek) || 3));
-      if (tradelineAutopilot.preferredHour !== undefined) ta.preferredHour = Math.min(23, Math.max(0, Number(tradelineAutopilot.preferredHour) || 10));
+      if (tradelineAutopilot.postsPerWeek !== undefined) ta.postsPerWeek = Math.max(1, Math.round(Number(tradelineAutopilot.postsPerWeek) || 3));
+      if (tradelineAutopilot.hourFrom !== undefined) ta.hourFrom = Math.min(23, Math.max(0, Number(tradelineAutopilot.hourFrom) || 10));
+      if (tradelineAutopilot.hourTo !== undefined) ta.hourTo = Math.min(23, Math.max(0, Number(tradelineAutopilot.hourTo) || 14));
       if (tradelineAutopilot.preferredDay !== undefined) ta.preferredDay = Math.min(6, Math.max(-1, parseInt(tradelineAutopilot.preferredDay, 10) ?? -1));
-      ta.nextRunAt = ta.enabled ? tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, ta.lastPostedAt || null) : null;
+      ta.nextRunAt = ta.enabled ? tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.hourFrom, ta.hourTo, ta.preferredDay, ta.lastPostedAt || null) : null;
       ap.tradelineAutopilot = ta;
     }
     if (ap.enabled) ap.nextRunAt = autopilotNextRunAt();
