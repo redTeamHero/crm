@@ -802,6 +802,99 @@ Please respond in writing to the address above.
 Sincerely,
 [Your Name]`
   },
+  {
+    id: 'metro2-inconsistency-dispute',
+    name: 'Metro 2 inconsistency dispute',
+    english: `[Your Name]
+[Address] • [City, State ZIP] • [Phone] • [Email]
+[Date]
+
+[Credit Bureau Name]
+[Address] • [City, State ZIP]
+
+Re: Metro 2 Compliance Dispute – Account #[Account Number]
+
+To Whom It May Concern:
+
+I am writing to dispute the accuracy of the above account based on Metro 2 reporting standard violations. Metro 2 is the industry-mandated format that furnishers must use when reporting consumer credit data. When data is reported in a way that conflicts with Metro 2 requirements, the credit bureau has an obligation under FCRA §611 to investigate and correct the inaccurate information.
+
+My review of this account reveals the following Metro 2 inconsistencies:
+• The reported account status, payment rating, or compliance condition code does not align with the account history and payment data also on file.
+• Field values appear to conflict with each other — for example, the account is marked with a payment status that is inconsistent with the reported balance or date of last activity.
+• One or more bureaus are reporting information about this account that differs materially from what the other bureaus show, indicating a Metro 2 data transmission error.
+
+I am asking that you take the following steps within 30 days:
+1. Conduct a full Metro 2 compliance review of all data fields for this account.
+2. Contact the furnisher and request corrected Metro 2-compliant data.
+3. If the furnisher cannot provide corrected Metro 2-compliant data within the investigation period, delete the account from my credit file.
+4. Send me written confirmation of the results and a corrected copy of my credit report.
+
+Sincerely,
+[Your Name]`
+  },
+  {
+    id: 'factual-errors-layer',
+    name: 'Factual errors layer',
+    english: `[Your Name]
+[Address] • [City, State ZIP] • [Phone] • [Email]
+[Date]
+
+[Credit Bureau Name]
+[Address] • [City, State ZIP]
+
+Re: Factual Dispute – Account #[Account Number]
+
+To Whom It May Concern:
+
+I previously submitted a dispute regarding the above account. I am now providing additional factual documentation to further substantiate my position and request that you reopen the investigation.
+
+The information currently reported contains specific factual errors that I can document:
+• The balance, account status, or payment history shown does not match my own records or the statements I have from the creditor.
+• The dates being reported — including the date of first delinquency, date opened, or date of last activity — are incorrect and do not match the underlying account documents.
+• The account is being reported as open, delinquent, or in collection when it was resolved, paid, or closed prior to the date shown.
+
+These are not differences of interpretation — they are objective factual errors that can be verified against source documents.
+
+I am asking that you take the following steps within 30 days:
+1. Reopen the investigation and review the specific factual discrepancies I have identified.
+2. Contact the furnisher and require them to produce the original account records that support their current reporting.
+3. If the furnisher cannot substantiate the reported data with documentation, correct or delete the disputed information.
+4. Provide me with the method of verification used, including the name and contact information of the furnisher and a description of the documents reviewed.
+
+Sincerely,
+[Your Name]`
+  },
+  {
+    id: 'metro2-deletion-demand',
+    name: 'Deletion demand failure to fix under Metro 2 and FCRA 607(b)',
+    english: `[Your Name]
+[Address] • [City, State ZIP] • [Phone] • [Email]
+[Date]
+
+[Credit Bureau Name]
+[Address] • [City, State ZIP]
+
+Re: Deletion Demand – Ongoing Non-Compliance – Account #[Account Number]
+
+To Whom It May Concern:
+
+I have now submitted multiple disputes regarding the above account. Despite my prior disputes and the documentation I have provided, the inaccurate and Metro 2 non-compliant information continues to appear on my credit report without correction. This constitutes a failure to conduct a proper reinvestigation as required by FCRA §611, and a failure to ensure maximum possible accuracy as required by FCRA §607(b).
+
+The furnisher has had multiple opportunities to verify the accuracy of this reporting. They have not produced documentation that substantiates what is being reported. Under FCRA §607(b), furnishers must maintain procedures to ensure the accuracy and integrity of the information they report. The ongoing inaccurate reporting demonstrates that those procedures have failed.
+
+Given the extended period of time during which this inaccurate information has remained on my report despite my repeated disputes, I am requesting deletion as the only appropriate remedy. Continued reporting of unverified, inaccurate, and Metro 2 non-compliant data is causing ongoing harm to my credit standing.
+
+I am asking that you:
+1. Delete the disputed account from my credit file immediately.
+2. Notify the furnisher that this item has been deleted.
+3. Send me a corrected copy of my credit report confirming the deletion within 5 business days.
+4. Confirm in writing that the disputed information will not be reinserted without proper furnisher certification and advance written notice to me.
+
+If you are unable to delete this item, please provide a detailed written explanation of every step taken during your reinvestigation, including the name and contact information of the furnisher contacted and copies of any documents they provided.
+
+Sincerely,
+[Your Name]`
+  },
 ];
 
 export const LETTER_RESPONSE_WINDOWS = {
@@ -831,6 +924,9 @@ export const LETTER_RESPONSE_WINDOWS = {
   'pay-for-delete-followup': 21,
   'pay-for-delete-counter': 21,
   'pay-for-delete-post-payment': 10,
+  'metro2-inconsistency-dispute': 30,
+  'factual-errors-layer': 30,
+  'metro2-deletion-demand': 5,
 };
 
 export const DEFAULT_RESPONSE_WINDOW_DAYS = 30;

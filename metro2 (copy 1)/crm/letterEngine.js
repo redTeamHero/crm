@@ -1081,6 +1081,12 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
     templateMap[t.id] = t;
   }
 
+  const templateByName = {};
+  for (const tpl of Object.values(templateMap)) {
+    if (tpl.name) templateByName[tpl.name.toLowerCase().trim()] = tpl;
+    if (tpl.heading) templateByName[tpl.heading.toLowerCase().trim()] = tpl;
+  }
+
   const batchSize = Number(itemsPerLetter) || 0;
   if (batchSize > 1) {
     const enclosuresHtml = buildEnclosuresHtml(enclosures);
@@ -1180,7 +1186,8 @@ function generateLetters({ report, selections, consumer, requestType = "correct"
       for (const bureau of sel.bureaus || []) {
         if (!ALL_BUREAUS.includes(bureau)) continue;
 
-        const tpl = sel.templateId ? templateMap[sel.templateId] : null;
+        const stepTpl = stepTitle ? (templateByName[stepTitle.toLowerCase().trim()] ?? null) : null;
+        const tpl = stepTpl ?? (sel.templateId ? templateMap[sel.templateId] : null);
         const req = sel.requestType || tpl?.requestType || requestType;
         let letter = buildLetterHTML({
           consumer,
