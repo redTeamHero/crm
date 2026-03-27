@@ -13924,18 +13924,25 @@ async function fbPublishPost(post, connection) {
 
 async function buildTradelinePostContent(tradelines) {
   const lines = tradelines.map(t => {
+    const creditLimit = t.creditLimit || t.limit;
+    const priceRange = t.priceRange || (t.price != null ? `$${t.price}` : null);
+    const historyYears = t.historyYears || (t.age ? computeTradelineAge(t.age) : null);
+    const spotsAvailable = t.spotsAvailable || t.availability || null;
     const parts = [];
     if (t.bank) parts.push(`Bank: ${t.bank}`);
-    if (t.limit) parts.push(`Credit Limit: $${Number(t.limit).toLocaleString()}`);
-    if (t.price != null) parts.push(`Price: $${t.price}`);
+    if (creditLimit) parts.push(`Credit Limit: $${Number(creditLimit).toLocaleString()}`);
+    if (priceRange) parts.push(`Price: ${priceRange}`);
+    if (historyYears) parts.push(`History: ${historyYears}`);
+    if (spotsAvailable) parts.push(`Availability: ${spotsAvailable}`);
     return parts.filter(Boolean).join(' · ');
   }).filter(Boolean);
 
   const system = `You are a social media marketing expert for a credit tradeline company. Write a compelling, enthusiastic Facebook marketing post to promote available authorized user (AU) tradelines.
 Rules:
 - Open with a powerful hook about credit building or a tradeline opportunity (use a question, bold statement, or emoji-heavy opener)
-- Reference the specific bank names and credit limits from the tradelines listed
+- Reference the specific bank names, credit limits, account age/history, and AU spot availability from the tradelines listed
 - Create urgency around limited AU spots available
+- Highlight the age/history of the accounts as a key benefit — older accounts carry more weight on credit reports
 - Explain the key benefit: a well-aged, high-limit tradeline can boost your credit score, improve your credit profile, and help you get approved for better cards and loans
 - End with a clear call-to-action to DM for more details
 - Include 4-6 relevant hashtags (#Tradelines #CreditBuilder #AuthorizedUser #CreditScore #CreditRepair etc.)
@@ -13946,6 +13953,16 @@ Rules:
   const user = `Available tradelines:\n${lines.join('\n')}\n\nWrite a compelling Facebook post marketing these tradelines to people looking to build or repair their credit.`;
   const content = await callOpenAiText({ system, user });
   return content.trim();
+}
+
+function computeTradelineAge(ageStr) {
+  if (!ageStr) return null;
+  const match = String(ageStr).match(/(\d{4})/);
+  if (!match) return ageStr;
+  const year = parseInt(match[1], 10);
+  const years = new Date().getFullYear() - year;
+  if (years <= 0) return ageStr;
+  return `${years}-year history`;
 }
 
 async function buildSocialPostPrompt(article) {
@@ -14527,7 +14544,7 @@ setInterval(checkTokenHealth, 60 * 60 * 1000);
 // ─── Autopilot ────────────────────────────────────────────────────────────────
 function getDefaultAutopilot() {
   return { enabled: false, postsPerDay: 1, feedIds: 'all', postedGuids: [], lastRunAt: null, nextRunAt: null, history: [],
-    tradelineAutopilot: { enabled: false, postsPerWeek: 3, preferredHour: 10, lastPostedAt: null, lastPostedBank: null, nextRunAt: null } };
+    tradelineAutopilot: { enabled: false, postsPerWeek: 3, preferredHour: 10, preferredDay: -1, lastPostedAt: null, lastPostedBank: null, nextRunAt: null } };
 }
 
 const AUTOPILOT_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -14536,11 +14553,16 @@ function autopilotNextRunAt(fromDate = new Date()) {
   return new Date(fromDate.getTime() + AUTOPILOT_CHECK_INTERVAL_MS).toISOString();
 }
 
-function tradelineAutopilotNextRunAt(postsPerWeek = 3, preferredHour = 10) {
+function tradelineAutopilotNextRunAt(postsPerWeek = 3, preferredHour = 10, preferredDay = -1) {
   const intervalHours = Math.max(1, Math.round((7 * 24) / postsPerWeek));
   const next = new Date();
   next.setHours(preferredHour, 0, 0, 0);
   if (next <= new Date()) next.setDate(next.getDate() + Math.ceil(intervalHours / 24));
+  if (preferredDay >= 0 && preferredDay <= 6) {
+    let daysAhead = (preferredDay - next.getDay() + 7) % 7;
+    if (daysAhead === 0 && next <= new Date()) daysAhead = 7;
+    next.setDate(next.getDate() + daysAhead);
+  }
   return next.toISOString();
 }
 
@@ -14554,14 +14576,14 @@ async function runTradelineAutopilotCycle(db) {
     const scrapeImpl = db._scrapeOverride || scrapeTradelines;
     const tradelines = await scrapeImpl(fetchFn);
     if (!tradelines || !tradelines.length) {
-      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour);
+      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay);
       ap.tradelineAutopilot = ta;
       db.autopilot = ap;
       return;
     }
     const validTradelines = tradelines.filter(t => t.bank && (t.limit || t.price != null));
     if (!validTradelines.length) {
-      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour);
+      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay);
       ap.tradelineAutopilot = ta;
       db.autopilot = ap;
       return;
@@ -14583,11 +14605,11 @@ async function runTradelineAutopilotCycle(db) {
     if (db.queue.length > 500) db.queue = db.queue.slice(0, 500);
     ta.lastPostedAt = runAt;
     ta.lastPostedBank = pick.bank || null;
-    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour);
+    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay);
     ap.tradelineAutopilot = ta;
     db.autopilot = ap;
   } catch (e) {
-    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour);
+    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay);
     ap.tradelineAutopilot = ta;
     db.autopilot = ap;
     logError('TRADELINE_AUTOPILOT_ERROR', e);
@@ -14748,6 +14770,7 @@ app.get('/api/social/autopilot', authenticate, async (req, res) => {
     const defaults = getDefaultAutopilot();
     const ap = db.autopilot || defaults;
     if (!ap.tradelineAutopilot) ap.tradelineAutopilot = defaults.tradelineAutopilot;
+    else if (ap.tradelineAutopilot.preferredDay === undefined) ap.tradelineAutopilot.preferredDay = -1;
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const postsToday = (db.queue || []).filter(p => p.source === 'autopilot' && p.createdAt && new Date(p.createdAt) >= todayStart).length;
     const tokenStatus = getTokenStatus(db.connection || null);
@@ -14777,11 +14800,12 @@ app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) =>
       }
     }
     if (tradelineAutopilot !== undefined && typeof tradelineAutopilot === 'object') {
-      const ta = ap.tradelineAutopilot || { enabled: false, postsPerWeek: 3, preferredHour: 10, lastPostedAt: null, lastPostedBank: null, nextRunAt: null };
+      const ta = ap.tradelineAutopilot || { enabled: false, postsPerWeek: 3, preferredHour: 10, preferredDay: -1, lastPostedAt: null, lastPostedBank: null, nextRunAt: null };
       if (tradelineAutopilot.enabled !== undefined) ta.enabled = !!tradelineAutopilot.enabled;
       if (tradelineAutopilot.postsPerWeek !== undefined) ta.postsPerWeek = Math.min(14, Math.max(1, Number(tradelineAutopilot.postsPerWeek) || 3));
       if (tradelineAutopilot.preferredHour !== undefined) ta.preferredHour = Math.min(23, Math.max(0, Number(tradelineAutopilot.preferredHour) || 10));
-      ta.nextRunAt = ta.enabled ? tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour) : null;
+      if (tradelineAutopilot.preferredDay !== undefined) ta.preferredDay = Math.min(6, Math.max(-1, parseInt(tradelineAutopilot.preferredDay, 10) ?? -1));
+      ta.nextRunAt = ta.enabled ? tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay) : null;
       ap.tradelineAutopilot = ta;
     }
     if (ap.enabled) ap.nextRunAt = autopilotNextRunAt();

@@ -1180,6 +1180,8 @@ function tlRenderCards(tradelines, append = false) {
           <div style="font-size:13px;font-weight:700;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.bank || 'Unknown Bank')}</div>
           ${t.limit ? `<div style="font-size:12px;color:#34d399;margin-top:2px;">💳 $${Number(t.limit).toLocaleString()} limit</div>` : ''}
           ${t.price != null ? `<div style="font-size:12px;color:#d4a853;margin-top:1px;">💰 $${t.price}</div>` : ''}
+          ${t.age ? `<div style="font-size:11px;color:#818cf8;margin-top:1px;">📅 ${esc(String(t.age))}</div>` : ''}
+          ${t.availability ? `<div style="font-size:11px;color:#60a5fa;margin-top:1px;">👥 ${esc(String(t.availability))}</div>` : ''}
           ${t.statement ? `<div style="font-size:11px;color:#6b7280;margin-top:1px;">Statement: ${esc(t.statement)}</div>` : ''}
         </div>
       </div>`;
@@ -1369,8 +1371,10 @@ function renderTlAutopilot(data) {
 
   const freq = $('tlApFreq');
   const hour = $('tlApHour');
+  const day = $('tlApDay');
   if (freq && ta.postsPerWeek != null) freq.value = String(ta.postsPerWeek);
   if (hour && ta.preferredHour != null) hour.value = String(ta.preferredHour);
+  if (day && ta.preferredDay != null) day.value = String(ta.preferredDay);
 
   const dot = $('tlApStatusDot');
   const lbl = $('tlApStatusLabel');
@@ -1409,9 +1413,10 @@ if (btnSaveTlAp && !btnSaveTlAp._tlBound) {
       const enabled = $('tlApToggle').checked;
       const postsPerWeek = parseInt($('tlApFreq').value, 10) || 3;
       const preferredHour = parseInt($('tlApHour').value, 10) || 10;
+      const preferredDay = parseInt($('tlApDay')?.value ?? '-1', 10);
       const data = await api('/api/social/autopilot', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tradelineAutopilot: { enabled, postsPerWeek, preferredHour } }),
+        body: JSON.stringify({ tradelineAutopilot: { enabled, postsPerWeek, preferredHour, preferredDay } }),
       });
       if (!data.ok) throw new Error(data.error || 'Save failed');
       renderTlAutopilot(data);
