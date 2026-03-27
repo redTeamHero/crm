@@ -579,6 +579,14 @@ function buildLetterHTML(opts) {
     const prevDate = previousDisputeDate || 'a prior date';
     const allDates = Array.isArray(priorDates) && priorDates.length ? priorDates.join(', ') : prevDate;
     const violationSummary = (tl.violations || []).slice(0, 2).map(v => v.title || v.category || v.detail || '').filter(Boolean).join('; ') || 'inaccurate or unverifiable information';
+    const _engRawBal = tl.per_bureau?.[bureau]?.balance_raw
+      ?? tl.per_bureau?.[bureau]?.balance
+      ?? tl.meta?.balance
+      ?? null;
+    const _engNum = _engRawBal != null ? parseFloat(String(_engRawBal).replace(/[^0-9.]/g, '')) : NaN;
+    const _engBalStr = !isNaN(_engNum) ? `$${_engNum.toFixed(2)}`          : '[BALANCE — ENTER MANUALLY]';
+    const _engP40Str = !isNaN(_engNum) ? `$${(_engNum * 0.40).toFixed(2)}` : '[40% AMOUNT — ENTER MANUALLY]';
+    const _engP50Str = !isNaN(_engNum) ? `$${(_engNum * 0.50).toFixed(2)}` : '[50% AMOUNT — ENTER MANUALLY]';
     const personalized = template.english
       .replace(/\[Your Name\]/g, safe(consumer.name))
       .replace(/\[Address\]/g, safe(consumer.addr1 || ''))
@@ -601,10 +609,18 @@ function buildLetterHTML(opts) {
       .replace(/\[describe error\]/gi, safe(violationSummary))
       .replace(/\[Discharge Date\]/g, 'the date referenced in the enclosed discharge order')
       .replace(/\[Month, Year\]/g, 'the date of first delinquency on file')
-      .replace(/\[Amount\]/g, '[SETTLEMENT AMOUNT]')
-      .replace(/\[number\]/g, '[NUMBER OF CALLS]')
-      .replace(/\[time period\]/g, '[TIME PERIOD]')
-      .replace(/\[brief explanation[^\]]*\]/gi, '[CIRCUMSTANCES]')
+      .replace(/\[Total Balance\]/g, _engBalStr)
+      .replace(/\[40% Amount\]/g, _engP40Str)
+      .replace(/\[50% Amount\]/g, _engP50Str)
+      .replace(/\{BALANCE\}/g, _engBalStr)
+      .replace(/\{40_PCT\}/g, _engP40Str)
+      .replace(/\{50_PCT\}/g, _engP50Str)
+      .replace(/\{ACCOUNT\}/g, safe(accountNum))
+      .replace(/\{CREDITOR\}/g, safe(creditorName))
+      .replace(/\[Amount\]/g, _engBalStr)
+      .replace(/\[number\]/g, '[NUMBER OF CALLS — ENTER MANUALLY]')
+      .replace(/\[time period\]/g, '[TIME PERIOD — ENTER MANUALLY]')
+      .replace(/\[brief explanation[^\]]*\]/gi, '[CIRCUMSTANCES — ENTER MANUALLY]')
       .replace(/\[List\]/g, '[SEE ATTACHED]')
       .replace(/\[Arbitration Forum[^\]]*\]/gi, 'AAA or JAMS');
 
