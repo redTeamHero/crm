@@ -1978,11 +1978,12 @@ app.use(express.static(PUBLIC_DIR, {
 registerStaticPage({ paths: "/", file: "welcome.html" });
 registerStaticPage({ paths: ["/crm", "/crm/login", "/login"], file: "login.html" });
 
-// DIY routes
-registerStaticPage({ paths: ["/diy", "/diy/login"], file: "diy/login.html" });
-registerStaticPage({ paths: "/diy/signup", file: "diy/signup.html" });
-registerStaticPage({ paths: "/diy/dashboard", file: "diy/dashboard.html" });
-registerStaticPage({ paths: "/diy/upgrade", file: "diy/upgrade.html" });
+// DIY routes — redirected to coming-soon page (features in development)
+// The underlying DIY files and API routes remain intact
+app.get(["/diy", "/diy/login", "/diy/signup", "/diy/dashboard", "/diy/upgrade"], (_req, res) => {
+  res.redirect(302, "/coming-soon");
+});
+registerStaticPage({ paths: "/coming-soon", file: "coming-soon.html" });
 app.get("/client-setup", (_req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "client-setup.html"));
 });

@@ -1343,9 +1343,12 @@ if (btnSaveTlAp && !btnSaveTlAp._tlBound) {
     try {
       const enabled = $('tlApToggle').checked;
       const bestTimesOn = $('toggleBestTimes')?.checked;
+      const freqUnit = $('tlApFreqUnit')?.value || 'week';
+      const freqRaw = Math.max(1, parseInt($('tlApFreq').value, 10) || 3);
+      const freqAsWeekly = freqUnit === 'day' ? freqRaw * 7 : freqRaw;
       const postsPerWeek = bestTimesOn
         ? Math.max(1, parseInt($('bestTimesPostCount')?.value, 10) || 5)
-        : Math.max(1, parseInt($('tlApFreq').value, 10) || 3);
+        : freqAsWeekly;
       const hourFrom = parseInt($('tlApHourFrom').value, 10) || 10;
       const hourTo = parseInt($('tlApHourTo').value, 10) || 14;
       const preferredDay = parseInt($('tlApDay')?.value ?? '-1', 10);
