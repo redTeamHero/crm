@@ -432,12 +432,16 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
     }
     const groups = [];
     for (const [bureau, items] of byBureau) {
+      const totalParts = Math.ceil(items.length / MAX_GROUP_SIZE);
       for (let s = 0; s < items.length; s += MAX_GROUP_SIZE) {
-        groups.push({ bureau, items: items.slice(s, s + MAX_GROUP_SIZE), overLimit: items.length > MAX_GROUP_SIZE });
+        const partNum = Math.floor(s / MAX_GROUP_SIZE) + 1;
+        groups.push({ bureau, items: items.slice(s, s + MAX_GROUP_SIZE), partNum, totalParts });
       }
     }
     return groups;
   }
+
+  const _groupCollapsed = new Map();
 
   function renderGroupView() {
     const groups = computeBureauGroups();
@@ -446,22 +450,53 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
       groupWrap.innerHTML = '<p style="color:#888;font-size:13px;padding:12px 0;">No letters selected.</p>';
       return;
     }
-    const hasOverLimit = groups.some(g => g.overLimit);
+    const hasOverLimit = groups.some(g => g.totalParts > 1);
     let html = '';
     if (hasOverLimit) {
-      html += `<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#fbbf24;">⚠ One or more bureaus have more than ${MAX_GROUP_SIZE} letters — they will be split into multiple packets (Part 1, Part 2…).</div>`;
+      html += `<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#fbbf24;">⚠ One or more bureaus have more than ${MAX_GROUP_SIZE} letters selected — they will be split into multiple packets.</div>`;
     }
-    groups.forEach(({ bureau, items }, gi) => {
+    groups.forEach(({ bureau, items, partNum, totalParts }, gi) => {
+      const sectionKey = `${bureau}::${partNum}`;
+      const isCollapsed = _groupCollapsed.get(sectionKey) !== false;
+      const label = totalParts > 1 ? `${escapeHtml(bureau)} — Part ${partNum} of ${totalParts}` : escapeHtml(bureau);
       const creditorList = items.map(l => escapeHtml(l.creditor || l.creditorName || 'Letter')).join(', ');
-      html += `<div style="border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:10px 14px;margin-bottom:8px;background:rgba(168,85,247,0.05);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-weight:700;color:#c084fc;font-size:13px;">📋 ${escapeHtml(bureau)}</span>
-          <span style="font-size:11px;color:#888;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.2);border-radius:10px;padding:1px 8px;">${items.length} letter${items.length !== 1 ? 's' : ''} → 1 envelope</span>
+      html += `<div class="lpm-group-section" data-key="${escapeHtml(sectionKey)}" style="border:1px solid rgba(168,85,247,0.3);border-radius:8px;margin-bottom:8px;background:rgba(168,85,247,0.05);overflow:hidden;">
+        <div class="lpm-group-header" data-key="${escapeHtml(sectionKey)}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;user-select:none;">
+          <span style="font-weight:700;color:#c084fc;font-size:13px;">📋 ${label}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:#888;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.2);border-radius:10px;padding:1px 8px;">${items.length} letter${items.length !== 1 ? 's' : ''} → 1 envelope</span>
+            <span class="lpm-group-chevron" style="font-size:12px;color:#a855f7;transition:transform 0.2s;transform:rotate(${isCollapsed ? '0deg' : '180deg'})">${isCollapsed ? '▼' : '▲'}</span>
+          </div>
         </div>
-        <div style="font-size:11px;color:#aaa;">${creditorList}</div>
+        <div class="lpm-group-body" data-key="${escapeHtml(sectionKey)}" style="padding:0 14px ${isCollapsed ? '0' : '10px'};max-height:${isCollapsed ? '0' : '200px'};overflow:hidden;transition:max-height 0.2s ease,padding 0.2s ease;">
+          <div style="font-size:11px;color:#aaa;padding-top:${isCollapsed ? '0' : '4px'};">${creditorList}</div>
+        </div>
       </div>`;
     });
     groupWrap.innerHTML = html;
+
+    groupWrap.querySelectorAll('.lpm-group-header').forEach(hdr => {
+      hdr.addEventListener('click', () => {
+        const key = hdr.dataset.key;
+        const wasCollapsed = _groupCollapsed.get(key) !== false;
+        _groupCollapsed.set(key, !wasCollapsed);
+        const body = groupWrap.querySelector(`.lpm-group-body[data-key="${CSS.escape(key)}"]`);
+        const chev = hdr.querySelector('.lpm-group-chevron');
+        if (body) {
+          if (wasCollapsed) {
+            body.style.maxHeight = '200px';
+            body.style.padding = '0 14px 10px';
+            body.querySelector('div').style.paddingTop = '4px';
+            if (chev) { chev.style.transform = 'rotate(180deg)'; chev.textContent = '▲'; }
+          } else {
+            body.style.maxHeight = '0';
+            body.style.padding = '0 14px 0';
+            body.querySelector('div').style.paddingTop = '0';
+            if (chev) { chev.style.transform = 'rotate(0deg)'; chev.textContent = '▼'; }
+          }
+        }
+      });
+    });
   }
 
   function updateGroupCalc() {

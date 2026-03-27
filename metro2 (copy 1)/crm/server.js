@@ -10287,8 +10287,16 @@ app.post("/api/letters/:jobId/grouped.zip", authenticate, requirePermission("let
 
   const combinedPageBreak = `<div style="page-break-after:always;border-top:2px dashed #ccc;margin:32px 0;padding-top:8px;text-align:center;font-size:11px;color:#999;font-family:sans-serif;">— next letter —</div>`;
 
-  function buildGroupHtml(bureau, items) {
-    const parts = items.map(({ letter: L }) => L.html || '').filter(Boolean);
+  async function buildGroupHtml(bureau, items, jobId) {
+    const parts = [];
+    for (const { letter: L, origIdx } of items) {
+      const htmlSource = L.html || await loadLetterHtml(jobId, L.filename) || '';
+      if (!htmlSource) {
+        logError('ZIP_APPEND_FAILED', 'Letter HTML missing for grouped archive', null, { jobId, letter: L.filename || origIdx });
+        throw new Error(`Letter HTML missing for index ${origIdx} (${bureau})`);
+      }
+      parts.push(htmlSource);
+    }
     const body = parts.join(combinedPageBreak);
     const count = items.length;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${bureau} — ${count} Letter${count !== 1 ? 's' : ''}</title>
@@ -10319,7 +10327,7 @@ app.post("/api/letters/:jobId/grouped.zip", authenticate, requirePermission("let
       const suffix = totalGroups > 1 ? `_part${groupNum}` : '';
       const baseName = `${safeBureau(bureau)}${suffix}_grouped`;
       const pdfName = `${baseName}.pdf`;
-      const combinedHtml = buildGroupHtml(bureau, chunk);
+      const combinedHtml = await buildGroupHtml(bureau, chunk, jobId);
       const useOcr = chunk.every(({ letter: L }) => L.useOcr);
 
       let pdfBuffer;
