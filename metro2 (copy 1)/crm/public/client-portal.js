@@ -2682,6 +2682,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createMailToolbar(id) {
       var tb = createToolbar(id);
+
+      var typeGroup = document.createElement('span');
+      typeGroup.className = 'batch-type-group';
+      typeGroup.innerHTML =
+        '<button class="batch-type-pill batch-type-regular" data-type="regular">Regular</button>' +
+        '<button class="batch-type-pill batch-type-certified" data-type="certified">Certified</button>';
+      var countEl = tb.querySelector('.batch-count');
+      tb.insertBefore(typeGroup, countEl.nextSibling);
+
       var priceEl = document.createElement('span');
       priceEl.className = 'batch-price';
       var dlBtn = tb.querySelector('.batch-download-btn');
@@ -2817,7 +2826,49 @@ document.addEventListener('DOMContentLoaded', () => {
         return waitingEl;
       }
 
-      wireCardClicks(mailSection, '.mail-card', mailToolbar, updateMailToolbarCount);
+      function updateMailToolbarCountAndPills(toolbar, container) {
+        updateMailToolbarCount(toolbar, container);
+        updateMailTypePills(toolbar, container);
+      }
+
+      wireCardClicks(mailSection, '.mail-card', mailToolbar, updateMailToolbarCountAndPills);
+
+      function updateMailTypePills(toolbar, container) {
+        var pills = toolbar ? toolbar.querySelectorAll('.batch-type-pill') : [];
+        if (!pills.length) return;
+        var cards = getVisibleCards(container, '.mail-card');
+        var checked = cards.filter(function(c) { return c.querySelector('.batch-cb')?.checked; });
+        var hasCertified = checked.some(function(c) { return c.dataset.mailType === 'certified'; });
+        var hasRegular   = checked.some(function(c) { return c.dataset.mailType !== 'certified'; });
+        pills.forEach(function(pill) {
+          var t = pill.dataset.type;
+          var isActive = (t === 'certified' && hasCertified && !hasRegular) ||
+                         (t === 'regular'   && hasRegular   && !hasCertified);
+          pill.classList.toggle('active', isActive);
+        });
+      }
+
+      function bulkSetMailType(type, toolbar, container) {
+        var cards = getVisibleCards(container, '.mail-card');
+        cards.filter(function(c) { return c.querySelector('.batch-cb')?.checked; })
+          .forEach(function(card) {
+            card.setAttribute('data-mail-type', type);
+            var badge = card.querySelector('.mail-type-badge');
+            if (badge) {
+              badge.setAttribute('data-type', type);
+              badge.textContent = type === 'certified' ? 'Certified' : 'Regular';
+            }
+          });
+        updateMailToolbarCount(toolbar, container);
+        updateMailTypePills(toolbar, container);
+      }
+
+      mailToolbar.querySelectorAll('.batch-type-pill').forEach(function(pill) {
+        pill.addEventListener('click', function(e) {
+          e.stopPropagation();
+          bulkSetMailType(pill.dataset.type, mailToolbar, getActiveMailContainer());
+        });
+      });
 
       mailSection.addEventListener('click', function(e) {
         var badge = e.target.closest('.mail-type-badge');
@@ -2830,7 +2881,9 @@ document.addEventListener('DOMContentLoaded', () => {
         card.setAttribute('data-mail-type', cur);
         badge.setAttribute('data-type', cur);
         badge.textContent = cur === 'certified' ? 'Certified' : 'Regular';
-        updateMailToolbarCount(mailToolbar, getActiveMailContainer());
+        var cont = getActiveMailContainer();
+        updateMailToolbarCount(mailToolbar, cont);
+        updateMailTypePills(mailToolbar, cont);
       }, true);
 
       mailSelectBtn.addEventListener('click', function() {
@@ -2845,7 +2898,9 @@ document.addEventListener('DOMContentLoaded', () => {
           mailSection.querySelectorAll('.mail-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
         }
         document.body.classList.toggle('batch-select-active', mailSelectMode || docSelectMode);
-        updateMailToolbarCount(mailToolbar, getActiveMailContainer());
+        var _cont = getActiveMailContainer();
+        updateMailToolbarCount(mailToolbar, _cont);
+        updateMailTypePills(mailToolbar, _cont);
       });
 
       mailToolbar.querySelector('.batch-select-all').addEventListener('change', function(e) {
@@ -2858,6 +2913,7 @@ document.addEventListener('DOMContentLoaded', () => {
           card.classList.toggle('batch-selected', checked);
         });
         updateMailToolbarCount(mailToolbar, container);
+        updateMailTypePills(mailToolbar, container);
       });
 
       mailToolbar.querySelector('.batch-download-btn').addEventListener('click', function() {
