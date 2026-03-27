@@ -1342,7 +1342,10 @@ if (btnSaveTlAp && !btnSaveTlAp._tlBound) {
     btnSaveTlAp.disabled = true; btnSaveTlAp.textContent = 'Saving…';
     try {
       const enabled = $('tlApToggle').checked;
-      const postsPerWeek = Math.max(1, parseInt($('tlApFreq').value, 10) || 3);
+      const bestTimesOn = $('toggleBestTimes')?.checked;
+      const postsPerWeek = bestTimesOn
+        ? Math.max(1, parseInt($('bestTimesPostCount')?.value, 10) || 5)
+        : Math.max(1, parseInt($('tlApFreq').value, 10) || 3);
       const hourFrom = parseInt($('tlApHourFrom').value, 10) || 10;
       const hourTo = parseInt($('tlApHourTo').value, 10) || 14;
       const preferredDay = parseInt($('tlApDay')?.value ?? '-1', 10);
@@ -1379,20 +1382,43 @@ if (btnTlApRunNow && !btnTlApRunNow._tlBound) {
   });
 }
 
-// ── Apply Best Times ───────────────────────────────────────────────────────
-const btnApplyBestTimes = $('btnApplyBestTimes');
-if (btnApplyBestTimes && !btnApplyBestTimes._bound) {
-  btnApplyBestTimes._bound = true;
-  btnApplyBestTimes.addEventListener('click', () => {
-    const freq = $('tlApFreq');
+// ── Apply Best Times Toggle ────────────────────────────────────────────────
+const toggleBestTimes = $('toggleBestTimes');
+if (toggleBestTimes && !toggleBestTimes._bound) {
+  toggleBestTimes._bound = true;
+  const slider = $('toggleBestTimesSlider');
+  const knob = $('toggleBestTimesKnob');
+  const postCountRow = $('bestTimesPostCountRow');
+
+  function applyBestTimesState(on) {
     const hourFrom = $('tlApHourFrom');
     const hourTo = $('tlApHourTo');
     const day = $('tlApDay');
-    if (freq) freq.value = '5';
-    if (hourFrom) hourFrom.value = '10';
-    if (hourTo) hourTo.value = '14';
-    if (day) day.value = '3'; // Wednesday
-    showToast('Best times applied — Wed, 10AM–2PM, 5x/week. Save to confirm.', 'green');
+    if (on) {
+      if (hourFrom) { hourFrom.value = '10'; hourFrom.disabled = true; hourFrom.style.opacity = '0.5'; }
+      if (hourTo) { hourTo.value = '14'; hourTo.disabled = true; hourTo.style.opacity = '0.5'; }
+      if (day) { day.value = '-1'; day.disabled = true; day.style.opacity = '0.5'; }
+      if (slider) slider.style.background = '#d4a853';
+      if (knob) knob.style.transform = 'translateX(18px)';
+      if (postCountRow) postCountRow.style.display = 'flex';
+    } else {
+      if (hourFrom) { hourFrom.disabled = false; hourFrom.style.opacity = ''; }
+      if (hourTo) { hourTo.disabled = false; hourTo.style.opacity = ''; }
+      if (day) { day.disabled = false; day.style.opacity = ''; }
+      if (slider) slider.style.background = '#374151';
+      if (knob) knob.style.transform = 'translateX(0)';
+      if (postCountRow) postCountRow.style.display = 'none';
+    }
+  }
+
+  toggleBestTimes.addEventListener('change', () => {
+    applyBestTimesState(toggleBestTimes.checked);
+    showToast(
+      toggleBestTimes.checked
+        ? 'Best times on — any day, 10AM–2PM. Set your post count and save.'
+        : 'Best times off — customize your schedule freely.',
+      toggleBestTimes.checked ? 'green' : 'yellow'
+    );
   });
 }
 
