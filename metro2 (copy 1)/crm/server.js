@@ -7337,19 +7337,31 @@ function ensureTemplateDefaults(db){
       mutated = true;
     }
   }
+  const _isOldEnglishBlob = (s) => typeof s === 'string' && (s.includes('\n[Address]') || s.startsWith('[Your Name]'));
   for(const lt of LETTER_TEMPLATES){
     if(!existingIds.has(lt.id)){
       db.templates.push({
         id: lt.id,
-        heading: lt.name,
-        intro: lt.english || '',
-        ask: '',
-        afterIssues: '',
-        evidence: '',
-        requestType: 'correct'
+        heading: lt.heading || lt.name,
+        intro: lt.heading ? (lt.intro || '') : (lt.english || ''),
+        ask: lt.ask || '',
+        afterIssues: lt.afterIssues || '',
+        evidence: lt.evidence || '',
+        requestType: lt.requestType || 'correct'
       });
       existingIds.add(lt.id);
       mutated = true;
+    } else if(lt.heading) {
+      const stored = db.templates.find(t => t.id === lt.id);
+      if(stored && (_isOldEnglishBlob(stored.intro) || !stored.heading || stored.heading === lt.name)){
+        stored.heading    = lt.heading;
+        stored.intro      = lt.intro      || stored.intro || '';
+        stored.ask        = lt.ask        || stored.ask || '';
+        stored.afterIssues = lt.afterIssues || stored.afterIssues || '';
+        stored.evidence   = lt.evidence   || stored.evidence || '';
+        stored.requestType = lt.requestType || stored.requestType || 'correct';
+        mutated = true;
+      }
     }
   }
   return mutated;
