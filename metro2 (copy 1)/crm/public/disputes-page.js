@@ -209,7 +209,12 @@ async function loadDisputeTracker() {
   }
 }
 
-const CERTIFIED_MAIL_RATE = 5.99;
+const MAIL_RATES = {
+  regular:      { label: 'Regular',         rate: 1.00 },
+  certified:    { label: 'Certified',        rate: 8.00 },
+  certifiedPod: { label: 'Certified + POD',  rate: 11.00 },
+};
+const CERTIFIED_MAIL_RATE = MAIL_RATES.certified.rate;
 
 function fmtPrice(n) { return '$' + n.toFixed(2); }
 
@@ -246,7 +251,12 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
     </div>`;
   }).join('');
 
-  const totalEst = fmtPrice(letters.length * CERTIFIED_MAIL_RATE);
+  const _initRate = MAIL_RATES.certified;
+  const totalEst = fmtPrice(letters.length * _initRate.rate);
+
+  const _mailTypePills = Object.entries(MAIL_RATES).map(([key, {label, rate}]) =>
+    `<button class="lpm-mail-type" data-key="${key}" style="font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid rgba(212,168,83,0.3);background:${key==='certified'?'rgba(212,168,83,0.18)':'transparent'};color:${key==='certified'?'#d4a853':'#888'};cursor:pointer;white-space:nowrap;transition:background 0.15s,color 0.15s;">${escapeHtml(label)} (${fmtPrice(rate)})</button>`
+  ).join('');
 
   modal.innerHTML = `
     <div style="background:#1a1a1e;border:1px solid rgba(212,168,83,0.2);border-radius:12px;width:90%;max-width:740px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
@@ -267,12 +277,16 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
       </div>
 
       <div style="padding:10px 20px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(212,168,83,0.04);">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:11px;color:#888;">💰 Certified mail est.:</span>
-            <span id="lpmPriceText" style="font-size:13px;font-weight:700;color:#d4a853;">${letters.length} × ${fmtPrice(CERTIFIED_MAIL_RATE)} = ${totalEst}</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:#888;">📬 Mail type:</span>
+            <div id="lpmMailTypePills" style="display:flex;gap:5px;flex-wrap:wrap;">${_mailTypePills}</div>
           </div>
           <span style="font-size:10px;color:#555;">Portal &amp; download are always free</span>
+        </div>
+        <div style="margin-top:7px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:#888;">💰 Mailing est.:</span>
+          <span id="lpmPriceText" style="font-size:13px;font-weight:700;color:#d4a853;">${letters.length} × ${fmtPrice(_initRate.rate)} = ${totalEst} (${escapeHtml(_initRate.label)})</span>
         </div>
       </div>
 
@@ -297,14 +311,17 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
   `;
   document.body.appendChild(modal);
 
+  let activeMailKey = 'certified';
+
   function updateLpmCalc() {
     const count = letterSelections.size;
-    const total = fmtPrice(count * CERTIFIED_MAIL_RATE);
+    const { label, rate } = MAIL_RATES[activeMailKey] || MAIL_RATES.certified;
+    const total = fmtPrice(count * rate);
     const priceEl = modal.querySelector('#lpmPriceText');
     if (priceEl) {
       priceEl.textContent = count === 0
         ? 'No letters selected'
-        : `${count} × ${fmtPrice(CERTIFIED_MAIL_RATE)} = ${total}`;
+        : `${count} × ${fmtPrice(rate)} = ${total} (${label})`;
     }
     const dlBtn = modal.querySelector('#lpmDownloadSelected');
     if (dlBtn) {
@@ -318,6 +335,19 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
       allCb.checked = count === letters.length;
     }
   }
+
+  modal.querySelectorAll('.lpm-mail-type').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeMailKey = btn.dataset.key;
+      modal.querySelectorAll('.lpm-mail-type').forEach(b => {
+        const active = b.dataset.key === activeMailKey;
+        b.style.background = active ? 'rgba(212,168,83,0.18)' : 'transparent';
+        b.style.color = active ? '#d4a853' : '#888';
+        b.style.borderColor = active ? 'rgba(212,168,83,0.5)' : 'rgba(212,168,83,0.3)';
+      });
+      updateLpmCalc();
+    });
+  });
 
   modal.querySelectorAll('.lpm-letter-check').forEach(cb => {
     cb.addEventListener('change', (e) => {
@@ -1178,7 +1208,7 @@ $('#batchDownloadRound')?.addEventListener('click', async () => {
 
   const btn = $('#batchDownloadRound');
   const origText = btn.textContent;
-  const costLine = letterCount > 0 ? ` (${letterCount} letters — ${fmtPrice(letterCount * CERTIFIED_MAIL_RATE)} certified mail est.)` : '';
+  const costLine = letterCount > 0 ? ` (${letterCount} letter${letterCount !== 1 ? 's' : ''} — ${fmtPrice(letterCount * MAIL_RATES.regular.rate)}–${fmtPrice(letterCount * MAIL_RATES.certifiedPod.rate)} depending on mail type)` : '';
   if (!confirm(`Download all letters for this round as a ZIP?${costLine}`)) return;
   btn.disabled = true;
   btn.textContent = 'Building ZIP…';
