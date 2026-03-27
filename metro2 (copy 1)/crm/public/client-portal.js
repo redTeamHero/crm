@@ -2686,8 +2686,8 @@ document.addEventListener('DOMContentLoaded', () => {
       var typeGroup = document.createElement('span');
       typeGroup.className = 'batch-type-group';
       typeGroup.innerHTML =
-        '<button class="batch-type-pill batch-type-regular" data-type="regular">Regular</button>' +
-        '<button class="batch-type-pill batch-type-certified" data-type="certified">Certified</button>';
+        '<button type="button" class="batch-type-pill batch-type-regular" data-type="regular">Regular</button>' +
+        '<button type="button" class="batch-type-pill batch-type-certified" data-type="certified">Certified</button>';
       var countEl = tb.querySelector('.batch-count');
       tb.insertBefore(typeGroup, countEl.nextSibling);
 
@@ -2932,7 +2932,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (mailSelectMode) {
             mailSection.querySelectorAll('.mail-card .batch-cb').forEach(function(cb) { cb.checked = false; });
             mailSection.querySelectorAll('.mail-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
-            updateToolbarCount(mailToolbar, getActiveMailContainer(), '.mail-card');
+            var _c = getActiveMailContainer();
+            updateMailToolbarCount(mailToolbar, _c);
+            updateMailTypePills(mailToolbar, _c);
           }
         });
       }
@@ -2941,7 +2943,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (mailSelectMode) {
             mailSection.querySelectorAll('.mail-card .batch-cb').forEach(function(cb) { cb.checked = false; });
             mailSection.querySelectorAll('.mail-card.batch-selected').forEach(function(c) { c.classList.remove('batch-selected'); });
-            updateToolbarCount(mailToolbar, getActiveMailContainer(), '.mail-card');
+            var _c = getActiveMailContainer();
+            updateMailToolbarCount(mailToolbar, _c);
+            updateMailTypePills(mailToolbar, _c);
           }
         });
       }
