@@ -282,76 +282,6 @@
           <p class="mt-3 text-xs text-gray-500">Track removals without guaranteeing outcomes. Highlight disputes resolved per bureau.</p>
         </div>
 
-        <div class="glass card relative overflow-hidden border border-[#d4a853]/20 bg-gradient-to-br from-[#111113] via-[#111113] to-[#111113] text-white shadow-lg sm:col-span-2" data-tour="ladder">
-          <div class="pointer-events-none absolute -top-10 -right-20 h-56 w-56 rounded-full bg-[#d4a853]/5 blur-3xl"></div>
-          <div class="relative z-10 flex flex-col gap-3">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#d4a853]">Growth Navigator</p>
-                <h3 id="ladderTitle" class="text-lg font-semibold text-white">Revenue Ladder to 7 Figures</h3>
-                <p id="ladderSubtitle" class="text-[11px] text-gray-500">Premium dispute services roadmap. No guaranteed timelines or deletions.</p>
-              </div>
-              <div class="flex flex-col items-end gap-2 text-right text-xs">
-                <div>
-                  <span id="ladderGoalLabel" class="font-semibold text-[#d4a853]">Goal</span>
-                  <div id="ladderGoalAmount" class="text-sm font-bold text-white">$84k&nbsp;mo</div>
-                  <div id="ladderGoalCaption" class="text-[10px] text-gray-500">Monthly objective</div>
-                </div>
-                <button id="ladderEditButton" type="button" class="inline-flex items-center gap-1 rounded-full border border-[#d4a853]/30 bg-[#1a1a1a] px-3 py-1.5 font-semibold text-[#d4a853] shadow-sm transition hover:bg-[#d4a853]/10 focus:outline-none focus:ring-2 focus:ring-[#d4a853]/30 focus:ring-offset-1">
-                  <span class="text-[11px]">Edit Card</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="grid gap-3 text-sm text-gray-400 sm:grid-cols-3">
-              <div class="rounded-lg border border-gray-800 bg-[#0a0a0a] p-3 shadow-inner">
-                <div class="flex items-center justify-between text-xs">
-                  <span>Monthly Recurring</span>
-                  <span class="font-semibold text-white" id="ladderMrr">Sync billing</span>
-                </div>
-                <p id="ladderMrrCaption" class="mt-2 text-[11px] text-gray-500">Keep churn &lt; 5% and auto-schedule retention consults.</p>
-              </div>
-              <div class="rounded-lg border border-gray-800 bg-[#0a0a0a] p-3">
-                <div class="flex items-center justify-between text-xs">
-                  <span>Pipeline Forecast</span>
-                  <span class="font-semibold text-white" id="ladderPipeline">Load CRM</span>
-                </div>
-                <p id="ladderPipelineCaption" class="mt-2 text-[11px] text-gray-500">Daily KPI: Consult → Purchase 35%.</p>
-              </div>
-              <div class="rounded-lg border border-gray-800 bg-[#0a0a0a] p-3">
-                <div class="flex items-center justify-between text-xs">
-                  <span>Average Order Value</span>
-                  <span class="font-semibold text-white" id="ladderAov">Link Stripe</span>
-                </div>
-                <p id="ladderAovCaption" class="mt-2 text-[11px] text-gray-500">Bundle certified mail credits for premium feel.</p>
-              </div>
-
-              <div class="sm:col-span-3">
-                <div class="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-500">
-                  <span id="ladderProgressBaseline">$0</span>
-                  <span id="ladderProgressGoal">Goal $84k</span>
-                </div>
-                <div class="mt-2 h-3 w-full overflow-hidden rounded-full bg-[#1a1a1a] shadow-inner">
-                  <div id="ladderProgressBar" class="h-full rounded-full bg-gradient-to-r from-[#d4a853] via-[#e5c77d] to-[#d4a853] transition-all duration-700" style="width: 38%;"></div>
-                </div>
-                <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-500">
-                  <span id="ladderMilestone">Next milestone: $25k/mo unlocks concierge onboarding.</span>
-                  <span id="ladderMilestoneCaption">Next milestone target</span>
-                </div>
-              </div>
-
-              <div class="sm:col-span-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-800 bg-[#0a0a0a] p-3 text-xs">
-                <div id="ladderUpsellCopy" class="max-w-xs text-gray-400">
-                  <span class="font-semibold text-white">Upsell idea:</span> Automation bundle at $249/mo with certified mail credits + NEPQ scripts.
-                </div>
-                <div class="flex flex-wrap items-center gap-2 text-xs">
-                  <a id="ladderPlaybookButton" href="#" class="btn bg-[#d4a853] px-4 py-2 text-black shadow-sm">View Playbook</a>
-                  <a id="ladderSummaryLink" href="#" class="font-semibold text-[#d4a853] hover:underline">View summary details</a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </section>
@@ -375,7 +305,6 @@
           <div class="flex flex-wrap items-center gap-2 text-xs">
             <button id="clientLocationModeState" type="button" class="rounded-full bg-[#d4a853] px-4 py-1.5 font-semibold text-black shadow-sm transition hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#d4a853] focus:ring-offset-2">State Mix</button>
             <button id="clientLocationModeCity" type="button" class="rounded-full border border-[#d4a853]/30 bg-[#1a1a1a] px-4 py-1.5 font-semibold text-[#d4a853] shadow-sm transition hover:bg-[#d4a853]/10 focus:outline-none focus:ring-2 focus:ring-[#d4a853] focus:ring-offset-2">Top Cities</button>
-            <a href="/workflows" class="rounded-full border border-transparent bg-[#d4a853]/10 px-4 py-1.5 font-semibold text-[#d4a853] transition hover:bg-[#d4a853]/20 focus:outline-none focus:ring-2 focus:ring-[#d4a853] focus:ring-offset-2">Build automation</a>
           </div>
         </div>
 
@@ -473,125 +402,6 @@
     </div>
   </div>
 
-  <div id="ladderEditor" class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/60 px-4 py-10 backdrop-blur-sm">
-    <div class="w-full max-w-xl rounded-2xl bg-[#111113] p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h3 class="text-lg font-semibold text-white">Edit Growth Navigator</h3>
-          <p class="text-sm text-gray-400">Refresh revenue ladder copy, CTA labels, and your monthly target.</p>
-        </div>
-        <button id="ladderEditorClose" type="button" class="btn text-sm" aria-label="Close editor">×</button>
-      </div>
-      <form id="ladderEditorForm" class="mt-4 space-y-5">
-        <div class="grid gap-4">
-          <label class="space-y-2 text-sm font-medium text-gray-300">
-            <span>Title</span>
-            <input name="title" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-2 text-sm font-medium text-gray-300">
-            <span>Subtitle</span>
-            <textarea name="subtitle" rows="2" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none"></textarea>
-          </label>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-3">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Goal label</span>
-            <input name="goalLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Goal amount label</span>
-            <input name="goalAmountLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Goal caption</span>
-            <input name="goalCaption" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-3">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Monthly target (USD)</span>
-            <input name="monthlyRecurringTarget" type="number" min="0" step="1" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400 sm:col-span-2">
-            <span>Monthly caption</span>
-            <input name="mrrCaption" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Pipeline value</span>
-            <input name="pipelineValue" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Pipeline caption</span>
-            <textarea name="pipelineCaption" rows="2" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none"></textarea>
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>AOV value</span>
-            <input name="aovValue" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>AOV caption</span>
-            <textarea name="aovCaption" rows="2" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none"></textarea>
-          </label>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Milestone headline</span>
-            <input name="milestone" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Milestone caption</span>
-            <input name="milestoneCaption" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Progress baseline label</span>
-            <input name="progressBaselineLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Progress goal label</span>
-            <input name="progressGoalLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-        </div>
-        <div class="grid gap-4">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Upsell heading</span>
-            <input name="upsellHeading" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Upsell body</span>
-            <textarea name="upsellBody" rows="3" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none"></textarea>
-          </label>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Playbook label</span>
-            <input name="playbookLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Playbook URL</span>
-            <input name="playbookUrl" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Summary link label</span>
-            <input name="summaryLinkLabel" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-          <label class="space-y-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-            <span>Summary link URL</span>
-            <input name="summaryLinkUrl" class="w-full rounded-lg border border-gray-700 px-3 py-2 text-sm focus:border-[#d4a853] focus:outline-none" />
-          </label>
-        </div>
-        <p id="ladderEditorStatus" class="text-sm text-[#d4a853]"></p>
-        <div class="flex items-center justify-end gap-3">
-          <button id="ladderEditorCancel" type="button" class="btn">Cancel</button>
-          <button id="ladderEditorSubmit" type="submit" class="btn bg-[#d4a853] px-4 py-2 text-black shadow-sm">Save changes</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <div id="detailModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/40 backdrop-blur">
     <div class="glass card w-full max-w-3xl mx-4 relative">
       <button id="detailModalClose" class="absolute top-3 right-3 btn text-xs" aria-label="Close details">Close</button>
@@ -611,56 +421,6 @@
     </div>
   </div>
 </main>
-<section id="growthNavigatorPanel" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Growth Navigator summary" aria-hidden="true">
-  <div class="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-gradient-to-b from-[#111113] via-[#111113] to-[#111113] shadow-2xl ring-1 ring-[#d4a853]/20">
-    <button id="growthNavigatorClose" class="absolute right-4 top-4 rounded-full bg-[#1a1a1a] px-3 py-1 text-sm font-semibold text-gray-400 shadow hover:bg-[#d4a853]/10 focus:outline-none focus:ring-2 focus:ring-[#d4a853]/30" aria-label="Close Growth Navigator">×</button>
-    <div class="grid gap-6 p-6 md:p-8">
-      <div class="space-y-1">
-        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-[#d4a853]">Growth Navigator</p>
-        <h3 class="text-2xl font-bold text-white">Revenue Ladder to 7 Figures</h3>
-        <p class="text-sm text-gray-400">Premium dispute services roadmap. No guaranteed timelines or deletions.</p>
-      </div>
-      <div class="grid gap-4 rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm md:grid-cols-[1fr_auto] md:items-center">
-        <div class="space-y-1">
-          <p class="text-xs uppercase tracking-widest text-gray-500">Goal</p>
-          <p class="text-3xl font-semibold text-[#d4a853]">$84k mo</p>
-          <p class="text-sm text-gray-400">Monthly objective</p>
-        </div>
-        <a href="#" class="inline-flex items-center justify-center rounded-full bg-[#d4a853]/20 px-4 py-2 text-sm font-semibold text-[#d4a853] shadow-inner hover:bg-[#d4a853]/30" role="button">View Playbook</a>
-      </div>
-      <div class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm">
-          <p class="text-xs uppercase tracking-widest text-gray-500">Monthly Recurring</p>
-          <p class="mt-1 text-lg font-semibold text-white">$0.00 · Goal $84,000.00</p>
-          <p class="mt-2 text-xs text-gray-400">Keep churn &lt; 5% and auto-schedule retention consults.</p>
-        </div>
-        <div class="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm">
-          <p class="text-xs uppercase tracking-widest text-gray-500">Pipeline Forecast</p>
-          <p class="mt-1 text-lg font-semibold text-white">Load CRM</p>
-          <p class="mt-2 text-xs text-gray-400">Daily KPI: Consult → Purchase 35%.</p>
-        </div>
-        <div class="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm">
-          <p class="text-xs uppercase tracking-widest text-gray-500">Average Order Value</p>
-          <p class="mt-1 text-lg font-semibold text-white">Link Stripe</p>
-          <p class="mt-2 text-xs text-gray-400">Bundle certified mail credits for premium feel.</p>
-        </div>
-      </div>
-      <div class="rounded-2xl border border-gray-800 bg-[#0a0a0a] p-4 shadow-sm">
-        <div class="flex flex-wrap items-center gap-3 text-sm font-semibold text-gray-200">
-          <span class="rounded-full bg-[#d4a853]/20 px-3 py-1 text-[#d4a853]">$0</span>
-          <span class="text-gray-500">Goal</span>
-          <span class="rounded-full bg-[#d4a853] px-3 py-1 text-white">$84k</span>
-        </div>
-        <p class="mt-3 text-sm text-gray-300">Next milestone: $25k/mo unlocks concierge onboarding. Next milestone target</p>
-        <p class="mt-2 text-sm text-gray-300">Upsell idea: Automation bundle at $249/mo with certified mail credits + NEPQ scripts.</p>
-      </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <button class="btn bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow hover:brightness-110" type="button">View summary details</button>
-        <p class="text-sm text-gray-400">This card only appears when you tap the moneybag shortcut.</p>
-      </div>
-    </div>
-  </div>
-</section>
 <script type="module" src="/common.js"></script>
 <script src="/hotkeys.js"></script>
 <script type="module" src="/dashboard.js"></script>

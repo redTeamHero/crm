@@ -83,8 +83,7 @@
     { label: 'Library', icon: 'book', href: '/library', match: ['/library'] },
     { label: 'My Company', icon: 'building', href: '/my-company', match: ['/my-company'] },
     { label: 'Client Portal', icon: 'settings', href: '/settings/client-portal', match: ['/settings/client-portal'] },
-    { label: 'APIs', icon: 'code', href: '/settings', match: ['/settings'] },
-    { label: 'Workflows', icon: 'zap', href: '/workflows', match: ['/workflows'] }
+    { label: 'APIs', icon: 'code', href: '/settings', match: ['/settings'] }
   ];
 
   function isActive(item) {
