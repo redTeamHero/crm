@@ -14553,16 +14553,27 @@ function autopilotNextRunAt(fromDate = new Date()) {
   return new Date(fromDate.getTime() + AUTOPILOT_CHECK_INTERVAL_MS).toISOString();
 }
 
-function tradelineAutopilotNextRunAt(postsPerWeek = 3, preferredHour = 10, preferredDay = -1) {
-  const intervalHours = Math.max(1, Math.round((7 * 24) / postsPerWeek));
-  const next = new Date();
+function tradelineAutopilotNextRunAt(postsPerWeek = 3, preferredHour = 10, preferredDay = -1, fromDate = null) {
+  const now = new Date();
+  const intervalMs = Math.round((7 * 24 * 60 * 60 * 1000) / Math.max(1, postsPerWeek));
+
+  // base = fromDate + intervalMs (true cadence), or at least 30 min from now
+  const base = fromDate
+    ? new Date(Math.max(now.getTime() + 30 * 60 * 1000, new Date(fromDate).getTime() + intervalMs))
+    : new Date(now.getTime() + intervalMs);
+
+  // Apply preferred hour: move to preferred hour on the base date
+  const next = new Date(base);
   next.setHours(preferredHour, 0, 0, 0);
-  if (next <= new Date()) next.setDate(next.getDate() + Math.ceil(intervalHours / 24));
-  if (preferredDay >= 0 && preferredDay <= 6) {
-    let daysAhead = (preferredDay - next.getDay() + 7) % 7;
-    if (daysAhead === 0 && next <= new Date()) daysAhead = 7;
-    next.setDate(next.getDate() + daysAhead);
+  // If that hour has already passed on the base date, advance one day
+  if (next < base) next.setDate(next.getDate() + 1);
+
+  // Apply preferred day only when cadence is sub-daily (≤6/week); skip for daily/multiple-daily
+  if (preferredDay >= 0 && preferredDay <= 6 && postsPerWeek <= 6) {
+    const daysAhead = (preferredDay - next.getDay() + 7) % 7;
+    if (daysAhead > 0) next.setDate(next.getDate() + daysAhead);
   }
+
   return next.toISOString();
 }
 
@@ -14576,14 +14587,14 @@ async function runTradelineAutopilotCycle(db) {
     const scrapeImpl = db._scrapeOverride || scrapeTradelines;
     const tradelines = await scrapeImpl(fetchFn);
     if (!tradelines || !tradelines.length) {
-      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay);
+      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, null);
       ap.tradelineAutopilot = ta;
       db.autopilot = ap;
       return;
     }
     const validTradelines = tradelines.filter(t => t.bank && (t.limit || t.price != null));
     if (!validTradelines.length) {
-      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay);
+      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, null);
       ap.tradelineAutopilot = ta;
       db.autopilot = ap;
       return;
@@ -14605,11 +14616,11 @@ async function runTradelineAutopilotCycle(db) {
     if (db.queue.length > 500) db.queue = db.queue.slice(0, 500);
     ta.lastPostedAt = runAt;
     ta.lastPostedBank = pick.bank || null;
-    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay);
+    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, runAt);
     ap.tradelineAutopilot = ta;
     db.autopilot = ap;
   } catch (e) {
-    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay);
+    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, null);
     ap.tradelineAutopilot = ta;
     db.autopilot = ap;
     logError('TRADELINE_AUTOPILOT_ERROR', e);
@@ -14805,7 +14816,7 @@ app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) =>
       if (tradelineAutopilot.postsPerWeek !== undefined) ta.postsPerWeek = Math.min(14, Math.max(1, Number(tradelineAutopilot.postsPerWeek) || 3));
       if (tradelineAutopilot.preferredHour !== undefined) ta.preferredHour = Math.min(23, Math.max(0, Number(tradelineAutopilot.preferredHour) || 10));
       if (tradelineAutopilot.preferredDay !== undefined) ta.preferredDay = Math.min(6, Math.max(-1, parseInt(tradelineAutopilot.preferredDay, 10) ?? -1));
-      ta.nextRunAt = ta.enabled ? tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay) : null;
+      ta.nextRunAt = ta.enabled ? tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, ta.lastPostedAt || null) : null;
       ap.tradelineAutopilot = ta;
     }
     if (ap.enabled) ap.nextRunAt = autopilotNextRunAt();
