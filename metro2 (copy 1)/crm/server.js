@@ -1984,6 +1984,7 @@ app.get(["/diy", "/diy/login", "/diy/signup", "/diy/dashboard", "/diy/upgrade"],
   res.redirect(302, "/coming-soon");
 });
 registerStaticPage({ paths: "/coming-soon", file: "coming-soon.html" });
+registerStaticPage({ paths: "/specialists", file: "specialists.html" });
 app.get("/client-setup", (_req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, "client-setup.html"));
 });
