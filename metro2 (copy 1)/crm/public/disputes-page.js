@@ -1208,7 +1208,7 @@ $('#batchDownloadRound')?.addEventListener('click', async () => {
 
   const btn = $('#batchDownloadRound');
   const origText = btn.textContent;
-  const costLine = letterCount > 0 ? ` (${letterCount} letter${letterCount !== 1 ? 's' : ''} — ${fmtPrice(letterCount * MAIL_RATES.regular.rate)}–${fmtPrice(letterCount * MAIL_RATES.certifiedPod.rate)} depending on mail type)` : '';
+  const costLine = letterCount > 0 ? ` (${letterCount} letter${letterCount !== 1 ? 's' : ''} — ${fmtPrice(MAIL_RATES.regular.rate)}–${fmtPrice(MAIL_RATES.certifiedPod.rate)}/letter depending on mail type)` : '';
   if (!confirm(`Download all letters for this round as a ZIP?${costLine}`)) return;
   btn.disabled = true;
   btn.textContent = 'Building ZIP…';
