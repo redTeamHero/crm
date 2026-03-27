@@ -357,6 +357,7 @@ class EvolvTourEngine {
     this.tourKey  = null;
     this.onComplete = null;
     this._keyHandler = null;
+    this._scrollHandler = null;
     this._prevTarget = null;
     this._resizeObserver = null;
   }
@@ -425,6 +426,12 @@ class EvolvTourEngine {
       this._keyHandler = null;
     }
 
+    // Scroll listener
+    if (this._scrollHandler) {
+      window.removeEventListener('scroll', this._scrollHandler);
+      this._scrollHandler = null;
+    }
+
     // ResizeObserver
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
@@ -476,6 +483,11 @@ class EvolvTourEngine {
       if (e.key === 'ArrowLeft')  { e.preventDefault(); this.prev(); }
     };
     document.addEventListener('keydown', this._keyHandler);
+
+    // Reposition ring on scroll — keeps the ring locked to the element
+    // when the user manually scrolls during the tour
+    this._scrollHandler = () => this._repositionRing();
+    window.addEventListener('scroll', this._scrollHandler, { passive: true });
 
     // Reposition ring on window resize
     this._resizeObserver = new ResizeObserver(() => this._repositionRing());
@@ -576,14 +588,39 @@ class EvolvTourEngine {
 
   // ── Internal: scroll settle detection ──────────────────────────────────────
   _waitForScroll(cb) {
-    let lastY = window.scrollY, settled = 0, frames = 0;
+    // Wait for scrollIntoView's smooth-scroll to both start AND finish.
+    // Problem: smooth-scroll has a small startup delay, so the first few rAF
+    // frames show no movement — naive "settled >= N" fires the callback before
+    // the scroll animation even begins.
+    // Fix: only start counting "settled" frames AFTER we've seen actual movement.
+    // If no movement is detected within 60 frames (≈1s), assume element was
+    // already in place and call the callback anyway.
+    let lastY = window.scrollY;
+    let settled = 0;
+    let frames = 0;
+    let didMove = false;
+
     const check = () => {
       frames++;
-      if (Math.abs(window.scrollY - lastY) < 0.5) settled++;
-      else { settled = 0; lastY = window.scrollY; }
-      if (settled >= 4 || frames >= 150) cb();
+      const currentY = window.scrollY;
+      const moved = Math.abs(currentY - lastY) >= 0.5;
+
+      if (moved) {
+        didMove = true;
+        settled = 0;
+        lastY = currentY;
+      } else if (didMove) {
+        // We've seen movement and it's now stopped — count settled frames
+        settled++;
+      }
+
+      // Settled: seen movement then stopped, OR element was already in place
+      // (no movement in 20 frames ≈ 330ms), OR hard timeout at 120 frames (2s)
+      const done = (didMove && settled >= 8) || (!didMove && frames >= 20) || frames >= 120;
+      if (done) cb();
       else requestAnimationFrame(check);
     };
+
     requestAnimationFrame(check);
   }
 
