@@ -10327,8 +10327,11 @@ app.post("/api/letters/:jobId/grouped.zip", authenticate, requirePermission("let
       const suffix = totalGroups > 1 ? `_part${groupNum}` : '';
       const baseName = `${safeBureau(bureau)}${suffix}_grouped`;
       const pdfName = `${baseName}.pdf`;
+      const htmlName = `${baseName}.html`;
       const combinedHtml = await buildGroupHtml(bureau, chunk, jobId);
       const useOcr = chunk.every(({ letter: L }) => L.useOcr);
+
+      archive.append(Buffer.from(combinedHtml, 'utf8'), { name: htmlName });
 
       let pdfBuffer;
       if (useOcr) {
