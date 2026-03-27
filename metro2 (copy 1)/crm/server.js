@@ -14544,7 +14544,7 @@ setInterval(checkTokenHealth, 60 * 60 * 1000);
 // ─── Autopilot ────────────────────────────────────────────────────────────────
 function getDefaultAutopilot() {
   return { enabled: false, postsPerDay: 1, feedIds: 'all', postedGuids: [], lastRunAt: null, nextRunAt: null, history: [],
-    tradelineAutopilot: { enabled: false, postsPerWeek: 3, preferredHour: 10, preferredDay: -1, lastPostedAt: null, lastPostedBank: null, nextRunAt: null } };
+    tradelineAutopilot: { enabled: false, postsPerWeek: 3, preferredHour: 10, preferredDay: -1, lastPostedAt: null, lastPostedBank: null, lastPostedId: null, nextRunAt: null } };
 }
 
 const AUTOPILOT_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -14599,8 +14599,10 @@ async function runTradelineAutopilotCycle(db) {
       db.autopilot = ap;
       return;
     }
-    const otherBanks = ta.lastPostedBank ? validTradelines.filter(t => t.bank !== ta.lastPostedBank) : validTradelines;
-    const pool = otherBanks.length ? otherBanks : validTradelines;
+    const makeTradelineId = t => `${t.bank || ''}|${t.limit || ''}|${t.price || ''}`;
+    const lastId = ta.lastPostedId || null;
+    const different = lastId ? validTradelines.filter(t => makeTradelineId(t) !== lastId) : validTradelines;
+    const pool = different.length ? different : validTradelines;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     const content = await buildTradelinePostContent([pick]);
     const postId = `tap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -14616,6 +14618,7 @@ async function runTradelineAutopilotCycle(db) {
     if (db.queue.length > 500) db.queue = db.queue.slice(0, 500);
     ta.lastPostedAt = runAt;
     ta.lastPostedBank = pick.bank || null;
+    ta.lastPostedId = makeTradelineId(pick);
     ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour, ta.preferredDay, runAt);
     ap.tradelineAutopilot = ta;
     db.autopilot = ap;
