@@ -10253,6 +10253,98 @@ app.post("/api/letters/:jobId/selected.zip", authenticate, requirePermission("le
   }
 });
 
+app.post("/api/letters/:jobId/grouped.zip", authenticate, requirePermission("letters", { allowGuest: true }), enforceTenantQuota("letters:zip"), async (req,res)=>{
+  const { jobId } = req.params;
+  const indices = (req.body?.indices || []).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+  if (!indices.length) return res.status(400).json({ ok: false, error: "No letter indices specified" });
+
+  const userId = req.user?.id || "guest";
+  const result = await loadJobForUser(jobId, userId);
+  if (!result) return res.status(404).json({ ok: false, error: "Job not found or expired" });
+  const { job } = result;
+
+  const selectedLetters = indices.map(i => ({ letter: job.letters[i], origIdx: i })).filter(({ letter }) => !!letter);
+  if (!selectedLetters.length) return res.status(400).json({ ok: false, error: "No matching letters for given indices" });
+
+  const MAX_PER_GROUP = 10;
+
+  const byBureau = new Map();
+  for (const { letter: L, origIdx } of selectedLetters) {
+    const bureauKey = (L.bureau || 'Unknown').trim();
+    if (!byBureau.has(bureauKey)) byBureau.set(bureauKey, []);
+    byBureau.get(bureauKey).push({ letter: L, origIdx });
+  }
+
+  const groups = [];
+  for (const [bureau, items] of byBureau) {
+    for (let start = 0; start < items.length; start += MAX_PER_GROUP) {
+      const chunk = items.slice(start, start + MAX_PER_GROUP);
+      const groupNum = Math.floor(start / MAX_PER_GROUP) + 1;
+      const totalGroups = Math.ceil(items.length / MAX_PER_GROUP);
+      groups.push({ bureau, chunk, groupNum, totalGroups });
+    }
+  }
+
+  const combinedPageBreak = `<div style="page-break-after:always;border-top:2px dashed #ccc;margin:32px 0;padding-top:8px;text-align:center;font-size:11px;color:#999;font-family:sans-serif;">— next letter —</div>`;
+
+  function buildGroupHtml(bureau, items) {
+    const parts = items.map(({ letter: L }) => L.html || '').filter(Boolean);
+    const body = parts.join(combinedPageBreak);
+    const count = items.length;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${bureau} — ${count} Letter${count !== 1 ? 's' : ''}</title>
+      <style>@media print{@page{margin:0.75in}.page-break{page-break-after:always}}body{margin:0;font-family:sans-serif;}</style>
+    </head><body>${body}</body></html>`;
+  }
+
+  const safeBureau = (s) => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || 'bureau';
+
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Disposition", `attachment; filename="grouped_letters_${jobId}.zip"`);
+
+  const archive = archiver('zip', { zlib: { level: 9 } });
+  archive.on('error', err => {
+    logError('ARCHIVE_STREAM_ERROR', 'Grouped ZIP stream error', err, { jobId });
+    try { res.status(500).json({ ok: false, error: 'Zip error' }); } catch {}
+  });
+  archive.pipe(res);
+
+  const needsBrowser = selectedLetters.some(({ letter: L }) => !L.useOcr);
+  let browserInstance;
+  try {
+    if (needsBrowser) {
+      try { browserInstance = await launchBrowser(); } catch { browserInstance = null; }
+    }
+
+    for (const { bureau, chunk, groupNum, totalGroups } of groups) {
+      const suffix = totalGroups > 1 ? `_part${groupNum}` : '';
+      const baseName = `${safeBureau(bureau)}${suffix}_grouped`;
+      const pdfName = `${baseName}.pdf`;
+      const combinedHtml = buildGroupHtml(bureau, chunk);
+      const useOcr = chunk.every(({ letter: L }) => L.useOcr);
+
+      let pdfBuffer;
+      if (useOcr) {
+        pdfBuffer = await generateOcrPdf(combinedHtml);
+      } else {
+        pdfBuffer = await htmlToPdfBuffer(combinedHtml, {
+          browser: browserInstance || undefined,
+          allowBrowserLaunch: false,
+          title: `${bureau} Letters`,
+        });
+      }
+      archive.append(pdfBuffer, { name: pdfName });
+    }
+
+    await archive.finalize();
+    logInfo('ZIP_BUILD_SUCCESS', 'Grouped letters zip created', { jobId, groups: groups.length });
+  } catch (e) {
+    logError('ZIP_BUILD_FAILED', 'Grouped zip generation failed', e, { jobId });
+    try { res.status(500).json({ ok: false, error: 'Failed to create grouped zip.' }); } catch {}
+  } finally {
+    try { await browserInstance?.close(); } catch {}
+  }
+});
+
 app.post("/api/letters/:jobId/mail", authenticate, requirePermission("letters"), async (req,res)=>{
 
   const { jobId } = req.params;

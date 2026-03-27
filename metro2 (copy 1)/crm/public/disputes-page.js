@@ -273,7 +273,8 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
         </div>
       </div>
       <div style="padding:16px 20px;overflow-y:auto;flex:1;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">${cardsHtml}</div>
+        <div id="lpmLetterGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">${cardsHtml}</div>
+        <div id="lpmGroupView" style="display:none;"></div>
       </div>
 
       <div style="padding:10px 20px;border-top:1px solid rgba(255,255,255,0.05);background:rgba(212,168,83,0.04);">
@@ -293,6 +294,8 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
       <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <a class="btn btn-outline text-xs" href="/api/letters/${encodeURIComponent(letterJobId)}/all.zip${tokenParam}" style="text-decoration:none;">⬇ All (ZIP)</a>
         <button id="lpmDownloadSelected" class="btn btn-outline text-xs" style="border-color:rgba(96,165,250,0.35);color:#60a5fa;">⬇ Selected (${letters.length})</button>
+        <button id="lpmGroupToggle" class="btn btn-outline text-xs" style="border-color:rgba(168,85,247,0.4);color:#a855f7;">⊞ Group by Bureau</button>
+        <button id="lpmDownloadGrouped" class="btn btn-outline text-xs" style="display:none;border-color:rgba(74,222,128,0.4);color:#4ade80;">⬇ Grouped (ZIP)</button>
         <button class="btn btn-outline text-xs" id="lpmSendPortal"${portalSent ? ' disabled style="color:#4ade80;border-color:#4ade80;"' : portalError ? ' style="color:#fbbf24;border-color:#fbbf24;"' : ''}>
           ${portalSent ? '\u2713 Portal' : portalError ? '\u26A0 Retry Portal' : '↑ Send to Portal'}
         </button>
@@ -345,7 +348,7 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
         b.style.color = active ? '#d4a853' : '#888';
         b.style.borderColor = active ? 'rgba(212,168,83,0.5)' : 'rgba(212,168,83,0.3)';
       });
-      updateLpmCalc();
+      if (groupingActive) { updateGroupCalc(); } else { updateLpmCalc(); }
     });
   });
 
@@ -360,7 +363,7 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
         letterSelections.delete(idx);
         if (card) card.style.borderColor = 'rgba(212,168,83,0.15)';
       }
-      updateLpmCalc();
+      if (groupingActive) { renderGroupView(); updateGroupCalc(); } else { updateLpmCalc(); }
     });
   });
 
@@ -378,7 +381,7 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
       const card = cb.closest('.lpm-letter-card');
       if (card) card.style.borderColor = e.target.checked ? 'rgba(212,168,83,0.45)' : 'rgba(212,168,83,0.15)';
     });
-    updateLpmCalc();
+    if (groupingActive) { renderGroupView(); updateGroupCalc(); } else { updateLpmCalc(); }
   });
 
   modal.querySelector('#lpmDownloadSelected')?.addEventListener('click', async () => {
@@ -406,6 +409,128 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
       URL.revokeObjectURL(url);
     } catch (err) {
       showErr(`Download failed: ${err.message || err}`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  });
+
+  const MAX_GROUP_SIZE = 10;
+  let groupingActive = false;
+  const letterGrid = modal.querySelector('#lpmLetterGrid');
+  const groupWrap  = modal.querySelector('#lpmGroupView');
+  const groupToggleBtn    = modal.querySelector('#lpmGroupToggle');
+  const groupedDlBtn      = modal.querySelector('#lpmDownloadGrouped');
+
+  function computeBureauGroups() {
+    const selected = letters.filter((l, i) => letterSelections.has(l.index ?? i));
+    const byBureau = new Map();
+    for (const l of selected) {
+      const b = (l.bureau || 'Unknown').trim();
+      if (!byBureau.has(b)) byBureau.set(b, []);
+      byBureau.get(b).push(l);
+    }
+    const groups = [];
+    for (const [bureau, items] of byBureau) {
+      for (let s = 0; s < items.length; s += MAX_GROUP_SIZE) {
+        groups.push({ bureau, items: items.slice(s, s + MAX_GROUP_SIZE), overLimit: items.length > MAX_GROUP_SIZE });
+      }
+    }
+    return groups;
+  }
+
+  function renderGroupView() {
+    const groups = computeBureauGroups();
+    if (!groupWrap) return;
+    if (groups.length === 0) {
+      groupWrap.innerHTML = '<p style="color:#888;font-size:13px;padding:12px 0;">No letters selected.</p>';
+      return;
+    }
+    const hasOverLimit = groups.some(g => g.overLimit);
+    let html = '';
+    if (hasOverLimit) {
+      html += `<div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#fbbf24;">⚠ One or more bureaus have more than ${MAX_GROUP_SIZE} letters — they will be split into multiple packets (Part 1, Part 2…).</div>`;
+    }
+    groups.forEach(({ bureau, items }, gi) => {
+      const creditorList = items.map(l => escapeHtml(l.creditor || l.creditorName || 'Letter')).join(', ');
+      html += `<div style="border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:10px 14px;margin-bottom:8px;background:rgba(168,85,247,0.05);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-weight:700;color:#c084fc;font-size:13px;">📋 ${escapeHtml(bureau)}</span>
+          <span style="font-size:11px;color:#888;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.2);border-radius:10px;padding:1px 8px;">${items.length} letter${items.length !== 1 ? 's' : ''} → 1 envelope</span>
+        </div>
+        <div style="font-size:11px;color:#aaa;">${creditorList}</div>
+      </div>`;
+    });
+    groupWrap.innerHTML = html;
+  }
+
+  function updateGroupCalc() {
+    if (!groupingActive) return;
+    const groups = computeBureauGroups();
+    const envelopeCount = groups.length;
+    const { label, rate } = MAIL_RATES[activeMailKey] || MAIL_RATES.certified;
+    const priceEl = modal.querySelector('#lpmPriceText');
+    if (priceEl) {
+      priceEl.textContent = envelopeCount === 0
+        ? 'No letters selected'
+        : `${envelopeCount} envelope${envelopeCount !== 1 ? 's' : ''} × ${fmtPrice(rate)} = ${fmtPrice(envelopeCount * rate)} (${label})`;
+    }
+    if (groupedDlBtn) {
+      groupedDlBtn.disabled = envelopeCount === 0;
+      groupedDlBtn.style.opacity = envelopeCount === 0 ? '0.4' : '1';
+      groupedDlBtn.textContent = `⬇ Grouped (${envelopeCount} envelope${envelopeCount !== 1 ? 's' : ''})`;
+    }
+  }
+
+  groupToggleBtn?.addEventListener('click', () => {
+    groupingActive = !groupingActive;
+    if (groupingActive) {
+      groupToggleBtn.style.background = 'rgba(168,85,247,0.18)';
+      groupToggleBtn.style.color = '#c084fc';
+      groupToggleBtn.style.borderColor = 'rgba(168,85,247,0.5)';
+      groupToggleBtn.textContent = '⊞ Grouped ✓';
+      if (letterGrid) letterGrid.style.display = 'none';
+      if (groupWrap)  groupWrap.style.display = 'block';
+      if (groupedDlBtn) groupedDlBtn.style.display = 'inline-flex';
+      renderGroupView();
+      updateGroupCalc();
+    } else {
+      groupToggleBtn.style.background = 'transparent';
+      groupToggleBtn.style.color = '#a855f7';
+      groupToggleBtn.style.borderColor = 'rgba(168,85,247,0.4)';
+      groupToggleBtn.textContent = '⊞ Group by Bureau';
+      if (letterGrid) letterGrid.style.display = '';
+      if (groupWrap)  groupWrap.style.display = 'none';
+      if (groupedDlBtn) groupedDlBtn.style.display = 'none';
+      updateLpmCalc();
+    }
+  });
+
+  groupedDlBtn?.addEventListener('click', async () => {
+    const indices = [...letterSelections];
+    if (!indices.length) return;
+    const btn = groupedDlBtn;
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Building grouped ZIP…';
+    try {
+      const res = await fetch(`/api/letters/${encodeURIComponent(letterJobId)}/grouped.zip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
+        body: JSON.stringify({ indices }),
+      });
+      if (!res.ok) { const t = await res.text().catch(() => ''); throw new Error(`HTTP ${res.status} ${t}`.trim()); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `grouped_letters.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showErr(`Grouped download failed: ${err.message || err}`);
     } finally {
       btn.disabled = false;
       btn.textContent = origText;
