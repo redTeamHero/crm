@@ -8847,6 +8847,7 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       collectors,
       useOcr,
       workflow = {},
+      itemsPerLetter = 0,
     } = payload || {};
 
     const db = await loadDB();
