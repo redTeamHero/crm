@@ -13922,6 +13922,32 @@ async function fbPublishPost(post, connection) {
   return fbGraphPost(`/${connection.pageId}/feed`, params, connection.pageAccessToken);
 }
 
+async function buildTradelinePostContent(tradelines) {
+  const lines = tradelines.map(t => {
+    const parts = [];
+    if (t.bank) parts.push(`Bank: ${t.bank}`);
+    if (t.limit) parts.push(`Credit Limit: $${Number(t.limit).toLocaleString()}`);
+    if (t.price != null) parts.push(`Price: $${t.price}`);
+    return parts.filter(Boolean).join(' · ');
+  }).filter(Boolean);
+
+  const system = `You are a social media marketing expert for a credit tradeline company. Write a compelling, enthusiastic Facebook marketing post to promote available authorized user (AU) tradelines.
+Rules:
+- Open with a powerful hook about credit building or a tradeline opportunity (use a question, bold statement, or emoji-heavy opener)
+- Reference the specific bank names and credit limits from the tradelines listed
+- Create urgency around limited AU spots available
+- Explain the key benefit: a well-aged, high-limit tradeline can boost your credit score, improve your credit profile, and help you get approved for better cards and loans
+- End with a clear call-to-action to DM for more details
+- Include 4-6 relevant hashtags (#Tradelines #CreditBuilder #AuthorizedUser #CreditScore #CreditRepair etc.)
+- Use emojis throughout to make it eye-catching (🔥📈💳💰⭐ etc.)
+- Keep under 400 words
+- Write in an enthusiastic, sales-forward tone that feels authentic on Facebook — not corporate`;
+
+  const user = `Available tradelines:\n${lines.join('\n')}\n\nWrite a compelling Facebook post marketing these tradelines to people looking to build or repair their credit.`;
+  const content = await callOpenAiText({ system, user });
+  return content.trim();
+}
+
 async function buildSocialPostPrompt(article) {
   const system = `You are a social media expert for a credit repair and financial empowerment company. Write a compelling, engaging Facebook post based on the article below. 
 Rules:
@@ -14186,6 +14212,20 @@ app.post('/api/social/generate-post', authenticate, async (req, res) => {
   }
 });
 
+app.post('/api/social/generate-tradeline-post', authenticate, async (req, res) => {
+  try {
+    const { tradelines } = req.body || {};
+    if (!Array.isArray(tradelines) || !tradelines.length) {
+      return res.status(400).json({ ok: false, error: 'At least one tradeline is required' });
+    }
+    const content = await buildTradelinePostContent(tradelines);
+    res.json({ ok: true, content });
+  } catch (e) {
+    logError('SOCIAL_GENERATE_TRADELINE_POST_ERROR', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.get('/api/social/queue', authenticate, async (req, res) => {
   try {
     const db = await loadSocialDB();
@@ -14198,9 +14238,10 @@ app.get('/api/social/queue', authenticate, async (req, res) => {
 
 app.post('/api/social/queue', authenticate, async (req, res) => {
   try {
-    const { content, articleUrl, articleTitle, imageUrl, scheduledAt, publishNow } = req.body || {};
+    const { content, articleUrl, articleTitle, imageUrl, scheduledAt, publishNow, source } = req.body || {};
     if (!content) return res.status(400).json({ ok: false, error: 'Post content is required' });
     const db = await loadSocialDB();
+    const allowedSources = ['tradeline', 'tradeline_autopilot', 'autopilot', 'composer'];
     const post = {
       id: nanoid(12),
       content,
@@ -14213,6 +14254,7 @@ app.post('/api/social/queue', authenticate, async (req, res) => {
       publishedAt: null,
       fbPostId: null,
       error: null,
+      source: (source && allowedSources.includes(source)) ? source : null,
     };
     if (publishNow && db.connection) {
       try {
@@ -14484,13 +14526,72 @@ setInterval(checkTokenHealth, 60 * 60 * 1000);
 
 // ─── Autopilot ────────────────────────────────────────────────────────────────
 function getDefaultAutopilot() {
-  return { enabled: false, postsPerDay: 1, feedIds: 'all', postedGuids: [], lastRunAt: null, nextRunAt: null, history: [] };
+  return { enabled: false, postsPerDay: 1, feedIds: 'all', postedGuids: [], lastRunAt: null, nextRunAt: null, history: [],
+    tradelineAutopilot: { enabled: false, postsPerWeek: 3, preferredHour: 10, lastPostedAt: null, lastPostedBank: null, nextRunAt: null } };
 }
 
 const AUTOPILOT_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 function autopilotNextRunAt(fromDate = new Date()) {
   return new Date(fromDate.getTime() + AUTOPILOT_CHECK_INTERVAL_MS).toISOString();
+}
+
+function tradelineAutopilotNextRunAt(postsPerWeek = 3, preferredHour = 10) {
+  const intervalHours = Math.max(1, Math.round((7 * 24) / postsPerWeek));
+  const next = new Date();
+  next.setHours(preferredHour, 0, 0, 0);
+  if (next <= new Date()) next.setDate(next.getDate() + Math.ceil(intervalHours / 24));
+  return next.toISOString();
+}
+
+async function runTradelineAutopilotCycle(db) {
+  const ap = db.autopilot || getDefaultAutopilot();
+  const ta = ap.tradelineAutopilot || {};
+  if (!ta.enabled) return;
+  const runAt = new Date().toISOString();
+
+  try {
+    const scrapeImpl = db._scrapeOverride || scrapeTradelines;
+    const tradelines = await scrapeImpl(fetchFn);
+    if (!tradelines || !tradelines.length) {
+      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour);
+      ap.tradelineAutopilot = ta;
+      db.autopilot = ap;
+      return;
+    }
+    const validTradelines = tradelines.filter(t => t.bank && (t.limit || t.price != null));
+    if (!validTradelines.length) {
+      ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour);
+      ap.tradelineAutopilot = ta;
+      db.autopilot = ap;
+      return;
+    }
+    const otherBanks = ta.lastPostedBank ? validTradelines.filter(t => t.bank !== ta.lastPostedBank) : validTradelines;
+    const pool = otherBanks.length ? otherBanks : validTradelines;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    const content = await buildTradelinePostContent([pick]);
+    const postId = `tap_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const postEntry = { id: postId, content, articleTitle: `${pick.bank || 'Tradeline'} AU Spot`, source: 'tradeline_autopilot', status: 'scheduled', scheduledAt: runAt, createdAt: runAt };
+    if (db.connection) {
+      try {
+        const result = await fbPublishPost({ ...postEntry, scheduledAt: null }, db.connection);
+        if (result.id) { postEntry.status = 'published'; postEntry.publishedAt = runAt; postEntry.fbPostId = result.id; }
+        else { postEntry.status = 'failed'; postEntry.error = result.error?.message || 'Unknown Facebook error'; }
+      } catch (pubErr) { postEntry.status = 'failed'; postEntry.error = pubErr.message; }
+    }
+    (db.queue = db.queue || []).unshift(postEntry);
+    if (db.queue.length > 500) db.queue = db.queue.slice(0, 500);
+    ta.lastPostedAt = runAt;
+    ta.lastPostedBank = pick.bank || null;
+    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour);
+    ap.tradelineAutopilot = ta;
+    db.autopilot = ap;
+  } catch (e) {
+    ta.nextRunAt = tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour);
+    ap.tradelineAutopilot = ta;
+    db.autopilot = ap;
+    logError('TRADELINE_AUTOPILOT_ERROR', e);
+  }
 }
 
 async function runAutopilotCycle(db, force = false) {
@@ -14628,10 +14729,25 @@ setInterval(async () => {
   } catch (_) {}
 }, AUTOPILOT_CHECK_INTERVAL_MS);
 
-app.get('/api/social/autopilot', authenticate, async (req, res) => {
+// Tradeline autopilot background loop — checks hourly
+setInterval(async () => {
   try {
     const db = await loadSocialDB();
     const ap = db.autopilot || getDefaultAutopilot();
+    const ta = ap.tradelineAutopilot || {};
+    if (!ta.enabled) return;
+    if (ta.nextRunAt && new Date(ta.nextRunAt) > new Date()) return;
+    await runTradelineAutopilotCycle(db);
+    await saveSocialDB(db);
+  } catch (_) {}
+}, 60 * 60 * 1000);
+
+app.get('/api/social/autopilot', authenticate, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const defaults = getDefaultAutopilot();
+    const ap = db.autopilot || defaults;
+    if (!ap.tradelineAutopilot) ap.tradelineAutopilot = defaults.tradelineAutopilot;
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
     const postsToday = (db.queue || []).filter(p => p.source === 'autopilot' && p.createdAt && new Date(p.createdAt) >= todayStart).length;
     const tokenStatus = getTokenStatus(db.connection || null);
@@ -14646,7 +14762,7 @@ app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) =>
   try {
     const db = await loadSocialDB();
     const ap = db.autopilot || getDefaultAutopilot();
-    const { enabled, postsPerDay, feedIds } = req.body || {};
+    const { enabled, postsPerDay, feedIds, tradelineAutopilot } = req.body || {};
     if (enabled !== undefined) ap.enabled = !!enabled;
     if (postsPerDay !== undefined) ap.postsPerDay = Math.min(4, Math.max(1, Number(postsPerDay) || 1));
     if (feedIds !== undefined) {
@@ -14659,6 +14775,14 @@ app.put('/api/social/autopilot', authenticate, forbidMember, async (req, res) =>
       } else {
         return res.status(400).json({ ok: false, error: 'feedIds must be "all" or an array of valid feed IDs' });
       }
+    }
+    if (tradelineAutopilot !== undefined && typeof tradelineAutopilot === 'object') {
+      const ta = ap.tradelineAutopilot || { enabled: false, postsPerWeek: 3, preferredHour: 10, lastPostedAt: null, lastPostedBank: null, nextRunAt: null };
+      if (tradelineAutopilot.enabled !== undefined) ta.enabled = !!tradelineAutopilot.enabled;
+      if (tradelineAutopilot.postsPerWeek !== undefined) ta.postsPerWeek = Math.min(14, Math.max(1, Number(tradelineAutopilot.postsPerWeek) || 3));
+      if (tradelineAutopilot.preferredHour !== undefined) ta.preferredHour = Math.min(23, Math.max(0, Number(tradelineAutopilot.preferredHour) || 10));
+      ta.nextRunAt = ta.enabled ? tradelineAutopilotNextRunAt(ta.postsPerWeek, ta.preferredHour) : null;
+      ap.tradelineAutopilot = ta;
     }
     if (ap.enabled) ap.nextRunAt = autopilotNextRunAt();
     else ap.nextRunAt = null;
@@ -14681,6 +14805,25 @@ app.post('/api/social/autopilot/run-now', authenticate, forbidMember, async (req
     if (latest?.status === 'skipped') return res.json({ ok: true, skipped: true, reason: latest.reason });
     res.json({ ok: true, postId: latest?.postId });
   } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/social/autopilot/run-tradeline', authenticate, forbidMember, async (req, res) => {
+  try {
+    const db = await loadSocialDB();
+    const ap = db.autopilot || getDefaultAutopilot();
+    const savedEnabled = ap.tradelineAutopilot?.enabled;
+    if (!ap.tradelineAutopilot) ap.tradelineAutopilot = {};
+    ap.tradelineAutopilot.enabled = true;
+    db.autopilot = ap;
+    await runTradelineAutopilotCycle(db);
+    if (!savedEnabled) ap.tradelineAutopilot.enabled = false;
+    await saveSocialDB(db);
+    const ta = db.autopilot?.tradelineAutopilot || {};
+    res.json({ ok: true, lastPostedAt: ta.lastPostedAt, lastPostedBank: ta.lastPostedBank });
+  } catch (e) {
+    logError('TRADELINE_RUN_NOW_ERROR', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });

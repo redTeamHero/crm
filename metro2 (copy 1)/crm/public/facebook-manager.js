@@ -26,6 +26,7 @@ document.getElementById('smTabs').addEventListener('click', e => {
   if (tab === 'autopilot') initAutopilotTab();
   if (tab === 'leads') initLeadsTab();
   if (tab === 'newpost') initNewPostTab();
+  if (tab === 'tradelines') initTradelinesTab();
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -497,6 +498,7 @@ function renderQueue() {
             ${p.mediaType === 'video' ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.3);">🎬 Video</span>` : ''}
             ${p.scheduledVia === 'facebook' ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(24,119,242,0.12);color:#60a5fa;border:1px solid rgba(24,119,242,0.25);">f Scheduled on FB</span>` : ''}
             ${p.source === 'autopilot' ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);">⚡ Autopilot</span>` : ''}
+            ${(p.source === 'tradeline' || p.source === 'tradeline_autopilot') ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.25);">📈 Tradeline${p.source === 'tradeline_autopilot' ? ' Auto' : ''}</span>` : ''}
             ${p.scheduledAt ? `<span style="font-size:12px;color:#9ca3af;">Scheduled: ${new Date(p.scheduledAt).toLocaleString()}</span>` : ''}
             ${p.publishedAt ? `<span style="font-size:12px;color:#9ca3af;">Published: ${new Date(p.publishedAt).toLocaleString()}</span>` : ''}
             ${p.articleTitle ? `<span style="font-size:11px;color:#6b7280;">From: ${esc(stripHtml(p.articleTitle).slice(0, 40))}…</span>` : ''}
@@ -821,6 +823,7 @@ function renderAutopilot(data) {
   }
 
   renderAutopilotHistory(ap.history || []);
+  renderTlAutopilot(data);
 }
 
 function renderAutopilotHistory(history) {
@@ -1135,5 +1138,308 @@ function resetNewPostForm() {
 $('btnNpPublish').addEventListener('click', () => submitNewPost({ publishNow: true }));
 $('btnNpSchedule').addEventListener('click', () => submitNewPost({ schedule: true }));
 $('btnNpDraft').addEventListener('click', () => submitNewPost({ draft: true }));
+
+// ─── Tradelines Tab ────────────────────────────────────────────────────────────
+let tlSelectedIds = new Set();
+let tlCurrentTradelines = [];
+let tlCurrentPage = 1;
+let tlCurrentRange = '';
+let tlTotalPages = 1;
+
+function tlUpdateSelectedCount() {
+  const row = $('tlGenerateRow');
+  const countEl = $('tlSelectedCount');
+  const n = tlSelectedIds.size;
+  if (n > 0) {
+    row.style.display = 'flex';
+    countEl.textContent = `${n} tradeline${n !== 1 ? 's' : ''} selected`;
+  } else {
+    row.style.display = 'none';
+    countEl.textContent = '';
+  }
+}
+
+function tlRenderCards(tradelines, append = false) {
+  const grid = $('tlCards');
+  if (!append) grid.innerHTML = '';
+  if (!tradelines.length && !append) {
+    $('tlCardGrid').style.display = 'none';
+    $('tlEmpty').style.display = 'block';
+    return;
+  }
+  $('tlCardGrid').style.display = 'block';
+  $('tlEmpty').style.display = 'none';
+  tradelines.forEach(t => {
+    const id = `tl_${t.bank || 'x'}_${t.limit || 0}_${t.price || 0}`.replace(/\s+/g, '_');
+    const card = document.createElement('label');
+    card.style.cssText = 'display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s;';
+    card.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" class="tl-card-cb" data-idx="${tlCurrentTradelines.length}" style="accent-color:#818cf8;margin-top:3px;flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.bank || 'Unknown Bank')}</div>
+          ${t.limit ? `<div style="font-size:12px;color:#34d399;margin-top:2px;">💳 $${Number(t.limit).toLocaleString()} limit</div>` : ''}
+          ${t.price != null ? `<div style="font-size:12px;color:#d4a853;margin-top:1px;">💰 $${t.price}</div>` : ''}
+          ${t.statement ? `<div style="font-size:11px;color:#6b7280;margin-top:1px;">Statement: ${esc(t.statement)}</div>` : ''}
+        </div>
+      </div>`;
+    tlCurrentTradelines.push(t);
+    const cb = card.querySelector('.tl-card-cb');
+    const cbIdx = tlCurrentTradelines.length - 1;
+    cb.addEventListener('change', () => {
+      const key = `${cbIdx}`;
+      if (cb.checked) { tlSelectedIds.add(key); card.style.borderColor = '#818cf8'; }
+      else { tlSelectedIds.delete(key); card.style.borderColor = 'rgba(255,255,255,0.08)'; }
+      tlUpdateSelectedCount();
+    });
+    grid.appendChild(card);
+  });
+}
+
+async function loadTlRanges() {
+  try {
+    const data = await api('/api/tradelines');
+    if (!data.ok) return;
+    const sel = $('tlRangeSelect');
+    const ranges = data.ranges || [];
+    sel.innerHTML = '<option value="">— Select a price range —</option>' +
+      ranges.map(r => `<option value="${esc(r.id)}">${esc(r.label || r.id)}</option>`).join('');
+  } catch (_) {}
+}
+
+async function loadTlRange(rangeId, page = 1) {
+  if (!rangeId) return;
+  tlCurrentRange = rangeId;
+  tlCurrentPage = page;
+  if (page === 1) { tlCurrentTradelines = []; tlSelectedIds.clear(); tlUpdateSelectedCount(); }
+  $('tlLoading').style.display = 'block';
+  $('tlEmpty').style.display = 'none';
+  $('tlCardGrid').style.display = page === 1 ? 'none' : $('tlCardGrid').style.display;
+  const btn = $('btnLoadTradelines');
+  btn.disabled = true; btn.textContent = 'Loading…';
+  try {
+    const data = await api(`/api/tradelines?range=${encodeURIComponent(rangeId)}&page=${page}&perPage=20`);
+    if (!data.ok) throw new Error(data.error || 'Failed to load');
+    const tradelines = data.tradelines || [];
+    tlTotalPages = data.totalPages || 1;
+    const title = $('tlGridTitle');
+    title.textContent = `${data.totalItems || tradelines.length} tradelines in ${data.range?.label || rangeId}`;
+    tlRenderCards(tradelines, page > 1);
+    const moreRow = $('tlLoadMore');
+    moreRow.style.display = tlCurrentPage < tlTotalPages ? 'block' : 'none';
+  } catch (e) {
+    $('tlEmpty').textContent = e.message;
+    $('tlEmpty').style.display = 'block';
+    $('tlCardGrid').style.display = 'none';
+  } finally {
+    $('tlLoading').style.display = 'none';
+    btn.disabled = false; btn.textContent = 'Load Tradelines';
+  }
+}
+
+function initTradelinesTab() {
+  if (!$('tlRangeSelect').options.length || $('tlRangeSelect').options.length <= 1) loadTlRanges();
+}
+
+$('btnLoadTradelines').addEventListener('click', () => {
+  const rangeId = $('tlRangeSelect').value;
+  if (!rangeId) { showToast('Select a price range first.', 'yellow'); return; }
+  loadTlRange(rangeId, 1);
+});
+
+$('tlRangeSelect').addEventListener('change', () => {
+  const rangeId = $('tlRangeSelect').value;
+  if (rangeId) loadTlRange(rangeId, 1);
+});
+
+$('btnTlSelectAll').addEventListener('click', () => {
+  $('tlCards').querySelectorAll('.tl-card-cb').forEach((cb, i) => {
+    cb.checked = true;
+    tlSelectedIds.add(String(i));
+    cb.closest('label').style.borderColor = '#818cf8';
+  });
+  tlUpdateSelectedCount();
+});
+
+$('btnTlClearSel').addEventListener('click', () => {
+  $('tlCards').querySelectorAll('.tl-card-cb').forEach(cb => {
+    cb.checked = false;
+    cb.closest('label').style.borderColor = 'rgba(255,255,255,0.08)';
+  });
+  tlSelectedIds.clear();
+  tlUpdateSelectedCount();
+});
+
+$('btnTlMore').addEventListener('click', () => {
+  if (tlCurrentPage < tlTotalPages) loadTlRange(tlCurrentRange, tlCurrentPage + 1);
+});
+
+$('btnTlGenerate').addEventListener('click', async () => {
+  const errEl = $('tlGenErr');
+  errEl.style.display = 'none';
+  const selected = [...tlSelectedIds].map(idx => tlCurrentTradelines[parseInt(idx, 10)]).filter(Boolean);
+  if (!selected.length) { errEl.textContent = 'Select at least one tradeline first.'; errEl.style.display = 'block'; return; }
+  const btn = $('btnTlGenerate');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const data = await api('/api/social/generate-tradeline-post', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tradelines: selected }),
+    });
+    if (!data.ok) throw new Error(data.error || 'Generation failed');
+    $('tlPostContent').value = data.content;
+    const len = data.content.length;
+    const cc = $('tlCharCount');
+    cc.textContent = `${len} / 63,206`;
+    cc.className = 'char-count' + (len > 55000 ? ' near' : '');
+    $('tlPostEditor').style.display = 'block';
+    $('tlPostEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    showToast('Tradeline post generated!', 'green');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '✦ Generate with AI';
+  }
+});
+
+$('tlPostContent').addEventListener('input', function() {
+  const len = this.value.length;
+  const cc = $('tlCharCount');
+  cc.textContent = `${len} / 63,206`;
+  cc.className = 'char-count' + (len > 55000 ? ' near' : '') + (len > 63000 ? ' over' : '');
+});
+
+async function submitTlPost(opts = {}) {
+  const content = $('tlPostContent').value.trim();
+  const errEl = $('tlSaveErr');
+  const msgEl = $('tlSaveMsg');
+  errEl.style.display = 'none'; msgEl.style.display = 'none';
+  if (!content) { errEl.textContent = 'Post content is empty.'; errEl.style.display = 'block'; return; }
+  const schedValue = $('tlScheduleInput').value;
+  let scheduledAt = schedValue ? new Date(schedValue).toISOString() : null;
+  if (opts.schedule && !scheduledAt) { errEl.textContent = 'Set a date and time to schedule.'; errEl.style.display = 'block'; return; }
+  if (!opts.schedule) scheduledAt = null;
+  const btnP = $('btnTlPublish'); const btnS = $('btnTlSchedule'); const btnD = $('btnTlDraft');
+  [btnP, btnS, btnD].forEach(b => { b.disabled = true; });
+  try {
+    const data = await api('/api/social/queue', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, scheduledAt, publishNow: opts.publishNow || false, source: 'tradeline', articleTitle: 'Tradeline Marketing Post' }),
+    });
+    if (!data.ok) throw new Error(data.error || 'Failed to save');
+    if (opts.publishNow) {
+      if (data.post.status === 'published') { msgEl.style.color = '#10b981'; msgEl.textContent = 'Published to Facebook!'; }
+      else if (data.post.status === 'failed') { msgEl.style.color = '#f87171'; msgEl.textContent = `Publish failed: ${data.post.error || 'Unknown error'}`; }
+      else { msgEl.style.color = '#fbbf24'; msgEl.textContent = 'Saved. No Facebook page connected yet.'; }
+    } else if (opts.schedule) {
+      msgEl.style.color = '#818cf8'; msgEl.textContent = `Scheduled for ${new Date(scheduledAt).toLocaleString()}`;
+    } else {
+      msgEl.style.color = '#9ca3af'; msgEl.textContent = 'Saved as draft.';
+    }
+    msgEl.style.display = 'block';
+    setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+    $('tlPostContent').value = ''; $('tlScheduleInput').value = '';
+    $('tlCharCount').textContent = '0 / 63,206'; $('tlPostEditor').style.display = 'none';
+    tlSelectedIds.clear(); $('tlCards').querySelectorAll('.tl-card-cb').forEach(cb => { cb.checked = false; cb.closest('label').style.borderColor = 'rgba(255,255,255,0.08)'; });
+    tlUpdateSelectedCount();
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    [btnP, btnS, btnD].forEach(b => { b.disabled = false; });
+    btnP.textContent = 'Publish Now'; btnS.textContent = 'Schedule'; btnD.textContent = 'Save Draft';
+  }
+}
+
+$('btnTlPublish').addEventListener('click', () => submitTlPost({ publishNow: true }));
+$('btnTlSchedule').addEventListener('click', () => submitTlPost({ schedule: true }));
+$('btnTlDraft').addEventListener('click', () => submitTlPost({}));
+
+// ─── Tradeline Autopilot UI ────────────────────────────────────────────────────
+function renderTlAutopilot(data) {
+  const ta = (data.autopilot || {}).tradelineAutopilot || {};
+  const enabled = !!ta.enabled;
+  const toggle = $('tlApToggle');
+  const track = $('tlApTrack');
+  const thumb = $('tlApThumb');
+  const label = $('tlApToggleLabel');
+  if (toggle) toggle.checked = enabled;
+  if (track) track.style.background = enabled ? '#10b981' : '#374151';
+  if (thumb) thumb.style.transform = enabled ? 'translateX(20px)' : 'translateX(0)';
+  if (label) label.textContent = enabled ? 'Enabled' : 'Disabled';
+
+  const freq = $('tlApFreq');
+  const hour = $('tlApHour');
+  if (freq && ta.postsPerWeek != null) freq.value = String(ta.postsPerWeek);
+  if (hour && ta.preferredHour != null) hour.value = String(ta.preferredHour);
+
+  const dot = $('tlApStatusDot');
+  const lbl = $('tlApStatusLabel');
+  const sub = $('tlApStatusSub');
+  if (dot) dot.style.background = enabled ? '#10b981' : '#6b7280';
+  if (lbl) lbl.textContent = enabled ? '📈 Tradeline Autopilot Active' : 'Tradeline Autopilot Paused';
+  if (sub) {
+    if (!enabled) { sub.textContent = 'Enable to auto-post tradeline inventory on a recurring schedule.'; }
+    else if (ta.nextRunAt) {
+      const diff = new Date(ta.nextRunAt) - Date.now();
+      let countdown = '';
+      if (diff > 0) { const h = Math.floor(diff/3600000); const m = Math.floor((diff%3600000)/60000); countdown = h > 0 ? ` · Next post in ${h}h ${m}m` : ` · Next post in ${m}m`; }
+      const lastInfo = ta.lastPostedAt ? ` · Last posted: ${new Date(ta.lastPostedAt).toLocaleString()}` : '';
+      sub.textContent = `${ta.postsPerWeek || 3}x/week${countdown}${lastInfo}`;
+    } else { sub.textContent = 'Starting soon…'; }
+  }
+}
+
+const tlApToggle = $('tlApToggle');
+if (tlApToggle && !tlApToggle._tlBound) {
+  tlApToggle._tlBound = true;
+  tlApToggle.addEventListener('change', () => {
+    const on = tlApToggle.checked;
+    $('tlApTrack').style.background = on ? '#10b981' : '#374151';
+    $('tlApThumb').style.transform = on ? 'translateX(20px)' : 'translateX(0)';
+    $('tlApToggleLabel').textContent = on ? 'Enabled' : 'Disabled';
+  });
+}
+
+const btnSaveTlAp = $('btnSaveTlAutopilot');
+if (btnSaveTlAp && !btnSaveTlAp._tlBound) {
+  btnSaveTlAp._tlBound = true;
+  btnSaveTlAp.addEventListener('click', async () => {
+    btnSaveTlAp.disabled = true; btnSaveTlAp.textContent = 'Saving…';
+    try {
+      const enabled = $('tlApToggle').checked;
+      const postsPerWeek = parseInt($('tlApFreq').value, 10) || 3;
+      const preferredHour = parseInt($('tlApHour').value, 10) || 10;
+      const data = await api('/api/social/autopilot', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tradelineAutopilot: { enabled, postsPerWeek, preferredHour } }),
+      });
+      if (!data.ok) throw new Error(data.error || 'Save failed');
+      renderTlAutopilot(data);
+      showToast(enabled ? 'Tradeline autopilot enabled!' : 'Tradeline autopilot disabled.', enabled ? 'green' : 'yellow');
+    } catch (e) {
+      showToast('Failed: ' + e.message, 'red');
+    } finally {
+      btnSaveTlAp.disabled = false; btnSaveTlAp.textContent = 'Save Tradeline Autopilot';
+    }
+  });
+}
+
+const btnTlApRunNow = $('btnTlApRunNow');
+if (btnTlApRunNow && !btnTlApRunNow._tlBound) {
+  btnTlApRunNow._tlBound = true;
+  btnTlApRunNow.addEventListener('click', async () => {
+    btnTlApRunNow.disabled = true; btnTlApRunNow.textContent = 'Generating…';
+    try {
+      const data = await api('/api/social/autopilot/run-tradeline', { method: 'POST' });
+      if (!data.ok) throw new Error(data.error || 'Run failed');
+      showToast('Tradeline post generated and added to queue!', 'green');
+      await loadAutopilot();
+    } catch (e) {
+      showToast('Failed: ' + e.message, 'red');
+    } finally {
+      btnTlApRunNow.disabled = false; btnTlApRunNow.textContent = 'Post One Now';
+    }
+  });
+}
 
 init();

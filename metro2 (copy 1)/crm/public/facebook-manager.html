@@ -88,6 +88,7 @@
       <button class="sm-tab" data-tab="feeds">RSS Feeds</button>
       <button class="sm-tab" data-tab="compose">Generate Post</button>
       <button class="sm-tab" data-tab="newpost">New Post</button>
+      <button class="sm-tab" data-tab="tradelines">📈 Tradelines</button>
       <button class="sm-tab" data-tab="queue">Post Queue</button>
       <button class="sm-tab" data-tab="autopilot">⚡ Autopilot</button>
       <button class="sm-tab" data-tab="leads">Leads &amp; Comments</button>
@@ -436,6 +437,73 @@
       <div id="npMsg" style="font-size:13px;display:none;"></div>
     </section>
 
+    <!-- TRADELINES TAB -->
+    <section id="tab-tradelines" class="sm-section glass card p-6 space-y-5">
+      <div>
+        <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;margin-bottom:4px;">📈 Tradeline Marketing</h2>
+        <p style="font-size:13px;color:#9ca3af;margin-top:0;">Pick tradelines from your inventory, generate a compelling Facebook post, and publish or schedule it instantly.</p>
+      </div>
+
+      <!-- Range picker -->
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;">
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Price Range</label>
+          <select id="tlRangeSelect" class="input-field w-full" style="font-size:13px;">
+            <option value="">— Select a price range —</option>
+          </select>
+        </div>
+        <button id="btnLoadTradelines" type="button" class="btn-secondary" style="font-size:13px;padding:8px 16px;white-space:nowrap;">Load Tradelines</button>
+      </div>
+
+      <!-- Tradeline card grid -->
+      <div id="tlCardGrid" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div id="tlGridTitle" style="font-size:13px;font-weight:600;color:#e5e7eb;"></div>
+          <div style="display:flex;gap:8px;">
+            <button id="btnTlSelectAll" type="button" class="btn-secondary" style="font-size:12px;padding:4px 12px;">Select All</button>
+            <button id="btnTlClearSel" type="button" class="btn-secondary" style="font-size:12px;padding:4px 12px;">Clear</button>
+          </div>
+        </div>
+        <div id="tlCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;max-height:360px;overflow-y:auto;padding-right:4px;"></div>
+        <div id="tlLoadMore" style="display:none;text-align:center;margin-top:10px;">
+          <button id="btnTlMore" type="button" class="btn-secondary" style="font-size:12px;padding:5px 16px;">Load More</button>
+        </div>
+      </div>
+      <div id="tlEmpty" style="display:none;color:#9ca3af;font-size:13px;text-align:center;padding:20px 0;">No tradelines found for this range.</div>
+      <div id="tlLoading" style="display:none;color:#9ca3af;font-size:13px;text-align:center;padding:20px 0;">Loading tradelines…</div>
+
+      <!-- Selected count + Generate button -->
+      <div id="tlGenerateRow" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div id="tlSelectedCount" style="font-size:13px;color:#9ca3af;"></div>
+        <button id="btnTlGenerate" type="button" class="btn-primary" style="font-size:13px;padding:8px 20px;background:linear-gradient(135deg,#6366f1,#8b5cf6);">✦ Generate with AI</button>
+      </div>
+      <div id="tlGenErr" style="color:#f87171;font-size:12px;display:none;"></div>
+
+      <!-- Generated post editor -->
+      <div id="tlPostEditor" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:13px;font-weight:600;color:#e5e7eb;">Generated Post</label>
+          <span id="tlCharCount" class="char-count">0 / 63,206</span>
+        </div>
+        <textarea id="tlPostContent" class="textarea-post" style="min-height:180px;" placeholder="Generated post will appear here…"></textarea>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Schedule Date &amp; Time (optional)</label>
+            <input type="datetime-local" id="tlScheduleInput" class="input-field w-full">
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px;">
+            <button id="btnTlPublish" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#10b981,#059669);">Publish Now</button>
+            <button id="btnTlSchedule" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#6366f1,#8b5cf6);">Schedule</button>
+            <button id="btnTlDraft" type="button" class="btn-secondary w-full" style="font-size:13px;padding:9px 0;">Save Draft</button>
+          </div>
+        </div>
+
+        <div id="tlSaveMsg" style="font-size:13px;margin-top:8px;display:none;"></div>
+        <div id="tlSaveErr" style="color:#f87171;font-size:13px;margin-top:8px;display:none;"></div>
+      </div>
+    </section>
+
     <!-- QUEUE TAB -->
     <section id="tab-queue" class="sm-section glass card p-6 space-y-5">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -512,6 +580,77 @@
       <!-- Save settings -->
       <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
         <button id="btnSaveAutopilot" type="button" class="btn-primary" style="font-size:13px;padding:8px 24px;">Save Settings</button>
+      </div>
+
+      <!-- Tradeline Auto-Posts section -->
+      <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;margin-bottom:24px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+          <div>
+            <h2 style="font-size:15px;font-weight:700;color:#e5e7eb;margin-bottom:2px;">📈 Tradeline Auto-Posts</h2>
+            <p style="font-size:12px;color:#9ca3af;margin-top:0;">Automatically generate and publish Facebook posts for available tradelines on a recurring schedule.</p>
+          </div>
+          <button id="btnTlApRunNow" type="button" class="btn-secondary" style="font-size:12px;padding:7px 16px;white-space:nowrap;">Post One Now</button>
+        </div>
+
+        <!-- Tradeline AP status banner -->
+        <div id="tlApBanner" style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div id="tlApStatusDot" style="width:10px;height:10px;border-radius:50%;background:#6b7280;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div id="tlApStatusLabel" style="font-size:13px;font-weight:700;color:#e5e7eb;">Loading…</div>
+            <div id="tlApStatusSub" style="font-size:11px;color:#9ca3af;margin-top:2px;"></div>
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;margin-bottom:14px;">
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+            <div style="position:relative;width:44px;height:24px;flex-shrink:0;">
+              <input type="checkbox" id="tlApToggle" style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;margin:0;z-index:1;">
+              <div id="tlApTrack" style="position:absolute;inset:0;border-radius:12px;background:#374151;transition:background 0.2s;"></div>
+              <div id="tlApThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>
+            </div>
+            <div>
+              <div id="tlApToggleLabel" style="font-size:13px;font-weight:600;color:#e5e7eb;">Disabled</div>
+              <div style="font-size:11px;color:#9ca3af;">When enabled, auto-posts tradelines to your Facebook page on a set schedule</div>
+            </div>
+          </label>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Posts per week</label>
+            <select id="tlApFreq" class="input-field w-full" style="font-size:13px;">
+              <option value="1">1 per week</option>
+              <option value="2">2 per week</option>
+              <option value="3" selected>3 per week</option>
+              <option value="4">4 per week</option>
+              <option value="5">5 per week</option>
+              <option value="7">Daily (7 per week)</option>
+              <option value="14">Twice daily (14 per week)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Preferred posting hour</label>
+            <select id="tlApHour" class="input-field w-full" style="font-size:13px;">
+              <option value="7">7:00 AM</option>
+              <option value="8">8:00 AM</option>
+              <option value="9">9:00 AM</option>
+              <option value="10" selected>10:00 AM</option>
+              <option value="11">11:00 AM</option>
+              <option value="12">12:00 PM</option>
+              <option value="13">1:00 PM</option>
+              <option value="14">2:00 PM</option>
+              <option value="15">3:00 PM</option>
+              <option value="16">4:00 PM</option>
+              <option value="17">5:00 PM</option>
+              <option value="18">6:00 PM</option>
+              <option value="19">7:00 PM</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;">
+          <button id="btnSaveTlAutopilot" type="button" class="btn-primary" style="font-size:13px;padding:8px 24px;">Save Tradeline Autopilot</button>
+        </div>
       </div>
 
       <!-- Auto-post History -->
@@ -602,7 +741,7 @@
   </div>
 </div>
 
-<script type="module" src="/facebook-manager.js?v=3"></script>
+<script type="module" src="/facebook-manager.js?v=4"></script>
 <script src="/tour-guide.js" type="module"></script>
 </body>
 </html>
