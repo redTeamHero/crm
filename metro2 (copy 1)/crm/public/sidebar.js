@@ -937,8 +937,6 @@
       a.setAttribute('data-tooltip', item.label);
       var _isp = makeIconSpan(item.icon, 20);
       a.appendChild(_isp);
-      // Immediate check: did the SVG land in the <a>?
-      a.setAttribute('data-imm', (a.querySelector('svg') ? 'Y' : 'N') + '/' + (_isp.querySelector('svg') ? 'Y' : 'N') + '/' + _isp.children.length);
       a.appendChild(makeLabelSpan(item.label));
       navEl.appendChild(a);
     }
@@ -948,65 +946,6 @@
   document.body.appendChild(backdrop);
   document.body.appendChild(mobileBtn);
 
-  // DIAGNOSTIC v21 — MutationObserver trap + timed checks
-  var _rmLog = [];
-  var _t0svg = {}, _t300svg = {};
-  // Watch all nav <a> items for child removal
-  var _navTrapObs = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.type !== 'childList') return;
-      var tgt = m.target;
-      // Walk up to find the .evolv-sb-item ancestor (or itself)
-      var anchor = tgt;
-      while (anchor && !(anchor.classList && anchor.classList.contains('evolv-sb-item'))) {
-        anchor = anchor.parentElement;
-      }
-      var tip = anchor ? (anchor.getAttribute('data-tooltip') || '?').substr(0, 4) : '?';
-      m.removedNodes.forEach(function(n) {
-        _rmLog.push('RM:' + tip + ':' + (n.nodeName || '?'));
-      });
-      m.addedNodes.forEach(function(n) {
-        if (n.nodeName && n.nodeName !== '#text') {
-          _rmLog.push('ADD:' + tip + ':' + n.nodeName);
-        }
-      });
-    });
-  });
-  var _navItemsForTrap = sidebar.querySelectorAll('.evolv-sb-nav > a.evolv-sb-item');
-  for (var _ti = 0; _ti < _navItemsForTrap.length; _ti++) {
-    _navTrapObs.observe(_navItemsForTrap[_ti], { childList: true, subtree: true });
-  }
-
-  setTimeout(function() {
-    var its = document.querySelectorAll('.evolv-sb-nav > a.evolv-sb-item');
-    for (var i = 0; i < its.length; i++) {
-      _t0svg[its[i].getAttribute('data-tooltip')] = its[i].querySelector('svg') ? 'Y' : 'N';
-    }
-  }, 0);
-
-  setTimeout(function() {
-    var its = document.querySelectorAll('.evolv-sb-nav > a.evolv-sb-item');
-    for (var i = 0; i < its.length; i++) {
-      _t300svg[its[i].getAttribute('data-tooltip')] = its[i].querySelector('svg') ? 'Y' : 'N';
-    }
-  }, 300);
-
-  setTimeout(function() {
-    var items = document.querySelectorAll('.evolv-sb-nav > a.evolv-sb-item');
-    var out = ['v21(' + items.length + ')'];
-    for (var di = 0; di < items.length; di++) {
-      var it = items[di];
-      var tip = it.getAttribute('data-tooltip') || '?';
-      var sv = it.querySelector('svg');
-      out.push(tip.substr(0,4) + ':imm=' + (it.dataset.imm || '?') + ',t0=' + (_t0svg[tip] || '?') + ',t3=' + (_t300svg[tip] || '?') + ',fin=' + (sv ? 'Y' : 'N'));
-    }
-    if (_rmLog.length) out.push('MUTATIONS:' + _rmLog.slice(0, 10).join(';'));
-    else out.push('MUTATIONS:none');
-    var d = document.createElement('div');
-    d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font:9px monospace;z-index:2147483647;padding:2px 4px;white-space:pre-wrap;overflow:auto;max-height:80px;';
-    d.textContent = out.join(' | ');
-    document.body.appendChild(d);
-  }, 800);
 
   // --- Floating Tour FAB (globe + ?) ---
   // Remove any previously-injected FAB so we never stack duplicates.

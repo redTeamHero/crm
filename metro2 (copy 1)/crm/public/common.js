@@ -337,14 +337,14 @@ export function applyLanguage(lang = currentLanguage) {
 
   const mapping = [
     ['.nav-brand-row .text-xl', 'brand'],
-    ['a[href="/dashboard"]', 'nav.dashboard'],
+    ['a[href="/dashboard"]:not(.evolv-sb-item)', 'nav.dashboard'],
     ['#navClientsToggle span', 'nav.clientsMenu'],
     ['[data-i18n="nav.clients"]', 'nav.clients'],
     ['[data-i18n="nav.leads"]', 'nav.leads'],
-    ['a[href="/schedule"]', 'nav.schedule'],
+    ['a[href="/schedule"]:not(.evolv-sb-item)', 'nav.schedule'],
     ['[data-i18n="nav.billing"]', 'nav.billing'],
     ['a[href="/marketing"]', 'nav.marketing'],
-    ['a[href="/tradelines"]', 'nav.tradelines'],
+    ['a[href="/tradelines"]:not(.evolv-sb-item)', 'nav.tradelines'],
     ['#navCompany', 'nav.myCompany'],
     ['#navSettingsMenu a[href="/settings/client-portal"]', 'nav.clientPortal'],
     ['#navSettingsMenu a[href="/letters"]', 'nav.letters'],
