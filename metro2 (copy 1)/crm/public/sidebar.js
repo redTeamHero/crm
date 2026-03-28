@@ -866,17 +866,13 @@
   function makeIconSpan(iconName, size) {
     var wrap = document.createElement('span');
     wrap.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:' + size + 'px;height:' + size + 'px;flex-shrink:0;flex-basis:' + size + 'px;';
-    var s = document.createElementNS(_SVG_NS, 'svg');
-    s.setAttribute('width', size);
-    s.setAttribute('height', size);
-    s.setAttribute('viewBox', '0 0 24 24');
-    s.setAttribute('fill', 'none');
-    s.setAttribute('stroke', 'currentColor');
-    s.setAttribute('stroke-width', '2');
-    s.setAttribute('stroke-linecap', 'round');
-    s.setAttribute('stroke-linejoin', 'round');
-    s.innerHTML = icons[iconName] || '';
-    wrap.appendChild(s);
+    // Parse via a detached <div> so the SVG is built by the HTML parser
+    // in its normal foreign-content (SVG-namespace) mode — avoids any
+    // Safari bug with setting innerHTML on a createElementNS'd SVG element.
+    var tmp = document.createElement('div');
+    tmp.innerHTML = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (icons[iconName] || '') + '</svg>';
+    var s = tmp.firstChild;
+    if (s) wrap.appendChild(s);
     return wrap;
   }
 
@@ -939,7 +935,10 @@
       a.href = item.href;
       a.className = 'evolv-sb-item' + (active ? ' active' : '');
       a.setAttribute('data-tooltip', item.label);
-      a.appendChild(makeIconSpan(item.icon, 20));
+      var _isp = makeIconSpan(item.icon, 20);
+      a.appendChild(_isp);
+      // Immediate check: did the SVG land in the <a>?
+      a.setAttribute('data-imm', (a.querySelector('svg') ? 'Y' : 'N') + '/' + (_isp.querySelector('svg') ? 'Y' : 'N') + '/' + _isp.children.length);
       a.appendChild(makeLabelSpan(item.label));
       navEl.appendChild(a);
     }
@@ -949,16 +948,14 @@
   document.body.appendChild(backdrop);
   document.body.appendChild(mobileBtn);
 
-  // DIAGNOSTIC v19
+  // DIAGNOSTIC v20
   setTimeout(function() {
     var items = document.querySelectorAll('.evolv-sb-nav > a.evolv-sb-item');
-    var out = ['v19(' + items.length + ')'];
+    var out = ['v20(' + items.length + ')'];
     for (var di = 0; di < items.length; di++) {
       var it = items[di];
       var sv = it.querySelector('svg');
-      var cs = sv ? getComputedStyle(sv) : null;
-      var ic = it.querySelector('svg circle, svg path, svg line, svg ellipse, svg rect');
-      out.push(it.dataset.tooltip.substr(0,4) + ':svg=' + (sv ? 'Y' : 'N') + ',child=' + (ic ? 'Y' : 'N') + (cs ? ',col=' + cs.color + ',str=' + cs.stroke : ''));
+      out.push(it.dataset.tooltip.substr(0,4) + ':imm=' + (it.dataset.imm || '?') + ',fin=' + (sv ? 'Y' : 'N'));
     }
     var d = document.createElement('div');
     d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font:9px monospace;z-index:2147483647;padding:2px 4px;white-space:nowrap;overflow:auto;';
