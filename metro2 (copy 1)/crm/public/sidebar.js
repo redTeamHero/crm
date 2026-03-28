@@ -20,13 +20,13 @@
 
   const icons = {
     menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
-    grid: '<path d="M3 3l7 0l0 7l-7 0z"/><path d="M14 3l7 0l0 7l-7 0z"/><path d="M3 14l7 0l0 7l-7 0z"/><path d="M14 14l7 0l0 7l-7 0z"/>',
+    grid: '<circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>',
     users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
     megaphone: '<path d="M3 11l18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
-    calendar: '<path d="M5 4a2 2 0 0 0-2 2l0 14a2 2 0 0 0 2 2l14 0a2 2 0 0 0 2-2l0-14a2 2 0 0 0-2-2l-14 0z"/><path d="M16 2l0 4M8 2l0 4M3 10l18 0"/>',
+    calendar: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="4.5" r="1.5" fill="currentColor"/><circle cx="19.5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19.5" r="1.5" fill="currentColor"/><circle cx="4.5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/>',
     creditCard: '<path d="M1 6a2 2 0 0 1 2-2h18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6z"/><path d="M1 10h22"/>',
-    dollarSign: '<path d="M12 1l0 22"/><path d="M17 5l-7.5 0a3.5 3.5 0 0 0 0 7l5 0a3.5 3.5 0 0 1 0 7l-8.5 0"/>',
+    dollarSign: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5"/>',
     fileText: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
     mail: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/>',
     book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
@@ -50,32 +50,8 @@
     check: '<polyline points="20 6 9 12 4 10"/>'
   };
 
-  var maskIconUrls = (function () {
-    function enc(paths) {
-      return 'data:image/svg+xml,' + encodeURIComponent(
-        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" + paths + "</svg>"
-      );
-    }
-    return {
-      grid:       enc("<path d='M3 3l7 0l0 7l-7 0z'/><path d='M14 3l7 0l0 7l-7 0z'/><path d='M3 14l7 0l0 7l-7 0z'/><path d='M14 14l7 0l0 7l-7 0z'/>"),
-      calendar:   enc("<path d='M5 4a2 2 0 0 0-2 2l0 14a2 2 0 0 0 2 2l14 0a2 2 0 0 0 2-2l0-14a2 2 0 0 0-2-2l-14 0z'/><path d='M16 2l0 4M8 2l0 4M3 10l18 0'/>"),
-      dollarSign: enc("<path d='M12 1l0 22'/><path d='M17 5l-7.5 0a3.5 3.5 0 0 0 0 7l5 0a3.5 3.5 0 0 1 0 7l-8.5 0'/>")
-    };
-  }());
-
   function svg(name, size) {
     size = size || 20;
-    var murl = maskIconUrls[name];
-    if (murl) {
-      var s = size + 'px';
-      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:' + s + ';height:' + s + ';flex-shrink:0;flex-basis:' + s + ';">'
-        + '<span style="display:block;width:' + s + ';height:' + s + ';background-color:currentColor;'
-        + '-webkit-mask-image:url(&quot;' + murl + '&quot;);mask-image:url(&quot;' + murl + '&quot;);'
-        + '-webkit-mask-size:contain;mask-size:contain;'
-        + '-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;'
-        + '-webkit-mask-position:center;mask-position:center;"></span>'
-        + '</span>';
-    }
     return '<span style="display:inline-flex;align-items:center;justify-content:center;width:' + size + 'px;height:' + size + 'px;flex-shrink:0;flex-basis:' + size + 'px;">'
       + '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
       + (icons[name] || '')
