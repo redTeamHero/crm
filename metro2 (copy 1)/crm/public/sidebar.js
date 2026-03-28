@@ -914,11 +914,13 @@
       var cx = rect ? rect.left + rect.width / 2 : 0;
       var cy = rect ? rect.top + rect.height / 2 : 0;
       var atPt = (rect && rect.width > 0) ? document.elementFromPoint(cx, cy) : null;
+      var ih = item.innerHTML.replace(/\s+/g,' ').substr(0, 60);
       out.push(
         item.dataset.tooltip.substr(0,4) + ':' +
         (rect ? Math.round(rect.width) + 'x' + Math.round(rect.height) : 'NO') +
         (cs ? '/' + cs.display[0] + cs.visibility[0] + cs.opacity : '') +
-        '/AT=' + (atPt ? atPt.tagName + (atPt.className || '').toString().substr(0,12) : 'nil')
+        '/AT=' + (atPt ? atPt.tagName + (atPt.className || '').toString().substr(0,12) : 'nil') +
+        '/HTML=' + ih
       );
     }
     var dbg = document.createElement('div');
