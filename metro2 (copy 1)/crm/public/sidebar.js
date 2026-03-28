@@ -900,6 +900,34 @@
   document.body.appendChild(backdrop);
   document.body.appendChild(mobileBtn);
 
+  // DIAGNOSTIC v13 - remove after debugging
+  setTimeout(function() {
+    var nav = document.querySelector('.evolv-sb-nav');
+    if (!nav) return;
+    var items = nav.querySelectorAll(':scope > a.evolv-sb-item');
+    var out = ['DIAG(' + items.length + 'items)'];
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var svgEl = item.querySelector('svg');
+      var rect = svgEl ? svgEl.getBoundingClientRect() : null;
+      var cs = svgEl ? getComputedStyle(svgEl) : null;
+      var cx = rect ? rect.left + rect.width / 2 : 0;
+      var cy = rect ? rect.top + rect.height / 2 : 0;
+      var atPt = (rect && rect.width > 0) ? document.elementFromPoint(cx, cy) : null;
+      out.push(
+        item.dataset.tooltip.substr(0,4) + ':' +
+        (rect ? Math.round(rect.width) + 'x' + Math.round(rect.height) : 'NO') +
+        (cs ? '/' + cs.display[0] + cs.visibility[0] + cs.opacity : '') +
+        '/AT=' + (atPt ? atPt.tagName + (atPt.className || '').toString().substr(0,12) : 'nil')
+      );
+    }
+    var dbg = document.createElement('div');
+    dbg.id = 'evolv-diag';
+    dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font:10px monospace;z-index:2147483647;padding:3px 6px;white-space:nowrap;overflow:auto;';
+    dbg.textContent = out.join(' | ');
+    document.body.appendChild(dbg);
+  }, 1000);
+
   // --- Floating Tour FAB (globe + ?) ---
   // Remove any previously-injected FAB so we never stack duplicates.
   var _existingFab = document.querySelector('.evolv-tour-fab');
