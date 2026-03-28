@@ -63,7 +63,7 @@
 
   var navItems = [
     { group: 'MAIN' },
-    { label: 'Dashboard', icon: 'grid', href: '/dashboard', match: ['/dashboard'] },
+    { label: 'Dashboard', icon: 'target', href: '/dashboard', match: ['/dashboard'] },
     { label: 'Clients', icon: 'users', href: null, match: ['/clients', '/client-invoicing', '/disputes', '/cfpb', '/'], sub: [
       { label: 'Clients', icon: 'users', href: '/clients', match: ['/clients', '/'] },
       { label: 'Invoicing', icon: 'fileText', href: '/client-invoicing', match: ['/client-invoicing'] },
