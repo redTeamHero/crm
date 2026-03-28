@@ -20,13 +20,13 @@
 
   const icons = {
     menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
-    grid: '<path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M3 14h7v7H3z"/><path d="M14 14h7v7h-7z"/>',
+    grid: '<path d="M3 3l7 0l0 7l-7 0z"/><path d="M14 3l7 0l0 7l-7 0z"/><path d="M3 14l7 0l0 7l-7 0z"/><path d="M14 14l7 0l0 7l-7 0z"/>',
     users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
     target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
     megaphone: '<path d="M3 11l18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
-    calendar: '<path d="M5 4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5z"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    calendar: '<path d="M5 4a2 2 0 0 0-2 2l0 14a2 2 0 0 0 2 2l14 0a2 2 0 0 0 2-2l0-14a2 2 0 0 0-2-2l-14 0z"/><path d="M16 2l0 4M8 2l0 4M3 10l18 0"/>',
     creditCard: '<path d="M1 6a2 2 0 0 1 2-2h18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6z"/><path d="M1 10h22"/>',
-    dollarSign: '<path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+    dollarSign: '<path d="M12 1l0 22"/><path d="M17 5l-7.5 0a3.5 3.5 0 0 0 0 7l5 0a3.5 3.5 0 0 1 0 7l-8.5 0"/>',
     fileText: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
     mail: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/>',
     book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
@@ -57,9 +57,9 @@
       );
     }
     return {
-      grid:       enc("<path d='M3 3h7v7H3z'/><path d='M14 3h7v7h-7z'/><path d='M3 14h7v7H3z'/><path d='M14 14h7v7h-7z'/>"),
-      calendar:   enc("<path d='M5 4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5z'/><path d='M16 2v4M8 2v4M3 10h18'/>"),
-      dollarSign: enc("<path d='M12 1v22'/><path d='M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'/>")
+      grid:       enc("<path d='M3 3l7 0l0 7l-7 0z'/><path d='M14 3l7 0l0 7l-7 0z'/><path d='M3 14l7 0l0 7l-7 0z'/><path d='M14 14l7 0l0 7l-7 0z'/>"),
+      calendar:   enc("<path d='M5 4a2 2 0 0 0-2 2l0 14a2 2 0 0 0 2 2l14 0a2 2 0 0 0 2-2l0-14a2 2 0 0 0-2-2l-14 0z'/><path d='M16 2l0 4M8 2l0 4M3 10l18 0'/>"),
+      dollarSign: enc("<path d='M12 1l0 22'/><path d='M17 5l-7.5 0a3.5 3.5 0 0 0 0 7l5 0a3.5 3.5 0 0 1 0 7l-8.5 0'/>")
     };
   }());
 
