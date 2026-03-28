@@ -52,7 +52,11 @@
 
   function svg(name, size) {
     size = size || 20;
-    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + icons[name] + '</svg>';
+    return '<span style="display:inline-flex;align-items:center;justify-content:center;width:' + size + 'px;height:' + size + 'px;flex-shrink:0;flex-basis:' + size + 'px;">'
+      + '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+      + icons[name]
+      + '</svg>'
+      + '</span>';
   }
 
   var path = window.location.pathname;
@@ -276,7 +280,6 @@
     }
     .evolv-sb-item svg,
     .evolv-sb-parent-toggle svg {
-      flex-shrink: 0;
       width: 20px !important;
       height: 20px !important;
       min-width: 20px;
@@ -286,7 +289,7 @@
       fill: none !important;
       visibility: visible !important;
       opacity: 1 !important;
-      display: inline-block !important;
+      display: block !important;
     }
     .evolv-sb-item svg > *,
     .evolv-sb-parent-toggle svg > * {
