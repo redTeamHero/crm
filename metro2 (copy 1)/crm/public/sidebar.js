@@ -895,6 +895,16 @@
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Sign Out" id="evolv-sb-logout" style="color:#888;">' + svg('logout', 20) + '<span class="evolv-sb-item-label" style="color:#888;">Sign Out</span></a>';
   html += '</div>';
 
+  // DIAGNOSTIC v15 - show raw HTML around Dashboard item
+  var _dIdx = html.indexOf('data-tooltip="Dashboard"');
+  var _dRaw = _dIdx >= 0 ? html.substr(_dIdx - 3, 120).replace(/</g,'[').replace(/>/g,']') : 'NOT FOUND';
+  var _sIdx = html.indexOf('data-tooltip="Schedule"');
+  var _sRaw = _sIdx >= 0 ? html.substr(_sIdx - 3, 80).replace(/</g,'[').replace(/>/g,']') : 'NOT FOUND';
+  var _diagPre = document.createElement('div');
+  _diagPre.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#00f;color:#ff0;font:9px monospace;z-index:2147483647;padding:2px 4px;white-space:pre-wrap;overflow:auto;max-height:80px;';
+  _diagPre.textContent = 'DASH-RAW:' + _dRaw + '\nSCHE-RAW:' + _sRaw;
+  document.body.appendChild(_diagPre);
+
   sidebar.innerHTML = html;
   document.body.appendChild(sidebar);
   document.body.appendChild(backdrop);
