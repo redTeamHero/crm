@@ -859,43 +859,90 @@
 
   sidebar.innerHTML = html;
 
-  // Populate nav items via insertAdjacentHTML so each <a> is parsed
-  // in its own fresh context — avoids iOS Safari HTML5 parser state
-  // accumulation that strips SVG icon spans from certain items.
+  // Build nav items using pure DOM methods (zero HTML parsing) to avoid
+  // iOS Safari's HTML5 adoption-agency algorithm stripping icon spans.
+  var _SVG_NS = 'http://www.w3.org/2000/svg';
+
+  function makeIconSpan(iconName, size) {
+    var wrap = document.createElement('span');
+    wrap.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:' + size + 'px;height:' + size + 'px;flex-shrink:0;flex-basis:' + size + 'px;';
+    var s = document.createElementNS(_SVG_NS, 'svg');
+    s.setAttribute('width', size);
+    s.setAttribute('height', size);
+    s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor');
+    s.setAttribute('stroke-width', '2');
+    s.setAttribute('stroke-linecap', 'round');
+    s.setAttribute('stroke-linejoin', 'round');
+    s.innerHTML = icons[iconName] || '';
+    wrap.appendChild(s);
+    return wrap;
+  }
+
+  function makeLabelSpan(text, extraStyle) {
+    var sp = document.createElement('span');
+    sp.className = 'evolv-sb-item-label';
+    sp.textContent = text;
+    if (extraStyle) sp.style.cssText = extraStyle;
+    return sp;
+  }
+
   var navEl = sidebar.querySelector('.evolv-sb-nav');
   for (var i = 0; i < navItems.length; i++) {
     var item = navItems[i];
-    var chunk = '';
 
     if (item.group) {
-      chunk = '<div class="evolv-sb-group"><div class="evolv-sb-group-line"></div><div class="evolv-sb-group-label">' + item.group + '</div></div>';
+      var grp = document.createElement('div');
+      grp.className = 'evolv-sb-group';
+      var line = document.createElement('div');
+      line.className = 'evolv-sb-group-line';
+      var glbl = document.createElement('div');
+      glbl.className = 'evolv-sb-group-label';
+      glbl.textContent = item.group;
+      grp.appendChild(line);
+      grp.appendChild(glbl);
+      navEl.appendChild(grp);
+
     } else if (item.sub) {
       var parentActive = isParentActive(item);
       var subOpen = parentActive;
-      chunk = '<button class="evolv-sb-parent-toggle' + (parentActive ? ' active' : '') + (subOpen ? ' sub-open' : '') + '" data-tooltip="' + item.label + '">';
-      chunk += svg(item.icon, 20);
-      chunk += '<span class="evolv-sb-item-label">' + item.label + '</span>';
-      chunk += '<span class="evolv-sb-chevron">' + svg('chevronDown', 16) + '</span>';
-      chunk += '</button>';
-      chunk += '<div class="evolv-sb-sub' + (subOpen ? ' open' : '') + '">';
+      var btn = document.createElement('button');
+      btn.className = 'evolv-sb-parent-toggle' + (parentActive ? ' active' : '') + (subOpen ? ' sub-open' : '');
+      btn.setAttribute('data-tooltip', item.label);
+      btn.appendChild(makeIconSpan(item.icon, 20));
+      btn.appendChild(makeLabelSpan(item.label));
+      var chev = document.createElement('span');
+      chev.className = 'evolv-sb-chevron';
+      chev.appendChild(makeIconSpan('chevronDown', 16));
+      btn.appendChild(chev);
+      navEl.appendChild(btn);
+
+      var subDiv = document.createElement('div');
+      subDiv.className = 'evolv-sb-sub' + (subOpen ? ' open' : '');
       for (var j = 0; j < item.sub.length; j++) {
         var sub = item.sub[j];
         var subActive = isActive(sub);
-        chunk += '<a href="' + sub.href + '" class="evolv-sb-item' + (subActive ? ' active' : '') + '" data-tooltip="' + sub.label + '">';
-        chunk += svg(sub.icon, 20);
-        chunk += '<span class="evolv-sb-item-label">' + sub.label + '</span>';
-        chunk += '</a>';
+        var subA = document.createElement('a');
+        subA.href = sub.href;
+        subA.className = 'evolv-sb-item' + (subActive ? ' active' : '');
+        subA.setAttribute('data-tooltip', sub.label);
+        subA.appendChild(makeIconSpan(sub.icon, 20));
+        subA.appendChild(makeLabelSpan(sub.label));
+        subDiv.appendChild(subA);
       }
-      chunk += '</div>';
+      navEl.appendChild(subDiv);
+
     } else {
       var active = isActive(item);
-      chunk = '<a href="' + item.href + '" class="evolv-sb-item' + (active ? ' active' : '') + '" data-tooltip="' + item.label + '">';
-      chunk += svg(item.icon, 20);
-      chunk += '<span class="evolv-sb-item-label">' + item.label + '</span>';
-      chunk += '</a>';
+      var a = document.createElement('a');
+      a.href = item.href;
+      a.className = 'evolv-sb-item' + (active ? ' active' : '');
+      a.setAttribute('data-tooltip', item.label);
+      a.appendChild(makeIconSpan(item.icon, 20));
+      a.appendChild(makeLabelSpan(item.label));
+      navEl.appendChild(a);
     }
-
-    navEl.insertAdjacentHTML('beforeend', chunk);
   }
 
   document.body.appendChild(sidebar);
