@@ -50,11 +50,35 @@
     check: '<polyline points="20 6 9 12 4 10"/>'
   };
 
+  var maskIconUrls = (function () {
+    function enc(paths) {
+      return 'data:image/svg+xml,' + encodeURIComponent(
+        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" + paths + "</svg>"
+      );
+    }
+    return {
+      grid:       enc("<path d='M3 3h7v7H3z'/><path d='M14 3h7v7h-7z'/><path d='M3 14h7v7H3z'/><path d='M14 14h7v7h-7z'/>"),
+      calendar:   enc("<path d='M5 4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5z'/><path d='M16 2v4M8 2v4M3 10h18'/>"),
+      dollarSign: enc("<path d='M12 1v22'/><path d='M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6'/>")
+    };
+  }());
+
   function svg(name, size) {
     size = size || 20;
+    var murl = maskIconUrls[name];
+    if (murl) {
+      var s = size + 'px';
+      return '<span style="display:inline-flex;align-items:center;justify-content:center;width:' + s + ';height:' + s + ';flex-shrink:0;flex-basis:' + s + ';">'
+        + '<span style="display:block;width:' + s + ';height:' + s + ';background-color:currentColor;'
+        + '-webkit-mask-image:url(&quot;' + murl + '&quot;);mask-image:url(&quot;' + murl + '&quot;);'
+        + '-webkit-mask-size:contain;mask-size:contain;'
+        + '-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;'
+        + '-webkit-mask-position:center;mask-position:center;"></span>'
+        + '</span>';
+    }
     return '<span style="display:inline-flex;align-items:center;justify-content:center;width:' + size + 'px;height:' + size + 'px;flex-shrink:0;flex-basis:' + size + 'px;">'
       + '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
-      + icons[name]
+      + (icons[name] || '')
       + '</svg>'
       + '</span>';
   }
