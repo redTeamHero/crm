@@ -949,6 +949,23 @@
   document.body.appendChild(backdrop);
   document.body.appendChild(mobileBtn);
 
+  // DIAGNOSTIC v19
+  setTimeout(function() {
+    var items = document.querySelectorAll('.evolv-sb-nav > a.evolv-sb-item');
+    var out = ['v19(' + items.length + ')'];
+    for (var di = 0; di < items.length; di++) {
+      var it = items[di];
+      var sv = it.querySelector('svg');
+      var cs = sv ? getComputedStyle(sv) : null;
+      var ic = it.querySelector('svg circle, svg path, svg line, svg ellipse, svg rect');
+      out.push(it.dataset.tooltip.substr(0,4) + ':svg=' + (sv ? 'Y' : 'N') + ',child=' + (ic ? 'Y' : 'N') + (cs ? ',col=' + cs.color + ',str=' + cs.stroke : ''));
+    }
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font:9px monospace;z-index:2147483647;padding:2px 4px;white-space:nowrap;overflow:auto;';
+    d.textContent = out.join(' | ');
+    document.body.appendChild(d);
+  }, 800);
+
   // --- Floating Tour FAB (globe + ?) ---
   // Remove any previously-injected FAB so we never stack duplicates.
   var _existingFab = document.querySelector('.evolv-tour-fab');
