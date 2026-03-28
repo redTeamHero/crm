@@ -516,6 +516,9 @@
     .evolv-tour-fab:active {
       transform: scale(0.96);
     }
+    .evolv-tour-fab svg * {
+      fill: none !important;
+    }
     .evolv-tour-fab-tooltip {
       position: absolute;
       right: 60px;
