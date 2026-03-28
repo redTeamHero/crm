@@ -811,9 +811,8 @@
     document.head.appendChild(gs);
   }
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Guided Tour" id="evolv-sb-tour" style="color:#d4a853;">';
-  html += '<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;">'
-    + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="position:absolute;top:0;left:0;">'
-    + '<circle cx="12" cy="12" r="9.5" fill="none" stroke="#d4a853" stroke-width="1.5"/>'
+  html += '<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex-shrink:0;border-radius:50%;box-shadow:0 0 0 1.5px #d4a853;">'
+    + '<svg width="20" height="20" viewBox="0 0 24 24" style="position:absolute;top:0;left:0;fill:none;">'
     + '<path d="M2.5 12 Q12 8 21.5 12" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.65"/>'
     + '<path d="M2.5 12 Q12 16 21.5 12" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.65"/>'
     + '<path d="M5.5 6.5 Q12 4.5 18.5 6.5" stroke="#d4a853" stroke-width="0.8" fill="none" opacity="0.45"/>'
@@ -960,9 +959,8 @@
   tourFab.setAttribute('aria-label', 'Guided Tour');
   tourFab.setAttribute('type', 'button');
   tourFab.innerHTML = '<span class="evolv-tour-fab-tooltip">Guided Tour</span>'
-    + '<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;">'
-    + '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" style="position:absolute;top:0;left:0;">'
-    + '<circle cx="12" cy="12" r="9.5" fill="none" stroke="#d4a853" stroke-width="1.5"/>'
+    + '<span style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;box-shadow:0 0 0 1.5px #d4a853;">'
+    + '<svg width="26" height="26" viewBox="0 0 24 24" style="position:absolute;top:0;left:0;fill:none;">'
     + '<path d="M2.5 12 Q12 8 21.5 12" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.65"/>'
     + '<path d="M2.5 12 Q12 16 21.5 12" stroke="#d4a853" stroke-width="1" fill="none" opacity="0.65"/>'
     + '<path d="M5.5 6.5 Q12 4.5 18.5 6.5" stroke="#d4a853" stroke-width="0.8" fill="none" opacity="0.45"/>'
