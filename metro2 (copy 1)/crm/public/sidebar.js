@@ -63,7 +63,7 @@
 
   var navItems = [
     { group: 'MAIN' },
-    { label: 'Dashboard', icon: 'target', href: '/dashboard', match: ['/dashboard'] },
+    { label: 'Dashboard', icon: 'grid', href: '/dashboard', match: ['/dashboard'] },
     { label: 'Clients', icon: 'users', href: null, match: ['/clients', '/client-invoicing', '/disputes', '/cfpb', '/'], sub: [
       { label: 'Clients', icon: 'users', href: '/clients', match: ['/clients', '/'] },
       { label: 'Invoicing', icon: 'fileText', href: '/client-invoicing', match: ['/client-invoicing'] },
@@ -796,45 +796,7 @@
 
   html += '<div class="evolv-sb-toggle"><button type="button" aria-label="Toggle sidebar">' + svg('menu', 20) + '</button></div>';
 
-  html += '<div class="evolv-sb-nav">';
-
-  for (var i = 0; i < navItems.length; i++) {
-    var item = navItems[i];
-
-    if (item.group) {
-      html += '<div class="evolv-sb-group"><div class="evolv-sb-group-line"></div><div class="evolv-sb-group-label">' + item.group + '</div></div>';
-      continue;
-    }
-
-    if (item.sub) {
-      var parentActive = isParentActive(item);
-      var subOpen = parentActive;
-      html += '<button class="evolv-sb-parent-toggle' + (parentActive ? ' active' : '') + (subOpen ? ' sub-open' : '') + '" data-tooltip="' + item.label + '">';
-      html += svg(item.icon, 20);
-      html += '<span class="evolv-sb-item-label">' + item.label + '</span>';
-      html += '<span class="evolv-sb-chevron">' + svg('chevronDown', 16) + '</span>';
-      html += '</button>';
-      html += '<div class="evolv-sb-sub' + (subOpen ? ' open' : '') + '">';
-      for (var j = 0; j < item.sub.length; j++) {
-        var sub = item.sub[j];
-        var subActive = isActive(sub);
-        html += '<a href="' + sub.href + '" class="evolv-sb-item' + (subActive ? ' active' : '') + '" data-tooltip="' + sub.label + '">';
-        html += svg(sub.icon, 20);
-        html += '<span class="evolv-sb-item-label">' + sub.label + '</span>';
-        html += '</a>';
-      }
-      html += '</div>';
-      continue;
-    }
-
-    var active = isActive(item);
-    html += '<a href="' + item.href + '" class="evolv-sb-item' + (active ? ' active' : '') + '" data-tooltip="' + item.label + '">';
-    html += svg(item.icon, 20);
-    html += '<span class="evolv-sb-item-label">' + item.label + '</span>';
-    html += '</a>';
-  }
-
-  html += '</div>';
+  html += '<div class="evolv-sb-nav"></div>';
 
   html += '<div class="evolv-sb-bottom">';
   html += '<div class="evolv-sb-bell-wrap evolv-sb-item" id="evolv-sb-bell" data-tooltip="Notifications" style="cursor:pointer;">' + svg('bell', 20) + '<span class="evolv-sb-item-label">Notifications</span><span class="evolv-sb-bell-badge" id="evolv-bell-badge"></span></div>';
@@ -895,50 +857,50 @@
   html += '<a href="#" class="evolv-sb-item" data-tooltip="Sign Out" id="evolv-sb-logout" style="color:#888;">' + svg('logout', 20) + '<span class="evolv-sb-item-label" style="color:#888;">Sign Out</span></a>';
   html += '</div>';
 
-  // DIAGNOSTIC v15 - show raw HTML around Dashboard item
-  var _dIdx = html.indexOf('data-tooltip="Dashboard"');
-  var _dRaw = _dIdx >= 0 ? html.substr(_dIdx - 3, 120).replace(/</g,'[').replace(/>/g,']') : 'NOT FOUND';
-  var _sIdx = html.indexOf('data-tooltip="Schedule"');
-  var _sRaw = _sIdx >= 0 ? html.substr(_sIdx - 3, 80).replace(/</g,'[').replace(/>/g,']') : 'NOT FOUND';
-  var _diagPre = document.createElement('div');
-  _diagPre.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#00f;color:#ff0;font:9px monospace;z-index:2147483647;padding:2px 4px;white-space:pre-wrap;overflow:auto;max-height:80px;';
-  _diagPre.textContent = 'DASH-RAW:' + _dRaw + '\nSCHE-RAW:' + _sRaw;
-  document.body.appendChild(_diagPre);
-
   sidebar.innerHTML = html;
+
+  // Populate nav items via insertAdjacentHTML so each <a> is parsed
+  // in its own fresh context — avoids iOS Safari HTML5 parser state
+  // accumulation that strips SVG icon spans from certain items.
+  var navEl = sidebar.querySelector('.evolv-sb-nav');
+  for (var i = 0; i < navItems.length; i++) {
+    var item = navItems[i];
+    var chunk = '';
+
+    if (item.group) {
+      chunk = '<div class="evolv-sb-group"><div class="evolv-sb-group-line"></div><div class="evolv-sb-group-label">' + item.group + '</div></div>';
+    } else if (item.sub) {
+      var parentActive = isParentActive(item);
+      var subOpen = parentActive;
+      chunk = '<button class="evolv-sb-parent-toggle' + (parentActive ? ' active' : '') + (subOpen ? ' sub-open' : '') + '" data-tooltip="' + item.label + '">';
+      chunk += svg(item.icon, 20);
+      chunk += '<span class="evolv-sb-item-label">' + item.label + '</span>';
+      chunk += '<span class="evolv-sb-chevron">' + svg('chevronDown', 16) + '</span>';
+      chunk += '</button>';
+      chunk += '<div class="evolv-sb-sub' + (subOpen ? ' open' : '') + '">';
+      for (var j = 0; j < item.sub.length; j++) {
+        var sub = item.sub[j];
+        var subActive = isActive(sub);
+        chunk += '<a href="' + sub.href + '" class="evolv-sb-item' + (subActive ? ' active' : '') + '" data-tooltip="' + sub.label + '">';
+        chunk += svg(sub.icon, 20);
+        chunk += '<span class="evolv-sb-item-label">' + sub.label + '</span>';
+        chunk += '</a>';
+      }
+      chunk += '</div>';
+    } else {
+      var active = isActive(item);
+      chunk = '<a href="' + item.href + '" class="evolv-sb-item' + (active ? ' active' : '') + '" data-tooltip="' + item.label + '">';
+      chunk += svg(item.icon, 20);
+      chunk += '<span class="evolv-sb-item-label">' + item.label + '</span>';
+      chunk += '</a>';
+    }
+
+    navEl.insertAdjacentHTML('beforeend', chunk);
+  }
+
   document.body.appendChild(sidebar);
   document.body.appendChild(backdrop);
   document.body.appendChild(mobileBtn);
-
-  // DIAGNOSTIC v13 - remove after debugging
-  setTimeout(function() {
-    var nav = document.querySelector('.evolv-sb-nav');
-    if (!nav) return;
-    var items = nav.querySelectorAll(':scope > a.evolv-sb-item');
-    var out = ['DIAG(' + items.length + 'items)'];
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      var svgEl = item.querySelector('svg');
-      var rect = svgEl ? svgEl.getBoundingClientRect() : null;
-      var cs = svgEl ? getComputedStyle(svgEl) : null;
-      var cx = rect ? rect.left + rect.width / 2 : 0;
-      var cy = rect ? rect.top + rect.height / 2 : 0;
-      var atPt = (rect && rect.width > 0) ? document.elementFromPoint(cx, cy) : null;
-      var ih = item.innerHTML.replace(/\s+/g,' ').substr(0, 60);
-      out.push(
-        item.dataset.tooltip.substr(0,4) + ':' +
-        (rect ? Math.round(rect.width) + 'x' + Math.round(rect.height) : 'NO') +
-        (cs ? '/' + cs.display[0] + cs.visibility[0] + cs.opacity : '') +
-        '/AT=' + (atPt ? atPt.tagName + (atPt.className || '').toString().substr(0,12) : 'nil') +
-        '/HTML=' + ih
-      );
-    }
-    var dbg = document.createElement('div');
-    dbg.id = 'evolv-diag';
-    dbg.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#000;color:#0f0;font:10px monospace;z-index:2147483647;padding:3px 6px;white-space:nowrap;overflow:auto;';
-    dbg.textContent = out.join(' | ');
-    document.body.appendChild(dbg);
-  }, 1000);
 
   // --- Floating Tour FAB (globe + ?) ---
   // Remove any previously-injected FAB so we never stack duplicates.
