@@ -87,6 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const smartCreditClientIdEl = document.getElementById('smartCreditClientId');
   const smartCreditClientSecretEl = document.getElementById('smartCreditClientSecret');
   const smartCreditRedirectUriEl = document.getElementById('smartCreditRedirectUri');
+  const sendgridApiKeyEl = document.getElementById('sendgridApiKey');
+  const sendgridFromEmailEl = document.getElementById('sendgridFromEmail');
+  const sendgridFromNameEl = document.getElementById('sendgridFromName');
+  const sgStatusDotEl = document.getElementById('sgStatusDot');
   const envListEl = document.getElementById('envList');
   const addEnvBtn = document.getElementById('addEnvRow');
 
@@ -463,6 +467,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (smartCreditClientIdEl) smartCreditClientIdEl.value = currentSettings.smartCreditClientId || '';
       if (smartCreditClientSecretEl) smartCreditClientSecretEl.value = currentSettings.smartCreditClientSecret || '';
       if (smartCreditRedirectUriEl) smartCreditRedirectUriEl.value = currentSettings.smartCreditRedirectUri || '';
+      if (sendgridApiKeyEl) sendgridApiKeyEl.value = currentSettings.sendgridApiKey || '';
+      if (sendgridFromEmailEl) sendgridFromEmailEl.value = currentSettings.sendgridFromEmail || '';
+      if (sendgridFromNameEl) sendgridFromNameEl.value = currentSettings.sendgridFromName || '';
+      if (sgStatusDotEl) {
+        const configured = !!(currentSettings.sendgridApiKey && currentSettings.sendgridFromEmail);
+        sgStatusDotEl.className = 'status-dot ml-auto ' + (configured ? 'connected' : 'disconnected');
+        sgStatusDotEl.title = configured ? 'Configured' : 'Not configured';
+      }
       renderEnvOverrides(currentSettings.envOverrides || {});
       applyPortalSettingsForm(currentSettings.clientPortal || {});
       applyHotkeySettings(currentSettings.hotkeys || {});
@@ -517,6 +529,9 @@ document.addEventListener('DOMContentLoaded', () => {
       smartCreditClientId: readSettingValue(smartCreditClientIdEl, 'smartCreditClientId'),
       smartCreditClientSecret: readSettingValue(smartCreditClientSecretEl, 'smartCreditClientSecret'),
       smartCreditRedirectUri: readSettingValue(smartCreditRedirectUriEl, 'smartCreditRedirectUri'),
+      sendgridApiKey: readSettingValue(sendgridApiKeyEl, 'sendgridApiKey'),
+      sendgridFromEmail: readSettingValue(sendgridFromEmailEl, 'sendgridFromEmail'),
+      sendgridFromName: readSettingValue(sendgridFromNameEl, 'sendgridFromName'),
       envOverrides: collectEnvOverrides(),
       clientPortal: hasPortalForm
         ? {
@@ -558,6 +573,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (smartCreditClientIdEl) smartCreditClientIdEl.value = currentSettings.smartCreditClientId || '';
       if (smartCreditClientSecretEl) smartCreditClientSecretEl.value = currentSettings.smartCreditClientSecret || '';
       if (smartCreditRedirectUriEl) smartCreditRedirectUriEl.value = currentSettings.smartCreditRedirectUri || '';
+      if (sendgridApiKeyEl) sendgridApiKeyEl.value = currentSettings.sendgridApiKey || '';
+      if (sendgridFromEmailEl) sendgridFromEmailEl.value = currentSettings.sendgridFromEmail || '';
+      if (sendgridFromNameEl) sendgridFromNameEl.value = currentSettings.sendgridFromName || '';
+      if (sgStatusDotEl) {
+        const configured = !!(currentSettings.sendgridApiKey && currentSettings.sendgridFromEmail);
+        sgStatusDotEl.className = 'status-dot ml-auto ' + (configured ? 'connected' : 'disconnected');
+        sgStatusDotEl.title = configured ? 'Configured' : 'Not configured';
+      }
       renderEnvOverrides(currentSettings.envOverrides || {});
       applyPortalSettingsForm(currentSettings.clientPortal || {});
       applyHotkeySettings(currentSettings.hotkeys || {});

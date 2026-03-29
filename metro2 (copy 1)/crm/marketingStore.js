@@ -892,6 +892,22 @@ export async function addEmailHistory(entry) {
   return next;
 }
 
+export async function updateEmailHistory(id, patch = {}) {
+  if (!id) throw new Error("Email history id is required");
+  const state = await loadMarketingState();
+  const index = state.emailHistory.findIndex((h) => h.id === id);
+  if (index === -1) return null;
+  const current = state.emailHistory[index];
+  const allowedStatuses = new Set(["queued", "sent", "failed", "draft", "scheduled", "running", "completed"]);
+  const next = { ...current };
+  if (patch.status && allowedStatuses.has(patch.status)) next.status = patch.status;
+  if (patch.errorMessage !== undefined) next.errorMessage = patch.errorMessage ? String(patch.errorMessage).slice(0, 500) : null;
+  if (patch.sentAt !== undefined) next.sentAt = patch.sentAt || new Date().toISOString();
+  state.emailHistory[index] = next;
+  await saveMarketingState(state);
+  return state.emailHistory[index];
+}
+
 export async function resetMarketingState(value = null) {
   if (value === null) {
     await writeKey(MARKETING_STATE_KEY, null);

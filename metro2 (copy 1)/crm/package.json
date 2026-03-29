@@ -16,6 +16,7 @@
     "generate:rule-report": "node scripts/generateRuleTestReport.js"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "ajv": "^8.17.1",
     "archiver": "^6.0.2",
     "bcryptjs": "^2.4.3",

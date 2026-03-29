@@ -38,6 +38,7 @@ import {
   paginate,
 } from "./tradelineBuckets.js";
 import marketingRoutes from "./marketingRoutes.js";
+import { addEmailHistory, updateEmailHistory, listGroupMembers } from "./marketingStore.js";
 import { prepareNegativeItems } from "../../shared/lib/format/negativeItems.js";
 import { diffReports } from "../../shared/lib/format/reportDiff.js";
 import { enforceTenantQuota, sanitizeTenantId, DEFAULT_TENANT_ID, resolveTenantId } from "./tenantLimits.js";
@@ -165,6 +166,9 @@ const DEFAULT_SETTINGS = {
   smartCreditClientId: "",
   smartCreditClientSecret: "",
   smartCreditRedirectUri: "",
+  sendgridApiKey: "",
+  sendgridFromEmail: "",
+  sendgridFromName: "",
   envOverrides: {},
   clientPortal: cloneDefaultClientPortalSettings(),
   hotkeys: {},
@@ -191,6 +195,9 @@ const STRING_SETTING_KEYS = [
   "smartCreditClientId",
   "smartCreditClientSecret",
   "smartCreditRedirectUri",
+  "sendgridApiKey",
+  "sendgridFromEmail",
+  "sendgridFromName",
 ];
 
 const SECRET_SETTING_KEYS = new Set([
@@ -201,6 +208,7 @@ const SECRET_SETTING_KEYS = new Set([
   "gmailRefreshToken",
   "fbAppSecret",
   "smartCreditClientSecret",
+  "sendgridApiKey",
 ]);
 
 function maskSecrets(settings) {
@@ -603,6 +611,9 @@ const INTEGRATION_SETTING_TO_ENV = {
   smartCreditClientId: "SMART_CREDIT_CLIENT_ID",
   smartCreditClientSecret: "SMART_CREDIT_CLIENT_SECRET",
   smartCreditRedirectUri: "SMART_CREDIT_REDIRECT_URI",
+  sendgridApiKey: "SENDGRID_API_KEY",
+  sendgridFromEmail: "SENDGRID_FROM_EMAIL",
+  sendgridFromName: "SENDGRID_FROM_NAME",
 };
 
 function normalizeEnvOverrides(raw){
@@ -2851,6 +2862,125 @@ app.get("/api/public/reviews/:companyId", async (req, res) => {
   } catch (err) {
     logError("PUBLIC_REVIEWS_FETCH_ERROR", err);
     res.status(500).json({ ok: false, error: "Failed to fetch reviews" });
+  }
+});
+
+app.post("/api/marketing/email/send", marketingKeyAuth, authenticate, forbidMember, async (req, res) => {
+  const { subject, body, recipientType = "client", recipientId, groupId } = req.body || {};
+  const safeSubject = sanitizeSettingString(subject || "").slice(0, 200);
+  if (!safeSubject) return res.status(400).json({ ok: false, error: "Subject is required" });
+  const ALLOWED = new Set(["client", "group", "multiple"]);
+  const safeType = String(recipientType || "client").trim().toLowerCase();
+  if (!ALLOWED.has(safeType)) return res.status(400).json({ ok: false, error: "Invalid recipientType" });
+  if (safeType === "group" && !groupId) return res.status(400).json({ ok: false, error: "groupId is required for group sends" });
+  if ((safeType === "client" || safeType === "multiple") && !recipientId) return res.status(400).json({ ok: false, error: "recipientId is required for client sends" });
+
+  const recipientIds = recipientId ? String(recipientId).split(",").map(s => s.trim()).filter(Boolean) : [];
+
+  try {
+    const settings = await loadSettings(req).catch(() => ({}));
+    const apiKey = sanitizeSettingString(settings.sendgridApiKey) || sanitizeSettingString(process.env.SENDGRID_API_KEY || "");
+    const fromEmail = sanitizeSettingString(settings.sendgridFromEmail) || sanitizeSettingString(process.env.SENDGRID_FROM_EMAIL || "");
+    const fromName = sanitizeSettingString(settings.sendgridFromName) || sanitizeSettingString(process.env.SENDGRID_FROM_NAME || "");
+
+    const db = await loadDB(req).catch(() => ({ consumers: [] }));
+    const consumers = db.consumers || [];
+
+    let targetEmails = [];
+    if (safeType === "group") {
+      const memberships = await listGroupMembers(groupId).catch(() => []);
+      for (const m of memberships) {
+        const c = consumers.find(x => x.id === m.clientId);
+        if (c?.email) targetEmails.push({ id: m.clientId, email: c.email, name: c.name || "" });
+      }
+    } else {
+      for (const rid of recipientIds) {
+        const c = consumers.find(x => x.id === rid);
+        if (c?.email) targetEmails.push({ id: rid, email: c.email, name: c.name || "" });
+        else targetEmails.push({ id: rid, email: null, name: "" });
+      }
+    }
+
+    const entries = [];
+    for (const rid of (safeType !== "group" ? recipientIds : [null])) {
+      const entry = await addEmailHistory({
+        type: "one-time",
+        subject: safeSubject,
+        recipientType: safeType,
+        recipientId: rid || null,
+        groupId: safeType === "group" ? sanitizeSettingString(groupId) : null,
+        recipientCount: safeType === "group" ? targetEmails.length : 1,
+        status: "queued",
+        createdBy: req.user?.username || "system",
+      });
+      entries.push(entry);
+    }
+
+    if (!apiKey) {
+      return res.status(201).json({
+        ok: true,
+        entry: entries[0],
+        entries,
+        message: "Email queued. Add your SendGrid API key in Settings > API Integrations to send live emails.",
+      });
+    }
+
+    const sgMail = (await import("@sendgrid/mail")).default;
+    sgMail.setApiKey(apiKey);
+    const from = fromName ? { email: fromEmail || "noreply@example.com", name: fromName } : (fromEmail || "noreply@example.com");
+    const safeBody = String(body || "").trim();
+
+    if (safeType === "group") {
+      const entry = entries[0];
+      if (targetEmails.length === 0) {
+        await updateEmailHistory(entry.id, { status: "failed", errorMessage: "No group members with email addresses found" }).catch(() => {});
+        return res.status(201).json({ ok: true, entry, entries, message: "No group members with email addresses found." });
+      }
+      let sent = 0;
+      let lastErr = null;
+      for (const t of targetEmails) {
+        try {
+          await sgMail.send({ to: t.email, from, subject: safeSubject, text: safeBody || "(no content)", html: safeBody ? `<p>${safeBody.replace(/\n/g, "<br>")}</p>` : "<p>(no content)</p>" });
+          sent++;
+        } catch (e) {
+          lastErr = e?.response?.body?.errors?.[0]?.message || e?.message || "SendGrid error";
+          logWarn("SENDGRID_SEND_ERROR", `Failed to send to ${t.email}`, { err: lastErr });
+        }
+      }
+      const finalStatus = sent > 0 ? "sent" : "failed";
+      const updated = await updateEmailHistory(entry.id, { status: finalStatus, errorMessage: lastErr && sent === 0 ? lastErr : null }).catch(() => entry);
+      return res.status(201).json({ ok: true, entry: updated || entry, entries: [updated || entry], message: `Sent to ${sent}/${targetEmails.length} recipients.` });
+    }
+
+    const updatedEntries = [];
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const t = targetEmails[i];
+      if (!t?.email) {
+        const updated = await updateEmailHistory(entry.id, { status: "failed", errorMessage: "No email address on file for this client" }).catch(() => entry);
+        updatedEntries.push(updated || entry);
+        continue;
+      }
+      try {
+        await sgMail.send({ to: t.email, from, subject: safeSubject, text: safeBody || "(no content)", html: safeBody ? `<p>${safeBody.replace(/\n/g, "<br>")}</p>` : "<p>(no content)</p>" });
+        const updated = await updateEmailHistory(entry.id, { status: "sent" }).catch(() => entry);
+        updatedEntries.push(updated || entry);
+      } catch (e) {
+        const errMsg = e?.response?.body?.errors?.[0]?.message || e?.message || "SendGrid error";
+        logWarn("SENDGRID_SEND_ERROR", `Failed to send to ${t.email}`, { err: errMsg });
+        const updated = await updateEmailHistory(entry.id, { status: "failed", errorMessage: errMsg }).catch(() => entry);
+        updatedEntries.push(updated || entry);
+      }
+    }
+
+    const anyFailed = updatedEntries.some(e => e.status === "failed");
+    const anySent = updatedEntries.some(e => e.status === "sent");
+    const msg = anySent && anyFailed ? "Partially sent — some recipients had errors." : anySent ? "Email sent successfully." : "All sends failed — check recipient email addresses.";
+    return res.status(201).json({ ok: true, entry: updatedEntries[0], entries: updatedEntries, message: msg });
+
+  } catch (error) {
+    logError("EMAIL_SEND_ERROR", "Failed to process email send", error);
+    res.status(500).json({ ok: false, error: error.message || "Failed to send email" });
   }
 });
 
