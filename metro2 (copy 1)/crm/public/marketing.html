@@ -195,6 +195,7 @@
             <div class="flex flex-wrap gap-2 pt-2">
               <button class="btn" type="submit" id="seSendNow">Send Now</button>
               <button class="btn btn-outline" type="button" id="seSaveDraft">Save Draft</button>
+              <button class="btn btn-outline" type="button" id="seSendTest">Send Test to Me</button>
             </div>
             <div id="seStatus" class="em-status"></div>
           </form>
@@ -318,7 +319,12 @@
         <input id="campSubject" class="input w-full" type="text" placeholder="Your credit update is ready" required />
       </div>
       <div>
-        <label class="em-label" for="campBody">Email body</label>
+        <div class="flex items-center justify-between mb-1">
+          <label class="em-label mb-0" for="campBody">Email body</label>
+          <select id="campTemplateSelect" class="input text-xs py-1 px-2 w-auto">
+            <option value="">Use template...</option>
+          </select>
+        </div>
         <textarea id="campBody" class="input w-full" rows="7" placeholder="Hi {{first_name}},&#10;&#10;We have an update on your credit repair progress..."></textarea>
       </div>
       <div class="flex flex-wrap gap-1 items-center">
@@ -331,7 +337,8 @@
       <div id="campStatus2" class="em-status"></div>
       <div class="flex flex-wrap gap-2 justify-end pt-2">
         <button class="btn btn-outline" type="button" id="closeCampaignModal2">Cancel</button>
-        <button class="btn" type="submit" id="campSaveBtn">Save Campaign</button>
+        <button class="btn btn-outline" type="button" id="campSendNowBtn">Save &amp; Send Now</button>
+        <button class="btn" type="submit" id="campSaveBtn">Save Draft</button>
       </div>
     </form>
   </div>
@@ -373,11 +380,12 @@
       </div>
       <button class="btn-icon text-xl" type="button" id="closeGroupMembersModal">&times;</button>
     </div>
-    <div class="flex gap-2 mb-4">
+    <div class="flex gap-2 mb-3">
       <input id="addMemberInput" class="input flex-1 text-sm" type="text" placeholder="Client ID or email to add" />
       <button class="btn text-sm" type="button" id="addMemberBtn">Add</button>
     </div>
-    <div id="memberStatus" class="em-status mb-3"></div>
+    <div id="memberStatus" class="em-status mb-2"></div>
+    <input id="memberSearch" class="input w-full text-sm mb-3" type="search" placeholder="Search members..." />
     <div id="memberList" class="space-y-2 max-h-80 overflow-y-auto">
       <div class="em-empty" style="padding:24px 0">No members yet.</div>
     </div>

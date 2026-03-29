@@ -98,6 +98,10 @@ router.post("/campaigns", async (req, res) => {
     kpiTarget = "",
     summary = "",
     progress = 0,
+    subject = "",
+    body = "",
+    groupId = "",
+    scheduledAt = null,
   } = req.body || {};
 
   const safeName = sanitizeString(name).slice(0, 160);
@@ -107,9 +111,11 @@ router.post("/campaigns", async (req, res) => {
 
   let safeProgress;
   let safeNextTouch = null;
+  let safeScheduledAt = null;
   try {
     safeProgress = parseCampaignProgress(progress, 0);
     safeNextTouch = nextTouchAt ? parseCampaignDate(nextTouchAt) : null;
+    safeScheduledAt = scheduledAt ? new Date(scheduledAt).toISOString() : null;
   } catch (error) {
     return res.status(400).json({ ok: false, error: error.message || "Invalid campaign data" });
   }
@@ -123,6 +129,10 @@ router.post("/campaigns", async (req, res) => {
       kpiTarget: sanitizeString(kpiTarget).slice(0, 160),
       summary: sanitizeString(summary).slice(0, 400),
       progress: safeProgress,
+      subject: sanitizeString(subject).slice(0, 200),
+      body: sanitizeString(body).slice(0, 20000),
+      groupId: sanitizeString(groupId).slice(0, 80) || undefined,
+      scheduledAt: safeScheduledAt,
       createdBy: req.user?.username || "system",
     });
     res.status(201).json({ ok: true, campaign });
@@ -133,7 +143,7 @@ router.post("/campaigns", async (req, res) => {
 
 router.patch("/campaigns/:id", async (req, res) => {
   const { id } = req.params;
-  const { name, status, segment, nextTouchAt, kpiTarget, summary, progress } = req.body || {};
+  const { name, status, segment, nextTouchAt, kpiTarget, summary, progress, subject, body, groupId, scheduledAt } = req.body || {};
 
   const patch = {};
 
@@ -183,6 +193,13 @@ router.patch("/campaigns/:id", async (req, res) => {
     } catch (error) {
       return res.status(400).json({ ok: false, error: error.message || "Invalid next touch date" });
     }
+  }
+
+  if (subject !== undefined) patch.subject = sanitizeString(subject).slice(0, 200);
+  if (body !== undefined) patch.body = sanitizeString(body).slice(0, 20000);
+  if (groupId !== undefined) patch.groupId = sanitizeString(groupId).slice(0, 80) || null;
+  if (scheduledAt !== undefined) {
+    try { patch.scheduledAt = scheduledAt ? new Date(scheduledAt).toISOString() : null; } catch { patch.scheduledAt = null; }
   }
 
   patch.updatedBy = req.user?.username || "system";
@@ -311,7 +328,8 @@ router.post("/email/sequences", async (req, res) => {
   const rawSteps = Array.isArray(steps) ? steps : [];
   const sanitizedSteps = rawSteps.slice(0, 20).map((step) => ({
     subject: sanitizeString(step?.subject ?? ""),
-    delayDays: Number(step?.delayDays),
+    delayDays: Number(step?.delayDays) || 0,
+    body: sanitizeString(step?.body ?? "").slice(0, 10000),
     templateId: step?.templateId ? sanitizeString(step.templateId).slice(0, 120) : undefined,
   }));
 

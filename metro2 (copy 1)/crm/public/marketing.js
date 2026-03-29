@@ -79,6 +79,7 @@ async function loadGroups() {
     renderGroups();
     populateGroupSelects();
     updateStats();
+    loadMemberCounts();
   } catch { _groups = []; }
 }
 async function loadCampaigns() {
@@ -137,7 +138,20 @@ function populateGroupSelects() {
 
 function populateTemplateSelects() {
   const opts = `<option value="">Use template...</option>` + _templates.map((t) => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.title)}</option>`).join("");
-  [qs("#seTemplateSelect")].forEach((el) => { if (el) el.innerHTML = opts; });
+  [qs("#seTemplateSelect"), qs("#campTemplateSelect")].forEach((el) => { if (el) el.innerHTML = opts; });
+}
+
+/* ── member count cache ──────────────────────────── */
+const _memberCounts = {};
+
+async function loadMemberCounts() {
+  for (const g of _groups) {
+    try {
+      const r = await api("GET", `${API}/groups/${g.id}/members`);
+      _memberCounts[g.id] = (r.members || []).length;
+    } catch { _memberCounts[g.id] = 0; }
+  }
+  renderGroups();
 }
 
 /* ── GROUPS ──────────────────────────────────────── */
@@ -149,13 +163,14 @@ function renderGroups() {
     container.innerHTML = `<div class="em-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>${q ? "No groups match your search." : "No groups yet. Create one to start organizing your audience."}</div>`;
     return;
   }
-  const memberCounts = {};
-  container.innerHTML = filtered.map((g) => `
-    <div class="em-card flex flex-col sm:flex-row sm:items-center gap-3" data-gid="${escapeHtml(g.id)}">
+  container.innerHTML = filtered.map((g) => {
+    const count = _memberCounts[g.id] ?? "—";
+    return `<div class="em-card flex flex-col sm:flex-row sm:items-center gap-3" data-gid="${escapeHtml(g.id)}">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-semibold text-sm">${escapeHtml(g.name)}</span>
           ${statusBadge(g.status)}
+          <span class="em-badge em-badge-gray">${count} member${count === 1 ? "" : "s"}</span>
         </div>
         ${g.description ? `<p class="text-xs text-gray-500 mt-1">${escapeHtml(g.description)}</p>` : ""}
         <p class="text-xs text-gray-400 mt-1">Created ${fmtDate(g.createdAt)}</p>
@@ -166,7 +181,8 @@ function renderGroups() {
         <button class="btn btn-outline text-xs" data-action="archiveGroup" data-gid="${escapeHtml(g.id)}">${g.status === "archived" ? "Restore" : "Archive"}</button>
         <button class="btn btn-outline text-xs" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" data-action="deleteGroup" data-gid="${escapeHtml(g.id)}" data-gname="${escapeHtml(g.name)}">Delete</button>
       </div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 
 qs("#groupSearch")?.addEventListener("input", renderGroups);
@@ -238,26 +254,38 @@ async function openGroupMembers(gid, gname) {
   await refreshMembers();
 }
 
+let _activeMembers = [];
+
 async function refreshMembers() {
   if (!_activeGroupId) return;
   try {
     const r = await api("GET", `${API}/groups/${_activeGroupId}/members`);
-    const members = r.members || [];
-    qs("#groupMembersSubtitle").textContent = `${members.length} member${members.length === 1 ? "" : "s"}`;
-    if (!members.length) {
-      qs("#memberList").innerHTML = `<div class="em-empty" style="padding:24px 0">No members yet. Add a client ID or email above.</div>`;
-      return;
-    }
-    qs("#memberList").innerHTML = members.map((m) => `
-      <div class="em-card flex items-center justify-between gap-2 py-2 px-3" style="border-radius:10px;padding:10px 14px">
-        <span class="text-sm font-mono text-gray-700">${escapeHtml(m.clientId)}</span>
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-gray-400">${fmtDate(m.addedAt)}</span>
-          <button class="btn-icon text-xs text-red-400" data-action="removeMember" data-cid="${escapeHtml(m.clientId)}">&times;</button>
-        </div>
-      </div>`).join("");
+    _activeMembers = r.members || [];
+    renderMemberList();
+    _memberCounts[_activeGroupId] = _activeMembers.length;
+    renderGroups();
   } catch { qs("#memberList").innerHTML = `<div class="em-empty">Failed to load members.</div>`; }
 }
+
+function renderMemberList() {
+  const q = (qs("#memberSearch")?.value || "").toLowerCase();
+  const filtered = _activeMembers.filter((m) => !q || m.clientId.toLowerCase().includes(q));
+  qs("#groupMembersSubtitle").textContent = `${_activeMembers.length} member${_activeMembers.length === 1 ? "" : "s"}`;
+  if (!filtered.length) {
+    qs("#memberList").innerHTML = `<div class="em-empty" style="padding:24px 0">${q ? "No members match your search." : "No members yet. Add a client ID or email above."}</div>`;
+    return;
+  }
+  qs("#memberList").innerHTML = filtered.map((m) => `
+    <div class="em-card flex items-center justify-between gap-2" style="border-radius:10px;padding:10px 14px">
+      <span class="text-sm font-mono text-gray-700">${escapeHtml(m.clientId)}</span>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-400">${fmtDate(m.addedAt)}</span>
+        <button class="btn-icon text-xs text-red-400" data-action="removeMember" data-cid="${escapeHtml(m.clientId)}">&times;</button>
+      </div>
+    </div>`).join("");
+}
+
+qs("#memberSearch")?.addEventListener("input", renderMemberList);
 
 qs("#memberList")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-action='removeMember']");
@@ -380,6 +408,16 @@ async function sendEmail(isDraft = false) {
 
 qs("#sendEmailForm")?.addEventListener("submit", (e) => { e.preventDefault(); sendEmail(false); });
 qs("#seSaveDraft")?.addEventListener("click", () => sendEmail(true));
+qs("#seSendTest")?.addEventListener("click", async () => {
+  const subject = qs("#seSubject").value.trim();
+  const body = qs("#seBody").value.trim();
+  if (!subject) { toast(qs("#seStatus"), "Enter a subject first.", true); return; }
+  try {
+    await api("POST", `${API}/history`, { type: "test", subject: `[TEST] ${subject}`, recipientType: "client", status: "queued" });
+    toast(qs("#seStatus"), "Test email queued to History. Connect a delivery provider to receive it.");
+    await loadHistory();
+  } catch (err) { toast(qs("#seStatus"), err.message || "Failed to queue test email.", true); }
+});
 
 /* ── CAMPAIGNS ───────────────────────────────────── */
 function renderCampaigns() {
@@ -462,25 +500,54 @@ function openEditCampaign(cid) {
   openModal("campaignModal");
 }
 
-qs("#campaignForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
+// Campaign template selector auto-fill
+qs("#campTemplateSelect")?.addEventListener("change", () => {
+  const tid = qs("#campTemplateSelect").value;
+  if (!tid) return;
+  const tpl = _templates.find((t) => t.id === tid);
+  if (!tpl) return;
+  if (tpl.title && !qs("#campSubject").value) qs("#campSubject").value = tpl.title;
+  if (tpl.html) qs("#campBody").value = tpl.html;
+});
+
+async function saveCampaignForm(sendNow = false) {
   const id = qs("#campaignId").value;
-  const body = {
+  const groupId = qs("#campGroupId").value;
+  const payload = {
     name: qs("#campName").value.trim(),
-    status: qs("#campStatus").value,
-    segment: qs("#campGroupId").value || "b2c",
-    groupId: qs("#campGroupId").value || undefined,
+    status: sendNow ? "running" : qs("#campStatus").value,
+    segment: groupId || "b2c",
+    groupId: groupId || undefined,
     subject: qs("#campSubject").value.trim(),
     body: qs("#campBody").value.trim(),
+    scheduledAt: qs("#campScheduledAt")?.value || undefined,
   };
-  if (!body.name) { toast(qs("#campStatus2"), "Campaign name is required.", true); return; }
+  if (!payload.name) { toast(qs("#campStatus2"), "Campaign name is required.", true); return; }
   try {
-    if (id) { await api("PATCH", `${API}/campaigns/${id}`, body); }
-    else { await api("POST", `${API}/campaigns`, body); }
+    let campaign;
+    if (id) { const r = await api("PATCH", `${API}/campaigns/${id}`, payload); campaign = r.campaign; }
+    else { const r = await api("POST", `${API}/campaigns`, payload); campaign = r.campaign; }
+    if (sendNow && campaign) {
+      const group = _groups.find((g) => g.id === groupId);
+      await api("POST", `${API}/history`, {
+        type: "campaign",
+        subject: payload.subject,
+        recipientType: "group",
+        groupId: groupId || null,
+        groupName: group ? group.name : null,
+        campaignId: campaign.id,
+        status: "queued",
+        recipientCount: groupId ? (_memberCounts[groupId] ?? null) : null,
+      });
+      toast(qs("#campStatus2"), "Campaign saved and queued for send. Check History.");
+    }
     closeModal("campaignModal");
-    await loadCampaigns();
+    await Promise.all([loadCampaigns(), sendNow ? loadHistory() : Promise.resolve()]);
   } catch (err) { toast(qs("#campStatus2"), err.message || "Failed to save campaign.", true); }
-});
+}
+
+qs("#campaignForm")?.addEventListener("submit", (e) => { e.preventDefault(); saveCampaignForm(false); });
+qs("#campSendNowBtn")?.addEventListener("click", () => saveCampaignForm(true));
 
 [qs("#btnNewCampaign"), qs("#btnNewCampaign2")].forEach((b) => b?.addEventListener("click", () => { resetCampaignForm(); openModal("campaignModal"); }));
 [qs("#closeCampaignModal"), qs("#closeCampaignModal2")].forEach((b) => b?.addEventListener("click", () => closeModal("campaignModal")));

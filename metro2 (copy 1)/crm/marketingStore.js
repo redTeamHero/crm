@@ -239,10 +239,12 @@ function normalizeSequenceSteps(rawSteps) {
       ? Math.max(0, Math.min(Number(step.delayDays), 365))
       : 0;
     const templateId = step?.templateId ? String(step.templateId) : null;
+    const body = step?.body ? String(step.body).slice(0, 10000) : "";
     return {
       subject,
       delayDays,
       templateId,
+      body,
     };
   });
 }
@@ -294,6 +296,12 @@ function normalizeCampaign(raw = {}) {
   const createdBy = raw.createdBy || "system";
   const updatedBy = raw.updatedBy || raw.createdBy || "system";
 
+  const subject = raw.subject ? String(raw.subject).slice(0, 200) : "";
+  const body = raw.body ? String(raw.body).slice(0, 20000) : "";
+  const groupId = raw.groupId ? String(raw.groupId).slice(0, 80) : null;
+  let scheduledAt = null;
+  if (raw.scheduledAt) { try { scheduledAt = new Date(raw.scheduledAt).toISOString(); } catch { scheduledAt = null; } }
+
   return {
     id: raw.id || nanoid(10),
     name: name || "Campaign",
@@ -303,6 +311,10 @@ function normalizeCampaign(raw = {}) {
     summary,
     progress,
     nextTouchAt,
+    subject,
+    body,
+    groupId,
+    scheduledAt,
     createdAt,
     updatedAt,
     createdBy,
