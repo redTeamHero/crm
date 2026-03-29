@@ -138,7 +138,7 @@ async function loadGroups() {
     populateGroupSelects();
     updateStats();
     loadMemberCounts();
-  } catch { _groups = []; }
+  } catch (err) { _groups = []; console.error("Groups load failed:", err?.message); }
 }
 async function loadCampaigns() {
   try {
@@ -146,7 +146,7 @@ async function loadCampaigns() {
     _campaigns = r.campaigns || [];
     renderCampaigns();
     updateStats();
-  } catch { _campaigns = []; }
+  } catch (err) { _campaigns = []; console.error("Campaigns load failed:", err?.message); }
 }
 async function loadSequences() {
   try {
@@ -154,7 +154,7 @@ async function loadSequences() {
     _sequences = r.sequences || [];
     renderSequences();
     updateStats();
-  } catch { _sequences = []; }
+  } catch (err) { _sequences = []; console.error("Sequences load failed:", err?.message); }
 }
 async function loadTemplates() {
   try {
@@ -162,7 +162,7 @@ async function loadTemplates() {
     _templates = r.templates || [];
     renderTemplates();
     populateTemplateSelects();
-  } catch { _templates = []; }
+  } catch (err) { _templates = []; console.error("Templates load failed:", err?.message); }
 }
 async function loadHistory() {
   try {
@@ -170,7 +170,7 @@ async function loadHistory() {
     _history = r.history || [];
     renderHistory();
     updateStats();
-  } catch { _history = []; renderHistory(); }
+  } catch (err) { _history = []; renderHistory(); console.error("History load failed:", err?.message); }
 }
 
 /* ── stats ───────────────────────────────────────── */
@@ -632,6 +632,7 @@ async function saveCampaignForm(sendNow = false) {
         recipientCount,
       });
       await api("PATCH", `${API}/campaigns/${campaign.id}`, {
+        status: "sent",
         sentAt: new Date().toISOString(),
         recipientCount,
       });
