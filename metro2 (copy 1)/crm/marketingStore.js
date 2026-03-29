@@ -205,6 +205,8 @@ function normalizeEmailSequence(raw = {}) {
   const statusRaw = String(raw.status || "active").toLowerCase();
   const status = SEQUENCE_STATUSES.has(statusRaw) ? statusRaw : "active";
   const groupId = raw.groupId ? String(raw.groupId).slice(0, 80) : null;
+  const createdAt = raw.createdAt || new Date().toISOString();
+  const updatedAt = raw.updatedAt || createdAt;
   return {
     id: raw.id || nanoid(8),
     title,
@@ -214,7 +216,8 @@ function normalizeEmailSequence(raw = {}) {
     frequency,
     status,
     steps: normalizeSequenceSteps(raw.steps),
-    createdAt: raw.createdAt || new Date().toISOString(),
+    createdAt,
+    updatedAt,
     createdBy: raw.createdBy || "system",
     gradient: raw.gradient || segmentGradient(segment),
   };
@@ -786,7 +789,7 @@ export async function updateEmailSequence(id, updates = {}) {
   const index = state.emailSequences.findIndex((s) => s.id === id);
   if (index === -1) throw new Error("Sequence not found");
   const current = state.emailSequences[index];
-  const next = normalizeEmailSequence({ ...current, ...updates, id: current.id, createdAt: current.createdAt, createdBy: current.createdBy });
+  const next = normalizeEmailSequence({ ...current, ...updates, id: current.id, createdAt: current.createdAt, updatedAt: new Date().toISOString(), createdBy: current.createdBy });
   state.emailSequences[index] = next;
   await saveMarketingState(state);
   return next;

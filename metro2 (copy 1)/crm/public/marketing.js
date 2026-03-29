@@ -472,7 +472,7 @@ async function sendEmail(isDraft = false, isTest = false) {
   try {
     if (isDraft) {
       await api("POST", `${API}/history`, { ...payload, type: "one-time", status: "draft" });
-      toast(qs("#seStatus"), "Draft saved to History.");
+      toast(qs("#seStatus"), "Draft logged. Copy your subject/body before navigating away — drafts can\u2019t be re-opened for editing.");
     } else {
       await api("POST", `${API}/email/send`, payload);
       toast(qs("#seStatus"), "Email queued. Check History for status.");

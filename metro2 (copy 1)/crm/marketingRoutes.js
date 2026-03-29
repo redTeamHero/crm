@@ -675,12 +675,16 @@ router.post("/history", async (req, res) => {
   }
 });
 
+const ALLOWED_RECIPIENT_TYPES = new Set(["client", "group", "multiple"]);
+
 router.post("/email/send", async (req, res) => {
   const { subject, body, recipientType = "client", recipientId, groupId, templateId } = req.body || {};
   const safeSubject = sanitizeString(subject || "").slice(0, 200);
   if (!safeSubject) return res.status(400).json({ ok: false, error: "Subject is required" });
-  if (recipientType === "group" && !groupId) return res.status(400).json({ ok: false, error: "groupId is required for group sends" });
-  if (recipientType === "client" && !recipientId) return res.status(400).json({ ok: false, error: "recipientId is required for client sends" });
+  const safeRecipientType = String(recipientType || "client").trim().toLowerCase();
+  if (!ALLOWED_RECIPIENT_TYPES.has(safeRecipientType)) return res.status(400).json({ ok: false, error: "Invalid recipientType. Must be client, group, or multiple" });
+  if (safeRecipientType === "group" && !groupId) return res.status(400).json({ ok: false, error: "groupId is required for group sends" });
+  if ((safeRecipientType === "client" || safeRecipientType === "multiple") && !recipientId) return res.status(400).json({ ok: false, error: "recipientId is required for client sends" });
 
   const recipientIds = recipientId
     ? String(recipientId).split(",").map((s) => s.trim()).filter(Boolean)
