@@ -2542,6 +2542,10 @@ app.post("/api/settings", authenticate, requireRole("admin"), async (req, res) =
   for (const key of STRING_SETTING_KEYS) {
     if (SYSTEM_SETTING_KEYS.has(key)) continue;
     if (Object.prototype.hasOwnProperty.call(payload, key)) {
+      if (SECRET_SETTING_KEYS.has(key)) {
+        const rawVal = typeof payload[key] === "string" ? payload[key].trim() : "";
+        if (rawVal.startsWith("\u2022\u2022\u2022\u2022")) continue;
+      }
       updates[key] = payload[key];
     }
   }

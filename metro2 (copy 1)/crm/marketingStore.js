@@ -361,6 +361,7 @@ function normalizeEmailHistory(raw = {}) {
     sentAt: raw.sentAt || new Date().toISOString(),
     recipientCount: Number.isFinite(Number(raw.recipientCount)) ? Number(raw.recipientCount) : null,
     createdBy: raw.createdBy || "system",
+    errorMessage: raw.errorMessage ? String(raw.errorMessage).slice(0, 500) : null,
   };
 }
 
