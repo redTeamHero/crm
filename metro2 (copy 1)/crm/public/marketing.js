@@ -442,13 +442,16 @@ function renderCampaigns() {
   container.innerHTML = _campaigns.map((c) => {
     const group = _groups.find((g) => g.id === c.groupId || g.id === c.segment);
     const groupName = group ? group.name : (c.segment || "—");
+    const recipientCount = c.recipientCount != null ? `${c.recipientCount} recipient${c.recipientCount === 1 ? "" : "s"}` : null;
+    const sentDate = c.sentAt ? `Sent ${fmtDate(c.sentAt)}` : `Updated ${fmtDate(c.updatedAt)}`;
     return `<div class="em-card flex flex-col sm:flex-row sm:items-center gap-3">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-semibold text-sm">${escapeHtml(c.name)}</span>
           ${statusBadge(c.status)}
+          ${recipientCount ? `<span class="em-badge em-badge-gray">${recipientCount}</span>` : ""}
         </div>
-        <p class="text-xs text-gray-500 mt-1">Group: ${escapeHtml(groupName)} &bull; ${fmtDate(c.updatedAt)}</p>
+        <p class="text-xs text-gray-500 mt-1">Group: ${escapeHtml(groupName)} &bull; ${sentDate}</p>
         ${c.subject ? `<p class="text-xs text-gray-400 mt-0.5">Subject: ${escapeHtml(c.subject)}</p>` : ""}
       </div>
       <div class="flex flex-wrap gap-2 shrink-0">
@@ -538,6 +541,7 @@ async function saveCampaignForm(sendNow = false) {
     scheduledAt: qs("#campScheduledAt")?.value || undefined,
   };
   if (!payload.name) { toast(qs("#campStatus2"), "Campaign name is required.", true); return; }
+  if (sendNow && !groupId) { toast(qs("#campStatus2"), "Select a group before sending.", true); return; }
   try {
     let campaign;
     if (id) { const r = await api("PATCH", `${API}/campaigns/${id}`, payload); campaign = r.campaign; }
@@ -556,7 +560,6 @@ async function saveCampaignForm(sendNow = false) {
     const tasks = [loadCampaigns()];
     if (sendNow) tasks.push(loadHistory());
     await Promise.all(tasks);
-    if (sendNow) toast(null, "");
   } catch (err) { toast(qs("#campStatus2"), err.message || "Failed to save campaign.", true); }
 }
 
@@ -623,16 +626,24 @@ qs("#sequenceList")?.addEventListener("click", async (e) => {
   }
 });
 
+function buildStepTemplateOpts(selectedId) {
+  return `<option value="">— or use template —</option>` + _templates.map((t) => `<option value="${escapeHtml(t.id)}"${t.id === selectedId ? " selected" : ""}>${escapeHtml(t.title)}</option>`).join("");
+}
+
 function buildStepHtml(step, index) {
   return `<div class="em-step" data-step="${index}">
     <div class="flex items-center justify-between mb-2">
       <span class="text-xs font-semibold text-gray-500">Step ${index + 1}</span>
       <button type="button" class="btn-icon text-xs text-red-400" data-remove-step="${index}">&times; Remove</button>
     </div>
-    <div class="grid gap-2 sm:grid-cols-[1fr_120px]">
+    <div class="grid gap-2 sm:grid-cols-[1fr_160px_120px]">
       <div>
         <label class="em-label" for="stepSubject_${index}">Subject</label>
         <input id="stepSubject_${index}" class="input w-full" type="text" placeholder="Day ${index + 1} — Your update" value="${escapeHtml(step.subject || "")}" />
+      </div>
+      <div>
+        <label class="em-label" for="stepTemplate_${index}">Template (optional)</label>
+        <select id="stepTemplate_${index}" class="input w-full" data-step-tpl="${index}">${buildStepTemplateOpts(step.templateId || "")}</select>
       </div>
       <div>
         <label class="em-label" for="stepDelay_${index}">Delay (days)</label>
@@ -649,10 +660,12 @@ function buildStepHtml(step, index) {
 function getSteps() {
   return qsa("[data-step]").map((el) => {
     const i = Number(el.dataset.step);
+    const templateId = qs(`#stepTemplate_${i}`)?.value || undefined;
     return {
       subject: qs(`#stepSubject_${i}`)?.value || "",
       delayDays: Number(qs(`#stepDelay_${i}`)?.value) || 0,
       body: qs(`#stepBody_${i}`)?.value || "",
+      templateId: templateId || undefined,
     };
   });
 }
@@ -674,6 +687,20 @@ function bindRemoveSteps() {
     });
   });
 }
+
+qs("#seqSteps")?.addEventListener("change", (e) => {
+  const sel = e.target.closest("[data-step-tpl]");
+  if (!sel) return;
+  const idx = Number(sel.dataset.stepTpl);
+  const tid = sel.value;
+  if (!tid) return;
+  const tpl = _templates.find((t) => t.id === tid);
+  if (!tpl) return;
+  const subjectEl = qs(`#stepSubject_${idx}`);
+  const bodyEl = qs(`#stepBody_${idx}`);
+  if (subjectEl && !subjectEl.value && tpl.title) subjectEl.value = tpl.title;
+  if (bodyEl && tpl.html) bodyEl.value = tpl.html;
+});
 
 qs("#addSeqStep")?.addEventListener("click", () => {
   const container = qs("#seqSteps");

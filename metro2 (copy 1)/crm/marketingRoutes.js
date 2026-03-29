@@ -444,6 +444,15 @@ router.post("/email/dispatches", async (req, res) => {
       notes: sanitizeString(notes).slice(0, 500),
       createdBy: req.user?.username || "system",
     });
+    await addEmailHistory({
+      type: safeTargetType === "sequence" ? "sequence" : "campaign",
+      subject: sanitizeString(req.body?.subject || `Dispatch: ${safeTargetId}`).slice(0, 200),
+      recipientType: safeSegment,
+      groupId: req.body?.groupId ? sanitizeString(req.body.groupId) : null,
+      status: safeScheduledFor ? "scheduled" : "queued",
+      recipientCount: safeAudienceCount || null,
+      createdBy: req.user?.username || "system",
+    });
     res.status(201).json({ ok: true, item });
   } catch (error) {
     const status = /not found|required/i.test(error.message) ? 400 : 500;
