@@ -249,17 +249,22 @@ function normalizeSequenceSteps(rawSteps) {
   });
 }
 
+const SEQUENCE_STATUSES = new Set(["active", "paused", "draft", "completed"]);
+
 function normalizeEmailSequence(raw = {}) {
   const title = String(raw.title || "Email Sequence").trim();
   const description = String(raw.description || "Outline the journey and CTA.").trim();
   const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
   const frequency = normalizeSequenceFrequency(raw.frequency);
+  const statusRaw = String(raw.status || "active").toLowerCase();
+  const status = SEQUENCE_STATUSES.has(statusRaw) ? statusRaw : "active";
   return {
     id: raw.id || nanoid(8),
     title,
     description,
     segment,
     frequency,
+    status,
     steps: normalizeSequenceSteps(raw.steps),
     createdAt: raw.createdAt || new Date().toISOString(),
     createdBy: raw.createdBy || "system",

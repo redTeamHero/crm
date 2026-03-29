@@ -1,6 +1,13 @@
-import { api, escapeHtml } from "./common.js";
+import { api as _api, escapeHtml } from "./common.js";
 
 const API = "/api/marketing";
+
+/* ── api wrapper (method, url, body) → common.js api(url, opts) ── */
+function api(method, url, body) {
+  const opts = { method };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  return _api(url, opts);
+}
 
 /* ── helpers ─────────────────────────────────────── */
 function qs(sel) { return document.querySelector(sel); }
@@ -24,7 +31,7 @@ function statusBadge(s) {
 }
 
 /* ── confirm helper ──────────────────────────────── */
-function confirm(title, msg) {
+function confirmDialog(title, msg) {
   return new Promise((resolve) => {
     qs("#confirmTitle").textContent = title;
     qs("#confirmMessage").textContent = msg;
@@ -62,6 +69,11 @@ qsa(".em-tab-btn").forEach((btn) => {
     if (panel) panel.classList.add("active");
     if (btn.dataset.tab === "history") loadHistory();
   });
+});
+
+/* ── page header Send Email button ──────────────── */
+qs("#btnSendEmail")?.addEventListener("click", () => {
+  qs("[data-tab='send']")?.click();
 });
 
 /* ── cache ───────────────────────────────────────── */
@@ -125,15 +137,20 @@ function updateStats() {
 
 /* ── populate selects ────────────────────────────── */
 function populateGroupSelects() {
-  const opts = `<option value="">— select a group —</option>` + _groups.filter((g) => g.status === "active").map((g) => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)}</option>`).join("");
-  [qs("#seGroupId"), qs("#campGroupId"), qs("#seqGroupId")].forEach((el) => {
+  const activeGroups = _groups.filter((g) => g.status === "active");
+  const opts = `<option value="">— select a group —</option>` + activeGroups.map((g) => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)}</option>`).join("");
+  [qs("#seGroupId"), qs("#campGroupId")].forEach((el) => {
     if (!el) return;
     const val = el.value;
-    el.innerHTML = el.id === "seqGroupId"
-      ? `<option value="">All contacts</option>` + _groups.filter((g) => g.status === "active").map((g) => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)}</option>`).join("")
-      : opts;
+    el.innerHTML = opts;
     el.value = val;
   });
+  const seqEl = qs("#seqGroupId");
+  if (seqEl) {
+    const val = seqEl.value;
+    seqEl.innerHTML = `<option value="">All contacts</option>` + activeGroups.map((g) => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)}</option>`).join("");
+    seqEl.value = val;
+  }
 }
 
 function populateTemplateSelects() {
@@ -187,7 +204,6 @@ function renderGroups() {
 
 qs("#groupSearch")?.addEventListener("input", renderGroups);
 
-// Group action delegation
 qs("#groupList")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-action]");
   if (!btn) return;
@@ -202,7 +218,7 @@ qs("#groupList")?.addEventListener("click", async (e) => {
     await loadGroups();
   }
   if (action === "deleteGroup") {
-    const ok = await confirm("Delete group?", `Delete "${btn.dataset.gname}" and remove all its members. This cannot be undone.`);
+    const ok = await confirmDialog("Delete group?", `Delete "${btn.dataset.gname}" and remove all its members. This cannot be undone.`);
     if (!ok) return;
     await api("DELETE", `${API}/groups/${gid}`);
     await loadGroups();
@@ -243,18 +259,18 @@ qs("#groupForm")?.addEventListener("submit", async (e) => {
 
 /* ── Group members ───────────────────────────────── */
 let _activeGroupId = null;
+let _activeMembers = [];
 
 async function openGroupMembers(gid, gname) {
   _activeGroupId = gid;
-  qs("#groupMembersTitle").textContent = escapeHtml(gname);
+  qs("#groupMembersTitle").textContent = gname;
   qs("#groupMembersSubtitle").textContent = "";
   qs("#addMemberInput").value = "";
+  qs("#memberSearch").value = "";
   qs("#memberList").innerHTML = `<div class="em-empty" style="padding:24px 0">Loading...</div>`;
   openModal("groupMembersModal");
   await refreshMembers();
 }
-
-let _activeMembers = [];
 
 async function refreshMembers() {
   if (!_activeGroupId) return;
@@ -290,7 +306,7 @@ qs("#memberSearch")?.addEventListener("input", renderMemberList);
 qs("#memberList")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-action='removeMember']");
   if (!btn || !_activeGroupId) return;
-  const ok = await confirm("Remove member?", `Remove ${btn.dataset.cid} from this group?`);
+  const ok = await confirmDialog("Remove member?", `Remove ${btn.dataset.cid} from this group?`);
   if (!ok) return;
   try { await api("DELETE", `${API}/groups/${_activeGroupId}/members/${btn.dataset.cid}`); await refreshMembers(); }
   catch (err) { toast(qs("#memberStatus"), err.message || "Failed to remove member", true); }
@@ -337,7 +353,6 @@ function handleRecipientTypeChange() {
 
 qs("#seRecipientType")?.addEventListener("change", handleRecipientTypeChange);
 
-// Template auto-fill
 qs("#seTemplateSelect")?.addEventListener("change", () => {
   const tid = qs("#seTemplateSelect").value;
   if (!tid) return;
@@ -350,10 +365,7 @@ qs("#seTemplateSelect")?.addEventListener("change", () => {
 
 function updatePreview() {
   const body = qs("#seBody")?.value || "";
-  const preview = body.replace(/{{(\w+)}}/g, (_, k) => ({
-    first_name: "Alex", last_name: "Ramirez", email: "alex@example.com", phone: "(512) 555-0199",
-    credit_score: "687", group_name: "New Leads"
-  })[k] || `{{${k}}}`);
+  const preview = body.replace(/{{(\w+)}}/g, (_, k) => ({ first_name: "Alex", last_name: "Ramirez", email: "alex@example.com", phone: "(512) 555-0199", credit_score: "687", group_name: "New Leads" })[k] || `{{${k}}}`);
   const el = qs("#sePreview");
   if (el) el.textContent = preview || "Compose a message to see a preview.";
 }
@@ -373,11 +385,19 @@ qsa(".em-merge-chip").forEach((chip) => {
   });
 });
 
-async function sendEmail(isDraft = false) {
+async function sendEmail(isDraft = false, isTest = false) {
   const type = qs("#seRecipientType").value;
   const subject = qs("#seSubject").value.trim();
-  const body = qs("#seBody").value.trim();
   if (!subject) { toast(qs("#seStatus"), "Subject is required.", true); return; }
+
+  if (isTest) {
+    try {
+      await api("POST", `${API}/history`, { type: "test", subject: `[TEST] ${subject}`, recipientType: "client", status: "queued" });
+      toast(qs("#seStatus"), "Test email queued to History. Connect a delivery provider to receive it.");
+      await loadHistory();
+    } catch (err) { toast(qs("#seStatus"), err.message || "Failed to queue test email.", true); }
+    return;
+  }
 
   let recipientId = null, groupId = null;
   if (type === "client") {
@@ -391,8 +411,10 @@ async function sendEmail(isDraft = false) {
     if (!recipientId) { toast(qs("#seStatus"), "Enter at least one recipient.", true); return; }
   }
 
+  const body = qs("#seBody").value.trim();
+  const payload = { subject, body, recipientType: type === "multiple" ? "client" : type, recipientId, groupId };
+
   try {
-    const payload = { subject, body, recipientType: type === "multiple" ? "client" : type, recipientId, groupId };
     if (isDraft) {
       await api("POST", `${API}/history`, { ...payload, type: "one-time", status: "draft" });
       toast(qs("#seStatus"), "Draft saved to History.");
@@ -408,16 +430,7 @@ async function sendEmail(isDraft = false) {
 
 qs("#sendEmailForm")?.addEventListener("submit", (e) => { e.preventDefault(); sendEmail(false); });
 qs("#seSaveDraft")?.addEventListener("click", () => sendEmail(true));
-qs("#seSendTest")?.addEventListener("click", async () => {
-  const subject = qs("#seSubject").value.trim();
-  const body = qs("#seBody").value.trim();
-  if (!subject) { toast(qs("#seStatus"), "Enter a subject first.", true); return; }
-  try {
-    await api("POST", `${API}/history`, { type: "test", subject: `[TEST] ${subject}`, recipientType: "client", status: "queued" });
-    toast(qs("#seStatus"), "Test email queued to History. Connect a delivery provider to receive it.");
-    await loadHistory();
-  } catch (err) { toast(qs("#seStatus"), err.message || "Failed to queue test email.", true); }
-});
+qs("#seSendTest")?.addEventListener("click", () => sendEmail(false, true));
 
 /* ── CAMPAIGNS ───────────────────────────────────── */
 function renderCampaigns() {
@@ -455,7 +468,7 @@ qs("#campaignList")?.addEventListener("click", async (e) => {
   if (action === "editCampaign") openEditCampaign(cid);
   if (action === "dupCampaign") await duplicateCampaign(cid);
   if (action === "deleteCampaign") {
-    const ok = await confirm("Delete campaign?", `Delete "${btn.dataset.cname}"? This cannot be undone.`);
+    const ok = await confirmDialog("Delete campaign?", `Delete "${btn.dataset.cname}"? This cannot be undone.`);
     if (!ok) return;
     try { await api("DELETE", `${API}/campaigns/${cid}`); await loadCampaigns(); }
     catch (err) { alert(err.message); }
@@ -474,6 +487,7 @@ async function duplicateCampaign(cid) {
 function openNewCampaignForGroup(gid) {
   qs("[data-tab='campaigns']")?.click();
   resetCampaignForm();
+  populateGroupSelects();
   if (gid) qs("#campGroupId").value = gid;
   openModal("campaignModal");
 }
@@ -484,6 +498,7 @@ function resetCampaignForm() {
   qs("#campaignForm").reset();
   qs("#campStatus2").className = "em-status";
   populateGroupSelects();
+  populateTemplateSelects();
 }
 
 function openEditCampaign(cid) {
@@ -496,11 +511,11 @@ function openEditCampaign(cid) {
   qs("#campSubject").value = c.subject || "";
   qs("#campBody").value = c.body || "";
   populateGroupSelects();
+  populateTemplateSelects();
   qs("#campGroupId").value = c.groupId || c.segment || "";
   openModal("campaignModal");
 }
 
-// Campaign template selector auto-fill
 qs("#campTemplateSelect")?.addEventListener("change", () => {
   const tid = qs("#campTemplateSelect").value;
   if (!tid) return;
@@ -530,19 +545,18 @@ async function saveCampaignForm(sendNow = false) {
     if (sendNow && campaign) {
       const group = _groups.find((g) => g.id === groupId);
       await api("POST", `${API}/history`, {
-        type: "campaign",
-        subject: payload.subject,
-        recipientType: "group",
-        groupId: groupId || null,
+        type: "campaign", subject: payload.subject,
+        recipientType: "group", groupId: groupId || null,
         groupName: group ? group.name : null,
-        campaignId: campaign.id,
-        status: "queued",
+        campaignId: campaign.id, status: "queued",
         recipientCount: groupId ? (_memberCounts[groupId] ?? null) : null,
       });
-      toast(qs("#campStatus2"), "Campaign saved and queued for send. Check History.");
     }
     closeModal("campaignModal");
-    await Promise.all([loadCampaigns(), sendNow ? loadHistory() : Promise.resolve()]);
+    const tasks = [loadCampaigns()];
+    if (sendNow) tasks.push(loadHistory());
+    await Promise.all(tasks);
+    if (sendNow) toast(null, "");
   } catch (err) { toast(qs("#campStatus2"), err.message || "Failed to save campaign.", true); }
 }
 
@@ -574,8 +588,8 @@ function renderSequences() {
         ${s.description ? `<p class="text-xs text-gray-400 mt-0.5">${escapeHtml(s.description)}</p>` : ""}
       </div>
       <div class="flex flex-wrap gap-2 shrink-0">
-        <button class="btn btn-outline text-xs" data-action="editSeq" data-sid="${escapeHtml(s.id)}">${s.status === "paused" ? "Resume" : "Edit"}</button>
-        <button class="btn btn-outline text-xs" data-action="toggleSeq" data-sid="${escapeHtml(s.id)}">${s.status === "paused" ? "Activate" : "Pause"}</button>
+        <button class="btn btn-outline text-xs" data-action="editSeq" data-sid="${escapeHtml(s.id)}">Edit</button>
+        <button class="btn btn-outline text-xs" data-action="toggleSeq" data-sid="${escapeHtml(s.id)}" data-sstatus="${escapeHtml(s.status || "active")}">${(s.status || "active") === "paused" ? "Activate" : "Pause"}</button>
         <button class="btn btn-outline text-xs" data-action="dupSeq" data-sid="${escapeHtml(s.id)}">Duplicate</button>
         <button class="btn btn-outline text-xs" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" data-action="deleteSeq" data-sid="${escapeHtml(s.id)}" data-sname="${escapeHtml(s.title)}">Delete</button>
       </div>
@@ -590,9 +604,9 @@ qs("#sequenceList")?.addEventListener("click", async (e) => {
   const sid = btn.dataset.sid;
   if (action === "editSeq") openEditSequence(sid);
   if (action === "toggleSeq") {
-    const s = _sequences.find((x) => x.id === sid);
-    if (!s) return;
-    await api("PATCH", `${API}/email/sequences/${sid}`, { status: s.status === "paused" ? "active" : "paused" });
+    const currentStatus = btn.dataset.sstatus || "active";
+    const newStatus = currentStatus === "paused" ? "active" : "paused";
+    await api("PATCH", `${API}/email/sequences/${sid}`, { status: newStatus });
     await loadSequences();
   }
   if (action === "dupSeq") {
@@ -602,7 +616,7 @@ qs("#sequenceList")?.addEventListener("click", async (e) => {
     await loadSequences();
   }
   if (action === "deleteSeq") {
-    const ok = await confirm("Delete sequence?", `Delete "${btn.dataset.sname}"? This cannot be undone.`);
+    const ok = await confirmDialog("Delete sequence?", `Delete "${btn.dataset.sname}"? This cannot be undone.`);
     if (!ok) return;
     await api("DELETE", `${API}/email/sequences/${sid}`);
     await loadSequences();
@@ -759,7 +773,7 @@ qs("#templateList")?.addEventListener("click", async (e) => {
   }
   if (action === "editTemplate") openEditTemplate(tid);
   if (action === "deleteTemplate") {
-    const ok = await confirm("Delete template?", `Delete "${btn.dataset.tname}"? This cannot be undone.`);
+    const ok = await confirmDialog("Delete template?", `Delete "${btn.dataset.tname}"? This cannot be undone.`);
     if (!ok) return;
     try { await api("DELETE", `${API}/templates/${tid}`); await loadTemplates(); }
     catch (err) { alert(err.message); }
@@ -790,7 +804,7 @@ function openEditTemplate(tid) {
 qs("#templateForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = qs("#templateId").value;
-  const body = {
+  const payload = {
     title: qs("#tplName").value.trim(),
     description: qs("#tplDescription").value.trim(),
     badge: qs("#tplCategory").value.trim() || undefined,
@@ -798,10 +812,10 @@ qs("#templateForm")?.addEventListener("submit", async (e) => {
     html: qs("#tplHtml").value.trim(),
     subject: qs("#tplSubject").value.trim() || undefined,
   };
-  if (!body.title) { toast(qs("#tplStatus"), "Template name is required.", true); return; }
+  if (!payload.title) { toast(qs("#tplStatus"), "Template name is required.", true); return; }
   try {
-    if (id) { await api("PATCH", `${API}/templates/${id}`, body); }
-    else { await api("POST", `${API}/templates`, body); }
+    if (id) { await api("PATCH", `${API}/templates/${id}`, payload); }
+    else { await api("POST", `${API}/templates`, payload); }
     closeModal("templateModal");
     await loadTemplates();
   } catch (err) { toast(qs("#tplStatus"), err.message || "Failed to save template.", true); }
@@ -828,7 +842,7 @@ function renderHistory() {
     <tbody>
       ${_history.map((h) => `<tr>
         <td class="py-2 px-3 border-b border-gray-100"><span class="em-badge em-badge-gold text-xs">${escapeHtml(h.type || "—")}</span></td>
-        <td class="py-2 px-3 border-b border-gray-100 max-w-[200px] truncate">${escapeHtml(h.subject || "—")}</td>
+        <td class="py-2 px-3 border-b border-gray-100 max-w-xs truncate">${escapeHtml(h.subject || "—")}</td>
         <td class="py-2 px-3 border-b border-gray-100">${escapeHtml(h.groupName || h.recipientId || h.groupId || "—")}</td>
         <td class="py-2 px-3 border-b border-gray-100">${statusBadge(h.status)}</td>
         <td class="py-2 px-3 border-b border-gray-100 text-gray-400">${fmtDate(h.sentAt)}</td>
