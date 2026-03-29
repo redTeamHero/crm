@@ -975,6 +975,6 @@ qs("#btnRefreshHistory")?.addEventListener("click", loadHistory);
 
 /* ── INIT ────────────────────────────────────────── */
 (async function init() {
-  await Promise.all([loadGroups(), loadCampaigns(), loadSequences(), loadTemplates()]);
+  await Promise.all([loadGroups(), loadCampaigns(), loadSequences(), loadTemplates(), loadHistory()]);
   handleRecipientTypeChange();
 })();

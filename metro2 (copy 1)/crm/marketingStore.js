@@ -48,65 +48,9 @@ const DEFAULT_SMS_TEMPLATES = [
   },
 ];
 
-const DEFAULT_EMAIL_SEQUENCES = [
-  {
-    id: "seq-onboarding",
-    title: "7-Day Onboarding",
-    description: "Kickoff sequence guiding clients through audits, Metro-2 checks, and booking consults.",
-    segment: SEGMENT_DEFAULT,
-    frequency: "daily",
-    steps: [
-      { subject: "Day 1 • Your dispute audit checklist", delayDays: 0 },
-      { subject: "Day 3 • How to prep Metro-2 evidence", delayDays: 2 },
-    ],
-    createdAt: new Date(2024, 0, 6).toISOString(),
-  },
-];
+const DEFAULT_EMAIL_SEQUENCES = [];
 
-const DEFAULT_CAMPAIGNS = [
-  {
-    id: "cmp-new-year",
-    name: "New Year Credit Boost",
-    status: "scheduled",
-    segment: "inactive",
-    nextTouchAt: new Date(2025, 0, 3, 15, 0).toISOString(),
-    kpiTarget: "18% consult rate",
-    summary: "Segment inactive households, reinforce trust timeline, and nudge Stripe upsell.",
-    progress: 65,
-    createdAt: new Date(2024, 10, 28).toISOString(),
-    updatedAt: new Date(2024, 10, 28).toISOString(),
-    createdBy: "system",
-    updatedBy: "system",
-  },
-  {
-    id: "cmp-trucker-webinar",
-    name: "Trucker Safety + Credit Webinar",
-    status: "completed",
-    segment: "b2b",
-    nextTouchAt: new Date(2024, 7, 12, 19, 0).toISOString(),
-    kpiTarget: "24 consults booked",
-    summary: "Win fleet compliance retainer upsells after webinar replay drip.",
-    progress: 92,
-    createdAt: new Date(2024, 6, 2).toISOString(),
-    updatedAt: new Date(2024, 8, 20).toISOString(),
-    createdBy: "system",
-    updatedBy: "system",
-  },
-  {
-    id: "cmp-score-drop",
-    name: "Score Drop Alert",
-    status: "draft",
-    segment: "b2c",
-    nextTouchAt: null,
-    kpiTarget: "Book dispute strategy calls",
-    summary: "Trigger Metro-2 anomaly detector + concierge scheduling CTA.",
-    progress: 40,
-    createdAt: new Date(2024, 8, 1).toISOString(),
-    updatedAt: new Date(2024, 8, 1).toISOString(),
-    createdBy: "system",
-    updatedBy: "system",
-  },
-];
+const DEFAULT_CAMPAIGNS = [];
 
 const DEFAULT_PROVIDERS = [
   {
