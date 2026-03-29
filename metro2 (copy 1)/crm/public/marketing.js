@@ -404,7 +404,7 @@ qs("#seTemplateSelect")?.addEventListener("change", () => {
   if (!tid) return;
   const tpl = _templates.find((t) => t.id === tid);
   if (!tpl) return;
-  if (tpl.title && !qs("#seSubject").value) qs("#seSubject").value = tpl.title;
+  if (!qs("#seSubject").value) qs("#seSubject").value = tpl.subject || tpl.title || "";
   if (tpl.html) rteSet("seBody", tpl.html);
   updatePreview();
 });
@@ -447,8 +447,8 @@ async function sendEmail(isDraft = false, isTest = false) {
 
   if (isTest) {
     try {
-      await api("POST", `${API}/history`, { type: "test", subject: `[TEST] ${subject}`, recipientType: "client", status: "queued" });
-      toast(qs("#seStatus"), "Test email queued to History. Connect a delivery provider to receive it.");
+      await api("POST", `${API}/email/send`, { subject: `[TEST] ${subject}`, recipientType: "client", recipientId: "test-preview" });
+      toast(qs("#seStatus"), "Test email queued. Connect a delivery provider to receive it.");
       await loadHistory();
     } catch (err) { toast(qs("#seStatus"), err.message || "Failed to queue test email.", true); }
     return;
@@ -581,7 +581,7 @@ qs("#campTemplateSelect")?.addEventListener("change", () => {
   if (!tid) return;
   const tpl = _templates.find((t) => t.id === tid);
   if (!tpl) return;
-  if (tpl.title && !qs("#campSubject").value) qs("#campSubject").value = tpl.title;
+  if (!qs("#campSubject").value) qs("#campSubject").value = tpl.subject || tpl.title || "";
   if (tpl.html) rteSet("campBody", tpl.html);
 });
 
@@ -590,7 +590,7 @@ async function saveCampaignForm(sendNow = false) {
   const groupId = qs("#campGroupId").value;
   const statusVal = qs("#campStatus").value;
   const isScheduled = !!qs("#campScheduledAt")?.value;
-  const requiresGroup = sendNow || statusVal === "running" || isScheduled;
+  const requiresGroup = sendNow || statusVal === "running" || statusVal === "scheduled" || isScheduled;
 
   if (requiresGroup && !groupId) {
     toast(qs("#campStatus2"), "Select a group before sending or scheduling.", true);
@@ -789,7 +789,7 @@ qs("#seqSteps")?.addEventListener("change", (e) => {
   const tpl = _templates.find((t) => t.id === tid);
   if (!tpl) return;
   const subjectEl = qs(`#stepSubject_${idx}`);
-  if (subjectEl && !subjectEl.value && tpl.title) subjectEl.value = tpl.title;
+  if (subjectEl && !subjectEl.value) subjectEl.value = tpl.subject || tpl.title || "";
   if (tpl.html) rteSet(`stepBody_${idx}`, tpl.html);
 });
 
