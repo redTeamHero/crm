@@ -173,11 +173,16 @@ router.patch("/campaigns/:id", async (req, res) => {
     }
     const activeSendStatus = safeStatus === "running" || safeStatus === "scheduled" || safeStatus === "sent";
     if (activeSendStatus) {
-      const patchGroupId = req.body?.groupId ? sanitizeString(req.body.groupId).slice(0, 80) : null;
-      if (!patchGroupId) {
+      const patchGroupId = req.body?.groupId !== undefined
+        ? (sanitizeString(req.body.groupId).slice(0, 80) || null)
+        : undefined;
+      const clearingGroup = patchGroupId === null;
+      const providingGroup = patchGroupId && patchGroupId.length > 0;
+      if (!providingGroup) {
         const allCampaigns = await listCampaigns();
         const existing = allCampaigns.find((c) => c.id === id);
-        if (!existing?.groupId) {
+        const resolvedGroupId = clearingGroup ? null : (existing?.groupId || null);
+        if (!resolvedGroupId) {
           return res.status(400).json({ ok: false, error: "A group must be selected before sending or scheduling a campaign" });
         }
       }
@@ -351,11 +356,12 @@ router.get("/email/sequences", async (_req, res) => {
 });
 
 router.post("/email/sequences", async (req, res) => {
-  const { title, description = "", segment = "b2c", frequency = "daily", steps = [] } = req.body || {};
+  const { title, description = "", segment = "b2c", frequency = "daily", steps = [], groupId } = req.body || {};
   const safeTitle = sanitizeString(title);
   const safeDescription = sanitizeString(description);
   const safeSegment = sanitizeString(segment || "b2c").toLowerCase().slice(0, 24) || "b2c";
   const safeFrequency = sanitizeString(frequency || "daily").toLowerCase().slice(0, 24);
+  const safeGroupId = groupId ? sanitizeString(groupId).slice(0, 80) : null;
   const rawSteps = Array.isArray(steps) ? steps : [];
   const sanitizedSteps = rawSteps.slice(0, 20).map((step) => ({
     subject: sanitizeString(step?.subject ?? ""),
@@ -373,6 +379,7 @@ router.post("/email/sequences", async (req, res) => {
       title: safeTitle.slice(0, 120),
       description: safeDescription.slice(0, 400),
       segment: safeSegment,
+      groupId: safeGroupId,
       frequency: safeFrequency,
       steps: sanitizedSteps,
       createdBy: req.user?.username || "system",
@@ -517,11 +524,12 @@ router.delete("/campaigns/:id", async (req, res) => {
 });
 
 router.patch("/email/sequences/:id", async (req, res) => {
-  const { title, description, segment, frequency, steps, status } = req.body || {};
+  const { title, description, segment, frequency, steps, status, groupId } = req.body || {};
   const patch = {};
   if (title !== undefined) patch.title = sanitizeString(title).slice(0, 120);
   if (description !== undefined) patch.description = sanitizeString(description).slice(0, 400);
   if (segment !== undefined) patch.segment = sanitizeString(segment || "b2c").toLowerCase().slice(0, 24) || "b2c";
+  if (groupId !== undefined) patch.groupId = groupId ? sanitizeString(groupId).slice(0, 80) : null;
   if (frequency !== undefined) patch.frequency = sanitizeString(frequency || "daily").toLowerCase().slice(0, 24);
   if (status !== undefined) patch.status = sanitizeString(status).toLowerCase().slice(0, 20);
   if (steps !== undefined && Array.isArray(steps)) {

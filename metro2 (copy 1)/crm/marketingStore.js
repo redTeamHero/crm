@@ -204,11 +204,13 @@ function normalizeEmailSequence(raw = {}) {
   const frequency = normalizeSequenceFrequency(raw.frequency);
   const statusRaw = String(raw.status || "active").toLowerCase();
   const status = SEQUENCE_STATUSES.has(statusRaw) ? statusRaw : "active";
+  const groupId = raw.groupId ? String(raw.groupId).slice(0, 80) : null;
   return {
     id: raw.id || nanoid(8),
     title,
     description,
     segment,
+    groupId,
     frequency,
     status,
     steps: normalizeSequenceSteps(raw.steps),
