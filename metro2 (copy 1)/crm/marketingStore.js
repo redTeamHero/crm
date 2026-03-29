@@ -143,11 +143,16 @@ const DEFAULT_STATE = {
   testQueue: [],
   emailDispatchQueue: [],
   providers: DEFAULT_PROVIDERS,
+  groups: [],
+  groupMemberships: [],
+  emailHistory: [],
 };
 
 const ALLOWED_TEST_STATUSES = new Set(["queued", "sending", "sent", "failed"]);
 
 const CAMPAIGN_STATUSES = new Set(["draft", "scheduled", "running", "paused", "completed"]);
+
+const GROUP_STATUSES = new Set(["active", "archived"]);
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -338,6 +343,54 @@ function normalizeEmailDispatch(raw = {}) {
   };
 }
 
+function normalizeGroup(raw = {}) {
+  const name = String(raw.name || "Group").trim().slice(0, 120);
+  const description = raw.description ? String(raw.description).trim().slice(0, 400) : "";
+  const statusRaw = String(raw.status || "active").toLowerCase();
+  const status = GROUP_STATUSES.has(statusRaw) ? statusRaw : "active";
+  return {
+    id: raw.id || nanoid(10),
+    name: name || "Group",
+    description,
+    status,
+    createdAt: raw.createdAt || new Date().toISOString(),
+    createdBy: raw.createdBy || "system",
+    updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString(),
+  };
+}
+
+function normalizeGroupMembership(raw = {}) {
+  return {
+    id: raw.id || nanoid(10),
+    groupId: String(raw.groupId || ""),
+    clientId: String(raw.clientId || ""),
+    addedAt: raw.addedAt || new Date().toISOString(),
+    addedBy: raw.addedBy || "system",
+  };
+}
+
+function normalizeEmailHistory(raw = {}) {
+  const allowedTypes = new Set(["one-time", "campaign", "sequence", "test"]);
+  const type = allowedTypes.has(raw.type) ? raw.type : "one-time";
+  const allowedStatuses = new Set(["queued", "sent", "failed", "draft"]);
+  const status = allowedStatuses.has(raw.status) ? raw.status : "sent";
+  return {
+    id: raw.id || nanoid(12),
+    type,
+    subject: raw.subject ? String(raw.subject).slice(0, 200) : "",
+    recipientType: raw.recipientType || "client",
+    recipientId: raw.recipientId ? String(raw.recipientId) : null,
+    groupId: raw.groupId ? String(raw.groupId) : null,
+    groupName: raw.groupName ? String(raw.groupName).slice(0, 120) : null,
+    campaignId: raw.campaignId ? String(raw.campaignId) : null,
+    sequenceId: raw.sequenceId ? String(raw.sequenceId) : null,
+    status,
+    sentAt: raw.sentAt || new Date().toISOString(),
+    recipientCount: Number.isFinite(Number(raw.recipientCount)) ? Number(raw.recipientCount) : null,
+    createdBy: raw.createdBy || "system",
+  };
+}
+
 function normalizeProvider(raw = {}) {
   const allowedStatus = new Set(["pending", "ready", "error"]);
   const status = allowedStatus.has(raw.status) ? raw.status : "pending";
@@ -364,6 +417,9 @@ function normalizeState(raw) {
     testQueue: ensureArray(base.testQueue),
     emailDispatchQueue: ensureArray(base.emailDispatchQueue),
     providers: ensureArray(base.providers),
+    groups: ensureArray(base.groups),
+    groupMemberships: ensureArray(base.groupMemberships),
+    emailHistory: ensureArray(base.emailHistory),
   };
 
   const campaignMap = new Map();
@@ -449,6 +505,20 @@ function normalizeState(raw) {
   normalized.emailDispatchQueue = normalized.emailDispatchQueue
     .map((item) => normalizeEmailDispatch(item))
     .slice(0, 100);
+
+  normalized.groups = normalized.groups
+    .map((g) => normalizeGroup(g))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 200);
+
+  normalized.groupMemberships = normalized.groupMemberships
+    .map((m) => normalizeGroupMembership(m))
+    .slice(0, 5000);
+
+  normalized.emailHistory = normalized.emailHistory
+    .map((h) => normalizeEmailHistory(h))
+    .sort((a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime())
+    .slice(0, 500);
 
   return normalized;
 }
@@ -729,6 +799,124 @@ export async function updateProvider(id, patch = {}) {
   state.providers[index] = normalizeProvider(next);
   await saveMarketingState(state);
   return state.providers[index];
+}
+
+export async function deleteCampaign(id) {
+  if (!id) throw new Error("Campaign id is required");
+  const state = await loadMarketingState();
+  const index = state.campaigns.findIndex((c) => c.id === id);
+  if (index === -1) throw new Error("Campaign not found");
+  state.campaigns.splice(index, 1);
+  await saveMarketingState(state);
+}
+
+export async function updateEmailSequence(id, updates = {}) {
+  if (!id) throw new Error("Sequence id is required");
+  const state = await loadMarketingState();
+  const index = state.emailSequences.findIndex((s) => s.id === id);
+  if (index === -1) throw new Error("Sequence not found");
+  const current = state.emailSequences[index];
+  const next = normalizeEmailSequence({ ...current, ...updates, id: current.id, createdAt: current.createdAt, createdBy: current.createdBy });
+  state.emailSequences[index] = next;
+  await saveMarketingState(state);
+  return next;
+}
+
+export async function deleteEmailSequence(id) {
+  if (!id) throw new Error("Sequence id is required");
+  const state = await loadMarketingState();
+  const index = state.emailSequences.findIndex((s) => s.id === id);
+  if (index === -1) throw new Error("Sequence not found");
+  state.emailSequences.splice(index, 1);
+  await saveMarketingState(state);
+}
+
+export async function deleteTemplate(id) {
+  if (!id) throw new Error("Template id is required");
+  const state = await loadMarketingState();
+  const index = state.templates.findIndex((t) => t.id === id);
+  if (index === -1) throw new Error("Template not found");
+  state.templates.splice(index, 1);
+  await saveMarketingState(state);
+}
+
+export async function listGroups() {
+  const state = await loadMarketingState();
+  return state.groups;
+}
+
+export async function createGroup(group) {
+  const state = await loadMarketingState();
+  const next = normalizeGroup({ ...group, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  state.groups = [next, ...state.groups.filter((g) => g.id !== next.id)].slice(0, 200);
+  await saveMarketingState(state);
+  return next;
+}
+
+export async function updateGroup(id, updates = {}) {
+  if (!id) throw new Error("Group id is required");
+  const state = await loadMarketingState();
+  const index = state.groups.findIndex((g) => g.id === id);
+  if (index === -1) throw new Error("Group not found");
+  const current = state.groups[index];
+  const next = normalizeGroup({ ...current, ...updates, id: current.id, createdAt: current.createdAt, createdBy: current.createdBy, updatedAt: new Date().toISOString() });
+  state.groups[index] = next;
+  await saveMarketingState(state);
+  return next;
+}
+
+export async function deleteGroup(id) {
+  if (!id) throw new Error("Group id is required");
+  const state = await loadMarketingState();
+  const index = state.groups.findIndex((g) => g.id === id);
+  if (index === -1) throw new Error("Group not found");
+  state.groups.splice(index, 1);
+  state.groupMemberships = state.groupMemberships.filter((m) => m.groupId !== id);
+  await saveMarketingState(state);
+}
+
+export async function listGroupMembers(groupId) {
+  if (!groupId) throw new Error("Group id is required");
+  const state = await loadMarketingState();
+  return state.groupMemberships.filter((m) => m.groupId === groupId);
+}
+
+export async function addGroupMember(groupId, clientId, addedBy = "system") {
+  if (!groupId) throw new Error("Group id is required");
+  if (!clientId) throw new Error("Client id is required");
+  const state = await loadMarketingState();
+  const groupExists = state.groups.some((g) => g.id === groupId);
+  if (!groupExists) throw new Error("Group not found");
+  const existing = state.groupMemberships.find((m) => m.groupId === groupId && m.clientId === clientId);
+  if (existing) return existing;
+  const membership = normalizeGroupMembership({ groupId, clientId, addedAt: new Date().toISOString(), addedBy });
+  state.groupMemberships = [membership, ...state.groupMemberships].slice(0, 5000);
+  await saveMarketingState(state);
+  return membership;
+}
+
+export async function removeGroupMember(groupId, clientId) {
+  if (!groupId) throw new Error("Group id is required");
+  if (!clientId) throw new Error("Client id is required");
+  const state = await loadMarketingState();
+  const before = state.groupMemberships.length;
+  state.groupMemberships = state.groupMemberships.filter((m) => !(m.groupId === groupId && m.clientId === clientId));
+  if (state.groupMemberships.length === before) throw new Error("Member not found");
+  await saveMarketingState(state);
+}
+
+export async function listEmailHistory(limit = 50) {
+  const state = await loadMarketingState();
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 50, 200));
+  return state.emailHistory.slice(0, safeLimit);
+}
+
+export async function addEmailHistory(entry) {
+  const state = await loadMarketingState();
+  const next = normalizeEmailHistory({ ...entry, sentAt: new Date().toISOString() });
+  state.emailHistory = [next, ...state.emailHistory].slice(0, 500);
+  await saveMarketingState(state);
+  return next;
 }
 
 export async function resetMarketingState(value = null) {

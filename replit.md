@@ -1,3 +1,30 @@
+# Evolv CRM
+
+## Email Marketing Module (Task #68 — Completed)
+The Email/Marketing section (`/marketing/email`) has been fully rebuilt as a clean 6-tab system:
+- **Send Email** — compose and send to a single client, multiple clients, or a group; merge fields; template auto-fill; live body preview
+- **Campaigns** — full CRUD (create, edit, duplicate, delete); group targeting; status management
+- **Groups** — audience management with full CRUD, archive/restore, member management (add/remove), direct "Send to Group" and "Create Campaign" shortcuts
+- **Sequences** — multi-step email sequences with per-step subject/body/delay, pause/activate, duplicate/delete
+- **Templates** — reusable email templates with category tagging; "Use" button fills the Send Email form
+- **History** — real backend log of all queued/sent/drafted emails with status table
+
+Backend additions to `marketingStore.js`:
+- New collections: `groups`, `groupMemberships`, `emailHistory`
+- New normalize functions: `normalizeGroup`, `normalizeGroupMembership`, `normalizeEmailHistory`
+- New export functions: `listGroups`, `createGroup`, `updateGroup`, `deleteGroup`, `listGroupMembers`, `addGroupMember`, `removeGroupMember`, `listEmailHistory`, `addEmailHistory`, `deleteCampaign`, `updateEmailSequence`, `deleteEmailSequence`, `deleteTemplate`
+
+New routes in `marketingRoutes.js`:
+- `DELETE /api/marketing/campaigns/:id`
+- `PATCH /api/marketing/email/sequences/:id`, `DELETE /api/marketing/email/sequences/:id`
+- `DELETE /api/marketing/templates/:id`
+- `GET/POST /api/marketing/groups`, `PATCH/DELETE /api/marketing/groups/:id`
+- `GET/POST /api/marketing/groups/:id/members`, `DELETE /api/marketing/groups/:id/members/:clientId`
+- `GET/POST /api/marketing/history`
+- `POST /api/marketing/email/send`
+
+All demo UI, fake metrics, and placeholder sections removed. No experiments queue, no provider status cards, no dispatch scheduler on the page.
+
 # Evolve.Ai
 
 ## Overview
