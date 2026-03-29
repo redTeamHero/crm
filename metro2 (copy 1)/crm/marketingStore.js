@@ -230,6 +230,15 @@ function parseCampaignDate(value) {
   return date.toISOString();
 }
 
+function normalizeCampaignSteps(rawSteps) {
+  if (!Array.isArray(rawSteps)) return [];
+  return rawSteps.slice(0, 20).map((step, i) => ({
+    subject: String(step?.subject || `Follow-up ${i + 2}`).slice(0, 200),
+    delayDays: Math.max(1, Math.min(Number.isFinite(Number(step?.delayDays)) ? Math.round(Number(step.delayDays)) : 1, 365)),
+    body: step?.body ? String(step.body).slice(0, 20000) : "",
+  }));
+}
+
 function normalizeCampaign(raw = {}) {
   const name = String(raw.name || raw.title || "Campaign").trim();
   const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
@@ -237,6 +246,8 @@ function normalizeCampaign(raw = {}) {
   const status = CAMPAIGN_STATUSES.has(statusRaw) ? statusRaw : "draft";
   const kpiTarget = raw.kpiTarget ? String(raw.kpiTarget).slice(0, 160) : "";
   const summary = raw.summary ? String(raw.summary).slice(0, 400) : "";
+  const description = raw.description ? String(raw.description).slice(0, 400) : "";
+  const frequency = normalizeSequenceFrequency(raw.frequency || "immediate");
   const progress = Number.isFinite(Number(raw.progress))
     ? Math.max(0, Math.min(Math.round(Number(raw.progress)), 100))
     : 0;
@@ -255,6 +266,7 @@ function normalizeCampaign(raw = {}) {
   const subject = raw.subject ? String(raw.subject).slice(0, 200) : "";
   const body = raw.body ? String(raw.body).slice(0, 20000) : "";
   const groupId = raw.groupId ? String(raw.groupId).slice(0, 80) : null;
+  const steps = normalizeCampaignSteps(raw.steps);
   let scheduledAt = null;
   if (raw.scheduledAt) { try { scheduledAt = new Date(raw.scheduledAt).toISOString(); } catch { scheduledAt = null; } }
   let sentAt = null;
@@ -268,6 +280,9 @@ function normalizeCampaign(raw = {}) {
     status,
     kpiTarget,
     summary,
+    description,
+    frequency,
+    steps,
     progress,
     nextTouchAt,
     subject,

@@ -97,6 +97,9 @@ router.post("/campaigns", async (req, res) => {
     nextTouchAt = null,
     kpiTarget = "",
     summary = "",
+    description = "",
+    frequency = "immediate",
+    steps = [],
     progress = 0,
     subject = "",
     body = "",
@@ -127,6 +130,16 @@ router.post("/campaigns", async (req, res) => {
     return res.status(400).json({ ok: false, error: error.message || "Invalid campaign data" });
   }
 
+  const safeSteps = Array.isArray(steps)
+    ? steps.slice(0, 20).map((s) => ({
+        subject: sanitizeString(String(s?.subject || "")).slice(0, 200),
+        delayDays: Math.max(1, Math.min(Number.isFinite(Number(s?.delayDays)) ? Math.round(Number(s.delayDays)) : 1, 365)),
+        body: sanitizeString(String(s?.body || "")).slice(0, 20000),
+      }))
+    : [];
+  const ALLOWED_FREQ = new Set(["immediate", "daily", "weekly", "monthly", "custom"]);
+  const safeFrequency = ALLOWED_FREQ.has(String(frequency).toLowerCase()) ? String(frequency).toLowerCase() : "immediate";
+
   try {
     const campaign = await createCampaign({
       name: safeName,
@@ -135,6 +148,9 @@ router.post("/campaigns", async (req, res) => {
       nextTouchAt: safeNextTouch,
       kpiTarget: sanitizeString(kpiTarget).slice(0, 160),
       summary: sanitizeString(summary).slice(0, 400),
+      description: sanitizeString(description).slice(0, 400),
+      frequency: safeFrequency,
+      steps: safeSteps,
       progress: safeProgress,
       subject: sanitizeString(subject).slice(0, 200),
       body: sanitizeString(body).slice(0, 20000),
@@ -150,7 +166,7 @@ router.post("/campaigns", async (req, res) => {
 
 router.patch("/campaigns/:id", async (req, res) => {
   const { id } = req.params;
-  const { name, status, segment, nextTouchAt, kpiTarget, summary, progress, subject, body, groupId, scheduledAt } = req.body || {};
+  const { name, status, segment, nextTouchAt, kpiTarget, summary, description, frequency, steps, progress, subject, body, groupId, scheduledAt } = req.body || {};
 
   const patch = {};
 
@@ -200,6 +216,26 @@ router.patch("/campaigns/:id", async (req, res) => {
 
   if (summary !== undefined) {
     patch.summary = sanitizeString(summary).slice(0, 400);
+  }
+
+  if (description !== undefined) {
+    patch.description = sanitizeString(description).slice(0, 400);
+  }
+
+  if (frequency !== undefined) {
+    const ALLOWED_FREQ = new Set(["immediate", "daily", "weekly", "monthly", "custom"]);
+    const safeFreq = String(frequency).toLowerCase();
+    patch.frequency = ALLOWED_FREQ.has(safeFreq) ? safeFreq : "immediate";
+  }
+
+  if (steps !== undefined) {
+    patch.steps = Array.isArray(steps)
+      ? steps.slice(0, 20).map((s) => ({
+          subject: sanitizeString(String(s?.subject || "")).slice(0, 200),
+          delayDays: Math.max(1, Math.min(Number.isFinite(Number(s?.delayDays)) ? Math.round(Number(s.delayDays)) : 1, 365)),
+          body: sanitizeString(String(s?.body || "")).slice(0, 20000),
+        }))
+      : [];
   }
 
   if (progress !== undefined) {

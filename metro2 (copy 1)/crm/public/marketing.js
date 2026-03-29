@@ -126,6 +126,7 @@ let _groups = [];
 let _campaigns = [];
 let _templates = [];
 let _history = [];
+let _campSteps = [];
 
 /* ── data loaders ────────────────────────────────── */
 async function loadGroups() {
@@ -499,15 +500,20 @@ function renderCampaigns() {
     const groupName = group ? group.name : (c.segment || "—");
     const recipientCount = c.recipientCount != null ? `${c.recipientCount} recipient${c.recipientCount === 1 ? "" : "s"}` : null;
     const sentDate = c.sentAt ? `Sent ${fmtDate(c.sentAt)}` : `Updated ${fmtDate(c.updatedAt)}`;
+    const stepCount = Array.isArray(c.steps) ? c.steps.length : 0;
+    const isDrip = stepCount > 0;
+    const freqLabel = c.frequency && c.frequency !== "immediate" ? c.frequency.charAt(0).toUpperCase() + c.frequency.slice(1) : null;
     return `<div class="em-card flex flex-col sm:flex-row sm:items-center gap-3">
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-semibold text-sm">${escapeHtml(c.name)}</span>
           ${statusBadge(c.status)}
+          ${isDrip ? `<span class="em-badge em-badge-gray">${stepCount + 1}-step drip</span>` : ""}
+          ${freqLabel ? `<span class="em-badge em-badge-gray">${freqLabel}</span>` : ""}
           ${recipientCount ? `<span class="em-badge em-badge-gray">${recipientCount}</span>` : ""}
         </div>
         <p class="text-xs text-gray-500 mt-1">Group: ${escapeHtml(groupName)} &bull; ${sentDate}</p>
-        ${c.subject ? `<p class="text-xs text-gray-400 mt-0.5">Subject: ${escapeHtml(c.subject)}</p>` : ""}
+        ${c.description ? `<p class="text-xs text-gray-400 mt-0.5">${escapeHtml(c.description)}</p>` : (c.subject ? `<p class="text-xs text-gray-400 mt-0.5">Subject: ${escapeHtml(c.subject)}</p>` : "")}
       </div>
       <div class="flex flex-wrap gap-2 shrink-0">
         <button class="btn btn-outline text-xs" data-action="editCampaign" data-cid="${escapeHtml(c.id)}">Edit</button>
@@ -537,7 +543,17 @@ async function duplicateCampaign(cid) {
   const c = _campaigns.find((x) => x.id === cid);
   if (!c) return;
   try {
-    await api("POST", `${API}/campaigns`, { name: c.name + " (copy)", status: "draft", segment: c.segment, subject: c.subject, body: c.body, groupId: c.groupId });
+    await api("POST", `${API}/campaigns`, {
+      name: c.name + " (copy)",
+      status: "draft",
+      segment: c.segment,
+      subject: c.subject,
+      body: c.body,
+      groupId: c.groupId,
+      description: c.description || "",
+      frequency: c.frequency || "immediate",
+      steps: Array.isArray(c.steps) ? c.steps : [],
+    });
     await loadCampaigns();
   } catch (err) { alert(err.message); }
 }
@@ -550,12 +566,46 @@ function openNewCampaignForGroup(gid) {
   openModal("campaignModal");
 }
 
+function renderCampSteps() {
+  const container = qs("#campStepsList");
+  if (!container) return;
+  if (!_campSteps.length) {
+    container.innerHTML = `<p class="text-xs text-gray-400 italic">No drip steps added. This campaign sends as a single email.</p>`;
+    return;
+  }
+  container.innerHTML = _campSteps.map((step, i) => `
+    <div class="em-card mb-2 space-y-3" style="padding:14px;border-radius:12px;" data-step-card="${i}">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold" style="color:#b08a3e;">STEP ${i + 2}</span>
+        <button type="button" class="btn-icon text-sm" style="color:#dc2626;" data-remove-step="${i}">&times; Remove</button>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label class="em-label text-xs">Days after previous step</label>
+          <input type="number" min="1" max="365" class="input w-full" value="${step.delayDays}" data-step-field="delayDays" data-step-idx="${i}" />
+        </div>
+        <div>
+          <label class="em-label text-xs">Subject</label>
+          <input type="text" class="input w-full" value="${escapeHtml(step.subject)}" placeholder="Follow-up subject..." data-step-field="subject" data-step-idx="${i}" />
+        </div>
+      </div>
+      <div>
+        <label class="em-label text-xs">Body</label>
+        <textarea class="input w-full" rows="3" placeholder="Hi {{first_name}}, just following up..." data-step-field="body" data-step-idx="${i}">${escapeHtml(step.body)}</textarea>
+      </div>
+    </div>`).join("");
+}
+
 function resetCampaignForm() {
   qs("#campaignModalTitle").textContent = "New Campaign";
   qs("#campaignId").value = "";
   qs("#campaignForm").reset();
   rteClear("campBody");
   qs("#campStatus2").className = "em-status";
+  if (qs("#campFrequency")) qs("#campFrequency").value = "immediate";
+  if (qs("#campDescription")) qs("#campDescription").value = "";
+  _campSteps = [];
+  renderCampSteps();
   populateGroupSelects();
   populateTemplateSelects();
 }
@@ -568,10 +618,18 @@ function openEditCampaign(cid) {
   qs("#campName").value = c.name || "";
   qs("#campStatus").value = c.status || "draft";
   qs("#campSubject").value = c.subject || "";
+  if (qs("#campDescription")) qs("#campDescription").value = c.description || "";
+  if (qs("#campFrequency")) qs("#campFrequency").value = c.frequency || "immediate";
+  if (qs("#campScheduledAt") && c.scheduledAt) {
+    const d = new Date(c.scheduledAt);
+    if (!isNaN(d)) qs("#campScheduledAt").value = d.toISOString().slice(0, 16);
+  }
   rteSet("campBody", c.body || "");
+  _campSteps = Array.isArray(c.steps) ? c.steps.map((s) => ({ ...s })) : [];
   populateGroupSelects();
   populateTemplateSelects();
   qs("#campGroupId").value = c.groupId || c.segment || "";
+  renderCampSteps();
   openModal("campaignModal");
 }
 
@@ -604,6 +662,13 @@ async function saveCampaignForm(sendNow = false) {
     subject: qs("#campSubject").value.trim(),
     body: rteGet("campBody"),
     scheduledAt: qs("#campScheduledAt")?.value || undefined,
+    description: qs("#campDescription")?.value.trim() || "",
+    frequency: qs("#campFrequency")?.value || "immediate",
+    steps: _campSteps.map((s) => ({
+      subject: s.subject || "",
+      delayDays: Number(s.delayDays) || 1,
+      body: s.body || "",
+    })),
   };
   if (!payload.name) { toast(qs("#campStatus2"), "Campaign name is required.", true); return; }
 
@@ -649,6 +714,28 @@ qs("#campSendNowBtn")?.addEventListener("click", () => saveCampaignForm(true));
 
 [qs("#btnNewCampaign"), qs("#btnNewCampaign2")].forEach((b) => b?.addEventListener("click", () => { resetCampaignForm(); openModal("campaignModal"); }));
 [qs("#closeCampaignModal"), qs("#closeCampaignModal2")].forEach((b) => b?.addEventListener("click", () => closeModal("campaignModal")));
+
+qs("#addCampStep")?.addEventListener("click", () => {
+  _campSteps.push({ subject: "", delayDays: 7, body: "" });
+  renderCampSteps();
+});
+
+qs("#campStepsList")?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-remove-step]");
+  if (!btn) return;
+  const idx = Number(btn.dataset.removeStep);
+  _campSteps.splice(idx, 1);
+  renderCampSteps();
+});
+
+qs("#campStepsList")?.addEventListener("input", (e) => {
+  const el = e.target.closest("[data-step-field]");
+  if (!el) return;
+  const field = el.dataset.stepField;
+  const idx = Number(el.dataset.stepIdx);
+  if (!_campSteps[idx]) return;
+  _campSteps[idx][field] = field === "delayDays" ? (parseInt(el.value, 10) || 1) : el.value;
+});
 
 /* ── TEMPLATES ───────────────────────────────────── */
 function renderTemplates() {

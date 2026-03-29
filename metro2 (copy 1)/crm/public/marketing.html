@@ -329,41 +329,74 @@
           <input id="campScheduledAt" class="input w-full" type="datetime-local" />
         </div>
       </div>
-      <div>
-        <label class="em-label" for="campSubject">Email subject <span class="text-red-500">*</span></label>
-        <input id="campSubject" class="input w-full" type="text" placeholder="Your credit update is ready" required />
-      </div>
-      <div>
-        <div class="flex items-center justify-between mb-1">
-          <label class="em-label mb-0">Email body</label>
-          <select id="campTemplateSelect" class="input text-xs py-1 px-2 w-auto">
-            <option value="">Use template...</option>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="em-label" for="campFrequency">Send frequency</label>
+          <select id="campFrequency" class="input w-full">
+            <option value="immediate">Immediate (one-time blast)</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
           </select>
         </div>
-        <div class="rte-wrap" data-rte="campBody">
-          <div class="rte-toolbar">
-            <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
-            <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
-            <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
-            <div class="rte-sep"></div>
-            <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8226;&#8212;</button>
-            <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list">1&#8212;</button>
-            <div class="rte-sep"></div>
-            <button type="button" class="rte-btn" data-cmd="justifyLeft" title="Align left">&#8676;</button>
-            <button type="button" class="rte-btn" data-cmd="justifyCenter" title="Align center">&#8633;</button>
-            <div class="rte-sep"></div>
-            <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear format">&#10006;</button>
-          </div>
-          <div id="campBody" class="rte-body" contenteditable="true" data-placeholder="Hi {{first_name}},&#10;&#10;We have an update on your credit repair progress..."></div>
+        <div>
+          <label class="em-label" for="campDescription">Description (optional)</label>
+          <input id="campDescription" class="input w-full" type="text" placeholder="Brief goal for this campaign..." />
         </div>
       </div>
-      <div class="flex flex-wrap gap-1 items-center">
-        <span class="text-xs text-gray-400 mr-1">Merge fields:</span>
-        <button type="button" class="em-merge-chip" data-merge="{{first_name}}">{{first_name}}</button>
-        <button type="button" class="em-merge-chip" data-merge="{{last_name}}">{{last_name}}</button>
-        <button type="button" class="em-merge-chip" data-merge="{{credit_score}}">{{credit_score}}</button>
-        <button type="button" class="em-merge-chip" data-merge="{{group_name}}">{{group_name}}</button>
+
+      <div style="border-top:1px solid rgba(212,168,83,0.15);padding-top:16px;">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Step 1 — Initial Email</p>
+        <div class="space-y-3">
+          <div>
+            <label class="em-label" for="campSubject">Subject <span class="text-red-500">*</span></label>
+            <input id="campSubject" class="input w-full" type="text" placeholder="Your credit update is ready" required />
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="em-label mb-0">Body</label>
+              <select id="campTemplateSelect" class="input text-xs py-1 px-2 w-auto">
+                <option value="">Use template...</option>
+              </select>
+            </div>
+            <div class="rte-wrap" data-rte="campBody">
+              <div class="rte-toolbar">
+                <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+                <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+                <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+                <div class="rte-sep"></div>
+                <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8226;&#8212;</button>
+                <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list">1&#8212;</button>
+                <div class="rte-sep"></div>
+                <button type="button" class="rte-btn" data-cmd="justifyLeft" title="Align left">&#8676;</button>
+                <button type="button" class="rte-btn" data-cmd="justifyCenter" title="Align center">&#8633;</button>
+                <div class="rte-sep"></div>
+                <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear format">&#10006;</button>
+              </div>
+              <div id="campBody" class="rte-body" contenteditable="true" data-placeholder="Hi {{first_name}},&#10;&#10;We have an update on your credit repair progress..."></div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-1 items-center">
+            <span class="text-xs text-gray-400 mr-1">Merge fields:</span>
+            <button type="button" class="em-merge-chip" data-merge="{{first_name}}">{{first_name}}</button>
+            <button type="button" class="em-merge-chip" data-merge="{{last_name}}">{{last_name}}</button>
+            <button type="button" class="em-merge-chip" data-merge="{{credit_score}}">{{credit_score}}</button>
+            <button type="button" class="em-merge-chip" data-merge="{{group_name}}">{{group_name}}</button>
+          </div>
+        </div>
       </div>
+
+      <div style="border-top:1px solid rgba(212,168,83,0.15);padding-top:16px;">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Drip Steps</p>
+            <p class="text-xs text-gray-400" style="margin-top:2px;">Optional follow-up emails sent automatically after Step 1.</p>
+          </div>
+          <button type="button" id="addCampStep" class="btn btn-outline text-xs">+ Add Step</button>
+        </div>
+        <div id="campStepsList"></div>
+      </div>
+
       <div id="campStatus2" class="em-status"></div>
       <div class="flex flex-wrap gap-2 justify-end pt-2">
         <button class="btn btn-outline" type="button" id="closeCampaignModal2">Cancel</button>
@@ -479,6 +512,6 @@
 </div>
 
 <script type="module" src="/common.js?v=2"></script>
-<script type="module" src="/marketing.js?v=4"></script>
+<script type="module" src="/marketing.js?v=5"></script>
 </body>
 </html>
