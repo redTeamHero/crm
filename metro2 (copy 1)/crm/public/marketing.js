@@ -886,7 +886,8 @@ qs("#templateList")?.addEventListener("click", async (e) => {
     if (!t) return;
     qs("[data-tab='send']")?.click();
     if (t.html) rteSet("seBody", t.html);
-    if (t.title && !qs("#seSubject").value) qs("#seSubject").value = t.title;
+    const prefillSubject = t.subject || t.title || "";
+    if (prefillSubject && !qs("#seSubject").value) qs("#seSubject").value = prefillSubject;
     updatePreview();
   }
   if (action === "editTemplate") openEditTemplate(tid);

@@ -44,10 +44,10 @@ function sanitizeHtml(value) {
   return value.slice(0, 20000);
 }
 
-function parseLimit(value, defaultValue = 10) {
+function parseLimit(value, defaultValue = 10, max = 200) {
   const num = Number.parseInt(value ?? "", 10);
   if (Number.isNaN(num)) return defaultValue;
-  return Math.max(1, Math.min(num, 50));
+  return Math.max(1, Math.min(num, max));
 }
 
 const ALLOWED_CAMPAIGN_STATUSES = new Set(["draft", "scheduled", "running", "paused", "completed", "sent"]);
@@ -172,9 +172,15 @@ router.patch("/campaigns/:id", async (req, res) => {
       return res.status(400).json({ ok: false, error: "Invalid campaign status" });
     }
     const activeSendStatus = safeStatus === "running" || safeStatus === "scheduled" || safeStatus === "sent";
-    const patchGroupId = req.body?.groupId ? sanitizeString(req.body.groupId).slice(0, 80) : null;
-    if (activeSendStatus && !patchGroupId) {
-      return res.status(400).json({ ok: false, error: "A group must be selected before sending or scheduling a campaign" });
+    if (activeSendStatus) {
+      const patchGroupId = req.body?.groupId ? sanitizeString(req.body.groupId).slice(0, 80) : null;
+      if (!patchGroupId) {
+        const allCampaigns = await listCampaigns();
+        const existing = allCampaigns.find((c) => c.id === id);
+        if (!existing?.groupId) {
+          return res.status(400).json({ ok: false, error: "A group must be selected before sending or scheduling a campaign" });
+        }
+      }
     }
     patch.status = safeStatus;
   }
