@@ -106,20 +106,19 @@ document.addEventListener("click", (e) => {
 });
 
 /* ── tabs ────────────────────────────────────────── */
-qsa(".em-tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    qsa(".em-tab-btn").forEach((b) => b.classList.remove("active"));
-    qsa(".em-panel").forEach((p) => p.classList.remove("active"));
-    btn.classList.add("active");
-    const panel = qs("#panel-" + btn.dataset.tab);
-    if (panel) panel.classList.add("active");
-    if (btn.dataset.tab === "history") loadHistory();
-  });
+function switchTab(tab) {
+  qsa(".em-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  qsa(".em-panel").forEach((p) => p.classList.toggle("active", p.id === "panel-" + tab));
+  if (tab === "history") loadHistory();
+}
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".em-tab-btn");
+  if (btn && btn.dataset.tab) switchTab(btn.dataset.tab);
 });
 
 /* ── page header Send Email button ──────────────── */
 qs("#btnSendEmail")?.addEventListener("click", () => {
-  qs("[data-tab='send']")?.click();
+  switchTab("send");
 });
 
 /* ── cache ───────────────────────────────────────── */
@@ -381,7 +380,7 @@ qs("#btnCampaignForGroup")?.addEventListener("click", () => {
 
 /* ── SEND EMAIL ──────────────────────────────────── */
 function openSendToGroup(gid) {
-  qs("[data-tab='send']")?.click();
+  switchTab("send");
   qs("#seRecipientType").value = "group";
   handleRecipientTypeChange();
   if (gid) qs("#seGroupId").value = gid;
@@ -544,7 +543,7 @@ async function duplicateCampaign(cid) {
 }
 
 function openNewCampaignForGroup(gid) {
-  qs("[data-tab='campaigns']")?.click();
+  switchTab("campaigns");
   resetCampaignForm();
   populateGroupSelects();
   if (gid) qs("#campGroupId").value = gid;
@@ -885,7 +884,7 @@ qs("#templateList")?.addEventListener("click", async (e) => {
   if (action === "useTemplate") {
     const t = _templates.find((x) => x.id === tid);
     if (!t) return;
-    qs("[data-tab='send']")?.click();
+    switchTab("send");
     if (t.html) rteSet("seBody", t.html);
     const prefillSubject = t.subject || t.title || "";
     if (prefillSubject && !qs("#seSubject").value) qs("#seSubject").value = prefillSubject;
