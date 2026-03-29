@@ -389,8 +389,8 @@ function normalizeGroupMembership(raw = {}) {
 function normalizeEmailHistory(raw = {}) {
   const allowedTypes = new Set(["one-time", "campaign", "sequence", "test"]);
   const type = allowedTypes.has(raw.type) ? raw.type : "one-time";
-  const allowedStatuses = new Set(["queued", "sent", "failed", "draft"]);
-  const status = allowedStatuses.has(raw.status) ? raw.status : "sent";
+  const allowedStatuses = new Set(["queued", "sent", "failed", "draft", "scheduled", "running", "completed"]);
+  const status = allowedStatuses.has(raw.status) ? raw.status : "queued";
   return {
     id: raw.id || nanoid(12),
     type,

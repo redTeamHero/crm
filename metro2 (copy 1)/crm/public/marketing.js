@@ -3,10 +3,14 @@ import { api as _api, escapeHtml } from "./common.js";
 const API = "/api/marketing";
 
 /* ── api wrapper (method, url, body) → common.js api(url, opts) ── */
-function api(method, url, body) {
+async function api(method, url, body) {
   const opts = { method };
   if (body !== undefined) opts.body = JSON.stringify(body);
-  return _api(url, opts);
+  const res = await _api(url, opts);
+  if (res.ok === false || (res.status && res.status >= 400)) {
+    throw new Error(res.error || res.message || `Request failed (${res.status || "unknown"})`);
+  }
+  return res;
 }
 
 /* ── helpers ─────────────────────────────────────── */
