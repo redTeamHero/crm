@@ -124,7 +124,6 @@ qs("#btnSendEmail")?.addEventListener("click", () => {
 /* ── cache ───────────────────────────────────────── */
 let _groups = [];
 let _campaigns = [];
-let _sequences = [];
 let _templates = [];
 let _history = [];
 
@@ -147,14 +146,6 @@ async function loadCampaigns() {
     updateStats();
   } catch (err) { _campaigns = []; console.error("Campaigns load failed:", err?.message); }
 }
-async function loadSequences() {
-  try {
-    const r = await api("GET", `${API}/email/sequences`);
-    _sequences = r.sequences || [];
-    renderSequences();
-    updateStats();
-  } catch (err) { _sequences = []; console.error("Sequences load failed:", err?.message); }
-}
 async function loadTemplates() {
   try {
     const r = await api("GET", `${API}/templates`);
@@ -176,7 +167,6 @@ async function loadHistory() {
 function updateStats() {
   const eg = qs("#statGroups"); if (eg) eg.textContent = _groups.length;
   const ec = qs("#statCampaigns"); if (ec) ec.textContent = _campaigns.length;
-  const es = qs("#statSequences"); if (es) es.textContent = _sequences.length;
   const eh = qs("#statHistory"); if (eh) eh.textContent = _history.filter((h) => h.status !== "draft").length;
 }
 
@@ -660,203 +650,6 @@ qs("#campSendNowBtn")?.addEventListener("click", () => saveCampaignForm(true));
 [qs("#btnNewCampaign"), qs("#btnNewCampaign2")].forEach((b) => b?.addEventListener("click", () => { resetCampaignForm(); openModal("campaignModal"); }));
 [qs("#closeCampaignModal"), qs("#closeCampaignModal2")].forEach((b) => b?.addEventListener("click", () => closeModal("campaignModal")));
 
-/* ── SEQUENCES ───────────────────────────────────── */
-let _seqStepIndex = 0;
-
-function renderSequences() {
-  const container = qs("#sequenceList");
-  if (!_sequences.length) {
-    container.innerHTML = `<div class="em-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16M4 12h16M4 18h16"/></svg>No sequences yet. Create one to build automated email flows.</div>`;
-    return;
-  }
-  container.innerHTML = _sequences.map((s) => {
-    const group = _groups.find((g) => g.id === s.groupId || g.id === s.segment);
-    const groupName = group ? group.name : (s.segment || "All contacts");
-    return `<div class="em-card flex flex-col sm:flex-row sm:items-center gap-3">
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="font-semibold text-sm">${escapeHtml(s.title)}</span>
-          ${statusBadge(s.status || "active")}
-        </div>
-        <p class="text-xs text-gray-500 mt-1">Audience: ${escapeHtml(groupName)} &bull; ${(s.steps || []).length} step${(s.steps || []).length === 1 ? "" : "s"} &bull; Updated ${fmtDate(s.updatedAt || s.createdAt)}</p>
-        ${s.description ? `<p class="text-xs text-gray-400 mt-0.5">${escapeHtml(s.description)}</p>` : ""}
-      </div>
-      <div class="flex flex-wrap gap-2 shrink-0">
-        <button class="btn btn-outline text-xs" data-action="editSeq" data-sid="${escapeHtml(s.id)}">Edit</button>
-        <button class="btn btn-outline text-xs" data-action="toggleSeq" data-sid="${escapeHtml(s.id)}" data-sstatus="${escapeHtml(s.status || "active")}">${(s.status || "active") === "paused" ? "Activate" : "Pause"}</button>
-        <button class="btn btn-outline text-xs" data-action="dupSeq" data-sid="${escapeHtml(s.id)}">Duplicate</button>
-        <button class="btn btn-outline text-xs" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" data-action="deleteSeq" data-sid="${escapeHtml(s.id)}" data-sname="${escapeHtml(s.title)}">Delete</button>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-qs("#sequenceList")?.addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-action]");
-  if (!btn) return;
-  const action = btn.dataset.action;
-  const sid = btn.dataset.sid;
-  if (action === "editSeq") openEditSequence(sid);
-  if (action === "toggleSeq") {
-    const currentStatus = btn.dataset.sstatus || "active";
-    const newStatus = currentStatus === "paused" ? "active" : "paused";
-    try { await api("PATCH", `${API}/email/sequences/${sid}`, { status: newStatus }); await loadSequences(); }
-    catch (err) { alert(err.message); }
-  }
-  if (action === "dupSeq") {
-    const s = _sequences.find((x) => x.id === sid);
-    if (!s) return;
-    try { await api("POST", `${API}/email/sequences`, { title: s.title + " (copy)", description: s.description, segment: s.segment, groupId: s.groupId || undefined, frequency: s.frequency, steps: s.steps }); await loadSequences(); }
-    catch (err) { alert(err.message); }
-  }
-  if (action === "deleteSeq") {
-    const ok = await confirmDialog("Delete sequence?", `Delete "${btn.dataset.sname}"? This cannot be undone.`);
-    if (!ok) return;
-    try { await api("DELETE", `${API}/email/sequences/${sid}`); await loadSequences(); }
-    catch (err) { alert(err.message); }
-  }
-});
-
-function buildStepTemplateOpts(selectedId) {
-  return `<option value="">— or use template —</option>` + _templates.map((t) => `<option value="${escapeHtml(t.id)}"${t.id === selectedId ? " selected" : ""}>${escapeHtml(t.title)}</option>`).join("");
-}
-
-function buildStepHtml(step, index) {
-  const bodyHtml = step.body ? escapeHtml(step.body).replace(/&#10;/g, "<br>") : "";
-  return `<div class="em-step" data-step="${index}">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-xs font-semibold text-gray-500">Step ${index + 1}</span>
-      <button type="button" class="btn-icon text-xs text-red-400" data-remove-step="${index}">&times; Remove</button>
-    </div>
-    <div class="grid gap-2 sm:grid-cols-[1fr_160px_120px]">
-      <div>
-        <label class="em-label" for="stepSubject_${index}">Subject</label>
-        <input id="stepSubject_${index}" class="input w-full" type="text" placeholder="Day ${index + 1} — Your update" value="${escapeHtml(step.subject || "")}" />
-      </div>
-      <div>
-        <label class="em-label" for="stepTemplate_${index}">Template (optional)</label>
-        <select id="stepTemplate_${index}" class="input w-full" data-step-tpl="${index}">${buildStepTemplateOpts(step.templateId || "")}</select>
-      </div>
-      <div>
-        <label class="em-label" for="stepDelay_${index}">Delay (days)</label>
-        <input id="stepDelay_${index}" class="input w-full" type="number" min="0" max="365" value="${step.delayDays ?? index}" />
-      </div>
-    </div>
-    <div class="mt-2">
-      <label class="em-label">Body</label>
-      <div class="rte-wrap" data-rte="stepBody_${index}">
-        <div class="rte-toolbar">
-          <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
-          <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
-          <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
-          <div class="rte-sep"></div>
-          <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8226;&#8212;</button>
-          <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear format">&#10006;</button>
-        </div>
-        <div id="stepBody_${index}" class="rte-body" style="min-height:90px" contenteditable="true" data-placeholder="Hi {{first_name}}, ...">${step.body ? escapeHtml(step.body) : ""}</div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function getSteps() {
-  return qsa("[data-step]").map((el) => {
-    const i = Number(el.dataset.step);
-    const templateId = qs(`#stepTemplate_${i}`)?.value || undefined;
-    return {
-      subject: qs(`#stepSubject_${i}`)?.value || "",
-      delayDays: Number(qs(`#stepDelay_${i}`)?.value) || 0,
-      body: rteGet(`stepBody_${i}`),
-      templateId: templateId || undefined,
-    };
-  });
-}
-
-function renderSteps(steps) {
-  const container = qs("#seqSteps");
-  container.innerHTML = "";
-  steps.forEach((step, i) => { container.insertAdjacentHTML("beforeend", buildStepHtml(step, i)); });
-  _seqStepIndex = steps.length;
-  bindRemoveSteps();
-}
-
-function bindRemoveSteps() {
-  qsa("[data-remove-step]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const steps = getSteps();
-      steps.splice(Number(btn.dataset.removeStep), 1);
-      renderSteps(steps);
-    });
-  });
-}
-
-qs("#seqSteps")?.addEventListener("change", (e) => {
-  const sel = e.target.closest("[data-step-tpl]");
-  if (!sel) return;
-  const idx = Number(sel.dataset.stepTpl);
-  const tid = sel.value;
-  if (!tid) return;
-  const tpl = _templates.find((t) => t.id === tid);
-  if (!tpl) return;
-  const subjectEl = qs(`#stepSubject_${idx}`);
-  if (subjectEl && !subjectEl.value) subjectEl.value = tpl.subject || tpl.title || "";
-  if (tpl.html) rteSet(`stepBody_${idx}`, tpl.html);
-});
-
-qs("#addSeqStep")?.addEventListener("click", () => {
-  const container = qs("#seqSteps");
-  const newStep = { subject: "", delayDays: _seqStepIndex, body: "" };
-  container.insertAdjacentHTML("beforeend", buildStepHtml(newStep, _seqStepIndex));
-  _seqStepIndex++;
-  bindRemoveSteps();
-});
-
-function openNewSequence() {
-  qs("#sequenceModalTitle").textContent = "New Sequence";
-  qs("#sequenceId").value = "";
-  qs("#sequenceForm").reset();
-  renderSteps([{ subject: "", delayDays: 0, body: "" }]);
-  populateGroupSelects();
-  openModal("sequenceModal");
-}
-
-function openEditSequence(sid) {
-  const s = _sequences.find((x) => x.id === sid);
-  if (!s) return;
-  qs("#sequenceModalTitle").textContent = "Edit Sequence";
-  qs("#sequenceId").value = s.id;
-  qs("#seqName").value = s.title || "";
-  qs("#seqDescription").value = s.description || "";
-  populateGroupSelects();
-  qs("#seqGroupId").value = s.groupId || s.segment || "";
-  renderSteps(s.steps && s.steps.length ? s.steps : [{ subject: "", delayDays: 0, body: "" }]);
-  openModal("sequenceModal");
-}
-
-qs("#sequenceForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const id = qs("#sequenceId").value;
-  const steps = getSteps();
-  const payload = {
-    title: qs("#seqName").value.trim(),
-    description: qs("#seqDescription").value.trim(),
-    segment: qs("#seqGroupId").value || "b2c",
-    groupId: qs("#seqGroupId").value || undefined,
-    frequency: "daily",
-    steps,
-  };
-  if (!payload.title) { toast(qs("#seqStatus"), "Sequence name is required.", true); return; }
-  try {
-    if (id) { await api("PATCH", `${API}/email/sequences/${id}`, payload); }
-    else { await api("POST", `${API}/email/sequences`, payload); }
-    closeModal("sequenceModal");
-    await loadSequences();
-  } catch (err) { toast(qs("#seqStatus"), err.message || "Failed to save sequence.", true); }
-});
-
-qs("#btnNewSequence")?.addEventListener("click", openNewSequence);
-[qs("#closeSequenceModal"), qs("#closeSequenceModal2")].forEach((b) => b?.addEventListener("click", () => closeModal("sequenceModal")));
-
 /* ── TEMPLATES ───────────────────────────────────── */
 function renderTemplates() {
   const container = qs("#templateList");
@@ -987,6 +780,6 @@ qs("#btnRefreshHistory")?.addEventListener("click", loadHistory);
 
 /* ── INIT ────────────────────────────────────────── */
 (async function init() {
-  await Promise.all([loadGroups(), loadCampaigns(), loadSequences(), loadTemplates(), loadHistory()]);
+  await Promise.all([loadGroups(), loadCampaigns(), loadTemplates(), loadHistory()]);
   handleRecipientTypeChange();
 })();
