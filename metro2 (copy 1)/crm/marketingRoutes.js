@@ -50,7 +50,7 @@ function parseLimit(value, defaultValue = 10) {
   return Math.max(1, Math.min(num, 50));
 }
 
-const ALLOWED_CAMPAIGN_STATUSES = new Set(["draft", "scheduled", "running", "paused", "completed"]);
+const ALLOWED_CAMPAIGN_STATUSES = new Set(["draft", "scheduled", "running", "paused", "completed", "sent"]);
 
 function sanitizeCampaignStatus(value, fallback = "draft") {
   if (typeof value !== "string") return fallback;
@@ -240,12 +240,13 @@ router.get("/templates", async (_req, res) => {
 });
 
 router.post("/templates", async (req, res) => {
-  const { title, description = "", segment = "b2c", badge = "Custom", html = "" } = req.body || {};
+  const { title, description = "", segment = "b2c", badge = "Custom", html = "", subject = "" } = req.body || {};
   const safeTitle = sanitizeString(title);
   const safeDescription = sanitizeString(description);
   const safeSegment = sanitizeString(segment || "b2c").toLowerCase().slice(0, 24) || "b2c";
   const safeBadge = sanitizeString(badge || safeSegment.toUpperCase()).slice(0, 24);
   const safeHtml = sanitizeHtml(html);
+  const safeSubject = sanitizeString(subject).slice(0, 200);
   if (!safeTitle) {
     return res.status(400).json({ ok: false, error: "Template title is required" });
   }
@@ -256,6 +257,7 @@ router.post("/templates", async (req, res) => {
       segment: safeSegment,
       badge: safeBadge || safeSegment.toUpperCase(),
       html: safeHtml,
+      subject: safeSubject,
       createdBy: req.user?.username || "system",
     });
     res.status(201).json({ ok: true, template });
@@ -287,6 +289,10 @@ router.patch("/templates/:id", async (req, res) => {
   }
   if (html !== undefined) {
     patch.html = sanitizeHtml(html);
+  }
+  const reqSubject = req.body?.subject;
+  if (reqSubject !== undefined) {
+    patch.subject = sanitizeString(reqSubject).slice(0, 200);
   }
 
   try {
@@ -661,17 +667,42 @@ router.post("/email/send", async (req, res) => {
   if (!safeSubject) return res.status(400).json({ ok: false, error: "Subject is required" });
   if (recipientType === "group" && !groupId) return res.status(400).json({ ok: false, error: "groupId is required for group sends" });
   if (recipientType === "client" && !recipientId) return res.status(400).json({ ok: false, error: "recipientId is required for client sends" });
+
+  const recipientIds = recipientId
+    ? String(recipientId).split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const recipientCount = recipientType === "client" ? recipientIds.length : null;
+
   try {
-    const entry = await addEmailHistory({
-      type: "one-time",
-      subject: safeSubject,
-      recipientType,
-      recipientId: recipientId ? sanitizeString(recipientId) : null,
-      groupId: groupId ? sanitizeString(groupId) : null,
-      status: "queued",
-      createdBy: req.user?.username || "system",
-    });
-    res.status(201).json({ ok: true, entry, message: "Email queued. Connect a delivery provider in Settings > Integrations to send live emails." });
+    const entries = [];
+    if (recipientType === "client" && recipientIds.length > 1) {
+      for (const rid of recipientIds) {
+        const entry = await addEmailHistory({
+          type: "one-time",
+          subject: safeSubject,
+          recipientType,
+          recipientId: rid,
+          groupId: null,
+          recipientCount: 1,
+          status: "queued",
+          createdBy: req.user?.username || "system",
+        });
+        entries.push(entry);
+      }
+    } else {
+      const entry = await addEmailHistory({
+        type: "one-time",
+        subject: safeSubject,
+        recipientType,
+        recipientId: recipientIds[0] || null,
+        groupId: groupId ? sanitizeString(groupId) : null,
+        recipientCount,
+        status: "queued",
+        createdBy: req.user?.username || "system",
+      });
+      entries.push(entry);
+    }
+    res.status(201).json({ ok: true, entry: entries[0], entries, message: "Email queued. Connect a delivery provider in Settings > Integrations to send live emails." });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "Failed to queue email" });
   }

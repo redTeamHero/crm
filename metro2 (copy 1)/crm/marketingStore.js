@@ -94,7 +94,7 @@ const DEFAULT_STATE = {
 
 const ALLOWED_TEST_STATUSES = new Set(["queued", "sending", "sent", "failed"]);
 
-const CAMPAIGN_STATUSES = new Set(["draft", "scheduled", "running", "paused", "completed"]);
+const CAMPAIGN_STATUSES = new Set(["draft", "scheduled", "running", "paused", "completed", "sent"]);
 
 const GROUP_STATUSES = new Set(["active", "archived"]);
 
@@ -125,6 +125,7 @@ function normalizeTemplate(raw = {}) {
   const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
   const badge = String(raw.badge || segment.toUpperCase()).trim() || segment.toUpperCase();
   const html = typeof raw.html === "string" ? raw.html.trim() : "";
+  const subject = raw.subject ? String(raw.subject).slice(0, 200) : "";
   const createdAt = raw.createdAt || new Date().toISOString();
   const updatedAt = raw.updatedAt || createdAt;
   return {
@@ -134,6 +135,7 @@ function normalizeTemplate(raw = {}) {
     segment,
     badge,
     html,
+    subject,
     createdAt,
     updatedAt,
     createdBy: raw.createdBy || "system",
