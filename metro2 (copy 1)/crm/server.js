@@ -611,9 +611,6 @@ const INTEGRATION_SETTING_TO_ENV = {
   smartCreditClientId: "SMART_CREDIT_CLIENT_ID",
   smartCreditClientSecret: "SMART_CREDIT_CLIENT_SECRET",
   smartCreditRedirectUri: "SMART_CREDIT_REDIRECT_URI",
-  sendgridApiKey: "SENDGRID_API_KEY",
-  sendgridFromEmail: "SENDGRID_FROM_EMAIL",
-  sendgridFromName: "SENDGRID_FROM_NAME",
 };
 
 function normalizeEnvOverrides(raw){
@@ -1170,6 +1167,11 @@ import {
   listAllConsumerStates,
 
 } from "./state.js";
+
+const SYSTEM_SENDGRID_API_KEY = (process.env.SENDGRID_API_KEY || "").trim().slice(0, 500);
+const SYSTEM_SENDGRID_FROM_EMAIL = (process.env.SENDGRID_FROM_EMAIL || "").trim().slice(0, 500);
+const SYSTEM_SENDGRID_FROM_NAME = (process.env.SENDGRID_FROM_NAME || "").trim().slice(0, 500);
+
 function injectStyle(html, css){
   if(/<head[^>]*>/i.test(html)){
     return html.replace(/<\/head>/i, `<style>${css}</style></head>`);
@@ -2879,9 +2881,9 @@ app.post("/api/marketing/email/send", marketingKeyAuth, authenticate, forbidMemb
 
   try {
     const settings = await loadSettings(req).catch(() => ({}));
-    const apiKey = sanitizeSettingString(settings.sendgridApiKey) || sanitizeSettingString(process.env.SENDGRID_API_KEY || "");
-    const fromEmail = sanitizeSettingString(settings.sendgridFromEmail) || sanitizeSettingString(process.env.SENDGRID_FROM_EMAIL || "");
-    const fromName = sanitizeSettingString(settings.sendgridFromName) || sanitizeSettingString(process.env.SENDGRID_FROM_NAME || "");
+    const apiKey = sanitizeSettingString(settings.sendgridApiKey) || SYSTEM_SENDGRID_API_KEY;
+    const fromEmail = sanitizeSettingString(settings.sendgridFromEmail) || SYSTEM_SENDGRID_FROM_EMAIL;
+    const fromName = sanitizeSettingString(settings.sendgridFromName) || SYSTEM_SENDGRID_FROM_NAME;
 
     const db = await loadDB(req).catch(() => ({ consumers: [] }));
     const consumers = db.consumers || [];
