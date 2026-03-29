@@ -306,6 +306,9 @@ function normalizeCampaign(raw = {}) {
   const groupId = raw.groupId ? String(raw.groupId).slice(0, 80) : null;
   let scheduledAt = null;
   if (raw.scheduledAt) { try { scheduledAt = new Date(raw.scheduledAt).toISOString(); } catch { scheduledAt = null; } }
+  let sentAt = null;
+  if (raw.sentAt) { try { sentAt = new Date(raw.sentAt).toISOString(); } catch { sentAt = null; } }
+  const recipientCount = Number.isFinite(Number(raw.recipientCount)) ? Number(raw.recipientCount) : null;
 
   return {
     id: raw.id || nanoid(10),
@@ -320,6 +323,8 @@ function normalizeCampaign(raw = {}) {
     body,
     groupId,
     scheduledAt,
+    sentAt,
+    recipientCount,
     createdAt,
     updatedAt,
     createdBy,

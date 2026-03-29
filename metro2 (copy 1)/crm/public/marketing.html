@@ -45,6 +45,19 @@
     .tab-bar { display: flex; gap: 0; border-bottom: 1px solid rgba(212,168,83,0.2); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
     .tab-bar::-webkit-scrollbar { display: none; }
     input[type="datetime-local"] { color-scheme: light; }
+    /* Rich text editor */
+    .rte-wrap { border: 1px solid #d1d5db; border-radius: 10px; overflow: hidden; background: #fff; }
+    .rte-toolbar { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
+    .rte-btn { background: transparent; border: 1px solid transparent; border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; cursor: pointer; color: #374151; transition: background .15s; flex-shrink: 0; }
+    .rte-btn:hover { background: #e5e7eb; border-color: #d1d5db; }
+    .rte-btn.active { background: rgba(212,168,83,0.15); border-color: rgba(212,168,83,0.3); color: #92400e; }
+    .rte-sep { width: 1px; background: #e5e7eb; margin: 2px 4px; }
+    .rte-body { min-height: 160px; padding: 12px 14px; font-size: 14px; line-height: 1.6; color: #111827; outline: none; overflow-y: auto; }
+    .rte-body:empty::before { content: attr(data-placeholder); color: #9ca3af; pointer-events: none; }
+    .rte-body a { color: #d4a853; text-decoration: underline; }
+    .rte-body ul, .rte-body ol { padding-left: 1.4em; }
+    .rte-body h2 { font-size: 1.15em; font-weight: 700; }
+    .rte-body h3 { font-size: 1em; font-weight: 700; }
   </style>
 <script src="/sidebar.js?v=26" defer></script>
 <script src="/command-palette.js" defer></script>
@@ -176,12 +189,27 @@
             </div>
             <div>
               <div class="flex items-center justify-between mb-1">
-                <label class="em-label mb-0" for="seBody">Message body</label>
+                <label class="em-label mb-0">Message body</label>
                 <select id="seTemplateSelect" class="input text-xs py-1 px-2 w-auto">
                   <option value="">Use template...</option>
                 </select>
               </div>
-              <textarea id="seBody" class="input w-full" rows="8" placeholder="Hi {{first_name}},&#10;&#10;Your dispute update is ready for review..."></textarea>
+              <div class="rte-wrap" data-rte="seBody">
+                <div class="rte-toolbar">
+                  <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+                  <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+                  <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+                  <div class="rte-sep"></div>
+                  <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8226;&#8212;</button>
+                  <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list">1&#8212;</button>
+                  <div class="rte-sep"></div>
+                  <button type="button" class="rte-btn" data-cmd="justifyLeft" title="Align left">&#8676;</button>
+                  <button type="button" class="rte-btn" data-cmd="justifyCenter" title="Align center">&#8633;</button>
+                  <div class="rte-sep"></div>
+                  <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear format">&#10006;</button>
+                </div>
+                <div id="seBody" class="rte-body" contenteditable="true" data-placeholder="Hi {{first_name}},&#10;&#10;Your dispute update is ready for review..."></div>
+              </div>
             </div>
             <div class="flex flex-wrap gap-1 items-center">
               <span class="text-xs text-gray-400 mr-1">Merge fields:</span>
@@ -320,12 +348,27 @@
       </div>
       <div>
         <div class="flex items-center justify-between mb-1">
-          <label class="em-label mb-0" for="campBody">Email body</label>
+          <label class="em-label mb-0">Email body</label>
           <select id="campTemplateSelect" class="input text-xs py-1 px-2 w-auto">
             <option value="">Use template...</option>
           </select>
         </div>
-        <textarea id="campBody" class="input w-full" rows="7" placeholder="Hi {{first_name}},&#10;&#10;We have an update on your credit repair progress..."></textarea>
+        <div class="rte-wrap" data-rte="campBody">
+          <div class="rte-toolbar">
+            <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+            <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+            <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+            <div class="rte-sep"></div>
+            <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8226;&#8212;</button>
+            <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list">1&#8212;</button>
+            <div class="rte-sep"></div>
+            <button type="button" class="rte-btn" data-cmd="justifyLeft" title="Align left">&#8676;</button>
+            <button type="button" class="rte-btn" data-cmd="justifyCenter" title="Align center">&#8633;</button>
+            <div class="rte-sep"></div>
+            <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear format">&#10006;</button>
+          </div>
+          <div id="campBody" class="rte-body" contenteditable="true" data-placeholder="Hi {{first_name}},&#10;&#10;We have an update on your credit repair progress..."></div>
+        </div>
       </div>
       <div class="flex flex-wrap gap-1 items-center">
         <span class="text-xs text-gray-400 mr-1">Merge fields:</span>

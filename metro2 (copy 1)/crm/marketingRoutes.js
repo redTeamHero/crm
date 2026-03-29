@@ -109,6 +109,13 @@ router.post("/campaigns", async (req, res) => {
     return res.status(400).json({ ok: false, error: "Campaign name is required" });
   }
 
+  const safeStatus = sanitizeCampaignStatus(status);
+  const safeGroupId = sanitizeString(groupId).slice(0, 80) || null;
+  const requiresGroup = safeStatus === "running" || safeStatus === "scheduled" || safeStatus === "sent";
+  if (requiresGroup && !safeGroupId) {
+    return res.status(400).json({ ok: false, error: "A group must be selected before sending or scheduling a campaign" });
+  }
+
   let safeProgress;
   let safeNextTouch = null;
   let safeScheduledAt = null;
@@ -123,7 +130,7 @@ router.post("/campaigns", async (req, res) => {
   try {
     const campaign = await createCampaign({
       name: safeName,
-      status: sanitizeCampaignStatus(status),
+      status: safeStatus,
       segment: sanitizeSegmentValue(segment),
       nextTouchAt: safeNextTouch,
       kpiTarget: sanitizeString(kpiTarget).slice(0, 160),
@@ -131,7 +138,7 @@ router.post("/campaigns", async (req, res) => {
       progress: safeProgress,
       subject: sanitizeString(subject).slice(0, 200),
       body: sanitizeString(body).slice(0, 20000),
-      groupId: sanitizeString(groupId).slice(0, 80) || undefined,
+      groupId: safeGroupId || undefined,
       scheduledAt: safeScheduledAt,
       createdBy: req.user?.username || "system",
     });
@@ -163,6 +170,11 @@ router.patch("/campaigns/:id", async (req, res) => {
     const safeStatus = sanitizeCampaignStatus(trimmed, null);
     if (!safeStatus) {
       return res.status(400).json({ ok: false, error: "Invalid campaign status" });
+    }
+    const activeSendStatus = safeStatus === "running" || safeStatus === "scheduled" || safeStatus === "sent";
+    const patchGroupId = req.body?.groupId ? sanitizeString(req.body.groupId).slice(0, 80) : null;
+    if (activeSendStatus && !patchGroupId) {
+      return res.status(400).json({ ok: false, error: "A group must be selected before sending or scheduling a campaign" });
     }
     patch.status = safeStatus;
   }
@@ -200,6 +212,13 @@ router.patch("/campaigns/:id", async (req, res) => {
   if (groupId !== undefined) patch.groupId = sanitizeString(groupId).slice(0, 80) || null;
   if (scheduledAt !== undefined) {
     try { patch.scheduledAt = scheduledAt ? new Date(scheduledAt).toISOString() : null; } catch { patch.scheduledAt = null; }
+  }
+  if (req.body?.sentAt !== undefined) {
+    try { patch.sentAt = req.body.sentAt ? new Date(req.body.sentAt).toISOString() : null; } catch { patch.sentAt = null; }
+  }
+  if (req.body?.recipientCount !== undefined) {
+    const rc = Number(req.body.recipientCount);
+    patch.recipientCount = Number.isFinite(rc) ? rc : null;
   }
 
   patch.updatedBy = req.user?.username || "system";

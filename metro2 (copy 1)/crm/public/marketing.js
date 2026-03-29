@@ -2,7 +2,7 @@ import { api as _api, escapeHtml } from "./common.js";
 
 const API = "/api/marketing";
 
-/* ── api wrapper (method, url, body) → common.js api(url, opts) ── */
+/* ── api wrapper — throws on error responses ──────── */
 async function api(method, url, body) {
   const opts = { method };
   if (body !== undefined) opts.body = JSON.stringify(body);
@@ -33,6 +33,48 @@ function statusBadge(s) {
   const map = { draft: "em-badge-gray", scheduled: "em-badge-blue", running: "em-badge-blue", sent: "em-badge-green", completed: "em-badge-green", paused: "em-badge-gold", failed: "em-badge-red", queued: "em-badge-gray", active: "em-badge-green", archived: "em-badge-gray" };
   return `<span class="em-badge ${map[s] || "em-badge-gray"}">${escapeHtml(s || "—")}</span>`;
 }
+
+/* ── Rich-text editor (RTE) helpers ──────────────── */
+function rteGet(id) {
+  const el = qs("#" + id);
+  if (!el) return "";
+  return el.innerHTML.trim();
+}
+function rteSet(id, html) {
+  const el = qs("#" + id);
+  if (!el) return;
+  el.innerHTML = html || "";
+}
+function rteClear(id) {
+  const el = qs("#" + id);
+  if (!el) return;
+  el.innerHTML = "";
+}
+function rteInsertText(id, text) {
+  const el = qs("#" + id);
+  if (!el) return;
+  el.focus();
+  document.execCommand("insertText", false, text);
+}
+
+/* RTE toolbar — handle bold/italic/etc buttons */
+document.addEventListener("mousedown", (e) => {
+  const btn = e.target.closest(".rte-btn[data-cmd]");
+  if (!btn) return;
+  e.preventDefault();
+  document.execCommand(btn.dataset.cmd, false, null);
+  btn.classList.toggle("active", document.queryCommandState(btn.dataset.cmd));
+});
+
+/* RTE toolbar state sync on selection change */
+document.addEventListener("selectionchange", () => {
+  qsa(".rte-btn[data-cmd]").forEach((btn) => {
+    try { btn.classList.toggle("active", document.queryCommandState(btn.dataset.cmd)); } catch { }
+  });
+});
+
+/* RTE toolbar — link insertion for rte-btn[data-cmd="createLink"] */
+/* (not exposed in toolbar for now; handled via merge chips) */
 
 /* ── confirm helper ──────────────────────────────── */
 function confirmDialog(title, msg) {
@@ -218,14 +260,14 @@ qs("#groupList")?.addEventListener("click", async (e) => {
   if (action === "archiveGroup") {
     const g = _groups.find((x) => x.id === gid);
     if (!g) return;
-    await api("PATCH", `${API}/groups/${gid}`, { status: g.status === "archived" ? "active" : "archived" });
-    await loadGroups();
+    try { await api("PATCH", `${API}/groups/${gid}`, { status: g.status === "archived" ? "active" : "archived" }); await loadGroups(); }
+    catch (err) { alert(err.message); }
   }
   if (action === "deleteGroup") {
     const ok = await confirmDialog("Delete group?", `Delete "${btn.dataset.gname}" and remove all its members. This cannot be undone.`);
     if (!ok) return;
-    await api("DELETE", `${API}/groups/${gid}`);
-    await loadGroups();
+    try { await api("DELETE", `${API}/groups/${gid}`); await loadGroups(); }
+    catch (err) { alert(err.message); }
   }
 });
 
@@ -363,13 +405,14 @@ qs("#seTemplateSelect")?.addEventListener("change", () => {
   const tpl = _templates.find((t) => t.id === tid);
   if (!tpl) return;
   if (tpl.title && !qs("#seSubject").value) qs("#seSubject").value = tpl.title;
-  if (tpl.html) qs("#seBody").value = tpl.html;
+  if (tpl.html) rteSet("seBody", tpl.html);
   updatePreview();
 });
 
 function updatePreview() {
-  const body = qs("#seBody")?.value || "";
-  const preview = body.replace(/{{(\w+)}}/g, (_, k) => ({ first_name: "Alex", last_name: "Ramirez", email: "alex@example.com", phone: "(512) 555-0199", credit_score: "687", group_name: "New Leads" })[k] || `{{${k}}}`);
+  const body = rteGet("seBody");
+  const stripped = body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const preview = stripped.replace(/{{(\w+)}}/g, (_, k) => ({ first_name: "Alex", last_name: "Ramirez", email: "alex@example.com", phone: "(512) 555-0199", credit_score: "687", group_name: "New Leads" })[k] || `{{${k}}}`);
   const el = qs("#sePreview");
   if (el) el.textContent = preview || "Compose a message to see a preview.";
 }
@@ -379,13 +422,21 @@ qs("#seSubject")?.addEventListener("input", updatePreview);
 
 qsa(".em-merge-chip").forEach((chip) => {
   chip.addEventListener("click", () => {
-    const target = chip.closest("form")?.querySelector("textarea") || qs("#seBody");
-    if (!target) return;
-    const start = target.selectionStart ?? target.value.length;
-    const end = target.selectionEnd ?? start;
-    target.value = target.value.slice(0, start) + chip.dataset.merge + target.value.slice(end);
-    target.focus();
-    updatePreview();
+    const rteTarget = chip.closest("form")?.querySelector(".rte-body") || qs("#seBody");
+    if (rteTarget && rteTarget.contentEditable === "true") {
+      rteTarget.focus();
+      document.execCommand("insertText", false, chip.dataset.merge);
+      updatePreview();
+    } else {
+      const target = chip.closest("form")?.querySelector("textarea") || qs("#seBody");
+      if (target) {
+        const start = target.selectionStart ?? target.value.length;
+        const end = target.selectionEnd ?? start;
+        target.value = target.value.slice(0, start) + chip.dataset.merge + target.value.slice(end);
+        target.focus();
+        updatePreview();
+      }
+    }
   });
 });
 
@@ -415,7 +466,7 @@ async function sendEmail(isDraft = false, isTest = false) {
     if (!recipientId) { toast(qs("#seStatus"), "Enter at least one recipient.", true); return; }
   }
 
-  const body = qs("#seBody").value.trim();
+  const body = rteGet("seBody");
   const payload = { subject, body, recipientType: type === "multiple" ? "client" : type, recipientId, groupId };
 
   try {
@@ -426,6 +477,7 @@ async function sendEmail(isDraft = false, isTest = false) {
       await api("POST", `${API}/email/send`, payload);
       toast(qs("#seStatus"), "Email queued. Check History for status.");
       qs("#sendEmailForm").reset();
+      rteClear("seBody");
       handleRecipientTypeChange();
     }
     await loadHistory();
@@ -503,6 +555,7 @@ function resetCampaignForm() {
   qs("#campaignModalTitle").textContent = "New Campaign";
   qs("#campaignId").value = "";
   qs("#campaignForm").reset();
+  rteClear("campBody");
   qs("#campStatus2").className = "em-status";
   populateGroupSelects();
   populateTemplateSelects();
@@ -516,7 +569,7 @@ function openEditCampaign(cid) {
   qs("#campName").value = c.name || "";
   qs("#campStatus").value = c.status || "draft";
   qs("#campSubject").value = c.subject || "";
-  qs("#campBody").value = c.body || "";
+  rteSet("campBody", c.body || "");
   populateGroupSelects();
   populateTemplateSelects();
   qs("#campGroupId").value = c.groupId || c.segment || "";
@@ -529,37 +582,61 @@ qs("#campTemplateSelect")?.addEventListener("change", () => {
   const tpl = _templates.find((t) => t.id === tid);
   if (!tpl) return;
   if (tpl.title && !qs("#campSubject").value) qs("#campSubject").value = tpl.title;
-  if (tpl.html) qs("#campBody").value = tpl.html;
+  if (tpl.html) rteSet("campBody", tpl.html);
 });
 
 async function saveCampaignForm(sendNow = false) {
   const id = qs("#campaignId").value;
   const groupId = qs("#campGroupId").value;
+  const statusVal = qs("#campStatus").value;
+  const isScheduled = !!qs("#campScheduledAt")?.value;
+  const requiresGroup = sendNow || statusVal === "running" || isScheduled;
+
+  if (requiresGroup && !groupId) {
+    toast(qs("#campStatus2"), "Select a group before sending or scheduling.", true);
+    return;
+  }
+
   const payload = {
     name: qs("#campName").value.trim(),
-    status: sendNow ? "running" : qs("#campStatus").value,
+    status: sendNow ? "running" : statusVal,
     segment: groupId || "b2c",
     groupId: groupId || undefined,
     subject: qs("#campSubject").value.trim(),
-    body: qs("#campBody").value.trim(),
+    body: rteGet("campBody"),
     scheduledAt: qs("#campScheduledAt")?.value || undefined,
   };
   if (!payload.name) { toast(qs("#campStatus2"), "Campaign name is required.", true); return; }
-  if (sendNow && !groupId) { toast(qs("#campStatus2"), "Select a group before sending.", true); return; }
+
   try {
     let campaign;
-    if (id) { const r = await api("PATCH", `${API}/campaigns/${id}`, payload); campaign = r.campaign; }
-    else { const r = await api("POST", `${API}/campaigns`, payload); campaign = r.campaign; }
+    if (id) {
+      const r = await api("PATCH", `${API}/campaigns/${id}`, payload);
+      campaign = r.campaign;
+    } else {
+      const r = await api("POST", `${API}/campaigns`, payload);
+      campaign = r.campaign;
+    }
+
     if (sendNow && campaign) {
       const group = _groups.find((g) => g.id === groupId);
+      const recipientCount = groupId ? (_memberCounts[groupId] ?? null) : null;
       await api("POST", `${API}/history`, {
-        type: "campaign", subject: payload.subject,
-        recipientType: "group", groupId: groupId || null,
+        type: "campaign",
+        subject: payload.subject,
+        recipientType: "group",
+        groupId: groupId || null,
         groupName: group ? group.name : null,
-        campaignId: campaign.id, status: "queued",
-        recipientCount: groupId ? (_memberCounts[groupId] ?? null) : null,
+        campaignId: campaign.id,
+        status: "queued",
+        recipientCount,
+      });
+      await api("PATCH", `${API}/campaigns/${campaign.id}`, {
+        sentAt: new Date().toISOString(),
+        recipientCount,
       });
     }
+
     closeModal("campaignModal");
     const tasks = [loadCampaigns()];
     if (sendNow) tasks.push(loadHistory());
@@ -613,20 +690,20 @@ qs("#sequenceList")?.addEventListener("click", async (e) => {
   if (action === "toggleSeq") {
     const currentStatus = btn.dataset.sstatus || "active";
     const newStatus = currentStatus === "paused" ? "active" : "paused";
-    await api("PATCH", `${API}/email/sequences/${sid}`, { status: newStatus });
-    await loadSequences();
+    try { await api("PATCH", `${API}/email/sequences/${sid}`, { status: newStatus }); await loadSequences(); }
+    catch (err) { alert(err.message); }
   }
   if (action === "dupSeq") {
     const s = _sequences.find((x) => x.id === sid);
     if (!s) return;
-    await api("POST", `${API}/email/sequences`, { title: s.title + " (copy)", description: s.description, segment: s.segment, frequency: s.frequency, steps: s.steps });
-    await loadSequences();
+    try { await api("POST", `${API}/email/sequences`, { title: s.title + " (copy)", description: s.description, segment: s.segment, frequency: s.frequency, steps: s.steps }); await loadSequences(); }
+    catch (err) { alert(err.message); }
   }
   if (action === "deleteSeq") {
     const ok = await confirmDialog("Delete sequence?", `Delete "${btn.dataset.sname}"? This cannot be undone.`);
     if (!ok) return;
-    await api("DELETE", `${API}/email/sequences/${sid}`);
-    await loadSequences();
+    try { await api("DELETE", `${API}/email/sequences/${sid}`); await loadSequences(); }
+    catch (err) { alert(err.message); }
   }
 });
 
@@ -635,6 +712,7 @@ function buildStepTemplateOpts(selectedId) {
 }
 
 function buildStepHtml(step, index) {
+  const bodyHtml = step.body ? escapeHtml(step.body).replace(/&#10;/g, "<br>") : "";
   return `<div class="em-step" data-step="${index}">
     <div class="flex items-center justify-between mb-2">
       <span class="text-xs font-semibold text-gray-500">Step ${index + 1}</span>
@@ -655,8 +733,18 @@ function buildStepHtml(step, index) {
       </div>
     </div>
     <div class="mt-2">
-      <label class="em-label" for="stepBody_${index}">Body</label>
-      <textarea id="stepBody_${index}" class="input w-full" rows="3" placeholder="Hi {{first_name}}, ...">${escapeHtml(step.body || "")}</textarea>
+      <label class="em-label">Body</label>
+      <div class="rte-wrap" data-rte="stepBody_${index}">
+        <div class="rte-toolbar">
+          <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+          <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+          <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+          <div class="rte-sep"></div>
+          <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">&#8226;&#8212;</button>
+          <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear format">&#10006;</button>
+        </div>
+        <div id="stepBody_${index}" class="rte-body" style="min-height:90px" contenteditable="true" data-placeholder="Hi {{first_name}}, ...">${step.body ? escapeHtml(step.body) : ""}</div>
+      </div>
     </div>
   </div>`;
 }
@@ -668,7 +756,7 @@ function getSteps() {
     return {
       subject: qs(`#stepSubject_${i}`)?.value || "",
       delayDays: Number(qs(`#stepDelay_${i}`)?.value) || 0,
-      body: qs(`#stepBody_${i}`)?.value || "",
+      body: rteGet(`stepBody_${i}`),
       templateId: templateId || undefined,
     };
   });
@@ -701,9 +789,8 @@ qs("#seqSteps")?.addEventListener("change", (e) => {
   const tpl = _templates.find((t) => t.id === tid);
   if (!tpl) return;
   const subjectEl = qs(`#stepSubject_${idx}`);
-  const bodyEl = qs(`#stepBody_${idx}`);
   if (subjectEl && !subjectEl.value && tpl.title) subjectEl.value = tpl.title;
-  if (bodyEl && tpl.html) bodyEl.value = tpl.html;
+  if (tpl.html) rteSet(`stepBody_${idx}`, tpl.html);
 });
 
 qs("#addSeqStep")?.addEventListener("click", () => {
@@ -798,7 +885,7 @@ qs("#templateList")?.addEventListener("click", async (e) => {
     const t = _templates.find((x) => x.id === tid);
     if (!t) return;
     qs("[data-tab='send']")?.click();
-    if (t.html) qs("#seBody").value = t.html;
+    if (t.html) rteSet("seBody", t.html);
     if (t.title && !qs("#seSubject").value) qs("#seSubject").value = t.title;
     updatePreview();
   }
@@ -867,6 +954,7 @@ function renderHistory() {
       <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500">Type</th>
       <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500">Subject</th>
       <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500">Recipient</th>
+      <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500">Recipients</th>
       <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500">Status</th>
       <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500">Sent</th>
     </tr></thead>
@@ -875,6 +963,7 @@ function renderHistory() {
         <td class="py-2 px-3 border-b border-gray-100"><span class="em-badge em-badge-gold text-xs">${escapeHtml(h.type || "—")}</span></td>
         <td class="py-2 px-3 border-b border-gray-100 max-w-xs truncate">${escapeHtml(h.subject || "—")}</td>
         <td class="py-2 px-3 border-b border-gray-100">${escapeHtml(h.groupName || h.recipientId || h.groupId || "—")}</td>
+        <td class="py-2 px-3 border-b border-gray-100">${h.recipientCount != null ? h.recipientCount : "—"}</td>
         <td class="py-2 px-3 border-b border-gray-100">${statusBadge(h.status)}</td>
         <td class="py-2 px-3 border-b border-gray-100 text-gray-400">${fmtDate(h.sentAt)}</td>
       </tr>`).join("")}
