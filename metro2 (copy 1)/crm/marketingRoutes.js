@@ -689,16 +689,16 @@ router.post("/email/send", async (req, res) => {
   const recipientIds = recipientId
     ? String(recipientId).split(",").map((s) => s.trim()).filter(Boolean)
     : [];
-  const recipientCount = recipientType === "client" ? recipientIds.length : null;
+  const recipientCount = (safeRecipientType === "client" || safeRecipientType === "multiple") ? recipientIds.length : null;
 
   try {
     const entries = [];
-    if (recipientType === "client" && recipientIds.length > 1) {
+    if ((safeRecipientType === "client" || safeRecipientType === "multiple") && recipientIds.length > 1) {
       for (const rid of recipientIds) {
         const entry = await addEmailHistory({
           type: "one-time",
           subject: safeSubject,
-          recipientType,
+          recipientType: safeRecipientType,
           recipientId: rid,
           groupId: null,
           recipientCount: 1,
@@ -711,7 +711,7 @@ router.post("/email/send", async (req, res) => {
       const entry = await addEmailHistory({
         type: "one-time",
         subject: safeSubject,
-        recipientType,
+        recipientType: safeRecipientType,
         recipientId: recipientIds[0] || null,
         groupId: groupId ? sanitizeString(groupId) : null,
         recipientCount,

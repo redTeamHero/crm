@@ -467,7 +467,7 @@ async function sendEmail(isDraft = false, isTest = false) {
   }
 
   const body = rteGet("seBody");
-  const payload = { subject, body, recipientType: type === "multiple" ? "client" : type, recipientId, groupId };
+  const payload = { subject, body, recipientType: type, recipientId, groupId };
 
   try {
     if (isDraft) {
