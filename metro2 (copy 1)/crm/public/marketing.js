@@ -178,7 +178,7 @@ function updateStats() {
   const eg = qs("#statGroups"); if (eg) eg.textContent = _groups.length;
   const ec = qs("#statCampaigns"); if (ec) ec.textContent = _campaigns.length;
   const es = qs("#statSequences"); if (es) es.textContent = _sequences.length;
-  const eh = qs("#statHistory"); if (eh) eh.textContent = _history.length;
+  const eh = qs("#statHistory"); if (eh) eh.textContent = _history.filter((h) => h.status !== "draft").length;
 }
 
 /* ── populate selects ────────────────────────────── */
@@ -669,7 +669,7 @@ function renderSequences() {
           <span class="font-semibold text-sm">${escapeHtml(s.title)}</span>
           ${statusBadge(s.status || "active")}
         </div>
-        <p class="text-xs text-gray-500 mt-1">Audience: ${escapeHtml(groupName)} &bull; ${(s.steps || []).length} step${(s.steps || []).length === 1 ? "" : "s"} &bull; Updated ${fmtDate(s.createdAt)}</p>
+        <p class="text-xs text-gray-500 mt-1">Audience: ${escapeHtml(groupName)} &bull; ${(s.steps || []).length} step${(s.steps || []).length === 1 ? "" : "s"} &bull; Updated ${fmtDate(s.updatedAt || s.createdAt)}</p>
         ${s.description ? `<p class="text-xs text-gray-400 mt-0.5">${escapeHtml(s.description)}</p>` : ""}
       </div>
       <div class="flex flex-wrap gap-2 shrink-0">
@@ -697,7 +697,7 @@ qs("#sequenceList")?.addEventListener("click", async (e) => {
   if (action === "dupSeq") {
     const s = _sequences.find((x) => x.id === sid);
     if (!s) return;
-    try { await api("POST", `${API}/email/sequences`, { title: s.title + " (copy)", description: s.description, segment: s.segment, frequency: s.frequency, steps: s.steps }); await loadSequences(); }
+    try { await api("POST", `${API}/email/sequences`, { title: s.title + " (copy)", description: s.description, segment: s.segment, groupId: s.groupId || undefined, frequency: s.frequency, steps: s.steps }); await loadSequences(); }
     catch (err) { alert(err.message); }
   }
   if (action === "deleteSeq") {
@@ -947,7 +947,8 @@ qs("#btnNewTemplate")?.addEventListener("click", openNewTemplate);
 /* ── HISTORY ─────────────────────────────────────── */
 function renderHistory() {
   const container = qs("#historyList");
-  if (!_history.length) {
+  const sendHistory = _history.filter((h) => h.status !== "draft");
+  if (!sendHistory.length) {
     container.innerHTML = `<div class="em-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>No email history yet. Sent emails and campaigns will appear here.</div>`;
     return;
   }
@@ -961,7 +962,7 @@ function renderHistory() {
       <th class="text-left py-2 px-3 text-xs font-semibold text-gray-500">Sent</th>
     </tr></thead>
     <tbody>
-      ${_history.map((h) => `<tr>
+      ${sendHistory.map((h) => `<tr>
         <td class="py-2 px-3 border-b border-gray-100"><span class="em-badge em-badge-gold text-xs">${escapeHtml(h.type || "—")}</span></td>
         <td class="py-2 px-3 border-b border-gray-100 max-w-xs truncate">${escapeHtml(h.subject || "—")}</td>
         <td class="py-2 px-3 border-b border-gray-100">${escapeHtml(h.groupName || h.recipientId || h.groupId || "—")}</td>
