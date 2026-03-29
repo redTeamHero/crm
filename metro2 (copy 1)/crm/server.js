@@ -2901,9 +2901,15 @@ app.post("/api/marketing/email/send", marketingKeyAuth, authenticate, forbidMemb
       }
     } else {
       for (const rid of recipientIds) {
-        const c = consumers.find(x => x.id === rid);
-        if (c?.email) targetEmails.push({ id: rid, email: c.email, name: c.name || "" });
-        else targetEmails.push({ id: rid, email: null, name: "" });
+        const ridLower = rid.toLowerCase();
+        const c = consumers.find(x => x.id === rid) ||
+                  consumers.find(x => typeof x.email === "string" && x.email.toLowerCase() === ridLower);
+        if (c?.email) targetEmails.push({ id: c.id || rid, email: c.email, name: c.name || "" });
+        else if (rid.includes("@") && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rid)) {
+          targetEmails.push({ id: rid, email: rid, name: "" });
+        } else {
+          targetEmails.push({ id: rid, email: null, name: "" });
+        }
       }
     }
 

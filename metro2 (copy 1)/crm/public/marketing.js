@@ -473,8 +473,18 @@ async function sendEmail(isDraft = false, isTest = false) {
       await api("POST", `${API}/history`, { ...payload, type: "one-time", status: "draft" });
       toast(qs("#seStatus"), "Draft logged. Copy your subject/body before navigating away — drafts can\u2019t be re-opened for editing.");
     } else {
-      await api("POST", `${API}/email/send`, payload);
-      toast(qs("#seStatus"), "Email queued. Check History for status.");
+      const result = await api("POST", `${API}/email/send`, payload);
+      const entry = result?.entry || result?.entries?.[0];
+      const status = entry?.status || "queued";
+      const apiMsg = result?.message || "";
+      if (status === "sent") {
+        toast(qs("#seStatus"), apiMsg || "Email sent successfully!");
+      } else if (status === "failed") {
+        const reason = entry?.errorMessage ? `: ${entry.errorMessage}` : "";
+        toast(qs("#seStatus"), (apiMsg || `Send failed${reason}`), true);
+      } else {
+        toast(qs("#seStatus"), apiMsg || "Email queued. Check History for delivery status.");
+      }
       qs("#sendEmailForm").reset();
       rteClear("seBody");
       handleRecipientTypeChange();
@@ -966,7 +976,7 @@ function renderHistory() {
         <td class="py-2 px-3 border-b border-gray-100 max-w-xs truncate">${escapeHtml(h.subject || "—")}</td>
         <td class="py-2 px-3 border-b border-gray-100">${escapeHtml(h.groupName || h.recipientId || h.groupId || "—")}</td>
         <td class="py-2 px-3 border-b border-gray-100">${h.recipientCount != null ? h.recipientCount : "—"}</td>
-        <td class="py-2 px-3 border-b border-gray-100">${statusBadge(h.status)}</td>
+        <td class="py-2 px-3 border-b border-gray-100">${statusBadge(h.status)}${h.status === "failed" && h.errorMessage ? `<span title="${escapeHtml(h.errorMessage)}" style="cursor:help;margin-left:4px;color:#ef4444;font-size:0.7rem;vertical-align:middle;" aria-label="${escapeHtml(h.errorMessage)}">&#9432; ${escapeHtml(h.errorMessage.length > 40 ? h.errorMessage.slice(0, 40) + "…" : h.errorMessage)}</span>` : ""}</td>
         <td class="py-2 px-3 border-b border-gray-100 text-gray-400">${fmtDate(h.sentAt)}</td>
       </tr>`).join("")}
     </tbody>
