@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SMS Marketing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/tour-guide.css">
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/style.css">
+  <link id="light-theme-css" rel="stylesheet" href="/evolv-light.css?v=3">
+  <link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css?v=3" disabled>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+  <style>
+    .sm-tab-btn { background: transparent; border: none; padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--muted,#6b7280); cursor: pointer; border-bottom: 2px solid transparent; transition: color .2s, border-color .2s; white-space: nowrap; }
+    .sm-tab-btn.active { color: #d4a853; border-bottom-color: #d4a853; }
+    .sm-tab-btn:hover:not(.active) { color: #374151; }
+    .sm-panel { display: none; }
+    .sm-panel.active { display: block; }
+    .sm-modal-bg { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.25); align-items: center; justify-content: center; padding: 16px; }
+    .sm-modal-bg.open { display: flex; }
+    .sm-modal { background: #fff; border: 1px solid rgba(212,168,83,0.2); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 28px; }
+    .sm-status { display: none; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-top: 8px; }
+    .sm-status.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #15803d; display: block; }
+    .sm-status.err { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #dc2626; display: block; }
+    .sm-empty { text-align: center; padding: 48px 24px; color: #9ca3af; font-size: 14px; }
+    .sm-empty svg { width: 40px; height: 40px; margin: 0 auto 12px; opacity: .35; display: block; }
+    .sm-card { background: #fff; border: 1px solid rgba(212,168,83,0.15); border-radius: 14px; padding: 16px 20px; transition: box-shadow .2s, border-color .2s; }
+    .sm-card:hover { border-color: rgba(212,168,83,0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+    .sm-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .sm-badge-gold { background: rgba(212,168,83,0.12); color: #92400e; }
+    .sm-badge-green { background: rgba(34,197,94,0.1); color: #15803d; }
+    .sm-badge-gray { background: #f3f4f6; color: #6b7280; }
+    .sm-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .sm-merge-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-family: monospace; background: rgba(212,168,83,0.1); color: #92400e; border: 1px solid rgba(212,168,83,0.2); cursor: pointer; margin: 2px; transition: background .15s; }
+    .sm-merge-chip:hover { background: rgba(212,168,83,0.2); }
+    .stat-card { background: #fff; border: 1px solid rgba(212,168,83,0.15); border-radius: 14px; padding: 18px 20px; }
+    .stat-card .stat-num { font-size: 26px; font-weight: 700; color: #111827; line-height: 1; }
+    .stat-card .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .tab-bar { display: flex; gap: 0; border-bottom: 1px solid rgba(212,168,83,0.2); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .char-count { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 4px; }
+    .char-count.warn { color: #f59e0b; }
+    .char-count.over { color: #dc2626; }
+  </style>
+  <script src="/sidebar.js?v=26" defer></script>
+  <script src="/command-palette.js" defer></script>
+</head>
+<body>
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="flex min-h-screen">
+  <div id="sidebar-mount"></div>
+  <main class="flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full">
+
+    <!-- Page header -->
+    <div class="mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+        <div>
+          <h1 class="text-2xl font-bold">SMS Marketing</h1>
+          <p class="text-sm text-gray-500 mt-1">Manage SMS templates and view SMS campaigns.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button class="btn" id="btnNewSmsTemplate" type="button">New Template</button>
+        </div>
+      </div>
+
+      <!-- Stat row -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
+        <div class="stat-card"><div class="stat-num" id="statSmsTemplates">—</div><div class="stat-label">SMS Templates</div></div>
+        <div class="stat-card"><div class="stat-num" id="statSmsCampaigns">—</div><div class="stat-label">SMS Campaigns</div></div>
+        <div class="stat-card sm:col-span-1 col-span-2">
+          <div class="stat-num text-sm font-normal text-gray-500 leading-relaxed">Connect Twilio or another provider in <a href="/settings#api-integrations" class="text-[#d4a853] underline">Settings → APIs</a> to send live SMS.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="glass card p-0 overflow-hidden">
+      <div class="tab-bar px-2 pt-2">
+        <button class="sm-tab-btn active" data-tab="templates">Templates</button>
+        <button class="sm-tab-btn" data-tab="campaigns">Campaigns</button>
+      </div>
+
+      <div class="p-6">
+
+        <!-- ====== TEMPLATES ====== -->
+        <div class="sm-panel active" id="sm-panel-templates">
+          <div id="smsTemplateList" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div class="sm-empty" style="grid-column:1/-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+              No SMS templates yet. Create one to get started.
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== CAMPAIGNS ====== -->
+        <div class="sm-panel" id="sm-panel-campaigns">
+          <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+            Showing campaigns with SMS channel. Create SMS campaigns from the <a href="/marketing/email" class="underline font-semibold">Email &amp; Campaigns</a> page — set channel to SMS when creating a campaign.
+          </div>
+          <div id="smsCampaignList" class="space-y-3">
+            <div class="sm-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+              No SMS campaigns yet.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- New SMS Template Modal -->
+<div class="sm-modal-bg" id="smsTemplateModal" aria-hidden="true">
+  <div class="sm-modal">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold">New SMS Template</h2>
+      <button type="button" id="closeSmsTemplateModal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <form id="smsTemplateForm" class="space-y-4">
+      <div>
+        <label class="sm-label" for="smsTplTitle">Template name</label>
+        <input id="smsTplTitle" class="input w-full" type="text" placeholder="Score Drop Alert" required />
+      </div>
+      <div>
+        <label class="sm-label" for="smsTplBody">Message body <span class="font-normal text-gray-400">(max 160 chars per segment)</span></label>
+        <textarea id="smsTplBody" class="input w-full" rows="4" placeholder="Hi {{first_name}}, your credit score update is ready. Log in to view your progress." required maxlength="600"></textarea>
+        <div class="char-count" id="smsTplCharCount">0 / 160</div>
+      </div>
+      <div>
+        <label class="sm-label mb-2">Merge fields</label>
+        <div>
+          <button type="button" class="sm-merge-chip" data-merge="{{first_name}}">{{first_name}}</button>
+          <button type="button" class="sm-merge-chip" data-merge="{{last_name}}">{{last_name}}</button>
+          <button type="button" class="sm-merge-chip" data-merge="{{phone}}">{{phone}}</button>
+          <button type="button" class="sm-merge-chip" data-merge="{{credit_score}}">{{credit_score}}</button>
+        </div>
+      </div>
+      <div>
+        <label class="sm-label" for="smsTplSegment">Segment</label>
+        <select id="smsTplSegment" class="input w-full">
+          <option value="b2c">B2C (consumer)</option>
+          <option value="b2b">B2B (business)</option>
+          <option value="all">All clients</option>
+        </select>
+      </div>
+      <div id="smsTplStatus" class="sm-status"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="closeSmsTemplateModal2" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn">Save Template</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="/common.js"></script>
+<script type="module" src="/sms.js"></script>
+</body>
+</html>

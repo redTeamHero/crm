@@ -2038,8 +2038,13 @@ registerStaticPage({
   middlewares: [optionalAuth, forbidMember],
 });
 registerStaticPage({
-  paths: ["/marketing", "/marketing/sms", "/marketing/email"],
+  paths: ["/marketing", "/marketing/email"],
   file: "marketing.html",
+  middlewares: [optionalAuth, forbidMember],
+});
+registerStaticPage({
+  paths: "/marketing/sms",
+  file: "sms.html",
   middlewares: [optionalAuth, forbidMember],
 });
 registerStaticPage({
