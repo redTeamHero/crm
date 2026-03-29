@@ -1,0 +1,593 @@
+You are a senior full-stack product engineer working inside my CRM codebase. Redesign the entire Email / Marketing section of the app so it is simpler, cleaner, and built for real production use.
+
+CORE GOAL
+Rebuild the Email area around 4 practical functions:
+1. Send a single one-off email
+2. Manage email sequences
+3. Create and manage groups
+4. Send marketing campaigns to a selected group only
+
+The current section is too cluttered, too conceptual, and includes too many low-value placeholder areas. I want this turned into a real working CRM email system.
+
+==================================================
+PRODUCT VISION
+==================================================
+
+The new Email / Marketing section should feel like a premium CRM, not a demo page.
+
+It should support:
+- one-off emails
+- reusable templates
+- email sequences
+- client groups / audiences
+- campaigns sent to a chosen group
+- simple email history
+- minimal real metrics only if data exists
+
+Anything not directly supporting those workflows should be deleted.
+
+==================================================
+MAIN FEATURES TO BUILD
+==================================================
+
+1) SINGLE EMAIL SEND
+Add a dedicated way to send a one-time email.
+
+Must support:
+- Send to one client
+- Send to multiple selected clients
+- Send to an existing group
+- Subject field
+- Rich text / HTML body editor
+- Optional template selector
+- Preview before send
+- Save draft
+- Send test email
+- Send now
+- Merge fields, at minimum:
+  - {{first_name}}
+  - {{last_name}}
+  - {{email}}
+  - {{phone}}
+  - {{credit_score}} if available
+  - {{group_name}} if relevant
+- Success / error toast or inline feedback
+
+2) GROUPS / AUDIENCES
+Add a proper group management system.
+
+Must support:
+- Create a group
+- Rename a group
+- Delete / archive a group
+- View all groups
+- Assign clients to one or more groups
+- Remove clients from a group
+- Show member count per group
+- Search groups
+- Search clients inside a group
+- Group detail view showing:
+  - group name
+  - description / note
+  - members
+  - created date
+  - last campaign sent if available
+- Ability to select a group as recipient target for one-off emails or campaigns
+
+Examples:
+- New Leads
+- Credit Repair Clients
+- Paid Clients
+- Tradeline Buyers
+- Inactive Leads
+- Consultation Booked
+- DIY Users
+- Affiliate Prospects
+
+3) MARKETING CAMPAIGNS
+Add a clean campaign workflow that sends only to a selected group.
+
+Campaigns must support:
+- Create campaign
+- Choose recipient group
+- Campaign name
+- Email subject
+- Rich text / HTML body
+- Optional template selection
+- Preview campaign
+- Send test
+- Send now
+- Schedule for later if backend supports it
+- Save as draft
+- Duplicate campaign
+- Pause/cancel scheduled campaign if backend supports it
+- Campaign status:
+  - Draft
+  - Scheduled
+  - Sending
+  - Sent
+  - Failed
+- Campaign list showing:
+  - campaign name
+  - target group
+  - status
+  - sent date
+  - recipient count
+  - open/click rate only if real data exists
+
+Important:
+A campaign should always be tied to a defined group.
+Do not design campaigns as “send to everyone” by default.
+Make group-based targeting the standard workflow.
+
+4) EMAIL SEQUENCES
+Keep sequences, but simplify them.
+
+Must support:
+- Sequence name
+- Description
+- Audience / group
+- Step-based emails
+- Delay in days between steps
+- Subject + body for each step
+- Add/remove/reorder steps
+- Save sequence
+- Activate / pause toggle
+- Edit sequence
+- Duplicate sequence
+- Archive / delete sequence
+- Assign sequence to a specific group or trigger logic if already supported
+
+Each step should have:
+- Step number
+- Delay
+- Subject
+- Body
+- Optional template usage
+
+5) EMAIL TEMPLATES
+Keep templates only if they are truly useful.
+
+Templates should support:
+- Create
+- Edit
+- Delete
+- Search
+- Optional category
+- Use in one-off email
+- Use in campaign
+- Use in sequence steps
+
+If the current template system is bloated, simplify it heavily.
+
+6) EMAIL / CAMPAIGN HISTORY
+Provide a practical history view.
+
+If backend data exists, show:
+- recipient or target group
+- subject / campaign name
+- type:
+  - one-time
+  - campaign
+  - sequence
+- status
+- sent date/time
+- delivery/open/click only if real
+
+If backend support does not exist, create an honest empty state instead of fake analytics.
+
+==================================================
+WHAT TO REMOVE
+==================================================
+
+Delete or remove from UI and routing all non-essential areas, including:
+- Campaign Dashboard Preview
+- Experiments Queue
+- Integration Checklist
+- Queued test sends placeholder section
+- Provider status cards from this page
+- Dispatch scheduler complexity unless it directly powers campaigns
+- Fake KPI widgets
+- Placeholder metrics
+- Demo-only export blocks
+- Future integration filler copy
+- Any section that does not help send an email, manage groups, manage sequences, or run campaigns to a group
+
+If provider setup is needed, move it to Settings > Integrations, not the main Email page.
+
+==================================================
+NEW INFORMATION ARCHITECTURE
+==================================================
+
+Redesign Email / Marketing navigation into a practical structure.
+
+Preferred tab/page structure:
+
+Marketing / Email
+- Overview
+- Send Email
+- Campaigns
+- Sequences
+- Groups
+- Templates
+- History
+
+If a tab structure works better inside one page, that is fine.
+
+Recommended tabs:
+- Send One-Time
+- Campaigns
+- Sequences
+- Groups
+- Templates
+- History
+
+==================================================
+RECOMMENDED UX
+==================================================
+
+This should feel like a real premium SaaS CRM.
+
+Requirements:
+- strong hierarchy
+- clean spacing
+- fewer cards
+- fewer borders
+- clear call-to-actions
+- direct workflows
+- mobile responsive
+- works inside existing sidebar layout
+- branding consistent with the CRM
+- gold accent may stay, but use it sparingly
+- prioritize usability over decoration
+
+==================================================
+RECOMMENDED PAGE STRUCTURE
+==================================================
+
+1. HEADER
+Top of page:
+- Title: Email Marketing
+- Subtitle: Send one-time emails, organize audiences, and launch campaigns by group.
+- Primary CTA: Send Email
+- Secondary CTA: New Campaign
+- Optional CTA: New Group
+
+2. OVERVIEW
+Only show small stat cards if real data exists:
+- Drafts
+- Active Sequences
+- Total Groups
+- Campaigns Sent
+- Failed Sends
+
+If real data is not available, do not fabricate metrics.
+
+3. SEND ONE-TIME EMAIL
+This should be one of the main sections.
+Fields:
+- Recipient type:
+  - single client
+  - multiple selected clients
+  - group
+- Recipient selector
+- Subject
+- Optional template selector
+- Body editor
+- Merge field helper
+Actions:
+- Preview
+- Save Draft
+- Send Test
+- Send Now
+
+4. GROUPS SECTION
+A dedicated Groups tab/page with:
+- New Group button
+- Search bar
+- Group list/table/cards
+- Group member count
+- Edit group
+- View members
+- Assign clients
+- Remove clients
+- Archive/delete group
+
+Group detail view:
+- Group name
+- Description
+- Members list
+- Add/remove members
+- Last campaign
+- Quick action:
+  - Send Email to Group
+  - Create Campaign for Group
+  - Assign Sequence to Group
+
+5. CAMPAIGNS SECTION
+A campaigns list plus create/edit workflow.
+
+Campaign list fields:
+- Campaign name
+- Target group
+- Status
+- Recipient count
+- Sent/scheduled date
+- Edit
+- Duplicate
+- Delete
+
+Campaign builder fields:
+- Campaign name
+- Target group (required)
+- Subject
+- Template selector optional
+- Body editor
+- Schedule date/time if supported
+- Preview
+- Send test
+- Save draft
+- Send now
+
+6. SEQUENCES SECTION
+Clean and simplified sequence builder.
+Sequence list:
+- Name
+- Audience/group
+- Status
+- Step count
+- Last updated
+- Edit
+- Duplicate
+- Archive/delete
+
+7. TEMPLATES SECTION
+Simple template library:
+- Name
+- Category
+- Updated at
+- Use
+- Edit
+- Delete
+
+8. HISTORY SECTION
+Table or clean list:
+- Type
+- Subject / campaign name
+- Recipient / group
+- Status
+- Sent at
+- Metrics if real
+
+==================================================
+DATA / RELATIONSHIP MODEL EXPECTATIONS
+==================================================
+
+Implement or support clean relationships like:
+
+Client
+- id
+- name
+- email
+- phone
+- etc.
+
+Group
+- id
+- name
+- description
+- status
+- created_at
+
+GroupMembership
+- id
+- group_id
+- client_id
+
+Campaign
+- id
+- name
+- group_id
+- subject
+- body
+- template_id optional
+- status
+- scheduled_at optional
+- sent_at optional
+- created_by
+- created_at
+
+Sequence
+- id
+- name
+- description
+- group_id optional
+- status
+
+SequenceStep
+- id
+- sequence_id
+- step_order
+- delay_days
+- subject
+- body
+- template_id optional
+
+EmailTemplate
+- id
+- name
+- category
+- subject optional
+- body
+- updated_at
+
+EmailSend / History
+- id
+- type
+- client_id optional
+- group_id optional
+- campaign_id optional
+- sequence_id optional
+- subject
+- status
+- sent_at
+
+If the current schema already exists, adapt to it instead of breaking the app.
+
+==================================================
+ENGINEERING REQUIREMENTS
+==================================================
+
+- Audit current Email/Marketing components and remove dead UI
+- Refactor large bloated components into smaller reusable ones
+- Preserve working backend integrations where possible
+- Wire existing endpoints properly if they exist
+- If backend support is missing for certain actions, create clean honest disabled states
+- Do not leave fake demo UI in place
+- Remove unused imports, state, mock data, and routes from deleted features
+- Keep code maintainable and production-clean
+
+==================================================
+COMPONENTS TO CREATE OR REFACTOR
+==================================================
+
+Create/refactor components such as:
+- EmailMarketingPageShell
+- SendSingleEmailForm
+- RecipientPicker
+- GroupSelector
+- GroupList
+- GroupDetailPanel
+- GroupMemberManager
+- CampaignList
+- CampaignBuilder
+- SequenceList
+- SequenceEditor
+- TemplateLibrary
+- MergeFieldHelper
+- EmailHistoryTable
+- EmptyState
+- ConfirmDeleteModal
+
+==================================================
+PRODUCT LOGIC
+==================================================
+
+SINGLE EMAIL
+- Can send to a person, many selected clients, or a group
+- Can save draft
+- Can use a template
+- Can preview merged content before send
+- Can send test email
+
+GROUPS
+- Can manually create groups
+- Can assign clients to groups
+- A client may belong to multiple groups if current system allows
+- Must make groups reusable across campaigns and email sends
+
+CAMPAIGNS
+- Must require a chosen group before sending
+- Should support draft, send now, and schedule later if supported
+- Should allow duplication
+- Should be easy to review from a list
+
+SEQUENCES
+- Should be simpler than current builder
+- Easy inline or modal editing for steps
+- Support group/audience targeting where appropriate
+
+==================================================
+COPY DIRECTION
+==================================================
+
+Replace fluffy or fake copy with direct operational copy.
+
+Bad:
+- “Visual placeholders ready to display Twilio/SendGrid metrics”
+
+Good:
+- “Create one-time emails, campaigns, and automated sequences.”
+
+Bad:
+- “Automation idea: 7-day roadmap drip”
+
+Good:
+- “Build automated follow-up emails for a selected audience.”
+
+Bad:
+- “API ready”
+Good:
+- “Not connected yet” or hide the section entirely.
+
+==================================================
+DESIGN DIRECTION
+==================================================
+
+Think:
+- HubSpot-lite
+- premium CRM
+- clean operational workflow
+- less noise, more action
+- obvious audience targeting
+- group-based campaign sending made simple
+
+==================================================
+DELETE LOGIC
+==================================================
+
+Remove low-value features from:
+- routes
+- page sections
+- menu items if needed
+- component imports
+- mock data
+- unused state
+- dead CSS/classes
+- fake analytics blocks
+
+Bias toward deletion over complexity.
+
+==================================================
+ACCEPTANCE CRITERIA
+==================================================
+
+The redesign is complete when:
+
+1. Users can send a one-time email
+2. Users can create groups
+3. Users can assign clients to groups
+4. Users can send campaigns to a selected group
+5. Sequences remain available and are cleaner
+6. Templates are still usable without clutter
+7. Non-essential blocks are removed
+8. The page is cleaner and production-ready
+9. Mobile layout works well
+10. No fake widgets or placeholder dashboards remain
+11. Code is refactored clearly and cleanly
+
+==================================================
+DELIVERABLES
+==================================================
+
+Implement directly in the project and return:
+
+1. Summary of what was removed
+2. Summary of what was rebuilt
+3. Summary of new group/campaign functionality
+4. Anything still needing backend/API support
+5. Final list of changed files
+
+IMPORTANT
+Do not just restyle the current page.
+Actually simplify the product.
+
+If a block does not directly support:
+- one-time emails
+- group management
+- campaigns to groups
+- sequences
+- templates
+- history
+
+remove it.
