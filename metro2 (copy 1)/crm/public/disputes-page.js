@@ -237,21 +237,28 @@ function showNextRoundTargetModal(recs) {
 
     // Group recs by tradelineIndex (fall back to normalized creditor name so
     // recs without a tradelineIndex are still grouped by creditor).
+    // When creditor is also empty, use each rec's own index as its key so
+    // unrelated unknown-creditor rows are not accidentally merged.
     const groupMap = new Map();
     recs.forEach((r, i) => {
+      const creditorKey = (r.creditor || '').toLowerCase().trim();
       const key = r.tradelineIndex != null
         ? `tl:${r.tradelineIndex}`
-        : `cr:${(r.creditor || '').toLowerCase().trim()}`;
+        : creditorKey
+          ? `cr:${creditorKey}`
+          : `unknown:${i}`;
       if (!groupMap.has(key)) {
         groupMap.set(key, {
           creditor: r.creditor || 'Unknown',
           bureaus: [],
-          template: r.recommendedTemplate || '',
+          templates: [],
           indices: [],
         });
       }
       const g = groupMap.get(key);
       if (r.bureau && !g.bureaus.includes(r.bureau)) g.bureaus.push(r.bureau);
+      const tpl = r.recommendedTemplate || '';
+      if (tpl && !g.templates.includes(tpl)) g.templates.push(tpl);
       g.indices.push(i);
     });
     const groups = [...groupMap.values()];
@@ -266,7 +273,9 @@ function showNextRoundTargetModal(recs) {
       return groups.map((g, gidx) => {
         const creditor = escapeHtml(g.creditor);
         const bureauList = escapeHtml(g.bureaus.join(', ') || '');
-        const template = escapeHtml(g.template || 'auto');
+        const template = escapeHtml(
+          g.templates.length > 1 ? 'mixed templates' : g.templates[0] || 'auto'
+        );
         const isColl = groupTarget(g) === 'collector';
         return `<div class="nrt-row" data-gidx="${gidx}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
           <div style="flex:1;min-width:0;overflow:hidden;">
