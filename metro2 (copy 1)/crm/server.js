@@ -1165,8 +1165,11 @@ import {
   getTrackerSteps,
   setCreditScore,
   listAllConsumerStates,
-
+  getCollectorAddresses,
+  upsertCollectorAddress,
+  deleteCollectorAddress,
 } from "./state.js";
+import { lookupCollectorAddress, getBuiltInCollectors } from "./collectorAddressBook.js";
 
 const SYSTEM_SENDGRID_API_KEY = (process.env.SENDGRID_API_KEY || "").trim().slice(0, 500);
 const SYSTEM_SENDGRID_FROM_EMAIL = (process.env.SENDGRID_FROM_EMAIL || "").trim().slice(0, 500);
@@ -2585,6 +2588,86 @@ app.post("/api/settings", authenticate, requireRole("admin"), async (req, res) =
   }
 
   res.json({ ok: true, settings });
+});
+
+app.get("/api/settings/collector-addresses", authenticate, async (req, res) => {
+  try {
+    const settings = await loadSettings(req);
+    const custom = Array.isArray(settings.collectorAddressBook) ? settings.collectorAddressBook : [];
+    const builtIn = getBuiltInCollectors();
+    res.json({ ok: true, builtIn, custom });
+  } catch (err) {
+    logError("COLLECTOR_ADDR_GET_ERROR", err);
+    res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+});
+
+app.post("/api/settings/collector-addresses", authenticate, requireRole("admin"), async (req, res) => {
+  try {
+    const { name, addr1, addr2, city, state, zip } = req.body || {};
+    if (!name || !addr1) return res.status(400).json({ ok: false, error: 'name and addr1 are required' });
+    const settings = await loadSettings(req);
+    const book = Array.isArray(settings.collectorAddressBook) ? [...settings.collectorAddressBook] : [];
+    const idx = book.findIndex(e => (e.name || '').toLowerCase() === (name || '').toLowerCase());
+    const entry = { id: (idx >= 0 ? book[idx].id : null) || `custom_${Date.now()}`, name: name.trim(), addr1: addr1.trim(), addr2: (addr2 || '').trim(), city: (city || '').trim(), state: (state || '').trim(), zip: (zip || '').trim() };
+    if (idx >= 0) book[idx] = entry; else book.push(entry);
+    await saveSettings({ collectorAddressBook: book }, req);
+    res.json({ ok: true, entry });
+  } catch (err) {
+    logError("COLLECTOR_ADDR_POST_ERROR", err);
+    res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+});
+
+app.delete("/api/settings/collector-addresses/:id", authenticate, requireRole("admin"), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const settings = await loadSettings(req);
+    const book = Array.isArray(settings.collectorAddressBook) ? [...settings.collectorAddressBook] : [];
+    const next = book.filter(e => e.id !== id);
+    if (next.length === book.length) return res.status(404).json({ ok: false, error: 'Entry not found' });
+    await saveSettings({ collectorAddressBook: next }, req);
+    res.json({ ok: true });
+  } catch (err) {
+    logError("COLLECTOR_ADDR_DELETE_ERROR", err);
+    res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+});
+
+app.get("/api/consumers/:id/collector-addresses", authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const book = await getCollectorAddresses(id);
+    res.json({ ok: true, addresses: Object.values(book) });
+  } catch (err) {
+    logError("CONSUMER_COLLECTOR_ADDR_GET_ERROR", err);
+    res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+});
+
+app.post("/api/consumers/:id/collector-addresses", authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, addr1, addr2, city, state, zip } = req.body || {};
+    if (!name || !addr1) return res.status(400).json({ ok: false, error: 'name and addr1 are required' });
+    const entry = await upsertCollectorAddress(id, name, { addr1: addr1.trim(), addr2: (addr2 || '').trim(), city: (city || '').trim(), state: (state || '').trim(), zip: (zip || '').trim() });
+    res.json({ ok: true, entry });
+  } catch (err) {
+    logError("CONSUMER_COLLECTOR_ADDR_POST_ERROR", err);
+    res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+});
+
+app.delete("/api/consumers/:id/collector-addresses/:name", authenticate, async (req, res) => {
+  try {
+    const { id, name } = req.params;
+    const deleted = await deleteCollectorAddress(id, decodeURIComponent(name));
+    if (!deleted) return res.status(404).json({ ok: false, error: 'Address not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    logError("CONSUMER_COLLECTOR_ADDR_DELETE_ERROR", err);
+    res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
 });
 
 app.get("/api/tour/status", optionalAuth, async (req, res) => {
@@ -9157,6 +9240,9 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       letters.push(...generateInquiryLetters({ consumer: consumerForLetter, inquiries }));
     }
     if (Array.isArray(collectors) && collectors.length) {
+      const consumerAddrBook = await getCollectorAddresses(consumer.id).catch(() => ({}));
+      const tenantSettings = await loadSettings(consumer.tenantId || DEFAULT_TENANT_ID).catch(() => ({}));
+      const customEntries = Array.isArray(tenantSettings.collectorAddressBook) ? tenantSettings.collectorAddressBook : [];
       const enrichedCollectors = collectors.map(col => {
         const enriched = { ...col };
         if (!enriched.accountNumber && enriched.tradelineIndex != null) {
@@ -9168,6 +9254,19 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
               || tl.meta?.account_number
               || null;
             if (acct) enriched.accountNumber = acct;
+          }
+        }
+        const needsAddr = !enriched.addr1 || enriched.addr1 === '[Add collector address — required before mailing]';
+        if (needsAddr) {
+          const nameKey = (enriched.name || '').toLowerCase().trim();
+          const consumerOverride = consumerAddrBook[nameKey];
+          if (consumerOverride) {
+            Object.assign(enriched, { addr1: consumerOverride.addr1, addr2: consumerOverride.addr2 || '', city: consumerOverride.city || '', state: consumerOverride.state || '', zip: consumerOverride.zip || '' });
+          } else {
+            const match = lookupCollectorAddress(enriched.name, customEntries);
+            if (match) {
+              Object.assign(enriched, { addr1: match.addr1, addr2: match.addr2 || '', city: match.city || '', state: match.state || '', zip: match.zip || '' });
+            }
           }
         }
         return enriched;

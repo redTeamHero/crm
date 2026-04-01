@@ -1,6 +1,140 @@
 /* public/settings.js */
 import { setupPageTour } from './tour-guide.js';
 
+function authHeader() {
+  const token = localStorage.getItem('token') || localStorage.getItem('auth');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function initCollectorAddressPanel() {
+  const tableBody = document.getElementById('caTableBody');
+  const searchEl = document.getElementById('caSearch');
+  const showFormBtn = document.getElementById('caShowFormBtn');
+  const addForm = document.getElementById('caAddForm');
+  const fName = document.getElementById('caFName');
+  const fAddr1 = document.getElementById('caFAddr1');
+  const fAddr2 = document.getElementById('caFAddr2');
+  const fCity = document.getElementById('caFCity');
+  const fState = document.getElementById('caFState');
+  const fZip = document.getElementById('caFZip');
+  const fErr = document.getElementById('caFErr');
+  const fSave = document.getElementById('caFSave');
+  const fCancel = document.getElementById('caFCancel');
+  const msgEl = document.getElementById('caMsg');
+
+  if (!tableBody) return;
+
+  let allEntries = [];
+  let editingId = null;
+
+  function escHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function showMsg(text, isErr) {
+    if (!msgEl) return;
+    msgEl.textContent = text;
+    msgEl.style.color = isErr ? '#f87171' : '#4ade80';
+    msgEl.style.display = 'block';
+    setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+  }
+
+  function renderTable(entries) {
+    const q = (searchEl?.value || '').toLowerCase();
+    const filtered = q ? entries.filter(e => (e.name || '').toLowerCase().includes(q) || (e.addr1 || '').toLowerCase().includes(q)) : entries;
+    if (!filtered.length) {
+      tableBody.innerHTML = `<tr><td colspan="4" style="padding:14px 8px;color:#555;text-align:center;">No entries found.</td></tr>`;
+      return;
+    }
+    tableBody.innerHTML = filtered.map(e => `
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.04);${e.builtIn ? 'opacity:0.65;' : ''}">
+        <td style="padding:7px 8px;color:#e5e5e5;">${escHtml(e.name)}${e.builtIn ? ' <span style="font-size:9px;color:#888;background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:4px;margin-left:4px;">built-in</span>' : ''}</td>
+        <td style="padding:7px 8px;color:#aaa;">${escHtml(e.addr1)}${e.addr2 ? `<br><span style="font-size:10px;color:#666;">${escHtml(e.addr2)}</span>` : ''}</td>
+        <td style="padding:7px 8px;color:#aaa;">${escHtml([e.city, e.state, e.zip].filter(Boolean).join(', '))}</td>
+        <td style="padding:7px 8px;text-align:right;">
+          ${!e.builtIn ? `<button class="ca-edit" data-id="${escHtml(e.id)}" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid rgba(96,165,250,0.3);background:transparent;color:#60a5fa;cursor:pointer;margin-right:4px;">Edit</button><button class="ca-del" data-id="${escHtml(e.id)}" style="font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid rgba(239,68,68,0.3);background:transparent;color:#f87171;cursor:pointer;">Del</button>` : ''}
+        </td>
+      </tr>`).join('');
+
+    tableBody.querySelectorAll('.ca-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const entry = allEntries.find(e => e.id === id);
+        if (!entry) return;
+        editingId = id;
+        fName.value = entry.name || '';
+        fAddr1.value = entry.addr1 || '';
+        fAddr2.value = entry.addr2 || '';
+        fCity.value = entry.city || '';
+        fState.value = entry.state || '';
+        fZip.value = entry.zip || '';
+        addForm.style.display = 'block';
+        fName.focus();
+      });
+    });
+    tableBody.querySelectorAll('.ca-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        if (!confirm('Delete this custom entry?')) return;
+        try {
+          const res = await fetch(`/api/settings/collector-addresses/${encodeURIComponent(id)}`, { method: 'DELETE', headers: authHeader() });
+          const data = await res.json().catch(() => ({}));
+          if (!data.ok) throw new Error(data.error || 'Delete failed');
+          allEntries = allEntries.filter(e => e.id !== id);
+          renderTable(allEntries);
+          showMsg('Deleted.');
+        } catch (err) { showMsg(String(err.message || err), true); }
+      });
+    });
+  }
+
+  async function loadAddresses() {
+    try {
+      const res = await fetch('/api/settings/collector-addresses', { headers: authHeader() });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) throw new Error(data.error || 'Failed to load');
+      allEntries = [...(data.custom || []), ...(data.builtIn || []).map(e => ({ ...e, builtIn: true }))];
+      renderTable(allEntries);
+    } catch (err) {
+      tableBody.innerHTML = `<tr><td colspan="4" style="padding:12px 8px;color:#f87171;text-align:center;">${String(err.message || err)}</td></tr>`;
+    }
+  }
+
+  searchEl?.addEventListener('input', () => renderTable(allEntries));
+
+  showFormBtn?.addEventListener('click', () => {
+    editingId = null;
+    fName.value = ''; fAddr1.value = ''; fAddr2.value = ''; fCity.value = ''; fState.value = ''; fZip.value = '';
+    fErr.style.display = 'none';
+    addForm.style.display = addForm.style.display === 'none' ? 'block' : 'none';
+    if (addForm.style.display === 'block') fName.focus();
+  });
+  fCancel?.addEventListener('click', () => { addForm.style.display = 'none'; editingId = null; });
+
+  fSave?.addEventListener('click', async () => {
+    const name = fName.value.trim();
+    const addr1 = fAddr1.value.trim();
+    if (!name || !addr1) { fErr.textContent = 'Collector name and address line 1 are required.'; fErr.style.display = 'block'; return; }
+    fErr.style.display = 'none';
+    fSave.disabled = true;
+    fSave.textContent = 'Saving…';
+    try {
+      const body = { name, addr1, addr2: fAddr2.value.trim(), city: fCity.value.trim(), state: fState.value.trim().toUpperCase(), zip: fZip.value.trim() };
+      if (editingId) body.id = editingId;
+      const res = await fetch('/api/settings/collector-addresses', { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeader() }, body: JSON.stringify(body) });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) throw new Error(data.error || 'Save failed');
+      await loadAddresses();
+      addForm.style.display = 'none';
+      editingId = null;
+      showMsg('Saved!');
+    } catch (err) { fErr.textContent = String(err.message || err); fErr.style.display = 'block'; }
+    finally { fSave.disabled = false; fSave.textContent = 'Save'; }
+  });
+
+  loadAddresses();
+}
+
+document.addEventListener('DOMContentLoaded', () => { initCollectorAddressPanel(); });
+
 function restoreSettingsTour(context) {
   if (!context || context.restored) return;
   const adminPanel = document.getElementById('adminPanel');

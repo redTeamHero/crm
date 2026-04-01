@@ -388,6 +388,39 @@ export async function listAllConsumerStates({ includeEvents = true } = {}) {
   });
 }
 
+export async function getCollectorAddresses(consumerId) {
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    return c.collectorAddresses || {};
+  });
+}
+
+export async function upsertCollectorAddress(consumerId, collectorName, addressData) {
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    if (!c.collectorAddresses) c.collectorAddresses = {};
+    const key = (collectorName || '').toLowerCase().trim();
+    c.collectorAddresses[key] = { name: collectorName, ...addressData, updatedAt: new Date().toISOString() };
+    await saveState(st);
+    return c.collectorAddresses[key];
+  });
+}
+
+export async function deleteCollectorAddress(consumerId, collectorName) {
+  return withStateLock(async () => {
+    const st = await loadState();
+    const c = ensureConsumer(st, consumerId);
+    if (!c.collectorAddresses) return false;
+    const key = (collectorName || '').toLowerCase().trim();
+    if (!c.collectorAddresses[key]) return false;
+    delete c.collectorAddresses[key];
+    await saveState(st);
+    return true;
+  });
+}
+
 export { registerStateEventListener, AsyncMutex };
 
 // Paths for storing/serving files for a consumer

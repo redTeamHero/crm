@@ -76,6 +76,58 @@
       <div id="disputeTimeline" class="space-y-3 text-sm" style="max-height:600px;overflow-y:auto;padding-bottom:60px;"></div>
     </article>
 
+    <article id="consumerCollectorAddrPanel" class="glass panel hidden" style="margin-top:0;">
+      <details>
+        <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:4px 0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:#d4a853;font-size:14px;">📬</span>
+            <span style="font-weight:600;color:#e5e5e5;font-size:13px;">Collector Addresses</span>
+            <span style="font-size:10px;color:#666;font-weight:400;">per-client overrides — pre-fill letters for this consumer only</span>
+          </div>
+          <span style="color:#888;font-size:11px;user-select:none;" id="ccaToggleLabel">▶ Expand</span>
+        </summary>
+        <div style="margin-top:12px;">
+          <div id="ccaList" style="margin-bottom:10px;"></div>
+          <div id="ccaForm" style="background:#111113;border:1px solid rgba(212,168,83,0.12);border-radius:8px;padding:12px;">
+            <div style="font-size:11px;font-weight:600;color:#d4a853;margin-bottom:8px;">Add / Update Address for This Client</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">Collector Name *</label>
+                <input id="ccaFName" type="text" placeholder="Exact name from credit report" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">Address Line 1 *</label>
+                <input id="ccaFAddr1" type="text" placeholder="PO Box 1234 or 123 Main St" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">Address Line 2</label>
+                <input id="ccaFAddr2" type="text" placeholder="Suite, Dept, etc." style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+              </div>
+              <div>
+                <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">City</label>
+                <input id="ccaFCity" type="text" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div>
+                  <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">State</label>
+                  <input id="ccaFState" type="text" maxlength="2" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">ZIP</label>
+                  <input id="ccaFZip" type="text" maxlength="10" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+                </div>
+              </div>
+            </div>
+            <div id="ccaFErr" style="font-size:11px;color:#f87171;margin-top:5px;display:none;"></div>
+            <div style="margin-top:8px;display:flex;gap:6px;align-items:center;">
+              <button id="ccaFSave" style="padding:6px 14px;border-radius:6px;border:1px solid rgba(212,168,83,0.35);background:rgba(212,168,83,0.1);color:#d4a853;font-size:12px;font-weight:600;cursor:pointer;">Save Address</button>
+              <span id="ccaMsg" style="font-size:11px;color:#4ade80;display:none;"></span>
+            </div>
+          </div>
+        </div>
+      </details>
+    </article>
+
     <div id="selectionToolbar" style="display:none;position:sticky;bottom:16px;z-index:50;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:rgba(30,30,34,0.95);border:1px solid rgba(212,168,83,0.3);border-radius:12px;backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(0,0,0,0.4);max-width:780px;margin:12px auto 0;flex-wrap:wrap;">
       <span style="font-size:13px;color:#d4a853;font-weight:600;"><span id="selCount">0</span> selected</span>
       <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9ca3af;">

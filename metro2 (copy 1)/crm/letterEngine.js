@@ -884,10 +884,12 @@ function buildLetterHeader(consumer, recipient){
     consumer.dob ? `DOB: ${safe(consumer.dob)}` : null,
   ].filter(Boolean).join('<br>');
 
+  const recipientCityStateZip = [recipient.city, recipient.state, recipient.zip].filter(Boolean).join(', ');
   const recipientLines = [
     `<strong>${safe(recipient.name)}</strong>`,
     recipient.addr1 ? safe(recipient.addr1) : null,
     recipient.addr2 ? safe(recipient.addr2) : null,
+    recipientCityStateZip || null,
     recipient.phone ? `Phone: ${safe(recipient.phone)}` : null,
   ].filter(Boolean).join('<br>');
 
@@ -1055,9 +1057,18 @@ function buildCollectorLetterHTML({ consumer, collector, previousDisputeDate = n
   const collectorName = safe(collector.name || 'Debt Collector');
   const accountNum = collector.accountNumber ? safe(collector.accountNumber) : '[ACCOUNT NUMBER — ENTER MANUALLY]';
 
+  const collectorAddr1 = collector.addr1 && collector.addr1 !== '[Add collector address — required before mailing]'
+    ? collector.addr1 : null;
+  const collectorCityStateZip = [collector.city, collector.state, collector.zip].filter(Boolean).join(', ');
+
   const headerData = {
     name: collector.name || 'Debt Collector',
-    addr1: '[Add collector address — required before mailing]',
+    addr1: collectorAddr1 || '[Add collector address — required before mailing]',
+    addr2: collector.addr2 || '',
+    city: collector.city || '',
+    state: collector.state || '',
+    zip: collector.zip || '',
+    cityStateZip: collectorCityStateZip || '',
   };
 
   let bodyHtml;

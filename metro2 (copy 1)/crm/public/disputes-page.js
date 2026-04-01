@@ -1670,3 +1670,110 @@ $('#batchSendPortal')?.addEventListener('click', async () => {
 });
 
 loadConsumers();
+
+let _ccaConsumerId = null;
+
+function initConsumerCollectorAddrPanel() {
+  const panel = document.getElementById('consumerCollectorAddrPanel');
+  const ccaList = document.getElementById('ccaList');
+  const ccaFName = document.getElementById('ccaFName');
+  const ccaFAddr1 = document.getElementById('ccaFAddr1');
+  const ccaFAddr2 = document.getElementById('ccaFAddr2');
+  const ccaFCity = document.getElementById('ccaFCity');
+  const ccaFState = document.getElementById('ccaFState');
+  const ccaFZip = document.getElementById('ccaFZip');
+  const ccaFErr = document.getElementById('ccaFErr');
+  const ccaFSave = document.getElementById('ccaFSave');
+  const ccaMsg = document.getElementById('ccaMsg');
+  const toggleLabel = document.getElementById('ccaToggleLabel');
+  const details = panel?.querySelector('details');
+
+  if (details && toggleLabel) {
+    details.addEventListener('toggle', () => {
+      toggleLabel.textContent = details.open ? '▼ Collapse' : '▶ Expand';
+    });
+  }
+
+  async function loadCcaList(consumerId) {
+    if (!ccaList || !consumerId) return;
+    try {
+      const res = await api(`/api/consumers/${consumerId}/collector-addresses`);
+      const addrs = res.addresses || [];
+      if (!addrs.length) {
+        ccaList.innerHTML = `<div style="font-size:11px;color:#666;margin-bottom:8px;">No custom addresses saved for this client. Common collectors will auto-fill from the built-in directory.</div>`;
+        return;
+      }
+      ccaList.innerHTML = addrs.map(a => `
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:7px;margin-bottom:5px;">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#e5e5e5;">${escapeHtml(a.name)}</div>
+            <div style="font-size:11px;color:#888;">${escapeHtml(a.addr1)}${a.addr2 ? ', ' + escapeHtml(a.addr2) : ''} · ${escapeHtml([a.city, a.state, a.zip].filter(Boolean).join(', '))}</div>
+          </div>
+          <button class="cca-del" data-name="${escapeHtml(a.name)}" style="flex-shrink:0;padding:3px 8px;border-radius:5px;border:1px solid rgba(239,68,68,0.25);background:transparent;color:#f87171;font-size:11px;cursor:pointer;white-space:nowrap;">Remove</button>
+        </div>`).join('');
+
+      ccaList.querySelectorAll('.cca-del').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const name = btn.dataset.name;
+          if (!confirm(`Remove saved address for "${name}"?`)) return;
+          try {
+            await api(`/api/consumers/${consumerId}/collector-addresses/${encodeURIComponent(name)}`, { method: 'DELETE' });
+            await loadCcaList(consumerId);
+          } catch (err) { showErr(String(err.message || err)); }
+        });
+      });
+    } catch (err) {
+      ccaList.innerHTML = `<div style="font-size:11px;color:#f87171;">${escapeHtml(String(err.message || err))}</div>`;
+    }
+  }
+
+  if (ccaFSave) {
+    ccaFSave.addEventListener('click', async () => {
+      if (!_ccaConsumerId) return;
+      const name = (ccaFName?.value || '').trim();
+      const addr1 = (ccaFAddr1?.value || '').trim();
+      if (!name || !addr1) {
+        if (ccaFErr) { ccaFErr.textContent = 'Name and Address Line 1 are required.'; ccaFErr.style.display = 'block'; }
+        return;
+      }
+      if (ccaFErr) ccaFErr.style.display = 'none';
+      ccaFSave.disabled = true;
+      ccaFSave.textContent = 'Saving…';
+      try {
+        await api(`/api/consumers/${_ccaConsumerId}/collector-addresses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, addr1, addr2: (ccaFAddr2?.value || '').trim(), city: (ccaFCity?.value || '').trim(), state: (ccaFState?.value || '').trim().toUpperCase(), zip: (ccaFZip?.value || '').trim() }),
+        });
+        ccaFName.value = ''; ccaFAddr1.value = ''; ccaFAddr2.value = ''; ccaFCity.value = ''; ccaFState.value = ''; ccaFZip.value = '';
+        await loadCcaList(_ccaConsumerId);
+        if (ccaMsg) { ccaMsg.textContent = 'Saved!'; ccaMsg.style.display = 'inline'; setTimeout(() => { ccaMsg.style.display = 'none'; }, 2500); }
+      } catch (err) {
+        if (ccaFErr) { ccaFErr.textContent = String(err.message || err); ccaFErr.style.display = 'block'; }
+      } finally {
+        ccaFSave.disabled = false;
+        ccaFSave.textContent = 'Save Address';
+      }
+    });
+  }
+
+  return { reload: (consumerId) => { _ccaConsumerId = consumerId; loadCcaList(consumerId); } };
+}
+
+const _ccaPanel = initConsumerCollectorAddrPanel();
+
+const _origSelectConsumer = selectConsumer;
+window.__ccaSelectHook = async (id) => {
+  const panel = document.getElementById('consumerCollectorAddrPanel');
+  if (!id) {
+    if (panel) panel.classList.add('hidden');
+    return;
+  }
+  if (panel) panel.classList.remove('hidden');
+  _ccaPanel.reload(id);
+};
+
+const _origSelectConsumerFn = selectConsumer;
+document.getElementById('consumerPicker')?.addEventListener('change', function() {
+  window.__ccaSelectHook(this.value || null);
+});

@@ -680,6 +680,79 @@
 
   <div class="section-divider"></div>
 
+  <div id="collectorAddressPanel">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-white">Collector Addresses</h2>
+        <p class="text-xs text-gray-500">Built-in addresses for ~75 common collectors auto-fill letters. Add custom entries for any agency not listed.</p>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <input id="caSearch" type="text" placeholder="Search collectors…" style="flex:1;min-width:160px;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:7px 12px;font-size:12px;color:#e5e5e5;outline:none;" />
+      <button id="caShowFormBtn" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(212,168,83,0.3);background:rgba(212,168,83,0.08);color:#d4a853;font-size:12px;font-weight:600;cursor:pointer;">+ Add Custom</button>
+    </div>
+
+    <div id="caAddForm" style="display:none;background:#111113;border:1px solid rgba(212,168,83,0.15);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:12px;font-weight:600;color:#d4a853;margin-bottom:10px;">Add / Edit Custom Collector</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="grid-column:1/-1;">
+          <label style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px;">Collector Name *</label>
+          <input id="caFName" type="text" placeholder="e.g. ACME Collections LLC" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:7px 10px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+        </div>
+        <div style="grid-column:1/-1;">
+          <label style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px;">Address Line 1 *</label>
+          <input id="caFAddr1" type="text" placeholder="e.g. PO Box 1234 or 123 Main St" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:7px 10px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+        </div>
+        <div style="grid-column:1/-1;">
+          <label style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px;">Address Line 2</label>
+          <input id="caFAddr2" type="text" placeholder="Suite, Dept, etc." style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:7px 10px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px;">City</label>
+          <input id="caFCity" type="text" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:7px 10px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px;">State</label>
+            <input id="caFState" type="text" maxlength="2" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:7px 10px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px;">ZIP</label>
+            <input id="caFZip" type="text" maxlength="10" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:7px 10px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+          </div>
+        </div>
+      </div>
+      <div id="caFErr" style="font-size:11px;color:#f87171;margin-top:6px;display:none;"></div>
+      <div style="margin-top:10px;display:flex;gap:7px;">
+        <button id="caFSave" style="padding:7px 16px;border-radius:7px;border:1px solid rgba(212,168,83,0.35);background:rgba(212,168,83,0.12);color:#d4a853;font-size:12px;font-weight:600;cursor:pointer;">Save</button>
+        <button id="caFCancel" style="padding:7px 12px;border-radius:7px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#888;font-size:12px;cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+
+    <div id="caTable" style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.07);">
+            <th style="text-align:left;padding:6px 8px;color:#888;font-weight:500;">Collector</th>
+            <th style="text-align:left;padding:6px 8px;color:#888;font-weight:500;">Address</th>
+            <th style="text-align:left;padding:6px 8px;color:#888;font-weight:500;">City/State/ZIP</th>
+            <th style="padding:6px 8px;"></th>
+          </tr>
+        </thead>
+        <tbody id="caTableBody">
+          <tr><td colspan="4" style="padding:16px 8px;color:#555;text-align:center;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="caMsg" style="font-size:11px;color:#4ade80;margin-top:6px;display:none;"></div>
+  </div>
+
+  <div class="section-divider"></div>
+
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
     <div>
       <h2 class="text-lg font-semibold text-white">Sign Out</h2>
