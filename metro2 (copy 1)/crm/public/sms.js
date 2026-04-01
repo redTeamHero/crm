@@ -560,6 +560,7 @@ function openNewCampaign() {
   qs("#smsCampModalTitle").textContent = "New SMS Campaign";
   qs("#smsCampId").value = "";
   qs("#smsCampaignForm").reset();
+  if (qs("#smsCampScheduledAt")) qs("#smsCampScheduledAt").value = "";
   qs("#smsCampCharCount").textContent = "0 / 160";
   qs("#smsCampCharCount").className = "char-count";
   _campSteps = [];
@@ -577,6 +578,9 @@ function openEditCampaign(cid) {
   qs("#smsCampStatus").value = c.status || "draft";
   qs("#smsCampFrequency").value = c.frequency || "immediate";
   qs("#smsCampDescription").value = c.description || "";
+  if (qs("#smsCampScheduledAt") && c.scheduledAt) {
+    try { qs("#smsCampScheduledAt").value = new Date(c.scheduledAt).toISOString().slice(0, 16); } catch { qs("#smsCampScheduledAt").value = ""; }
+  } else if (qs("#smsCampScheduledAt")) { qs("#smsCampScheduledAt").value = ""; }
   qs("#smsCampBody").value = c.body || c.subject || "";
   updateCharCount(qs("#smsCampBody"), qs("#smsCampCharCount"));
   _campSteps = Array.isArray(c.steps) ? c.steps.map((s) => ({ delayDays: s.delayDays || 1, body: s.body || "" })) : [];
@@ -593,6 +597,7 @@ qs("#smsCampBody")?.addEventListener("input", () => {
 
 function collectCampaignPayload() {
   const body = qs("#smsCampBody").value.trim();
+  const scheduledAtRaw = qs("#smsCampScheduledAt")?.value || "";
   return {
     name: qs("#smsCampName").value.trim(),
     channel: "sms",
@@ -600,6 +605,7 @@ function collectCampaignPayload() {
     status: qs("#smsCampStatus").value,
     frequency: qs("#smsCampFrequency").value,
     description: qs("#smsCampDescription").value.trim(),
+    scheduledAt: scheduledAtRaw ? new Date(scheduledAtRaw).toISOString() : undefined,
     body,
     subject: body.slice(0, 80),
     steps: _campSteps.filter((s) => s.body.trim()),
