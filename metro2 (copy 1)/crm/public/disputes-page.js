@@ -1301,14 +1301,26 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
       if (r.bureau && !selMap[groupKey].bureaus.includes(r.bureau)) selMap[groupKey].bureaus.push(r.bureau);
       if (!selMap[groupKey].specificDisputeReason && r.specificDisputeReason) selMap[groupKey].specificDisputeReason = r.specificDisputeReason;
     });
-    const selections = Object.values(selMap);
+    let selections = Object.values(selMap);
     selections.forEach(sel => { if (!sel.bureaus.length) sel.bureaus = ['TransUnion', 'Experian', 'Equifax']; });
+    if (!selections.length && round.selections && round.selections.length) {
+      const firstRec = recs[0];
+      const fallbackTemplateId = firstRec?.recommendedTemplate || null;
+      selections = round.selections
+        .filter(s => s.tradelineIndex !== null && s.tradelineIndex !== undefined)
+        .map(s => ({
+          tradelineIndex: s.tradelineIndex,
+          bureaus: s.bureaus && s.bureaus.length ? s.bureaus : ['TransUnion', 'Experian', 'Equifax'],
+          templateId: fallbackTemplateId,
+          specificDisputeReason: s.specificDisputeReason || firstRec?.specificDisputeReason || null
+        }));
+    }
     if (!selections.length) {
       showErr('Could not determine tradeline selections from recommendations. Please generate letters manually.');
       btn.disabled = false; btn.textContent = origText; return;
     }
     btn.textContent = 'Sending to server...';
-    const itemsPerLetter = Math.max(1, parseInt($('#itemsPerLetterInput')?.value || '10', 10) || 10);
+    const itemsPerLetter = 1;
     const genResp = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('dispute-next-round'), ...authHeader() },
