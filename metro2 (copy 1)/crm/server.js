@@ -2663,7 +2663,7 @@ app.post("/api/consumers/:id/collector-addresses", authenticate, async (req, res
 app.delete("/api/consumers/:id/collector-addresses/:name", authenticate, async (req, res) => {
   try {
     const { id, name } = req.params;
-    const deleted = await deleteCollectorAddress(id, decodeURIComponent(name));
+    const deleted = await deleteCollectorAddress(id, name);
     if (!deleted) return res.status(404).json({ ok: false, error: 'Address not found' });
     res.json({ ok: true });
   } catch (err) {
@@ -9243,7 +9243,7 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
     }
     if (Array.isArray(collectors) && collectors.length) {
       const consumerAddrBook = await getCollectorAddresses(consumer.id).catch(() => ({}));
-      const tenantSettings = await loadSettings(consumer.tenantId || DEFAULT_TENANT_ID).catch(() => ({}));
+      const tenantSettings = await loadSettings(sanitizeTenantId(consumer.tenantId || consumer.ownerTenantId || DEFAULT_TENANT_ID)).catch(() => ({}));
       const customEntries = Array.isArray(tenantSettings.collectorAddressBook) ? tenantSettings.collectorAddressBook : [];
       const enrichedCollectors = collectors.map(col => {
         const enriched = { ...col };
@@ -9258,16 +9258,19 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
             if (acct) enriched.accountNumber = acct;
           }
         }
-        const needsAddr = !enriched.addr1 || enriched.addr1 === '[Add collector address — required before mailing]';
-        if (needsAddr) {
+        const isPlaceholderAddr = !enriched.addr1 || enriched.addr1 === '[Add collector address — required before mailing]';
+        const missingLocation = !enriched.city || !enriched.state;
+        if (isPlaceholderAddr || missingLocation) {
           const nameKey = (enriched.name || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
           const consumerOverride = consumerAddrBook[nameKey];
           if (consumerOverride) {
-            Object.assign(enriched, { addr1: consumerOverride.addr1, addr2: consumerOverride.addr2 || '', city: consumerOverride.city || '', state: consumerOverride.state || '', zip: consumerOverride.zip || '' });
+            if (isPlaceholderAddr) Object.assign(enriched, { addr1: consumerOverride.addr1, addr2: consumerOverride.addr2 || '' });
+            if (missingLocation) Object.assign(enriched, { city: consumerOverride.city || '', state: consumerOverride.state || '', zip: consumerOverride.zip || '' });
           } else {
             const match = lookupCollectorAddress(enriched.name, customEntries);
             if (match) {
-              Object.assign(enriched, { addr1: match.addr1, addr2: match.addr2 || '', city: match.city || '', state: match.state || '', zip: match.zip || '' });
+              if (isPlaceholderAddr) Object.assign(enriched, { addr1: match.addr1, addr2: match.addr2 || '' });
+              if (missingLocation) Object.assign(enriched, { city: match.city || '', state: match.state || '', zip: match.zip || '' });
             }
           }
         }
