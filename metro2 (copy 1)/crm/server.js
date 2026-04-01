@@ -10096,7 +10096,7 @@ async function enrichCollectorAddress(col, consumerAddrBook, customEntries) {
 }
 
 // Pre-flight: check which collectors are still missing addresses after enrichment
-app.post("/api/generate/preflight", authenticate, async (req, res) => {
+app.post("/api/generate/preflight", authenticate, requirePermission("letters", { allowGuest: true }), async (req, res) => {
   try {
     const { consumerId, collectors } = req.body || {};
     if (!consumerId) return res.status(400).json({ ok: false, error: 'consumerId required' });
@@ -10104,6 +10104,11 @@ app.post("/api/generate/preflight", authenticate, async (req, res) => {
     const db = await loadDB();
     const consumer = db.consumers.find(c => c.id === consumerId);
     if (!consumer) return res.status(404).json({ ok: false, error: 'Consumer not found' });
+    if (req.user) {
+      const consumerTenant = sanitizeTenantId(consumer.tenantId || consumer.ownerTenantId || DEFAULT_TENANT_ID);
+      const requestTenant = sanitizeTenantId(resolveRequestTenant(req));
+      if (consumerTenant !== requestTenant) return res.status(403).json({ ok: false, error: 'Access denied' });
+    }
     const consumerAddrBook = await getCollectorAddresses(consumer.id).catch(() => ({}));
     const tenantSettings = await loadSettings(sanitizeTenantId(consumer.tenantId || consumer.ownerTenantId || DEFAULT_TENANT_ID)).catch(() => ({}));
     const customEntries = Array.isArray(tenantSettings.collectorAddressBook) ? tenantSettings.collectorAddressBook : [];
