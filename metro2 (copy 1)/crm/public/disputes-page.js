@@ -232,25 +232,53 @@ function showNextRoundTargetModal(recs) {
     modal.id = 'nextRoundTargetModal';
     modal.style.cssText = 'position:fixed;inset:0;z-index:12000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);';
 
+    // targets[i] tracks the chosen target for each rec (by original index).
     const targets = recs.map(r => r.letterTarget || 'bureau');
 
+    // Group recs by tradelineIndex (fall back to normalized creditor name so
+    // recs without a tradelineIndex are still grouped by creditor).
+    const groupMap = new Map();
+    recs.forEach((r, i) => {
+      const key = r.tradelineIndex != null
+        ? `tl:${r.tradelineIndex}`
+        : `cr:${(r.creditor || '').toLowerCase().trim()}`;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, {
+          creditor: r.creditor || 'Unknown',
+          bureaus: [],
+          template: r.recommendedTemplate || '',
+          indices: [],
+        });
+      }
+      const g = groupMap.get(key);
+      if (r.bureau && !g.bureaus.includes(r.bureau)) g.bureaus.push(r.bureau);
+      g.indices.push(i);
+    });
+    const groups = [...groupMap.values()];
+
+    // Derive the effective target for a group: unanimous → use it; mixed → 'bureau'.
+    function groupTarget(g) {
+      const first = targets[g.indices[0]];
+      return g.indices.every(i => targets[i] === first) ? first : 'bureau';
+    }
+
     function renderRows() {
-      return recs.map((rec, idx) => {
-        const creditor = escapeHtml(rec.creditor || 'Unknown');
-        const bureau = escapeHtml(rec.bureau || '');
-        const template = escapeHtml(rec.recommendedTemplate || 'auto');
-        const isColl = targets[idx] === 'collector';
-        return `<div class="nrt-row" data-idx="${idx}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
+      return groups.map((g, gidx) => {
+        const creditor = escapeHtml(g.creditor);
+        const bureauList = escapeHtml(g.bureaus.join(', ') || '');
+        const template = escapeHtml(g.template || 'auto');
+        const isColl = groupTarget(g) === 'collector';
+        return `<div class="nrt-row" data-gidx="${gidx}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
           <div style="flex:1;min-width:0;overflow:hidden;">
             <div style="font-weight:600;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${creditor}</div>
-            <div style="font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${bureau}${bureau && template ? ' • ' : ''}${template ? `<span style="color:#60a5fa;">${template}</span>` : ''}</div>
+            <div style="font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${bureauList}${bureauList && template ? ' • ' : ''}${template ? `<span style="color:#60a5fa;">${template}</span>` : ''}</div>
           </div>
           <div style="display:flex;gap:0;border:1px solid rgba(255,255,255,0.15);border-radius:6px;overflow:hidden;flex-shrink:0;">
-            <button type="button" class="nrt-toggle" data-idx="${idx}" data-target="bureau"
+            <button type="button" class="nrt-toggle" data-gidx="${gidx}" data-target="bureau"
               style="padding:5px 11px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:background 0.15s,color 0.15s;background:${!isColl ? 'rgba(96,165,250,0.22)' : 'transparent'};color:${!isColl ? '#60a5fa' : '#666'};">
               Bureaus
             </button>
-            <button type="button" class="nrt-toggle" data-idx="${idx}" data-target="collector"
+            <button type="button" class="nrt-toggle" data-gidx="${gidx}" data-target="collector"
               style="padding:5px 11px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:background 0.15s,color 0.15s;background:${isColl ? 'rgba(251,191,36,0.22)' : 'transparent'};color:${isColl ? '#fbbf24' : '#666'};">
               Collector
             </button>
@@ -264,7 +292,7 @@ function showNextRoundTargetModal(recs) {
         <div style="background:#1a1a1e;border:1px solid rgba(212,168,83,0.2);border-radius:12px;width:90%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
           <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
             <div style="font-weight:700;color:#fff;font-size:16px;">Generate Next Round Letters</div>
-            <div style="font-size:12px;color:#888;margin-top:3px;">For each item, choose whether the letter goes to the credit bureaus or directly to the creditor/collector. Intellisense has pre-selected a target — you can override any item.</div>
+            <div style="font-size:12px;color:#888;margin-top:3px;">For each tradeline, choose whether the letter goes to the credit bureaus or directly to the creditor/collector. Intellisense has pre-selected a target — you can override any item.</div>
           </div>
           <div id="nrtRows" style="padding:14px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px;">
             ${renderRows()}
@@ -279,13 +307,14 @@ function showNextRoundTargetModal(recs) {
     modal.innerHTML = buildHtml();
     document.body.appendChild(modal);
 
-    function refreshRow(idx) {
-      const isColl = targets[idx] === 'collector';
-      const row = modal.querySelector(`.nrt-row[data-idx="${idx}"]`);
+    function refreshRow(gidx) {
+      const g = groups[gidx];
+      const isColl = groupTarget(g) === 'collector';
+      const row = modal.querySelector(`.nrt-row[data-gidx="${gidx}"]`);
       if (!row) return;
       row.querySelectorAll('.nrt-toggle').forEach(btn => {
-        const isSel = btn.dataset.target === targets[idx];
         const isBureauBtn = btn.dataset.target === 'bureau';
+        const isSel = isBureauBtn ? !isColl : isColl;
         btn.style.background = isSel ? (isBureauBtn ? 'rgba(96,165,250,0.22)' : 'rgba(251,191,36,0.22)') : 'transparent';
         btn.style.color = isSel ? (isBureauBtn ? '#60a5fa' : '#fbbf24') : '#666';
       });
@@ -294,9 +323,11 @@ function showNextRoundTargetModal(recs) {
     modal.addEventListener('click', (e) => {
       const btn = e.target.closest('.nrt-toggle');
       if (btn) {
-        const idx = parseInt(btn.dataset.idx, 10);
-        targets[idx] = btn.dataset.target;
-        refreshRow(idx);
+        const gidx = parseInt(btn.dataset.gidx, 10);
+        const target = btn.dataset.target;
+        // Apply chosen target to ALL recs in the group at once.
+        groups[gidx].indices.forEach(i => { targets[i] = target; });
+        refreshRow(gidx);
         return;
       }
       if (e.target === modal) { modal.remove(); resolve(null); }
