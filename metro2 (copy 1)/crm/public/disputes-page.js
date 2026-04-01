@@ -1,5 +1,5 @@
 import { authHeader, api, escapeHtml } from './common.js';
-import { openCfpbModal } from './cfpb-modal.js';
+
 import { resolveStateInfo, STATES_WITH_ADDENDA } from './state-utils.js';
 
 const $ = (s) => document.querySelector(s);
@@ -1055,13 +1055,34 @@ function renderDisputeTracker(data) {
   });
 
   timeline.querySelectorAll('.btn-cfpb-round').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const jid = btn.dataset.jobId;
-      const roundObj = currentDisputeData?.rounds?.find(r => (r.jobId || `round-${r.round}`) === jid);
-      openCfpbModal({
-        consumerId: currentConsumerId,
-        roundData: roundObj ? { jobId: jid, round: roundObj.round, items: roundObj.items || roundObj.letters || [], letters: roundObj.letters || [] } : null,
-      });
+      if (!jid) { showErr('No letter job found for this round.'); return; }
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      try {
+        const res = await api(`/api/letters/${encodeURIComponent(jid)}/portal`, { method: 'POST' });
+        if (res?.ok) {
+          btn.textContent = '✓ Sent';
+          btn.style.color = '#4ade80';
+          btn.style.borderColor = 'rgba(74,222,128,0.4)';
+          setTimeout(() => {
+            btn.textContent = origText;
+            btn.style.color = '';
+            btn.style.borderColor = '';
+            btn.disabled = false;
+          }, 3000);
+        } else {
+          showErr(res?.error || res?.message || 'Failed to send to client.');
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
+      } catch (err) {
+        showErr(`Send failed: ${err.message || err}`);
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
     });
   });
 

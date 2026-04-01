@@ -55,13 +55,13 @@ function switchTab(tab) {
   const btnBureau = $('cfpbTabByBureau');
   const btnIndiv = $('cfpbTabIndividually');
   if (tab === 'bureau') {
-    if (byBureau) byBureau.style.display = '';
+    if (byBureau) byBureau.style.display = 'block';
     if (individually) individually.style.display = 'none';
     if (btnBureau) { btnBureau.style.background = 'rgba(99,102,241,0.3)'; btnBureau.style.border = '1px solid rgba(99,102,241,0.5)'; btnBureau.style.color = '#a5b4fc'; }
     if (btnIndiv) { btnIndiv.style.background = 'transparent'; btnIndiv.style.border = '1px solid transparent'; btnIndiv.style.color = '#9ca3af'; }
   } else {
     if (byBureau) byBureau.style.display = 'none';
-    if (individually) individually.style.display = '';
+    if (individually) individually.style.display = 'block';
     if (btnIndiv) { btnIndiv.style.background = 'rgba(99,102,241,0.3)'; btnIndiv.style.border = '1px solid rgba(99,102,241,0.5)'; btnIndiv.style.color = '#a5b4fc'; }
     if (btnBureau) { btnBureau.style.background = 'transparent'; btnBureau.style.border = '1px solid transparent'; btnBureau.style.color = '#9ca3af'; }
     if (currentConsumerId) renderIndivItems(currentConsumerId);
