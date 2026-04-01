@@ -9260,7 +9260,7 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
         }
         const needsAddr = !enriched.addr1 || enriched.addr1 === '[Add collector address — required before mailing]';
         if (needsAddr) {
-          const nameKey = (enriched.name || '').toLowerCase().trim();
+          const nameKey = (enriched.name || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
           const consumerOverride = consumerAddrBook[nameKey];
           if (consumerOverride) {
             Object.assign(enriched, { addr1: consumerOverride.addr1, addr2: consumerOverride.addr2 || '', city: consumerOverride.city || '', state: consumerOverride.state || '', zip: consumerOverride.zip || '' });

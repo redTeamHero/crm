@@ -396,12 +396,16 @@ export async function getCollectorAddresses(consumerId) {
   });
 }
 
+function normalizeCollectorKey(name) {
+  return (name || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export async function upsertCollectorAddress(consumerId, collectorName, addressData) {
   return withStateLock(async () => {
     const st = await loadState();
     const c = ensureConsumer(st, consumerId);
     if (!c.collectorAddresses) c.collectorAddresses = {};
-    const key = (collectorName || '').toLowerCase().trim();
+    const key = normalizeCollectorKey(collectorName);
     c.collectorAddresses[key] = { name: collectorName, ...addressData, updatedAt: new Date().toISOString() };
     await saveState(st);
     return c.collectorAddresses[key];
@@ -413,7 +417,7 @@ export async function deleteCollectorAddress(consumerId, collectorName) {
     const st = await loadState();
     const c = ensureConsumer(st, consumerId);
     if (!c.collectorAddresses) return false;
-    const key = (collectorName || '').toLowerCase().trim();
+    const key = normalizeCollectorKey(collectorName);
     if (!c.collectorAddresses[key]) return false;
     delete c.collectorAddresses[key];
     await saveState(st);

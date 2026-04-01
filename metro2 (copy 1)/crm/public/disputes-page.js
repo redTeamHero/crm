@@ -1714,8 +1714,24 @@ function initConsumerCollectorAddrPanel() {
             <div style="font-size:12px;font-weight:600;color:#e5e5e5;">${escapeHtml(a.name)}</div>
             <div style="font-size:11px;color:#888;">${escapeHtml(a.addr1)}${a.addr2 ? ', ' + escapeHtml(a.addr2) : ''} · ${escapeHtml([a.city, a.state, a.zip].filter(Boolean).join(', '))}</div>
           </div>
-          <button class="cca-del" data-name="${escapeHtml(a.name)}" style="flex-shrink:0;padding:3px 8px;border-radius:5px;border:1px solid rgba(239,68,68,0.25);background:transparent;color:#f87171;font-size:11px;cursor:pointer;white-space:nowrap;">Remove</button>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button class="cca-edit" data-name="${escapeHtml(a.name)}" data-addr1="${escapeHtml(a.addr1||'')}" data-addr2="${escapeHtml(a.addr2||'')}" data-city="${escapeHtml(a.city||'')}" data-state="${escapeHtml(a.state||'')}" data-zip="${escapeHtml(a.zip||'')}" style="padding:3px 8px;border-radius:5px;border:1px solid rgba(99,102,241,0.3);background:transparent;color:#a5b4fc;font-size:11px;cursor:pointer;white-space:nowrap;">Edit</button>
+            <button class="cca-del" data-name="${escapeHtml(a.name)}" style="padding:3px 8px;border-radius:5px;border:1px solid rgba(239,68,68,0.25);background:transparent;color:#f87171;font-size:11px;cursor:pointer;white-space:nowrap;">Remove</button>
+          </div>
         </div>`).join('');
+
+      ccaList.querySelectorAll('.cca-edit').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (ccaFName) ccaFName.value = btn.dataset.name || '';
+          if (ccaFAddr1) ccaFAddr1.value = btn.dataset.addr1 || '';
+          if (ccaFAddr2) ccaFAddr2.value = btn.dataset.addr2 || '';
+          if (ccaFCity) ccaFCity.value = btn.dataset.city || '';
+          if (ccaFState) ccaFState.value = btn.dataset.state || '';
+          if (ccaFZip) ccaFZip.value = btn.dataset.zip || '';
+          ccaFName?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          ccaFName?.focus();
+        });
+      });
 
       ccaList.querySelectorAll('.cca-del').forEach(btn => {
         btn.addEventListener('click', async () => {
