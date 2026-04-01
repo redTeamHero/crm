@@ -3635,7 +3635,7 @@ function openAddrPreflightModal(flagged, enrichedAll, { selections, personalInfo
   listEl.innerHTML = '<div style="text-align:center;color:#888;font-size:12px;padding:20px 0;">Loading address library…</div>';
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-  if (genBtn) { genBtn.disabled = true; genBtn.style.opacity = '0.45'; genBtn.style.cursor = 'not-allowed'; genBtn.textContent = 'Generate Letters'; }
+  if (genBtn) { genBtn.disabled = true; genBtn.style.opacity = '0.45'; genBtn.style.cursor = 'not-allowed'; genBtn.textContent = 'Generate Letters'; genBtn.onclick = null; }
   if (msgEl) { msgEl.textContent = ''; msgEl.style.color = '#888'; }
 
   let closed = false;
@@ -3645,11 +3645,14 @@ function openAddrPreflightModal(flagged, enrichedAll, { selections, personalInfo
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.removeEventListener('click', onBgClick);
+    if (closeBtn) closeBtn.onclick = null;
+    if (cancelBtn) cancelBtn.onclick = null;
+    if (genBtn) genBtn.onclick = null;
   }
   function onBgClick(e) { if (e.target === modal) closeModal(); }
   modal.addEventListener('click', onBgClick);
-  closeBtn?.addEventListener('click', closeModal);
-  cancelBtn?.addEventListener('click', closeModal);
+  if (closeBtn) closeBtn.onclick = closeModal;
+  if (cancelBtn) cancelBtn.onclick = closeModal;
 
   loadAddrLibrary().then(library => {
     listEl.innerHTML = flagged.map((col, i) => buildPreflightRow(col, i)).join('');
@@ -3657,47 +3660,54 @@ function openAddrPreflightModal(flagged, enrichedAll, { selections, personalInfo
     updatePreflightGenerateBtn(modal);
   });
 
-  genBtn?.addEventListener('click', async function handleGenerate() {
-    genBtn.removeEventListener('click', handleGenerate);
-    genBtn.disabled = true;
-    genBtn.textContent = 'Saving…';
-    if (msgEl) { msgEl.textContent = ''; msgEl.style.color = '#888'; }
+  if (genBtn) {
+    const handleGenerate = async () => {
+      genBtn.disabled = true;
+      genBtn.textContent = 'Saving…';
+      genBtn.onclick = null;
+      if (msgEl) { msgEl.textContent = ''; msgEl.style.color = '#888'; }
 
-    try {
-      const resolvedCollectors = (enrichedAll || []).map(c => ({ ...c }));
+      try {
+        const resolvedCollectors = (enrichedAll || []).map(c => ({ ...c }));
+        const saveTasks = [];
 
-      for (let i = 0; i < flagged.length; i++) {
-        const row = listEl.querySelector(`.pf-row[data-row="${i}"]`);
-        if (!row) continue;
-        const addr1Val = row.querySelector(`.pf-addr1[data-row="${i}"]`)?.value?.trim() || '';
-        const addr2Val = row.querySelector(`.pf-addr2[data-row="${i}"]`)?.value?.trim() || '';
-        const cityVal = row.querySelector(`.pf-city[data-row="${i}"]`)?.value?.trim() || '';
-        const stateVal = row.querySelector(`.pf-state[data-row="${i}"]`)?.value?.trim().toUpperCase() || '';
-        const zipVal = row.querySelector(`.pf-zip[data-row="${i}"]`)?.value?.trim() || '';
-        const saveChecked = row.querySelector(`.pf-save[data-row="${i}"]`)?.checked;
+        for (let i = 0; i < flagged.length; i++) {
+          const row = listEl.querySelector(`.pf-row[data-row="${i}"]`);
+          if (!row) continue;
+          const addr1Val = row.querySelector(`.pf-addr1[data-row="${i}"]`)?.value?.trim() || '';
+          const addr2Val = row.querySelector(`.pf-addr2[data-row="${i}"]`)?.value?.trim() || '';
+          const cityVal = row.querySelector(`.pf-city[data-row="${i}"]`)?.value?.trim() || '';
+          const stateVal = row.querySelector(`.pf-state[data-row="${i}"]`)?.value?.trim().toUpperCase() || '';
+          const zipVal = row.querySelector(`.pf-zip[data-row="${i}"]`)?.value?.trim() || '';
+          const saveChecked = row.querySelector(`.pf-save[data-row="${i}"]`)?.checked;
 
-        const origIdx = flagged[i]._originalIndex ?? i;
-        if (resolvedCollectors[origIdx] !== undefined) {
-          resolvedCollectors[origIdx] = { ...resolvedCollectors[origIdx], addr1: addr1Val, addr2: addr2Val, city: cityVal, state: stateVal, zip: zipVal };
+          const origIdx = flagged[i]._originalIndex ?? i;
+          if (resolvedCollectors[origIdx] !== undefined) {
+            resolvedCollectors[origIdx] = { ...resolvedCollectors[origIdx], addr1: addr1Val, addr2: addr2Val, city: cityVal, state: stateVal, zip: zipVal };
+          }
+
+          if (saveChecked && currentConsumerId && addr1Val && cityVal && stateVal) {
+            saveTasks.push(
+              api(`/api/consumers/${currentConsumerId}/collector-addresses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: flagged[i].name, addr1: addr1Val, addr2: addr2Val, city: cityVal, state: stateVal, zip: zipVal }),
+              }).catch(() => {})
+            );
+          }
         }
 
-        if (saveChecked && currentConsumerId && addr1Val && cityVal && stateVal) {
-          api(`/api/consumers/${currentConsumerId}/collector-addresses`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: flagged[i].name, addr1: addr1Val, addr2: addr2Val, city: cityVal, state: stateVal, zip: zipVal }),
-          }).catch(() => {});
-        }
+        await Promise.all(saveTasks);
+        closeModal();
+        await doGenerateLetters(resolvedCollectors, { selections, personalInfo, useOcr });
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message || String(e); msgEl.style.color = '#f87171'; }
+        genBtn.disabled = false;
+        genBtn.textContent = 'Generate Letters';
+        genBtn.style.opacity = '1';
+        genBtn.onclick = handleGenerate;
       }
-
-      closeModal();
-      await doGenerateLetters(resolvedCollectors, { selections, personalInfo, useOcr });
-    } catch (e) {
-      if (msgEl) { msgEl.textContent = e.message || String(e); msgEl.style.color = '#f87171'; }
-      genBtn.disabled = false;
-      genBtn.textContent = 'Generate Letters';
-      genBtn.style.opacity = '1';
-      genBtn.addEventListener('click', handleGenerate);
-    }
-  });
+    };
+    genBtn.onclick = handleGenerate;
+  }
 }
