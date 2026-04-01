@@ -478,7 +478,8 @@ qs("#smsCampaignList")?.addEventListener("click", async (e) => {
   if (action === "send") {
     const c = _campaigns.find((x) => x.id === cid);
     if (!c) return;
-    if (!c.groupId && !c.body) { alert("Campaign has no group or message body. Edit it first."); return; }
+    if (!c.groupId) { alert("Campaign has no target group. Edit the campaign and select a group first."); return; }
+    if (!c.body && !c.subject) { alert("Campaign has no message body. Edit the campaign first."); return; }
     const ok = await confirmDialog("Send campaign now?", `Send "${btn.dataset.cname}" to its target group immediately?`);
     if (!ok) return;
     await sendCampaignNow(c);

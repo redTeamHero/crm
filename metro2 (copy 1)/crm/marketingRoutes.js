@@ -732,9 +732,17 @@ router.delete("/groups/:id/members/:clientId", async (req, res) => {
 router.get("/history", async (req, res) => {
   const limit = parseLimit(req.query.limit, 50);
   const channel = req.query.channel ? sanitizeString(req.query.channel).toLowerCase() : null;
-  let history = await listEmailHistory(limit);
-  if (channel === "sms") history = history.filter((h) => h.type === "sms");
-  else if (channel === "email") history = history.filter((h) => h.type !== "sms");
+  let history;
+  if (channel) {
+    const overscan = Math.min(limit * 10, 1000);
+    const all = await listEmailHistory(overscan);
+    const filtered = channel === "sms"
+      ? all.filter((h) => h.type === "sms")
+      : all.filter((h) => h.type !== "sms");
+    history = filtered.slice(0, limit);
+  } else {
+    history = await listEmailHistory(limit);
+  }
   res.json({ ok: true, history });
 });
 
@@ -760,6 +768,7 @@ router.post("/history", async (req, res) => {
   }
 });
 
+const ALLOWED_EMAIL_RECIPIENT_TYPES = new Set(["client", "group", "multiple"]);
 const ALLOWED_RECIPIENT_TYPES = new Set(["client", "group", "multiple", "phone"]);
 
 const E164_RE = /^\+?[1-9]\d{7,14}$/;
@@ -890,7 +899,7 @@ router.post("/email/send", async (req, res) => {
   const safeSubject = sanitizeString(subject || "").slice(0, 200);
   if (!safeSubject) return res.status(400).json({ ok: false, error: "Subject is required" });
   const safeRecipientType = String(recipientType || "client").trim().toLowerCase();
-  if (!ALLOWED_RECIPIENT_TYPES.has(safeRecipientType)) return res.status(400).json({ ok: false, error: "Invalid recipientType. Must be client, group, or multiple" });
+  if (!ALLOWED_EMAIL_RECIPIENT_TYPES.has(safeRecipientType)) return res.status(400).json({ ok: false, error: "Invalid recipientType. Must be client, group, or multiple" });
   if (safeRecipientType === "group" && !groupId) return res.status(400).json({ ok: false, error: "groupId is required for group sends" });
   if ((safeRecipientType === "client" || safeRecipientType === "multiple") && !recipientId) return res.status(400).json({ ok: false, error: "recipientId is required for client sends" });
 
