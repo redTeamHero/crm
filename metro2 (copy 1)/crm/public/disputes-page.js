@@ -1686,46 +1686,64 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
       tradelineIndex: r.tradelineIndex ?? null,
     }));
 
-    // Deduplicate: one letter per collector agency
+    // Keep the full per-recommendation list for generation; deduplicate only for the
+    // preflight address UI so the user enters each agency address exactly once.
+    const collectorsAllRecs = collectors.slice();
     const _seenCollectors = new Set();
-    collectors = collectors.filter(c => {
+    const collectorsForPreflight = collectors.filter(c => {
       const key = (c.name || '').toLowerCase().trim();
       if (_seenCollectors.has(key)) return false;
       _seenCollectors.add(key);
       return true;
     });
 
-    if (!selections.length && !collectors.length) {
+    if (!selections.length && !collectorsAllRecs.length) {
       showErr('Could not determine tradeline selections from recommendations. Please generate letters manually.');
       btn.disabled = false; btn.textContent = origText; return;
     }
 
-    if (collectors.length) {
+    if (collectorsAllRecs.length) {
       btn.textContent = 'Checking addresses...';
       const preflightRes = await api('/api/generate/preflight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consumerId: currentConsumerId, collectors }),
+        body: JSON.stringify({ consumerId: currentConsumerId, collectors: collectorsForPreflight }),
       });
       if (!preflightRes.ok) {
         showErr(preflightRes.error || 'Address preflight check failed.');
         btn.disabled = false; btn.textContent = origText; return;
       }
+
+      // Helper: propagate resolved addresses (keyed by normalised agency name) back
+      // into the full per-recommendation list so every tradeline gets a letter.
+      function applyAddrMap(resolvedUnique) {
+        const addrByName = {};
+        (resolvedUnique || []).forEach(c => {
+          addrByName[(c.name || '').toLowerCase().trim()] = c;
+        });
+        return collectorsAllRecs.map(c => {
+          const resolved = addrByName[(c.name || '').toLowerCase().trim()];
+          return resolved
+            ? { ...c, addr1: resolved.addr1, addr2: resolved.addr2, city: resolved.city, state: resolved.state, zip: resolved.zip }
+            : c;
+        });
+      }
+
       if (preflightRes.flagged && preflightRes.flagged.length > 0) {
         btn.textContent = origText;
         btn.disabled = false;
-        let resolvedCollectors;
+        let resolvedUnique;
         try {
-          resolvedCollectors = await dpOpenAddrPreflightModal(preflightRes.flagged, preflightRes.enriched, currentConsumerId);
+          resolvedUnique = await dpOpenAddrPreflightModal(preflightRes.flagged, preflightRes.enriched, currentConsumerId);
         } catch {
           return;
         }
-        if (!resolvedCollectors) return;
-        collectors = resolvedCollectors;
+        if (!resolvedUnique) return;
+        collectors = applyAddrMap(resolvedUnique);
         btn.disabled = true;
         btn.textContent = 'Sending to server...';
       } else {
-        collectors = Array.isArray(preflightRes.enriched) && preflightRes.enriched.length ? preflightRes.enriched : collectors;
+        collectors = applyAddrMap(preflightRes.enriched);
       }
     }
 
