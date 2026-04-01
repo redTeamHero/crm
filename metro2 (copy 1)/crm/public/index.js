@@ -2136,9 +2136,12 @@ function renderCollectors(collectors){
     wrap.appendChild(node);
   });
   const masterCb = $("#cbCollectors");
-  if (masterCb && CURRENT_COLLECTORS.some(c => c.type === "debt_collector")) {
-    masterCb.checked = true;
-    masterCb.dispatchEvent(new Event("change", { bubbles: true }));
+  if (masterCb) {
+    const hasDebtCollectors = CURRENT_COLLECTORS.some(c => c.type === "debt_collector");
+    if (masterCb.checked !== hasDebtCollectors) {
+      masterCb.checked = hasDebtCollectors;
+      masterCb.dispatchEvent(new Event("change", { bubbles: true }));
+    }
   }
 }
 
