@@ -9157,7 +9157,22 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       letters.push(...generateInquiryLetters({ consumer: consumerForLetter, inquiries }));
     }
     if (Array.isArray(collectors) && collectors.length) {
-      letters.push(...generateDebtCollectorLetters({ consumer: consumerForLetter, collectors }));
+      const enrichedCollectors = collectors.map(col => {
+        const enriched = { ...col };
+        if (!enriched.accountNumber && enriched.tradelineIndex != null) {
+          const tl = reportWrap.data?.tradelines?.[enriched.tradelineIndex];
+          if (tl) {
+            const acct = Object.values(tl.per_bureau || {})
+              .map(pb => pb?.account_number)
+              .find(a => a && a !== '****' && a !== '')
+              || tl.meta?.account_number
+              || null;
+            if (acct) enriched.accountNumber = acct;
+          }
+        }
+        return enriched;
+      });
+      letters.push(...generateDebtCollectorLetters({ consumer: consumerForLetter, collectors: enrichedCollectors, previousDisputeDate, priorDates }));
     }
 
     for (const L of letters) {

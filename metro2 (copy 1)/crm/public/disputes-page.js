@@ -1426,6 +1426,7 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
       addr1: '',
       addr2: '',
       templateId: r.recommendedTemplate || 'debt-validation',
+      tradelineIndex: r.tradelineIndex ?? null,
     }));
 
     if (!selections.length && !collectors.length) {

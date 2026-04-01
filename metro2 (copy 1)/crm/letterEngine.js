@@ -1046,10 +1046,12 @@ function generateInquiryLetters({ consumer, inquiries = [] }) {
   return letters;
 }
 
-function buildCollectorLetterHTML({ consumer, collector }) {
+function buildCollectorLetterHTML({ consumer, collector, previousDisputeDate = null, priorDates = [] }) {
   const templateId = collector.templateId || 'debt-validation';
   const template = _COLLECTOR_TPL_MAP[templateId] || null;
   const dateStr = todayISO();
+  const prevDate = previousDisputeDate || 'a prior date';
+  const allDates = Array.isArray(priorDates) && priorDates.length ? priorDates.join(', ') : prevDate;
   const collectorName = safe(collector.name || 'Debt Collector');
   const accountNum = collector.accountNumber ? safe(collector.accountNumber) : '[ACCOUNT NUMBER — ENTER MANUALLY]';
 
@@ -1073,6 +1075,8 @@ function buildCollectorLetterHTML({ consumer, collector }) {
       .replace(/\[City, State ZIP\]/g, [consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', '))
       .replace(/\[Phone\]/g, safe(consumer.phone || ''))
       .replace(/\[Email\]/g, safe(consumer.email || ''))
+      .replace(/\[Previous Dispute Date\]/g, safe(prevDate))
+      .replace(/\[Dates\]/g, safe(allDates))
       .replace(/\[Date\]/g, dateStr)
       .replace(/\[Debt Collector Name\]/g, collectorName)
       .replace(/\[Creditor or Debt Collector Name\]/g, collectorName)
@@ -1156,10 +1160,10 @@ function buildCollectorLetterHTML({ consumer, collector }) {
   return { filename, html: letterBody };
 }
 
-function generateDebtCollectorLetters({ consumer, collectors = [] }) {
+function generateDebtCollectorLetters({ consumer, collectors = [], previousDisputeDate = null, priorDates = [] }) {
   const letters = [];
   for (const col of collectors) {
-    const { filename, html } = buildCollectorLetterHTML({ consumer, collector: col });
+    const { filename, html } = buildCollectorLetterHTML({ consumer, collector: col, previousDisputeDate, priorDates });
     letters.push({ collector: col.name, filename, html });
   }
   return letters;
