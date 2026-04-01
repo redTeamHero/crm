@@ -98,19 +98,22 @@ function scoreMatch(query, entry) {
   return Math.round((matches.length / Math.max(qWords.length, 1)) * 60);
 }
 
-export function lookupCollectorAddress(name, customEntries = []) {
-  if (!name) return null;
-  const allEntries = [...customEntries, ...BUILT_IN_COLLECTORS];
+function _bestMatch(name, entries, threshold = 50) {
   let best = null;
   let bestScore = 0;
-  for (const entry of allEntries) {
+  for (const entry of entries) {
     const score = scoreMatch(name, entry);
-    if (score > bestScore) {
-      bestScore = score;
-      best = entry;
-    }
+    if (score > bestScore) { bestScore = score; best = entry; }
   }
-  return bestScore >= 50 ? best : null;
+  return bestScore >= threshold ? best : null;
+}
+
+export function lookupCollectorAddress(name, customEntries = []) {
+  if (!name) return null;
+  const builtInMatch = _bestMatch(name, BUILT_IN_COLLECTORS);
+  if (builtInMatch) return builtInMatch;
+  if (customEntries.length) return _bestMatch(name, customEntries);
+  return null;
 }
 
 export function getBuiltInCollectors() {

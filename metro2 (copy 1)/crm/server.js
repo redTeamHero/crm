@@ -2604,12 +2604,14 @@ app.get("/api/settings/collector-addresses", authenticate, async (req, res) => {
 
 app.post("/api/settings/collector-addresses", authenticate, requireRole("admin"), async (req, res) => {
   try {
-    const { name, addr1, addr2, city, state, zip } = req.body || {};
+    const { id, name, addr1, addr2, city, state, zip } = req.body || {};
     if (!name || !addr1) return res.status(400).json({ ok: false, error: 'name and addr1 are required' });
     const settings = await loadSettings(req);
     const book = Array.isArray(settings.collectorAddressBook) ? [...settings.collectorAddressBook] : [];
-    const idx = book.findIndex(e => (e.name || '').toLowerCase() === (name || '').toLowerCase());
-    const entry = { id: (idx >= 0 ? book[idx].id : null) || `custom_${Date.now()}`, name: name.trim(), addr1: addr1.trim(), addr2: (addr2 || '').trim(), city: (city || '').trim(), state: (state || '').trim(), zip: (zip || '').trim() };
+    let idx = id ? book.findIndex(e => e.id === id) : -1;
+    if (idx < 0) idx = book.findIndex(e => (e.name || '').toLowerCase() === (name || '').toLowerCase());
+    const entryId = (idx >= 0 ? book[idx].id : null) || `custom_${Date.now()}`;
+    const entry = { id: entryId, name: name.trim(), addr1: addr1.trim(), addr2: (addr2 || '').trim(), city: (city || '').trim(), state: (state || '').trim(), zip: (zip || '').trim() };
     if (idx >= 0) book[idx] = entry; else book.push(entry);
     await saveSettings({ collectorAddressBook: book }, req);
     res.json({ ok: true, entry });

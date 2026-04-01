@@ -160,12 +160,17 @@ async function selectConsumer(id) {
   selectedItems.clear();
   updateSelectionToolbar();
 
+  const ccaPanel = document.getElementById('consumerCollectorAddrPanel');
   if (!currentConsumerId) {
     const panel = $('#disputeTrackerPanel');
     if (panel) panel.classList.add('hidden');
+    if (ccaPanel) ccaPanel.classList.add('hidden');
     currentDisputeData = null;
     return;
   }
+
+  if (ccaPanel) ccaPanel.classList.remove('hidden');
+  if (typeof _ccaPanel !== 'undefined') _ccaPanel.reload(currentConsumerId);
 
   try {
     const reportData = await api(`/api/consumers/${currentConsumerId}/reports`);
@@ -1761,19 +1766,3 @@ function initConsumerCollectorAddrPanel() {
 }
 
 const _ccaPanel = initConsumerCollectorAddrPanel();
-
-const _origSelectConsumer = selectConsumer;
-window.__ccaSelectHook = async (id) => {
-  const panel = document.getElementById('consumerCollectorAddrPanel');
-  if (!id) {
-    if (panel) panel.classList.add('hidden');
-    return;
-  }
-  if (panel) panel.classList.remove('hidden');
-  _ccaPanel.reload(id);
-};
-
-const _origSelectConsumerFn = selectConsumer;
-document.getElementById('consumerPicker')?.addEventListener('change', function() {
-  window.__ccaSelectHook(this.value || null);
-});
