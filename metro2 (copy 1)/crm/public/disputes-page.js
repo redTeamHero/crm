@@ -1515,6 +1515,10 @@ function dpOpenAddrPreflightModal(flagged, enrichedAll, consumerId) {
     if (msgEl) { msgEl.textContent = ''; msgEl.style.color = '#888'; }
 
     let closed = false;
+    let reject;
+    const cancelledPromise = new Promise((_, rej) => { reject = rej; });
+    void cancelledPromise.catch(() => {});
+
     function closeModal(result) {
       if (closed) return;
       closed = true;
@@ -1524,7 +1528,11 @@ function dpOpenAddrPreflightModal(flagged, enrichedAll, consumerId) {
       if (closeBtn) closeBtn.onclick = null;
       if (cancelBtn) cancelBtn.onclick = null;
       if (genBtn) genBtn.onclick = null;
-      resolve(result ?? null);
+      if (result !== undefined && result !== null) {
+        resolve(result);
+      } else {
+        reject(new Error('cancelled'));
+      }
     }
     function onBgClick(e) { if (e.target === modal) closeModal(null); }
     modal.addEventListener('click', onBgClick);
@@ -1697,13 +1705,18 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
       if (preflightRes.flagged && preflightRes.flagged.length > 0) {
         btn.textContent = origText;
         btn.disabled = false;
-        const resolvedCollectors = await dpOpenAddrPreflightModal(preflightRes.flagged, preflightRes.enriched, currentConsumerId);
+        let resolvedCollectors;
+        try {
+          resolvedCollectors = await dpOpenAddrPreflightModal(preflightRes.flagged, preflightRes.enriched, currentConsumerId);
+        } catch {
+          return;
+        }
         if (!resolvedCollectors) return;
         collectors = resolvedCollectors;
         btn.disabled = true;
         btn.textContent = 'Sending to server...';
       } else {
-        collectors = preflightRes.enriched;
+        collectors = Array.isArray(preflightRes.enriched) && preflightRes.enriched.length ? preflightRes.enriched : collectors;
       }
     }
 
