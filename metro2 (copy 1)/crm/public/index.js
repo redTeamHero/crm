@@ -2301,48 +2301,76 @@ function collectSelections(){
 }
 export { collectSelections, selectionState, showErr };
 
-$("#btnGenerate").addEventListener("click", async ()=>{
+async function doGenerateLetters(collectorsPayload, { selections, personalInfo, useOcr }) {
+  const resp = await fetch("/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-idempotency-key": buildIdempotencyKey('letters-generate'), ...authHeader() },
+    body: JSON.stringify({
+      consumerId: currentConsumerId,
+      reportId: currentReportId,
+      selections,
+      personalInfo,
+      collectors: collectorsPayload,
+      useOcr,
+    }),
+  });
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => "");
+    throw new Error(`HTTP ${resp.status} ${txt || ""}`.trim());
+  }
+  const data = await resp.json().catch(() => ({}));
+  if (!data?.ok || !data?.redirect) throw new Error(data?.error || "Server did not return a redirect.");
+  const notice = buildMinIntervalNotice(data.validation);
+  if (notice) {
+    showWorkflowNotice(notice);
+    if (typeof sessionStorage !== "undefined") sessionStorage.setItem("lettersMinIntervalNotice", notice);
+  } else if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem("lettersMinIntervalNotice");
+  }
+  window.location.assign(data.redirect);
+  setTimeout(() => { if (!/\/letters(\?|$)/.test(location.href)) window.location.href = data.redirect; }, 120);
+}
+
+$("#btnGenerate").addEventListener("click", async () => {
   clearErr();
-  try{
-    if(!currentConsumerId || !currentReportId) throw new Error("Select a consumer and a report first.");
+  const btn = $("#btnGenerate");
+  try {
+    if (!currentConsumerId || !currentReportId) throw new Error("Select a consumer and a report first.");
     const selections = collectSelections();
     const includePI = $("#cbPersonalInfo").checked;
     const includeCol = $("#cbCollectors").checked;
     const colSelections = includeCol ? collectCollectorSelections() : [];
-    if(!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one negative item, collector, or select Personal Info.");
-    const resp = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type":"application/json", "x-idempotency-key": buildIdempotencyKey('letters-generate'), ...authHeader() },
-      body: JSON.stringify({
-        consumerId: currentConsumerId,
-        reportId: currentReportId,
-        selections,
-        personalInfo: includePI,
-        collectors: colSelections,
-        useOcr: ocrCb?.checked || false,
-      })
+    if (!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one negative item, collector, or select Personal Info.");
+    const useOcr = ocrCb?.checked || false;
 
-    });
-    if(!resp.ok){
-      const txt = await resp.text().catch(()=> "");
-      throw new Error(`HTTP ${resp.status} ${txt || ""}`.trim());
-    }
-    const data = await resp.json().catch(()=> ({}));
-    if(!data?.ok || !data?.redirect) throw new Error(data?.error || "Server did not return a redirect.");
-    const notice = buildMinIntervalNotice(data.validation);
-    if (notice) {
-      showWorkflowNotice(notice);
-      if (typeof sessionStorage !== "undefined") {
-        sessionStorage.setItem("lettersMinIntervalNotice", notice);
+    if (colSelections.length) {
+      btn.disabled = true;
+      btn.textContent = "Checking addresses…";
+      let preflightData;
+      try {
+        const pf = await api("/api/generate/preflight", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ consumerId: currentConsumerId, collectors: colSelections }),
+        });
+        if (!pf.ok) throw new Error(pf.error || "Preflight check failed");
+        preflightData = pf;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Generate Letters";
       }
-    } else if (typeof sessionStorage !== "undefined") {
-      sessionStorage.removeItem("lettersMinIntervalNotice");
+
+      if (preflightData.flagged && preflightData.flagged.length > 0) {
+        openAddrPreflightModal(preflightData.flagged, preflightData.enriched, { selections, personalInfo: includePI, useOcr });
+        return;
+      }
+      await doGenerateLetters(preflightData.enriched || colSelections, { selections, personalInfo: includePI, useOcr });
+    } else {
+      await doGenerateLetters([], { selections, personalInfo: includePI, useOcr });
     }
-    window.location.assign(data.redirect);
-    setTimeout(()=>{
-      if (!/\/letters(\?|$)/.test(location.href)) window.location.href = data.redirect;
-    }, 120);
-  }catch(e){
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "Generate Letters";
     showErr(e.message || String(e));
   }
 });
@@ -3455,3 +3483,221 @@ if (companyName) {
     }
   });
 })();
+
+// ===================== Collector Address Pre-flight Modal =====================
+let _addrLibraryCache = null;
+
+async function loadAddrLibrary() {
+  if (_addrLibraryCache) return _addrLibraryCache;
+  try {
+    const res = await api("/api/settings/collector-addresses");
+    const builtIn = (res.builtIn || []).map(e => ({ ...e, _src: 'built-in' }));
+    const custom = (res.custom || []).map(e => ({ ...e, _src: 'custom' }));
+    _addrLibraryCache = [...custom, ...builtIn];
+  } catch {
+    _addrLibraryCache = [];
+  }
+  return _addrLibraryCache;
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function buildPreflightRow(col, rowIdx) {
+  return `
+    <div class="pf-row" data-row="${rowIdx}" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:#e5e5e5;display:flex;align-items:center;gap:6px;">
+          <span style="color:#f87171;font-size:10px;letter-spacing:.05em;font-weight:700;padding:2px 5px;background:rgba(239,68,68,0.12);border-radius:4px;">MISSING</span>
+          ${escHtml(col.name || 'Unknown Collector')}
+        </div>
+        <span class="pf-status" data-row="${rowIdx}" style="font-size:11px;color:#888;">Not resolved</span>
+      </div>
+
+      <div style="position:relative;margin-bottom:8px;">
+        <input class="pf-search" data-row="${rowIdx}" placeholder="Search address library…" autocomplete="off"
+          style="width:100%;padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;box-sizing:border-box;outline:none;" />
+        <div class="pf-dropdown" data-row="${rowIdx}"
+          style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:#1a1a1e;border:1px solid rgba(255,255,255,0.1);border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <input class="pf-addr1" data-row="${rowIdx}" placeholder="Address line 1 *" style="grid-column:1/-1;padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+        <input class="pf-addr2" data-row="${rowIdx}" placeholder="Address line 2 (optional)" style="grid-column:1/-1;padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+        <input class="pf-city" data-row="${rowIdx}" placeholder="City *" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <input class="pf-state" data-row="${rowIdx}" placeholder="State *" maxlength="2" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+          <input class="pf-zip" data-row="${rowIdx}" placeholder="ZIP" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+        </div>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:#aaa;cursor:pointer;">
+        <input type="checkbox" class="pf-save" data-row="${rowIdx}" style="accent-color:#d4a853;" />
+        Save this address for this client (auto-fills next time)
+      </label>
+    </div>`;
+}
+
+function updatePreflightGenerateBtn(modal) {
+  const rows = [...modal.querySelectorAll('.pf-row')];
+  const allResolved = rows.every(row => {
+    const ri = row.dataset.row;
+    return row.querySelector(`.pf-addr1[data-row="${ri}"]`)?.value?.trim() &&
+           row.querySelector(`.pf-city[data-row="${ri}"]`)?.value?.trim() &&
+           row.querySelector(`.pf-state[data-row="${ri}"]`)?.value?.trim();
+  });
+  const genBtn = document.getElementById('addrPreflightGenerate');
+  if (genBtn) {
+    genBtn.disabled = !allResolved;
+    genBtn.style.opacity = allResolved ? '1' : '0.45';
+    genBtn.style.cursor = allResolved ? 'pointer' : 'not-allowed';
+  }
+  const msgEl = document.getElementById('addrPreflightMsg');
+  if (msgEl) {
+    const done = rows.filter(row => {
+      const ri = row.dataset.row;
+      return row.querySelector(`.pf-addr1[data-row="${ri}"]`)?.value?.trim() &&
+             row.querySelector(`.pf-city[data-row="${ri}"]`)?.value?.trim() &&
+             row.querySelector(`.pf-state[data-row="${ri}"]`)?.value?.trim();
+    }).length;
+    msgEl.textContent = `${done} of ${rows.length} resolved`;
+    msgEl.style.color = done === rows.length ? '#4ade80' : '#888';
+  }
+}
+
+function bindPreflightRow(modal, rowIdx, library) {
+  const row = modal.querySelector(`.pf-row[data-row="${rowIdx}"]`);
+  if (!row) return;
+  const searchInput = row.querySelector(`.pf-search[data-row="${rowIdx}"]`);
+  const dropdown = row.querySelector(`.pf-dropdown[data-row="${rowIdx}"]`);
+  const addr1 = row.querySelector(`.pf-addr1[data-row="${rowIdx}"]`);
+  const addr2 = row.querySelector(`.pf-addr2[data-row="${rowIdx}"]`);
+  const city = row.querySelector(`.pf-city[data-row="${rowIdx}"]`);
+  const state = row.querySelector(`.pf-state[data-row="${rowIdx}"]`);
+  const zip = row.querySelector(`.pf-zip[data-row="${rowIdx}"]`);
+  const statusEl = row.querySelector(`.pf-status[data-row="${rowIdx}"]`);
+
+  function fillFromEntry(entry) {
+    addr1.value = entry.addr1 || '';
+    addr2.value = entry.addr2 || '';
+    city.value = entry.city || '';
+    state.value = entry.state || '';
+    zip.value = entry.zip || '';
+    if (statusEl) { statusEl.textContent = '✓ Resolved'; statusEl.style.color = '#4ade80'; }
+    dropdown.style.display = 'none';
+    searchInput.value = entry.name || '';
+    updatePreflightGenerateBtn(modal);
+  }
+
+  function onManualInput() {
+    const resolved = addr1.value.trim() && city.value.trim() && state.value.trim();
+    if (statusEl) { statusEl.textContent = resolved ? '✓ Resolved' : 'Not resolved'; statusEl.style.color = resolved ? '#4ade80' : '#888'; }
+    updatePreflightGenerateBtn(modal);
+  }
+
+  [addr1, city, state, zip].forEach(el => el?.addEventListener('input', onManualInput));
+
+  searchInput?.addEventListener('input', () => {
+    const q = (searchInput.value || '').toLowerCase().trim();
+    if (!q) { dropdown.style.display = 'none'; return; }
+    const matches = library.filter(e =>
+      (e.name || '').toLowerCase().includes(q) ||
+      (e.addr1 || '').toLowerCase().includes(q) ||
+      (e.city || '').toLowerCase().includes(q)
+    ).slice(0, 12);
+    if (!matches.length) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = matches.map((e, mi) => `
+      <div class="pf-lib-item" data-mi="${mi}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;transition:background .1s;">
+        <div style="font-weight:600;color:#e5e5e5;">${escHtml(e.name)}${e._src === 'custom' ? ' <span style="color:#a5b4fc;font-size:10px;">[custom]</span>' : ''}</div>
+        <div style="color:#888;font-size:11px;">${escHtml(e.addr1)}${e.addr2 ? ', ' + escHtml(e.addr2) : ''} · ${escHtml([e.city, e.state, e.zip].filter(Boolean).join(', '))}</div>
+      </div>`).join('');
+    dropdown.style.display = 'block';
+    dropdown.querySelectorAll('.pf-lib-item').forEach((item, mi) => {
+      item.addEventListener('mouseover', () => { item.style.background = 'rgba(212,168,83,0.08)'; });
+      item.addEventListener('mouseout', () => { item.style.background = ''; });
+      item.addEventListener('mousedown', ev => { ev.preventDefault(); fillFromEntry(matches[mi]); });
+    });
+  });
+
+  searchInput?.addEventListener('blur', () => { setTimeout(() => { if (dropdown) dropdown.style.display = 'none'; }, 200); });
+}
+
+function openAddrPreflightModal(flagged, enrichedAll, { selections, personalInfo, useOcr }) {
+  const modal = document.getElementById('addrPreflightModal');
+  const listEl = document.getElementById('addrPreflightList');
+  const genBtn = document.getElementById('addrPreflightGenerate');
+  const cancelBtn = document.getElementById('addrPreflightCancel');
+  const closeBtn = document.getElementById('addrPreflightClose');
+  const msgEl = document.getElementById('addrPreflightMsg');
+  if (!modal || !listEl) return;
+
+  listEl.innerHTML = '<div style="text-align:center;color:#888;font-size:12px;padding:20px 0;">Loading address library…</div>';
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  if (genBtn) { genBtn.disabled = true; genBtn.style.opacity = '0.45'; genBtn.style.cursor = 'not-allowed'; genBtn.textContent = 'Generate Letters'; }
+  if (msgEl) { msgEl.textContent = ''; msgEl.style.color = '#888'; }
+
+  let closed = false;
+  function closeModal() {
+    if (closed) return;
+    closed = true;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.removeEventListener('click', onBgClick);
+  }
+  function onBgClick(e) { if (e.target === modal) closeModal(); }
+  modal.addEventListener('click', onBgClick);
+  closeBtn?.addEventListener('click', closeModal);
+  cancelBtn?.addEventListener('click', closeModal);
+
+  loadAddrLibrary().then(library => {
+    listEl.innerHTML = flagged.map((col, i) => buildPreflightRow(col, i)).join('');
+    flagged.forEach((_, i) => bindPreflightRow(modal, i, library));
+    updatePreflightGenerateBtn(modal);
+  });
+
+  genBtn?.addEventListener('click', async function handleGenerate() {
+    genBtn.removeEventListener('click', handleGenerate);
+    genBtn.disabled = true;
+    genBtn.textContent = 'Saving…';
+    if (msgEl) { msgEl.textContent = ''; msgEl.style.color = '#888'; }
+
+    try {
+      const resolvedCollectors = (enrichedAll || []).map(c => ({ ...c }));
+
+      for (let i = 0; i < flagged.length; i++) {
+        const row = listEl.querySelector(`.pf-row[data-row="${i}"]`);
+        if (!row) continue;
+        const addr1Val = row.querySelector(`.pf-addr1[data-row="${i}"]`)?.value?.trim() || '';
+        const addr2Val = row.querySelector(`.pf-addr2[data-row="${i}"]`)?.value?.trim() || '';
+        const cityVal = row.querySelector(`.pf-city[data-row="${i}"]`)?.value?.trim() || '';
+        const stateVal = row.querySelector(`.pf-state[data-row="${i}"]`)?.value?.trim().toUpperCase() || '';
+        const zipVal = row.querySelector(`.pf-zip[data-row="${i}"]`)?.value?.trim() || '';
+        const saveChecked = row.querySelector(`.pf-save[data-row="${i}"]`)?.checked;
+
+        const origIdx = flagged[i]._originalIndex ?? i;
+        if (resolvedCollectors[origIdx] !== undefined) {
+          resolvedCollectors[origIdx] = { ...resolvedCollectors[origIdx], addr1: addr1Val, addr2: addr2Val, city: cityVal, state: stateVal, zip: zipVal };
+        }
+
+        if (saveChecked && currentConsumerId && addr1Val && cityVal && stateVal) {
+          api(`/api/consumers/${currentConsumerId}/collector-addresses`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: flagged[i].name, addr1: addr1Val, addr2: addr2Val, city: cityVal, state: stateVal, zip: zipVal }),
+          }).catch(() => {});
+        }
+      }
+
+      closeModal();
+      await doGenerateLetters(resolvedCollectors, { selections, personalInfo, useOcr });
+    } catch (e) {
+      if (msgEl) { msgEl.textContent = e.message || String(e); msgEl.style.color = '#f87171'; }
+      genBtn.disabled = false;
+      genBtn.textContent = 'Generate Letters';
+      genBtn.style.opacity = '1';
+      genBtn.addEventListener('click', handleGenerate);
+    }
+  });
+}

@@ -9245,7 +9245,7 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
       const consumerAddrBook = await getCollectorAddresses(consumer.id).catch(() => ({}));
       const tenantSettings = await loadSettings(sanitizeTenantId(consumer.tenantId || consumer.ownerTenantId || DEFAULT_TENANT_ID)).catch(() => ({}));
       const customEntries = Array.isArray(tenantSettings.collectorAddressBook) ? tenantSettings.collectorAddressBook : [];
-      const enrichedCollectors = collectors.map(col => {
+      const enrichedCollectors = await Promise.all(collectors.map(async col => {
         const enriched = { ...col };
         if (!enriched.accountNumber && enriched.tradelineIndex != null) {
           const tl = reportWrap.data?.tradelines?.[enriched.tradelineIndex];
@@ -9258,24 +9258,8 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
             if (acct) enriched.accountNumber = acct;
           }
         }
-        const isPlaceholderAddr = !enriched.addr1 || enriched.addr1 === '[Add collector address — required before mailing]';
-        const missingLocation = !enriched.city || !enriched.state;
-        if (isPlaceholderAddr || missingLocation) {
-          const nameKey = (enriched.name || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-          const consumerOverride = consumerAddrBook[nameKey];
-          if (consumerOverride) {
-            if (isPlaceholderAddr) Object.assign(enriched, { addr1: consumerOverride.addr1, addr2: consumerOverride.addr2 || '' });
-            if (missingLocation) Object.assign(enriched, { city: consumerOverride.city || '', state: consumerOverride.state || '', zip: consumerOverride.zip || '' });
-          } else {
-            const match = lookupCollectorAddress(enriched.name, customEntries);
-            if (match) {
-              if (isPlaceholderAddr) Object.assign(enriched, { addr1: match.addr1, addr2: match.addr2 || '' });
-              if (missingLocation) Object.assign(enriched, { city: match.city || '', state: match.state || '', zip: match.zip || '' });
-            }
-          }
-        }
-        return enriched;
-      });
+        return enrichCollectorAddress(enriched, consumerAddrBook, customEntries);
+      }));
       letters.push(...generateDebtCollectorLetters({ consumer: consumerForLetter, collectors: enrichedCollectors, previousDisputeDate, priorDates }));
     }
 
@@ -10089,6 +10073,50 @@ app.post(
   },
 );
 
+
+// Helper: enrich a single collector with address from consumer book → built-in → custom
+async function enrichCollectorAddress(col, consumerAddrBook, customEntries) {
+  const enriched = { ...col };
+  const isPlaceholderAddr = !enriched.addr1 || enriched.addr1 === '[Add collector address — required before mailing]';
+  const missingLocation = !enriched.city || !enriched.state;
+  if (!isPlaceholderAddr && !missingLocation) return enriched;
+  const nameKey = (enriched.name || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const consumerOverride = consumerAddrBook[nameKey];
+  if (consumerOverride) {
+    if (isPlaceholderAddr) Object.assign(enriched, { addr1: consumerOverride.addr1, addr2: consumerOverride.addr2 || '' });
+    if (missingLocation) Object.assign(enriched, { city: consumerOverride.city || '', state: consumerOverride.state || '', zip: consumerOverride.zip || '' });
+  } else {
+    const match = lookupCollectorAddress(enriched.name, customEntries);
+    if (match) {
+      if (isPlaceholderAddr) Object.assign(enriched, { addr1: match.addr1, addr2: match.addr2 || '' });
+      if (missingLocation) Object.assign(enriched, { city: match.city || '', state: match.state || '', zip: match.zip || '' });
+    }
+  }
+  return enriched;
+}
+
+// Pre-flight: check which collectors are still missing addresses after enrichment
+app.post("/api/generate/preflight", authenticate, async (req, res) => {
+  try {
+    const { consumerId, collectors } = req.body || {};
+    if (!consumerId) return res.status(400).json({ ok: false, error: 'consumerId required' });
+    if (!Array.isArray(collectors) || !collectors.length) return res.json({ ok: true, flagged: [], enriched: [] });
+    const db = await loadDB();
+    const consumer = db.consumers.find(c => c.id === consumerId);
+    if (!consumer) return res.status(404).json({ ok: false, error: 'Consumer not found' });
+    const consumerAddrBook = await getCollectorAddresses(consumer.id).catch(() => ({}));
+    const tenantSettings = await loadSettings(sanitizeTenantId(consumer.tenantId || consumer.ownerTenantId || DEFAULT_TENANT_ID)).catch(() => ({}));
+    const customEntries = Array.isArray(tenantSettings.collectorAddressBook) ? tenantSettings.collectorAddressBook : [];
+    const enriched = await Promise.all(collectors.map(col => enrichCollectorAddress(col, consumerAddrBook, customEntries)));
+    const flagged = enriched
+      .map((col, i) => ({ ...col, _originalIndex: i }))
+      .filter(col => !col.addr1 || col.addr1 === '[Add collector address — required before mailing]' || !col.city || !col.state);
+    res.json({ ok: true, flagged, enriched });
+  } catch (err) {
+    logError("PREFLIGHT_ERROR", err);
+    res.status(500).json({ ok: false, error: String(err.message || err) });
+  }
+});
 
 // Generate letters (from selections) -> background job
 app.post(

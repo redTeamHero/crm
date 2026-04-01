@@ -676,6 +676,33 @@
   </div>
 </div>
 
+<!-- Collector Address Pre-flight Modal -->
+<div id="addrPreflightModal" class="fixed inset-0 z-[1000] hidden items-center justify-center" style="background:rgba(0,0,0,0.72);">
+  <div class="glass card" style="max-width:640px;width:95vw;max-height:88vh;display:flex;flex-direction:column;background:#111113;border:1px solid rgba(212,168,83,0.22);border-radius:18px;padding:0;overflow:hidden;">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#e5e5e5;display:flex;align-items:center;gap:8px;">
+            <span style="color:#f59e0b;">⚠</span> Collector Addresses Missing
+          </div>
+          <p style="font-size:12px;color:#888;margin-top:3px;">The collectors below have no address on file. Resolve each before generating letters.</p>
+        </div>
+        <button id="addrPreflightClose" style="background:transparent;border:none;color:#888;font-size:18px;cursor:pointer;padding:4px 8px;line-height:1;">&times;</button>
+      </div>
+    </div>
+
+    <div id="addrPreflightList" style="flex:1;overflow-y:auto;padding:16px 24px;display:flex;flex-direction:column;gap:14px;"></div>
+
+    <div style="padding:14px 24px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div id="addrPreflightMsg" style="font-size:12px;color:#888;"></div>
+      <div style="display:flex;gap:8px;">
+        <button id="addrPreflightCancel" class="btn btn-outline text-sm">Cancel</button>
+        <button id="addrPreflightGenerate" class="btn text-sm" disabled style="background:linear-gradient(135deg,#d4a853,#c49a45);color:#0a0a0a;font-weight:700;opacity:0.45;cursor:not-allowed;">Generate Letters</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="common.js"></script>
 <script src="hotkeys.js"></script>
 <script type="module" src="index.js"></script>
