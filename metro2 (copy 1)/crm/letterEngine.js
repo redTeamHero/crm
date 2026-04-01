@@ -1011,23 +1011,112 @@ function generateInquiryLetters({ consumer, inquiries = [] }) {
 }
 
 function buildCollectorLetterHTML({ consumer, collector }) {
-  const bodyHtml = `
-  <h1>${colorize("Debt Validation Request")}</h1>
-  <p>${colorize("Please provide validation of the debt you allege is owed. Until validation is provided, cease all collection activities and communication with me regarding this account.")}</p>
-  <p>${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}</p>
-  `;
+  const templateId = collector.templateId || 'debt-validation';
+  const colTplMap = Object.fromEntries(LETTER_TEMPLATES.map(t => [t.id, t]));
+  const template = colTplMap[templateId] || null;
+  const dateStr = todayISO();
+  const collectorName = safe(collector.name || 'Debt Collector');
+  const accountNum = collector.accountNumber ? safe(collector.accountNumber) : '[ACCOUNT NUMBER — ENTER MANUALLY]';
+
+  const headerData = {
+    name: collector.name || 'Debt Collector',
+    addr1: '[Add collector address — required before mailing]',
+  };
+
+  let bodyHtml;
+
+  if (template && template.english) {
+    const _rawBal = collector.balance ?? null;
+    const _num = _rawBal != null ? parseFloat(String(_rawBal).replace(/[^0-9.]/g, '')) : NaN;
+    const _balStr = !isNaN(_num) ? `$${_num.toFixed(2)}`           : '[BALANCE — ENTER MANUALLY]';
+    const _p40Str = !isNaN(_num) ? `$${(_num * 0.40).toFixed(2)}`  : '[40% AMOUNT — ENTER MANUALLY]';
+    const _p50Str = !isNaN(_num) ? `$${(_num * 0.50).toFixed(2)}`  : '[50% AMOUNT — ENTER MANUALLY]';
+
+    const personalized = template.english
+      .replace(/\[Your Name\]/g, safe(consumer.name))
+      .replace(/\[Address\]/g, safe(consumer.addr1 || ''))
+      .replace(/\[City, State ZIP\]/g, [consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', '))
+      .replace(/\[Phone\]/g, safe(consumer.phone || ''))
+      .replace(/\[Email\]/g, safe(consumer.email || ''))
+      .replace(/\[Date\]/g, dateStr)
+      .replace(/\[Debt Collector Name\]/g, collectorName)
+      .replace(/\[Creditor or Debt Collector Name\]/g, collectorName)
+      .replace(/\[Healthcare Provider Name\]/g, collectorName)
+      .replace(/\[Financial Institution Name\]/g, collectorName)
+      .replace(/\[Credit Bureau Name\]/g, collectorName)
+      .replace(/\[Credit Bureau or Creditor Name\]/g, collectorName)
+      .replace(/\[Account Number\]/g, accountNum)
+      .replace(/\{ACCOUNT\}/g, accountNum)
+      .replace(/\{CREDITOR\}/g, collectorName)
+      .replace(/\[Total Balance\]/g, _balStr)
+      .replace(/\[40% Amount\]/g, _p40Str)
+      .replace(/\[50% Amount\]/g, _p50Str)
+      .replace(/\{BALANCE\}/g, _balStr)
+      .replace(/\{40_PCT\}/g, _p40Str)
+      .replace(/\{50_PCT\}/g, _p50Str)
+      .replace(/\[Amount\]/g, _balStr)
+      .replace(/\[number\]/g, '[NUMBER OF CALLS — ENTER MANUALLY]')
+      .replace(/\[time period\]/g, '[TIME PERIOD — ENTER MANUALLY]')
+      .replace(/\[brief explanation[^\]]*\]/gi, '[CIRCUMSTANCES — ENTER MANUALLY]')
+      .replace(/\[List\]/g, '[SEE ATTACHED]')
+      .replace(/\[Arbitration Forum[^\]]*\]/gi, 'AAA or JAMS');
+
+    const reIdx = personalized.search(/^Re:/im);
+    const bodyText = reIdx >= 0 ? personalized.slice(reIdx) : personalized;
+
+    const hasSig = /sincerely[,.]?\s*(\n\s*\S.*)?$/im.test(bodyText.trim());
+    let cleaned = hasSig ? bodyText.replace(/\n?\s*Sincerely[,.]?\s*(\n\s*[^\n]+)?\s*$/i, '') : bodyText;
+
+    const innerHtml = cleaned.split('\n').map(l => l.trim() === '' ? '<br>' : `<p class="ocr">${colorize(l)}</p>`).join('\n');
+    bodyHtml = `${innerHtml}<div class="sig-block" style="margin-top:28px;"><p>Sincerely,<br>${safe(consumer.name)}</p></div>`;
+
+  } else if (template && (template.heading || template.intro || template.ask)) {
+    const _rawBal = collector.balance ?? null;
+    const _num = _rawBal != null ? parseFloat(String(_rawBal).replace(/[^0-9.]/g, '')) : NaN;
+    const _balStr = !isNaN(_num) ? `$${_num.toFixed(2)}`           : '[BALANCE — ENTER MANUALLY]';
+    const _p40Str = !isNaN(_num) ? `$${(_num * 0.40).toFixed(2)}`  : '[40% AMOUNT — ENTER MANUALLY]';
+    const _p50Str = !isNaN(_num) ? `$${(_num * 0.50).toFixed(2)}`  : '[50% AMOUNT — ENTER MANUALLY]';
+    const _sub = (s) => !s ? s : s
+      .replace(/\{BALANCE\}/g,  _balStr)
+      .replace(/\{40_PCT\}/g,   _p40Str)
+      .replace(/\{50_PCT\}/g,   _p50Str)
+      .replace(/\{CREDITOR\}/g, collectorName)
+      .replace(/\{ACCOUNT\}/g,  accountNum);
+
+    const heading    = _sub(template.heading    || '');
+    const intro      = _sub(template.intro      || '');
+    const ask        = _sub(template.ask        || '');
+    const afterIssues = _sub(template.afterIssues || '');
+    const evidence   = _sub(template.evidence   || '');
+
+    bodyHtml = `
+      ${heading     ? `<h1>${colorize(heading)}</h1>` : ''}
+      ${intro       ? `<p class="ocr">${colorize(intro)}</p>` : ''}
+      ${ask         ? `<p class="ocr">${colorize(ask)}</p>` : ''}
+      ${afterIssues ? `<p class="ocr">${colorize(afterIssues)}</p>` : ''}
+      ${evidence    ? `<p class="ocr">${colorize(evidence)}</p>` : ''}
+      <div class="sig-block" style="margin-top:28px;"><p>Sincerely,<br>${safe(consumer.name)}</p></div>
+    `;
+  } else {
+    bodyHtml = `
+      <h1>${colorize("Debt Validation Request")}</h1>
+      <p>${colorize("Please provide validation of the debt you allege is owed. Until validation is provided, cease all collection activities and communication with me regarding this account.")}</p>
+      <p>${colorize("Sincerely,")}<br>${colorize(safe(consumer.name))}</p>
+    `;
+  }
 
   const letterBody = buildLetterTemplate({
-    title: `${safe(collector.name)} – Collection Notice`,
+    title: `${collectorName} – ${template ? template.name : 'Collection Letter'}`,
     bodyHtml,
     consumer,
-    headerData: collector,
+    headerData,
   });
 
   const fnSafe = safe(collector.name)
     .replace(/[^a-z0-9]+/gi, "_")
     .replace(/^_+|_+$/g, "");
-  const filename = `${namePrefix(consumer)}_${fnSafe}_collector_letter_${new Date().toISOString().slice(0,10)}.html`;
+  const tplSuffix = template ? `_${template.id}` : '';
+  const filename = `${namePrefix(consumer)}_${fnSafe}${tplSuffix}_collector_${new Date().toISOString().slice(0, 10)}.html`;
   return { filename, html: letterBody };
 }
 

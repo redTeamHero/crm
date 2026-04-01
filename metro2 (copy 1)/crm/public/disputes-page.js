@@ -1424,7 +1424,8 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
     const collectors = collectorRecs.map(r => ({
       name: r.creditor || r.collectorName || 'Unknown Collector',
       addr1: '',
-      addr2: ''
+      addr2: '',
+      templateId: r.recommendedTemplate || 'debt-validation',
     }));
 
     if (!selections.length && !collectors.length) {
