@@ -455,6 +455,35 @@ canvas { filter: none !important; }
 #articlePickerOverlay label { color: #6b7280 !important; }
 #articlePickerOverlay button { color: #6b7280 !important; }
 
+/* Preflight address modal — always dark regardless of page theme */
+#addrPreflightModal > div {
+  background: #111113 !important;
+  border-color: rgba(212, 168, 83, 0.22) !important;
+}
+#addrPreflightModal input,
+#addrPreflightModal textarea {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  color: #e5e5e5 !important;
+}
+#addrPreflightModal input::placeholder,
+#addrPreflightModal textarea::placeholder {
+  color: rgba(255,255,255,0.35) !important;
+}
+#addrPreflightModal .pf-row {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.09) !important;
+}
+#addrPreflightModal label,
+#addrPreflightModal .pf-status,
+#addrPreflightModal p {
+  color: #9ca3af !important;
+}
+#addrPreflightModal div[style*="color:#e5e5e5"],
+#addrPreflightModal div[style*="color: #e5e5e5"] {
+  color: #e5e5e5 !important;
+}
+
 /* ===================================================================
    SCHEDULE PAGE — schedule.html <style> block overrides
    =================================================================== */

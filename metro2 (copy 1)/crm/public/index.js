@@ -3524,19 +3524,19 @@ function buildPreflightRow(col, rowIdx) {
       </div>
 
       <div style="position:relative;margin-bottom:8px;">
-        <input class="pf-search" data-row="${rowIdx}" placeholder="Search address library…" autocomplete="off"
+        <input type="text" class="pf-search" data-row="${rowIdx}" placeholder="Search address library…" autocomplete="off"
           style="width:100%;padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;box-sizing:border-box;outline:none;" />
         <div class="pf-dropdown" data-row="${rowIdx}"
           style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:#1a1a1e;border:1px solid rgba(255,255,255,0.1);border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-        <input class="pf-addr1" data-row="${rowIdx}" placeholder="Address line 1 *" style="grid-column:1/-1;padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
-        <input class="pf-addr2" data-row="${rowIdx}" placeholder="Address line 2 (optional)" style="grid-column:1/-1;padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
-        <input class="pf-city" data-row="${rowIdx}" placeholder="City *" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+        <input type="text" class="pf-addr1" data-row="${rowIdx}" placeholder="Address line 1 *" style="grid-column:1/-1;padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+        <input type="text" class="pf-addr2" data-row="${rowIdx}" placeholder="Address line 2 (optional)" style="grid-column:1/-1;padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+        <input type="text" class="pf-city" data-row="${rowIdx}" placeholder="City *" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-          <input class="pf-state" data-row="${rowIdx}" placeholder="State *" maxlength="2" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
-          <input class="pf-zip" data-row="${rowIdx}" placeholder="ZIP" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+          <input type="text" class="pf-state" data-row="${rowIdx}" placeholder="State *" maxlength="2" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
+          <input type="text" class="pf-zip" data-row="${rowIdx}" placeholder="ZIP" style="padding:7px 10px;font-size:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:7px;color:#e5e5e5;outline:none;" />
         </div>
       </div>
 
