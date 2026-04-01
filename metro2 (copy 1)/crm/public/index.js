@@ -2347,7 +2347,17 @@ $("#btnGenerate").addEventListener("click", async () => {
     const selections = collectSelections();
     const includePI = $("#cbPersonalInfo").checked;
     const includeCol = $("#cbCollectors").checked;
-    const colSelections = includeCol ? collectCollectorSelections() : [];
+    let colSelections = includeCol ? collectCollectorSelections() : [];
+    // Deduplicate: one letter per collector agency
+    if (colSelections.length) {
+      const _seenCol = new Set();
+      colSelections = colSelections.filter(c => {
+        const key = (c.name || '').toLowerCase().trim();
+        if (_seenCol.has(key)) return false;
+        _seenCol.add(key);
+        return true;
+      });
+    }
     if (!selections.length && !includePI && !colSelections.length) throw new Error("Pick at least one negative item, collector, or select Personal Info.");
     const useOcr = ocrCb?.checked || false;
 
