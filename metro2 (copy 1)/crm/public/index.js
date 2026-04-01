@@ -3656,7 +3656,18 @@ function openAddrPreflightModal(flagged, enrichedAll, { selections, personalInfo
 
   loadAddrLibrary().then(library => {
     listEl.innerHTML = flagged.map((col, i) => buildPreflightRow(col, i)).join('');
-    flagged.forEach((_, i) => bindPreflightRow(modal, i, library));
+    flagged.forEach((col, i) => {
+      bindPreflightRow(modal, i, library);
+      const row = listEl.querySelector(`.pf-row[data-row="${i}"]`);
+      if (!row) return;
+      if (col.addr1 && col.addr1 !== '[Add collector address — required before mailing]') {
+        const a1 = row.querySelector(`.pf-addr1[data-row="${i}"]`); if (a1) a1.value = col.addr1;
+      }
+      if (col.addr2) { const a2 = row.querySelector(`.pf-addr2[data-row="${i}"]`); if (a2) a2.value = col.addr2; }
+      if (col.city) { const c = row.querySelector(`.pf-city[data-row="${i}"]`); if (c) c.value = col.city; }
+      if (col.state) { const s = row.querySelector(`.pf-state[data-row="${i}"]`); if (s) s.value = col.state; }
+      if (col.zip) { const z = row.querySelector(`.pf-zip[data-row="${i}"]`); if (z) z.value = col.zip; }
+    });
     updatePreflightGenerateBtn(modal);
   });
 
@@ -3670,6 +3681,7 @@ function openAddrPreflightModal(flagged, enrichedAll, { selections, personalInfo
       try {
         const resolvedCollectors = (enrichedAll || []).map(c => ({ ...c }));
         const saveTasks = [];
+        let saveFailures = 0;
 
         for (let i = 0; i < flagged.length; i++) {
           const row = listEl.querySelector(`.pf-row[data-row="${i}"]`);
@@ -3692,12 +3704,17 @@ function openAddrPreflightModal(flagged, enrichedAll, { selections, personalInfo
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: flagged[i].name, addr1: addr1Val, addr2: addr2Val, city: cityVal, state: stateVal, zip: zipVal }),
-              }).catch(() => {})
+              }).then(r => { if (!r.ok) saveFailures++; }).catch(() => { saveFailures++; })
             );
           }
         }
 
         await Promise.all(saveTasks);
+        if (saveFailures > 0 && msgEl) {
+          msgEl.textContent = `Note: ${saveFailures} address save(s) failed — addresses will still be used for this generation.`;
+          msgEl.style.color = '#f59e0b';
+          await new Promise(r => setTimeout(r, 2200));
+        }
         closeModal();
         await doGenerateLetters(resolvedCollectors, { selections, personalInfo, useOcr });
       } catch (e) {
