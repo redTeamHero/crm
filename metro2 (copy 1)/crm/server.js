@@ -9297,6 +9297,12 @@ async function executeLettersGenerationJob({ jobId, tenantId, userId, payload })
         followUpDate: maxFollowUpDate.toISOString(),
         status: "awaiting_response",
         items: roundItems,
+        selections: normalizedSelections.map(s => ({
+          tradelineIndex: s.tradelineIndex ?? null,
+          bureaus: s.bureaus || [],
+          templateId: s.templateId || null,
+          specificDisputeReason: s.specificDisputeReason || null,
+        })),
       });
 
       const followUpReminderId = `dispute_followup_${jobId}_${Date.now()}`;
@@ -10946,6 +10952,7 @@ app.get("/api/consumers/:id/disputes", authenticate, async (req, res) => {
           status: e.payload?.status,
           letters: e.payload?.letters || [],
           items,
+          selections: e.payload?.selections || [],
           createdAt: e.at,
         };
       });

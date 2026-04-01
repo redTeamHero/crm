@@ -1323,7 +1323,6 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
       portalSent = !!(portalRes?.ok);
       if (!portalSent) portalError = portalRes?.error || portalRes?.message || 'Portal upload returned an error.';
     } catch (portalErr) { portalError = String(portalErr.message || portalErr); }
-    if (!portalSent && portalError) console.warn('Portal send failed:', portalError);
     selectedItems.clear();
     updateSelectionToolbar();
     openLetterPreviewModal(letterJobId, lettersData.letters, roundNum + 1, portalSent, portalError);
@@ -1415,6 +1414,68 @@ $('#batchDownloadRound')?.addEventListener('click', async () => {
   }
 });
 
+async function regenerateAndSendPortal(round, onStatus) {
+  let selections = [];
+
+  if (round.selections && round.selections.length) {
+    selections = round.selections.filter(s => s.tradelineIndex !== null && s.tradelineIndex !== undefined);
+  }
+
+  if (!selections.length) {
+    const selMap = {};
+    for (const item of (round.items || [])) {
+      const tlIdx = item.tradelineIndex;
+      if (tlIdx === null || tlIdx === undefined) continue;
+      const templateId = item.letterType || null;
+      const key = `${tlIdx}__${templateId || 'default'}`;
+      if (!selMap[key]) {
+        selMap[key] = { tradelineIndex: tlIdx, bureaus: [], templateId, specificDisputeReason: item.specificDisputeReason || null };
+      }
+      if (item.bureau && !selMap[key].bureaus.includes(item.bureau)) selMap[key].bureaus.push(item.bureau);
+      if (!selMap[key].specificDisputeReason && item.specificDisputeReason) selMap[key].specificDisputeReason = item.specificDisputeReason;
+    }
+    selections = Object.values(selMap);
+  }
+
+  if (!selections.length) {
+    throw new Error('No selectable tradelines found in this round — please generate letters manually.');
+  }
+
+  selections.forEach(sel => { if (!sel.bureaus || !sel.bureaus.length) sel.bureaus = ['TransUnion', 'Experian', 'Equifax']; });
+
+  const itemsPerLetter = Math.max(1, parseInt($('#itemsPerLetterInput')?.value || '10', 10) || 10);
+  onStatus?.('Regenerating letters…');
+  const genResp = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('regen-portal'), ...authHeader() },
+    body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, personalInfo: false, collectors: [], itemsPerLetter }),
+  });
+  if (!genResp.ok) {
+    const txt = await genResp.text().catch(() => '');
+    throw new Error(`Letter regeneration failed: HTTP ${genResp.status} ${txt}`.trim());
+  }
+  const genData = await genResp.json().catch(() => ({}));
+  if (!genData?.ok || !genData?.jobId) throw new Error(genData?.error || 'Server did not return a job ID.');
+  const newJobId = genData.jobId;
+
+  onStatus?.('Processing letters…');
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 1500));
+    const statusResp = await api(`/api/jobs/${encodeURIComponent(newJobId)}`);
+    const jobStatus = statusResp?.job?.status || statusResp?.status;
+    if (jobStatus === 'completed' || jobStatus === 'done') break;
+    if (jobStatus === 'failed') throw new Error(statusResp?.job?.error || statusResp?.error || 'Letter regeneration job failed.');
+    if (i === 59) throw new Error('Letter generation timed out — please try again.');
+  }
+
+  onStatus?.('Sending to portal…');
+  const portalRes = await api(`/api/letters/${encodeURIComponent(newJobId)}/portal`, { method: 'POST' });
+  if (!portalRes?.ok) throw new Error(portalRes?.error || portalRes?.message || 'Portal upload failed after regeneration.');
+
+  const lettersData = await api(`/api/letters/${encodeURIComponent(newJobId)}`);
+  return { jobId: newJobId, letters: lettersData?.letters || [] };
+}
+
 $('#batchSendPortal')?.addEventListener('click', async () => {
   const jobIds = getSelectedJobIds();
   if (!jobIds.length || !currentConsumerId) return;
@@ -1424,18 +1485,37 @@ $('#batchSendPortal')?.addEventListener('click', async () => {
   const origText = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Sending…';
+
+  const markSent = () => {
+    btn.textContent = '✓ Sent to Portal';
+    btn.style.color = '#4ade80';
+    btn.style.borderColor = 'rgba(74,222,128,0.4)';
+    setTimeout(() => {
+      btn.textContent = origText;
+      btn.style.color = '';
+      btn.style.borderColor = '';
+      btn.disabled = false;
+    }, 3000);
+  };
+
   try {
     const res = await api(`/api/letters/${encodeURIComponent(jobId)}/portal`, { method: 'POST' });
     if (res?.ok) {
-      btn.textContent = '✓ Sent to Portal';
-      btn.style.color = '#4ade80';
-      btn.style.borderColor = 'rgba(74,222,128,0.4)';
-      setTimeout(() => {
-        btn.textContent = origText;
-        btn.style.color = '';
-        btn.style.borderColor = '';
+      markSent();
+    } else if (res?.status === 404) {
+      const round = currentDisputeData?.rounds?.find(r => r.jobId === jobId);
+      if (!round) {
+        showErr('Letters not found on server and round data is unavailable — please generate letters again manually.');
+        btn.disabled = false; btn.textContent = origText; return;
+      }
+      try {
+        await regenerateAndSendPortal(round, msg => { btn.textContent = msg; });
+        markSent();
+      } catch (regenErr) {
+        showErr(`Auto-regeneration failed: ${regenErr.message || regenErr}`);
         btn.disabled = false;
-      }, 3000);
+        btn.textContent = origText;
+      }
     } else {
       showErr(res?.error || res?.message || 'Failed to send to portal.');
       btn.disabled = false;
