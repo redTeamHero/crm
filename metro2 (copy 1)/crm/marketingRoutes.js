@@ -34,6 +34,14 @@ import {
   addEmailHistory,
 } from "./marketingStore.js";
 
+let _loadDB = async () => ({ consumers: [] });
+let _loadSettings = async () => ({});
+
+export function setMarketingDeps({ loadDB, loadSettings }) {
+  if (typeof loadDB === "function") _loadDB = loadDB;
+  if (typeof loadSettings === "function") _loadSettings = loadSettings;
+}
+
 const router = express.Router();
 
 function sanitizeString(value, fallback = "") {
@@ -754,6 +762,15 @@ router.post("/history", async (req, res) => {
 
 const ALLOWED_RECIPIENT_TYPES = new Set(["client", "group", "multiple", "phone"]);
 
+const E164_RE = /^\+?[1-9]\d{7,14}$/;
+
+function normalizePhone(raw) {
+  if (!raw) return null;
+  const digits = String(raw).replace(/[^\d+]/g, "");
+  if (E164_RE.test(digits)) return digits.startsWith("+") ? digits : "+" + digits;
+  return null;
+}
+
 router.post("/sms/send", async (req, res) => {
   const { to, body, groupId, recipientType = "phone" } = req.body || {};
   const safeBody = sanitizeString(body || "").slice(0, 600);
@@ -771,14 +788,7 @@ router.post("/sms/send", async (req, res) => {
 
   const safeGroupId = groupId ? sanitizeString(groupId).slice(0, 80) : null;
 
-  let toNums = to ? String(to).split(",").map((s) => s.trim()).filter(Boolean) : [];
-  if (safeRecipientType === "group" && safeGroupId) {
-    try {
-      const members = await listGroupMembers(safeGroupId);
-      toNums = members.map((m) => m.clientId).filter(Boolean);
-    } catch { toNums = []; }
-  }
-  const recipientCount = toNums.length || null;
+  await _loadSettings(req).catch(() => {});
 
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -786,31 +796,69 @@ router.post("/sms/send", async (req, res) => {
   const fromNumber = process.env.TWILIO_FROM_NUMBER;
   const twilioConfigured = !!(accountSid && authToken && (messagingServiceSid || fromNumber));
 
-  let twilioErrors = [];
-  let twilioSuccesses = 0;
+  if (!twilioConfigured) {
+    return res.status(422).json({
+      ok: false,
+      error: "SMS provider not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_MESSAGING_SERVICE_SID (or TWILIO_FROM_NUMBER) in Settings \u2192 APIs to send live messages.",
+    });
+  }
 
-  if (twilioConfigured && toNums.length > 0) {
+  let db = { consumers: [] };
+  try { db = await _loadDB(req); } catch { db = { consumers: [] }; }
+  const consumers = db.consumers || [];
+
+  let toNums = [];
+  if (safeRecipientType === "group" && safeGroupId) {
     try {
-      const twilio = (await import("twilio")).default;
-      const client = twilio(accountSid, authToken);
-      for (const num of toNums.slice(0, 100)) {
-        try {
-          const msgOpts = { body: safeBody, to: num };
-          if (messagingServiceSid) msgOpts.messagingServiceSid = messagingServiceSid;
-          else msgOpts.from = fromNumber;
-          await client.messages.create(msgOpts);
-          twilioSuccesses++;
-        } catch (e) {
-          twilioErrors.push(`${num}: ${String(e.message || e)}`);
-        }
+      const members = await listGroupMembers(safeGroupId);
+      for (const m of members) {
+        const consumer = consumers.find((c) => c.id === m.clientId);
+        const phone = normalizePhone(consumer?.phone);
+        if (phone) toNums.push(phone);
       }
-    } catch (initErr) {
-      twilioErrors.push(String(initErr.message || initErr));
+    } catch { toNums = []; }
+  } else {
+    const rawNums = String(to || "").split(",").map((s) => s.trim()).filter(Boolean);
+    for (const raw of rawNums) {
+      const phone = normalizePhone(raw);
+      if (phone) toNums.push(phone);
     }
   }
 
+  const recipientCount = toNums.length || null;
+
+  if (toNums.length === 0) {
+    return res.status(422).json({
+      ok: false,
+      error: safeRecipientType === "group"
+        ? "No valid phone numbers found for group members. Ensure client records have a phone number."
+        : "No valid E.164 phone numbers provided (e.g. +15125550199).",
+    });
+  }
+
+  let twilioErrors = [];
+  let twilioSuccesses = 0;
+
   try {
-    const entryStatus = !twilioConfigured ? "queued" : twilioSuccesses > 0 ? "sent" : "failed";
+    const twilio = (await import("twilio")).default;
+    const client = twilio(accountSid, authToken);
+    for (const num of toNums.slice(0, 100)) {
+      try {
+        const msgOpts = { body: safeBody, to: num };
+        if (messagingServiceSid) msgOpts.messagingServiceSid = messagingServiceSid;
+        else msgOpts.from = fromNumber;
+        await client.messages.create(msgOpts);
+        twilioSuccesses++;
+      } catch (e) {
+        twilioErrors.push(`${num}: ${String(e.message || e)}`);
+      }
+    }
+  } catch (initErr) {
+    return res.status(500).json({ ok: false, error: `Twilio initialization failed: ${initErr.message || initErr}` });
+  }
+
+  try {
+    const entryStatus = twilioSuccesses > 0 ? "sent" : "failed";
     const errorSummary = twilioErrors.length ? twilioErrors.slice(0, 3).join("; ") : null;
     const entry = await addEmailHistory({
       type: "sms",
@@ -824,9 +872,7 @@ router.post("/sms/send", async (req, res) => {
       createdBy: req.user?.username || "system",
     });
     let message;
-    if (!twilioConfigured) {
-      message = "SMS queued. Connect Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_MESSAGING_SERVICE_SID or TWILIO_FROM_NUMBER) in Settings \u2192 APIs to send live messages.";
-    } else if (twilioSuccesses > 0 && twilioErrors.length === 0) {
+    if (twilioSuccesses > 0 && twilioErrors.length === 0) {
       message = `SMS sent to ${twilioSuccesses} recipient${twilioSuccesses === 1 ? "" : "s"} via Twilio.`;
     } else if (twilioSuccesses > 0) {
       message = `SMS sent to ${twilioSuccesses} recipient${twilioSuccesses === 1 ? "" : "s"}; ${twilioErrors.length} failed.`;
@@ -835,7 +881,7 @@ router.post("/sms/send", async (req, res) => {
     }
     res.status(201).json({ ok: true, entry, message, sent: twilioSuccesses, failed: twilioErrors.length });
   } catch (error) {
-    res.status(500).json({ ok: false, error: error.message || "Failed to send SMS" });
+    res.status(500).json({ ok: false, error: error.message || "Failed to log SMS history" });
   }
 });
 

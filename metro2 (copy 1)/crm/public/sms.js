@@ -714,7 +714,7 @@ qs("#sendSmsForm")?.addEventListener("submit", async (e) => {
   ssSendBtn.textContent = "Sending…";
   try {
     const result = await api("POST", `${API}/sms/send`, { to, body, groupId, recipientType: type });
-    toast(statusEl, result.message || "SMS queued.");
+    toast(statusEl, result.message || "SMS sent.");
     qs("#sendSmsForm").reset();
     handleRecipientTypeChange();
     qs("#ssCharCount").textContent = "0 / 160";
@@ -722,7 +722,16 @@ qs("#sendSmsForm")?.addEventListener("submit", async (e) => {
     qs("#ssPreview").textContent = "Compose a message to see a preview.";
     await loadSmsHistory();
   } catch (err) {
-    toast(statusEl, err.message || "Failed to send SMS.", true);
+    const msg = err.message || "Failed to send SMS.";
+    const isSetup = /not configured|TWILIO_ACCOUNT_SID/i.test(msg);
+    if (isSetup) {
+      statusEl.textContent = msg;
+      statusEl.className = "sm-status warn";
+      clearTimeout(statusEl._t);
+      statusEl._t = setTimeout(() => { statusEl.className = "sm-status"; }, 9000);
+    } else {
+      toast(statusEl, msg, true);
+    }
   } finally {
     ssSendBtn.disabled = false;
     ssSendBtn.textContent = "Send Now";

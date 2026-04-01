@@ -37,7 +37,7 @@ import {
   getBucketMeta,
   paginate,
 } from "./tradelineBuckets.js";
-import marketingRoutes from "./marketingRoutes.js";
+import marketingRoutes, { setMarketingDeps } from "./marketingRoutes.js";
 import { addEmailHistory, updateEmailHistory, listGroupMembers } from "./marketingStore.js";
 import { prepareNegativeItems } from "../../shared/lib/format/negativeItems.js";
 import { diffReports } from "../../shared/lib/format/reportDiff.js";
@@ -2996,6 +2996,7 @@ app.post("/api/marketing/email/send", marketingKeyAuth, authenticate, forbidMemb
   }
 });
 
+setMarketingDeps({ loadDB, loadSettings });
 app.use("/api/marketing", marketingKeyAuth, authenticate, forbidMember, marketingRoutes);
 
 app.get("/api/calendar/events", authenticate, async (_req, res) => {
