@@ -2123,19 +2123,24 @@ function renderCollectors(collectors){
   wrap.innerHTML = "";
   CURRENT_COLLECTORS = collectors || [];
   Object.keys(collectorSelection).forEach(k=> delete collectorSelection[k]);
-    const tpl = $("#collectorTemplate")?.content;
-    CURRENT_COLLECTORS.forEach((col, idx)=>{
-      const node = tpl.cloneNode(true);
-      node.querySelector(".collector-name").textContent = col.name || "Unknown";
-      node.querySelector(".collector-address").textContent = col.address || "";
-      node.querySelector(".collector-phone").textContent = col.phone || "";
-      const cb = node.querySelector(".collector-pick");
-      cb.checked = col.type === "debt_collector";
-      collectorSelection[idx] = cb.checked;
-      cb.addEventListener("change", ()=>{ collectorSelection[idx] = cb.checked; });
-      wrap.appendChild(node);
-    });
+  const tpl = $("#collectorTemplate")?.content;
+  CURRENT_COLLECTORS.forEach((col, idx)=>{
+    const node = tpl.cloneNode(true);
+    node.querySelector(".collector-name").textContent = col.name || "Unknown";
+    node.querySelector(".collector-address").textContent = col.address || "";
+    node.querySelector(".collector-phone").textContent = col.phone || "";
+    const cb = node.querySelector(".collector-pick");
+    cb.checked = col.type === "debt_collector";
+    collectorSelection[idx] = cb.checked;
+    cb.addEventListener("change", ()=>{ collectorSelection[idx] = cb.checked; });
+    wrap.appendChild(node);
+  });
+  const masterCb = $("#cbCollectors");
+  if (masterCb && CURRENT_COLLECTORS.some(c => c.type === "debt_collector")) {
+    masterCb.checked = true;
+    masterCb.dispatchEvent(new Event("change", { bubbles: true }));
   }
+}
 
 function collectCollectorSelections(){
   return CURRENT_COLLECTORS.filter((_, idx)=> collectorSelection[idx]);
