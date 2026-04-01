@@ -218,6 +218,90 @@ const CERTIFIED_MAIL_RATE = MAIL_RATES.certified.rate;
 
 function fmtPrice(n) { return '$' + n.toFixed(2); }
 
+function showNextRoundTargetModal(recs) {
+  return new Promise((resolve) => {
+    let existing = document.getElementById('nextRoundTargetModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'nextRoundTargetModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:12000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);';
+
+    const targets = recs.map(r => r.letterTarget || 'bureau');
+
+    function renderRows() {
+      return recs.map((rec, idx) => {
+        const creditor = escapeHtml(rec.creditor || 'Unknown');
+        const bureau = escapeHtml(rec.bureau || '');
+        const template = escapeHtml(rec.recommendedTemplate || 'auto');
+        const isColl = targets[idx] === 'collector';
+        return `<div class="nrt-row" data-idx="${idx}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;">
+          <div style="flex:1;min-width:0;overflow:hidden;">
+            <div style="font-weight:600;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${creditor}</div>
+            <div style="font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${bureau}${bureau && template ? ' • ' : ''}${template ? `<span style="color:#60a5fa;">${template}</span>` : ''}</div>
+          </div>
+          <div style="display:flex;gap:0;border:1px solid rgba(255,255,255,0.15);border-radius:6px;overflow:hidden;flex-shrink:0;">
+            <button type="button" class="nrt-toggle" data-idx="${idx}" data-target="bureau"
+              style="padding:5px 11px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:background 0.15s,color 0.15s;background:${!isColl ? 'rgba(96,165,250,0.22)' : 'transparent'};color:${!isColl ? '#60a5fa' : '#666'};">
+              Bureaus
+            </button>
+            <button type="button" class="nrt-toggle" data-idx="${idx}" data-target="collector"
+              style="padding:5px 11px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:background 0.15s,color 0.15s;background:${isColl ? 'rgba(251,191,36,0.22)' : 'transparent'};color:${isColl ? '#fbbf24' : '#666'};">
+              Collector
+            </button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function buildHtml() {
+      return `
+        <div style="background:#1a1a1e;border:1px solid rgba(212,168,83,0.2);border-radius:12px;width:90%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div style="font-weight:700;color:#fff;font-size:16px;">Generate Next Round Letters</div>
+            <div style="font-size:12px;color:#888;margin-top:3px;">For each item, choose whether the letter goes to the credit bureaus or directly to the creditor/collector. Intellisense has pre-selected a target — you can override any item.</div>
+          </div>
+          <div id="nrtRows" style="padding:14px 20px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:7px;">
+            ${renderRows()}
+          </div>
+          <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:flex-end;gap:8px;">
+            <button id="nrtCancel" type="button" style="padding:8px 18px;border-radius:7px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:#888;font-size:13px;font-weight:600;cursor:pointer;">Cancel</button>
+            <button id="nrtGenerate" type="button" style="padding:8px 20px;border-radius:7px;border:1px solid rgba(212,168,83,0.3);background:rgba(212,168,83,0.12);color:#d4a853;font-size:13px;font-weight:600;cursor:pointer;">Generate Letters</button>
+          </div>
+        </div>`;
+    }
+
+    modal.innerHTML = buildHtml();
+    document.body.appendChild(modal);
+
+    function refreshRow(idx) {
+      const isColl = targets[idx] === 'collector';
+      const row = modal.querySelector(`.nrt-row[data-idx="${idx}"]`);
+      if (!row) return;
+      row.querySelectorAll('.nrt-toggle').forEach(btn => {
+        const isSel = btn.dataset.target === targets[idx];
+        const isBureauBtn = btn.dataset.target === 'bureau';
+        btn.style.background = isSel ? (isBureauBtn ? 'rgba(96,165,250,0.22)' : 'rgba(251,191,36,0.22)') : 'transparent';
+        btn.style.color = isSel ? (isBureauBtn ? '#60a5fa' : '#fbbf24') : '#666';
+      });
+    }
+
+    modal.addEventListener('click', (e) => {
+      const btn = e.target.closest('.nrt-toggle');
+      if (btn) {
+        const idx = parseInt(btn.dataset.idx, 10);
+        targets[idx] = btn.dataset.target;
+        refreshRow(idx);
+        return;
+      }
+      if (e.target === modal) { modal.remove(); resolve(null); }
+    });
+
+    document.getElementById('nrtCancel').addEventListener('click', () => { modal.remove(); resolve(null); });
+    document.getElementById('nrtGenerate').addEventListener('click', () => { modal.remove(); resolve([...targets]); });
+  });
+}
+
 function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, portalError) {
   let existing = document.getElementById('letterPreviewModal');
   if (existing) existing.remove();
@@ -837,9 +921,12 @@ function renderDisputeTracker(data) {
         const template = escapeHtml(rec.recommendedTemplate || '');
         const reason = escapeHtml(rec.reason || '');
         const urgencyColor = rec.urgency === 'high' ? '#f87171' : rec.urgency === 'medium' ? '#fbbf24' : '#4ade80';
+        const isCollector = rec.letterTarget === 'collector';
+        const targetLabel = isCollector ? '→ Collector' : '→ Bureaus';
+        const targetColor = isCollector ? '#fbbf24' : '#60a5fa';
         html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 10px;background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.12);border-radius:6px;">
           <div style="flex:1;">
-            <div style="font-size:12px;font-weight:600;color:#fff;">${creditor}: <span style="color:#60a5fa;">${template}</span></div>
+            <div style="font-size:12px;font-weight:600;color:#fff;">${creditor}: <span style="color:#60a5fa;">${template}</span> <span style="font-size:10px;font-weight:700;color:${targetColor};padding:1px 6px;border-radius:10px;border:1px solid ${targetColor}33;background:${isCollector ? 'rgba(251,191,36,0.1)' : 'rgba(96,165,250,0.1)'};">${targetLabel}</span></div>
             <div style="font-size:11px;color:#888;">${reason}</div>
           </div>
           <span style="font-size:10px;font-weight:600;color:${urgencyColor};text-transform:uppercase;">${escapeHtml(rec.urgency || '')}</span>
@@ -994,8 +1081,15 @@ function renderDisputeTracker(data) {
           const tpl = escapeHtml(rec.recommendedTemplate || 'None');
           const reason = escapeHtml(rec.reason || '');
           const altTemplates = (rec.alternativeTemplates || []).map(t => escapeHtml(t)).join(', ');
+          const isCollector = rec.letterTarget === 'collector';
+          const targetLabel = isCollector ? '→ Collector' : '→ Bureaus';
+          const targetColor = isCollector ? '#fbbf24' : '#60a5fa';
+          const targetBg = isCollector ? 'rgba(251,191,36,0.1)' : 'rgba(96,165,250,0.1)';
           html += `<div style="margin-top:4px;padding:4px 8px;background:rgba(96,165,250,0.06);border-radius:4px;border:1px solid rgba(96,165,250,0.1);">
-            <div style="font-size:11px;color:#60a5fa;font-weight:600;">Recommended: ${tpl}</div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="font-size:11px;color:#60a5fa;font-weight:600;">Recommended: ${tpl}</span>
+              <span style="font-size:10px;font-weight:700;color:${targetColor};background:${targetBg};padding:1px 6px;border-radius:10px;border:1px solid ${targetColor}33;">${targetLabel}</span>
+            </div>
             <div style="font-size:10px;color:#888;">${reason}</div>
             ${altTemplates ? `<div style="font-size:10px;color:#666;">Alternatives: ${altTemplates}</div>` : ''}
           </div>`;
@@ -1287,8 +1381,19 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
       showErr('All items are already resolved — no next round needed.');
       btn.disabled = false; btn.textContent = origText; return;
     }
+
+    btn.textContent = 'Waiting...';
+    const chosenTargets = await showNextRoundTargetModal(recs);
+    if (!chosenTargets) {
+      btn.disabled = false; btn.textContent = origText; return;
+    }
+    btn.textContent = 'Generating...';
+
+    const bureauRecs = recs.filter((_, i) => chosenTargets[i] !== 'collector');
+    const collectorRecs = recs.filter((_, i) => chosenTargets[i] === 'collector');
+
     const selMap = {};
-    recs.forEach(r => {
+    bureauRecs.forEach(r => {
       const tlIdx = r.tradelineIndex ?? null;
       if (tlIdx === null) return;
       const itemIdx = r.itemIndex ?? null;
@@ -1303,19 +1408,26 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
     });
     let selections = Object.values(selMap);
     selections.forEach(sel => { if (!sel.bureaus.length) sel.bureaus = ['TransUnion', 'Experian', 'Equifax']; });
-    if (!selections.length && round.selections && round.selections.length) {
-      const firstRec = recs[0];
-      const fallbackTemplateId = firstRec?.recommendedTemplate || null;
+    if (!selections.length && bureauRecs.length && round.selections && round.selections.length) {
+      const firstBureauRec = bureauRecs[0];
+      const fallbackTemplateId = firstBureauRec?.recommendedTemplate || null;
       selections = round.selections
         .filter(s => s.tradelineIndex !== null && s.tradelineIndex !== undefined)
         .map(s => ({
           tradelineIndex: s.tradelineIndex,
           bureaus: s.bureaus && s.bureaus.length ? s.bureaus : ['TransUnion', 'Experian', 'Equifax'],
           templateId: fallbackTemplateId,
-          specificDisputeReason: s.specificDisputeReason || firstRec?.specificDisputeReason || null
+          specificDisputeReason: s.specificDisputeReason || firstBureauRec?.specificDisputeReason || null
         }));
     }
-    if (!selections.length) {
+
+    const collectors = collectorRecs.map(r => ({
+      name: r.creditor || r.collectorName || 'Unknown Collector',
+      addr1: '',
+      addr2: ''
+    }));
+
+    if (!selections.length && !collectors.length) {
       showErr('Could not determine tradeline selections from recommendations. Please generate letters manually.');
       btn.disabled = false; btn.textContent = origText; return;
     }
@@ -1324,7 +1436,7 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
     const genResp = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-idempotency-key': buildIdempotencyKey('dispute-next-round'), ...authHeader() },
-      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, personalInfo: false, collectors: [], itemsPerLetter })
+      body: JSON.stringify({ consumerId: currentConsumerId, reportId: currentReportId, selections, personalInfo: false, collectors, itemsPerLetter })
     });
     if (!genResp.ok) { const txt = await genResp.text().catch(() => ''); throw new Error(`Generation failed: HTTP ${genResp.status} ${txt}`.trim()); }
     const genData = await genResp.json().catch(() => ({}));

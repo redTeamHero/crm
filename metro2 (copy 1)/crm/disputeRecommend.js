@@ -15,6 +15,11 @@ function hasViolationType(violations, keywords) {
   });
 }
 
+const COLLECTOR_TEMPLATES = new Set(['debt-validation', 'cease-and-desist']);
+function tgt(template) {
+  return COLLECTOR_TEMPLATES.has(template) ? 'collector' : 'bureau';
+}
+
 export function recommendFirstLetter({ violations = [], accountType = '', accountStatus = '' }) {
   const type = (accountType || '').toLowerCase();
   const status = (accountStatus || '').toLowerCase();
@@ -25,6 +30,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       recommendedTemplate: '611-general-dispute',
       reason: 'Metro 2 compliance inconsistencies detected — start with a general dispute citing specific field-level violations',
       urgency: 'high',
+      letterTarget: 'bureau',
       alternativeTemplates: ['method-of-verification', '623-direct-dispute']
     };
   }
@@ -34,6 +40,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       recommendedTemplate: 'obsolete-debt',
       reason: 'Debt appears obsolete or past the reporting period — request removal under FCRA §1681c',
       urgency: 'high',
+      letterTarget: 'bureau',
       alternativeTemplates: ['611-general-dispute']
     };
   }
@@ -43,6 +50,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       recommendedTemplate: 'bankruptcy-misreporting',
       reason: 'Bankruptcy-related item detected — dispute incorrect post-discharge reporting',
       urgency: 'high',
+      letterTarget: 'bureau',
       alternativeTemplates: ['611-general-dispute']
     };
   }
@@ -52,6 +60,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       recommendedTemplate: 'debt-validation',
       reason: 'Collection account — request full debt validation under FDCPA §809 before proceeding',
       urgency: 'medium',
+      letterTarget: 'collector',
       alternativeTemplates: ['611-general-dispute', 'cease-and-desist']
     };
   }
@@ -61,6 +70,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       recommendedTemplate: 'reinsertion-dispute',
       reason: 'Item appears to have been reinserted without proper notice — dispute under FCRA §611(a)(5)(B)',
       urgency: 'high',
+      letterTarget: 'bureau',
       alternativeTemplates: ['611-general-dispute']
     };
   }
@@ -70,6 +80,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       recommendedTemplate: '611-general-dispute',
       reason: 'Inaccuracies detected — file a general dispute under FCRA §611 for investigation',
       urgency: 'medium',
+      letterTarget: 'bureau',
       alternativeTemplates: ['method-of-verification', '623-direct-dispute']
     };
   }
@@ -78,6 +89,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
     recommendedTemplate: '611-general-dispute',
     reason: 'General dispute recommended — request investigation under FCRA §611',
     urgency: 'low',
+    letterTarget: 'bureau',
     alternativeTemplates: ['609-disclosure']
   };
 }
@@ -97,18 +109,21 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       recommendedTemplate: null,
       reason: 'Item has been removed or corrected — no further action needed',
       urgency: 'none',
+      letterTarget: 'bureau',
       alternativeTemplates: []
     };
   }
 
   if (result === 'awaiting' || result === 'awaiting_response') {
     if (isCollection) {
+      const template = prev.includes('debt-validation') ? 'second-round-dispute' : 'debt-validation';
       return {
-        recommendedTemplate: prev.includes('debt-validation') ? 'second-round-dispute' : 'debt-validation',
+        recommendedTemplate: template,
         reason: isCollection && !prev.includes('debt-validation')
           ? 'Collection account still awaiting — send debt validation request under FDCPA §809'
           : 'Collection account awaiting response — follow up with escalated dispute',
         urgency: 'medium',
+        letterTarget: tgt(template),
         alternativeTemplates: ['611-general-dispute', 'second-round-dispute']
       };
     }
@@ -117,6 +132,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: 'bankruptcy-misreporting',
         reason: 'Bankruptcy-related item awaiting response — follow up on discharge reporting',
         urgency: 'medium',
+        letterTarget: 'bureau',
         alternativeTemplates: ['611-general-dispute', 'second-round-dispute']
       };
     }
@@ -125,6 +141,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: 'obsolete-debt',
         reason: 'Obsolete debt awaiting response — reiterate removal request under FCRA §1681c',
         urgency: 'medium',
+        letterTarget: 'bureau',
         alternativeTemplates: ['611-general-dispute', 'second-round-dispute']
       };
     }
@@ -133,6 +150,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: '611-general-dispute',
         reason: 'Metro 2 compliance issues awaiting response — follow up citing specific violations',
         urgency: 'medium',
+        letterTarget: 'bureau',
         alternativeTemplates: ['second-round-dispute', 'method-of-verification']
       };
     }
@@ -140,6 +158,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       recommendedTemplate: 'second-round-dispute',
       reason: 'Item still awaiting response — send follow-up dispute demanding reinvestigation',
       urgency: 'medium',
+      letterTarget: 'bureau',
       alternativeTemplates: ['611-general-dispute', 'method-of-verification']
     };
   }
@@ -150,16 +169,19 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: 'ag-cfpb-escalation',
         reason: 'No response after multiple rounds — escalate with AG/CFPB complaint threat',
         urgency: 'high',
+        letterTarget: 'bureau',
         alternativeTemplates: ['arbitration-election']
       };
     }
     if (isCollection) {
+      const template = prev.includes('debt-validation') ? 'second-round-dispute' : 'debt-validation';
       return {
-        recommendedTemplate: prev.includes('debt-validation') ? 'second-round-dispute' : 'debt-validation',
+        recommendedTemplate: template,
         reason: isCollection && !prev.includes('debt-validation')
           ? 'No response on collection account — demand debt validation under FDCPA §809'
           : 'No response after debt validation — escalate with second-round dispute',
         urgency: 'high',
+        letterTarget: tgt(template),
         alternativeTemplates: ['ag-cfpb-escalation', '623-direct-dispute']
       };
     }
@@ -167,6 +189,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       recommendedTemplate: 'second-round-dispute',
       reason: 'No response received — send escalation dispute demanding proper reinvestigation',
       urgency: 'high',
+      letterTarget: 'bureau',
       alternativeTemplates: ['ag-cfpb-escalation', 'method-of-verification']
     };
   }
@@ -177,6 +200,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: 'ag-cfpb-escalation',
         reason: 'Item verified multiple times without adequate proof — escalate to regulators',
         urgency: 'high',
+        letterTarget: 'bureau',
         alternativeTemplates: ['arbitration-election', '623-direct-dispute']
       };
     }
@@ -185,6 +209,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: '623-direct-dispute',
         reason: 'Collection verified — dispute directly with furnisher under FCRA §623',
         urgency: 'medium',
+        letterTarget: 'bureau',
         alternativeTemplates: ['method-of-verification', 'ag-cfpb-escalation']
       };
     }
@@ -193,6 +218,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: 'method-of-verification',
         reason: 'Verified despite Metro 2 violations — demand method of verification under FCRA §611(a)(7)',
         urgency: 'medium',
+        letterTarget: 'bureau',
         alternativeTemplates: ['623-direct-dispute', 'ag-cfpb-escalation']
       };
     }
@@ -200,6 +226,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       recommendedTemplate: '609-disclosure',
       reason: 'Item verified without adequate proof — request full disclosure under FCRA §609',
       urgency: 'medium',
+      letterTarget: 'bureau',
       alternativeTemplates: ['method-of-verification', '623-direct-dispute']
     };
   }
@@ -210,6 +237,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: 'arbitration-election',
         reason: 'Dispute stalled after multiple rounds — elect arbitration to force resolution',
         urgency: 'high',
+        letterTarget: 'bureau',
         alternativeTemplates: ['ag-cfpb-escalation']
       };
     }
@@ -217,6 +245,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       recommendedTemplate: '623-direct-dispute',
       reason: 'Dispute stalled — bypass bureaus and dispute directly with furnisher under FCRA §623',
       urgency: 'medium',
+      letterTarget: 'bureau',
       alternativeTemplates: ['ag-cfpb-escalation', 'method-of-verification']
     };
   }
@@ -227,6 +256,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         recommendedTemplate: '623-direct-dispute',
         reason: 'Partial correction on collection — dispute directly with furnisher for remaining inaccuracies',
         urgency: 'medium',
+        letterTarget: 'bureau',
         alternativeTemplates: ['611-general-dispute', 'method-of-verification']
       };
     }
@@ -234,6 +264,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       recommendedTemplate: '611-general-dispute',
       reason: 'Partial correction received — dispute remaining inaccuracies under FCRA §611',
       urgency: 'medium',
+      letterTarget: 'bureau',
       alternativeTemplates: ['method-of-verification', '623-direct-dispute']
     };
   }
@@ -243,6 +274,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       recommendedTemplate: 'method-of-verification',
       reason: 'Item updated but may still be inaccurate — request method of verification under FCRA §611(a)(7)',
       urgency: 'medium',
+      letterTarget: 'bureau',
       alternativeTemplates: ['611-general-dispute', '623-direct-dispute']
     };
   }
@@ -252,17 +284,20 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       recommendedTemplate: 'ag-cfpb-escalation',
       reason: 'Multiple dispute rounds completed — escalate with regulatory complaint',
       urgency: 'high',
+      letterTarget: 'bureau',
       alternativeTemplates: ['arbitration-election']
     };
   }
 
   if (isCollection) {
+    const template = prev.includes('debt-validation') ? '623-direct-dispute' : 'debt-validation';
     return {
-      recommendedTemplate: prev.includes('debt-validation') ? '623-direct-dispute' : 'debt-validation',
+      recommendedTemplate: template,
       reason: isCollection && !prev.includes('debt-validation')
         ? 'Collection account — request debt validation under FDCPA §809'
         : 'Follow up on collection — dispute directly with furnisher under FCRA §623',
       urgency: 'medium',
+      letterTarget: tgt(template),
       alternativeTemplates: ['611-general-dispute', 'second-round-dispute']
     };
   }
@@ -271,6 +306,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
     recommendedTemplate: 'second-round-dispute',
     reason: 'Follow-up dispute recommended — escalate with reinvestigation demand',
     urgency: 'medium',
+    letterTarget: 'bureau',
     alternativeTemplates: ['method-of-verification', '623-direct-dispute']
   };
 }
