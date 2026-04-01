@@ -995,7 +995,7 @@ function renderDisputeTracker(data) {
       <button class="btn-cfpb-round" data-job-id="${escapeHtml(jobId)}" type="button"
         style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);color:#818cf8;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-        File CFPB Complaint
+        Send to Client
       </button>
     </div>`;
 

@@ -6,6 +6,204 @@ let currentConsumerId = null;
 let lastResult = null;
 let proofFiles = [];
 let uploadedProofKeys = [];
+let currentTab = 'bureau';
+
+const VIOLATION_OPTIONS = [
+  { value: '', label: '-- Select violation --', group: null },
+  { value: 'no_response_30', label: '30-Day No Response (FCRA §611)', group: 'FCRA — No Response' },
+  { value: 'no_response_45', label: '45-Day No Response / Extended Period (FCRA §611)', group: 'FCRA — No Response' },
+  { value: 'verified_inaccurate', label: 'Verified Inaccurate Information (FCRA §611)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'wrong_balance', label: 'Incorrect Balance Reported (FCRA §623)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'wrong_status', label: 'Incorrect Account Status (FCRA §623)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'reaged', label: 'Re-Aged Debt / Changed DOFD (FCRA §605(c))', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'mixed_file', label: 'Mixed Credit File / Wrong Consumer Info (FCRA §611)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'duplicate_reporting', label: 'Duplicate / Multiple Reporting (FCRA §623)', group: 'FCRA — Inaccurate Reporting' },
+  { value: 'continued_after_paid', label: 'Continued Reporting After Paid/Settled (FCRA §623)', group: 'FCRA — Account Status' },
+  { value: 'paid_collection', label: 'Paid Collection Still Reporting Negative (FCRA §623)', group: 'FCRA — Account Status' },
+  { value: 'settlement_not_reflected', label: 'Settlement Not Reflected on Report (FCRA §623)', group: 'FCRA — Account Status' },
+  { value: 'obsolete_info', label: 'Reporting Obsolete / Beyond 7-Year Limit (FCRA §605)', group: 'FCRA — Account Status' },
+  { value: 'bankruptcy_discharge', label: 'Debt Discharged in Bankruptcy Still Reporting (FCRA §623)', group: 'FCRA — Account Status' },
+  { value: 'not_mine', label: 'Account Not Mine / Identity Theft (FCRA §611, §623)', group: 'FCRA — Account Status' },
+  { value: 'medical_debt', label: 'Medical Debt Under $500 Being Reported (CFPB Rule 2023)', group: 'FCRA — Special Rules' },
+  { value: 'collection_no_validation', label: 'Debt Collector Failed to Validate Debt (FDCPA §809)', group: 'FDCPA — Debt Collection' },
+  { value: 'collection_harassment', label: 'Debt Collector Harassment / Abusive Conduct (FDCPA §806)', group: 'FDCPA — Debt Collection' },
+  { value: 'collection_false_representation', label: 'Debt Collector Made False Representations (FDCPA §807)', group: 'FDCPA — Debt Collection' },
+  { value: 'collection_unfair_practices', label: 'Debt Collector Used Unfair Practices (FDCPA §808)', group: 'FDCPA — Debt Collection' },
+  { value: 'other', label: 'Other (describe below)', group: null },
+];
+
+function buildViolationOptions() {
+  const groups = {};
+  const noGroup = [];
+  for (const o of VIOLATION_OPTIONS) {
+    if (!o.group) { noGroup.push(o); continue; }
+    if (!groups[o.group]) groups[o.group] = [];
+    groups[o.group].push(o);
+  }
+  let html = noGroup.slice(0,1).map(o => `<option value="${escHtml(o.value)}">${escHtml(o.label)}</option>`).join('');
+  for (const [grp, opts] of Object.entries(groups)) {
+    html += `<optgroup label="${escHtml(grp)}">${opts.map(o => `<option value="${escHtml(o.value)}">${escHtml(o.label)}</option>`).join('')}</optgroup>`;
+  }
+  html += noGroup.slice(1).map(o => `<option value="${escHtml(o.value)}">${escHtml(o.label)}</option>`).join('');
+  return html;
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  const byBureau = $('cfpbByBureauPanel');
+  const individually = $('cfpbIndividualPanel');
+  const btnBureau = $('cfpbTabByBureau');
+  const btnIndiv = $('cfpbTabIndividually');
+  if (tab === 'bureau') {
+    if (byBureau) byBureau.style.display = '';
+    if (individually) individually.style.display = 'none';
+    if (btnBureau) { btnBureau.style.background = 'rgba(99,102,241,0.3)'; btnBureau.style.border = '1px solid rgba(99,102,241,0.5)'; btnBureau.style.color = '#a5b4fc'; }
+    if (btnIndiv) { btnIndiv.style.background = 'transparent'; btnIndiv.style.border = '1px solid transparent'; btnIndiv.style.color = '#9ca3af'; }
+  } else {
+    if (byBureau) byBureau.style.display = 'none';
+    if (individually) individually.style.display = '';
+    if (btnIndiv) { btnIndiv.style.background = 'rgba(99,102,241,0.3)'; btnIndiv.style.border = '1px solid rgba(99,102,241,0.5)'; btnIndiv.style.color = '#a5b4fc'; }
+    if (btnBureau) { btnBureau.style.background = 'transparent'; btnBureau.style.border = '1px solid transparent'; btnBureau.style.color = '#9ca3af'; }
+    if (currentConsumerId) renderIndivItems(currentConsumerId);
+  }
+}
+
+$('cfpbTabByBureau')?.addEventListener('click', () => switchTab('bureau'));
+$('cfpbTabIndividually')?.addEventListener('click', () => switchTab('individual'));
+
+function buildIndivItemCard(item, bureau, cardIdx) {
+  const creditor = item.name || 'Unknown';
+  const accountSuffix = item.accountNumber ? ' #' + item.accountNumber : '';
+  return `
+  <div class="cfpb-indiv-card" data-idx="${cardIdx}" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div>
+        <strong style="font-size:13px;">${escHtml(creditor)}${escHtml(accountSuffix)}</strong>
+        ${bureau ? `<span style="font-size:11px;color:#818cf8;margin-left:8px;">${escHtml(bureau)}</span>` : ''}
+        <span style="font-size:11px;color:#6b7280;margin-left:8px;">awaiting</span>
+      </div>
+      <button class="btn-cfpb-indiv-gen" data-idx="${cardIdx}" type="button"
+        style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#818cf8;border-radius:6px;font-size:12px;font-weight:600;padding:4px 12px;cursor:pointer;white-space:nowrap;">
+        Generate
+      </button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div>
+        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Company Name</label>
+        <input type="text" class="cfpb-indiv-company input-field" data-idx="${cardIdx}" value="${escHtml(creditor)}" style="width:100%;font-size:12px;padding:5px 8px;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Violation Type</label>
+        <select class="cfpb-indiv-vtype input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">${buildViolationOptions()}</select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div>
+        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Tone</label>
+        <select class="cfpb-indiv-tone input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">
+          <optgroup label="Formal"><option value="professional">Professional</option><option value="firm_assertive">Firm &amp; Assertive</option><option value="legal_formal">Legal Formal</option></optgroup>
+          <optgroup label="Emotional"><option value="curious">Curious / Questioning</option><option value="tired">Tired / Exhausted</option><option value="frustrated">Frustrated</option><option value="emotional">Emotional / Personal</option></optgroup>
+          <optgroup label="Forceful"><option value="urgent">Urgent</option><option value="strong_aggressive">Strong &amp; Aggressive</option></optgroup>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Complaint Goal</label>
+        <select class="cfpb-indiv-goal input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">
+          <option value="">-- Not specified --</option>
+          <option value="delete">Delete Item from Credit Report</option>
+          <option value="correct">Correct Inaccurate Information</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:8px;">
+      <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Response Received</label>
+      <select class="cfpb-indiv-response input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">
+        <option value="">-- Select --</option>
+        <option value="No Response">No Response</option>
+        <option value="Verified as Accurate">Verified as Accurate</option>
+        <option value="Deleted">Deleted</option>
+        <option value="Updated/Partially Corrected">Updated/Partially Corrected</option>
+        <option value="Account Closed">Account Closed</option>
+        <option value="Paid/Settled">Paid/Settled</option>
+        <option value="Transferred">Transferred</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div id="cfpb-indiv-result-${cardIdx}" style="display:none;margin-top:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;font-size:12px;line-height:1.6;white-space:pre-wrap;max-height:160px;overflow-y:auto;"></div>
+  </div>`;
+}
+
+let indivItemData = [];
+
+async function renderIndivItems(consumerId) {
+  const list = $('cfpbIndivItemList');
+  const loading = $('cfpbIndivLoading');
+  if (!list) return;
+  if (loading) { loading.style.display = 'block'; loading.textContent = 'Loading items…'; }
+  indivItemData = [];
+  try {
+    const data = await api(`/api/consumers/${consumerId}/negative-items`);
+    const items = data?.items || [];
+    if (loading) loading.style.display = 'none';
+    if (!items.length) {
+      list.innerHTML = '<div style="font-size:13px;color:#9ca3af;padding:12px 0;">No negative items found for this client.</div>';
+      return;
+    }
+    let cards = '';
+    let idx = 0;
+    for (const item of items) {
+      const bureaus = item.bureaus?.length ? item.bureaus : [''];
+      for (const bureau of bureaus) {
+        indivItemData.push({ item, bureau, idx });
+        cards += buildIndivItemCard(item, bureau, idx);
+        idx++;
+      }
+    }
+    list.innerHTML = cards;
+  } catch (e) {
+    if (loading) { loading.style.display = 'block'; loading.textContent = 'Failed to load items.'; }
+  }
+}
+
+$('cfpbIndivItemList')?.addEventListener('click', async e => {
+  const btn = e.target.closest('.btn-cfpb-indiv-gen');
+  if (!btn || !currentConsumerId) return;
+  const idx = parseInt(btn.dataset.idx, 10);
+  const entry = indivItemData[idx];
+  if (!entry) return;
+  const card = document.querySelector(`.cfpb-indiv-card[data-idx="${idx}"]`);
+  if (!card) return;
+  const company = card.querySelector(`.cfpb-indiv-company`)?.value?.trim() || entry.item.name || '';
+  const violationType = card.querySelector(`.cfpb-indiv-vtype`)?.value || '';
+  const tone = card.querySelector(`.cfpb-indiv-tone`)?.value || 'professional';
+  const complaintGoal = card.querySelector(`.cfpb-indiv-goal`)?.value || '';
+  const responseOutcome = card.querySelector(`.cfpb-indiv-response`)?.value || '';
+  const sharedDate = $('cfpbIndivSharedDate')?.value || '';
+  const sharedNotes = $('cfpbIndivSharedNotes')?.value?.trim() || '';
+  if (!company) { alert('Company name is required.'); return; }
+  if (!violationType) { alert('Please select a violation type.'); return; }
+  const resultEl = $(`cfpb-indiv-result-${idx}`);
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  try {
+    const resp = await fetch(`/api/consumers/${currentConsumerId}/cfpb-complaint`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({ companyName: company, violationType, itemsDisputed: [company + (entry.bureau ? ' (' + entry.bureau + ')' : '')], disputeSentDate: sharedDate, responseOutcome, additionalNotes: sharedNotes, tone, complaintGoal, save: false }),
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Generation failed');
+    if (resultEl) {
+      resultEl.textContent = `WHAT HAPPENED:\n${data.narrative}\n\nWHAT RESOLUTION I AM SEEKING:\n${data.resolution}`;
+      resultEl.style.display = 'block';
+    }
+  } catch (err) {
+    alert('Failed to generate: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate';
+  }
+});
 
 async function loadConsumers() {
   const data = await api('/api/consumers?limit=200');
@@ -152,6 +350,7 @@ $('consumerSelect')?.addEventListener('change', e => {
     $('cfpbFormSection').style.display = 'block';
     loadNegativeItems(currentConsumerId);
     loadHistory(currentConsumerId);
+    if (currentTab === 'individual') renderIndivItems(currentConsumerId);
   } else {
     $('cfpbFormSection').style.display = 'none';
     $('cfpbHistorySection').style.display = 'none';

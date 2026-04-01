@@ -46,6 +46,19 @@
     </section>
 
     <section id="cfpbFormSection" class="glass card p-6 space-y-5" style="display:none;">
+
+      <div style="display:flex;gap:6px;background:rgba(255,255,255,0.04);border-radius:8px;padding:4px;">
+        <button id="cfpbTabByBureau" type="button"
+          style="flex:1;padding:7px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(99,102,241,0.3);border:1px solid rgba(99,102,241,0.5);color:#a5b4fc;">
+          By Bureau
+        </button>
+        <button id="cfpbTabIndividually" type="button"
+          style="flex:1;padding:7px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;border:1px solid transparent;color:#9ca3af;">
+          Individually
+        </button>
+      </div>
+
+      <div id="cfpbByBureauPanel">
       <h2 class="text-lg font-semibold" style="margin-bottom:4px;">Generate Complaint</h2>
       <p style="font-size:13px;color:var(--text-sub,#9ca3af);margin-top:0;">Fill in the details below. The AI will draft a formal CFPB complaint using FCRA-specific language.</p>
 
@@ -190,6 +203,27 @@
           Generate CFPB Complaint
         </button>
       </div>
+      </div>
+
+      <div id="cfpbIndividualPanel" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <span style="font-size:13px;color:var(--text-sub,#9ca3af);">Shared fields for all items:</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+            <div>
+              <label class="block text-sm font-medium mb-1">Date Dispute Sent</label>
+              <input type="date" id="cfpbIndivSharedDate" class="input-field w-full">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Additional Notes</label>
+              <textarea id="cfpbIndivSharedNotes" class="input-field w-full" rows="1" placeholder="Shared notes…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div id="cfpbIndivItemList">
+          <div id="cfpbIndivLoading" style="font-size:13px;color:#9ca3af;padding:12px 0;">Select a client to load items…</div>
+        </div>
+      </div>
+
     </section>
 
     <section id="cfpbResultSection" class="glass card p-6 space-y-5" style="display:none;">
