@@ -1678,72 +1678,60 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
         }));
     }
 
-    let collectors = collectorRecs.map(r => ({
-      name: r.creditor || r.collectorName || 'Unknown Collector',
-      addr1: '',
-      addr2: '',
-      templateId: r.recommendedTemplate || 'debt-validation',
-      tradelineIndex: r.tradelineIndex ?? null,
-    }));
-
-    // Keep the full per-recommendation list for generation; deduplicate only for the
-    // preflight address UI so the user enters each agency address exactly once.
-    const collectorsAllRecs = collectors.slice();
+    // Deduplicate: one letter per collector agency (server creates exactly one
+    // letter per collectors array entry — no server-side dedup).
     const _seenCollectors = new Set();
-    const collectorsForPreflight = collectors.filter(c => {
-      const key = (c.name || '').toLowerCase().trim();
-      if (_seenCollectors.has(key)) return false;
-      _seenCollectors.add(key);
-      return true;
-    });
+    let collectors = collectorRecs
+      .filter(r => {
+        const key = (r.creditor || r.collectorName || '').toLowerCase().trim();
+        if (_seenCollectors.has(key)) return false;
+        _seenCollectors.add(key);
+        return true;
+      })
+      .map(r => ({
+        name: r.creditor || r.collectorName || 'Unknown Collector',
+        addr1: '',
+        addr2: '',
+        templateId: r.recommendedTemplate || 'debt-validation',
+        tradelineIndex: r.tradelineIndex ?? null,
+      }));
 
-    if (!selections.length && !collectorsAllRecs.length) {
+    if (!selections.length && !collectors.length) {
       showErr('Could not determine tradeline selections from recommendations. Please generate letters manually.');
       btn.disabled = false; btn.textContent = origText; return;
     }
 
-    if (collectorsAllRecs.length) {
+    if (collectors.length) {
       btn.textContent = 'Checking addresses...';
       const preflightRes = await api('/api/generate/preflight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ consumerId: currentConsumerId, collectors: collectorsForPreflight }),
+        body: JSON.stringify({ consumerId: currentConsumerId, collectors }),
       });
       if (!preflightRes.ok) {
         showErr(preflightRes.error || 'Address preflight check failed.');
         btn.disabled = false; btn.textContent = origText; return;
       }
 
-      // Helper: propagate resolved addresses (keyed by normalised agency name) back
-      // into the full per-recommendation list so every tradeline gets a letter.
-      function applyAddrMap(resolvedUnique) {
-        const addrByName = {};
-        (resolvedUnique || []).forEach(c => {
-          addrByName[(c.name || '').toLowerCase().trim()] = c;
-        });
-        return collectorsAllRecs.map(c => {
-          const resolved = addrByName[(c.name || '').toLowerCase().trim()];
-          return resolved
-            ? { ...c, addr1: resolved.addr1, addr2: resolved.addr2, city: resolved.city, state: resolved.state, zip: resolved.zip }
-            : c;
-        });
-      }
-
       if (preflightRes.flagged && preflightRes.flagged.length > 0) {
         btn.textContent = origText;
         btn.disabled = false;
-        let resolvedUnique;
+        let resolvedCollectors;
         try {
-          resolvedUnique = await dpOpenAddrPreflightModal(preflightRes.flagged, preflightRes.enriched, currentConsumerId);
+          resolvedCollectors = await dpOpenAddrPreflightModal(preflightRes.flagged, preflightRes.enriched, currentConsumerId);
         } catch {
           return;
         }
-        if (!resolvedUnique) return;
-        collectors = applyAddrMap(resolvedUnique);
+        if (!resolvedCollectors) return;
+        // resolvedCollectors = enrichedAll.map(...) — all unique agencies with
+        // user-entered addresses for flagged ones, library addresses for the rest.
+        collectors = resolvedCollectors;
         btn.disabled = true;
         btn.textContent = 'Sending to server...';
       } else {
-        collectors = applyAddrMap(preflightRes.enriched);
+        collectors = Array.isArray(preflightRes.enriched) && preflightRes.enriched.length
+          ? preflightRes.enriched
+          : collectors;
       }
     }
 
