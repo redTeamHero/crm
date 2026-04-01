@@ -627,6 +627,27 @@ export async function createSmsTemplate(template) {
   return next;
 }
 
+export async function updateSmsTemplate(id, updates = {}) {
+  if (!id) throw new Error("Template id is required");
+  const state = await loadMarketingState();
+  const index = state.smsTemplates.findIndex((t) => t.id === id);
+  if (index === -1) throw new Error("SMS template not found");
+  const current = state.smsTemplates[index];
+  const next = normalizeSmsTemplate({ ...current, ...updates, id: current.id, createdAt: current.createdAt });
+  state.smsTemplates[index] = next;
+  await saveMarketingState(state);
+  return next;
+}
+
+export async function deleteSmsTemplate(id) {
+  if (!id) throw new Error("Template id is required");
+  const state = await loadMarketingState();
+  const index = state.smsTemplates.findIndex((t) => t.id === id);
+  if (index === -1) throw new Error("SMS template not found");
+  state.smsTemplates.splice(index, 1);
+  await saveMarketingState(state);
+}
+
 export async function listEmailSequences() {
   const state = await loadMarketingState();
   return state.emailSequences;

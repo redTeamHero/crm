@@ -13,6 +13,8 @@ import {
   deleteTemplate,
   listSmsTemplates,
   createSmsTemplate,
+  updateSmsTemplate,
+  deleteSmsTemplate,
   listEmailSequences,
   createEmailSequence,
   updateEmailSequence,
@@ -394,6 +396,34 @@ router.post("/sms-templates", async (req, res) => {
   }
 });
 
+router.patch("/sms-templates/:id", async (req, res) => {
+  const { id } = req.params;
+  const { title, body, segment, badge } = req.body || {};
+  const patch = {};
+  if (title !== undefined) patch.title = sanitizeString(title).slice(0, 120);
+  if (body !== undefined) patch.body = sanitizeString(body).slice(0, 600);
+  if (segment !== undefined) patch.segment = sanitizeString(segment).toLowerCase().slice(0, 24) || "b2c";
+  if (badge !== undefined) patch.badge = sanitizeString(badge).slice(0, 24) || "SMS";
+  try {
+    const template = await updateSmsTemplate(id, patch);
+    res.json({ ok: true, template });
+  } catch (error) {
+    const status = error.message === "SMS template not found" ? 404 : 500;
+    res.status(status).json({ ok: false, error: error.message || "Failed to update SMS template" });
+  }
+});
+
+router.delete("/sms-templates/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await deleteSmsTemplate(id);
+    res.json({ ok: true });
+  } catch (error) {
+    const status = error.message === "SMS template not found" ? 404 : 500;
+    res.status(status).json({ ok: false, error: error.message || "Failed to delete SMS template" });
+  }
+});
+
 router.get("/email/sequences", async (_req, res) => {
   const sequences = await listEmailSequences();
   res.json({ ok: true, sequences });
@@ -725,7 +755,7 @@ router.post("/history", async (req, res) => {
 const ALLOWED_RECIPIENT_TYPES = new Set(["client", "group", "multiple", "phone"]);
 
 router.post("/sms/send", async (req, res) => {
-  const { to, body, groupId, templateId, recipientType = "phone" } = req.body || {};
+  const { to, body, groupId, recipientType = "phone" } = req.body || {};
   const safeBody = sanitizeString(body || "").slice(0, 600);
   if (!safeBody) return res.status(400).json({ ok: false, error: "Message body is required" });
   const safeRecipientType = String(recipientType || "phone").trim().toLowerCase();
@@ -739,47 +769,71 @@ router.post("/sms/send", async (req, res) => {
     return res.status(400).json({ ok: false, error: "Phone number is required" });
   }
 
-  const toNums = to ? String(to).split(",").map((s) => s.trim()).filter(Boolean) : [];
-  const recipientCount = safeRecipientType !== "group" ? toNums.length : null;
+  const safeGroupId = groupId ? sanitizeString(groupId).slice(0, 80) : null;
 
-  let twilioResult = null;
+  let toNums = to ? String(to).split(",").map((s) => s.trim()).filter(Boolean) : [];
+  if (safeRecipientType === "group" && safeGroupId) {
+    try {
+      const members = await listGroupMembers(safeGroupId);
+      toNums = members.map((m) => m.clientId).filter(Boolean);
+    } catch { toNums = []; }
+  }
+  const recipientCount = toNums.length || null;
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
   const fromNumber = process.env.TWILIO_FROM_NUMBER;
+  const twilioConfigured = !!(accountSid && authToken && (messagingServiceSid || fromNumber));
 
-  if (accountSid && authToken && (messagingServiceSid || fromNumber) && safeRecipientType !== "group") {
+  let twilioErrors = [];
+  let twilioSuccesses = 0;
+
+  if (twilioConfigured && toNums.length > 0) {
     try {
       const twilio = (await import("twilio")).default;
       const client = twilio(accountSid, authToken);
-      const msgOpts = { body: safeBody, to: toNums[0] };
-      if (messagingServiceSid) msgOpts.messagingServiceSid = messagingServiceSid;
-      else msgOpts.from = fromNumber;
-      const msg = await client.messages.create(msgOpts);
-      twilioResult = { sid: msg.sid, status: msg.status };
-    } catch (twilioErr) {
-      twilioResult = { error: String(twilioErr.message || twilioErr) };
+      for (const num of toNums.slice(0, 100)) {
+        try {
+          const msgOpts = { body: safeBody, to: num };
+          if (messagingServiceSid) msgOpts.messagingServiceSid = messagingServiceSid;
+          else msgOpts.from = fromNumber;
+          await client.messages.create(msgOpts);
+          twilioSuccesses++;
+        } catch (e) {
+          twilioErrors.push(`${num}: ${String(e.message || e)}`);
+        }
+      }
+    } catch (initErr) {
+      twilioErrors.push(String(initErr.message || initErr));
     }
   }
 
   try {
+    const entryStatus = !twilioConfigured ? "queued" : twilioSuccesses > 0 ? "sent" : "failed";
+    const errorSummary = twilioErrors.length ? twilioErrors.slice(0, 3).join("; ") : null;
     const entry = await addEmailHistory({
       type: "sms",
       subject: safeBody.slice(0, 80),
       recipientType: safeRecipientType,
       recipientId: toNums[0] || null,
-      groupId: groupId ? sanitizeString(groupId) : null,
+      groupId: safeGroupId,
       recipientCount,
-      status: twilioResult?.sid ? "sent" : twilioResult?.error ? "failed" : "queued",
-      errorMessage: twilioResult?.error || null,
+      status: entryStatus,
+      errorMessage: errorSummary,
       createdBy: req.user?.username || "system",
     });
-    const message = twilioResult?.sid
-      ? "SMS sent successfully via Twilio."
-      : twilioResult?.error
-        ? `SMS queued but Twilio send failed: ${twilioResult.error}`
-        : "SMS queued. Connect Twilio in Settings \u2192 APIs to send live messages.";
-    res.status(201).json({ ok: true, entry, message });
+    let message;
+    if (!twilioConfigured) {
+      message = "SMS queued. Connect Twilio (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_MESSAGING_SERVICE_SID or TWILIO_FROM_NUMBER) in Settings \u2192 APIs to send live messages.";
+    } else if (twilioSuccesses > 0 && twilioErrors.length === 0) {
+      message = `SMS sent to ${twilioSuccesses} recipient${twilioSuccesses === 1 ? "" : "s"} via Twilio.`;
+    } else if (twilioSuccesses > 0) {
+      message = `SMS sent to ${twilioSuccesses} recipient${twilioSuccesses === 1 ? "" : "s"}; ${twilioErrors.length} failed.`;
+    } else {
+      message = `Send failed: ${errorSummary || "Unknown Twilio error"}`;
+    }
+    res.status(201).json({ ok: true, entry, message, sent: twilioSuccesses, failed: twilioErrors.length });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message || "Failed to send SMS" });
   }

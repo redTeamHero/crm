@@ -15,7 +15,7 @@ async function api(method, url, body) {
 function qs(sel) { return document.querySelector(sel); }
 function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
 function show(el) { if (el) { el.classList.remove("hidden"); el.style.display = ""; } }
-function hide(el) { if (el) el.style.display = "none"; }
+function hide(el) { if (el) { el.classList.add("hidden"); el.style.display = "none"; } }
 function toast(el, msg, isErr = false) {
   if (!el) return;
   el.textContent = msg;
@@ -31,8 +31,6 @@ function fmtDateTime(iso) {
   if (!iso) return "—";
   try { return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch { return "—"; }
 }
-
-/* ── char counter helper ─────────────────────────── */
 function updateCharCount(ta, el) {
   if (!ta || !el) return;
   const len = ta.value.length;
@@ -86,7 +84,8 @@ function statusBadge(s) {
   const map = {
     draft: "sm-badge-gray", scheduled: "sm-badge-blue", running: "sm-badge-blue",
     paused: "sm-badge-gray", completed: "sm-badge-green", sent: "sm-badge-green",
-    queued: "sm-badge-gray", failed: "sm-badge-red",
+    queued: "sm-badge-gray", failed: "sm-badge-red", active: "sm-badge-green",
+    archived: "sm-badge-gray",
   };
   return `<span class="sm-badge ${map[s] || "sm-badge-gray"}">${escapeHtml(s || "draft")}</span>`;
 }
@@ -97,6 +96,7 @@ let _campaigns = [];
 let _templates = [];
 let _history = [];
 const _memberCounts = {};
+let _campSteps = [];
 
 /* ── GROUPS ──────────────────────────────────────── */
 async function loadGroups() {
@@ -205,7 +205,7 @@ qs("#smsGroupForm")?.addEventListener("submit", async (e) => {
   } catch (err) { toast(qs("#smsGroupStatus"), err.message || "Failed to save group", true); }
 });
 
-[qs("#btnNewSmsGroup")].forEach((b) => b?.addEventListener("click", openNewGroup));
+qs("#btnNewSmsGroup")?.addEventListener("click", openNewGroup);
 [qs("#closeSmsGroupModal"), qs("#closeSmsGroupModal2")].forEach((b) => b?.addEventListener("click", () => closeModal("smsGroupModal")));
 
 /* ── Group Members ───────────────────────────────── */
@@ -332,8 +332,32 @@ function renderTemplates() {
         <span>${escapeHtml(t.segment || "b2c")}</span>
         <span>${fmtDate(t.createdAt)}</span>
       </div>
+      <div class="flex gap-2 mt-3 pt-2" style="border-top:1px solid rgba(212,168,83,0.1)">
+        <button class="btn btn-outline text-xs" data-tpl-action="edit" data-tid="${escapeHtml(t.id)}">Edit</button>
+        <button class="btn btn-outline text-xs" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" data-tpl-action="use" data-tid="${escapeHtml(t.id)}" data-tbody="${escapeHtml(t.body || "")}">Use in Send</button>
+        <button class="btn btn-outline text-xs" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" data-tpl-action="delete" data-tid="${escapeHtml(t.id)}" data-tname="${escapeHtml(t.title)}">Delete</button>
+      </div>
     </div>`).join("");
 }
+
+qs("#smsTemplateList")?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-tpl-action]");
+  if (!btn) return;
+  const action = btn.dataset.tplAction;
+  const tid = btn.dataset.tid;
+  if (action === "edit") openEditTemplate(tid);
+  if (action === "use") {
+    switchTab("send");
+    qs("#ssBody").value = btn.dataset.tbody || "";
+    qs("#ssBody").dispatchEvent(new Event("input"));
+  }
+  if (action === "delete") {
+    const ok = await confirmDialog("Delete template?", `Delete "${btn.dataset.tname}"? This cannot be undone.`);
+    if (!ok) return;
+    try { await api("DELETE", `${API}/sms-templates/${tid}`); await loadSmsTemplates(); }
+    catch (err) { alert(err.message); }
+  }
+});
 
 /* ── Template modal ──────────────────────────────── */
 function openNewTemplate() {
@@ -342,6 +366,18 @@ function openNewTemplate() {
   qs("#smsTemplateForm").reset();
   qs("#smsTplCharCount").textContent = "0 / 160";
   qs("#smsTplCharCount").className = "char-count";
+  openModal("smsTemplateModal");
+}
+
+function openEditTemplate(tid) {
+  const t = _templates.find((x) => x.id === tid);
+  if (!t) return;
+  qs("#smsTplModalTitle").textContent = "Edit SMS Template";
+  qs("#smsTplId").value = t.id;
+  qs("#smsTplTitle").value = t.title || "";
+  qs("#smsTplBody").value = t.body || "";
+  qs("#smsTplSegment").value = t.segment || "b2c";
+  updateCharCount(qs("#smsTplBody"), qs("#smsTplCharCount"));
   openModal("smsTemplateModal");
 }
 
@@ -354,33 +390,39 @@ qs("#smsTplBody")?.addEventListener("input", () => {
 
 qs("#smsTemplateForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const status = qs("#smsTplStatus");
+  const statusEl = qs("#smsTplStatus");
+  const id = qs("#smsTplId").value;
   const title = qs("#smsTplTitle").value.trim();
   const body = qs("#smsTplBody").value.trim();
   const segment = qs("#smsTplSegment").value;
-  if (!title) { toast(status, "Template name is required.", true); return; }
-  if (!body) { toast(status, "Message body is required.", true); return; }
+  if (!title) { toast(statusEl, "Template name is required.", true); return; }
+  if (!body) { toast(statusEl, "Message body is required.", true); return; }
   try {
-    await api("POST", `${API}/sms-templates`, { title, body, segment });
+    if (id) {
+      await api("PATCH", `${API}/sms-templates/${id}`, { title, body, segment });
+    } else {
+      await api("POST", `${API}/sms-templates`, { title, body, segment });
+    }
     closeModal("smsTemplateModal");
     await loadSmsTemplates();
-  } catch (err) { toast(status, err.message || "Failed to save template.", true); }
+  } catch (err) { toast(statusEl, err.message || "Failed to save template.", true); }
 });
 
-/* ── merge chips in template modal ──────────────── */
+/* ── merge chips (universal delegate) ───────────── */
 document.addEventListener("click", (e) => {
   const chip = e.target.closest(".sm-merge-chip");
   if (!chip) return;
   const merge = chip.dataset.merge;
   const modal = chip.closest(".sm-modal");
-  const ta = modal?.querySelector("textarea") || qs("#ssBody");
-  if (!ta) return;
-  const start = ta.selectionStart ?? ta.value.length;
-  const end = ta.selectionEnd ?? start;
-  ta.value = ta.value.slice(0, start) + merge + ta.value.slice(end);
-  ta.selectionStart = ta.selectionEnd = start + merge.length;
-  ta.dispatchEvent(new Event("input"));
-  ta.focus();
+  const ta = modal?.querySelector("textarea:not([id='smsTplBody']):not([id='smsCampBody'])") || chip.closest("form")?.querySelector("textarea") || qs("#ssBody");
+  const target = modal?.querySelector("textarea") || chip.closest("form")?.querySelector("textarea") || qs("#ssBody");
+  if (!target) return;
+  const start = target.selectionStart ?? target.value.length;
+  const end = target.selectionEnd ?? start;
+  target.value = target.value.slice(0, start) + merge + target.value.slice(end);
+  target.selectionStart = target.selectionEnd = start + merge.length;
+  target.dispatchEvent(new Event("input"));
+  target.focus();
 });
 
 /* ── CAMPAIGNS ───────────────────────────────────── */
@@ -406,17 +448,20 @@ function renderCampaigns() {
   container.innerHTML = _campaigns.map((c) => {
     const group = _groups.find((g) => g.id === c.groupId);
     const groupName = group ? group.name : (c.groupId ? "Unknown group" : "All contacts");
+    const stepCount = Array.isArray(c.steps) ? c.steps.length : 0;
     return `<div class="sm-card flex flex-col sm:flex-row sm:items-center gap-3">
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 mb-1">
+        <div class="flex items-center gap-2 flex-wrap mb-1">
           <span class="font-semibold text-sm truncate">${escapeHtml(c.name || "Untitled")}</span>
           ${statusBadge(c.status)}
           <span class="sm-badge sm-badge-gray text-xs">${escapeHtml(c.frequency || "immediate")}</span>
+          ${stepCount > 0 ? `<span class="sm-badge sm-badge-gold text-xs">${stepCount} follow-up${stepCount === 1 ? "" : "s"}</span>` : ""}
         </div>
         <p class="text-xs text-gray-500 line-clamp-2">${escapeHtml(c.body || c.subject || "—")}</p>
         <div class="text-xs text-gray-400 mt-1">${escapeHtml(groupName)} · Updated ${fmtDate(c.updatedAt)}</div>
       </div>
       <div class="flex gap-2 shrink-0">
+        <button class="btn btn-outline text-xs" data-camp-action="send" data-cid="${escapeHtml(c.id)}" data-cname="${escapeHtml(c.name || "Untitled")}" title="Send to group now">Send Now</button>
         <button class="btn btn-outline text-xs" data-camp-action="edit" data-cid="${escapeHtml(c.id)}">Edit</button>
         <button class="btn btn-outline text-xs" style="color:#dc2626;border-color:rgba(239,68,68,0.3)" data-camp-action="delete" data-cid="${escapeHtml(c.id)}" data-cname="${escapeHtml(c.name || "Untitled")}">Delete</button>
       </div>
@@ -430,6 +475,14 @@ qs("#smsCampaignList")?.addEventListener("click", async (e) => {
   const action = btn.dataset.campAction;
   const cid = btn.dataset.cid;
   if (action === "edit") openEditCampaign(cid);
+  if (action === "send") {
+    const c = _campaigns.find((x) => x.id === cid);
+    if (!c) return;
+    if (!c.groupId && !c.body) { alert("Campaign has no group or message body. Edit it first."); return; }
+    const ok = await confirmDialog("Send campaign now?", `Send "${btn.dataset.cname}" to its target group immediately?`);
+    if (!ok) return;
+    await sendCampaignNow(c);
+  }
   if (action === "delete") {
     const ok = await confirmDialog("Delete campaign?", `Delete "${btn.dataset.cname}"? This cannot be undone.`);
     if (!ok) return;
@@ -438,12 +491,79 @@ qs("#smsCampaignList")?.addEventListener("click", async (e) => {
   }
 });
 
+async function sendCampaignNow(c) {
+  try {
+    const result = await api("POST", `${API}/sms/send`, {
+      groupId: c.groupId || null,
+      to: null,
+      body: c.body || c.subject,
+      recipientType: c.groupId ? "group" : "phone",
+    });
+    await api("PATCH", `${API}/campaigns/${c.id}`, { status: "completed" });
+    alert(result.message || "Campaign sent.");
+    await Promise.all([loadSmsCampaigns(), loadSmsHistory()]);
+  } catch (err) { alert(err.message || "Failed to send campaign."); }
+}
+
+/* ── Campaign drip steps ─────────────────────────── */
+function renderCampSteps() {
+  const container = qs("#smsCampSteps");
+  if (!container) return;
+  if (!_campSteps.length) {
+    container.innerHTML = `<p class="text-xs text-gray-400 italic">No follow-up steps yet. Click "+ Add Step" to add one.</p>`;
+    return;
+  }
+  container.innerHTML = _campSteps.map((s, i) => `
+    <div class="sm-step">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Step ${i + 1} — Follow-up</span>
+        <button type="button" class="text-red-400 text-xs font-bold" data-step-action="remove" data-step-idx="${i}">&times; Remove</button>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-[120px_1fr]">
+        <div>
+          <label class="sm-label">Delay (days)</label>
+          <input class="input w-full" type="number" min="1" max="365" value="${s.delayDays || 1}" data-step-field="delayDays" data-step-idx="${i}" />
+        </div>
+        <div>
+          <label class="sm-label">Message</label>
+          <textarea class="input w-full" rows="2" maxlength="600" data-step-field="body" data-step-idx="${i}">${escapeHtml(s.body || "")}</textarea>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+qs("#smsCampSteps")?.addEventListener("input", (e) => {
+  const el = e.target.closest("[data-step-field]");
+  if (!el) return;
+  const idx = Number(el.dataset.stepIdx);
+  const field = el.dataset.stepField;
+  if (!_campSteps[idx]) return;
+  _campSteps[idx][field] = field === "delayDays" ? Math.max(1, Number(el.value) || 1) : el.value;
+});
+
+qs("#smsCampSteps")?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-step-action='remove']");
+  if (!btn) return;
+  const idx = Number(btn.dataset.stepIdx);
+  _campSteps.splice(idx, 1);
+  renderCampSteps();
+});
+
+qs("#btnAddSmsStep")?.addEventListener("click", () => {
+  if (_campSteps.length >= 10) { alert("Maximum 10 follow-up steps per campaign."); return; }
+  _campSteps.push({ delayDays: 1, body: "" });
+  renderCampSteps();
+});
+
+/* ── Campaign modal ──────────────────────────────── */
 function openNewCampaign() {
   qs("#smsCampModalTitle").textContent = "New SMS Campaign";
   qs("#smsCampId").value = "";
   qs("#smsCampaignForm").reset();
   qs("#smsCampCharCount").textContent = "0 / 160";
   qs("#smsCampCharCount").className = "char-count";
+  _campSteps = [];
+  renderCampSteps();
   openModal("smsCampaignModal");
 }
 
@@ -459,6 +579,8 @@ function openEditCampaign(cid) {
   qs("#smsCampDescription").value = c.description || "";
   qs("#smsCampBody").value = c.body || c.subject || "";
   updateCharCount(qs("#smsCampBody"), qs("#smsCampCharCount"));
+  _campSteps = Array.isArray(c.steps) ? c.steps.map((s) => ({ delayDays: s.delayDays || 1, body: s.body || "" })) : [];
+  renderCampSteps();
   openModal("smsCampaignModal");
 }
 
@@ -469,16 +591,10 @@ qs("#smsCampBody")?.addEventListener("input", () => {
   updateCharCount(qs("#smsCampBody"), qs("#smsCampCharCount"));
 });
 
-qs("#smsCampaignForm")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const status2 = qs("#smsCampStatus2");
-  const id = qs("#smsCampId").value;
-  const name = qs("#smsCampName").value.trim();
+function collectCampaignPayload() {
   const body = qs("#smsCampBody").value.trim();
-  if (!name) { toast(status2, "Campaign name is required.", true); return; }
-  if (!body) { toast(status2, "Message body is required.", true); return; }
-  const payload = {
-    name,
+  return {
+    name: qs("#smsCampName").value.trim(),
     channel: "sms",
     groupId: qs("#smsCampGroupId").value || null,
     status: qs("#smsCampStatus").value,
@@ -486,13 +602,49 @@ qs("#smsCampaignForm")?.addEventListener("submit", async (e) => {
     description: qs("#smsCampDescription").value.trim(),
     body,
     subject: body.slice(0, 80),
+    steps: _campSteps.filter((s) => s.body.trim()),
   };
+}
+
+qs("#smsCampaignForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const statusEl = qs("#smsCampStatus2");
+  const id = qs("#smsCampId").value;
+  const payload = collectCampaignPayload();
+  if (!payload.name) { toast(statusEl, "Campaign name is required.", true); return; }
+  if (!payload.body) { toast(statusEl, "Message body is required.", true); return; }
   try {
     if (id) { await api("PATCH", `${API}/campaigns/${id}`, payload); }
     else { await api("POST", `${API}/campaigns`, payload); }
     closeModal("smsCampaignModal");
     await loadSmsCampaigns();
-  } catch (err) { toast(status2, err.message || "Failed to save campaign.", true); }
+  } catch (err) { toast(statusEl, err.message || "Failed to save campaign.", true); }
+});
+
+qs("#smsCampSendNowBtn")?.addEventListener("click", async () => {
+  const statusEl = qs("#smsCampStatus2");
+  const id = qs("#smsCampId").value;
+  const payload = collectCampaignPayload();
+  if (!payload.name) { toast(statusEl, "Campaign name is required.", true); return; }
+  if (!payload.body) { toast(statusEl, "Message body is required.", true); return; }
+  if (!payload.groupId) { toast(statusEl, "Select a target group to send now.", true); return; }
+  try {
+    let cid = id;
+    if (cid) { await api("PATCH", `${API}/campaigns/${cid}`, payload); }
+    else {
+      const r = await api("POST", `${API}/campaigns`, payload);
+      cid = r.campaign?.id;
+    }
+    const sendResult = await api("POST", `${API}/sms/send`, {
+      groupId: payload.groupId,
+      body: payload.body,
+      recipientType: "group",
+    });
+    if (cid) await api("PATCH", `${API}/campaigns/${cid}`, { status: "completed" });
+    closeModal("smsCampaignModal");
+    toast(qs("#ssStatus"), sendResult.message || "Campaign sent.");
+    await Promise.all([loadSmsCampaigns(), loadSmsHistory()]);
+  } catch (err) { toast(statusEl, err.message || "Failed to send campaign.", true); }
 });
 
 /* ── SEND SMS ────────────────────────────────────── */
@@ -507,7 +659,6 @@ function handleRecipientTypeChange() {
 }
 
 qs("#ssRecipientType")?.addEventListener("change", handleRecipientTypeChange);
-
 qs("#btnSendSms")?.addEventListener("click", () => switchTab("send"));
 
 qs("#ssTemplateSelect")?.addEventListener("change", () => {
@@ -535,21 +686,21 @@ function updateSmsPreview() {
 
 qs("#sendSmsForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const status = qs("#ssStatus");
+  const statusEl = qs("#ssStatus");
   const type = qs("#ssRecipientType").value;
   const body = qs("#ssBody").value.trim();
-  if (!body) { toast(status, "Message body is required.", true); return; }
+  if (!body) { toast(statusEl, "Message body is required.", true); return; }
 
   let to = null, groupId = null;
   if (type === "phone") {
     to = qs("#ssPhone").value.trim();
-    if (!to) { toast(status, "Enter a phone number.", true); return; }
+    if (!to) { toast(statusEl, "Enter a phone number.", true); return; }
   } else if (type === "multiple") {
     to = qs("#ssMultiplePhones").value.trim();
-    if (!to) { toast(status, "Enter at least one phone number.", true); return; }
+    if (!to) { toast(statusEl, "Enter at least one phone number.", true); return; }
   } else if (type === "group") {
     groupId = qs("#ssGroupId").value;
-    if (!groupId) { toast(status, "Select a group.", true); return; }
+    if (!groupId) { toast(statusEl, "Select a group.", true); return; }
   }
 
   const ssSendBtn = qs("#ssSendNow");
@@ -557,7 +708,7 @@ qs("#sendSmsForm")?.addEventListener("submit", async (e) => {
   ssSendBtn.textContent = "Sending…";
   try {
     const result = await api("POST", `${API}/sms/send`, { to, body, groupId, recipientType: type });
-    toast(status, result.message || "SMS queued.");
+    toast(statusEl, result.message || "SMS queued.");
     qs("#sendSmsForm").reset();
     handleRecipientTypeChange();
     qs("#ssCharCount").textContent = "0 / 160";
@@ -565,7 +716,7 @@ qs("#sendSmsForm")?.addEventListener("submit", async (e) => {
     qs("#ssPreview").textContent = "Compose a message to see a preview.";
     await loadSmsHistory();
   } catch (err) {
-    toast(status, err.message || "Failed to send SMS.", true);
+    toast(statusEl, err.message || "Failed to send SMS.", true);
   } finally {
     ssSendBtn.disabled = false;
     ssSendBtn.textContent = "Send Now";
@@ -591,21 +742,31 @@ function renderHistory() {
     </div>`;
     return;
   }
-  container.innerHTML = `<div class="space-y-2">` + _history.map((h) => `
-    <div class="sm-card flex flex-col sm:flex-row sm:items-center gap-3">
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 mb-1">
-          ${statusBadge(h.status)}
-          <span class="text-sm font-medium truncate">${escapeHtml(h.subject || h.recipientId || "—")}</span>
-        </div>
-        <div class="text-xs text-gray-400">
-          ${h.recipientType === "group" ? `Group · ${escapeHtml(h.groupName || h.groupId || "—")}` : `To: ${escapeHtml(h.recipientId || "—")}`}
-          ${h.recipientCount != null ? ` · ${h.recipientCount} recipient${h.recipientCount === 1 ? "" : "s"}` : ""}
-        </div>
-        ${h.errorMessage ? `<div class="text-xs text-red-500 mt-1">${escapeHtml(h.errorMessage)}</div>` : ""}
-      </div>
-      <div class="text-xs text-gray-400 shrink-0">${fmtDateTime(h.sentAt)}</div>
-    </div>`).join("") + `</div>`;
+  container.innerHTML = `<div class="overflow-x-auto rounded-xl border border-[rgba(212,168,83,0.15)]">
+    <table class="sm-history-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Recipient</th>
+          <th>Message</th>
+          <th>Count</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${_history.map((h) => `
+        <tr>
+          <td class="text-gray-500 whitespace-nowrap">${fmtDateTime(h.sentAt)}</td>
+          <td class="font-mono text-xs text-gray-700">${h.recipientType === "group"
+            ? `<span class="sm-badge sm-badge-gold">Group</span> ${escapeHtml(h.groupName || h.groupId || "—")}`
+            : escapeHtml(h.recipientId || "—")}</td>
+          <td class="max-w-xs"><p class="truncate text-xs text-gray-600">${escapeHtml(h.subject || "—")}</p>${h.errorMessage ? `<p class="text-xs text-red-500">${escapeHtml(h.errorMessage)}</p>` : ""}</td>
+          <td class="text-gray-500">${h.recipientCount ?? "—"}</td>
+          <td>${statusBadge(h.status)}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 qs("#btnRefreshSmsHistory")?.addEventListener("click", loadSmsHistory);
