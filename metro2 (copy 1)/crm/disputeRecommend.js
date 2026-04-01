@@ -15,7 +15,16 @@ function hasViolationType(violations, keywords) {
   });
 }
 
-const COLLECTOR_TEMPLATES = new Set(['debt-validation', 'cease-and-desist']);
+const COLLECTOR_TEMPLATES = new Set([
+  'debt-validation',
+  'cease-and-desist',
+  'hipaa-medical-debt',
+  'fdcpa-harassment',
+  'fdcpa-time-barred',
+  'pay-for-delete',
+  'pay-for-delete-followup',
+]);
+
 function tgt(template) {
   return COLLECTOR_TEMPLATES.has(template) ? 'collector' : 'bureau';
 }
@@ -25,13 +34,63 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
   const status = (accountStatus || '').toLowerCase();
   const hasViolations = Array.isArray(violations) && violations.length > 0;
 
+  const isMedical = type.includes('medical') || type.includes('health') || type.includes('hospital')
+    || status.includes('medical') || status.includes('health')
+    || hasViolationType(violations, ['medical', 'hipaa', 'health', 'hospital', 'healthcare', 'physician', 'clinic']);
+
+  const isCollection = status.includes('collection') || type.includes('collection') || type.includes('debt')
+    || hasViolationType(violations, ['collection', 'collector', 'debt buyer', 'purchased']);
+
+  const isLoan = type.includes('loan') || type.includes('mortgage') || type.includes('installment')
+    || type.includes('auto') || type.includes('personal') || type.includes('student');
+
+  const hasHarassment = hasViolationType(violations, ['harassment', 'excessive call', 'abusive', 'intimidat', 'threaten', 'harass']);
+
+  const hasTimeBarred = hasViolationType(violations, ['time-barred', 'time barred', 'statute of limitation', 'sol expired', 'barred by statute']);
+
+  const hasLatePaymentOnly = hasViolationType(violations, ['late payment', 'late pay', 'goodwill', 'isolated late', '30 day late', '60 day late', '90 day late'])
+    && !status.includes('collection') && !status.includes('charge-off') && !status.includes('charge off')
+    && !type.includes('collection') && !type.includes('debt');
+
+  const hasTILA = hasViolationType(violations, ['tila', 'truth in lending', 'finance charge', 'annual percentage rate', 'apr violation', 'disclosure required']);
+
+  if (isMedical && isCollection) {
+    return {
+      recommendedTemplate: 'hipaa-medical-debt',
+      reason: 'Medical debt in collections — request HIPAA authorization and full itemized validation under FDCPA §809',
+      urgency: 'high',
+      letterTarget: 'collector',
+      alternativeTemplates: ['debt-validation', 'cease-and-desist']
+    };
+  }
+
+  if (hasHarassment && isCollection) {
+    return {
+      recommendedTemplate: 'fdcpa-harassment',
+      reason: 'Harassment or abusive collection conduct detected — formally document and demand it stop under FDCPA §806',
+      urgency: 'high',
+      letterTarget: 'collector',
+      alternativeTemplates: ['cease-and-desist', 'debt-validation']
+    };
+  }
+
+  if (hasTimeBarred && isCollection) {
+    return {
+      recommendedTemplate: 'fdcpa-time-barred',
+      reason: 'Debt appears to be past the statute of limitations — request proof the debt is still collectible under FDCPA',
+      urgency: 'high',
+      letterTarget: 'collector',
+      alternativeTemplates: ['obsolete-debt', 'debt-validation']
+    };
+  }
+
   if (hasViolationType(violations, ['metro 2', 'metro2', 'compliance', 'inconsisten', 'field', 'segment', 'format'])) {
     return {
-      recommendedTemplate: '611-general-dispute',
-      reason: 'Metro 2 compliance inconsistencies detected — start with a general dispute citing specific field-level violations',
+      recommendedTemplate: 'metro2-inconsistency-dispute',
+      reason: 'Metro 2 compliance inconsistencies detected — dispute specific field-level violations and demand corrected data submission',
       urgency: 'high',
       letterTarget: 'bureau',
-      alternativeTemplates: ['method-of-verification', '623-direct-dispute']
+      alternativeTemplates: ['611-general-dispute', '623-direct-dispute']
     };
   }
 
@@ -55,7 +114,17 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
     };
   }
 
-  if (status.includes('collection') || type.includes('collection') || type.includes('debt') || hasViolationType(violations, ['collection', 'collector', 'debt buyer', 'purchased'])) {
+  if (hasTILA && isLoan) {
+    return {
+      recommendedTemplate: 'tila-disclosure',
+      reason: 'Loan account with disclosure violations — demand full TILA disclosure of rates, fees, and payment terms',
+      urgency: 'medium',
+      letterTarget: 'bureau',
+      alternativeTemplates: ['611-general-dispute', '623-direct-dispute']
+    };
+  }
+
+  if (isCollection) {
     return {
       recommendedTemplate: 'debt-validation',
       reason: 'Collection account — request full debt validation under FDCPA §809 before proceeding',
@@ -72,6 +141,16 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       urgency: 'high',
       letterTarget: 'bureau',
       alternativeTemplates: ['611-general-dispute']
+    };
+  }
+
+  if (hasLatePaymentOnly) {
+    return {
+      recommendedTemplate: 'goodwill-removal',
+      reason: 'Late payment notation on otherwise current account — request goodwill removal from the creditor',
+      urgency: 'low',
+      letterTarget: 'bureau',
+      alternativeTemplates: ['611-general-dispute', '623-direct-dispute']
     };
   }
 
@@ -99,10 +178,21 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   const result = (outcome || '').toLowerCase();
   const type = (accountType || '').toLowerCase();
   const status = (accountStatus || '').toLowerCase();
+
   const isCollection = type.includes('collection') || type.includes('debt') || status.includes('collection');
+  const isMedical = type.includes('medical') || type.includes('health') || type.includes('hospital')
+    || status.includes('medical') || status.includes('health')
+    || hasViolationType(violations, ['medical', 'hipaa', 'health', 'hospital', 'healthcare', 'physician', 'clinic']);
   const hasBankruptcy = status.includes('bankrupt') || type.includes('bankrupt') || hasViolationType(violations, ['bankrupt', 'discharge']);
   const hasMetro2Issues = hasViolationType(violations, ['metro 2', 'metro2', 'compliance', 'inconsisten', 'field', 'segment', 'format']);
   const hasObsolete = hasViolationType(violations, ['obsolete', 'expired', 'seven year', '7 year', 'time-barred', 'statute of limitation']);
+  const hasHarassment = hasViolationType(violations, ['harassment', 'excessive call', 'abusive', 'intimidat', 'threaten', 'harass']);
+  const hasTimeBarred = hasViolationType(violations, ['time-barred', 'time barred', 'statute of limitation', 'sol expired', 'barred by statute']);
+  const hasFactualErrors = hasViolationType(violations, ['factual', 'incorrect date', 'balance error', 'wrong date', 'incorrect balance', 'date error']);
+  const hasGoodwillEligible = hasViolationType(violations, ['late payment', 'late pay', 'goodwill', 'isolated late', '30 day late', '60 day late'])
+    && !status.includes('collection') && !status.includes('charge-off') && !status.includes('charge off')
+    && !type.includes('collection') && !type.includes('debt');
+  const prevIsPFD = prev.includes('pay-for-delete');
 
   if (result === 'removed' || result === 'deleted' || result === 'corrected') {
     return {
@@ -114,12 +204,41 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
     };
   }
 
+  if (isMedical && isCollection) {
+    return {
+      recommendedTemplate: 'hipaa-medical-debt',
+      reason: 'Medical collection account — request HIPAA authorization, itemized billing, and insurance verification under FDCPA §809',
+      urgency: 'high',
+      letterTarget: 'collector',
+      alternativeTemplates: ['debt-validation', 'cease-and-desist']
+    };
+  }
+
+  if (hasHarassment && isCollection) {
+    return {
+      recommendedTemplate: 'fdcpa-harassment',
+      reason: 'Harassment or abusive conduct from collector — demand it stop immediately under FDCPA §806',
+      urgency: 'high',
+      letterTarget: 'collector',
+      alternativeTemplates: ['cease-and-desist', 'debt-validation']
+    };
+  }
+
   if (result === 'awaiting' || result === 'awaiting_response') {
+    if (hasTimeBarred && isCollection) {
+      return {
+        recommendedTemplate: 'fdcpa-time-barred',
+        reason: 'Collection account still awaiting — debt may be time-barred; demand proof it is within the statute of limitations',
+        urgency: 'high',
+        letterTarget: 'collector',
+        alternativeTemplates: ['debt-validation', 'obsolete-debt']
+      };
+    }
     if (isCollection) {
       const template = prev.includes('debt-validation') ? 'second-round-dispute' : 'debt-validation';
       return {
         recommendedTemplate: template,
-        reason: isCollection && !prev.includes('debt-validation')
+        reason: !prev.includes('debt-validation')
           ? 'Collection account still awaiting — send debt validation request under FDCPA §809'
           : 'Collection account awaiting response — follow up with escalated dispute',
         urgency: 'medium',
@@ -147,8 +266,8 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
     }
     if (hasMetro2Issues) {
       return {
-        recommendedTemplate: '611-general-dispute',
-        reason: 'Metro 2 compliance issues awaiting response — follow up citing specific violations',
+        recommendedTemplate: 'metro2-inconsistency-dispute',
+        reason: 'Metro 2 compliance issues still awaiting response — follow up demanding corrected data submission',
         urgency: 'medium',
         letterTarget: 'bureau',
         alternativeTemplates: ['second-round-dispute', 'method-of-verification']
@@ -164,7 +283,34 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   }
 
   if (result === 'no_response' || result === 'no response') {
+    if (prevIsPFD) {
+      return {
+        recommendedTemplate: 'pay-for-delete-followup',
+        reason: 'No response to pay-for-delete offer — renew the settlement offer with a firm deadline',
+        urgency: 'high',
+        letterTarget: 'collector',
+        alternativeTemplates: ['debt-validation', 'ag-cfpb-escalation']
+      };
+    }
+    if (hasTimeBarred && isCollection) {
+      return {
+        recommendedTemplate: 'fdcpa-time-barred',
+        reason: 'No response on collection account — debt may be time-barred; demand proof it is within statute of limitations',
+        urgency: 'high',
+        letterTarget: 'collector',
+        alternativeTemplates: ['debt-validation', 'obsolete-debt']
+      };
+    }
     if (round >= 3) {
+      if (hasMetro2Issues) {
+        return {
+          recommendedTemplate: 'metro2-deletion-demand',
+          reason: 'No response after multiple rounds with Metro 2 violations — demand deletion under FCRA §607(b) and §611',
+          urgency: 'high',
+          letterTarget: 'bureau',
+          alternativeTemplates: ['ag-cfpb-escalation', 'arbitration-election']
+        };
+      }
       return {
         recommendedTemplate: 'ag-cfpb-escalation',
         reason: 'No response after multiple rounds — escalate with AG/CFPB complaint threat',
@@ -174,15 +320,33 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       };
     }
     if (isCollection) {
+      if (round >= 2 && !prev.includes('pay-for-delete')) {
+        return {
+          recommendedTemplate: 'pay-for-delete',
+          reason: 'No response from collector after multiple rounds — propose conditional pay-for-delete settlement at 40%',
+          urgency: 'high',
+          letterTarget: 'collector',
+          alternativeTemplates: ['debt-validation', 'ag-cfpb-escalation']
+        };
+      }
       const template = prev.includes('debt-validation') ? 'second-round-dispute' : 'debt-validation';
       return {
         recommendedTemplate: template,
-        reason: isCollection && !prev.includes('debt-validation')
+        reason: !prev.includes('debt-validation')
           ? 'No response on collection account — demand debt validation under FDCPA §809'
           : 'No response after debt validation — escalate with second-round dispute',
         urgency: 'high',
         letterTarget: tgt(template),
         alternativeTemplates: ['ag-cfpb-escalation', '623-direct-dispute']
+      };
+    }
+    if (hasFactualErrors && round >= 2) {
+      return {
+        recommendedTemplate: 'factual-errors-layer',
+        reason: 'No response despite documented factual errors — submit additional evidence and demand reopened investigation',
+        urgency: 'high',
+        letterTarget: 'bureau',
+        alternativeTemplates: ['second-round-dispute', 'method-of-verification']
       };
     }
     return {
@@ -196,6 +360,15 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
 
   if (result === 'verified') {
     if (round >= 3) {
+      if (hasMetro2Issues) {
+        return {
+          recommendedTemplate: 'metro2-deletion-demand',
+          reason: 'Verified multiple times despite Metro 2 violations — demand deletion under FCRA §607(b) and §611',
+          urgency: 'high',
+          letterTarget: 'bureau',
+          alternativeTemplates: ['ag-cfpb-escalation', 'arbitration-election']
+        };
+      }
       return {
         recommendedTemplate: 'ag-cfpb-escalation',
         reason: 'Item verified multiple times without adequate proof — escalate to regulators',
@@ -205,6 +378,15 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       };
     }
     if (isCollection) {
+      if (round >= 2 && !prevIsPFD) {
+        return {
+          recommendedTemplate: 'pay-for-delete',
+          reason: 'Collection verified — propose conditional pay-for-delete settlement to resolve without ongoing credit damage',
+          urgency: 'medium',
+          letterTarget: 'collector',
+          alternativeTemplates: ['623-direct-dispute', 'method-of-verification']
+        };
+      }
       return {
         recommendedTemplate: '623-direct-dispute',
         reason: 'Collection verified — dispute directly with furnisher under FCRA §623',
@@ -213,13 +395,22 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['method-of-verification', 'ag-cfpb-escalation']
       };
     }
+    if (hasFactualErrors) {
+      return {
+        recommendedTemplate: 'factual-errors-layer',
+        reason: 'Verified despite documented factual errors — submit evidence layer to force substantive re-examination',
+        urgency: 'medium',
+        letterTarget: 'bureau',
+        alternativeTemplates: ['method-of-verification', '623-direct-dispute']
+      };
+    }
     if (hasMetro2Issues) {
       return {
         recommendedTemplate: 'method-of-verification',
         reason: 'Verified despite Metro 2 violations — demand method of verification under FCRA §611(a)(7)',
         urgency: 'medium',
         letterTarget: 'bureau',
-        alternativeTemplates: ['623-direct-dispute', 'ag-cfpb-escalation']
+        alternativeTemplates: ['metro2-inconsistency-dispute', 'ag-cfpb-escalation']
       };
     }
     return {
@@ -251,6 +442,15 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   }
 
   if (result === 'partial') {
+    if (hasGoodwillEligible) {
+      return {
+        recommendedTemplate: 'goodwill-removal',
+        reason: 'Partial correction received on a late payment account — request goodwill removal of remaining notations',
+        urgency: 'low',
+        letterTarget: 'bureau',
+        alternativeTemplates: ['611-general-dispute', 'method-of-verification']
+      };
+    }
     if (isCollection) {
       return {
         recommendedTemplate: '623-direct-dispute',
@@ -280,6 +480,15 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   }
 
   if (round >= 3) {
+    if (hasMetro2Issues) {
+      return {
+        recommendedTemplate: 'metro2-deletion-demand',
+        reason: 'Multiple dispute rounds completed with ongoing Metro 2 violations — demand deletion under FCRA §607(b)',
+        urgency: 'high',
+        letterTarget: 'bureau',
+        alternativeTemplates: ['ag-cfpb-escalation', 'arbitration-election']
+      };
+    }
     return {
       recommendedTemplate: 'ag-cfpb-escalation',
       reason: 'Multiple dispute rounds completed — escalate with regulatory complaint',
@@ -290,10 +499,28 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   }
 
   if (isCollection) {
+    if (hasTimeBarred) {
+      return {
+        recommendedTemplate: 'fdcpa-time-barred',
+        reason: 'Collection account with potential statute of limitations issue — demand proof debt is within the collectible period',
+        urgency: 'high',
+        letterTarget: 'collector',
+        alternativeTemplates: ['obsolete-debt', 'debt-validation']
+      };
+    }
+    if (round >= 2 && !prevIsPFD) {
+      return {
+        recommendedTemplate: 'pay-for-delete',
+        reason: 'Collection account persisting after initial dispute — propose conditional pay-for-delete settlement at 40%',
+        urgency: 'medium',
+        letterTarget: 'collector',
+        alternativeTemplates: ['debt-validation', '623-direct-dispute']
+      };
+    }
     const template = prev.includes('debt-validation') ? '623-direct-dispute' : 'debt-validation';
     return {
       recommendedTemplate: template,
-      reason: isCollection && !prev.includes('debt-validation')
+      reason: !prev.includes('debt-validation')
         ? 'Collection account — request debt validation under FDCPA §809'
         : 'Follow up on collection — dispute directly with furnisher under FCRA §623',
       urgency: 'medium',
