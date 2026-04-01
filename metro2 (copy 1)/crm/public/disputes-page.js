@@ -610,26 +610,41 @@ function openLetterPreviewModal(letterJobId, letters, roundNum, portalSent, port
       }
       errEl.textContent = msg;
     }
-    try {
-      const res = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
-      if (res?.ok) {
-        btn.textContent = '\u2713 Portal';
-        btn.style.color = '#4ade80';
-        btn.style.borderColor = '#4ade80';
-        if (errEl) errEl.remove();
-      } else {
-        btn.disabled = false;
-        btn.textContent = '\u26A0 Retry Portal';
-        btn.style.color = '#fbbf24';
-        btn.style.borderColor = '#fbbf24';
-        showInlineErr(res?.error || res?.message || 'Failed to send to portal.');
-      }
-    } catch (err) {
+    const markPortalSent = () => {
+      btn.textContent = '\u2713 Portal';
+      btn.style.color = '#4ade80';
+      btn.style.borderColor = '#4ade80';
+      btn.disabled = true;
+      if (errEl) errEl.remove();
+    };
+    const markPortalErr = msg => {
       btn.disabled = false;
       btn.textContent = '\u26A0 Retry Portal';
       btn.style.color = '#fbbf24';
       btn.style.borderColor = '#fbbf24';
-      showInlineErr(String(err.message || err));
+      showInlineErr(msg);
+    };
+    try {
+      const res = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
+      if (res?.ok) {
+        markPortalSent();
+      } else if (res?.status === 404) {
+        const round = currentDisputeData?.rounds?.find(r => r.jobId === letterJobId);
+        if (!round) {
+          markPortalErr('Letters not found — please regenerate manually.');
+        } else {
+          try {
+            await regenerateAndSendPortal(round, msg => { btn.textContent = msg; });
+            markPortalSent();
+          } catch (regenErr) {
+            markPortalErr(`Auto-regeneration failed: ${regenErr.message || regenErr}`);
+          }
+        }
+      } else {
+        markPortalErr(res?.error || res?.message || 'Failed to send to portal.');
+      }
+    } catch (err) {
+      markPortalErr(String(err.message || err));
     }
   });
 }
