@@ -603,7 +603,10 @@ function buildLetterHTML(opts) {
     ? `<ol class="ocr" style="margin:0;padding-left:8px;"><li style="margin-bottom:12px;"><strong>${safe(manualReason)}</strong></li></ol>`
     : buildViolationListHTML(tl.violations, selectedViolationIdxs);
 
-  if (template && template.english) {
+  const _isEnglishBlob = (s) => typeof s === 'string' && (s.includes('\n[Address]') || s.startsWith('[Your Name]'));
+  const _effectiveEnglish = template?.english || (_isEnglishBlob(template?.intro) ? template.intro : null);
+
+  if (template && _effectiveEnglish) {
     const accountNum = tl.per_bureau?.[bureau]?.account_number
       || tl.meta?.account_numbers?.[bureau]
       || tl.meta?.account_number
@@ -620,7 +623,7 @@ function buildLetterHTML(opts) {
     const _engBalStr = !isNaN(_engNum) ? `$${_engNum.toFixed(2)}`          : '[BALANCE — ENTER MANUALLY]';
     const _engP40Str = !isNaN(_engNum) ? `$${(_engNum * 0.40).toFixed(2)}` : '[40% AMOUNT — ENTER MANUALLY]';
     const _engP50Str = !isNaN(_engNum) ? `$${(_engNum * 0.50).toFixed(2)}` : '[50% AMOUNT — ENTER MANUALLY]';
-    const personalized = template.english
+    const personalized = _effectiveEnglish
       .replace(/\[Your Name\]/g, safe(consumer.name))
       .replace(/\[Address\]/g, safe(consumer.addr1 || ''))
       .replace(/\[City, State ZIP\]/g, [consumer.city, consumer.state, consumer.zip].filter(Boolean).join(', '))
@@ -1077,6 +1080,7 @@ function buildCollectorLetterHTML({ consumer, collector }) {
       .replace(/\[Financial Institution Name\]/g, collectorName)
       .replace(/\[Credit Bureau Name\]/g, collectorName)
       .replace(/\[Credit Bureau or Creditor Name\]/g, collectorName)
+      .replace(/\[Bureau\]/g, collectorName)
       .replace(/\[Account Number\]/g, accountNum)
       .replace(/\{ACCOUNT\}/g, accountNum)
       .replace(/\{CREDITOR\}/g, collectorName)
