@@ -1059,7 +1059,6 @@ function buildCollectorLetterHTML({ consumer, collector, previousDisputeDate = n
 
   const collectorAddr1 = collector.addr1 && collector.addr1 !== '[Add collector address — required before mailing]'
     ? collector.addr1 : null;
-  const collectorCityStateZip = [collector.city, collector.state, collector.zip].filter(Boolean).join(', ');
 
   const headerData = {
     name: collector.name || 'Debt Collector',
@@ -1068,7 +1067,6 @@ function buildCollectorLetterHTML({ consumer, collector, previousDisputeDate = n
     city: collector.city || '',
     state: collector.state || '',
     zip: collector.zip || '',
-    cityStateZip: collectorCityStateZip || '',
   };
 
   let bodyHtml;
