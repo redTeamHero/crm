@@ -92,6 +92,7 @@ router.get("/campaigns", async (_req, res) => {
 router.post("/campaigns", async (req, res) => {
   const {
     name,
+    channel = "email",
     status = "draft",
     segment = "b2c",
     nextTouchAt = null,
@@ -140,9 +141,12 @@ router.post("/campaigns", async (req, res) => {
   const ALLOWED_FREQ = new Set(["immediate", "daily", "weekly", "monthly", "custom"]);
   const safeFrequency = ALLOWED_FREQ.has(String(frequency).toLowerCase()) ? String(frequency).toLowerCase() : "immediate";
 
+  const safeChannel = ["email", "sms"].includes(String(channel || "email").toLowerCase()) ? String(channel).toLowerCase() : "email";
+
   try {
     const campaign = await createCampaign({
       name: safeName,
+      channel: safeChannel,
       status: safeStatus,
       segment: sanitizeSegmentValue(segment),
       nextTouchAt: safeNextTouch,
@@ -254,6 +258,10 @@ router.patch("/campaigns/:id", async (req, res) => {
     }
   }
 
+  if (req.body?.channel !== undefined) {
+    const ch = String(req.body.channel || "email").toLowerCase();
+    patch.channel = ["email", "sms"].includes(ch) ? ch : "email";
+  }
   if (subject !== undefined) patch.subject = sanitizeString(subject).slice(0, 200);
   if (body !== undefined) patch.body = sanitizeString(body).slice(0, 20000);
   if (groupId !== undefined) patch.groupId = sanitizeString(groupId).slice(0, 80) || null;
@@ -685,7 +693,10 @@ router.delete("/groups/:id/members/:clientId", async (req, res) => {
 
 router.get("/history", async (req, res) => {
   const limit = parseLimit(req.query.limit, 50);
-  const history = await listEmailHistory(limit);
+  const channel = req.query.channel ? sanitizeString(req.query.channel).toLowerCase() : null;
+  let history = await listEmailHistory(limit);
+  if (channel === "sms") history = history.filter((h) => h.type === "sms");
+  else if (channel === "email") history = history.filter((h) => h.type !== "sms");
   res.json({ ok: true, history });
 });
 
@@ -711,7 +722,68 @@ router.post("/history", async (req, res) => {
   }
 });
 
-const ALLOWED_RECIPIENT_TYPES = new Set(["client", "group", "multiple"]);
+const ALLOWED_RECIPIENT_TYPES = new Set(["client", "group", "multiple", "phone"]);
+
+router.post("/sms/send", async (req, res) => {
+  const { to, body, groupId, templateId, recipientType = "phone" } = req.body || {};
+  const safeBody = sanitizeString(body || "").slice(0, 600);
+  if (!safeBody) return res.status(400).json({ ok: false, error: "Message body is required" });
+  const safeRecipientType = String(recipientType || "phone").trim().toLowerCase();
+  if (!["phone", "group", "multiple"].includes(safeRecipientType)) {
+    return res.status(400).json({ ok: false, error: "Invalid recipientType" });
+  }
+  if (safeRecipientType === "group" && !groupId) {
+    return res.status(400).json({ ok: false, error: "groupId is required for group sends" });
+  }
+  if (safeRecipientType !== "group" && !to) {
+    return res.status(400).json({ ok: false, error: "Phone number is required" });
+  }
+
+  const toNums = to ? String(to).split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const recipientCount = safeRecipientType !== "group" ? toNums.length : null;
+
+  let twilioResult = null;
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+  const fromNumber = process.env.TWILIO_FROM_NUMBER;
+
+  if (accountSid && authToken && (messagingServiceSid || fromNumber) && safeRecipientType !== "group") {
+    try {
+      const twilio = (await import("twilio")).default;
+      const client = twilio(accountSid, authToken);
+      const msgOpts = { body: safeBody, to: toNums[0] };
+      if (messagingServiceSid) msgOpts.messagingServiceSid = messagingServiceSid;
+      else msgOpts.from = fromNumber;
+      const msg = await client.messages.create(msgOpts);
+      twilioResult = { sid: msg.sid, status: msg.status };
+    } catch (twilioErr) {
+      twilioResult = { error: String(twilioErr.message || twilioErr) };
+    }
+  }
+
+  try {
+    const entry = await addEmailHistory({
+      type: "sms",
+      subject: safeBody.slice(0, 80),
+      recipientType: safeRecipientType,
+      recipientId: toNums[0] || null,
+      groupId: groupId ? sanitizeString(groupId) : null,
+      recipientCount,
+      status: twilioResult?.sid ? "sent" : twilioResult?.error ? "failed" : "queued",
+      errorMessage: twilioResult?.error || null,
+      createdBy: req.user?.username || "system",
+    });
+    const message = twilioResult?.sid
+      ? "SMS sent successfully via Twilio."
+      : twilioResult?.error
+        ? `SMS queued but Twilio send failed: ${twilioResult.error}`
+        : "SMS queued. Connect Twilio in Settings \u2192 APIs to send live messages.";
+    res.status(201).json({ ok: true, entry, message });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message || "Failed to send SMS" });
+  }
+});
 
 router.post("/email/send", async (req, res) => {
   const { subject, body, recipientType = "client", recipientId, groupId, templateId } = req.body || {};

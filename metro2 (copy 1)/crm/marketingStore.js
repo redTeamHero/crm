@@ -239,11 +239,15 @@ function normalizeCampaignSteps(rawSteps) {
   }));
 }
 
+const ALLOWED_CAMPAIGN_CHANNELS = new Set(["email", "sms"]);
+
 function normalizeCampaign(raw = {}) {
   const name = String(raw.name || raw.title || "Campaign").trim();
   const segment = String(raw.segment || SEGMENT_DEFAULT).toLowerCase();
   const statusRaw = String(raw.status || "draft").toLowerCase();
   const status = CAMPAIGN_STATUSES.has(statusRaw) ? statusRaw : "draft";
+  const channelRaw = String(raw.channel || "email").toLowerCase();
+  const channel = ALLOWED_CAMPAIGN_CHANNELS.has(channelRaw) ? channelRaw : "email";
   const kpiTarget = raw.kpiTarget ? String(raw.kpiTarget).slice(0, 160) : "";
   const summary = raw.summary ? String(raw.summary).slice(0, 400) : "";
   const description = raw.description ? String(raw.description).slice(0, 400) : "";
@@ -276,6 +280,7 @@ function normalizeCampaign(raw = {}) {
   return {
     id: raw.id || nanoid(10),
     name: name || "Campaign",
+    channel,
     segment,
     status,
     kpiTarget,
@@ -358,7 +363,7 @@ function normalizeGroupMembership(raw = {}) {
 }
 
 function normalizeEmailHistory(raw = {}) {
-  const allowedTypes = new Set(["one-time", "campaign", "sequence", "test"]);
+  const allowedTypes = new Set(["one-time", "campaign", "sequence", "test", "sms"]);
   const type = allowedTypes.has(raw.type) ? raw.type : "one-time";
   const allowedStatuses = new Set(["queued", "sent", "failed", "draft", "scheduled", "running", "completed"]);
   const status = allowedStatuses.has(raw.status) ? raw.status : "queued";
