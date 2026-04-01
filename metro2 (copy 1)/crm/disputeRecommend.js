@@ -46,13 +46,13 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
 
   const hasHarassment = hasViolationType(violations, ['harassment', 'excessive call', 'abusive', 'intimidat', 'threaten', 'harass']);
 
-  const hasTimeBarred = hasViolationType(violations, ['time-barred', 'time barred', 'statute of limitation', 'sol expired', 'barred by statute']);
+  const hasTimeBarred = hasViolationType(violations, ['time-barred', 'time barred', 'statute of limitation', 'sol expired', 'barred by statute', ' sol ', '(sol)', 'sol)']);
 
   const hasLatePaymentOnly = hasViolationType(violations, ['late payment', 'late pay', 'goodwill', 'isolated late', '30 day late', '60 day late', '90 day late'])
     && !status.includes('collection') && !status.includes('charge-off') && !status.includes('charge off')
     && !type.includes('collection') && !type.includes('debt');
 
-  const hasTILA = hasViolationType(violations, ['tila', 'truth in lending', 'finance charge', 'annual percentage rate', 'apr violation', 'disclosure required']);
+  const hasTILA = hasViolationType(violations, ['tila', 'truth in lending', 'finance charge', 'annual percentage rate', 'apr violation', 'disclosure required', 'rescission', 'right to cancel']);
 
   if (isMedical && isCollection) {
     return {
@@ -187,12 +187,13 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   const hasMetro2Issues = hasViolationType(violations, ['metro 2', 'metro2', 'compliance', 'inconsisten', 'field', 'segment', 'format']);
   const hasObsolete = hasViolationType(violations, ['obsolete', 'expired', 'seven year', '7 year', 'time-barred', 'statute of limitation']);
   const hasHarassment = hasViolationType(violations, ['harassment', 'excessive call', 'abusive', 'intimidat', 'threaten', 'harass']);
-  const hasTimeBarred = hasViolationType(violations, ['time-barred', 'time barred', 'statute of limitation', 'sol expired', 'barred by statute']);
+  const hasTimeBarred = hasViolationType(violations, ['time-barred', 'time barred', 'statute of limitation', 'sol expired', 'barred by statute', ' sol ', '(sol)', 'sol)']);
   const hasFactualErrors = hasViolationType(violations, ['factual', 'incorrect date', 'balance error', 'wrong date', 'incorrect balance', 'date error']);
   const hasGoodwillEligible = hasViolationType(violations, ['late payment', 'late pay', 'goodwill', 'isolated late', '30 day late', '60 day late'])
     && !status.includes('collection') && !status.includes('charge-off') && !status.includes('charge off')
     && !type.includes('collection') && !type.includes('debt');
-  const prevIsPFD = prev.includes('pay-for-delete');
+  const hasPFDContext = hasViolationType(violations, ['pay for delete', 'pay-for-delete', 'settlement offer', 'conditional settlement', 'delete in exchange']);
+  const prevIsPFD = prev.includes('pay-for-delete') || hasPFDContext;
 
   if (result === 'removed' || result === 'deleted' || result === 'corrected') {
     return {
@@ -225,7 +226,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   }
 
   if (result === 'awaiting' || result === 'awaiting_response') {
-    if (hasTimeBarred && isCollection) {
+    if (hasTimeBarred && isCollection && round >= 2) {
       return {
         recommendedTemplate: 'fdcpa-time-barred',
         reason: 'Collection account still awaiting — debt may be time-barred; demand proof it is within the statute of limitations',
@@ -292,7 +293,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['debt-validation', 'ag-cfpb-escalation']
       };
     }
-    if (hasTimeBarred && isCollection) {
+    if (hasTimeBarred && isCollection && round >= 2) {
       return {
         recommendedTemplate: 'fdcpa-time-barred',
         reason: 'No response on collection account — debt may be time-barred; demand proof it is within statute of limitations',
@@ -499,7 +500,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   }
 
   if (isCollection) {
-    if (hasTimeBarred) {
+    if (hasTimeBarred && round >= 2) {
       return {
         recommendedTemplate: 'fdcpa-time-barred',
         reason: 'Collection account with potential statute of limitations issue — demand proof debt is within the collectible period',
