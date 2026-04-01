@@ -4,6 +4,39 @@ import { loadMetro2Violations } from './utils.js';
 import { LETTER_TEMPLATES } from './letterTemplates.js';
 import { getStateLawAddendum } from './stateLaws.js';
 
+const _COLLECTOR_TPL_MAP = Object.fromEntries(LETTER_TEMPLATES.map(t => [t.id, t]));
+
+function collectorLinesToHtml(text) {
+  const lines = text.split('\n');
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const l = lines[i].trim();
+    if (l === '') {
+      out.push('<br>');
+      i++;
+    } else if (/^[•·]\s*/.test(l)) {
+      const items = [];
+      while (i < lines.length && /^[•·]\s*/.test(lines[i].trim())) {
+        items.push(`<li>${colorize(lines[i].trim().replace(/^[•·]\s*/, ''))}</li>`);
+        i++;
+      }
+      out.push(`<ul style="margin:6px 0 6px 20px;padding:0;">${items.join('')}</ul>`);
+    } else if (/^\d+[.)]\s+/.test(l)) {
+      const items = [];
+      while (i < lines.length && /^\d+[.)]\s+/.test(lines[i].trim())) {
+        items.push(`<li>${colorize(lines[i].trim().replace(/^\d+[.)]\s+/, ''))}</li>`);
+        i++;
+      }
+      out.push(`<ol style="margin:6px 0 6px 20px;padding:0;">${items.join('')}</ol>`);
+    } else {
+      out.push(`<p class="ocr">${colorize(l)}</p>`);
+      i++;
+    }
+  }
+  return out.join('\n');
+}
+
 // Load Metro 2 violation definitions from shared metadata
 const VIOLATION_DEFS = await loadMetro2Violations();
 
@@ -1012,8 +1045,7 @@ function generateInquiryLetters({ consumer, inquiries = [] }) {
 
 function buildCollectorLetterHTML({ consumer, collector }) {
   const templateId = collector.templateId || 'debt-validation';
-  const colTplMap = Object.fromEntries(LETTER_TEMPLATES.map(t => [t.id, t]));
-  const template = colTplMap[templateId] || null;
+  const template = _COLLECTOR_TPL_MAP[templateId] || null;
   const dateStr = todayISO();
   const collectorName = safe(collector.name || 'Debt Collector');
   const accountNum = collector.accountNumber ? safe(collector.accountNumber) : '[ACCOUNT NUMBER — ENTER MANUALLY]';
@@ -1067,7 +1099,7 @@ function buildCollectorLetterHTML({ consumer, collector }) {
     const hasSig = /sincerely[,.]?\s*(\n\s*\S.*)?$/im.test(bodyText.trim());
     let cleaned = hasSig ? bodyText.replace(/\n?\s*Sincerely[,.]?\s*(\n\s*[^\n]+)?\s*$/i, '') : bodyText;
 
-    const innerHtml = cleaned.split('\n').map(l => l.trim() === '' ? '<br>' : `<p class="ocr">${colorize(l)}</p>`).join('\n');
+    const innerHtml = collectorLinesToHtml(cleaned);
     bodyHtml = `${innerHtml}<div class="sig-block" style="margin-top:28px;"><p>Sincerely,<br>${safe(consumer.name)}</p></div>`;
 
   } else if (template && (template.heading || template.intro || template.ask)) {
