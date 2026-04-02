@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Get Started - Evolv</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: #0a0a0a;
+      color: #fff;
+    }
+    .auth-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-header { padding: 20px 24px; }
+    .auth-header a {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: rgba(255,255,255,0.5); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s;
+    }
+    .auth-header a:hover { color: rgba(255,255,255,0.8); }
+    .auth-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .auth-container { width: 100%; max-width: 480px; }
+    .auth-brand { text-align: center; margin-bottom: 32px; }
+    .auth-brand-icon {
+      display: inline-flex; width: 56px; height: 56px; border-radius: 16px;
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      align-items: center; justify-content: center; margin-bottom: 16px;
+    }
+    .auth-brand h1 { font-size: 24px; font-weight: 700; color: #fff; }
+    .auth-brand p { font-size: 14px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+    .auth-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 32px; backdrop-filter: blur(12px);
+    }
+    .auth-error {
+      display: none; margin-bottom: 16px; padding: 12px; font-size: 13px;
+      color: #fca5a5; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px;
+    }
+    .auth-error.visible { display: block; }
+    .auth-field { margin-bottom: 20px; }
+    .auth-label { display: block; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
+    .auth-input {
+      width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff;
+      font-size: 15px; outline: none; transition: all 0.2s; box-sizing: border-box;
+    }
+    .auth-input::placeholder { color: rgba(255,255,255,0.25); }
+    .auth-input:focus { border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .auth-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .auth-btn {
+      width: 100%; padding: 13px; border-radius: 12px; font-size: 15px; font-weight: 600;
+      border: none; cursor: pointer; background: linear-gradient(135deg, #6366f1, #818cf8);
+      color: #fff; transition: all 0.2s;
+    }
+    .auth-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+    .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .plan-option {
+      padding: 14px 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 12px;
+      margin-bottom: 10px; background: rgba(255,255,255,0.02);
+    }
+    .plan-option:hover { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.04); }
+    .plan-option.selected { border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.08); }
+    .plan-option input[type="radio"] { accent-color: #6366f1; width: 16px; height: 16px; }
+    .plan-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .plan-price { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 600; margin-left: 8px; }
+    .plan-desc { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .auth-divider { margin-top: 24px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; }
+    .auth-divider p { font-size: 14px; color: rgba(255,255,255,0.4); }
+    .auth-divider a { color: #818cf8; font-weight: 600; text-decoration: none; }
+    .auth-divider a:hover { color: #a5b4fc; }
+    .auth-footer { text-align: center; margin-top: 24px; }
+    .auth-footer-trust { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+    .trust-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: rgba(255,255,255,0.35); }
+    .trust-chip svg { width: 12px; height: 12px; color: #10b981; }
+    .auth-terms { font-size: 12px; color: rgba(255,255,255,0.3); text-align: center; margin-top: 16px; }
+    .croa-disclosure {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(212,168,83,0.07);
+      border: 1px solid rgba(212,168,83,0.25);
+      border-radius: 12px;
+    }
+    .croa-disclosure.visible { display: block; }
+    .croa-disclosure-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      color: #d4a853; margin-bottom: 10px;
+    }
+    .croa-disclosure-text {
+      font-size: 11px; color: rgba(255,255,255,0.55); line-height: 1.7;
+    }
+    .croa-disclosure-text p { margin-bottom: 8px; }
+    .croa-disclosure-text p:last-child { margin-bottom: 0; }
+    .croa-cancel-notice {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 10px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.6;
+    }
+    .croa-cancel-notice.visible { display: block; }
+    .croa-cancel-notice strong { color: #818cf8; }
+    .croa-ack-row {
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .croa-ack-row.visible { display: flex; }
+    .croa-ack-row input[type="checkbox"] { accent-color: #6366f1; width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
+    .croa-ack-row label { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.6; cursor: pointer; }
+    .croa-ack-row label a { color: #818cf8; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="auth-wrapper">
+    <header class="auth-header">
+      <a href="/">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Back to home
+      </a>
+    </header>
+
+    <main class="auth-main">
+      <div class="auth-container">
+        <div class="auth-brand">
+          <div class="auth-brand-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h1>Start fixing your credit</h1>
+          <p>Create your account in under 2 minutes</p>
+        </div>
+
+        <div class="auth-card">
+          <div id="err" class="auth-error"></div>
+
+          <div class="auth-row" style="margin-bottom:20px;">
+            <div class="auth-field" style="margin-bottom:0;">
+              <label for="firstName" class="auth-label">First name</label>
+              <input id="firstName" type="text" placeholder="John" class="auth-input" />
+            </div>
+            <div class="auth-field" style="margin-bottom:0;">
+              <label for="lastName" class="auth-label">Last name</label>
+              <input id="lastName" type="text" placeholder="Doe" class="auth-input" />
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label for="email" class="auth-label">Email address</label>
+            <input id="email" type="email" placeholder="you@example.com" class="auth-input" />
+          </div>
+
+          <div class="auth-field">
+            <label for="password" class="auth-label">Create password</label>
+            <input id="password" type="password" placeholder="At least 8 characters" class="auth-input" />
+          </div>
+
+          <div class="auth-field">
+            <label for="confirmPassword" class="auth-label">Confirm password</label>
+            <input id="confirmPassword" type="password" placeholder="Repeat your password" class="auth-input" />
+          </div>
+
+          <div class="auth-field">
+            <label class="auth-label">Choose your plan</label>
+            <label class="plan-option selected">
+              <input type="radio" name="plan" value="free" checked />
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;">
+                  <span class="plan-name">Free</span>
+                  <span class="plan-price" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);">$0/mo</span>
+                </div>
+                <div class="plan-desc">View your report and learn about credit repair</div>
+              </div>
+            </label>
+            <label class="plan-option">
+              <input type="radio" name="plan" value="basic" />
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;">
+                  <span class="plan-name">DIY</span>
+                  <span class="plan-price" style="background:rgba(16,185,129,0.15);color:#34d399;">$24.99/mo</span>
+                  <span class="plan-price" style="background:rgba(245,158,11,0.15);color:#fbbf24;margin-left:6px;">Popular</span>
+                </div>
+                <div class="plan-desc">AI audits, unlimited dispute letters, specialist matching</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- CROA Consumer Rights Disclosure — shown when paid plan selected -->
+          <div id="croaDisclosure" class="croa-disclosure">
+            <div class="croa-disclosure-title">Consumer Credit File Rights Under State and Federal Law</div>
+            <div class="croa-disclosure-text">
+              <p>You have a right to dispute inaccurate information in your credit report by contacting the credit bureau directly. However, neither you nor any credit repair company or credit repair organization has the right to have accurate, current, and verifiable information removed from your credit report. The credit bureau must remove accurate, negative information from your report only if it is over 7 years old. Bankruptcy information can be reported for 10 years.</p>
+              <p>You have a right to obtain a copy of your credit report from a credit bureau. You may be charged a reasonable fee. There is no fee, however, if you have been turned down for credit, employment, insurance, or a rental dwelling because of information in your credit report within the preceding 60 days. The credit bureau must provide someone to help you interpret the information in your credit file. You are entitled to receive a free copy of your credit report if you are unemployed and intend to apply for employment in the next 60 days, if you are a recipient of public welfare assistance, or if you have reason to believe that there is inaccurate information in your credit report due to fraud.</p>
+              <p>You have a right to sue a credit bureau or credit repair organization that violates the Fair Credit Reporting Act or the Credit Repair Organizations Act.</p>
+              <p>You have a right to cancel your contract with any credit repair organization for any reason within 3 business days from the date you signed it.</p>
+              <p>Credit bureaus are required to follow reasonable procedures to insure maximum possible accuracy of the information concerning the individual about whom the report relates. For further information contact: Federal Trade Commission, Consumer Response Center – FCRA, Washington, D.C. 20580, 1-877-382-4357.</p>
+            </div>
+          </div>
+
+          <!-- 3-Day Right to Cancel Notice -->
+          <div id="cancelNotice" class="croa-cancel-notice">
+            <strong>Your 3-Day Right to Cancel:</strong> You may cancel your paid subscription at any time within 3 business days of signing up for a full refund, no questions asked. To cancel, email <strong>cancel@evolvcrm.com</strong> with your name and account email.
+          </div>
+
+          <!-- Required acknowledgment checkbox for paid plan -->
+          <div id="croaAckRow" class="croa-ack-row">
+            <input type="checkbox" id="croaAck" />
+            <label for="croaAck">I have read and understand the Consumer Credit File Rights disclosure above. I understand that Evolv cannot guarantee any specific outcome or credit score improvement, and that I may cancel within 3 business days for a full refund. I agree to the <a href="/terms.html" target="_blank">Terms of Service</a> and <a href="/privacy.html" target="_blank">Privacy Policy</a>.</label>
+          </div>
+
+          <button id="btnSignup" class="auth-btn" type="button">Create My Account</button>
+
+          <p class="auth-terms">By creating an account, you agree to our <a href="/terms.html" style="color:#818cf8;text-decoration:underline;" target="_blank">Terms of Service</a> and <a href="/privacy.html" style="color:#818cf8;text-decoration:underline;" target="_blank">Privacy Policy</a>.</p>
+
+          <div class="auth-divider">
+            <p>Already have an account? <a href="/diy/login">Sign in</a></p>
+          </div>
+        </div>
+
+        <div class="auth-footer">
+          <div class="auth-footer-trust">
+            <span class="trust-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Encrypted &amp; secure
+            </span>
+            <span class="trust-chip">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Your data stays private
+            </span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+    function updateComplianceDisclosures() {
+      var selected = document.querySelector('.plan-option.selected input[type="radio"]');
+      var isPaid = selected && selected.value !== 'free';
+      var disc = document.getElementById('croaDisclosure');
+      var notice = document.getElementById('cancelNotice');
+      var ackRow = document.getElementById('croaAckRow');
+      if (disc) disc.classList.toggle('visible', isPaid);
+      if (notice) notice.classList.toggle('visible', isPaid);
+      if (ackRow) ackRow.classList.toggle('visible', isPaid);
+    }
+
+    document.querySelectorAll('.plan-option').forEach(function(opt) {
+      opt.addEventListener('click', function() {
+        document.querySelectorAll('.plan-option').forEach(function(o) { o.classList.remove('selected'); });
+        opt.classList.add('selected');
+        var radio = opt.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+        updateComplianceDisclosures();
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      updateComplianceDisclosures();
+
+      var origBtn = document.getElementById('btnSignup');
+      if (origBtn) {
+        origBtn.addEventListener('click', function(e) {
+          var selected = document.querySelector('.plan-option.selected input[type="radio"]');
+          var isPaid = selected && selected.value !== 'free';
+          if (isPaid) {
+            var ack = document.getElementById('croaAck');
+            if (!ack || !ack.checked) {
+              e.stopImmediatePropagation();
+              var ackRow = ack && ack.closest ? ack.closest('.croa-ack-row') : document.getElementById('croaAckRow');
+              if (ackRow) {
+                ackRow.style.outline = '1px solid rgba(239,68,68,0.6)';
+                ackRow.style.borderRadius = '8px';
+                ackRow.style.padding = '6px';
+                setTimeout(function() {
+                  ackRow.style.outline = '';
+                  ackRow.style.padding = '';
+                }, 2000);
+              }
+              return false;
+            }
+          }
+        }, true);
+      }
+    });
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var customPrice = params.get('price');
+      if (customPrice && !isNaN(parseFloat(customPrice))) {
+        var priceNum = parseFloat(customPrice).toFixed(2);
+        var priceLabels = document.querySelectorAll('.plan-price');
+        for (var i = 0; i < priceLabels.length; i++) {
+          if (priceLabels[i].textContent.indexOf('$24.99') !== -1) {
+            priceLabels[i].textContent = '$' + priceNum + '/mo';
+          }
+        }
+      }
+    })();
+  </script>
+  <script src="/diy/signup.js"></script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dispute Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+<script src="/theme.js"></script>
+  <link id="dark-theme-css" rel="stylesheet" href="/assets/evolv-dark-BLxRb3yA.css?v=3" disabled>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+<script src="/sidebar.js?v=27" defer></script>
+<script src="/command-palette.js" defer></script>
+  <script type="module" crossorigin src="/assets/disputes-BgRWMXyo.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/evolv-light-CscajxBz.js">
+  <link rel="modulepreload" crossorigin href="/assets/common-cmR40mwU.js">
+  <link rel="modulepreload" crossorigin href="/assets/state-utils-l7mRKfww.js">
+  <link rel="modulepreload" crossorigin href="/assets/tour-guide-CQHuR1Bq.js">
+  <link rel="stylesheet" crossorigin href="/assets/evolv-light-sf0Pbxdz.css">
+  <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
+  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
+</head>
+<body>
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+    </div>
+  </div>
+</header>
+
+<main class="workspace px-4 pb-12">
+  <div class="workspace-inner max-w-5xl mx-auto space-y-6">
+
+    <section class="workspace-hero glass card">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <p class="eyebrow">IntelliFeats</p>
+          <h1 class="hero-title">Dispute Tracker</h1>
+          <p class="hero-description">Track every dispute round, monitor bureau responses, and generate follow-up letters — all in one place.</p>
+        </div>
+      </div>
+    </section>
+
+    <div id="err" class="alert alert-error hidden"></div>
+
+    <article class="glass panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Select Client</div>
+          <p class="panel-subtitle">Choose a consumer to view their dispute history.</p>
+        </div>
+        <div class="panel-actions">
+          <select id="consumerPicker" class="input input-select text-sm" style="min-width:220px;">
+            <option value="">— Select a consumer —</option>
+          </select>
+        </div>
+      </div>
+    </article>
+
+    <article id="disputeTrackerPanel" class="glass panel hidden">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title" style="display:flex;align-items:center;gap:8px;">
+            <span style="color:#d4a853;">⚖</span> Dispute Tracker
+          </div>
+          <p class="panel-subtitle" id="disputeTrackerSubtitle">No active disputes.</p>
+        </div>
+        <div class="panel-actions">
+          <button id="btnRefreshDisputes" class="btn btn-outline text-sm" data-tip="Refresh dispute data">Refresh</button>
+        </div>
+      </div>
+
+      <div id="disputeAnalysisCard" class="hidden" style="padding:12px;border:1px solid rgba(212,168,83,0.15);border-radius:10px;background:rgba(212,168,83,0.03);margin-bottom:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-weight:600;color:#d4a853;" id="disputeAnalysisTitle">Report Analysis</div>
+        </div>
+        <div id="disputeAnalysisBody" class="space-y-2 text-sm"></div>
+      </div>
+
+
+      <div id="disputeTimeline" class="space-y-3 text-sm" style="max-height:600px;overflow-y:auto;padding-bottom:60px;"></div>
+    </article>
+
+    <article id="consumerCollectorAddrPanel" class="glass panel hidden" style="margin-top:0;">
+      <details>
+        <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:4px 0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:#d4a853;font-size:14px;">📬</span>
+            <span style="font-weight:600;color:#e5e5e5;font-size:13px;">Collector Addresses</span>
+            <span style="font-size:10px;color:#666;font-weight:400;">per-client overrides — pre-fill letters for this consumer only</span>
+          </div>
+          <span style="color:#888;font-size:11px;user-select:none;" id="ccaToggleLabel">▶ Expand</span>
+        </summary>
+        <div style="margin-top:12px;">
+          <div id="ccaList" style="margin-bottom:10px;"></div>
+          <div id="ccaForm" style="background:#111113;border:1px solid rgba(212,168,83,0.12);border-radius:8px;padding:12px;">
+            <div style="font-size:11px;font-weight:600;color:#d4a853;margin-bottom:8px;">Add / Update Address for This Client</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">Collector Name *</label>
+                <input id="ccaFName" type="text" placeholder="Exact name from credit report" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">Address Line 1 *</label>
+                <input id="ccaFAddr1" type="text" placeholder="PO Box 1234 or 123 Main St" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+              </div>
+              <div style="grid-column:1/-1;">
+                <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">Address Line 2</label>
+                <input id="ccaFAddr2" type="text" placeholder="Suite, Dept, etc." style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+              </div>
+              <div>
+                <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">City</label>
+                <input id="ccaFCity" type="text" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div>
+                  <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">State</label>
+                  <input id="ccaFState" type="text" maxlength="2" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+                </div>
+                <div>
+                  <label style="font-size:10px;color:#888;text-transform:uppercase;display:block;margin-bottom:2px;">ZIP</label>
+                  <input id="ccaFZip" type="text" maxlength="10" style="width:100%;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:6px 9px;font-size:12px;color:#e5e5e5;outline:none;box-sizing:border-box;" />
+                </div>
+              </div>
+            </div>
+            <div id="ccaFErr" style="font-size:11px;color:#f87171;margin-top:5px;display:none;"></div>
+            <div style="margin-top:8px;display:flex;gap:6px;align-items:center;">
+              <button id="ccaFSave" style="padding:6px 14px;border-radius:6px;border:1px solid rgba(212,168,83,0.35);background:rgba(212,168,83,0.1);color:#d4a853;font-size:12px;font-weight:600;cursor:pointer;">Save Address</button>
+              <span id="ccaMsg" style="font-size:11px;color:#4ade80;display:none;"></span>
+            </div>
+          </div>
+        </div>
+      </details>
+    </article>
+
+    <div id="selectionToolbar" style="display:none;position:sticky;bottom:16px;z-index:50;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:rgba(30,30,34,0.95);border:1px solid rgba(212,168,83,0.3);border-radius:12px;backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(0,0,0,0.4);max-width:780px;margin:12px auto 0;flex-wrap:wrap;">
+      <span style="font-size:13px;color:#d4a853;font-weight:600;"><span id="selCount">0</span> selected</span>
+      <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#9ca3af;">
+        <span>Items/letter</span>
+        <input id="itemsPerLetterInput" type="number" min="1" max="50" value="10" style="width:52px;padding:3px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:#e5e7eb;font-size:12px;text-align:center;" title="Dispute items grouped per letter for initial generation only (default 10; set to 1 for one item per letter). Follow-up letters always use 1 item per letter.">
+      </label>
+      <button id="batchGenerateNext" class="btn btn-outline text-xs" style="border-color:rgba(96,165,250,0.3);color:#60a5fa;">Generate Next Round</button>
+      <button id="batchDownloadRound" class="btn btn-outline text-xs" style="border-color:rgba(52,211,153,0.3);color:#34d399;">⬇ Download Round</button>
+      <button id="batchSendPortal" class="btn btn-outline text-xs" style="border-color:rgba(167,139,250,0.3);color:#a78bfa;">↑ Send to Portal</button>
+      <button id="batchResolve" class="btn btn-outline text-xs" style="border-color:rgba(74,222,128,0.3);color:#4ade80;">Mark Resolved</button>
+      <button id="batchAwaiting" class="btn btn-outline text-xs" style="border-color:rgba(251,191,36,0.3);color:#fbbf24;">Set Awaiting</button>
+      <button id="batchDeleteRound" class="btn btn-outline text-xs" style="border-color:rgba(239,68,68,0.3);color:#ef4444;">Delete Round</button>
+      <button id="batchClear" class="btn btn-outline text-xs" style="border-color:rgba(255,255,255,0.15);color:#888;">Clear</button>
+    </div>
+
+  </div>
+</main>
+
+<!-- Collector Address Pre-flight Modal -->
+<div id="addrPreflightModal" class="fixed inset-0 z-[1000] hidden items-center justify-center" style="background:rgba(0,0,0,0.72);">
+  <div style="max-width:640px;width:95vw;max-height:88vh;display:flex;flex-direction:column;background:#111113;border:1px solid rgba(212,168,83,0.22);border-radius:18px;padding:0;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.7);">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#e5e5e5;display:flex;align-items:center;gap:8px;">
+            <span style="color:#f59e0b;">⚠</span> Collector Addresses Missing
+          </div>
+          <p style="font-size:12px;color:#888;margin-top:3px;">The collectors below have no address on file. Resolve each before generating letters.</p>
+        </div>
+        <button id="addrPreflightClose" style="background:transparent;border:none;color:#888;font-size:18px;cursor:pointer;padding:4px 8px;line-height:1;">&times;</button>
+      </div>
+    </div>
+
+    <div id="addrPreflightList" style="flex:1;overflow-y:auto;padding:16px 24px;display:flex;flex-direction:column;gap:14px;"></div>
+
+    <div style="padding:14px 24px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div id="addrPreflightMsg" style="font-size:12px;color:#888;"></div>
+      <div style="display:flex;gap:8px;">
+        <button id="addrPreflightCancel" class="btn btn-outline text-sm">Cancel</button>
+        <button id="addrPreflightGenerate" class="btn text-sm" disabled style="background:linear-gradient(135deg,#d4a853,#c49a45);color:#0a0a0a;font-weight:700;opacity:0.45;cursor:not-allowed;">Generate Letters</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

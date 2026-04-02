@@ -1885,10 +1885,12 @@ if (process.env.NODE_ENV !== "test") {
 
 // ---------- Static UI ----------
 const PUBLIC_DIR = path.join(__dirname, "public");
+const DIST_DIR = path.join(__dirname, "dist");
+const SERVE_DIR = process.env.NODE_ENV === "production" && fs.existsSync(DIST_DIR) ? DIST_DIR : PUBLIC_DIR;
 const STATIC_FILE_CACHE = new Map();
 
 function resolvePublicFilePath(fileName) {
-  const fullPath = path.join(PUBLIC_DIR, fileName);
+  const fullPath = path.join(SERVE_DIR, fileName);
   const cached = STATIC_FILE_CACHE.get(fullPath);
   if (cached?.exists) {
     return fullPath;
@@ -2001,7 +2003,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Disable default index to avoid auto-serving the app without auth
-app.use(express.static(PUBLIC_DIR, {
+app.use(express.static(SERVE_DIR, {
   index: false,
   setHeaders(res) {
     res.set('Cache-Control', 'no-store');

@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Dashboard - Evolv</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --diy-bg: #f5f5f7;
+      --diy-sidebar: #1a1a2e;
+      --diy-accent: #6366f1;
+      --diy-accent-bg: rgba(99,102,241,0.12);
+      --diy-gold: #d4a853;
+      --diy-card: #ffffff;
+      --diy-muted: #9ca3af;
+      --diy-border: rgba(0,0,0,0.06);
+      --diy-text: #1a1a2e;
+      --diy-text-sub: #6b7280;
+    }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; background: var(--diy-bg); }
+    .diy-sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
+      background: var(--diy-sidebar);
+      display: flex; flex-direction: column; z-index: 40;
+      transition: width 0.28s cubic-bezier(0.4,0,0.2,1), transform 0.3s ease;
+      overflow: hidden;
+    }
+    .diy-sidebar-brand {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; gap: 10px;
+      min-height: 72px; flex-shrink: 0;
+    }
+    .diy-sidebar-brand .brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--diy-accent), #818cf8);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .diy-brand-text-wrap { min-width: 0; flex: 1; overflow: hidden; }
+    .diy-sidebar-brand .brand-text { color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap; }
+    .diy-sidebar-brand .brand-sub { color: rgba(255,255,255,0.45); font-size: 11px; line-height: 1.3; margin-top: 2px; white-space: nowrap; }
+    .sidebar-toggle-btn {
+      flex-shrink: 0; width: 28px; height: 28px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1); background: transparent;
+      color: rgba(255,255,255,0.4); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s; margin-left: auto;
+    }
+    .sidebar-toggle-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
+    .sidebar-toggle-btn svg { transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .diy-nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; overflow-x: hidden; }
+    .diy-nav-link {
+      display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+      border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 14px; font-weight: 500;
+      text-decoration: none; transition: background 0.15s, color 0.15s, padding 0.28s, gap 0.28s, justify-content 0.1s;
+      border: 1px solid transparent; cursor: pointer; white-space: nowrap;
+    }
+    .diy-nav-link:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.85); }
+    .diy-nav-link.active {
+      background: var(--diy-accent-bg); color: #818cf8; font-weight: 600;
+      border-color: rgba(99,102,241,0.2);
+    }
+    .diy-nav-link svg { width: 20px; height: 20px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+    .diy-nav-label { transition: opacity 0.15s; }
+    .diy-sidebar-footer { padding: 14px; border-top: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+    .diy-footer-content { overflow: hidden; transition: opacity 0.2s; }
+    .diy-footer-content .diy-user-info { padding: 6px 0 8px; }
+    .diy-footer-content .diy-user-email { color: rgba(255,255,255,0.5); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .diy-footer-content .diy-user-plan { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; margin-top: 4px; }
+    .diy-book-call-btn {
+      width: 100%; padding: 10px; border-radius: 12px; font-size: 14px; font-weight: 600;
+      background: linear-gradient(135deg, var(--diy-accent), #818cf8); color: #fff; border: none;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.2s ease; white-space: nowrap;
+    }
+    .diy-book-call-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+
+    /* ── Collapsed state (desktop only) ── */
+    .diy-sidebar.collapsed { width: 64px; }
+    .diy-sidebar.collapsed .diy-brand-text-wrap { display: none; }
+    .diy-sidebar.collapsed .sidebar-toggle-btn { margin-left: 0; }
+    .diy-sidebar.collapsed .sidebar-toggle-btn svg { transform: rotate(180deg); }
+    .diy-sidebar.collapsed .diy-sidebar-brand { justify-content: center; padding: 20px 0; }
+    .diy-sidebar.collapsed .diy-nav { padding: 12px 6px; }
+    .diy-sidebar.collapsed .diy-nav-link { justify-content: center; padding: 10px 0; gap: 0; }
+    .diy-sidebar.collapsed .diy-nav-label { display: none; }
+    .diy-sidebar.collapsed .diy-footer-content { display: none; }
+    .diy-sidebar.collapsed .diy-book-call-btn { padding: 10px 0; justify-content: center; gap: 0; }
+    .diy-sidebar.collapsed .diy-book-call-btn .diy-nav-label { display: none; }
+    .diy-sidebar.collapsed .diy-sidebar-footer { padding: 10px 6px; }
+
+    .diy-main { margin-left: 240px; min-height: 100vh; display: flex; flex-direction: column; transition: margin-left 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .diy-main.sidebar-collapsed { margin-left: 64px; }
+    .diy-topbar {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(255,255,255,0.88); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--diy-border); padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .diy-topbar-title { font-size: 14px; color: var(--diy-text-sub); font-weight: 500; }
+    .diy-secured-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+      background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 99px; font-size: 13px; font-weight: 600; color: #10b981;
+    }
+    .diy-content { flex: 1; padding: 24px; max-width: 900px; width: 100%; margin: 0 auto; }
+    .diy-card {
+      background: var(--diy-card); border-radius: 16px; padding: 20px;
+      border: 1px solid var(--diy-border); margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .diy-card-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .diy-card-icon {
+      width: 32px; height: 32px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+    }
+    .diy-card-title { font-size: 15px; font-weight: 500; color: var(--diy-text-sub); }
+    .diy-card-body { color: var(--diy-text-sub); font-size: 14px; }
+    .bureau-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .bureau-card {
+      background: var(--diy-card); border-radius: 14px; padding: 16px; text-align: center;
+      border: 1px solid var(--diy-border); position: relative; overflow: hidden;
+    }
+    .bureau-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .bureau-card.tu::before { background: #3b82f6; }
+    .bureau-card.ex::before { background: #6366f1; }
+    .bureau-card.eq::before { background: #10b981; }
+    .bureau-name { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--diy-text-sub); margin-bottom: 8px; }
+    .bureau-score { font-size: 28px; font-weight: 700; color: var(--diy-text); }
+    .bureau-dash { font-size: 28px; font-weight: 300; color: #d1d5db; }
+    .welcome-section { margin-bottom: 20px; }
+    .welcome-title { font-size: 22px; font-weight: 700; color: var(--diy-text); }
+    .welcome-sub { font-size: 14px; color: var(--diy-text-sub); margin-top: 4px; }
+    .step-badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px;
+      background: var(--diy-accent); color: #fff; border-radius: 99px;
+      font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+      transition: all 0.2s ease;
+    }
+    .step-badge:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+    .step-info { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .step-text { font-size: 14px; color: var(--diy-text-sub); }
+    .upload-zone-diy {
+      border: 2px dashed #d1d5db; border-radius: 14px; padding: 32px; text-align: center;
+      cursor: pointer; transition: all 0.2s ease; background: #fafafa;
+    }
+    .upload-zone-diy:hover { border-color: var(--diy-accent); background: rgba(99,102,241,0.03); }
+    .upload-zone-diy.dragover { border-color: var(--diy-accent); background: rgba(99,102,241,0.06); transform: scale(1.01); }
+    .diy-btn {
+      padding: 10px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
+      border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .diy-btn-primary { background: var(--diy-accent); color: #fff; }
+    .diy-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+    .diy-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .diy-btn-secondary { background: #f3f4f6; color: var(--diy-text); }
+    .diy-btn-secondary:hover { background: #e5e7eb; }
+    .diy-section-page { display: none; }
+    .diy-section-page.active { display: block; }
+    .specialist-card {
+      background: var(--diy-card); border-radius: 16px; padding: 20px;
+      border: 1px solid var(--diy-border); margin-bottom: 12px;
+      transition: all 0.2s ease; cursor: pointer;
+    }
+    .specialist-card:hover { border-color: var(--diy-accent); box-shadow: 0 4px 16px rgba(99,102,241,0.08); transform: translateY(-2px); }
+    .specialist-header { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .specialist-avatar {
+      width: 48px; height: 48px; border-radius: 12px; display: flex;
+      align-items: center; justify-content: center; font-size: 20px; font-weight: 700;
+      color: #fff; flex-shrink: 0;
+    }
+    .specialist-name { font-size: 16px; font-weight: 700; color: var(--diy-text); }
+    .specialist-location { font-size: 12px; color: var(--diy-text-sub); margin-top: 2px; }
+    .specialist-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+    .specialist-stat {
+      text-align: center; padding: 10px 8px; background: #f9fafb; border-radius: 10px;
+    }
+    .specialist-stat-value { font-size: 18px; font-weight: 700; color: var(--diy-text); }
+    .specialist-stat-label { font-size: 11px; color: var(--diy-text-sub); margin-top: 2px; }
+    .specialist-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .specialist-badge {
+      font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 600;
+    }
+    .badge-verified { background: rgba(16,185,129,0.1); color: #10b981; }
+    .badge-fast { background: rgba(59,130,246,0.1); color: #3b82f6; }
+    .badge-top { background: rgba(245,158,11,0.1); color: #f59e0b; }
+    .badge-boosted { background: rgba(168,85,247,0.1); color: #a855f7; }
+    .specialist-rating { display: flex; align-items: center; gap: 4px; }
+    .star-filled { color: #f59e0b; }
+    .star-empty { color: #e5e7eb; }
+    .specialist-reviews { font-size: 12px; color: var(--diy-text-sub); margin-left: 4px; }
+    .trust-bar {
+      display: flex; align-items: center; gap: 16px; padding: 12px 16px;
+      background: rgba(16,185,129,0.04); border: 1px solid rgba(16,185,129,0.1);
+      border-radius: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .trust-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+    .trust-item svg { width: 14px; height: 14px; color: #10b981; }
+    .violation-item {
+      padding: 14px; background: rgba(239,68,68,0.04); border: 1px solid rgba(239,68,68,0.12);
+      border-radius: 12px; margin-bottom: 8px;
+    }
+    .letter-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; background: #f9fafb; border-radius: 10px; margin-bottom: 8px;
+    }
+    .mobile-menu-btn { display: none; }
+    .diy-sidebar-overlay { display: none; }
+
+    .tradeline-card {
+      background: var(--diy-card); border-radius: 14px; padding: 16px;
+      border: 1px solid var(--diy-border); margin-bottom: 10px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      transition: all 0.2s ease;
+    }
+    .tradeline-card:hover { border-color: var(--diy-accent); box-shadow: 0 2px 12px rgba(99,102,241,0.06); }
+    .tradeline-meta { display: flex; gap: 16px; flex-wrap: wrap; flex: 1; }
+    .tradeline-field { font-size: 12px; color: var(--diy-text-sub); }
+    .tradeline-field strong { display: block; font-size: 14px; color: var(--diy-text); font-weight: 600; }
+    .news-card {
+      background: var(--diy-card); border-radius: 14px; padding: 16px;
+      border: 1px solid var(--diy-border); margin-bottom: 10px;
+      transition: all 0.2s ease; cursor: pointer;
+    }
+    .news-card:hover { border-color: var(--diy-accent); box-shadow: 0 2px 12px rgba(99,102,241,0.06); }
+    .news-title { font-size: 15px; font-weight: 600; color: var(--diy-text); margin-bottom: 6px; }
+    .news-desc { font-size: 13px; color: var(--diy-text-sub); line-height: 1.5; }
+    .news-date { font-size: 11px; color: var(--diy-muted); margin-top: 8px; }
+    .page-btn {
+      padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      border: 1px solid var(--diy-border); background: #fff; color: var(--diy-text);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .page-btn:hover { border-color: var(--diy-accent); color: var(--diy-accent); }
+    .page-btn.active { background: var(--diy-accent); color: #fff; border-color: var(--diy-accent); }
+    .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .wiz-progress-container {
+      background: var(--diy-card); border-radius: 16px; padding: 20px;
+      border: 1px solid var(--diy-border); margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .wiz-progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .wiz-progress-label { font-size: 14px; font-weight: 600; color: var(--diy-text); }
+    .wiz-progress-pct { font-size: 14px; font-weight: 700; color: var(--diy-accent); }
+    .wiz-progress-track { height: 8px; background: #e5e7eb; border-radius: 99px; overflow: hidden; margin-bottom: 16px; }
+    .wiz-progress-fill { height: 100%; background: linear-gradient(90deg, var(--diy-accent), #818cf8); border-radius: 99px; transition: width 0.5s ease; }
+    .wiz-steps-row { display: flex; align-items: center; gap: 0; }
+    .wiz-step-dot {
+      width: 36px; height: 36px; border-radius: 50%; border: 2px solid #d1d5db;
+      background: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #9ca3af; cursor: pointer;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .wiz-step-dot.active { border-color: var(--diy-accent); background: var(--diy-accent); color: #fff; }
+    .wiz-step-dot.completed { border-color: #10b981; background: #10b981; color: #fff; }
+    .wiz-step-dot:hover:not(.active) { border-color: var(--diy-accent); color: var(--diy-accent); }
+    .wiz-step-line { flex: 1; height: 2px; background: #e5e7eb; min-width: 12px; }
+    .wiz-step-line.completed { background: #10b981; }
+    .wiz-step-panel { display: none; background: var(--diy-card); border-radius: 16px; padding: 24px; border: 1px solid var(--diy-border); margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .wiz-step-panel.active { display: block; }
+    .wiz-step-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+    .wiz-step-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .wiz-step-title { font-size: 18px; font-weight: 700; color: var(--diy-text); margin-bottom: 4px; }
+    .wiz-step-desc { font-size: 14px; color: var(--diy-text-sub); line-height: 1.5; }
+    .wiz-step-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--diy-border); }
+
+    .wiz-strategy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .wiz-strategy-card {
+      background: #fafafa; border: 2px solid var(--diy-border); border-radius: 16px;
+      padding: 20px; display: flex; flex-direction: column; align-items: center;
+      text-align: center; cursor: pointer; transition: all 0.2s; position: relative;
+    }
+    .wiz-strategy-card:hover { border-color: var(--diy-accent); box-shadow: 0 4px 16px rgba(99,102,241,0.1); }
+    .wiz-strategy-card.selected { border-color: var(--diy-accent); background: rgba(99,102,241,0.04); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .wiz-strategy-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 12px; }
+    .wiz-strategy-icon { margin-bottom: 12px; }
+    .wiz-strategy-name { font-size: 16px; font-weight: 700; color: var(--diy-text); margin-bottom: 8px; }
+    .wiz-strategy-desc { font-size: 13px; color: var(--diy-text-sub); line-height: 1.5; margin-bottom: 12px; }
+    .wiz-strategy-features { list-style: none; padding: 0; margin: 0 0 16px; text-align: left; width: 100%; }
+    .wiz-strategy-features li { font-size: 13px; color: var(--diy-text-sub); padding: 4px 0; padding-left: 20px; position: relative; }
+    .wiz-strategy-features li::before { content: '\2713'; position: absolute; left: 0; color: #10b981; font-weight: 700; }
+    .wiz-strategy-lock { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #f59e0b; margin-bottom: 8px; }
+    .wiz-strategy-card.locked { opacity: 0.65; }
+    .wiz-strategy-card.locked .wiz-strategy-select { background: #9ca3af; cursor: not-allowed; }
+
+    .wiz-violation-card {
+      background: #fff; border: 1px solid rgba(239,68,68,0.15); border-radius: 14px;
+      padding: 16px; margin-bottom: 10px; transition: all 0.2s;
+    }
+    .wiz-violation-card:hover { border-color: rgba(239,68,68,0.3); }
+    .wiz-viol-header { display: flex; align-items: center; gap: 12px; }
+    .wiz-viol-title { font-size: 14px; font-weight: 600; color: var(--diy-text); flex: 1; }
+    .wiz-viol-bureau { font-size: 11px; padding: 2px 8px; background: #f3f4f6; border-radius: 6px; color: var(--diy-text-sub); font-weight: 600; }
+    .wiz-viol-explain { margin-top: 10px; padding: 12px; background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.12); border-radius: 10px; font-size: 13px; color: var(--diy-text-sub); line-height: 1.6; display: none; }
+    .wiz-viol-explain.open { display: block; }
+    .wiz-viol-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .wiz-viol-btn-explain {
+      font-size: 12px; padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(245,158,11,0.3);
+      background: rgba(245,158,11,0.08); color: #d97706; cursor: pointer; font-weight: 600;
+    }
+    .wiz-viol-btn-dispute {
+      font-size: 12px; padding: 5px 12px; border-radius: 8px; border: none;
+      background: var(--diy-accent); color: #fff; cursor: pointer; font-weight: 600;
+    }
+    .wiz-tl-card { border: 1px solid rgba(239,68,68,0.22); border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: var(--diy-card); }
+    .wiz-tl-header {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 13px 14px; background: none; border: none; cursor: pointer;
+      text-align: left; transition: background 0.15s;
+    }
+    .wiz-tl-header:hover { background: rgba(239,68,68,0.04); }
+    .wiz-tl-header-left { flex: 1; min-width: 0; }
+    .wiz-tl-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+    .wiz-tl-creditor { font-size: 14px; font-weight: 700; color: var(--diy-text); }
+    .wiz-tl-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 3px; }
+    .wiz-tl-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: rgba(239,68,68,0.1); color: #ef4444; white-space: nowrap; }
+    .wiz-tl-chevron { transition: transform 0.2s; flex-shrink: 0; color: var(--diy-text-sub); }
+    .wiz-tl-card.open .wiz-tl-chevron { transform: rotate(180deg); }
+    .wiz-tl-body { display: none; padding: 0 14px 12px; }
+    .wiz-tl-card.open .wiz-tl-body { display: block; }
+    .wiz-tl-info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+      background: var(--diy-border); border: 1px solid var(--diy-border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 14px;
+    }
+    .wiz-tl-info-cell {
+      background: var(--diy-card); padding: 9px 12px;
+    }
+    .wiz-tl-info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--diy-text-sub); margin-bottom: 3px; }
+    .wiz-tl-info-value { font-size: 13px; font-weight: 600; color: var(--diy-text); line-height: 1.3; }
+    .wiz-tl-violations-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--diy-text-sub); padding: 2px 0 6px; border-bottom: 1px solid var(--diy-border); margin-bottom: 2px; }
+    .wiz-tl-info-cell--full { grid-column: 1 / -1; }
+    .wiz-viol-mini-pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 0 4px; margin-top: 4px; border-top: 1px solid var(--diy-border); }
+    .wiz-viol-mini-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--diy-border); background: var(--diy-card); color: var(--diy-text); cursor: pointer; transition: all 0.15s; }
+    .wiz-viol-mini-btn:hover:not(:disabled) { border-color: var(--diy-accent); color: var(--diy-accent); background: rgba(99,102,241,0.06); }
+    .wiz-viol-mini-btn:disabled { opacity: 0.35; cursor: default; }
+    .wiz-perpage-group { display: flex; gap: 4px; }
+    .wiz-perpage-btn { font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--diy-border); background: var(--diy-card); color: var(--diy-text-sub); cursor: pointer; transition: all 0.15s; }
+    .wiz-perpage-btn:hover { border-color: var(--diy-accent); color: var(--diy-accent); }
+    .wiz-perpage-btn.active { background: var(--diy-accent); color: #fff; border-color: var(--diy-accent); }
+    .wiz-viol-row { border-top: 1px solid var(--diy-border); padding: 10px 0 4px; }
+    .wiz-tl-body .wiz-viol-row:first-child { border-top: none; }
+    .wiz-viol-row-top { display: flex; align-items: flex-start; gap: 8px; }
+    .wiz-viol-toggle {
+      flex-shrink: 0; background: none; border: 1px solid var(--diy-border); border-radius: 6px;
+      padding: 3px 5px; cursor: pointer; color: var(--diy-text-sub); transition: transform 0.2s, background 0.15s;
+      margin-top: 1px;
+    }
+    .wiz-viol-toggle:hover { background: rgba(99,102,241,0.08); border-color: var(--diy-accent); color: var(--diy-accent); }
+    .wiz-viol-detail { display: none; margin-top: 10px; padding: 12px; background: rgba(245,158,11,0.04); border: 1px solid rgba(245,158,11,0.15); border-radius: 10px; }
+    .wiz-viol-detail.open { display: block; }
+    .wiz-viol-detail-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--diy-text-sub); margin-bottom: 4px; }
+    .wiz-viol-detail-text { font-size: 13px; color: var(--diy-text-sub); line-height: 1.6; }
+    .wiz-viol-pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--diy-border); }
+    .wiz-viol-page-btn {
+      display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600;
+      padding: 7px 14px; border-radius: 8px; border: 1px solid var(--diy-border);
+      background: var(--diy-card); color: var(--diy-text); cursor: pointer; transition: all 0.15s;
+    }
+    .wiz-viol-page-btn:hover:not(:disabled) { border-color: var(--diy-accent); color: var(--diy-accent); background: rgba(99,102,241,0.06); }
+    .wiz-viol-page-btn:disabled { opacity: 0.4; cursor: default; }
+    .wiz-viol-page-info { font-size: 12px; color: var(--diy-text-sub); font-weight: 600; }
+
+    .wiz-letter-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px; background: #fafafa; border: 1px solid var(--diy-border); border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    .wiz-letter-info { display: flex; align-items: center; gap: 12px; flex: 1; }
+    .wiz-letter-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(99,102,241,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .wiz-letter-actions { display: flex; align-items: center; gap: 8px; }
+    .wiz-mark-sent {
+      font-size: 12px; padding: 5px 12px; border-radius: 8px; font-weight: 600; cursor: pointer;
+      border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: #10b981;
+    }
+    .wiz-mark-sent.sent { background: #10b981; color: #fff; border-color: #10b981; }
+
+    .wiz-timeline { display: flex; flex-direction: row; align-items: flex-start; gap: 0; padding: 8px 0; }
+    .wiz-tl-stage { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0; flex: 1; text-align: center; }
+    .wiz-tl-icon {
+      width: 44px; height: 44px; border-radius: 50%; border: 2px solid #d1d5db;
+      background: #fff; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: #9ca3af;
+    }
+    .wiz-tl-stage.active .wiz-tl-icon { border-color: var(--diy-accent); color: var(--diy-accent); background: rgba(99,102,241,0.06); }
+    .wiz-tl-stage.completed .wiz-tl-icon { border-color: #10b981; background: #10b981; color: #fff; }
+    .wiz-tl-label { font-size: 13px; font-weight: 600; color: var(--diy-text); }
+    .wiz-tl-date { font-size: 11px; color: var(--diy-text-sub); margin-top: 2px; }
+    .wiz-tl-connector { height: 2px; flex: 1; background: #e5e7eb; margin-top: 22px; min-width: 12px; }
+    .wiz-tl-connector.completed { background: #10b981; }
+
+    .wiz-sim-section { background: #fafafa; border: 1px solid var(--diy-border); border-radius: 14px; padding: 20px; }
+    .wiz-suggestions { display: flex; flex-direction: column; gap: 10px; }
+    .wiz-suggestion-card { display: flex; align-items: center; gap: 14px; padding: 14px; background: #fff; border: 1px solid var(--diy-border); border-radius: 12px; }
+    .wiz-sugg-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .wiz-sugg-title { font-size: 14px; font-weight: 600; color: var(--diy-text); }
+    .wiz-sugg-desc { font-size: 12px; color: var(--diy-text-sub); margin-top: 2px; }
+    .wiz-sugg-info { flex: 1; }
+    .wiz-sugg-impact { font-size: 14px; font-weight: 700; white-space: nowrap; }
+
+    .wiz-simulator { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; padding: 16px; background: #fff; border: 1px solid var(--diy-border); border-radius: 12px; }
+    .wiz-sim-input-group { display: flex; flex-direction: column; }
+    .wiz-sim-toggles { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
+    .wiz-sim-toggle { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--diy-text); cursor: pointer; padding: 6px 0; }
+    .wiz-sim-toggle input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--diy-accent); cursor: pointer; }
+    .wiz-sim-result { text-align: center; min-width: 120px; }
+    .wiz-sim-projected { font-size: 42px; font-weight: 800; color: var(--diy-text); transition: all 0.3s; }
+    .wiz-sim-delta { font-size: 16px; font-weight: 700; color: #10b981; margin-top: 4px; }
+
+    .wiz-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+      border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid;
+    }
+    .wiz-badge.earned { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); color: #10b981; }
+    .wiz-badge.locked { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); color: #9ca3af; }
+
+    @media (max-width: 768px) {
+      .diy-sidebar { transform: translateX(-100%); width: 280px !important; z-index: 50; }
+      .diy-sidebar.open { transform: translateX(0); }
+      .diy-sidebar.collapsed { width: 280px !important; }
+      .sidebar-toggle-btn { display: none !important; }
+      .diy-sidebar.collapsed .diy-brand-text-wrap { display: block !important; }
+      .diy-sidebar.collapsed .diy-nav-link { justify-content: flex-start !important; padding: 10px 14px !important; gap: 12px !important; }
+      .diy-sidebar.collapsed .diy-nav-label { display: inline !important; }
+      .diy-sidebar.collapsed .diy-footer-content { display: block !important; }
+      .diy-sidebar.collapsed .diy-book-call-btn { justify-content: center !important; }
+      .diy-sidebar.collapsed .diy-book-call-btn .diy-nav-label { display: inline !important; }
+      .diy-main { margin-left: 0 !important; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+      .mobile-menu-btn { display: flex; }
+      .diy-sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 45; backdrop-filter: blur(2px); touch-action: none; }
+      .diy-sidebar-overlay.active { display: block; }
+      .bureau-grid { grid-template-columns: 1fr; }
+      .specialist-stats { grid-template-columns: 1fr; }
+      #billingPlansGrid { grid-template-columns: 1fr !important; max-width:100% !important; }
+      .tradeline-card { flex-direction: column; align-items: flex-start; }
+      .wiz-strategy-grid { grid-template-columns: 1fr; }
+      .wiz-step-dot { width: 30px; height: 30px; font-size: 11px; }
+      .wiz-simulator { flex-direction: column; }
+      .wiz-timeline { flex-direction: column; }
+      .wiz-tl-stage { flex-direction: row; text-align: left; flex: unset; gap: 12px; }
+      .wiz-tl-connector { height: 20px; width: 2px; flex: unset; margin-top: 0; margin-left: 21px; }
+    }
+  </style>
+  <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
+</head>
+<body>
+  <div id="sidebarOverlay" class="diy-sidebar-overlay"></div>
+
+  <aside id="diySidebar" class="diy-sidebar">
+    <div class="diy-sidebar-brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      </div>
+      <div class="diy-brand-text-wrap">
+        <div class="brand-text">Evolv</div>
+        <div class="brand-sub">Your credit repair assistant</div>
+      </div>
+      <button id="sidebarToggle" class="sidebar-toggle-btn" type="button" title="Collapse menu" aria-label="Toggle sidebar">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </div>
+
+    <nav class="diy-nav">
+      <a href="#overview" class="diy-nav-link active" data-section="overview" title="Overview">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span class="diy-nav-label">Overview</span>
+      </a>
+      <a href="#upload" class="diy-nav-link" data-section="upload" title="Upload Report">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span class="diy-nav-label">Upload Report</span>
+      </a>
+      <a href="#violations" class="diy-nav-link" data-section="violations" title="Violations">
+        <svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+        <span class="diy-nav-label">Violations</span>
+      </a>
+      <a href="#letters" class="diy-nav-link" data-section="letters" title="Dispute Letters">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <span class="diy-nav-label">Dispute Letters</span>
+      </a>
+      <a href="#cfpb" class="diy-nav-link" data-section="cfpb" title="CFPB Complaints">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+        <span class="diy-nav-label">CFPB Complaints</span>
+      </a>
+      <a href="#education" class="diy-nav-link" data-section="education" title="Education">
+        <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span class="diy-nav-label">Education</span>
+      </a>
+      <a href="#specialists" class="diy-nav-link" data-section="specialists" title="Find Specialist">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="diy-nav-label">Find Specialist</span>
+      </a>
+      <a href="#tradelines" class="diy-nav-link" data-section="tradelines" title="Trade Lines">
+        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span class="diy-nav-label">Trade Lines</span>
+      </a>
+      <a href="#news" class="diy-nav-link" data-section="news" title="News &amp; Tips">
+        <svg viewBox="0 0 24 24"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg>
+        <span class="diy-nav-label">News &amp; Tips</span>
+      </a>
+      <a href="#billing" class="diy-nav-link" data-section="billing" title="Upgrade &amp; Billing">
+        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="7" y1="15" x2="13" y2="15"/></svg>
+        <span class="diy-nav-label">Upgrade &amp; Billing</span>
+      </a>
+      <a href="#affiliate" class="diy-nav-link" data-section="affiliate" title="Affiliate">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        <span class="diy-nav-label">Affiliate</span>
+      </a>
+      <a href="#settings" class="diy-nav-link" data-section="settings" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="diy-nav-label">Settings</span>
+      </a>
+    </nav>
+
+    <div class="diy-sidebar-footer">
+      <div class="diy-footer-content">
+        <div class="diy-user-info">
+          <div id="userEmail" class="diy-user-email"></div>
+          <div id="planBadge" class="diy-user-plan" style="background:rgba(99,102,241,0.15);color:#818cf8;">Free</div>
+        </div>
+      </div>
+      <button id="btnLogout" class="diy-book-call-btn" style="background:transparent;border:1px solid rgba(255,255,255,0.12);font-size:13px;font-weight:500;" type="button" title="Sign Out">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="diy-nav-label">Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="diy-main">
+    <header class="diy-topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button id="mobileMenuBtn" class="mobile-menu-btn" style="background:none;border:none;cursor:pointer;padding:4px;" type="button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a1a2e" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span class="diy-topbar-title">Credit Dashboard</span>
+      </div>
+      <div class="diy-secured-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981" stroke="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Secured Start
+      </div>
+    </header>
+
+    <main class="diy-content">
+      <!-- OVERVIEW / WIZARD SECTION -->
+      <div id="sectionOverview" class="diy-section-page active">
+        <div class="welcome-section">
+          <div class="welcome-title" id="welcomeText">Welcome Back</div>
+          <div class="welcome-sub" id="wizardSubtitle">Let's get your credit back on track. Follow the steps below.</div>
+        </div>
+
+        <!-- Achievement Badges -->
+        <div id="badgesGrid" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;"></div>
+
+        <!-- Wizard Progress Bar -->
+        <div class="wiz-progress-container">
+          <div class="wiz-progress-header">
+            <span class="wiz-progress-label" id="wizProgressLabel">Step 1 of 6 — Import Report</span>
+            <span class="wiz-progress-pct" id="wizProgressPct">0%</span>
+          </div>
+          <div class="wiz-progress-track">
+            <div class="wiz-progress-fill" id="wizProgressFill" style="width:0%"></div>
+          </div>
+          <div class="wiz-steps-row" id="wizStepsRow">
+            <button class="wiz-step-dot active" data-wiz="1" type="button" title="How CreditPulse Works"><span>1</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="2" type="button" title="Import Report"><span>2</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="3" type="button" title="Violation Detection"><span>3</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="4" type="button" title="Dispute Letters"><span>4</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="5" type="button" title="Progress Tracker"><span>5</span></button>
+            <div class="wiz-step-line"></div>
+            <button class="wiz-step-dot" data-wiz="6" type="button" title="Score Tools"><span>6</span></button>
+          </div>
+        </div>
+
+        <!-- ===== WIZARD STEP 1: CreditPulse Process Explainer ===== -->
+        <div class="wiz-step-panel active" id="wizStep1">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+            </div>
+            <div>
+              <h3 class="wiz-step-title">Step 1: How CreditPulse Works</h3>
+              <p class="wiz-step-desc">CreditPulse guides you through every round of your dispute — from the first bureau letter all the way to legal escalation if needed.</p>
+            </div>
+          </div>
+
+          <!-- Intro badge -->
+          <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(16,185,129,0.06));border:1px solid rgba(99,102,241,0.15);border-radius:12px;margin-bottom:20px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <p style="font-size:13px;color:var(--diy-text);margin:0;"><strong style="color:#6366f1;">CreditPulse</strong> tracks each account across multiple dispute rounds, generates the exact follow-up letter each situation legally requires, and escalates automatically when bureaus don't comply.</p>
+          </div>
+
+          <!-- Phase cards -->
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+            <!-- Phase 1 -->
+            <div style="display:flex;gap:14px;padding:16px;border:1px solid rgba(59,130,246,0.2);border-radius:12px;background:rgba(59,130,246,0.03);">
+              <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:rgba(59,130,246,0.12);display:flex;align-items:center;justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-weight:700;font-size:14px;color:var(--diy-text);">Rounds 1–2 · Bureau Disputes</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,0.1);color:#3b82f6;font-weight:600;">FCRA § 611</span>
+                </div>
+                <p style="font-size:13px;color:var(--diy-text-sub);margin:0;">We send dispute letters to Equifax, Experian, and TransUnion. They have 30 days to investigate. If they verify without proof or simply ignore you, CreditPulse issues a targeted follow-up.</p>
+              </div>
+            </div>
+            <!-- Phase 2 -->
+            <div style="display:flex;gap:14px;padding:16px;border:1px solid rgba(168,85,247,0.2);border-radius:12px;background:rgba(168,85,247,0.03);">
+              <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:rgba(168,85,247,0.12);display:flex;align-items:center;justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-weight:700;font-size:14px;color:var(--diy-text);">Round 3 · Direct Furnisher Disputes</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(168,85,247,0.1);color:#a855f7;font-weight:600;">FCRA § 623</span>
+                </div>
+                <p style="font-size:13px;color:var(--diy-text-sub);margin:0;">If bureaus keep verifying inaccurate data, CreditPulse bypasses them entirely and disputes directly with the original creditor or data furnisher — the source of the problem.</p>
+              </div>
+            </div>
+            <!-- Phase 3 -->
+            <div style="display:flex;gap:14px;padding:16px;border:1px solid rgba(239,68,68,0.2);border-radius:12px;background:rgba(239,68,68,0.03);">
+              <div style="flex-shrink:0;width:40px;height:40px;border-radius:50%;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span style="font-weight:700;font-size:14px;color:var(--diy-text);">Round 4+ · Legal Escalation</span>
+                  <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(239,68,68,0.1);color:#ef4444;font-weight:600;">FCRA § 616 / § 617</span>
+                </div>
+                <p style="font-size:13px;color:var(--diy-text-sub);margin:0;">Persistent non-compliance triggers a Notice of Intent to Sue, CFPB complaint guidance, and a referral to consumer law attorneys — many of whom take these cases on contingency (no upfront cost).</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- What CreditPulse does for you -->
+          <div style="padding:14px 16px;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:12px;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#10b981;margin-bottom:10px;">What CreditPulse handles for you</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Tracks every account per round</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Picks the right follow-up letter</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>30-day deadline countdown</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Escalates when bureaus stall</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Deleted items drop off automatically</div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--diy-text);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All 3 bureaus covered</div>
+            </div>
+          </div>
+
+          <div class="wiz-step-actions">
+            <div></div>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="2" type="button">
+              Let's Start
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== WIZARD STEP 2: Import Report ===== -->
+        <div class="wiz-step-panel" id="wizStep2">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(99,102,241,0.12);color:#6366f1;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div>
+              <h3 class="wiz-step-title">Step 2: Import Your Credit Report</h3>
+              <p class="wiz-step-desc">Upload a PDF or HTML credit report from any bureau. We'll scan it for errors and violations.</p>
+            </div>
+          </div>
+          <div class="trust-bar">
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Bank-level encryption
+            </div>
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+              Files never shared
+            </div>
+            <div class="trust-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Private &amp; secure
+            </div>
+          </div>
+          <div id="wizUploadArea" class="upload-zone-diy">
+            <input type="file" id="wizFileInput" accept=".pdf,.html,.htm" style="display:none;" />
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <p style="font-weight:600;color:var(--diy-text);font-size:15px;">Drop your credit report here or click to browse</p>
+            <p style="font-size:13px;color:var(--diy-text-sub);margin-top:4px;">Supports PDF and HTML formats from all 3 bureaus</p>
+          </div>
+          <div id="wizUploadProgress" class="hidden" style="margin-top:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="flex:1;height:6px;background:#e5e7eb;border-radius:99px;overflow:hidden;">
+                <div id="wizProgressBarUpload" style="height:100%;background:var(--diy-accent);transition:width 0.3s;width:0%;border-radius:99px;"></div>
+              </div>
+              <span id="wizProgressTextUpload" style="font-size:13px;color:var(--diy-text-sub);font-weight:600;">0%</span>
+            </div>
+          </div>
+          <div id="wizStep1Done" style="display:none;margin-top:16px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:12px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span style="font-weight:600;color:#10b981;font-size:14px;" id="wizStep1DoneText">Report uploaded successfully!</span>
+            </div>
+          </div>
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="1" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="3" type="button" id="wizBtn1Next" disabled>
+              Continue
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== WIZARD STEP 3: Violation Detection ===== -->
+        <div class="wiz-step-panel" id="wizStep3">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(239,68,68,0.1);color:#ef4444;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4.99c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg>
+            </div>
+            <div>
+              <h3 class="wiz-step-title">Step 3: Violation Detection</h3>
+              <p class="wiz-step-desc">We found potential violations in your report. Review each one and decide which to dispute.</p>
+            </div>
+          </div>
+          <div id="wizRunAuditPanel" style="margin-bottom:16px;">
+            <button id="wizBtnRunAudit" class="diy-btn diy-btn-primary" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              Run Audit on Report
+            </button>
+            <p id="wizAuditMsg" style="display:none;margin-top:10px;font-size:13px;color:var(--diy-text-sub);"></p>
+          </div>
+          <div id="wizPerPageBar" style="display:none;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <span style="font-size:12px;color:var(--diy-text-sub);font-weight:600;">Accounts per page</span>
+            <div class="wiz-perpage-group">
+              <button class="wiz-perpage-btn active" data-pp="3" type="button">3</button>
+              <button class="wiz-perpage-btn" data-pp="5" type="button">5</button>
+              <button class="wiz-perpage-btn" data-pp="10" type="button">10</button>
+              <button class="wiz-perpage-btn" data-pp="0" type="button">All</button>
+            </div>
+          </div>
+          <div id="wizViolationCards"></div>
+          <div id="wizNoViolations" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p style="font-weight:600;">No violations detected yet</p>
+            <p style="font-size:13px;margin-top:4px;">Run an audit on your uploaded report to find issues.</p>
+          </div>
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="2" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="4" type="button" id="wizBtn2Next" disabled>
+              Continue
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== WIZARD STEP 4: Dispute Letters ===== -->
+        <div class="wiz-step-panel" id="wizStep4">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(99,102,241,0.1);color:#6366f1;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
+            <div>
+              <h3 class="wiz-step-title">Step 4: Generate & Send Dispute Letters</h3>
+              <p class="wiz-step-desc">Generate your letters, download PDFs, and mark each one as sent once you mail them.</p>
+            </div>
+          </div>
+          <div id="wizLettersGenPanel" style="margin-bottom:16px;">
+            <button id="wizBtnGenLetters" class="diy-btn diy-btn-primary" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Generate Dispute Letters
+            </button>
+          </div>
+          <div id="wizLetterChecklist"></div>
+          <div id="wizNoLetters" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" stroke-width="1.5"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" stroke-width="1.5"/></svg>
+            <p style="font-weight:600;">No letters generated yet</p>
+            <p style="font-size:13px;margin-top:4px;">Generate your dispute letters to see them here.</p>
+          </div>
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="3" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="5" type="button" id="wizBtn4Next">
+              Continue
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== WIZARD STEP 5: CreditPulse Dispute Tracker ===== -->
+        <div class="wiz-step-panel" id="wizStep5">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(16,185,129,0.1);color:#10b981;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <h3 class="wiz-step-title">Step 5: Dispute Tracker</h3>
+              <p class="wiz-step-desc">Track each round of disputes. For every account, tell us what the bureau said — we'll prepare the right follow-up.</p>
+            </div>
+          </div>
+
+          <!-- No active round — prompt to start -->
+          <div id="wizTrackerNoRound" style="text-align:center;padding:32px 0;">
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p style="font-weight:600;color:var(--diy-text);margin-bottom:6px;">Ready to start tracking?</p>
+            <p style="font-size:13px;color:var(--diy-text-sub);margin-bottom:16px;">Once you've sent your dispute letters, start Round 1 here. We'll walk you through recording each bureau's response.</p>
+            <button id="wizBtnStartRound1" class="diy-btn diy-btn-primary" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+              Start Tracking Round 1
+            </button>
+          </div>
+
+          <!-- Active round panel -->
+          <div id="wizTrackerRoundPanel" style="display:none;">
+            <!-- Round header -->
+            <div id="wizTrackerRoundHeader" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:14px 16px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;margin-bottom:16px;">
+              <div>
+                <div style="font-weight:700;font-size:15px;color:var(--diy-text);" id="wizTrackerRoundTitle">Round 1 — Bureau Disputes</div>
+                <div style="font-size:12px;color:var(--diy-text-sub);margin-top:2px;" id="wizTrackerRoundSub">Sent: — · Due by: —</div>
+              </div>
+              <div id="wizTrackerCountdown" style="font-size:13px;font-weight:600;padding:4px 12px;border-radius:20px;background:rgba(16,185,129,0.1);color:#10b981;"></div>
+            </div>
+
+            <!-- Per-account outcome cards (JS-rendered) -->
+            <div id="wizTrackerItems"></div>
+
+            <!-- CTA area (JS-rendered) -->
+            <div id="wizTrackerCta" style="margin-top:16px;"></div>
+          </div>
+
+          <!-- All rounds history -->
+          <div id="wizTrackerHistory" style="margin-top:20px;display:none;">
+            <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--diy-text-sub);margin-bottom:8px;">Round History</div>
+            <div id="wizTrackerHistoryList"></div>
+          </div>
+
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="4" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary wiz-next-btn" data-wiz-next="6" id="wizBtn5Next" type="button">
+              Continue to Score Tools
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== WIZARD STEP 6: Score Improvement & Simulator ===== -->
+        <div class="wiz-step-panel" id="wizStep6">
+          <div class="wiz-step-header">
+            <div class="wiz-step-icon" style="background:rgba(16,185,129,0.1);color:#10b981;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+            </div>
+            <div>
+              <h3 class="wiz-step-title">Step 6: Score Improvement Tools</h3>
+              <p class="wiz-step-desc">See what actions could improve your credit score and simulate the impact.</p>
+            </div>
+          </div>
+
+          <div class="wiz-sim-section">
+            <h4 style="font-size:15px;font-weight:600;color:var(--diy-text);margin-bottom:12px;">Suggested Actions</h4>
+            <div class="wiz-suggestions">
+              <div class="wiz-suggestion-card">
+                <div class="wiz-sugg-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                </div>
+                <div class="wiz-sugg-info">
+                  <div class="wiz-sugg-title">Add Authorized User Tradeline</div>
+                  <div class="wiz-sugg-desc">Being added as an authorized user on a seasoned account can boost your score.</div>
+                </div>
+                <div class="wiz-sugg-impact" style="color:#10b981;">+25-45 pts</div>
+              </div>
+              <div class="wiz-suggestion-card">
+                <div class="wiz-sugg-icon" style="background:rgba(168,85,247,0.1);color:#a855f7;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+                </div>
+                <div class="wiz-sugg-info">
+                  <div class="wiz-sugg-title">Reduce Credit Utilization</div>
+                  <div class="wiz-sugg-desc">Paying down balances below 30% of your limit has an immediate impact.</div>
+                </div>
+                <div class="wiz-sugg-impact" style="color:#10b981;">+20-40 pts</div>
+              </div>
+              <div class="wiz-suggestion-card">
+                <div class="wiz-sugg-icon" style="background:rgba(239,68,68,0.1);color:#ef4444;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </div>
+                <div class="wiz-sugg-info">
+                  <div class="wiz-sugg-title">Remove Collection Account</div>
+                  <div class="wiz-sugg-desc">Successfully disputing or settling a collection can significantly boost your score.</div>
+                </div>
+                <div class="wiz-sugg-impact" style="color:#10b981;">+30-50 pts</div>
+              </div>
+              <div class="wiz-suggestion-card">
+                <div class="wiz-sugg-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </div>
+                <div class="wiz-sugg-info">
+                  <div class="wiz-sugg-title">Remove Hard Inquiry</div>
+                  <div class="wiz-sugg-desc">Unauthorized hard inquiries can be disputed and removed from your report.</div>
+                </div>
+                <div class="wiz-sugg-impact" style="color:#10b981;">+5-15 pts</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="wiz-sim-section" style="margin-top:24px;">
+            <h4 style="font-size:15px;font-weight:600;color:var(--diy-text);margin-bottom:12px;">Set Your Score Goal</h4>
+            <div style="display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:1px solid var(--diy-border);border-radius:12px;margin-bottom:16px;">
+              <label style="font-size:14px;color:var(--diy-text);font-weight:500;">I want my score to reach:</label>
+              <input type="number" id="wizScoreGoal" min="300" max="850" value="700" style="width:100px;padding:8px 12px;border-radius:10px;border:1px solid var(--diy-border);font-size:18px;font-weight:700;text-align:center;color:var(--diy-text);">
+              <button id="wizBtnSetGoal" class="diy-btn diy-btn-primary" type="button" style="padding:8px 18px;font-size:13px;">Set Goal</button>
+              <span id="wizGoalConfirm" style="color:#10b981;font-size:13px;font-weight:600;display:none;">Goal saved!</span>
+            </div>
+          </div>
+
+          <div class="wiz-sim-section" style="margin-top:24px;">
+            <h4 style="font-size:15px;font-weight:600;color:var(--diy-text);margin-bottom:12px;">Credit Score Simulator</h4>
+            <div class="wiz-simulator">
+              <div class="wiz-sim-input-group">
+                <label style="font-size:13px;color:var(--diy-text-sub);margin-bottom:4px;display:block;">Your Current Score (estimate)</label>
+                <input type="number" id="wizSimScore" min="300" max="850" value="620" style="width:120px;padding:10px 14px;border-radius:10px;border:1px solid var(--diy-border);font-size:18px;font-weight:700;color:var(--diy-text);text-align:center;background:#fff;">
+              </div>
+              <div class="wiz-sim-toggles">
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimTradeline" class="wiz-sim-cb">
+                  <span>Add tradeline (+35 pts)</span>
+                </label>
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimUtilization" class="wiz-sim-cb">
+                  <span>Lower utilization (+30 pts)</span>
+                </label>
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimCollection" class="wiz-sim-cb">
+                  <span>Remove collection (+40 pts)</span>
+                </label>
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimInquiry" class="wiz-sim-cb">
+                  <span>Remove inquiry (+10 pts)</span>
+                </label>
+                <label class="wiz-sim-toggle">
+                  <input type="checkbox" id="wizSimLatePay" class="wiz-sim-cb">
+                  <span>Remove late payment (+20 pts)</span>
+                </label>
+              </div>
+              <div class="wiz-sim-result">
+                <div style="font-size:13px;color:var(--diy-text-sub);margin-bottom:4px;">Projected Score</div>
+                <div class="wiz-sim-projected" id="wizSimProjected">620</div>
+                <div class="wiz-sim-delta" id="wizSimDelta" style="display:none;">+0 pts</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="wiz-step-actions">
+            <button class="diy-btn diy-btn-secondary wiz-prev-btn" data-wiz-prev="5" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
+            <button class="diy-btn diy-btn-primary" type="button" onclick="document.querySelector('[data-section=tradelines]').click()">
+              Browse Tradelines
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Legacy elements kept hidden for existing JS references -->
+        <div style="display:none;">
+          <span id="stepProgress"></span>
+          <button id="btnMarkGoal" type="button"></button>
+          <div id="scoreTU"></div>
+          <div id="scoreEX"></div>
+          <div id="scoreEQ"></div>
+          <div id="nextStepContent"></div>
+          <div id="milestonesContent"></div>
+          <div id="reportSnapshot"></div>
+          <div id="companyMatch"></div>
+        </div>
+      </div>
+
+      <!-- UPLOAD SECTION -->
+      <div id="sectionUpload" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Upload Credit Report</h2>
+        <div class="trust-bar">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Bank-level encryption
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            Files never shared
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Private &amp; secure
+          </div>
+        </div>
+        <div id="uploadArea" class="upload-zone-diy">
+          <input type="file" id="fileInput" accept=".pdf,.html,.htm" class="hidden" style="display:none;" />
+          <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          <p style="font-weight:600;color:var(--diy-text);font-size:15px;">Drop your credit report here or click to browse</p>
+          <p style="font-size:13px;color:var(--diy-text-sub);margin-top:4px;">Supports PDF and HTML formats from all 3 bureaus</p>
+        </div>
+        <div id="uploadProgress" class="hidden" style="margin-top:16px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="flex:1;height:6px;background:#e5e7eb;border-radius:99px;overflow:hidden;">
+              <div id="progressBar" style="height:100%;background:var(--diy-accent);transition:width 0.3s;width:0%;border-radius:99px;"></div>
+            </div>
+            <span id="progressText" style="font-size:13px;color:var(--diy-text-sub);font-weight:600;">0%</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:16px;">
+          <button id="btnRunAudit" class="diy-btn diy-btn-primary" disabled type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            Run Audit
+          </button>
+          <button id="btnGenerateLetters" class="diy-btn diy-btn-secondary" disabled type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Generate Letters
+          </button>
+        </div>
+      </div>
+
+      <!-- VIOLATIONS SECTION -->
+      <div id="sectionViolations" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Violations Found</h2>
+        <div id="violationsList"></div>
+        <div id="noViolations" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+          <svg style="width:48px;height:48px;margin:0 auto 12px;color:#10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p style="font-weight:600;">No violations detected yet</p>
+          <p style="font-size:13px;margin-top:4px;">Upload a report and run an audit to find issues.</p>
+        </div>
+      </div>
+
+      <!-- LETTERS SECTION -->
+      <div id="sectionLetters" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">Your Dispute Letters</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Manage your generated dispute letters. Download PDFs to print and mail to credit bureaus.</p>
+
+        <div class="trust-bar" style="margin-bottom:16px;">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            Ready to mail
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            PDF format
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            FCRA compliant
+          </div>
+        </div>
+
+        <div id="lettersActions" style="margin-bottom:16px;display:none;">
+          <button id="btnGenerateMoreLetters" class="diy-btn diy-btn-primary" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+            Generate New Letters
+          </button>
+        </div>
+
+        <div id="lettersList"></div>
+        <div id="noLetters" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+          <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" stroke-width="1.5"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <p style="font-weight:500;">No letters generated yet</p>
+          <p style="font-size:13px;margin-top:4px;">Upload a report and run an audit first, then generate dispute letters.</p>
+          <button class="diy-btn diy-btn-primary diy-nav-trigger" data-section="upload" style="margin-top:12px;" type="button">Upload Report</button>
+        </div>
+      </div>
+
+      <!-- CFPB SECTION -->
+      <div id="sectionCfpb" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">CFPB Complaint Generator</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:20px;">Draft a formal Consumer Financial Protection Bureau complaint for unresolved disputes.</p>
+
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
+          <h3 style="font-size:15px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">New Complaint</h3>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Company Being Complained About *</label>
+              <input type="text" id="diyCompany" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;" placeholder="e.g. Equifax, Experian, TransUnion, Capital One…">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Violation Type *</label>
+              <select id="diyViolationType" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
+                <option value="">-- Select violation --</option>
+                <optgroup label="FCRA — No Response">
+                  <option value="no_response_30">30-Day No Response (FCRA §611)</option>
+                  <option value="no_response_45">45-Day No Response / Extended Period (FCRA §611)</option>
+                </optgroup>
+                <optgroup label="FCRA — Inaccurate Reporting">
+                  <option value="verified_inaccurate">Verified Inaccurate Information (FCRA §611)</option>
+                  <option value="wrong_balance">Incorrect Balance Reported (FCRA §623)</option>
+                  <option value="wrong_status">Incorrect Account Status (FCRA §623)</option>
+                  <option value="reaged">Re-Aged Debt / Changed DOFD (FCRA §605(c))</option>
+                  <option value="mixed_file">Mixed Credit File / Wrong Consumer Info (FCRA §611)</option>
+                  <option value="duplicate_reporting">Duplicate / Multiple Reporting (FCRA §623)</option>
+                </optgroup>
+                <optgroup label="FCRA — Account Status">
+                  <option value="continued_after_paid">Continued Reporting After Paid/Settled (FCRA §623)</option>
+                  <option value="paid_collection">Paid Collection Still Reporting Negative (FCRA §623)</option>
+                  <option value="settlement_not_reflected">Settlement Not Reflected on Report (FCRA §623)</option>
+                  <option value="obsolete_info">Reporting Obsolete / Beyond 7-Year Limit (FCRA §605)</option>
+                  <option value="bankruptcy_discharge">Debt Discharged in Bankruptcy Still Reporting (FCRA §623)</option>
+                  <option value="not_mine">Account Not Mine / Identity Theft (FCRA §611, §623)</option>
+                </optgroup>
+                <optgroup label="FCRA — Special Rules">
+                  <option value="medical_debt">Medical Debt Under $500 Being Reported (CFPB Rule 2023)</option>
+                </optgroup>
+                <optgroup label="FDCPA — Debt Collection">
+                  <option value="collection_no_validation">Debt Collector Failed to Validate Debt (FDCPA §809)</option>
+                  <option value="collection_harassment">Debt Collector Harassment / Abusive Conduct (FDCPA §806)</option>
+                  <option value="collection_false_representation">Debt Collector Made False Representations (FDCPA §807)</option>
+                  <option value="collection_unfair_practices">Debt Collector Used Unfair Practices (FDCPA §808)</option>
+                </optgroup>
+                <option value="other">Other (describe below)</option>
+              </select>
+            </div>
+            <div id="diyOtherBox" style="display:none;">
+              <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Describe the Violation</label>
+              <textarea id="diyOtherText" rows="2" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;resize:vertical;" placeholder="Describe the specific violation…"></textarea>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Account(s) / Item(s) Disputed</label>
+              <div id="diyItemsPanel" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;">
+                <div id="diyItemsLoading" style="font-size:12px;color:var(--diy-text-sub);">Loading negative items…</div>
+                <div id="diyItemsCheckboxes" style="display:none;max-height:160px;overflow-y:auto;"></div>
+                <div id="diyItemsControls" style="display:none;margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <label style="font-size:11px;color:#818cf8;cursor:pointer;display:flex;align-items:center;gap:3px;"><input type="checkbox" id="diySelectAll"> Select All</label>
+                  <div style="flex:1;"></div>
+                  <input type="text" id="diyCustomItem" placeholder="Add custom item…" style="font-size:11px;padding:4px 6px;max-width:180px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--diy-text);outline:none;">
+                  <button type="button" id="btnDiyAddCustomItem" style="font-size:10px;padding:2px 8px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#818cf8;border-radius:5px;cursor:pointer;font-weight:600;">Add</button>
+                </div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Tone</label>
+                <select id="diyTone" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
+                  <optgroup label="Formal">
+                    <option value="professional">Professional</option>
+                    <option value="firm_assertive">Firm &amp; Assertive</option>
+                    <option value="legal_formal">Legal Formal</option>
+                  </optgroup>
+                  <optgroup label="Emotional">
+                    <option value="curious">Curious / Questioning</option>
+                    <option value="tired">Tired / Exhausted</option>
+                    <option value="hopeless">Hopeless / Despairing</option>
+                    <option value="hopeful">Hopeful / Optimistic</option>
+                    <option value="frustrated">Frustrated</option>
+                    <option value="emotional">Emotional / Personal</option>
+                    <option value="desperate">Desperate / Urgent</option>
+                  </optgroup>
+                  <optgroup label="Forceful">
+                    <option value="urgent">Urgent</option>
+                    <option value="strong_aggressive">Strong &amp; Aggressive</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Complaint Goal</label>
+                <select id="diyGoal" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
+                  <option value="">-- Not specified --</option>
+                  <option value="delete">Delete Item from Credit Report</option>
+                  <option value="correct">Correct Inaccurate Information</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Date Dispute Was Sent</label>
+                <input type="date" id="diySentDate" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Response Received</label>
+                <select id="diyResponse" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
+                  <option value="">-- Select --</option>
+                  <option value="No Response">No Response</option>
+                  <option value="Verified as Accurate">Verified as Accurate</option>
+                  <option value="Deleted">Deleted</option>
+                  <option value="Updated/Partially Corrected">Updated/Partially Corrected</option>
+                  <option value="Account Closed">Account Closed</option>
+                  <option value="Paid/Settled">Paid/Settled</option>
+                  <option value="Transferred">Transferred</option>
+                  <option value="other">Other</option>
+                </select>
+                <input type="text" id="diyResponseOther" placeholder="Describe the response…" style="display:none;margin-top:6px;width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;">
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Additional Notes</label>
+              <textarea id="diyNotes" rows="3" style="width:100%;padding:9px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--diy-text);font-size:13px;outline:none;resize:vertical;" placeholder="Any additional context, timelines, or supporting details…"></textarea>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--diy-text-sub);margin-bottom:4px;">Attach Proof Documents</label>
+              <div id="diyProofArea" style="background:rgba(255,255,255,0.03);border:2px dashed rgba(255,255,255,0.12);border-radius:8px;padding:14px;text-align:center;cursor:pointer;">
+                <input type="file" id="diyProofInput" multiple accept=".pdf,.png,.jpg,.jpeg" style="display:none;">
+                <div style="font-size:12px;color:var(--diy-text-sub);">Click to attach files (PDF, PNG, JPG — max 10 MB each, up to 5 files)</div>
+              </div>
+              <div id="diyProofList" style="margin-top:6px;"></div>
+            </div>
+            <div id="diyCfpbError" style="display:none;color:#f87171;font-size:13px;"></div>
+            <button id="btnDiyCfpbGenerate" class="diy-btn diy-btn-primary" type="button">Generate CFPB Complaint</button>
+          </div>
+        </div>
+
+        <!-- Result -->
+        <div id="diyCfpbResult" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <strong style="font-size:15px;font-weight:700;color:var(--diy-text);">Generated Complaint</strong>
+            <div style="display:flex;gap:8px;">
+              <button id="btnDiyCfpbCopy" type="button" class="diy-btn" style="font-size:12px;padding:5px 14px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--diy-text-sub);">Copy All</button>
+              <button id="btnDiyCfpbSave" type="button" class="diy-btn diy-btn-primary" style="font-size:12px;padding:5px 14px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#34d399;">Save</button>
+            </div>
+          </div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">WHAT HAPPENED</div>
+          <div id="diyCfpbNarrative" style="background:rgba(0,0,0,0.2);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;white-space:pre-wrap;margin-bottom:14px;color:var(--diy-text);"></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.05em;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">WHAT RESOLUTION I AM SEEKING</div>
+          <div id="diyCfpbResolution" style="background:rgba(0,0,0,0.2);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;white-space:pre-wrap;color:var(--diy-text);"></div>
+          <div id="diyCfpbSaveMsg" style="display:none;margin-top:10px;font-size:13px;color:#10b981;">Saved to your record.</div>
+        </div>
+
+        <!-- Past complaints -->
+        <div id="diyCfpbHistorySection" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;">
+          <h3 style="font-size:15px;font-weight:700;color:var(--diy-text);margin-bottom:12px;">Saved Complaints</h3>
+          <div id="diyCfpbHistoryList"></div>
+        </div>
+      </div>
+
+      <!-- EDUCATION SECTION -->
+      <div id="sectionEducation" class="diy-section-page">
+        <div class="edu-header" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:20px;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
+            <div class="edu-header-icon">🎓</div>
+            <div>
+              <h2 style="font-size:20px;font-weight:700;color:var(--diy-text,#fff);">Credit Academy</h2>
+              <p style="font-size:13px;color:var(--diy-text-sub,#9ca3af);">Master your credit, one lesson at a time.</p>
+            </div>
+          </div>
+          <div class="edu-xp-bar">
+            <div class="edu-xp-label" style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="edu-level-badge">Level 1</span>
+              <span style="font-size:12px;color:var(--diy-text-sub,#9ca3af);">0 / 800 XP</span>
+            </div>
+            <div class="edu-xp-track">
+              <div class="edu-xp-fill" style="width:0%"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;font-size:12px;color:var(--diy-text-sub,#9ca3af);">
+              <span>🔥 0 day streak</span>
+              <span>✅ 0 of 0 complete</span>
+            </div>
+          </div>
+        </div>
+        <div id="education" class="edu-path"></div>
+      </div>
+
+      <!-- FIND SPECIALIST SECTION -->
+      <div id="sectionSpecialists" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">Find Your Specialist</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Browse verified credit repair companies and choose the best match for your needs.</p>
+
+        <div class="trust-bar">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Verified companies only
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            Real deletion stats
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            Client reviews
+          </div>
+        </div>
+
+        <div id="specialistsList">
+          <div style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+            <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <p style="font-weight:500;">Loading specialists...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRADE LINES SECTION -->
+      <div id="sectionTradelines" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">Trade Lines</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Browse authorized user tradelines from TradelineSupply. Boost your credit profile with seasoned accounts.</p>
+
+        <div class="trust-bar">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Verified tradelines
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            Real-time pricing
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            All major banks
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+          <select id="tradelineRange" class="diy-select" style="padding:8px 14px;border-radius:10px;border:1px solid var(--diy-border);font-size:13px;background:#fff;color:var(--diy-text);min-width:160px;">
+            <option value="">Select price range</option>
+          </select>
+          <select id="tradelineBank" class="diy-select" style="padding:8px 14px;border-radius:10px;border:1px solid var(--diy-border);font-size:13px;background:#fff;color:var(--diy-text);min-width:160px;">
+            <option value="">All banks</option>
+          </select>
+        </div>
+
+        <div id="tradelinesList"></div>
+        <div id="noTradelines" style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+          <svg style="width:48px;height:48px;margin:0 auto 12px;color:#d1d5db;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-width="1.5"/><line x1="1" y1="10" x2="23" y2="10" stroke-width="1.5"/></svg>
+          <p style="font-weight:500;">Select a price range to browse available tradelines</p>
+          <p style="font-size:13px;margin-top:4px;">Filter by bank and price to find the best match for your needs.</p>
+        </div>
+        <div id="tradelinePagination" style="display:flex;justify-content:center;gap:8px;margin-top:16px;"></div>
+      </div>
+
+      <!-- NEWS SECTION -->
+      <div id="sectionNews" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">News & Tips</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Stay informed with the latest credit repair news, tips, and industry updates.</p>
+        <div id="newsFeed">
+          <div style="text-align:center;padding:40px 0;color:var(--diy-text-sub);">
+            <p style="font-weight:500;">Loading news feed...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPGRADE & BILLING SECTION -->
+      <div id="sectionBilling" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:4px;">Upgrade & Billing</h2>
+        <p style="font-size:14px;color:var(--diy-text-sub);margin-bottom:16px;">Manage your subscription plan and billing details.</p>
+
+        <div class="diy-card" style="margin-bottom:20px;">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(99,102,241,0.1);">
+              <span>&#128179;</span>
+            </div>
+            <div class="diy-card-title">Current Plan</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span id="billingCurrentPlan" style="font-size:24px;font-weight:700;color:var(--diy-text);">Free</span>
+            <span id="billingPlanStatus" style="font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(16,185,129,0.1);color:#10b981;font-weight:600;">Active</span>
+          </div>
+          <div id="billingPeriod" style="font-size:13px;color:var(--diy-text-sub);margin-top:8px;"></div>
+          <button id="btnManageBilling" class="diy-btn diy-btn-secondary" style="margin-top:12px;display:none;" type="button">
+            Manage Billing
+          </button>
+        </div>
+
+        <h3 style="font-size:16px;font-weight:600;color:var(--diy-text);margin-bottom:12px;">Available Plans</h3>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;max-width:500px;" id="billingPlansGrid">
+          <div class="diy-card" style="text-align:center;position:relative;" data-plan="free">
+            <div style="font-size:13px;font-weight:600;color:var(--diy-text-sub);text-transform:uppercase;letter-spacing:0.5px;">Free</div>
+            <div style="font-size:28px;font-weight:700;color:var(--diy-text);margin:8px 0;">$0</div>
+            <div style="font-size:12px;color:var(--diy-text-sub);margin-bottom:12px;">/month</div>
+            <ul style="text-align:left;font-size:13px;color:var(--diy-text-sub);list-style:none;padding:0;margin:0 0 16px;">
+              <li style="padding:4px 0;">&#10003; Upload credit reports</li>
+              <li style="padding:4px 0;">&#10003; Basic audit</li>
+              <li style="padding:4px 0;">&#10003; Education access</li>
+            </ul>
+            <button class="diy-btn diy-btn-secondary billing-plan-btn" data-plan="free" style="width:100%;" type="button" disabled>Current Plan</button>
+          </div>
+          <div class="diy-card" style="text-align:center;position:relative;border-color:var(--diy-accent);" data-plan="basic">
+            <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--diy-accent);color:#fff;font-size:11px;padding:2px 12px;border-radius:99px;font-weight:600;">Popular</div>
+            <div style="font-size:13px;font-weight:600;color:var(--diy-text-sub);text-transform:uppercase;letter-spacing:0.5px;">DIY</div>
+            <div style="font-size:28px;font-weight:700;color:var(--diy-text);margin:8px 0;">$24.99</div>
+            <div style="font-size:12px;color:var(--diy-text-sub);margin-bottom:12px;">/month</div>
+            <ul style="text-align:left;font-size:13px;color:var(--diy-text-sub);list-style:none;padding:0;margin:0 0 16px;">
+              <li style="padding:4px 0;">&#10003; Everything in Free</li>
+              <li style="padding:4px 0;">&#10003; AI-powered audits</li>
+              <li style="padding:4px 0;">&#10003; Unlimited dispute letters</li>
+              <li style="padding:4px 0;">&#10003; Specialist matching</li>
+            </ul>
+            <button class="diy-btn diy-btn-primary billing-plan-btn" data-plan="basic" style="width:100%;" type="button">Upgrade to DIY</button>
+          </div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <a href="/diy/upgrade" class="diy-btn diy-btn-secondary" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Need expert help? Find a credit repair company
+          </a>
+        </div>
+        <div id="billingStatus" style="display:none;padding:10px 16px;border-radius:10px;font-size:14px;margin-bottom:16px;"></div>
+      </div>
+
+      <!-- AFFILIATE SECTION -->
+      <div id="sectionAffiliate" class="diy-section-page">
+        <div id="diyAffNotJoined">
+          <div class="diy-card" style="text-align:center;padding:32px 20px;">
+            <div style="font-size:40px;margin-bottom:12px;">🔗</div>
+            <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Affiliate Program</h2>
+            <p style="color:var(--diy-text-sub);font-size:14px;margin-bottom:16px;max-width:400px;margin-left:auto;margin-right:auto;">Earn money by sharing Evolv. Get paid for every referral that signs up.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:400px;margin:0 auto 16px;text-align:left;font-size:13px;">
+              <div style="padding:12px;border-radius:12px;background:rgba(0,0,0,0.15);border:1px solid var(--diy-border);">
+                <div style="font-weight:600;margin-bottom:8px;">DIY Referrals</div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Basic Plan</span><span id="diyRateDiyBasic" style="color:#4ade80;font-weight:600;">...</span></div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Pro Plan</span><span id="diyRateDiyPro" style="color:#4ade80;font-weight:600;">...</span></div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Tradeline</span><span id="diyRateDiyTradeline" style="color:#facc15;font-weight:600;">...</span></div>
+              </div>
+              <div style="padding:12px;border-radius:12px;background:rgba(0,0,0,0.15);border:1px solid var(--diy-border);">
+                <div style="font-weight:600;margin-bottom:8px;">CRM Referrals</div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Starter</span><span id="diyRateCrmStarter" style="color:#4ade80;font-weight:600;">...</span></div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Business</span><span id="diyRateCrmBusiness" style="color:#4ade80;font-weight:600;">...</span></div>
+                <div style="display:flex;justify-content:space-between;padding:3px 0;"><span>Enterprise</span><span id="diyRateCrmEnterprise" style="color:#4ade80;font-weight:600;">...</span></div>
+              </div>
+            </div>
+            <button id="diyJoinAffiliate" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;">Join Affiliate Program</button>
+          </div>
+        </div>
+        <div id="diyAffDashboard" style="display:none;">
+          <div class="diy-card" style="margin-bottom:12px;">
+            <div class="diy-card-header"><div class="diy-card-icon" style="background:rgba(99,102,241,0.15);">🔗</div><div class="diy-card-title">Your Referral Link</div></div>
+            <div style="display:flex;gap:8px;">
+              <input id="diyAffLink" readonly style="flex:1;background:rgba(0,0,0,0.2);border:1px solid var(--diy-border);border-radius:8px;padding:8px 10px;font-size:12px;font-family:monospace;color:var(--diy-text);" />
+              <button id="diyAffCopy" style="background:var(--diy-accent);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Copy</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
+            <div class="diy-card" style="text-align:center;padding:16px;margin:0;">
+              <div style="font-size:22px;font-weight:700;" id="diyStatClicks">0</div>
+              <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Clicks</div>
+            </div>
+            <div class="diy-card" style="text-align:center;padding:16px;margin:0;">
+              <div style="font-size:22px;font-weight:700;" id="diyStatSignups">0</div>
+              <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Signups</div>
+            </div>
+            <div class="diy-card" style="text-align:center;padding:16px;margin:0;">
+              <div style="font-size:22px;font-weight:700;color:#4ade80;" id="diyStatEarned">$0</div>
+              <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Earned</div>
+            </div>
+            <div class="diy-card" style="text-align:center;padding:16px;margin:0;">
+              <div style="font-size:22px;font-weight:700;" id="diyStatRate">0%</div>
+              <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Conv. Rate</div>
+            </div>
+          </div>
+          <div class="diy-card" style="margin-bottom:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <div class="diy-card-header" style="margin-bottom:0;"><div class="diy-card-icon" style="background:rgba(16,185,129,0.15);">💰</div><div class="diy-card-title">Earnings Breakdown</div></div>
+              <button id="diyBtnRequestPayout" class="diy-btn diy-btn-primary" style="padding:8px 16px;font-size:12px;" type="button">💸 Request Payout</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+              <div style="text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#4ade80;" id="diyEarningsTotalEarned">$0.00</div>
+                <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Total Earned</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#60a5fa;" id="diyEarningsPaidOut">$0.00</div>
+                <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Paid Out</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#facc15;" id="diyEarningsPending">$0.00</div>
+                <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Pending Payouts</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:20px;font-weight:700;color:#34d399;" id="diyEarningsAvailable">$0.00</div>
+                <div style="font-size:11px;color:var(--diy-text-sub);margin-top:4px;">Available Balance</div>
+              </div>
+            </div>
+          </div>
+          <div class="diy-card" style="margin-bottom:12px;">
+            <div class="diy-card-header"><div class="diy-card-icon" style="background:rgba(168,85,247,0.15);">📄</div><div class="diy-card-title">Payout History</div></div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                <thead><tr style="text-align:left;color:var(--diy-text-sub);border-bottom:1px solid var(--diy-border);"><th style="padding:8px;">Date</th><th style="padding:8px;">Amount</th><th style="padding:8px;">Method</th><th style="padding:8px;">Status</th><th style="padding:8px;">Actions</th></tr></thead>
+                <tbody id="diyPayoutTable"><tr><td colspan="5" style="padding:20px;text-align:center;color:var(--diy-text-sub);">No payout requests yet.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="diy-card">
+            <div class="diy-card-header"><div class="diy-card-icon" style="background:rgba(16,185,129,0.15);">📋</div><div class="diy-card-title">Referral History</div></div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                <thead><tr style="text-align:left;color:var(--diy-text-sub);border-bottom:1px solid var(--diy-border);"><th style="padding:8px;">Date</th><th style="padding:8px;">Type</th><th style="padding:8px;">Plan</th><th style="padding:8px;">Commission</th><th style="padding:8px;">Status</th></tr></thead>
+                <tbody id="diyAffTable"><tr><td colspan="5" style="padding:20px;text-align:center;color:var(--diy-text-sub);">No referrals yet. Share your link to start earning!</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS SECTION -->
+      <div id="sectionSettings" class="diy-section-page">
+        <h2 style="font-size:20px;font-weight:700;color:var(--diy-text);margin-bottom:16px;">Settings</h2>
+
+        <div class="diy-card">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(99,102,241,0.1);">
+              <span>&#128100;</span>
+            </div>
+            <div class="diy-card-title">Personal Information</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">First Name</label>
+              <input type="text" id="settingsFirstName" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Last Name</label>
+              <input type="text" id="settingsLastName" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" />
+            </div>
+            <div style="grid-column:span 2;">
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Email</label>
+              <input type="email" id="settingsEmail" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);background:#f9fafb;box-sizing:border-box;" disabled />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Phone</label>
+              <input type="tel" id="settingsPhone" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="(555) 555-5555" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">State</label>
+              <input type="text" id="settingsState" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="CA" />
+            </div>
+            <div style="grid-column:span 2;">
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Address</label>
+              <input type="text" id="settingsAddress" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="123 Main St" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">City</label>
+              <input type="text" id="settingsCity" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="Los Angeles" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">ZIP Code</label>
+              <input type="text" id="settingsZip" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="90001" />
+            </div>
+          </div>
+          <div id="settingsMsg" style="display:none;margin-top:12px;padding:8px 14px;border-radius:8px;font-size:13px;"></div>
+          <button id="btnSaveSettings" class="diy-btn diy-btn-primary" style="margin-top:16px;" type="button">Save Changes</button>
+        </div>
+
+        <div class="diy-card" style="margin-top:16px;">
+          <div class="diy-card-header">
+            <div class="diy-card-icon" style="background:rgba(239,68,68,0.1);">
+              <span>&#128274;</span>
+            </div>
+            <div class="diy-card-title">Change Password</div>
+          </div>
+          <div style="display:grid;gap:12px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Current Password</label>
+              <input type="password" id="settingsCurrentPass" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">New Password</label>
+              <input type="password" id="settingsNewPass" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="At least 8 characters" />
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Confirm New Password</label>
+              <input type="password" id="settingsConfirmPass" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" />
+            </div>
+          </div>
+          <div id="passwordMsg" style="display:none;margin-top:12px;padding:8px 14px;border-radius:8px;font-size:13px;"></div>
+          <button id="btnChangePassword" class="diy-btn diy-btn-secondary" style="margin-top:16px;" type="button">
+            Update Password
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <div id="diyPayoutModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+      <div style="background:var(--diy-card);border-radius:16px;padding:24px;width:100%;max-width:420px;margin:0 16px;border:1px solid var(--diy-border);box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h2 style="font-size:18px;font-weight:700;color:var(--diy-text);">Request Payout</h2>
+          <button id="diyPayoutModalClose" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--diy-text-sub);padding:4px;">&times;</button>
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:13px;color:var(--diy-text-sub);margin-bottom:4px;">Available Balance</div>
+          <div style="font-size:24px;font-weight:700;color:#34d399;" id="diyPayoutModalBalance">$0.00</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;">Payout Method</label>
+          <select id="diyPayoutMethod" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);background:var(--diy-card);box-sizing:border-box;">
+            <option value="paypal">PayPal</option>
+            <option value="venmo">Venmo</option>
+            <option value="check">Check</option>
+          </select>
+        </div>
+        <div style="margin-bottom:16px;" id="diyPayoutEmailGroup">
+          <label style="font-size:12px;font-weight:600;color:var(--diy-text-sub);display:block;margin-bottom:4px;" id="diyPayoutEmailLabel">PayPal Email</label>
+          <input id="diyPayoutEmail" type="text" style="width:100%;padding:10px 14px;border:1px solid var(--diy-border);border-radius:10px;font-size:14px;color:var(--diy-text);box-sizing:border-box;" placeholder="you@example.com" />
+        </div>
+        <div id="diyPayoutError" style="display:none;color:#ef4444;font-size:13px;margin-bottom:12px;"></div>
+        <button id="diyPayoutSubmit" class="diy-btn diy-btn-primary" style="width:100%;" type="button">Submit Payout Request</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/education-lessons.js"></script>
+  <script src="/education-intermediate.js"></script>
+  <script src="/education-expert.js"></script>
+  <script src="/education-player.js"></script>
+  <script src="/diy/dashboard.js"></script>
+</body>
+</html>

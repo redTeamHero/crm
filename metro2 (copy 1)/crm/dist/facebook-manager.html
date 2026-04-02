@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Social Media Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link id="dark-theme-css" rel="stylesheet" href="/assets/evolv-dark-BLxRb3yA.css?v=3" disabled>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+  <script src="/sidebar.js?v=27" defer></script>
+  <script src="/theme.js"></script>
+  <style>
+    .sm-tab { padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;border:1px solid transparent; }
+    .sm-tab.active { background:rgba(99,102,241,0.2);border-color:rgba(99,102,241,0.4);color:#818cf8; }
+    .sm-tab:not(.active) { color:#9ca3af; }
+    .sm-tab:not(.active):hover { background:rgba(255,255,255,0.05);color:#e5e7eb; }
+    .sm-section { display:none; }
+    .sm-section.active { display:block; }
+    .feed-card { background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px; }
+    .rss-item { background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s; }
+    .rss-item:hover { border-color:rgba(99,102,241,0.4); }
+    .rss-item.selected { border-color:#818cf8;background:rgba(99,102,241,0.1); }
+    .queue-card { background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px; }
+    .status-badge { display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em; }
+    .status-draft { background:rgba(107,114,128,0.2);color:#9ca3af; }
+    .status-scheduled { background:rgba(251,191,36,0.15);color:#fbbf24; }
+    .status-published { background:rgba(16,185,129,0.15);color:#34d399; }
+    .status-failed { background:rgba(239,68,68,0.15);color:#f87171; }
+    .fb-connect-btn { display:inline-flex;align-items:center;gap:10px;padding:12px 24px;border-radius:10px;background:#1877f2;color:#fff;font-weight:700;font-size:14px;border:none;cursor:pointer;transition:opacity 0.15s; }
+    .fb-connect-btn:hover { opacity:0.9; }
+    .fb-connect-btn svg { width:20px;height:20px;fill:#fff; }
+    .textarea-post { width:100%;min-height:160px;resize:vertical;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:14px;font-size:14px;color:var(--text-main,#e5e7eb);line-height:1.6;outline:none;transition:border-color 0.15s; }
+    .textarea-post:focus { border-color:rgba(99,102,241,0.5); }
+    .char-count { font-size:11px;color:#6b7280;text-align:right;margin-top:4px; }
+    .char-count.near { color:#fbbf24; }
+    .char-count.over { color:#f87171; }
+    .preview-card { background:#18191a;border-radius:12px;padding:16px;border:1px solid #3a3b3c;max-width:520px; }
+    .preview-page-name { font-weight:700;font-size:14px;color:#e4e6eb; }
+    .preview-time { font-size:12px;color:#b0b3b8;margin-top:1px; }
+    .preview-content { margin-top:12px;font-size:14px;color:#e4e6eb;line-height:1.5;white-space:pre-wrap; }
+    .preview-link { margin-top:12px;background:#242526;border-radius:8px;padding:10px;display:flex;align-items:flex-start;gap:10px; }
+    .setup-step { display:flex;align-items:flex-start;gap:14px;padding:16px 0;border-bottom:1px solid rgba(212,168,83,0.1); }
+    .setup-step:last-child { border-bottom:none; }
+    .step-num { width:30px;height:30px;border-radius:50%;background:rgba(212,168,83,0.15);border:1px solid rgba(212,168,83,0.4);color:#d4a853;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px; }
+    .tag { display:inline-block;background:rgba(16,185,129,0.12);color:#34d399;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px;margin-top:2px; }
+    .setup-path { display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:3px 10px;font-size:11px;color:#d1d5db;font-family:monospace;white-space:nowrap; }
+    .setup-path span { color:#9ca3af; }
+    @media (max-width: 540px) { .autopilot-grid { grid-template-columns: 1fr !important; } }
+    .copy-uri-btn { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:5px;background:rgba(212,168,83,0.12);border:1px solid rgba(212,168,83,0.3);color:#d4a853;font-size:11px;font-weight:600;cursor:pointer;margin-left:8px;transition:all 0.15s; }
+    .copy-uri-btn:hover { background:rgba(212,168,83,0.2); }
+    .prereq-box { background:rgba(212,168,83,0.06);border:1px solid rgba(212,168,83,0.2);border-radius:10px;padding:14px 16px;margin-bottom:20px; }
+    .prereq-item { display:flex;align-items:center;gap:10px;font-size:12px;color:#d1d5db;margin-bottom:6px; }
+    .prereq-item:last-child { margin-bottom:0; }
+    .prereq-item svg { flex-shrink:0; }
+  </style>
+  <script type="module" crossorigin src="/assets/facebook-manager-B8puVztZ.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/evolv-light-CscajxBz.js">
+  <link rel="modulepreload" crossorigin href="/assets/common-cmR40mwU.js">
+  <link rel="modulepreload" crossorigin href="/assets/tour-guide-CQHuR1Bq.js">
+  <link rel="stylesheet" crossorigin href="/assets/evolv-light-sf0Pbxdz.css">
+  <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
+  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
+</head>
+<body>
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+    </div>
+  </div>
+</header>
+
+<main class="workspace px-4 pb-12">
+  <div class="workspace-inner max-w-5xl mx-auto space-y-6">
+
+    <section class="workspace-hero glass card">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <p class="eyebrow">EVOLV</p>
+          <h1 class="hero-title">Social Media Manager</h1>
+          <p class="hero-sub">Pull articles from any RSS feed, generate AI-crafted Facebook posts, and schedule them to publish automatically.</p>
+        </div>
+        <div id="smStatusBadge" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:auto;">
+          <div id="fbConnectionStatus" style="font-size:12px;color:#9ca3af;">Checking connection…</div>
+          <div id="smStats" style="font-size:12px;color:#9ca3af;display:none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="smTabs">
+      <button class="sm-tab active" data-tab="connect">Facebook Connect</button>
+      <button class="sm-tab" data-tab="feeds">RSS Feeds</button>
+      <button class="sm-tab" data-tab="newpost">New Post</button>
+      <button class="sm-tab" data-tab="tradelines">📈 Tradelines</button>
+      <button class="sm-tab" data-tab="queue">Post Queue</button>
+      <button class="sm-tab" data-tab="autopilot">⚡ Autopilot</button>
+      <button class="sm-tab" data-tab="leads">Leads &amp; Comments</button>
+    </div>
+
+    <!-- CONNECT TAB -->
+    <section id="tab-connect" class="sm-section active glass card p-6 space-y-6">
+      <div id="connectBody"></div>
+      <div id="setupGuide">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:4px;color:#e5e7eb;">How to Set Up Facebook Integration</h3>
+        <p style="font-size:12px;color:#9ca3af;margin-bottom:16px;">Follow these steps in order. Each step takes about 1–2 minutes. You'll need a Facebook account and a Facebook Business Page.</p>
+
+        <div class="prereq-box">
+          <div style="font-size:12px;font-weight:700;color:#d4a853;margin-bottom:10px;">What you'll get at the end of this setup:</div>
+          <div class="prereq-item">
+            <svg width="14" height="14" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            An <strong>App ID</strong> — a long number that identifies your Meta app
+          </div>
+          <div class="prereq-item">
+            <svg width="14" height="14" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            An <strong>App Secret</strong> — a private password for your Meta app (keep it confidential)
+          </div>
+          <div class="prereq-item">
+            <svg width="14" height="14" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            A connected Facebook Business Page so Evolv can publish posts on your behalf
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:8px;">Create a Meta Developer App</div>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">1a — App Details screen</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">Go to <a href="https://developers.facebook.com/apps/" target="_blank" style="color:#d4a853;text-decoration:underline;">developers.facebook.com/apps</a> and sign in. Click the blue <strong style="color:#e5e7eb;">Create App</strong> button. You'll land on "App Details" — give your app any name (e.g. <em style="color:#e5e7eb;">Evolv Social</em>), enter your email, then click <strong style="color:#e5e7eb;">Next</strong>.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">1b — Use Cases screen</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:6px;">On the "Add use cases" screen, on the left side click <strong style="color:#e5e7eb;">Others</strong>. You'll see a list appear on the right. Select <strong style="color:#e5e7eb;">"Create an app without a use case"</strong> (the one that says "get an app ID without adding any permissions, features and products"). Click <strong style="color:#e5e7eb;">Next</strong>.</p>
+            <p style="font-size:12px;color:#6b7280;line-height:1.7;margin-bottom:12px;font-style:italic;">Note: Do not select "Other (This option is going away soon)" — use the one above it.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">1c — Business &amp; Remaining screens</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">If prompted to select a Business Account, pick yours from the dropdown (or skip if you don't have one set up). Click through the Requirements and Overview screens, then click <strong style="color:#e5e7eb;">Create App</strong> at the end. Facebook may ask you to confirm your password.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">1d — Find your App ID &amp; App Secret</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">Once the dashboard loads, your <strong style="color:#e5e7eb;">App ID</strong> is the number displayed at the very top of the page (under your app name). To find your <strong style="color:#e5e7eb;">App Secret</strong>, click <span class="setup-path">Settings <span>›</span> Basic</span> in the left sidebar — click the <strong style="color:#e5e7eb;">Show</strong> button next to App Secret to reveal it. Copy both — you'll need them in Step 5.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">1e — Add your App Domain <span style="color:#f87171;font-weight:700;">(required — skipping this causes errors)</span></div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">Still on the <span class="setup-path">Settings <span>›</span> Basic</span> page, scroll down until you see the <strong style="color:#e5e7eb;">"App Domains"</strong> field. Type in your domain exactly as shown below and press Enter:</p>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 12px;font-size:12px;color:#e5e7eb;font-family:monospace;display:inline-block;margin-bottom:8px;">evolv.credit</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">Click <strong style="color:#e5e7eb;">Save Changes</strong> at the bottom of the Settings page. Without this step, Facebook will show a "Can't load URL" error when you try to connect.</p>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:8px;">Add Facebook Login as a Use Case</div>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">2a — From the App Dashboard</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">After your app is created you'll land on the Dashboard. It will say <em style="color:#e5e7eb;">"No use cases on this app."</em> — click the green <strong style="color:#e5e7eb;">+ Add use cases</strong> button in the center of the page.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">2b — Select the use case</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:6px;">On the use cases screen, make sure <strong style="color:#e5e7eb;">Featured</strong> or <strong style="color:#e5e7eb;">All</strong> is selected in the left filter. Select <strong style="color:#e5e7eb;">"Authenticate and request data from users with Facebook Login"</strong> — this is the first option in the list.</p>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">Click <strong style="color:#e5e7eb;">Next</strong> to continue through any remaining prompts, then click <strong style="color:#e5e7eb;">Save</strong>.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">2c — What you'll see after</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">The left sidebar will now show a <strong style="color:#e5e7eb;">"Use cases"</strong> section. Click it, and you'll see your Facebook Login use case listed. This unlocks the OAuth redirect URI settings in the next step.</p>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:8px;">Add the OAuth Redirect URL</div>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">3a — Open the use case customization</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">Back on the Dashboard you'll see a checklist under "App customization and requirements." Click the first row — <strong style="color:#e5e7eb;">"Customize the Authenticate and request data from users with Facebook Login use case"</strong> (the one with the green checkmark icon). This opens the use case settings.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">3b — Add the redirect URL</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">You'll land on the <strong style="color:#e5e7eb;">Settings</strong> tab (left sidebar). You'll see a <em style="color:#6b7280;">"Redirect URI Validator"</em> section at the top — <strong style="color:#e5e7eb;">skip past that</strong>, it's only for testing. Scroll down until you see the <strong style="color:#e5e7eb;">"Valid OAuth Redirect URIs"</strong> text box. Click inside it and paste this URL:</p>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+              <code id="redirectUriHint" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);padding:5px 12px;border-radius:6px;font-size:11px;color:#e5e7eb;word-break:break-all;"></code>
+              <button class="copy-uri-btn" id="copyUriBtn" type="button">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:12px;">After pasting, scroll to the bottom of the page and click the blue <strong style="color:#e5e7eb;">Save changes</strong> button.</p>
+
+            <div style="font-size:11px;font-weight:700;color:#d4a853;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">3c — Add the required permissions <span style="color:#f87171;font-weight:700;">(required — skipping causes "Invalid Scopes" error)</span></div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">While still in the use case customization view, click the <strong style="color:#e5e7eb;">Permissions</strong> tab at the top of the page. You'll see a list of available permissions. Find and click <strong style="color:#e5e7eb;">Add</strong> next to each of these three:</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+              <span class="tag">pages_manage_posts</span>
+              <span class="tag">pages_read_engagement</span>
+              <span class="tag">pages_show_list</span>
+            </div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">After adding all three, click <strong style="color:#e5e7eb;">Save changes</strong>. These permissions let Evolv see your pages and publish posts on your behalf.</p>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">4</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:6px;">Set Permissions to Development Access</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin-bottom:8px;">While your app is in <strong style="color:#e5e7eb;">Development mode</strong>, the permissions you just added will automatically be available for testing with your own account — no App Review needed. If you want to manage pages owned by other Facebook users, you would need full Meta App Review, but for posting to <em>your own</em> business page, development access is enough.</p>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">To confirm: in the left sidebar go to <span class="setup-path">Use cases</span> and click <strong style="color:#e5e7eb;">Customize</strong> → <strong style="color:#e5e7eb;">Permissions</strong> tab. Each of the three permissions should show a green badge or "Added" status.</p>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">5</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:6px;">Enter Your Credentials in Evolv</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">Go to <a href="/settings#facebook" style="color:#d4a853;text-decoration:underline;">Settings → Social Media</a> in Evolv's sidebar. Paste your <strong style="color:#e5e7eb;">App ID</strong> and <strong style="color:#e5e7eb;">App Secret</strong> from Step 1 into the fields there and click Save. Once saved, come back to this page — the <strong style="color:#e5e7eb;">Connect Facebook Page</strong> button will appear above.</p>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">6</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;color:#e5e7eb;margin-bottom:6px;">Connect Your Facebook Business Page</div>
+            <p style="font-size:12px;color:#9ca3af;line-height:1.7;">Click the <strong style="color:#e5e7eb;">Connect Facebook Page</strong> button that now appears above. A Facebook authorization window will open — log in if prompted, grant the requested permissions, and then select which Business Page you want Evolv to publish to. Your page access token is saved securely and the Status badge above will turn green.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RSS FEEDS TAB -->
+    <section id="tab-feeds" class="sm-section glass card p-6 space-y-5">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">RSS Feed Sources</h2>
+        <button id="btnShowAddFeed" type="button" class="btn-primary" style="font-size:13px;padding:7px 16px;">+ Add Feed</button>
+      </div>
+      <div id="addFeedBox" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:16px 18px;space-y-3;">
+        <p style="font-size:12px;color:#9ca3af;margin-bottom:12px;">Add any RSS or Atom feed URL. Try credit repair news, your own blog, CFPB press releases, etc.</p>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div style="flex:2;min-width:200px;">
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Feed URL *</label>
+            <input type="url" id="addFeedUrl" class="input-field w-full" placeholder="https://example.com/feed.xml">
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Display Name (optional)</label>
+            <input type="text" id="addFeedName" class="input-field w-full" placeholder="e.g. CFPB News">
+          </div>
+          <button id="btnAddFeed" type="button" class="btn-primary" style="font-size:13px;padding:9px 18px;white-space:nowrap;">Add Feed</button>
+        </div>
+        <div id="addFeedErr" style="color:#f87171;font-size:12px;display:none;margin-top:6px;"></div>
+      </div>
+      <div id="feedsList">
+        <div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">Loading feeds…</div>
+      </div>
+      <div id="rssItemsSection" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 id="rssItemsTitle" style="font-size:14px;font-weight:700;color:#e5e7eb;"></h3>
+          <button id="btnRefreshItems" type="button" class="btn-secondary" style="font-size:12px;padding:5px 12px;">Refresh</button>
+        </div>
+        <p style="font-size:12px;color:#9ca3af;margin-bottom:10px;">Click an article to generate a Facebook post from it.</p>
+        <div id="rssItemsList"></div>
+      </div>
+    </section>
+
+    <!-- NEW POST TAB -->
+    <section id="tab-newpost" class="sm-section glass card p-6 space-y-5">
+      <div>
+        <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;margin-bottom:4px;">Create New Post</h2>
+        <p style="font-size:13px;color:#9ca3af;margin-top:0;">Write your own post with AI-assisted content, start from an RSS article, add media, and schedule flexibly.</p>
+      </div>
+
+      <div id="npNoConn" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:14px 18px;">
+        <div style="font-size:13px;color:#fbbf24;font-weight:600;margin-bottom:4px;">No Facebook page connected</div>
+        <p style="font-size:12px;color:#9ca3af;margin:0;">You can still draft and schedule text posts without a connection. Connect on the <strong style="color:#e5e7eb;">Facebook Connect</strong> tab to publish images and videos.</p>
+      </div>
+
+      <!-- RSS Article Picker -->
+      <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.18);border-radius:10px;padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#e5e7eb;margin-bottom:2px;">📰 Start from RSS Article</div>
+            <div style="font-size:12px;color:#9ca3af;">Pick an article from your feeds — AI will generate a post around it.</div>
+          </div>
+          <button id="btnNpPickArticle" type="button" class="btn-secondary" style="font-size:12px;padding:7px 16px;white-space:nowrap;">Pick Article</button>
+        </div>
+        <div id="npSelectedArticleBar" style="display:none;margin-top:10px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:10px 14px;align-items:center;gap:10px;">
+          <div style="flex:1;">
+            <div style="font-size:11px;color:#818cf8;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Selected Article</div>
+            <div id="npSelectedArticleTitle" style="font-size:13px;color:#e5e7eb;margin-top:2px;"></div>
+          </div>
+          <button id="btnNpClearArticle" type="button" style="font-size:11px;color:#9ca3af;background:none;border:none;cursor:pointer;padding:0;">✕ Clear</button>
+        </div>
+        <div id="npArticleLinkRow" style="display:none;margin-top:10px;">
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Article Link (will be attached to post)</label>
+          <input type="url" id="npArticleUrl" class="input-field w-full" placeholder="https://…" style="font-size:13px;">
+        </div>
+      </div>
+
+      <!-- AI Generate -->
+      <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);border-radius:10px;padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#e5e7eb;margin-bottom:2px;">Generate with AI</div>
+            <div style="font-size:12px;color:#9ca3af;">Describe your topic and ChatGPT will write the post for you.</div>
+          </div>
+          <button id="btnNpAiToggle" type="button" class="btn-primary" style="font-size:12px;padding:7px 16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);white-space:nowrap;">✦ Write with AI</button>
+        </div>
+        <div id="npAiPanel" style="display:none;margin-top:14px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:1;min-width:200px;">
+              <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Topic / Instruction *</label>
+              <input type="text" id="npAiTopic" class="input-field w-full" placeholder="e.g. How to dispute late payments on your credit report" style="font-size:13px;">
+            </div>
+            <div style="min-width:140px;">
+              <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Tone</label>
+              <select id="npAiTone" class="input-field w-full" style="font-size:13px;">
+                <option value="">Conversational (default)</option>
+                <option value="professional">Professional</option>
+                <option value="urgent">Urgent / Motivating</option>
+                <option value="educational">Educational</option>
+                <option value="casual">Casual &amp; Friendly</option>
+              </select>
+            </div>
+            <button id="btnNpAiRun" type="button" class="btn-primary" style="font-size:13px;padding:9px 18px;white-space:nowrap;">Generate</button>
+          </div>
+          <div id="npAiErr" style="color:#f87171;font-size:12px;margin-top:6px;display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Post content -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:13px;font-weight:600;color:#e5e7eb;">Post Content *</label>
+          <span id="npCharCount" class="char-count">0 / 63,206</span>
+        </div>
+        <textarea id="npContent" class="textarea-post" placeholder="Write your post here, or use Generate with AI above…"></textarea>
+      </div>
+
+      <!-- Media picker -->
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;">
+        <div style="font-size:13px;font-weight:700;color:#e5e7eb;margin-bottom:10px;">Media (optional)</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#d1d5db;">
+            <input type="radio" name="npMediaType" value="none" checked style="accent-color:#818cf8;"> No media (text only)
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#d1d5db;">
+            <input type="radio" name="npMediaType" value="photo" style="accent-color:#818cf8;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Image
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:#d1d5db;">
+            <input type="radio" name="npMediaType" value="video" style="accent-color:#818cf8;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Video
+          </label>
+        </div>
+
+        <div id="npPhotoUpload" style="display:none;margin-top:10px;">
+          <input type="file" id="npPhotoFile" accept="image/*" style="display:none;">
+          <button type="button" id="btnNpChoosePhoto" onclick="document.getElementById('npPhotoFile').click()"
+            style="display:inline-flex;align-items:center;gap:8px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Choose Image
+          </button>
+          <span id="npPhotoName" style="font-size:12px;color:#9ca3af;margin-left:10px;"></span>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">JPG, PNG or GIF — max 10 MB</p>
+          <div id="npPhotoPreview" style="margin-top:10px;display:none;">
+            <img id="npPhotoImg" style="max-height:140px;max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);" alt="Preview">
+          </div>
+        </div>
+
+        <div id="npVideoUpload" style="display:none;margin-top:10px;">
+          <input type="file" id="npVideoFile" accept="video/*" style="display:none;">
+          <button type="button" id="btnNpChooseVideo" onclick="document.getElementById('npVideoFile').click()"
+            style="display:inline-flex;align-items:center;gap:8px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            Choose Video
+          </button>
+          <span id="npVideoName" style="font-size:12px;color:#9ca3af;margin-left:10px;"></span>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">MP4 or MOV — max 50 MB</p>
+          <div style="margin-top:10px;">
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Video Title (optional)</label>
+            <input type="text" id="npVideoTitle" class="input-field w-full" placeholder="e.g. How to fix your credit in 30 days" style="font-size:13px;">
+          </div>
+          <p style="font-size:11px;color:#6b7280;margin-top:6px;">The Post Content above will be used as the video description.</p>
+        </div>
+      </div>
+
+      <!-- Schedule -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Schedule Date &amp; Time (optional)</label>
+          <input type="datetime-local" id="npSchedule" class="input-field w-full">
+          <div style="font-size:11px;color:#6b7280;margin-top:4px;">Leave blank to publish immediately. Media posts are published immediately regardless.</div>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;">
+          <button id="btnNpPublish" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#10b981,#059669);">Publish Now</button>
+          <button id="btnNpSchedule" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#6366f1,#8b5cf6);">Schedule</button>
+          <button id="btnNpDraft" type="button" class="btn-secondary w-full" style="font-size:13px;padding:9px 0;">Save Draft</button>
+        </div>
+      </div>
+
+      <div id="npErr" style="color:#f87171;font-size:13px;display:none;"></div>
+      <div id="npMsg" style="font-size:13px;display:none;"></div>
+    </section>
+
+    <!-- TRADELINES TAB -->
+    <section id="tab-tradelines" class="sm-section glass card p-6 space-y-5">
+      <div>
+        <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;margin-bottom:4px;">📈 Tradeline Marketing</h2>
+        <p style="font-size:13px;color:#9ca3af;margin-top:0;">Pick tradelines from your inventory, generate a compelling Facebook post, and publish or schedule it instantly.</p>
+      </div>
+
+      <!-- Range picker + filters -->
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:160px;">
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Price Range</label>
+          <select id="tlRangeSelect" class="input-field w-full" style="font-size:13px;">
+            <option value="">— Select a price range —</option>
+          </select>
+        </div>
+        <div style="min-width:140px;">
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Bank</label>
+          <select id="tlBankFilter" class="input-field w-full" style="font-size:13px;">
+            <option value="">All banks</option>
+          </select>
+        </div>
+        <div style="min-width:150px;">
+          <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Sort By</label>
+          <select id="tlSortSelect" class="input-field w-full" style="font-size:13px;">
+            <option value="">Default</option>
+            <option value="price_asc">Price ↑</option>
+            <option value="price_desc">Price ↓</option>
+            <option value="limit_asc">Credit Limit ↑</option>
+            <option value="limit_desc">Credit Limit ↓</option>
+            <option value="age_desc">Age (Oldest first)</option>
+            <option value="age_asc">Age (Newest first)</option>
+          </select>
+        </div>
+        <button id="btnLoadTradelines" type="button" class="btn-secondary" style="font-size:13px;padding:8px 16px;white-space:nowrap;">Load</button>
+      </div>
+
+      <!-- Tradeline card grid -->
+      <div id="tlCardGrid" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+          <div id="tlGridTitle" style="font-size:13px;font-weight:600;color:#e5e7eb;"></div>
+          <div style="display:flex;gap:8px;">
+            <button id="btnTlSelectAll" type="button" class="btn-secondary" style="font-size:12px;padding:4px 12px;">Select All</button>
+            <button id="btnTlClearSel" type="button" class="btn-secondary" style="font-size:12px;padding:4px 12px;">Clear</button>
+          </div>
+        </div>
+        <div id="tlCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;max-height:360px;overflow-y:auto;padding-right:4px;"></div>
+        <div id="tlLoadMore" style="display:none;text-align:center;margin-top:10px;">
+          <button id="btnTlMore" type="button" class="btn-secondary" style="font-size:12px;padding:5px 16px;">Load More</button>
+        </div>
+      </div>
+      <div id="tlEmpty" style="display:none;color:#9ca3af;font-size:13px;text-align:center;padding:20px 0;">No tradelines found for this range.</div>
+      <div id="tlLoading" style="display:none;color:#9ca3af;font-size:13px;text-align:center;padding:20px 0;">Loading tradelines…</div>
+
+      <!-- Selected count + Generate button -->
+      <div id="tlGenerateRow" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div id="tlSelectedCount" style="font-size:13px;color:#9ca3af;"></div>
+        <button id="btnTlGenerate" type="button" class="btn-primary" style="font-size:13px;padding:8px 20px;background:linear-gradient(135deg,#6366f1,#8b5cf6);">✦ Generate with AI</button>
+      </div>
+      <div id="tlGenErr" style="color:#f87171;font-size:12px;display:none;"></div>
+
+      <!-- Generated post editor -->
+      <div id="tlPostEditor" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:13px;font-weight:600;color:#e5e7eb;">Generated Post</label>
+          <span id="tlCharCount" class="char-count">0 / 63,206</span>
+        </div>
+        <textarea id="tlPostContent" class="textarea-post" style="min-height:180px;" placeholder="Generated post will appear here…"></textarea>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Schedule Date &amp; Time (optional)</label>
+            <input type="datetime-local" id="tlScheduleInput" class="input-field w-full">
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:8px;">
+            <button id="btnTlPublish" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#10b981,#059669);">Publish Now</button>
+            <button id="btnTlSchedule" type="button" class="btn-primary w-full" style="font-size:13px;padding:9px 0;background:linear-gradient(135deg,#6366f1,#8b5cf6);">Schedule</button>
+            <button id="btnTlDraft" type="button" class="btn-secondary w-full" style="font-size:13px;padding:9px 0;">Save Draft</button>
+          </div>
+        </div>
+
+        <div id="tlSaveMsg" style="font-size:13px;margin-top:8px;display:none;"></div>
+        <div id="tlSaveErr" style="color:#f87171;font-size:13px;margin-top:8px;display:none;"></div>
+      </div>
+    </section>
+
+    <!-- QUEUE TAB -->
+    <section id="tab-queue" class="sm-section glass card p-6 space-y-5">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">Post Queue</h2>
+        <div style="display:flex;gap:8px;">
+          <select id="queueFilter" class="input-field" style="font-size:13px;padding:6px 12px;">
+            <option value="">All Posts</option>
+            <option value="draft">Drafts</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="published">Published</option>
+            <option value="failed">Failed</option>
+          </select>
+          <button id="btnRefreshQueue" type="button" class="btn-secondary" style="font-size:13px;padding:6px 14px;">Refresh</button>
+        </div>
+      </div>
+      <div id="queueList">
+        <div style="color:#9ca3af;font-size:13px;text-align:center;padding:24px 0;">Loading queue…</div>
+      </div>
+    </section>
+
+    <!-- AUTOPILOT TAB -->
+    <section id="tab-autopilot" class="sm-section glass card p-6">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div>
+          <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">⚡ RSS Autopilot</h2>
+          <p style="font-size:12px;color:#9ca3af;margin-top:2px;">Checks RSS feeds every 5 minutes for new articles and generates an AI-crafted Facebook post for each one automatically.</p>
+        </div>
+        <button id="btnRunNow" type="button" class="btn-secondary" style="font-size:12px;padding:7px 16px;white-space:nowrap;">Run Now</button>
+      </div>
+
+      <!-- Status Banner -->
+      <div id="autopilotBanner" style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div id="autopilotStatusDot" style="width:10px;height:10px;border-radius:50%;background:#6b7280;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div id="autopilotStatusLabel" style="font-size:13px;font-weight:700;color:#e5e7eb;">Loading…</div>
+          <div id="autopilotStatusSub" style="font-size:11px;color:#9ca3af;margin-top:2px;"></div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;color:#9ca3af;">Posts today</div>
+          <div id="autopilotPostsToday" style="font-size:18px;font-weight:700;color:#818cf8;">—</div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div style="margin-bottom:20px;">
+        <!-- Enable toggle -->
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;">
+          <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Autopilot</div>
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+            <div style="position:relative;width:44px;height:24px;flex-shrink:0;">
+              <input type="checkbox" id="autopilotToggle" style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;margin:0;z-index:1;">
+              <div id="autopilotTrack" style="position:absolute;inset:0;border-radius:12px;background:#374151;transition:background 0.2s;"></div>
+              <div id="autopilotThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>
+            </div>
+            <div>
+              <div id="autopilotToggleLabel" style="font-size:13px;font-weight:600;color:#e5e7eb;">Disabled</div>
+              <div style="font-size:11px;color:#9ca3af;">Checks every 5 min · posts every new article automatically</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Feed Selection -->
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Feed Selection</div>
+        <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+          <button id="btnFeedAll" type="button" class="btn-secondary" style="font-size:12px;padding:5px 14px;">Use All Feeds</button>
+          <button id="btnFeedCustom" type="button" class="btn-secondary" style="font-size:12px;padding:5px 14px;">Custom Selection</button>
+        </div>
+        <div id="feedCheckboxList" style="display:none;flex-direction:column;gap:8px;"></div>
+        <div id="feedSelectionNote" style="font-size:12px;color:#9ca3af;">Autopilot will rotate through all your RSS feeds.</div>
+      </div>
+
+      <!-- Save settings -->
+      <div style="display:flex;justify-content:flex-end;margin-bottom:24px;">
+        <button id="btnSaveAutopilot" type="button" class="btn-primary" style="font-size:13px;padding:8px 24px;">Save Settings</button>
+      </div>
+
+      <!-- Tradeline Auto-Posts section -->
+      <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;margin-bottom:24px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+          <div>
+            <h2 style="font-size:15px;font-weight:700;color:#e5e7eb;margin-bottom:2px;">📈 Tradeline Auto-Posts</h2>
+            <p style="font-size:12px;color:#9ca3af;margin-top:0;">Automatically generate and publish Facebook posts for available tradelines on a recurring schedule.</p>
+          </div>
+          <button id="btnTlApRunNow" type="button" class="btn-secondary" style="font-size:12px;padding:7px 16px;white-space:nowrap;">Post One Now</button>
+        </div>
+
+        <!-- Tradeline AP status banner -->
+        <div id="tlApBanner" style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div id="tlApStatusDot" style="width:10px;height:10px;border-radius:50%;background:#6b7280;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div id="tlApStatusLabel" style="font-size:13px;font-weight:700;color:#e5e7eb;">Loading…</div>
+            <div id="tlApStatusSub" style="font-size:11px;color:#9ca3af;margin-top:2px;"></div>
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px;margin-bottom:14px;">
+          <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+            <div style="position:relative;width:44px;height:24px;flex-shrink:0;">
+              <input type="checkbox" id="tlApToggle" style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer;margin:0;z-index:1;">
+              <div id="tlApTrack" style="position:absolute;inset:0;border-radius:12px;background:#374151;transition:background 0.2s;"></div>
+              <div id="tlApThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>
+            </div>
+            <div>
+              <div id="tlApToggleLabel" style="font-size:13px;font-weight:600;color:#e5e7eb;">Disabled</div>
+              <div style="font-size:11px;color:#9ca3af;">When enabled, auto-posts tradelines to your Facebook page on a set schedule</div>
+            </div>
+          </label>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:14px;">
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Post frequency</label>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type="number" id="tlApFreq" class="input-field" min="1" max="365" value="3" style="font-size:13px;width:70px;">
+              <select id="tlApFreqUnit" class="input-field" style="font-size:12px;padding:6px 8px;">
+                <option value="week" selected>/ week</option>
+                <option value="day">/ day</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Post from (hour)</label>
+            <select id="tlApHourFrom" class="input-field w-full" style="font-size:13px;">
+              <option value="6">6:00 AM</option>
+              <option value="7">7:00 AM</option>
+              <option value="8">8:00 AM</option>
+              <option value="9">9:00 AM</option>
+              <option value="10" selected>10:00 AM</option>
+              <option value="11">11:00 AM</option>
+              <option value="12">12:00 PM</option>
+              <option value="13">1:00 PM</option>
+              <option value="14">2:00 PM</option>
+              <option value="15">3:00 PM</option>
+              <option value="16">4:00 PM</option>
+              <option value="17">5:00 PM</option>
+              <option value="18">6:00 PM</option>
+              <option value="19">7:00 PM</option>
+              <option value="20">8:00 PM</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Post until (hour)</label>
+            <select id="tlApHourTo" class="input-field w-full" style="font-size:13px;">
+              <option value="6">6:00 AM</option>
+              <option value="7">7:00 AM</option>
+              <option value="8">8:00 AM</option>
+              <option value="9">9:00 AM</option>
+              <option value="10">10:00 AM</option>
+              <option value="11">11:00 AM</option>
+              <option value="12">12:00 PM</option>
+              <option value="13">1:00 PM</option>
+              <option value="14" selected>2:00 PM</option>
+              <option value="15">3:00 PM</option>
+              <option value="16">4:00 PM</option>
+              <option value="17">5:00 PM</option>
+              <option value="18">6:00 PM</option>
+              <option value="19">7:00 PM</option>
+              <option value="20">8:00 PM</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Preferred day</label>
+            <select id="tlApDay" class="input-field w-full" style="font-size:13px;">
+              <option value="-1" selected>Everyday</option>
+              <option value="0">Sunday</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+              <option value="6">Saturday</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Best Times Guide -->
+        <div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:6px;">💡 Best Times for Credit / Financial Content</div>
+              <div style="font-size:12px;color:#9ca3af;line-height:1.7;">
+                <strong style="color:#e5e7eb;">Tue–Thu, 10AM–2PM</strong> — Highest engagement for financial topics<br>
+                <strong style="color:#e5e7eb;">Mon–Fri, 11AM–1PM</strong> — Lunch-hour peak across all audiences<br>
+                <strong style="color:#e5e7eb;">Fri, 8AM–11AM</strong> — Strong for deal &amp; offer posts<br>
+                <span style="color:#6b7280;">Avoid: weekends before 10AM &amp; weekdays after 9PM</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:#9ca3af;white-space:nowrap;">Apply Best Times</span>
+                <label style="position:relative;display:inline-block;width:42px;height:24px;margin:0;cursor:pointer;">
+                  <input type="checkbox" id="toggleBestTimes" style="opacity:0;width:0;height:0;position:absolute;" />
+                  <span id="toggleBestTimesSlider" style="position:absolute;top:0;left:0;right:0;bottom:0;background:#374151;border-radius:24px;transition:background .25s;">
+                    <span id="toggleBestTimesKnob" style="position:absolute;height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .25s;display:block;"></span>
+                  </span>
+                </label>
+              </div>
+              <div id="bestTimesPostCountRow" style="display:none;align-items:center;gap:6px;">
+                <label for="bestTimesPostCount" style="font-size:11px;color:#9ca3af;white-space:nowrap;">Posts / week:</label>
+                <input id="bestTimesPostCount" type="number" min="1" max="28" value="5" class="input-field" style="font-size:13px;width:70px;padding:3px 8px;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;">
+          <button id="btnSaveTlAutopilot" type="button" class="btn-primary" style="font-size:13px;padding:8px 24px;">Save Tradeline Autopilot</button>
+        </div>
+      </div>
+
+      <!-- Auto-post History -->
+      <div>
+        <h3 style="font-size:14px;font-weight:700;color:#e5e7eb;margin-bottom:12px;">Recent Auto-Posts</h3>
+        <div id="autopilotHistory" style="font-size:13px;color:#9ca3af;text-align:center;padding:20px 0;">No auto-posts yet. Enable Autopilot and save to get started.</div>
+      </div>
+    </section>
+
+    <!-- LEADS & COMMENTS TAB -->
+    <section id="tab-leads" class="sm-section glass card p-6 space-y-6">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2 style="font-size:16px;font-weight:700;color:#e5e7eb;">Leads &amp; Comments</h2>
+          <p style="font-size:12px;color:#9ca3af;margin-top:2px;">Pull leads from Facebook lead forms and recent page comments — then add them directly to your CRM pipeline.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <div style="display:flex;gap:8px;">
+            <button id="btnLoadLeads" type="button" class="btn-primary" style="font-size:13px;padding:7px 16px;">Load Leads</button>
+            <button id="btnLoadComments" type="button" class="btn-secondary" style="font-size:13px;padding:7px 16px;">Load Comments</button>
+          </div>
+          <div id="leadsAutoRefreshBadge" style="display:flex;align-items:center;gap:5px;">
+            <span id="leadsRefreshDot" style="width:6px;height:6px;border-radius:50%;background:#6b7280;display:inline-block;flex-shrink:0;"></span>
+            <span id="leadsRefreshLabel" style="font-size:11px;color:#6b7280;">Auto-refresh paused</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="leadsNoConn" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:16px 20px;">
+        <div style="font-size:13px;color:#fbbf24;font-weight:600;margin-bottom:4px;">No Facebook page connected</div>
+        <p style="font-size:12px;color:#9ca3af;">Connect your Facebook Business Page on the <strong style="color:#e5e7eb;">Facebook Connect</strong> tab first.</p>
+      </div>
+
+      <!-- Lead Form Submissions -->
+      <div id="leadsSection">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <h3 style="font-size:14px;font-weight:700;color:#e5e7eb;">Lead Form Submissions</h3>
+          <div id="leadsCount" style="font-size:11px;color:#9ca3af;"></div>
+        </div>
+        <div id="leadsList">
+          <div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px;">Click "Load Leads" to pull lead form submissions from your connected Facebook page.</div>
+        </div>
+      </div>
+
+      <!-- Page Comments -->
+      <div id="commentsSection" style="margin-top:8px;">
+        <div style="border-top:1px solid rgba(255,255,255,0.06);margin-bottom:20px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <h3 style="font-size:14px;font-weight:700;color:#e5e7eb;">Recent Page Comments</h3>
+          <div id="commentsCount" style="font-size:11px;color:#9ca3af;"></div>
+        </div>
+        <div id="commentsList">
+          <div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px;">Click "Load Comments" to pull recent comments from your Facebook page posts.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- Page Picker Overlay -->
+<div id="pagePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:flex-start;justify-content:center;padding:60px 16px;overflow-y:auto;">
+  <div style="background:#1a1b2e;border:1px solid rgba(99,102,241,0.3);border-radius:14px;width:100%;max-width:560px;padding:28px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:#1877f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+      </div>
+      <div>
+        <h3 style="font-size:16px;font-weight:700;color:#e5e7eb;">Choose a Facebook Page</h3>
+        <p style="font-size:12px;color:#9ca3af;">Your account manages multiple pages. Select the page you want to connect to Evolv.</p>
+      </div>
+    </div>
+    <div id="pagePickerList" style="margin-top:20px;display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="pagePickerErr" style="color:#f87171;font-size:12px;margin-top:10px;display:none;"></div>
+    <button id="btnCancelPagePicker" type="button" style="margin-top:16px;font-size:12px;color:#9ca3af;background:none;border:none;cursor:pointer;width:100%;text-align:center;">Cancel — reconnect later</button>
+  </div>
+</div>
+
+<!-- Article Picker Modal -->
+<div id="articlePickerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;">
+  <div style="background:#1a1b2e;border:1px solid rgba(255,255,255,0.1);border-radius:14px;width:100%;max-width:680px;padding:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="font-size:16px;font-weight:700;color:#e5e7eb;">Pick an Article from RSS</h3>
+      <button id="btnCloseArticlePicker" type="button" style="color:#9ca3af;font-size:20px;background:none;border:none;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:#9ca3af;display:block;margin-bottom:4px;">Select Feed</label>
+      <select id="pickerFeedSelect" class="input-field w-full" style="font-size:13px;"></select>
+    </div>
+    <button id="btnLoadPickerItems" type="button" class="btn-secondary" style="font-size:13px;padding:7px 16px;margin-bottom:14px;">Load Articles</button>
+    <div id="pickerItemsList" style="max-height:400px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+</body>
+</html>

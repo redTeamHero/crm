@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CFPB Complaint Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/theme.js"></script>
+  <link id="dark-theme-css" rel="stylesheet" href="/assets/evolv-dark-BLxRb3yA.css?v=3" disabled>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+  <script src="/sidebar.js?v=27" defer></script>
+  <script src="/command-palette.js" defer></script>
+  <script type="module" crossorigin src="/assets/cfpb-DGBsHGv5.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/evolv-light-CscajxBz.js">
+  <link rel="modulepreload" crossorigin href="/assets/common-cmR40mwU.js">
+  <link rel="modulepreload" crossorigin href="/assets/tour-guide-CQHuR1Bq.js">
+  <link rel="stylesheet" crossorigin href="/assets/evolv-light-sf0Pbxdz.css">
+  <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
+  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
+</head>
+<body>
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+    </div>
+  </div>
+</header>
+
+<main class="workspace px-4 pb-12">
+  <div class="workspace-inner max-w-4xl mx-auto space-y-6">
+
+    <section class="workspace-hero glass card">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <p class="eyebrow">EVOLV</p>
+          <h1 class="hero-title">CFPB Complaint Generator</h1>
+          <p class="hero-sub">Generate AI-drafted Consumer Financial Protection Bureau complaints for unresolved credit disputes.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass card p-6 space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1" for="consumerSelect">Select Client</label>
+        <select id="consumerSelect" class="input-field w-full">
+          <option value="">-- Select a client --</option>
+        </select>
+      </div>
+    </section>
+
+    <section id="cfpbFormSection" class="glass card p-6 space-y-5" style="display:none;">
+
+      <div style="display:flex;gap:6px;background:rgba(255,255,255,0.04);border-radius:8px;padding:4px;">
+        <button id="cfpbTabByBureau" type="button"
+          style="flex:1;padding:7px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:rgba(99,102,241,0.3);border:1px solid rgba(99,102,241,0.5);color:#a5b4fc;">
+          By Bureau
+        </button>
+        <button id="cfpbTabIndividually" type="button"
+          style="flex:1;padding:7px 12px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;border:1px solid transparent;color:#9ca3af;">
+          Individually
+        </button>
+      </div>
+
+      <div id="cfpbByBureauPanel">
+      <h2 class="text-lg font-semibold" style="margin-bottom:4px;">Generate Complaint</h2>
+      <p style="font-size:13px;color:var(--text-sub,#9ca3af);margin-top:0;">Fill in the details below. The AI will draft a formal CFPB complaint using FCRA-specific language.</p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Company Being Complained About <span style="color:#f87171;">*</span></label>
+          <input type="text" id="cfpbCompany" class="input-field w-full" placeholder="e.g. Equifax, Experian, TransUnion, Capital One…">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Violation Type <span style="color:#f87171;">*</span></label>
+          <select id="cfpbViolationType" class="input-field w-full">
+            <option value="">-- Select violation --</option>
+            <optgroup label="FCRA — No Response">
+              <option value="no_response_30">30-Day No Response (FCRA §611)</option>
+              <option value="no_response_45">45-Day No Response / Extended Period (FCRA §611)</option>
+            </optgroup>
+            <optgroup label="FCRA — Inaccurate Reporting">
+              <option value="verified_inaccurate">Verified Inaccurate Information (FCRA §611)</option>
+              <option value="wrong_balance">Incorrect Balance Reported (FCRA §623)</option>
+              <option value="wrong_status">Incorrect Account Status (FCRA §623)</option>
+              <option value="reaged">Re-Aged Debt / Changed DOFD (FCRA §605(c))</option>
+              <option value="mixed_file">Mixed Credit File / Wrong Consumer Info (FCRA §611)</option>
+              <option value="duplicate_reporting">Duplicate / Multiple Reporting (FCRA §623)</option>
+            </optgroup>
+            <optgroup label="FCRA — Account Status">
+              <option value="continued_after_paid">Continued Reporting After Paid/Settled (FCRA §623)</option>
+              <option value="paid_collection">Paid Collection Still Reporting Negative (FCRA §623)</option>
+              <option value="settlement_not_reflected">Settlement Not Reflected on Report (FCRA §623)</option>
+              <option value="obsolete_info">Reporting Obsolete / Beyond 7-Year Limit (FCRA §605)</option>
+              <option value="bankruptcy_discharge">Debt Discharged in Bankruptcy Still Reporting (FCRA §623)</option>
+              <option value="not_mine">Account Not Mine / Identity Theft (FCRA §611, §623)</option>
+            </optgroup>
+            <optgroup label="FCRA — Special Rules">
+              <option value="medical_debt">Medical Debt Under $500 Being Reported (CFPB Rule 2023)</option>
+            </optgroup>
+            <optgroup label="FDCPA — Debt Collection">
+              <option value="collection_no_validation">Debt Collector Failed to Validate Debt (FDCPA §809)</option>
+              <option value="collection_harassment">Debt Collector Harassment / Abusive Conduct (FDCPA §806)</option>
+              <option value="collection_false_representation">Debt Collector Made False Representations (FDCPA §807)</option>
+              <option value="collection_unfair_practices">Debt Collector Used Unfair Practices (FDCPA §808)</option>
+            </optgroup>
+            <option value="other">Other (describe below)</option>
+          </select>
+        </div>
+
+        <div id="cfpbOtherBox" style="display:none;">
+          <label class="block text-sm font-medium mb-1">Describe the Violation</label>
+          <textarea id="cfpbOtherText" class="input-field w-full" rows="2" placeholder="Describe the specific violation…"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Account(s) / Item(s) Disputed</label>
+          <div id="cfpbItemsPanel" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">
+            <div id="cfpbItemsLoading" style="font-size:12px;color:#9ca3af;">Select a client to load negative items…</div>
+            <div id="cfpbItemsCheckboxes" style="display:none;max-height:180px;overflow-y:auto;"></div>
+            <div id="cfpbItemsControls" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <label style="font-size:12px;color:#818cf8;cursor:pointer;display:flex;align-items:center;gap:4px;">
+                <input type="checkbox" id="cfpbSelectAll"> Select All
+              </label>
+              <div style="flex:1;"></div>
+              <input type="text" id="cfpbCustomItem" class="input-field" placeholder="Add custom item…" style="font-size:12px;padding:4px 8px;max-width:220px;">
+              <button type="button" id="btnAddCustomItem" style="font-size:11px;padding:3px 10px;background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#818cf8;border-radius:6px;cursor:pointer;font-weight:600;">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Tone</label>
+            <select id="cfpbTone" class="input-field w-full">
+              <optgroup label="Formal">
+                <option value="professional">Professional</option>
+                <option value="firm_assertive">Firm &amp; Assertive</option>
+                <option value="legal_formal">Legal Formal</option>
+              </optgroup>
+              <optgroup label="Emotional">
+                <option value="curious">Curious / Questioning</option>
+                <option value="tired">Tired / Exhausted</option>
+                <option value="hopeless">Hopeless / Despairing</option>
+                <option value="hopeful">Hopeful / Optimistic</option>
+                <option value="frustrated">Frustrated</option>
+                <option value="emotional">Emotional / Personal</option>
+                <option value="desperate">Desperate / Urgent</option>
+              </optgroup>
+              <optgroup label="Forceful">
+                <option value="urgent">Urgent</option>
+                <option value="strong_aggressive">Strong &amp; Aggressive</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Complaint Goal</label>
+            <select id="cfpbGoal" class="input-field w-full">
+              <option value="">-- Not specified --</option>
+              <option value="delete">Delete Item from Credit Report</option>
+              <option value="correct">Correct Inaccurate Information</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Date Dispute Was Sent</label>
+            <input type="date" id="cfpbSentDate" class="input-field w-full">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Response Received</label>
+            <select id="cfpbResponse" class="input-field w-full">
+              <option value="">-- Select --</option>
+              <option value="No Response">No Response</option>
+              <option value="Verified as Accurate">Verified as Accurate</option>
+              <option value="Deleted">Deleted</option>
+              <option value="Updated/Partially Corrected">Updated/Partially Corrected</option>
+              <option value="Account Closed">Account Closed</option>
+              <option value="Paid/Settled">Paid/Settled</option>
+              <option value="Transferred">Transferred</option>
+              <option value="other">Other</option>
+            </select>
+            <input type="text" id="cfpbResponseOther" class="input-field w-full" placeholder="Describe the response…" style="display:none;margin-top:6px;">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Additional Notes</label>
+          <textarea id="cfpbNotes" class="input-field w-full" rows="3" placeholder="Any other context, timelines, or supporting details…"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Attach Proof Documents</label>
+          <div id="cfpbProofArea" style="background:rgba(255,255,255,0.03);border:2px dashed rgba(255,255,255,0.12);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.2s;">
+            <input type="file" id="cfpbProofInput" multiple accept=".pdf,.png,.jpg,.jpeg" style="display:none;">
+            <div style="font-size:13px;color:#9ca3af;">Click or drag files here (PDF, PNG, JPG — max 10 MB each, up to 5 files)</div>
+          </div>
+          <div id="cfpbProofList" style="margin-top:8px;"></div>
+        </div>
+
+        <div id="cfpbGenError" class="text-red-400 text-sm" style="display:none;"></div>
+
+        <button id="btnGenerateCfpb" type="button" class="btn-primary w-full" style="padding:10px 20px;font-size:14px;font-weight:600;">
+          Generate CFPB Complaint
+        </button>
+      </div>
+      </div>
+
+      <div id="cfpbIndividualPanel" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <span style="font-size:13px;color:var(--text-sub,#9ca3af);">Shared fields for all items:</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+            <div>
+              <label class="block text-sm font-medium mb-1">Date Dispute Sent</label>
+              <input type="date" id="cfpbIndivSharedDate" class="input-field w-full">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Additional Notes</label>
+              <textarea id="cfpbIndivSharedNotes" class="input-field w-full" rows="1" placeholder="Shared notes…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div id="cfpbIndivItemList">
+          <div id="cfpbIndivLoading" style="font-size:13px;color:#9ca3af;padding:12px 0;">Select a client to load items…</div>
+        </div>
+      </div>
+
+    </section>
+
+    <section id="cfpbResultSection" class="glass card p-6 space-y-5" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <h2 class="text-lg font-semibold">Generated Complaint</h2>
+        <div style="display:flex;gap:8px;">
+          <button id="btnCopyCfpb" type="button" class="btn-secondary" style="font-size:13px;padding:6px 14px;">Copy All</button>
+          <button id="btnSaveCfpb" type="button" class="btn-primary" style="font-size:13px;padding:6px 14px;background:linear-gradient(135deg,#10b981,#059669);">Save to Record</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.05em;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">WHAT HAPPENED</div>
+        <div id="cfpbNarrative" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.7;white-space:pre-wrap;"></div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.05em;color:#6b7280;text-transform:uppercase;margin-bottom:6px;">WHAT RESOLUTION I AM SEEKING</div>
+        <div id="cfpbResolution" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.7;white-space:pre-wrap;"></div>
+      </div>
+
+      <div id="cfpbSaveMsg" style="font-size:13px;color:#10b981;display:none;">Saved to client record.</div>
+    </section>
+
+    <section id="cfpbHistorySection" class="glass card p-6" style="display:none;">
+      <h2 class="text-lg font-semibold mb-4">Saved Complaints</h2>
+      <div id="cfpbHistoryList"></div>
+    </section>
+
+  </div>
+</main>
+
+</body>
+</html>

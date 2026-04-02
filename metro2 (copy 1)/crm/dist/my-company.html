@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Company</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/theme.js"></script>
+  <link id="dark-theme-css" rel="stylesheet" href="/assets/evolv-dark-BLxRb3yA.css?v=3" disabled>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+<script src="/sidebar.js?v=27" defer></script>
+<script src="/command-palette.js" defer></script>
+<style>
+  :root { color-scheme: dark; }
+  body { background: #0a0a0a; }
+
+  .company-section {
+    background: #111113;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 32px;
+  }
+  .company-section + .company-section {
+    margin-top: 24px;
+  }
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #d4a853;
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f0f0f0;
+    margin-bottom: 4px;
+  }
+  .section-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+  }
+  .form-group {
+    margin-top: 24px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #aaa;
+    margin-bottom: 8px;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #e5e5e5;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: #d4a853;
+    box-shadow: 0 0 0 2px rgba(212,168,83,0.15);
+  }
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: #444;
+  }
+  .form-group .hint {
+    font-size: 11px;
+    color: #555;
+    margin-top: 6px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) {
+    .form-row { grid-template-columns: 1fr; }
+    .company-section { padding: 24px; }
+  }
+  .team-member-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .team-member-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(212,168,83,0.12);
+    color: #d4a853;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .badge-role {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(212,168,83,0.1);
+    color: #d4a853;
+  }
+</style>
+  <script type="module" crossorigin src="/assets/my-company-BTMZR45n.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/evolv-light-CscajxBz.js">
+  <link rel="modulepreload" crossorigin href="/assets/common-cmR40mwU.js">
+  <link rel="modulepreload" crossorigin href="/assets/tour-guide-CQHuR1Bq.js">
+  <link rel="stylesheet" crossorigin href="/assets/evolv-light-sf0Pbxdz.css">
+  <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
+  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
+</head>
+<body class="text-gray-200">
+<header id="host-nav" class="p-4">
+  <div class="max-w-7xl mx-auto glass card nav-shell">
+    <div class="nav-brand-row">
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <span>Menu</span>
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2" aria-label="Primary">
+      <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+        <a href="/dashboard" class="btn nav-btn">Dashboard</a>
+        <a href="/clients" class="btn nav-btn">Clients</a>
+        <a href="/leads" class="btn nav-btn">Leads</a>
+        <a href="/schedule" class="btn nav-btn">Schedule</a>
+        <a href="/billing" class="btn nav-btn">Billing</a>
+        <a href="/tradelines" class="btn nav-btn">Tradelines</a>
+        <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
+          <span class="text-xl">📄</span>
+          <span class="font-semibold text-sm">Rookie</span>
+        </div>
+      </div>
+    </nav>
+  </div>
+</header>
+<main class="max-w-3xl mx-auto px-4 py-8 space-y-0">
+  <div class="mb-10">
+    <h1 class="text-2xl font-bold text-white">My Company</h1>
+    <p class="text-sm text-gray-500 mt-1">Brand profile, team access, and compliance settings</p>
+  </div>
+
+  <div class="company-section">
+    <div class="section-label">Brand Profile</div>
+    <div class="section-title">Company Information</div>
+    <div class="section-desc">Your legal entity info appears on dispute letters, invoices, and client portals.</div>
+
+    <form id="companyForm">
+      <div class="form-row" style="margin-top:24px;">
+        <div class="form-group" style="margin-top:0;">
+          <label for="companyName">Company Name</label>
+          <input id="companyName" type="text" placeholder="Revolv Automation" />
+          <div class="hint">Appears on dispute letters and invoices</div>
+        </div>
+        <div class="form-group" style="margin-top:0;">
+          <label for="companyPhone">Phone</label>
+          <input id="companyPhone" type="tel" placeholder="(555) 123-4567" />
+          <div class="hint">Use a recorded line with disclosure</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="companyEmail">Email</label>
+        <input id="companyEmail" type="email" placeholder="team@revolv.ai" />
+        <div class="hint">Client-facing inbox with SPF/DKIM set</div>
+      </div>
+      <div class="form-group">
+        <label for="companyAddress">Mailing Address</label>
+        <textarea id="companyAddress" rows="3" placeholder="123 Trust Lane&#10;Suite 200&#10;Austin, TX 78701"></textarea>
+        <div class="hint">Match certified mail sender details</div>
+      </div>
+      <div class="flex items-center justify-between mt-6">
+        <p class="text-xs text-gray-600">Data stays in your browser storage</p>
+        <button id="saveCompany" type="submit" class="px-6 py-2.5 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,#d4a853,#c4973e);color:#0a0a0a;">Save Profile</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Directory Listing: Bio + Reviews ── -->
+  <div class="company-section" id="directorySection" style="margin-top:24px;">
+    <div class="section-label">Specialist Directory</div>
+    <div class="section-title">Public Listing</div>
+    <div class="section-desc">This bio and your client reviews appear on the public <a href="/specialists.html" target="_blank" style="color:#d4a853;text-decoration:none;">Find a Specialist</a> page.</div>
+
+    <div class="form-group">
+      <label for="directoryBio">About Your Company <span id="bioCharCount" style="color:#555;font-weight:400;">(0 / 500)</span></label>
+      <textarea id="directoryBio" rows="5" placeholder="Describe your specialties, experience, how you help clients, and what makes you different…" style="resize:vertical;"></textarea>
+      <div class="hint">Shown directly below your listing card on the public directory</div>
+    </div>
+    <div class="flex items-center gap-3 mt-4">
+      <button id="saveBio" type="button" class="px-6 py-2.5 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,#d4a853,#c4973e);color:#0a0a0a;">Save Bio</button>
+      <span id="bioSaveMsg" style="font-size:12px;color:#10b981;display:none;"></span>
+    </div>
+
+    <div style="margin-top:28px;border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;">
+      <div style="font-size:12px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">
+        Client Reviews
+        <span id="reviewBadge" style="margin-left:8px;background:rgba(212,168,83,0.12);color:#d4a853;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;"></span>
+      </div>
+      <div id="reviewsList" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:13px;color:#555;">Loading reviews…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="company-section" id="myCompanyTeam">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="section-label">Team Workspace</div>
+        <div class="section-title">Team Members</div>
+        <div class="section-desc">Invite analysts, closers, and attorneys to collaborate on Metro-2 workflows.</div>
+      </div>
+      <button id="btnInviteTeam" data-action="invite-team" class="px-4 py-2 rounded-xl text-sm font-medium border border-[#d4a853]/30 text-[#d4a853] hover:bg-[#d4a853]/10 transition-colors flex-shrink-0">+ Invite</button>
+    </div>
+
+    <p id="teamLoading" class="text-sm text-gray-500 mt-6 flex items-center gap-2">
+      <span class="loader" aria-hidden="true"></span>
+      Loading team...
+    </p>
+    <p id="teamError" class="hidden text-sm text-red-400 mt-4"></p>
+    <p id="teamEmpty" class="hidden text-sm text-gray-500 mt-6">No team members yet. Start by inviting a teammate.</p>
+
+    <div id="teamTableWrap" class="hidden mt-6">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs text-gray-500 uppercase tracking-wider">
+            <th class="pb-3 font-medium">Name</th>
+            <th class="pb-3 font-medium">Role</th>
+            <th class="pb-3 font-medium">Email</th>
+            <th class="pb-3 font-medium">Last Login</th>
+            <th class="pb-3 font-medium">Invited</th>
+            <th class="pb-3 font-medium sr-only">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="teamTable" class="divide-y divide-gray-800"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid rgba(255,255,255,0.06);margin:32px 0"></div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:16px;font-weight:600;color:#fff;">Sign Out</div>
+      <p style="font-size:12px;color:#6b7280;margin-top:2px;">Sign out of your Evolv account on this device.</p>
+    </div>
+    <button id="btnSignOutCompany" style="padding:8px 20px;border-radius:10px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.background='rgba(239,68,68,0.22)'" onmouseout="this.style.background='rgba(239,68,68,0.12)'">
+      Sign Out
+    </button>
+  </div>
+
+  <script>
+    document.getElementById('btnSignOutCompany').addEventListener('click', function() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth');
+      location.href = '/login.html';
+    });
+  </script>
+</main>
+
+<dialog id="inviteDialog" class="team-dialog">
+  <div class="dialog-panel glass card p-6 space-y-5" role="document" style="background:#111113;border:1px solid rgba(255,255,255,0.06);border-radius:16px;max-width:480px;">
+    <div class="dialog-header flex items-start justify-between gap-4">
+      <div>
+        <div class="section-label">Secure Invite</div>
+        <div class="section-title">Invite a teammate</div>
+        <div class="section-desc">Send a secure login link and temporary password.</div>
+      </div>
+      <button type="button" class="text-gray-500 hover:text-white text-xl leading-none" data-close aria-label="Close">&#x2715;</button>
+    </div>
+    <form id="inviteForm" class="space-y-4">
+      <div class="form-group" style="margin-top:0;">
+        <label>Teammate Name</label>
+        <input id="inviteName" name="name" placeholder="e.g. Maria Lopez" required />
+      </div>
+      <div class="form-group" style="margin-top:0;">
+        <label>Work Email</label>
+        <input id="inviteEmail" name="email" type="email" placeholder="team@revolv.ai" required />
+      </div>
+      <div class="form-group" style="margin-top:0;">
+        <label>Role</label>
+        <select id="inviteRole" name="teamRole">
+          <option value="analyst">Credit Analyst</option>
+          <option value="closer">Sales Closer</option>
+          <option value="attorney">Attorney</option>
+          <option value="success">Client Success</option>
+        </select>
+      </div>
+      <p id="inviteError" class="hidden text-sm text-red-400"></p>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button type="button" class="px-4 py-2 rounded-xl text-sm text-gray-400 border border-gray-700 hover:bg-white/5 transition-colors" data-close>Cancel</button>
+        <button id="inviteSubmit" type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold" style="background:linear-gradient(135deg,#d4a853,#c4973e);color:#0a0a0a;">Send Invite</button>
+      </div>
+    </form>
+    <div id="inviteSuccess" class="hidden space-y-4">
+      <div class="section-desc">Share this secure access with your teammate.</div>
+      <div class="p-4 rounded-xl" style="background:#0a0a0a;border:1px solid rgba(255,255,255,0.06);">
+        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Invite Link Token</div>
+        <div class="flex items-center gap-3">
+          <code id="inviteToken" class="text-sm text-[#d4a853] font-mono flex-1 break-all"></code>
+          <button type="button" class="px-3 py-1 rounded-lg text-xs border border-gray-700 text-gray-400 hover:text-[#d4a853] hover:border-[#d4a853]/30 transition-colors" data-copy="token">Copy</button>
+        </div>
+      </div>
+      <div class="p-4 rounded-xl" style="background:#0a0a0a;border:1px solid rgba(255,255,255,0.06);">
+        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Temporary Password</div>
+        <div class="flex items-center gap-3">
+          <code id="invitePassword" class="text-sm text-[#d4a853] font-mono flex-1 break-all"></code>
+          <button type="button" class="px-3 py-1 rounded-lg text-xs border border-gray-700 text-gray-400 hover:text-[#d4a853] hover:border-[#d4a853]/30 transition-colors" data-copy="password">Copy</button>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button type="button" class="px-4 py-2 rounded-xl text-sm text-gray-400 border border-gray-700 hover:bg-white/5 transition-colors" data-close>Done</button>
+        <button type="button" class="px-4 py-2 rounded-xl text-sm font-medium border border-[#d4a853]/30 text-[#d4a853] hover:bg-[#d4a853]/10 transition-colors" id="inviteAnother">Invite another</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+<script src="/hotkeys.js"></script>
+</body>
+</html>

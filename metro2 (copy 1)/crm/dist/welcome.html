@@ -1,0 +1,2400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Evolv — Rise Financially</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#7C3AED" />
+  <script>
+    (function(){
+      var t = localStorage.getItem('token') || localStorage.getItem('auth');
+      if (t) {
+        try {
+          var p = JSON.parse(atob(t.split('.')[1]));
+          if (p && (!p.exp || p.exp * 1000 > Date.now())) {
+            var role = p.role || '';
+            if (role === 'diy_user') {
+              window.location.replace('/diy/dashboard.html');
+            } else {
+              window.location.replace('/dashboard');
+            }
+            return;
+          }
+        } catch(e) {
+          window.location.replace('/dashboard');
+          return;
+        }
+      }
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/globe.gl@2.27.0/dist/globe.gl.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    .gradient-bg {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4c1d95 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .gradient-bg::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 80%;
+      height: 150%;
+      background: radial-gradient(ellipse, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    
+    .section-dark {
+      background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%);
+    }
+    
+    .section-darker {
+      background: #0f172a;
+    }
+    
+    .nav-globe-svg { width: 28px; height: 28px; filter: drop-shadow(0 0 5px rgba(168,85,247,0.55)); }
+    
+    .nav-globe-spin { animation: navGlobeSpin 6s linear infinite; transform-origin: 14px 14px; }
+    
+    @keyframes navGlobeSpin { to { transform: rotate(360deg); } }
+    
+    .hero-scene { position:relative; min-height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#000; }
+    
+    #globe-container { position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; pointer-events:none; touch-action:auto; }
+    
+    .bureau-panel { position:absolute; top:50%; z-index:5; width:min(270px,36vw); pointer-events:auto; }
+    
+    .bureau-panel--left { left:0; transform:translateY(-50%) translateX(-110%); transition:transform 0.65s cubic-bezier(0.22,1,0.36,1); }
+    
+    .bureau-panel--left.active { transform:translateY(-50%) translateX(0); }
+    
+    .bureau-panel--right { right:0; transform:translateY(-50%) translateX(110%); transition:transform 0.65s cubic-bezier(0.22,1,0.36,1); }
+    
+    .bureau-panel--right.active { transform:translateY(-50%) translateX(0); }
+    
+    .bp-inner { margin:0.75rem; background:rgba(4,4,12,0.82); border:1px solid rgba(255,140,40,0.18); border-radius:1rem; padding:1.4rem 1.5rem; backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); }
+    
+    .bp-label { font-size:0.58rem; font-weight:700; letter-spacing:0.2em; color:rgba(232,112,64,0.65); margin-bottom:0.55rem; text-transform:uppercase; }
+    
+    .bp-name { font-size:1.35rem; font-weight:800; letter-spacing:0.1em; color:#fff; line-height:1.1; }
+    
+    .bp-city { font-size:0.82rem; color:rgba(255,255,255,0.55); margin-top:0.25rem; }
+    
+    .bp-coords { font-size:0.65rem; font-family:monospace; color:rgba(232,112,64,0.55); margin-top:0.35rem; letter-spacing:0.04em; }
+    
+    .bp-rule { height:1px; background:linear-gradient(90deg,rgba(232,112,64,0.35),transparent); margin:0.9rem 0; }
+    
+    .bp-tagline { font-size:0.78rem; color:rgba(255,255,255,0.5); margin-bottom:0.85rem; font-style:italic; }
+    
+    .bp-stats { display:flex; flex-direction:column; gap:0.55rem; }
+    
+    .bp-stat { display:flex; flex-direction:column; }
+    
+    .bp-stat-val { font-size:1.05rem; font-weight:700; color:#d4a853; }
+    
+    .bp-stat-label { font-size:0.62rem; color:rgba(255,255,255,0.38); text-transform:uppercase; letter-spacing:0.08em; }
+    
+    .bp-headline { font-size:1rem; font-weight:700; color:#fff; line-height:1.35; margin-bottom:0.6rem; }
+    
+    .bp-subtext { font-size:0.78rem; color:rgba(255,255,255,0.52); line-height:1.55; margin-bottom:1.1rem; }
+    
+    .bp-ctas { display:flex; flex-direction:column; gap:0.6rem; }
+    
+    .bp-cta-pro,.bp-cta-diy { display:block; text-align:center; padding:0.6rem 1rem; border-radius:0.625rem; font-size:0.78rem; font-weight:600; text-decoration:none; transition:background 0.2s,border-color 0.2s; }
+    
+    .bp-cta-pro { background:rgba(139,92,246,0.18); border:1px solid rgba(139,92,246,0.45); color:#c4b5fd; }
+    
+    .bp-cta-pro:hover { background:rgba(139,92,246,0.32); }
+    
+    .bp-cta-diy { background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.45); color:#6ee7b7; }
+    
+    .bp-cta-diy:hover { background:rgba(16,185,129,0.32); }
+    
+    .hero-brand-bar { position:absolute; bottom:2.5rem; left:50%; transform:translateX(-50%); z-index:5; text-align:center; pointer-events:none; white-space:nowrap; }
+    
+    .hero-wordmark-wrap { display:inline-flex; flex-direction:column; align-items:center; }
+    
+    .hero-wordmark { font-size:3.8rem; font-weight:800; letter-spacing:0.22em; background:linear-gradient(135deg,#d4a853,#f5d590,#d4a853); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 22px rgba(212,168,83,0.35)); }
+    
+    .hero-sub { font-size:0.75rem; color:rgba(255,255,255,0.38); letter-spacing:0.14em; margin-top:0.3rem; }
+    
+    #globe-counter { position:absolute; bottom:1.2rem; left:50%; transform:translateX(-50%); z-index:5; display:flex; align-items:center; gap:0.5rem; font-size:0.6rem; letter-spacing:0.18em; color:rgba(255,255,255,0.28); pointer-events:auto; font-variant-numeric:tabular-nums; user-select:none; }
+    
+    .globe-nav-btn { background:none; border:none; cursor:pointer; color:rgba(255,255,255,0.28); font-size:1rem; line-height:1; padding:6px 10px; border-radius:4px; display:flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; transition:color 0.18s; -webkit-tap-highlight-color:transparent; }
+    
+    .globe-nav-btn:hover, .globe-nav-btn:focus { color:rgba(255,255,255,0.7); outline:none; }
+    
+    @media(max-width:768px){
+      .bureau-panel { width:min(200px,42vw); }
+      .bp-inner { margin:0.4rem; padding:1rem 1.1rem; }
+      .bp-name { font-size:1rem; }
+      .bp-stat-val { font-size:0.9rem; }
+    }
+    
+    @media(max-width:500px){
+      .bureau-panel--left { transform:translateY(-90%) translateX(-110%); }
+      .bureau-panel--left.active { transform:translateY(-90%) translateX(0); }
+      .bureau-panel--right { transform:translateY(-90%) translateX(110%); }
+      .bureau-panel--right.active { transform:translateY(-90%) translateX(0); }
+      .hero-wordmark { font-size:2.4rem; }
+      .hero-brand-bar { bottom:1.6rem; }
+      #globe-counter { bottom:0.4rem; }
+    }
+    
+    .proof-gallery { display:flex; gap:1.25rem; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; padding:0 0 1.5rem 0; scrollbar-width:thin; scrollbar-color:rgba(139,92,246,0.3) transparent; }
+    
+    .proof-gallery::-webkit-scrollbar { height:6px; }
+    
+    .proof-gallery::-webkit-scrollbar-track { background:transparent; }
+    
+    .proof-gallery::-webkit-scrollbar-thumb { background:rgba(139,92,246,0.3); border-radius:3px; }
+    
+    .proof-card { flex:0 0 280px; scroll-snap-align:start; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:1rem; overflow:hidden; transition:transform 0.2s, border-color 0.2s; }
+    
+    .proof-card:hover { transform:translateY(-4px); border-color:rgba(139,92,246,0.4); }
+    
+    .proof-img-wrap { position:relative; width:100%; max-height:420px; overflow:hidden; background:#0a0a1a; display:flex; align-items:center; justify-content:center; }
+    
+    .proof-img-wrap img { width:100%; height:auto; display:block; object-fit:contain; }
+    
+    .proof-img-wrap video { width:100%; height:auto; display:block; max-height:420px; object-fit:contain; background:#000; }
+    
+    .proof-caption { padding:0.875rem 1rem; font-size:0.8rem; color:rgba(255,255,255,0.75); line-height:1.4; }
+    
+    .proof-tag { display:inline-block; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:9999px; margin-right:0.4rem; text-transform:uppercase; letter-spacing:0.04em; }
+    
+    .proof-tag-score { background:rgba(16,185,129,0.15); color:#6ee7b7; }
+    
+    .proof-tag-removed { background:rgba(139,92,246,0.15); color:#c4b5fd; }
+    
+    .proof-tag-video { background:rgba(212,168,83,0.15); color:#f5d590; }
+    
+    @media(max-width:640px){ .proof-card { flex:0 0 260px; } .proof-img-wrap { max-height:360px; } }
+    
+    .cost-input-wrap { display:inline-flex; align-items:center; justify-content:center; gap:2px; margin-bottom:0.5rem; }
+    
+    .cost-input-prefix { color:#c4b5fd; font-size:0.85rem; font-weight:600; }
+    
+    .cost-input { background:transparent; border:none; border-bottom:1px dashed rgba(196,181,253,0.4); color:#fff; font-size:0.85rem; font-weight:600; text-align:center; width:5.5rem; padding:2px 0; outline:none; font-family:inherit; }
+    
+    .cost-input:focus { border-bottom-color:#a78bfa; border-bottom-style:solid; }
+    
+    .choice-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+    
+    .choice-card:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .choice-card.pro:hover {
+      border-color: rgba(139, 92, 246, 0.5);
+      box-shadow: 0 20px 40px rgba(139, 92, 246, 0.2);
+    }
+    
+    .choice-card.diy:hover {
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 20px 40px rgba(16, 185, 129, 0.2);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .step-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .step-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateY(-2px);
+    }
+    
+    .pricing-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .pricing-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    
+    .pricing-card.featured {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+    
+    .stage {
+      opacity: 0.5;
+      transition: all 0.5s ease;
+    }
+    
+    .stage:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    
+    .pricing-tab {
+      color: rgba(196, 181, 253, 0.7);
+    }
+    
+    .pricing-tab.active {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      color: white;
+    }
+    
+    .pricing-tab:not(.active):hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .pricing-content {
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .cost-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:1rem; padding:1.5rem; transition:all 0.3s; }
+    
+    .cost-card:hover { background:rgba(255,255,255,0.06); }
+    
+    .cost-highlight { font-size:2rem; font-weight:800; background:linear-gradient(135deg,#ef4444,#f97316); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    
+    .cost-saved { font-size:2rem; font-weight:800; background:linear-gradient(135deg,#10b981,#34d399); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    
+    .range-slider { -webkit-appearance:none; width:100%; height:6px; border-radius:3px; background:linear-gradient(90deg,#ef4444,#f97316); outline:none; }
+    
+    .range-slider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+    
+    .range-slider::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:#fff; cursor:pointer; border:none; }
+    
+    .transform-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:1.25rem; padding:2rem; position:relative; overflow:hidden; }
+    
+    .transform-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#ef4444,#10b981); }
+    
+    .score-badge { display:inline-flex; align-items:center; justify-content:center; width:3.5rem; height:3.5rem; border-radius:50%; font-weight:800; font-size:0.8rem; }
+    
+    .score-before { background:rgba(239,68,68,0.15); color:#f87171; border:2px solid rgba(239,68,68,0.3); }
+    
+    .score-after { background:rgba(16,185,129,0.15); color:#34d399; border:2px solid rgba(16,185,129,0.3); }
+    
+    .compare-table { width:100%; border-collapse:separate; border-spacing:0; }
+    
+    .compare-table th { padding:1rem; text-align:left; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; color:rgba(196,181,253,0.7); border-bottom:1px solid rgba(255,255,255,0.1); }
+    
+    .compare-table td { padding:1rem; border-bottom:1px solid rgba(255,255,255,0.05); color:rgba(255,255,255,0.8); font-size:0.9rem; }
+    
+    .compare-table .evolv-col { background:rgba(139,92,246,0.08); }
+    
+    .compare-table .evolv-col.head { background:rgba(139,92,246,0.15); color:#a78bfa; font-weight:700; }
+    
+    .compare-check { color:#10b981; }
+    
+    .compare-x { color:#ef4444; opacity:0.6; }
+    
+    .compare-mid { color:#f59e0b; }
+    
+    .sticky-cta { position:fixed; bottom:0; left:0; right:0; z-index:100; background:rgba(15,23,42,0.95); backdrop-filter:blur(12px); border-top:1px solid rgba(139,92,246,0.2); padding:0.75rem 1rem; transform:translateY(100%); transition:transform 0.4s ease; }
+    
+    .sticky-cta.visible { transform:translateY(0); }
+    
+    .pulse-dot { width:8px; height:8px; border-radius:50%; background:#10b981; animation:pulse-live 2s ease infinite; }
+    
+    @keyframes pulse-live { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.5)} }
+    
+    .urgency-badge { display:inline-flex; align-items:center; gap:0.5rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); color:#fca5a5; padding:0.375rem 0.875rem; border-radius:9999px; font-size:0.75rem; font-weight:600; }
+    
+    .lead-capture { background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(16,185,129,0.1)); border:1px solid rgba(139,92,246,0.25); border-radius:1.25rem; }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+  <div class="gradient-bg min-h-screen flex flex-col">
+    <header class="p-4 sticky top-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-white/5">
+      <div class="max-w-6xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="nav-globe-svg" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="ngGrad" cx="38%" cy="32%" r="65%">
+                <stop offset="0%" stop-color="#1e0a3c"/>
+                <stop offset="100%" stop-color="#08040f"/>
+              </radialGradient>
+              <clipPath id="ngClip">
+                <circle cx="14" cy="14" r="11.5"/>
+              </clipPath>
+            </defs>
+            <circle cx="14" cy="14" r="11.5" fill="url(#ngGrad)"/>
+            <g clip-path="url(#ngClip)">
+              <ellipse cx="14" cy="14" rx="11.5" ry="3.8" fill="none" stroke="rgba(168,85,247,0.55)" stroke-width="0.8"/>
+              <ellipse cx="14" cy="8.5" rx="9.2" ry="2.7" fill="none" stroke="rgba(168,85,247,0.35)" stroke-width="0.65"/>
+              <ellipse cx="14" cy="19.5" rx="9.2" ry="2.7" fill="none" stroke="rgba(168,85,247,0.35)" stroke-width="0.65"/>
+              <g class="nav-globe-spin">
+                <ellipse cx="14" cy="14" rx="11.5" ry="4.5" fill="none" stroke="rgba(232,112,64,0.75)" stroke-width="0.9"/>
+                <ellipse cx="14" cy="14" rx="11.5" ry="4.5" fill="none" stroke="rgba(232,112,64,0.32)" stroke-width="0.75" transform="rotate(60,14,14)"/>
+                <ellipse cx="14" cy="14" rx="11.5" ry="4.5" fill="none" stroke="rgba(232,112,64,0.32)" stroke-width="0.75" transform="rotate(120,14,14)"/>
+              </g>
+            </g>
+            <circle cx="14" cy="14" r="11.5" fill="none" stroke="rgba(168,85,247,0.8)" stroke-width="1.1"/>
+            <circle cx="14" cy="14" r="13.2" fill="none" stroke="rgba(168,85,247,0.12)" stroke-width="2.2"/>
+          </svg>
+          <span class="text-lg font-bold">Evolv</span><span style="font-size:10px;font-weight:600;letter-spacing:0.05em;background:rgba(168,85,247,0.18);color:#c084fc;border:1px solid rgba(168,85,247,0.35);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle;line-height:1.4;">beta</span>
+        </div>
+        <nav class="hidden md:flex items-center gap-5 text-sm text-violet-200">
+          <a href="/whats-in-evolv" class="hover:text-white transition-colors">Features</a>
+          <a href="#how-it-works" class="hover:text-white transition-colors">How it Works</a>
+          <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+          <a href="#tradelines" class="hover:text-white transition-colors">Tradelines</a>
+          <a href="#affiliate" class="hover:text-white transition-colors">Affiliate</a>
+          <a href="#about" class="hover:text-white transition-colors">About</a>
+        </nav>
+        <button id="mobile-menu-btn" class="md:hidden flex flex-col justify-center items-center w-9 h-9 gap-1.5 rounded-lg" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);" aria-label="Menu">
+          <span class="mobile-bar block w-5 h-0.5 rounded-full bg-violet-300 transition-all duration-300"></span>
+          <span class="mobile-bar block w-5 h-0.5 rounded-full bg-violet-300 transition-all duration-300"></span>
+          <span class="mobile-bar block w-5 h-0.5 rounded-full bg-violet-300 transition-all duration-300"></span>
+        </button>
+      </div>
+      <div id="mobile-menu" class="md:hidden overflow-hidden transition-all duration-300" style="max-height:0;">
+        <div class="px-5 pb-5 flex flex-col gap-1 text-sm" style="border-top:1px solid rgba(139,92,246,0.2);padding-top:1rem;">
+          <a href="/whats-in-evolv" class="py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors font-medium">Features</a>
+          <a href="#how-it-works" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">How it Works</a>
+          <a href="#pricing" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">Pricing</a>
+          <a href="#tradelines" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">Tradelines</a>
+          <a href="#affiliate" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">Affiliate</a>
+          <a href="#about" class="mobile-nav-link py-2.5 px-3 rounded-lg text-violet-200 hover:text-white hover:bg-white/5 transition-colors">About</a>
+          <div class="mt-2 flex gap-2">
+            <a href="/diy/signup" class="flex-1 text-center py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#6ee7b7;">DIY — Free</a>
+            <a href="/crm" class="flex-1 text-center py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors" style="background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;">Pro CRM</a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <script>
+      (function(){
+        var btn = document.getElementById('mobile-menu-btn');
+        var menu = document.getElementById('mobile-menu');
+        var open = false;
+        btn.addEventListener('click', function(){
+          open = !open;
+          menu.style.maxHeight = open ? menu.scrollHeight + 'px' : '0';
+          var bars = btn.querySelectorAll('.mobile-bar');
+          if(open){
+            bars[0].style.transform = 'translateY(8px) rotate(45deg)';
+            bars[1].style.opacity = '0';
+            bars[2].style.transform = 'translateY(-8px) rotate(-45deg)';
+          } else {
+            bars[0].style.transform = '';
+            bars[1].style.opacity = '';
+            bars[2].style.transform = '';
+          }
+        });
+        document.querySelectorAll('.mobile-nav-link').forEach(function(a){
+          a.addEventListener('click', function(){
+            open = false;
+            menu.style.maxHeight = '0';
+            var bars = btn.querySelectorAll('.mobile-bar');
+            bars[0].style.transform = '';
+            bars[1].style.opacity = '';
+            bars[2].style.transform = '';
+          });
+        });
+      })();
+    </script>
+
+    <section id="hero" class="hero-scene">
+      <canvas id="space-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;"></canvas>
+      <div id="globe-container"></div>
+
+      <div id="panel-left" class="bureau-panel bureau-panel--left">
+        <div class="bp-inner">
+          <div class="bp-label" id="bl-type">Credit Bureau</div>
+          <div class="bp-name" id="bl-name">EQUIFAX</div>
+          <div class="bp-city" id="bl-city">Atlanta, GA</div>
+          <div class="bp-coords" id="bl-coords">33.7490° N, 84.3880° W</div>
+          <div class="bp-rule"></div>
+          <div class="bp-tagline" id="bl-tagline">The oldest U.S. credit bureau.</div>
+          <div class="bp-stats" id="bl-stats">
+            <div class="bp-stat"><span class="bp-stat-val">220M+</span><span class="bp-stat-label">consumers tracked</span></div>
+            <div class="bp-stat"><span class="bp-stat-val">1899</span><span class="bp-stat-label">established</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="panel-right" class="bureau-panel bureau-panel--right">
+        <div class="bp-inner">
+          <div class="bp-label">Take Action</div>
+          <div class="bp-headline" id="br-headline">Errors here cost you thousands</div>
+          <div class="bp-subtext" id="br-subtext">1 in 5 Americans has an error on their Equifax report.</div>
+          <div class="bp-ctas">
+            <a href="/crm" class="bp-cta-pro">Credit Repair Pro</a>
+            <a href="/diy" class="bp-cta-diy">DIY Mode</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-brand-bar">
+        <div class="hero-wordmark-wrap">
+          <div class="hero-wordmark">E&thinsp;V&thinsp;O&thinsp;L&thinsp;V</div>
+        </div>
+        <div class="hero-sub">Rebuild. Rise. Evolv.</div>
+      </div>
+
+      <div id="globe-counter">
+        <button class="globe-nav-btn" id="globe-nav-prev" aria-label="Previous entity">&#8249;</button>
+        <span id="globe-counter-text">1 / 16</span>
+        <button class="globe-nav-btn" id="globe-nav-next" aria-label="Next entity">&#8250;</button>
+      </div>
+    </section>
+  </div>
+
+  <section id="how-it-works" class="section-dark py-12 px-4">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          Our AI-powered system makes credit repair simple. No confusing jargon, no complicated processes — just the tools professionals use.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-4 gap-3">
+        <div class="step-card rounded-2xl p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center mx-auto mb-4">
+            <span class="text-2xl font-bold text-violet-400">1</span>
+          </div>
+          <h3 class="font-semibold text-white mb-2">Upload Your Report</h3>
+          <p class="text-sm text-violet-200">
+            Get your free credit report from AnnualCreditReport.com and upload it to our secure platform.
+          </p>
+        </div>
+
+        <div class="step-card rounded-2xl p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center mx-auto mb-4">
+            <span class="text-2xl font-bold text-violet-400">2</span>
+          </div>
+          <h3 class="font-semibold text-white mb-2">AI Finds Violations</h3>
+          <p class="text-sm text-violet-200">
+            Our AI scans your report against Metro 2 compliance standards to find errors and violations.
+          </p>
+        </div>
+
+        <div class="step-card rounded-2xl p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center mx-auto mb-4">
+            <span class="text-2xl font-bold text-violet-400">3</span>
+          </div>
+          <h3 class="font-semibold text-white mb-2">Generate Letters</h3>
+          <p class="text-sm text-violet-200">
+            We create legally-compliant dispute letters customized for each violation found.
+          </p>
+        </div>
+
+        <div class="step-card rounded-2xl p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+            <span class="text-2xl font-bold text-emerald-400">4</span>
+          </div>
+          <h3 class="font-semibold text-white mb-2">Send &amp; Track Progress</h3>
+          <p class="text-sm text-violet-200">
+            Mail the letters to the bureaus and track responses inside your dashboard. Bureaus are required to investigate within 30 days.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-8 text-center">
+        <div class="inline-flex items-center gap-3 bg-violet-500/10 border border-violet-500/20 rounded-full px-6 py-3">
+          <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          <span class="text-violet-200 text-sm">Credit bureaus are legally required to investigate disputes within 30 days</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="cost-of-waiting" class="section-darker py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-4">
+        <span class="urgency-badge mb-4">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+          Every month costs you money
+        </span>
+      </div>
+      <div class="text-center mb-10">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">The Real Cost of Bad Credit</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          A low credit score doesn't just hurt your pride — it drains your wallet every single month. See how much you're losing.
+        </p>
+      </div>
+
+      <div class="max-w-lg mx-auto mb-10">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-violet-300 text-sm font-medium">Your Current Score</span>
+          <span id="score-display" class="text-2xl font-bold text-white">580</span>
+        </div>
+        <input type="range" id="score-slider" class="range-slider" min="400" max="750" value="580" step="10">
+        <div class="flex justify-between text-xs text-violet-400 mt-1">
+          <span>400</span>
+          <span>Poor</span>
+          <span>Fair</span>
+          <span>Good</span>
+          <span>750</span>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 mb-10">
+        <div class="cost-card text-center">
+          <div class="text-violet-300 text-sm mb-1">
+            Auto Loan (5yr)
+          </div>
+          <div class="cost-input-wrap">
+            <span class="cost-input-prefix">$</span>
+            <input id="amt-auto" type="text" class="cost-input" value="30,000" inputmode="numeric">
+          </div>
+          <div id="cost-auto" class="cost-highlight">$4,680</div>
+          <div class="text-violet-400 text-xs mt-1">extra in interest</div>
+        </div>
+        <div class="cost-card text-center">
+          <div class="text-violet-300 text-sm mb-1">
+            Mortgage (30yr)
+          </div>
+          <div class="cost-input-wrap">
+            <span class="cost-input-prefix">$</span>
+            <input id="amt-mortgage" type="text" class="cost-input" value="300,000" inputmode="numeric">
+          </div>
+          <div id="cost-mortgage" class="cost-highlight">$76,500</div>
+          <div class="text-violet-400 text-xs mt-1">extra over loan life</div>
+        </div>
+        <div class="cost-card text-center">
+          <div class="text-violet-300 text-sm mb-1">
+            Credit Cards
+          </div>
+          <div class="cost-input-wrap">
+            <span class="cost-input-prefix">$</span>
+            <input id="amt-cc" type="text" class="cost-input" value="8,000" inputmode="numeric">
+          </div>
+          <div id="cost-cc" class="cost-highlight">$2,160</div>
+          <div class="text-violet-400 text-xs mt-1">extra per year</div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <div class="inline-flex flex-col items-center bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-8 py-6">
+          <div class="text-violet-300 text-sm mb-2">Total you could save by fixing your credit</div>
+          <div id="cost-total" class="cost-saved">$83,340</div>
+          <div class="text-emerald-300 text-xs mt-1">That's money back in your pocket</div>
+          <a href="/diy" class="mt-4 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6 py-2.5 rounded-xl transition-colors text-sm">
+            Stop Losing Money — Start Free
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="transformations" class="section-dark py-20 px-4">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Real Transformations</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          Real screenshots. Real client outcomes. Swipe through the examples.
+        </p>
+        <p class="text-xs text-violet-400/60 max-w-xl mx-auto mt-3">
+          Results shown are examples of past client outcomes and are not typical. Individual results vary based on your specific credit history, the accuracy of information in your report, and the credit bureaus' investigation decisions. Evolv does not guarantee any particular outcome or credit score improvement.
+        </p>
+      </div>
+
+      <div class="proof-gallery" id="proof-gallery">
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/score-jump-726-yWtQp98M.png" alt="Equifax score 726, up 205 points" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+205 pts</span>
+            Equifax jumped from 484 to 726
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/score-678-677-BL6z0EIc.png" alt="TransUnion 678, Equifax 677" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+37 pts</span>
+            TransUnion 678 &amp; Equifax 677
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/score-643-640-BlfQr8bf.png" alt="TransUnion 643, Equifax 640" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+52 pts</span>
+            TransUnion 643 &amp; Equifax 640
+          </div>
+        </div>
+
+        <div class="proof-card proof-card-video">
+          <div class="proof-img-wrap">
+            <video src="/assets/video1-CipgybX7.mp4" controls preload="metadata" playsinline></video>
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-video">Video</span>
+            Client result walkthrough
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/experian-deleted-C8RPunnK.png" alt="Experian dispute results, 3 items deleted" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">3 deleted</span>
+            Collection Pro, Transworld &amp; Midland removed from Experian
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/accounts-removed-nelnet-C9vx0Byj.png" alt="6 accounts removed from TransUnion" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">6 removed</span>
+            JPMCB, Indigo &amp; 4 Dept of Ed/Nelnet accounts removed
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/accounts-removed-amex-BExSeO71.png" alt="Multiple accounts removed" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">5 removed</span>
+            AMEX, Navy Federal, Discover &amp; more removed
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/more-removals-CY98zVpc.png" alt="Apple Card, GS Bank, American Express removed" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">5 removed</span>
+            Apple Card, GS Bank &amp; American Express removed
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/inquiries-removed-DOWAV-qy.png" alt="Inquiries and accounts removed" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">3 removed</span>
+            BK of Amer inquiry, FST Premier &amp; CB Indigo removed
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/experian-changes-DZ7a0GCe.png" alt="Experian report changes" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-removed">7 late accts</span>
+            Late accounts decreased by 7, collections by 6
+          </div>
+        </div>
+
+        <div class="proof-card proof-card-video">
+          <div class="proof-img-wrap">
+            <video src="/assets/video2-6eDukyu_.mp4" controls preload="metadata" playsinline></video>
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-video">Video</span>
+            Client success story
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/client-chat-score-up-D1LEXbIJ.png" alt="Client text showing score increase" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+21 pts</span>
+            Equifax up, Omni account closed off TransUnion
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/client-chat-tradeline-C7A0Qeeo.png" alt="Client text about tradeline hitting" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+35 pts</span>
+            Tradeline hit TransUnion, score jumped to 678
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-img-wrap">
+            <img src="/assets/score-636-642-B5cF_dDS.png" alt="TransUnion 636, Equifax 642" loading="lazy">
+          </div>
+          <div class="proof-caption">
+            <span class="proof-tag proof-tag-score">+33 pts</span>
+            Equifax up 33 pts to 642
+          </div>
+        </div>
+
+      </div>
+
+      <div class="text-center mt-10">
+        <a href="/diy" class="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-emerald-500 hover:from-violet-600 hover:to-emerald-600 text-white font-medium px-8 py-3 rounded-xl transition-all text-sm">
+          Start Your Rise
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="comparison" class="section-darker py-20 px-4">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Why Evolv Wins</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          Compare your options. The choice is clear.
+        </p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="evolv-col head text-center">Evolv</th>
+              <th class="text-center">DIY (Alone)</th>
+              <th class="text-center">Credit Lawyer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-medium text-white">Monthly Cost</td>
+              <td class="evolv-col text-center font-semibold text-emerald-400">$0 – $24.99</td>
+              <td class="text-center">Free</td>
+              <td class="text-center">$500 – $3,000+</td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">AI Violation Detection</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Metro 2 Compliance Scan</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+              <td class="text-center"><span class="compare-mid text-lg">~</span></td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Auto-Generated Letters</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+              <td class="text-center"><span class="compare-check text-lg">&#10003;</span></td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Time to Get Started</td>
+              <td class="evolv-col text-center font-semibold text-emerald-400">Minutes</td>
+              <td class="text-center">Hours</td>
+              <td class="text-center">Days</td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Cross-Bureau Analysis</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+              <td class="text-center"><span class="compare-mid text-lg">~</span></td>
+            </tr>
+            <tr>
+              <td class="font-medium text-white">Available 24/7</td>
+              <td class="evolv-col text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-check text-lg">&#10003;</span></td>
+              <td class="text-center"><span class="compare-x text-lg">&#10007;</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="lead-capture" class="section-dark py-16 px-4">
+    <div class="max-w-3xl mx-auto">
+      <div class="lead-capture p-8 md:p-12 text-center">
+        <div class="inline-flex items-center gap-2 bg-emerald-500/15 text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full mb-4">
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+          Free Guide
+        </div>
+        <h2 class="text-2xl md:text-3xl font-bold text-white mb-3">Not Ready Yet? Get Your Free Credit Roadmap</h2>
+        <p class="text-violet-200 mb-6 max-w-xl mx-auto text-sm">
+          We'll send you a step-by-step guide to understanding your credit report, finding errors, and improving your score — no signup required.
+        </p>
+        <form id="lead-form" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onsubmit="return handleLeadCapture(event)">
+          <input type="email" id="lead-email" required placeholder="Enter your email" class="flex-1 px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.03)] border border-white/15 text-white placeholder-violet-400 text-sm focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400">
+          <button type="submit" class="px-6 py-3 bg-gradient-to-r from-violet-500 to-emerald-500 hover:from-violet-600 hover:to-emerald-600 text-white font-medium rounded-xl transition-all text-sm whitespace-nowrap">
+            Send My Guide
+          </button>
+        </form>
+        <p id="lead-success" class="text-emerald-400 text-sm mt-3 hidden">Check your inbox! Your roadmap is on the way.</p>
+        <p class="text-violet-400/50 text-xs mt-3">No spam. Unsubscribe anytime.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="section-darker py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-8">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto mb-6">
+          Start free and upgrade when you're ready. No hidden fees, no long-term contracts.
+        </p>
+        
+        <div class="inline-flex items-center bg-slate-800/50 rounded-full p-1 border border-white/10">
+          <button onclick="showPricing('diy')" id="diy-tab" class="pricing-tab active px-6 py-2 rounded-full text-sm font-medium transition-all">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              DIY (Personal)
+            </span>
+          </button>
+          <button onclick="showPricing('crm')" id="crm-tab" class="pricing-tab px-6 py-2 rounded-full text-sm font-medium transition-all">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              CRM (Professional)
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div id="diy-pricing" class="pricing-content">
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="pricing-card rounded-2xl p-6">
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold text-white mb-1">Free</h3>
+              <p class="text-violet-300 text-sm">Get started and learn</p>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-bold text-white">$0</span>
+              <span class="text-violet-300">/month</span>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Upload and view your credit report
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Educational resources
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Basic credit score tips
+              </li>
+            </ul>
+            <a href="/diy/signup" class="block text-center py-3 px-4 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium">
+              Get Started
+            </a>
+          </div>
+
+          <div class="pricing-card featured rounded-2xl p-6 relative">
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span class="bg-emerald-500 text-white text-xs font-semibold px-3 py-1 rounded-full">Most Popular</span>
+            </div>
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold text-white mb-1">DIY</h3>
+              <p class="text-violet-300 text-sm">Fix your credit yourself</p>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-bold text-white">$24.99</span>
+              <span class="text-violet-300">/month</span>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Everything in Free
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                AI-powered violation detection
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Unlimited dispute letters
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Specialist matching
+              </li>
+            </ul>
+            <a href="/diy/signup" class="block text-center py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-colors font-medium">
+              Start DIY
+            </a>
+          </div>
+
+          <div class="pricing-card rounded-2xl p-6" style="border-color:rgba(212,168,83,0.3);">
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold text-white mb-1">Upgrade Anytime</h3>
+              <p class="text-violet-300 text-sm">Need expert help?</p>
+            </div>
+            <div class="mb-6">
+              <span class="text-xl font-bold" style="color:#d4a853;">Choose a credit repair company</span>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 flex-shrink-0" style="color:#d4a853;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Browse ranked credit repair pros
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 flex-shrink-0" style="color:#d4a853;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                See real success rates and reviews
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 flex-shrink-0" style="color:#d4a853;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Hand off your disputes to a pro
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 flex-shrink-0" style="color:#d4a853;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Switch anytime from your dashboard
+              </li>
+            </ul>
+            <a href="/specialists.html" class="block text-center py-3 px-4 rounded-xl border transition-colors font-medium" style="border-color:rgba(212,168,83,0.4);color:#d4a853;" onmouseover="this.style.background='rgba(212,168,83,0.1)'" onmouseout="this.style.background='transparent'">
+              Find a Specialist
+            </a>
+          </div>
+        </div>
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="/learn-more-diy.html" class="inline-flex items-center gap-2 py-3 px-8 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium">
+            Learn More about DIY
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+          <a href="/learn-more-specialist.html" class="inline-flex items-center gap-2 py-3 px-8 rounded-xl border transition-colors font-medium" style="border-color:rgba(212,168,83,0.3);color:#d4a853;" onmouseover="this.style.background='rgba(212,168,83,0.08)'" onmouseout="this.style.background='transparent'">
+            Learn More about Specialists
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div id="crm-pricing" class="pricing-content hidden">
+        <div class="grid md:grid-cols-3 gap-6">
+          <div class="pricing-card rounded-2xl p-6">
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold text-white mb-1">Starter</h3>
+              <p class="text-violet-300 text-sm">For solo practitioners</p>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-bold text-white">$99.99</span>
+              <span class="text-violet-300">/month</span>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Up to 25 clients
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                AI-powered audits
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                100 dispute letters/month
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Basic client portal
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Beginner Credit Academy
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Email support
+              </li>
+            </ul>
+            <a href="/crm" class="block text-center py-3 px-4 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium">
+              Get Started
+            </a>
+          </div>
+
+          <div class="pricing-card featured rounded-2xl p-6 relative">
+            <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span class="bg-violet-500 text-white text-xs font-semibold px-3 py-1 rounded-full">Best Value</span>
+            </div>
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold text-white mb-1">Business</h3>
+              <p class="text-violet-300 text-sm">For growing agencies</p>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-bold text-white">$199.99</span>
+              <span class="text-violet-300">/month</span>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Up to 100 clients
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                3 team members
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Unlimited dispute letters
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Bulk automation
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                White-label portal (custom themes & logos)
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Full Credit Academy (all 3 tiers)
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Tradeline Marketplace access
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Affiliate Program
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Advanced Dispute Tracking (IntelliFeats)
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Certified Mail integration
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Data breach monitoring (HIBP)
+              </li>
+            </ul>
+            <a href="/crm" class="block text-center py-3 px-4 rounded-xl bg-violet-500 hover:bg-violet-600 text-white transition-colors font-medium">
+              Start Business
+            </a>
+          </div>
+
+          <div class="pricing-card rounded-2xl p-6">
+            <div class="mb-6">
+              <h3 class="text-lg font-semibold text-white mb-1">Enterprise</h3>
+              <p class="text-violet-300 text-sm">For large operations</p>
+            </div>
+            <div class="mb-6">
+              <span class="text-4xl font-bold text-white">$499.99</span>
+              <span class="text-violet-300">/month</span>
+            </div>
+            <ul class="space-y-3 mb-6">
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Everything in Business
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Unlimited clients & team members
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                API access
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Dedicated support & priority processing
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Custom integrations
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Custom portal branding & custom domain
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Custom branded certificates
+              </li>
+              <li class="flex items-center gap-2 text-sm text-violet-200">
+                <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Higher affiliate commission rates
+              </li>
+            </ul>
+            <a href="/crm" class="block text-center py-3 px-4 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium">
+              Contact Sales
+            </a>
+          </div>
+        </div>
+
+        <div class="mt-8 rounded-2xl p-6 text-center" style="background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(212,168,83,0.12)); border: 1px solid rgba(139,92,246,0.2);">
+          <div class="flex items-center justify-center gap-3 mb-2">
+            <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <h4 class="text-lg font-semibold text-white">Expert Setup</h4>
+            <span class="bg-violet-500/20 text-violet-300 text-xs font-semibold px-3 py-1 rounded-full">One-time</span>
+          </div>
+          <p class="text-3xl font-bold text-white mb-2">$299</p>
+          <p class="text-violet-300 text-sm max-w-lg mx-auto">Need help getting started? Our team will handle your full technical setup, including account configuration, portal customization, integrations, and a live onboarding walkthrough.</p>
+          <a href="/crm" class="inline-block mt-4 py-2.5 px-6 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium text-sm">
+            Add Expert Setup
+          </a>
+        </div>
+
+        <div class="mt-8 text-center">
+          <a href="/learn-more-crm.html" class="inline-flex items-center gap-2 py-3 px-8 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium">
+            Learn More about CRM Pro
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function showPricing(type) {
+      var diyPricing = document.getElementById('diy-pricing');
+      var crmPricing = document.getElementById('crm-pricing');
+      var diyTab = document.getElementById('diy-tab');
+      var crmTab = document.getElementById('crm-tab');
+      if (type === 'diy') {
+        diyPricing.classList.remove('hidden');
+        crmPricing.classList.add('hidden');
+        diyTab.classList.add('active');
+        crmTab.classList.remove('active');
+      } else {
+        diyPricing.classList.add('hidden');
+        crmPricing.classList.remove('hidden');
+        diyTab.classList.remove('active');
+        crmTab.classList.add('active');
+      }
+    }
+  </script>
+  <script>
+  (function() {
+    var container = document.getElementById('globe-container');
+    if (!container || typeof Globe === 'undefined') return;
+
+    var bureaus = [
+      {
+        type: 'primary', typeLabel: 'Credit Bureau',
+        name: 'EQUIFAX', city: 'Atlanta, GA',
+        coords: '33.7490° N, 84.3880° W', lat: 33.749, lng: -84.388,
+        tagline: 'The oldest U.S. credit bureau.',
+        stats: [{ val: '220M+', label: 'consumers tracked' }, { val: '1899', label: 'established' }],
+        subtext: '1 in 5 Americans has an error on their Equifax report.',
+        headline: 'Errors here cost you thousands',
+        color: '#e87040', ringColor: 'rgba(232,112,64,'
+      },
+      {
+        type: 'primary', typeLabel: 'Credit Bureau',
+        name: 'EXPERIAN', city: 'Costa Mesa, CA',
+        coords: '33.6411° N, 117.9187° W', lat: 33.641, lng: -117.919,
+        tagline: "The world’s largest credit bureau.",
+        stats: [{ val: '235M+', label: 'consumers tracked' }, { val: '80+', label: 'countries served' }],
+        subtext: 'Experian reaches the most lenders — errors here cost the most.',
+        headline: 'Errors here cost you thousands',
+        color: '#4a90e2', ringColor: 'rgba(74,144,226,'
+      },
+      {
+        type: 'primary', typeLabel: 'Credit Bureau',
+        name: 'TRANSUNION', city: 'Chicago, IL',
+        coords: '41.8781° N, 87.6298° W', lat: 41.878, lng: -87.630,
+        tagline: 'Data & analytics powerhouse.',
+        stats: [{ val: '200M+', label: 'consumers tracked' }, { val: '1968', label: 'established' }],
+        subtext: 'TransUnion models often catch collectors first. Dispute early.',
+        headline: 'Errors here cost you thousands',
+        color: '#8b5cf6', ringColor: 'rgba(139,92,246,'
+      }
+    ];
+
+    var secondaryBureaus = [
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'INNOVIS', city: 'Columbus, OH',
+        coords: '39.9612° N, 82.9988° W', lat: 39.961, lng: -82.999,
+        tagline: 'The fourth-largest credit bureau in the U.S.',
+        stats: [{ val: '1B+', label: 'credit records' }, { val: '2000', label: 'established' }],
+        subtext: 'Innovis is often missed in disputes — errors here still affect loan decisions.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      },
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'CHEXSYSTEMS', city: 'Woodbury, MN',
+        coords: '44.9239° N, 93.0070° W', lat: 44.924, lng: -93.007,
+        tagline: 'Tracks banking history, not credit scores.',
+        stats: [{ val: '80%', label: 'of banks use it' }, { val: '1971', label: 'established' }],
+        subtext: 'A ChexSystems flag can block you from opening a bank account for 5 years.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      },
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'LEXISNEXIS RISK SOLUTIONS', city: 'Alpharetta, GA',
+        coords: '34.0754° N, 84.2941° W', lat: 34.075, lng: -84.294,
+        tagline: 'Comprehensive consumer data aggregator.',
+        stats: [{ val: '300M+', label: 'consumer profiles' }, { val: '40+', label: 'years of data' }],
+        subtext: 'LexisNexis data affects insurance rates and tenant screening — not just credit.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      },
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'SAGESTREAM', city: 'San Diego, CA',
+        coords: '32.7157° N, 117.1611° W', lat: 32.716, lng: -117.161,
+        tagline: 'Thin-file and alternative credit data bureau.',
+        stats: [{ val: '200M+', label: 'consumer profiles' }, { val: '2001', label: 'established' }],
+        subtext: 'Lenders use SageStream for applicants with little or no traditional credit history.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      },
+      {
+        type: 'secondary', typeLabel: 'Secondary Bureau',
+        name: 'CORELOGIC', city: 'Irvine, CA',
+        coords: '33.6846° N, 117.8265° W', lat: 33.684, lng: -117.826,
+        tagline: 'Property and rental history reporting bureau.',
+        stats: [{ val: '1B+', label: 'property records' }, { val: '1991', label: 'established' }],
+        subtext: 'CoreLogic flags can affect rental applications and mortgage approvals.',
+        headline: 'Errors here cost you thousands',
+        color: '#f5a623', ringColor: 'rgba(245,166,35,'
+      }
+    ];
+
+    var collectors = [
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'MIDLAND CREDIT MANAGEMENT', city: 'San Diego, CA',
+        coords: '32.7150° N, 117.1570° W', lat: 32.715, lng: -117.157,
+        tagline: 'One of the largest debt buyers in the U.S.',
+        stats: [{ val: '$8B+', label: 'debt portfolio' }, { val: '30M+', label: 'accounts managed' }],
+        subtext: 'Midland buys old debts for pennies on the dollar — dispute before they validate.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.641, nearLng: -117.919
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'PORTFOLIO RECOVERY ASSOCIATES', city: 'Norfolk, VA',
+        coords: '36.8468° N, 76.0856° W', lat: 36.847, lng: -76.086,
+        tagline: 'Major purchaser of charged-off accounts.',
+        stats: [{ val: '$6B+', label: 'in debt purchased' }, { val: '1996', label: 'established' }],
+        subtext: "PRA’s collection tradelines are among the most disputed in the country.",
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.749, nearLng: -84.388
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'LVNV FUNDING', city: 'Greenville, SC',
+        coords: '34.8526° N, 82.3940° W', lat: 34.853, lng: -82.394,
+        tagline: 'Debt buyer linked to Resurgent Capital Services.',
+        stats: [{ val: 'Billions', label: 'in portfolio' }, { val: '2001', label: 'established' }],
+        subtext: 'LVNV often re-ages debt — always check the original delinquency date.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.749, nearLng: -84.388
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'CONVERGENT OUTSOURCING', city: 'Renton, WA',
+        coords: '47.4829° N, 122.2171° W', lat: 47.483, lng: -122.217,
+        tagline: 'National third-party debt collection agency.',
+        stats: [{ val: 'Fortune 500', label: 'clients' }, { val: '1950', label: 'established' }],
+        subtext: 'Convergent collects for telecoms and utilities — a common credit report surprise.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.641, nearLng: -117.919
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'CAVALRY SPV', city: 'Valhalla, NY',
+        coords: '41.0795° N, 73.7832° W', lat: 41.080, lng: -73.783,
+        tagline: 'Specialty finance company and debt buyer.',
+        stats: [{ val: 'Billions', label: 'managed annually' }, { val: '2002', label: 'established' }],
+        subtext: 'Cavalry SPV accounts may be legally uncollectable after the statute of limitations.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 41.878, nearLng: -87.630
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'RESURGENT CAPITAL SERVICES', city: 'Greenville, SC',
+        coords: '34.8626° N, 82.3740° W', lat: 34.862, lng: -82.374,
+        tagline: 'Debt management and servicing arm of LVNV.',
+        stats: [{ val: 'Millions', label: 'of accounts' }, { val: '1998', label: 'established' }],
+        subtext: 'Resurgent services LVNV accounts — disputes should reference both names.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.749, nearLng: -84.388
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'CAINE & WEINER', city: 'Woodland Hills, CA',
+        coords: '34.1684° N, 118.6059° W', lat: 34.168, lng: -118.606,
+        tagline: 'One of the oldest collection agencies in the U.S.',
+        stats: [{ val: 'Multi-industry', label: 'collector' }, { val: '1930', label: 'established' }],
+        subtext: 'Caine & Weiner handles healthcare and retail debt — often negotiable.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.641, nearLng: -117.919
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'JEFFERSON CAPITAL SYSTEMS', city: 'St. Cloud, MN',
+        coords: '45.5630° N, 94.1632° W', lat: 45.563, lng: -94.163,
+        tagline: 'Consumer debt buyer: telecom and student debt.',
+        stats: [{ val: 'Millions', label: 'of accounts' }, { val: '2002', label: 'established' }],
+        subtext: 'Jefferson Capital often buys telecom and student loan debt — verify ownership first.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 41.878, nearLng: -87.630
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'TRANSWORLD SYSTEMS INC.', city: 'Worthington, OH',
+        coords: '40.0937° N, 83.0177° W', lat: 40.094, lng: -83.018,
+        tagline: 'Large third-party collection agency for healthcare and utilities.',
+        stats: [{ val: '40+ years', label: 'in collections' }, { val: 'Healthcare', label: 'specialty' }],
+        subtext: 'TSI is heavily used by hospitals and utility companies — medical debt disputes apply.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 39.962, nearLng: -82.999
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'ENHANCED RECOVERY COMPANY', city: 'Jacksonville, FL',
+        coords: '30.3322° N, 81.6557° W', lat: 30.332, lng: -81.656,
+        tagline: 'Specializes in wireless and utilities debt collection.',
+        stats: [{ val: 'Telecom', label: 'specialist' }, { val: '1999', label: 'established' }],
+        subtext: 'ERC handles AT&T, T-Mobile and Sprint charge-offs — common on thin-file reports.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 27.950, nearLng: -82.457
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'IC SYSTEM', city: 'St. Paul, MN',
+        coords: '44.9537° N, 93.0900° W', lat: 44.954, lng: -93.090,
+        tagline: 'Family-owned collection agency since 1938.',
+        stats: [{ val: '1938', label: 'established' }, { val: 'Healthcare', label: 'primary sector' }],
+        subtext: 'IC System handles healthcare and telecom — validate any balance before paying.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 44.978, nearLng: -93.265
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'CREDIT COLLECTION SERVICES', city: 'Norwood, MA',
+        coords: '42.1945° N, 71.1995° W', lat: 42.195, lng: -71.200,
+        tagline: 'One of the largest collection agencies in the Northeast.',
+        stats: [{ val: '1969', label: 'established' }, { val: 'Multi-industry', label: 'collector' }],
+        subtext: 'CCS collects for utilities, government and financial institutions across all bureaus.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 42.360, nearLng: -71.059
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'NATIONAL CREDIT SYSTEMS', city: 'Atlanta, GA',
+        coords: '33.7490° N, 84.3880° W', lat: 33.749, lng: -84.388,
+        tagline: 'Specializes in apartment and rental debt collections.',
+        stats: [{ val: 'Rental', label: 'specialist' }, { val: '1991', label: 'established' }],
+        subtext: 'NCS tradelines are common after lease-breaks — landlords report balances to all bureaus.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.749, nearLng: -84.388
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'RADIUS GLOBAL SOLUTIONS', city: 'Plymouth, MN',
+        coords: '45.0105° N, 93.4555° W', lat: 45.011, lng: -93.456,
+        tagline: 'Multi-channel debt collection for financial services.',
+        stats: [{ val: 'Global', label: 'operations' }, { val: '2008', label: 'established' }],
+        subtext: 'Radius collects for banks and credit unions — ownership chain disputes are effective.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 44.978, nearLng: -93.265
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'ABSOLUTE RESOLUTIONS CORP', city: 'Minneapolis, MN',
+        coords: '44.9778° N, 93.2650° W', lat: 44.978, lng: -93.265,
+        tagline: 'Debt buyer of credit card and retail accounts.',
+        stats: [{ val: 'Credit card', label: 'specialty' }, { val: '2001', label: 'established' }],
+        subtext: 'ARC buys Synchrony and Citi charge-offs — demand the original creditor agreement.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 44.978, nearLng: -93.265
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'MIDWEST RECOVERY SYSTEMS', city: 'Bridgeton, MO',
+        coords: '38.7467° N, 90.4224° W', lat: 38.747, lng: -90.422,
+        tagline: 'Aggressive purchaser of charged-off consumer debt.',
+        stats: [{ val: 'Multi-state', label: 'operations' }, { val: '2010', label: 'established' }],
+        subtext: 'MRS has faced CFPB scrutiny — any collection must be supported by proper validation.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 38.627, nearLng: -90.198
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'COLLECTION BUREAU OF AMERICA', city: 'Hayward, CA',
+        coords: '37.6688° N, 122.0808° W', lat: 37.669, lng: -122.081,
+        tagline: 'Healthcare and government debt collection specialist.',
+        stats: [{ val: '1959', label: 'established' }, { val: 'Healthcare', label: 'specialty' }],
+        subtext: 'CBA handles hospital billing — request itemized validation before any payment.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 37.774, nearLng: -122.419
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'CROWN ASSET MANAGEMENT', city: 'Duluth, GA',
+        coords: '34.0032° N, 84.1449° W', lat: 34.003, lng: -84.145,
+        tagline: 'Purchaser of credit card and consumer loan debt.',
+        stats: [{ val: 'Credit card', label: 'specialty' }, { val: '2004', label: 'established' }],
+        subtext: 'Crown buys old credit card balances — check the DOFD carefully for any re-aging.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 33.749, nearLng: -84.388
+      },
+      {
+        type: 'collector', typeLabel: 'Collector',
+        name: 'ASSET ACCEPTANCE LLC', city: 'Warren, MI',
+        coords: '42.4925° N, 83.0136° W', lat: 42.493, lng: -83.014,
+        tagline: 'Subsidiary of Encore Capital — buys bank charge-offs.',
+        stats: [{ val: 'Encore', label: 'subsidiary' }, { val: '1996', label: 'established' }],
+        subtext: 'Asset Acceptance was fined by the FTC for illegal collection — strong dispute leverage.',
+        headline: 'Found on Your Report',
+        color: '#ef4444', ringColor: 'rgba(239,68,68,',
+        nearLat: 42.332, nearLng: -83.046
+      }
+    ];
+
+    var cycleEntities = bureaus.concat(secondaryBureaus).concat(collectors);
+    var TOTAL = cycleEntities.length;
+
+    var allPoints = [];
+    bureaus.forEach(function(b) {
+      allPoints.push({ lat: b.lat, lng: b.lng, color: b.color, r: 0.6, alt: 0.07 });
+    });
+    secondaryBureaus.forEach(function(b) {
+      allPoints.push({ lat: b.lat, lng: b.lng, color: '#f5a623', r: 0.32, alt: 0.04 });
+    });
+    collectors.forEach(function(c) {
+      allPoints.push({ lat: c.lat, lng: c.lng, color: '#ef4444', r: 0.20, alt: 0.02 });
+    });
+
+    var primaryArcs = [
+      { sLat: 33.749, sLng: -84.388, eLat: 33.641, eLng: -117.919, c: ['#e87040','#4a90e2'], alt: 0.28, dl: 0.4, dg: 0.15, dt: 2400 },
+      { sLat: 33.641, sLng: -117.919, eLat: 41.878, eLng: -87.630, c: ['#4a90e2','#8b5cf6'], alt: 0.28, dl: 0.4, dg: 0.15, dt: 2400 },
+      { sLat: 41.878, sLng: -87.630, eLat: 33.749, eLng: -84.388, c: ['#8b5cf6','#e87040'], alt: 0.28, dl: 0.4, dg: 0.15, dt: 2400 }
+    ];
+    var collectorArcs = collectors.map(function(c) {
+      return { sLat: c.lat, sLng: c.lng, eLat: c.nearLat, eLng: c.nearLng,
+               c: ['rgba(239,68,68,0.45)','rgba(232,112,64,0.45)'], alt: 0.13, dl: 0.22, dg: 0.38, dt: 4800 };
+    });
+    var allArcs = primaryArcs.concat(collectorArcs);
+
+    var idx = 0;
+    var cycling = false;
+    var cycleGen = 0;
+    var panelL = document.getElementById('panel-left');
+    var panelR = document.getElementById('panel-right');
+
+    function setCounter(i, total) {
+      var el = document.getElementById('globe-counter-text');
+      if (!el) el = document.getElementById('globe-counter');
+      if (el) el.textContent = (i + 1) + ' / ' + total;
+    }
+
+    function cancelCycle() {
+      cycleGen++;
+      cycling = false;
+    }
+
+    var isMobile = window.innerWidth < 768;
+    var globe;
+    try {
+      globe = Globe()
+        .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+        .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
+        .backgroundColor('rgba(0,0,0,0)')
+        .atmosphereColor('#a855f7')
+        .atmosphereAltitude(0.22)
+        .width(container.offsetWidth)
+        .height(container.offsetHeight)
+        (container);
+
+      globe.controls().autoRotate = true;
+      globe.controls().autoRotateSpeed = 0.5;
+      globe.controls().enableZoom = false;
+      globe.controls().enablePan = false;
+      globe.controls().enableRotate = false;
+
+      var canvas = container.querySelector('canvas');
+      if (canvas) { canvas.style.pointerEvents = 'none'; canvas.style.touchAction = 'auto'; }
+
+      globe.pointOfView(isMobile
+        ? { lat: 20, lng: -90, altitude: 2.2 }
+        : { lat: 20, lng: -60, altitude: 2.6 });
+
+      globe.pointsData(allPoints)
+        .pointLat(function(d) { return d.lat; })
+        .pointLng(function(d) { return d.lng; })
+        .pointColor(function(d) { return d.color; })
+        .pointAltitude(function(d) { return d.alt; })
+        .pointRadius(function(d) { return d.r; });
+
+      globe.arcsData(allArcs)
+        .arcStartLat(function(d) { return d.sLat; })
+        .arcStartLng(function(d) { return d.sLng; })
+        .arcEndLat(function(d) { return d.eLat; })
+        .arcEndLng(function(d) { return d.eLng; })
+        .arcColor(function(d) { return d.c; })
+        .arcAltitude(function(d) { return d.alt; })
+        .arcDashLength(function(d) { return d.dl; })
+        .arcDashGap(function(d) { return d.dg; })
+        .arcDashAnimateTime(function(d) { return d.dt; });
+
+      globe.ringsData([])
+        .ringLat(function(d) { return d.lat; })
+        .ringLng(function(d) { return d.lng; })
+        .ringColor(function(d) { return function(t) { return d.ringColor + Math.max(0, 1 - t) + ')'; }; })
+        .ringMaxRadius(7)
+        .ringPropagationSpeed(3)
+        .ringRepeatPeriod(800);
+
+    } catch(e) {
+      globe = null;
+    }
+
+    function updatePanels(e) {
+      var elType    = document.getElementById('bl-type');
+      var elName    = document.getElementById('bl-name');
+      var elCity    = document.getElementById('bl-city');
+      var elCoords  = document.getElementById('bl-coords');
+      var elTagline = document.getElementById('bl-tagline');
+      var elStats   = document.getElementById('bl-stats');
+      var elHead    = document.getElementById('br-headline');
+      var elSubtext = document.getElementById('br-subtext');
+      if (elType)    elType.textContent    = e.typeLabel;
+      if (elName)    elName.textContent    = e.name;
+      if (elCity)    elCity.textContent    = e.city;
+      if (elCoords)  elCoords.textContent  = e.coords;
+      if (elTagline) elTagline.textContent = e.tagline;
+      if (elStats)   elStats.innerHTML = e.stats.map(function(s) {
+        return '<div class="bp-stat"><span class="bp-stat-val">' + s.val + '</span><span class="bp-stat-label">' + s.label + '</span></div>';
+      }).join('');
+      if (elHead)    elHead.textContent    = e.headline;
+      if (elSubtext) elSubtext.textContent = e.subtext;
+    }
+
+    function showPanels() {
+      if (panelL) panelL.classList.add('active');
+      if (panelR) panelR.classList.add('active');
+    }
+
+    function hidePanels(cb) {
+      if (panelL) panelL.classList.remove('active');
+      if (panelR) panelR.classList.remove('active');
+      if (cb) setTimeout(cb, 700);
+    }
+
+    function runCycle(gen) {
+      if (gen !== cycleGen) return;
+      if (cycling) return;
+      cycling = true;
+      var e = cycleEntities[idx];
+      setCounter(idx, TOTAL);
+      try { if (globe) globe.ringsData([e]); } catch(err) {}
+      setTimeout(function() {
+        if (gen !== cycleGen) return;
+        try {
+          if (globe) {
+            globe.controls().autoRotate = false;
+            globe.pointOfView({ lat: e.lat, lng: e.lng, altitude: isMobile ? 2.0 : 1.7 }, 2200);
+          }
+        } catch(err) {}
+        setTimeout(function() {
+          if (gen !== cycleGen) return;
+          updatePanels(e);
+          showPanels();
+          setTimeout(function() {
+            if (gen !== cycleGen) return;
+            hidePanels(function() {
+              if (gen !== cycleGen) return;
+              try { if (globe) globe.ringsData([]); } catch(err) {}
+              try {
+                if (globe) globe.pointOfView({ lat: 20, lng: isMobile ? e.lng : e.lng - 30, altitude: isMobile ? 2.2 : 2.6 }, 1800);
+              } catch(err) {}
+              setTimeout(function() {
+                if (gen !== cycleGen) return;
+                try { if (globe) globe.controls().autoRotate = true; } catch(err) {}
+                idx = (idx + 1) % TOTAL;
+                cycling = false;
+                var g = cycleGen;
+                setTimeout(function() { runCycle(g); }, 1800);
+              }, 1800);
+            });
+          }, 5500);
+        }, 2400);
+      }, 800);
+    }
+
+    function jumpToEntity(newIdx) {
+      cancelCycle();
+      hidePanels(null);
+      idx = ((newIdx % TOTAL) + TOTAL) % TOTAL;
+      var e = cycleEntities[idx];
+      var gen = cycleGen;
+      setCounter(idx, TOTAL);
+      try { if (globe) globe.ringsData([e]); } catch(err) {}
+      try {
+        if (globe) {
+          globe.controls().autoRotate = false;
+          globe.pointOfView({ lat: e.lat, lng: e.lng, altitude: isMobile ? 2.0 : 1.7 }, 700);
+        }
+      } catch(err) {}
+      setTimeout(function() {
+        if (gen !== cycleGen) return;
+        updatePanels(e);
+        showPanels();
+        setTimeout(function() {
+          if (gen !== cycleGen) return;
+          hidePanels(function() {
+            if (gen !== cycleGen) return;
+            try { if (globe) globe.ringsData([]); } catch(err) {}
+            try {
+              if (globe) globe.pointOfView({ lat: 20, lng: isMobile ? e.lng : e.lng - 30, altitude: isMobile ? 2.2 : 2.6 }, 1800);
+            } catch(err) {}
+            setTimeout(function() {
+              if (gen !== cycleGen) return;
+              try { if (globe) globe.controls().autoRotate = true; } catch(err) {}
+              idx = (idx + 1) % TOTAL;
+              cycling = false;
+              var g = cycleGen;
+              setTimeout(function() { runCycle(g); }, 1800);
+            }, 1800);
+          });
+        }, 5500);
+      }, 150);
+    }
+
+    updatePanels(cycleEntities[0]);
+    setCounter(0, TOTAL);
+    showPanels();
+    setTimeout(function() {
+      hidePanels(function() {
+        var g = cycleGen;
+        setTimeout(function() { runCycle(g); }, 600);
+      });
+    }, 4000);
+
+    var navPrev = document.getElementById('globe-nav-prev');
+    var navNext = document.getElementById('globe-nav-next');
+    if (navPrev) navPrev.addEventListener('click', function() { jumpToEntity(idx - 1); });
+    if (navNext) navNext.addEventListener('click', function() { jumpToEntity(idx + 1); });
+
+    window.addEventListener('resize', function() {
+      try { if (globe) globe.width(container.offsetWidth).height(container.offsetHeight); } catch(err) {}
+    });
+  })();
+  </script>
+
+  <section id="about" class="section-dark py-20 px-4">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">About Evolv</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          We're on a mission to make credit repair accessible to everyone.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8 items-center">
+        <div>
+          <h3 class="text-xl font-semibold text-white mb-4">Why We Built This</h3>
+          <p class="text-violet-200 mb-4 leading-relaxed">
+            Millions of Americans have errors on their credit reports. These mistakes can cost you thousands in higher interest rates, denied loans, and missed opportunities.
+          </p>
+          <p class="text-violet-200 mb-4 leading-relaxed">
+            Traditional credit repair is expensive, confusing, and slow. We built Evolv to change that. Our AI understands the Metro 2 format that credit bureaus use, finding violations that humans often miss.
+          </p>
+          <p class="text-violet-200 leading-relaxed">
+            Whether you're fixing your own credit or running a credit repair business, our platform gives you the tools to get real results - faster and more affordably than ever before.
+          </p>
+        </div>
+        <div class="space-y-4">
+          <div class="step-card rounded-xl p-5">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold text-white">AI-Powered</h4>
+                <p class="text-sm text-violet-300">Advanced algorithms trained on credit law and Metro 2 standards</p>
+              </div>
+            </div>
+          </div>
+          <div class="step-card rounded-xl p-5">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold text-white">Bank-Level Security</h4>
+                <p class="text-sm text-violet-300">Your data is encrypted and never shared with third parties</p>
+              </div>
+            </div>
+          </div>
+          <div class="step-card rounded-xl p-5">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold text-white">For Everyone</h4>
+                <p class="text-sm text-violet-300">DIY consumers and credit repair professionals welcome</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tradelines" class="section-darker py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-12">
+        <span class="inline-block bg-amber-500/20 text-amber-400 text-xs font-semibold px-3 py-1 rounded-full mb-4">Boost Your Score</span>
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Authorized User Tradelines</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          Looking for a faster way to build credit history? Tradelines can help you piggyback on established credit accounts.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8 items-center mb-12">
+        <div>
+          <h3 class="text-xl font-semibold text-white mb-4">What Are Tradelines?</h3>
+          <p class="text-violet-200 mb-4 leading-relaxed">
+            A tradeline is any credit account that appears on your credit report. When you become an "authorized user" on someone else's credit card, their positive payment history can be added to your report.
+          </p>
+          <p class="text-violet-200 mb-4 leading-relaxed">
+            This strategy - sometimes called "piggybacking" - can quickly boost your credit score by adding years of positive payment history, low utilization, and higher credit limits to your profile.
+          </p>
+          <p class="text-violet-200 leading-relaxed">
+            Our curated tradelines come from accounts with perfect payment histories, low utilization, and long credit ages - the key factors credit bureaus use to calculate your score.
+          </p>
+        </div>
+        <div class="space-y-4">
+          <div class="step-card rounded-xl p-5">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold text-white">Instant Credit Age</h4>
+                <p class="text-sm text-violet-300">Add 5-20+ years of credit history to your report</p>
+              </div>
+            </div>
+          </div>
+          <div class="step-card rounded-xl p-5">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold text-white">Perfect Payment History</h4>
+                <p class="text-sm text-violet-300">100% on-time payments for maximum impact</p>
+              </div>
+            </div>
+          </div>
+          <div class="step-card rounded-xl p-5">
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold text-white">Low Utilization</h4>
+                <p class="text-sm text-violet-300">Under 10% utilization to optimize your score</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-gradient-to-r from-amber-500/10 to-violet-500/10 border border-amber-500/20 rounded-2xl p-8 text-center">
+        <h3 class="text-xl font-semibold text-white mb-3">Ready to Boost Your Credit?</h3>
+        <p class="text-violet-200 mb-6 max-w-xl mx-auto">
+          Browse our marketplace of verified tradelines. Prices start at $199 and vary based on credit limit, age, and reporting bureaus.
+        </p>
+        <a href="/diy" class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-medium px-6 py-3 rounded-xl transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          Browse Tradelines
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="affiliate" class="section-dark py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-12">
+        <span class="inline-block bg-emerald-500/20 text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full mb-4">Earn Money</span>
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Affiliate Program</h2>
+        <p class="text-violet-200 max-w-2xl mx-auto">
+          Earn money by sharing Evolv with your audience. Get paid for every referral that signs up.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-6 mb-12">
+        <div class="step-card rounded-2xl p-6 text-center">
+          <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+          </div>
+          <h3 class="font-semibold text-white mb-2">Share Your Link</h3>
+          <p class="text-sm text-violet-200">
+            Get your unique referral link and share it with friends, family, or your audience on social media.
+          </p>
+        </div>
+
+        <div class="step-card rounded-2xl p-6 text-center">
+          <div class="w-16 h-16 rounded-2xl bg-violet-500/20 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </div>
+          <h3 class="font-semibold text-white mb-2">They Sign Up</h3>
+          <p class="text-sm text-violet-200">
+            When someone uses your link to create an account and subscribes to a paid plan, you earn a commission.
+          </p>
+        </div>
+
+        <div class="step-card rounded-2xl p-6 text-center">
+          <div class="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="font-semibold text-white mb-2">Get Paid</h3>
+          <p class="text-sm text-violet-200">
+            Earn up to $50 per referral. Track your earnings in real-time and get paid monthly via PayPal or bank transfer.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="pricing-card rounded-2xl p-6">
+          <h3 class="text-lg font-semibold text-white mb-4">DIY Referrals</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-white/10">
+              <span class="text-violet-200">Basic Plan signup</span>
+              <span id="welRateDiyBasic" class="text-emerald-400 font-semibold">...</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-white/10">
+              <span class="text-violet-200">Pro Plan signup</span>
+              <span id="welRateDiyPro" class="text-emerald-400 font-semibold">...</span>
+            </div>
+            <div class="flex justify-between items-center py-2">
+              <span class="text-violet-200">Tradeline purchase</span>
+              <span id="welRateDiyTradeline" class="text-emerald-400 font-semibold">...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pricing-card rounded-2xl p-6">
+          <h3 class="text-lg font-semibold text-white mb-4">CRM Referrals</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-white/10">
+              <span class="text-violet-200">Starter Plan signup</span>
+              <span id="welRateCrmStarter" class="text-emerald-400 font-semibold">...</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-white/10">
+              <span class="text-violet-200">Business Plan signup</span>
+              <span id="welRateCrmBusiness" class="text-emerald-400 font-semibold">...</span>
+            </div>
+            <div class="flex justify-between items-center py-2">
+              <span class="text-violet-200">Enterprise signup</span>
+              <span id="welRateCrmEnterprise" class="text-emerald-400 font-semibold">...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10 text-center">
+        <a href="/diy/signup" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium px-6 py-3 rounded-xl transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+          Join Affiliate Program
+        </a>
+        <p class="text-violet-400 text-sm mt-4">Free to join. No minimum payout. Start earning today.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="section-darker py-8 px-4 border-t border-white/5">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-emerald-500 flex items-center justify-center">
+          <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C9.5 2 7 4 7 7c0 2 1 3.5 2 4.5-2.5.5-5 2.5-5 5.5 0 2 1.5 4 4 4 1.5 0 3-.5 4-2 1 1.5 2.5 2 4 2 2.5 0 4-2 4-4 0-3-2.5-5-5-5.5 1-1 2-2.5 2-4.5 0-3-2.5-5-5-5zm0 2c1.5 0 3 1.5 3 3s-1.5 3-3 3-3-1.5-3-3 1.5-3 3-3z"/>
+          </svg>
+        </div>
+        <span class="font-semibold text-white">Evolv</span>
+      </div>
+      <p class="text-violet-400/60 text-xs text-center">
+        Powered by Metro 2 AI Compliance Engine &nbsp;·&nbsp; Results not guaranteed. Individual outcomes vary.
+      </p>
+      <div class="flex items-center gap-4 text-sm text-violet-400">
+        <a href="/privacy.html" class="hover:text-white transition-colors">Privacy</a>
+        <a href="/terms.html" class="hover:text-white transition-colors">Terms</a>
+        <a href="mailto:support@evolvcrm.com" class="hover:text-white transition-colors">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <div id="sticky-cta" class="sticky-cta">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="pulse-dot"></div>
+        <span class="text-sm text-violet-200 hidden sm:inline">Bad credit is costing you money right now</span>
+        <span class="text-sm text-violet-200 sm:hidden">Fix your credit today</span>
+      </div>
+      <a href="/diy" class="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-emerald-500 text-white font-medium px-5 py-2 rounded-lg text-sm transition-all hover:shadow-lg whitespace-nowrap">
+        Start Free Audit
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var slider = document.getElementById('score-slider');
+    var display = document.getElementById('score-display');
+    var costAuto = document.getElementById('cost-auto');
+    var costMortgage = document.getElementById('cost-mortgage');
+    var costCC = document.getElementById('cost-cc');
+    var costTotal = document.getElementById('cost-total');
+    var amtAuto = document.getElementById('amt-auto');
+    var amtMortgage = document.getElementById('amt-mortgage');
+    var amtCC = document.getElementById('amt-cc');
+
+    function parseAmt(el){ return parseInt(el.value.replace(/[^0-9]/g,''),10) || 0; }
+
+    function fmtInput(el){
+      var raw = el.value.replace(/[^0-9]/g,'');
+      var num = parseInt(raw,10) || 0;
+      var pos = el.selectionStart;
+      var oldLen = el.value.length;
+      el.value = num > 0 ? num.toLocaleString() : '';
+      var newLen = el.value.length;
+      var newPos = Math.max(0, pos + (newLen - oldLen));
+      el.setSelectionRange(newPos, newPos);
+    }
+
+    function calcCosts(score){
+      var penalty = 0;
+      if(score < 580) penalty = 1.0;
+      else if(score < 620) penalty = 0.85;
+      else if(score < 660) penalty = 0.6;
+      else if(score < 700) penalty = 0.35;
+      else if(score < 740) penalty = 0.15;
+      else penalty = 0;
+
+      var autoAmt = parseAmt(amtAuto);
+      var mortAmt = parseAmt(amtMortgage);
+      var ccAmt = parseAmt(amtCC);
+
+      var autoExtra = penalty * 4.5;
+      var mortExtra = penalty * 3.0;
+      var ccExtra = penalty * 10.0;
+
+      var autoTotal = Math.round(autoAmt * (autoExtra/100) * 5);
+      var mortTotal = Math.round(mortAmt * (mortExtra/100) * 30);
+      var ccTotal = Math.round(ccAmt * (ccExtra/100));
+      var total = autoTotal + mortTotal + ccTotal;
+
+      return { auto: autoTotal, mortgage: mortTotal, cc: ccTotal, total: total };
+    }
+
+    function fmt(n){ return '$' + n.toLocaleString(); }
+
+    function update(){
+      var score = parseInt(slider.value);
+      display.textContent = score;
+      var c = calcCosts(score);
+      costAuto.textContent = fmt(c.auto);
+      costMortgage.textContent = fmt(c.mortgage);
+      costCC.textContent = fmt(c.cc);
+      costTotal.textContent = fmt(c.total);
+    }
+
+    if(slider){
+      slider.addEventListener('input', update);
+      [amtAuto, amtMortgage, amtCC].forEach(function(el){
+        el.addEventListener('input', function(){ fmtInput(el); update(); });
+      });
+      update();
+    }
+  })();
+
+  function handleLeadCapture(e){
+    e.preventDefault();
+    var email = document.getElementById('lead-email').value;
+    if(!email) return false;
+    document.getElementById('lead-form').style.display = 'none';
+    document.getElementById('lead-success').classList.remove('hidden');
+    return false;
+  }
+
+  (function(){
+    var sticky = document.getElementById('sticky-cta');
+    var hero = document.getElementById('hero');
+    if(!sticky || !hero) return;
+    var shown = false;
+    function checkScroll(){
+      var rect = hero.getBoundingClientRect();
+      var pastHero = rect.bottom < 0;
+      if(pastHero && !shown){ shown = true; sticky.classList.add('visible'); }
+      else if(!pastHero && shown){ shown = false; sticky.classList.remove('visible'); }
+    }
+    window.addEventListener('scroll', checkScroll, { passive:true });
+    checkScroll();
+  })();
+  (function(){
+    fetch('/api/affiliate/commission-rates')
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(!d.ok||!d.rates)return;
+        var r=d.rates,el;
+        el=document.getElementById('welRateDiyBasic');if(el)el.textContent='$'+r.diy_basic;
+        el=document.getElementById('welRateDiyPro');if(el)el.textContent='$'+r.diy_pro;
+        el=document.getElementById('welRateDiyTradeline');if(el)el.textContent=(r.diy_tradeline<1?Math.round(r.diy_tradeline*100):r.diy_tradeline)+'% commission';
+        el=document.getElementById('welRateCrmStarter');if(el)el.textContent='$'+r.crm_starter;
+        el=document.getElementById('welRateCrmBusiness');if(el)el.textContent='$'+r.crm_business;
+        el=document.getElementById('welRateCrmEnterprise');if(el)el.textContent='$'+r.crm_enterprise;
+      }).catch(function(){});
+  })();
+  </script>
+
+  <script>
+  /* ── Space background animation ── */
+  (function () {
+    var canvas = document.getElementById('space-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = 0, H = 0;
+
+    function resize() {
+      var rect = canvas.parentElement.getBoundingClientRect();
+      W = canvas.width  = rect.width  || window.innerWidth;
+      H = canvas.height = rect.height || window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    /* ── Stars (static, twinkling) ── */
+    var stars = [];
+    for (var i = 0; i < 190; i++) {
+      stars.push({
+        fx: Math.random(), fy: Math.random(),
+        r:  0.4 + Math.random() * 1.1,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.18 + Math.random() * 0.55,
+        bright: 0.25 + Math.random() * 0.55
+      });
+    }
+
+    /* ── Transient object pools ── */
+    var shooters = [], comets = [], sats = [], ships = [], roids = [];
+
+    /* timers (ms until next spawn of each type) */
+    var tShoot = 2500, tComet = 9000, tSat = 14000, tShip = 18000, tRoid = 22000;
+
+    /* meteor shower state */
+    var shower = null;   /* active shower object or null */
+    var tShower = 20000; /* ms until next shower */
+
+    /* ── Helpers ── */
+    function edgeEntry(margin) {
+      margin = margin || 30;
+      var edge  = Math.floor(Math.random() * 4);
+      var spread = Math.PI * 0.35;
+      var x, y, ang;
+      if (edge === 0) { x = Math.random() * W; y = -margin; ang = Math.PI * 0.5 + (Math.random() - 0.5) * spread; }
+      else if (edge === 1) { x = W + margin; y = Math.random() * H; ang = Math.PI     + (Math.random() - 0.5) * spread; }
+      else if (edge === 2) { x = Math.random() * W; y = H + margin; ang = -Math.PI * 0.5 + (Math.random() - 0.5) * spread; }
+      else { x = -margin; y = Math.random() * H; ang = (Math.random() - 0.5) * spread; }
+      return { x: x, y: y, ang: ang };
+    }
+    function gone(x, y) { return x < -120 || x > W + 120 || y < -120 || y > H + 120; }
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+
+    /* ── Spawn functions ── */
+    function spawnShooter() {
+      var e = edgeEntry(10), sp = rnd(7, 13);
+      shooters.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
+        tail: [], maxTail: Math.round(rnd(14, 26)), r: rnd(1, 2) });
+    }
+    function spawnComet() {
+      var e = edgeEntry(20), sp = rnd(1.4, 2.8);
+      comets.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
+        tail: [], maxTail: Math.round(rnd(45, 75)), r: rnd(2, 3.5) });
+    }
+    function spawnSat() {
+      var e = edgeEntry(30), sp = rnd(0.45, 0.85);
+      sats.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp, ang: e.ang });
+    }
+    function spawnShip() {
+      var e = edgeEntry(30), sp = rnd(2, 3.5);
+      ships.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
+        ang: e.ang, wPhase: rnd(0, Math.PI * 2) });
+    }
+    function spawnRoid() {
+      var e = edgeEntry(30), sp = rnd(0.5, 1.1);
+      var n = 6 + Math.floor(Math.random() * 5), pts = [];
+      for (var k = 0; k < n; k++) {
+        pts.push({ a: (k / n) * Math.PI * 2, r: rnd(5, 11) });
+      }
+      roids.push({ x: e.x, y: e.y, vx: Math.cos(e.ang) * sp, vy: Math.sin(e.ang) * sp,
+        rot: 0, rspd: rnd(-0.018, 0.018), pts: pts });
+    }
+
+    function spawnShower() {
+      /* pick a radiant point — upper portion of screen, random x */
+      var radX = rnd(W * 0.15, W * 0.85);
+      var radY = rnd(-H * 0.2, H * 0.25);
+      /* travel direction: generally downward with random lean */
+      var baseAng = rnd(Math.PI * 0.35, Math.PI * 0.65);
+      var count   = Math.round(rnd(12, 20));
+      var pending = [];
+      for (var k = 0; k < count; k++) {
+        /* each meteor starts near the radiant with slight offset */
+        var offR = rnd(0, 60);
+        var offA = rnd(0, Math.PI * 2);
+        var ang  = baseAng + rnd(-0.18, 0.18); /* tiny fan */
+        var sp   = rnd(5.5, 10);
+        pending.push({
+          delay:  rnd(0, 3200),          /* stagger spawns over 3.2 s */
+          x:      radX + Math.cos(offA) * offR,
+          y:      radY + Math.sin(offA) * offR,
+          vx:     Math.cos(ang) * sp,
+          vy:     Math.sin(ang) * sp,
+          tail:   [],
+          maxTail: Math.round(rnd(8, 18)),
+          r:      rnd(0.5, 1.1),
+          alive:  false
+        });
+      }
+      shower = { pending: pending, active: [], done: false };
+    }
+
+    /* ── Draw functions ── */
+    function drawStreak(obj, headColor, tailColor, lineW) {
+      if (obj.tail.length < 2) return;
+      var t0 = obj.tail[0], t1 = obj.tail[obj.tail.length - 1];
+      var g = ctx.createLinearGradient(t0.x, t0.y, t1.x, t1.y);
+      g.addColorStop(0, tailColor);
+      g.addColorStop(1, headColor);
+      ctx.beginPath();
+      ctx.moveTo(t0.x, t0.y);
+      for (var j = 1; j < obj.tail.length; j++) ctx.lineTo(obj.tail[j].x, obj.tail[j].y);
+      ctx.lineTo(obj.x, obj.y);
+      ctx.strokeStyle = g; ctx.lineWidth = lineW; ctx.stroke();
+    }
+    function drawShooterFn(s) {
+      drawStreak(s, 'rgba(255,255,255,0.92)', 'rgba(255,255,255,0)', 1.4);
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+    }
+    function drawCometFn(c) {
+      drawStreak(c, 'rgba(190,215,255,0.88)', 'rgba(140,190,255,0)', 2.2);
+      /* nucleus glow */
+      var g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, 10);
+      g.addColorStop(0, 'rgba(220,235,255,0.95)');
+      g.addColorStop(1, 'rgba(140,190,255,0)');
+      ctx.beginPath(); ctx.arc(c.x, c.y, 10, 0, Math.PI * 2);
+      ctx.fillStyle = g; ctx.fill();
+    }
+    function drawSatFn(s) {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.ang + Math.PI * 0.25);
+      /* body */ ctx.fillStyle = 'rgba(210,225,255,0.72)'; ctx.fillRect(-4, -3, 8, 6);
+      /* panels */ ctx.fillStyle = 'rgba(80,140,255,0.5)';
+      ctx.fillRect(-16, -2, 11, 4); ctx.fillRect(5, -2, 11, 4);
+      /* panel grid lines */
+      ctx.strokeStyle = 'rgba(130,170,255,0.35)'; ctx.lineWidth = 0.5;
+      [-16, -13, -10].forEach(function(px) {
+        ctx.beginPath(); ctx.moveTo(px, -2); ctx.lineTo(px, 2); ctx.stroke();
+      });
+      [5, 8, 11].forEach(function(px) {
+        ctx.beginPath(); ctx.moveTo(px, -2); ctx.lineTo(px, 2); ctx.stroke();
+      });
+      /* antenna */ ctx.strokeStyle = 'rgba(200,215,255,0.5)'; ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, -7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -7, 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(200,215,255,0.6)'; ctx.fill();
+      ctx.restore();
+    }
+    function drawShipFn(s) {
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.ang + Math.PI * 0.5);
+      /* fuselage */ ctx.beginPath();
+      ctx.moveTo(0, -11); ctx.lineTo(4.5, 2); ctx.lineTo(0, -1); ctx.lineTo(-4.5, 2);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(212,168,83,0.72)';
+      ctx.strokeStyle = 'rgba(255,225,140,0.55)'; ctx.lineWidth = 0.8;
+      ctx.fill(); ctx.stroke();
+      /* wings */ ctx.beginPath();
+      ctx.moveTo(0, -2); ctx.lineTo(9, 6); ctx.lineTo(5, 7); ctx.lineTo(0, 1);
+      ctx.closePath(); ctx.fillStyle = 'rgba(180,140,60,0.55)'; ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(0, -2); ctx.lineTo(-9, 6); ctx.lineTo(-5, 7); ctx.lineTo(0, 1);
+      ctx.closePath(); ctx.fillStyle = 'rgba(180,140,60,0.55)'; ctx.fill();
+      /* engine glow */ var g = ctx.createRadialGradient(0, 4, 0, 0, 4, 6);
+      g.addColorStop(0, 'rgba(255,180,60,0.75)'); g.addColorStop(1, 'rgba(212,100,0,0)');
+      ctx.beginPath(); ctx.arc(0, 4, 6, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+      ctx.restore();
+    }
+    function drawMeteorFn(m) {
+      if (m.tail.length < 2) return;
+      var t0 = m.tail[0], t1 = m.tail[m.tail.length - 1];
+      var g = ctx.createLinearGradient(t0.x, t0.y, t1.x, t1.y);
+      g.addColorStop(0, 'rgba(200,220,255,0)');
+      g.addColorStop(1, 'rgba(220,235,255,0.85)');
+      ctx.beginPath();
+      ctx.moveTo(t0.x, t0.y);
+      for (var j = 1; j < m.tail.length; j++) ctx.lineTo(m.tail[j].x, m.tail[j].y);
+      ctx.lineTo(m.x, m.y);
+      ctx.strokeStyle = g; ctx.lineWidth = m.r; ctx.stroke();
+      ctx.beginPath(); ctx.arc(m.x, m.y, m.r * 0.9, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(240,248,255,0.88)'; ctx.fill();
+    }
+
+    function drawRoidFn(a) {
+      ctx.save(); ctx.translate(a.x, a.y); ctx.rotate(a.rot);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a.pts[0].a) * a.pts[0].r, Math.sin(a.pts[0].a) * a.pts[0].r);
+      for (var k = 1; k < a.pts.length; k++) {
+        ctx.lineTo(Math.cos(a.pts[k].a) * a.pts[k].r, Math.sin(a.pts[k].a) * a.pts[k].r);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(155,140,120,0.32)';
+      ctx.strokeStyle = 'rgba(200,185,165,0.45)'; ctx.lineWidth = 0.8;
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ── Main loop ── */
+    var last = 0;
+    function frame(ts) {
+      requestAnimationFrame(frame);
+      var dt = Math.min(ts - last, 80); last = ts;
+      var t = ts * 0.001;
+
+      ctx.clearRect(0, 0, W, H);
+
+      /* stars */
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        var a = s.bright * (0.55 + 0.45 * Math.sin(t * s.speed + s.phase));
+        var sx = s.fx * W, sy = s.fy * H;
+        var g = ctx.createRadialGradient(sx, sy, 0, sx, sy, s.r * 1.8);
+        g.addColorStop(0, 'rgba(255,255,255,' + a.toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.beginPath(); ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = g; ctx.fill();
+      }
+
+      /* spawn timers */
+      tShoot -= dt;
+      if (tShoot <= 0 && shooters.length < 2) { spawnShooter(); tShoot = rnd(3000, 7000); }
+      tComet -= dt;
+      if (tComet <= 0 && comets.length < 1)   { spawnComet();   tComet = rnd(12000, 22000); }
+      tSat -= dt;
+      if (tSat <= 0 && sats.length < 1)        { spawnSat();     tSat   = rnd(14000, 26000); }
+      tShip -= dt;
+      if (tShip <= 0 && ships.length < 1)       { spawnShip();    tShip  = rnd(18000, 32000); }
+      tRoid -= dt;
+      if (tRoid <= 0 && roids.length < 1)       { spawnRoid();    tRoid  = rnd(22000, 40000); }
+      tShower -= dt;
+      if (tShower <= 0 && !shower)               { spawnShower();  tShower = rnd(28000, 55000); }
+
+      /* update meteor shower */
+      if (shower) {
+        /* tick pending delays and activate ready meteors */
+        shower.pending = shower.pending.filter(function(m) {
+          m.delay -= dt;
+          if (m.delay <= 0) { shower.active.push(m); return false; }
+          return true;
+        });
+        /* move and draw active shower meteors */
+        shower.active = shower.active.filter(function(m) {
+          m.tail.push({ x: m.x, y: m.y });
+          if (m.tail.length > m.maxTail) m.tail.shift();
+          m.x += m.vx; m.y += m.vy;
+          drawMeteorFn(m);
+          return !gone(m.x, m.y);
+        });
+        /* shower is finished when both queues are empty */
+        if (shower.pending.length === 0 && shower.active.length === 0) shower = null;
+      }
+
+      /* update & draw transients */
+      shooters = shooters.filter(function(o) {
+        o.tail.push({ x: o.x, y: o.y });
+        if (o.tail.length > o.maxTail) o.tail.shift();
+        o.x += o.vx; o.y += o.vy;
+        drawShooterFn(o); return !gone(o.x, o.y);
+      });
+      comets = comets.filter(function(o) {
+        o.tail.push({ x: o.x, y: o.y });
+        if (o.tail.length > o.maxTail) o.tail.shift();
+        o.x += o.vx; o.y += o.vy;
+        drawCometFn(o); return !gone(o.x, o.y);
+      });
+      sats = sats.filter(function(o) {
+        o.x += o.vx; o.y += o.vy;
+        drawSatFn(o); return !gone(o.x, o.y);
+      });
+      ships = ships.filter(function(o) {
+        o.wPhase += 0.025;
+        var perp = o.ang + Math.PI * 0.5;
+        o.x += o.vx + Math.cos(perp) * Math.sin(o.wPhase) * 0.35;
+        o.y += o.vy + Math.sin(perp) * Math.sin(o.wPhase) * 0.35;
+        drawShipFn(o); return !gone(o.x, o.y);
+      });
+      roids = roids.filter(function(o) {
+        o.x += o.vx; o.y += o.vy; o.rot += o.rspd;
+        drawRoidFn(o); return !gone(o.x, o.y);
+      });
+    }
+    requestAnimationFrame(frame);
+  })();
+  </script>
+
+</body>
+</html>

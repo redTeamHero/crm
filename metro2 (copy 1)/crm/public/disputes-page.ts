@@ -1,4 +1,4 @@
-import { authHeader, api, escapeHtml } from './common.js';
+import { authHeader, api, escapeHtml } from './common.ts';
 
 import { resolveStateInfo, STATES_WITH_ADDENDA } from './state-utils.js';
 

@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Find a Credit Repair Specialist — Evolv</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
+  <meta name="description" content="Browse verified credit repair specialists. Connect directly — no account required." />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --gold: #d4a853;
+      --gold-dim: rgba(212,168,83,0.15);
+      --gold-border: rgba(212,168,83,0.25);
+      --violet: #a855f7;
+      --violet-dim: rgba(168,85,247,0.12);
+      --bg: #07070a;
+      --surface: #0f0f14;
+      --surface2: #16161e;
+      --border: rgba(255,255,255,0.07);
+      --text: #f0f0f5;
+      --text-sub: rgba(255,255,255,0.45);
+      --emerald: #10b981;
+      --red: #ef4444;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 56px;
+      background: rgba(7,7,10,0.85);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-mark {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--gold), #c49a45);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; color: #0a0a0a;
+    }
+    .nav-logo-text { font-size: 1.1rem; font-weight: 700; color: var(--text); letter-spacing: 0.02em; }
+    .nav-back {
+      font-size: 13px; color: var(--text-sub); text-decoration: none;
+      display: flex; align-items: center; gap: 6px;
+      transition: color 0.18s;
+    }
+    .nav-back:hover { color: var(--text); }
+
+    /* ─── HERO ─── */
+    .hero {
+      text-align: center;
+      padding: 64px 24px 40px;
+      background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(212,168,83,0.07) 0%, transparent 70%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      color: var(--gold); font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 100px; margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800; line-height: 1.15;
+      margin-bottom: 14px; color: var(--text);
+    }
+    .hero h1 span { color: var(--gold); }
+    .hero p {
+      font-size: 15px; color: var(--text-sub);
+      max-width: 500px; margin: 0 auto; line-height: 1.6;
+    }
+    .trust-row {
+      display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
+      margin-top: 28px;
+    }
+    .trust-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text-sub); font-weight: 500;
+    }
+    .trust-icon { color: var(--gold); font-size: 14px; }
+
+    /* ─── MAIN GRID ─── */
+    .main {
+      max-width: 860px; margin: 0 auto; padding: 32px 20px 80px;
+    }
+    .section-label {
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-sub); margin-bottom: 20px; font-weight: 600;
+    }
+
+    /* ─── LOADING / EMPTY ─── */
+    .state-box {
+      text-align: center; padding: 64px 20px;
+      color: var(--text-sub);
+    }
+    .state-box .icon { font-size: 40px; margin-bottom: 14px; }
+    .state-box p { font-size: 14px; line-height: 1.5; }
+    .spinner {
+      width: 36px; height: 36px; margin: 0 auto 16px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── SPECIALIST CARD ─── */
+    .card-list { display: flex; flex-direction: column; gap: 16px; }
+    .spec-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .spec-card:hover { border-color: rgba(212,168,83,0.2); }
+    .spec-card.boosted { border-color: rgba(212,168,83,0.3); }
+    .card-body { padding: 20px 24px; }
+
+    .card-top {
+      display: flex; align-items: flex-start; gap: 16px;
+    }
+    .avatar {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 700; color: #fff;
+    }
+    .card-info { flex: 1; min-width: 0; }
+    .card-name {
+      font-size: 1rem; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .card-location {
+      font-size: 12px; color: var(--text-sub); margin-top: 2px;
+    }
+    .card-focus {
+      font-size: 12px; color: var(--text-sub); margin-top: 2px;
+      font-style: italic;
+    }
+    .rank-badge {
+      flex-shrink: 0;
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      color: var(--gold); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.06em; padding: 3px 8px; border-radius: 100px;
+      white-space: nowrap;
+    }
+
+    .card-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; margin-top: 16px;
+    }
+    .stat-box {
+      background: var(--surface2); border-radius: 10px;
+      padding: 10px 12px; text-align: center;
+    }
+    .stat-val { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .stat-label { font-size: 10px; color: var(--text-sub); margin-top: 2px; letter-spacing: 0.03em; }
+
+    .card-badges {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px;
+    }
+    .badge {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+      padding: 3px 9px; border-radius: 100px; text-transform: uppercase;
+    }
+    .badge-top    { background: rgba(212,168,83,0.18); color: var(--gold); border: 1px solid rgba(212,168,83,0.35); }
+    .badge-feat   { background: rgba(168,85,247,0.15); color: #c084fc;    border: 1px solid rgba(168,85,247,0.3); }
+    .badge-succ   { background: rgba(16,185,129,0.15); color: #6ee7b7;    border: 1px solid rgba(16,185,129,0.3); }
+    .badge-fast   { background: rgba(59,130,246,0.15); color: #93c5fd;    border: 1px solid rgba(59,130,246,0.3); }
+
+    /* ─── CONNECT BUTTON ─── */
+    .btn-connect {
+      width: 100%; margin-top: 16px;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, var(--gold), #c49a45);
+      color: #0a0a0a; font-weight: 700; font-size: 14px;
+      border: none; border-radius: 10px; cursor: pointer;
+      transition: opacity 0.18s, transform 0.1s;
+    }
+    .btn-connect:hover { opacity: 0.88; }
+    .btn-connect:active { transform: scale(0.98); }
+
+    /* ─── INLINE CONNECT FORM ─── */
+    .connect-panel {
+      background: var(--surface2);
+      border-top: 1px solid var(--border);
+      padding: 20px 24px;
+      display: none;
+    }
+    .connect-panel.open { display: block; }
+    .connect-panel h3 {
+      font-size: 14px; font-weight: 700; color: var(--gold); margin-bottom: 14px;
+    }
+    .form-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+    }
+    .form-field {
+      display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;
+    }
+    .form-field label { font-size: 11px; color: var(--text-sub); font-weight: 500; }
+    .form-field input {
+      padding: 9px 12px;
+      background: var(--surface); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: var(--text); font-size: 13px;
+      outline: none; transition: border-color 0.18s;
+    }
+    .form-field input:focus { border-color: var(--gold); }
+    .form-field input::placeholder { color: rgba(255,255,255,0.2); }
+    .form-error {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5; font-size: 12px; padding: 8px 12px;
+      border-radius: 7px; margin-bottom: 10px; display: none;
+    }
+    .form-actions {
+      display: flex; gap: 10px; margin-top: 4px;
+    }
+    .btn-submit {
+      flex: 1; padding: 10px 16px;
+      background: linear-gradient(135deg, var(--gold), #c49a45);
+      color: #0a0a0a; font-weight: 700; font-size: 13px;
+      border: none; border-radius: 8px; cursor: pointer;
+      transition: opacity 0.18s;
+    }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-submit:hover:not(:disabled) { opacity: 0.88; }
+    .btn-cancel {
+      padding: 10px 16px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-sub); font-size: 13px; border-radius: 8px;
+      cursor: pointer; transition: border-color 0.18s, color 0.18s;
+    }
+    .btn-cancel:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .form-success {
+      text-align: center; padding: 16px 0;
+    }
+    .form-success .check {
+      width: 44px; height: 44px; background: var(--emerald);
+      border-radius: 50%; display: inline-flex; align-items: center;
+      justify-content: center; font-size: 22px; margin-bottom: 10px;
+    }
+    .form-success p { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+    .form-success strong { color: var(--text); }
+
+    /* ─── EMPTY STATE (no companies) ─── */
+    .cta-box {
+      background: var(--surface); border: 1px solid var(--gold-border);
+      border-radius: 16px; padding: 32px; text-align: center; margin-top: 24px;
+    }
+    .cta-box p { font-size: 14px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.6; }
+    .cta-box a {
+      display: inline-block; padding: 11px 24px;
+      background: linear-gradient(135deg, var(--gold), #c49a45);
+      color: #0a0a0a; font-weight: 700; font-size: 13px;
+      border-radius: 9px; text-decoration: none; transition: opacity 0.18s;
+    }
+    .cta-box a:hover { opacity: 0.88; }
+
+    /* ─── BIO ─── */
+    .card-bio {
+      font-size: 12.5px; color: rgba(255,255,255,0.52); line-height: 1.6;
+      margin: 10px 0 4px; font-style: italic;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    /* ─── REVIEWS TOGGLE ROW ─── */
+    .reviews-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 10px 0 0; padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .reviews-summary { font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; }
+    .btn-reviews {
+      font-size: 11px; color: var(--gold); background: none; border: none;
+      cursor: pointer; padding: 0; font-weight: 600; letter-spacing: 0.03em;
+      transition: opacity 0.15s;
+    }
+    .btn-reviews:hover { opacity: 0.75; }
+
+    /* ─── REVIEWS PANEL ─── */
+    .reviews-panel {
+      display: none; padding: 14px 20px 18px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.015);
+    }
+    .reviews-panel.open { display: block; }
+    .review-item {
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .review-item:last-of-type { border-bottom: none; }
+    .review-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .review-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .review-date { font-size: 11px; color: var(--text-sub); margin-left: auto; }
+    .review-comment { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.55; }
+    .reviews-empty { font-size: 12px; color: var(--text-sub); padding: 6px 0; text-align: center; }
+
+    /* ─── LEAVE A REVIEW FORM ─── */
+    .review-form { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .review-form-title { font-size: 11px; font-weight: 600; color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+    .star-selector { display: flex; gap: 4px; margin-bottom: 10px; }
+    .star-selector span { font-size: 22px; cursor: pointer; color: rgba(255,255,255,0.2); transition: color 0.12s; user-select: none; }
+    .star-selector span.on { color: #d4a853; }
+    .rf-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
+    .rf-field label { font-size: 11px; color: var(--text-sub); font-weight: 500; }
+    .rf-field input, .rf-field textarea {
+      padding: 8px 11px; background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+      color: var(--text); font-size: 12px; outline: none;
+      transition: border-color 0.18s; resize: none;
+    }
+    .rf-field input:focus, .rf-field textarea:focus { border-color: var(--gold); }
+    .rf-field input::placeholder, .rf-field textarea::placeholder { color: rgba(255,255,255,0.2); }
+    .btn-submit-review {
+      width: 100%; padding: 9px 16px;
+      background: linear-gradient(135deg, var(--gold), #c49a45);
+      color: #0a0a0a; font-weight: 700; font-size: 12px;
+      border: none; border-radius: 8px; cursor: pointer;
+      transition: opacity 0.18s; margin-top: 4px;
+    }
+    .btn-submit-review:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-submit-review:hover:not(:disabled) { opacity: 0.88; }
+    .review-form-msg { font-size: 12px; margin-top: 6px; text-align: center; }
+
+    @media (max-width: 540px) {
+      .card-top { flex-wrap: wrap; }
+      .card-stats { grid-template-columns: 1fr 1fr 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .hero { padding: 48px 20px 32px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-mark">E</div>
+      <span class="nav-logo-text">Evolv</span>
+    </a>
+    <a href="/" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M5 12l7 7M5 12l7-7"/></svg>
+      Back to Home
+    </a>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-badge">✦ No Account Required</div>
+    <h1>Find a <span>Credit Repair</span> Specialist</h1>
+    <p>Browse verified professionals ranked by success rate, response time, and client reviews. Connect directly in seconds.</p>
+    <div class="trust-row">
+      <div class="trust-item"><span class="trust-icon">✓</span> Verified Professionals</div>
+      <div class="trust-item"><span class="trust-icon">🔒</span> Your Info Stays Private</div>
+      <div class="trust-item"><span class="trust-icon">⚡</span> Fast Response Guarantee</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="section-label" id="listLabel">Loading specialists…</div>
+    <div id="cardList" class="card-list">
+      <div class="state-box">
+        <div class="spinner"></div>
+        <p>Finding the best specialists for you…</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    var AVATAR_COLORS = ['#6366f1','#10b981','#f59e0b','#3b82f6','#ec4899','#8b5cf6','#14b8a6','#e87040'];
+
+    function esc(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function renderStars(n) {
+      var out = '';
+      for (var i = 1; i <= 5; i++) {
+        out += '<span style="color:' + (i <= n ? '#d4a853' : 'rgba(255,255,255,0.18)') + '">★</span>';
+      }
+      return out;
+    }
+
+    function buildBadges(company) {
+      var parts = [];
+      if (company.rank === 1) parts.push('<span class="badge badge-top">Top Pick</span>');
+      if (company.isBoosted) parts.push('<span class="badge badge-feat">Featured</span>');
+      var m = company.metrics || {};
+      if (m.successRate !== null && m.successRate > 85) parts.push('<span class="badge badge-succ">High Success</span>');
+      if (m.avgResponseDays !== null && m.avgResponseDays < 3) parts.push('<span class="badge badge-fast">Fast Response</span>');
+      return parts.join('');
+    }
+
+    function renderCard(company, idx) {
+      var m = company.metrics || {};
+      var color = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+      var initial = (company.name || 'C').charAt(0).toUpperCase();
+      var cid = esc(company.companyId);
+
+      var successVal = m.successRate !== null ? m.successRate + '%' : 'New';
+      var responseVal = m.avgResponseDays !== null ? m.avgResponseDays + 'd' : 'N/A';
+      var ratingVal = m.rating !== null ? renderStars(Math.round(m.rating)) : '<span style="color:rgba(255,255,255,0.3);font-size:11px;">No reviews yet</span>';
+
+      var badges = buildBadges(company);
+      var rankLabel = company.rank === 1 ? '#1 Ranked' : 'Rank #' + company.rank;
+      var focusLine = company.focus ? '<div class="card-focus">' + esc(company.focus) + '</div>' : '';
+      var bioLine = company.bio ? '<div class="card-bio">' + esc(company.bio) + '</div>' : '';
+
+      var reviewSummary = m.rating !== null
+        ? '<span>' + renderStars(Math.round(m.rating)) + '</span><span>' + m.rating.toFixed(1) + '</span>'
+        : '<span style="color:var(--text-sub);font-size:11px;">No reviews yet</span>';
+
+      return '<div class="spec-card' + (company.isBoosted ? ' boosted' : '') + '" id="card-' + cid + '">' +
+        '<div class="card-body">' +
+          '<div class="card-top">' +
+            '<div class="avatar" style="background:' + esc(color) + ';">' + esc(initial) + '</div>' +
+            '<div class="card-info">' +
+              '<div class="card-name">' + esc(company.name) + '</div>' +
+              '<div class="card-location">📍 ' + esc(company.serviceArea) + '</div>' +
+              focusLine +
+            '</div>' +
+            '<div class="rank-badge">' + esc(rankLabel) + '</div>' +
+          '</div>' +
+          bioLine +
+          '<div class="card-stats">' +
+            '<div class="stat-box"><div class="stat-val">' + esc(successVal) + '</div><div class="stat-label">Success Rate</div></div>' +
+            '<div class="stat-box"><div class="stat-val">' + esc(responseVal) + '</div><div class="stat-label">Avg. Response</div></div>' +
+            '<div class="stat-box"><div class="stat-val" style="font-size:0.8rem;">' + ratingVal + '</div><div class="stat-label">Rating</div></div>' +
+          '</div>' +
+          (badges ? '<div class="card-badges">' + badges + '</div>' : '') +
+          '<div class="reviews-row">' +
+            '<div class="reviews-summary">' + reviewSummary + '</div>' +
+            '<button class="btn-reviews" data-reviews-toggle="' + cid + '">Reviews ▾</button>' +
+          '</div>' +
+          '<button class="btn-connect" data-company-id="' + cid + '" data-company-name="' + esc(company.name) + '" style="margin-top:10px;">Connect with ' + esc(company.name) + '</button>' +
+        '</div>' +
+        /* reviews panel */
+        '<div class="reviews-panel" id="rp-' + cid + '">' +
+          '<div id="rl-' + cid + '"><div class="reviews-empty">Loading reviews…</div></div>' +
+          /* leave a review form */
+          '<div class="review-form" id="rf-' + cid + '">' +
+            '<div class="review-form-title">Leave a Review</div>' +
+            '<div class="star-selector" id="stars-' + cid + '">' +
+              '<span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>' +
+            '</div>' +
+            '<div class="rf-field"><label>Your Name *</label><input type="text" id="rname-' + cid + '" placeholder="Jane Smith" /></div>' +
+            '<div class="rf-field"><label>Comment (optional)</label><textarea id="rcomment-' + cid + '" rows="3" placeholder="Share your experience…"></textarea></div>' +
+            '<button class="btn-submit-review" id="rsub-' + cid + '" data-company-id="' + cid + '">Submit Review</button>' +
+            '<div class="review-form-msg" id="rmsg-' + cid + '"></div>' +
+          '</div>' +
+        '</div>' +
+        /* connect panel */
+        '<div class="connect-panel" id="panel-' + cid + '">' +
+          '<h3>Connect with ' + esc(company.name) + '</h3>' +
+          '<div class="form-error" id="err-' + cid + '"></div>' +
+          '<div class="form-row">' +
+            '<div class="form-field"><label>Full Name *</label><input type="text" id="name-' + cid + '" placeholder="Jane Smith" autocomplete="name" /></div>' +
+            '<div class="form-field"><label>Phone *</label><input type="tel" id="phone-' + cid + '" placeholder="(555) 123-4567" autocomplete="tel" /></div>' +
+          '</div>' +
+          '<div class="form-field"><label>Email *</label><input type="email" id="email-' + cid + '" placeholder="jane@email.com" autocomplete="email" /></div>' +
+          '<div class="form-field"><label>Briefly describe your situation (optional)</label><input type="text" id="notes-' + cid + '" placeholder="e.g. Collections, late payments, identity errors…" /></div>' +
+          '<div class="form-actions">' +
+            '<button class="btn-submit" id="sub-' + cid + '" data-company-id="' + cid + '">Send My Info</button>' +
+            '<button class="btn-cancel" data-close="' + cid + '">Cancel</button>' +
+          '</div>' +
+          '<div class="form-success" id="ok-' + cid + '" style="display:none;">' +
+            '<div class="check">✓</div>' +
+            '<strong>Request sent!</strong>' +
+            '<p>A specialist from ' + esc(company.name) + ' will reach out to you shortly via phone or email.</p>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    var reviewsCache = {};
+
+    function renderReviewItem(r) {
+      var date = r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+      return '<div class="review-item">' +
+        '<div class="review-meta">' +
+          '<span class="review-name">' + esc(r.reviewerName || 'Anonymous') + '</span>' +
+          '<span>' + renderStars(r.rating) + '</span>' +
+          '<span class="review-date">' + esc(date) + '</span>' +
+        '</div>' +
+        (r.comment ? '<div class="review-comment">' + esc(r.comment) + '</div>' : '') +
+      '</div>';
+    }
+
+    async function loadReviews(companyId) {
+      if (reviewsCache[companyId]) return reviewsCache[companyId];
+      var res = await fetch('/api/public/reviews/' + encodeURIComponent(companyId), { cache: 'no-store' });
+      var data = await res.json();
+      reviewsCache[companyId] = data.reviews || [];
+      return reviewsCache[companyId];
+    }
+
+    function wireStars(companyId) {
+      var container = document.getElementById('stars-' + companyId);
+      if (!container) return;
+      var selected = 0;
+      container.querySelectorAll('span').forEach(function(star) {
+        star.addEventListener('mouseover', function() {
+          var v = parseInt(star.getAttribute('data-v'));
+          container.querySelectorAll('span').forEach(function(s) {
+            s.classList.toggle('on', parseInt(s.getAttribute('data-v')) <= v);
+          });
+        });
+        star.addEventListener('mouseleave', function() {
+          container.querySelectorAll('span').forEach(function(s) {
+            s.classList.toggle('on', parseInt(s.getAttribute('data-v')) <= selected);
+          });
+        });
+        star.addEventListener('click', function() {
+          selected = parseInt(star.getAttribute('data-v'));
+          container.querySelectorAll('span').forEach(function(s) {
+            s.classList.toggle('on', parseInt(s.getAttribute('data-v')) <= selected);
+          });
+          container.dataset.rating = selected;
+        });
+      });
+    }
+
+    async function wireReviewForm(companyId) {
+      var subBtn = document.getElementById('rsub-' + companyId);
+      var msgEl = document.getElementById('rmsg-' + companyId);
+      if (!subBtn) return;
+      subBtn.addEventListener('click', async function() {
+        var starsEl = document.getElementById('stars-' + companyId);
+        var rating = parseInt(starsEl?.dataset.rating || '0');
+        var name = (document.getElementById('rname-' + companyId)?.value || '').trim();
+        var comment = (document.getElementById('rcomment-' + companyId)?.value || '').trim();
+        if (!rating) { msgEl.textContent = 'Please select a star rating.'; msgEl.style.color = '#ef4444'; return; }
+        if (!name) { msgEl.textContent = 'Please enter your name.'; msgEl.style.color = '#ef4444'; return; }
+        subBtn.disabled = true; subBtn.textContent = 'Submitting…';
+        try {
+          var res = await fetch('/api/public/reviews', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ companyId: companyId, reviewerName: name, rating: rating, comment: comment })
+          });
+          var data = await res.json();
+          if (!data.ok) { msgEl.textContent = data.error || 'Could not submit. Try again.'; msgEl.style.color = '#ef4444'; subBtn.disabled = false; subBtn.textContent = 'Submit Review'; return; }
+          /* success — append new review and hide form */
+          delete reviewsCache[companyId];
+          var rlEl = document.getElementById('rl-' + companyId);
+          if (rlEl) {
+            var newItem = document.createElement('div');
+            newItem.innerHTML = renderReviewItem(data.review);
+            rlEl.insertBefore(newItem.firstChild, rlEl.firstChild);
+          }
+          var rfEl = document.getElementById('rf-' + companyId);
+          if (rfEl) rfEl.innerHTML = '<div style="font-size:13px;color:#10b981;text-align:center;padding:8px 0;">✓ Thank you for your review!</div>';
+        } catch (e) {
+          msgEl.textContent = 'Network error. Please try again.'; msgEl.style.color = '#ef4444';
+          subBtn.disabled = false; subBtn.textContent = 'Submit Review';
+        }
+      });
+    }
+
+    function wireCard(companyId) {
+      var connectBtn = document.querySelector('[data-company-id="' + companyId + '"].btn-connect');
+      var panel = document.getElementById('panel-' + companyId);
+      var submitBtn = document.getElementById('sub-' + companyId);
+      var cancelBtn = document.querySelector('[data-close="' + companyId + '"]');
+      var errEl = document.getElementById('err-' + companyId);
+      var okEl = document.getElementById('ok-' + companyId);
+
+      /* reviews toggle */
+      var reviewsToggle = document.querySelector('[data-reviews-toggle="' + companyId + '"]');
+      var reviewsPanel = document.getElementById('rp-' + companyId);
+      var reviewsList = document.getElementById('rl-' + companyId);
+      var reviewsLoaded = false;
+      if (reviewsToggle && reviewsPanel) {
+        reviewsToggle.addEventListener('click', async function() {
+          var isOpen = reviewsPanel.classList.toggle('open');
+          reviewsToggle.textContent = isOpen ? 'Reviews ▴' : 'Reviews ▾';
+          if (isOpen && !reviewsLoaded) {
+            reviewsLoaded = true;
+            try {
+              var reviews = await loadReviews(companyId);
+              if (!reviews.length) {
+                reviewsList.innerHTML = '<div class="reviews-empty">No reviews yet. Be the first!</div>';
+              } else {
+                reviewsList.innerHTML = reviews.map(renderReviewItem).join('');
+              }
+            } catch (e) {
+              reviewsList.innerHTML = '<div class="reviews-empty">Could not load reviews.</div>';
+            }
+          }
+        });
+      }
+      wireStars(companyId);
+      wireReviewForm(companyId);
+
+      if (connectBtn) {
+        connectBtn.addEventListener('click', function() {
+          document.querySelectorAll('.connect-panel.open').forEach(function(p) {
+            if (p !== panel) p.classList.remove('open');
+          });
+          panel.classList.toggle('open');
+          if (panel.classList.contains('open')) {
+            setTimeout(function() { document.getElementById('name-' + companyId)?.focus(); }, 80);
+          }
+        });
+      }
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() { panel.classList.remove('open'); });
+      }
+
+      if (submitBtn) {
+        submitBtn.addEventListener('click', async function() {
+          var name = (document.getElementById('name-' + companyId)?.value || '').trim();
+          var phone = (document.getElementById('phone-' + companyId)?.value || '').trim();
+          var email = (document.getElementById('email-' + companyId)?.value || '').trim();
+          var notes = (document.getElementById('notes-' + companyId)?.value || '').trim();
+
+          errEl.style.display = 'none';
+
+          if (!name || !phone || !email) {
+            errEl.textContent = 'Please fill in your name, phone, and email.';
+            errEl.style.display = 'block';
+            return;
+          }
+          if (!/\S+@\S+\.\S+/.test(email)) {
+            errEl.textContent = 'Please enter a valid email address.';
+            errEl.style.display = 'block';
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Sending…';
+
+          try {
+            var res = await fetch('/api/public/leads', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: name, phone: phone, email: email, notes: notes, companyId: companyId })
+            });
+            var data = await res.json();
+            if (!data.ok) {
+              errEl.textContent = data.error || 'Something went wrong. Please try again.';
+              errEl.style.display = 'block';
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Send My Info';
+              return;
+            }
+            panel.querySelector('.form-row')?.remove();
+            panel.querySelectorAll('.form-field').forEach(function(f) { f.remove(); });
+            panel.querySelector('.form-actions')?.remove();
+            panel.querySelector('.form-error')?.remove();
+            okEl.style.display = 'block';
+          } catch (e) {
+            errEl.textContent = 'Network error. Please check your connection and try again.';
+            errEl.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send My Info';
+          }
+        });
+      }
+    }
+
+    async function load() {
+      var listEl = document.getElementById('cardList');
+      var labelEl = document.getElementById('listLabel');
+      try {
+        var res = await fetch('/api/public/credit-companies', { cache: 'no-store' });
+        var data = await res.json();
+        var companies = (data.companies || []);
+
+        if (!companies.length) {
+          labelEl.textContent = '';
+          listEl.innerHTML =
+            '<div class="state-box"><div class="icon">🔍</div>' +
+            '<p>No specialists are listed yet.<br>Check back soon or reach out to us directly.</p></div>' +
+            '<div class="cta-box">' +
+            '<p>In the meantime, our DIY credit repair tools let you start improving your score today — no specialist needed.</p>' +
+            '<a href="/diy/signup">Try DIY Mode Free</a>' +
+            '</div>';
+          return;
+        }
+
+        labelEl.textContent = companies.length + ' Verified Specialist' + (companies.length !== 1 ? 's' : '') + ' Available';
+        listEl.innerHTML = companies.map(function(c, i) { return renderCard(c, i); }).join('');
+        companies.forEach(function(c) { wireCard(c.companyId); });
+
+      } catch (e) {
+        labelEl.textContent = '';
+        listEl.innerHTML =
+          '<div class="state-box"><div class="icon">⚠️</div>' +
+          '<p>Unable to load specialists right now.<br>Please try again in a moment.</p></div>';
+      }
+    }
+
+    load();
+  })();
+  </script>
+
+</body>
+</html>

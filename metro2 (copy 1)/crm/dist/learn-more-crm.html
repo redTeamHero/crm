@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CRM Pro Mode - Evolv</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#7C3AED" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    html { scroll-behavior: smooth; }
+    .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #4c1d95 100%); position: relative; overflow-x: hidden; }
+    .gradient-bg::before { content: ''; position: absolute; top: -50%; right: -30%; width: 80%; height: 150%; background: radial-gradient(ellipse, rgba(139,92,246,0.15) 0%, transparent 70%); pointer-events: none; }
+    .section-dark { background: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%); }
+    .feature-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  </style>
+</head>
+<body class="gradient-bg text-white min-h-screen">
+
+  <nav class="sticky top-0 z-50 backdrop-blur-lg border-b border-white/10" style="background:rgba(15,23,42,0.85);">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/welcome.html" class="flex items-center gap-2 text-white font-bold text-lg hover:opacity-80 transition-opacity">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        Evolv
+      </a>
+      <a href="/crm" class="py-2 px-5 rounded-lg text-sm font-semibold transition-all" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;">
+        Get Started
+      </a>
+    </div>
+  </nav>
+
+  <section class="py-20 px-4">
+    <div class="max-w-4xl mx-auto text-center">
+      <span class="inline-block mb-4 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase" style="background:rgba(139,92,246,0.15);color:#c4b5fd;border:1px solid rgba(139,92,246,0.3);">
+        CRM Pro Mode
+      </span>
+      <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
+        The Complete Platform for
+        <span class="bg-gradient-to-r from-violet-400 to-purple-300 bg-clip-text text-transparent">Credit Repair Professionals</span>
+      </h1>
+      <p class="text-lg text-violet-200 max-w-2xl mx-auto leading-relaxed">
+        Evolv CRM gives credit repair companies everything they need to manage clients, automate disputes, and scale their business. Multi-tenant architecture, AI-powered auditing, and a white-label client portal, all in one platform.
+      </p>
+    </div>
+  </section>
+
+  <section class="py-16 px-4 section-dark">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-center mb-4">Platform Features</h2>
+      <p class="text-violet-300 text-center mb-12 max-w-2xl mx-auto">Everything a credit repair agency needs to operate efficiently and grow.</p>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(139,92,246,0.15);">
+            <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Client Management</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Keep every client organized in one place — their reports, disputes, notes, progress, and communication history. Full CRM built for credit repair.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Metro-2 AI Auditing</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Run the same AI audit engine across all your clients automatically. Catches every reporting violation creditors use to hurt credit scores.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(59,130,246,0.15);">
+            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Bulk Dispute Automation</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Send disputes for multiple clients at once instead of one by one. Hours of manual work done in minutes. Built for agencies that scale.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(245,158,11,0.15);">
+            <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Dispute Letter Engine</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Generate customized, professional dispute letters for each client's specific situation. Ready to send, with the right language for each violation.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(236,72,153,0.15);">
+            <svg class="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">White-Label Client Portal</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Your clients get their own private login — under your brand — where they see progress, upload documents, and stay informed without calling you.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(239,68,68,0.15);">
+            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Certified Mail</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Send dispute letters via certified mail directly from the platform. Full tracking and delivery confirmation — no post office runs.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(139,92,246,0.15);">
+            <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">IntelliFeats Dispute Tracking</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Monitor every open dispute across all clients in one view — what was sent, when, to which bureau, and what the outcome was.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(34,211,238,0.15);">
+            <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Team Members</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Add staff with role-based access. Everyone works from the same system — no information gets siloed, no client falls through the cracks.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(245,158,11,0.15);">
+            <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Invoicing &amp; Billing</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Send professional invoices, accept payments via Stripe, and track revenue — all inside Evolv. No third-party billing tools needed.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Lead Management</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Capture, track, and follow up with potential clients. See who's interested and never let a lead go cold without a touchpoint.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(212,168,83,0.15);">
+            <svg class="w-6 h-6" style="color:#d4a853;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Revenue Ladder</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">A built-in business roadmap showing exactly how to grow from your first client to a 7-figure credit repair business — with real KPIs and milestones.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(139,92,246,0.15);">
+            <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Live Dashboard &amp; KPIs</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">At a glance: how many clients, your conversion rate, monthly revenue, and active disputes. Everything you need to run the business in one screen.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(59,130,246,0.15);">
+            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Pipeline Pulse</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">A live feed of what's happening across your business: messages, upcoming events, and client activity — all in one spot so nothing gets missed.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Client Map</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">See a geographic breakdown of where your clients are located — by state or city — to guide marketing decisions and understand your reach.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(59,130,246,0.15);">
+            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Facebook Manager</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Manage your Facebook business page, respond to comments, run lead ads, and generate AI social posts — without leaving the Evolv dashboard.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(212,168,83,0.15);">
+            <svg class="w-6 h-6" style="color:#d4a853;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Playbooks</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Step-by-step business playbooks built into the platform — so you always know the best move to make next at each stage of growth.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(139,92,246,0.15);">
+            <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Automated Workflows</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Set up automations so routine tasks happen on their own — follow-up emails, dispute scheduling, billing reminders. Set it once, let it run.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Scheduling</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Book and manage client consultations inside the platform. Google Calendar sync keeps your team's schedule in one place.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(245,158,11,0.15);">
+            <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Marketing Tools</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">SMS and email campaigns, drip sequences, and AI-generated social posts. Attract new clients and stay top of mind with existing ones.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Affiliate Program</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Earn commissions by referring other credit repair professionals to Evolv. Your team and clients can also earn by referring new signups.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(59,130,246,0.15);">
+            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Reports</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Detailed reports on disputes, revenue, client progress, and business performance. Export data and share results with clients or stakeholders.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(245,158,11,0.15);">
+            <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">CFPB Complaint Generator</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Generate and file consumer complaints on behalf of clients when bureaus fail to respond. Tracks submissions and outcomes automatically.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(239,68,68,0.15);">
+            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Data Breach Monitoring</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">HIBP-powered breach monitoring for all your clients. Alert them instantly and use breach data to strengthen dispute arguments.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl p-5 flex gap-4" style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.2);">
+          <div class="feature-icon" style="background:rgba(16,185,129,0.15);">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm mb-1">Tradeline Marketplace</h3>
+            <p class="text-xs text-violet-300 leading-relaxed">Integrated marketplace for authorized user tradelines. Help clients build credit history faster with curated, high-quality primary tradelines.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 px-4">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-center mb-4">What Your Clients See</h2>
+      <p class="text-violet-300 text-center mb-12 max-w-2xl mx-auto">Every client gets their own branded portal with everything they need to stay informed and engaged.</p>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="rounded-xl p-4 flex items-center gap-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          <span class="text-sm text-violet-200">Credit scores across all 3 bureaus</span>
+        </div>
+        <div class="rounded-xl p-4 flex items-center gap-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span class="text-sm text-violet-200">Negative items & dispute status</span>
+        </div>
+        <div class="rounded-xl p-4 flex items-center gap-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+          <span class="text-sm text-violet-200">Direct messaging with your team</span>
+        </div>
+        <div class="rounded-xl p-4 flex items-center gap-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          <span class="text-sm text-violet-200">Credit Education Academy</span>
+        </div>
+        <div class="rounded-xl p-4 flex items-center gap-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <span class="text-sm text-violet-200">Document uploads & management</span>
+        </div>
+        <div class="rounded-xl p-4 flex items-center gap-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          <span class="text-sm text-violet-200">Invoice payments & billing</span>
+        </div>
+        <div class="rounded-xl p-4 flex items-center gap-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <span class="text-sm text-violet-200">Mail tracking & certified mail</span>
+        </div>
+        <div class="rounded-xl p-4 flex items-center gap-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <svg class="w-5 h-5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <span class="text-sm text-violet-200">Appointment booking</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 px-4 section-dark">
+    <div class="max-w-5xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold text-center mb-12">CRM Plans</h2>
+      <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div class="rounded-2xl p-6" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <h3 class="text-lg font-semibold text-white mb-1">Starter</h3>
+          <p class="text-violet-300 text-xs mb-3">For solo practitioners</p>
+          <p class="text-3xl font-bold text-white mb-4">$99.99<span class="text-base font-normal text-violet-300">/mo</span></p>
+          <ul class="text-sm text-violet-200 space-y-2 mb-6">
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Up to 25 clients</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> AI-powered audits</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 100 dispute letters/month</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Basic client portal</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Beginner Credit Academy</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Email support</li>
+          </ul>
+          <a href="/crm" class="block text-center py-2.5 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium text-sm">Get Started</a>
+        </div>
+
+        <div class="rounded-2xl p-6 relative" style="background:rgba(255,255,255,0.06);border:2px solid rgba(139,92,246,0.4);">
+          <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-violet-500 text-white text-xs font-semibold px-3 py-1 rounded-full">Best Value</span>
+          <h3 class="text-lg font-semibold text-white mb-1">Business</h3>
+          <p class="text-violet-300 text-xs mb-3">For growing agencies</p>
+          <p class="text-3xl font-bold text-white mb-4">$99.99<span class="text-base font-normal text-violet-300">/mo</span></p>
+          <ul class="text-sm text-violet-200 space-y-2 mb-6">
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Up to 100 clients</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 3 team members</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Unlimited dispute letters</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> White-label portal</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Full Credit Academy</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Tradeline Marketplace</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> IntelliFeats & Certified Mail</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Data breach monitoring</li>
+          </ul>
+          <a href="/crm" class="block text-center py-2.5 rounded-xl bg-violet-500 hover:bg-violet-600 text-white transition-colors font-medium text-sm">Start Business</a>
+        </div>
+
+        <div class="rounded-2xl p-6" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+          <h3 class="text-lg font-semibold text-white mb-1">Enterprise</h3>
+          <p class="text-violet-300 text-xs mb-3">For large operations</p>
+          <p class="text-3xl font-bold text-white mb-4">$499.99<span class="text-base font-normal text-violet-300">/mo</span></p>
+          <ul class="text-sm text-violet-200 space-y-2 mb-6">
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Everything in Business</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Unlimited clients & team</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> API access</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Priority processing</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Custom branding & domain</li>
+            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Higher affiliate commissions</li>
+          </ul>
+          <a href="/crm" class="block text-center py-2.5 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium text-sm">Contact Sales</a>
+        </div>
+      </div>
+
+      <div class="mt-8 rounded-2xl p-6 text-center max-w-4xl mx-auto" style="background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(212,168,83,0.12)); border: 1px solid rgba(139,92,246,0.2);">
+        <div class="flex items-center justify-center gap-3 mb-2">
+          <svg class="w-6 h-6 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <h4 class="text-lg font-semibold text-white">Expert Setup</h4>
+          <span class="bg-violet-500/20 text-violet-300 text-xs font-semibold px-3 py-1 rounded-full">One-time $299</span>
+        </div>
+        <p class="text-violet-300 text-sm">Need hands-on help? Our team handles your full technical setup, portal customization, integrations, and a live onboarding walkthrough.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 px-4 text-center">
+    <div class="max-w-2xl mx-auto">
+      <h2 class="text-2xl md:text-3xl font-bold mb-4">Ready to Scale Your Credit Repair Business?</h2>
+      <p class="text-violet-300 mb-8">Join credit repair professionals who use Evolv to serve more clients, automate more work, and grow faster.</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="/crm" class="py-3 px-8 rounded-xl font-semibold transition-all text-sm" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;">
+          Get Started Now
+        </a>
+        <a href="/welcome.html#pricing" class="py-3 px-8 rounded-xl border border-violet-500/30 text-violet-300 hover:bg-violet-500/10 transition-colors font-medium text-sm">
+          Back to Pricing
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="border-t border-white/10 py-8 px-4 text-center">
+    <p class="text-xs text-violet-400">&copy; 2026 Evolv. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
