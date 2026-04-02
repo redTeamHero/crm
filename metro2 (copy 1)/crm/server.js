@@ -2028,7 +2028,13 @@ if (process.env.NODE_ENV === 'development') {
       server: { middlewareMode: true },
       appType: 'mpa',
     });
-    app.use(vite.middlewares);
+    // Skip Vite for /api/* so Express route handlers are not pre-empted by
+    // Vite's MPA 404 fallback (which intercepts all unmatched routes including
+    // POST requests before Express can process them).
+    app.use((req, res, next) => {
+      if (req.path.startsWith('/api/')) return next();
+      vite.middlewares(req, res, next);
+    });
     logInfo('VITE_MIDDLEWARE', 'Vite dev middleware active (HMR + TypeScript)');
   } catch (viteErr) {
     logWarn('VITE_MIDDLEWARE_FAILED', 'Vite middleware could not start; falling back to static', { error: String(viteErr) });
