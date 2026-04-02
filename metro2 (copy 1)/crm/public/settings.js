@@ -831,7 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
     { group: 'Follow-up: Verified',           key: 'next:verified_method',           label: 'Verified — method of verification (round 2 default)',  defaultTemplate: 'method-of-verification' },
     { group: 'Follow-up: Verified',           key: 'next:verified_metro2_r3',        label: 'Verified — Metro 2 deletion demand (round 3+)',        defaultTemplate: 'metro2-deletion-demand' },
     { group: 'Follow-up: Verified',           key: 'next:verified_r3',               label: 'Verified — escalation (strong evidence, round 3+)',    defaultTemplate: 'ag-cfpb-escalation' },
-    { group: 'Follow-up: Verified',           key: 'next:verified_collection_r2',    label: 'Verified — collection furnisher dispute (round 2+)',   defaultTemplate: '623-direct-dispute' },
+    { group: 'Follow-up: Verified',           key: 'next:verified_collection_r2',    label: 'Verified — collection (method of verification, round 2+)', defaultTemplate: 'method-of-verification' },
     { group: 'Follow-up: Verified',           key: 'next:verified_collection',       label: 'Verified — collection default',                        defaultTemplate: '623-direct-dispute' },
     { group: 'Follow-up: Verified',           key: 'next:verified_factual',          label: 'Verified — factual errors (evidence layer)',           defaultTemplate: 'factual-errors-layer' },
     { group: 'Follow-up: Verified',           key: 'next:verified_metro2',           label: 'Verified — Metro 2 (method of verification)',          defaultTemplate: 'method-of-verification' },

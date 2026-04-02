@@ -85,7 +85,7 @@ export const INTELLISENSE_SCENARIOS = [
   { group: 'Follow-up: Verified',           key: 'next:verified_method',           label: 'Verified — method of verification (round 2 default)',  defaultTemplate: 'method-of-verification' },
   { group: 'Follow-up: Verified',           key: 'next:verified_metro2_r3',        label: 'Verified — Metro 2 deletion demand (round 3+)',        defaultTemplate: 'metro2-deletion-demand' },
   { group: 'Follow-up: Verified',           key: 'next:verified_r3',               label: 'Verified — escalation (strong evidence, round 3+)',    defaultTemplate: 'ag-cfpb-escalation' },
-  { group: 'Follow-up: Verified',           key: 'next:verified_collection_r2',    label: 'Verified — collection furnisher dispute (round 2+)',   defaultTemplate: '623-direct-dispute' },
+  { group: 'Follow-up: Verified',           key: 'next:verified_collection_r2',    label: 'Verified — collection (method of verification, round 2+)', defaultTemplate: 'method-of-verification' },
   { group: 'Follow-up: Verified',           key: 'next:verified_collection',       label: 'Verified — collection default',                        defaultTemplate: '623-direct-dispute' },
   { group: 'Follow-up: Verified',           key: 'next:verified_factual',          label: 'Verified — factual errors (evidence layer)',           defaultTemplate: 'factual-errors-layer' },
   { group: 'Follow-up: Verified',           key: 'next:verified_metro2',           label: 'Verified — Metro 2 (method of verification)',          defaultTemplate: 'method-of-verification' },
@@ -103,7 +103,7 @@ export const INTELLISENSE_SCENARIOS = [
   { group: 'Follow-up: Other Outcomes',     key: 'next:r3_metro2',                 label: 'Round 3+ — Metro 2 deletion demand',                   defaultTemplate: 'metro2-deletion-demand' },
   { group: 'Follow-up: Other Outcomes',     key: 'next:r3_default',               label: 'Round 3+ — escalation (evidence-based)',               defaultTemplate: 'ag-cfpb-escalation' },
   { group: 'Follow-up: Other Outcomes',     key: 'next:collection_time_barred_r2', label: 'Collection — time-barred round 2+',                    defaultTemplate: 'fdcpa-time-barred' },
-  { group: 'Follow-up: Other Outcomes',     key: 'next:collection_r2_pfd',         label: 'Collection — round 2+ (PFD, weak evidence only)',      defaultTemplate: 'pay-for-delete' },
+  { group: 'Follow-up: Other Outcomes',     key: 'next:collection_r2_pfd',         label: 'Collection — round 2+ (method of verification)',       defaultTemplate: 'method-of-verification' },
   { group: 'Follow-up: Other Outcomes',     key: 'next:pfd_last_resort',           label: 'PFD — last resort (evidence exhausted, debt likely valid)', defaultTemplate: 'pay-for-delete' },
   { group: 'Follow-up: Other Outcomes',     key: 'next:collection_default',        label: 'Collection — default follow-up',                       defaultTemplate: 'debt-validation' },
   { group: 'Follow-up: Other Outcomes',     key: 'next:default',                   label: 'Default follow-up',                                    defaultTemplate: 'method-of-verification' },
@@ -177,6 +177,12 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
   const hasLatePaymentOnly = hasLatePaymentSignal
     && !isCollection && !isChargeOff;
 
+  // Composite evidence strength signals (used for routing and gating)
+  const hasStrongEvidence = hasFactualMismatch || hasMetro2 || hasObsolete
+    || hasReinsertion || hasIdentityTheft
+    || hasViolationType(violations, ['bankrupt', 'discharge', 'fraud']);
+  const hasWeakEvidence = !hasStrongEvidence;
+
   // ── Decision tree: specialty fast-paths first ─────────────────────────
 
   // 1. Identity theft — FCRA §1681c-2 block workflow takes highest priority
@@ -242,7 +248,9 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
   // ── Factual / evidence-based routes ──────────────────────────────────
 
   // 6. Factual mismatch (date / balance / status / duplicate) — precision dispute
-  if (hasFactualMismatch) {
+  //    Excluded from late-payment-only accounts, which have their own fork below
+  //    so that first:late_payment_inaccurate is reachable as a distinct configurable scenario
+  if (hasFactualMismatch && !hasLatePaymentOnly) {
     return applyOverride({
       scenarioKey: 'first:factual_mismatch',
       recommendedTemplate: 'factual-errors-layer',
@@ -383,6 +391,16 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
 
   // ── Evidence signals ──────────────────────────────────────────────────
   const isCollection = type.includes('collection') || type.includes('debt') || status.includes('collection');
+
+  const isChargeOff = status.includes('charge-off') || status.includes('charge off') || status.includes('chargeoff')
+    || type.includes('charge-off') || type.includes('chargeoff')
+    || hasViolationType(violations, ['charge-off', 'charge off', 'charged off', 'chargeoff', 'written off']);
+
+  const hasIdentityTheft = hasViolationType(violations, [
+    'identity theft', 'identity fraud', 'mixed file', 'not mine', 'wrong person',
+    'fraud alert', 'block requested', '1681c-2', 'fcra 605b', 'wrong personal',
+    'name mismatch', 'address mismatch', 'ssn mismatch', 'social security mismatch',
+  ]) || type.includes('identity') || status.includes('fraud') || status.includes('mixed file');
 
   const isMedical = type.includes('medical') || type.includes('health') || type.includes('hospital')
     || status.includes('medical') || status.includes('health')
@@ -667,15 +685,16 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['method-of-verification', '623-direct-dispute'],
       }, overrides);
     }
-    // Round 2+ collection: furnisher dispute instead of PFD (PFD moved to last resort)
+    // Round 2+ collection: method-of-verification is the default for ALL account types
+    // (per FCRA §1681i(a)(7)); tenant overrides on next:verified_collection_r2 still apply
     if (isCollection && round >= 2) {
       return applyOverride({
         scenarioKey: 'next:verified_collection_r2',
-        recommendedTemplate: '623-direct-dispute',
-        reason: 'Collection verified — dispute directly with furnisher under FCRA §623; do not offer settlement before investigation pressure is exhausted',
+        recommendedTemplate: 'method-of-verification',
+        reason: 'Collection verified — demand method of verification under FCRA §1681i(a)(7); investigation pressure precedes any settlement consideration',
         urgency: 'medium',
         letterTarget: 'bureau',
-        alternativeTemplates: ['method-of-verification', 'factual-errors-layer'],
+        alternativeTemplates: ['623-direct-dispute', 'factual-errors-layer'],
       }, overrides);
     }
     // Collection (round 1 or general): furnisher dispute
