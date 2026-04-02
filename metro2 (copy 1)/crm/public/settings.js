@@ -968,6 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sel.addEventListener('change', () => {
         const groupEl = sel.closest('.is-group');
         if (groupEl) _updateGroupBadge(groupEl);
+        applyIntelliSenseFilter();
       });
     });
   }
