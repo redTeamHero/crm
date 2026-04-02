@@ -1982,6 +1982,24 @@ app.use('/assets/phoenix', (req, res, next) => {
   next();
 });
 
+// In development: use Vite middleware for HMR and TypeScript support.
+// Vite intercepts JS/TS/HTML requests; express.static below remains as
+// fallback for assets Vite doesn't handle (PDFs, images, etc.).
+if (process.env.NODE_ENV === 'development') {
+  try {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      configFile: path.join(__dirname, 'vite.config.ts'),
+      server: { middlewareMode: true },
+      appType: 'mpa',
+    });
+    app.use(vite.middlewares);
+    logInfo('VITE_MIDDLEWARE', 'Vite dev middleware active (HMR + TypeScript)');
+  } catch (viteErr) {
+    logWarn('VITE_MIDDLEWARE_FAILED', 'Vite middleware could not start; falling back to static', { error: String(viteErr) });
+  }
+}
+
 // Disable default index to avoid auto-serving the app without auth
 app.use(express.static(PUBLIC_DIR, {
   index: false,

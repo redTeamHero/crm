@@ -1,4 +1,14 @@
 /* public/common.js */
+// @ts-nocheck
+
+/**
+ * @typedef {{ Authorization: string }} AuthHeader
+ *
+ * @template T
+ * @typedef {{ status: number; ok: boolean; error?: string } & T} ApiResponse
+ *
+ * @typedef {{ id: string; name?: string; email?: string; role?: string }} TeamMember
+ */
 
 // Escape HTML entities for safe DOM insertion
 export function escapeHtml(s) {
@@ -1106,6 +1116,10 @@ function initPalette(){
   }
 }
 
+/**
+ * Returns the Authorization header object for use in fetch calls.
+ * @returns {Record<string, string>}
+ */
 export function authHeader(){
   const token = localStorage.getItem('token');
   if(token) return { Authorization: 'Bearer '+token };
@@ -1114,6 +1128,14 @@ export function authHeader(){
   return {};
 }
 
+/**
+ * Authenticated JSON fetch wrapper. Returns the parsed JSON merged with
+ * `{ status, ok }`. Never throws — network/timeout errors surface as
+ * `{ ok: false, status: 0, error: string }`.
+ * @param {string} url
+ * @param {RequestInit & { _timeout?: number }} [options]
+ * @returns {Promise<Record<string, unknown> & { status: number; ok: boolean }>}
+ */
 export async function api(url, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
