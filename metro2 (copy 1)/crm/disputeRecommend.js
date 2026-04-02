@@ -447,11 +447,22 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   const prevIsPFD = prev.includes('pay-for-delete') || hasPFDContext;
 
   // Strong evidence = there is a documented inaccuracy that justifies escalation
+  // hasIdentityTheft replaces a raw string match; included because identity theft
+  // disputes require a documented block path and are inherently high-priority
   const hasStrongEvidence = hasFactualErrors || hasMetro2Issues || hasObsolete || hasDuplicateReporting
-    || hasViolationType(violations, ['reinsert', 'identity theft', 'fraud', 'bankrupt']);
+    || hasIdentityTheft
+    || hasViolationType(violations, ['reinsert', 'fraud', 'bankrupt']);
 
-  // Weak evidence = no strong signals — settlement/PFD may be appropriate
+  // Weak evidence = no strong inaccuracy signals; PFD/settlement may be appropriate
   const hasWeakEvidence = !hasStrongEvidence;
+
+  // Prior detailed dispute failed = at least one substantive letter has been sent and
+  // received no resolution, or multiple rounds have elapsed.
+  // This gates escalation so regulatory complaints are not sent prematurely.
+  const priorDetailedDisputeFailed = round >= 2
+    || ['method-of-verification', 'factual-errors-layer', '623-direct-dispute',
+        'second-round-dispute', '611-general-dispute', 'metro2-inconsistency-dispute',
+        'metro2-deletion-demand', 'ag-cfpb-escalation'].some(t => prev.includes(t));
 
   // ── Absolute completion ───────────────────────────────────────────────
   if (result === 'removed' || result === 'deleted' || result === 'corrected') {
@@ -575,26 +586,40 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['debt-validation', 'obsolete-debt'],
       }, overrides);
     }
-    // Round 3+: evidence-based escalation only — not just because round count reached 3
-    if (round >= 3 && hasStrongEvidence) {
-      if (hasMetro2Issues) {
+    // Round 3+: resolve before the generic round>=2 collection catch-all so all paths
+    // (escalation AND pfd_last_resort) are reachable for collection accounts at round 3+
+    if (round >= 3) {
+      if (hasMetro2Issues && hasStrongEvidence && priorDetailedDisputeFailed) {
         return applyOverride({
           scenarioKey: 'next:no_response_metro2_r3',
           recommendedTemplate: 'metro2-deletion-demand',
-          reason: 'No response after multiple rounds with documented Metro 2 violations — demand deletion under FCRA §607(b) and §611',
+          reason: 'No response after documented Metro 2 disputes — demand deletion under FCRA §607(b); prior detailed dispute on file',
           urgency: 'high',
           letterTarget: 'bureau',
           alternativeTemplates: ['ag-cfpb-escalation', 'arbitration-election'],
         }, overrides);
       }
-      return applyOverride({
-        scenarioKey: 'next:no_response_r3',
-        recommendedTemplate: 'ag-cfpb-escalation',
-        reason: 'No response after multiple rounds of documented specific disputes — escalate with CFPB/AG complaint citing the documented failure',
-        urgency: 'high',
-        letterTarget: 'bureau',
-        alternativeTemplates: ['arbitration-election'],
-      }, overrides);
+      if (hasStrongEvidence && priorDetailedDisputeFailed) {
+        return applyOverride({
+          scenarioKey: 'next:no_response_r3',
+          recommendedTemplate: 'ag-cfpb-escalation',
+          reason: 'No response after documented specific disputes — escalate with CFPB/AG complaint; strong inaccuracy evidence + prior detailed dispute on file',
+          urgency: 'high',
+          letterTarget: 'bureau',
+          alternativeTemplates: ['arbitration-election'],
+        }, overrides);
+      }
+      // Weak evidence at round 3 — evidence path exhausted; PFD is last resort
+      if (isCollection && hasWeakEvidence) {
+        return applyOverride({
+          scenarioKey: 'next:pfd_last_resort',
+          recommendedTemplate: 'pay-for-delete',
+          reason: 'No response after multiple rounds with no strong inaccuracy evidence — offer pay-for-delete as last-resort resolution',
+          urgency: 'medium',
+          letterTarget: 'collector',
+          alternativeTemplates: ['goodwill-removal', '623-direct-dispute'],
+        }, overrides);
+      }
     }
     // Round 2 collection: method-of-verification before considering PFD
     if (isCollection && round >= 2) {
@@ -617,7 +642,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['second-round-dispute', 'method-of-verification'],
       }, overrides);
     }
-    // General no-response with evidence: method of verification
+    // General no-response with strong evidence: apply investigation pressure
     if (hasStrongEvidence) {
       return applyOverride({
         scenarioKey: 'next:no_response_method',
@@ -653,13 +678,13 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
 
   // ── Verified ──────────────────────────────────────────────────────────
   if (result === 'verified') {
-    // Round 3+: evidence-based escalation (not just because round 3 happened)
-    if (round >= 3 && hasStrongEvidence) {
+    // Round 3+: evidence-based escalation gated on strong evidence AND prior detailed dispute
+    if (round >= 3 && hasStrongEvidence && priorDetailedDisputeFailed) {
       if (hasMetro2Issues) {
         return applyOverride({
           scenarioKey: 'next:verified_metro2_r3',
           recommendedTemplate: 'metro2-deletion-demand',
-          reason: 'Verified multiple times despite documented Metro 2 violations — demand deletion under FCRA §607(b) and §611',
+          reason: 'Verified multiple times despite documented Metro 2 violations — demand deletion under FCRA §607(b); prior detailed dispute on file',
           urgency: 'high',
           letterTarget: 'bureau',
           alternativeTemplates: ['ag-cfpb-escalation', 'arbitration-election'],
@@ -668,18 +693,19 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
       return applyOverride({
         scenarioKey: 'next:verified_r3',
         recommendedTemplate: 'ag-cfpb-escalation',
-        reason: 'Item verified multiple times despite documented inaccuracies — escalate to CFPB/AG citing specific unremedied errors',
+        reason: 'Verified multiple times despite documented inaccuracies — escalate to CFPB/AG; strong evidence + prior detailed dispute both on file',
         urgency: 'high',
         letterTarget: 'bureau',
         alternativeTemplates: ['arbitration-election', '623-direct-dispute'],
       }, overrides);
     }
-    // Round 2+ with specific factual evidence — lead with evidence layer
-    if (hasFactualErrors && round >= 2) {
+    // Round 2+ with specific factual evidence OR charge-off account — lead with evidence layer
+    // isChargeOff accounts have frequently incorrect dates/balances even without explicit signals
+    if ((hasFactualErrors || isChargeOff) && round >= 2) {
       return applyOverride({
         scenarioKey: 'next:verified_factual',
         recommendedTemplate: 'factual-errors-layer',
-        reason: 'Verified despite documented factual errors — submit evidence layer to force substantive re-examination',
+        reason: 'Verified despite factual errors (or charge-off with contested reporting) — submit evidence layer to force substantive re-examination',
         urgency: 'medium',
         letterTarget: 'bureau',
         alternativeTemplates: ['method-of-verification', '623-direct-dispute'],
@@ -806,23 +832,23 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
     }, overrides);
   }
 
-  // ── Round 3+ fallback (evidence-based) ───────────────────────────────
+  // ── Round 3+ fallback (evidence-based + prior dispute gate) ─────────
   if (round >= 3) {
-    if (hasMetro2Issues) {
+    if (hasMetro2Issues && priorDetailedDisputeFailed) {
       return applyOverride({
         scenarioKey: 'next:r3_metro2',
         recommendedTemplate: 'metro2-deletion-demand',
-        reason: 'Multiple dispute rounds with ongoing Metro 2 violations — demand deletion under FCRA §607(b)',
+        reason: 'Multiple dispute rounds with ongoing Metro 2 violations — demand deletion under FCRA §607(b); prior detailed dispute on file',
         urgency: 'high',
         letterTarget: 'bureau',
         alternativeTemplates: ['ag-cfpb-escalation', 'arbitration-election'],
       }, overrides);
     }
-    if (hasStrongEvidence) {
+    if (hasStrongEvidence && priorDetailedDisputeFailed) {
       return applyOverride({
         scenarioKey: 'next:r3_default',
         recommendedTemplate: 'ag-cfpb-escalation',
-        reason: 'Multiple dispute rounds with documented unresolved inaccuracies — escalate with regulatory complaint citing specific failures',
+        reason: 'Multiple dispute rounds with documented unresolved inaccuracies — escalate with regulatory complaint; strong evidence + prior detailed dispute both on file',
         urgency: 'high',
         letterTarget: 'bureau',
         alternativeTemplates: ['arbitration-election'],
