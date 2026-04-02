@@ -186,21 +186,22 @@
               <p class="panel-subtitle">Report: <select id="reportPicker" class="input input-select text-sm"></select></p>
             </div>
             <div class="panel-actions chip-row">
-              <button id="btnToggleParseMode" class="chip" type="button" data-tip="Toggle LLM parsing">Parse: LLM</button>
-              <button id="btnUpload" class="chip" data-tip="Upload HTML (U)">Upload HTML</button>
-              <button id="btnUploadPdf" class="chip" data-tip="Upload PDF report">Upload PDF</button>
-              <button id="btnDataBreach" class="chip" data-tip="Databreach options">Databreach</button>
+              <button id="btnUpload" class="chip" data-tip="Upload HTML or PDF report (U)">Upload</button>
               <button id="btnAuditReport" class="chip" data-tip="Run audit on current report">Audit</button>
-              <button id="btnDeleteReport" class="chip" data-tip="Remove current report (click)">Remove Report</button>
-              <button id="breachStatus" class="chip" type="button">Breaches: —</button>
+              <button id="btnRunClientAudit" class="chip hidden" data-tip="Audit negative items and generate PDF for client portal">PDF Audit</button>
               <a id="activityPortalLink" class="chip hidden" href="#" target="_blank" data-tip="Open client portal">Client Portal</a>
               <button id="btnPortalInvite" class="chip hidden" data-tip="Generate portal login link for this client">Portal Invite Link</button>
-              <button id="btnRunClientAudit" class="chip hidden" data-tip="Audit negative items and generate PDF for client portal">PDF Audit</button>
               <input id="fileInput" type="file" accept=".html,.htm,.pdf,application/pdf,text/html" class="hidden" />
             </div>
           </div>
+        </article>
+
+        <article class="glass panel" id="messagesPanel">
+          <div class="panel-header">
+            <div class="panel-title">Messages</div>
+          </div>
           <div id="msgList" class="messages-list text-sm"></div>
-          <div style="display:flex;gap:6px;align-items:flex-end;">
+          <div style="display:flex;gap:6px;align-items:flex-end;padding-top:6px;">
             <textarea id="msgInput" class="input input-textarea text-sm" rows="2" placeholder="Type message..." style="flex:1;"></textarea>
             <button id="btnSendMsg" class="btn text-sm" style="flex-shrink:0;">Send</button>
           </div>
@@ -614,7 +615,7 @@
           <ul class="list-disc list-inside">
             <li><b>N</b> – New client</li>
             <li><b>L</b> – New lead intake</li>
-            <li><b>U</b> – Upload HTML</li>
+            <li><b>U</b> – Upload report (HTML or PDF)</li>
             <li><b>E</b> – Edit consumer</li>
             <li><b>G</b> – Generate letters</li>
             <li><b>C</b> – Clear (context-aware)</li>

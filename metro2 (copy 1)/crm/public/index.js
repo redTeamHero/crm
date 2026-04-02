@@ -95,27 +95,7 @@ let tlTotalPages = 1;
 let CURRENT_COLLECTORS = [];
 const collectorSelection = {};
 let trackerData = {};
-const PARSE_MODE_STORAGE_KEY = "reportParseMode";
-const parseModeButton = document.getElementById("btnToggleParseMode");
-const normalizeParseMode = (value) => (value === "legacy" ? "legacy" : "llm");
-let reportParseMode = normalizeParseMode(localStorage.getItem(PARSE_MODE_STORAGE_KEY));
-
-function updateParseModeButton() {
-  if (!parseModeButton) return;
-  const isLlm = reportParseMode === "llm";
-  parseModeButton.textContent = isLlm ? "Parse: LLM" : "Parse: Legacy";
-  parseModeButton.setAttribute("data-tip", isLlm ? "LLM parsing enabled" : "Legacy parsing enabled");
-  parseModeButton.setAttribute("aria-pressed", String(isLlm));
-}
-
-if (parseModeButton) {
-  updateParseModeButton();
-  parseModeButton.addEventListener("click", () => {
-    reportParseMode = reportParseMode === "llm" ? "legacy" : "llm";
-    localStorage.setItem(PARSE_MODE_STORAGE_KEY, reportParseMode);
-    updateParseModeButton();
-  });
-}
+const reportParseMode = "legacy";
 
 function buildIdempotencyKey(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -2582,36 +2562,20 @@ $("#tlEditForm").addEventListener("submit", async (e)=>{
 });
 
 // Upload report
-let lastUploadButton = null;
-function triggerReportUpload(btn){
+$("#btnUpload").addEventListener("click", ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
-  lastUploadButton = btn;
   $("#fileInput").value = "";
   $("#fileInput").click();
-}
-
-$("#btnUpload").addEventListener("click", ()=>{
-  triggerReportUpload($("#btnUpload"));
 });
 
-const uploadPdfButton = document.getElementById("btnUploadPdf");
-if (uploadPdfButton) {
-  uploadPdfButton.addEventListener("click", ()=>{
-    triggerReportUpload(uploadPdfButton);
-  });
-}
 $("#fileInput").addEventListener("change", async (e)=>{
   clearErr();
   const file = e.target.files?.[0];
   if(!file) return;
-  const btn = lastUploadButton || $("#btnUpload");
+  const btn = $("#btnUpload");
   const old = btn.textContent;
   btn.textContent = "Uploading…";
   btn.disabled = true;
-  const otherBtn = btn === $("#btnUpload") ? document.getElementById("btnUploadPdf") : $("#btnUpload");
-  if (otherBtn) {
-    otherBtn.disabled = true;
-  }
 
   try{
     const fd = new FormData();
@@ -2654,15 +2618,11 @@ $("#fileInput").addEventListener("change", async (e)=>{
   }finally{
     btn.textContent = old;
     btn.disabled = false;
-    if (otherBtn) {
-      otherBtn.disabled = false;
-    }
-    lastUploadButton = null;
   }
 });
 
-// Data breach lookup
-$("#btnDataBreach").addEventListener("click", async ()=>{
+// Data breach lookup (button removed from UI; listener kept harmless)
+$("#btnDataBreach")?.addEventListener("click", async ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
   try {
     const freshData = await api("/api/consumers");
@@ -2714,7 +2674,7 @@ $("#btnBreachLookup")?.addEventListener("click", ()=>{
   $("#btnDataBreach")?.click();
 });
 
-$("#breachStatus").addEventListener("click", ()=>{
+$("#breachStatus")?.addEventListener("click", ()=>{
   if(!currentConsumerId) return showErr("Select a consumer first.");
   const c = DB.find(x=>x.id===currentConsumerId);
   if (!c) return;
@@ -2894,7 +2854,7 @@ $("#btnRunClientAudit")?.addEventListener("click", async ()=>{
 });
 
 // Delete report
-$("#btnDeleteReport").addEventListener("click", async ()=>{
+$("#btnDeleteReport")?.addEventListener("click", async ()=>{
   if(!currentConsumerId || !currentReportId) return showErr("Select a report first.");
   if(!confirm("Delete this report?")) return;
   const res = await api(`/api/consumers/${currentConsumerId}/report/${currentReportId}`, { method:"DELETE" });
