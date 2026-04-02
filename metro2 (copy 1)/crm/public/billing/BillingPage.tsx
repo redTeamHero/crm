@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   useStripeSubscriptionStatus, useStripeProducts, useBillingPlans,
   useCreateBillingPlan, useUpdateBillingPlan, useSendPlanInvoice,
-  useStripePortal, type BillingPlan,
+  useStripeCheckout, useStripePortal, type BillingPlan,
 } from './hooks.ts';
 
 function formatCurrency(v: number) {
@@ -18,16 +18,30 @@ export function BillingPage() {
   const createPlanM = useCreateBillingPlan();
   const updatePlanM = useUpdateBillingPlan();
   const sendPlanM = useSendPlanInvoice();
+  const checkoutM = useStripeCheckout();
   const portalM = useStripePortal();
 
   const [planForm, setPlanForm] = useState<Partial<BillingPlan>>(EMPTY_PLAN);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState('');
+  const [successBanner, setSuccessBanner] = useState('');
 
   const plans = plansQ.data?.plans || [];
   const subStatus = subscQ.data as Record<string, unknown> | undefined;
   const products = (productsQ.data as { products?: unknown[] })?.products || [];
+  const isActive = subStatus?.status === 'active' || subStatus?.status === 'trialing';
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscription') === 'success') {
+      setSuccessBanner('Subscription activated! Your plan is now active.');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('subscription');
+      window.history.replaceState({}, '', url.toString());
+      setTimeout(() => setSuccessBanner(''), 8000);
+    }
+  }, []);
 
   const handleSavePlan = async () => {
     if (!planForm.name?.trim()) { setFormError('Add a plan name before saving.'); return; }
@@ -49,6 +63,29 @@ export function BillingPage() {
     setShowForm(true);
   };
 
+  const handleSubscribe = (priceId: unknown) => {
+    const pid = String(priceId || '');
+    if (!pid) return;
+    checkoutM.mutate(
+      { priceId: pid, mode: 'subscription', successUrl: `${window.location.href}?subscription=success`, cancelUrl: window.location.href },
+      {
+        onSuccess: (data) => {
+          const url = (data as { url?: string }).url;
+          if (url) window.location.href = url;
+        },
+      }
+    );
+  };
+
+  const handlePortal = () => {
+    portalM.mutate(undefined, {
+      onSuccess: (data) => {
+        const url = (data as { url?: string }).url;
+        if (url) window.open(url, '_blank');
+      },
+    });
+  };
+
   return (
     <div className="workspace px-4 pb-12">
       <div className="workspace-inner max-w-3xl mx-auto space-y-6">
@@ -61,55 +98,79 @@ export function BillingPage() {
           </div>
         </section>
 
-        <div className="glass card p-4">
+        {successBanner && (
+          <div className="p-4 rounded-xl" style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#6ee7b7', fontSize: 14, fontWeight: 500 }}>
+            ✓ {successBanner}
+          </div>
+        )}
+
+        <div className="glass card p-5">
           <h2 style={{ fontSize: 14, fontWeight: 600, color: '#d4a853', marginBottom: 16 }}>Your Evolv Subscription</h2>
           {subscQ.isLoading ? (
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Loading subscription status…</p>
-          ) : subStatus ? (
-            <div className="flex flex-wrap gap-4 items-center">
+          ) : isActive ? (
+            <div className="flex flex-wrap gap-6 items-center">
               <div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: subStatus.status === 'active' ? '#6ee7b7' : '#fbbf24' }}>
-                  {String(subStatus.status || 'Unknown')}
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                  {subStatus.planName ? String(subStatus.planName) : 'No active plan'}
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#6ee7b7' }}>Active</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                  {subStatus?.planName ? String(subStatus.planName) : 'Evolv CRM'}
+                  {subStatus?.currentPeriodEnd && ` • Renews ${new Date(subStatus.currentPeriodEnd as string).toLocaleDateString()}`}
                 </div>
               </div>
-              {subStatus.currentPeriodEnd && (
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                  Renews {new Date(subStatus.currentPeriodEnd as string).toLocaleDateString()}
-                </div>
-              )}
               <button
-                className="btn btn-outline ml-auto"
-                onClick={() => portalM.mutate(undefined, { onSuccess: (d) => { if ((d as { url?: string }).url) window.open((d as { url: string }).url, '_blank'); } })}
+                className="btn btn-outline"
+                onClick={handlePortal}
                 disabled={portalM.isPending}
+                style={{ marginLeft: 'auto' }}
               >
                 {portalM.isPending ? 'Opening…' : 'Manage Subscription'}
               </button>
             </div>
           ) : (
             <div>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginBottom: 12 }}>No subscription found.</p>
-              <div className="flex flex-wrap gap-3">
-                {products.map((prod: unknown, i: number) => {
-                  const p = prod as Record<string, unknown>;
-                  return (
-                    <div key={p.id as string || i} className="rounded-xl p-4" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.2)', minWidth: 180 }}>
-                      <div style={{ fontSize: 16, fontWeight: 600, color: '#e5e7eb' }}>{String(p.name || 'Plan')}</div>
-                      <div style={{ fontSize: 22, fontWeight: 700, color: '#d4a853', margin: '6px 0' }}>{String(p.price || '')}</div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>{String(p.description || '')}</div>
-                    </div>
-                  );
-                })}
+              <div className="flex items-center gap-3 mb-4">
+                <span style={{ fontSize: 16, fontWeight: 600, color: '#fbbf24' }}>
+                  {subStatus?.status ? String(subStatus.status) : 'No active subscription'}
+                </span>
+                {subStatus?.status && (
+                  <button className="btn btn-outline" style={{ fontSize: 12 }} onClick={handlePortal} disabled={portalM.isPending}>
+                    {portalM.isPending ? '…' : 'Customer Portal'}
+                  </button>
+                )}
               </div>
+              {productsQ.isLoading ? (
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Loading plans…</p>
+              ) : products.length === 0 ? (
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>No subscription plans available.</p>
+              ) : (
+                <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))' }}>
+                  {products.map((prod: unknown, i: number) => {
+                    const p = prod as Record<string, unknown>;
+                    return (
+                      <div key={p.id as string || i} className="rounded-xl p-5" style={{ background: 'rgba(212,168,83,0.06)', border: '1px solid rgba(212,168,83,0.2)' }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: '#e5e7eb', marginBottom: 4 }}>{String(p.name || 'Plan')}</div>
+                        <div style={{ fontSize: 26, fontWeight: 800, color: '#d4a853', margin: '8px 0' }}>{String(p.price || '')}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 16, lineHeight: 1.5 }}>{String(p.description || '')}</div>
+                        <button
+                          className="btn w-full"
+                          onClick={() => handleSubscribe(p.priceId || p.id)}
+                          disabled={checkoutM.isPending}
+                          style={{ justifyContent: 'center' }}
+                        >
+                          {checkoutM.isPending ? 'Redirecting…' : 'Subscribe'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        <div className="glass card p-4">
+        <div className="glass card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: '#d4a853' }}>Custom Billing Plans</h2>
+            <h2 style={{ fontSize: 14, fontWeight: 600, color: '#d4a853' }}>Custom Client Billing Plans</h2>
             <button className="btn" onClick={() => { setPlanForm(EMPTY_PLAN); setEditingId(null); setShowForm(!showForm); }}>
               {showForm && !editingId ? 'Cancel' : '+ New Plan'}
             </button>
@@ -166,11 +227,11 @@ export function BillingPage() {
           {plansQ.isLoading ? (
             <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Loading billing plans…</p>
           ) : plans.length === 0 ? (
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>No plans yet. Create a plan to automate billing cadence.</p>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>No plans yet. Create a plan to automate client billing cadence.</p>
           ) : (
             <div className="space-y-3">
               {plans.map((plan: BillingPlan) => (
-                <div key={plan.id} className="flex items-start justify-between p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div key={plan.id} className="flex items-start justify-between gap-4 p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                   <div style={{ flex: 1 }}>
                     <div className="flex items-center gap-3 mb-2">
                       <span style={{ fontSize: 15, fontWeight: 600, color: '#e5e7eb' }}>{plan.name}</span>
@@ -184,7 +245,7 @@ export function BillingPage() {
                     </div>
                     {plan.notes && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>{plan.notes}</div>}
                   </div>
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex gap-2 ml-4 shrink-0 flex-wrap">
                     <button className="btn" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => sendPlanM.mutate({ planId: plan.id! })} disabled={sendPlanM.isPending}>
                       Send Invoice
                     </button>
