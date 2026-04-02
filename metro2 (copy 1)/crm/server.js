@@ -1989,6 +1989,20 @@ app.use('/assets/phoenix', (req, res, next) => {
 // fallback for assets Vite doesn't handle (PDFs, images, etc.).
 if (process.env.NODE_ENV === 'development') {
   try {
+    // Rewrite extensionless paths (e.g. /dashboard) to their .html counterparts
+    // before Vite sees them. Without this, Vite's sirv middleware resolves
+    // /dashboard → dashboard.js (same-name JS file) instead of dashboard.html.
+    app.use((req, _res, next) => {
+      const ext = path.extname(req.path);
+      if (!ext && req.path !== '/') {
+        const htmlFile = path.join(PUBLIC_DIR, req.path + '.html');
+        if (fs.existsSync(htmlFile)) {
+          req.url = req.url.replace(req.path, req.path + '.html');
+        }
+      }
+      next();
+    });
+
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       configFile: path.join(__dirname, 'vite.config.ts'),
