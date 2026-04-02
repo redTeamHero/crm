@@ -313,18 +313,6 @@ async function flushBreachSave(){
   const updated = DB.find(x=>x.id===currentConsumerId);
   if (updated) Object.assign(updated, payload);
 }
-function updateBreachStatus(consumer){
-  const el = $("#breachStatus");
-  if (!el) return;
-  if (!consumer){
-    el.textContent = "Breaches: —";
-    el.disabled = true;
-    return;
-  }
-  const count = Array.isArray(consumer.breaches) ? consumer.breaches.length : 0;
-  el.textContent = `Breaches: ${count}`;
-  el.disabled = false;
-}
 function renderBreachCard(consumer){
   const card = $("#breachSection");
   const body = $("#breachCardBody");
@@ -684,7 +672,6 @@ function renderConsumers(){
         $("#tlList").innerHTML = "";
         $("#selConsumer").textContent = "—";
         $("#activityList").innerHTML = "";
-        updateBreachStatus(null);
         updatePortalLink();
         setSelectedConsumerId(null);
 
@@ -773,7 +760,6 @@ async function selectConsumer(id){
   currentConsumerId = id;
   const c = DB.find(x=>x.id===id);
   $("#selConsumer").textContent = c ? c.name : "—";
-  updateBreachStatus(c);
   renderBreachCard(c);
   setSelectedConsumerId(id);
   renderConsumers();
