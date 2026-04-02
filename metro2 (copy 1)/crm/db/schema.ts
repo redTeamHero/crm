@@ -12,7 +12,7 @@ import {
   sqliteTable,
   text as sqliteText,
   integer as sqliteInteger,
-  blob,
+  primaryKey as sqlitePrimaryKey,
 } from "drizzle-orm/sqlite-core";
 
 export const tenantKv = pgTable(
@@ -96,12 +96,16 @@ export const abTestAssignments = pgTable("ab_test_assignments", {
 
 // ── SQLite fallback schemas (for non-PostgreSQL environments) ─────────────────
 
-export const tenantKvSqlite = sqliteTable("tenant_kv", {
-  tenantId: sqliteText("tenant_id").notNull(),
-  key: sqliteText("key").notNull(),
-  value: sqliteText("value").notNull(),
-  updatedAt: sqliteText("updated_at").notNull(),
-});
+export const tenantKvSqlite = sqliteTable(
+  "tenant_kv",
+  {
+    tenantId: sqliteText("tenant_id").notNull(),
+    key: sqliteText("key").notNull(),
+    value: sqliteText("value").notNull(),
+    updatedAt: sqliteText("updated_at").notNull(),
+  },
+  (table) => [sqlitePrimaryKey({ columns: [table.tenantId, table.key] })]
+);
 
 export const tenantRegistrySqlite = sqliteTable("tenant_registry", {
   tenantId: sqliteText("tenant_id").primaryKey(),
