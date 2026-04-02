@@ -786,7 +786,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const INTELLISENSE_SCENARIOS = [
-    // ── First Round: Specialty ─────────────────────────────────────────────
     { group: 'First Round: Specialty',               key: 'first:identity_theft',          label: 'Identity theft / mixed file / wrong personal info',  defaultTemplate: 'personal-info-update' },
     { group: 'First Round: Specialty',               key: 'first:reinsertion',              label: 'Re-inserted / reappearing item (fast-path)',          defaultTemplate: 'reinsertion-dispute' },
     { group: 'First Round: Specialty',               key: 'first:medical_collection',       label: 'Medical debt in collections',                        defaultTemplate: 'hipaa-medical-debt' },
@@ -795,20 +794,17 @@ document.addEventListener('DOMContentLoaded', () => {
     { group: 'First Round: Specialty',               key: 'first:tila_loan',                label: 'TILA disclosure violation (loan)',                   defaultTemplate: 'tila-disclosure' },
     { group: 'First Round: Specialty',               key: 'first:bankruptcy',               label: 'Bankruptcy misreporting',                            defaultTemplate: 'bankruptcy-misreporting' },
 
-    // ── First Round: Factual / Evidence-Based ──────────────────────────────
     { group: 'First Round: Factual / Evidence-Based', key: 'first:factual_mismatch',        label: 'Factual error — date / balance / status mismatch',   defaultTemplate: 'factual-errors-layer' },
     { group: 'First Round: Factual / Evidence-Based', key: 'first:metro2_inconsistency',    label: 'Metro 2 field inconsistency / compliance issue',      defaultTemplate: 'metro2-inconsistency-dispute' },
     { group: 'First Round: Factual / Evidence-Based', key: 'first:obsolete_debt',           label: 'Obsolete / expired debt (past reporting period)',     defaultTemplate: 'obsolete-debt' },
     { group: 'First Round: Factual / Evidence-Based', key: 'first:charge_off',              label: 'Charge-off account — factual or Metro 2 dispute',     defaultTemplate: 'factual-errors-layer' },
 
-    // ── First Round: Collection / Fallback ─────────────────────────────────
     { group: 'First Round: Collection / Fallback',   key: 'first:general_collection',       label: 'General collection account (no specific error)',      defaultTemplate: 'debt-validation' },
     { group: 'First Round: Collection / Fallback',   key: 'first:late_payment_inaccurate',  label: 'Late payment — provably inaccurate',                 defaultTemplate: 'factual-errors-layer' },
     { group: 'First Round: Collection / Fallback',   key: 'first:late_payment_only',        label: 'Late payment — accurate, goodwill eligible',         defaultTemplate: 'goodwill-removal' },
     { group: 'First Round: Collection / Fallback',   key: 'first:violations_general',       label: 'General inaccuracies (violations detected)',         defaultTemplate: 'factual-errors-layer' },
     { group: 'First Round: Collection / Fallback',   key: 'first:default',                  label: 'Default first-touch (no specific match)',             defaultTemplate: '611-general-dispute' },
 
-    // ── Follow-up: Awaiting Response ───────────────────────────────────────
     { group: 'Follow-up: Awaiting Response',  key: 'next:awaiting_time_barred',     label: 'Awaiting — time-barred collection (round 2+)',          defaultTemplate: 'fdcpa-time-barred' },
     { group: 'Follow-up: Awaiting Response',  key: 'next:awaiting_collection',      label: 'Awaiting — general collection',                        defaultTemplate: 'debt-validation' },
     { group: 'Follow-up: Awaiting Response',  key: 'next:awaiting_bankruptcy',      label: 'Awaiting — bankruptcy',                                defaultTemplate: 'bankruptcy-misreporting' },
@@ -816,7 +812,6 @@ document.addEventListener('DOMContentLoaded', () => {
     { group: 'Follow-up: Awaiting Response',  key: 'next:awaiting_metro2',          label: 'Awaiting — Metro 2 issues',                            defaultTemplate: 'metro2-inconsistency-dispute' },
     { group: 'Follow-up: Awaiting Response',  key: 'next:awaiting_default',         label: 'Awaiting — default',                                   defaultTemplate: 'second-round-dispute' },
 
-    // ── Follow-up: No Response ─────────────────────────────────────────────
     { group: 'Follow-up: No Response',        key: 'next:no_response_pfd',           label: 'No response — follow-up on prior PFD offer',           defaultTemplate: 'pay-for-delete-followup' },
     { group: 'Follow-up: No Response',        key: 'next:no_response_time_barred',   label: 'No response — time-barred collection (round 2+)',      defaultTemplate: 'fdcpa-time-barred' },
     { group: 'Follow-up: No Response',        key: 'next:no_response_metro2_r3',     label: 'No response — Metro 2 (round 3+, strong evidence)',    defaultTemplate: 'metro2-deletion-demand' },
@@ -827,7 +822,6 @@ document.addEventListener('DOMContentLoaded', () => {
     { group: 'Follow-up: No Response',        key: 'next:no_response_factual_r2',    label: 'No response — factual errors (round 2+)',              defaultTemplate: 'factual-errors-layer' },
     { group: 'Follow-up: No Response',        key: 'next:no_response_default',       label: 'No response — default',                               defaultTemplate: 'second-round-dispute' },
 
-    // ── Follow-up: Verified ────────────────────────────────────────────────
     { group: 'Follow-up: Verified',           key: 'next:verified_method',           label: 'Verified — method of verification (round 2 default)',  defaultTemplate: 'method-of-verification' },
     { group: 'Follow-up: Verified',           key: 'next:verified_metro2_r3',        label: 'Verified — Metro 2 deletion demand (round 3+)',        defaultTemplate: 'metro2-deletion-demand' },
     { group: 'Follow-up: Verified',           key: 'next:verified_r3',               label: 'Verified — escalation (strong evidence, round 3+)',    defaultTemplate: 'ag-cfpb-escalation' },
@@ -837,7 +831,6 @@ document.addEventListener('DOMContentLoaded', () => {
     { group: 'Follow-up: Verified',           key: 'next:verified_metro2',           label: 'Verified — Metro 2 (method of verification)',          defaultTemplate: 'method-of-verification' },
     { group: 'Follow-up: Verified',           key: 'next:verified_default',          label: 'Verified — default',                                   defaultTemplate: 'method-of-verification' },
 
-    // ── Follow-up: Other Outcomes ──────────────────────────────────────────
     { group: 'Follow-up: Other Outcomes',     key: 'next:medical_collection',        label: 'Medical collection follow-up',                         defaultTemplate: 'hipaa-medical-debt' },
     { group: 'Follow-up: Other Outcomes',     key: 'next:harassment_collection',     label: 'Harassment follow-up',                                 defaultTemplate: 'fdcpa-harassment' },
     { group: 'Follow-up: Other Outcomes',     key: 'next:stalled_r3',               label: 'Stalled — round 3+ (arbitration)',                     defaultTemplate: 'arbitration-election' },
