@@ -840,35 +840,136 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function escHtmlIS(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+  function _buildGroupId(group) {
+    return 'is-g-' + group.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+  }
+
+  function _updateGroupBadge(groupEl) {
+    const selects = groupEl.querySelectorAll('select[data-scenario]');
+    const count = [...selects].filter(s => s.value !== '').length;
+    const badge = groupEl.querySelector('.is-badge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = count + ' customized';
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function _setGroupOpen(groupEl, open) {
+    const body = groupEl.querySelector('.is-group-body');
+    const chevron = groupEl.querySelector('.is-chevron');
+    if (!body || !chevron) return;
+    if (open) {
+      body.style.display = 'block';
+      chevron.style.transform = 'rotate(90deg)';
+    } else {
+      body.style.display = 'none';
+      chevron.style.transform = 'rotate(0deg)';
+    }
+  }
+
+  function applyIntelliSenseFilter() {
+    const searchEl = document.getElementById('intelliSenseSearch');
+    const customOnlyEl = document.getElementById('intelliSenseCustomOnly');
+    const container = document.getElementById('intelliSenseGroups');
+    if (!container) return;
+
+    const term = (searchEl?.value || '').trim().toLowerCase();
+    const customOnly = customOnlyEl?.checked || false;
+
+    container.querySelectorAll('.is-group').forEach(groupEl => {
+      let visibleCount = 0;
+      let hasSearchMatch = false;
+
+      groupEl.querySelectorAll('.is-scenario-row').forEach(rowEl => {
+        const label = (rowEl.dataset.label || '').toLowerCase();
+        const sel = rowEl.querySelector('select[data-scenario]');
+        const isCustomized = sel && sel.value !== '';
+
+        const matchesSearch = !term || label.includes(term);
+        const matchesFilter = !customOnly || isCustomized;
+        const visible = matchesSearch && matchesFilter;
+
+        rowEl.style.display = visible ? '' : 'none';
+        if (visible) visibleCount++;
+        if (matchesSearch && term) hasSearchMatch = true;
+      });
+
+      if (visibleCount === 0) {
+        groupEl.style.display = 'none';
+      } else {
+        groupEl.style.display = '';
+        if (term && hasSearchMatch) _setGroupOpen(groupEl, true);
+      }
+    });
+
+    const noResultsEl = document.getElementById('intelliSenseNoResults');
+    const anyVisible = [...container.querySelectorAll('.is-group')].some(g => g.style.display !== 'none');
+    if (noResultsEl) noResultsEl.style.display = anyVisible ? 'none' : 'block';
+  }
+
   function renderIntelliSenseGroups() {
     const container = document.getElementById('intelliSenseGroups');
     if (!container) return;
+
     const groupMap = {};
+    const groupOrder = [];
     for (const s of INTELLISENSE_SCENARIOS) {
-      if (!groupMap[s.group]) groupMap[s.group] = [];
+      if (!groupMap[s.group]) { groupMap[s.group] = []; groupOrder.push(s.group); }
       groupMap[s.group].push(s);
     }
-    const optionsHtml = '<option value="">— System default —</option>' +
-      (_intelliSenseTemplates.length
-        ? _intelliSenseTemplates.map(t => `<option value="${escHtmlIS(t.id)}">${escHtmlIS(t.name || t.id)}</option>`).join('')
-        : '');
-    container.innerHTML = Object.entries(groupMap).map(([group, scenarios]) => `
-      <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#6b7280;padding:0 0 6px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px;">${escHtmlIS(group)}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;">
-          ${scenarios.map(s => {
-            const curVal = _intelliSenseRules[s.key] || '';
-            return `<label style="display:flex;flex-direction:column;gap:3px;">
-              <span style="font-size:11px;color:#9ca3af;">${escHtmlIS(s.label)}</span>
-              <select data-scenario="${escHtmlIS(s.key)}" style="font-size:12px;padding:4px 6px;background:#1a1a1e;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e5e5e5;width:100%;">
-                ${optionsHtml.replace(`value="${escHtmlIS(curVal)}"`, `value="${escHtmlIS(curVal)}" selected`)}
-              </select>
-              <span style="font-size:10px;color:#4b5563;">Default: ${escHtmlIS(s.defaultTemplate)}</span>
-            </label>`;
-          }).join('')}
+
+    const optionsList = [{ id: '', name: '— System default —' }, ..._intelliSenseTemplates];
+
+    container.innerHTML = groupOrder.map(group => {
+      const gid = _buildGroupId(group);
+      const scenarios = groupMap[group];
+      const customizedCount = scenarios.filter(s => !!_intelliSenseRules[s.key]).length;
+      const badgeDisplay = customizedCount > 0 ? 'inline-block' : 'none';
+
+      const rowsHtml = scenarios.map(s => {
+        const curVal = _intelliSenseRules[s.key] || '';
+        const optsHtml = optionsList.map(t =>
+          `<option value="${escHtmlIS(t.id)}"${t.id === curVal ? ' selected' : ''}>${escHtmlIS(t.name || t.id)}</option>`
+        ).join('');
+        return `<div class="is-scenario-row" data-label="${escHtmlIS(s.label.toLowerCase())}" style="display:flex;flex-direction:column;gap:3px;">
+          <span style="font-size:11px;color:#9ca3af;line-height:1.3;">${escHtmlIS(s.label)}</span>
+          <select data-scenario="${escHtmlIS(s.key)}" style="font-size:12px;padding:4px 6px;background:#1a1a1e;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e5e5e5;width:100%;">${optsHtml}</select>
+          <span style="font-size:10px;color:#374151;">Default: ${escHtmlIS(s.defaultTemplate)}</span>
+        </div>`;
+      }).join('');
+
+      return `<div class="is-group" style="border:1px solid rgba(255,255,255,0.07);border-radius:10px;overflow:hidden;">
+        <button type="button" class="is-group-header" data-gid="${escHtmlIS(gid)}"
+          style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border:none;cursor:pointer;text-align:left;">
+          <span class="is-chevron" style="font-size:10px;color:#6b7280;transition:transform 0.18s;transform:rotate(0deg);flex-shrink:0;">&#9654;</span>
+          <span style="font-size:12px;font-weight:600;color:#d1d5db;flex:1;">${escHtmlIS(group)}</span>
+          <span class="is-badge" style="display:${badgeDisplay};font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(212,168,83,0.15);color:#d4a853;font-weight:600;">${customizedCount} customized</span>
+          <span style="font-size:11px;color:#4b5563;">${scenarios.length} scenario${scenarios.length !== 1 ? 's' : ''}</span>
+        </button>
+        <div class="is-group-body" style="display:none;padding:12px 14px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;">${rowsHtml}</div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('') + `<div id="intelliSenseNoResults" style="display:none;text-align:center;color:#555;padding:16px;font-size:13px;">No matching scenarios</div>`;
+
+    container.querySelectorAll('.is-group-header').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const groupEl = btn.closest('.is-group');
+        const body = groupEl.querySelector('.is-group-body');
+        const isOpen = body.style.display !== 'none';
+        _setGroupOpen(groupEl, !isOpen);
+      });
+    });
+
+    container.querySelectorAll('select[data-scenario]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const groupEl = sel.closest('.is-group');
+        if (groupEl) _updateGroupBadge(groupEl);
+      });
+    });
   }
 
   function collectIntelliSenseRules() {
@@ -913,6 +1014,11 @@ document.addEventListener('DOMContentLoaded', () => {
       : {};
     renderIntelliSenseGroups();
 
+    const searchEl = document.getElementById('intelliSenseSearch');
+    const customOnlyEl = document.getElementById('intelliSenseCustomOnly');
+    if (searchEl) searchEl.addEventListener('input', applyIntelliSenseFilter);
+    if (customOnlyEl) customOnlyEl.addEventListener('change', applyIntelliSenseFilter);
+
     if (saveBtn2) {
       saveBtn2.addEventListener('click', async () => {
         const rules = collectIntelliSenseRules();
@@ -953,6 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
       resetBtn.addEventListener('click', () => {
         _intelliSenseRules = {};
         renderIntelliSenseGroups();
+        applyIntelliSenseFilter();
       });
     }
   }
