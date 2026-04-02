@@ -1,4 +1,4 @@
-import { getDrizzleDb, getDbDialect } from "../db/connection.ts";
+import { getDrizzleDb, getDatabase, getDbDialect } from "../db/connection.ts";
 import {
   tenantRegistry,
   tenantMigrationEvents,
@@ -35,7 +35,9 @@ function adaptMetadata(metadata) {
   return metadata;
 }
 
-async function ensureTenantRegistryRow(tx, tenantId) {
+// ── Drizzle (pg) helpers ──────────────────────────────────────────────────────
+
+async function ensureTenantRegistryRowDrizzle(tx, tenantId) {
   const rows = await tx
     .select()
     .from(tenantRegistry)
@@ -55,6 +57,31 @@ async function ensureTenantRegistryRow(tx, tenantId) {
   return inserted[0] ?? null;
 }
 
+// ── Knex (non-pg) helpers ─────────────────────────────────────────────────────
+
+function adaptMetadataKnex(knexDb, metadata) {
+  if (!metadata || typeof metadata !== "object") return metadata ?? null;
+  const client = (knexDb?.client?.config?.client || "").toLowerCase();
+  if (client.includes("sqlite")) {
+    try {
+      return JSON.stringify(metadata);
+    } catch {
+      return null;
+    }
+  }
+  return metadata;
+}
+
+async function ensureTenantRegistryRowKnex(trx, tenantId) {
+  const existing = await trx("tenant_registry").where({ tenant_id: tenantId }).first();
+  if (existing) return existing;
+  const now = trx.fn.now();
+  await trx("tenant_registry").insert({ tenant_id: tenantId, created_at: now, updated_at: now });
+  return trx("tenant_registry").where({ tenant_id: tenantId }).first();
+}
+
+// ── Exported functions ────────────────────────────────────────────────────────
+
 export async function recordTenantMigrationMetric({
   tenantId = DEFAULT_TENANT_ID,
   durationMs = 0,
@@ -63,8 +90,41 @@ export async function recordTenantMigrationMetric({
   errorMessage = null,
   metadata = null,
 } = {}) {
-  const db = getDrizzleDb();
   const normalizedTenant = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
+
+  if (getDbDialect() !== "pg") {
+    const knexDb = getDatabase();
+    const payload = {
+      tenant_id: normalizedTenant,
+      context: context || "onboarding",
+      success: !!success,
+      duration_ms: clampDuration(durationMs),
+      error_message: errorMessage ? truncate(errorMessage) : null,
+      metadata: adaptMetadataKnex(knexDb, metadata),
+    };
+    try {
+      await knexDb.transaction(async (trx) => {
+        await trx("tenant_migration_events").insert(payload);
+        const registryRow = await ensureTenantRegistryRowKnex(trx, normalizedTenant);
+        const now = trx.fn.now();
+        const currentSuccess = Number(registryRow?.migrations_success_count || 0);
+        const currentFailure = Number(registryRow?.migrations_failure_count || 0);
+        await trx("tenant_registry").where({ tenant_id: normalizedTenant }).update({
+          last_migration_at: now,
+          last_migration_duration_ms: clampDuration(durationMs),
+          last_migration_error: success ? null : truncate(errorMessage),
+          migrations_success_count: currentSuccess + (success ? 1 : 0),
+          migrations_failure_count: currentFailure + (success ? 0 : 1),
+          updated_at: now,
+        });
+      });
+    } catch (err) {
+      logWarn("TENANT_MIGRATION_METRIC_FAILED", err?.message || String(err), { tenantId: normalizedTenant });
+    }
+    return;
+  }
+
+  const db = getDrizzleDb();
   const payload = {
     tenantId: normalizedTenant,
     context: context || "onboarding",
@@ -76,28 +136,24 @@ export async function recordTenantMigrationMetric({
   try {
     await db.transaction(async (tx) => {
       await tx.insert(tenantMigrationEvents).values(payload);
-      const registryRow = await ensureTenantRegistryRow(tx, normalizedTenant);
+      const registryRow = await ensureTenantRegistryRowDrizzle(tx, normalizedTenant);
       const now = new Date();
       const currentSuccess = Number(registryRow?.migrationsSuccessCount || 0);
       const currentFailure = Number(registryRow?.migrationsFailureCount || 0);
-      const nextSuccess = currentSuccess + (success ? 1 : 0);
-      const nextFailure = currentFailure + (success ? 0 : 1);
       await tx
         .update(tenantRegistry)
         .set({
           lastMigrationAt: now,
           lastMigrationDurationMs: clampDuration(durationMs),
           lastMigrationError: success ? null : truncate(errorMessage),
-          migrationsSuccessCount: nextSuccess,
-          migrationsFailureCount: nextFailure,
+          migrationsSuccessCount: currentSuccess + (success ? 1 : 0),
+          migrationsFailureCount: currentFailure + (success ? 0 : 1),
           updatedAt: now,
         })
         .where(eq(tenantRegistry.tenantId, normalizedTenant));
     });
   } catch (err) {
-    logWarn("TENANT_MIGRATION_METRIC_FAILED", err?.message || String(err), {
-      tenantId: normalizedTenant,
-    });
+    logWarn("TENANT_MIGRATION_METRIC_FAILED", err?.message || String(err), { tenantId: normalizedTenant });
   }
 }
 
@@ -112,8 +168,29 @@ export async function recordCheckoutStage({
   metadata = null,
 } = {}) {
   if (!invoiceId || !stage) return;
-  const db = getDrizzleDb();
   const normalizedTenant = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
+
+  if (getDbDialect() !== "pg") {
+    const knexDb = getDatabase();
+    const payload = {
+      tenant_id: normalizedTenant,
+      invoice_id: String(invoiceId),
+      stage: stage.toString().slice(0, 64),
+      success: !!success,
+      session_id: sessionId ? String(sessionId).slice(0, 128) : null,
+      amount_cents: clampDuration(amountCents),
+      currency: (currency || "usd").toString().slice(0, 16).toLowerCase(),
+      metadata: adaptMetadataKnex(knexDb, metadata),
+    };
+    try {
+      await knexDb("checkout_conversion_events").insert(payload);
+    } catch (err) {
+      logWarn("CHECKOUT_STAGE_METRIC_FAILED", err?.message || String(err), { tenantId: normalizedTenant, invoiceId: String(invoiceId), stage });
+    }
+    return;
+  }
+
+  const db = getDrizzleDb();
   const payload = {
     tenantId: normalizedTenant,
     invoiceId: String(invoiceId),
@@ -127,11 +204,7 @@ export async function recordCheckoutStage({
   try {
     await db.insert(checkoutConversionEvents).values(payload);
   } catch (err) {
-    logWarn("CHECKOUT_STAGE_METRIC_FAILED", err?.message || String(err), {
-      tenantId: normalizedTenant,
-      invoiceId: String(invoiceId),
-      stage,
-    });
+    logWarn("CHECKOUT_STAGE_METRIC_FAILED", err?.message || String(err), { tenantId: normalizedTenant, invoiceId: String(invoiceId), stage });
   }
 }
 
@@ -161,9 +234,33 @@ export async function assignExperimentVariant({
   metadata = null,
 } = {}) {
   if (!testKey) return { variant: "control" };
-  const db = getDrizzleDb();
   const normalizedTenant = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
   const normalizedVisitor = visitorId ? String(visitorId).slice(0, 128) : null;
+
+  if (getDbDialect() !== "pg") {
+    const knexDb = getDatabase();
+    try {
+      const existing = await knexDb("ab_test_assignments")
+        .where({ tenant_id: normalizedTenant, test_key: testKey, context, visitor_id: normalizedVisitor })
+        .first();
+      if (existing) return { variant: existing.variant, converted: !!existing.converted };
+      const variantName = resolveVariant(variants);
+      await knexDb("ab_test_assignments").insert({
+        tenant_id: normalizedTenant,
+        test_key: testKey,
+        variant: variantName,
+        visitor_id: normalizedVisitor,
+        context,
+        metadata: adaptMetadataKnex(knexDb, metadata),
+      });
+      return { variant: variantName, converted: false };
+    } catch (err) {
+      logWarn("AB_ASSIGNMENT_FAILED", err?.message || String(err), { tenantId: normalizedTenant, testKey });
+      return { variant: "control" };
+    }
+  }
+
+  const db = getDrizzleDb();
   try {
     const rows = await db
       .select()
@@ -177,9 +274,8 @@ export async function assignExperimentVariant({
         )
       );
     const existing = rows[0] ?? null;
-    if (existing) {
-      return { variant: existing.variant, converted: !!existing.converted };
-    }
+    if (existing) return { variant: existing.variant, converted: !!existing.converted };
+
     const variantName = resolveVariant(variants);
     await db.insert(abTestAssignments).values({
       tenantId: normalizedTenant,
@@ -191,10 +287,7 @@ export async function assignExperimentVariant({
     });
     return { variant: variantName, converted: false };
   } catch (err) {
-    logWarn("AB_ASSIGNMENT_FAILED", err?.message || String(err), {
-      tenantId: normalizedTenant,
-      testKey,
-    });
+    logWarn("AB_ASSIGNMENT_FAILED", err?.message || String(err), { tenantId: normalizedTenant, testKey });
     return { variant: "control" };
   }
 }
@@ -207,9 +300,29 @@ export async function recordExperimentConversion({
   metadata = null,
 } = {}) {
   if (!testKey) return;
-  const db = getDrizzleDb();
   const normalizedTenant = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
   const normalizedVisitor = visitorId ? String(visitorId).slice(0, 128) : null;
+
+  if (getDbDialect() !== "pg") {
+    const knexDb = getDatabase();
+    try {
+      const updated = await knexDb("ab_test_assignments")
+        .where({ tenant_id: normalizedTenant, test_key: testKey, context, visitor_id: normalizedVisitor })
+        .update({ converted: true, converted_at: knexDb.fn.now(), metadata: adaptMetadataKnex(knexDb, metadata) });
+      if (!updated) {
+        await knexDb("ab_test_assignments").insert({
+          tenant_id: normalizedTenant, test_key: testKey, variant: "control",
+          visitor_id: normalizedVisitor, context, converted: true,
+          converted_at: knexDb.fn.now(), metadata: adaptMetadataKnex(knexDb, metadata),
+        });
+      }
+    } catch (err) {
+      logWarn("AB_CONVERSION_FAILED", err?.message || String(err), { tenantId: normalizedTenant, testKey });
+    }
+    return;
+  }
+
+  const db = getDrizzleDb();
   try {
     const now = new Date();
     const rows = await db
@@ -227,28 +340,16 @@ export async function recordExperimentConversion({
     if (existing) {
       await db
         .update(abTestAssignments)
-        .set({
-          converted: true,
-          convertedAt: now,
-          metadata: adaptMetadata(metadata),
-        })
+        .set({ converted: true, convertedAt: now, metadata: adaptMetadata(metadata) })
         .where(eq(abTestAssignments.id, existing.id));
     } else {
       await db.insert(abTestAssignments).values({
-        tenantId: normalizedTenant,
-        testKey,
-        variant: "control",
-        visitorId: normalizedVisitor,
-        context,
-        converted: true,
-        convertedAt: now,
-        metadata: adaptMetadata(metadata),
+        tenantId: normalizedTenant, testKey, variant: "control",
+        visitorId: normalizedVisitor, context, converted: true,
+        convertedAt: now, metadata: adaptMetadata(metadata),
       });
     }
   } catch (err) {
-    logWarn("AB_CONVERSION_FAILED", err?.message || String(err), {
-      tenantId: normalizedTenant,
-      testKey,
-    });
+    logWarn("AB_CONVERSION_FAILED", err?.message || String(err), { tenantId: normalizedTenant, testKey });
   }
 }

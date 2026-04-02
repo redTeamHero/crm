@@ -8,6 +8,12 @@ import {
   integer,
   boolean,
 } from "drizzle-orm/pg-core";
+import {
+  sqliteTable,
+  text as sqliteText,
+  integer as sqliteInteger,
+  blob,
+} from "drizzle-orm/sqlite-core";
 
 export const tenantKv = pgTable(
   "tenant_kv",
@@ -86,4 +92,72 @@ export const abTestAssignments = pgTable("ab_test_assignments", {
     .defaultNow(),
   convertedAt: timestamp("converted_at", { withTimezone: true }),
   metadata: jsonb("metadata"),
+});
+
+// ── SQLite fallback schemas (for non-PostgreSQL environments) ─────────────────
+
+export const tenantKvSqlite = sqliteTable("tenant_kv", {
+  tenantId: sqliteText("tenant_id").notNull(),
+  key: sqliteText("key").notNull(),
+  value: sqliteText("value").notNull(),
+  updatedAt: sqliteText("updated_at").notNull(),
+});
+
+export const tenantRegistrySqlite = sqliteTable("tenant_registry", {
+  tenantId: sqliteText("tenant_id").primaryKey(),
+  schemaName: sqliteText("schema_name"),
+  createdAt: sqliteText("created_at").notNull(),
+  updatedAt: sqliteText("updated_at").notNull(),
+  lastMigrationAt: sqliteText("last_migration_at"),
+  lastMigrationDurationMs: sqliteInteger("last_migration_duration_ms"),
+  migrationsSuccessCount: sqliteInteger("migrations_success_count")
+    .notNull()
+    .default(0),
+  migrationsFailureCount: sqliteInteger("migrations_failure_count")
+    .notNull()
+    .default(0),
+  lastMigrationError: sqliteText("last_migration_error"),
+});
+
+export const tenantMigrationEventsSqlite = sqliteTable(
+  "tenant_migration_events",
+  {
+    id: sqliteInteger("id").primaryKey({ autoIncrement: true }),
+    tenantId: sqliteText("tenant_id").notNull(),
+    context: sqliteText("context").notNull().default("onboarding"),
+    success: sqliteInteger("success", { mode: "boolean" }).notNull().default(true),
+    durationMs: sqliteInteger("duration_ms").notNull().default(0),
+    errorMessage: sqliteText("error_message"),
+    metadata: sqliteText("metadata"),
+    occurredAt: sqliteText("occurred_at").notNull(),
+  }
+);
+
+export const checkoutConversionEventsSqlite = sqliteTable(
+  "checkout_conversion_events",
+  {
+    id: sqliteInteger("id").primaryKey({ autoIncrement: true }),
+    tenantId: sqliteText("tenant_id").notNull(),
+    invoiceId: sqliteText("invoice_id").notNull(),
+    stage: sqliteText("stage").notNull(),
+    success: sqliteInteger("success", { mode: "boolean" }).notNull().default(false),
+    sessionId: sqliteText("session_id"),
+    amountCents: sqliteInteger("amount_cents").notNull().default(0),
+    currency: sqliteText("currency").notNull().default("usd"),
+    metadata: sqliteText("metadata"),
+    occurredAt: sqliteText("occurred_at").notNull(),
+  }
+);
+
+export const abTestAssignmentsSqlite = sqliteTable("ab_test_assignments", {
+  id: sqliteInteger("id").primaryKey({ autoIncrement: true }),
+  tenantId: sqliteText("tenant_id").notNull(),
+  testKey: sqliteText("test_key").notNull(),
+  variant: sqliteText("variant").notNull(),
+  visitorId: sqliteText("visitor_id"),
+  context: sqliteText("context").notNull().default("portal"),
+  converted: sqliteInteger("converted", { mode: "boolean" }).notNull().default(false),
+  assignedAt: sqliteText("assigned_at").notNull(),
+  convertedAt: sqliteText("converted_at"),
+  metadata: sqliteText("metadata"),
 });

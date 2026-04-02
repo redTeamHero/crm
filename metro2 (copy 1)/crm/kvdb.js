@@ -376,7 +376,7 @@ export async function listKeys(options = {}) {
   }
 
   return db
-    .select({ key: tenantKv.key, updatedAt: tenantKv.updatedAt })
+    .select({ key: tenantKv.key, updated_at: tenantKv.updatedAt })
     .from(tenantKv)
     .where(eq(tenantKv.tenantId, tenantId));
 }

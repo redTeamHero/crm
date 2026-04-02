@@ -245,3 +245,14 @@ export async function closeDatabase(): Promise<void> {
     throw errors[0];
   }
 }
+
+export const db = new Proxy({} as ReturnType<typeof getDrizzleDb>, {
+  get(_target, prop, _receiver) {
+    const instance = getDrizzleDb();
+    const value = (instance as unknown as Record<string | symbol, unknown>)[prop];
+    if (typeof value === "function") {
+      return (value as (...args: unknown[]) => unknown).bind(instance);
+    }
+    return value;
+  },
+});
