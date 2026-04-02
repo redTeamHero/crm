@@ -706,6 +706,18 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['metro2-inconsistency-dispute', 'ag-cfpb-escalation'],
       }, overrides);
     }
+    // Non-collection with explicit factual errors at round 2: lead with evidence layer
+    // Collection accounts are handled above (method-of-verification first)
+    if (hasFactualErrors && round >= 2) {
+      return applyOverride({
+        scenarioKey: 'next:verified_factual',
+        recommendedTemplate: 'factual-errors-layer',
+        reason: 'Verified despite documented factual errors — submit evidence layer to force substantive re-examination',
+        urgency: 'medium',
+        letterTarget: 'bureau',
+        alternativeTemplates: ['method-of-verification', '623-direct-dispute'],
+      }, overrides);
+    }
     // Default verified (round 2): method-of-verification — universal default across account types
     if (round >= 2) {
       return applyOverride({
