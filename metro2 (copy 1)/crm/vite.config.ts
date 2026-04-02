@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,6 +21,7 @@ function getHtmlInputs(): Record<string, string> {
 
 export default defineConfig({
   root: PUBLIC_DIR,
+  plugins: [react()],
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
@@ -33,8 +35,6 @@ export default defineConfig({
     fs: {
       allow: [__dirname],
     },
-    // No proxy needed in middleware mode — Express handles /api directly.
-    // A proxy here would loop back to the same server and double-count requests.
   },
   appType: 'mpa',
 });
