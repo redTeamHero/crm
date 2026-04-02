@@ -6,13 +6,22 @@
   <title>Letters — Evolv CRM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/tour-guide.css">
-  <script src="/theme.js"></script>
+<script>
+(function(){
+  var doc=document.documentElement;
+  if(/^\/portal(\/|$)/.test(window.location?.pathname||'')){doc.style.visibility='';return;}
+  doc.style.visibility='hidden';
+  var THEMES={purple:{accent:'#AF52DE',hover:'#9333EA',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},blue:{accent:'#007AFF',hover:'#005BB5',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},green:{accent:'#34C759',hover:'#248A3D',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},amber:{accent:'#F59E0B',hover:'#D97706',glassBg:'rgba(255,255,255,0.42)',glassBrd:'rgba(255,255,255,0.28)'},slate:{accent:'#334155',hover:'#1E293B',glassBg:'rgba(255,255,255,0.5)',glassBrd:'rgba(148,163,184,0.35)'}};
+  function h2r(hex,a){var n=hex.replace('#','');var c=n.length===3?n.split('').map(function(x){return x+x;}):n.match(/.{2}/g);if(!c)return 'rgba(15,98,254,'+a+')';var r=parseInt(c[0],16),g=parseInt(c[1],16),b=parseInt(c[2],16);return 'rgba('+r+','+g+','+b+','+a+')';}
+  function applyTheme(name){var t=THEMES[name]||THEMES.purple;var accent=t.accent;doc.style.setProperty('--accent',accent);doc.style.setProperty('--accent-hover',t.hover||accent);doc.style.setProperty('--accent-solid',accent);doc.style.setProperty('--accent-bg',h2r(accent,0.14));doc.style.setProperty('--accent-soft',h2r(accent,0.18));doc.style.setProperty('--glass-bg',t.glassBg||'rgba(255,255,255,0.42)');doc.style.setProperty('--glass-brd',t.glassBrd||'rgba(148,163,184,0.28)');doc.style.setProperty('--btn-text','#fff');}
+  applyTheme(localStorage.getItem('theme')||'purple');
+  document.addEventListener('DOMContentLoaded',function(){doc.style.visibility='';});
+})();
+</script>
   <link rel="stylesheet" href="/style.css">
   <link id="light-theme-css" rel="stylesheet" href="/evolv-light.css?v=3">
   <link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css?v=3" disabled>
   <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){var d=document.getElementById("dark-theme-css");var l=document.getElementById("light-theme-css");if(d)d.removeAttribute("disabled");if(l)l.disabled=true;}})()</script>
-  <script src="/sidebar.js?v=27" defer></script>
-  <script src="/command-palette.js" defer></script>
 </head>
 <body>
 <header id="host-nav" class="p-4">
