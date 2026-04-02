@@ -3,40 +3,245 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Billing — Evolv CRM</title>
+  <title data-i18n="billing.meta.title">Billing</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/tour-guide.css">
-<script>
-(function(){
-  var doc=document.documentElement;
-  if(/^\/portal(\/|$)/.test(window.location?.pathname||'')){doc.style.visibility='';return;}
-  doc.style.visibility='hidden';
-  var THEMES={purple:{accent:'#AF52DE',hover:'#9333EA',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},blue:{accent:'#007AFF',hover:'#005BB5',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},green:{accent:'#34C759',hover:'#248A3D',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},amber:{accent:'#F59E0B',hover:'#D97706',glassBg:'rgba(255,255,255,0.42)',glassBrd:'rgba(255,255,255,0.28)'},slate:{accent:'#334155',hover:'#1E293B',glassBg:'rgba(255,255,255,0.5)',glassBrd:'rgba(148,163,184,0.35)'}};
-  function h2r(hex,a){var n=hex.replace('#','');var c=n.length===3?n.split('').map(function(x){return x+x;}):n.match(/.{2}/g);if(!c)return 'rgba(15,98,254,'+a+')';var r=parseInt(c[0],16),g=parseInt(c[1],16),b=parseInt(c[2],16);return 'rgba('+r+','+g+','+b+','+a+')';}
-  function applyTheme(name){var t=THEMES[name]||THEMES.purple;var accent=t.accent;doc.style.setProperty('--accent',accent);doc.style.setProperty('--accent-hover',t.hover||accent);doc.style.setProperty('--accent-solid',accent);doc.style.setProperty('--accent-bg',h2r(accent,0.14));doc.style.setProperty('--accent-soft',h2r(accent,0.18));doc.style.setProperty('--glass-bg',t.glassBg||'rgba(255,255,255,0.42)');doc.style.setProperty('--glass-brd',t.glassBrd||'rgba(148,163,184,0.28)');doc.style.setProperty('--btn-text','#fff');}
-  applyTheme(localStorage.getItem('theme')||'purple');
-  document.addEventListener('DOMContentLoaded',function(){doc.style.visibility='';});
-})();
-</script>
-  <link rel="stylesheet" href="/style.css">
-  <link id="light-theme-css" rel="stylesheet" href="/evolv-light.css?v=3">
+<script src="/theme.js"></script>
+<link rel="stylesheet" href="/style.css">
+<link id="light-theme-css" rel="stylesheet" href="/evolv-light.css?v=3">
   <link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css?v=3" disabled>
-  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){var d=document.getElementById("dark-theme-css");var l=document.getElementById("light-theme-css");if(d)d.removeAttribute("disabled");if(l)l.disabled=true;}})()</script>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+<script src="/sidebar.js?v=27" defer></script>
+<script src="/command-palette.js" defer></script>
 </head>
 <body>
 <header id="host-nav" class="p-4">
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
-      <div class="text-xl font-semibold">Evolv CRM</div>
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <span>Menu</span>
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
     </div>
+    <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2" aria-label="Primary">
+      <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+        <a href="/dashboard" class="btn nav-btn">Dashboard</a>
+        <a href="/clients" class="btn nav-btn">Clients</a>
+        <a href="/leads" class="btn nav-btn">Leads</a>
+        <div class="nav-dropdown" id="navMarketing">
+          <button type="button" id="navMarketingToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
+            <span data-i18n="nav.marketing">Marketing</span>
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div id="navMarketingMenu" class="nav-dropdown-menu glass card p-2">
+            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing &bull; SMS</a>
+            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing &bull; Email</a>
+          </div>
+        </div>
+        <a href="/schedule" class="btn nav-btn">Schedule</a>
+        <a href="/billing" class="btn nav-btn">Billing</a>
+        <a href="/client-invoicing" class="btn nav-btn">Client Invoicing</a>
+        <div class="nav-dropdown" id="navSettings">
+          <button type="button" id="navSettingsToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
+            <span>Settings</span>
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+          <div id="navSettingsMenu" class="nav-dropdown-menu glass card p-2">
+            <a id="navCompany" href="/my-company" class="btn text-sm">My Company</a>
+            <a href="/settings/client-portal" class="btn text-sm" data-i18n="nav.clientPortal">Client Portal</a>
+            <a href="/letters" class="btn text-sm">Letter</a>
+            <a href="/library" class="btn text-sm">Library</a>
+            <a href="/settings#api-integrations" class="btn text-sm">APIs</a>
+            <a href="/workflows" class="btn text-sm">Workflows</a>
+            <button id="btnInvite" class="btn text-sm" style="background: var(--green-bg);">Add Team Member</button>
+          </div>
+        </div>
+        <a href="/tradelines" class="btn nav-btn">Tradelines</a>
+        <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
+        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
+          <span class="text-xl">📄</span>
+          <span class="font-semibold text-sm">Rookie</span>
+        </div>
+      </div>
+    </nav>
   </div>
 </header>
+<main class="max-w-7xl mx-auto p-4 space-y-6">
 
-<main class="workspace px-4 pb-12">
-  <div id="root"></div>
+  <div id="billingContent" class="space-y-6">
+
+    <section id="subscriptionSection" class="glass card p-6 md:p-8 space-y-6">
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.4em] text-gray-500">Platform subscription</p>
+        <h2 class="text-2xl font-semibold text-white">Your CRM Plan</h2>
+        <p class="text-sm text-gray-400">Choose the plan that fits your business. Upgrade or manage anytime.</p>
+      </div>
+
+      <div id="currentSubStatus" class="hidden rounded-xl border border-[rgba(212,168,83,0.25)] bg-[rgba(212,168,83,0.08)] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-[#d4a853]">Active subscription: <span id="currentPlanName" class="capitalize"></span></p>
+          <p id="currentSubDetails" class="text-xs text-[#d4a853] mt-1"></p>
+        </div>
+        <button id="manageSubBtn" type="button" class="btn px-4 py-2 text-sm font-semibold" style="background: var(--green-bg);">Manage subscription</button>
+      </div>
+
+      <div id="pricingGrid" class="grid gap-4 md:grid-cols-3">
+
+        <div class="plan-card rounded-2xl border border-gray-700 bg-[#111113] p-6 flex flex-col" data-tier="starter">
+          <button type="button" class="plan-toggle w-full text-left flex items-center justify-between gap-3 mb-0" aria-expanded="false">
+            <div>
+              <h3 class="text-lg font-bold text-white">Starter</h3>
+              <p class="text-3xl font-bold text-white mt-1">$97<span class="text-base font-normal text-gray-500">/month</span></p>
+            </div>
+            <svg class="plan-chevron w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="plan-features-wrap">
+            <div class="plan-features-inner">
+              <ul class="text-sm text-gray-400 space-y-2 mt-4">
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Up to 25 clients</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Metro-2 auditing</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> 100 dispute letters/month</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Basic client portal</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Beginner Credit Academy</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Email support</li>
+              </ul>
+              <button type="button" class="subscribe-btn btn w-full justify-center py-3 text-sm font-semibold mt-4" data-tier="starter">Get started</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="plan-card plan-card--open rounded-2xl border-2 border-[#d4a853] bg-[#111113] p-6 flex flex-col relative shadow-lg" data-tier="growth">
+          <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#d4a853] px-4 py-1 text-xs font-bold text-white">Most popular</span>
+          <button type="button" class="plan-toggle w-full text-left flex items-center justify-between gap-3 mb-0" aria-expanded="true">
+            <div>
+              <h3 class="text-lg font-bold text-white">Growth</h3>
+              <p class="text-3xl font-bold text-white mt-1">$297<span class="text-base font-normal text-gray-500">/month</span></p>
+            </div>
+            <svg class="plan-chevron w-5 h-5 text-[#d4a853] flex-shrink-0 transition-transform duration-300 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="plan-features-wrap">
+            <div class="plan-features-inner">
+              <ul class="text-sm text-gray-400 space-y-2 mt-4">
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Up to 100 clients</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> 3 team members</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Unlimited dispute letters</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Bulk automation</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> White-label portal</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Full Credit Academy</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Tradeline Marketplace</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Affiliate Program</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> IntelliFeats Dispute Tracking</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Certified Mail</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Data breach monitoring</li>
+              </ul>
+              <button type="button" class="subscribe-btn btn w-full justify-center py-3 text-sm font-semibold mt-4" style="background: var(--green-bg);" data-tier="growth">Upgrade to Growth</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="plan-card rounded-2xl border border-gray-700 bg-[#111113] p-6 flex flex-col" data-tier="enterprise">
+          <button type="button" class="plan-toggle w-full text-left flex items-center justify-between gap-3 mb-0" aria-expanded="false">
+            <div>
+              <h3 class="text-lg font-bold text-white">Enterprise</h3>
+              <p class="text-3xl font-bold text-white mt-1">$597<span class="text-base font-normal text-gray-500">/month</span></p>
+            </div>
+            <svg class="plan-chevron w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="plan-features-wrap">
+            <div class="plan-features-inner">
+              <ul class="text-sm text-gray-400 space-y-2 mt-4">
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Everything in Growth</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Unlimited clients &amp; team members</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> API access</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Dedicated support &amp; priority processing</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Custom integrations</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Custom portal branding &amp; domain</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Custom branded certificates</li>
+                <li class="flex items-start gap-2"><span class="text-[#d4a853] mt-0.5">&#10003;</span> Higher affiliate commissions</li>
+              </ul>
+              <button type="button" class="subscribe-btn btn w-full justify-center py-3 text-sm font-semibold mt-4" data-tier="enterprise">Contact sales</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <style>
+        .plan-features-wrap {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows 0.35s ease;
+          overflow: hidden;
+        }
+        .plan-features-inner {
+          min-height: 0;
+          overflow: hidden;
+        }
+        .plan-card--open .plan-features-wrap {
+          grid-template-rows: 1fr;
+        }
+        /* on desktop always show features */
+        @media (min-width: 768px) {
+          .plan-features-wrap { grid-template-rows: 1fr !important; }
+          .plan-chevron { display: none !important; }
+        }
+      </style>
+      <script>
+        document.querySelectorAll('.plan-toggle').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var card = btn.closest('.plan-card');
+            var open = card.classList.toggle('plan-card--open');
+            btn.setAttribute('aria-expanded', open);
+            btn.querySelector('.plan-chevron').classList.toggle('rotate-180', open);
+          });
+        });
+      </script>
+
+      <div class="mt-4 rounded-2xl border border-gray-700 bg-[#111113] p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(212,168,83,0.12);">
+            <svg class="w-5 h-5 text-[#d4a853]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-white">Expert Setup <span class="ml-2 text-xs font-normal rounded-full bg-[rgba(212,168,83,0.15)] text-[#d4a853] px-2 py-0.5">One-time</span></p>
+            <p class="text-xs text-gray-400 mt-0.5">Full technical onboarding, portal setup, integrations & live walkthrough</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-xl font-bold text-white">$299</span>
+          <button type="button" class="btn px-4 py-2 text-sm font-semibold">Add Setup</button>
+        </div>
+      </div>
+
+      <p id="subscriptionError" class="text-sm text-red-600 hidden"></p>
+    </section>
+
+    <section class="glass card p-6 space-y-4">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-semibold text-white">Saved payment method</h3>
+          <p class="text-sm text-gray-400">Visa ending 4242 &middot; Updated Jun 14</p>
+        </div>
+        <span class="rounded-full bg-[rgba(212,168,83,0.12)] px-3 py-1 text-xs font-semibold text-[#d4a853]">Tokenized</span>
+      </div>
+      <div class="rounded-xl bg-[#111113] p-4 text-sm text-gray-300 shadow-sm">Apple Pay &amp; ACH ready. Use Stripe to refresh authorization.</div>
+      <button type="button" class="btn w-full justify-center py-3 text-sm font-semibold">Update card</button>
+    </section>
+
+  </div>
 </main>
-
-<script type="module" src="billing-app.tsx"></script>
+<script type="module" src="/common.js"></script>
+<script src="/hotkeys.js"></script>
+<script src="/billing.js" type="module"></script>
 <script src="/tour-guide.js" type="module"></script>
 </body>
 </html>

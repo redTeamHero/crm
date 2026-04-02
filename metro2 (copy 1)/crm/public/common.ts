@@ -13,7 +13,7 @@ declare global {
     plausible?: (event: string, options?: { props?: Record<string, unknown> }) => void;
     TrackEvent?: unknown;
     setHelpGuideState: (state: Record<string, unknown>) => void;
-    openHelp?: () => void;
+    openHelp: () => void;
     selectedConsumerId: string | null;
     getSelectedConsumerId: () => string | null;
     setSelectedConsumerId: (id: string | null) => void;

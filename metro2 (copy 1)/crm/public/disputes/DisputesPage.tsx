@@ -7,7 +7,6 @@ import {
   useGenerateLetters, usePollJobStatus, useGetGeneratedLetters, useDownloadLetterZip,
   useSaveDisputeCollectorAddress,
 } from './hooks.ts';
-import { useAppStore } from '../store/appStore.ts';
 import { buildIdempotencyKey } from './utils.ts';
 import { DisputeRound as DisputeRoundComponent } from './DisputeRound.tsx';
 import { NextRoundTargetModal } from './NextRoundTargetModal.tsx';
@@ -27,11 +26,10 @@ function errMsg(e: unknown): string {
 
 export function DisputesPage() {
   const qc = useQueryClient();
-  const { currentConsumerId, setCurrentConsumerId } = useAppStore();
 
   const [consumerId, setConsumerId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('client') || currentConsumerId || null;
+    return params.get('client') || null;
   });
   const [reportId, setReportId] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -74,12 +72,6 @@ export function DisputesPage() {
       setReportId(null);
     }
   }, [reportsQ.data]);
-
-  useEffect(() => {
-    if (consumerId && consumerId !== currentConsumerId) {
-      setCurrentConsumerId(consumerId);
-    }
-  }, [consumerId, currentConsumerId, setCurrentConsumerId]);
 
   const sentTemplates = useMemo(() => {
     const set = new Set<string>();

@@ -6,21 +6,13 @@
   <title>Dispute Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/tour-guide.css">
-<script>
-(function(){
-  var doc=document.documentElement;
-  if(/^\/portal(\/|$)/.test(window.location?.pathname||'')){doc.style.visibility='';return;}
-  doc.style.visibility='hidden';
-  var THEMES={purple:{accent:'#AF52DE',hover:'#9333EA',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},blue:{accent:'#007AFF',hover:'#005BB5',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},green:{accent:'#34C759',hover:'#248A3D',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},amber:{accent:'#F59E0B',hover:'#D97706',glassBg:'rgba(255,255,255,0.42)',glassBrd:'rgba(255,255,255,0.28)'},slate:{accent:'#334155',hover:'#1E293B',glassBg:'rgba(255,255,255,0.5)',glassBrd:'rgba(148,163,184,0.35)'}};
-  function applyTheme(name){var t=THEMES[name]||THEMES.purple;var a=t.accent;doc.style.setProperty('--accent',a);doc.style.setProperty('--accent-hover',t.hover||a);doc.style.setProperty('--accent-solid',a);doc.style.setProperty('--btn-text','#fff');}
-  applyTheme(localStorage.getItem('theme')||'purple');
-  document.addEventListener('DOMContentLoaded',function(){doc.style.visibility='';});
-})();
-</script>
+<script src="/theme.js"></script>
 <link rel="stylesheet" href="/style.css">
 <link id="light-theme-css" rel="stylesheet" href="/evolv-light.css?v=3">
   <link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css?v=3" disabled>
   <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){var d=document.getElementById("dark-theme-css");var l=document.getElementById("light-theme-css");if(d)d.removeAttribute("disabled");if(l)l.disabled=true;}})()</script>
+<script src="/sidebar.js?v=27" defer></script>
+<script src="/command-palette.js" defer></script>
 </head>
 <body>
 <header id="host-nav" class="p-4">

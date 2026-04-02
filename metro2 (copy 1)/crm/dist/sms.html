@@ -3,44 +3,432 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SMS — Evolv CRM</title>
+  <title>SMS Marketing</title>
   <script src="https://cdn.tailwindcss.com"></script>
-<script>
-(function(){
-  var doc=document.documentElement;
-  if(/^\/portal(\/|$)/.test(window.location?.pathname||'')){doc.style.visibility='';return;}
-  doc.style.visibility='hidden';
-  var THEMES={purple:{accent:'#AF52DE',hover:'#9333EA',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},blue:{accent:'#007AFF',hover:'#005BB5',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},green:{accent:'#34C759',hover:'#248A3D',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},amber:{accent:'#F59E0B',hover:'#D97706',glassBg:'rgba(255,255,255,0.42)',glassBrd:'rgba(255,255,255,0.28)'},slate:{accent:'#334155',hover:'#1E293B',glassBg:'rgba(255,255,255,0.5)',glassBrd:'rgba(148,163,184,0.35)'}};
-  function h2r(hex,a){var n=hex.replace('#','');var c=n.length===3?n.split('').map(function(x){return x+x;}):n.match(/.{2}/g);if(!c)return 'rgba(15,98,254,'+a+')';var r=parseInt(c[0],16),g=parseInt(c[1],16),b=parseInt(c[2],16);return 'rgba('+r+','+g+','+b+','+a+')';}
-  function applyTheme(name){var t=THEMES[name]||THEMES.purple;var accent=t.accent;doc.style.setProperty('--accent',accent);doc.style.setProperty('--accent-hover',t.hover||accent);doc.style.setProperty('--accent-solid',accent);doc.style.setProperty('--accent-bg',h2r(accent,0.14));doc.style.setProperty('--accent-soft',h2r(accent,0.18));doc.style.setProperty('--glass-bg',t.glassBg||'rgba(255,255,255,0.42)');doc.style.setProperty('--glass-brd',t.glassBrd||'rgba(148,163,184,0.28)');doc.style.setProperty('--btn-text','#fff');}
-  applyTheme(localStorage.getItem('theme')||'purple');
-  document.addEventListener('DOMContentLoaded',function(){doc.style.visibility='';});
-})();
-</script>
+  <script src="/theme.js"></script>
   <link id="dark-theme-css" rel="stylesheet" href="/assets/evolv-dark-BLxRb3yA.css?v=3" disabled>
-  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){var d=document.getElementById("dark-theme-css");var l=document.getElementById("light-theme-css");if(d)d.removeAttribute("disabled");if(l)l.disabled=true;}})()</script>
-  <script type="module" crossorigin src="/assets/sms-B_kD5ven.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/GlobalUIProvider-CypOeZ38.js">
-  <link rel="modulepreload" crossorigin href="/assets/evolv-light-UXnw5vUR.js">
-  <link rel="modulepreload" crossorigin href="/assets/tour-guide-_qZ6MUNR.js">
-  <link rel="modulepreload" crossorigin href="/assets/useMutation-DkQ-nprx.js">
-  <link rel="modulepreload" crossorigin href="/assets/useQuery-DRQBboMM.js">
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+  <style>
+    .sm-tab-btn { background: transparent; border: none; padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--muted,#6b7280); cursor: pointer; border-bottom: 2px solid transparent; transition: color .2s, border-color .2s; white-space: nowrap; }
+    .sm-tab-btn.active { color: #d4a853; border-bottom-color: #d4a853; }
+    .sm-tab-btn:hover:not(.active) { color: #374151; }
+    .sm-panel { display: none; }
+    .sm-panel.active { display: block; }
+    .sm-modal-bg { display: none; position: fixed; inset: 0; z-index: 11000; background: rgba(0,0,0,0.25); align-items: center; justify-content: center; padding: 16px; }
+    .sm-modal-bg.open { display: flex; }
+    .sm-modal { background: #fff; border: 1px solid rgba(212,168,83,0.2); border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 28px; }
+    .sm-modal-lg { max-width: 680px; }
+    .sm-status { display: none; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-top: 8px; }
+    .sm-status.ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #15803d; display: block; }
+    .sm-status.err { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #dc2626; display: block; }
+    .sm-status.warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); color: #92400e; display: block; }
+    .sm-empty { text-align: center; padding: 48px 24px; color: #9ca3af; font-size: 14px; }
+    .sm-empty svg { width: 40px; height: 40px; margin: 0 auto 12px; opacity: .35; display: block; }
+    .sm-card { background: #fff; border: 1px solid rgba(212,168,83,0.15); border-radius: 14px; padding: 16px 20px; transition: box-shadow .2s, border-color .2s; }
+    .sm-card:hover { border-color: rgba(212,168,83,0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+    .sm-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .sm-badge-gold { background: rgba(212,168,83,0.12); color: #92400e; }
+    .sm-badge-green { background: rgba(34,197,94,0.1); color: #15803d; }
+    .sm-badge-blue { background: rgba(59,130,246,0.1); color: #1d4ed8; }
+    .sm-badge-red { background: rgba(239,68,68,0.08); color: #dc2626; }
+    .sm-badge-gray { background: #f3f4f6; color: #6b7280; }
+    .sm-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+    .sm-merge-chip { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-family: monospace; background: rgba(212,168,83,0.1); color: #92400e; border: 1px solid rgba(212,168,83,0.2); cursor: pointer; margin: 2px; transition: background .15s; }
+    .sm-merge-chip:hover { background: rgba(212,168,83,0.2); }
+    .stat-card { background: #fff; border: 1px solid rgba(212,168,83,0.15); border-radius: 14px; padding: 18px 20px; }
+    .stat-card .stat-num { font-size: 26px; font-weight: 700; color: #111827; line-height: 1; }
+    .stat-card .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .tab-bar { display: flex; gap: 0; border-bottom: 1px solid rgba(212,168,83,0.2); overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .char-count { font-size: 11px; color: #9ca3af; text-align: right; margin-top: 4px; }
+    .char-count.warn { color: #f59e0b; }
+    .char-count.over { color: #dc2626; }
+    textarea.input, textarea { resize: vertical; }
+    .sm-step { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; }
+    .sm-history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .sm-history-table th { text-align: left; padding: 8px 12px; background: #f9fafb; font-weight: 600; color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #e5e7eb; }
+    .sm-history-table td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+    .sm-history-table tr:last-child td { border-bottom: none; }
+    .sm-history-table tr:hover td { background: #fafafa; }
+  </style>
+  <script src="/sidebar.js?v=27" defer></script>
+  <script src="/command-palette.js" defer></script>
+  <script type="module" crossorigin src="/assets/sms-xNhqMduS.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/evolv-light-CscajxBz.js">
+  <link rel="modulepreload" crossorigin href="/assets/common-cmR40mwU.js">
   <link rel="stylesheet" crossorigin href="/assets/evolv-light-sf0Pbxdz.css">
-  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
   <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
+  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
 </head>
 <body>
 <header id="host-nav" class="p-4">
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
-      <div class="text-xl font-semibold">Evolv CRM</div>
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
     </div>
   </div>
 </header>
 
-<main class="workspace px-4 pb-12">
-  <div id="root"></div>
-</main>
+<div class="flex min-h-screen">
+  <div id="sidebar-mount"></div>
+  <main class="flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full space-y-5">
+
+    <!-- Page header -->
+    <div class="glass card p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">SMS Marketing</h1>
+          <p class="text-sm text-gray-500 mt-1">Send text messages, manage groups, and run SMS campaigns.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button class="btn" id="btnSendSms" type="button">Send SMS</button>
+          <button class="btn btn-outline" id="btnNewSmsCampaign" type="button">New Campaign</button>
+          <button class="btn btn-outline" id="btnNewSmsTemplate" type="button">New Template</button>
+        </div>
+      </div>
+
+      <!-- Stat row -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-5">
+        <div class="stat-card"><div class="stat-num" id="statSmsGroups">—</div><div class="stat-label">Groups</div></div>
+        <div class="stat-card"><div class="stat-num" id="statSmsCampaigns">—</div><div class="stat-label">Campaigns</div></div>
+        <div class="stat-card"><div class="stat-num" id="statSmsSent">—</div><div class="stat-label">SMS Sent</div></div>
+      </div>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="glass card p-0 overflow-hidden">
+      <div class="tab-bar px-2 pt-2">
+        <button class="sm-tab-btn active" data-tab="send">Send SMS</button>
+        <button class="sm-tab-btn" data-tab="campaigns">Campaigns</button>
+        <button class="sm-tab-btn" data-tab="groups">Groups</button>
+        <button class="sm-tab-btn" data-tab="templates">Templates</button>
+        <button class="sm-tab-btn" data-tab="history">History</button>
+      </div>
+
+      <div class="p-6">
+
+        <!-- ====== SEND SMS ====== -->
+        <div class="sm-panel active" id="sm-panel-send">
+          <div class="grid gap-6 lg:grid-cols-[1fr_300px]">
+            <form id="sendSmsForm" class="space-y-4">
+              <div>
+                <label class="sm-label" for="ssRecipientType">Send to</label>
+                <select id="ssRecipientType" class="input w-full">
+                  <option value="phone">Single phone number</option>
+                  <option value="multiple">Multiple numbers (comma-separated)</option>
+                  <option value="group">Group / audience</option>
+                </select>
+              </div>
+              <div id="ssPhoneRow">
+                <label class="sm-label" for="ssPhone">Phone number</label>
+                <input id="ssPhone" class="input w-full" type="tel" placeholder="+15125550199" />
+              </div>
+              <div id="ssGroupRow" class="hidden">
+                <label class="sm-label" for="ssGroupId">Choose group</label>
+                <select id="ssGroupId" class="input w-full">
+                  <option value="">— select a group —</option>
+                </select>
+              </div>
+              <div id="ssMultipleRow" class="hidden">
+                <label class="sm-label" for="ssMultiplePhones">Phone numbers (comma-separated)</label>
+                <textarea id="ssMultiplePhones" class="input w-full" rows="2" placeholder="+15125550100, +15125550101"></textarea>
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="sm-label mb-0">Message body</label>
+                  <select id="ssTemplateSelect" class="input text-xs py-1 px-2 w-auto">
+                    <option value="">Use template...</option>
+                  </select>
+                </div>
+                <textarea id="ssBody" class="input w-full" rows="5" placeholder="Hi {{first_name}}, your credit update is ready. Log in to review your progress." maxlength="600"></textarea>
+                <div class="char-count" id="ssCharCount">0 / 160</div>
+              </div>
+              <div class="flex flex-wrap gap-1 items-center">
+                <span class="text-xs text-gray-400 mr-1">Merge fields:</span>
+                <button type="button" class="sm-merge-chip" data-merge="{{first_name}}">{{first_name}}</button>
+                <button type="button" class="sm-merge-chip" data-merge="{{last_name}}">{{last_name}}</button>
+                <button type="button" class="sm-merge-chip" data-merge="{{phone}}">{{phone}}</button>
+                <button type="button" class="sm-merge-chip" data-merge="{{credit_score}}">{{credit_score}}</button>
+                <button type="button" class="sm-merge-chip" data-merge="{{group_name}}">{{group_name}}</button>
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button class="btn" type="submit" id="ssSendNow">Send Now</button>
+              </div>
+              <div id="ssStatus" class="sm-status"></div>
+            </form>
+            <aside class="space-y-4">
+              <div class="sm-card">
+                <h3 class="font-semibold text-sm mb-3">Preview</h3>
+                <div id="ssPreview" class="text-sm text-gray-500 bg-gray-50 rounded-lg p-4 min-h-[120px] whitespace-pre-wrap break-words font-mono text-xs">Compose a message to see a preview.</div>
+              </div>
+              <div class="sm-card">
+                <h3 class="font-semibold text-sm mb-2">SMS provider</h3>
+                <p class="text-xs text-gray-500">To deliver live SMS, add Twilio credentials in <a href="/settings#api-integrations" class="text-[#d4a853] underline">Settings &rarr; APIs</a>. Messages are logged in History.</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- ====== CAMPAIGNS ====== -->
+        <div class="sm-panel" id="sm-panel-campaigns">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <h2 class="font-semibold text-lg">SMS Campaigns</h2>
+            <button class="btn" type="button" id="btnNewSmsCampaign2">New Campaign</button>
+          </div>
+          <div id="smsCampaignList" class="space-y-3">
+            <div class="sm-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+              No SMS campaigns yet. Create one to get started.
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== GROUPS ====== -->
+        <div class="sm-panel" id="sm-panel-groups">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-3 flex-1">
+              <h2 class="font-semibold text-lg">Groups</h2>
+              <input id="smsGroupSearch" class="input text-sm flex-1 max-w-xs" type="search" placeholder="Search groups..." />
+            </div>
+            <button class="btn" type="button" id="btnNewSmsGroup">New Group</button>
+          </div>
+          <div id="smsGroupList" class="space-y-3">
+            <div class="sm-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              No groups yet. Create one to start organizing your audience.
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== TEMPLATES ====== -->
+        <div class="sm-panel" id="sm-panel-templates">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h2 class="font-semibold text-lg">SMS Templates</h2>
+            <button class="btn" type="button" id="btnNewSmsTemplate2">New Template</button>
+          </div>
+          <div id="smsTemplateList" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div class="sm-empty" style="grid-column:1/-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+              No SMS templates yet. Create one to get started.
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== HISTORY ====== -->
+        <div class="sm-panel" id="sm-panel-history">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="font-semibold text-lg">SMS History</h2>
+            <button class="btn btn-outline text-sm" type="button" id="btnRefreshSmsHistory">Refresh</button>
+          </div>
+          <div id="smsHistoryList">
+            <div class="sm-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              No SMS history yet. Sent messages will appear here.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ====== MODAL: New SMS Template ====== -->
+<div class="sm-modal-bg" id="smsTemplateModal" aria-hidden="true">
+  <div class="sm-modal">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold" id="smsTplModalTitle">New SMS Template</h2>
+      <button type="button" id="closeSmsTemplateModal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <form id="smsTemplateForm" class="space-y-4">
+      <input type="hidden" id="smsTplId" />
+      <div>
+        <label class="sm-label" for="smsTplTitle">Template name</label>
+        <input id="smsTplTitle" class="input w-full" type="text" placeholder="Score Drop Alert" required />
+      </div>
+      <div>
+        <label class="sm-label" for="smsTplBody">Message body <span class="font-normal text-gray-400">(max 160 chars per segment)</span></label>
+        <textarea id="smsTplBody" class="input w-full" rows="4" placeholder="Hi {{first_name}}, your credit score update is ready." required maxlength="600"></textarea>
+        <div class="char-count" id="smsTplCharCount">0 / 160</div>
+      </div>
+      <div>
+        <label class="sm-label mb-2">Merge fields</label>
+        <div>
+          <button type="button" class="sm-merge-chip" data-merge="{{first_name}}">{{first_name}}</button>
+          <button type="button" class="sm-merge-chip" data-merge="{{last_name}}">{{last_name}}</button>
+          <button type="button" class="sm-merge-chip" data-merge="{{phone}}">{{phone}}</button>
+          <button type="button" class="sm-merge-chip" data-merge="{{credit_score}}">{{credit_score}}</button>
+        </div>
+      </div>
+      <div>
+        <label class="sm-label" for="smsTplSegment">Segment</label>
+        <select id="smsTplSegment" class="input w-full">
+          <option value="b2c">B2C (consumer)</option>
+          <option value="b2b">B2B (business)</option>
+          <option value="all">All clients</option>
+        </select>
+      </div>
+      <div id="smsTplStatus" class="sm-status"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="closeSmsTemplateModal2" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn">Save Template</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ====== MODAL: New/Edit SMS Campaign ====== -->
+<div class="sm-modal-bg" id="smsCampaignModal" aria-hidden="true">
+  <div class="sm-modal sm-modal-lg">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold" id="smsCampModalTitle">New SMS Campaign</h2>
+      <button type="button" id="closeSmsCampaignModal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <form id="smsCampaignForm" class="space-y-4">
+      <input type="hidden" id="smsCampId" />
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="sm-label" for="smsCampName">Campaign name <span class="text-red-500">*</span></label>
+          <input id="smsCampName" class="input w-full" type="text" placeholder="Retention Blast" required />
+        </div>
+        <div>
+          <label class="sm-label" for="smsCampGroupId">Target group</label>
+          <select id="smsCampGroupId" class="input w-full">
+            <option value="">— select a group —</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="sm-label" for="smsCampStatus">Status</label>
+          <select id="smsCampStatus" class="input w-full">
+            <option value="draft">Draft</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="running">Running</option>
+            <option value="paused">Paused</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div>
+          <label class="sm-label" for="smsCampScheduledAt">Schedule date (optional)</label>
+          <input id="smsCampScheduledAt" class="input w-full" type="datetime-local" />
+        </div>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="sm-label" for="smsCampFrequency">Send frequency</label>
+          <select id="smsCampFrequency" class="input w-full">
+            <option value="immediate">Immediate (one-time blast)</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div>
+          <label class="sm-label" for="smsCampDescription">Description (optional)</label>
+          <input id="smsCampDescription" class="input w-full" type="text" placeholder="Brief goal for this campaign..." />
+        </div>
+      </div>
+      <div>
+        <label class="sm-label" for="smsCampBody">Message body <span class="text-red-500">*</span></label>
+        <textarea id="smsCampBody" class="input w-full" rows="4" placeholder="Hi {{first_name}}, check your latest credit update now." required maxlength="600"></textarea>
+        <div class="char-count" id="smsCampCharCount">0 / 160</div>
+      </div>
+      <div class="flex flex-wrap gap-1 items-center">
+        <span class="text-xs text-gray-400 mr-1">Merge fields:</span>
+        <button type="button" class="sm-merge-chip" data-merge="{{first_name}}">{{first_name}}</button>
+        <button type="button" class="sm-merge-chip" data-merge="{{last_name}}">{{last_name}}</button>
+        <button type="button" class="sm-merge-chip" data-merge="{{credit_score}}">{{credit_score}}</button>
+        <button type="button" class="sm-merge-chip" data-merge="{{group_name}}">{{group_name}}</button>
+      </div>
+
+      <!-- Drip steps -->
+      <div style="border-top:1px solid rgba(212,168,83,0.15);padding-top:16px;">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Follow-up Messages</p>
+            <p class="text-xs text-gray-400">Add follow-up SMS messages after the initial blast (up to 10 steps).</p>
+          </div>
+          <button type="button" id="btnAddSmsStep" class="btn btn-outline text-xs">+ Add Step</button>
+        </div>
+        <div id="smsCampSteps" class="space-y-3" style="max-height:280px;overflow-y:auto;padding-right:4px;"></div>
+      </div>
+
+      <div id="smsCampStatus2" class="sm-status"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="closeSmsCampaignModal2" class="btn btn-outline">Cancel</button>
+        <button type="button" id="smsCampSendNowBtn" class="btn btn-outline" style="color:#15803d;border-color:rgba(34,197,94,0.4)">Send Now</button>
+        <button type="submit" class="btn" id="smsCampSaveBtn">Save Campaign</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ====== MODAL: New/Edit Group ====== -->
+<div class="sm-modal-bg" id="smsGroupModal" aria-hidden="true">
+  <div class="sm-modal">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold" id="smsGroupModalTitle">New Group</h2>
+      <button type="button" id="closeSmsGroupModal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <form id="smsGroupForm" class="space-y-4">
+      <input type="hidden" id="smsGroupId" />
+      <div>
+        <label class="sm-label" for="smsGroupName">Group name <span class="text-red-500">*</span></label>
+        <input id="smsGroupName" class="input w-full" type="text" placeholder="New Leads" required />
+      </div>
+      <div>
+        <label class="sm-label" for="smsGroupDescription">Description (optional)</label>
+        <textarea id="smsGroupDescription" class="input w-full" rows="2" placeholder="Brief description of this group..."></textarea>
+      </div>
+      <div id="smsGroupStatus" class="sm-status"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" id="closeSmsGroupModal2" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn">Save Group</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ====== MODAL: Group Members ====== -->
+<div class="sm-modal-bg" id="smsGroupMembersModal" aria-hidden="true">
+  <div class="sm-modal sm-modal-lg">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="text-lg font-bold" id="smsGroupMembersTitle">Group Members</h2>
+        <p class="text-sm text-gray-500 mt-0.5" id="smsGroupMembersSubtitle"></p>
+      </div>
+      <button type="button" id="closeSmsGroupMembersModal" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <div class="flex gap-2 mb-4">
+      <input id="smsAddMemberInput" class="input flex-1" type="text" placeholder="Client ID or email" />
+      <button type="button" id="smsAddMemberBtn" class="btn">Add</button>
+    </div>
+    <input id="smsMemberSearch" class="input w-full mb-3 text-sm" type="search" placeholder="Search members..." />
+    <div id="smsMemberList" class="space-y-2 max-h-64 overflow-y-auto"></div>
+    <div id="smsMemberStatus" class="sm-status"></div>
+    <div class="flex justify-between mt-4 pt-4" style="border-top:1px solid rgba(212,168,83,0.15)">
+      <button type="button" id="btnSmsSendToGroup" class="btn btn-outline text-sm">Send SMS to Group</button>
+      <button type="button" id="closeSmsGroupMembersModal2" class="btn btn-outline text-sm">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL: Confirm ====== -->
+<div class="sm-modal-bg" id="smsConfirmModal" aria-hidden="true">
+  <div class="sm-modal" style="max-width:400px">
+    <h2 class="text-lg font-bold mb-2" id="smsConfirmTitle">Are you sure?</h2>
+    <p class="text-sm text-gray-600 mb-6" id="smsConfirmMessage"></p>
+    <div class="flex justify-end gap-2">
+      <button type="button" id="smsConfirmCancel" class="btn btn-outline">Cancel</button>
+      <button type="button" id="smsConfirmOk" class="btn" style="background:rgba(239,68,68,0.1);color:#dc2626;border:1px solid rgba(239,68,68,0.3)">Confirm</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

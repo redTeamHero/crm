@@ -3,44 +3,297 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Affiliate — Evolv CRM</title>
+  <title>Affiliate Program</title>
   <script src="https://cdn.tailwindcss.com"></script>
-<script>
-(function(){
-  var doc=document.documentElement;
-  if(/^\/portal(\/|$)/.test(window.location?.pathname||'')){doc.style.visibility='';return;}
-  doc.style.visibility='hidden';
-  var THEMES={purple:{accent:'#AF52DE',hover:'#9333EA',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},blue:{accent:'#007AFF',hover:'#005BB5',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},green:{accent:'#34C759',hover:'#248A3D',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},amber:{accent:'#F59E0B',hover:'#D97706',glassBg:'rgba(255,255,255,0.42)',glassBrd:'rgba(255,255,255,0.28)'},slate:{accent:'#334155',hover:'#1E293B',glassBg:'rgba(255,255,255,0.5)',glassBrd:'rgba(148,163,184,0.35)'}};
-  function h2r(hex,a){var n=hex.replace('#','');var c=n.length===3?n.split('').map(function(x){return x+x;}):n.match(/.{2}/g);if(!c)return 'rgba(15,98,254,'+a+')';var r=parseInt(c[0],16),g=parseInt(c[1],16),b=parseInt(c[2],16);return 'rgba('+r+','+g+','+b+','+a+')';}
-  function applyTheme(name){var t=THEMES[name]||THEMES.purple;var accent=t.accent;doc.style.setProperty('--accent',accent);doc.style.setProperty('--accent-hover',t.hover||accent);doc.style.setProperty('--accent-solid',accent);doc.style.setProperty('--accent-bg',h2r(accent,0.14));doc.style.setProperty('--accent-soft',h2r(accent,0.18));doc.style.setProperty('--glass-bg',t.glassBg||'rgba(255,255,255,0.42)');doc.style.setProperty('--glass-brd',t.glassBrd||'rgba(148,163,184,0.28)');doc.style.setProperty('--btn-text','#fff');}
-  applyTheme(localStorage.getItem('theme')||'purple');
-  document.addEventListener('DOMContentLoaded',function(){doc.style.visibility='';});
-})();
-</script>
+  <script src="/theme.js"></script>
   <link id="dark-theme-css" rel="stylesheet" href="/assets/evolv-dark-BLxRb3yA.css?v=3" disabled>
-  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){var d=document.getElementById("dark-theme-css");var l=document.getElementById("light-theme-css");if(d)d.removeAttribute("disabled");if(l)l.disabled=true;}})()</script>
-  <script type="module" crossorigin src="/assets/affiliate-D863fsZQ.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/GlobalUIProvider-CypOeZ38.js">
-  <link rel="modulepreload" crossorigin href="/assets/evolv-light-UXnw5vUR.js">
-  <link rel="modulepreload" crossorigin href="/assets/tour-guide-_qZ6MUNR.js">
-  <link rel="modulepreload" crossorigin href="/assets/useMutation-DkQ-nprx.js">
-  <link rel="modulepreload" crossorigin href="/assets/useQuery-DRQBboMM.js">
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+  <script src="/sidebar.js?v=27" defer></script>
+  <script src="/command-palette.js" defer></script>
+  <script type="module" crossorigin src="/assets/evolv-light-CscajxBz.js"></script>
+  <script type="module" crossorigin src="/assets/tour-guide-CQHuR1Bq.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/evolv-light-sf0Pbxdz.css">
-  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
   <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
+  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
 </head>
 <body>
 <header id="host-nav" class="p-4">
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
-      <div class="text-xl font-semibold">Evolv CRM</div>
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <span>Menu</span>
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
     </div>
+    <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2">
+      <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto"></div>
+    </nav>
   </div>
 </header>
 
-<main class="workspace px-4 pb-12">
-  <div id="root"></div>
+<style>
+  .rate-input{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;font-size:14px;width:90px;text-align:center;color:inherit;}
+  .rate-input:focus{outline:none;border-color:rgba(99,102,241,0.6);}
+  .aff-card{border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;background:rgba(0,0,0,0.15);}
+  .aff-card .aff-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;}
+  .aff-card .aff-label{color:rgba(255,255,255,0.5);font-size:12px;}
+  .aff-card .aff-val{font-weight:600;}
+  .aff-edit-row{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;}
+  .aff-edit-row label{font-size:12px;color:rgba(255,255,255,0.5);}
+  .aff-edit-row input{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 8px;font-size:13px;width:80px;text-align:center;color:inherit;}
+  .aff-edit-row input:focus{outline:none;border-color:rgba(99,102,241,0.6);}
+</style>
+
+<main class="max-w-5xl mx-auto p-6">
+
+  <div id="adminSection" class="hidden">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold">Affiliate Management</h1>
+        <p class="text-sm text-gray-400 mt-1">View and manage affiliate pricing and commissions</p>
+      </div>
+    </div>
+
+    <div id="ratesPanel" class="glass card p-5 mb-6">
+      <h2 class="font-semibold text-lg mb-4">Global Commission Rates</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <h3 class="text-sm font-medium text-gray-400 mb-3">DIY Referrals</h3>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Basic Plan</span>
+              <div class="flex items-center gap-1"><span class="text-xs text-gray-500">$</span><input type="number" step="0.01" min="0" id="rate_diy_basic" class="rate-input" /></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Pro Plan</span>
+              <div class="flex items-center gap-1"><span class="text-xs text-gray-500">$</span><input type="number" step="0.01" min="0" id="rate_diy_pro" class="rate-input" /></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Tradeline</span>
+              <div class="flex items-center gap-1"><input type="number" step="0.01" min="0" id="rate_diy_tradeline" class="rate-input" /><span class="text-xs text-gray-500">%</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-gray-400 mb-3">CRM Referrals</h3>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Starter</span>
+              <div class="flex items-center gap-1"><span class="text-xs text-gray-500">$</span><input type="number" step="0.01" min="0" id="rate_crm_starter" class="rate-input" /></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Business</span>
+              <div class="flex items-center gap-1"><span class="text-xs text-gray-500">$</span><input type="number" step="0.01" min="0" id="rate_crm_business" class="rate-input" /></div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">Enterprise</span>
+              <div class="flex items-center gap-1"><span class="text-xs text-gray-500">$</span><input type="number" step="0.01" min="0" id="rate_crm_enterprise" class="rate-input" /></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 mt-4">
+        <button id="btnSaveRates" class="btn px-5 py-2 text-sm" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">Save Rates</button>
+        <span id="ratesSaveStatus" class="text-sm text-green-400 hidden">Saved!</span>
+      </div>
+    </div>
+
+    <div id="affEmpty" class="hidden text-center py-16">
+      <div style="font-size:48px;margin-bottom:16px;">🔗</div>
+      <h2 class="text-xl font-semibold mb-2">No Affiliates Yet</h2>
+      <p class="text-gray-400">When users join the affiliate program, they will appear here.</p>
+    </div>
+
+    <div id="affLoading" class="text-center py-16">
+      <div class="text-gray-400">Loading affiliates...</div>
+    </div>
+
+    <div id="affList" class="hidden">
+      <h2 class="font-semibold text-lg mb-3">Affiliates</h2>
+      <div id="affCards" class="grid gap-4"></div>
+    </div>
+
+    <hr class="border-white/10 my-8" />
+  </div>
+
+  <div id="affiliateNotJoined" class="text-center py-16">
+    <div style="font-size:48px;margin-bottom:16px;">🔗</div>
+    <h1 class="text-3xl font-bold mb-3">Affiliate Program</h1>
+    <p class="text-gray-400 mb-2 max-w-lg mx-auto">Earn money by sharing Evolv with your audience. Get paid for every referral that signs up.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-8 max-w-2xl mx-auto text-left">
+      <div class="glass card p-5 text-center">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">🔗</div>
+        <h3 class="font-semibold mb-1">Share Your Link</h3>
+        <p class="text-sm text-gray-400">Get your unique referral link and share it with friends, family, or your audience.</p>
+      </div>
+      <div class="glass card p-5 text-center">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">👥</div>
+        <h3 class="font-semibold mb-1">They Sign Up</h3>
+        <p class="text-sm text-gray-400">When someone uses your link to create an account and subscribes, you earn a commission.</p>
+      </div>
+      <div class="glass card p-5 text-center">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(234,179,8,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px;">💰</div>
+        <h3 class="font-semibold mb-1">Get Paid</h3>
+        <p class="text-sm text-gray-400">Earn up to $100 per referral. Track your earnings in real-time.</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-8 max-w-2xl mx-auto text-left">
+      <div class="glass card p-5">
+        <h3 class="font-semibold mb-3">DIY Referrals</h3>
+        <div class="flex justify-between py-2 border-b border-white/10"><span>Basic Plan signup</span><span id="affRateDiyBasic" class="font-semibold text-green-400">...</span></div>
+        <div class="flex justify-between py-2 border-b border-white/10"><span>Pro Plan signup</span><span id="affRateDiyPro" class="font-semibold text-green-400">...</span></div>
+        <div class="flex justify-between py-2"><span>Tradeline purchase</span><span id="affRateDiyTradeline" class="font-semibold text-yellow-400">...</span></div>
+      </div>
+      <div class="glass card p-5">
+        <h3 class="font-semibold mb-3">CRM Referrals</h3>
+        <div class="flex justify-between py-2 border-b border-white/10"><span>Starter Plan signup</span><span id="affRateCrmStarter" class="font-semibold text-green-400">...</span></div>
+        <div class="flex justify-between py-2 border-b border-white/10"><span>Business Plan signup</span><span id="affRateCrmBusiness" class="font-semibold text-green-400">...</span></div>
+        <div class="flex justify-between py-2"><span>Enterprise signup</span><span id="affRateCrmEnterprise" class="font-semibold text-green-400">...</span></div>
+      </div>
+    </div>
+
+    <button id="btnJoinAffiliate" class="btn text-lg px-8 py-3" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:12px;cursor:pointer;">
+      👥 Join Affiliate Program
+    </button>
+    <p class="text-sm text-gray-500 mt-2">Free to join. No minimum payout. Start earning today.</p>
+  </div>
+
+  <div id="affiliateDashboard" class="hidden">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold">Affiliate Dashboard</h1>
+    </div>
+
+    <div class="glass card p-4 mb-6">
+      <label class="text-sm text-gray-400 block mb-1">Your Referral Link</label>
+      <div class="flex gap-2">
+        <input id="affLinkDiy" readonly class="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+        <button id="affCopyDiy" class="btn px-4 py-2 text-sm">Copy DIY</button>
+        <button id="affCopyCrm" class="btn px-4 py-2 text-sm" style="background:rgba(234,179,8,0.15);color:#eab308;">Copy CRM</button>
+      </div>
+      <input id="affLinkCrm" readonly class="w-full mt-2 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm font-mono" />
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="glass card p-4 text-center">
+        <div class="text-2xl font-bold" id="statClicks">0</div>
+        <div class="text-xs text-gray-400 mt-1">Total Clicks</div>
+      </div>
+      <div class="glass card p-4 text-center">
+        <div class="text-2xl font-bold" id="statConversions">0</div>
+        <div class="text-xs text-gray-400 mt-1">Signups</div>
+      </div>
+      <div class="glass card p-4 text-center">
+        <div class="text-2xl font-bold text-green-400" id="statEarned">$0</div>
+        <div class="text-xs text-gray-400 mt-1">Total Earned</div>
+      </div>
+      <div class="glass card p-4 text-center">
+        <div class="text-2xl font-bold" id="statRate">0%</div>
+        <div class="text-xs text-gray-400 mt-1">Conversion Rate</div>
+      </div>
+    </div>
+
+    <div class="glass card p-4 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold">Earnings Breakdown</h2>
+        <button id="btnRequestPayout" class="btn px-4 py-2 text-sm" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">
+          💸 Request Payout
+        </button>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="text-center">
+          <div class="text-xl font-bold text-green-400" id="earningsTotalEarned">$0.00</div>
+          <div class="text-xs text-gray-400 mt-1">Total Earned</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold text-blue-400" id="earningsPaidOut">$0.00</div>
+          <div class="text-xs text-gray-400 mt-1">Paid Out</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold text-yellow-400" id="earningsPending">$0.00</div>
+          <div class="text-xs text-gray-400 mt-1">Pending Payouts</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl font-bold text-emerald-400" id="earningsAvailable">$0.00</div>
+          <div class="text-xs text-gray-400 mt-1">Available Balance</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass card p-4 mb-6">
+      <h2 class="font-semibold mb-3">Payout History</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-400 border-b border-white/10">
+              <th class="pb-2">Date</th>
+              <th class="pb-2">Amount</th>
+              <th class="pb-2">Method</th>
+              <th class="pb-2">Status</th>
+              <th class="pb-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="payoutTableBody">
+            <tr><td colspan="5" class="py-8 text-center text-gray-500">No payout requests yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="glass card p-4">
+      <h2 class="font-semibold mb-3">Referral History</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-400 border-b border-white/10">
+              <th class="pb-2">Date</th>
+              <th class="pb-2">Type</th>
+              <th class="pb-2">Plan</th>
+              <th class="pb-2">Commission</th>
+              <th class="pb-2">Status</th>
+            </tr>
+          </thead>
+          <tbody id="referralTableBody">
+            <tr><td colspan="5" class="py-8 text-center text-gray-500">No referrals yet. Share your link to start earning!</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="payoutModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(0,0,0,0.6);display:none;">
+    <div class="glass card p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">Request Payout</h2>
+        <button id="payoutModalClose" class="text-gray-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="mb-4">
+        <p class="text-sm text-gray-400 mb-1">Available Balance</p>
+        <p class="text-2xl font-bold text-emerald-400" id="payoutModalBalance">$0.00</p>
+      </div>
+      <div class="mb-4">
+        <label class="text-sm text-gray-400 block mb-1">Payout Method</label>
+        <select id="payoutMethod" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm">
+          <option value="paypal">PayPal</option>
+          <option value="venmo">Venmo</option>
+          <option value="check">Check</option>
+        </select>
+      </div>
+      <div class="mb-4" id="payoutEmailGroup">
+        <label class="text-sm text-gray-400 block mb-1" id="payoutEmailLabel">PayPal Email</label>
+        <input id="payoutEmail" type="text" class="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm" placeholder="you@example.com" />
+      </div>
+      <div id="payoutError" class="text-red-400 text-sm mb-3 hidden"></div>
+      <button id="payoutSubmit" class="btn w-full py-2" style="background:linear-gradient(135deg,#6366f1,#10b981);border:none;color:#fff;border-radius:8px;cursor:pointer;">
+        Submit Payout Request
+      </button>
+    </div>
+  </div>
 </main>
 
+<script src="/common.js"></script>
+<script src="/affiliate.js"></script>
 </body>
 </html>

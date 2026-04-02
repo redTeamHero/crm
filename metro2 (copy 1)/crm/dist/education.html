@@ -3,43 +3,75 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Education — Evolv CRM</title>
+  <title>Credit Academy — Evolv CRM</title>
   <script src="https://cdn.tailwindcss.com"></script>
-<script>
-(function(){
-  var doc=document.documentElement;
-  if(/^\/portal(\/|$)/.test(window.location?.pathname||'')){doc.style.visibility='';return;}
-  doc.style.visibility='hidden';
-  var THEMES={purple:{accent:'#AF52DE',hover:'#9333EA',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},blue:{accent:'#007AFF',hover:'#005BB5',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},green:{accent:'#34C759',hover:'#248A3D',glassBg:'rgba(255,255,255,0.4)',glassBrd:'rgba(255,255,255,0.25)'},amber:{accent:'#F59E0B',hover:'#D97706',glassBg:'rgba(255,255,255,0.42)',glassBrd:'rgba(255,255,255,0.28)'},slate:{accent:'#334155',hover:'#1E293B',glassBg:'rgba(255,255,255,0.5)',glassBrd:'rgba(148,163,184,0.35)'}};
-  function h2r(hex,a){var n=hex.replace('#','');var c=n.length===3?n.split('').map(function(x){return x+x;}):n.match(/.{2}/g);if(!c)return 'rgba(15,98,254,'+a+')';var r=parseInt(c[0],16),g=parseInt(c[1],16),b=parseInt(c[2],16);return 'rgba('+r+','+g+','+b+','+a+')';}
-  function applyTheme(name){var t=THEMES[name]||THEMES.purple;var accent=t.accent;doc.style.setProperty('--accent',accent);doc.style.setProperty('--accent-hover',t.hover||accent);doc.style.setProperty('--accent-solid',accent);doc.style.setProperty('--accent-bg',h2r(accent,0.14));doc.style.setProperty('--accent-soft',h2r(accent,0.18));doc.style.setProperty('--glass-bg',t.glassBg||'rgba(255,255,255,0.42)');doc.style.setProperty('--glass-brd',t.glassBrd||'rgba(148,163,184,0.28)');doc.style.setProperty('--btn-text','#fff');}
-  applyTheme(localStorage.getItem('theme')||'purple');
-  document.addEventListener('DOMContentLoaded',function(){doc.style.visibility='';});
-})();
-</script>
+  <script src="/theme.js"></script>
   <link id="dark-theme-css" rel="stylesheet" href="/assets/evolv-dark-BLxRb3yA.css?v=3" disabled>
-  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){var d=document.getElementById("dark-theme-css");var l=document.getElementById("light-theme-css");if(d)d.removeAttribute("disabled");if(l)l.disabled=true;}})()</script>
-  <script type="module" crossorigin src="/assets/education-fwe3bcf8.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/GlobalUIProvider-CypOeZ38.js">
-  <link rel="modulepreload" crossorigin href="/assets/evolv-light-UXnw5vUR.js">
-  <link rel="modulepreload" crossorigin href="/assets/tour-guide-_qZ6MUNR.js">
-  <link rel="modulepreload" crossorigin href="/assets/useQuery-DRQBboMM.js">
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+  <script src="/sidebar.js?v=27" defer></script>
+  <script src="/command-palette.js" defer></script>
+  <script type="module" crossorigin src="/assets/evolv-light-CscajxBz.js"></script>
+  <script type="module" crossorigin src="/assets/common-cmR40mwU.js"></script>
+  <script type="module" crossorigin src="/assets/tour-guide-CQHuR1Bq.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/evolv-light-sf0Pbxdz.css">
-  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
   <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
+  <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
 </head>
 <body>
 <header id="host-nav" class="p-4">
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
-      <div class="text-xl font-semibold">Evolv CRM</div>
+      <div class="text-xl font-semibold">Metro 2 CRM</div>
     </div>
   </div>
 </header>
 
 <main class="workspace px-4 pb-12">
-  <div id="root"></div>
+  <div class="workspace-inner max-w-3xl mx-auto space-y-6">
+
+    <section class="workspace-hero glass card">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <p class="eyebrow">Credit Academy</p>
+          <h1 class="hero-title">Education</h1>
+          <p class="hero-description">Master credit repair fundamentals, FCRA law, and advanced dispute strategies — one lesson at a time.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="educationSection">
+      <div class="edu-header glass card p-5">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="edu-header-icon">🎓</div>
+          <div>
+            <h2 class="text-xl font-bold">Credit Academy</h2>
+            <p class="text-sm" style="color:#9ca3af;">Master your credit, one lesson at a time.</p>
+          </div>
+        </div>
+        <div class="edu-xp-bar">
+          <div class="edu-xp-label">
+            <span class="edu-level-badge">Level 1</span>
+            <span class="text-xs" style="color:#9ca3af;">0 / 800 XP</span>
+          </div>
+          <div class="edu-xp-track">
+            <div class="edu-xp-fill" style="width:0%"></div>
+          </div>
+          <div class="flex items-center gap-3 text-xs" style="color:#9ca3af;">
+            <span>🔥 0 day streak</span>
+            <span>✅ 0 complete</span>
+          </div>
+        </div>
+      </div>
+      <div id="education"></div>
+    </section>
+
+  </div>
 </main>
 
+<script defer src="/education-lessons.js"></script>
+<script defer src="/education-intermediate.js"></script>
+<script defer src="/education-expert.js"></script>
+<script defer src="/education-player.js"></script>
+<script defer src="/education-crm.js"></script>
 </body>
 </html>
