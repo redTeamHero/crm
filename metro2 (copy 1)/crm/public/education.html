@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Credit Academy — Evolv CRM</title>
+  <title>Education — Evolv CRM</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/tour-guide.css">
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/style.css">
   <link id="light-theme-css" rel="stylesheet" href="/evolv-light.css?v=3">
   <link id="dark-theme-css" rel="stylesheet" href="/evolv-dark.css?v=3" disabled>
-  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){var d=document.getElementById("dark-theme-css");var l=document.getElementById("light-theme-css");if(d)d.removeAttribute("disabled");if(l)l.disabled=true;}})()</script>
   <script src="/sidebar.js?v=27" defer></script>
   <script src="/command-palette.js" defer></script>
 </head>
@@ -18,59 +18,16 @@
 <header id="host-nav" class="p-4">
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
-      <div class="text-xl font-semibold">Metro 2 CRM</div>
+      <div class="text-xl font-semibold">Evolv CRM</div>
     </div>
   </div>
 </header>
 
 <main class="workspace px-4 pb-12">
-  <div class="workspace-inner max-w-3xl mx-auto space-y-6">
-
-    <section class="workspace-hero glass card">
-      <div class="hero-top">
-        <div class="hero-copy">
-          <p class="eyebrow">Credit Academy</p>
-          <h1 class="hero-title">Education</h1>
-          <p class="hero-description">Master credit repair fundamentals, FCRA law, and advanced dispute strategies — one lesson at a time.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="educationSection">
-      <div class="edu-header glass card p-5">
-        <div class="flex items-center gap-3 mb-1">
-          <div class="edu-header-icon">🎓</div>
-          <div>
-            <h2 class="text-xl font-bold">Credit Academy</h2>
-            <p class="text-sm" style="color:#9ca3af;">Master your credit, one lesson at a time.</p>
-          </div>
-        </div>
-        <div class="edu-xp-bar">
-          <div class="edu-xp-label">
-            <span class="edu-level-badge">Level 1</span>
-            <span class="text-xs" style="color:#9ca3af;">0 / 800 XP</span>
-          </div>
-          <div class="edu-xp-track">
-            <div class="edu-xp-fill" style="width:0%"></div>
-          </div>
-          <div class="flex items-center gap-3 text-xs" style="color:#9ca3af;">
-            <span>🔥 0 day streak</span>
-            <span>✅ 0 complete</span>
-          </div>
-        </div>
-      </div>
-      <div id="education"></div>
-    </section>
-
-  </div>
+  <div id="root"></div>
 </main>
 
-<script src="/common.js" type="module"></script>
-<script defer src="/education-lessons.js"></script>
-<script defer src="/education-intermediate.js"></script>
-<script defer src="/education-expert.js"></script>
-<script defer src="/education-player.js"></script>
-<script defer src="/education-crm.js"></script>
+<script type="module" src="education-app.tsx"></script>
 <script src="/tour-guide.js" type="module"></script>
 </body>
 </html>

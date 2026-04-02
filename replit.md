@@ -1,5 +1,24 @@
 # Evolv CRM
 
+## Task #88 — Full React + TanStack Query + Zustand Migration (Completed)
+
+All 21 authenticated CRM pages migrated from vanilla JS to React + TanStack Query:
+
+**Architecture pattern (per page):**
+- `public/<page>/hooks.ts` — TanStack Query data hooks
+- `public/<page>/<Page>Page.tsx` — React component with full CRUD UI
+- `public/<page>-app.tsx` — Vite entry point (QueryClientProvider wrapper)
+- Updated `public/<page>.html` — now just `<div id="root"></div>` + entry script
+
+**Pages migrated (21):**
+clients (index), dashboard, billing, leads, letters, marketing, settings, my-company, education, cfpb, tradelines, quiz, schedule, library, workflows, sms, affiliate, affiliates-admin, facebook-manager, client-invoicing, whats-in-evolv
+
+**Global state (Zustand):**
+- `public/store/appStore.ts` — `useAppStore` persists `currentConsumerId`, `sidebarExpanded`, `theme`, `notificationCount` to `localStorage:evolv-app-store`
+- DisputesPage, CfpbPage, ClientsPage, ClientInvoicingPage all read/write `currentConsumerId` so the selected client persists across page navigation
+
+**Build:** `tsc --noEmit` = 0 errors, `npm run build` = ✓ all 21 pages bundled
+
 ## Email Marketing Module (Task #68 — Completed)
 The Email/Marketing section (`/marketing/email`) has been fully rebuilt as a clean 6-tab system:
 - **Send Email** — compose and send to a single client, multiple clients, or a group; merge fields; template auto-fill; live body preview

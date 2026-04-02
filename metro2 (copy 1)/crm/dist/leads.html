@@ -1,356 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Leads</title>
+  <title>Leads — Evolv CRM</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="/theme.js"></script>
   <link id="dark-theme-css" rel="stylesheet" href="/assets/evolv-dark-BLxRb3yA.css?v=3" disabled>
-  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){document.getElementById("dark-theme-css").removeAttribute("disabled");document.getElementById("light-theme-css").disabled=true;}})()</script>
-<script src="/sidebar.js?v=27" defer></script>
-<script src="/command-palette.js" defer></script>
-  <script type="module" crossorigin src="/assets/leads-O-P3s7kw.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/evolv-light-CscajxBz.js">
-  <link rel="modulepreload" crossorigin href="/assets/common-cmR40mwU.js">
-  <link rel="modulepreload" crossorigin href="/assets/tour-guide-CQHuR1Bq.js">
+  <script>(function(){if(localStorage.getItem("evolv-theme")==="dark"){var d=document.getElementById("dark-theme-css");var l=document.getElementById("light-theme-css");if(d)d.removeAttribute("disabled");if(l)l.disabled=true;}})()</script>
+  <script src="/sidebar.js?v=27" defer></script>
+  <script src="/command-palette.js" defer></script>
+  <script type="module" crossorigin src="/assets/leads-d352Ddc7.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/QueryClientProvider-9GuVnxjb.js">
+  <link rel="modulepreload" crossorigin href="/assets/evolv-light-UXnw5vUR.js">
+  <link rel="modulepreload" crossorigin href="/assets/common-CWCJwHTf.js">
+  <link rel="modulepreload" crossorigin href="/assets/tour-guide-BRq02XNe.js">
+  <link rel="modulepreload" crossorigin href="/assets/useMutation-DvaKVVKj.js">
+  <link rel="modulepreload" crossorigin href="/assets/useQuery-CJTsAsS_.js">
   <link rel="stylesheet" crossorigin href="/assets/evolv-light-sf0Pbxdz.css">
-  <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
   <link rel="stylesheet" crossorigin href="/assets/tour-guide-D0jz-B5V.css">
+  <link rel="stylesheet" crossorigin href="/assets/style-BmhgYD3J.css">
 </head>
-<body class="page-leads">
+<body>
 <header id="host-nav" class="p-4">
   <div class="max-w-7xl mx-auto glass card nav-shell">
     <div class="nav-brand-row">
-      <div class="text-xl font-semibold">Metro 2 CRM</div>
-      <button id="navToggle" class="btn md:hidden" type="button" aria-expanded="false" aria-controls="primaryNav">
-        <span>Menu</span>
-        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </button>
+      <div class="text-xl font-semibold">Evolv CRM</div>
     </div>
-    <nav id="primaryNav" class="hidden flex-col gap-2 md:flex md:flex-row md:items-center md:gap-2" aria-label="Primary">
-      <div id="primaryNavLinks" class="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
-        <a href="/dashboard" class="btn nav-btn">Dashboard</a>
-        <a href="/clients" class="btn nav-btn">Clients</a>
-        <a href="/leads" class="btn nav-btn">Leads</a>
-        <div class="nav-dropdown" id="navMarketing">
-          <button type="button" id="navMarketingToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
-            <span data-i18n="nav.marketing">Marketing</span>
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          <div id="navMarketingMenu" class="nav-dropdown-menu glass card p-2">
-            <a href="/marketing/sms" class="btn text-sm" data-i18n="nav.marketingSms">Marketing • SMS</a>
-            <a href="/marketing/email" class="btn text-sm" data-i18n="nav.marketingEmail">Marketing • Email</a>
-          </div>
-        </div>
-        <a href="/schedule" class="btn nav-btn">Schedule</a>
-        <a href="/billing" class="btn nav-btn">Billing</a>
-        <div class="nav-dropdown" id="navSettings">
-          <button type="button" id="navSettingsToggle" class="btn nav-btn flex items-center justify-between md:justify-center gap-2" aria-expanded="false" aria-haspopup="true">
-            <span>Settings</span>
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
-          <div id="navSettingsMenu" class="nav-dropdown-menu glass card p-2">
-            <a id="navCompany" href="/my-company" class="btn text-sm">My Company</a>
-            <a href="/settings/client-portal" class="btn text-sm" data-i18n="nav.clientPortal">Client Portal</a>
-            <a href="/letters" class="btn text-sm">Letter</a>
-            <a href="/library" class="btn text-sm">Library</a>
-            <a href="/settings#api-integrations" class="btn text-sm">APIs</a>
-            <a href="/workflows" class="btn text-sm">Workflows</a>
-            <button id="btnInvite" class="btn text-sm" style="background: var(--green-bg);">Add Team Member</button>
-          </div>
-        </div>
-        <a href="/tradelines" class="btn nav-btn">Tradelines</a>
-        <button id="btnHelp" class="btn nav-btn" data-tip="Help (H)">Help</button>
-        <div id="tierBadge" class="hidden sm:flex items-center gap-2 rounded-full bg-[rgba(212,168,83,0.12)] px-4 py-2 text-[#d4a853] shadow-sm" title="You've started your journey.">
-          <span class="text-xl">📄</span>
-          <span class="font-semibold text-sm">Rookie</span>
-        </div>
-      </div>
-    </nav>
   </div>
 </header>
-<main class="max-w-7xl mx-auto p-4 space-y-8">
-  <section class="glass card lead-hero">
-    <div class="lead-hero__content">
-      <p class="lead-hero__eyebrow">Lead HQ</p>
-      <h1 class="lead-hero__title">Premium pipeline, compliant every step.</h1>
-      <p class="lead-hero__subtitle">
-        Guide prospects from audit to paid onboarding with premium touchpoints, Metro-2 clarity,
-        and NEPQ follow-ups that feel concierge. Focus on trust, timelines, and next actions that
-        move Lead→Consult% today.
-      </p>
-      <div class="lead-hero__actions">
-        <a href="/marketing/sms" class="btn text-xs sm:text-sm">Launch nurture SMS</a>
-        <a href="/billing" class="btn-outline text-xs sm:text-sm">Review Stripe offers</a>
-      </div>
-    </div>
-    <div class="lead-hero__insights">
-      <div class="lead-hero__stat">
-        <span class="lead-hero__stat-label">Active Pipeline</span>
-        <span id="leadActiveBadge" class="lead-hero__stat-value">0</span>
-        <span class="lead-hero__stat-meta">Keep consult calendars booked.</span>
-      </div>
-      <div class="lead-hero__stat">
-        <span class="lead-hero__stat-label">New (7 days)</span>
-        <span id="leadNewBadge" class="lead-hero__stat-value">0</span>
-        <span class="lead-hero__stat-meta">Trigger welcome SMS + welcome email.</span>
-      </div>
-      <div class="lead-hero__stat">
-        <span class="lead-hero__stat-label">Win Rate</span>
-        <span id="leadWinRateBadge" class="lead-hero__stat-value">0%</span>
-        <span class="lead-hero__stat-meta">Benchmark vs. certified mail upsell.</span>
-      </div>
-      <div class="lead-hero__kpi">
-        <span class="lead-hero__kpi-label">Playbook</span>
-        <p class="lead-hero__kpi-copy">
-          1. Audit → 2. Present Metro-2 gaps → 3. Offer premium onboarding.
-        </p>
-      </div>
-    </div>
-  </section>
 
-  <section id="leadMetrics" class="metric-grid">
-    <article class="metric-card">
-      <div class="metric-card__label">Total Leads</div>
-      <div class="metric-card__value" id="leadTotalCount">0</div>
-      <div class="metric-card__hint">Monitor Lead→Consult conversion.</div>
-    </article>
-    <article class="metric-card">
-      <div class="metric-card__label">New (7 days)</div>
-      <div class="metric-card__value" id="leadNewCount">0</div>
-      <div class="metric-card__hint">Fresh conversations to route today.</div>
-    </article>
-    <article class="metric-card">
-      <div class="metric-card__label">Active Pipeline</div>
-      <div class="metric-card__value" id="leadActiveCount">0</div>
-      <div class="metric-card__hint">Exclude Won/Lost for clarity.</div>
-    </article>
-    <article class="metric-card">
-      <div class="metric-card__label">Win Rate</div>
-      <div class="metric-card__value" id="leadWinRate">0%</div>
-      <div class="metric-card__hint">Track against premium upsells.</div>
-    </article>
-  </section>
-
-  <section class="glass card p-4 mb-4" style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
-    <div>
-      <h3 class="text-sm font-semibold" style="color: #d4a853;">Lead Capture Link</h3>
-      <p class="text-xs" style="color: #888;">Generate a shareable link to capture prospect information for your sales pipeline.</p>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <select id="leadCaptureSource" class="input text-sm" style="background:#1a1a1e; border:1px solid #2a2a2e; color:#fff; padding:8px 12px; border-radius:8px; min-width:140px;">
-        <option value="link">Direct Link</option>
-        <option value="website">Website</option>
-        <option value="facebook">Facebook</option>
-        <option value="instagram">Instagram</option>
-        <option value="tiktok">TikTok</option>
-        <option value="email-campaign">Email Campaign</option>
-        <option value="referral">Referral</option>
-        <option value="webinar">Webinar</option>
-      </select>
-      <button id="btnGenerateLeadLink" class="btn text-sm" style="background: linear-gradient(135deg, #d4a853, #c49a45); color: #0a0a0a; font-weight: 600; padding: 8px 16px; border-radius: 8px; white-space: nowrap;">🔗 Generate Link</button>
-    </div>
-  </section>
-
-  <div id="leadLinkResult" class="glass card p-3 mb-4" style="display:none; border:1px solid rgba(212,168,83,0.2);">
-    <div style="display:flex; gap:8px; align-items:center;">
-      <input id="leadLinkInput" type="text" readonly class="input flex-1 text-sm" style="background:#1a1a1e; border:1px solid #2a2a2e; color:#fff; padding:8px 12px; border-radius:8px;" />
-      <button id="leadLinkCopy" class="btn text-sm" style="background:#d4a853; color:#0a0a0a; font-weight:600; padding:8px 16px; border-radius:8px;">Copy</button>
-    </div>
-    <div id="leadLinkStatus" class="text-xs mt-1" style="color: #22c55e; display: none;">Copied to clipboard!</div>
-  </div>
-
-  <section class="glass card lead-intake-card lead-intake-card--full">
-    <div class="lead-intake-card__header">
-      <div>
-        <p class="lead-intake-card__eyebrow">New Lead Intake • Ingreso de Prospectos</p>
-        <h2 class="lead-intake-card__title">Capture trust before the consult.</h2>
-        <p class="lead-intake-card__subtitle">
-          Document source, compliance flags, and next promise so your team can follow through sin confusión.
-        </p>
-      </div>
-      <div class="lead-intake-card__stat">
-        <span class="lead-intake-card__stat-label">Win Rate</span>
-        <span class="lead-intake-card__stat-value" id="leadWinRateBadgeSecondary">0%</span>
-        <span class="lead-intake-card__stat-hint">Share in standups.</span>
-      </div>
-    </div>
-    <div class="lead-intake-steps">
-      <div class="lead-intake-step is-active">
-        <span class="lead-intake-step__dot">1</span>
-        <span>Capture channel + consent</span>
-      </div>
-      <div class="lead-intake-step">
-        <span class="lead-intake-step__dot">2</span>
-        <span>Log NEPQ pain + goals</span>
-      </div>
-      <div class="lead-intake-step">
-        <span class="lead-intake-step__dot">3</span>
-        <span>Offer premium onboarding</span>
-      </div>
-    </div>
-    <form id="leadForm" class="lead-form">
-      <div class="lead-form__section">
-        <h3 class="lead-form__section-title">Contact</h3>
-        <div class="lead-form__grid">
-          <label class="lead-form__field">
-            <span>Name / Nombre</span>
-            <input id="leadName" name="name" class="input" placeholder="Jane Founder" />
-          </label>
-          <label class="lead-form__field">
-            <span>Email</span>
-            <input id="leadEmail" name="email" type="email" class="input" placeholder="name@email.com" />
-          </label>
-          <label class="lead-form__field">
-            <span>Phone / Teléfono</span>
-            <input id="leadPhone" name="phone" class="input" placeholder="(555) 123-4567" />
-          </label>
-        </div>
-      </div>
-      <div class="lead-form__section">
-        <h3 class="lead-form__section-title">Pipeline Snapshot</h3>
-        <div class="lead-form__grid lead-form__grid--compact">
-          <label class="lead-form__field">
-            <span>Source</span>
-            <input id="leadSource" name="source" class="input" placeholder="Webinar, Referral, Ads..." />
-          </label>
-          <label class="lead-form__field">
-            <span>Stage</span>
-            <select id="leadStage" name="status" class="input">
-              <option value="new">New</option>
-              <option value="working">Working</option>
-              <option value="qualified">Qualified</option>
-              <option value="nurture">Nurture</option>
-              <option value="won">Won</option>
-              <option value="lost">Lost</option>
-            </select>
-          </label>
-        </div>
-      </div>
-      <div class="lead-form__section">
-        <div class="lead-form__section-heading">
-          <h3 class="lead-form__section-title">Mailing Address</h3>
-          <span class="lead-form__section-hint">Feeds coverage analytics</span>
-        </div>
-        <div class="lead-form__grid">
-          <label class="lead-form__field">
-            <span>Address 1</span>
-            <input id="leadAddr1" name="addr1" class="input" placeholder="123 Main St" />
-          </label>
-          <label class="lead-form__field">
-            <span>Address 2</span>
-            <input id="leadAddr2" name="addr2" class="input" placeholder="Suite 200" />
-          </label>
-          <label class="lead-form__field">
-            <span>City</span>
-            <input id="leadCity" name="city" class="input" placeholder="Austin" />
-          </label>
-          <label class="lead-form__field">
-            <span>State</span>
-            <input id="leadState" name="state" class="input" placeholder="TX" />
-          </label>
-          <label class="lead-form__field">
-            <span>Zip</span>
-            <input id="leadZip" name="zip" class="input" placeholder="73301" />
-          </label>
-          <label class="lead-form__field">
-            <span>Date of Birth</span>
-            <input id="leadDob" name="dob" type="date" class="input" />
-          </label>
-        </div>
-      </div>
-      <div class="lead-form__section">
-        <h3 class="lead-form__section-title">Notes / Notas</h3>
-        <textarea id="leadNotes" name="notes" class="input lead-form__textarea" rows="3" placeholder="NEPQ cues, compliance flags, promised deliverables..."></textarea>
-      </div>
-      <div class="lead-form__footer">
-        <p class="lead-form__compliance">
-          Reminder: Log facts only—no guarantees of score changes or timelines. Recuerda: sin prometer resultados.
-        </p>
-        <button type="submit" id="saveLead" class="btn w-full text-sm">Save Lead</button>
-        <div class="lead-form__shortcut">
-          <span>Shortcut: Press <strong>L</strong> to clear and focus for the next lead.</span>
-          <a href="/library" class="lead-form__link">Download NEPQ script</a>
-        </div>
-      </div>
-    </form>
-  </section>
-
-  <section class="lead-layout">
-    <div class="lead-layout__primary">
-      <div class="glass card lead-panel">
-        <div class="lead-panel__body">
-          <div>
-            <h2 class="lead-panel__title">Pipeline Overview</h2>
-            <p class="lead-panel__subtitle">
-              Drag conversations through NEPQ stages, spotlight wins, and refresh after campaigns.
-            </p>
-          </div>
-          <div class="lead-panel__controls">
-            <label for="leadSourceFilter" class="lead-panel__label">Source</label>
-            <select id="leadSourceFilter" class="input lead-panel__select">
-              <option value="all">All sources</option>
-            </select>
-            <button id="leadRefresh" class="btn-outline lead-panel__refresh text-xs sm:text-sm">Refresh</button>
-          </div>
-        </div>
-        <div class="lead-panel__foot">
-          <span class="lead-panel__footnote">
-            KPI tip: track show rate per stage and trigger automated check-ins for stalled deals.
-          </span>
-        </div>
-      </div>
-      <div class="lead-board-wrapper">
-        <div id="pipelineBoard" class="lead-board"></div>
-      </div>
-    </div>
-    <aside class="lead-layout__aside">
-      <div id="leadFollowupCard" class="glass card lead-followup-card">
-        <div class="lead-followup-card__header">
-          <div>
-            <h2 class="lead-followup-card__title">Follow-up Radar</h2>
-            <p class="lead-followup-card__subtitle">Auto-prioritized by inactivity—call hot leads first.</p>
-          </div>
-          <span class="lead-followup-card__badge">Daily pulse</span>
-        </div>
-        <ul id="leadHighlights" class="lead-highlight-list"></ul>
-        <div class="lead-followup-card__footer">
-          <p class="lead-followup-card__hint">
-            Pair these with SMS nudges and the conversion drip inside Marketing.
-          </p>
-          <a href="/marketing/sms" class="btn-outline text-xs">Open nurture automations</a>
-        </div>
-      </div>
-      <div id="leadSourceCard" class="glass card lead-sources-card">
-        <div class="lead-sources-card__header">
-          <div>
-            <h2 class="lead-sources-card__title">Source Mix</h2>
-            <p class="lead-sources-card__subtitle">Spot winners and scale spend with clarity.</p>
-          </div>
-          <span class="lead-sources-card__badge">Top channels</span>
-        </div>
-        <div id="leadSourceBreakdown" class="lead-source-breakdown"></div>
-        <div class="lead-sources-card__footer">
-          <p class="lead-sources-card__hint">
-            KPI idea: A/B test quiz funnel vs. checklist download for higher Consult%.
-          </p>
-          <a href="/marketing/email" class="lead-sources-card__link">Build follow-up email</a>
-        </div>
-      </div>
-    </aside>
-  </section>
+<main class="workspace px-4 pb-12">
+  <div id="root"></div>
 </main>
-<script src="/hotkeys.js"></script>
+
 </body>
 </html>
