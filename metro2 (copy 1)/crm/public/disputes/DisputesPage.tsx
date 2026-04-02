@@ -68,6 +68,8 @@ export function DisputesPage() {
   useEffect(() => {
     if (reportsQ.data?.reports?.[0]) {
       setReportId(reportsQ.data.reports[0].id ?? null);
+    } else if (reportsQ.data) {
+      setReportId(null);
     }
   }, [reportsQ.data]);
 
@@ -453,7 +455,7 @@ export function DisputesPage() {
           <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 6, letterSpacing: '.04em' }}>Select Client</label>
           {consumersQ.isLoading ? <div style={{ color: '#666', fontSize: 13 }}>Loading clients…</div> :
           consumersQ.isError ? <div style={{ color: '#f87171', fontSize: 13 }}>Failed to load clients.</div> : (
-            <select value={consumerId || ''} onChange={e => { setConsumerId(e.target.value || null); clearSelection(); }}
+            <select value={consumerId || ''} onChange={e => { setConsumerId(e.target.value || null); setReportId(null); clearSelection(); }}
               className="input" style={{ width: '100%', maxWidth: 400 }}>
               <option value="">— Select a client —</option>
               {consumers.map(c => (
