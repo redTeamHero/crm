@@ -1,10 +1,10 @@
-import { runMigrations, getDatabase } from "../db/connection.js";
+import { runMigrations, closeDatabase } from "../db/connection.ts";
 
 async function main() {
   try {
     await runMigrations();
-    await getDatabase().destroy();
     console.log("Database migrations applied successfully.");
+    await closeDatabase();
     process.exit(0);
   } catch (err) {
     console.error("Failed to run migrations", err);

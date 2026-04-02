@@ -1,4 +1,11 @@
-import { getDatabase } from "../db/connection.js";
+import { getDrizzleDb, getDbDialect } from "../db/connection.ts";
+import {
+  tenantRegistry,
+  tenantMigrationEvents,
+  checkoutConversionEvents,
+  abTestAssignments,
+} from "../db/schema.ts";
+import { eq, and } from "drizzle-orm";
 import { sanitizeTenantId, DEFAULT_TENANT_ID } from "../tenantLimits.js";
 import { logWarn } from "../logger.js";
 
@@ -14,34 +21,38 @@ function clampDuration(durationMs) {
   return num;
 }
 
-function adaptMetadata(db, metadata) {
-  if (!metadata || typeof metadata !== "object") {
-    return metadata ?? null;
-  }
-  const client = (db?.client?.config?.client || "").toLowerCase();
-  if (client.includes("sqlite")) {
+function adaptMetadata(metadata) {
+  if (!metadata || typeof metadata !== "object") return metadata ?? null;
+  const dialect = getDbDialect();
+  if (dialect === "sqlite") {
     try {
       return JSON.stringify(metadata);
-    } catch (err) {
-      logWarn("METRIC_METADATA_SERIALIZE_FAILED", err?.message || String(err));
+    } catch {
+      logWarn("METRIC_METADATA_SERIALIZE_FAILED", "could not serialize metadata");
       return null;
     }
   }
   return metadata;
 }
 
-async function ensureTenantRegistryRow(trx, tenantId) {
-  const existing = await trx("tenant_registry").where({ tenant_id: tenantId }).first();
-  if (existing) {
-    return existing;
-  }
-  const now = trx.fn.now();
-  await trx("tenant_registry").insert({
-    tenant_id: tenantId,
-    created_at: now,
-    updated_at: now,
-  });
-  return trx("tenant_registry").where({ tenant_id: tenantId }).first();
+async function ensureTenantRegistryRow(tx, tenantId) {
+  const rows = await tx
+    .select()
+    .from(tenantRegistry)
+    .where(eq(tenantRegistry.tenantId, tenantId));
+  const existing = rows[0] ?? null;
+  if (existing) return existing;
+
+  const now = new Date();
+  await tx
+    .insert(tenantRegistry)
+    .values({ tenantId, createdAt: now, updatedAt: now });
+
+  const inserted = await tx
+    .select()
+    .from(tenantRegistry)
+    .where(eq(tenantRegistry.tenantId, tenantId));
+  return inserted[0] ?? null;
 }
 
 export async function recordTenantMigrationMetric({
@@ -52,35 +63,36 @@ export async function recordTenantMigrationMetric({
   errorMessage = null,
   metadata = null,
 } = {}) {
-  const db = getDatabase();
+  const db = getDrizzleDb();
   const normalizedTenant = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
   const payload = {
-    tenant_id: normalizedTenant,
+    tenantId: normalizedTenant,
     context: context || "onboarding",
     success: !!success,
-    duration_ms: clampDuration(durationMs),
-    error_message: errorMessage ? truncate(errorMessage) : null,
-    metadata: adaptMetadata(db, metadata),
+    durationMs: clampDuration(durationMs),
+    errorMessage: errorMessage ? truncate(errorMessage) : null,
+    metadata: adaptMetadata(metadata),
   };
   try {
-    await db.transaction(async (trx) => {
-      await trx("tenant_migration_events").insert(payload);
-      const registryRow = await ensureTenantRegistryRow(trx, normalizedTenant);
-      const now = trx.fn.now();
-      const currentSuccess = Number(registryRow?.migrations_success_count || 0);
-      const currentFailure = Number(registryRow?.migrations_failure_count || 0);
+    await db.transaction(async (tx) => {
+      await tx.insert(tenantMigrationEvents).values(payload);
+      const registryRow = await ensureTenantRegistryRow(tx, normalizedTenant);
+      const now = new Date();
+      const currentSuccess = Number(registryRow?.migrationsSuccessCount || 0);
+      const currentFailure = Number(registryRow?.migrationsFailureCount || 0);
       const nextSuccess = currentSuccess + (success ? 1 : 0);
       const nextFailure = currentFailure + (success ? 0 : 1);
-      await trx("tenant_registry")
-        .where({ tenant_id: normalizedTenant })
-        .update({
-          last_migration_at: now,
-          last_migration_duration_ms: clampDuration(durationMs),
-          last_migration_error: success ? null : truncate(errorMessage),
-          migrations_success_count: nextSuccess,
-          migrations_failure_count: nextFailure,
-          updated_at: now,
-        });
+      await tx
+        .update(tenantRegistry)
+        .set({
+          lastMigrationAt: now,
+          lastMigrationDurationMs: clampDuration(durationMs),
+          lastMigrationError: success ? null : truncate(errorMessage),
+          migrationsSuccessCount: nextSuccess,
+          migrationsFailureCount: nextFailure,
+          updatedAt: now,
+        })
+        .where(eq(tenantRegistry.tenantId, normalizedTenant));
     });
   } catch (err) {
     logWarn("TENANT_MIGRATION_METRIC_FAILED", err?.message || String(err), {
@@ -100,20 +112,20 @@ export async function recordCheckoutStage({
   metadata = null,
 } = {}) {
   if (!invoiceId || !stage) return;
-  const db = getDatabase();
+  const db = getDrizzleDb();
   const normalizedTenant = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
   const payload = {
-    tenant_id: normalizedTenant,
-    invoice_id: String(invoiceId),
+    tenantId: normalizedTenant,
+    invoiceId: String(invoiceId),
     stage: stage.toString().slice(0, 64),
     success: !!success,
-    session_id: sessionId ? String(sessionId).slice(0, 128) : null,
-    amount_cents: clampDuration(amountCents),
+    sessionId: sessionId ? String(sessionId).slice(0, 128) : null,
+    amountCents: clampDuration(amountCents),
     currency: (currency || "usd").toString().slice(0, 16).toLowerCase(),
-    metadata: adaptMetadata(db, metadata),
+    metadata: adaptMetadata(metadata),
   };
   try {
-    await db("checkout_conversion_events").insert(payload);
+    await db.insert(checkoutConversionEvents).values(payload);
   } catch (err) {
     logWarn("CHECKOUT_STAGE_METRIC_FAILED", err?.message || String(err), {
       tenantId: normalizedTenant,
@@ -124,9 +136,7 @@ export async function recordCheckoutStage({
 }
 
 function resolveVariant(variants = []) {
-  if (!Array.isArray(variants) || variants.length === 0) {
-    return "control";
-  }
+  if (!Array.isArray(variants) || variants.length === 0) return "control";
   const weighted = variants.flatMap((variant) => {
     if (!variant) return [];
     const weight = Math.max(1, Number(variant.weight || 1));
@@ -150,27 +160,34 @@ export async function assignExperimentVariant({
   context = "portal",
   metadata = null,
 } = {}) {
-  if (!testKey) {
-    return { variant: "control" };
-  }
-  const db = getDatabase();
+  if (!testKey) return { variant: "control" };
+  const db = getDrizzleDb();
   const normalizedTenant = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
   const normalizedVisitor = visitorId ? String(visitorId).slice(0, 128) : null;
   try {
-    const existing = await db("ab_test_assignments")
-      .where({ tenant_id: normalizedTenant, test_key: testKey, context, visitor_id: normalizedVisitor })
-      .first();
+    const rows = await db
+      .select()
+      .from(abTestAssignments)
+      .where(
+        and(
+          eq(abTestAssignments.tenantId, normalizedTenant),
+          eq(abTestAssignments.testKey, testKey),
+          eq(abTestAssignments.context, context),
+          eq(abTestAssignments.visitorId, normalizedVisitor)
+        )
+      );
+    const existing = rows[0] ?? null;
     if (existing) {
       return { variant: existing.variant, converted: !!existing.converted };
     }
     const variantName = resolveVariant(variants);
-    await db("ab_test_assignments").insert({
-      tenant_id: normalizedTenant,
-      test_key: testKey,
+    await db.insert(abTestAssignments).values({
+      tenantId: normalizedTenant,
+      testKey,
       variant: variantName,
-      visitor_id: normalizedVisitor,
+      visitorId: normalizedVisitor,
       context,
-      metadata: adaptMetadata(db, metadata),
+      metadata: adaptMetadata(metadata),
     });
     return { variant: variantName, converted: false };
   } catch (err) {
@@ -190,27 +207,42 @@ export async function recordExperimentConversion({
   metadata = null,
 } = {}) {
   if (!testKey) return;
-  const db = getDatabase();
+  const db = getDrizzleDb();
   const normalizedTenant = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
   const normalizedVisitor = visitorId ? String(visitorId).slice(0, 128) : null;
   try {
-    const updated = await db("ab_test_assignments")
-      .where({ tenant_id: normalizedTenant, test_key: testKey, context, visitor_id: normalizedVisitor })
-      .update({
-        converted: true,
-        converted_at: db.fn.now(),
-        metadata: adaptMetadata(db, metadata),
-      });
-    if (!updated) {
-      await db("ab_test_assignments").insert({
-        tenant_id: normalizedTenant,
-        test_key: testKey,
+    const now = new Date();
+    const rows = await db
+      .select({ id: abTestAssignments.id })
+      .from(abTestAssignments)
+      .where(
+        and(
+          eq(abTestAssignments.tenantId, normalizedTenant),
+          eq(abTestAssignments.testKey, testKey),
+          eq(abTestAssignments.context, context),
+          eq(abTestAssignments.visitorId, normalizedVisitor)
+        )
+      );
+    const existing = rows[0] ?? null;
+    if (existing) {
+      await db
+        .update(abTestAssignments)
+        .set({
+          converted: true,
+          convertedAt: now,
+          metadata: adaptMetadata(metadata),
+        })
+        .where(eq(abTestAssignments.id, existing.id));
+    } else {
+      await db.insert(abTestAssignments).values({
+        tenantId: normalizedTenant,
+        testKey,
         variant: "control",
-        visitor_id: normalizedVisitor,
+        visitorId: normalizedVisitor,
         context,
         converted: true,
-        converted_at: db.fn.now(),
-        metadata: adaptMetadata(db, metadata),
+        convertedAt: now,
+        metadata: adaptMetadata(metadata),
       });
     }
   } catch (err) {

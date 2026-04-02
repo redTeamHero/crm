@@ -1,4 +1,14 @@
-import { getDatabase, runMigrations, getTenantStrategy, getSchemaPrefix } from "./db/connection.js";
+import {
+  getDrizzleDb,
+  getDatabase,
+  runMigrations,
+  getTenantStrategy,
+  getSchemaPrefix,
+  getDbDialect,
+} from "./db/connection.ts";
+import { tenantKv, tenantRegistry } from "./db/schema.ts";
+import { eq, and } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { DEFAULT_TENANT_ID, sanitizeTenantId } from "./tenantLimits.js";
 import { getCurrentTenantId } from "./tenantContext.js";
 
@@ -7,15 +17,10 @@ let sharedTableInitialized = false;
 let initializationPromise = null;
 
 // ── In-memory KV cache ────────────────────────────────────────────────────────
-// Dramatically reduces PostgreSQL round-trips on login when the dashboard fires
-// 8-10 concurrent API calls that all read the same large blobs (consumers, users…).
-// Strategy: write-through (writes update cache immediately) + 60s TTL reads.
-// Concurrent reads for the same key share one in-flight DB promise ("thundering
-// herd" prevention) so we never issue duplicate queries.
-const KV_CACHE_TTL_MS = 60_000; // 60 seconds
+const KV_CACHE_TTL_MS = 60_000;
 
-const _kvCache = new Map();    // cacheKey -> { value, expiresAt }
-const _kvInflight = new Map(); // cacheKey -> Promise  (dedup concurrent reads)
+const _kvCache = new Map();
+const _kvInflight = new Map();
 
 function _cacheKey(key, tenantId) {
   return `${tenantId}::${key}`;
@@ -39,36 +44,23 @@ function _cacheDelete(cacheKey) {
   _kvCache.delete(cacheKey);
   _kvInflight.delete(cacheKey);
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
-function toJson(value) {
-  try {
-    const serialized = JSON.stringify(value);
-    if (serialized === undefined) {
-      return JSON.stringify(null);
-    }
-    return serialized;
-  } catch (err) {
-    return JSON.stringify(null);
-  }
-}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function parseValue(raw, fallback) {
   if (raw === null || raw === undefined) return fallback;
-  if (typeof raw === "object") {
-    return raw;
-  }
+  if (typeof raw === "object") return raw;
   if (typeof raw === "string") {
     if (!raw) return fallback;
     try {
       return JSON.parse(raw);
-    } catch (err) {
+    } catch {
       return fallback;
     }
   }
   try {
     return JSON.parse(JSON.stringify(raw));
-  } catch (err) {
+  } catch {
     return fallback;
   }
 }
@@ -81,7 +73,7 @@ function resolveTenant(options) {
     if (options.tenantId) {
       return sanitizeTenantId(options.tenantId, DEFAULT_TENANT_ID);
     }
-    if (options.req && options.req.user && options.req.user.tenantId) {
+    if (options.req?.user?.tenantId) {
       return sanitizeTenantId(options.req.user.tenantId, DEFAULT_TENANT_ID);
     }
   }
@@ -94,11 +86,14 @@ function resolveTenant(options) {
 
 function schemaNameForTenant(tenantId) {
   const prefix = getSchemaPrefix();
-  const safeTenant = tenantId.replace(/[^a-z0-9_]+/gi, "_").replace(/^_+/, "").replace(/_+$/, "");
-  const finalName = safeTenant ? `${prefix}${safeTenant}` : `${prefix}${DEFAULT_TENANT_ID}`;
-  if (/^[0-9]/.test(finalName)) {
-    return `t_${finalName}`;
-  }
+  const safeTenant = tenantId
+    .replace(/[^a-z0-9_]+/gi, "_")
+    .replace(/^_+/, "")
+    .replace(/_+$/, "");
+  const finalName = safeTenant
+    ? `${prefix}${safeTenant}`
+    : `${prefix}${DEFAULT_TENANT_ID}`;
+  if (/^[0-9]/.test(finalName)) return `t_${finalName}`;
   return finalName;
 }
 
@@ -118,46 +113,62 @@ async function ensureSharedStructures() {
   sharedTableInitialized = true;
 }
 
+// ── Schema-strategy helpers (PostgreSQL only, raw SQL via Drizzle) ─────────────
+
 async function ensureTenantSchema(db, tenantId) {
   const schemaName = schemaNameForTenant(tenantId);
   if (schemaCache.has(schemaName)) return schemaName;
 
   await ensureInitialized();
-  await db.transaction(async (trx) => {
-    const existing = await trx("tenant_registry").where({ tenant_id: tenantId }).first();
-    if (existing && existing.schema_name) {
-      schemaCache.add(existing.schema_name);
+
+  await db.transaction(async (tx) => {
+    const rows = await tx
+      .select()
+      .from(tenantRegistry)
+      .where(eq(tenantRegistry.tenantId, tenantId));
+    const existing = rows[0] ?? null;
+
+    if (existing && existing.schemaName) {
+      schemaCache.add(existing.schemaName);
       return;
     }
 
-    await trx.raw(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`);
+    await tx.execute(sql.raw(`CREATE SCHEMA IF NOT EXISTS "${schemaName}"`));
 
-    const tableExists = await trx
-      .select(1)
-      .from("information_schema.tables")
-      .where({ table_schema: schemaName, table_name: "kv_store" })
-      .first();
+    const tableCheck = await tx.execute(sql`
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = ${schemaName} AND table_name = 'kv_store'
+      LIMIT 1
+    `);
 
-    if (!tableExists) {
-      await trx.raw(`
+    if (!tableCheck.rows.length) {
+      await tx.execute(sql.raw(`
         CREATE TABLE IF NOT EXISTS "${schemaName}"."kv_store" (
           key text PRIMARY KEY,
           value jsonb NOT NULL,
           updated_at timestamptz NOT NULL DEFAULT now()
-        );
-      `);
-      await trx.raw(`CREATE INDEX IF NOT EXISTS kv_store_updated_at_idx ON "${schemaName}"."kv_store" (updated_at);`);
+        )
+      `));
+      await tx.execute(
+        sql.raw(
+          `CREATE INDEX IF NOT EXISTS kv_store_updated_at_idx ON "${schemaName}"."kv_store" (updated_at)`
+        )
+      );
     }
 
     if (!existing) {
-      await trx("tenant_registry")
-        .insert({ tenant_id: tenantId, schema_name: schemaName })
-        .onConflict("tenant_id")
-        .merge({ schema_name: schemaName, updated_at: trx.fn.now() });
-    } else if (!existing.schema_name) {
-      await trx("tenant_registry")
-        .where({ tenant_id: tenantId })
-        .update({ schema_name: schemaName, updated_at: trx.fn.now() });
+      await tx
+        .insert(tenantRegistry)
+        .values({ tenantId, schemaName })
+        .onConflictDoUpdate({
+          target: tenantRegistry.tenantId,
+          set: { schemaName, updatedAt: new Date() },
+        });
+    } else if (!existing.schemaName) {
+      await tx
+        .update(tenantRegistry)
+        .set({ schemaName, updatedAt: new Date() })
+        .where(eq(tenantRegistry.tenantId, tenantId));
     }
   });
 
@@ -165,39 +176,116 @@ async function ensureTenantSchema(db, tenantId) {
   return schemaName;
 }
 
-async function getTenantContext(options) {
-  const tenantId = resolveTenant(options);
-  const db = getDatabase();
-  const strategy = getTenantStrategy();
-  if (strategy === "schema" && db.client.config.client === "pg") {
-    const schemaName = await ensureTenantSchema(db, tenantId);
-    return { db, tenantId, strategy: "schema", schemaName };
+// ── Knex fallback for non-pg drivers ─────────────────────────────────────────
+
+async function _knexRead(key, tenantId, strategy, schemaName) {
+  const knexDb = getDatabase();
+  if (strategy === "schema") {
+    const row = await knexDb
+      .withSchema(schemaName)
+      .from("kv_store")
+      .where({ key })
+      .first();
+    return row ? parseValue(row.value, undefined) : undefined;
   }
-  await ensureSharedStructures();
-  return { db, tenantId, strategy: "shared" };
+  const row = await knexDb("tenant_kv")
+    .where({ tenant_id: tenantId, key })
+    .first();
+  return row ? parseValue(row.value, undefined) : undefined;
 }
 
+async function _knexWrite(key, value, tenantId, strategy, schemaName) {
+  const knexDb = getDatabase();
+  const jsonStr = typeof value === "string" ? value : JSON.stringify(value);
+  const payload = { value: jsonStr, updated_at: knexDb.fn.now() };
+  if (strategy === "schema") {
+    await knexDb
+      .withSchema(schemaName)
+      .from("kv_store")
+      .insert({ key, ...payload })
+      .onConflict("key")
+      .merge(payload);
+    return;
+  }
+  await knexDb("tenant_kv")
+    .insert({ tenant_id: tenantId, key, ...payload })
+    .onConflict(["tenant_id", "key"])
+    .merge(payload);
+}
+
+async function _knexDelete(key, tenantId, strategy, schemaName) {
+  const knexDb = getDatabase();
+  if (strategy === "schema") {
+    await knexDb.withSchema(schemaName).from("kv_store").where({ key }).del();
+    return;
+  }
+  await knexDb("tenant_kv").where({ tenant_id: tenantId, key }).del();
+}
+
+async function _knexList(tenantId, strategy, schemaName) {
+  const knexDb = getDatabase();
+  if (strategy === "schema") {
+    return knexDb
+      .withSchema(schemaName)
+      .from("kv_store")
+      .select("key", "updated_at");
+  }
+  return knexDb("tenant_kv")
+    .where({ tenant_id: tenantId })
+    .select("key", "updated_at");
+}
+
+// ── Resolve tenant context ────────────────────────────────────────────────────
+
+async function getTenantContext(options) {
+  const tenantId = resolveTenant(options);
+  const strategy = getTenantStrategy();
+  const dialect = getDbDialect();
+
+  if (strategy === "schema" && dialect === "pg") {
+    const db = getDrizzleDb();
+    const schemaName = await ensureTenantSchema(db, tenantId);
+    return { tenantId, strategy: "schema", schemaName, isPg: true };
+  }
+
+  await ensureSharedStructures();
+  return { tenantId, strategy: "shared", schemaName: null, isPg: dialect === "pg" };
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
 export async function readKey(key, fallback, options = {}) {
-  const { db, tenantId, strategy, schemaName } = await getTenantContext(options);
+  const { tenantId, strategy, schemaName, isPg } = await getTenantContext(options);
   const ck = _cacheKey(key, tenantId);
 
-  // 1. Serve from cache if fresh
   const cached = _cacheGet(ck);
   if (cached !== undefined) return cached;
 
-  // 2. If another caller is already fetching this key, share their promise
   if (_kvInflight.has(ck)) {
     const val = await _kvInflight.get(ck);
     return val !== undefined ? val : fallback;
   }
 
-  // 3. Go to DB and dedup concurrent callers
   const dbPromise = (async () => {
+    if (!isPg) {
+      return _knexRead(key, tenantId, strategy, schemaName);
+    }
+
+    const db = getDrizzleDb();
+
     if (strategy === "schema") {
-      const row = await db.withSchema(schemaName).from("kv_store").where({ key }).first();
+      const result = await db.execute(
+        sql`SELECT value FROM ${sql.raw(`"${schemaName}"."kv_store"`)} WHERE key = ${key}`
+      );
+      const row = result.rows[0];
       return row ? parseValue(row.value, undefined) : undefined;
     }
-    const row = await db("tenant_kv").where({ tenant_id: tenantId, key }).first();
+
+    const rows = await db
+      .select()
+      .from(tenantKv)
+      .where(and(eq(tenantKv.tenantId, tenantId), eq(tenantKv.key, key)));
+    const row = rows[0];
     return row ? parseValue(row.value, undefined) : undefined;
   })();
 
@@ -217,60 +305,112 @@ export async function readKey(key, fallback, options = {}) {
 }
 
 export async function writeKey(key, value, options = {}) {
-  const { db, tenantId, strategy, schemaName } = await getTenantContext(options);
+  const { tenantId, strategy, schemaName, isPg } = await getTenantContext(options);
   const ck = _cacheKey(key, tenantId);
 
-  // Write-through: update cache immediately so subsequent reads are instant
   _cacheSet(ck, value);
 
-  const payload = { value: toJson(value), updated_at: db.fn.now() };
-  if (strategy === "schema") {
-    await db
-      .withSchema(schemaName)
-      .from("kv_store")
-      .insert({ key, ...payload })
-      .onConflict("key")
-      .merge(payload);
+  if (!isPg) {
+    await _knexWrite(key, value, tenantId, strategy, schemaName);
     return;
   }
-  await db("tenant_kv")
-    .insert({ tenant_id: tenantId, key, ...payload })
-    .onConflict(["tenant_id", "key"])
-    .merge(payload);
+
+  const db = getDrizzleDb();
+
+  if (strategy === "schema") {
+    const jsonStr = JSON.stringify(value);
+    await db.execute(
+      sql`INSERT INTO ${sql.raw(`"${schemaName}"."kv_store"`)} (key, value, updated_at)
+          VALUES (${key}, ${jsonStr}::jsonb, now())
+          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at`
+    );
+    return;
+  }
+
+  await db
+    .insert(tenantKv)
+    .values({ tenantId, key, value, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: [tenantKv.tenantId, tenantKv.key],
+      set: { value, updatedAt: new Date() },
+    });
 }
 
 export async function deleteKey(key, options = {}) {
-  const { db, tenantId, strategy, schemaName } = await getTenantContext(options);
+  const { tenantId, strategy, schemaName, isPg } = await getTenantContext(options);
   _cacheDelete(_cacheKey(key, tenantId));
-  if (strategy === "schema") {
-    await db.withSchema(schemaName).from("kv_store").where({ key }).del();
+
+  if (!isPg) {
+    await _knexDelete(key, tenantId, strategy, schemaName);
     return;
   }
-  await db("tenant_kv").where({ tenant_id: tenantId, key }).del();
+
+  const db = getDrizzleDb();
+
+  if (strategy === "schema") {
+    await db.execute(
+      sql`DELETE FROM ${sql.raw(`"${schemaName}"."kv_store"`)} WHERE key = ${key}`
+    );
+    return;
+  }
+
+  await db
+    .delete(tenantKv)
+    .where(and(eq(tenantKv.tenantId, tenantId), eq(tenantKv.key, key)));
 }
 
 export async function listKeys(options = {}) {
-  const { db, tenantId, strategy, schemaName } = await getTenantContext(options);
-  if (strategy === "schema") {
-    const rows = await db.withSchema(schemaName).from("kv_store").select("key", "updated_at");
-    return rows;
+  const { tenantId, strategy, schemaName, isPg } = await getTenantContext(options);
+
+  if (!isPg) {
+    return _knexList(tenantId, strategy, schemaName);
   }
-  return db("tenant_kv").where({ tenant_id: tenantId }).select("key", "updated_at");
+
+  const db = getDrizzleDb();
+
+  if (strategy === "schema") {
+    const result = await db.execute(
+      sql`SELECT key, updated_at FROM ${sql.raw(`"${schemaName}"."kv_store"`)}`
+    );
+    return result.rows;
+  }
+
+  return db
+    .select({ key: tenantKv.key, updatedAt: tenantKv.updatedAt })
+    .from(tenantKv)
+    .where(eq(tenantKv.tenantId, tenantId));
 }
 
 export async function purgeTenant(tenantId) {
-  const { db } = await getTenantContext({ tenantId });
-  const strategy = getTenantStrategy();
   const id = sanitizeTenantId(tenantId, DEFAULT_TENANT_ID);
-  if (strategy === "schema" && db.client.config.client === "pg") {
+  const strategy = getTenantStrategy();
+  const dialect = getDbDialect();
+
+  if (strategy === "schema" && dialect === "pg") {
+    const db = getDrizzleDb();
     const schemaName = schemaNameForTenant(id);
-    await db.raw(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE;`);
-    await db("tenant_registry").where({ tenant_id: id }).del();
+    await db.execute(
+      sql.raw(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`)
+    );
+    await db.delete(tenantRegistry).where(eq(tenantRegistry.tenantId, id));
     schemaCache.delete(schemaName);
     return;
   }
-  await db("tenant_kv").where({ tenant_id: id }).del();
-  await db("tenant_registry").where({ tenant_id: id }).del();
+
+  if (dialect === "pg") {
+    const db = getDrizzleDb();
+    await db
+      .delete(tenantKv)
+      .where(eq(tenantKv.tenantId, id));
+    await db
+      .delete(tenantRegistry)
+      .where(eq(tenantRegistry.tenantId, id));
+    return;
+  }
+
+  const knexDb = getDatabase();
+  await knexDb("tenant_kv").where({ tenant_id: id }).del();
+  await knexDb("tenant_registry").where({ tenant_id: id }).del();
 }
 
 export const DB_FILE = null;
