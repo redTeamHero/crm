@@ -32,6 +32,9 @@ export default defineConfig({
     fs: {
       allow: [__dirname],
     },
+    proxy: {
+      '/api': 'http://localhost:5000',
+    },
   },
   appType: 'mpa',
 });

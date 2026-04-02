@@ -100,8 +100,28 @@ interface DisputeItem {
 }
 
 // ---------------------------------------------------------------------------
+// API response shapes
+// ---------------------------------------------------------------------------
 
-const $ = (s: string): any => document.querySelector(s);
+interface Consumer { id: string; name?: string; email?: string; [key: string]: unknown; }
+interface ConsumersApiResponse { consumers?: Consumer[]; [key: string]: unknown; }
+interface ReportsApiResponse { reports?: Array<{ id: string; [key: string]: unknown }>; [key: string]: unknown; }
+interface LetterRecord { letterType?: string; creditor?: string; bureau?: string; [key: string]: unknown; }
+interface LetterHistoryApiResponse { letters?: LetterRecord[]; summaries?: Array<Record<string, unknown>>; [key: string]: unknown; }
+interface CollectorAddress { _src?: string; name?: string; addr1?: string; addr2?: string; city?: string; state?: string; zip?: string; [key: string]: unknown; }
+interface CollectorAddressLibrary { builtIn?: CollectorAddress[]; custom?: CollectorAddress[]; [key: string]: unknown; }
+interface CollectorAddressesApiResponse { addresses?: CollectorAddress[]; [key: string]: unknown; }
+interface RecommendationApiResponse { recommendations?: DisputeRec[]; error?: string; [key: string]: unknown; }
+interface JobStatusEntry { status?: string; error?: string; [key: string]: unknown; }
+interface JobStatusApiResponse { job?: JobStatusEntry; status?: string; error?: string; [key: string]: unknown; }
+interface GeneratedLetter { [key: string]: unknown; }
+interface LettersApiResponse { letters?: GeneratedLetter[]; [key: string]: unknown; }
+interface PortalApiResponse { message?: string; [key: string]: unknown; }
+interface PreflightApiResponse { flagged?: unknown[]; enriched?: CollectorEntry[]; [key: string]: unknown; }
+
+// ---------------------------------------------------------------------------
+
+const $ = (s: string): HTMLElement | null => document.querySelector(s);
 
 let currentConsumerId: string | null = null;
 let currentReportId: string | null = null;
@@ -119,11 +139,11 @@ function updateSelectionToolbar() {
   const toolbar = $('#selectionToolbar');
   if (!toolbar) return;
   if (selectedItems.size > 0) {
-    toolbar.style.display = 'flex';
+    (toolbar as HTMLElement).style.display = 'flex';
     const countEl = toolbar.querySelector('#selCount');
     if (countEl) countEl.textContent = String(selectedItems.size);
   } else {
-    toolbar.style.display = 'none';
+    (toolbar as HTMLElement).style.display = 'none';
   }
 }
 
@@ -232,8 +252,8 @@ async function loadConsumers() {
   const picker = $('#consumerPicker');
   if (!picker) return;
   try {
-    const data = await api('/api/consumers');
-    const consumers = (data.consumers || data || []) as any[];
+    const data = await api<ConsumersApiResponse>('/api/consumers');
+    const consumers: Consumer[] = data.consumers || [];
     consumers.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c.id;
@@ -272,9 +292,9 @@ async function selectConsumer(id) {
   if (typeof _ccaPanel !== 'undefined') _ccaPanel.reload(currentConsumerId);
 
   try {
-    const reportData = await api(`/api/consumers/${currentConsumerId}/reports`);
-    if ((reportData as any)?.reports?.length) {
-      currentReportId = (reportData as any).reports[0].id;
+    const reportData = await api<ReportsApiResponse>(`/api/consumers/${currentConsumerId}/reports`);
+    if (reportData.reports?.length) {
+      currentReportId = reportData.reports[0].id;
     }
   } catch {}
 
@@ -896,9 +916,9 @@ let _sentTemplatesByCreditorBureau: Record<string, Set<string>> = {};
 
 async function loadSentTemplates(consumerId) {
   try {
-    const data = await api(`/api/consumers/${consumerId}/letter-history`) as any;
+    const data = await api<LetterHistoryApiResponse>(`/api/consumers/${consumerId}/letter-history`);
     const map: Record<string, Set<string>> = {};
-    for (const letter of (data?.letters || [])) {
+    for (const letter of (data.letters || [])) {
       if (!letter.letterType) continue;
       const key = `${(letter.creditor || '').toLowerCase()}__${(letter.bureau || '').toLowerCase()}`;
       if (!map[key]) map[key] = new Set();
@@ -919,9 +939,9 @@ async function renderLetterHistory(consumerId) {
   const container = $('#letterHistorySection');
   if (!container) return;
   try {
-    const data = await api(`/api/consumers/${consumerId}/letter-history`) as any;
-    const letters: any[] = data?.letters || [];
-    const summaries: any[] = data?.summaries || [];
+    const data = await api<LetterHistoryApiResponse>(`/api/consumers/${consumerId}/letter-history`);
+    const letters: LetterRecord[] = data.letters || [];
+    const summaries: Array<Record<string, unknown>> = data.summaries || [];
 
     if (!letters.length && !summaries.length) {
       container.innerHTML = `<div style="font-size:12px;color:#666;padding:8px 0;">No letters generated yet for this client.</div>`;
@@ -935,7 +955,7 @@ async function renderLetterHistory(consumerId) {
     for (const letter of letters) {
       const tplKey = `${letter.letterType || '(unknown)'}__${letter.bureau || ''}`;
       const existing = dedupMap.get(tplKey);
-      const letterAt = letter.at ? new Date(letter.at).getTime() : 0;
+      const letterAt = letter.at ? new Date(letter.at as string).getTime() : 0;
       if (!existing || letterAt > (existing.latestAt || 0)) {
         dedupMap.set(tplKey, {
           letterType: letter.letterType,
@@ -981,11 +1001,11 @@ async function renderLetterHistory(consumerId) {
     }
     // Summaries from standalone jobs with no round data
     for (const s of summaries) {
-      const date = s.at ? new Date(s.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-      const bureaus = (s.bureaus || []).join(', ') || 'N/A';
-      const dlLink = s.jobId ? `/api/letters/${encodeURIComponent(s.jobId)}/all.zip${tokenParam}` : null;
+      const date = s.at ? new Date(s.at as string).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+      const bureaus = ((s.bureaus as string[]) || []).join(', ') || 'N/A';
+      const dlLink = s.jobId ? `/api/letters/${encodeURIComponent(s.jobId as string)}/all.zip${tokenParam}` : null;
       html += `<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;font-size:11px;">
-        <span style="color:#888;flex:1;">${s.count} letter${s.count !== 1 ? 's' : ''} · ${escapeHtml(bureaus)}</span>
+        <span style="color:#888;flex:1;">${s.count as number} letter${(s.count as number) !== 1 ? 's' : ''} · ${escapeHtml(bureaus)}</span>
         <span style="color:#666;white-space:nowrap;">${escapeHtml(date)}</span>
         ${dlLink ? `<a href="${escapeHtml(dlLink)}" style="font-size:10px;color:#60a5fa;text-decoration:none;white-space:nowrap;margin-left:4px;">⬇</a>` : ''}
       </div>`;
@@ -1514,9 +1534,9 @@ let _dpAddrLibraryCache = null;
 async function dpLoadAddrLibrary() {
   if (_dpAddrLibraryCache) return _dpAddrLibraryCache;
   try {
-    const res = await api('/api/settings/collector-addresses') as any;
-    const builtIn = ((res.builtIn || []) as any[]).map(e => ({ ...e, _src: 'built-in' }));
-    const custom = ((res.custom || []) as any[]).map(e => ({ ...e, _src: 'custom' }));
+    const res = await api<CollectorAddressLibrary>('/api/settings/collector-addresses');
+    const builtIn: CollectorAddress[] = (res.builtIn || []).map(e => ({ ...e, _src: 'built-in' }));
+    const custom: CollectorAddress[] = (res.custom || []).map(e => ({ ...e, _src: 'custom' }));
     _dpAddrLibraryCache = [...custom, ...builtIn];
   } catch {
     _dpAddrLibraryCache = [];
@@ -1774,9 +1794,9 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Generating...';
   try {
-    const recData = await api(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/recommendation`) as any;
+    const recData = await api<RecommendationApiResponse>(`/api/consumers/${currentConsumerId}/disputes/${encodeURIComponent(jobId)}/recommendation`);
     if (!recData?.ok || !recData.recommendations || !recData.recommendations.length) {
-      showErr(recData?.error || 'No recommendations available.');
+      showErr(recData.error || 'No recommendations available.');
       btn.disabled = false; btn.textContent = origText; return;
     }
     const recs: DisputeRec[] = (recData.recommendations as DisputeRec[]).filter(r => !r.resolved);
@@ -1849,13 +1869,13 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
 
     if (collectors.length) {
       btn.textContent = 'Checking addresses...';
-      const preflightRes = await api('/api/generate/preflight', {
+      const preflightRes = await api<PreflightApiResponse>('/api/generate/preflight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ consumerId: currentConsumerId, collectors }),
-      }) as any;
+      });
       if (!preflightRes.ok) {
-        showErr(preflightRes.error || 'Address preflight check failed.');
+        showErr((preflightRes as { error?: string }).error || 'Address preflight check failed.');
         btn.disabled = false; btn.textContent = origText; return;
       }
 
@@ -1875,8 +1895,8 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
         btn.disabled = true;
         btn.textContent = 'Sending to server...';
       } else {
-        collectors = Array.isArray(preflightRes.enriched) && preflightRes.enriched.length
-          ? preflightRes.enriched
+        collectors = (Array.isArray(preflightRes.enriched) && preflightRes.enriched.length)
+          ? preflightRes.enriched as CollectorEntry[]
           : collectors;
       }
     }
@@ -1896,21 +1916,21 @@ $('#batchGenerateNext')?.addEventListener('click', async () => {
     let jobDone = false;
     for (let i = 0; i < 60; i++) {
       await new Promise(r => setTimeout(r, 1500));
-      const statusResp = await api(`/api/jobs/${encodeURIComponent(letterJobId)}`) as any;
-      const jobStatus = statusResp?.job?.status || statusResp?.status;
+      const statusResp = await api<JobStatusApiResponse>(`/api/jobs/${encodeURIComponent(letterJobId)}`);
+      const jobStatus = statusResp.job?.status || statusResp.status;
       if (jobStatus === 'completed' || jobStatus === 'done') { jobDone = true; break; }
-      if (jobStatus === 'failed') throw new Error(statusResp?.job?.error || statusResp?.error || 'Letter generation job failed.');
+      if (jobStatus === 'failed') throw new Error(statusResp.job?.error || statusResp.error || 'Letter generation job failed.');
     }
     if (!jobDone) throw new Error('Letter generation timed out.');
-    const lettersData = await api(`/api/letters/${encodeURIComponent(letterJobId)}`) as any;
-    if (!lettersData?.letters || !lettersData.letters.length) throw new Error('No letters were generated.');
+    const lettersData = await api<LettersApiResponse>(`/api/letters/${encodeURIComponent(letterJobId)}`);
+    if (!lettersData.letters || !lettersData.letters.length) throw new Error('No letters were generated.');
     btn.textContent = 'Sending to portal...';
     let portalSent = false;
     let portalError = '';
     try {
-      const portalRes = await api(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' }) as any;
+      const portalRes = await api<PortalApiResponse>(`/api/letters/${encodeURIComponent(letterJobId)}/portal`, { method: 'POST' });
       portalSent = !!(portalRes?.ok);
-      if (!portalSent) portalError = portalRes?.error || portalRes?.message || 'Portal upload returned an error.';
+      if (!portalSent) portalError = (portalRes as { error?: string }).error || portalRes.message || 'Portal upload returned an error.';
     } catch (portalErr) { portalError = String(portalErr.message || portalErr); }
     selectedItems.clear();
     updateSelectionToolbar();
@@ -1938,10 +1958,10 @@ $('#batchDeleteRound')?.addEventListener('click', async () => {
   if (jobIds.length > 1) { showErr('Please select items from a single round to delete.'); return; }
   const jobId = jobIds[0];
   if (!confirm('Delete this dispute round and all associated portal files? This cannot be undone.')) return;
-  const btn = $('#batchDeleteRound');
-  const origText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Deleting...';
+  const btn = $('#batchDeleteRound') as HTMLButtonElement | null;
+  const origText = btn?.textContent;
+  if (btn) btn.disabled = true;
+  if (btn) btn.textContent = 'Deleting...';
   try {
     const res = await api(`/api/letters/${encodeURIComponent(jobId)}?consumerId=${encodeURIComponent(currentConsumerId)}`, { method: 'DELETE' });
     if (res?.ok) {
@@ -1954,8 +1974,8 @@ $('#batchDeleteRound')?.addEventListener('click', async () => {
   } catch (err) {
     showErr(String(err));
   } finally {
-    btn.disabled = false;
-    btn.textContent = origText;
+    if (btn) btn.disabled = false;
+    if (btn) btn.textContent = origText ?? '';
   }
 });
 
@@ -1975,12 +1995,12 @@ $('#batchDownloadRound')?.addEventListener('click', async () => {
   const round = currentDisputeData?.rounds?.find(r => r.jobId === jobId);
   const letterCount = round?.letters?.length || 0;
 
-  const btn = $('#batchDownloadRound');
-  const origText = btn.textContent;
+  const btn = $('#batchDownloadRound') as HTMLButtonElement | null;
+  const origText = btn?.textContent;
   const costLine = letterCount > 0 ? ` (${letterCount} letter${letterCount !== 1 ? 's' : ''} — ${fmtPrice(MAIL_RATES.regular.rate)}–${fmtPrice(MAIL_RATES.certifiedPod.rate)}/letter depending on mail type)` : '';
   if (!confirm(`Download all letters for this round as a ZIP?${costLine}`)) return;
-  btn.disabled = true;
-  btn.textContent = 'Building ZIP…';
+  if (btn) btn.disabled = true;
+  if (btn) btn.textContent = 'Building ZIP…';
   try {
     const res = await fetch(`/api/letters/${encodeURIComponent(jobId)}/all.zip`, {
       headers: { ...authHeader() },
@@ -1998,8 +2018,8 @@ $('#batchDownloadRound')?.addEventListener('click', async () => {
   } catch (err) {
     showErr(`Download failed: ${err.message || err}`);
   } finally {
-    btn.disabled = false;
-    btn.textContent = origText;
+    if (btn) btn.disabled = false;
+    if (btn) btn.textContent = origText ?? '';
   }
 });
 
@@ -2032,7 +2052,7 @@ async function regenerateAndSendPortal(round, onStatus) {
 
   selections.forEach(sel => { if (!sel.bureaus || !sel.bureaus.length) sel.bureaus = ['TransUnion', 'Experian', 'Equifax']; });
 
-  const itemsPerLetter = Math.max(1, parseInt($('#itemsPerLetterInput')?.value || '10', 10) || 10);
+  const itemsPerLetter = Math.max(1, parseInt(($('#itemsPerLetterInput') as HTMLInputElement | null)?.value || '10', 10) || 10);
   onStatus?.('Regenerating letters…');
   const genResp = await fetch('/api/generate', {
     method: 'POST',
@@ -2050,19 +2070,19 @@ async function regenerateAndSendPortal(round, onStatus) {
   onStatus?.('Processing letters…');
   for (let i = 0; i < 60; i++) {
     await new Promise(r => setTimeout(r, 1500));
-    const statusResp = await api(`/api/jobs/${encodeURIComponent(newJobId)}`) as any;
-    const jobStatus = statusResp?.job?.status || statusResp?.status;
+    const statusResp = await api<JobStatusApiResponse>(`/api/jobs/${encodeURIComponent(newJobId)}`);
+    const jobStatus = statusResp.job?.status || statusResp.status;
     if (jobStatus === 'completed' || jobStatus === 'done') break;
-    if (jobStatus === 'failed') throw new Error(statusResp?.job?.error || statusResp?.error || 'Letter regeneration job failed.');
+    if (jobStatus === 'failed') throw new Error(statusResp.job?.error || statusResp.error || 'Letter regeneration job failed.');
     if (i === 59) throw new Error('Letter generation timed out — please try again.');
   }
 
   onStatus?.('Sending to portal…');
-  const portalRes = await api(`/api/letters/${encodeURIComponent(newJobId)}/portal`, { method: 'POST' }) as any;
-  if (!portalRes?.ok) throw new Error(portalRes?.error || portalRes?.message || 'Portal upload failed after regeneration.');
+  const portalRes = await api<PortalApiResponse>(`/api/letters/${encodeURIComponent(newJobId)}/portal`, { method: 'POST' });
+  if (!portalRes?.ok) throw new Error((portalRes as { error?: string }).error || portalRes.message || 'Portal upload failed after regeneration.');
 
-  const lettersData = await api(`/api/letters/${encodeURIComponent(newJobId)}`) as any;
-  return { jobId: newJobId, letters: lettersData?.letters || [] };
+  const lettersData = await api<LettersApiResponse>(`/api/letters/${encodeURIComponent(newJobId)}`);
+  return { jobId: newJobId, letters: lettersData.letters || [] };
 }
 
 $('#batchSendPortal')?.addEventListener('click', async () => {
@@ -2070,17 +2090,18 @@ $('#batchSendPortal')?.addEventListener('click', async () => {
   if (!jobIds.length || !currentConsumerId) return;
   if (jobIds.length > 1) { showErr('Select items from a single round to send to portal.'); return; }
   const jobId = jobIds[0];
-  const btn = $('#batchSendPortal');
-  const origText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
+  const btn = $('#batchSendPortal') as HTMLButtonElement | null;
+  const origText = btn?.textContent;
+  if (btn) btn.disabled = true;
+  if (btn) btn.textContent = 'Sending…';
 
   const markSent = () => {
+    if (!btn) return;
     btn.textContent = '✓ Sent to Portal';
     btn.style.color = '#4ade80';
     btn.style.borderColor = 'rgba(74,222,128,0.4)';
     setTimeout(() => {
-      btn.textContent = origText;
+      btn.textContent = origText ?? '';
       btn.style.color = '';
       btn.style.borderColor = '';
       btn.disabled = false;
@@ -2095,25 +2116,22 @@ $('#batchSendPortal')?.addEventListener('click', async () => {
       const round = currentDisputeData?.rounds?.find(r => r.jobId === jobId);
       if (!round) {
         showErr('Letters not found on server and round data is unavailable — please generate letters again manually.');
-        btn.disabled = false; btn.textContent = origText; return;
+        if (btn) { btn.disabled = false; btn.textContent = origText ?? ''; } return;
       }
       try {
-        await regenerateAndSendPortal(round, msg => { btn.textContent = msg; });
+        await regenerateAndSendPortal(round, msg => { if (btn) btn.textContent = msg; });
         markSent();
       } catch (regenErr) {
-        showErr(`Auto-regeneration failed: ${regenErr.message || regenErr}`);
-        btn.disabled = false;
-        btn.textContent = origText;
+        showErr(`Auto-regeneration failed: ${(regenErr as Error).message || regenErr}`);
+        if (btn) { btn.disabled = false; btn.textContent = origText ?? ''; }
       }
     } else {
-      showErr(res?.error || res?.message || 'Failed to send to portal.');
-      btn.disabled = false;
-      btn.textContent = origText;
+      showErr((res as { error?: string; message?: string }).error || (res as { message?: string }).message || 'Failed to send to portal.');
+      if (btn) { btn.disabled = false; btn.textContent = origText ?? ''; }
     }
   } catch (err) {
-    showErr(`Portal send failed: ${err.message || err}`);
-    btn.disabled = false;
-    btn.textContent = origText;
+    showErr(`Portal send failed: ${(err as Error).message || err}`);
+    if (btn) { btn.disabled = false; btn.textContent = origText ?? ''; }
   }
 });
 
@@ -2145,8 +2163,8 @@ function initConsumerCollectorAddrPanel() {
   async function loadCcaList(consumerId) {
     if (!ccaList || !consumerId) return;
     try {
-      const res = await api(`/api/consumers/${consumerId}/collector-addresses`) as any;
-      const addrs: any[] = res.addresses || [];
+      const res = await api<CollectorAddressesApiResponse>(`/api/consumers/${consumerId}/collector-addresses`);
+      const addrs: CollectorAddress[] = res.addresses || [];
       if (!addrs.length) {
         ccaList.innerHTML = `<div style="font-size:11px;color:#666;margin-bottom:8px;">No custom addresses saved for this client. Common collectors will auto-fill from the built-in directory.</div>`;
         return;
