@@ -50,6 +50,7 @@ export interface DisputeData {
     recommendations?: DisputeRec[];
   };
   consumerState?: string;
+  [key: string]: unknown;
 }
 
 export interface DisputeRound {
