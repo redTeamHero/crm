@@ -29,6 +29,7 @@ export default defineConfig({
   },
   server: {
     middlewareMode: true,
+    allowedHosts: true,
     fs: {
       allow: [__dirname],
     },
