@@ -2028,11 +2028,13 @@ if (process.env.NODE_ENV === 'development') {
       server: { middlewareMode: true },
       appType: 'mpa',
     });
-    // Skip Vite for /api/* so Express route handlers are not pre-empted by
-    // Vite's MPA 404 fallback (which intercepts all unmatched routes including
-    // POST requests before Express can process them).
+    // Skip Vite for /api/* and parameterised portal routes so Express route
+    // handlers are not pre-empted by Vite's MPA 404 fallback (which intercepts
+    // all unmatched routes including POST requests before Express can handle them).
     app.use((req, res, next) => {
       if (req.path.startsWith('/api/')) return next();
+      if (req.path.startsWith('/portal/')) return next();
+      if (req.path.startsWith('/client-portal/')) return next();
       vite.middlewares(req, res, next);
     });
     logInfo('VITE_MIDDLEWARE', 'Vite dev middleware active (HMR + TypeScript)');
