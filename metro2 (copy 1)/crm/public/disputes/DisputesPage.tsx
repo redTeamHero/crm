@@ -514,7 +514,6 @@ export function DisputesPage() {
                         key={round.jobId}
                         round={round}
                         roundIndex={ri}
-                        consumerId={consumerId}
                         templates={templates}
                         selectedItems={selectedItems}
                         templateOverrides={templateOverrides}
@@ -527,7 +526,6 @@ export function DisputesPage() {
                         onTemplateChange={handleTemplateChange}
                         onUpdateSentDate={handleUpdateSentDate}
                         onUpdateFollowupDays={handleUpdateFollowupDays}
-                        onRefresh={() => qc.invalidateQueries({ queryKey: ['disputes', consumerId] })}
                       />
                     ))}
                   </div>

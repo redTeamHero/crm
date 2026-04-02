@@ -87,7 +87,8 @@ export function AddrPreflightModal({ flagged, enrichedAll, consumerId, library, 
     setStatusColor('#888');
     let saveFailures = 0;
 
-    const resolvedCollectors = (enrichedAll || []).map(c => ({ ...c }));
+    const baseList = (enrichedAll && enrichedAll.length > 0) ? enrichedAll : [...flagged];
+    const resolvedCollectors = baseList.map(c => ({ ...c }));
 
     const saveTasks: Promise<void>[] = [];
     for (let i = 0; i < flagged.length; i++) {

@@ -7,7 +7,6 @@ const STATUS_OPTIONS = Object.entries(DISPUTE_STATUS_LABELS).map(([value, { labe
 interface Props {
   round: DisputeRoundType;
   roundIndex: number;
-  consumerId: string;
   templates: LetterTemplate[];
   selectedItems: Set<string>;
   templateOverrides: Record<string, string>;
@@ -20,7 +19,6 @@ interface Props {
   onTemplateChange: (key: string, templateId: string) => void;
   onUpdateSentDate: (jobId: string, val: string) => void;
   onUpdateFollowupDays: (jobId: string, val: number) => void;
-  onRefresh: () => void;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -36,7 +34,6 @@ function StatusBadge({ status }: { status: string }) {
 interface ItemRowProps {
   item: DisputeItem;
   itemIdx: number;
-  jobId: number | string;
   roundJobId: string;
   templates: LetterTemplate[];
   selected: boolean;
@@ -47,7 +44,7 @@ interface ItemRowProps {
   onTemplateChange: (templateId: string) => void;
 }
 
-function ItemRow({ item, itemIdx, jobId, roundJobId, templates, selected, templateOverride, sentTemplates, onToggleSelect, onStatusChange, onTemplateChange }: ItemRowProps) {
+function ItemRow({ item, itemIdx, roundJobId, templates, selected, templateOverride, sentTemplates, onToggleSelect, onStatusChange, onTemplateChange }: ItemRowProps) {
   const [expanded, setExpanded] = useState(false);
   const selKey = `${roundJobId}__${itemIdx}`;
   const status = item.status || 'awaiting';
@@ -141,7 +138,7 @@ function ItemRow({ item, itemIdx, jobId, roundJobId, templates, selected, templa
   );
 }
 
-export function DisputeRound({ round, roundIndex, consumerId, templates, selectedItems, templateOverrides, isCollapsed, sentTemplates, onToggleSelect, onSelectAll, onToggleCollapse, onStatusChange, onTemplateChange, onUpdateSentDate, onUpdateFollowupDays, onRefresh }: Props) {
+export function DisputeRound({ round, roundIndex, templates, selectedItems, templateOverrides, isCollapsed, sentTemplates, onToggleSelect, onSelectAll, onToggleCollapse, onStatusChange, onTemplateChange, onUpdateSentDate, onUpdateFollowupDays }: Props) {
   const items = round.items || [];
   const letters = round.letters || [];
   const jobId = round.jobId;
@@ -251,7 +248,6 @@ export function DisputeRound({ round, roundIndex, consumerId, templates, selecte
                     key={itemIdx}
                     item={item}
                     itemIdx={itemIdx}
-                    jobId={jobId}
                     roundJobId={jobId}
                     templates={templates}
                     selected={selectedItems.has(key)}
