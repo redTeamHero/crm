@@ -57,13 +57,13 @@ function switchTab(tab) {
   if (tab === 'bureau') {
     if (byBureau) byBureau.style.display = 'block';
     if (individually) individually.style.display = 'none';
-    if (btnBureau) { btnBureau.style.background = 'rgba(99,102,241,0.3)'; btnBureau.style.border = '1px solid rgba(99,102,241,0.5)'; btnBureau.style.color = '#a5b4fc'; }
-    if (btnIndiv) { btnIndiv.style.background = 'transparent'; btnIndiv.style.border = '1px solid transparent'; btnIndiv.style.color = '#9ca3af'; }
+    if (btnBureau) { btnBureau.classList.add('active'); }
+    if (btnIndiv) { btnIndiv.classList.remove('active'); }
   } else {
     if (byBureau) byBureau.style.display = 'none';
     if (individually) individually.style.display = 'block';
-    if (btnIndiv) { btnIndiv.style.background = 'rgba(99,102,241,0.3)'; btnIndiv.style.border = '1px solid rgba(99,102,241,0.5)'; btnIndiv.style.color = '#a5b4fc'; }
-    if (btnBureau) { btnBureau.style.background = 'transparent'; btnBureau.style.border = '1px solid transparent'; btnBureau.style.color = '#9ca3af'; }
+    if (btnIndiv) { btnIndiv.classList.add('active'); }
+    if (btnBureau) { btnBureau.classList.remove('active'); }
     if (currentConsumerId) renderIndivItems(currentConsumerId);
   }
 }
@@ -74,62 +74,42 @@ $('cfpbTabIndividually')?.addEventListener('click', () => switchTab('individual'
 function buildIndivItemCard(item, bureau, cardIdx) {
   const creditor = item.name || 'Unknown';
   const accountSuffix = item.accountNumber ? ' #' + item.accountNumber : '';
+  const bureauBadge = bureau
+    ? `<span class="cfpb-bureau-badge">${escHtml(bureau)}</span>`
+    : '';
   return `
-  <div class="cfpb-indiv-card" data-idx="${cardIdx}" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div>
-        <strong style="font-size:13px;">${escHtml(creditor)}${escHtml(accountSuffix)}</strong>
-        ${bureau ? `<span style="font-size:11px;color:#818cf8;margin-left:8px;">${escHtml(bureau)}</span>` : ''}
-        <span style="font-size:11px;color:#6b7280;margin-left:8px;">awaiting</span>
+  <div class="cfpb-item-card" data-idx="${cardIdx}" style="margin-bottom:8px;">
+    <div class="cfpb-item-header">
+      <div class="cfpb-item-meta">
+        <div class="cfpb-item-name">${escHtml(creditor)}${escHtml(accountSuffix)}</div>
+        <div class="cfpb-item-sub">
+          ${bureauBadge}
+          <span class="cfpb-status-dot">awaiting</span>
+        </div>
       </div>
-      <button class="btn-cfpb-indiv-gen" data-idx="${cardIdx}" type="button"
-        style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#818cf8;border-radius:6px;font-size:12px;font-weight:600;padding:4px 12px;cursor:pointer;white-space:nowrap;">
-        Generate
-      </button>
+      <button class="cfpb-gen-btn btn-cfpb-indiv-gen" data-idx="${cardIdx}" type="button">Generate</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div>
-        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Company Name</label>
-        <input type="text" class="cfpb-indiv-company input-field" data-idx="${cardIdx}" value="${escHtml(creditor)}" style="width:100%;font-size:12px;padding:5px 8px;">
-      </div>
+    <div class="cfpb-item-fields">
       <div>
         <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Violation Type</label>
         <select class="cfpb-indiv-vtype input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">${buildViolationOptions()}</select>
       </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
       <div>
-        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Tone</label>
-        <select class="cfpb-indiv-tone input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">
-          <optgroup label="Formal"><option value="professional">Professional</option><option value="firm_assertive">Firm &amp; Assertive</option><option value="legal_formal">Legal Formal</option></optgroup>
-          <optgroup label="Emotional"><option value="curious">Curious / Questioning</option><option value="tired">Tired / Exhausted</option><option value="frustrated">Frustrated</option><option value="emotional">Emotional / Personal</option></optgroup>
-          <optgroup label="Forceful"><option value="urgent">Urgent</option><option value="strong_aggressive">Strong &amp; Aggressive</option></optgroup>
-        </select>
-      </div>
-      <div>
-        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Complaint Goal</label>
-        <select class="cfpb-indiv-goal input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">
-          <option value="">-- Not specified --</option>
-          <option value="delete">Delete Item from Credit Report</option>
-          <option value="correct">Correct Inaccurate Information</option>
+        <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Response Received</label>
+        <select class="cfpb-indiv-response input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">
+          <option value="">-- Select --</option>
+          <option value="No Response">No Response</option>
+          <option value="Verified as Accurate">Verified as Accurate</option>
+          <option value="Deleted">Deleted</option>
+          <option value="Updated/Partially Corrected">Updated/Partially Corrected</option>
+          <option value="Account Closed">Account Closed</option>
+          <option value="Paid/Settled">Paid/Settled</option>
+          <option value="Transferred">Transferred</option>
+          <option value="other">Other</option>
         </select>
       </div>
     </div>
-    <div style="margin-bottom:8px;">
-      <label style="font-size:11px;color:#9ca3af;display:block;margin-bottom:3px;">Response Received</label>
-      <select class="cfpb-indiv-response input-field" data-idx="${cardIdx}" style="width:100%;font-size:12px;padding:5px 8px;">
-        <option value="">-- Select --</option>
-        <option value="No Response">No Response</option>
-        <option value="Verified as Accurate">Verified as Accurate</option>
-        <option value="Deleted">Deleted</option>
-        <option value="Updated/Partially Corrected">Updated/Partially Corrected</option>
-        <option value="Account Closed">Account Closed</option>
-        <option value="Paid/Settled">Paid/Settled</option>
-        <option value="Transferred">Transferred</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-    <div id="cfpb-indiv-result-${cardIdx}" style="display:none;margin-top:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;font-size:12px;line-height:1.6;white-space:pre-wrap;max-height:160px;overflow-y:auto;"></div>
+    <div id="cfpb-indiv-result-${cardIdx}" class="cfpb-item-result"></div>
   </div>`;
 }
 
@@ -171,12 +151,12 @@ $('cfpbIndivItemList')?.addEventListener('click', async e => {
   const idx = parseInt(btn.dataset.idx, 10);
   const entry = indivItemData[idx];
   if (!entry) return;
-  const card = document.querySelector(`.cfpb-indiv-card[data-idx="${idx}"]`);
+  const card = document.querySelector(`.cfpb-item-card[data-idx="${idx}"]`);
   if (!card) return;
-  const company = card.querySelector(`.cfpb-indiv-company`)?.value?.trim() || entry.item.name || '';
+  const company = entry.item.name || '';
   const violationType = card.querySelector(`.cfpb-indiv-vtype`)?.value || '';
-  const tone = card.querySelector(`.cfpb-indiv-tone`)?.value || 'professional';
-  const complaintGoal = card.querySelector(`.cfpb-indiv-goal`)?.value || '';
+  const tone = $('cfpbIndivSharedTone')?.value || 'professional';
+  const complaintGoal = $('cfpbIndivSharedGoal')?.value || '';
   const responseOutcome = card.querySelector(`.cfpb-indiv-response`)?.value || '';
   const sharedDate = $('cfpbIndivSharedDate')?.value || '';
   const sharedNotes = $('cfpbIndivSharedNotes')?.value?.trim() || '';
@@ -241,9 +221,10 @@ async function loadNegativeItems(consumerId) {
     panel.style.display = 'block';
     controls.style.display = 'flex';
     panel.innerHTML = items.map((item, idx) => {
+      const val = `${escHtml(item.name)}${item.accountNumber ? ' #' + escHtml(item.accountNumber) : ''}`;
       const label = `${escHtml(item.name)}${item.accountNumber ? ' #' + escHtml(item.accountNumber) : ''}${item.bureaus?.length ? ' (' + escHtml(item.bureaus.join(', ')) + ')' : ''}`;
-      return `<label style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;cursor:pointer;">
-        <input type="checkbox" class="cfpb-item-cb" value="${escHtml(item.name)}${item.accountNumber ? ' #' + escHtml(item.accountNumber) : ''}"> ${label}
+      return `<label class="cfpb-item-cb-label">
+        <input type="checkbox" class="cfpb-item-cb" value="${val}"> ${label}
       </label>`;
     }).join('');
   } catch (e) {
