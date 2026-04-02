@@ -181,7 +181,6 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
   const hasStrongEvidence = hasFactualMismatch || hasMetro2 || hasObsolete
     || hasReinsertion || hasIdentityTheft
     || hasViolationType(violations, ['bankrupt', 'discharge', 'fraud']);
-  const hasWeakEvidence = !hasStrongEvidence;
 
   // ── Decision tree: specialty fast-paths first ─────────────────────────
 
@@ -452,11 +451,11 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
     || hasViolationType(violations, ['reinsert', 'fraud', 'bankrupt']);
   const hasWeakEvidence = !hasStrongEvidence;
 
-  // Guards escalation paths so regulatory complaints aren't sent prematurely
-  const priorDetailedDisputeFailed = round >= 2
-    || ['method-of-verification', 'factual-errors-layer', '623-direct-dispute',
-        'second-round-dispute', '611-general-dispute', 'metro2-inconsistency-dispute',
-        'metro2-deletion-demand', 'ag-cfpb-escalation'].some(t => prev.includes(t));
+  // Guards escalation paths so regulatory complaints aren't sent prematurely.
+  // Requires at least one documented substantive prior dispute (template-evidence, not just round count).
+  const priorDetailedDisputeFailed = ['method-of-verification', 'factual-errors-layer', '623-direct-dispute',
+    'second-round-dispute', '611-general-dispute', 'metro2-inconsistency-dispute',
+    'metro2-deletion-demand', 'ag-cfpb-escalation'].some(t => prev.includes(t));
 
   // ── Absolute completion ───────────────────────────────────────────────
   if (result === 'removed' || result === 'deleted' || result === 'corrected') {
