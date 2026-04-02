@@ -246,9 +246,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
 
   // ── Factual / evidence-based routes ──────────────────────────────────
 
-  // 6. Factual mismatch (date / balance / status / duplicate) — precision dispute
-  //    Excluded from late-payment-only accounts, which have their own fork below
-  //    so that first:late_payment_inaccurate is reachable as a distinct configurable scenario
+  // 6. Factual mismatch (date / balance / status / duplicate) — excludes late-payment-only (see 13a)
   if (hasFactualMismatch && !hasLatePaymentOnly) {
     return applyOverride({
       scenarioKey: 'first:factual_mismatch',
@@ -334,8 +332,7 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
     }, overrides);
   }
 
-  // 13a. Late payment that is provably inaccurate — must have a concrete factual discrepancy
-  //      (date/balance/status mismatch), not just the presence of any violation string
+  // 13a. Late payment with documented factual error — evidence route takes priority over goodwill
   if (hasLatePaymentOnly && hasFactualMismatch) {
     return applyOverride({
       scenarioKey: 'first:late_payment_inaccurate',
@@ -445,14 +442,12 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
   const hasPFDContext = hasViolationType(violations, ['pay for delete', 'pay-for-delete', 'settlement offer', 'conditional settlement', 'delete in exchange']);
   const prevIsPFD = prev.includes('pay-for-delete') || hasPFDContext;
 
-  // hasIdentityTheft replaces raw 'identity theft' string match in hasStrongEvidence
   const hasStrongEvidence = hasFactualErrors || hasMetro2Issues || hasObsolete || hasDuplicateReporting
     || hasIdentityTheft
     || hasViolationType(violations, ['reinsert', 'fraud', 'bankrupt']);
   const hasWeakEvidence = !hasStrongEvidence;
 
-  // Guards escalation paths so regulatory complaints aren't sent prematurely.
-  // Requires at least one documented substantive prior dispute (template-evidence, not just round count).
+  // Requires documented prior detailed dispute — not just round count
   const priorDetailedDisputeFailed = ['method-of-verification', 'factual-errors-layer', '623-direct-dispute',
     'second-round-dispute', '611-general-dispute', 'metro2-inconsistency-dispute',
     'metro2-deletion-demand', 'ag-cfpb-escalation'].some(t => prev.includes(t));
@@ -579,7 +574,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['debt-validation', 'obsolete-debt'],
       }, overrides);
     }
-    // Round 3+ evaluated before the isCollection && round>=2 catch-all so pfd_last_resort is reachable
+    // Round 3+: checked before round-2 catch-alls so weak-evidence pfd path stays reachable
     if (round >= 3) {
       if (hasMetro2Issues && hasStrongEvidence && priorDetailedDisputeFailed) {
         return applyOverride({
@@ -691,7 +686,7 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['arbitration-election', '623-direct-dispute'],
       }, overrides);
     }
-    // Round 2+ with factual evidence or charge-off (dates/balances frequently contested)
+    // Round 2+ factual errors or charge-off — evidence layer before MOV
     if ((hasFactualErrors || isChargeOff) && round >= 2) {
       return applyOverride({
         scenarioKey: 'next:verified_factual',
@@ -702,13 +697,12 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['method-of-verification', '623-direct-dispute'],
       }, overrides);
     }
-    // Round 2+ collection: method-of-verification is the default for ALL account types
-    // (per FCRA §1681i(a)(7)); tenant overrides on next:verified_collection_r2 still apply
+    // Round 2+ collection: method-of-verification default
     if (isCollection && round >= 2) {
       return applyOverride({
         scenarioKey: 'next:verified_collection_r2',
         recommendedTemplate: 'method-of-verification',
-        reason: 'Collection verified — demand method of verification under FCRA §1681i(a)(7); investigation pressure precedes any settlement consideration',
+        reason: 'Collection verified — demand method of verification under FCRA §1681i(a)(7)',
         urgency: 'medium',
         letterTarget: 'bureau',
         alternativeTemplates: ['623-direct-dispute', 'factual-errors-layer'],
