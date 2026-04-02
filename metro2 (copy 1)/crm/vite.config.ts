@@ -33,9 +33,8 @@ export default defineConfig({
     fs: {
       allow: [__dirname],
     },
-    proxy: {
-      '/api': 'http://localhost:5000',
-    },
+    // No proxy needed in middleware mode — Express handles /api directly.
+    // A proxy here would loop back to the same server and double-count requests.
   },
   appType: 'mpa',
 });
