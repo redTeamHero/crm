@@ -2621,10 +2621,52 @@ $("#fileInput").addEventListener("change", async (e)=>{
   }
 });
 
-$("#btnBreachLookup")?.addEventListener("click", ()=>{
+async function runBreachLookup() {
+  if(!currentConsumerId) return showErr("Select a consumer first.");
+  try {
+    const freshData = await api("/api/consumers");
+    if (freshData?.consumers) {
+      const fresh = freshData.consumers.find(x => x.id === currentConsumerId);
+      if (fresh) {
+        const idx = DB.findIndex(x => x.id === currentConsumerId);
+        if (idx !== -1) Object.assign(DB[idx], fresh);
+      }
+    }
+  } catch(_){}
   const c = DB.find(x=>x.id===currentConsumerId);
-  if (c) openBreachModal(c);
-});
+  if(!c?.email) return showErr("This client has no email address. Add one in the client details to run a breach check.");
+  const btn = $("#btnBreachLookup");
+  const old = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = "Checking..."; }
+  try{
+    const res = await api(`/api/databreach`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: c.email, consumerId: c.id })
+    });
+    if(!res?.ok) return showErr(res?.error || "Breach check failed.");
+    const list = res.breaches || [];
+    c.breaches = list.map(b=>b.Name || b.name || "");
+    const filteredSelections = Array.isArray(c.breachSelections)
+      ? c.breachSelections.filter((item)=> c.breaches.includes(item))
+      : [];
+    if (c.breaches.length && !filteredSelections.length) {
+      c.breachSelections = [...c.breaches];
+      queueBreachSave({ breachSelections: c.breachSelections });
+    } else if (filteredSelections.length !== (c.breachSelections || []).length) {
+      c.breachSelections = filteredSelections;
+      queueBreachSave({ breachSelections: c.breachSelections });
+    }
+    renderBreachCard(c);
+    openBreachModal(c);
+  }catch(err){
+    showErr(String(err));
+  }finally{
+    if (btn) { btn.textContent = old; btn.disabled = false; }
+  }
+}
+
+$("#btnBreachLookup")?.addEventListener("click", ()=> runBreachLookup());
 
 // Data breach modal handlers
 $("#breachClose").addEventListener("click", ()=>{
