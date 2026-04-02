@@ -177,12 +177,10 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
   const hasLatePaymentOnly = hasLatePaymentSignal
     && !isCollection && !isChargeOff;
 
-  // Composite evidence strength signals (used for routing and gating)
   const hasStrongEvidence = hasFactualMismatch || hasMetro2 || hasObsolete
     || hasReinsertion || hasIdentityTheft
     || hasViolationType(violations, ['bankrupt', 'discharge', 'fraud']);
-
-  // ── Decision tree: specialty fast-paths first ─────────────────────────
+  const hasWeakEvidence = !hasStrongEvidence;
 
   // 1. Identity theft — FCRA §1681c-2 block workflow takes highest priority
   if (hasIdentityTheft) {
@@ -243,8 +241,6 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       alternativeTemplates: ['obsolete-debt', 'debt-validation'],
     }, overrides);
   }
-
-  // ── Factual / evidence-based routes ──────────────────────────────────
 
   // 6. Factual mismatch (date / balance / status / duplicate) — excludes late-payment-only (see 13a)
   if (hasFactualMismatch && !hasLatePaymentOnly) {
@@ -317,8 +313,6 @@ export function recommendFirstLetter({ violations = [], accountType = '', accoun
       alternativeTemplates: ['metro2-inconsistency-dispute', '623-direct-dispute'],
     }, overrides);
   }
-
-  // ── Collection / fallback routes ──────────────────────────────────────
 
   // 12. General collection (no more specific evidence path above matched)
   if (isCollection) {
@@ -839,8 +833,8 @@ export function recommendNextLetter({ letterType = '', round = 1, outcome = '', 
         alternativeTemplates: ['arbitration-election'],
       }, overrides);
     }
-    // Weak evidence at round 3: PFD for collection only; non-collection falls through
-    if (isCollection) {
+    // PFD only when evidence is weak — strong-evidence collection items escalate instead
+    if (isCollection && hasWeakEvidence) {
       return applyOverride({
         scenarioKey: 'next:pfd_last_resort',
         recommendedTemplate: 'pay-for-delete',
