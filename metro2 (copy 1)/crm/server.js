@@ -1989,15 +1989,34 @@ app.use('/assets/phoenix', (req, res, next) => {
 // fallback for assets Vite doesn't handle (PDFs, images, etc.).
 if (process.env.NODE_ENV === 'development') {
   try {
-    // Rewrite extensionless paths (e.g. /dashboard) to their .html counterparts
-    // before Vite sees them. Without this, Vite's sirv middleware resolves
-    // /dashboard → dashboard.js (same-name JS file) instead of dashboard.html.
+    // Rewrite extensionless paths to their .html counterparts before Vite sees
+    // them. Without this, Vite's sirv middleware either:
+    //   (a) resolves /dashboard → dashboard.js (same-name JS file), or
+    //   (b) returns 404 for routes whose HTML file has a different name.
+    // Routes where path.html doesn't exist are mapped via MPA_OVERRIDES.
+    const MPA_OVERRIDES = {
+      '/clients':               'index.html',
+      '/crm':                   'login.html',
+      '/crm/login':             'login.html',
+      '/marketing/email':       'marketing.html',
+      '/marketing/sms':         'sms.html',
+      '/settings/client-portal':'client-portal-settings.html',
+    };
+    // Prefix-based overrides for parameterised routes (e.g. /letters/some-id)
+    const MPA_PREFIX_OVERRIDES = [
+      { prefix: '/letters/', html: 'letters.html' },
+    ];
     app.use((req, _res, next) => {
       const ext = path.extname(req.path);
       if (!ext && req.path !== '/') {
-        const htmlFile = path.join(PUBLIC_DIR, req.path + '.html');
-        if (fs.existsSync(htmlFile)) {
+        const sameNameHtml = path.join(PUBLIC_DIR, req.path + '.html');
+        if (fs.existsSync(sameNameHtml)) {
           req.url = req.url.replace(req.path, req.path + '.html');
+        } else if (MPA_OVERRIDES[req.path]) {
+          req.url = req.url.replace(req.path, '/' + MPA_OVERRIDES[req.path]);
+        } else {
+          const match = MPA_PREFIX_OVERRIDES.find(p => req.path.startsWith(p.prefix));
+          if (match) req.url = req.url.replace(req.path, '/' + match.html);
         }
       }
       next();
