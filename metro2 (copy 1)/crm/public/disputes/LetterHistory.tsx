@@ -1,10 +1,27 @@
 import React, { useState } from 'react';
 import { useLetterHistory } from './hooks.ts';
 import { getTokenParam } from './utils.ts';
-import { authHeader } from '../common.ts';
+import type { LetterRecord } from './types.ts';
 
 interface Props {
   consumerId: string;
+}
+
+interface DedupEntry {
+  letterType?: string;
+  bureau?: string;
+  creditor?: string;
+  round?: number;
+  jobId?: string;
+  latestAt: number;
+  at?: string | unknown;
+}
+
+interface RoundGroup {
+  jobId?: string;
+  round?: number;
+  at?: string | unknown;
+  letterItems: LetterRecord[];
 }
 
 export function LetterHistory({ consumerId }: Props) {
@@ -22,30 +39,27 @@ export function LetterHistory({ consumerId }: Props) {
     return <div style={{ fontSize: 12, color: '#666', padding: '8px 0' }}>No letters generated yet for this client.</div>;
   }
 
-  // Dedup: one row per unique (letterType, bureau) combo, newest date
-  const dedupMap = new Map<string, any>();
+  const dedupMap = new Map<string, DedupEntry>();
   for (const letter of letters) {
     const tplKey = `${letter.letterType || '(unknown)'}__${letter.bureau || ''}`;
     const existing = dedupMap.get(tplKey);
     const letterAt = letter.at ? new Date(letter.at as string).getTime() : 0;
     if (!existing || letterAt > (existing.latestAt || 0)) {
-      dedupMap.set(tplKey, { letterType: letter.letterType, bureau: letter.bureau, creditor: letter.creditor, round: letter.round, jobId: letter.jobId, latestAt: letterAt, at: letter.at });
+      dedupMap.set(tplKey, { letterType: letter.letterType, bureau: letter.bureau, creditor: letter.creditor, round: letter.round as number | undefined, jobId: letter.jobId, latestAt: letterAt, at: letter.at });
     }
   }
   const deduped = Array.from(dedupMap.values()).sort((a, b) => (b.latestAt || 0) - (a.latestAt || 0));
 
-  // Per-round detail grouped by jobId
-  const byJob = new Map<string, any>();
+  const byJob = new Map<string, RoundGroup>();
   for (const letter of letters) {
-    const key = letter.jobId || `nojob_${letter.at}`;
-    if (!byJob.has(key)) byJob.set(key, { jobId: letter.jobId, round: letter.round, at: letter.at, letterItems: [] });
-    byJob.get(key).letterItems.push(letter);
+    const key = letter.jobId || `nojob_${String(letter.at)}`;
+    if (!byJob.has(key)) byJob.set(key, { jobId: letter.jobId, round: letter.round as number | undefined, at: letter.at, letterItems: [] });
+    byJob.get(key)!.letterItems.push(letter);
   }
-  const groups = Array.from(byJob.values()).sort((a, b) => +new Date(b.at || 0) - +new Date(a.at || 0));
+  const groups: RoundGroup[] = Array.from(byJob.values()).sort((a, b) => +new Date(String(b.at || 0)) - +new Date(String(a.at || 0)));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {/* At-a-glance deduped */}
       <div>
         <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.04em' }}>Letters Sent (all time)</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -76,7 +90,6 @@ export function LetterHistory({ consumerId }: Props) {
         </div>
       </div>
 
-      {/* Expandable per-round detail */}
       {groups.length > 0 && (
         <details style={{ fontSize: 11 }} open={detailOpen} onToggle={e => setDetailOpen((e.currentTarget as HTMLDetailsElement).open)}>
           <summary style={{ cursor: 'pointer', color: '#60a5fa', fontSize: 11, listStyle: 'none', display: 'flex', alignItems: 'center', gap: 4, userSelect: 'none' }}>
@@ -84,7 +97,7 @@ export function LetterHistory({ consumerId }: Props) {
           </summary>
           <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {groups.map((group, gi) => {
-              const date = group.at ? new Date(group.at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
+              const date = group.at ? new Date(String(group.at)).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown date';
               const roundLabel = group.round ? `Round ${group.round}` : 'No round';
               const dlLink = group.jobId ? `/api/letters/${encodeURIComponent(group.jobId)}/all.zip${tokenParam}` : null;
               return (
@@ -96,12 +109,12 @@ export function LetterHistory({ consumerId }: Props) {
                     {dlLink && <a href={dlLink} style={{ fontSize: 10, color: '#60a5fa', textDecoration: 'none' }}>⬇ ZIP</a>}
                   </div>
                   <div>
-                    {group.letterItems.map((l: any, li: number) => (
+                    {group.letterItems.map((l: LetterRecord, li: number) => (
                       <div key={li} style={{ fontSize: 10, color: '#ccc', padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 500 }}>{l.creditor || 'Unknown'}</span>
+                        <span style={{ fontWeight: 500 }}>{String(l.creditor || 'Unknown')}</span>
                         <span style={{ color: '#666' }}>→</span>
-                        <span style={{ color: '#9ca3af' }}>{l.bureau || ''}</span>
-                        {l.letterType && <span style={{ color: '#888', fontSize: 10 }}>{l.letterType}</span>}
+                        <span style={{ color: '#9ca3af' }}>{String(l.bureau || '')}</span>
+                        {l.letterType && <span style={{ color: '#888', fontSize: 10 }}>{String(l.letterType)}</span>}
                       </div>
                     ))}
                   </div>

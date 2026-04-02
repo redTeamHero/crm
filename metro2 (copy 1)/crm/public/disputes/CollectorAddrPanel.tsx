@@ -44,8 +44,8 @@ export function CollectorAddrPanel({ consumerId }: Props) {
       setName(''); setAddr1(''); setAddr2(''); setCity(''); setState(''); setZip('');
       setMsg('Saved!');
       setTimeout(() => setMsg(''), 2500);
-    } catch (e: any) {
-      setErr(e.message || String(e));
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -53,8 +53,8 @@ export function CollectorAddrPanel({ consumerId }: Props) {
     if (!confirm(`Remove saved address for "${addrName}"?`)) return;
     try {
       await delMut.mutateAsync(addrName);
-    } catch (e: any) {
-      alert(e.message || String(e));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : String(e));
     }
   }
 

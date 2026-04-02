@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { authHeader } from '../common.ts';
+import React, { useState } from 'react';
+import { useDownloadLetterZip } from './hooks.ts';
 import type { GeneratedLetter } from './types.ts';
 import { MAIL_RATES, fmtPrice, getTokenParam } from './utils.ts';
 
@@ -15,6 +15,10 @@ interface Props {
 
 const MAX_GROUP_SIZE = 10;
 
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 export function LetterPreviewModal({ jobId, letters, roundNum, portalSent: initialPortalSent, portalError: initialPortalError, onClose, onPortalSend }: Props) {
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(() => new Set(letters.map((l, i) => l.index ?? i)));
   const [activeMailKey, setActiveMailKey] = useState('certified');
@@ -22,10 +26,10 @@ export function LetterPreviewModal({ jobId, letters, roundNum, portalSent: initi
   const [portalSent, setPortalSent] = useState(initialPortalSent);
   const [portalError, setPortalError] = useState(initialPortalError);
   const [portalSending, setPortalSending] = useState(false);
-  const [dlStatus, setDlStatus] = useState<string | null>(null);
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
   const [groupCollapsed, setGroupCollapsed] = useState<Map<string, boolean>>(new Map());
 
+  const downloadZipM = useDownloadLetterZip();
   const tokenParam = getTokenParam();
 
   function toggleIndex(idx: number) {
@@ -67,40 +71,20 @@ export function LetterPreviewModal({ jobId, letters, roundNum, portalSent: initi
 
   async function downloadSelected() {
     if (!selectedIndices.size) return;
-    setDlStatus('Building ZIP…');
     try {
-      const res = await fetch(`/api/letters/${encodeURIComponent(jobId)}/selected.zip`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ indices: [...selectedIndices] }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'selected_letters.zip';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    } catch (err: any) {
-      alert(`Download failed: ${err.message || err}`);
-    } finally { setDlStatus(null); }
+      await downloadZipM.mutateAsync({ jobId, type: 'selected', indices: [...selectedIndices] });
+    } catch (e: unknown) {
+      alert(`Download failed: ${errMsg(e)}`);
+    }
   }
 
   async function downloadGrouped() {
     if (!selectedIndices.size) return;
-    setDlStatus('Building grouped ZIP…');
     try {
-      const res = await fetch(`/api/letters/${encodeURIComponent(jobId)}/grouped.zip`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeader() },
-        body: JSON.stringify({ indices: [...selectedIndices] }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'grouped_letters.zip';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-    } catch (err: any) {
-      alert(`Grouped download failed: ${err.message || err}`);
-    } finally { setDlStatus(null); }
+      await downloadZipM.mutateAsync({ jobId, type: 'grouped', indices: [...selectedIndices] });
+    } catch (e: unknown) {
+      alert(`Grouped download failed: ${errMsg(e)}`);
+    }
   }
 
   async function handleSendPortal() {
@@ -108,14 +92,15 @@ export function LetterPreviewModal({ jobId, letters, roundNum, portalSent: initi
     setPortalError('');
     try {
       const ok = await onPortalSend(jobId);
-      if (ok) { setPortalSent(true); }
-      else { setPortalError('Failed to send to portal.'); }
-    } catch (err: any) {
-      setPortalError(err.message || String(err));
+      if (ok) setPortalSent(true);
+      else setPortalError('Failed to send to portal.');
+    } catch (e: unknown) {
+      setPortalError(errMsg(e));
     } finally { setPortalSending(false); }
   }
 
   const hasOverLimit = groups.some(g => g.totalParts > 1);
+  const dlBusy = downloadZipM.isPending;
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
@@ -227,18 +212,18 @@ export function LetterPreviewModal({ jobId, letters, roundNum, portalSent: initi
         {/* Actions */}
         <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <a className="btn btn-outline text-xs" href={`/api/letters/${encodeURIComponent(jobId)}/all.zip${tokenParam}`} style={{ textDecoration: 'none' }}>⬇ All (ZIP)</a>
-          <button className="btn btn-outline text-xs" onClick={downloadSelected} disabled={!selectedIndices.size || !!dlStatus}
+          <button className="btn btn-outline text-xs" onClick={downloadSelected} disabled={!selectedIndices.size || dlBusy}
             style={{ borderColor: 'rgba(96,165,250,0.35)', color: '#60a5fa' }}>
-            {dlStatus || `⬇ Selected (${selectedIndices.size})`}
+            {dlBusy ? 'Building…' : `⬇ Selected (${selectedIndices.size})`}
           </button>
           <button className="btn btn-outline text-xs" onClick={() => setGroupingActive(a => !a)}
             style={{ borderColor: groupingActive ? 'rgba(168,85,247,0.5)' : 'rgba(168,85,247,0.4)', color: groupingActive ? '#c084fc' : '#a855f7', background: groupingActive ? 'rgba(168,85,247,0.18)' : 'transparent' }}>
             ⊞ {groupingActive ? 'Grouped ✓' : 'Group by Bureau'}
           </button>
           {groupingActive && (
-            <button className="btn btn-outline text-xs" onClick={downloadGrouped} disabled={!selectedIndices.size || !!dlStatus}
+            <button className="btn btn-outline text-xs" onClick={downloadGrouped} disabled={!selectedIndices.size || dlBusy}
               style={{ borderColor: 'rgba(74,222,128,0.4)', color: '#4ade80' }}>
-              ⬇ Grouped ({envelopeCount} envelope{envelopeCount !== 1 ? 's' : ''})
+              {dlBusy ? 'Building…' : `⬇ Grouped (${envelopeCount} envelope${envelopeCount !== 1 ? 's' : ''})`}
             </button>
           )}
           <button className="btn btn-outline text-xs" onClick={handleSendPortal}
