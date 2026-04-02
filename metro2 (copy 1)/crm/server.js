@@ -2623,6 +2623,9 @@ app.post("/api/settings", authenticate, requireRole("admin"), async (req, res) =
   if (Object.prototype.hasOwnProperty.call(payload, "hotkeys")) {
     updates.hotkeys = payload.hotkeys;
   }
+  if (Object.prototype.hasOwnProperty.call(payload, "letterIntelliSenseRules")) {
+    updates.letterIntelliSenseRules = payload.letterIntelliSenseRules;
+  }
 
   const payloadKeys = Object.keys(payload || {});
   const hasNonHotkeyUpdate = payloadKeys.some((key) => key !== "hotkeys");
@@ -11410,6 +11413,8 @@ app.post("/api/consumers/:id/disputes/:jobId/response", authenticate, async (req
 
     const roundPayloadItems = roundEvent.payload.items || [];
     const recommendations = [];
+    const _recSettingsForResponse = await loadSettings(req).catch(() => ({}));
+    const _recOverridesForResponse = (_recSettingsForResponse.letterIntelliSenseRules && typeof _recSettingsForResponse.letterIntelliSenseRules === 'object') ? _recSettingsForResponse.letterIntelliSenseRules : {};
     for (const ri of normalizedItems) {
       if (["removed", "deleted", "corrected"].includes(ri.outcome)) continue;
       const letterInfo = (roundEvent.payload.letters || []).find(l => matchCreditorBureau(l, ri));
@@ -11423,7 +11428,7 @@ app.post("/api/consumers/:id/disputes/:jobId/response", authenticate, async (req
         violations: Array.isArray(matchedItem?.violations) ? matchedItem.violations : [],
         accountType: matchedItem?.accountType || '',
         accountStatus: matchedItem?.accountStatus || '',
-      });
+      }, _recOverridesForResponse);
       recommendations.push({ creditor: ri.creditor, bureau: ri.bureau, ...rec });
       await addEvent(consumerId, "dispute_recommendation", {
         jobId,
@@ -11503,6 +11508,8 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
       return res.status(404).json({ ok: false, error: "Dispute round not found" });
     }
 
+    const _recSettingsForRec = await loadSettings(req).catch(() => ({}));
+    const _recOverridesForRec = (_recSettingsForRec.letterIntelliSenseRules && typeof _recSettingsForRec.letterIntelliSenseRules === 'object') ? _recSettingsForRec.letterIntelliSenseRules : {};
     const recommendations = [];
     const payloadItems = roundEvent.payload.items || [];
     for (let idx = 0; idx < payloadItems.length; idx++) {
@@ -11529,7 +11536,7 @@ app.get("/api/consumers/:id/disputes/:jobId/recommendation", authenticate, async
         violations: itemViolations,
         accountType: itemAccountType,
         accountStatus: itemAccountStatus,
-      });
+      }, _recOverridesForRec);
       const prevReason = item.specificDisputeReason || letterInfo?.specificDisputeReason || null;
       recommendations.push({ creditor: item.creditor, bureau: item.bureau, tradelineIndex: item.tradelineIndex ?? null, itemIndex: idx, resolved: false, specificDisputeReason: prevReason, ...rec });
     }

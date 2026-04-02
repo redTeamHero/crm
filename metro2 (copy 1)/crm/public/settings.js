@@ -746,8 +746,8 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.addEventListener('click', handleSave);
   }
 
-  init();
-  
+  init().then(() => initIntelliSensePanel()).catch(console.error);
+
   async function loadUsers() {
     if (!userListEl) return;
     try {
@@ -784,5 +784,180 @@ document.addEventListener('DOMContentLoaded', () => {
       userListEl.appendChild(row);
     });
   }
+
+  const INTELLISENSE_SCENARIOS = [
+    { group: 'First Round', key: 'first:medical_collection',      label: 'Medical debt in collections',              defaultTemplate: 'hipaa-medical-debt' },
+    { group: 'First Round', key: 'first:harassment_collection',   label: 'Harassment / abusive collection',          defaultTemplate: 'fdcpa-harassment' },
+    { group: 'First Round', key: 'first:time_barred_collection',  label: 'Time-barred debt (collection)',            defaultTemplate: 'fdcpa-time-barred' },
+    { group: 'First Round', key: 'first:metro2_inconsistency',    label: 'Metro 2 inconsistency / compliance',       defaultTemplate: 'metro2-inconsistency-dispute' },
+    { group: 'First Round', key: 'first:obsolete_debt',           label: 'Obsolete / expired debt',                 defaultTemplate: 'obsolete-debt' },
+    { group: 'First Round', key: 'first:bankruptcy',              label: 'Bankruptcy misreporting',                  defaultTemplate: 'bankruptcy-misreporting' },
+    { group: 'First Round', key: 'first:tila_loan',               label: 'TILA disclosure violation (loan)',         defaultTemplate: 'tila-disclosure' },
+    { group: 'First Round', key: 'first:general_collection',      label: 'General collection account',              defaultTemplate: 'debt-validation' },
+    { group: 'First Round', key: 'first:reinsertion',             label: 'Re-inserted / reappearing item',          defaultTemplate: 'reinsertion-dispute' },
+    { group: 'First Round', key: 'first:late_payment_only',       label: 'Late payment only (goodwill eligible)',   defaultTemplate: 'goodwill-removal' },
+    { group: 'First Round', key: 'first:violations_general',      label: 'General inaccuracies (has violations)',   defaultTemplate: '611-general-dispute' },
+    { group: 'First Round', key: 'first:default',                 label: 'Default (no specific match)',             defaultTemplate: '611-general-dispute' },
+    { group: 'Follow-up: Awaiting Response', key: 'next:awaiting_time_barred',   label: 'Awaiting — time-barred collection (round 2+)',  defaultTemplate: 'fdcpa-time-barred' },
+    { group: 'Follow-up: Awaiting Response', key: 'next:awaiting_collection',    label: 'Awaiting — general collection',                 defaultTemplate: 'debt-validation' },
+    { group: 'Follow-up: Awaiting Response', key: 'next:awaiting_bankruptcy',    label: 'Awaiting — bankruptcy',                        defaultTemplate: 'bankruptcy-misreporting' },
+    { group: 'Follow-up: Awaiting Response', key: 'next:awaiting_obsolete',      label: 'Awaiting — obsolete debt',                     defaultTemplate: 'obsolete-debt' },
+    { group: 'Follow-up: Awaiting Response', key: 'next:awaiting_metro2',        label: 'Awaiting — Metro 2 issues',                    defaultTemplate: 'metro2-inconsistency-dispute' },
+    { group: 'Follow-up: Awaiting Response', key: 'next:awaiting_default',       label: 'Awaiting — default',                           defaultTemplate: 'second-round-dispute' },
+    { group: 'Follow-up: No Response',       key: 'next:no_response_pfd',           label: 'No response — pay-for-delete offer',              defaultTemplate: 'pay-for-delete-followup' },
+    { group: 'Follow-up: No Response',       key: 'next:no_response_time_barred',   label: 'No response — time-barred (round 2+)',            defaultTemplate: 'fdcpa-time-barred' },
+    { group: 'Follow-up: No Response',       key: 'next:no_response_metro2_r3',     label: 'No response — Metro 2 (round 3+)',               defaultTemplate: 'metro2-deletion-demand' },
+    { group: 'Follow-up: No Response',       key: 'next:no_response_r3',            label: 'No response — escalation (round 3+)',             defaultTemplate: 'ag-cfpb-escalation' },
+    { group: 'Follow-up: No Response',       key: 'next:no_response_collection_r2', label: 'No response — collection round 2+ (PFD)',         defaultTemplate: 'pay-for-delete' },
+    { group: 'Follow-up: No Response',       key: 'next:no_response_collection',    label: 'No response — general collection',                defaultTemplate: 'debt-validation' },
+    { group: 'Follow-up: No Response',       key: 'next:no_response_factual_r2',    label: 'No response — factual errors (round 2+)',         defaultTemplate: 'factual-errors-layer' },
+    { group: 'Follow-up: No Response',       key: 'next:no_response_default',       label: 'No response — default',                          defaultTemplate: 'second-round-dispute' },
+    { group: 'Follow-up: Verified',          key: 'next:verified_metro2_r3',        label: 'Verified — Metro 2 (round 3+)',                   defaultTemplate: 'metro2-deletion-demand' },
+    { group: 'Follow-up: Verified',          key: 'next:verified_r3',               label: 'Verified — escalation (round 3+)',                defaultTemplate: 'ag-cfpb-escalation' },
+    { group: 'Follow-up: Verified',          key: 'next:verified_collection_r2',    label: 'Verified — collection round 2+ (PFD)',            defaultTemplate: 'pay-for-delete' },
+    { group: 'Follow-up: Verified',          key: 'next:verified_collection',       label: 'Verified — collection default',                   defaultTemplate: '623-direct-dispute' },
+    { group: 'Follow-up: Verified',          key: 'next:verified_factual',          label: 'Verified — factual errors',                      defaultTemplate: 'factual-errors-layer' },
+    { group: 'Follow-up: Verified',          key: 'next:verified_metro2',           label: 'Verified — Metro 2 (method of verification)',    defaultTemplate: 'method-of-verification' },
+    { group: 'Follow-up: Verified',          key: 'next:verified_default',          label: 'Verified — default',                             defaultTemplate: '609-disclosure' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:medical_collection',        label: 'Medical collection follow-up',                    defaultTemplate: 'hipaa-medical-debt' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:harassment_collection',     label: 'Harassment follow-up',                           defaultTemplate: 'fdcpa-harassment' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:stalled_r3',               label: 'Stalled — round 3+ (arbitration)',                defaultTemplate: 'arbitration-election' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:stalled_default',           label: 'Stalled — default',                              defaultTemplate: '623-direct-dispute' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:partial_goodwill',          label: 'Partial correction — goodwill eligible',         defaultTemplate: 'goodwill-removal' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:partial_collection',        label: 'Partial correction — collection',                 defaultTemplate: '623-direct-dispute' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:partial_default',           label: 'Partial correction — default',                   defaultTemplate: '611-general-dispute' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:updated',                   label: 'Item updated — verification request',            defaultTemplate: 'method-of-verification' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:r3_metro2',                 label: 'Round 3+ — Metro 2 deletion demand',             defaultTemplate: 'metro2-deletion-demand' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:r3_default',               label: 'Round 3+ — escalation',                          defaultTemplate: 'ag-cfpb-escalation' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:collection_time_barred_r2', label: 'Collection — time-barred round 2+',              defaultTemplate: 'fdcpa-time-barred' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:collection_r2_pfd',         label: 'Collection — round 2+ (PFD)',                    defaultTemplate: 'pay-for-delete' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:collection_default',        label: 'Collection — default',                           defaultTemplate: 'debt-validation' },
+    { group: 'Follow-up: Other Outcomes',    key: 'next:default',                   label: 'Default follow-up',                              defaultTemplate: 'second-round-dispute' },
+  ];
+
+  let _intelliSenseTemplates = [];
+  let _intelliSenseRules = {};
+
+  function escHtmlIS(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function renderIntelliSenseGroups() {
+    const container = document.getElementById('intelliSenseGroups');
+    if (!container) return;
+    const groupMap = {};
+    for (const s of INTELLISENSE_SCENARIOS) {
+      if (!groupMap[s.group]) groupMap[s.group] = [];
+      groupMap[s.group].push(s);
+    }
+    const optionsHtml = '<option value="">— System default —</option>' +
+      (_intelliSenseTemplates.length
+        ? _intelliSenseTemplates.map(t => `<option value="${escHtmlIS(t.id)}">${escHtmlIS(t.name || t.id)}</option>`).join('')
+        : '');
+    container.innerHTML = Object.entries(groupMap).map(([group, scenarios]) => `
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#6b7280;padding:0 0 6px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:8px;">${escHtmlIS(group)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;">
+          ${scenarios.map(s => {
+            const curVal = _intelliSenseRules[s.key] || '';
+            return `<label style="display:flex;flex-direction:column;gap:3px;">
+              <span style="font-size:11px;color:#9ca3af;">${escHtmlIS(s.label)}</span>
+              <select data-scenario="${escHtmlIS(s.key)}" style="font-size:12px;padding:4px 6px;background:#1a1a1e;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e5e5e5;width:100%;">
+                ${optionsHtml.replace(`value="${escHtmlIS(curVal)}"`, `value="${escHtmlIS(curVal)}" selected`)}
+              </select>
+              <span style="font-size:10px;color:#4b5563;">Default: ${escHtmlIS(s.defaultTemplate)}</span>
+            </label>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function collectIntelliSenseRules() {
+    const rules = {};
+    document.querySelectorAll('#intelliSenseGroups select[data-scenario]').forEach(sel => {
+      const key = sel.dataset.scenario;
+      const val = sel.value;
+      if (val) rules[key] = val;
+    });
+    return rules;
+  }
+
+  async function loadIntelliSenseTemplates() {
+    try {
+      const [tplResp, sampleResp] = await Promise.all([
+        fetch('/api/templates', { headers: authHeader() }).then(r => r.json()).catch(() => ({})),
+        fetch('/api/sample-letters', { headers: authHeader() }).then(r => r.json()).catch(() => ({})),
+      ]);
+      const userTemplates = (tplResp.templates || []).map(t => ({ id: t.id, name: t.name || t.id }));
+      const sampleTemplates = (sampleResp.templates || []).map(t => ({ id: t.id, name: t.name || t.id }));
+      const seen = new Set();
+      _intelliSenseTemplates = [];
+      for (const t of [...sampleTemplates, ...userTemplates]) {
+        if (!seen.has(t.id)) { seen.add(t.id); _intelliSenseTemplates.push(t); }
+      }
+      _intelliSenseTemplates.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
+    } catch (e) {
+      console.warn('Failed to load templates for intellisense panel', e);
+    }
+  }
+
+  async function initIntelliSensePanel() {
+    const container = document.getElementById('intelliSenseGroups');
+    const saveBtn2 = document.getElementById('saveIntelliSense');
+    const resetBtn = document.getElementById('resetIntelliSense');
+    const msgEl2 = document.getElementById('intelliSenseMsg');
+    if (!container) return;
+
+    await loadIntelliSenseTemplates();
+    _intelliSenseRules = (currentSettings && currentSettings.letterIntelliSenseRules && typeof currentSettings.letterIntelliSenseRules === 'object')
+      ? { ...currentSettings.letterIntelliSenseRules }
+      : {};
+    renderIntelliSenseGroups();
+
+    if (saveBtn2) {
+      saveBtn2.addEventListener('click', async () => {
+        const rules = collectIntelliSenseRules();
+        const originalLabel = saveBtn2.textContent;
+        saveBtn2.disabled = true;
+        saveBtn2.textContent = 'Saving…';
+        try {
+          const resp = await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeader() },
+            body: JSON.stringify({ letterIntelliSenseRules: rules })
+          });
+          const result = await resp.json().catch(() => ({}));
+          if (!resp.ok || !result.ok) throw new Error(result?.error || 'Save failed');
+          _intelliSenseRules = rules;
+          if (currentSettings) currentSettings.letterIntelliSenseRules = rules;
+          if (msgEl2) {
+            msgEl2.textContent = 'Saved!';
+            msgEl2.classList.remove('hidden');
+            setTimeout(() => msgEl2.classList.add('hidden'), 2000);
+          }
+        } catch (err) {
+          console.error('Failed to save intellisense rules', err);
+          if (msgEl2) {
+            msgEl2.textContent = 'Save failed.';
+            msgEl2.classList.remove('hidden');
+            msgEl2.style.color = '#f87171';
+            setTimeout(() => { msgEl2.classList.add('hidden'); msgEl2.style.color = ''; }, 3000);
+          }
+        } finally {
+          saveBtn2.disabled = false;
+          saveBtn2.textContent = originalLabel;
+        }
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        _intelliSenseRules = {};
+        renderIntelliSenseGroups();
+      });
+    }
+  }
+
+
 });
+
 
